@@ -1,18 +1,101 @@
-# Salesforce DX Project: Next Steps
+# Salesforce Platform Playground
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce DX プロジェクトです。
 
-## How Do You Plan to Deploy Your Changes?
+このリポジトリでは、Apex だけでなく Custom Object、Custom Field、Permission Set、Flow、Validation Rule なども扱い、メタデータで新しい Dev 組織へ再現できる状態を目指します。
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+## ドキュメント
 
-## Configure Your Salesforce DX Project
+- [Docs](docs/index.md)
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+## 開発ルール
 
-## Read All About It
+| 対象               | 形式                      |
+| ------------------ | ------------------------- |
+| 作業ブランチ       | `feature/...`             |
+| Codex 作業ブランチ | `codex/...`               |
+| コミットメッセージ | `<type>: <日本語summary>` |
+| PR title           | `<type>: <日本語summary>` |
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+`type` は変更内容に合わせて以下から選びます。
+
+| type       | 用途                   |
+| ---------- | ---------------------- |
+| `feat`     | 機能追加               |
+| `fix`      | 不具合修正             |
+| `docs`     | ドキュメント変更       |
+| `test`     | テスト追加、修正       |
+| `refactor` | 振る舞いを変えない整理 |
+| `style`    | 見た目や整形の変更     |
+| `ci`       | CI 設定の変更          |
+| `chore`    | その他の保守作業       |
+| `revert`   | 変更の取り消し         |
+
+詳細は [開発ルール](docs/development/rules.md) を参照します。
+
+## 技術スタック
+
+- Salesforce DX
+- Salesforce CLI
+- Apex
+- Salesforce metadata
+- Node.js / npm
+- Prettier
+- ESLint
+- LWC Jest
+
+## 動作環境
+
+ローカルで開発するには、以下が必要です。
+
+- Git
+- Node.js
+- npm
+- Salesforce CLI
+- Dev 組織
+
+## セットアップ手順
+
+最初は、リポジトリを clone して依存関係を入れ、Dev 組織へログインします。
+
+```sh
+# リポジトリを取得して作業ディレクトリへ移動する
+git clone https://github.com/tyoshikawa1106/salesforce-platform-playground.git
+cd salesforce-platform-playground
+
+# package-lock.json に固定された依存関係をインストールする
+npm ci
+
+# Dev 組織へログインする
+sf org login web --set-default --alias dev
+```
+
+詳しくは [ローカル開発環境](docs/setup/local-development.md) を参照してください。
+
+## 確認方法
+
+Dev 組織に対する操作は、対象と目的を確認してから実行します。
+
+```sh
+sf project deploy validate --source-dir force-app
+sf project deploy start --source-dir force-app
+sf apex run test --result-format human
+```
+
+現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
+
+## Salesforce 公式 skills
+
+Salesforce 公式の `forcedotcom/sf-skills` は補助情報として利用します。導入方針は [Salesforce 公式 skills](docs/setup/sf-skills.md) を参照します。
+
+## 参考サイト
+
+| 用途                    | サイト                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Salesforce DX           | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev)                        |
+| Salesforce CLI          | [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)                                                           |
+| Salesforce CLI コマンド | [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference) |
+| Apex                    | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode)                                 |
+| Metadata API            | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta)                         |
+| Agent Skills            | [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills)                                                                |
+| GitHub CLI              | [GitHub CLI Manual](https://cli.github.com/manual/)                                                                              |
