@@ -1,0 +1,47 @@
+# 開発チェックリスト
+
+Salesforce メタデータを変更する前後に、このチェックリストを使います。
+
+## 変更前
+
+- 対象のタスクや Issue を確認し、変更範囲を狭く保つ。
+- `force-app/main/default` 配下の関連ファイルを確認する。
+- 変更がプロファイル、権限セット、カスタムオブジェクト、項目、Flow、入力規則に依存するか確認する。
+- 組織固有の値、認証情報、ローカル認証状態をリポジトリに入れない。
+
+## Apex 変更
+
+- `.cls` ファイルと対応する `-meta.xml` ファイルを一緒に追加・更新する。
+- 振る舞いを変える場合は、対象を絞った Apex テストを追加・更新する。
+- 開発中は関連テストを絞って実行する。
+
+例:
+
+```sh
+sf apex run test --class-names MyClassTest --result-format human --synchronous
+```
+
+## メタデータ変更
+
+- デプロイ対象のメタデータは `force-app/main/default` 配下に置く。
+- タスクに必要なメタデータだけを取得する。
+- 取得したメタデータはコミット前に確認する。特に権限や自動生成に見えるファイルに注意する。
+- タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
+
+## Dev 組織での検証
+
+現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
+
+反映前に検証します:
+
+```sh
+sf project deploy validate --source-dir force-app
+```
+
+検証結果に問題がなければ反映します:
+
+```sh
+sf project deploy start --source-dir force-app
+```
+
+Apex 変更後は、関連する Apex テストを実行し、作業報告に結果を含めます。
