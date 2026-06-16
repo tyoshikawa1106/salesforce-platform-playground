@@ -21,6 +21,7 @@
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` 前提で進めない。
 - 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、明示確認してから実行する。
 - Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使うが、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
+- ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - メタデータ変更後は、変更ファイルと実行した検証・テストコマンドを報告する。
 - コミット時の hook は原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、push、PR 作成、CI 確認、merge はユーザーが明示した場合のみ進める。

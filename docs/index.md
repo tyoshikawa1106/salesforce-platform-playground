@@ -16,11 +16,13 @@
 
 ## 開発
 
+- [ドキュメント配置ルール](development/documentation-rules.md)
 - [開発ルール](development/rules.md)
 - [開発チェックリスト](development/checklist.md)
 
 ## ナレッジ
 
+- [GitHub Issue テンプレート設定](knowledge/github-issue-template-config.md)
 - [npm と pre-commit hook](knowledge/npm-and-precommit.md)
 
-運用ルールは `AGENTS.md` または `docs/development/` に置きます。`docs/knowledge/` は学習用とし、実務チェックリストは置きません。
+ドキュメントの配置方針は [ドキュメント配置ルール](development/documentation-rules.md) に従います。
