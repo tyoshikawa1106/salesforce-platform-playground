@@ -14,6 +14,7 @@
 - コミット前に現在ブランチを確認し、`main` にいる場合は必ず作業ブランチを作成してからコミットする。
 - ブランチ名は通常 `feature/<summary>`、Codex 作業では `codex/<summary>` とする。
 - コミットメッセージと PR title は `<type>: <日本語summary>` 形式にする。
+- GitHub の Issue と PR には必ずラベルを付け、運用は `docs/development/rules.md` のラベルルールに従う。
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
 - 秘密情報、認証ファイル、組織固有の一時ファイル、個人環境の値をコミットしない。
 - `.env`、`.env.*`、秘密鍵、証明書、token、password、client secret などの実値を含み得るファイルを読まない。
