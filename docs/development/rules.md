@@ -7,7 +7,9 @@
 - `main` は常に動作確認済みの状態に保つ。
 - `main` へ直接コミットしない。
 - 作業前に Issue を作成し、Issue 単位でブランチを切る。
+- Issue は `.github/ISSUE_TEMPLATE/` の内容に従って作成する。
 - PR には対応する Issue を `Closes #<issue番号>` で紐づける。
+- PR 本文は `.github/pull_request_template.md` の構成に従って作成する。
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - コミット時の hook は原則通す。
 - `--no-verify` はユーザーが明示した場合だけ使う。
