@@ -15,6 +15,7 @@
 - ブランチ名は通常 `feature/<summary>`、Codex 作業では `codex/<summary>` とする。
 - コミットメッセージと PR title は `<type>: <日本語summary>` 形式にする。
 - GitHub の Issue と PR には必ずラベルを付け、運用は `docs/development/rules.md` のラベルルールに従う。
+- エージェントが PR を作成・更新する場合は、対応 Issue のラベルを確認し、PR ラベルを揃える。
 - GitHub の Issue と PR は、リポジトリのテンプレートに従って作成する。
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
 - 秘密情報、認証ファイル、組織固有の一時ファイル、個人環境の値をコミットしない。
