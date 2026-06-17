@@ -17,7 +17,7 @@
 ## 開発
 
 - [ドキュメント配置ルール](development/documentation-rules.md)
-- [開発ルール](development/rules.md)
+- [GitHub 運用ルール](development/github-rules.md)
 - [開発チェックリスト](development/checklist.md)
 - [Apex 開発ルール](development/apex-rules.md)
 - [npm audit 確認メモ](development/npm-audit-review.md)
