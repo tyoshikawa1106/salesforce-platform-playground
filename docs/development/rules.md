@@ -40,9 +40,10 @@
 
 ## ラベルルール
 
-GitHub の Issue には必ずラベルを付けます。PR にはラベルを付けません。
+GitHub の Issue と PR には必ずラベルを付けます。
 
 - Issue 作成時は、内容に合う分類ラベルを付ける。
+- PR 作成時は、対応する Issue と同じ観点でラベルを付ける。
 - 迷う場合は、作業内容を表す `area:*` と変更種別を表す `type:*` を 1 つずつ選ぶ。
 - 既存ラベルで表現できない場合は、勝手に新しいラベルを増やさず確認する。
 
@@ -66,7 +67,7 @@ GitHub の Issue には必ずラベルを付けます。PR にはラベルを付
 | `type:refactor`    | 振る舞いを変えない整理       |
 | `type:test`        | テスト追加、テスト方針の変更 |
 
-GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、Issue の内容に合う場合は利用します。
+GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
 
 ## 例
 
