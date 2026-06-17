@@ -96,6 +96,30 @@ Issue と PR には、作成時に assignee を設定します。
 - GitHub Actions は CI、静的解析、secret scan など、変更内容の品質確認に使う。
 - assignee、label、milestone、Project 追加、Project status 更新などの運用メタデータ整理は Actions で自動化せず、エージェントまたはユーザーが明示的に行う。
 
+## リポジトリセキュリティ設定
+
+このリポジトリは公開リポジトリとして扱い、GitHub 側の保護設定を軽量に有効化します。
+
+2026-06-18 時点の標準設定は次の通りです。
+
+- `main` は branch protection を有効化し、Pull Request 経由の変更を必須にする。
+- branch protection は admin にも適用する。
+- `main` への force push と branch deletion は許可しない。
+- PR の unresolved conversation が残っている場合は merge しない。
+- Dependabot alerts と Dependabot security updates を有効化する。
+- secret scanning と push protection を有効化する。
+- GitHub Actions は GitHub-owned actions と verified creator の actions だけを許可する。
+- PR merge 後は GitHub 側で head branch を自動削除する。
+
+次の設定は、現時点では保留します。
+
+- required status checks: 実 CI / test workflow がまだないため。
+- required approving review count: 個人運用で協力者がいない場合に merge できなくなるため。
+- required linear history: merge 方針を別途決める必要があるため。
+- CODEOWNERS 必須レビュー: 個人運用では重くなりやすいため。
+
+secret scanning の non-provider patterns と validity checks は有効化候補ですが、2026-06-18 時点では GitHub API で更新しても repository settings に反映されませんでした。GitHub 側で利用可能になったことを確認できたら有効化します。
+
 ## Project / Milestone ルール
 
 Issue と PR は、このリポジトリ用の Project に紐づけます。Milestone は、期限やリリースなどの区切りがある場合だけ使います。
