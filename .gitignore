@@ -24,6 +24,10 @@ yarn-error.log*
 # Dependency directories
 node_modules/
 
+# Agent skills installed locally
+.agents/
+skills-lock.json
+
 # ApexPMD cache
 .pmdCache
 
