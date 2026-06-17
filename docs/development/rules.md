@@ -64,7 +64,7 @@ GitHub の Issue と PR には必ずラベルを付けます。
 - PR 作成時は、対応する Issue と同じ観点でラベルを付ける。
 - エージェントが PR を作成する場合は、対応 Issue のラベルを確認し、同じ観点のラベルを PR に付ける。
 - エージェントが PR を作成・更新した後は PR のラベルを確認し、対応 Issue と観点がずれていれば補正する。
-- 迷う場合は、作業内容を表す `area:*` と変更種別を表す `type:*` を 1 つずつ選ぶ。
+- 迷う場合は、まず GitHub 標準ラベルから内容に合うものを選び、必要に応じて作業領域を表す `area:*` を追加する。
 - このファイルに定義済みのラベルが GitHub に存在しない場合は、ユーザーに確認してからラベルを作成して使う。
 - 未定義のラベルが必要な場合は、勝手に新しいラベルを増やさず確認する。
 
@@ -75,18 +75,8 @@ GitHub の Issue と PR には必ずラベルを付けます。
 | `area:apex`       | Apex クラス、トリガー、Apex テスト      |
 | `area:metadata`   | Object、Field、Flow、Permission Set     |
 | `area:deployment` | deploy、retrieve、destructive changes   |
-| `area:docs`       | README、AGENTS、docs                    |
 | `area:github`     | Issue、PR、GitHub Actions、テンプレート |
 | `area:testing`    | テスト、検証、coverage                  |
-
-### type label
-
-| label              | 用途                         |
-| ------------------ | ---------------------------- |
-| `type:improvement` | 改善、機能追加、ルール追加   |
-| `type:maintenance` | 保守、依存関係、運用作業     |
-| `type:refactor`    | 振る舞いを変えない整理       |
-| `type:test`        | テスト追加、テスト方針の変更 |
 
 GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
 
