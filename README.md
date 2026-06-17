@@ -31,7 +31,7 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 | `chore`    | その他の保守作業       |
 | `revert`   | 変更の取り消し         |
 
-詳細は [開発ルール](docs/development/rules.md) を参照します。
+詳細は [GitHub 運用ルール](docs/development/github-rules.md) を参照します。
 
 ## 技術スタック
 
