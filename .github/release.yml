@@ -1,0 +1,29 @@
+changelog:
+  categories:
+    - title: 機能追加
+      labels:
+        - enhancement
+    - title: 不具合修正
+      labels:
+        - bug
+    - title: ドキュメント
+      labels:
+        - documentation
+    - title: Apex
+      labels:
+        - area:apex
+    - title: メタデータ
+      labels:
+        - area:metadata
+    - title: デプロイ / 運用
+      labels:
+        - area:deployment
+    - title: テスト / 品質
+      labels:
+        - area:testing
+    - title: GitHub / 保守
+      labels:
+        - area:github
+    - title: その他
+      labels:
+        - "*"
