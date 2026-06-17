@@ -80,17 +80,6 @@ GitHub の Issue と PR には必ずラベルを付けます。
 
 GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
 
-## Assignee ルール
-
-Issue と PR には、作成時に assignee を設定します。
-
-- 特別な指定がない場合は、repository owner を assignee にする。
-- エージェントが Issue / PR を作成する場合は、作成コマンドで assignee を指定する。
-- assignee が未設定の Issue / PR を見つけた場合は、気づいた時点で補正する。
-- 特定の個人ユーザー名を運用ルールや automation config に固定しない。
-- author は作成者、assignee は現在の担当者として扱う。
-- PR 作成・更新後は、`assignees`、`labels`、Project 紐づけを確認する。
-
 ## GitHub Actions
 
 - GitHub Actions は CI、静的解析、secret scan など、変更内容の品質確認に使う。
@@ -102,8 +91,6 @@ Issue と PR は、このリポジトリ用の Project に紐づけます。Mile
 
 - Project は `Salesforce Platform Playground` を使う。
 - 新規 Issue / PR の Project は手動で設定する。
-- Project 追加は `gh project item-add ...` などで、エージェントまたはユーザーが明示的に実行する。
-- Project 紐づけの確認は対象 Issue / PR の item だけを見る。Project 全件を取得して絞り込む運用は避ける。
 - Project 設定のために、個人アクセストークンを GitHub Actions の secret に保存しない。
 - Milestone は自動設定しない。必要な作業単位が決まったときに手動で設定する。
 - Project 設定が漏れた場合は、気づいた時点で手動で補正する。
