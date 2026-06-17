@@ -7,7 +7,9 @@
 - `main` は常に動作確認済みの状態に保つ。
 - `main` へ直接コミットしない。
 - 作業前に Issue を作成し、Issue 単位でブランチを切る。
+- Issue は `.github/ISSUE_TEMPLATE/` の内容に従って作成する。
 - PR には対応する Issue を `Closes #<issue番号>` で紐づける。
+- PR 本文は `.github/pull_request_template.md` の構成に従って作成する。
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - コミット時の hook は原則通す。
 - `--no-verify` はユーザーが明示した場合だけ使う。
@@ -38,10 +40,9 @@
 
 ## ラベルルール
 
-GitHub の Issue と PR には必ずラベルを付けます。
+GitHub の Issue には必ずラベルを付けます。PR にはラベルを付けません。
 
 - Issue 作成時は、内容に合う分類ラベルを付ける。
-- PR 作成時は、対応する Issue と同じ観点でラベルを付ける。
 - 迷う場合は、作業内容を表す `area:*` と変更種別を表す `type:*` を 1 つずつ選ぶ。
 - 既存ラベルで表現できない場合は、勝手に新しいラベルを増やさず確認する。
 
@@ -65,7 +66,7 @@ GitHub の Issue と PR には必ずラベルを付けます。
 | `type:refactor`    | 振る舞いを変えない整理       |
 | `type:test`        | テスト追加、テスト方針の変更 |
 
-GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
+GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、Issue の内容に合う場合は利用します。
 
 ## 例
 
