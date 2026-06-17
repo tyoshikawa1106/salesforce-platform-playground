@@ -80,6 +80,17 @@ GitHub の Issue と PR には必ずラベルを付けます。
 
 GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
 
+## Project / Milestone ルール
+
+Issue と PR は、このリポジトリ用の Project に紐づけます。Milestone は、期限やリリースなどの区切りがある場合だけ使います。
+
+- Project は `Salesforce Platform Playground` を使う。
+- 新規 Issue / PR の Project は GitHub Actions で自動設定する。
+- 過去の Issue / PR は、同じ workflow の手動実行で Project をまとめて補正する。
+- Milestone は自動設定しない。必要な作業単位が決まったときに手動で設定する。
+- Project 設定が失敗した場合は、原因を確認してから手動で補正する。
+- user Project v2 への書き込みで `GITHUB_TOKEN` が使えない場合は、`PROJECTS_TOKEN` secret を設定する。
+
 ## 例
 
 ```sh
