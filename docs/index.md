@@ -24,6 +24,7 @@
 
 ## ナレッジ
 
+- [エージェントルールと GitHub Actions の使い分け](knowledge/agent-rules-or-github-actions.md)
 - [GitHub Issue テンプレート設定](knowledge/github-issue-template-config.md)
 - [npm と pre-commit hook](knowledge/npm-and-precommit.md)
 
