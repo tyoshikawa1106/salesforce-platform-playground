@@ -1,0 +1,101 @@
+# Apex 開発ルール
+
+Apex クラス、トリガー、Apex テストを追加・更新するときの実務ルールです。
+
+## 基本方針
+
+- Apex と Salesforce メタデータは `force-app/main/default` 配下を正本にする。
+- `.cls` を追加・更新する場合は、対応する `-meta.xml` も一緒に扱う。
+- 振る舞いを変える前に、関連する Object、Field、Flow、Validation Rule、Permission Set への依存を確認する。
+- 組織設定や権限から確認できない仕様を、Apex 側で推測して固定しない。
+- 本番や Dev 組織に依存する値、認証情報、個人環境の値を Apex やメタデータに入れない。
+
+## クラスとメタデータ
+
+クラス本体は `.cls`、メタデータは `.cls-meta.xml` で管理します。
+
+- `apiVersion` は、既存メタデータとプロジェクトの対象バージョンに合わせる。
+- `status` は通常 `Active` にする。変更理由がある場合は作業報告に残す。
+- 新規 Apex は、役割が分かる名前にする。用途が広すぎる名前は避ける。
+- 既存クラスの責務を広げる前に、既存の呼び出し元とテスト影響を確認する。
+
+## Apex テスト
+
+振る舞いを追加・変更したら、対象を絞った Apex テストを追加または更新します。
+
+- テストクラス名は原則 `<対象名>Test` にする。
+- テストメソッド名は、期待する振る舞いが読める名前にする。
+- テストデータはテスト内で作成し、組織内の既存データに依存しない。
+- 正常系だけでなく、権限、入力不足、例外など変更範囲に関係する境界も確認する。
+- 検証には `System.assert`、`System.assertEquals`、`System.assertNotEquals` ではなく `Assert` クラスの関数を使う。
+- `SeeAllData=true` は、既存データが必要な理由を説明できる場合だけ使う。
+
+例:
+
+```apex
+@IsTest
+private class MyServiceTest {
+  @IsTest
+  static void createsRecordWhenInputIsValid() {
+    Account actual = new Account(Name = 'Example');
+
+    Assert.areEqual('Example', actual.Name);
+  }
+}
+```
+
+## テスト実行
+
+開発中は変更対象に近いテストを絞って実行します。
+
+```sh
+sf apex run test --class-names MyServiceTest --result-format human --synchronous
+```
+
+複数クラスを確認する場合:
+
+```sh
+sf apex run test --class-names MyServiceTest,MyOtherServiceTest --result-format human --synchronous
+```
+
+広めに確認する必要がある場合:
+
+```sh
+sf apex run test --test-level RunLocalTests --result-format human --synchronous
+```
+
+接続済み組織に対する test 実行は組織操作に含まれるため、実行前に対象と目的を確認します。
+
+## Deploy validate との関係
+
+デプロイ前の基本確認は `sf project deploy validate` です。
+
+```sh
+sf project deploy validate --source-dir force-app
+```
+
+Apex を含む変更では、validate だけでなく関連 Apex テストも確認します。
+
+- メタデータの整合性確認: `sf project deploy validate --source-dir force-app`
+- Apex の振る舞い確認: `sf apex run test --class-names ...`
+- Dev 組織への反映: `sf project deploy start --source-dir force-app`
+
+現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
+
+## Coverage の扱い
+
+このリポジトリでは、coverage 数値だけを目的にしたテスト追加はしません。
+
+- 変更した Apex の重要な振る舞いをテストで確認する。
+- coverage は deploy や test 結果の判断材料として扱う。
+- 組織全体の coverage 改善や CI 導入は、別 Issue で扱う。
+- coverage が不足する場合は、不足している振る舞いと対象クラスを報告する。
+
+## 作業報告
+
+Apex やメタデータを変更した後は、次を報告します。
+
+- 変更した `.cls` と `-meta.xml`
+- 追加・更新した Apex テスト
+- 実行した `sf project deploy validate` または `sf apex run test`
+- 実行しなかった確認と、その理由
