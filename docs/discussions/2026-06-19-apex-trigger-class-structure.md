@@ -273,3 +273,17 @@ AccountSelector
 
 大規模案件寄りに `Service` / `Domain` / `Selector` の名前を採用する場合でも、`Selector` を必ずオブジェクト単位にするかは別の判断になる。
 このリポジトリでは、改修時の探しやすさを重視するなら、初期配置は機能単位 `Selector` にする案が有力。
+
+## Helper / Dao と Service / Domain / Selector の位置づけ
+
+`Helper` / `Dao` は、設計として誤りという意味ではない。
+`Dao` は一般的なソフトウェア設計で使われる名前であり、`Helper` も補助処理をまとめる名前として使われる。
+
+一方で、Apex Enterprise Patterns / fflib の文脈では、Service Layer / Domain Layer / Selector Layer という表現が代表的に使われる。
+そのため、大規模案件や複数チーム開発では、`Service` / `Domain` / `Selector` の方が責務を説明しやすい。
+
+このリポジトリでは、次のように整理する。
+
+- `Dao` は否定しないが、SOQL の責務を表す名前としては `Selector` を優先して検討する。
+- `Helper` は否定しないが、処理の入口やユースケースを表す場合は `Service`、単一オブジェクトの業務ルールを表す場合は `Domain` への分離を検討する。
+- 命名だけを置き換えず、責務が合っているかを合わせて確認する。
