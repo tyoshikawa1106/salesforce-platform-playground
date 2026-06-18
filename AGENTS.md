@@ -15,6 +15,7 @@
 - コミット前に現在ブランチを確認し、`main` にいる場合は必ず作業ブランチを作成してからコミットする。
 - ブランチ名は通常 `feature/<summary>`、Codex 作業では `codex/<summary>` とする。
 - コミットメッセージと PR title は `<type>: <日本語summary>` 形式にする。
+- 実質的な変更のコミットには、目的、主な変更、検証結果を本文に記載する。
 - GitHub の Issue と PR には必ずラベルと assignee を付け、特別な指定がない限り repository owner を assignee にする。
 - エージェントが Issue / PR を作成・更新する場合は、ラベル、assignee、Project 紐づけを設定・確認し、運用は `docs/development/github-rules.md` に従う。
 - GitHub の Issue と PR は、リポジトリのテンプレートに従って作成する。
