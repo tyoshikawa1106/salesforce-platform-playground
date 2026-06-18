@@ -119,6 +119,32 @@ private with sharing class AccountTriggerHandlerTest {
     }
 
     @IsTest
+    static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
+        // Given
+        Account accountRecord = TestDataFactory.createAccount('㈱テスト(有)支店');
+
+        // When
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            insert accountRecord;
+            Test.stopTest();
+        }
+
+        // Then
+        Account insertedAccount = [
+            SELECT Name
+            FROM Account
+            WHERE Id = :accountRecord.Id
+            LIMIT 1
+        ];
+        Assert.areEqual(
+            '株式会社テスト有限会社支店',
+            insertedAccount.Name,
+            'All company abbreviations in the Account name should be normalized.'
+        );
+    }
+
+    @IsTest
     static void shouldKeepFormalCompanyNamesWhenAlreadyNormalized() {
         // Given
         Account accountRecord = TestDataFactory.createAccount('株式会社テスト');
