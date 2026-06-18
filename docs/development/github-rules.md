@@ -95,6 +95,9 @@ Issue と PR には、作成時に assignee を設定します。
 
 - GitHub Actions は CI、静的解析、secret scan など、変更内容の品質確認に使う。
 - assignee、label、milestone、Project 追加、Project status 更新などの運用メタデータ整理は Actions で自動化せず、エージェントまたはユーザーが明示的に行う。
+- CI workflow は `permissions: contents: read` を基本にし、必要な権限だけを明示する。
+- 最小 CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行する。
+- required status checks は、CI が `main` 上で安定して動くことを確認してから有効化する。
 
 ## リポジトリセキュリティ設定
 
