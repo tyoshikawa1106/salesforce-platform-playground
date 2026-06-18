@@ -198,3 +198,78 @@ AccountSelector
 大規模案件で採用する場合は、命名だけでなく設計ルール、レビュー基準、テスト方針まで合わせて決める必要がある。
 
 そのため現時点のプロジェクト標準案は、`Helper` / `Dao` を使う軽量な構成とする。
+
+## クエリ配置の再検討
+
+大規模案件寄りの構成では、`Service` / `Domain` / `Selector` を採用する案がある。
+この場合、`Selector` をオブジェクト単位にするか、機能単位にするかが重要な論点になる。
+
+### オブジェクト単位 Selector 案
+
+```text
+OpportunityTrigger
+OpportunityTriggerHandler
+OpportunityTriggerService
+OpportunityDomain
+OpportunitySelector
+OpportunityLineItemSelector
+AccountSelector
+PricebookEntrySelector
+```
+
+この案では、取得対象オブジェクトごとに `Selector` を分ける。
+Apex Enterprise Patterns / fflib の考え方に寄せやすく、複数機能から同じ取得処理を再利用しやすい。
+
+一方で、商談 trigger の改修時に必要なクエリが複数の `Selector` に散らばる。
+商談 trigger のために商談商品、取引先、価格表を取得する場合でも、クエリの置き場所はそれぞれのオブジェクト単位 `Selector` になる。
+
+```text
+OpportunityTriggerService
+  -> OpportunitySelector
+  -> OpportunityLineItemSelector
+  -> AccountSelector
+  -> PricebookEntrySelector
+```
+
+このため、機能改修時の導線は `Service` から呼び出し先を追う形になる。
+クラス名だけでは、どの機能で使われているクエリかは判断しにくい。
+
+### 機能単位 Selector 案
+
+```text
+OpportunityTrigger
+OpportunityTriggerHandler
+OpportunityTriggerService
+OpportunityTriggerSelector
+OpportunityDomain
+```
+
+この案では、商談 trigger のために必要な SOQL を `OpportunityTriggerSelector` に集める。
+取得対象が `Opportunity`、`OpportunityLineItem`、`Account`、`PricebookEntry` であっても、商談 trigger のための取得であれば同じ `Selector` に置く。
+
+```text
+OpportunityTriggerSelector
+  - selectOpportunitiesWithOwner
+  - countLineItemsByOpportunityId
+  - selectAccountsByOpportunityId
+  - selectPricebookEntriesByOpportunityId
+```
+
+この構成は、商談 trigger の改修時に見る場所が明確になる。
+一方で、Apex Enterprise Patterns の純粋なオブジェクト単位 `Selector` とはずれる。
+同じクエリが複数機能に増えた場合は、共通 `Selector` への切り出しを検討する。
+
+```text
+初期配置:
+OpportunityTriggerSelector
+
+共通化後:
+OpportunitySelector
+OpportunityLineItemSelector
+AccountSelector
+```
+
+### 現時点の整理
+
+大規模案件寄りに `Service` / `Domain` / `Selector` の名前を採用する場合でも、`Selector` を必ずオブジェクト単位にするかは別の判断になる。
+このリポジトリでは、改修時の探しやすさを重視するなら、初期配置は機能単位 `Selector` にする案が有力。
