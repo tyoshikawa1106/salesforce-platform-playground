@@ -65,22 +65,31 @@ sf apex run test --test-level RunLocalTests --result-format human --synchronous
 ```
 
 接続済み組織に対する test 実行は組織操作に含まれるため、実行前に対象と目的を確認します。
+test は現在接続されている Salesforce 組織に対してのみ実行し、明示依頼なしに target org を切り替えません。
 
-## Deploy validate との関係
+## Deploy validate と deploy start
 
-デプロイ前の基本確認は `sf project deploy validate` です。
+デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更した開発タスクでは、コミット前に `deploy validate`、`deploy start`、関連 Apex テストの coverage 確認までを完了条件にします。
 
 ```sh
 sf project deploy validate --source-dir force-app
 ```
 
-Apex を含む変更では、validate だけでなく関連 Apex テストも確認します。
+validate が成功したら、同じ現在接続中の組織へ反映します。
 
+```sh
+sf project deploy start --source-dir force-app
+```
+
+Apex を含む変更では、deploy 後に関連 Apex テストを coverage 付きで確認します。
+
+- 対象組織の確認: `sf org display`
 - メタデータの整合性確認: `sf project deploy validate --source-dir force-app`
-- Apex の振る舞い確認: `sf apex run test --class-names ...`
-- Dev 組織への反映: `sf project deploy start --source-dir force-app`
+- 現在接続中の組織への反映: `sf project deploy start --source-dir force-app`
+- Apex の振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage`
 
 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
+明示依頼がない限り、`--target-org` 指定やデフォルト組織の切り替えで別組織へデプロイしません。
 
 ## Coverage の扱い
 
@@ -97,5 +106,7 @@ Apex やメタデータを変更した後は、次を報告します。
 
 - 変更した `.cls` と `-meta.xml`
 - 追加・更新した Apex テスト
-- 実行した `sf project deploy validate` または `sf apex run test`
+- 対象 Salesforce 組織の alias / username
+- 実行した `sf project deploy validate`、`sf project deploy start`、`sf apex run test --code-coverage`
+- Apex テストの成功件数と coverage
 - 実行しなかった確認と、その理由

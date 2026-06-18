@@ -33,3 +33,4 @@ sf org login web --set-default --alias dev
 ```
 
 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、実行前に対象と目的を確認します。
+開発タスクで deploy や Apex test を行う場合は、現在接続されている組織だけを対象にし、明示依頼なしに target org を切り替えません。
