@@ -13,7 +13,7 @@ Salesforce メタデータを変更する前後に、このチェックリスト
 
 - `.cls` ファイルと対応する `-meta.xml` ファイルを一緒に追加・更新する。
 - 振る舞いを変える場合は、対象を絞った Apex テストを追加・更新する。
-- 開発中は関連テストを絞って実行する。
+- 開発中は必要に応じて関連テストを絞って実行する。
 
 例:
 
@@ -52,7 +52,7 @@ sf project deploy validate --source-dir force-app
 sf project deploy start --source-dir force-app
 ```
 
-Apex 変更後は、deploy 後に関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。
+Apex 変更を含む PR を作成する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
 
 ```sh
 sf apex run test --class-names MyClassTest --code-coverage --result-format human
