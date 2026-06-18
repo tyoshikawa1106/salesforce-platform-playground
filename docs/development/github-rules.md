@@ -97,7 +97,7 @@ Issue と PR には、作成時に assignee を設定します。
 - assignee、label、milestone、Project 追加、Project status 更新などの運用メタデータ整理は Actions で自動化せず、エージェントまたはユーザーが明示的に行う。
 - CI workflow は `permissions: contents: read` を基本にし、必要な権限だけを明示する。
 - 最小 CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行する。
-- required status checks は、CI が `main` 上で安定して動くことを確認してから有効化する。
+- required status checks は、`main` の branch protection で `npm checks` を必須にする。
 
 ## Dependabot
 
@@ -115,6 +115,7 @@ Issue と PR には、作成時に assignee を設定します。
 
 - `main` は branch protection を有効化し、Pull Request 経由の変更を必須にする。
 - branch protection は admin にも適用する。
+- `main` の required status checks は `npm checks` を必須にする。
 - `main` への force push と branch deletion は許可しない。
 - PR の unresolved conversation が残っている場合は merge しない。
 - Dependabot alerts と Dependabot security updates を有効化する。
@@ -124,7 +125,6 @@ Issue と PR には、作成時に assignee を設定します。
 
 次の設定は、現時点では保留します。
 
-- required status checks: 実 CI / test workflow がまだないため。
 - required approving review count: 個人運用で協力者がいない場合に merge できなくなるため。
 - required linear history: merge 方針を別途決める必要があるため。
 - CODEOWNERS 必須レビュー: 個人運用では重くなりやすいため。
