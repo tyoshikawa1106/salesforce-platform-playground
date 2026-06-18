@@ -30,7 +30,7 @@
 - Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使うが、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
-- メタデータ変更後は、変更ファイルと実行した検証・テストコマンドを報告する。
+- メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
 - コミット時の hook は原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、push、PR 作成、CI 確認、merge はユーザーが明示した場合のみ進める。
 - PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、`docs/development/github-rules.md` の条件を満たす場合は自動実行してよい。
@@ -39,5 +39,5 @@
 ## 検証
 
 - メタデータをデプロイする前に、原則 `sf project deploy validate --source-dir force-app` を実行する。
-- Apex クラス、トリガー、または Salesforce メタデータを変更した後は、コミット前に `sf project deploy start --source-dir force-app` で現在接続中の組織へ反映する。
-- Apex クラスやトリガーを変更した後は、デプロイ後に関連する Apex テストを coverage 付きで実行する。
+- Apex クラス、トリガー、または Salesforce メタデータを変更した後は、`sf project deploy start --source-dir force-app` で現在接続中の組織へ反映する。
+- Apex クラスやトリガーを含む PR を作成する前に、関連する Apex テストを coverage 付きで実行する。
