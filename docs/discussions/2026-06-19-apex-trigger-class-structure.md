@@ -70,3 +70,87 @@ TestDataFactory
 - `AccountTriggerHandlerTest`: trigger 経由の代表シナリオ。
 - `AccountTriggerServiceTest`: 業務ロジックの主テスト。
 - `AccountTriggerSelectorTest`: selector が複雑化した場合に追加。
+
+## 命名の再検討
+
+Apex Enterprise Patterns / fflib を採用する流派では、Service Layer / Domain Layer / Selector Layer のように、責務を層として分ける考え方が代表的に使われる。
+`fflib-apex-common` の README でも、Apex Enterprise Patterns の説明として各 Layer への関連ドキュメントが案内されている。
+
+- [fflib-apex-common README](https://github.com/apex-enterprise-patterns/fflib-apex-common#documentation)
+- [Apex Enterprise Patterns - Service Layer](http://wiki.developerforce.com/page/Apex_Enterprise_Patterns_-_Service_Layer)
+- [Apex Enterprise Patterns - Domain Layer](http://wiki.developerforce.com/page/Apex_Enterprise_Patterns_-_Domain_Layer)
+- [Apex Enterprise Patterns - Selector Layer](https://github.com/financialforcedev/df12-apex-enterprise-patterns#data-mapper-selector)
+
+一方で、これは Apex 全体で必ず使う標準命名ではなく、クラス名を必ず `Service` / `Domain` / `Selector` にするという意味でもない。
+このリポジトリでは、層として責務を分ける考え方は参考にしつつ、クラス名は機能単位で探しやすいことと 40 文字制限を優先して検討する。
+
+このリポジトリでは、次の懸念がある。
+
+- `Service` は外部連携、画面向け処理、trigger 処理など、意味が広くなりやすい。
+- `Selector` は役割としては分かりやすいが、クラス名が長くなりやすい。
+- Apex クラス名は 40 文字以内に収める必要がある。
+- 機能が増える前提では、再利用性より機能単位で探しやすいことを優先したい。
+
+そのため、機能名を接頭辞にして、役割を短い suffix で表す構成を検討する。
+
+```text
+<FeatureName><EntryPoint>
+<FeatureName><EntryPoint>Test
+<FeatureName>Helper
+<FeatureName>HelperTest
+<FeatureName>Dao
+<FeatureName>DaoTest
+```
+
+Account trigger の場合:
+
+```text
+AccountTriggerHandler
+AccountTriggerHandlerTest
+AccountTriggerHelper
+AccountTriggerHelperTest
+AccountTriggerDao
+AccountTriggerDaoTest
+```
+
+Account 検索機能の場合:
+
+```text
+AccountSearchController
+AccountSearchControllerTest
+AccountSearchHelper
+AccountSearchHelperTest
+AccountSearchDao
+AccountSearchDaoTest
+```
+
+この構成では、`AccountTrigger*` や `AccountSearch*` で関連クラスをまとめて探せる。
+`Helper` は機能内の業務処理、値補正、validation、変更判定を扱う。
+`Dao` は機能内で必要な SOQL と、必要に応じた Map 化 / grouping を扱う。
+
+`Helper` が肥大化した場合は、より具体的な機能名で分割する。
+複数機能で同じ取得や処理が必要になった場合は、その時点で共通クラスへの切り出しを検討する。
+
+### 大規模案件の場合
+
+数千人規模の会社に導入するような大規模プロジェクトでは、`Service` / `Domain` / `Selector` に寄せる価値が高くなる。
+複数チームで開発する場合、既存の Apex Enterprise Patterns に近い名前を使うことで、レビュー観点や責務分担を揃えやすい。
+
+```text
+AccountTriggerHandler
+AccountService
+AccountDomain
+AccountSelector
+```
+
+この場合の役割は次のように整理できる。
+
+- `AccountTriggerHandler`: trigger context の振り分け。
+- `AccountService`: ユースケース単位の処理。画面、API、Batch、Trigger から呼ばれる処理の入口。
+- `AccountDomain`: Account レコード群に対する業務ルール、検証、補正。
+- `AccountSelector`: Account を取得する SOQL。
+
+ただし、名前だけを `Service` / `Domain` / `Selector` に寄せても、責務が揃っていなければ読み手の期待と実装がずれる。
+大規模案件で採用する場合は、命名だけでなく設計ルール、レビュー基準、テスト方針まで合わせて決める必要がある。
+
+そのため現時点のプロジェクト標準案は、`Helper` / `Dao` を使う軽量な構成とする。
