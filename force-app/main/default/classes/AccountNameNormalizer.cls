@@ -17,15 +17,14 @@ public with sharing class AccountNameNormalizer {
      * @param oldAccountsById Previous Account values keyed by Id for update contexts
      */
     public static void normalize(
-        List<SObject> accounts,
-        Map<Id, SObject> oldAccountsById
+        List<Account> accounts,
+        Map<Id, Account> oldAccountsById
     ) {
         if (accounts == null || accounts.isEmpty()) {
             return;
         }
 
-        for (SObject accountSObject : accounts) {
-            Account accountRecord = (Account) accountSObject;
+        for (Account accountRecord : accounts) {
             if (!shouldNormalize(accountRecord, oldAccountsById)) {
                 continue;
             }
@@ -36,7 +35,7 @@ public with sharing class AccountNameNormalizer {
 
     private static Boolean shouldNormalize(
         Account accountRecord,
-        Map<Id, SObject> oldAccountsById
+        Map<Id, Account> oldAccountsById
     ) {
         if (accountRecord == null || String.isBlank(accountRecord.Name)) {
             return false;
@@ -50,7 +49,7 @@ public with sharing class AccountNameNormalizer {
             return true;
         }
 
-        Account oldAccount = (Account) oldAccountsById.get(accountRecord.Id);
+        Account oldAccount = oldAccountsById.get(accountRecord.Id);
         return oldAccount == null || accountRecord.Name != oldAccount.Name;
     }
 

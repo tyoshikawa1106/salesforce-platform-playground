@@ -11,9 +11,12 @@ public with sharing class AccountTriggerHandler {
         }
 
         if (Trigger.isInsert) {
-            AccountNameNormalizer.normalize(Trigger.new, null);
+            AccountTriggerService.beforeInsert((List<Account>) Trigger.new);
         } else if (Trigger.isUpdate) {
-            AccountNameNormalizer.normalize(Trigger.new, Trigger.oldMap);
+            AccountTriggerService.beforeUpdate(
+                (List<Account>) Trigger.new,
+                (Map<Id, Account>) Trigger.oldMap
+            );
         }
     }
 }
