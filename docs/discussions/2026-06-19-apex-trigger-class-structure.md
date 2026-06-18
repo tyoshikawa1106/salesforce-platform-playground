@@ -73,13 +73,10 @@ TestDataFactory
 
 ## 命名の再検討
 
-Apex Enterprise Patterns / fflib を採用する流派では、Service Layer / Domain Layer / Selector Layer のように、責務を層として分ける考え方が代表的に使われる。
-`fflib-apex-common` の README でも、Apex Enterprise Patterns の説明として各 Layer への関連ドキュメントが案内されている。
+Salesforce Trailhead では、Apex Enterprise Patterns として Service Layer、Domain Layer、Selector Layer が紹介されている。
 
-- [fflib-apex-common README](https://github.com/apex-enterprise-patterns/fflib-apex-common#documentation)
-- [Apex Enterprise Patterns - Service Layer](http://wiki.developerforce.com/page/Apex_Enterprise_Patterns_-_Service_Layer)
-- [Apex Enterprise Patterns - Domain Layer](http://wiki.developerforce.com/page/Apex_Enterprise_Patterns_-_Domain_Layer)
-- [Apex Enterprise Patterns - Selector Layer](https://github.com/financialforcedev/df12-apex-enterprise-patterns#data-mapper-selector)
+- [Trailhead - Apex Enterprise Patterns: Service Layer](https://trailhead.salesforce.com/content/learn/modules/apex_patterns_sl)
+- [Trailhead - Apex Enterprise Patterns: Domain & Selector Layers](https://trailhead.salesforce.com/content/learn/modules/apex_patterns_dsl)
 
 一方で、これは Apex 全体で必ず使う標準命名ではなく、クラス名を必ず `Service` / `Domain` / `Selector` にするという意味でもない。
 このリポジトリでは、層として責務を分ける考え方は参考にしつつ、クラス名は機能単位で探しやすいことと 40 文字制限を優先して検討する。
@@ -218,7 +215,7 @@ PricebookEntrySelector
 ```
 
 この案では、取得対象オブジェクトごとに `Selector` を分ける。
-Apex Enterprise Patterns / fflib の考え方に寄せやすく、複数機能から同じ取得処理を再利用しやすい。
+Apex Enterprise Patterns の考え方に寄せやすく、複数機能から同じ取得処理を再利用しやすい。
 
 一方で、商談 trigger の改修時に必要なクエリが複数の `Selector` に散らばる。
 商談 trigger のために商談商品、取引先、価格表を取得する場合でも、クエリの置き場所はそれぞれのオブジェクト単位 `Selector` になる。
@@ -279,11 +276,30 @@ AccountSelector
 `Helper` / `Dao` は、設計として誤りという意味ではない。
 `Dao` は一般的なソフトウェア設計で使われる名前であり、`Helper` も補助処理をまとめる名前として使われる。
 
-一方で、Apex Enterprise Patterns / fflib の文脈では、Service Layer / Domain Layer / Selector Layer という表現が代表的に使われる。
-そのため、大規模案件や複数チーム開発では、`Service` / `Domain` / `Selector` の方が責務を説明しやすい。
+一方で、Salesforce Trailhead の Apex Enterprise Patterns では Service Layer が紹介されており、Salesforce 公式サンプルアプリにも `GeocodingService` や `AccountServiceLayer` のような `Service` を含むクラスがある。
+そのため、処理の入口やユースケースを表す名前として `Service` は採用しやすい。
+
+`Domain` / `Selector` は、Salesforce 公式サンプルアプリで統一標準として使われているわけではない。
+ただし、Apex Enterprise Patterns の責務分離を説明する語彙としては有用なため、必要な場面で検討する。
 
 このリポジトリでは、次のように整理する。
 
 - `Dao` は否定しないが、SOQL の責務を表す名前としては `Selector` を優先して検討する。
-- `Helper` は否定しないが、処理の入口やユースケースを表す場合は `Service`、単一オブジェクトの業務ルールを表す場合は `Domain` への分離を検討する。
+- `Helper` は否定しないが、処理の入口やユースケースを表す場合は `Service` を優先して検討する。
+- 単一オブジェクトの業務ルールを明確に分けたい場合は、`Domain` の採用を検討する。
 - 命名だけを置き換えず、責務が合っているかを合わせて確認する。
+
+## Salesforce 公式サンプルの扱い
+
+Salesforce 公式サンプルアプリでは、`Controller`、`Service`、`Utilities`、`Helper` など複数の名前が使われている。
+確認した範囲では、`Service` / `Domain` / `Selector` が公式サンプル全体の統一命名として使われているわけではない。
+
+- [DreamHouse LWC](https://github.com/trailheadapps/dreamhouse-lwc)
+- [Apex Recipes](https://github.com/trailheadapps/apex-recipes)
+
+このリポジトリでは、次のように扱う。
+
+- `Service` は、公式サンプルや Trailhead でも確認できるため、処理の入口やユースケースを表す名前として採用候補にする。
+- `Selector` は、SOQL の責務を明確にする名前として採用候補にする。初期配置は機能単位 `Selector` を有力案とする。
+- `Domain` は、単一オブジェクトの業務ルールを明確に分けたい場合に採用を検討する。
+- Apex Enterprise Patterns は、責務分離を考えるための参考情報として扱う。
