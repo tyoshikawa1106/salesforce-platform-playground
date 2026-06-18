@@ -27,14 +27,15 @@ public with sharing class AccountTriggerHandler {
   }
 
   private static void normalizeCompanyAbbreviations(
-    List<Account> accounts,
-    Map<Id, Account> oldAccountsById
+    List<SObject> accounts,
+    Map<Id, SObject> oldAccountsById
   ) {
     if (accounts == null || accounts.isEmpty()) {
       return;
     }
 
-    for (Account accountRecord : accounts) {
+    for (SObject accountSObject : accounts) {
+      Account accountRecord = (Account) accountSObject;
       if (!shouldNormalize(accountRecord, oldAccountsById)) {
         continue;
       }
@@ -45,7 +46,7 @@ public with sharing class AccountTriggerHandler {
 
   private static Boolean shouldNormalize(
     Account accountRecord,
-    Map<Id, Account> oldAccountsById
+    Map<Id, SObject> oldAccountsById
   ) {
     if (accountRecord == null || String.isBlank(accountRecord.Name)) {
       return false;
@@ -59,7 +60,7 @@ public with sharing class AccountTriggerHandler {
       return true;
     }
 
-    Account oldAccount = oldAccountsById.get(accountRecord.Id);
+    Account oldAccount = (Account) oldAccountsById.get(accountRecord.Id);
     return oldAccount == null || accountRecord.Name != oldAccount.Name;
   }
 

@@ -25,7 +25,8 @@
 - `npm install` など依存関係を変更・導入するコマンドは、明示確認してから実行する。
 - デプロイ対象のメタデータは `force-app/main/default` を正本とする。
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` 前提で進めない。
-- 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、明示確認してから実行する。
+- 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、対象組織を確認し、依頼範囲内でのみ実行する。
+- deploy と Apex test は現在接続されている Salesforce 組織に対してのみ実行し、明示依頼なしに target org を切り替えない。
 - Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使うが、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
@@ -38,5 +39,5 @@
 ## 検証
 
 - メタデータをデプロイする前に、原則 `sf project deploy validate --source-dir force-app` を実行する。
-- Dev 組織へ反映する場合は `sf project deploy start --source-dir force-app` を使う。
-- Apex クラスやトリガーを変更した後は、関連する Apex テストを実行する。
+- Apex クラス、トリガー、または Salesforce メタデータを変更した後は、コミット前に `sf project deploy start --source-dir force-app` で現在接続中の組織へ反映する。
+- Apex クラスやトリガーを変更した後は、デプロイ後に関連する Apex テストを coverage 付きで実行する。

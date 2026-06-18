@@ -32,6 +32,14 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 
 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
 
+操作対象を確認します:
+
+```sh
+sf org display
+```
+
+deploy と Apex test は現在接続されている Salesforce 組織に対してのみ実行します。明示依頼なしに `--target-org` 指定やデフォルト組織の切り替えで別組織へ反映しません。
+
 反映前に検証します:
 
 ```sh
@@ -44,4 +52,8 @@ sf project deploy validate --source-dir force-app
 sf project deploy start --source-dir force-app
 ```
 
-Apex 変更後は、関連する Apex テストを実行し、作業報告に結果を含めます。
+Apex 変更後は、deploy 後に関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。
+
+```sh
+sf apex run test --class-names MyClassTest --code-coverage --result-format human
+```
