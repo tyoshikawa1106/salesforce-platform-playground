@@ -99,6 +99,14 @@ Issue と PR には、作成時に assignee を設定します。
 - 最小 CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行する。
 - required status checks は、CI が `main` 上で安定して動くことを確認してから有効化する。
 
+## Dependabot
+
+- Dependabot alerts と security updates は、既知脆弱性の検出と修正 PR 作成に使う。
+- Dependabot version updates は、通常の npm 依存更新 PR を週次で作成するために使う。
+- Dependabot PR には `enhancement` と `area:testing` を付ける。
+- Dependabot config には個人ユーザー名を assignee として固定しない。
+- Dependabot PR の Project 紐づけや担当者設定は、必要に応じて手動で確認する。
+
 ## リポジトリセキュリティ設定
 
 このリポジトリは公開リポジトリとして扱い、GitHub 側の保護設定を軽量に有効化します。
