@@ -131,6 +131,50 @@ AccountSearchDaoTest
 `Helper` が肥大化した場合は、より具体的な機能名で分割する。
 複数機能で同じ取得や処理が必要になった場合は、その時点で共通クラスへの切り出しを検討する。
 
+### API / WebService 系の FeatureName
+
+外部公開 API / WebService 系の機能では、FeatureName に `XxxApi` を優先して使う。
+これは Salesforce / Apex の公式標準命名というより、業界一般の開発用語として自然で、`WebService` より短く、`Service` suffix との衝突を避けやすい。
+
+```text
+AccountApi
+AccountApiTest
+AccountApiHelper
+AccountApiHelperTest
+AccountApiDao
+AccountApiDaoTest
+```
+
+REST であることを明示したい場合は、`XxxRestApi` も候補にする。
+
+```text
+AccountRestApi
+AccountRestApiTest
+AccountRestApiHelper
+AccountRestApiHelperTest
+AccountRestApiDao
+AccountRestApiDaoTest
+```
+
+途中の `Helper` や `Dao` だけを短縮せず、FeatureName 自体を短く設計して関連クラスの接頭辞を揃える。
+
+### 継承の扱い
+
+標準構成には継承を入れない。
+基本は `Handler` / `Helper` / `Dao` の委譲で組む。
+
+継承は、全 trigger で再帰制御、無効化フラグ、共通ログ、共通例外変換などを一貫して扱う必要が出た場合に検討する。
+単なる共通化や便利メソッド置き場として `Base` クラスを作らない。
+
+```text
+避ける例:
+BaseTriggerHandler
+AccountTriggerHandler extends BaseTriggerHandler
+```
+
+共通処理が必要になった場合も、まずは小さい shared helper や utility への委譲を優先する。
+継承は framework 的な共通制御が必要になった場合だけ使う。
+
 ### 大規模案件の場合
 
 数千人規模の会社に導入するような大規模プロジェクトでは、`Service` / `Domain` / `Selector` に寄せる価値が高くなる。
