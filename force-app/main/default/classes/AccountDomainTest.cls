@@ -1,12 +1,12 @@
 /**
- * Tests Account name normalization behavior.
+ * Tests Account domain behavior.
  */
 @IsTest
-private with sharing class AccountNameNormalizerTest {
+private with sharing class AccountDomainTest {
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsProvided() {
         // Given
-        List<SObject> accounts = new List<SObject>{
+        List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('㈱テスト'),
             TestDataFactory.createAccount('テスト(有)支店')
         };
@@ -14,19 +14,19 @@ private with sharing class AccountNameNormalizerTest {
         // When
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            AccountNameNormalizer.normalize(accounts, null);
+            AccountDomain.normalizeNames(accounts, null);
             Test.stopTest();
         }
 
         // Then
         Assert.areEqual(
             '株式会社テスト',
-            ((Account) accounts[0]).Name,
+            accounts[0].Name,
             'Stock company abbreviation should be normalized.'
         );
         Assert.areEqual(
             'テスト有限会社支店',
-            ((Account) accounts[1]).Name,
+            accounts[1].Name,
             'Limited company abbreviation should be normalized.'
         );
     }
@@ -43,15 +43,15 @@ private with sharing class AccountNameNormalizerTest {
             Id = savedAccount.Id,
             Name = '㈱テスト'
         );
-        Map<Id, SObject> oldAccountsById = new Map<Id, SObject>{
+        Map<Id, Account> oldAccountsById = new Map<Id, Account>{
             accountRecord.Id => oldAccount
         };
 
         // When
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            AccountNameNormalizer.normalize(
-                new List<SObject>{ accountRecord },
+            AccountDomain.normalizeNames(
+                new List<Account>{ accountRecord },
                 oldAccountsById
             );
             Test.stopTest();
@@ -68,12 +68,12 @@ private with sharing class AccountNameNormalizerTest {
     @IsTest
     static void shouldDoNothingWhenAccountsEmpty() {
         // Given
-        List<SObject> accounts = new List<SObject>();
+        List<Account> accounts = new List<Account>();
 
         // When
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            AccountNameNormalizer.normalize(accounts, null);
+            AccountDomain.normalizeNames(accounts, null);
             Test.stopTest();
         }
 

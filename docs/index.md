@@ -7,6 +7,7 @@
 - `setup/`: ローカルツール、組織ログイン、環境セットアップ。
 - `development/`: Apex やメタデータ変更時の実務チェック。
 - `deployment/`: デプロイ、取得、削除変更、新規組織への再現に関するメモ。
+- `discussions/`: 設計案、課題、見直し内容など、判断過程を整理したメモ。
 - `knowledge/`: Salesforce Platform の概念を学ぶためのメモ。
 
 ## セットアップ
@@ -28,5 +29,9 @@
 - [GitHub Projects と Milestones](knowledge/github-projects-and-milestones.md)
 - [GitHub Issue テンプレート設定](knowledge/github-issue-template-config.md)
 - [npm と pre-commit hook](knowledge/npm-and-precommit.md)
+
+## ディスカッション
+
+- [Apex Trigger クラス構成](discussions/2026-06-19-apex-trigger-class-structure.md)
 
 ドキュメントの配置方針は [ドキュメント配置ルール](development/documentation-rules.md) に従います。
