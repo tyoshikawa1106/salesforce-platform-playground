@@ -18,6 +18,22 @@ npm install
 
 `package-lock.json` は npm 依存の再現性を保つために管理対象とします。
 
+## Prettier
+
+Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
+
+このプロジェクトの Prettier 設定は、Salesforce のサンプルギャラリーで使われている DreamHouse、E-Bikes、LWC Recipes、Apex Recipes の構成を参考にします。
+
+- `.prettierrc` で `tabWidth: 4` を明示する。
+- `singleQuote: true` と `trailingComma: none` を使う。
+- `prettier-plugin-apex` と `@prettier/plugin-xml` を使う。
+- `npm run prettier` は手動の整形コマンドとして用意する。
+- `npm run prettier:verify` は整形確認用として使う。
+- `lint-staged` では staged files に対して Prettier の自動 write を実行する。
+
+`prettier --write` は対象ファイルを書き換えるため、Apex や Salesforce metadata を含む変更では実行後に `git diff` を確認します。
+コミット時にも staged files が書き換わる可能性があるため、コミット後に `git show` や `git diff HEAD^ HEAD` で実際に入った差分を確認します。
+
 ## Salesforce CLI
 
 CLI の動作確認:

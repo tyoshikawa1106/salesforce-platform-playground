@@ -1,41 +1,41 @@
 name: 不具合報告
 description: 動作不良や想定外の挙動を記録する
 labels:
-  - bug
+    - bug
 body:
-  - type: textarea
-    id: summary
-    attributes:
-      label: 問題
-      description: 何が起きているか、対象の Apex、metadata、コマンド、Salesforce 組織、影響範囲を書いてください。
-      placeholder: |
-        対象:
-        発生している問題:
-        影響範囲:
-    validations:
-      required: true
-  - type: textarea
-    id: steps
-    attributes:
-      label: 再現手順
-      description: 確認できている範囲で手順を書いてください。
-      placeholder: |
-        1. ...
-        2. ...
-        3. ...
-    validations:
-      required: false
-  - type: textarea
-    id: expected
-    attributes:
-      label: 期待する動作
-      description: 本来どうなるべきか、確認済みの前提や今回扱わない範囲があれば書いてください。
-    validations:
-      required: false
-  - type: textarea
-    id: notes
-    attributes:
-      label: 補足
-      description: 関連するログ、エラー、Salesforce CLI の出力、環境、調査済みの内容があれば書いてください。秘密情報や実 token は含めないでください。
-    validations:
-      required: false
+    - type: textarea
+      id: summary
+      attributes:
+          label: 問題
+          description: 何が起きているか、対象の Apex、metadata、コマンド、Salesforce 組織、影響範囲を書いてください。
+          placeholder: |
+              対象:
+              発生している問題:
+              影響範囲:
+      validations:
+          required: true
+    - type: textarea
+      id: steps
+      attributes:
+          label: 再現手順
+          description: 確認できている範囲で手順を書いてください。
+          placeholder: |
+              1. ...
+              2. ...
+              3. ...
+      validations:
+          required: false
+    - type: textarea
+      id: expected
+      attributes:
+          label: 期待する動作
+          description: 本来どうなるべきか、確認済みの前提や今回扱わない範囲があれば書いてください。
+      validations:
+          required: false
+    - type: textarea
+      id: notes
+      attributes:
+          label: 補足
+          description: 関連するログ、エラー、Salesforce CLI の出力、環境、調査済みの内容があれば書いてください。秘密情報や実 token は含めないでください。
+      validations:
+          required: false
