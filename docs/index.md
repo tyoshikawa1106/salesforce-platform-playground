@@ -31,6 +31,7 @@
 - [GitHub Projects と Milestones](knowledge/github-projects-and-milestones.md)
 - [GitHub Issue テンプレート設定](knowledge/github-issue-template-config.md)
 - [npm と pre-commit hook](knowledge/npm-and-precommit.md)
+- [Salesforce 公式参考リンク](knowledge/salesforce-official-references.md)
 
 ## ディスカッション
 
