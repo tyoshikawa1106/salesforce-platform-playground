@@ -1,6 +1,8 @@
-# ドキュメント
+# Salesforce Platform Playground
 
-このディレクトリには、Salesforce DX 開発に関するこのプロジェクト固有のメモを置きます。
+## ドキュメント
+
+Salesforce DX 開発に関するこのプロジェクト固有のメモを置きます。
 
 ## 構成
 

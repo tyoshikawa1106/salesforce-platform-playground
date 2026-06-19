@@ -6,7 +6,7 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 
 ## ドキュメント
 
-- [Docs](docs/index.md)
+- [Docs](https://tyoshikawa1106.github.io/salesforce-platform-playground/)
 
 ## 開発ルール
 
