@@ -58,3 +58,37 @@ node_modules/
 ```
 
 今後、実際の retrieve / deploy / status の運用で特定のメタデータが恒常的なノイズになる場合は、除外する前に「このリポジトリで管理対象外にする」と明示的に判断します。
+
+## `code-analyzer.yml`
+
+### 結論
+
+DreamHouse の `code-analyzer.yml` は、このリポジトリでも採用候補にします。
+
+ただし、この discussion では設定ファイルを追加しません。LWC 開発を進める前提で、別 Issue としてこのリポジトリ向けの Code Analyzer 設定を用意するか検討します。
+
+### 判断理由
+
+DreamHouse の `code-analyzer.yml` は、Code Analyzer の ESLint engine について次の設定を持ちます。
+
+```yaml
+engines:
+    eslint:
+        auto_discover_eslint_config: true
+        disable_lwc_base_config: true
+```
+
+LWC を開発する場合、通常の `npm run lint` は `eslint.config.js` を直接使います。一方で `sf code-analyzer run` でも ESLint engine を使うため、Code Analyzer 側でもこのリポジトリの ESLint 設定を正として使えるようにする価値があります。
+
+`auto_discover_eslint_config: true` は、Code Analyzer が `eslint.config.js` を自動検出するための設定です。
+
+`disable_lwc_base_config: true` は、Code Analyzer 側の LWC base config と、このリポジトリの `eslint.config.js` の重複適用を避けるための設定です。
+
+### 採用時の方針
+
+採用する場合は、DreamHouse と同じファイルを単にコピーするのではなく、このリポジトリの方針として次を明記します。
+
+- LWC / Aura の ESLint ルールは `eslint.config.js` を正とする。
+- Code Analyzer は repo の ESLint 設定を自動検出する。
+- Code Analyzer 側の LWC base config は重複を避けるため無効化する。
+- CI に `sf code-analyzer run --target force-app` を入れるかどうかは、設定ファイル追加とは別に判断する。
