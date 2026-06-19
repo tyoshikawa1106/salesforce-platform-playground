@@ -33,5 +33,6 @@
 ## ディスカッション
 
 - [Apex Trigger クラス構成](discussions/2026-06-19-apex-trigger-class-structure.md)
+- [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](discussions/2026-06-20-eslint-10-salesforce-lwc-compatibility.md)
 
 ドキュメントの配置方針は [ドキュメント配置ルール](development/documentation-rules.md) に従います。
