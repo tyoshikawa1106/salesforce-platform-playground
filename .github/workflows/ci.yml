@@ -1,46 +1,46 @@
 name: CI
 
 on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
+    pull_request:
+        branches:
+            - main
+    push:
+        branches:
+            - main
 
 permissions:
-  contents: read
+    contents: read
 
 env:
-  HUSKY: 0
+    HUSKY: 0
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  npm:
-    name: npm checks
-    runs-on: ubuntu-latest
+    npm:
+        name: npm checks
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
 
-      - name: Install dependencies
-        run: npm ci --include=dev
+            - name: Install dependencies
+              run: npm ci --include=dev
 
-      - name: Audit production dependencies
-        run: npm audit --omit=dev
+            - name: Audit production dependencies
+              run: npm audit --omit=dev
 
-      - name: Run lint
-        run: npm run lint -- --no-error-on-unmatched-pattern
+            - name: Run lint
+              run: npm run lint -- --no-error-on-unmatched-pattern
 
-      - name: Run LWC unit tests
-        run: npm run test:unit -- -- --runInBand --passWithNoTests
+            - name: Run LWC unit tests
+              run: npm run test:unit -- -- --runInBand --passWithNoTests

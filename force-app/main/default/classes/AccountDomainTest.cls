@@ -78,11 +78,7 @@ private with sharing class AccountDomainTest {
         }
 
         // Then
-        Assert.areEqual(
-            0,
-            accounts.size(),
-            'Empty input should remain empty.'
-        );
+        Assert.areEqual(0, accounts.size(), 'Empty input should remain empty.');
     }
 
     private static User getCurrentUser() {

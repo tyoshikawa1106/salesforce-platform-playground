@@ -121,7 +121,9 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
         // Given
-        Account accountRecord = TestDataFactory.createAccount('㈱テスト(有)支店');
+        Account accountRecord = TestDataFactory.createAccount(
+            '㈱テスト(有)支店'
+        );
 
         // When
         System.runAs(getCurrentUser()) {

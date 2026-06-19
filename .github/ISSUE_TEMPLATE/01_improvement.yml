@@ -1,23 +1,23 @@
 name: 機能・改善
 description: Apex、metadata、docs、運用の改善を記録する
 labels:
-  - enhancement
+    - enhancement
 body:
-  - type: textarea
-    id: memo
-    attributes:
-      label: メモ
-      description: 気になっていること、変えたいこと、相談したいことを自由に書いてください。
-      placeholder: |
-        例:
-        Apex 開発時のテスト実行方針がまだ曖昧。
-        docs/development に共通ルールとして整理したい。
-    validations:
-      required: true
-  - type: textarea
-    id: context
-    attributes:
-      label: 補足
-      description: 関連する Apex、metadata、docs、Salesforce 組織、今回やらないことなどがあれば書いてください。
-    validations:
-      required: false
+    - type: textarea
+      id: memo
+      attributes:
+          label: メモ
+          description: 気になっていること、変えたいこと、相談したいことを自由に書いてください。
+          placeholder: |
+              例:
+              Apex 開発時のテスト実行方針がまだ曖昧。
+              docs/development に共通ルールとして整理したい。
+      validations:
+          required: true
+    - type: textarea
+      id: context
+      attributes:
+          label: 補足
+          description: 関連する Apex、metadata、docs、Salesforce 組織、今回やらないことなどがあれば書いてください。
+      validations:
+          required: false
