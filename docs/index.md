@@ -21,6 +21,7 @@
 - [GitHub 運用ルール](development/github-rules.md)
 - [開発チェックリスト](development/checklist.md)
 - [Apex 開発ルール](development/apex-rules.md)
+- [設定ファイル管理](development/configuration-files.md)
 - [.gitignore 運用メモ](development/gitignore-rules.md)
 - [npm audit 確認メモ](development/npm-audit-review.md)
 
