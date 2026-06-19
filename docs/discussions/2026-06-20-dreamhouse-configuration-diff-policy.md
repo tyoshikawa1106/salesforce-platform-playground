@@ -157,3 +157,32 @@ LWC を今後開発する前提では、Jest test はコンポーネントの表
 この設定だけでは、すべての LWC が自動でアクセシビリティ検査されるわけではありません。各 test で対象 DOM を確認する assertion を書くか、automatic checks を明示的に有効化する必要があります。
 
 automatic checks は便利ですが、test の失敗理由を上書きしたり、DOM cleanup の順序に影響を受けたりする可能性があります。そのため、最初は明示的な assertion から始めます。
+
+## `codecov.yml`
+
+### 結論
+
+DreamHouse の `codecov.yml` は、現時点では取り込みません。
+
+このリポジトリでは Codecov upload を使う CI を採用していないため、`codecov.yml` だけを追加しても効果がありません。
+
+### 判断理由
+
+Codecov は、CI で生成した coverage 結果を外部サービスへアップロードし、PR や branch ごとの coverage 変化を可視化するためのサービスです。
+
+`codecov.yml` は、その Codecov 側での coverage status、flags、ignore などを調整する設定ファイルです。coverage を測定するファイルではなく、Codecov upload workflow とセットで意味を持ちます。
+
+DreamHouse では LWC coverage と Apex coverage を Codecov に upload し、`codecov.yml` で `LWC` / `Apex` flags を分けています。
+
+一方で、このリポジトリの CI は現時点で `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行するだけです。Codecov への upload はなく、Apex coverage も GitHub Actions 上では扱っていません。
+
+### 再検討条件
+
+次のような段階になったら、`codecov.yml` を再検討します。
+
+- CI で LWC Jest coverage を生成して保存または公開したい。
+- CI で Apex test coverage を扱う運用を決めた。
+- GitHub Actions artifact や job summary では足りず、外部サービスで coverage 推移を見たい。
+- Codecov の repository 設定、token、private repository のプランや権限を確認できた。
+
+それまでは、外部サービス連携を増やすより、ローカルと CI の軽い品質チェックを優先します。
