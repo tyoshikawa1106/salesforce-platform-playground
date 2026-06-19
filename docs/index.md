@@ -34,6 +34,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [GitHub Issue テンプレート設定](knowledge/github-issue-template-config.md)
 - [npm と pre-commit hook](knowledge/npm-and-precommit.md)
 - [CI で Prettier を確認する意味](knowledge/prettier-check-in-ci.md)
+- [LWC Jest とアクセシビリティテスト](knowledge/lwc-jest-accessibility-testing.md)
 - [Salesforce Code Analyzer](knowledge/salesforce-code-analyzer.md)
 - [Salesforce 公式参考リンク](knowledge/salesforce-official-references.md)
 

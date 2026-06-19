@@ -127,3 +127,33 @@ DreamHouse と同じく、CI で `npm run prettier:verify` を実行する構成
 実行位置は lint より前にします。整形崩れは軽く早く検出できるため、lint や LWC unit test の前に落とす方が分かりやすいためです。
 
 この変更は整形を自動修正しません。CI では `--check` で失敗させるだけにし、修正はローカルの `npm run prettier` または pre-commit hook に任せます。
+
+## `jest-sa11y-setup.js` / `@sa11y/jest`
+
+### 結論
+
+DreamHouse の `jest-sa11y-setup.js` と `@sa11y/jest` は、LWC Jest のアクセシビリティ確認を本格運用する前提で採用候補にします。
+
+ただし、この discussion では依存追加や Jest 設定変更は行いません。別 Issue として、LWC テスト基盤に `@sa11y/jest` を組み込むか検討します。
+
+### 判断理由
+
+このリポジトリには、すでに `@salesforce/sfdx-lwc-jest`、`test:unit` script、CI の LWC unit test 実行があります。一方で、現時点では LWC 実装と LWC Jest test はまだありません。
+
+LWC を今後開発する前提では、Jest test はコンポーネントの表示やイベントだけでなく、最低限のアクセシビリティ確認にも使いたいです。
+
+`@sa11y/jest` は Jest test で DOM のアクセシビリティを確認する matcher を提供します。LWC test で rendering 後の DOM に対して `toBeAccessible()` のような assertion を書けるようになります。
+
+### 採用時の方針
+
+採用する場合は、最初の LWC test 基盤整備の一部として扱います。
+
+- `@sa11y/jest` を devDependency に追加する。
+- Jest setup file を追加し、`@sa11y/jest` の API を project level で登録する。
+- `jest.config.js` の `setupFilesAfterEnv` に setup file を追加する。
+- 最初の LWC test で、rendering 後の DOM に対して accessibility assertion を書く例を用意する。
+- `npm run test:unit -- -- --runInBand --passWithNoTests` で確認する。
+
+この設定だけでは、すべての LWC が自動でアクセシビリティ検査されるわけではありません。各 test で対象 DOM を確認する assertion を書くか、automatic checks を明示的に有効化する必要があります。
+
+automatic checks は便利ですが、test の失敗理由を上書きしたり、DOM cleanup の順序に影響を受けたりする可能性があります。そのため、最初は明示的な assertion から始めます。
