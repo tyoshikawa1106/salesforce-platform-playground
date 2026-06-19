@@ -9,7 +9,7 @@
 deploy-options.json
 
 # LWC VSCode autocomplete
-**/lwc/jsconfig.json
+jsconfig.json
 
 # LWC Jest coverage reports
 coverage/
@@ -43,8 +43,14 @@ ehthumbs.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
 
+# VS Code project settings
+.vscode/*
+!.vscode/extensions.json
+
 # Local environment variables
 .env
+.env.local
+.env.*.local
 
 # Python Salesforce Functions
 **/__pycache__/
