@@ -23,10 +23,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Set<Id> accountIds = getAccountIds(accounts);
-        Map<Id, Account> accountsById = new Map<Id, Account>(
-            [SELECT Name FROM Account WHERE Id IN :accountIds]
-        );
+        Map<Id, Account> accountsById = getAccountsById(accounts);
         Assert.areEqual(
             '株式会社テスト',
             accountsById.get(accounts[0].Id).Name,
@@ -73,12 +70,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Account updatedAccount = [
-            SELECT Name
-            FROM Account
-            WHERE Id = :accountRecord.Id
-            LIMIT 1
-        ];
+        Account updatedAccount = getAccount(accountRecord);
         Assert.areEqual(
             'テスト株式会社',
             updatedAccount.Name,
@@ -102,10 +94,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Set<Id> accountIds = getAccountIds(accounts);
-        Map<Id, Account> accountsById = new Map<Id, Account>(
-            [SELECT Name FROM Account WHERE Id IN :accountIds]
-        );
+        Map<Id, Account> accountsById = getAccountsById(accounts);
         Assert.areEqual(
             'テスト株式会社',
             accountsById.get(accounts[0].Id).Name,
@@ -133,12 +122,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Account insertedAccount = [
-            SELECT Name
-            FROM Account
-            WHERE Id = :accountRecord.Id
-            LIMIT 1
-        ];
+        Account insertedAccount = getAccount(accountRecord);
         Assert.areEqual(
             '株式会社テスト有限会社支店',
             insertedAccount.Name,
@@ -159,12 +143,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Account insertedAccount = [
-            SELECT Name
-            FROM Account
-            WHERE Id = :accountRecord.Id
-            LIMIT 1
-        ];
+        Account insertedAccount = getAccount(accountRecord);
         Assert.areEqual(
             '株式会社テスト',
             insertedAccount.Name,
@@ -190,10 +169,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Set<Id> accountIds = getAccountIds(accounts);
-        Map<Id, Account> accountsById = new Map<Id, Account>(
-            [SELECT Name FROM Account WHERE Id IN :accountIds]
-        );
+        Map<Id, Account> accountsById = getAccountsById(accounts);
         Assert.areEqual(
             '株）テスト',
             accountsById.get(accounts[0].Id).Name,
@@ -232,12 +208,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // Then
-        Set<Id> accountIds = getAccountIds(accounts);
-        List<Account> insertedAccounts = [
-            SELECT Name
-            FROM Account
-            WHERE Id IN :accountIds
-        ];
+        List<Account> insertedAccounts = getAccounts(accounts);
         Assert.areEqual(
             251,
             insertedAccounts.size(),
@@ -249,6 +220,24 @@ private with sharing class AccountTriggerHandlerTest {
                 'Bulk Account name should be normalized.'
             );
         }
+    }
+
+    private static Account getAccount(Account accountRecord) {
+        return getAccountsById(new List<Account>{ accountRecord })
+            .get(accountRecord.Id);
+    }
+
+    private static Map<Id, Account> getAccountsById(List<Account> accounts) {
+        return new Map<Id, Account>(getAccounts(accounts));
+    }
+
+    private static List<Account> getAccounts(List<Account> accounts) {
+        Set<Id> accountIds = getAccountIds(accounts);
+        return [
+            SELECT Name
+            FROM Account
+            WHERE Id IN :accountIds
+        ];
     }
 
     private static Set<Id> getAccountIds(List<Account> accounts) {
