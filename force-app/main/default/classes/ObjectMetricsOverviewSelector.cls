@@ -27,6 +27,40 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         };
     }
 
+    /**
+     * Creates a count result with display limit handling.
+     * @param value Count value.
+     * @return Count result with the capped marker when the display limit is reached.
+     */
+    @TestVisible
+    private static ObjectMetricCount createCount(Integer value) {
+        Integer safeValue = value ?? 0;
+        return safeValue >= MAX_DISPLAY_COUNT
+            ? createCappedCount(MAX_DISPLAY_COUNT)
+            : createExactCount(safeValue);
+    }
+
+    /**
+     * Creates an exact count result.
+     * @param value Exact count value.
+     * @return Count result without the capped marker.
+     */
+    @TestVisible
+    private static ObjectMetricCount createExactCount(Integer value) {
+        return new ObjectMetricCount(value, COUNT_LIMIT_STATUS_EXACT);
+    }
+
+    /**
+     * Creates a capped count result.
+     * @param value Count value capped for display.
+     * @return Count result with the capped marker.
+     */
+    @TestVisible
+    private static ObjectMetricCount createCappedCount(Integer value) {
+        return new ObjectMetricCount(value, COUNT_LIMIT_STATUS_CAPPED);
+    }
+
+    @TestVisible
     private ObjectMetricCount countVisibleRecords(String objectApiName) {
         if (!isObjectAccessible(objectApiName)) {
             return toObjectMetricCount(0);
@@ -211,7 +245,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     }
 
     private ObjectMetricCount toObjectMetricCount(Integer value) {
-        return toObjectMetricCount(value, COUNT_LIMIT_STATUS_EXACT);
+        return createCount(value);
     }
 
     private ObjectMetricCount toObjectMetricCount(
@@ -219,13 +253,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         String countLimitStatus
     ) {
         Integer safeValue = value ?? 0;
-        Boolean capped =
-            countLimitStatus == COUNT_LIMIT_STATUS_CAPPED ||
-            safeValue >= MAX_DISPLAY_COUNT;
-        return new ObjectMetricCount(
-            capped ? MAX_DISPLAY_COUNT : safeValue,
-            capped ? COUNT_LIMIT_STATUS_CAPPED : COUNT_LIMIT_STATUS_EXACT
-        );
+        return countLimitStatus == COUNT_LIMIT_STATUS_CAPPED
+            ? createCappedCount(MAX_DISPLAY_COUNT)
+            : createCount(safeValue);
     }
 
     /**
