@@ -14,16 +14,17 @@
 
 ## npm / 品質チェック
 
-| ファイル            | 概要                                                                                                    | 変更時の確認                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `package.json`      | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。                                 | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。    |
-| `package-lock.json` | npm 依存の解決結果を固定する。                                                                          | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。      |
-| `eslint.config.js`  | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                  | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。 |
-| `code-analyzer.yml` | Salesforce Code Analyzer の engine 設定を管理する。ESLint engine は repo の `eslint.config.js` を使う。 | Code Analyzer と ESLint の設定が重複適用されないか確認する。                |
-| `jest.config.js`    | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパスを除外する。                     | LWC test の探索対象や除外対象が変わらないか確認する。                       |
-| `.prettierrc`       | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。  | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。            |
-| `.prettierignore`   | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                            | 整形対象に含めるべき source を除外していないか確認する。                    |
-| `.husky/pre-commit` | commit 前に `npm run precommit` を実行する。                                                            | hook を変えた場合は staged files に対する挙動を確認する。                   |
+| ファイル              | 概要                                                                                                    | 変更時の確認                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `package.json`        | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。                                 | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。                  |
+| `package-lock.json`   | npm 依存の解決結果を固定する。                                                                          | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。                    |
+| `eslint.config.js`    | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                  | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。               |
+| `code-analyzer.yml`   | Salesforce Code Analyzer の engine 設定を管理する。ESLint engine は repo の `eslint.config.js` を使う。 | Code Analyzer と ESLint の設定が重複適用されないか確認する。                              |
+| `jest.config.js`      | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパスを除外する。                     | LWC test の探索対象や除外対象が変わらないか確認する。                                     |
+| `jest-sa11y-setup.js` | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                    | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。 |
+| `.prettierrc`         | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。  | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                          |
+| `.prettierignore`     | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                            | 整形対象に含めるべき source を除外していないか確認する。                                  |
+| `.husky/pre-commit`   | commit 前に `npm run precommit` を実行する。                                                            | hook を変えた場合は staged files に対する挙動を確認する。                                 |
 
 ## Git / エディタ
 
