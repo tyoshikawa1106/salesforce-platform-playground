@@ -7,19 +7,34 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('ja-JP');
 const COUNT_CARD_CONFIGS = [
     { key: 'accounts', iconName: 'standard:account', label: '取引先' },
     { key: 'contacts', iconName: 'standard:contact', label: '取引先責任者' },
+    { key: 'opportunities', iconName: 'standard:opportunity', label: '商談' },
+    {
+        key: 'opportunityLineItems',
+        iconName: 'standard:product_consumed',
+        label: '商談商品'
+    },
+    { key: 'cases', iconName: 'standard:case', label: 'ケース' },
+    { key: 'contracts', iconName: 'standard:contract', label: '契約' },
+    { key: 'products', iconName: 'standard:product', label: '商品' },
+    { key: 'pricebooks', iconName: 'standard:pricebook', label: '価格表' },
+    { key: 'campaigns', iconName: 'standard:campaign', label: 'キャンペーン' },
+    { key: 'leads', iconName: 'standard:lead', label: 'リード' },
     { key: 'events', iconName: 'standard:event', label: '行動' },
     { key: 'tasks', iconName: 'standard:task', label: 'ToDo' },
-    { key: 'users', iconName: 'standard:user', label: 'ユーザー' },
-    { key: 'recycleBinItems', iconName: 'standard:empty', label: 'ごみ箱' },
-    { key: 'leads', iconName: 'standard:lead', label: 'リード' },
-    { key: 'opportunities', iconName: 'standard:opportunity', label: '商談' },
-    { key: 'products', iconName: 'standard:product', label: '商品' },
-    { key: 'campaigns', iconName: 'standard:campaign', label: 'キャンペーン' },
-    { key: 'cases', iconName: 'standard:case', label: 'ケース' },
     {
         key: 'emailMessages',
         iconName: 'standard:email',
         label: 'メールメッセージ'
+    },
+    {
+        key: 'emailTemplates',
+        iconName: 'utility:insert_template',
+        label: 'メールテンプレート'
+    },
+    {
+        key: 'recycleBinItems',
+        iconName: 'standard:recycle_bin',
+        label: 'ごみ箱'
     }
 ];
 

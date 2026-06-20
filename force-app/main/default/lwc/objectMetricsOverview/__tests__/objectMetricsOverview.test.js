@@ -19,16 +19,19 @@ const countResponse = {
     metrics: [
         { key: 'accounts', value: 50000, capped: true },
         { key: 'contacts', value: 34 },
+        { key: 'opportunities', value: 13 },
+        { key: 'opportunityLineItems', value: 7 },
+        { key: 'cases', value: 4 },
+        { key: 'contracts', value: 6 },
+        { key: 'products', value: 21 },
+        { key: 'pricebooks', value: 2 },
+        { key: 'campaigns', value: 1 },
+        { key: 'leads', value: 8 },
         { key: 'events', value: 2 },
         { key: 'tasks', value: 5 },
-        { key: 'users', value: 1 },
-        { key: 'recycleBinItems', value: 3 },
-        { key: 'leads', value: 8 },
-        { key: 'opportunities', value: 13 },
-        { key: 'products', value: 21 },
-        { key: 'campaigns', value: 1 },
-        { key: 'cases', value: 4 },
-        { key: 'emailMessages', value: 55 }
+        { key: 'emailMessages', value: 55 },
+        { key: 'emailTemplates', value: 9 },
+        { key: 'recycleBinItems', value: 3 }
     ]
 };
 
@@ -59,9 +62,11 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
 
         const cards = element.shadowRoot.querySelectorAll('article');
-        expect(cards).toHaveLength(12);
+        expect(cards).toHaveLength(15);
         expect(element.shadowRoot.textContent).toContain('取引先');
         expect(element.shadowRoot.textContent).toContain('取引先責任者');
+        expect(element.shadowRoot.textContent).toContain('商談商品');
+        expect(element.shadowRoot.textContent).toContain('メールテンプレート');
         expect(element.shadowRoot.textContent).toContain('メールメッセージ');
         expect(element.shadowRoot.textContent).toContain('50,000+');
         expect(element.shadowRoot.textContent).toContain('55');

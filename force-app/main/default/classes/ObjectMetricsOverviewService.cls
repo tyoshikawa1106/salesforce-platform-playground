@@ -5,16 +5,19 @@ public with sharing class ObjectMetricsOverviewService {
     private static final List<String> METRIC_KEYS = new List<String>{
         'accounts',
         'contacts',
+        'opportunities',
+        'opportunityLineItems',
+        'cases',
+        'contracts',
+        'products',
+        'pricebooks',
+        'campaigns',
+        'leads',
         'events',
         'tasks',
-        'users',
-        'recycleBinItems',
-        'leads',
-        'opportunities',
-        'products',
-        'campaigns',
-        'cases',
-        'emailMessages'
+        'emailMessages',
+        'emailTemplates',
+        'recycleBinItems'
     };
 
     private final ObjectMetricsOverviewSelector selector;

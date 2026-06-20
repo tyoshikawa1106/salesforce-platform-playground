@@ -12,16 +12,21 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         return new Map<String, ObjectMetricCount>{
             'accounts' => countVisibleRecords('Account'),
             'contacts' => countVisibleRecords('Contact'),
+            'opportunities' => countVisibleRecords('Opportunity'),
+            'opportunityLineItems' => countVisibleRecords(
+                'OpportunityLineItem'
+            ),
+            'cases' => countVisibleRecords('Case'),
+            'contracts' => countVisibleRecords('Contract'),
+            'products' => countVisibleRecords('Product2'),
+            'pricebooks' => countVisibleRecords('Pricebook2'),
+            'campaigns' => countVisibleRecords('Campaign'),
+            'leads' => countVisibleRecords('Lead'),
             'events' => countVisibleRecords('Event'),
             'tasks' => countVisibleRecords('Task'),
-            'users' => countVisibleRecords('User'),
-            'recycleBinItems' => countRecycleBinItems(),
-            'leads' => countVisibleRecords('Lead'),
-            'opportunities' => countVisibleRecords('Opportunity'),
-            'products' => countVisibleRecords('Product2'),
-            'campaigns' => countVisibleRecords('Campaign'),
-            'cases' => countVisibleRecords('Case'),
-            'emailMessages' => countVisibleRecords('EmailMessage')
+            'emailMessages' => countVisibleRecords('EmailMessage'),
+            'emailTemplates' => countVisibleRecords('EmailTemplate'),
+            'recycleBinItems' => countRecycleBinItems()
         };
     }
 
@@ -126,21 +131,11 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
                     ]
                 );
             }
-            when 'Product2' {
+            when 'OpportunityLineItem' {
                 return toObjectMetricCount(
                     [
                         SELECT COUNT()
-                        FROM Product2
-                        WITH USER_MODE
-                        LIMIT :MAX_DISPLAY_COUNT
-                    ]
-                );
-            }
-            when 'Campaign' {
-                return toObjectMetricCount(
-                    [
-                        SELECT COUNT()
-                        FROM Campaign
+                        FROM OpportunityLineItem
                         WITH USER_MODE
                         LIMIT :MAX_DISPLAY_COUNT
                     ]
@@ -156,11 +151,61 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
                     ]
                 );
             }
+            when 'Contract' {
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Contract
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
+            }
+            when 'Product2' {
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Product2
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
+            }
+            when 'Pricebook2' {
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Pricebook2
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
+            }
+            when 'Campaign' {
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Campaign
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
+            }
             when 'EmailMessage' {
                 return toObjectMetricCount(
                     [
                         SELECT COUNT()
                         FROM EmailMessage
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
+            }
+            when 'EmailTemplate' {
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM EmailTemplate
                         WITH USER_MODE
                         LIMIT :MAX_DISPLAY_COUNT
                     ]

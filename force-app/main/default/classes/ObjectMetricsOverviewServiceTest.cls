@@ -20,7 +20,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // Then
         Assert.areEqual(
-            12,
+            15,
             summary.metrics.size(),
             'Service should return all configured metric items.'
         );
@@ -52,6 +52,16 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             summary.metrics[1].capped,
             'Exact contact value should not carry the capped marker.'
         );
+        Assert.areEqual(
+            'opportunities',
+            summary.metrics[2].key,
+            'Opportunity metric should be third.'
+        );
+        Assert.areEqual(
+            'recycleBinItems',
+            summary.metrics[14].key,
+            'Recycle Bin metric should be last.'
+        );
     }
 
     @IsTest
@@ -71,7 +81,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // Then
         Assert.areEqual(
-            12,
+            15,
             summary.metrics.size(),
             'Service should fall back to the default selector.'
         );

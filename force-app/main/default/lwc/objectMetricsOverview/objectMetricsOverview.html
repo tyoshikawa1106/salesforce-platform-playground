@@ -19,12 +19,9 @@
             </div>
         </template>
 
-        <div class="counts slds-grid slds-wrap slds-gutters" aria-busy={isBusy}>
+        <div class="counts" aria-busy={isBusy}>
             <template for:each={countCards} for:item="card">
-                <div
-                    key={card.key}
-                    class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3"
-                >
+                <div key={card.key}>
                     <article
                         class="count-card slds-tile slds-box slds-box_x-small slds-theme_default"
                     >

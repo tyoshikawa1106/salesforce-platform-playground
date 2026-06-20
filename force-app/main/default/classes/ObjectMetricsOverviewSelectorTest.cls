@@ -19,7 +19,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // Then
         Assert.areEqual(
-            12,
+            15,
             metricsByKey.size(),
             'Selector should return all object metric keys.'
         );
@@ -59,8 +59,22 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         );
         Assert.areEqual(
             1,
+            metricsByKey.get('opportunityLineItems').value,
+            'OpportunityLineItem count should include inserted Opportunity Products.'
+        );
+        Assert.areEqual(
+            1,
+            metricsByKey.get('contracts').value,
+            'Contract count should include inserted Contracts.'
+        );
+        Assert.areEqual(
+            1,
             metricsByKey.get('products').value,
             'Product count should include inserted Products.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('pricebooks').value,
+            'Pricebook count should be returned.'
         );
         Assert.areEqual(
             1,
@@ -78,8 +92,8 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             'EmailMessage count should be zero when no EmailMessages exist.'
         );
         Assert.isNotNull(
-            metricsByKey.get('users').value,
-            'Active user count should be returned.'
+            metricsByKey.get('emailTemplates').value,
+            'EmailTemplate count should be returned.'
         );
     }
 
@@ -213,15 +227,39 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             EndDateTime = Datetime.now().addHours(2)
         );
         insert new Lead(LastName = '件数リード', Company = '件数会社');
-        insert new Opportunity(
+        Opportunity opportunityRecord = new Opportunity(
             Name = '件数商談',
             StageName = 'Prospecting',
             CloseDate = Date.today().addDays(30),
             AccountId = accountRecord.Id
         );
-        insert new Product2(Name = '件数商品', IsActive = true);
+        insert opportunityRecord;
+        Product2 productRecord = new Product2(
+            Name = '件数商品',
+            IsActive = true
+        );
+        insert productRecord;
+        PricebookEntry pricebookEntryRecord = new PricebookEntry(
+            Pricebook2Id = Test.getStandardPricebookId(),
+            Product2Id = productRecord.Id,
+            UnitPrice = 100,
+            IsActive = true
+        );
+        insert pricebookEntryRecord;
+        insert new OpportunityLineItem(
+            OpportunityId = opportunityRecord.Id,
+            PricebookEntryId = pricebookEntryRecord.Id,
+            Quantity = 1,
+            UnitPrice = 100
+        );
         insert new Campaign(Name = '件数キャンペーン');
         insert new Case(Subject = '件数ケース');
+        insert new Contract(
+            AccountId = accountRecord.Id,
+            Status = 'Draft',
+            StartDate = Date.today(),
+            ContractTerm = 12
+        );
     }
 
     private static User getCurrentUser() {
