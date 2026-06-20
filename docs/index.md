@@ -21,7 +21,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 
 - [ドキュメント配置ルール](development/documentation-rules.md)
 - [GitHub 運用ルール](development/github-rules.md)
-- [開発チェックリスト](development/checklist.md)
+- [変更チェックリスト](development/change-checklist.md)
 - [Apex 開発ルール](development/apex-rules.md)
 - [設定ファイル管理](development/configuration-files.md)
 - [.gitignore 運用メモ](development/gitignore-rules.md)
