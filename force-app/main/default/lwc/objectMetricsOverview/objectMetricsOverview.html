@@ -1,0 +1,68 @@
+<template>
+    <lightning-card title="オブジェクト指標" icon-name="standard:dashboard">
+        <lightning-button-icon
+            slot="actions"
+            alternative-text="再読み込み"
+            disabled={isBusy}
+            icon-name="utility:refresh"
+            onclick={handleRefresh}
+            title="再読み込み"
+        ></lightning-button-icon>
+
+        <template lwc:if={errorMessage}>
+            <div
+                class="slds-notify slds-notify_alert slds-alert_error slds-m-horizontal_medium slds-m-bottom_medium"
+                role="alert"
+            >
+                <span class="slds-assistive-text">Error</span>
+                <h2>{errorMessage}</h2>
+            </div>
+        </template>
+
+        <div class="counts slds-grid slds-wrap slds-gutters" aria-busy={isBusy}>
+            <template for:each={countCards} for:item="card">
+                <div
+                    key={card.key}
+                    class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3"
+                >
+                    <article
+                        class="count-card slds-tile slds-box slds-box_x-small slds-theme_default"
+                    >
+                        <h2 class="slds-tile__title" title={card.label}>
+                            <span class="slds-media slds-media_center">
+                                <span
+                                    class="slds-media__figure slds-m-right_x-small"
+                                >
+                                    <lightning-icon
+                                        alternative-text={card.label}
+                                        icon-name={card.iconName}
+                                        size="small"
+                                    ></lightning-icon>
+                                </span>
+                                <span class="slds-media__body slds-truncate">
+                                    {card.label}
+                                </span>
+                            </span>
+                        </h2>
+                        <div class="count-card__content slds-tile__detail">
+                            <template lwc:if={card.loading}>
+                                <lightning-spinner
+                                    alternative-text={card.loadingLabel}
+                                    size="small"
+                                ></lightning-spinner>
+                            </template>
+                            <template lwc:else>
+                                <p
+                                    class="slds-text-heading_medium slds-text-align_center"
+                                    title={card.countTitle}
+                                >
+                                    {card.formattedValue}
+                                </p>
+                            </template>
+                        </div>
+                    </article>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

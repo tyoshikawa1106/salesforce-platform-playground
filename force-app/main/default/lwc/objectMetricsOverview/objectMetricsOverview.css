@@ -1,0 +1,19 @@
+.counts {
+    row-gap: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.count-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 5rem;
+    padding-bottom: var(--slds-g-spacing-3, 0.75rem);
+    padding-top: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.count-card__content {
+    align-items: center;
+    display: flex;
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 2.25rem;
+}
