@@ -43,14 +43,17 @@ public with sharing class ObjectMetricsOverviewService {
      * @return Ordered object metric summary.
      */
     public ObjectMetricsOverviewController.ObjectMetricSummary getObjectMetrics() {
-        Map<String, Integer> metricValues = selector.getObjectMetricValues();
+        Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues = selector.getObjectMetricValues();
         List<ObjectMetricsOverviewController.ObjectMetricItem> metricItems = new List<ObjectMetricsOverviewController.ObjectMetricItem>();
 
         for (String key : METRIC_KEYS) {
+            ObjectMetricsOverviewSelector.ObjectMetricCount metricCount = metricValues.get(
+                key
+            );
             metricItems.add(
                 new ObjectMetricsOverviewController.ObjectMetricItem(
                     key,
-                    metricValues.get(key) ?? 0
+                    metricCount
                 )
             );
         }

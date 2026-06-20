@@ -53,13 +53,23 @@ public with sharing class ObjectMetricsOverviewController {
         public Integer value { get; private set; }
 
         /**
+         * Whether the metric reached the display limit.
+         */
+        @AuraEnabled
+        public Boolean capped { get; private set; }
+
+        /**
          * Creates a metric item.
          * @param key Stable metric key.
-         * @param value Metric value.
+         * @param metricCount Count result with display limit metadata.
          */
-        public ObjectMetricItem(String key, Integer value) {
+        public ObjectMetricItem(
+            String key,
+            ObjectMetricsOverviewSelector.ObjectMetricCount metricCount
+        ) {
             this.key = key;
-            this.value = value;
+            this.value = metricCount?.value ?? 0;
+            this.capped = metricCount?.capped ?? false;
         }
     }
 }

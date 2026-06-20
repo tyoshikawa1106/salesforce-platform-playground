@@ -17,7 +17,7 @@ jest.mock(
 
 const countResponse = {
     metrics: [
-        { key: 'accounts', value: 12 },
+        { key: 'accounts', value: 50000, capped: true },
         { key: 'contacts', value: 34 },
         { key: 'events', value: 2 },
         { key: 'tasks', value: 5 },
@@ -63,7 +63,7 @@ describe('c-object-metrics-overview', () => {
         expect(element.shadowRoot.textContent).toContain('取引先');
         expect(element.shadowRoot.textContent).toContain('取引先責任者');
         expect(element.shadowRoot.textContent).toContain('メールメッセージ');
-        expect(element.shadowRoot.textContent).toContain('12');
+        expect(element.shadowRoot.textContent).toContain('50,000+');
         expect(element.shadowRoot.textContent).toContain('55');
         await expect(element).toBeAccessible();
     });

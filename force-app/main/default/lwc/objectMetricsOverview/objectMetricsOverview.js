@@ -45,11 +45,15 @@ export default class ObjectMetricsOverview extends LightningElement {
 
     get countCards() {
         return COUNT_CARD_CONFIGS.map((config) => {
-            const value = this.metricValues[config.key] ?? 0;
+            const metricValue = this.metricValues[config.key] ?? {
+                value: 0,
+                capped: false
+            };
+            const formattedValue = `${NUMBER_FORMATTER.format(metricValue.value)}${metricValue.capped ? '+' : ''}`;
             return {
                 ...config,
-                countTitle: `${value} 件`,
-                formattedValue: NUMBER_FORMATTER.format(value),
+                countTitle: `${formattedValue} 件`,
+                formattedValue,
                 loading: this.isLoading,
                 loadingLabel: `${config.label}の件数を読み込んでいます`
             };
@@ -85,7 +89,10 @@ export default class ObjectMetricsOverview extends LightningElement {
 
     createMetricValues(metrics = []) {
         return metrics.reduce((values, metricItem) => {
-            values[metricItem.key] = metricItem.value;
+            values[metricItem.key] = {
+                value: metricItem.value,
+                capped: metricItem.capped ?? false
+            };
             return values;
         }, {});
     }

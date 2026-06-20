@@ -1,13 +1,17 @@
 /**
  * Queries object metric overview counts.
  */
-public with sharing class ObjectMetricsOverviewSelector {
+public virtual with sharing class ObjectMetricsOverviewSelector {
+    private static final Integer MAX_DISPLAY_COUNT = 50000;
+    private static final String COUNT_LIMIT_STATUS_CAPPED = 'CAPPED';
+    private static final String COUNT_LIMIT_STATUS_EXACT = 'EXACT';
+
     /**
      * Retrieves object metric values keyed by display metric key.
      * @return Metric values for the object metrics overview.
      */
-    public Map<String, Integer> getObjectMetricValues() {
-        return new Map<String, Integer>{
+    public virtual Map<String, ObjectMetricCount> getObjectMetricValues() {
+        return new Map<String, ObjectMetricCount>{
             'accounts' => countVisibleRecords('Account'),
             'contacts' => countVisibleRecords('Contact'),
             'events' => countVisibleRecords('Event'),
@@ -23,88 +27,179 @@ public with sharing class ObjectMetricsOverviewSelector {
         };
     }
 
-    private Integer countVisibleRecords(String objectApiName) {
+    private ObjectMetricCount countVisibleRecords(String objectApiName) {
         if (!isObjectAccessible(objectApiName)) {
-            return 0;
+            return toObjectMetricCount(0);
         }
 
         switch on objectApiName {
             when 'Account' {
-                return [SELECT COUNT() FROM Account WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Account
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Contact' {
-                return [SELECT COUNT() FROM Contact WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Contact
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Event' {
-                return [SELECT COUNT() FROM Event WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Event
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Task' {
-                return [SELECT COUNT() FROM Task WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Task
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'User' {
-                return [
-                    SELECT COUNT()
-                    FROM User
-                    WHERE IsActive = TRUE
-                    WITH USER_MODE
-                ];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM User
+                        WHERE IsActive = TRUE
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Lead' {
-                return [SELECT COUNT() FROM Lead WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Lead
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Opportunity' {
-                return [SELECT COUNT() FROM Opportunity WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Opportunity
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Product2' {
-                return [SELECT COUNT() FROM Product2 WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Product2
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Campaign' {
-                return [SELECT COUNT() FROM Campaign WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Campaign
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'Case' {
-                return [SELECT COUNT() FROM Case WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM Case
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when 'EmailMessage' {
-                return [SELECT COUNT() FROM EmailMessage WITH USER_MODE];
+                return toObjectMetricCount(
+                    [
+                        SELECT COUNT()
+                        FROM EmailMessage
+                        WITH USER_MODE
+                        LIMIT :MAX_DISPLAY_COUNT
+                    ]
+                );
             }
             when else {
-                return 0;
+                return toObjectMetricCount(0);
             }
         }
     }
 
-    private Integer countRecycleBinItems() {
+    private ObjectMetricCount countRecycleBinItems() {
         Id deletedByUserId = UserInfo.getUserId();
         Integer totalCount = 0;
+        Boolean capped = false;
 
         if (isObjectAccessible('Account')) {
-            totalCount += countDeletedAccounts(deletedByUserId);
+            ObjectMetricCount accountCount = countDeletedAccounts(
+                deletedByUserId
+            );
+            totalCount += accountCount.value;
+            capped = capped || accountCount.capped;
         }
         if (isObjectAccessible('Contact')) {
-            totalCount += countDeletedContacts(deletedByUserId);
+            ObjectMetricCount contactCount = countDeletedContacts(
+                deletedByUserId
+            );
+            totalCount += contactCount.value;
+            capped = capped || contactCount.capped;
         }
 
-        return totalCount;
+        return toObjectMetricCount(
+            totalCount,
+            capped ? COUNT_LIMIT_STATUS_CAPPED : COUNT_LIMIT_STATUS_EXACT
+        );
     }
 
-    private Integer countDeletedAccounts(Id deletedByUserId) {
-        return [
-            SELECT COUNT()
-            FROM Account
-            WHERE IsDeleted = TRUE AND LastModifiedById = :deletedByUserId
-            WITH USER_MODE
-            ALL ROWS
-        ];
+    private ObjectMetricCount countDeletedAccounts(Id deletedByUserId) {
+        return toObjectMetricCount(
+            [
+                SELECT COUNT()
+                FROM Account
+                WHERE IsDeleted = TRUE AND LastModifiedById = :deletedByUserId
+                WITH USER_MODE
+                LIMIT :MAX_DISPLAY_COUNT
+                ALL ROWS
+            ]
+        );
     }
 
-    private Integer countDeletedContacts(Id deletedByUserId) {
-        return [
-            SELECT COUNT()
-            FROM Contact
-            WHERE IsDeleted = TRUE AND LastModifiedById = :deletedByUserId
-            WITH USER_MODE
-            ALL ROWS
-        ];
+    private ObjectMetricCount countDeletedContacts(Id deletedByUserId) {
+        return toObjectMetricCount(
+            [
+                SELECT COUNT()
+                FROM Contact
+                WHERE IsDeleted = TRUE AND LastModifiedById = :deletedByUserId
+                WITH USER_MODE
+                LIMIT :MAX_DISPLAY_COUNT
+                ALL ROWS
+            ]
+        );
     }
 
     private Boolean isObjectAccessible(String objectApiName) {
@@ -113,5 +208,48 @@ public with sharing class ObjectMetricsOverviewSelector {
         return sObjectType != null &&
             sObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
                 .isAccessible();
+    }
+
+    private ObjectMetricCount toObjectMetricCount(Integer value) {
+        return toObjectMetricCount(value, COUNT_LIMIT_STATUS_EXACT);
+    }
+
+    private ObjectMetricCount toObjectMetricCount(
+        Integer value,
+        String countLimitStatus
+    ) {
+        Integer safeValue = value ?? 0;
+        Boolean capped =
+            countLimitStatus == COUNT_LIMIT_STATUS_CAPPED ||
+            safeValue >= MAX_DISPLAY_COUNT;
+        return new ObjectMetricCount(
+            capped ? MAX_DISPLAY_COUNT : safeValue,
+            capped ? COUNT_LIMIT_STATUS_CAPPED : COUNT_LIMIT_STATUS_EXACT
+        );
+    }
+
+    /**
+     * Count result with display limit metadata.
+     */
+    public class ObjectMetricCount {
+        /**
+         * Count value capped at the display limit.
+         */
+        public Integer value { get; private set; }
+
+        /**
+         * Whether the count reached the display limit.
+         */
+        public Boolean capped { get; private set; }
+
+        /**
+         * Creates a bounded count.
+         * @param value Count value capped for display.
+         * @param countLimitStatus Count display limit status.
+         */
+        private ObjectMetricCount(Integer value, String countLimitStatus) {
+            this.value = value;
+            this.capped = countLimitStatus == COUNT_LIMIT_STATUS_CAPPED;
+        }
     }
 }
