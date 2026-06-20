@@ -32,6 +32,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [エージェントルールと GitHub Actions の使い分け](knowledge/agent-rules-or-github-actions.md)
 - [GitHub Projects と Milestones](knowledge/github-projects-and-milestones.md)
 - [GitHub Issue テンプレート設定](knowledge/github-issue-template-config.md)
+- [GitHub Release notes 設定](knowledge/github-release-notes-config.md)
 - [npm と pre-commit hook](knowledge/npm-and-precommit.md)
 - [CI で Prettier を確認する意味](knowledge/prettier-check-in-ci.md)
 - [LWC Jest とアクセシビリティテスト](knowledge/lwc-jest-accessibility-testing.md)
