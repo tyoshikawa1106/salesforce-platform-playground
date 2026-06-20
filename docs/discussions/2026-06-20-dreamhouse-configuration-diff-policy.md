@@ -186,3 +186,36 @@ DreamHouse では LWC coverage と Apex coverage を Codecov に upload し、`c
 - Codecov の repository 設定、token、private repository のプランや権限を確認できた。
 
 それまでは、外部サービス連携を増やすより、ローカルと CI の軽い品質チェックを優先します。
+
+## packaging workflow / `packageAliases` / `CODEOWNERS` / `SUPPORT.md` / auto-assign
+
+### 結論
+
+DreamHouse の packaging workflow、`packageAliases`、`CODEOWNERS`、`SUPPORT.md`、auto-assign workflow は、現時点では取り込みません。
+
+これらは、公開サンプルアプリ、パッケージ配布、外部利用者向け support、メンテナチーム運用に寄った設定です。このリポジトリの現在の目的とは前提が違います。
+
+### 判断理由
+
+DreamHouse の packaging workflow は、サンプルアプリを package 化し、package version を作成・検証・配布する運用を前提にしています。
+
+このリポジトリでは、現時点で 2GP package を作成・配布する方針はありません。`force-app` を正本として、Dev 組織へ deploy / validate できる状態を重視します。
+
+`packageAliases` も package 配布と紐づく設定です。`sfdx-project.json` に package name、version、package aliases を追加するには、先にこのリポジトリで package を作る判断が必要です。
+
+`CODEOWNERS` は review owner を固定する仕組みです。このリポジトリは個人運用で、`docs/development/github-rules.md` でも CODEOWNERS 必須レビューは現時点では保留しています。
+
+`SUPPORT.md` は外部利用者向けの support 導線です。現時点のこのリポジトリは personal playground であり、公開サンプルアプリとして support policy を整える段階ではありません。
+
+auto-assign workflow は、このリポジトリの GitHub 運用方針と合いません。assignee、label、Project などの運用 metadata は GitHub Actions で自動化せず、エージェントまたはユーザーが明示的に行います。
+
+### 再検討条件
+
+次のような段階になったら、個別に再検討します。
+
+- 2GP package を作成・配布する方針を決めた。
+- Dev Hub、package id、package version 管理、配布先 org などの前提を整理した。
+- 外部利用者向けの support policy が必要になった。
+- 複数人運用になり、CODEOWNERS による review owner 管理が必要になった。
+
+それまでは、DreamHouse の公開サンプル・パッケージ運用向け設定は取り込まず、このリポジトリの軽量な GitHub Flow と明示的な metadata 運用を優先します。
