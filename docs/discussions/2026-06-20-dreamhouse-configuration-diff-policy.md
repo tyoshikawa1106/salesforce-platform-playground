@@ -219,3 +219,29 @@ auto-assign workflow は、このリポジトリの GitHub 運用方針と合い
 - 複数人運用になり、CODEOWNERS による review owner 管理が必要になった。
 
 それまでは、DreamHouse の公開サンプル・パッケージ運用向け設定は取り込まず、このリポジトリの軽量な GitHub Flow と明示的な metadata 運用を優先します。
+
+## `.prettierignore` の `sfdx-project.json`
+
+### 結論
+
+DreamHouse の `.prettierignore` にある `sfdx-project.json` 除外は、現時点では取り込みません。
+
+このリポジトリでは、`sfdx-project.json` を Prettier の対象に残します。
+
+### 判断理由
+
+DreamHouse では、`sfdx-project.json` が CI workflow によって編集されるため、Prettier の対象から外しています。
+
+このリポジトリでは、現時点で CI や packaging workflow が `sfdx-project.json` を編集する運用はありません。
+
+また、`sfdx-project.json` は手で編集する通常の JSON 設定ファイルです。Prettier で整形して困りにくく、`prettier:verify` の対象に残す方が他の JSON 設定と扱いを揃えられます。
+
+### 再検討条件
+
+次のような段階になったら、`.prettierignore` に追加するか再検討します。
+
+- CI や packaging script が `sfdx-project.json` を自動更新する。
+- 2GP package の version や alias を workflow で更新する。
+- `sfdx-project.json` を機械更新される設定ファイルとして扱う。
+
+それまでは、DreamHouse に揃えて除外するより、Prettier 対象に残すシンプルな運用を優先します。
