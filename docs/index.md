@@ -17,14 +17,20 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [ローカル開発環境](setup/local-development.md)
 - [Salesforce 公式 skills](setup/sf-skills.md)
 
-## 開発
+## 主要ドキュメント
 
-- [ドキュメント配置ルール](development/documentation-rules.md)
-- [GitHub 運用ルール](development/github-rules.md)
 - [変更チェックリスト](development/change-checklist.md)
 - [Apex 開発ルール](development/apex-rules.md)
+- [GitHub 運用ルール](development/github-rules.md)
+
+## 開発運用
+
+- [ドキュメント配置ルール](development/documentation-rules.md)
 - [設定ファイル管理](development/configuration-files.md)
 - [.gitignore 運用メモ](development/gitignore-rules.md)
+
+## 調査記録
+
 - [npm audit 確認メモ](development/npm-audit-review.md)
 
 ## ナレッジ
@@ -39,7 +45,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [Salesforce Code Analyzer](knowledge/salesforce-code-analyzer.md)
 - [Salesforce 公式参考リンク](knowledge/salesforce-official-references.md)
 
-## ディスカッション
+## 検討記録
 
 - [Apex Trigger クラス構成](discussions/2026-06-19-apex-trigger-class-structure.md)
 - [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](discussions/2026-06-20-eslint-10-salesforce-lwc-compatibility.md)
