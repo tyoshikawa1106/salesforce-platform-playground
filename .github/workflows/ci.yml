@@ -39,6 +39,9 @@ jobs:
             - name: Audit production dependencies
               run: npm audit --omit=dev
 
+            - name: Check formatting
+              run: npm run prettier:verify
+
             - name: Run lint
               run: npm run lint -- --no-error-on-unmatched-pattern
 
