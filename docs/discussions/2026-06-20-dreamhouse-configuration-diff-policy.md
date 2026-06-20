@@ -329,6 +329,42 @@ PR template も、Issue、変更内容、確認結果、レビュー観点を明
 - このリポジトリの日本語 template と GitHub 運用 docs を正とする。
 - 外部利用者向けの受付を始める場合だけ、template の項目追加を再検討する。
 
+#### 参考になる要素
+
+DreamHouse の template を日本語に置き換えると、次のような構成になります。
+
+Bug Report は GitHub Issue Forms で、次の項目を持ちます。
+
+- 注意書き: アプリ自体の不具合専用であり、Apex / LWC などの一般質問は外部コミュニティへ誘導する。
+- 概要: 何が起きているかを短く書く。必須。
+- Salesforce 組織タイプ: Scratch Org、Developer Edition Org、Trailhead Playground、Sandbox、Production Org から選ぶ。必須。
+- 再現手順: どの環境、どの設定、どの操作で再現するかを書く。
+- 現在の動作: 実際に起きていることを書く。
+- 期待する動作: 本来どうなってほしいかを書く。
+- 関連ログ: shell 出力としてログを貼る。
+- Code of Conduct 確認: 行動規範への同意を必須チェックにする。
+
+Feature Request も GitHub Issue Forms で、次の項目を持ちます。
+
+- 注意書き: アプリ自体への機能要望専用であり、一般質問は外部コミュニティへ誘導する。
+- 概要: アプリに何が足りないかを書く。必須。
+- 提案する解決策: どうなってほしいかを書く。
+- 代替案: 他に考えた方法や機能案を書く。
+- Code of Conduct 確認: 行動規範への同意を必須チェックにする。
+
+Pull Request template は Markdown で、次の項目を持ちます。
+
+- この PR は何をするか。
+- この PR が修正または参照する Issue は何か。
+- テストを追加または更新したか。
+- lint と format を実行したか。
+- 変更前の動作。
+- 変更後の動作。
+
+この中で、このリポジトリでも参考になりそうなのは Bug Report の「Salesforce 組織タイプ」と、PR template の「テスト」「lint / format」の明示です。
+
+一方で、Code of Conduct 確認、外部コミュニティへの誘導、before / after の gif 前提は、公開サンプルアプリ向けの色が強いです。このリポジトリに入れる場合は、DreamHouse の項目をそのまま移すのではなく、日本語の現行 template に必要な項目だけ足す形が自然です。
+
 ### Dependabot
 
 #### 結論
