@@ -33,6 +33,9 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 ## デプロイ
 
 - [Dev 組織デプロイ](deployment/dev-org-deploy.md)
+- [メタデータ取得ルール](deployment/retrieve-rules.md)
+- [削除変更ルール](deployment/destructive-changes.md)
+- [Scratch Org 再現](deployment/scratch-org-rebuild.md)
 
 ## 調査記録
 
