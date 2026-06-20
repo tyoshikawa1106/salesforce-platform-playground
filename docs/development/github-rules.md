@@ -4,21 +4,12 @@
 
 ## 基本ルール
 
-- `main` は常に動作確認済みの状態に保つ。
-- `main` へ直接コミットしない。
-- 作業前に Issue を作成し、Issue 単位でブランチを切る。
+GitHub 作業の基本境界は `AGENTS.md` に従います。このファイルには Issue、PR、label、assignee、Project、CI などの詳細運用を置きます。
+
 - Issue は `.github/ISSUE_TEMPLATE/` の内容に従って作成する。
-- PR には対応する Issue を `Closes #<issue番号>` で紐づける。
 - PR 本文は `.github/pull_request_template.md` の構成に従って作成する。
 - ブランチ名には作業内容が分かる短い summary を入れる。
-- コミット時の hook は原則通す。
-- `--no-verify` はユーザーが明示した場合だけ使う。
 - hook が依存不足で失敗した場合、勝手に依存を導入せず確認する。
-
-## AI エージェントの PR 作成ルール
-
-AI エージェントが PR を作成する場合は、対応する実在 Issue を必ず `Closes #<issue番号>` で紐づける。
-対応 Issue がない場合は、PR 作成前に Issue を作成するかユーザーに確認する。
 
 ## PR マージ後の作業ブランチ整理
 
@@ -128,7 +119,6 @@ Issue と PR には、作成時に assignee を設定します。
 - assignee、label、milestone、Project 追加、Project status 更新などの運用メタデータ整理は Actions で自動化せず、エージェントまたはユーザーが明示的に行う。
 - CI workflow は `permissions: contents: read` を基本にし、必要な権限だけを明示する。
 - 最小 CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行する。
-- required status checks は、`main` の branch protection で `npm checks` を必須にする。
 
 ## Dependabot
 
@@ -138,29 +128,12 @@ Issue と PR には、作成時に assignee を設定します。
 - Dependabot config には個人ユーザー名を assignee として固定しない。
 - Dependabot PR の Project 紐づけや担当者設定は、必要に応じて手動で確認する。
 
-## リポジトリセキュリティ設定
+## リポジトリ保護ルール
 
-このリポジトリは公開リポジトリとして扱い、GitHub 側の保護設定を軽量に有効化します。
-
-2026-06-18 時点の標準設定は次の通りです。
-
-- `main` は branch protection を有効化し、Pull Request 経由の変更を必須にする。
-- branch protection は admin にも適用する。
+- `main` は Pull Request 経由の変更を前提にする。
 - `main` の required status checks は `npm checks` を必須にする。
 - `main` への force push と branch deletion は許可しない。
-- PR の unresolved conversation が残っている場合は merge しない。
-- Dependabot alerts と Dependabot security updates を有効化する。
-- secret scanning と push protection を有効化する。
-- GitHub Actions は GitHub-owned actions と verified creator の actions だけを許可する。
-- PR merge 後は GitHub 側で head branch を自動削除する。
-
-次の設定は、現時点では保留します。
-
-- required approving review count: 個人運用で協力者がいない場合に merge できなくなるため。
-- required linear history: merge 方針を別途決める必要があるため。
-- CODEOWNERS 必須レビュー: 個人運用では重くなりやすいため。
-
-secret scanning の non-provider patterns と validity checks は有効化候補ですが、2026-06-18 時点では GitHub API で更新しても repository settings に反映されませんでした。GitHub 側で利用可能になったことを確認できたら有効化します。
+- branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
 
 ## Project / Milestone ルール
 

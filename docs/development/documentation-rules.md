@@ -12,18 +12,18 @@
 
 ## 配置
 
-| 場所                              | 用途                                                       |
-| --------------------------------- | ---------------------------------------------------------- |
-| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                       |
-| `CLAUDE.md`                       | Claude Code 向けの入口                                     |
-| `GEMINI.md`                       | Gemini CLI 向けの入口                                      |
-| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                                  |
-| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線       |
-| `docs/setup/`                     | ローカル環境、ツール導入、組織ログイン、初期セットアップ   |
-| `docs/development/`               | 開発ルール、実務チェックリスト、Apex / metadata の作業手順 |
-| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順             |
-| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理したメモ       |
-| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な学習メモ                   |
+| 場所                              | 用途                                                     |
+| --------------------------------- | -------------------------------------------------------- |
+| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                     |
+| `CLAUDE.md`                       | Claude Code 向けの入口                                   |
+| `GEMINI.md`                       | Gemini CLI 向けの入口                                    |
+| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                                |
+| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線     |
+| `docs/setup/`                     | ローカル環境、ツール導入、組織ログイン、初期セットアップ |
+| `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認メモ       |
+| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順           |
+| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理したメモ     |
+| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な学習メモ                 |
 
 ## Discussions の扱い
 
@@ -59,4 +59,4 @@
 - 特定 Dev 組織の設定値
 - 今回の Issue だけの作業方針
 
-リポジトリ固有の実務ルールは `docs/development/`、セットアップ手順は `docs/setup/`、デプロイ判断は `docs/deployment/` に置きます。
+リポジトリ固有の実務ルール、チェックリスト、設定台帳、確認メモは `docs/development/`、セットアップ手順は `docs/setup/`、デプロイ判断は `docs/deployment/` に置きます。
