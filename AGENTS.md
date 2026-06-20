@@ -16,19 +16,18 @@
 - ブランチ名は通常 `feature/<summary>`、Codex 作業では `codex/<summary>` とする。
 - コミットメッセージと PR title は `<type>: <日本語summary>` 形式にする。
 - 実質的な変更のコミットには、目的、主な変更、検証結果を本文に記載する。
-- GitHub の Issue と PR には必ずラベルと assignee を付け、特別な指定がない限り repository owner を assignee にする。
-- エージェントが Issue / PR を作成・更新する場合は、ラベル、assignee、Project 紐づけを設定・確認し、運用は `docs/development/github-rules.md` に従う。
-- GitHub の Issue と PR は、リポジトリのテンプレートに従って作成する。
+- エージェントが PR を作成する場合は、対応する実在 Issue を必ず `Closes #<issue番号>` で紐づける。対応 Issue がない場合は、PR 作成前に Issue を作成するかユーザーに確認する。
+- GitHub の Issue / PR はテンプレートに従い、ラベル、assignee、Project 紐づけなどの詳細運用は `docs/development/github-rules.md` に従う。
 - 特定の個人ユーザー名を運用ルールや automation config に固定しない。
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
 - 秘密情報、認証ファイル、組織固有の一時ファイル、個人環境の値をコミットしない。
 - `.env`、`.env.*`、秘密鍵、証明書、token、password、client secret などの実値を含み得るファイルを読まない。
 - `npm install` など依存関係を変更・導入するコマンドは、明示確認してから実行する。
 - デプロイ対象のメタデータは `force-app/main/default` を正本とする。
+- 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、対象組織を確認し、依頼範囲内でのみ実行する。明示依頼なしに target org を切り替えない。
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` 前提で進めない。
-- 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、対象組織を確認し、依頼範囲内でのみ実行する。
-- deploy と Apex test は現在接続されている Salesforce 組織に対してのみ実行し、明示依頼なしに target org を切り替えない。
-- Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使うが、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
+- Apex、メタデータ、deploy、Apex test の詳細手順は `docs/development/checklist.md` と `docs/development/apex-rules.md` に従う。
+- Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
 - メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
@@ -39,6 +38,4 @@
 
 ## 検証
 
-- メタデータをデプロイする前に、原則 `sf project deploy validate --source-dir force-app` を実行する。
-- Apex クラス、トリガー、または Salesforce メタデータを変更した後は、`sf project deploy start --source-dir force-app` で現在接続中の組織へ反映する。
-- Apex クラスやトリガーを含む PR を作成する前に、関連する Apex テストを coverage 付きで実行する。
+- Salesforce メタデータ変更後は、`docs/development/checklist.md` と `docs/development/apex-rules.md` に従い、実行した validate / deploy / test と対象組織を報告する。
