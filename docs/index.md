@@ -21,6 +21,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 
 - [変更チェックリスト](development/change-checklist.md)
 - [Apex 開発ルール](development/apex-rules.md)
+- [メタデータ開発ルール](development/metadata-rules.md)
 - [GitHub 運用ルール](development/github-rules.md)
 
 ## 開発運用
@@ -28,6 +29,13 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [ドキュメント配置ルール](development/documentation-rules.md)
 - [設定ファイル管理](development/configuration-files.md)
 - [.gitignore 運用メモ](development/gitignore-rules.md)
+
+## デプロイ
+
+- [Dev 組織デプロイ](deployment/dev-org-deploy.md)
+- [メタデータ取得ルール](deployment/retrieve-rules.md)
+- [削除変更ルール](deployment/destructive-changes.md)
+- [Scratch Org 再現](deployment/scratch-org-rebuild.md)
 
 ## 調査記録
 
