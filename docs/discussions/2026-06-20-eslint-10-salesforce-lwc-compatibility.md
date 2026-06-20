@@ -13,14 +13,15 @@ CI でも `npm ci --include=dev` の段階で `ERESOLVE` になり、lint 実行
 ## 確認した package metadata
 
 公開 npm registry の latest metadata を確認しました。
+2026-06-20 に再確認し、Salesforce / LWC ESLint 関連パッケージの ESLint peer dependency は引き続き `^9` でした。
 
 | package                               | latest  | ESLint peer dependency |
-| ------------------------------------- | ------- | ---------------------- | --- | -------- |
+| ------------------------------------- | ------- | ---------------------- |
 | `@salesforce/eslint-config-lwc`       | `4.1.2` | `^9`                   |
 | `@lwc/eslint-plugin-lwc`              | `3.5.0` | `^9`                   |
 | `@salesforce/eslint-plugin-aura`      | `3.0.0` | `^9`                   |
 | `@salesforce/eslint-plugin-lightning` | `2.0.0` | `^9`                   |
-| `@babel/eslint-parser`                | `8.0.1` | `^9.0.0                |     | ^10.0.0` |
+| `@babel/eslint-parser`                | `8.0.1` | `^9.0.0 \|\| ^10.0.0`  |
 
 `@babel/eslint-parser` 自体は 8 系で `eslint` 10 対応済みです。
 
