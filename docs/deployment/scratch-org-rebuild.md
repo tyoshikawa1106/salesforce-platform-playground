@@ -67,7 +67,7 @@ sf apex run test --test-level RunLocalTests --result-format human --target-org s
 組織をブラウザで確認する場合:
 
 ```sh
-sf org open --target-org scratch-platform-playground
+sf org open --target-org scratch-platform-playground -b chrome
 ```
 
 ## 削除
