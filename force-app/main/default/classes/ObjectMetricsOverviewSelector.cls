@@ -3,8 +3,6 @@
  */
 public virtual with sharing class ObjectMetricsOverviewSelector {
     private static final Integer MAX_DISPLAY_COUNT = 50000;
-    private static final String COUNT_LIMIT_STATUS_CAPPED = 'CAPPED';
-    private static final String COUNT_LIMIT_STATUS_EXACT = 'EXACT';
 
     /**
      * Retrieves object metric values keyed by display metric key.
@@ -36,33 +34,23 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     private static ObjectMetricCount createCount(Integer value) {
         Integer safeValue = value ?? 0;
         return safeValue >= MAX_DISPLAY_COUNT
-            ? createCappedCount(MAX_DISPLAY_COUNT)
-            : createExactCount(safeValue);
-    }
-
-    /**
-     * Creates an exact count result.
-     * @param value Exact count value.
-     * @return Count result without the capped marker.
-     */
-    @TestVisible
-    private static ObjectMetricCount createExactCount(Integer value) {
-        return new ObjectMetricCount(value, COUNT_LIMIT_STATUS_EXACT);
+            ? createCappedCount()
+            : new ObjectMetricCount(safeValue, false);
     }
 
     /**
      * Creates a capped count result.
-     * @param value Count value capped for display.
      * @return Count result with the capped marker.
      */
-    @TestVisible
-    private static ObjectMetricCount createCappedCount(Integer value) {
-        return new ObjectMetricCount(value, COUNT_LIMIT_STATUS_CAPPED);
+    private static ObjectMetricCount createCappedCount() {
+        return new ObjectMetricCount(MAX_DISPLAY_COUNT, true);
     }
 
     @TestVisible
     private ObjectMetricCount countVisibleRecords(String objectApiName) {
-        if (!isObjectAccessible(objectApiName)) {
+        if (
+            String.isBlank(objectApiName) || !isObjectAccessible(objectApiName)
+        ) {
             return toObjectMetricCount(0);
         }
 
@@ -204,10 +192,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             capped = capped || contactCount.capped;
         }
 
-        return toObjectMetricCount(
-            totalCount,
-            capped ? COUNT_LIMIT_STATUS_CAPPED : COUNT_LIMIT_STATUS_EXACT
-        );
+        return capped ? createCappedCount() : toObjectMetricCount(totalCount);
     }
 
     private ObjectMetricCount countDeletedAccounts(Id deletedByUserId) {
@@ -248,16 +233,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         return createCount(value);
     }
 
-    private ObjectMetricCount toObjectMetricCount(
-        Integer value,
-        String countLimitStatus
-    ) {
-        Integer safeValue = value ?? 0;
-        return countLimitStatus == COUNT_LIMIT_STATUS_CAPPED
-            ? createCappedCount(MAX_DISPLAY_COUNT)
-            : createCount(safeValue);
-    }
-
     /**
      * Count result with display limit metadata.
      */
@@ -275,11 +250,11 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         /**
          * Creates a bounded count.
          * @param value Count value capped for display.
-         * @param countLimitStatus Count display limit status.
+         * @param capped Whether the count reached the display limit.
          */
-        private ObjectMetricCount(Integer value, String countLimitStatus) {
+        private ObjectMetricCount(Integer value, Boolean capped) {
             this.value = value;
-            this.capped = countLimitStatus == COUNT_LIMIT_STATUS_CAPPED;
+            this.capped = capped;
         }
     }
 }

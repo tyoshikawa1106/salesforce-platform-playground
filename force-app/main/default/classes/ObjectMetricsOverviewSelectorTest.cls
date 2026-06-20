@@ -142,6 +142,31 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
     }
 
     @IsTest
+    static void shouldReturnZeroWhenObjectApiNameIsBlank() {
+        // Given
+        ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
+
+        // When
+        ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            metricCount = selector.countVisibleRecords(' ');
+            Test.stopTest();
+        }
+
+        // Then
+        Assert.areEqual(
+            0,
+            metricCount.value,
+            'Blank object API names should return zero.'
+        );
+        Assert.isFalse(
+            metricCount.capped,
+            'Blank object API names should not be capped.'
+        );
+    }
+
+    @IsTest
     static void shouldCountCurrentUsersDeletedAccountAndContact() {
         // Given
         Account deletedAccount = TestDataFactory.insertAccount(
