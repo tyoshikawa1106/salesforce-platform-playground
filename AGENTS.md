@@ -26,7 +26,7 @@
 - デプロイ対象のメタデータは `force-app/main/default` を正本とする。
 - 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、対象組織を確認し、依頼範囲内でのみ実行する。明示依頼なしに target org を切り替えない。
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` 前提で進めない。
-- Apex、メタデータ、deploy、Apex test の詳細手順は `docs/development/change-checklist.md` と `docs/development/apex-rules.md` に従う。
+- Apex、メタデータ、deploy、Apex test の詳細手順は `docs/development/change-checklist.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/dev-org-deploy.md` に従う。
 - Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
@@ -38,4 +38,4 @@
 
 ## 検証
 
-- Salesforce メタデータ変更後は、`docs/development/change-checklist.md` と `docs/development/apex-rules.md` に従い、実行した validate / deploy / test と対象組織を報告する。
+- Salesforce メタデータ変更後は、関連 docs に従い、実行した validate / deploy / test と対象組織を報告する。
