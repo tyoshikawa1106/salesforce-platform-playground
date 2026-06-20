@@ -50,6 +50,9 @@ Salesforce チームで使われる前提の文脈はありますが、Salesforc
 
 ## セットアップ
 
+このリポジトリでは、2026-06-20 に PR #74 で `@sa11y/jest` と `jest-sa11y-setup.js` を導入済みです。
+次の手順は、別プロジェクトや再セットアップ時の参考です。
+
 `@sa11y/jest` を devDependency に追加します。
 
 ```sh

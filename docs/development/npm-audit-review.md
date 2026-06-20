@@ -5,6 +5,7 @@ Issue #2 で、初回セットアップ時に表示された npm audit 警告を
 ## 確認日
 
 - 2026-06-17
+- 2026-06-20: 再確認。`npm audit --json` と `npm audit --omit=dev --json` はどちらも vulnerability 0 件。
 
 ## 実行コマンド
 
@@ -22,6 +23,13 @@ npm explain js-yaml
 `npm audit fix` は実行していません。
 
 ## 結果
+
+### 2026-06-20 再確認
+
+`npm audit --json` と `npm audit --omit=dev --json` は、どちらも vulnerability 0 件でした。
+production dependency だけでなく、devDependency を含めても audit 指摘はありません。
+
+### 2026-06-17 初回確認
 
 `npm audit --json` の内訳は次の通りです。
 
