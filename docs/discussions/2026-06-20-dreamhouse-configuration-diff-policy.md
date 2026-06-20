@@ -408,3 +408,48 @@ DreamHouse の公開サンプル運用と release notes の粒度は、このリ
 - `.github/release.yml` はこのリポジトリの label 運用に合わせて維持する。
 - DreamHouse 由来の release 設定は追加しない。
 - label taxonomy を変更する場合だけ、release category も合わせて見直す。
+
+## まとめ
+
+今回の「設定・環境ファイル」観点では、DreamHouse との差分を一通り確認しました。
+
+確認済みの範囲は次の通りです。
+
+- `.forceignore`
+- `code-analyzer.yml`
+- CI の `prettier:verify`
+- `jest-sa11y-setup.js` / `@sa11y/jest`
+- `codecov.yml`
+- packaging workflow / `packageAliases`
+- `CODEOWNERS` / `SUPPORT.md` / auto-assign
+- `.prettierignore` の `sfdx-project.json`
+- 依存バージョン
+- `.vscode/extensions.json`
+- Issue / PR template
+- Dependabot
+- release 設定
+
+DreamHouse の良いところは、必要なものだけ取り込む判断ができています。
+
+- Code Analyzer: 採用候補として Issue 化済み。
+- CI の Prettier check: 採用候補として Issue 化済み。
+- LWC Jest + accessibility: 採用候補として Issue 化済み。
+- GitHub Release notes 設定: ナレッジ化済み。
+- 不要な設定: 理由付きでこの discussion に記録済み。
+
+一方で、DreamHouse に合わせないと判断したものも明確です。
+
+- `.forceignore` の広い metadata / TypeScript 除外
+- `codecov.yml`
+- packaging workflow / `packageAliases`
+- `CODEOWNERS` / `SUPPORT.md` / auto-assign workflow
+- `.prettierignore` の `sfdx-project.json` 除外
+- DreamHouse の依存バージョンへの手動追従
+- DreamHouse の `.vscode/extensions.json`
+- DreamHouse の Issue / PR template
+- DreamHouse の Dependabot 設定
+- DreamHouse 由来の release 設定
+
+これらは、このリポジトリの CLI / metadata 差分管理、軽量な GitHub Flow、既存の Dependabot / release notes / VS Code 推奨設定と合わないため、取り込みません。
+
+残っている比較対象は `force-app` 配下の開発コード差分です。今後 DreamHouse 側を再確認する場合も、開発コードと設定・環境ファイルは分けて判断します。
