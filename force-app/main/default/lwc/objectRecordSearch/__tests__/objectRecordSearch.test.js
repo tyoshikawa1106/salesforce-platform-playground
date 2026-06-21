@@ -1,6 +1,8 @@
 import { createElement } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import ObjectRecordSearch from 'c/objectRecordSearch';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+import { getLayout } from 'lightning/uiLayoutApi';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 
@@ -80,6 +82,68 @@ function createComponent() {
 
 async function flushPromises() {
     await Promise.resolve();
+}
+
+function emitObjectInfo(fieldOverrides = {}) {
+    getObjectInfo.emit({
+        defaultRecordTypeId: '012000000000000AAA',
+        fields: {
+            Name: createFieldInfo(),
+            Industry: createFieldInfo(),
+            FirstName: createFieldInfo(),
+            LastName: createFieldInfo(),
+            Company: createFieldInfo(),
+            StageName: createFieldInfo(),
+            CloseDate: createFieldInfo(),
+            Custom_Text__c: createFieldInfo({ custom: true }),
+            ...fieldOverrides
+        }
+    });
+}
+
+function createFieldInfo(overrides = {}) {
+    return {
+        custom: false,
+        createable: true,
+        updateable: true,
+        ...overrides
+    };
+}
+
+function emitLayout({
+    objectApiName = 'Account',
+    mode = 'Create',
+    fields = ['Name', 'Industry']
+} = {}) {
+    getLayout.emit({
+        layouts: {
+            [objectApiName]: {
+                Full: {
+                    [mode]: {
+                        sections: [
+                            {
+                                layoutRows: [
+                                    {
+                                        layoutItems: fields.map((field) => ({
+                                            editableForNew: true,
+                                            editableForUpdate: true,
+                                            required: true,
+                                            layoutComponents: [
+                                                {
+                                                    apiName: field,
+                                                    componentType: 'Field'
+                                                }
+                                            ]
+                                        }))
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    });
 }
 
 function findButton(element, label) {
@@ -223,6 +287,9 @@ describe('c-object-record-search', () => {
 
         searchRecords.emit(searchResponse);
         await flushPromises();
+        emitObjectInfo();
+        emitLayout();
+        await flushPromises();
 
         const newButton = findButton(element, '新規');
         newButton.click();
@@ -234,6 +301,25 @@ describe('c-object-record-search', () => {
         expect(element.shadowRoot.textContent).toContain('取引先を作成');
         expect(form.objectApiName).toBe('Account');
         expect(form.recordId).toBeUndefined();
+        expect(
+            Array.from(
+                element.shadowRoot.querySelectorAll('lightning-input-field')
+            ).map((field) => field.fieldName)
+        ).toEqual(['Name', 'Industry']);
+    });
+
+    it('uses editable standard fields from the page layout and skips custom fields', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        emitLayout({ fields: ['Name', 'Industry', 'Custom_Text__c'] });
+        await flushPromises();
+
+        findButton(element, '新規').click();
+        await flushPromises();
+
         expect(
             Array.from(
                 element.shadowRoot.querySelectorAll('lightning-input-field')
@@ -253,6 +339,12 @@ describe('c-object-record-search', () => {
                 nameFieldUpdateable: false
             })
         );
+        await flushPromises();
+        emitObjectInfo();
+        emitLayout({
+            objectApiName: 'Contact',
+            fields: ['FirstName', 'LastName']
+        });
         await flushPromises();
 
         const newButton = findButton(element, '新規');
@@ -283,6 +375,12 @@ describe('c-object-record-search', () => {
             })
         );
         await flushPromises();
+        emitObjectInfo();
+        emitLayout({
+            objectApiName: 'Lead',
+            fields: ['FirstName', 'LastName', 'Company']
+        });
+        await flushPromises();
 
         const newButton = findButton(element, '新規');
         newButton.click();
@@ -310,6 +408,12 @@ describe('c-object-record-search', () => {
             })
         );
         await flushPromises();
+        emitObjectInfo();
+        emitLayout({
+            objectApiName: 'Opportunity',
+            fields: ['Name', 'StageName', 'CloseDate']
+        });
+        await flushPromises();
 
         const newButton = findButton(element, '新規');
         newButton.click();
@@ -330,6 +434,9 @@ describe('c-object-record-search', () => {
         const element = createComponent();
 
         searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        emitLayout();
         await flushPromises();
 
         const datatable = element.shadowRoot.querySelector(
@@ -352,10 +459,88 @@ describe('c-object-record-search', () => {
         expect(form.recordId).toBe('001xx000003DGbYAAW');
     });
 
+    it('does not open create or edit forms for email messages', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(
+            createSearchResponse({
+                metricKey: 'emailMessages',
+                objectApiName: 'EmailMessage',
+                objectLabel: 'メールメッセージ'
+            })
+        );
+        await flushPromises();
+
+        expect(findButton(element, '新規').disabled).toBe(true);
+        expect(
+            element.shadowRoot.querySelector('lightning-datatable').columns
+        ).not.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'action'
+                })
+            ])
+        );
+    });
+
+    it('opens a file upload dialog for files and refreshes after upload', async () => {
+        const element = createComponent();
+        const recordsChangedHandler = jest.fn();
+        const toastHandler = jest.fn();
+        element.addEventListener('recordschanged', recordsChangedHandler);
+        element.addEventListener('lightning__showtoast', toastHandler);
+
+        searchRecords.emit(
+            createSearchResponse({
+                metricKey: 'files',
+                objectApiName: 'ContentDocument',
+                objectLabel: 'ファイル',
+                createable: false,
+                updateable: false
+            })
+        );
+        await flushPromises();
+
+        findButton(element, 'アップロード').click();
+        await flushPromises();
+
+        const upload = element.shadowRoot.querySelector(
+            'lightning-file-upload'
+        );
+        expect(upload).not.toBeNull();
+        expect(element.shadowRoot.textContent).toContain(
+            'ファイルをアップロード'
+        );
+
+        upload.dispatchEvent(
+            new CustomEvent('uploadfinished', {
+                detail: {
+                    files: [{ name: 'proposal.pdf' }]
+                }
+            })
+        );
+        await flushPromises();
+
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+        expect(recordsChangedHandler).toHaveBeenCalledTimes(1);
+        expect(toastHandler).toHaveBeenCalledWith(
+            expect.objectContaining({
+                detail: expect.objectContaining({
+                    title: 'アップロードしました',
+                    message: '1 件のファイルを登録しました。',
+                    variant: 'success'
+                })
+            })
+        );
+    });
+
     it('prevents record form submit when field validation fails', async () => {
         const element = createComponent();
 
         searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        emitLayout();
         await flushPromises();
 
         findButton(element, '新規').click();
@@ -381,6 +566,9 @@ describe('c-object-record-search', () => {
         element.addEventListener('lightning__showtoast', toastHandler);
 
         searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        emitLayout();
         await flushPromises();
 
         findButton(element, '新規').click();
