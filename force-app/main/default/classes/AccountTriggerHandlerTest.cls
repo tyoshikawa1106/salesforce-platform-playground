@@ -1,11 +1,11 @@
 /**
- * Tests Account trigger name normalization.
+ * 取引先トリガーによる名称補正をテストします。
  */
 @IsTest
 private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsInserted() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('㈱テスト'),
             TestDataFactory.createAccount('（株）テスト'),
@@ -15,14 +15,14 @@ private with sharing class AccountTriggerHandlerTest {
             TestDataFactory.createAccount('(有)テスト')
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Map<Id, Account> accountsById = getAccountsById(accounts);
         Assert.areEqual(
             '株式会社テスト',
@@ -58,18 +58,18 @@ private with sharing class AccountTriggerHandlerTest {
 
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenNameUpdated() {
-        // Given
+        // 準備
         Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
         accountRecord.Name = 'テスト（株）';
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             update accountRecord;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Account updatedAccount = getAccount(accountRecord);
         Assert.areEqual(
             'テスト株式会社',
@@ -80,20 +80,20 @@ private with sharing class AccountTriggerHandlerTest {
 
     @IsTest
     static void shouldKeepCompanyTypePositionWhenAccountsInserted() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('テスト（株）'),
             TestDataFactory.createAccount('テスト(有)')
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Map<Id, Account> accountsById = getAccountsById(accounts);
         Assert.areEqual(
             'テスト株式会社',
@@ -109,19 +109,19 @@ private with sharing class AccountTriggerHandlerTest {
 
     @IsTest
     static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
-        // Given
+        // 準備
         Account accountRecord = TestDataFactory.createAccount(
             '㈱テスト(有)支店'
         );
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             insert accountRecord;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Account insertedAccount = getAccount(accountRecord);
         Assert.areEqual(
             '株式会社テスト有限会社支店',
@@ -132,17 +132,17 @@ private with sharing class AccountTriggerHandlerTest {
 
     @IsTest
     static void shouldKeepFormalCompanyNamesWhenAlreadyNormalized() {
-        // Given
+        // 準備
         Account accountRecord = TestDataFactory.createAccount('株式会社テスト');
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             insert accountRecord;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Account insertedAccount = getAccount(accountRecord);
         Assert.areEqual(
             '株式会社テスト',
@@ -153,7 +153,7 @@ private with sharing class AccountTriggerHandlerTest {
 
     @IsTest
     static void shouldKeepIncompleteAbbreviationsWhenAccountsInserted() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('株）テスト'),
             TestDataFactory.createAccount('（株テスト'),
@@ -161,14 +161,14 @@ private with sharing class AccountTriggerHandlerTest {
             TestDataFactory.createAccount('(有テスト')
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Map<Id, Account> accountsById = getAccountsById(accounts);
         Assert.areEqual(
             '株）テスト',
@@ -194,20 +194,20 @@ private with sharing class AccountTriggerHandlerTest {
 
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenBulkInserted() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 251; index++) {
             accounts.add(TestDataFactory.createAccount('㈱テスト ' + index));
         }
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         List<Account> insertedAccounts = getAccounts(accounts);
         Assert.areEqual(
             251,

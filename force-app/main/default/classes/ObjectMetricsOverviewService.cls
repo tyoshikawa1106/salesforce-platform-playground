@@ -1,5 +1,5 @@
 /**
- * Builds object metric overview summaries.
+ * オブジェクト件数一覧のサマリを組み立てます。
  */
 public with sharing class ObjectMetricsOverviewService {
     private static final List<String> METRIC_KEYS = new List<String>{
@@ -35,15 +35,15 @@ public with sharing class ObjectMetricsOverviewService {
     private final ObjectMetricsOverviewSelector selector;
 
     /**
-     * Creates the service with the default selector.
+     * 既定の Selector を使ってサービスを作成します。
      */
     public ObjectMetricsOverviewService() {
         this(new ObjectMetricsOverviewSelector());
     }
 
     /**
-     * Creates the service with a supplied selector.
-     * @param selector Selector used to retrieve metric values.
+     * 指定された Selector を使ってサービスを作成します。
+     * @param selector 件数値を取得する Selector
      */
     public ObjectMetricsOverviewService(
         ObjectMetricsOverviewSelector selector
@@ -54,8 +54,8 @@ public with sharing class ObjectMetricsOverviewService {
     }
 
     /**
-     * Builds an ordered metric summary for display.
-     * @return Ordered object metric summary.
+     * 画面表示用に順序を固定した件数サマリを組み立てます。
+     * @return 表示順に整列済みのオブジェクト件数サマリ
      */
     public ObjectMetricsOverviewController.ObjectMetricSummary getObjectMetrics() {
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues = selector.getObjectMetricValues();

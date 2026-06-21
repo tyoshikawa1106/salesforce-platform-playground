@@ -4,6 +4,7 @@ import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.g
 
 const NUMBER_FORMATTER = new Intl.NumberFormat('ja-JP');
 
+// Apex が返す安定キーに、画面表示用のラベルとアイコンを対応付けます。
 const COUNT_CARD_CONFIGS = [
     { key: 'accounts', iconName: 'standard:account', label: '取引先' },
     { key: 'contacts', iconName: 'standard:contact', label: '取引先責任者' },
@@ -106,6 +107,7 @@ export default class ObjectMetricsOverview extends LightningElement {
 
     @wire(getObjectMetrics)
     wiredObjectMetrics(result) {
+        // refreshApex で再利用できるよう、wire の結果オブジェクトを保持します。
         this.wiredObjectMetricsResult = result;
         const { data, error } = result;
 
@@ -119,6 +121,7 @@ export default class ObjectMetricsOverview extends LightningElement {
     }
 
     get countCards() {
+        // 件数が未取得のカードも 0 件として描画し、画面のカード順を固定します。
         return COUNT_CARD_CONFIGS.map((config) => {
             const metricValue = this.metricValues[config.key] ?? {
                 value: 0,
@@ -163,6 +166,7 @@ export default class ObjectMetricsOverview extends LightningElement {
     }
 
     createMetricValues(metrics = []) {
+        // 配列レスポンスをカードキーで参照しやすい形に変換します。
         return metrics.reduce((values, metricItem) => {
             values[metricItem.key] = {
                 value: metricItem.value,
@@ -173,6 +177,7 @@ export default class ObjectMetricsOverview extends LightningElement {
     }
 
     reduceErrors(errors) {
+        // LDS / Apex / JavaScript 例外の形を吸収し、画面には文字列だけを返します。
         const normalizedErrors = Array.isArray(errors) ? errors : [errors];
         return normalizedErrors
             .filter((error) => error)

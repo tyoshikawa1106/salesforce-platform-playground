@@ -1,12 +1,12 @@
 /**
- * Creates reusable test data for Apex tests.
+ * Apex テストで再利用するテストデータを作成します。
  */
 @IsTest
 public with sharing class TestDataFactory {
     /**
-     * Creates Account records with default values.
-     * @param count Number of Accounts to create
-     * @return Created Account records
+     * 既定値を持つ取引先レコードを作成します。
+     * @param count 作成する取引先件数
+     * @return 作成した取引先レコード
      */
     public static List<Account> createAccounts(Integer count) {
         List<Account> accounts = new List<Account>();
@@ -22,9 +22,9 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * Creates and inserts Account records with default values.
-     * @param count Number of Accounts to insert
-     * @return Inserted Account records
+     * 既定値を持つ取引先レコードを作成して保存します。
+     * @param count 保存する取引先件数
+     * @return 保存した取引先レコード
      */
     public static List<Account> insertAccounts(Integer count) {
         List<Account> accounts = createAccounts(count);
@@ -33,18 +33,18 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * Creates one unsaved Account with a custom name.
-     * @param accountName Account name to use
-     * @return Created Account record
+     * 指定した名前の未保存取引先を 1 件作成します。
+     * @param accountName 使用する取引先名
+     * @return 作成した取引先レコード
      */
     public static Account createAccount(String accountName) {
         return new Account(Name = accountName);
     }
 
     /**
-     * Creates and inserts one Account with a custom name.
-     * @param accountName Account name to use
-     * @return Inserted Account record
+     * 指定した名前の取引先を 1 件作成して保存します。
+     * @param accountName 使用する取引先名
+     * @return 保存した取引先レコード
      */
     public static Account insertAccount(String accountName) {
         Account accountRecord = createAccount(accountName);

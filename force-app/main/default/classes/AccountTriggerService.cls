@@ -1,19 +1,19 @@
 /**
- * Coordinates Account trigger use cases.
+ * 取引先トリガーから呼び出されるユースケースを調整します。
  */
 public with sharing class AccountTriggerService {
     /**
-     * Applies Account before insert behavior.
-     * @param accounts Account records from Trigger.new
+     * 取引先作成前の補正処理を適用します。
+     * @param accounts Trigger.new から渡された取引先レコード
      */
     public static void beforeInsert(List<Account> accounts) {
         AccountDomain.normalizeNames(accounts, null);
     }
 
     /**
-     * Applies Account before update behavior.
-     * @param accounts Account records from Trigger.new
-     * @param oldAccountsById Previous Account values keyed by Id
+     * 取引先更新前の補正処理を適用します。
+     * @param accounts Trigger.new から渡された取引先レコード
+     * @param oldAccountsById Id をキーにした変更前の取引先レコード
      */
     public static void beforeUpdate(
         List<Account> accounts,

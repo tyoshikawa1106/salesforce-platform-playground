@@ -1,24 +1,24 @@
 /**
- * Tests Account domain behavior.
+ * 取引先ドメインの振る舞いをテストします。
  */
 @IsTest
 private with sharing class AccountDomainTest {
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsProvided() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('㈱テスト'),
             TestDataFactory.createAccount('テスト(有)支店')
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             AccountDomain.normalizeNames(accounts, null);
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             '株式会社テスト',
             accounts[0].Name,
@@ -33,7 +33,7 @@ private with sharing class AccountDomainTest {
 
     @IsTest
     static void shouldSkipNormalizationWhenNameDidNotChange() {
-        // Given
+        // 準備
         Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
         Account accountRecord = new Account(
             Id = savedAccount.Id,
@@ -47,7 +47,7 @@ private with sharing class AccountDomainTest {
             accountRecord.Id => oldAccount
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             AccountDomain.normalizeNames(
@@ -57,7 +57,7 @@ private with sharing class AccountDomainTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             '㈱テスト',
             accountRecord.Name,
@@ -67,17 +67,17 @@ private with sharing class AccountDomainTest {
 
     @IsTest
     static void shouldDoNothingWhenAccountsEmpty() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>();
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             AccountDomain.normalizeNames(accounts, null);
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(0, accounts.size(), 'Empty input should remain empty.');
     }
 

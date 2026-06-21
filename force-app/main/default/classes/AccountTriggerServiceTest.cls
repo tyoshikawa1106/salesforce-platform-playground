@@ -1,23 +1,23 @@
 /**
- * Tests Account trigger service behavior.
+ * 取引先トリガーサービスの振る舞いをテストします。
  */
 @IsTest
 private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void beforeInsertShouldNormalizeAccountNames() {
-        // Given
+        // 準備
         List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('㈱テスト')
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             AccountTriggerService.beforeInsert(accounts);
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             '株式会社テスト',
             accounts[0].Name,
@@ -27,7 +27,7 @@ private with sharing class AccountTriggerServiceTest {
 
     @IsTest
     static void beforeUpdateShouldNormalizeChangedAccountNames() {
-        // Given
+        // 準備
         Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
         Account updatedAccount = new Account(
             Id = accountRecord.Id,
@@ -37,7 +37,7 @@ private with sharing class AccountTriggerServiceTest {
             accountRecord.Id => accountRecord
         };
 
-        // When
+        // 実行
         System.runAs(getCurrentUser()) {
             Test.startTest();
             AccountTriggerService.beforeUpdate(
@@ -47,7 +47,7 @@ private with sharing class AccountTriggerServiceTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             'テスト株式会社',
             updatedAccount.Name,

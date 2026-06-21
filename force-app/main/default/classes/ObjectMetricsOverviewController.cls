@@ -1,10 +1,16 @@
 /**
- * Supplies record count summaries for the data board Lightning Web Component.
+ * データボード LWC に表示するレコード件数サマリを提供します。
+ *
+ * LWC から直接呼ばれる公開入口だけを持ち、集計順序や件数取得の詳細は
+ * ObjectMetricsOverviewService / Selector に委譲します。
  */
 public with sharing class ObjectMetricsOverviewController {
     /**
-     * Counts object records visible to the current user.
-     * @return Ordered record count summary for the LWC.
+     * 現在のユーザーが参照できる各オブジェクトの件数を取得します。
+     *
+     * cacheable=true の読み取り専用メソッドとして LWC wire から利用します。
+     * 内部例外は LWC に詳細を出さず、画面表示用の共通メッセージに変換します。
+     * @return LWC 表示順に整列済みのレコード件数サマリ
      */
     @AuraEnabled(cacheable=true)
     public static ObjectMetricSummary getObjectMetrics() {
@@ -18,18 +24,20 @@ public with sharing class ObjectMetricsOverviewController {
     }
 
     /**
-     * Response DTO for object metric results.
+     * オブジェクト件数結果をまとめて返すレスポンス DTO です。
+     *
+     * LWC 側では metrics の順序をそのままカード表示順として扱います。
      */
     public class ObjectMetricSummary {
         /**
-         * Ordered metric items displayed by the LWC.
+         * LWC に表示する順序付きの件数項目です。
          */
         @AuraEnabled
         public List<ObjectMetricItem> metrics { get; private set; }
 
         /**
-         * Creates a summary with ordered metrics.
-         * @param metrics Ordered metric items.
+         * 順序付き件数項目を保持するサマリを作成します。
+         * @param metrics LWC に返す順序付き件数項目
          */
         public ObjectMetricSummary(List<ObjectMetricItem> metrics) {
             this.metrics = metrics;
@@ -37,31 +45,34 @@ public with sharing class ObjectMetricsOverviewController {
     }
 
     /**
-     * Single object metric item.
+     * 1 つのオブジェクト件数カードに対応する DTO です。
      */
     public class ObjectMetricItem {
         /**
-         * Stable card key used by the LWC display configuration.
+         * LWC 側のカード設定と突き合わせるための安定したキーです。
          */
         @AuraEnabled
         public String key { get; private set; }
 
         /**
-         * Metric value for the key.
+         * 表示対象キーに対応する件数です。
          */
         @AuraEnabled
         public Integer value { get; private set; }
 
         /**
-         * Whether the metric reached the display limit.
+         * 件数が表示上限に達したかどうかを示します。
          */
         @AuraEnabled
         public Boolean capped { get; private set; }
 
         /**
-         * Creates a metric item.
-         * @param key Stable metric key.
-         * @param metricCount Count result with display limit metadata.
+         * Selector の件数結果から LWC 用の件数項目を作成します。
+         *
+         * 権限やクエリ都合で値が取れなかった場合でも、LWC が null を意識せず
+         * 0 件として描画できるように既定値を補います。
+         * @param key LWC 側のカード設定と対応する安定キー
+         * @param metricCount 表示上限情報を含む件数結果
          */
         public ObjectMetricItem(
             String key,

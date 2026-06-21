@@ -1,16 +1,16 @@
 /**
- * Tests object metrics overview service behavior.
+ * オブジェクト件数一覧サービスの振る舞いをテストします。
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
     @IsTest
     static void shouldBuildOrderedSummaryFromSelectorValues() {
-        // Given
+        // 準備
         ObjectMetricsOverviewService service = new ObjectMetricsOverviewService(
             new StubObjectMetricsOverviewSelector()
         );
 
-        // When
+        // 実行
         ObjectMetricsOverviewController.ObjectMetricSummary summary;
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -18,7 +18,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             27,
             summary.metrics.size(),
@@ -66,12 +66,12 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
     @IsTest
     static void shouldUseDefaultSelectorWhenSelectorIsNull() {
-        // Given
+        // 準備
         ObjectMetricsOverviewService service = new ObjectMetricsOverviewService(
             null
         );
 
-        // When
+        // 実行
         ObjectMetricsOverviewController.ObjectMetricSummary summary;
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -79,7 +79,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             27,
             summary.metrics.size(),

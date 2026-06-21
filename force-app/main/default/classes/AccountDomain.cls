@@ -1,5 +1,5 @@
 /**
- * Applies Account business rules.
+ * 取引先に関する業務ルールを適用します。
  */
 public with sharing class AccountDomain {
     private static final String STOCK_COMPANY_SYMBOL = '㈱';
@@ -12,9 +12,9 @@ public with sharing class AccountDomain {
     private static final String LIMITED_COMPANY_FORMAL = '有限会社';
 
     /**
-     * Normalizes company abbreviations in Account names.
-     * @param accounts Account records to normalize
-     * @param oldAccountsById Previous Account values keyed by Id for update contexts
+     * 取引先名に含まれる会社種別の略称を正式名称へ補正します。
+     * @param accounts 補正対象の取引先レコード
+     * @param oldAccountsById 更新時に使う、Id をキーにした変更前の取引先レコード
      */
     public static void normalizeNames(
         List<Account> accounts,

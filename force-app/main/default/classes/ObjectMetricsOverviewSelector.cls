@@ -1,5 +1,5 @@
 /**
- * Queries object metric overview counts.
+ * オブジェクト件数一覧で使う件数を問い合わせます。
  */
 public virtual with sharing class ObjectMetricsOverviewSelector {
     private static final Integer MAX_DISPLAY_COUNT = 50000;
@@ -34,8 +34,8 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     };
 
     /**
-     * Retrieves object metric values keyed by display metric key.
-     * @return Metric values for the object metrics overview.
+     * 表示キーごとのオブジェクト件数を取得します。
+     * @return オブジェクト件数一覧で使う表示キー別の件数
      */
     public virtual Map<String, ObjectMetricCount> getObjectMetricValues() {
         return new Map<String, ObjectMetricCount>{
@@ -74,9 +74,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     }
 
     /**
-     * Creates a count result with display limit handling.
-     * @param value Count value.
-     * @return Count result with the capped marker when the display limit is reached.
+     * 表示上限を考慮した件数結果を作成します。
+     * @param value 件数値
+     * @return 表示上限に達した場合は capped を付けた件数結果
      */
     @TestVisible
     private static ObjectMetricCount createCount(Integer value) {
@@ -87,8 +87,8 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     }
 
     /**
-     * Creates a capped count result.
-     * @return Count result with the capped marker.
+     * 表示上限に達した件数結果を作成します。
+     * @return capped を付けた件数結果
      */
     private static ObjectMetricCount createCappedCount() {
         return new ObjectMetricCount(MAX_DISPLAY_COUNT, true);
@@ -183,23 +183,23 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     }
 
     /**
-     * Count result with display limit metadata.
+     * 表示上限情報を含む件数結果です。
      */
     public class ObjectMetricCount {
         /**
-         * Count value capped at the display limit.
+         * 表示上限で丸めた件数値です。
          */
         public Integer value { get; private set; }
 
         /**
-         * Whether the count reached the display limit.
+         * 件数が表示上限に達したかどうかを示します。
          */
         public Boolean capped { get; private set; }
 
         /**
-         * Creates a bounded count.
-         * @param value Count value capped for display.
-         * @param capped Whether the count reached the display limit.
+         * 表示用に上限処理済みの件数を作成します。
+         * @param value 表示用に上限処理済みの件数値
+         * @param capped 件数が表示上限に達したかどうか
          */
         private ObjectMetricCount(Integer value, Boolean capped) {
             this.value = value;

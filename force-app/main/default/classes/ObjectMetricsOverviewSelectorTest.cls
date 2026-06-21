@@ -1,15 +1,15 @@
 /**
- * Tests object metrics overview selector counts.
+ * オブジェクト件数一覧 Selector の件数取得をテストします。
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSelectorTest {
     @IsTest
     static void shouldReturnMetricValuesWhenRecordsExist() {
-        // Given
+        // 準備
         insertObjectMetricRecords();
         ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
 
-        // When
+        // 実行
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricsByKey;
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -17,7 +17,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             27,
             metricsByKey.size(),
@@ -163,10 +163,10 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
     @IsTest
     static void shouldReturnZeroWhenObjectApiNameIsUnknown() {
-        // Given
+        // 準備
         ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
 
-        // When
+        // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -174,7 +174,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             0,
             metricCount.value,
@@ -188,10 +188,10 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
     @IsTest
     static void shouldReturnZeroWhenObjectApiNameIsBlank() {
-        // Given
+        // 準備
         ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
 
-        // When
+        // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -199,7 +199,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             0,
             metricCount.value,
@@ -213,7 +213,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
     @IsTest
     static void shouldCapMetricCountWhenDisplayLimitIsReached() {
-        // When
+        // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount exactCount;
         ObjectMetricsOverviewSelector.ObjectMetricCount cappedCount;
         System.runAs(getCurrentUser()) {
@@ -223,7 +223,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             49999,
             exactCount.value,
