@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- 組織設定 -->
+    <types>
+        <members>*</members>
+        <name>InstalledPackage</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>Settings</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>LeadConvertSettings</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>DelegateGroup</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>NotificationTypeConfig</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>PermissionSetLicenseDefinition</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>PlatformCachePartition</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>UserProvisioningConfig</name>
+    </types>
+    <version>67.0</version>
+</Package>
