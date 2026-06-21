@@ -1,0 +1,94 @@
+<template>
+    <lightning-card title={title} icon-name="utility:table">
+        <div slot="actions" class="actions">
+            <lightning-button-icon
+                alternative-text="データボードに戻る"
+                icon-name="utility:back"
+                onclick={handleBack}
+                title="データボードに戻る"
+            ></lightning-button-icon>
+            <lightning-button-icon
+                alternative-text="再読み込み"
+                disabled={isBusy}
+                icon-name="utility:refresh"
+                onclick={handleRefresh}
+                title="再読み込み"
+            ></lightning-button-icon>
+        </div>
+
+        <template lwc:if={errorMessage}>
+            <div
+                class="slds-notify slds-notify_alert slds-alert_error slds-m-horizontal_medium slds-m-bottom_medium"
+                role="alert"
+            >
+                <span class="slds-assistive-text">Error</span>
+                <h2>{errorMessage}</h2>
+            </div>
+        </template>
+
+        <div
+            class="toolbar slds-grid slds-wrap slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-bottom_small"
+        >
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                <lightning-input
+                    type="search"
+                    label={searchLabel}
+                    value={draftSearchTerm}
+                    onchange={handleSearchInput}
+                    onkeyup={handleSearchKeyUp}
+                    placeholder="このリストを検索..."
+                    disabled={isBusy}
+                ></lightning-input>
+            </div>
+            <div
+                class="toolbar__actions slds-col slds-no-flex slds-p-top_medium"
+            >
+                <span
+                    class="slds-text-body_small slds-m-right_small"
+                    aria-live="polite"
+                >
+                    {recordCountLabel}
+                </span>
+                <lightning-button
+                    label="検索"
+                    variant="brand"
+                    onclick={handleSearch}
+                    disabled={isBusy}
+                ></lightning-button>
+                <lightning-button
+                    class="slds-m-left_x-small"
+                    label="選択したレコードを削除"
+                    variant="destructive"
+                    onclick={handleDeleteSelected}
+                    disabled={deleteDisabled}
+                ></lightning-button>
+            </div>
+        </div>
+
+        <template lwc:if={hasRows}>
+            <div class="table">
+                <lightning-datatable
+                    key-field="id"
+                    data={rows}
+                    columns={columns}
+                    selected-rows={selectedRowIds}
+                    onrowselection={handleRowSelection}
+                    is-loading={isBusy}
+                ></lightning-datatable>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="empty slds-p-around_large slds-text-align_center">
+                <template lwc:if={isBusy}>
+                    <lightning-spinner
+                        alternative-text="レコード一覧を読み込んでいます"
+                        size="small"
+                    ></lightning-spinner>
+                </template>
+                <template lwc:else>
+                    <p>{emptyMessage}</p>
+                </template>
+            </div>
+        </template>
+    </lightning-card>
+</template>

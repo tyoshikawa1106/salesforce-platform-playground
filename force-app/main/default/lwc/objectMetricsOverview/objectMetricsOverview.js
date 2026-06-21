@@ -103,6 +103,7 @@ export default class ObjectMetricsOverview extends LightningElement {
     metricValues = {};
     errorMessage;
     isRefreshing = false;
+    selectedMetricKey;
     wiredObjectMetricsResult;
 
     @wire(getObjectMetrics)
@@ -133,7 +134,8 @@ export default class ObjectMetricsOverview extends LightningElement {
                 countTitle: `${formattedValue} 件`,
                 formattedValue,
                 loading: this.isBusy,
-                loadingLabel: `${config.label}の件数を読み込んでいます`
+                loadingLabel: `${config.label}の件数を読み込んでいます`,
+                openTitle: `${config.label}一覧を開く`
             };
         });
     }
@@ -162,6 +164,20 @@ export default class ObjectMetricsOverview extends LightningElement {
             this.errorMessage = this.reduceErrors(error);
         } finally {
             this.isRefreshing = false;
+        }
+    }
+
+    handleCardClick(event) {
+        this.selectedMetricKey = event.currentTarget.dataset.key;
+    }
+
+    handleBackToDashboard() {
+        this.selectedMetricKey = undefined;
+    }
+
+    async handleRecordsDeleted() {
+        if (this.wiredObjectMetricsResult) {
+            await refreshApex(this.wiredObjectMetricsResult);
         }
     }
 

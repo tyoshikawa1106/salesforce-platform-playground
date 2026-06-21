@@ -107,6 +107,22 @@ describe('c-object-metrics-overview', () => {
         await expect(element).toBeAccessible();
     });
 
+    it('opens object record search when a metric card is clicked', async () => {
+        const element = createComponent();
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('button[data-key="accounts"]').click();
+        await flushPromises();
+
+        const recordSearch = element.shadowRoot.querySelector(
+            'c-object-record-search'
+        );
+        expect(recordSearch).not.toBeNull();
+        expect(recordSearch.metricKey).toBe('accounts');
+    });
+
     it('renders a user-facing error when Apex returns an error', async () => {
         const element = createComponent();
 
