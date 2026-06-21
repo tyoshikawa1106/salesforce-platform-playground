@@ -95,6 +95,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     }
 
     @TestVisible
+    @SuppressWarnings('PMD.ApexSOQLInjection')
     private ObjectMetricCount countVisibleRecords(String objectApiName) {
         if (
             String.isBlank(objectApiName) ||
@@ -104,12 +105,14 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             return toObjectMetricCount(0);
         }
 
+        String safeObjectApiName = String.escapeSingleQuotes(objectApiName);
+        // オブジェクト API 名は許可リストと describe で検証済みです。
         String whereClause = objectApiName == 'User'
             ? ' WHERE IsActive = TRUE'
             : '';
         String query =
             'SELECT COUNT() FROM ' +
-            objectApiName +
+            safeObjectApiName +
             whereClause +
             ' WITH USER_MODE LIMIT ' +
             MAX_DISPLAY_COUNT;
