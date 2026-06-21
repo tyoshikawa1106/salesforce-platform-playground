@@ -52,6 +52,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [CI で Prettier を確認する意味](knowledge/prettier-check-in-ci.md)
 - [LWC Jest とアクセシビリティテスト](knowledge/lwc-jest-accessibility-testing.md)
 - [Salesforce Code Analyzer](knowledge/salesforce-code-analyzer.md)
+- [Apex アノテーション](knowledge/apex-annotations.md)
 - [Salesforce API version の上げ方](knowledge/salesforce-api-version-upgrade.md)
 - [Sales / Service で使う主要な標準オブジェクト](knowledge/sales-and-service-standard-objects.md)
 - [Salesforce 製品別の標準オブジェクト](knowledge/salesforce-standard-objects/index.md)

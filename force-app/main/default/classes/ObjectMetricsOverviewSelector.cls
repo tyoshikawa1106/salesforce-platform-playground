@@ -106,7 +106,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         }
 
         String safeObjectApiName = String.escapeSingleQuotes(objectApiName);
-        // オブジェクト API 名は許可リストと describe で検証済みです。
         String whereClause = objectApiName == 'User'
             ? ' WHERE IsActive = TRUE'
             : '';
