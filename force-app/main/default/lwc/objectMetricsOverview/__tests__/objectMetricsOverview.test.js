@@ -1,6 +1,15 @@
 import { createElement } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
 import ObjectMetricsOverview from 'c/objectMetricsOverview';
 import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.getObjectMetrics';
+
+jest.mock(
+    '@salesforce/apex',
+    () => ({
+        refreshApex: jest.fn()
+    }),
+    { virtual: true }
+);
 
 jest.mock(
     '@salesforce/apex/ObjectMetricsOverviewController.getObjectMetrics',
@@ -78,6 +87,7 @@ describe('c-object-metrics-overview', () => {
             element.shadowRoot.querySelector('lightning-card');
         expect(cards).toHaveLength(27);
         expect(cardContainer.title).toBe('データボード');
+        expect(cardContainer.iconName).toBe('utility:trailhead');
         expect(element.shadowRoot.textContent).toContain('取引先');
         expect(element.shadowRoot.textContent).toContain('取引先責任者');
         expect(element.shadowRoot.textContent).toContain('商談商品');
@@ -112,5 +122,33 @@ describe('c-object-metrics-overview', () => {
         expect(alert.textContent).toContain(
             'データボードを読み込めませんでした。'
         );
+    });
+
+    it('shows loading spinners while refreshing metrics', async () => {
+        const element = createComponent();
+        let resolveRefresh;
+        refreshApex.mockReturnValue(
+            new Promise((resolve) => {
+                resolveRefresh = resolve;
+            })
+        );
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+        expect(
+            element.shadowRoot.querySelectorAll('lightning-spinner')
+        ).toHaveLength(27);
+
+        resolveRefresh();
+        await flushPromises();
+
+        expect(
+            element.shadowRoot.querySelectorAll('lightning-spinner')
+        ).toHaveLength(0);
     });
 });
