@@ -26,6 +26,7 @@ const BASE_COLUMNS = [
 ];
 
 const ROW_ACTIONS = [{ label: '編集', name: 'edit' }];
+const DEFAULT_FORM_SECTION_LABEL = '基本情報';
 
 const FORM_FIELD_OVERRIDES = {
     Account: [
@@ -241,29 +242,34 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get formFields() {
+        return this.formSections.flatMap((section) => section.fields);
+    }
+
+    get formSections() {
         if (!this.isRecordFormObject) {
             return [];
         }
 
-        const layoutFields = this.layoutFormFields;
-        if (layoutFields.length > 0) {
-            return layoutFields;
+        const layoutSections = this.layoutFormSections;
+        if (layoutSections.length > 0) {
+            return this.applyFormFieldOverrides(layoutSections);
         }
 
         if (this.formLayoutResult?.error) {
-            return this.fallbackFormFields;
+            return this.fallbackFormSections;
         }
 
         return [];
     }
 
-    get layoutFormFields() {
+    get layoutFormSections() {
         const layout = this.currentLayout;
         const fieldInfoByApiName = this.objectInfoResult?.data?.fields ?? {};
         const fieldApiNames = new Set();
-        const fields = [];
+        const sections = [];
 
-        (layout?.sections ?? []).forEach((section) => {
+        (layout?.sections ?? []).forEach((section, index) => {
+            const fields = [];
             (section.layoutRows ?? []).forEach((row) => {
                 (row.layoutItems ?? []).forEach((item) => {
                     (item.layoutComponents ?? []).forEach((component) => {
@@ -287,9 +293,21 @@ export default class ObjectRecordSearch extends LightningElement {
                     });
                 });
             });
+
+            if (fields.length > 0) {
+                sections.push(
+                    this.createFormSection(
+                        section.heading ||
+                            section.label ||
+                            DEFAULT_FORM_SECTION_LABEL,
+                        fields,
+                        index
+                    )
+                );
+            }
         });
 
-        return fields;
+        return sections;
     }
 
     get currentLayout() {
@@ -305,21 +323,35 @@ export default class ObjectRecordSearch extends LightningElement {
         );
     }
 
-    get fallbackFormFields() {
+    get fallbackFormSections() {
         const configuredFields =
             FORM_FIELD_OVERRIDES[this.config?.objectApiName];
         if (configuredFields) {
-            return configuredFields;
+            return [
+                this.createFormSection(
+                    DEFAULT_FORM_SECTION_LABEL,
+                    configuredFields,
+                    0
+                )
+            ];
         }
 
-        return this.config?.nameFieldApiName
-            ? [
-                  {
-                      apiName: this.config.nameFieldApiName,
-                      required: true
-                  }
-              ]
-            : [];
+        if (!this.config?.nameFieldApiName) {
+            return [];
+        }
+
+        return [
+            this.createFormSection(
+                DEFAULT_FORM_SECTION_LABEL,
+                [
+                    {
+                        apiName: this.config.nameFieldApiName,
+                        required: true
+                    }
+                ],
+                0
+            )
+        ];
     }
 
     get formTitle() {
@@ -497,6 +529,62 @@ export default class ObjectRecordSearch extends LightningElement {
         }
 
         return this.formRecordId ? fieldInfo.updateable : fieldInfo.createable;
+    }
+
+    applyFormFieldOverrides(sections) {
+        const configuredFields =
+            FORM_FIELD_OVERRIDES[this.config?.objectApiName] ?? [];
+        if (configuredFields.length === 0) {
+            return sections;
+        }
+
+        const fieldInfoByApiName = this.objectInfoResult?.data?.fields ?? {};
+        const existingFieldApiNames = new Set(
+            sections.flatMap((section) =>
+                section.fields.map((field) => field.apiName)
+            )
+        );
+        const nextSections = sections.map((section) => ({
+            ...section,
+            fields: [...section.fields]
+        }));
+
+        configuredFields.forEach((field) => {
+            const fieldInfo = fieldInfoByApiName[field.apiName];
+            if (
+                !existingFieldApiNames.has(field.apiName) &&
+                this.isSupportedStandardField(fieldInfo)
+            ) {
+                nextSections[0].fields.push(field);
+                existingFieldApiNames.add(field.apiName);
+                return;
+            }
+
+            nextSections.forEach((section) => {
+                section.fields = section.fields.map((sectionField) => {
+                    if (sectionField.apiName !== field.apiName) {
+                        return sectionField;
+                    }
+
+                    return {
+                        ...sectionField,
+                        required: sectionField.required || field.required
+                    };
+                });
+            });
+        });
+
+        return nextSections;
+    }
+
+    createFormSection(label, fields, index) {
+        const key = `section-${index}`;
+        return {
+            key,
+            headingId: `object-record-form-${key}`,
+            label: label || DEFAULT_FORM_SECTION_LABEL,
+            fields
+        };
     }
 
     reduceErrors(errors) {

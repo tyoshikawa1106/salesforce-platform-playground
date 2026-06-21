@@ -29,7 +29,7 @@
 
             <div class="counts" aria-busy={isBusy}>
                 <template for:each={countCards} for:item="card">
-                    <div key={card.key}>
+                    <div key={card.key} class="count-card-cell">
                         <button
                             class="count-card-button"
                             type="button"
