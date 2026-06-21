@@ -188,7 +188,7 @@ export default class ObjectMetricsOverview extends LightningElement {
                 if (error.message) {
                     return error.message;
                 }
-                return 'オブジェクト指標を読み込めませんでした。';
+                return 'データボードを読み込めませんでした。';
             })
             .join('; ');
     }

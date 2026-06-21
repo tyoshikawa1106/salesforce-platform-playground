@@ -74,7 +74,10 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
 
         const cards = element.shadowRoot.querySelectorAll('article');
+        const cardContainer =
+            element.shadowRoot.querySelector('lightning-card');
         expect(cards).toHaveLength(27);
+        expect(cardContainer.title).toBe('データボード');
         expect(element.shadowRoot.textContent).toContain('取引先');
         expect(element.shadowRoot.textContent).toContain('取引先責任者');
         expect(element.shadowRoot.textContent).toContain('商談商品');
@@ -94,7 +97,7 @@ describe('c-object-metrics-overview', () => {
 
         getObjectMetrics.error({
             body: {
-                message: 'オブジェクト指標を読み込めませんでした。'
+                message: 'データボードを読み込めませんでした。'
             }
         });
         await flushPromises();
@@ -102,7 +105,7 @@ describe('c-object-metrics-overview', () => {
         const alert = element.shadowRoot.querySelector('[role="alert"]');
         expect(alert).not.toBeNull();
         expect(alert.textContent).toContain(
-            'オブジェクト指標を読み込めませんでした。'
+            'データボードを読み込めませんでした。'
         );
     });
 });
