@@ -73,55 +73,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         }
     }
 
-    private ObjectMetricCount countRecycleBinItems() {
-        Id deletedByUserId = UserInfo.getUserId();
-        Integer totalCount = 0;
-        Boolean capped = false;
-
-        if (isObjectAccessible('Account')) {
-            ObjectMetricCount accountCount = countDeletedAccounts(
-                deletedByUserId
-            );
-            totalCount += accountCount.value;
-            capped = capped || accountCount.capped;
-        }
-        if (isObjectAccessible('Contact')) {
-            ObjectMetricCount contactCount = countDeletedContacts(
-                deletedByUserId
-            );
-            totalCount += contactCount.value;
-            capped = capped || contactCount.capped;
-        }
-
-        return capped ? createCappedCount() : toObjectMetricCount(totalCount);
-    }
-
-    private ObjectMetricCount countDeletedAccounts(Id deletedByUserId) {
-        return toObjectMetricCount(
-            [
-                SELECT COUNT()
-                FROM Account
-                WHERE IsDeleted = TRUE AND LastModifiedById = :deletedByUserId
-                WITH USER_MODE
-                LIMIT :MAX_DISPLAY_COUNT
-                ALL ROWS
-            ]
-        );
-    }
-
-    private ObjectMetricCount countDeletedContacts(Id deletedByUserId) {
-        return toObjectMetricCount(
-            [
-                SELECT COUNT()
-                FROM Contact
-                WHERE IsDeleted = TRUE AND LastModifiedById = :deletedByUserId
-                WITH USER_MODE
-                LIMIT :MAX_DISPLAY_COUNT
-                ALL ROWS
-            ]
-        );
-    }
-
     private Boolean isObjectAccessible(String objectApiName) {
         Schema.SObjectType sObjectType = Schema.getGlobalDescribe()
             .get(objectApiName);

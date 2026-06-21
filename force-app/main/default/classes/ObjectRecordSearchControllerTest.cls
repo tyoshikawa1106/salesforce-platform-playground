@@ -85,6 +85,108 @@ private with sharing class ObjectRecordSearchControllerTest {
     }
 
     @IsTest
+    static void shouldReturnRowsWhenSearchTermIsBlank() {
+        ObjectRecordSearchController.ObjectRecordSearchResult result;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            result = ObjectRecordSearchController.searchRecords(
+                'accounts',
+                ' '
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            3,
+            result.records.size(),
+            'Blank searches should return all available Account rows.'
+        );
+        Assert.areEqual(
+            200,
+            result.limitSize,
+            'Search result should expose the Apex row limit.'
+        );
+    }
+
+    @IsTest
+    static void shouldReturnEmptyDeleteResultWhenRecordIdsAreNull() {
+        ObjectRecordSearchController.ObjectRecordDeleteResult result;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            result = ObjectRecordSearchController.deleteRecords(
+                'accounts',
+                null
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            0,
+            result.requestedCount,
+            'Null delete requests should count zero requested records.'
+        );
+        Assert.areEqual(
+            0,
+            result.deletedCount,
+            'Null delete requests should not delete records.'
+        );
+        Assert.areEqual(
+            0,
+            result.errors.size(),
+            'Null delete requests should not return errors.'
+        );
+    }
+
+    @IsTest
+    static void shouldReturnEmptyDeleteResultWhenRecordIdsAreEmpty() {
+        ObjectRecordSearchController.ObjectRecordDeleteResult result;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            result = ObjectRecordSearchController.deleteRecords(
+                'accounts',
+                new List<Id>()
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            0,
+            result.requestedCount,
+            'Empty delete requests should count zero requested records.'
+        );
+        Assert.areEqual(
+            0,
+            result.deletedCount,
+            'Empty delete requests should not delete records.'
+        );
+        Assert.areEqual(
+            0,
+            result.errors.size(),
+            'Empty delete requests should not return errors.'
+        );
+    }
+
+    @IsTest
+    static void shouldThrowUserFacingErrorWhenMetricKeyIsUnsupported() {
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchController.searchRecords('unknown', null);
+                Assert.fail('Unsupported metric keys should throw.');
+            } catch (AuraHandledException error) {
+                Assert.isNotNull(
+                    error,
+                    'Unsupported metric keys should be wrapped for LWC.'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+
+    @IsTest
     static void shouldDeleteSelectedRecords() {
         Account target = [
             SELECT Id
