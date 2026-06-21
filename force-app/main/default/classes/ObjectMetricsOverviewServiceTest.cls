@@ -20,7 +20,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // Then
         Assert.areEqual(
-            24,
+            27,
             summary.metrics.size(),
             'Service should return all configured metric items.'
         );
@@ -59,7 +59,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         );
         Assert.areEqual(
             'users',
-            summary.metrics[23].key,
+            summary.metrics[26].key,
             'User metric should be last.'
         );
     }
@@ -81,7 +81,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // Then
         Assert.areEqual(
-            24,
+            27,
             summary.metrics.size(),
             'Service should fall back to the default selector.'
         );

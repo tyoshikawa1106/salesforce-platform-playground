@@ -27,6 +27,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         'Task',
         'EmailMessage',
         'EmailTemplate',
+        'Report',
+        'Dashboard',
+        'ContentDocument',
         'User'
     };
 
@@ -63,6 +66,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             'tasks' => countVisibleRecords('Task'),
             'emailMessages' => countVisibleRecords('EmailMessage'),
             'emailTemplates' => countVisibleRecords('EmailTemplate'),
+            'reports' => countVisibleRecords('Report'),
+            'dashboards' => countVisibleRecords('Dashboard'),
+            'files' => countVisibleRecords('ContentDocument'),
             'users' => countVisibleRecords('User')
         };
     }

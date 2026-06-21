@@ -77,6 +77,21 @@ const COUNT_CARD_CONFIGS = [
         label: 'メールテンプレート'
     },
     {
+        key: 'reports',
+        iconName: 'standard:report',
+        label: 'レポート'
+    },
+    {
+        key: 'dashboards',
+        iconName: 'standard:dashboard',
+        label: 'ダッシュボード'
+    },
+    {
+        key: 'files',
+        iconName: 'standard:file',
+        label: 'ファイル'
+    },
+    {
         key: 'users',
         iconName: 'standard:user',
         label: 'ユーザー'

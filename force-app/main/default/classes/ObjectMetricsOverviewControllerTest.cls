@@ -15,7 +15,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
         // Then
         Assert.areEqual(
-            24,
+            27,
             summary.metrics.size(),
             'All object metric cards should have a matching metric item.'
         );

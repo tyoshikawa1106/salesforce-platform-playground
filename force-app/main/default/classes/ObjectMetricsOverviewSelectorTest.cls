@@ -19,7 +19,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // Then
         Assert.areEqual(
-            24,
+            27,
             metricsByKey.size(),
             'Selector should return all object metric keys.'
         );
@@ -102,6 +102,18 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         Assert.isNotNull(
             metricsByKey.get('emailTemplates').value,
             'EmailTemplate count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('reports').value,
+            'Report count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('dashboards').value,
+            'Dashboard count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('files').value,
+            'ContentDocument count should be returned.'
         );
         Assert.isNotNull(
             metricsByKey.get('orders').value,
