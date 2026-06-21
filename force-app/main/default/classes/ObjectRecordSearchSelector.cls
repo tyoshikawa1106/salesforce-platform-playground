@@ -43,30 +43,19 @@ public virtual with sharing class ObjectRecordSearchSelector {
         ObjectRecordSearchController.ObjectRecordSearchConfig config = getObjectConfig(
             metricKey
         );
-        String objectApiName = config.objectApiName;
-        String nameFieldApiName = config.nameFieldApiName;
-        String query =
-            'SELECT Id, ' +
-            nameFieldApiName +
-            ', CreatedDate, LastModifiedDate FROM ' +
-            objectApiName;
         String normalizedSearchTerm = searchTerm?.trim();
-
-        if (String.isNotBlank(normalizedSearchTerm) && config.searchable) {
-            String likeSearchTerm = '%' + normalizedSearchTerm + '%';
-            query += ' WHERE ' + nameFieldApiName + ' LIKE :likeSearchTerm';
-        }
-
-        query +=
-            ' WITH USER_MODE ORDER BY LastModifiedDate DESC LIMIT ' + MAX_ROWS;
+        String likeSearchTerm = usesNameSearch(normalizedSearchTerm, config)
+            ? '%' + normalizedSearchTerm + '%'
+            : null;
+        String query = createSearchQuery(config, likeSearchTerm != null);
 
         List<ObjectRecordSearchController.ObjectRecordRow> rows = new List<ObjectRecordSearchController.ObjectRecordRow>();
         for (SObject record : Database.query(query)) {
             rows.add(
                 new ObjectRecordSearchController.ObjectRecordRow(
                     record,
-                    objectApiName,
-                    nameFieldApiName
+                    config.objectApiName,
+                    config.nameFieldApiName
                 )
             );
         }
@@ -76,6 +65,35 @@ public virtual with sharing class ObjectRecordSearchSelector {
             rows,
             MAX_ROWS
         );
+    }
+
+    private String createSearchQuery(
+        ObjectRecordSearchController.ObjectRecordSearchConfig config,
+        Boolean includeNameSearch
+    ) {
+        String query =
+            'SELECT Id, ' +
+            config.nameFieldApiName +
+            ', CreatedDate, LastModifiedDate FROM ' +
+            config.objectApiName;
+
+        if (includeNameSearch) {
+            query +=
+                ' WHERE ' +
+                config.nameFieldApiName +
+                ' LIKE :likeSearchTerm';
+        }
+
+        return query +
+            ' WITH USER_MODE ORDER BY LastModifiedDate DESC LIMIT ' +
+            MAX_ROWS;
+    }
+
+    private Boolean usesNameSearch(
+        String normalizedSearchTerm,
+        ObjectRecordSearchController.ObjectRecordSearchConfig config
+    ) {
+        return String.isNotBlank(normalizedSearchTerm) && config.searchable;
     }
 
     /**

@@ -4,6 +4,7 @@
 public with sharing class ObjectMetricCatalog {
     private static final List<MetricDefinition> ORDERED_DEFINITIONS = createOrderedDefinitions();
     private static final Map<String, MetricDefinition> DEFINITIONS_BY_KEY = createDefinitionsByKey();
+    private static final Set<String> OBJECT_API_NAMES = createObjectApiNames();
 
     /**
      * 表示キー順に並べた定義を返します。
@@ -35,6 +36,16 @@ public with sharing class ObjectMetricCatalog {
         return getDefinition(metricKey) != null;
     }
 
+    /**
+     * 対象オブジェクト API 参照名がデータボード定義に含まれるかを返します。
+     * @param objectApiName 対象オブジェクト API 参照名
+     * @return 定義済みオブジェクトの場合 true
+     */
+    public static Boolean hasObjectApiName(String objectApiName) {
+        return String.isNotBlank(objectApiName) &&
+            OBJECT_API_NAMES.contains(objectApiName);
+    }
+
     private static Map<String, MetricDefinition> createDefinitionsByKey() {
         Map<String, MetricDefinition> definitionsByKey = new Map<String, MetricDefinition>();
 
@@ -43,6 +54,16 @@ public with sharing class ObjectMetricCatalog {
         }
 
         return definitionsByKey;
+    }
+
+    private static Set<String> createObjectApiNames() {
+        Set<String> objectApiNames = new Set<String>();
+
+        for (MetricDefinition definition : ORDERED_DEFINITIONS) {
+            objectApiNames.add(definition.objectApiName);
+        }
+
+        return objectApiNames;
     }
 
     private static List<MetricDefinition> createOrderedDefinitions() {

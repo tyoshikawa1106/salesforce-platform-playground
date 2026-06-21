@@ -1,4 +1,5 @@
 import { createElement } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
 import ObjectRecordSearch from 'c/objectRecordSearch';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
@@ -81,6 +82,12 @@ async function flushPromises() {
     await Promise.resolve();
 }
 
+function findButton(element, label) {
+    return Array.from(
+        element.shadowRoot.querySelectorAll('lightning-button')
+    ).find((button) => button.label === label);
+}
+
 describe('c-object-record-search', () => {
     afterEach(() => {
         while (document.body.firstChild) {
@@ -111,6 +118,10 @@ describe('c-object-record-search', () => {
 
     it('deletes selected rows through Apex', async () => {
         const element = createComponent();
+        const recordsChangedHandler = jest.fn();
+        const recordsDeletedHandler = jest.fn();
+        element.addEventListener('recordschanged', recordsChangedHandler);
+        element.addEventListener('recordsdeleted', recordsDeletedHandler);
         deleteRecords.mockResolvedValue({
             requestedCount: 1,
             deletedCount: 1,
@@ -130,9 +141,7 @@ describe('c-object-record-search', () => {
         );
         await flushPromises();
 
-        const deleteButton = Array.from(
-            element.shadowRoot.querySelectorAll('lightning-button')
-        ).find((button) => button.label === '選択したレコードを削除');
+        const deleteButton = findButton(element, '選択したレコードを削除');
         deleteButton.click();
         await flushPromises();
 
@@ -140,6 +149,73 @@ describe('c-object-record-search', () => {
             metricKey: 'accounts',
             recordIds: ['001xx000003DGbYAAW']
         });
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+        expect(recordsChangedHandler).toHaveBeenCalledTimes(1);
+        expect(recordsDeletedHandler).not.toHaveBeenCalled();
+    });
+
+    it('shows a warning toast when Apex returns partial delete errors', async () => {
+        const element = createComponent();
+        const toastHandler = jest.fn();
+        element.addEventListener('lightning__showtoast', toastHandler);
+        deleteRecords.mockResolvedValue({
+            requestedCount: 2,
+            deletedCount: 1,
+            errors: ['1 件は削除できませんでした。']
+        });
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(
+            new CustomEvent('rowselection', {
+                detail: { selectedRows: [searchResponse.records[0]] }
+            })
+        );
+        findButton(element, '選択したレコードを削除').click();
+        await flushPromises();
+
+        expect(toastHandler).toHaveBeenCalledWith(
+            expect.objectContaining({
+                detail: expect.objectContaining({
+                    title: '一部削除できませんでした',
+                    message: '1 件は削除できませんでした。',
+                    variant: 'warning'
+                })
+            })
+        );
+    });
+
+    it('shows an error when delete fails', async () => {
+        const element = createComponent();
+        const toastHandler = jest.fn();
+        element.addEventListener('lightning__showtoast', toastHandler);
+        deleteRecords.mockRejectedValue({
+            body: { message: '削除できませんでした。' }
+        });
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(
+            new CustomEvent('rowselection', {
+                detail: { selectedRows: [searchResponse.records[0]] }
+            })
+        );
+        findButton(element, '選択したレコードを削除').click();
+        await flushPromises();
+
+        expect(
+            element.shadowRoot.querySelector('[role="alert"]').textContent
+        ).toContain('削除できませんでした。');
+        expect(toastHandler).toHaveBeenCalledWith(
+            expect.objectContaining({
+                detail: expect.objectContaining({
+                    title: '削除に失敗しました',
+                    variant: 'error'
+                })
+            })
+        );
     });
 
     it('opens a create form for the target object', async () => {
@@ -148,9 +224,7 @@ describe('c-object-record-search', () => {
         searchRecords.emit(searchResponse);
         await flushPromises();
 
-        const newButton = Array.from(
-            element.shadowRoot.querySelectorAll('lightning-button')
-        ).find((button) => button.label === '新規');
+        const newButton = findButton(element, '新規');
         newButton.click();
         await flushPromises();
 
@@ -181,9 +255,7 @@ describe('c-object-record-search', () => {
         );
         await flushPromises();
 
-        const newButton = Array.from(
-            element.shadowRoot.querySelectorAll('lightning-button')
-        ).find((button) => button.label === '新規');
+        const newButton = findButton(element, '新規');
         expect(newButton.disabled).toBe(false);
         newButton.click();
         await flushPromises();
@@ -212,9 +284,7 @@ describe('c-object-record-search', () => {
         );
         await flushPromises();
 
-        const newButton = Array.from(
-            element.shadowRoot.querySelectorAll('lightning-button')
-        ).find((button) => button.label === '新規');
+        const newButton = findButton(element, '新規');
         newButton.click();
         await flushPromises();
 
@@ -241,9 +311,7 @@ describe('c-object-record-search', () => {
         );
         await flushPromises();
 
-        const newButton = Array.from(
-            element.shadowRoot.querySelectorAll('lightning-button')
-        ).find((button) => button.label === '新規');
+        const newButton = findButton(element, '新規');
         newButton.click();
         await flushPromises();
 
@@ -282,6 +350,92 @@ describe('c-object-record-search', () => {
         );
         expect(element.shadowRoot.textContent).toContain('取引先を編集');
         expect(form.recordId).toBe('001xx000003DGbYAAW');
+    });
+
+    it('prevents record form submit when field validation fails', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        findButton(element, '新規').click();
+        await flushPromises();
+
+        element.shadowRoot.querySelector(
+            'lightning-input-field'
+        ).reportValidity = jest.fn().mockReturnValue(false);
+        const submitEvent = new CustomEvent('submit', { cancelable: true });
+        submitEvent.preventDefault = jest.fn();
+        element.shadowRoot
+            .querySelector('lightning-record-edit-form')
+            .dispatchEvent(submitEvent);
+
+        expect(submitEvent.preventDefault).toHaveBeenCalledTimes(1);
+    });
+
+    it('refreshes rows and dispatches recordschanged when a form save succeeds', async () => {
+        const element = createComponent();
+        const recordsChangedHandler = jest.fn();
+        const toastHandler = jest.fn();
+        element.addEventListener('recordschanged', recordsChangedHandler);
+        element.addEventListener('lightning__showtoast', toastHandler);
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        findButton(element, '新規').click();
+        await flushPromises();
+
+        element.shadowRoot
+            .querySelector('lightning-record-edit-form')
+            .dispatchEvent(new CustomEvent('success'));
+        await flushPromises();
+
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+        expect(recordsChangedHandler).toHaveBeenCalledTimes(1);
+        expect(toastHandler).toHaveBeenCalledWith(
+            expect.objectContaining({
+                detail: expect.objectContaining({
+                    title: '作成しました',
+                    variant: 'success'
+                })
+            })
+        );
+        expect(
+            element.shadowRoot.querySelector('lightning-record-edit-form')
+        ).toBeNull();
+    });
+
+    it('runs search when Enter is pressed in the search box', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        const input = element.shadowRoot.querySelector('lightning-input');
+        input.value = '  Acme  ';
+        input.dispatchEvent(new CustomEvent('change'));
+        input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+        await flushPromises();
+
+        expect(searchRecords.getLastConfig()).toEqual({
+            metricKey: 'accounts',
+            searchTerm: 'Acme'
+        });
+    });
+
+    it('refreshes the current wire result from the refresh action', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        element.shadowRoot
+            .querySelector('lightning-button-icon[title="再読み込み"]')
+            .click();
+        await flushPromises();
+
+        expect(refreshApex).toHaveBeenCalledTimes(1);
     });
 
     it('dispatches back when the back action is clicked', async () => {

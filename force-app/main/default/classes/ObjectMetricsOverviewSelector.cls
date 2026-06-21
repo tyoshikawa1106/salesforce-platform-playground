@@ -49,19 +49,18 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     private ObjectMetricCount countVisibleRecords(String objectApiName) {
         if (
             String.isBlank(objectApiName) ||
-            !isCountableObject(objectApiName) ||
+            !ObjectMetricCatalog.hasObjectApiName(objectApiName) ||
             !isObjectAccessible(objectApiName)
         ) {
             return toObjectMetricCount(0);
         }
 
-        String safeObjectApiName = String.escapeSingleQuotes(objectApiName);
         String whereClause = objectApiName == 'User'
             ? ' WHERE IsActive = TRUE'
             : '';
         String query =
             'SELECT COUNT() FROM ' +
-            safeObjectApiName +
+            objectApiName +
             whereClause +
             ' WITH USER_MODE LIMIT ' +
             MAX_DISPLAY_COUNT;
@@ -79,18 +78,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         return sObjectType != null &&
             sObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
                 .isAccessible();
-    }
-
-    private Boolean isCountableObject(String objectApiName) {
-        for (
-            ObjectMetricCatalog.MetricDefinition definition : ObjectMetricCatalog.getDefinitions()
-        ) {
-            if (definition.objectApiName == objectApiName) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private ObjectMetricCount toObjectMetricCount(Integer value) {

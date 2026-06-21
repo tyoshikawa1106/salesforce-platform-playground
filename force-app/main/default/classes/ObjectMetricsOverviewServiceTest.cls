@@ -20,7 +20,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 検証
         Assert.areEqual(
-            27,
+            ObjectMetricCatalog.getDefinitions().size(),
             summary.metrics.size(),
             'Service should return all configured metric items.'
         );
@@ -81,7 +81,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 検証
         Assert.areEqual(
-            27,
+            ObjectMetricCatalog.getDefinitions().size(),
             summary.metrics.size(),
             'Service should fall back to the default selector.'
         );

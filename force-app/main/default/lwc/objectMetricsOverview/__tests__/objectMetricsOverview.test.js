@@ -151,6 +151,40 @@ describe('c-object-metrics-overview', () => {
         });
     });
 
+    it('refreshes metrics once when child records change', async () => {
+        const element = createComponent();
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('button[data-key="accounts"]').click();
+        await flushPromises();
+
+        element.shadowRoot
+            .querySelector('c-object-record-search')
+            .dispatchEvent(new CustomEvent('recordschanged'));
+        await flushPromises();
+
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not refresh metrics for the removed recordsdeleted event', async () => {
+        const element = createComponent();
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('button[data-key="accounts"]').click();
+        await flushPromises();
+
+        element.shadowRoot
+            .querySelector('c-object-record-search')
+            .dispatchEvent(new CustomEvent('recordsdeleted'));
+        await flushPromises();
+
+        expect(refreshApex).not.toHaveBeenCalled();
+    });
+
     it('renders a user-facing error when Apex returns an error', async () => {
         const element = createComponent();
 
