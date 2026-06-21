@@ -284,9 +284,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         TestDataFactory.insertLead('件数リード', '件数会社');
         Opportunity opportunityRecord = TestDataFactory.insertOpportunity(
             accountRecord,
-            '件数商談',
-            'Prospecting',
-            Date.today().addDays(30)
+            '件数商談'
         );
         Product2 productRecord = TestDataFactory.insertProduct('件数商品');
         PricebookEntry pricebookEntryRecord = TestDataFactory.insertPricebookEntry(
@@ -296,9 +294,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         );
         TestDataFactory.insertOpportunityLineItem(
             opportunityRecord,
-            pricebookEntryRecord,
-            1,
-            100
+            pricebookEntryRecord
         );
         insert new Campaign(Name = '件数キャンペーン');
         TestDataFactory.insertCase('件数ケース');

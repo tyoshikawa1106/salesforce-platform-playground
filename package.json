@@ -10,6 +10,8 @@
         "test:unit:watch": "sfdx-lwc-jest --watch",
         "test:unit:debug": "sfdx-lwc-jest --debug",
         "test:unit:coverage": "sfdx-lwc-jest --coverage",
+        "code-analyzer": "sf code-analyzer run --rule-selector Recommended --target force-app",
+        "code-analyzer:ci": "sf code-analyzer run --rule-selector Recommended --target force-app --severity-threshold 3",
         "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
         "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
         "prepare": "husky || true",

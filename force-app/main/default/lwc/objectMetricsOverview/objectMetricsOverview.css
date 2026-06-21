@@ -8,7 +8,7 @@
 .count-card {
     display: flex;
     flex-direction: column;
-    min-height: 5rem;
+    min-height: var(--slds-g-sizing-12, 5rem);
     padding-bottom: var(--slds-g-spacing-3, 0.75rem);
     padding-top: var(--slds-g-spacing-2, 0.5rem);
 }
@@ -22,11 +22,11 @@
     font: inherit;
     padding: 0;
     text-align: inherit;
-    width: 100%;
 }
 
 .count-card-button:focus {
-    outline: 2px solid var(--slds-g-color-accent-2, #0176d3);
+    outline: var(--slds-g-sizing-border-2, 2px) solid
+        var(--slds-g-color-accent-2, #0176d3);
     outline-offset: 2px;
 }
 
@@ -39,7 +39,6 @@
     display: flex;
     flex: 1 1 auto;
     justify-content: center;
-    min-height: 2.25rem;
 }
 
 @media (max-width: 48em) {

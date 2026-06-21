@@ -198,22 +198,25 @@ export default class ObjectMetricsOverview extends LightningElement {
 
     reduceErrors(errors) {
         const normalizedErrors = Array.isArray(errors) ? errors : [errors];
-        return normalizedErrors
-            .filter((error) => error)
-            .map((error) => {
-                if (Array.isArray(error.body)) {
-                    return error.body
-                        .map((bodyError) => bodyError.message)
-                        .join(', ');
-                }
-                if (error.body?.message) {
-                    return error.body.message;
-                }
-                if (error.message) {
-                    return error.message;
-                }
-                return 'データボードを読み込めませんでした。';
-            })
-            .join('; ');
+        const messages = [];
+
+        for (const error of normalizedErrors) {
+            if (!error) {
+                continue;
+            }
+            if (Array.isArray(error.body)) {
+                messages.push(
+                    error.body.map((bodyError) => bodyError.message).join(', ')
+                );
+                continue;
+            }
+            messages.push(
+                error.body?.message ??
+                    error.message ??
+                    'データボードを読み込めませんでした。'
+            );
+        }
+
+        return messages.join('; ');
     }
 }

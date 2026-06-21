@@ -9,6 +9,8 @@ package.xml
 **/.eslintrc.json
 
 # LWC Jest
+**/__tests__
 **/__tests__/**
+force-app/test/**
 
 node_modules/
