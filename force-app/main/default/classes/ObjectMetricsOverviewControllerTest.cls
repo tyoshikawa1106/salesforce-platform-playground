@@ -1,11 +1,11 @@
 /**
- * Tests object metrics panel summaries.
+ * オブジェクト件数パネルのサマリをテストします。
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewControllerTest {
     @IsTest
     static void shouldReturnObjectMetricSummary() {
-        // When
+        // 実行
         ObjectMetricsOverviewController.ObjectMetricSummary summary;
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -13,7 +13,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
             Test.stopTest();
         }
 
-        // Then
+        // 検証
         Assert.areEqual(
             27,
             summary.metrics.size(),
