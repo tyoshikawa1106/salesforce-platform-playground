@@ -37,6 +37,22 @@ private with sharing class ObjectRecordSearchControllerTest {
             config.nameFieldApiName,
             'Account list should use the Name field.'
         );
+        Assert.isTrue(
+            config.createable,
+            'Account config should expose object create permission.'
+        );
+        Assert.isTrue(
+            config.updateable,
+            'Account config should expose object update permission.'
+        );
+        Assert.isTrue(
+            config.nameFieldCreateable,
+            'Account config should expose Name create permission.'
+        );
+        Assert.isTrue(
+            config.nameFieldUpdateable,
+            'Account config should expose Name update permission.'
+        );
     }
 
     @IsTest

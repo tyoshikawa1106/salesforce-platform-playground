@@ -100,10 +100,34 @@ public with sharing class ObjectRecordSearchController {
         public Boolean deletable { get; private set; }
 
         /**
+         * 現在ユーザーが対象オブジェクトを作成できるかどうかです。
+         */
+        @AuraEnabled
+        public Boolean createable { get; private set; }
+
+        /**
+         * 現在ユーザーが対象オブジェクトを更新できるかどうかです。
+         */
+        @AuraEnabled
+        public Boolean updateable { get; private set; }
+
+        /**
          * Name 相当項目で検索できるかどうかです。
          */
         @AuraEnabled
         public Boolean searchable { get; private set; }
+
+        /**
+         * Name 相当項目を作成時に設定できるかどうかです。
+         */
+        @AuraEnabled
+        public Boolean nameFieldCreateable { get; private set; }
+
+        /**
+         * Name 相当項目を更新できるかどうかです。
+         */
+        @AuraEnabled
+        public Boolean nameFieldUpdateable { get; private set; }
 
         /**
          * 検索画面設定を作成します。
@@ -123,9 +147,13 @@ public with sharing class ObjectRecordSearchController {
             nameFieldApiName = nameFieldDescribe.getName();
             nameFieldLabel = nameFieldDescribe.getLabel();
             deletable = objectDescribe.isDeletable();
+            createable = objectDescribe.isCreateable();
+            updateable = objectDescribe.isUpdateable();
             searchable =
                 nameFieldDescribe.isAccessible() &&
                 nameFieldDescribe.isFilterable();
+            nameFieldCreateable = nameFieldDescribe.isCreateable();
+            nameFieldUpdateable = nameFieldDescribe.isUpdateable();
         }
     }
 

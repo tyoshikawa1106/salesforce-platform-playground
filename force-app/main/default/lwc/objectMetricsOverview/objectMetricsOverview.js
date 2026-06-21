@@ -176,6 +176,10 @@ export default class ObjectMetricsOverview extends LightningElement {
     }
 
     async handleRecordsDeleted() {
+        await this.handleRecordsChanged();
+    }
+
+    async handleRecordsChanged() {
         if (this.wiredObjectMetricsResult) {
             await refreshApex(this.wiredObjectMetricsResult);
         }

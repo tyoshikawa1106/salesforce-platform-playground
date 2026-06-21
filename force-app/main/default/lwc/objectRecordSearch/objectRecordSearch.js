@@ -23,6 +23,8 @@ const BASE_COLUMNS = [
     { label: '最終更新日', fieldName: 'lastModifiedDateLabel', type: 'text' }
 ];
 
+const ROW_ACTIONS = [{ label: '編集', name: 'edit' }];
+
 export default class ObjectRecordSearch extends LightningElement {
     @api metricKey;
 
@@ -33,6 +35,9 @@ export default class ObjectRecordSearch extends LightningElement {
     config;
     errorMessage;
     isDeleting = false;
+    isSaving = false;
+    formRecordId;
+    showRecordForm = false;
     wiredSearchResult;
 
     @wire(searchRecords, {
@@ -72,13 +77,22 @@ export default class ObjectRecordSearch extends LightningElement {
 
     get columns() {
         const nameFieldLabel = this.config?.nameFieldLabel ?? 'Name';
-        return [
+        const columns = [
             {
                 ...BASE_COLUMNS[0],
                 label: nameFieldLabel
             },
             ...BASE_COLUMNS.slice(1)
         ];
+
+        if (!this.editDisabled) {
+            columns.push({
+                type: 'action',
+                typeAttributes: { rowActions: ROW_ACTIONS }
+            });
+        }
+
+        return columns;
     }
 
     get hasRows() {
@@ -94,7 +108,7 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get isBusy() {
-        return this.isLoading || this.isDeleting;
+        return this.isLoading || this.isDeleting || this.isSaving;
     }
 
     get isLoading() {
@@ -109,6 +123,29 @@ export default class ObjectRecordSearch extends LightningElement {
         return (
             this.isBusy || !this.config?.deletable || this.selectedCount === 0
         );
+    }
+
+    get createDisabled() {
+        return (
+            this.isBusy ||
+            !this.config?.createable ||
+            !this.config?.nameFieldCreateable
+        );
+    }
+
+    get editDisabled() {
+        return (
+            this.isBusy ||
+            !this.config?.updateable ||
+            !this.config?.nameFieldUpdateable
+        );
+    }
+
+    get formTitle() {
+        const objectLabel = this.config?.objectLabel ?? 'レコード';
+        return this.formRecordId
+            ? `${objectLabel}を編集`
+            : `${objectLabel}を作成`;
     }
 
     get emptyMessage() {
@@ -148,6 +185,53 @@ export default class ObjectRecordSearch extends LightningElement {
         this.selectedRowIds = event.detail.selectedRows.map((row) => row.id);
     }
 
+    handleRowAction(event) {
+        if (event.detail.action.name !== 'edit' || this.editDisabled) {
+            return;
+        }
+
+        this.formRecordId = event.detail.row.id;
+        this.showRecordForm = true;
+    }
+
+    handleNewRecord() {
+        if (this.createDisabled) {
+            return;
+        }
+
+        this.formRecordId = undefined;
+        this.showRecordForm = true;
+    }
+
+    handleCloseRecordForm() {
+        this.showRecordForm = false;
+        this.formRecordId = undefined;
+        this.isSaving = false;
+    }
+
+    handleRecordFormSubmit() {
+        this.isSaving = true;
+    }
+
+    async handleRecordFormSuccess() {
+        this.showToast(
+            this.formRecordId ? '更新しました' : '作成しました',
+            `${this.config.objectLabel}を保存しました。`,
+            'success'
+        );
+        this.handleCloseRecordForm();
+        await refreshApex(this.wiredSearchResult);
+        this.dispatchEvent(new CustomEvent('recordschanged'));
+    }
+
+    handleRecordFormError(event) {
+        this.isSaving = false;
+        const message =
+            event.detail?.message ??
+            `${this.config.objectLabel}を保存できませんでした。`;
+        this.showToast('保存に失敗しました', message, 'error');
+    }
+
     async handleDeleteSelected() {
         if (this.deleteDisabled) {
             return;
@@ -173,6 +257,7 @@ export default class ObjectRecordSearch extends LightningElement {
             }
             await refreshApex(this.wiredSearchResult);
             this.dispatchEvent(new CustomEvent('recordsdeleted'));
+            this.dispatchEvent(new CustomEvent('recordschanged'));
         } catch (error) {
             this.errorMessage = this.reduceErrors(error);
             this.showToast('削除に失敗しました', this.errorMessage, 'error');

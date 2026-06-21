@@ -40,7 +40,11 @@ const searchResponse = {
         nameFieldApiName: 'Name',
         nameFieldLabel: '取引先名',
         deletable: true,
-        searchable: true
+        createable: true,
+        updateable: true,
+        searchable: true,
+        nameFieldCreateable: true,
+        nameFieldUpdateable: true
     },
     records: [
         {
@@ -126,6 +130,55 @@ describe('c-object-record-search', () => {
             metricKey: 'accounts',
             recordIds: ['001xx000003DGbYAAW']
         });
+    });
+
+    it('opens a create form for the target object', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        const newButton = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-button')
+        ).find((button) => button.label === '新規');
+        newButton.click();
+        await flushPromises();
+
+        const form = element.shadowRoot.querySelector(
+            'lightning-record-edit-form'
+        );
+        expect(element.shadowRoot.textContent).toContain('取引先を作成');
+        expect(form.objectApiName).toBe('Account');
+        expect(form.recordId).toBeUndefined();
+        expect(
+            element.shadowRoot.querySelector('lightning-input-field').fieldName
+        ).toBe('Name');
+    });
+
+    it('opens an edit form from the row action', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        const datatable = element.shadowRoot.querySelector(
+            'lightning-datatable'
+        );
+        datatable.dispatchEvent(
+            new CustomEvent('rowaction', {
+                detail: {
+                    action: { name: 'edit' },
+                    row: searchResponse.records[0]
+                }
+            })
+        );
+        await flushPromises();
+
+        const form = element.shadowRoot.querySelector(
+            'lightning-record-edit-form'
+        );
+        expect(element.shadowRoot.textContent).toContain('取引先を編集');
+        expect(form.recordId).toBe('001xx000003DGbYAAW');
     });
 
     it('dispatches back when the back action is clicked', async () => {
