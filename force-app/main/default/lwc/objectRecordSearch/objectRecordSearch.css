@@ -19,8 +19,22 @@
     position: relative;
 }
 
+.form-section__fields {
+    display: grid;
+    gap: 0 var(--slds-g-spacing-4, 1rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-section__field {
+    min-width: 0;
+}
+
 @media (max-width: 48em) {
     .toolbar__actions {
         justify-content: flex-start;
+    }
+
+    .form-section__fields {
+        grid-template-columns: 1fr;
     }
 }

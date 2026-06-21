@@ -113,32 +113,36 @@ function createFieldInfo(overrides = {}) {
 function emitLayout({
     objectApiName = 'Account',
     mode = 'Create',
-    fields = ['Name', 'Industry']
+    fields = ['Name', 'Industry'],
+    sections
 } = {}) {
+    const layoutSections = (sections ?? [{ heading: '基本情報', fields }]).map(
+        (section) => ({
+            heading: section.heading,
+            layoutRows: [
+                {
+                    layoutItems: section.fields.map((field) => ({
+                        editableForNew: true,
+                        editableForUpdate: true,
+                        required: true,
+                        layoutComponents: [
+                            {
+                                apiName: field,
+                                componentType: 'Field'
+                            }
+                        ]
+                    }))
+                }
+            ]
+        })
+    );
+
     getLayout.emit({
         layouts: {
             [objectApiName]: {
                 Full: {
                     [mode]: {
-                        sections: [
-                            {
-                                layoutRows: [
-                                    {
-                                        layoutItems: fields.map((field) => ({
-                                            editableForNew: true,
-                                            editableForUpdate: true,
-                                            required: true,
-                                            layoutComponents: [
-                                                {
-                                                    apiName: field,
-                                                    componentType: 'Field'
-                                                }
-                                            ]
-                                        }))
-                                    }
-                                ]
-                            }
-                        ]
+                        sections: layoutSections
                     }
                 }
             }
@@ -298,7 +302,9 @@ describe('c-object-record-search', () => {
         const form = element.shadowRoot.querySelector(
             'lightning-record-edit-form'
         );
+        const modal = element.shadowRoot.querySelector('.slds-modal');
         expect(element.shadowRoot.textContent).toContain('取引先を作成');
+        expect(modal.classList).toContain('slds-modal_large');
         expect(form.objectApiName).toBe('Account');
         expect(form.recordId).toBeUndefined();
         expect(
@@ -306,6 +312,35 @@ describe('c-object-record-search', () => {
                 element.shadowRoot.querySelectorAll('lightning-input-field')
             ).map((field) => field.fieldName)
         ).toEqual(['Name', 'Industry']);
+    });
+
+    it('groups record form fields by layout section', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        emitLayout({
+            sections: [
+                { heading: '基本情報', fields: ['Name'] },
+                { heading: '追加情報', fields: ['Industry'] }
+            ]
+        });
+        await flushPromises();
+
+        findButton(element, '新規').click();
+        await flushPromises();
+
+        const sections = element.shadowRoot.querySelectorAll('.form-section');
+        expect(sections).toHaveLength(2);
+        expect(sections[0].textContent).toContain('基本情報');
+        expect(sections[1].textContent).toContain('追加情報');
+        expect(
+            sections[0].querySelector('lightning-input-field').fieldName
+        ).toBe('Name');
+        expect(
+            sections[1].querySelector('lightning-input-field').fieldName
+        ).toBe('Industry');
     });
 
     it('uses editable standard fields from the page layout and skips custom fields', async () => {
