@@ -69,6 +69,13 @@ async function flushPromises() {
 }
 
 describe('c-object-metrics-overview', () => {
+    beforeEach(() => {
+        Object.defineProperty(window, 'scrollTo', {
+            value: jest.fn(),
+            writable: true
+        });
+    });
+
     afterEach(() => {
         while (document.body.firstChild) {
             document.body.removeChild(document.body.firstChild);
@@ -121,6 +128,27 @@ describe('c-object-metrics-overview', () => {
         );
         expect(recordSearch).not.toBeNull();
         expect(recordSearch.metricKey).toBe('accounts');
+    });
+
+    it('scrolls to top when navigating between the dashboard and record search', async () => {
+        const element = createComponent();
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('button[data-key="accounts"]').click();
+        await flushPromises();
+
+        element.shadowRoot
+            .querySelector('c-object-record-search')
+            .dispatchEvent(new CustomEvent('back'));
+        await flushPromises();
+
+        expect(window.scrollTo).toHaveBeenCalledTimes(2);
+        expect(window.scrollTo).toHaveBeenCalledWith({
+            left: 0,
+            top: 0
+        });
     });
 
     it('renders a user-facing error when Apex returns an error', async () => {

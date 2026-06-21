@@ -169,10 +169,12 @@ export default class ObjectMetricsOverview extends LightningElement {
 
     handleCardClick(event) {
         this.selectedMetricKey = event.currentTarget.dataset.key;
+        this.scrollToTop();
     }
 
     handleBackToDashboard() {
         this.selectedMetricKey = undefined;
+        this.scrollToTop();
     }
 
     async handleRecordsDeleted() {
@@ -194,6 +196,12 @@ export default class ObjectMetricsOverview extends LightningElement {
             };
             return values;
         }, {});
+    }
+
+    scrollToTop() {
+        Promise.resolve().then(() => {
+            window.scrollTo({ left: 0, top: 0 });
+        });
     }
 
     reduceErrors(errors) {
