@@ -274,44 +274,34 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
     private static void insertObjectMetricRecords() {
         Account accountRecord = TestDataFactory.insertAccount('件数取引先');
-        insert new Contact(
-            LastName = '件数責任者',
-            AccountId = accountRecord.Id
-        );
+        TestDataFactory.insertContact(accountRecord, '件数責任者');
         insert new Task(Subject = '件数 ToDo', Status = 'Not Started');
         insert new Event(
             Subject = '件数 行動',
             StartDateTime = Datetime.now().addHours(1),
             EndDateTime = Datetime.now().addHours(2)
         );
-        insert new Lead(LastName = '件数リード', Company = '件数会社');
-        Opportunity opportunityRecord = new Opportunity(
-            Name = '件数商談',
-            StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30),
-            AccountId = accountRecord.Id
+        TestDataFactory.insertLead('件数リード', '件数会社');
+        Opportunity opportunityRecord = TestDataFactory.insertOpportunity(
+            accountRecord,
+            '件数商談',
+            'Prospecting',
+            Date.today().addDays(30)
         );
-        insert opportunityRecord;
-        Product2 productRecord = new Product2(
-            Name = '件数商品',
-            IsActive = true
+        Product2 productRecord = TestDataFactory.insertProduct('件数商品');
+        PricebookEntry pricebookEntryRecord = TestDataFactory.insertPricebookEntry(
+            productRecord,
+            Test.getStandardPricebookId(),
+            100
         );
-        insert productRecord;
-        PricebookEntry pricebookEntryRecord = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(),
-            Product2Id = productRecord.Id,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        insert pricebookEntryRecord;
-        insert new OpportunityLineItem(
-            OpportunityId = opportunityRecord.Id,
-            PricebookEntryId = pricebookEntryRecord.Id,
-            Quantity = 1,
-            UnitPrice = 100
+        TestDataFactory.insertOpportunityLineItem(
+            opportunityRecord,
+            pricebookEntryRecord,
+            1,
+            100
         );
         insert new Campaign(Name = '件数キャンペーン');
-        insert new Case(Subject = '件数ケース');
+        TestDataFactory.insertCase('件数ケース');
         insert new Contract(
             AccountId = accountRecord.Id,
             Status = 'Draft',
