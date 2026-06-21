@@ -57,7 +57,7 @@
                 ></lightning-button>
                 <lightning-button
                     class="slds-m-left_x-small"
-                    label="新規"
+                    label={newButtonLabel}
                     onclick={handleNewRecord}
                     disabled={createDisabled}
                 ></lightning-button>
@@ -129,36 +129,55 @@
                     </h2>
                 </header>
                 <div class="slds-modal__content slds-p-around_medium">
-                    <lightning-record-edit-form
-                        object-api-name={config.objectApiName}
-                        record-id={formRecordId}
-                        onsubmit={handleRecordFormSubmit}
-                        onsuccess={handleRecordFormSuccess}
-                        onerror={handleRecordFormError}
-                    >
-                        <lightning-messages></lightning-messages>
-                        <template for:each={formFields} for:item="field">
-                            <lightning-input-field
-                                key={field.apiName}
-                                field-name={field.apiName}
-                                required={field.required}
-                            ></lightning-input-field>
-                        </template>
+                    <template lwc:if={showLightningRecordForm}>
+                        <lightning-record-edit-form
+                            object-api-name={config.objectApiName}
+                            record-id={formRecordId}
+                            onsubmit={handleRecordFormSubmit}
+                            onsuccess={handleRecordFormSuccess}
+                            onerror={handleRecordFormError}
+                        >
+                            <lightning-messages></lightning-messages>
+                            <template for:each={formFields} for:item="field">
+                                <lightning-input-field
+                                    key={field.apiName}
+                                    field-name={field.apiName}
+                                    required={field.required}
+                                ></lightning-input-field>
+                            </template>
+                            <div
+                                class="slds-modal__footer slds-p-horizontal_none"
+                            >
+                                <lightning-button
+                                    label="キャンセル"
+                                    onclick={handleCloseRecordForm}
+                                    disabled={isSaving}
+                                ></lightning-button>
+                                <lightning-button
+                                    class="slds-m-left_x-small"
+                                    label="保存"
+                                    type="submit"
+                                    variant="brand"
+                                    disabled={isSaving}
+                                ></lightning-button>
+                            </div>
+                        </lightning-record-edit-form>
+                    </template>
+                    <template lwc:elseif={isFileUploadForm}>
+                        <lightning-file-upload
+                            label="ファイル"
+                            name="fileUploader"
+                            multiple
+                            onuploadfinished={handleUploadFinished}
+                        ></lightning-file-upload>
                         <div class="slds-modal__footer slds-p-horizontal_none">
                             <lightning-button
-                                label="キャンセル"
+                                label="閉じる"
                                 onclick={handleCloseRecordForm}
                                 disabled={isSaving}
                             ></lightning-button>
-                            <lightning-button
-                                class="slds-m-left_x-small"
-                                label="保存"
-                                type="submit"
-                                variant="brand"
-                                disabled={isSaving}
-                            ></lightning-button>
                         </div>
-                    </lightning-record-edit-form>
+                    </template>
                 </div>
             </div>
         </section>

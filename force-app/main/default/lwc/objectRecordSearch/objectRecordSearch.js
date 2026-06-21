@@ -1,6 +1,8 @@
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+import { getLayout } from 'lightning/uiLayoutApi';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 
@@ -46,6 +48,9 @@ const FORM_FIELD_OVERRIDES = {
     ]
 };
 
+const FILE_OBJECT_API_NAME = 'ContentDocument';
+const IGNORED_FORM_OBJECT_API_NAMES = new Set(['EmailMessage']);
+
 export default class ObjectRecordSearch extends LightningElement {
     @api metricKey;
 
@@ -60,6 +65,8 @@ export default class ObjectRecordSearch extends LightningElement {
     formRecordId;
     showRecordForm = false;
     wiredSearchResult;
+    objectInfoResult;
+    formLayoutResult;
 
     @wire(searchRecords, {
         metricKey: '$metricKey',
@@ -83,6 +90,21 @@ export default class ObjectRecordSearch extends LightningElement {
             this.selectedRowIds = [];
             this.errorMessage = this.reduceErrors(error);
         }
+    }
+
+    @wire(getObjectInfo, { objectApiName: '$layoutObjectApiName' })
+    wiredObjectInfo(result) {
+        this.objectInfoResult = result;
+    }
+
+    @wire(getLayout, {
+        objectApiName: '$layoutObjectApiName',
+        layoutType: 'Full',
+        mode: '$layoutMode',
+        recordTypeId: '$defaultRecordTypeId'
+    })
+    wiredFormLayout(result) {
+        this.formLayoutResult = result;
     }
 
     get title() {
@@ -147,42 +169,165 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get createDisabled() {
+        if (this.isFileObject) {
+            return this.isBusy;
+        }
+
         return (
             this.isBusy ||
+            !this.isRecordFormObject ||
+            this.isFormLayoutLoading ||
             !this.config?.createable ||
-            (!this.hasConfiguredFormFields && !this.config?.nameFieldCreateable)
+            this.formFields.length === 0
         );
     }
 
     get editDisabled() {
         return (
             this.isBusy ||
+            !this.isRecordFormObject ||
+            this.isFormLayoutLoading ||
             !this.config?.updateable ||
-            (!this.hasConfiguredFormFields && !this.config?.nameFieldUpdateable)
+            this.formFields.length === 0
         );
     }
 
-    get hasConfiguredFormFields() {
-        return Boolean(FORM_FIELD_OVERRIDES[this.config?.objectApiName]);
+    get isFileObject() {
+        return this.config?.objectApiName === FILE_OBJECT_API_NAME;
+    }
+
+    get isIgnoredFormObject() {
+        return IGNORED_FORM_OBJECT_API_NAMES.has(this.config?.objectApiName);
+    }
+
+    get isRecordFormObject() {
+        return (
+            Boolean(this.config?.objectApiName) &&
+            !this.isFileObject &&
+            !this.isIgnoredFormObject
+        );
+    }
+
+    get isFileUploadForm() {
+        return this.showRecordForm && this.isFileObject;
+    }
+
+    get showLightningRecordForm() {
+        return this.showRecordForm && this.isRecordFormObject;
+    }
+
+    get layoutObjectApiName() {
+        return this.isRecordFormObject ? this.config.objectApiName : undefined;
+    }
+
+    get layoutMode() {
+        return this.formRecordId ? 'Edit' : 'Create';
+    }
+
+    get defaultRecordTypeId() {
+        return this.objectInfoResult?.data?.defaultRecordTypeId;
+    }
+
+    get isFormLayoutLoading() {
+        return (
+            this.isRecordFormObject &&
+            !this.formLayoutResult?.data &&
+            !this.formLayoutResult?.error
+        );
+    }
+
+    get newButtonLabel() {
+        return this.isFileObject ? 'アップロード' : '新規';
     }
 
     get formFields() {
+        if (!this.isRecordFormObject) {
+            return [];
+        }
+
+        const layoutFields = this.layoutFormFields;
+        if (layoutFields.length > 0) {
+            return layoutFields;
+        }
+
+        if (this.formLayoutResult?.error) {
+            return this.fallbackFormFields;
+        }
+
+        return [];
+    }
+
+    get layoutFormFields() {
+        const layout = this.currentLayout;
+        const fieldInfoByApiName = this.objectInfoResult?.data?.fields ?? {};
+        const fieldApiNames = new Set();
+        const fields = [];
+
+        (layout?.sections ?? []).forEach((section) => {
+            (section.layoutRows ?? []).forEach((row) => {
+                (row.layoutItems ?? []).forEach((item) => {
+                    (item.layoutComponents ?? []).forEach((component) => {
+                        const apiName = component.apiName;
+                        const fieldInfo = fieldInfoByApiName[apiName];
+                        if (
+                            component.componentType !== 'Field' ||
+                            !apiName ||
+                            fieldApiNames.has(apiName) ||
+                            !this.isEditableLayoutItem(item) ||
+                            !this.isSupportedStandardField(fieldInfo)
+                        ) {
+                            return;
+                        }
+
+                        fieldApiNames.add(apiName);
+                        fields.push({
+                            apiName,
+                            required: Boolean(item.required)
+                        });
+                    });
+                });
+            });
+        });
+
+        return fields;
+    }
+
+    get currentLayout() {
+        const data = this.formLayoutResult?.data;
+        if (!data) {
+            return undefined;
+        }
+
+        return (
+            data.layouts?.[this.config.objectApiName]?.Full?.[
+                this.layoutMode
+            ] ?? data
+        );
+    }
+
+    get fallbackFormFields() {
         const configuredFields =
             FORM_FIELD_OVERRIDES[this.config?.objectApiName];
         if (configuredFields) {
             return configuredFields;
         }
 
-        return [
-            {
-                apiName: this.config?.nameFieldApiName,
-                required: true
-            }
-        ];
+        return this.config?.nameFieldApiName
+            ? [
+                  {
+                      apiName: this.config.nameFieldApiName,
+                      required: true
+                  }
+              ]
+            : [];
     }
 
     get formTitle() {
         const objectLabel = this.config?.objectLabel ?? 'レコード';
+        if (this.isFileObject) {
+            return 'ファイルをアップロード';
+        }
+
         return this.formRecordId
             ? `${objectLabel}を編集`
             : `${objectLabel}を作成`;
@@ -272,6 +417,18 @@ export default class ObjectRecordSearch extends LightningElement {
         this.dispatchEvent(new CustomEvent('recordschanged'));
     }
 
+    async handleUploadFinished(event) {
+        const uploadedCount = event.detail?.files?.length ?? 0;
+        this.showToast(
+            'アップロードしました',
+            `${uploadedCount} 件のファイルを登録しました。`,
+            'success'
+        );
+        this.handleCloseRecordForm();
+        await refreshApex(this.wiredSearchResult);
+        this.dispatchEvent(new CustomEvent('recordschanged'));
+    }
+
     handleRecordFormError(event) {
         this.isSaving = false;
         const message =
@@ -328,6 +485,18 @@ export default class ObjectRecordSearch extends LightningElement {
             return '';
         }
         return DATE_TIME_FORMATTER.format(new Date(value));
+    }
+
+    isEditableLayoutItem(item) {
+        return this.formRecordId ? item.editableForUpdate : item.editableForNew;
+    }
+
+    isSupportedStandardField(fieldInfo) {
+        if (!fieldInfo || fieldInfo.custom) {
+            return false;
+        }
+
+        return this.formRecordId ? fieldInfo.updateable : fieldInfo.createable;
     }
 
     reduceErrors(errors) {
