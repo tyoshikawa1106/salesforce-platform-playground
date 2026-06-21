@@ -129,7 +129,7 @@ export default class ObjectMetricsOverview extends LightningElement {
                 ...config,
                 countTitle: `${formattedValue} 件`,
                 formattedValue,
-                loading: this.isLoading,
+                loading: this.isBusy,
                 loadingLabel: `${config.label}の件数を読み込んでいます`
             };
         });
