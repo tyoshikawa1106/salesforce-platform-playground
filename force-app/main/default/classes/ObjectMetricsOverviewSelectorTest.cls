@@ -19,7 +19,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // Then
         Assert.areEqual(
-            15,
+            27,
             metricsByKey.size(),
             'Selector should return all object metric keys.'
         );
@@ -76,6 +76,14 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             metricsByKey.get('pricebooks').value,
             'Pricebook count should be returned.'
         );
+        Assert.isNotNull(
+            metricsByKey.get('pricebookEntries').value,
+            'PricebookEntry count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('assets').value,
+            'Asset count should be returned.'
+        );
         Assert.areEqual(
             1,
             metricsByKey.get('campaigns').value,
@@ -95,38 +103,49 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             metricsByKey.get('emailTemplates').value,
             'EmailTemplate count should be returned.'
         );
-    }
-
-    @IsTest
-    static void shouldCapMetricCountWhenDisplayLimitIsReached() {
-        // When
-        ObjectMetricsOverviewSelector.ObjectMetricCount exactCount;
-        ObjectMetricsOverviewSelector.ObjectMetricCount cappedCount;
-        System.runAs(getCurrentUser()) {
-            Test.startTest();
-            exactCount = ObjectMetricsOverviewSelector.createCount(49999);
-            cappedCount = ObjectMetricsOverviewSelector.createCount(50000);
-            Test.stopTest();
-        }
-
-        // Then
-        Assert.areEqual(
-            49999,
-            exactCount.value,
-            'Counts below the display limit should keep the exact value.'
+        Assert.isNotNull(
+            metricsByKey.get('orders').value,
+            'Order count should be returned.'
         );
-        Assert.isFalse(
-            exactCount.capped,
-            'Counts below the display limit should not be capped.'
+        Assert.isNotNull(
+            metricsByKey.get('orderItems').value,
+            'OrderItem count should be returned.'
         );
-        Assert.areEqual(
-            50000,
-            cappedCount.value,
-            'Counts at the display limit should keep the display limit value.'
+        Assert.isNotNull(
+            metricsByKey.get('entitlements').value,
+            'Entitlement count should be returned.'
         );
-        Assert.isTrue(
-            cappedCount.capped,
-            'Counts at the display limit should carry the capped marker.'
+        Assert.isNotNull(
+            metricsByKey.get('serviceContracts').value,
+            'ServiceContract count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('workOrders').value,
+            'WorkOrder count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('workOrderLineItems').value,
+            'WorkOrderLineItem count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('knowledgeArticles').value,
+            'KnowledgeArticleVersion count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('processInstances').value,
+            'ProcessInstance count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('processInstanceWorkitems').value,
+            'ProcessInstanceWorkitem count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('processInstanceSteps').value,
+            'ProcessInstanceStep count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('users').value,
+            'Active user count should be returned.'
         );
     }
 
@@ -181,36 +200,35 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
     }
 
     @IsTest
-    static void shouldCountCurrentUsersDeletedAccountAndContact() {
-        // Given
-        Account deletedAccount = TestDataFactory.insertAccount(
-            '削除済み取引先'
-        );
-        Contact deletedContact = new Contact(
-            LastName = '削除済み責任者',
-            AccountId = deletedAccount.Id
-        );
-        insert deletedContact;
-        delete new List<SObject>{ deletedContact, deletedAccount };
-        ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
-
+    static void shouldCapMetricCountWhenDisplayLimitIsReached() {
         // When
-        Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricsByKey;
+        ObjectMetricsOverviewSelector.ObjectMetricCount exactCount;
+        ObjectMetricsOverviewSelector.ObjectMetricCount cappedCount;
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            metricsByKey = selector.getObjectMetricValues();
+            exactCount = ObjectMetricsOverviewSelector.createCount(49999);
+            cappedCount = ObjectMetricsOverviewSelector.createCount(50000);
             Test.stopTest();
         }
 
         // Then
         Assert.areEqual(
-            2,
-            metricsByKey.get('recycleBinItems').value,
-            'Recycle Bin count should include deleted Account and Contact records.'
+            49999,
+            exactCount.value,
+            'Counts below the display limit should keep the exact value.'
         );
         Assert.isFalse(
-            metricsByKey.get('recycleBinItems').capped,
-            'Small Recycle Bin counts should not be capped.'
+            exactCount.capped,
+            'Counts below the display limit should not be capped.'
+        );
+        Assert.areEqual(
+            50000,
+            cappedCount.value,
+            'Counts at the display limit should keep the display limit value.'
+        );
+        Assert.isTrue(
+            cappedCount.capped,
+            'Counts at the display limit should carry the capped marker.'
         );
     }
 
