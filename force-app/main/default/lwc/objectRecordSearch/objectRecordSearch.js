@@ -25,6 +25,27 @@ const BASE_COLUMNS = [
 
 const ROW_ACTIONS = [{ label: '編集', name: 'edit' }];
 
+const FORM_FIELD_OVERRIDES = {
+    Account: [
+        { apiName: 'Name', required: true },
+        { apiName: 'Industry', required: false }
+    ],
+    Contact: [
+        { apiName: 'FirstName', required: true },
+        { apiName: 'LastName', required: true }
+    ],
+    Lead: [
+        { apiName: 'FirstName', required: true },
+        { apiName: 'LastName', required: true },
+        { apiName: 'Company', required: true }
+    ],
+    Opportunity: [
+        { apiName: 'Name', required: true },
+        { apiName: 'StageName', required: true },
+        { apiName: 'CloseDate', required: true }
+    ]
+};
+
 export default class ObjectRecordSearch extends LightningElement {
     @api metricKey;
 
@@ -129,7 +150,7 @@ export default class ObjectRecordSearch extends LightningElement {
         return (
             this.isBusy ||
             !this.config?.createable ||
-            !this.config?.nameFieldCreateable
+            (!this.hasConfiguredFormFields && !this.config?.nameFieldCreateable)
         );
     }
 
@@ -137,8 +158,27 @@ export default class ObjectRecordSearch extends LightningElement {
         return (
             this.isBusy ||
             !this.config?.updateable ||
-            !this.config?.nameFieldUpdateable
+            (!this.hasConfiguredFormFields && !this.config?.nameFieldUpdateable)
         );
+    }
+
+    get hasConfiguredFormFields() {
+        return Boolean(FORM_FIELD_OVERRIDES[this.config?.objectApiName]);
+    }
+
+    get formFields() {
+        const configuredFields =
+            FORM_FIELD_OVERRIDES[this.config?.objectApiName];
+        if (configuredFields) {
+            return configuredFields;
+        }
+
+        return [
+            {
+                apiName: this.config?.nameFieldApiName,
+                required: true
+            }
+        ];
     }
 
     get formTitle() {
@@ -209,7 +249,15 @@ export default class ObjectRecordSearch extends LightningElement {
         this.isSaving = false;
     }
 
-    handleRecordFormSubmit() {
+    handleRecordFormSubmit(event) {
+        const isValid = [
+            ...this.template.querySelectorAll('lightning-input-field')
+        ].reduce((valid, field) => field.reportValidity() && valid, true);
+        if (!isValid) {
+            event.preventDefault();
+            return;
+        }
+
         this.isSaving = true;
     }
 

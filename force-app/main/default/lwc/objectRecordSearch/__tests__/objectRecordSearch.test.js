@@ -58,6 +58,16 @@ const searchResponse = {
     limitSize: 200
 };
 
+function createSearchResponse(configOverrides = {}) {
+    return {
+        ...searchResponse,
+        config: {
+            ...searchResponse.config,
+            ...configOverrides
+        }
+    };
+}
+
 function createComponent() {
     const element = createElement('c-object-record-search', {
         is: ObjectRecordSearch
@@ -151,8 +161,101 @@ describe('c-object-record-search', () => {
         expect(form.objectApiName).toBe('Account');
         expect(form.recordId).toBeUndefined();
         expect(
-            element.shadowRoot.querySelector('lightning-input-field').fieldName
-        ).toBe('Name');
+            Array.from(
+                element.shadowRoot.querySelectorAll('lightning-input-field')
+            ).map((field) => field.fieldName)
+        ).toEqual(['Name', 'Industry']);
+    });
+
+    it('renders split required name fields for contacts', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(
+            createSearchResponse({
+                metricKey: 'contacts',
+                objectApiName: 'Contact',
+                objectLabel: '取引先責任者',
+                nameFieldCreateable: false,
+                nameFieldUpdateable: false
+            })
+        );
+        await flushPromises();
+
+        const newButton = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-button')
+        ).find((button) => button.label === '新規');
+        expect(newButton.disabled).toBe(false);
+        newButton.click();
+        await flushPromises();
+
+        const fields = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-input-field')
+        );
+        expect(fields.map((field) => field.fieldName)).toEqual([
+            'FirstName',
+            'LastName'
+        ]);
+        expect(fields.every((field) => field.required)).toBe(true);
+    });
+
+    it('renders required lead fields including company', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(
+            createSearchResponse({
+                metricKey: 'leads',
+                objectApiName: 'Lead',
+                objectLabel: 'リード',
+                nameFieldCreateable: false,
+                nameFieldUpdateable: false
+            })
+        );
+        await flushPromises();
+
+        const newButton = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-button')
+        ).find((button) => button.label === '新規');
+        newButton.click();
+        await flushPromises();
+
+        const fields = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-input-field')
+        );
+        expect(fields.map((field) => field.fieldName)).toEqual([
+            'FirstName',
+            'LastName',
+            'Company'
+        ]);
+        expect(fields.every((field) => field.required)).toBe(true);
+    });
+
+    it('renders required opportunity fields that are needed to save', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(
+            createSearchResponse({
+                metricKey: 'opportunities',
+                objectApiName: 'Opportunity',
+                objectLabel: '商談'
+            })
+        );
+        await flushPromises();
+
+        const newButton = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-button')
+        ).find((button) => button.label === '新規');
+        newButton.click();
+        await flushPromises();
+
+        const fields = Array.from(
+            element.shadowRoot.querySelectorAll('lightning-input-field')
+        );
+        expect(fields.map((field) => field.fieldName)).toEqual([
+            'Name',
+            'StageName',
+            'CloseDate'
+        ]);
+        expect(fields.every((field) => field.required)).toBe(true);
     });
 
     it('opens an edit form from the row action', async () => {

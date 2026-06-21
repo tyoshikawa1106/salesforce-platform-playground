@@ -137,9 +137,13 @@
                         onerror={handleRecordFormError}
                     >
                         <lightning-messages></lightning-messages>
-                        <lightning-input-field
-                            field-name={config.nameFieldApiName}
-                        ></lightning-input-field>
+                        <template for:each={formFields} for:item="field">
+                            <lightning-input-field
+                                key={field.apiName}
+                                field-name={field.apiName}
+                                required={field.required}
+                            ></lightning-input-field>
+                        </template>
                         <div class="slds-modal__footer slds-p-horizontal_none">
                             <lightning-button
                                 label="キャンセル"
