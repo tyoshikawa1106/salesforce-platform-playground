@@ -439,10 +439,6 @@
     </types>
     <types>
         <members>*</members>
-        <name>PlatformEventMigration</name>
-    </types>
-    <types>
-        <members>*</members>
         <name>ManagedEventSubscription</name>
     </types>
     <types>
@@ -453,15 +449,7 @@
     <!-- レポート / 分析 -->
     <types>
         <members>*</members>
-        <name>Report</name>
-    </types>
-    <types>
-        <members>*</members>
         <name>ReportType</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>Dashboard</name>
     </types>
     <types>
         <members>*</members>
@@ -518,10 +506,6 @@
     <types>
         <members>*</members>
         <name>SiteDotCom</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>ExperienceContainer</name>
     </types>
     <types>
         <members>*</members>
@@ -638,10 +622,6 @@
     <types>
         <members>*</members>
         <name>DataCategoryGroup</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>TagSet</name>
     </types>
 
     <!-- 検索 / ナレッジ補助 -->
