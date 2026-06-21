@@ -304,7 +304,6 @@ export default class ObjectRecordSearch extends LightningElement {
                 );
             }
             await refreshApex(this.wiredSearchResult);
-            this.dispatchEvent(new CustomEvent('recordsdeleted'));
             this.dispatchEvent(new CustomEvent('recordschanged'));
         } catch (error) {
             this.errorMessage = this.reduceErrors(error);

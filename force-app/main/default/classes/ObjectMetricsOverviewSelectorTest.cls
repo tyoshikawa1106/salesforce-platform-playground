@@ -19,7 +19,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 検証
         Assert.areEqual(
-            27,
+            ObjectMetricCatalog.getDefinitions().size(),
             metricsByKey.size(),
             'Selector should return all object metric keys.'
         );
@@ -184,6 +184,34 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             metricCount.capped,
             'Unknown object API names should not be capped.'
         );
+    }
+
+    @IsTest
+    static void shouldExposeWhetherObjectApiNameIsConfigured() {
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            Boolean hasAccount = ObjectMetricCatalog.hasObjectApiName(
+                'Account'
+            );
+            Boolean hasUnknownObject = ObjectMetricCatalog.hasObjectApiName(
+                'UnknownObject__c'
+            );
+            Boolean hasBlankObject = ObjectMetricCatalog.hasObjectApiName(' ');
+            Test.stopTest();
+
+            Assert.isTrue(
+                hasAccount,
+                'Account should be available as a configured metric object.'
+            );
+            Assert.isFalse(
+                hasUnknownObject,
+                'Unknown objects should not be counted as configured metrics.'
+            );
+            Assert.isFalse(
+                hasBlankObject,
+                'Blank object API names should not be configured metrics.'
+            );
+        }
     }
 
     @IsTest
