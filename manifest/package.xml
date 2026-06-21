@@ -90,6 +90,32 @@
 
     <!-- オブジェクト / データモデル -->
     <types>
+        <members>Account</members>
+        <members>Asset</members>
+        <members>BusinessHours</members>
+        <members>Campaign</members>
+        <members>CampaignMember</members>
+        <members>Case</members>
+        <members>Contact</members>
+        <members>ContentDocument</members>
+        <members>Contract</members>
+        <members>EmailMessage</members>
+        <members>Entitlement</members>
+        <members>Event</members>
+        <members>Lead</members>
+        <members>Opportunity</members>
+        <members>OpportunityContactRole</members>
+        <members>OpportunityLineItem</members>
+        <members>Order</members>
+        <members>OrderItem</members>
+        <members>Pricebook2</members>
+        <members>PricebookEntry</members>
+        <members>Product2</members>
+        <members>ServiceContract</members>
+        <members>Task</members>
+        <members>User</members>
+        <members>WorkOrder</members>
+        <members>WorkOrderLineItem</members>
         <members>*</members>
         <name>CustomObject</name>
     </types>
