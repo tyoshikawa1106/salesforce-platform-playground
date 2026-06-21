@@ -20,7 +20,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // Then
         Assert.areEqual(
-            12,
+            27,
             summary.metrics.size(),
             'Service should return all configured metric items.'
         );
@@ -52,6 +52,16 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             summary.metrics[1].capped,
             'Exact contact value should not carry the capped marker.'
         );
+        Assert.areEqual(
+            'leads',
+            summary.metrics[2].key,
+            'Lead metric should be third.'
+        );
+        Assert.areEqual(
+            'users',
+            summary.metrics[26].key,
+            'User metric should be last.'
+        );
     }
 
     @IsTest
@@ -71,7 +81,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // Then
         Assert.areEqual(
-            12,
+            27,
             summary.metrics.size(),
             'Service should fall back to the default selector.'
         );

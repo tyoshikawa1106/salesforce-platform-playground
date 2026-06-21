@@ -5,7 +5,5 @@
     <masterLabel>Object Metrics Overview</masterLabel>
     <targets>
         <target>lightning__HomePage</target>
-        <target>lightning__AppPage</target>
-        <target>lightning__RecordPage</target>
     </targets>
 </LightningComponentBundle>

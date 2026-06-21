@@ -1,5 +1,8 @@
 .counts {
-    row-gap: var(--slds-g-spacing-3, 0.75rem);
+    display: grid;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: var(--slds-g-spacing-3, 0.75rem);
 }
 
 .count-card {
@@ -16,4 +19,10 @@
     flex: 1 1 auto;
     justify-content: center;
     min-height: 2.25rem;
+}
+
+@media (max-width: 48em) {
+    .counts {
+        grid-template-columns: 1fr;
+    }
 }

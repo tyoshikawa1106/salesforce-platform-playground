@@ -7,19 +7,94 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('ja-JP');
 const COUNT_CARD_CONFIGS = [
     { key: 'accounts', iconName: 'standard:account', label: '取引先' },
     { key: 'contacts', iconName: 'standard:contact', label: '取引先責任者' },
-    { key: 'events', iconName: 'standard:event', label: '行動' },
-    { key: 'tasks', iconName: 'standard:task', label: 'ToDo' },
-    { key: 'users', iconName: 'standard:user', label: 'ユーザー' },
-    { key: 'recycleBinItems', iconName: 'standard:empty', label: 'ごみ箱' },
     { key: 'leads', iconName: 'standard:lead', label: 'リード' },
     { key: 'opportunities', iconName: 'standard:opportunity', label: '商談' },
+    {
+        key: 'opportunityLineItems',
+        iconName: 'standard:product_consumed',
+        label: '商談商品'
+    },
     { key: 'products', iconName: 'standard:product', label: '商品' },
+    { key: 'pricebooks', iconName: 'standard:pricebook', label: '価格表' },
+    {
+        key: 'pricebookEntries',
+        iconName: 'standard:price_book_entries',
+        label: '価格表エントリ'
+    },
+    {
+        key: 'assets',
+        iconName: 'standard:asset_object',
+        label: '納入商品'
+    },
     { key: 'campaigns', iconName: 'standard:campaign', label: 'キャンペーン' },
     { key: 'cases', iconName: 'standard:case', label: 'ケース' },
+    { key: 'contracts', iconName: 'standard:contract', label: '契約' },
+    {
+        key: 'orders',
+        iconName: 'standard:order_item',
+        label: '注文'
+    },
+    {
+        key: 'orderItems',
+        iconName: 'standard:order_item',
+        label: '注文商品'
+    },
+    {
+        key: 'entitlements',
+        iconName: 'standard:entitlement',
+        label: 'エンタイトルメント'
+    },
+    {
+        key: 'serviceContracts',
+        iconName: 'standard:service_contract',
+        label: 'サービス契約'
+    },
+    {
+        key: 'workOrders',
+        iconName: 'standard:work_order',
+        label: '作業指示'
+    },
+    {
+        key: 'workOrderLineItems',
+        iconName: 'standard:work_order_item',
+        label: '作業指示品目'
+    },
+    {
+        key: 'knowledgeArticles',
+        iconName: 'utility:knowledge_base',
+        label: 'ナレッジ'
+    },
+    { key: 'events', iconName: 'standard:event', label: '行動' },
+    { key: 'tasks', iconName: 'standard:task', label: 'ToDo' },
     {
         key: 'emailMessages',
         iconName: 'standard:email',
         label: 'メールメッセージ'
+    },
+    {
+        key: 'emailTemplates',
+        iconName: 'utility:insert_template',
+        label: 'メールテンプレート'
+    },
+    {
+        key: 'processInstances',
+        iconName: 'standard:approval_1',
+        label: '承認申請'
+    },
+    {
+        key: 'processInstanceWorkitems',
+        iconName: 'standard:approval_1',
+        label: '承認作業項目'
+    },
+    {
+        key: 'processInstanceSteps',
+        iconName: 'standard:approval_1',
+        label: '承認履歴'
+    },
+    {
+        key: 'users',
+        iconName: 'standard:user',
+        label: 'ユーザー'
     }
 ];
 
