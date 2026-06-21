@@ -31,6 +31,9 @@ skills-lock.json
 # ApexPMD cache
 .pmdCache
 
+# Salesforce Code Analyzer reports
+code-analyzer-results-*
+
 # Eslint cache
 .eslintcache
 

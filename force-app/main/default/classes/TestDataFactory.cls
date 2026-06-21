@@ -84,21 +84,17 @@ public with sharing class TestDataFactory {
      * 指定した取引先に紐づく未保存商談を 1 件作成します。
      * @param accountRecord 紐づける取引先
      * @param opportunityName 使用する商談名
-     * @param stageName 使用するフェーズ
-     * @param closeDate 使用する完了予定日
      * @return 作成した商談レコード
      */
     public static Opportunity createOpportunity(
         Account accountRecord,
-        String opportunityName,
-        String stageName,
-        Date closeDate
+        String opportunityName
     ) {
         return new Opportunity(
             AccountId = accountRecord.Id,
             Name = opportunityName,
-            StageName = stageName,
-            CloseDate = closeDate
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30)
         );
     }
 
@@ -106,21 +102,15 @@ public with sharing class TestDataFactory {
      * 指定した取引先に紐づく商談を 1 件作成して保存します。
      * @param accountRecord 紐づける取引先
      * @param opportunityName 使用する商談名
-     * @param stageName 使用するフェーズ
-     * @param closeDate 使用する完了予定日
      * @return 保存した商談レコード
      */
     public static Opportunity insertOpportunity(
         Account accountRecord,
-        String opportunityName,
-        String stageName,
-        Date closeDate
+        String opportunityName
     ) {
         Opportunity opportunityRecord = createOpportunity(
             accountRecord,
-            opportunityName,
-            stageName,
-            closeDate
+            opportunityName
         );
         insert opportunityRecord;
         return opportunityRecord;
@@ -191,21 +181,17 @@ public with sharing class TestDataFactory {
      * 指定した商談と価格表エントリに紐づく未保存商談商品を 1 件作成します。
      * @param opportunityRecord 紐づける商談
      * @param pricebookEntryRecord 紐づける価格表エントリ
-     * @param quantity 数量
-     * @param unitPrice 単価
      * @return 作成した商談商品レコード
      */
     public static OpportunityLineItem createOpportunityLineItem(
         Opportunity opportunityRecord,
-        PricebookEntry pricebookEntryRecord,
-        Decimal quantity,
-        Decimal unitPrice
+        PricebookEntry pricebookEntryRecord
     ) {
         return new OpportunityLineItem(
             OpportunityId = opportunityRecord.Id,
             PricebookEntryId = pricebookEntryRecord.Id,
-            Quantity = quantity,
-            UnitPrice = unitPrice
+            Quantity = 1,
+            UnitPrice = pricebookEntryRecord.UnitPrice
         );
     }
 
@@ -213,21 +199,15 @@ public with sharing class TestDataFactory {
      * 指定した商談と価格表エントリに紐づく商談商品を 1 件作成して保存します。
      * @param opportunityRecord 紐づける商談
      * @param pricebookEntryRecord 紐づける価格表エントリ
-     * @param quantity 数量
-     * @param unitPrice 単価
      * @return 保存した商談商品レコード
      */
     public static OpportunityLineItem insertOpportunityLineItem(
         Opportunity opportunityRecord,
-        PricebookEntry pricebookEntryRecord,
-        Decimal quantity,
-        Decimal unitPrice
+        PricebookEntry pricebookEntryRecord
     ) {
         OpportunityLineItem lineItemRecord = createOpportunityLineItem(
             opportunityRecord,
-            pricebookEntryRecord,
-            quantity,
-            unitPrice
+            pricebookEntryRecord
         );
         insert lineItemRecord;
         return lineItemRecord;

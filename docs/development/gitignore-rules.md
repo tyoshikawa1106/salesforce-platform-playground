@@ -26,5 +26,6 @@ DreamHouse の `.gitignore` に加えて、このリポジトリでは次を ign
 
 - `.agents/`, `skills-lock.json`: agent / sf-skills のローカル生成物。
 - `.pmdCache`: ApexPMD のキャッシュ。
+- `code-analyzer-results-*`: Salesforce Code Analyzer のローカル解析出力。
 - `**/__pycache__/`, `**/.venv/`, `**/venv/`: Python Salesforce Functions 用のローカル生成物。
 - `.env.local`, `.env.*.local`: 個人ローカルの環境変数ファイル。

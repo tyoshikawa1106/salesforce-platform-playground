@@ -15,12 +15,7 @@
     justify-content: flex-end;
 }
 
-.table {
-    min-height: 12rem;
-}
-
 .empty {
-    min-height: 8rem;
     position: relative;
 }
 

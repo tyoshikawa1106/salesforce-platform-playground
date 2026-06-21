@@ -10,3 +10,5 @@
 .agents
 
 coverage/
+
+code-analyzer-results-*
