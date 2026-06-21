@@ -5,7 +5,7 @@
 private with sharing class ObjectRecordSearchControllerTest {
     @TestSetup
     static void setupTestData() {
-        List<Account> accounts = TestDataFactory.createAccounts(3);
+        List<Account> accounts = FixtureFactory.createAccounts(3);
         accounts[0].Name = '検索対象 Alpha';
         accounts[1].Name = '検索対象 Beta';
         accounts[2].Name = '削除対象 Gamma';

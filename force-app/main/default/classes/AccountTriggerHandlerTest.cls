@@ -7,12 +7,12 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('㈱テスト'),
-            TestDataFactory.createAccount('（株）テスト'),
-            TestDataFactory.createAccount('(株)テスト'),
-            TestDataFactory.createAccount('㈲テスト'),
-            TestDataFactory.createAccount('（有）テスト'),
-            TestDataFactory.createAccount('(有)テスト')
+            FixtureFactory.createAccount('㈱テスト'),
+            FixtureFactory.createAccount('（株）テスト'),
+            FixtureFactory.createAccount('(株)テスト'),
+            FixtureFactory.createAccount('㈲テスト'),
+            FixtureFactory.createAccount('（有）テスト'),
+            FixtureFactory.createAccount('(有)テスト')
         };
 
         // 実行
@@ -59,7 +59,7 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenNameUpdated() {
         // 準備
-        Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
+        Account accountRecord = FixtureFactory.insertAccount('テスト取引先');
         accountRecord.Name = 'テスト（株）';
 
         // 実行
@@ -82,8 +82,8 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldKeepCompanyTypePositionWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('テスト（株）'),
-            TestDataFactory.createAccount('テスト(有)')
+            FixtureFactory.createAccount('テスト（株）'),
+            FixtureFactory.createAccount('テスト(有)')
         };
 
         // 実行
@@ -110,7 +110,7 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount(
+        Account accountRecord = FixtureFactory.createAccount(
             '㈱テスト(有)支店'
         );
 
@@ -133,7 +133,7 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldKeepFormalCompanyNamesWhenAlreadyNormalized() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount('株式会社テスト');
+        Account accountRecord = FixtureFactory.createAccount('株式会社テスト');
 
         // 実行
         System.runAs(getCurrentUser()) {
@@ -155,10 +155,10 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldKeepIncompleteAbbreviationsWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('株）テスト'),
-            TestDataFactory.createAccount('（株テスト'),
-            TestDataFactory.createAccount('有)テスト'),
-            TestDataFactory.createAccount('(有テスト')
+            FixtureFactory.createAccount('株）テスト'),
+            FixtureFactory.createAccount('（株テスト'),
+            FixtureFactory.createAccount('有)テスト'),
+            FixtureFactory.createAccount('(有テスト')
         };
 
         // 実行
@@ -197,7 +197,7 @@ private with sharing class AccountTriggerHandlerTest {
         // 準備
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 251; index++) {
-            accounts.add(TestDataFactory.createAccount('㈱テスト ' + index));
+            accounts.add(FixtureFactory.createAccount('㈱テスト ' + index));
         }
 
         // 実行

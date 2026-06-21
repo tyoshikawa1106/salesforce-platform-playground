@@ -2,7 +2,7 @@
  * Apex テストで再利用するテストデータを作成します。
  */
 @IsTest
-public with sharing class TestDataFactory {
+public with sharing class FixtureFactory {
     /**
      * 既定値を持つ取引先レコードを作成します。
      * @param count 作成する取引先件数

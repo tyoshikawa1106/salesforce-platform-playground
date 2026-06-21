@@ -7,8 +7,8 @@ private with sharing class AccountTriggerServiceTest {
     static void beforeInsertShouldNormalizeAccountNames() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('㈱テスト'),
-            TestDataFactory.createAccount('テスト(有)支店')
+            FixtureFactory.createAccount('㈱テスト'),
+            FixtureFactory.createAccount('テスト(有)支店')
         };
 
         // 実行
@@ -34,7 +34,7 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void beforeUpdateShouldNormalizeChangedAccountNames() {
         // 準備
-        Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
+        Account accountRecord = FixtureFactory.insertAccount('テスト取引先');
         Account updatedAccount = new Account(
             Id = accountRecord.Id,
             Name = 'テスト（株）'
@@ -64,7 +64,7 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void beforeUpdateShouldSkipUnchangedAccountNames() {
         // 準備
-        Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
+        Account savedAccount = FixtureFactory.insertAccount('テスト取引先');
         Account accountRecord = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'

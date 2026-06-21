@@ -273,35 +273,35 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
     }
 
     private static void insertObjectMetricRecords() {
-        Account accountRecord = TestDataFactory.insertAccount('件数取引先');
-        TestDataFactory.insertContact(accountRecord, '件数責任者');
+        Account accountRecord = FixtureFactory.insertAccount('件数取引先');
+        FixtureFactory.insertContact(accountRecord, '件数責任者');
         insert new Task(Subject = '件数 ToDo', Status = 'Not Started');
         insert new Event(
             Subject = '件数 行動',
             StartDateTime = Datetime.now().addHours(1),
             EndDateTime = Datetime.now().addHours(2)
         );
-        TestDataFactory.insertLead('件数リード', '件数会社');
-        Opportunity opportunityRecord = TestDataFactory.insertOpportunity(
+        FixtureFactory.insertLead('件数リード', '件数会社');
+        Opportunity opportunityRecord = FixtureFactory.insertOpportunity(
             accountRecord,
             '件数商談',
             'Prospecting',
             Date.today().addDays(30)
         );
-        Product2 productRecord = TestDataFactory.insertProduct('件数商品');
-        PricebookEntry pricebookEntryRecord = TestDataFactory.insertPricebookEntry(
+        Product2 productRecord = FixtureFactory.insertProduct('件数商品');
+        PricebookEntry pricebookEntryRecord = FixtureFactory.insertPricebookEntry(
             productRecord,
             Test.getStandardPricebookId(),
             100
         );
-        TestDataFactory.insertOpportunityLineItem(
+        FixtureFactory.insertOpportunityLineItem(
             opportunityRecord,
             pricebookEntryRecord,
             1,
             100
         );
         insert new Campaign(Name = '件数キャンペーン');
-        TestDataFactory.insertCase('件数ケース');
+        FixtureFactory.insertCase('件数ケース');
         insert new Contract(
             AccountId = accountRecord.Id,
             Status = 'Draft',
