@@ -77,19 +77,19 @@ const COUNT_CARD_CONFIGS = [
         label: 'メールテンプレート'
     },
     {
-        key: 'processInstances',
-        iconName: 'standard:approval_1',
-        label: '承認申請'
+        key: 'reports',
+        iconName: 'standard:report',
+        label: 'レポート'
     },
     {
-        key: 'processInstanceWorkitems',
-        iconName: 'standard:approval_1',
-        label: '承認作業項目'
+        key: 'dashboards',
+        iconName: 'standard:dashboard',
+        label: 'ダッシュボード'
     },
     {
-        key: 'processInstanceSteps',
-        iconName: 'standard:approval_1',
-        label: '承認履歴'
+        key: 'files',
+        iconName: 'standard:file',
+        label: 'ファイル'
     },
     {
         key: 'users',
@@ -188,7 +188,7 @@ export default class ObjectMetricsOverview extends LightningElement {
                 if (error.message) {
                     return error.message;
                 }
-                return 'オブジェクト指標を読み込めませんでした。';
+                return 'データボードを読み込めませんでした。';
             })
             .join('; ');
     }

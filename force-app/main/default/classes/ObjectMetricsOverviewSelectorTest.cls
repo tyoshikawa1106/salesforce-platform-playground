@@ -104,6 +104,18 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             'EmailTemplate count should be returned.'
         );
         Assert.isNotNull(
+            metricsByKey.get('reports').value,
+            'Report count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('dashboards').value,
+            'Dashboard count should be returned.'
+        );
+        Assert.isNotNull(
+            metricsByKey.get('files').value,
+            'ContentDocument count should be returned.'
+        );
+        Assert.isNotNull(
             metricsByKey.get('orders').value,
             'Order count should be returned.'
         );
@@ -131,17 +143,17 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             metricsByKey.get('knowledgeArticles').value,
             'KnowledgeArticleVersion count should be returned.'
         );
-        Assert.isNotNull(
-            metricsByKey.get('processInstances').value,
-            'ProcessInstance count should be returned.'
+        Assert.isFalse(
+            metricsByKey.containsKey('processInstances'),
+            'ProcessInstance count should not be returned.'
         );
-        Assert.isNotNull(
-            metricsByKey.get('processInstanceWorkitems').value,
-            'ProcessInstanceWorkitem count should be returned.'
+        Assert.isFalse(
+            metricsByKey.containsKey('processInstanceWorkitems'),
+            'ProcessInstanceWorkitem count should not be returned.'
         );
-        Assert.isNotNull(
-            metricsByKey.get('processInstanceSteps').value,
-            'ProcessInstanceStep count should be returned.'
+        Assert.isFalse(
+            metricsByKey.containsKey('processInstanceSteps'),
+            'ProcessInstanceStep count should not be returned.'
         );
         Assert.isNotNull(
             metricsByKey.get('users').value,

@@ -2,7 +2,7 @@
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
-    <masterLabel>Object Metrics Overview</masterLabel>
+    <masterLabel>データボード</masterLabel>
     <targets>
         <target>lightning__HomePage</target>
     </targets>

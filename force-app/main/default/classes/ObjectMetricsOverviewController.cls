@@ -1,5 +1,5 @@
 /**
- * Supplies object metric summaries for the object metrics panel Lightning Web Component.
+ * Supplies record count summaries for the data board Lightning Web Component.
  */
 public with sharing class ObjectMetricsOverviewController {
     /**
@@ -12,7 +12,7 @@ public with sharing class ObjectMetricsOverviewController {
             return new ObjectMetricsOverviewService().getObjectMetrics();
         } catch (Exception error) {
             throw new AuraHandledException(
-                'オブジェクト指標を読み込めませんでした。'
+                'データボードを読み込めませんでした。'
             );
         }
     }
