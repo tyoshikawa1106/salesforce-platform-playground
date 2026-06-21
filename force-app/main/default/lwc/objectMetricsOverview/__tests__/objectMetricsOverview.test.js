@@ -40,9 +40,6 @@ const countResponse = {
         { key: 'tasks', value: 5 },
         { key: 'emailMessages', value: 55 },
         { key: 'emailTemplates', value: 9 },
-        { key: 'processInstances', value: 18 },
-        { key: 'processInstanceWorkitems', value: 19 },
-        { key: 'processInstanceSteps', value: 20 },
         { key: 'users', value: 1 }
     ]
 };
@@ -76,7 +73,7 @@ describe('c-object-metrics-overview', () => {
         const cards = element.shadowRoot.querySelectorAll('article');
         const cardContainer =
             element.shadowRoot.querySelector('lightning-card');
-        expect(cards).toHaveLength(27);
+        expect(cards).toHaveLength(24);
         expect(cardContainer.title).toBe('データボード');
         expect(element.shadowRoot.textContent).toContain('取引先');
         expect(element.shadowRoot.textContent).toContain('取引先責任者');
@@ -84,9 +81,11 @@ describe('c-object-metrics-overview', () => {
         expect(element.shadowRoot.textContent).toContain('納入商品');
         expect(element.shadowRoot.textContent).toContain('エンタイトルメント');
         expect(element.shadowRoot.textContent).toContain('作業指示品目');
-        expect(element.shadowRoot.textContent).toContain('承認申請');
         expect(element.shadowRoot.textContent).toContain('メールテンプレート');
         expect(element.shadowRoot.textContent).toContain('メールメッセージ');
+        expect(element.shadowRoot.textContent).not.toContain('承認申請');
+        expect(element.shadowRoot.textContent).not.toContain('承認作業項目');
+        expect(element.shadowRoot.textContent).not.toContain('承認履歴');
         expect(element.shadowRoot.textContent).toContain('50,000+');
         expect(element.shadowRoot.textContent).toContain('55');
         await expect(element).toBeAccessible();

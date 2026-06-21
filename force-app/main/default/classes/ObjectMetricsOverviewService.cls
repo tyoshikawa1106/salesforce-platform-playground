@@ -26,9 +26,6 @@ public with sharing class ObjectMetricsOverviewService {
         'tasks',
         'emailMessages',
         'emailTemplates',
-        'processInstances',
-        'processInstanceWorkitems',
-        'processInstanceSteps',
         'users'
     };
 

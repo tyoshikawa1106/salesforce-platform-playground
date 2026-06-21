@@ -27,9 +27,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         'Task',
         'EmailMessage',
         'EmailTemplate',
-        'ProcessInstance',
-        'ProcessInstanceWorkitem',
-        'ProcessInstanceStep',
         'User'
     };
 
@@ -66,13 +63,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             'tasks' => countVisibleRecords('Task'),
             'emailMessages' => countVisibleRecords('EmailMessage'),
             'emailTemplates' => countVisibleRecords('EmailTemplate'),
-            'processInstances' => countVisibleRecords('ProcessInstance'),
-            'processInstanceWorkitems' => countVisibleRecords(
-                'ProcessInstanceWorkitem'
-            ),
-            'processInstanceSteps' => countVisibleRecords(
-                'ProcessInstanceStep'
-            ),
             'users' => countVisibleRecords('User')
         };
     }

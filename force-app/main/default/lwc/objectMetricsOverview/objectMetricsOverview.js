@@ -77,21 +77,6 @@ const COUNT_CARD_CONFIGS = [
         label: 'メールテンプレート'
     },
     {
-        key: 'processInstances',
-        iconName: 'standard:approval_1',
-        label: '承認申請'
-    },
-    {
-        key: 'processInstanceWorkitems',
-        iconName: 'standard:approval_1',
-        label: '承認作業項目'
-    },
-    {
-        key: 'processInstanceSteps',
-        iconName: 'standard:approval_1',
-        label: '承認履歴'
-    },
-    {
         key: 'users',
         iconName: 'standard:user',
         label: 'ユーザー'
