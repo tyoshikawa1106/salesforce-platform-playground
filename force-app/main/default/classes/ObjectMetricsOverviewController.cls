@@ -55,6 +55,18 @@ public with sharing class ObjectMetricsOverviewController {
         public String key { get; private set; }
 
         /**
+         * 対象オブジェクト API 参照名です。
+         */
+        @AuraEnabled
+        public String objectApiName { get; private set; }
+
+        /**
+         * 画面表示ラベルです。
+         */
+        @AuraEnabled
+        public String label { get; private set; }
+
+        /**
          * 表示対象キーに対応する件数です。
          */
         @AuraEnabled
@@ -71,14 +83,16 @@ public with sharing class ObjectMetricsOverviewController {
          *
          * 権限やクエリ都合で値が取れなかった場合でも、LWC が null を意識せず
          * 0 件として描画できるように既定値を補います。
-         * @param key LWC 側のカード設定と対応する安定キー
+         * @param definition LWC 側のカード設定と対応するオブジェクト定義
          * @param metricCount 表示上限情報を含む件数結果
          */
         public ObjectMetricItem(
-            String key,
+            ObjectMetricCatalog.MetricDefinition definition,
             ObjectMetricsOverviewSelector.ObjectMetricCount metricCount
         ) {
-            this.key = key;
+            this.key = definition.key;
+            this.objectApiName = definition.objectApiName;
+            this.label = definition.label;
             this.value = metricCount?.value ?? 0;
             this.capped = metricCount?.capped ?? false;
         }

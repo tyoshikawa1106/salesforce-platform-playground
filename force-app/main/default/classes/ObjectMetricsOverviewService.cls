@@ -2,36 +2,6 @@
  * オブジェクト件数一覧のサマリを組み立てます。
  */
 public with sharing class ObjectMetricsOverviewService {
-    private static final List<String> METRIC_KEYS = new List<String>{
-        'accounts',
-        'contacts',
-        'leads',
-        'opportunities',
-        'opportunityLineItems',
-        'products',
-        'pricebooks',
-        'pricebookEntries',
-        'assets',
-        'campaigns',
-        'cases',
-        'contracts',
-        'orders',
-        'orderItems',
-        'entitlements',
-        'serviceContracts',
-        'workOrders',
-        'workOrderLineItems',
-        'knowledgeArticles',
-        'events',
-        'tasks',
-        'emailMessages',
-        'emailTemplates',
-        'reports',
-        'dashboards',
-        'files',
-        'users'
-    };
-
     private final ObjectMetricsOverviewSelector selector;
 
     /**
@@ -61,13 +31,15 @@ public with sharing class ObjectMetricsOverviewService {
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues = selector.getObjectMetricValues();
         List<ObjectMetricsOverviewController.ObjectMetricItem> metricItems = new List<ObjectMetricsOverviewController.ObjectMetricItem>();
 
-        for (String key : METRIC_KEYS) {
+        for (
+            ObjectMetricCatalog.MetricDefinition definition : ObjectMetricCatalog.getDefinitions()
+        ) {
             ObjectMetricsOverviewSelector.ObjectMetricCount metricCount = metricValues.get(
-                key
+                definition.key
             );
             metricItems.add(
                 new ObjectMetricsOverviewController.ObjectMetricItem(
-                    key,
+                    definition,
                     metricCount
                 )
             );

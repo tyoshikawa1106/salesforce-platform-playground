@@ -13,6 +13,27 @@
     padding-top: var(--slds-g-spacing-2, 0.5rem);
 }
 
+.count-card-button {
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: block;
+    font: inherit;
+    padding: 0;
+    text-align: inherit;
+    width: 100%;
+}
+
+.count-card-button:focus {
+    outline: 2px solid var(--slds-g-color-accent-2, #0176d3);
+    outline-offset: 2px;
+}
+
+.count-card-button:hover .count-card {
+    border-color: var(--slds-g-color-accent-2, #0176d3);
+}
+
 .count-card__content {
     align-items: center;
     display: flex;

@@ -1,0 +1,31 @@
+.actions {
+    display: inline-flex;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+.toolbar {
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.toolbar__actions {
+    align-items: center;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+    justify-content: flex-end;
+}
+
+.table {
+    min-height: 12rem;
+}
+
+.empty {
+    min-height: 8rem;
+    position: relative;
+}
+
+@media (max-width: 48em) {
+    .toolbar__actions {
+        justify-content: flex-start;
+    }
+}

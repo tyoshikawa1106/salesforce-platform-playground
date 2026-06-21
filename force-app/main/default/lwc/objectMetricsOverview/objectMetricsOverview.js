@@ -103,6 +103,7 @@ export default class ObjectMetricsOverview extends LightningElement {
     metricValues = {};
     errorMessage;
     isRefreshing = false;
+    selectedMetricKey;
     wiredObjectMetricsResult;
 
     @wire(getObjectMetrics)
@@ -133,7 +134,8 @@ export default class ObjectMetricsOverview extends LightningElement {
                 countTitle: `${formattedValue} 件`,
                 formattedValue,
                 loading: this.isBusy,
-                loadingLabel: `${config.label}の件数を読み込んでいます`
+                loadingLabel: `${config.label}の件数を読み込んでいます`,
+                openTitle: `${config.label}一覧を開く`
             };
         });
     }
@@ -165,6 +167,26 @@ export default class ObjectMetricsOverview extends LightningElement {
         }
     }
 
+    handleCardClick(event) {
+        this.selectedMetricKey = event.currentTarget.dataset.key;
+        this.scrollToTop();
+    }
+
+    handleBackToDashboard() {
+        this.selectedMetricKey = undefined;
+        this.scrollToTop();
+    }
+
+    async handleRecordsDeleted() {
+        await this.handleRecordsChanged();
+    }
+
+    async handleRecordsChanged() {
+        if (this.wiredObjectMetricsResult) {
+            await refreshApex(this.wiredObjectMetricsResult);
+        }
+    }
+
     createMetricValues(metrics = []) {
         // 配列レスポンスをカードキーで参照しやすい形に変換します。
         return metrics.reduce((values, metricItem) => {
@@ -174,6 +196,12 @@ export default class ObjectMetricsOverview extends LightningElement {
             };
             return values;
         }, {});
+    }
+
+    scrollToTop() {
+        Promise.resolve().then(() => {
+            window.scrollTo({ left: 0, top: 0 });
+        });
     }
 
     reduceErrors(errors) {
