@@ -1,6 +1,7 @@
 import { LightningElement, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.getObjectMetrics';
+import { reduceErrors } from 'c/errorUtils';
 
 const NUMBER_FORMATTER = new Intl.NumberFormat('ja-JP');
 
@@ -115,7 +116,10 @@ export default class ObjectMetricsOverview extends LightningElement {
             this.errorMessage = undefined;
         } else if (error) {
             this.metricValues = {};
-            this.errorMessage = this.reduceErrors(error);
+            this.errorMessage = reduceErrors(
+                error,
+                'データボードを読み込めませんでした。'
+            );
         }
     }
 
@@ -158,7 +162,10 @@ export default class ObjectMetricsOverview extends LightningElement {
         try {
             await refreshApex(this.wiredObjectMetricsResult);
         } catch (error) {
-            this.errorMessage = this.reduceErrors(error);
+            this.errorMessage = reduceErrors(
+                error,
+                'データボードを読み込めませんでした。'
+            );
         } finally {
             this.isRefreshing = false;
         }
@@ -196,27 +203,4 @@ export default class ObjectMetricsOverview extends LightningElement {
         });
     }
 
-    reduceErrors(errors) {
-        const normalizedErrors = Array.isArray(errors) ? errors : [errors];
-        const messages = [];
-
-        for (const error of normalizedErrors) {
-            if (!error) {
-                continue;
-            }
-            if (Array.isArray(error.body)) {
-                messages.push(
-                    error.body.map((bodyError) => bodyError.message).join(', ')
-                );
-                continue;
-            }
-            messages.push(
-                error.body?.message ??
-                    error.message ??
-                    'データボードを読み込めませんでした。'
-            );
-        }
-
-        return messages.join('; ');
-    }
 }

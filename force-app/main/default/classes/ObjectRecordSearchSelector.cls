@@ -35,7 +35,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param searchTerm Name 項目に対する検索語
      * @return 最大 200 件の検索結果
      */
-    @SuppressWarnings('PMD.ApexSOQLInjection, PMD.UnusedLocalVariable')
+    @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
         String metricKey,
         String searchTerm
@@ -47,10 +47,20 @@ public virtual with sharing class ObjectRecordSearchSelector {
         String likeSearchTerm = usesNameSearch(normalizedSearchTerm, config)
             ? '%' + normalizedSearchTerm + '%'
             : null;
+        Map<String, Object> bindValues = new Map<String, Object>();
+        if (likeSearchTerm != null) {
+            bindValues.put('nameSearchTerm', likeSearchTerm);
+        }
         String query = createSearchQuery(config, likeSearchTerm != null);
 
         List<ObjectRecordSearchController.ObjectRecordRow> rows = new List<ObjectRecordSearchController.ObjectRecordRow>();
-        for (SObject record : Database.query(query)) {
+        for (
+            SObject record : Database.queryWithBinds(
+                query,
+                bindValues,
+                AccessLevel.USER_MODE
+            )
+        ) {
             rows.add(
                 new ObjectRecordSearchController.ObjectRecordRow(
                     record,
@@ -81,11 +91,11 @@ public virtual with sharing class ObjectRecordSearchSelector {
             query +=
                 ' WHERE ' +
                 config.nameFieldApiName +
-                ' LIKE :likeSearchTerm';
+                ' LIKE :nameSearchTerm';
         }
 
         return query +
-            ' WITH USER_MODE ORDER BY LastModifiedDate DESC LIMIT ' +
+            ' ORDER BY LastModifiedDate DESC LIMIT ' +
             MAX_ROWS;
     }
 
@@ -155,11 +165,13 @@ public virtual with sharing class ObjectRecordSearchSelector {
             return new List<SObject>();
         }
 
-        return Database.query(
+        return Database.queryWithBinds(
             'SELECT Id FROM ' +
                 objectApiName +
-                ' WHERE Id IN :recordIds WITH USER_MODE LIMIT ' +
-                MAX_ROWS
+                ' WHERE Id IN :recordIds LIMIT ' +
+                MAX_ROWS,
+            new Map<String, Object>{ 'recordIds' => recordIds },
+            AccessLevel.USER_MODE
         );
     }
 

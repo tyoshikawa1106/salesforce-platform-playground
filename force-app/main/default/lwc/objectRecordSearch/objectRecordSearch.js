@@ -5,6 +5,7 @@ import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { getLayout } from 'lightning/uiLayoutApi';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
+import { reduceErrors } from 'c/errorUtils';
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('ja-JP', {
     dateStyle: 'medium',
@@ -89,7 +90,10 @@ export default class ObjectRecordSearch extends LightningElement {
         } else if (error) {
             this.rows = [];
             this.selectedRowIds = [];
-            this.errorMessage = this.reduceErrors(error);
+            this.errorMessage = reduceErrors(
+                error,
+                'レコード一覧を読み込めませんでした。'
+            );
         }
     }
 
@@ -495,7 +499,10 @@ export default class ObjectRecordSearch extends LightningElement {
             await refreshApex(this.wiredSearchResult);
             this.dispatchEvent(new CustomEvent('recordschanged'));
         } catch (error) {
-            this.errorMessage = this.reduceErrors(error);
+            this.errorMessage = reduceErrors(
+                error,
+                'レコード一覧を読み込めませんでした。'
+            );
             this.showToast('削除に失敗しました', this.errorMessage, 'error');
         } finally {
             this.isDeleting = false;
@@ -587,24 +594,4 @@ export default class ObjectRecordSearch extends LightningElement {
         };
     }
 
-    reduceErrors(errors) {
-        const normalizedErrors = Array.isArray(errors) ? errors : [errors];
-        return normalizedErrors
-            .filter((error) => error)
-            .map((error) => {
-                if (Array.isArray(error.body)) {
-                    return error.body
-                        .map((bodyError) => bodyError.message)
-                        .join(', ');
-                }
-                if (error.body?.message) {
-                    return error.body.message;
-                }
-                if (error.message) {
-                    return error.message;
-                }
-                return 'レコード一覧を読み込めませんでした。';
-            })
-            .join('; ');
-    }
 }

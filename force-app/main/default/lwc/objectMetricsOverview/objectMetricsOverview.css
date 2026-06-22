@@ -8,10 +8,6 @@
 .count-card {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    min-height: var(--slds-g-sizing-12, 5rem);
-    padding-bottom: var(--slds-g-spacing-3, 0.75rem);
-    padding-top: var(--slds-g-spacing-2, 0.5rem);
 }
 
 .count-card-cell {
@@ -27,17 +23,6 @@
     font: inherit;
     padding: 0;
     text-align: inherit;
-    width: 100%;
-}
-
-.count-card-button:focus {
-    outline: var(--slds-g-sizing-border-2, 2px) solid
-        var(--slds-g-color-accent-2, #0176d3);
-    outline-offset: 2px;
-}
-
-.count-card-button:hover .count-card {
-    border-color: var(--slds-g-color-accent-2, #0176d3);
 }
 
 .count-card__content {

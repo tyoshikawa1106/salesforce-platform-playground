@@ -31,14 +31,14 @@
                 <template for:each={countCards} for:item="card">
                     <div key={card.key} class="count-card-cell">
                         <button
-                            class="count-card-button"
+                            class="count-card-button slds-size_full"
                             type="button"
                             data-key={card.key}
                             onclick={handleCardClick}
                             title={card.openTitle}
                         >
                             <article
-                                class="count-card slds-tile slds-box slds-box_x-small slds-theme_default"
+                                class="count-card slds-tile slds-box slds-box_x-small slds-theme_default slds-size_full slds-p-vertical_small slds-p-bottom_medium"
                             >
                                 <h2 class="slds-tile__title" title={card.label}>
                                     <span class="slds-media slds-media_center">
