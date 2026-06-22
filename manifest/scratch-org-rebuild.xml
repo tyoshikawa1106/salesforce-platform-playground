@@ -666,6 +666,7 @@
         <name>Flow</name>
     </types>
     <types>
+        <members>errorUtils</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordSearch</members>
         <name>LightningComponentBundle</name>
