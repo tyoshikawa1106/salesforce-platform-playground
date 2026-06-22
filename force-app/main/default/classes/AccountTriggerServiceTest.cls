@@ -111,6 +111,90 @@ private with sharing class AccountTriggerServiceTest {
         Assert.areEqual(0, accounts.size(), 'Empty input should remain empty.');
     }
 
+    @IsTest
+    static void beforeInsertShouldSkipNullAndBlankNames() {
+        // 準備
+        List<Account> accounts = new List<Account>{
+            null,
+            TestDataFactory.createAccount(' '),
+            TestDataFactory.createAccount('㈱テスト')
+        };
+
+        // 実行
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            AccountTriggerService.beforeInsert(accounts);
+            Test.stopTest();
+        }
+
+        // 検証
+        Assert.isNull(accounts[0], 'Null list entries should stay null.');
+        Assert.areEqual(
+            ' ',
+            accounts[1].Name,
+            'Blank Account names should not be normalized.'
+        );
+        Assert.areEqual(
+            '株式会社テスト',
+            accounts[2].Name,
+            'Nonblank Account names should still be normalized.'
+        );
+    }
+
+    @IsTest
+    static void beforeUpdateShouldNormalizeWhenOldAccountIsMissing() {
+        // 準備
+        Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
+        Account updatedAccount = new Account(
+            Id = savedAccount.Id,
+            Name = '㈱テスト'
+        );
+
+        // 実行
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            AccountTriggerService.beforeUpdate(
+                new List<Account>{ updatedAccount },
+                new Map<Id, Account>()
+            );
+            Test.stopTest();
+        }
+
+        // 検証
+        Assert.areEqual(
+            '株式会社テスト',
+            updatedAccount.Name,
+            'Missing old Account entries should be treated as changed.'
+        );
+    }
+
+    @IsTest
+    static void beforeUpdateShouldNormalizeWhenOldAccountIsNull() {
+        // 準備
+        Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
+        Account updatedAccount = new Account(
+            Id = savedAccount.Id,
+            Name = '㈲テスト'
+        );
+
+        // 実行
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            AccountTriggerService.beforeUpdate(
+                new List<Account>{ updatedAccount },
+                new Map<Id, Account>{ savedAccount.Id => null }
+            );
+            Test.stopTest();
+        }
+
+        // 検証
+        Assert.areEqual(
+            '有限会社テスト',
+            updatedAccount.Name,
+            'Null old Account entries should be treated as changed.'
+        );
+    }
+
     private static User getCurrentUser() {
         return new User(Id = UserInfo.getUserId());
     }

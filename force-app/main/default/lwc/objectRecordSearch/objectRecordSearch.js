@@ -5,7 +5,7 @@ import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { getLayout } from 'lightning/uiLayoutApi';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
-import { reduceErrors } from 'c/errorUtils';
+import { createToastMessage, reduceErrors } from 'c/errorUtils';
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('ja-JP', {
     dateStyle: 'medium',
@@ -50,8 +50,27 @@ const FORM_FIELD_OVERRIDES = {
     ]
 };
 
-const FILE_OBJECT_API_NAME = 'ContentDocument';
-const IGNORED_FORM_OBJECT_API_NAMES = new Set(['EmailMessage']);
+const FORM_MODE_RECORD = 'record';
+const FORM_MODE_FILE_UPLOAD = 'fileUpload';
+const FORM_MODE_UNSUPPORTED = 'unsupported';
+
+const DEFAULT_OBJECT_UI_CAPABILITY = {
+    formMode: FORM_MODE_RECORD,
+    newButtonLabel: '新規'
+};
+
+const OBJECT_UI_CAPABILITIES = {
+    ContentDocument: {
+        formMode: FORM_MODE_FILE_UPLOAD,
+        newButtonLabel: 'アップロード',
+        message: 'ファイルはアップロードで新規登録します。'
+    },
+    EmailMessage: {
+        formMode: FORM_MODE_UNSUPPORTED,
+        newButtonLabel: '新規',
+        message: 'メールメッセージは汎用フォームの対象外です。'
+    }
+};
 
 export default class ObjectRecordSearch extends LightningElement {
     @api metricKey;
@@ -174,7 +193,7 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get createDisabled() {
-        if (this.isFileObject) {
+        if (this.isFileUploadObject) {
             return this.isBusy;
         }
 
@@ -197,24 +216,26 @@ export default class ObjectRecordSearch extends LightningElement {
         );
     }
 
-    get isFileObject() {
-        return this.config?.objectApiName === FILE_OBJECT_API_NAME;
+    get objectUiCapability() {
+        return (
+            OBJECT_UI_CAPABILITIES[this.config?.objectApiName] ??
+            DEFAULT_OBJECT_UI_CAPABILITY
+        );
     }
 
-    get isIgnoredFormObject() {
-        return IGNORED_FORM_OBJECT_API_NAMES.has(this.config?.objectApiName);
+    get isFileUploadObject() {
+        return this.objectUiCapability.formMode === FORM_MODE_FILE_UPLOAD;
     }
 
     get isRecordFormObject() {
         return (
             Boolean(this.config?.objectApiName) &&
-            !this.isFileObject &&
-            !this.isIgnoredFormObject
+            this.objectUiCapability.formMode === FORM_MODE_RECORD
         );
     }
 
     get isFileUploadForm() {
-        return this.showRecordForm && this.isFileObject;
+        return this.showRecordForm && this.isFileUploadObject;
     }
 
     get showLightningRecordForm() {
@@ -242,7 +263,13 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get newButtonLabel() {
-        return this.isFileObject ? 'アップロード' : '新規';
+        return this.objectUiCapability.newButtonLabel;
+    }
+
+    get formCapabilityMessage() {
+        return this.config?.objectApiName
+            ? this.objectUiCapability.message
+            : undefined;
     }
 
     get formFields() {
@@ -360,7 +387,7 @@ export default class ObjectRecordSearch extends LightningElement {
 
     get formTitle() {
         const objectLabel = this.config?.objectLabel ?? 'レコード';
-        if (this.isFileObject) {
+        if (this.isFileUploadObject) {
             return 'ファイルをアップロード';
         }
 
@@ -492,7 +519,10 @@ export default class ObjectRecordSearch extends LightningElement {
             if (result.errors?.length) {
                 this.showToast(
                     '一部削除できませんでした',
-                    result.errors.join('\n'),
+                    createToastMessage(
+                        result.errors,
+                        '一部のレコードを削除できませんでした。'
+                    ),
                     'warning'
                 );
             }

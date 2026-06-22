@@ -68,6 +68,13 @@
                     onclick={handleDeleteSelected}
                     disabled={deleteDisabled}
                 ></lightning-button>
+                <template lwc:if={formCapabilityMessage}>
+                    <div
+                        class="slds-text-body_small slds-text-color_weak slds-m-top_x-small"
+                    >
+                        {formCapabilityMessage}
+                    </div>
+                </template>
             </div>
         </div>
 
