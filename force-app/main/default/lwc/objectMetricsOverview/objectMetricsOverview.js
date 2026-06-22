@@ -6,96 +6,80 @@ import { reduceErrors } from 'c/errorUtils';
 const NUMBER_FORMATTER = new Intl.NumberFormat('ja-JP');
 
 const COUNT_CARD_CONFIGS = [
-    { key: 'accounts', iconName: 'standard:account', label: '取引先' },
-    { key: 'contacts', iconName: 'standard:contact', label: '取引先責任者' },
-    { key: 'leads', iconName: 'standard:lead', label: 'リード' },
-    { key: 'opportunities', iconName: 'standard:opportunity', label: '商談' },
+    { key: 'accounts', iconName: 'standard:account' },
+    { key: 'contacts', iconName: 'standard:contact' },
+    { key: 'leads', iconName: 'standard:lead' },
+    { key: 'opportunities', iconName: 'standard:opportunity' },
     {
         key: 'opportunityLineItems',
-        iconName: 'standard:product_consumed',
-        label: '商談商品'
+        iconName: 'standard:product_consumed'
     },
-    { key: 'products', iconName: 'standard:product', label: '商品' },
-    { key: 'pricebooks', iconName: 'standard:pricebook', label: '価格表' },
+    { key: 'products', iconName: 'standard:product' },
+    { key: 'pricebooks', iconName: 'standard:pricebook' },
     {
         key: 'pricebookEntries',
-        iconName: 'standard:price_book_entries',
-        label: '価格表エントリ'
+        iconName: 'standard:price_book_entries'
     },
     {
         key: 'assets',
-        iconName: 'standard:asset_object',
-        label: '納入商品'
+        iconName: 'standard:asset_object'
     },
-    { key: 'campaigns', iconName: 'standard:campaign', label: 'キャンペーン' },
-    { key: 'cases', iconName: 'standard:case', label: 'ケース' },
-    { key: 'contracts', iconName: 'standard:contract', label: '契約' },
+    { key: 'campaigns', iconName: 'standard:campaign' },
+    { key: 'cases', iconName: 'standard:case' },
+    { key: 'contracts', iconName: 'standard:contract' },
     {
         key: 'orders',
-        iconName: 'standard:order_item',
-        label: '注文'
+        iconName: 'standard:order_item'
     },
     {
         key: 'orderItems',
-        iconName: 'standard:order_item',
-        label: '注文商品'
+        iconName: 'standard:order_item'
     },
     {
         key: 'entitlements',
-        iconName: 'standard:entitlement',
-        label: 'エンタイトルメント'
+        iconName: 'standard:entitlement'
     },
     {
         key: 'serviceContracts',
-        iconName: 'standard:service_contract',
-        label: 'サービス契約'
+        iconName: 'standard:service_contract'
     },
     {
         key: 'workOrders',
-        iconName: 'standard:work_order',
-        label: '作業指示'
+        iconName: 'standard:work_order'
     },
     {
         key: 'workOrderLineItems',
-        iconName: 'standard:work_order_item',
-        label: '作業指示品目'
+        iconName: 'standard:work_order_item'
     },
     {
         key: 'knowledgeArticles',
-        iconName: 'utility:knowledge_base',
-        label: 'ナレッジ'
+        iconName: 'utility:knowledge_base'
     },
-    { key: 'events', iconName: 'standard:event', label: '行動' },
-    { key: 'tasks', iconName: 'standard:task', label: 'ToDo' },
+    { key: 'events', iconName: 'standard:event' },
+    { key: 'tasks', iconName: 'standard:task' },
     {
         key: 'emailMessages',
-        iconName: 'standard:email',
-        label: 'メールメッセージ'
+        iconName: 'standard:email'
     },
     {
         key: 'emailTemplates',
-        iconName: 'utility:insert_template',
-        label: 'メールテンプレート'
+        iconName: 'utility:insert_template'
     },
     {
         key: 'reports',
-        iconName: 'standard:report',
-        label: 'レポート'
+        iconName: 'standard:report'
     },
     {
         key: 'dashboards',
-        iconName: 'standard:dashboard',
-        label: 'ダッシュボード'
+        iconName: 'standard:dashboard'
     },
     {
         key: 'files',
-        iconName: 'standard:file',
-        label: 'ファイル'
+        iconName: 'standard:file'
     },
     {
         key: 'users',
-        iconName: 'standard:user',
-        label: 'ユーザー'
+        iconName: 'standard:user'
     }
 ];
 
@@ -127,16 +111,19 @@ export default class ObjectMetricsOverview extends LightningElement {
         return COUNT_CARD_CONFIGS.map((config) => {
             const metricValue = this.metricValues[config.key] ?? {
                 value: 0,
-                capped: false
+                capped: false,
+                label: config.key
             };
             const formattedValue = `${NUMBER_FORMATTER.format(metricValue.value)}${metricValue.capped ? '+' : ''}`;
+            const label = metricValue.label ?? config.key;
             return {
                 ...config,
+                label,
                 countTitle: `${formattedValue} 件`,
                 formattedValue,
                 loading: this.isBusy,
-                loadingLabel: `${config.label}の件数を読み込んでいます`,
-                openTitle: `${config.label}一覧を開く`
+                loadingLabel: `${label}の件数を読み込んでいます`,
+                openTitle: `${label}一覧を開く`
             };
         });
     }
@@ -191,7 +178,8 @@ export default class ObjectMetricsOverview extends LightningElement {
         return metrics.reduce((values, metricItem) => {
             values[metricItem.key] = {
                 value: metricItem.value,
-                capped: metricItem.capped ?? false
+                capped: metricItem.capped ?? false,
+                label: metricItem.label
             };
             return values;
         }, {});

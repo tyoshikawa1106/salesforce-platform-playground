@@ -507,6 +507,9 @@ describe('c-object-record-search', () => {
         await flushPromises();
 
         expect(findButton(element, '新規').disabled).toBe(true);
+        expect(element.shadowRoot.textContent).toContain(
+            'メールメッセージは汎用フォームの対象外です。'
+        );
         expect(
             element.shadowRoot.querySelector('lightning-datatable').columns
         ).not.toEqual(
@@ -545,6 +548,9 @@ describe('c-object-record-search', () => {
         expect(upload).not.toBeNull();
         expect(element.shadowRoot.textContent).toContain(
             'ファイルをアップロード'
+        );
+        expect(element.shadowRoot.textContent).toContain(
+            'ファイルはアップロードで新規登録します。'
         );
 
         upload.dispatchEvent(
