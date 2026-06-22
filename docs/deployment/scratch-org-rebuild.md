@@ -64,17 +64,12 @@ sf project deploy start --dry-run --source-dir force-app --target-org scratch-pl
 ```
 
 全体 deploy が失敗する場合は、Scratch Org で再現したい実装寄りの範囲に絞って dry-run します。
+再現用の deploy scope は `manifest/scratch-org-rebuild.xml` で管理します。
 
 ```sh
 sf project deploy start \
     --dry-run \
-    --source-dir force-app/main/default/classes \
-    --source-dir force-app/main/default/triggers \
-    --source-dir force-app/main/default/lwc \
-    --source-dir force-app/main/default/objects \
-    --source-dir force-app/main/default/permissionsets \
-    --source-dir force-app/main/default/flexipages \
-    --source-dir force-app/main/default/flows \
+    --manifest manifest/scratch-org-rebuild.xml \
     --target-org scratch-platform-playground \
     --wait 30
 ```
@@ -83,18 +78,22 @@ dry-run が成功したら、同じ scope で反映します。
 
 ```sh
 sf project deploy start \
-    --source-dir force-app/main/default/classes \
-    --source-dir force-app/main/default/triggers \
-    --source-dir force-app/main/default/lwc \
-    --source-dir force-app/main/default/objects \
-    --source-dir force-app/main/default/permissionsets \
-    --source-dir force-app/main/default/flexipages \
-    --source-dir force-app/main/default/flows \
+    --manifest manifest/scratch-org-rebuild.xml \
     --target-org scratch-platform-playground \
     --wait 30
 ```
 
-この scope で反映できる主なメタデータ:
+`manifest/scratch-org-rebuild.xml` は、次の source directory から生成した manifest を検査し、Scratch Org に deploy できる scope として残したものです。
+
+- `force-app/main/default/classes`
+- `force-app/main/default/triggers`
+- `force-app/main/default/lwc`
+- `force-app/main/default/objects`
+- `force-app/main/default/permissionsets`
+- `force-app/main/default/flexipages`
+- `force-app/main/default/flows`
+
+この manifest で反映できる主なメタデータ:
 
 - Apex classes / triggers
 - Lightning Web Components
@@ -103,7 +102,7 @@ sf project deploy start \
 - FlexiPage
 - Flow
 
-この scope で反映しない主なメタデータ:
+この manifest で反映しない主なメタデータ:
 
 - 標準 Profile
 - 組織固有または機能前提が強い Settings
