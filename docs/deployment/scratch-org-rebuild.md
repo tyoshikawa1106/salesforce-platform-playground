@@ -56,6 +56,67 @@ sf project deploy start --source-dir force-app --target-org scratch-platform-pla
 
 source tracking が使える Scratch Org でも、このリポジトリの通常開発では Dev 組織の前提と混同しないようにします。
 
+Dev 組織から取得した `force-app` 全体には、Scratch Org へそのまま反映できない標準メタデータや組織固有設定が含まれる場合があります。
+全体 deploy の前に dry-run で確認します。
+
+```sh
+sf project deploy start --dry-run --source-dir force-app --target-org scratch-platform-playground --wait 30
+```
+
+全体 deploy が失敗する場合は、Scratch Org で再現したい実装寄りの範囲に絞って dry-run します。
+
+```sh
+sf project deploy start \
+    --dry-run \
+    --source-dir force-app/main/default/classes \
+    --source-dir force-app/main/default/triggers \
+    --source-dir force-app/main/default/lwc \
+    --source-dir force-app/main/default/objects \
+    --source-dir force-app/main/default/permissionsets \
+    --source-dir force-app/main/default/flexipages \
+    --source-dir force-app/main/default/flows \
+    --target-org scratch-platform-playground \
+    --wait 30
+```
+
+dry-run が成功したら、同じ scope で反映します。
+
+```sh
+sf project deploy start \
+    --source-dir force-app/main/default/classes \
+    --source-dir force-app/main/default/triggers \
+    --source-dir force-app/main/default/lwc \
+    --source-dir force-app/main/default/objects \
+    --source-dir force-app/main/default/permissionsets \
+    --source-dir force-app/main/default/flexipages \
+    --source-dir force-app/main/default/flows \
+    --target-org scratch-platform-playground \
+    --wait 30
+```
+
+この scope で反映できる主なメタデータ:
+
+- Apex classes / triggers
+- Lightning Web Components
+- Object 配下の標準オブジェクト差分、ListView、ValidationRule、WebLink
+- Permission Set
+- FlexiPage
+- Flow
+
+この scope で反映しない主なメタデータ:
+
+- 標準 Profile
+- 組織固有または機能前提が強い Settings
+- 標準 namespace の CustomApplication / AppMenu
+- 空の SharingRules
+- Translations
+- ManagedContentType
+- External Client App OAuth 系メタデータ
+- SAML SSO など組織固有の認証設定
+
+これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により失敗することがあります。
+必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。
+
 ## 確認
 
 必要に応じて Apex テストを実行します。
@@ -73,12 +134,35 @@ sf org open --target-org scratch-platform-playground -b chrome
 ## 削除
 
 確認が終わったら Scratch Org を削除します。
+削除前に、必要な metadata や確認結果がリポジトリ側に反映されているか確認します。
+
+対象の alias、状態、有効期限を確認します。
+
+```sh
+sf org list
+sf org display --target-org scratch-platform-playground
+```
+
+対話確認付きで削除します。
 
 ```sh
 sf org delete scratch --target-org scratch-platform-playground
 ```
 
-削除前に、必要な metadata や確認結果がリポジトリ側に反映されているか確認します。
+自動化や明示的に削除対象を確認済みの場合は、確認プロンプトを省略できます。
+
+```sh
+sf org delete scratch --target-org scratch-platform-playground --no-prompt
+```
+
+削除後に一覧から消えたことを確認します。
+
+```sh
+sf org list
+```
+
+削除対象の alias は個人環境の値です。
+複数の Scratch Org がある場合は、`sf org list` で `Type`、`Alias`、`Username`、`Expires` を見て、削除対象を取り違えないようにします。
 
 ## 作業報告
 
