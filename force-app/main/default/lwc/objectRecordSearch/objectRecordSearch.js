@@ -80,6 +80,7 @@ export default class ObjectRecordSearch extends LightningElement {
     rows = [];
     selectedRowIds = [];
     config;
+    errorTitle;
     errorMessage;
     isDeleting = false;
     isSaving = false;
@@ -105,10 +106,14 @@ export default class ObjectRecordSearch extends LightningElement {
                 lastModifiedDateLabel: this.formatDate(record.lastModifiedDate)
             }));
             this.selectedRowIds = [];
+            this.errorTitle = undefined;
             this.errorMessage = undefined;
         } else if (error) {
             this.rows = [];
             this.selectedRowIds = [];
+            this.errorTitle = this.isAccessError(error)
+                ? 'アクセス権限を確認してください'
+                : 'レコード一覧を読み込めませんでした';
             this.errorMessage = reduceErrors(
                 error,
                 'レコード一覧を読み込めませんでした。'
@@ -270,6 +275,80 @@ export default class ObjectRecordSearch extends LightningElement {
         return this.config?.objectApiName
             ? this.objectUiCapability.message
             : undefined;
+    }
+
+    get hasAccessMessages() {
+        return this.accessMessages.length > 0;
+    }
+
+    get accessMessages() {
+        if (!this.config) {
+            return [];
+        }
+
+        const messages = [];
+        const objectLabel = this.config.objectLabel ?? 'レコード';
+        const addMessage = (key, message) => {
+            if (message) {
+                messages.push({ key, message });
+            }
+        };
+
+        addMessage('form-capability', this.formCapabilityMessage);
+
+        if (!this.config.searchable) {
+            addMessage(
+                'searchable',
+                `${objectLabel}の検索対象項目を参照できないため、検索条件を使えません。`
+            );
+        }
+
+        if (!this.config.createable && !this.isFileUploadObject) {
+            addMessage(
+                'createable',
+                `${objectLabel}を作成する権限がありません。`
+            );
+        }
+
+        if (!this.config.updateable && this.isRecordFormObject) {
+            addMessage(
+                'updateable',
+                `${objectLabel}を編集する権限がありません。`
+            );
+        }
+
+        if (!this.config.deletable) {
+            addMessage(
+                'deletable',
+                `${objectLabel}を削除する権限がありません。`
+            );
+        }
+
+        if (this.shouldShowFormFieldMessage) {
+            addMessage(
+                'form-fields',
+                `${objectLabel}の作成・編集に使える標準項目がありません。`
+            );
+        }
+
+        if (this.formLayoutResult?.error && this.isRecordFormObject) {
+            addMessage(
+                'layout-fallback',
+                'ページレイアウトを取得できないため、標準の入力項目で表示します。'
+            );
+        }
+
+        return messages;
+    }
+
+    get shouldShowFormFieldMessage() {
+        return (
+            this.isRecordFormObject &&
+            !this.isFormLayoutLoading &&
+            this.config?.createable &&
+            this.config?.updateable &&
+            this.formFields.length === 0
+        );
     }
 
     get formFields() {
@@ -547,6 +626,17 @@ export default class ObjectRecordSearch extends LightningElement {
                 variant
             })
         );
+    }
+
+    isAccessError(error) {
+        const status = error?.status ?? error?.body?.statusCode;
+        if (status === 401 || status === 403) {
+            return true;
+        }
+
+        return reduceErrors(error, '')
+            .toLowerCase()
+            .includes('insufficient access');
     }
 
     formatDate(value) {

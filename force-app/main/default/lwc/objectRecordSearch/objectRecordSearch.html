@@ -22,7 +22,8 @@
                 role="alert"
             >
                 <span class="slds-assistive-text">Error</span>
-                <h2>{errorMessage}</h2>
+                <h2>{errorTitle}</h2>
+                <p>{errorMessage}</p>
             </div>
         </template>
 
@@ -68,15 +69,20 @@
                     onclick={handleDeleteSelected}
                     disabled={deleteDisabled}
                 ></lightning-button>
-                <template lwc:if={formCapabilityMessage}>
-                    <div
-                        class="slds-text-body_small slds-text-color_weak slds-m-top_x-small"
-                    >
-                        {formCapabilityMessage}
-                    </div>
-                </template>
             </div>
         </div>
+
+        <template lwc:if={hasAccessMessages}>
+            <div
+                class="access-notices slds-box slds-theme_shade slds-m-horizontal_medium slds-m-bottom_small"
+            >
+                <ul class="slds-list_dotted">
+                    <template for:each={accessMessages} for:item="notice">
+                        <li key={notice.key}>{notice.message}</li>
+                    </template>
+                </ul>
+            </div>
+        </template>
 
         <template lwc:if={hasRows}>
             <div>

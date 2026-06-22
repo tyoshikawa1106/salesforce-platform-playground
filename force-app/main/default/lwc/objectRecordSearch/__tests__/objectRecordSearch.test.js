@@ -286,6 +286,53 @@ describe('c-object-record-search', () => {
         );
     });
 
+    it('explains when the record list cannot be loaded because of access', async () => {
+        const element = createComponent();
+
+        searchRecords.error(
+            { message: 'insufficient access: 参照権限がありません。' },
+            403
+        );
+        await flushPromises();
+
+        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        expect(alert.textContent).toContain(
+            'アクセス権限を確認してください'
+        );
+        expect(alert.textContent).toContain('参照権限がありません。');
+    });
+
+    it('shows unavailable actions when object permissions are missing', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(
+            createSearchResponse({
+                createable: false,
+                updateable: false,
+                deletable: false
+            })
+        );
+        await flushPromises();
+
+        const text = element.shadowRoot.textContent;
+        expect(findButton(element, '新規').disabled).toBe(true);
+        expect(findButton(element, '選択したレコードを削除').disabled).toBe(
+            true
+        );
+        expect(text).toContain('取引先を作成する権限がありません。');
+        expect(text).toContain('取引先を編集する権限がありません。');
+        expect(text).toContain('取引先を削除する権限がありません。');
+        expect(
+            element.shadowRoot.querySelector('lightning-datatable').columns
+        ).not.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'action'
+                })
+            ])
+        );
+    });
+
     it('opens a create form for the target object', async () => {
         const element = createComponent();
 
@@ -307,6 +354,32 @@ describe('c-object-record-search', () => {
         expect(modal.classList).toContain('slds-modal_large');
         expect(form.objectApiName).toBe('Account');
         expect(form.recordId).toBeUndefined();
+        expect(
+            Array.from(
+                element.shadowRoot.querySelectorAll('lightning-input-field')
+            ).map((field) => field.fieldName)
+        ).toEqual(['Name', 'Industry']);
+    });
+
+    it('explains layout fallback when the page layout cannot be loaded', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        getLayout.error({
+            status: 403,
+            body: { message: 'ページレイアウトを取得できません。' }
+        });
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain(
+            'ページレイアウトを取得できないため、標準の入力項目で表示します。'
+        );
+
+        findButton(element, '新規').click();
+        await flushPromises();
+
         expect(
             Array.from(
                 element.shadowRoot.querySelectorAll('lightning-input-field')
