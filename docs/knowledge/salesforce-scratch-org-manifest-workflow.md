@@ -46,6 +46,65 @@ sf project deploy start --dry-run --manifest manifest/<work>.xml --target-org <t
 sf project deploy start --manifest manifest/<work>.xml --target-org <target-org> --wait 30
 ```
 
+## Apex 開発から Dev 組織へのリリース
+
+Scratch Org で Apex を開発し、Dev 組織へリリースする場合も、変更は Git を経由させます。
+Scratch Org は開発とテストの場所、Dev 組織はリリース先として扱います。
+
+まず、Dev 組織やローカルの現在の metadata を Scratch Org に反映します。
+この初期反映には Scratch Org 初期反映用 manifest を使います。
+
+```sh
+sf project deploy start --dry-run --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --wait 30
+sf project deploy start --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --wait 30
+```
+
+次に、Scratch Org で Apex を作成、変更します。
+変更対象が決まっている場合は、作業対象 manifest を用意します。
+
+```xml
+<types>
+    <members>MyService</members>
+    <members>MyServiceTest</members>
+    <name>ApexClass</name>
+</types>
+```
+
+Scratch Org からローカルへ取り込みます。
+
+```sh
+sf project retrieve start --manifest manifest/<work>.xml --target-org <scratch-org>
+```
+
+取り込んだら、必ず Git 差分を確認します。
+
+```sh
+git status
+git diff
+```
+
+Apex テストは Scratch Org で先に実行します。
+
+```sh
+sf apex run test --test-level RunLocalTests --result-format human --target-org <scratch-org> --wait 30
+```
+
+Dev 組織へ出す前に、同じ作業対象 manifest で dry-run します。
+
+```sh
+sf project deploy start --dry-run --manifest manifest/<work>.xml --target-org <dev-org> --wait 30
+```
+
+dry-run が成功したら、Dev 組織へ deploy します。
+
+```sh
+sf project deploy start --manifest manifest/<work>.xml --target-org <dev-org> --wait 30
+```
+
+DevOps Center を使う場合も考え方は同じです。
+Scratch Org の変更を Git に戻し、Pull Request や Work Item の単位で Dev 組織へ昇格します。
+Scratch Org 初期反映用 manifest を、Dev 組織へ戻す変更 scope として使い回しません。
+
 ## 入口で絞る
 
 Scratch Org から `force-app` 全体を retrieve すると、今回の作業ではない差分が混ざることがあります。
