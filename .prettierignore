@@ -13,6 +13,8 @@ coverage/
 
 code-analyzer-results-*
 
-# Keep Salesforce retrieve output stable for Apex and triggers.
+# Keep Salesforce retrieve output stable.
 force-app/main/default/classes/**
 force-app/main/default/triggers/**
+force-app/main/default/lwc/**
+force-app/main/default/**/*.xml

@@ -92,7 +92,6 @@
     <types>
         <members>Account</members>
         <members>Asset</members>
-        <members>BusinessHours</members>
         <members>Campaign</members>
         <members>CampaignMember</members>
         <members>Case</members>
