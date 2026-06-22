@@ -9,6 +9,11 @@
 - Scratch Org で再現できない前提が見つかった場合は、設定または docs に残す。
 - 個人環境の alias や認証情報をコミットしない。
 - Scratch Org は一時環境として扱い、確認が終わったら削除する。
+- `manifest/scratch-org-rebuild.xml` は Scratch Org への反映にだけ使う。
+- Scratch Org で作成、変更したメタデータを戻す場合は、作業対象を絞った manifest を用意して retrieve / deploy に使う。
+- `force-app` 全体 dry-run は、Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
+
+manifest の使い分けは [Scratch Org と manifest の使い分け](../knowledge/salesforce-scratch-org-manifest-workflow.md) を参照します。
 
 ## 前提
 
@@ -48,23 +53,8 @@ sf org display --target-org scratch-platform-playground
 
 ## 反映
 
-Scratch Org にメタデータを反映します。
-
-```sh
-sf project deploy start --source-dir force-app --target-org scratch-platform-playground
-```
-
-source tracking が使える Scratch Org でも、このリポジトリの通常開発では Dev 組織の前提と混同しないようにします。
-
-Dev 組織から取得した `force-app` 全体には、Scratch Org へそのまま反映できない標準メタデータや組織固有設定が含まれる場合があります。
-全体 deploy の前に dry-run で確認します。
-
-```sh
-sf project deploy start --dry-run --source-dir force-app --target-org scratch-platform-playground --wait 30
-```
-
-全体 deploy が失敗する場合は、Scratch Org で再現したい実装寄りの範囲に絞って dry-run します。
-再現用の deploy scope は `manifest/scratch-org-rebuild.xml` で管理します。
+Scratch Org へ反映する deploy scope は `manifest/scratch-org-rebuild.xml` で管理します。
+Scratch Org 用 manifest で dry-run します。
 
 ```sh
 sf project deploy start \
@@ -72,6 +62,12 @@ sf project deploy start \
     --manifest manifest/scratch-org-rebuild.xml \
     --target-org scratch-platform-playground \
     --wait 30
+```
+
+Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ、`force-app` 全体 dry-run で失敗範囲を確認します。
+
+```sh
+sf project deploy start --dry-run --source-dir force-app --target-org scratch-platform-playground --wait 30
 ```
 
 dry-run が成功したら、同じ scope で反映します。
@@ -115,6 +111,34 @@ sf project deploy start \
 
 これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。
+
+## 変更の取り込み
+
+Scratch Org で作成、変更したメタデータを戻す場合は、`force-app` 全体を retrieve しません。
+作業対象を絞った manifest を用意し、その manifest で retrieve します。
+
+```sh
+sf project retrieve start --manifest manifest/scratch-work.xml --target-org scratch-platform-playground
+```
+
+retrieve 後は Git 差分を確認し、対象外の標準メタデータや組織固有設定が混ざっていないことを確認します。
+
+```sh
+git status
+git diff
+```
+
+Dev 組織へ反映する場合も、同じ作業対象 manifest で dry-run してから deploy します。
+
+```sh
+sf project deploy start --dry-run --manifest manifest/scratch-work.xml --target-org salesforce-playground --wait 30
+sf project deploy start --manifest manifest/scratch-work.xml --target-org salesforce-playground --wait 30
+```
+
+`manifest/scratch-work.xml` は作業単位の manifest です。
+必要に応じてファイル名を作業内容に合わせます。
+作業対象 manifest は、Scratch Org で実際に変更する予定のメタデータだけを含めます。
+`manifest/scratch-org-rebuild.xml` は Scratch Org 作成後の初期反映用なので、Scratch Org から Dev 組織へ戻す用途には使いません。
 
 ## 確認
 

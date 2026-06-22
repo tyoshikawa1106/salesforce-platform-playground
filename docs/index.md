@@ -55,6 +55,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [Salesforce Code Analyzer](knowledge/salesforce-code-analyzer.md)
 - [Apex アノテーション](knowledge/apex-annotations.md)
 - [Salesforce API version の上げ方](knowledge/salesforce-api-version-upgrade.md)
+- [Scratch Org と manifest の使い分け](knowledge/salesforce-scratch-org-manifest-workflow.md)
 - [Sales / Service で使う主要な標準オブジェクト](knowledge/sales-and-service-standard-objects.md)
 - [Salesforce 製品別の標準オブジェクト](knowledge/salesforce-standard-objects/index.md)
 - [Salesforce 公式参考リンク](knowledge/salesforce-official-references.md)
