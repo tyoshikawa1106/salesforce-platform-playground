@@ -7,14 +7,15 @@
 
 .count-card {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
-    height: 100%;
     min-height: var(--slds-g-sizing-12, 5rem);
     padding-bottom: var(--slds-g-spacing-3, 0.75rem);
     padding-top: var(--slds-g-spacing-2, 0.5rem);
 }
 
 .count-card-cell {
+    display: flex;
     min-width: 0;
 }
 
@@ -23,11 +24,11 @@
     border: 0;
     color: inherit;
     cursor: pointer;
-    display: block;
+    display: flex;
+    flex: 1 1 auto;
     font: inherit;
     padding: 0;
     text-align: inherit;
-    width: 100%;
 }
 
 .count-card-button:focus {
