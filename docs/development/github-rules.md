@@ -127,7 +127,10 @@ Issue と PR には、作成時に assignee を設定します。
 - Dependabot alerts と security updates は、既知脆弱性の検出と修正 PR 作成に使う。
 - Dependabot version updates は、通常の npm 依存更新 PR を週次で作成するために使う。
 - Dependabot PR には `enhancement` と `area:testing` を付ける。
-- Dependabot config には個人ユーザー名を assignee として固定しない。
+- Dependabot PR には、assignee と同じ考え方でそのリポジトリの owner を都度確認し、reviewer に設定する。
+- Dependabot PR を取り込む場合は、確認後にそのリポジトリの owner の review として approve してから merge する。
+- Dependabot PR を見送って close する場合は、理由を書いた request changes review を残してから close する。
+- Dependabot config には個人ユーザー名を assignee や reviewer として固定しない。
 - Dependabot PR の Project 紐づけや担当者設定は、必要に応じて手動で確認する。
 
 ## リポジトリ保護ルール
