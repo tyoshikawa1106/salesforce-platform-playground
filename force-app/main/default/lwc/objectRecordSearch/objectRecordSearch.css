@@ -16,7 +16,7 @@
 }
 
 .access-notices {
-    font-size: 0.8125rem;
+    font-size: var(--slds-g-font-scale-base);
 }
 
 .empty {

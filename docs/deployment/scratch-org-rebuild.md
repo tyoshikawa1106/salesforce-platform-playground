@@ -75,6 +75,33 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 - Scratch Org に投入する metadata が `force-app/main/default` に揃っているか
 - 作成に使う alias と duration
 
+## 自動再現
+
+通常の再現確認はスクリプトで実行します。
+Scratch Org 作成、manifest deploy、`scratch-org/main/default` deploy、client credentials policy 生成と deploy、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
+
+```sh
+node scripts/deployment/rebuild-scratch-org.js
+```
+
+alias や Dev Hub を明示する場合:
+
+```sh
+node scripts/deployment/rebuild-scratch-org.js \
+    --alias scratch-platform-playground \
+    --target-dev-hub salesforce-platform-playground \
+    --duration-days 7
+```
+
+package install が必要な場合は、metadata deploy より前に入れる package version id を渡します。
+
+```sh
+node scripts/deployment/rebuild-scratch-org.js --package 04tXXXXXXXXXXXXXXX
+```
+
+調査のため Scratch Org を残す場合だけ `--keep-org` を付けます。
+`--skip-create` で既存 alias を使う場合、スクリプトはその org を自動削除しません。
+
 ## 作成
 
 Scratch Org を作成します。
@@ -265,6 +292,16 @@ sf project deploy start --manifest manifest/scratch-work.xml --target-org salesf
 ```sh
 sf apex run test --test-level RunLocalTests --result-format human --target-org scratch-platform-playground
 ```
+
+Scratch Org 初期反映対象を変更した場合は、少なくとも次を確認します。
+
+- `manifest/scratch-org-rebuild.xml` の deploy が成功すること
+- `scratch-org/main/default` の deploy が成功すること
+- client credentials policy 生成と `scratch-org/generated/client-credentials/main/default` の deploy が成功すること
+- Apex `RunLocalTests` が成功すること
+- 確認後に Scratch Org が削除されること
+
+通常は `node scripts/deployment/rebuild-scratch-org.js` の実行結果でこの確認をまとめます。
 
 組織をブラウザで確認する場合:
 
