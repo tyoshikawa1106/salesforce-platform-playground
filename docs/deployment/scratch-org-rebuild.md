@@ -88,6 +88,21 @@ sf project deploy start \
 - `force-app/main/default/permissionsets`
 - `force-app/main/default/flexipages`
 - `force-app/main/default/flows`
+- `force-app/main/default/apexEmailNotifications`
+- `force-app/main/default/assignmentRules`
+- `force-app/main/default/autoResponseRules`
+- `force-app/main/default/cleanDataServices`
+- `force-app/main/default/homePageLayouts`
+- `force-app/main/default/iframeWhiteListUrlSettings`
+- `force-app/main/default/layouts`
+- `force-app/main/default/matchingRules`
+- `force-app/main/default/milestoneTypes`
+- `force-app/main/default/quickActions`
+- `force-app/main/default/remoteSiteSettings`
+- `force-app/main/default/reportTypes`
+- `force-app/main/default/roles`
+- `force-app/main/default/transactionSecurityPolicies`
+- `force-app/main/default/workflows`
 
 この manifest で反映できる主なメタデータ:
 
@@ -97,6 +112,11 @@ sf project deploy start \
 - Permission Set
 - FlexiPage
 - Flow
+- Layout
+- Quick Action
+- Assignment Rule / Auto Response Rule / Workflow
+- Matching Rule
+- Role、Report Type、Remote Site Setting など Scratch Org で dry-run 成功した周辺メタデータ
 
 この manifest で反映しない主なメタデータ:
 
@@ -108,8 +128,9 @@ sf project deploy start \
 - ManagedContentType
 - External Client App OAuth 系メタデータ
 - SAML SSO など組織固有の認証設定
+- DuplicateRule など、標準メタデータでも Scratch Org dry-run で失敗するもの
 
-これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により失敗することがあります。
+これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。
 
 ## 変更の取り込み
