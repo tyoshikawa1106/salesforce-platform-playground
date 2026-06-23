@@ -200,6 +200,7 @@ describe('c-object-metrics-overview', () => {
         expect(alert.textContent).toContain(
             'データボードを読み込めませんでした。'
         );
+        await expect(element).toBeAccessible();
     });
 
     it('shows loading spinners while refreshing metrics', async () => {

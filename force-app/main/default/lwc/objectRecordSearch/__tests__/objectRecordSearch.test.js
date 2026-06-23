@@ -300,6 +300,7 @@ describe('c-object-record-search', () => {
             'アクセス権限を確認してください'
         );
         expect(alert.textContent).toContain('参照権限がありません。');
+        await expect(element).toBeAccessible();
     });
 
     it('shows unavailable actions when object permissions are missing', async () => {
@@ -331,6 +332,7 @@ describe('c-object-record-search', () => {
                 })
             ])
         );
+        await expect(element).toBeAccessible();
     });
 
     it('opens a create form for the target object', async () => {
@@ -359,6 +361,7 @@ describe('c-object-record-search', () => {
                 element.shadowRoot.querySelectorAll('lightning-input-field')
             ).map((field) => field.fieldName)
         ).toEqual(['Name', 'Industry']);
+        await expect(element).toBeAccessible();
     });
 
     it('explains layout fallback when the page layout cannot be loaded', async () => {
@@ -625,6 +628,7 @@ describe('c-object-record-search', () => {
         expect(element.shadowRoot.textContent).toContain(
             'ファイルはアップロードで新規登録します。'
         );
+        await expect(element).toBeAccessible();
 
         upload.dispatchEvent(
             new CustomEvent('uploadfinished', {

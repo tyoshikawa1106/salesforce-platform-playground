@@ -27,6 +27,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 - タスクに必要なメタデータだけを取得する。
 - 取得したメタデータはコミット前に確認する。特に権限や自動生成に見えるファイルに注意する。
 - タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
+- Scratch Org 初期反映の対象を変えた場合は、`node scripts/deployment/rebuild-scratch-org.js` で再現手順を確認する。
 
 ## Dev 組織での検証
 
@@ -57,3 +58,14 @@ Apex 変更を含む PR を作成する前に、関連する Apex テストを c
 ```sh
 sf apex run test --class-names MyClassTest --code-coverage --result-format human
 ```
+
+## 静的解析
+
+PR の CI では Salesforce Code Analyzer を `npm run code-analyzer:ci` で実行します。
+ローカルで事前確認する場合は次を実行します。
+
+```sh
+npm run code-analyzer:ci
+```
+
+`code-analyzer-results-*.json` は解析結果の生成物なので Git 管理しません。
