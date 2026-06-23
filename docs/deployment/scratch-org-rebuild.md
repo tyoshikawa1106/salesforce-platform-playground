@@ -26,6 +26,45 @@ sf org list
 Dev Hub が未設定の場合は、利用する Dev Hub を確認してからログインまたは指定します。
 このリポジトリの通常開発で使う Dev 組織とは別の前提として扱います。
 
+## Installed Package の確認
+
+Dev 組織の installed package は Scratch Org に自動では引き継がれません。
+必要な package がある場合は、Scratch Org 作成後、metadata deploy より前に `sf package install` で明示的にインストールします。
+
+現 Dev 組織の package は Tooling API で確認します。
+
+```sh
+sf data query \
+    --use-tooling-api \
+    --query "SELECT SubscriberPackage.Name, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.Name FROM InstalledSubscriberPackage" \
+    --target-org salesforce-platform-playground
+```
+
+Package License が残っていないかも確認します。
+
+```sh
+sf data query \
+    --query "SELECT NamespacePrefix, Status, AllowedLicenses, UsedLicenses FROM PackageLicense" \
+    --target-org salesforce-platform-playground
+```
+
+package が必要な場合は、`04t...` の Package Version Id を確認し、次の順序で反映します。
+
+```sh
+sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-playground --wait 30 --publish-wait 30
+```
+
+```text
+1. Scratch Org 作成
+2. 必要 package install
+3. manifest/scratch-org-rebuild.xml deploy
+4. scratch-org/main/default deploy
+5. 必要に応じて scratch-org/generated deploy
+6. Apex test
+```
+
+現時点の Dev 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
+
 ## 作成前の確認
 
 作成前に次を確認します。
@@ -124,8 +163,41 @@ sf project deploy start \
     --wait 30
 ```
 
-`scratch-org/main/default` は、External Client App 本体、基本ポリシー、OAuth Settings、Global OAuth 設定、OAuth Security 設定、Scratch Org で dry-run 成功する OAuth policy だけを含みます。
-client credentials flow の実行ユーザーに依存する OAuth policy は、実行ユーザーと Permission Set の事前設定が必要なため含めません。
+`scratch-org/main/default` は、External Client App 本体、基本ポリシー、OAuth Settings、Global OAuth 設定、OAuth Security 設定、Scratch Org で dry-run 成功する OAuth policy、DuplicateRule、Settings の deploy 可能な subset だけを含みます。
+client credentials flow の実行ユーザーに依存する OAuth policy は、Scratch Org の username を差し込んで生成します。
+
+先に `manifest/scratch-org-rebuild.xml` と `scratch-org/main/default` を反映し、`Salesforce_API_Playground_Integration` Permission Set と External Client App の OAuth Settings が存在する状態にします。
+
+```sh
+node scripts/deployment/generate-client-credentials-policy.js scratch-platform-playground
+```
+
+生成された source を dry-run します。
+
+```sh
+sf project deploy start \
+    --dry-run \
+    --source-dir scratch-org/generated/client-credentials/main/default \
+    --target-org scratch-platform-playground \
+    --wait 30
+```
+
+dry-run が成功したら、同じ scope で反映します。
+
+```sh
+sf project deploy start \
+    --source-dir scratch-org/generated/client-credentials/main/default \
+    --target-org scratch-platform-playground \
+    --wait 30
+```
+
+`scratch-org/generated/` は Scratch Org ごとの値を含む生成物なので Git 管理しません。
+
+DuplicateRule は Dev 組織から取得したままの `sortOrder=1` では Scratch Org の標準 DuplicateRule と衝突します。
+`scratch-org/main/default/duplicateRules` では `sortOrder=2` に補正した source を使います。
+
+Settings は `force-app/main/default/settings` 全体をそのまま反映しません。
+`scratch-org/main/default/settings` には Scratch Org で dry-run と実 deploy が成功した Settings だけを置きます。
 
 この manifest で反映できる主なメタデータ:
 
@@ -140,6 +212,7 @@ client credentials flow の実行ユーザーに依存する OAuth policy は、
 - Assignment Rule / Auto Response Rule / Workflow
 - Matching Rule
 - Role、Report Type、Remote Site Setting など Scratch Org で dry-run 成功した周辺メタデータ
+- `scratch-org/main/default` の External Client App / DuplicateRule / Settings subset
 
 この manifest で反映しない主なメタデータ:
 
@@ -149,9 +222,10 @@ client credentials flow の実行ユーザーに依存する OAuth policy は、
 - 空の SharingRules
 - Translations
 - ManagedContentType
-- External Client App OAuth 系メタデータのうち、OAuth link や実行ユーザーに依存するもの
+- External Client App OAuth 系メタデータのうち、OAuth link や配信状態に依存するもの
+- Settings のうち、未有効化機能、証明書、EmailTemplate、Data Cloud、Territory などの前提で Scratch Org deploy に失敗するもの
 - SAML SSO など組織固有の認証設定
-- DuplicateRule など、標準メタデータでも Scratch Org dry-run で失敗するもの
+- Dev 組織から取得したままの DuplicateRule
 
 これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。

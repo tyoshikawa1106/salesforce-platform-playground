@@ -7,6 +7,8 @@
 .sfdx/
 .localdevserver/
 deploy-options.json
+scratch-org/generated/
+scratch-org/tmp-*/
 
 # Salesforce metadata excluded from Git-managed Dev-to-Dev reproduction
 force-app/main/default/appMenus/
