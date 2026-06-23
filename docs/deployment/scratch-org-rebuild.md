@@ -104,6 +104,29 @@ sf project deploy start \
 - `force-app/main/default/transactionSecurityPolicies`
 - `force-app/main/default/workflows`
 
+External Client App は、Scratch Org へ反映できる範囲だけを `scratch-org/main/default` に分けます。
+Dev 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などをそのまま使わないため、`force-app/main/default` とは別 source directory として扱います。
+
+```sh
+sf project deploy start \
+    --dry-run \
+    --source-dir scratch-org/main/default \
+    --target-org scratch-platform-playground \
+    --wait 30
+```
+
+dry-run が成功したら、同じ scope で反映します。
+
+```sh
+sf project deploy start \
+    --source-dir scratch-org/main/default \
+    --target-org scratch-platform-playground \
+    --wait 30
+```
+
+`scratch-org/main/default` は、External Client App 本体、基本ポリシー、OAuth Settings、Global OAuth 設定、OAuth Security 設定、Scratch Org で dry-run 成功する OAuth policy だけを含みます。
+client credentials flow の実行ユーザーに依存する OAuth policy は、実行ユーザーと Permission Set の事前設定が必要なため含めません。
+
 この manifest で反映できる主なメタデータ:
 
 - Apex classes / triggers
@@ -126,7 +149,7 @@ sf project deploy start \
 - 空の SharingRules
 - Translations
 - ManagedContentType
-- External Client App OAuth 系メタデータ
+- External Client App OAuth 系メタデータのうち、OAuth link や実行ユーザーに依存するもの
 - SAML SSO など組織固有の認証設定
 - DuplicateRule など、標準メタデータでも Scratch Org dry-run で失敗するもの
 
