@@ -71,21 +71,23 @@ test は現在接続されている Salesforce 組織に対してのみ実行し
 
 デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、変更単位で `deploy validate` と `deploy start` を実行し、現在接続中の組織へ反映します。
 
+Dev 組織への標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
+
 ```sh
-sf project deploy validate --source-dir force-app
+npm run sf:validate:dev
 ```
 
 validate が成功したら、同じ現在接続中の組織へ反映します。
 
 ```sh
-sf project deploy start --source-dir force-app
+npm run sf:deploy:dev
 ```
 
 Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、deploy 後の Apex テストは PR 作成前の確認にまとめます。
 
 - 対象組織の確認: `sf org display`
-- メタデータの整合性確認: `sf project deploy validate --source-dir force-app`
-- 現在接続中の組織への反映: `sf project deploy start --source-dir force-app`
+- メタデータの整合性確認: `npm run sf:validate:dev`
+- 現在接続中の組織への反映: `npm run sf:deploy:dev`
 - PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage`
 
 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
