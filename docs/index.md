@@ -22,6 +22,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [変更チェックリスト](development/change-checklist.md)
 - [Apex 開発ルール](development/apex-rules.md)
 - [メタデータ開発ルール](development/metadata-rules.md)
+- [force-app deployability 棚卸し](development/force-app-deployability-inventory.md)
 - [GitHub 運用ルール](development/github-rules.md)
 
 ## 開発運用
