@@ -49,10 +49,10 @@ git diff
 metadata version を上げた後は、deploy validate で組織が受け付けるか確認します。
 
 ```sh
-sf project deploy validate --source-dir force-app
+npm run sf:validate:dev
 ```
 
-`force-app` 全体に既存の未解決 metadata が含まれている場合は、今回 version を更新した metadata に scope を絞って検証します。
+`manifest/deployable-dev.xml` に含まれない metadata の version を更新した場合は、今回 version を更新した metadata に scope を絞って検証します。
 
 ```sh
 sf project deploy validate \

@@ -8,6 +8,8 @@
 - 明示依頼なしに `--target-org` 指定やデフォルト組織の切り替えをしない。
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしない。
 - 反映前に `sf project deploy validate` を実行する。
+- `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証入口にはしない。
+- Dev 組織への通常検証は `manifest/deployable-dev.xml` を使う。作業範囲がさらに狭い場合は、作業対象 manifest または `--metadata` で絞る。
 
 ## 対象組織の確認
 
@@ -24,17 +26,30 @@ sf org display
 反映前にメタデータの整合性を確認します。
 
 ```sh
-sf project deploy validate --source-dir force-app
+npm run sf:validate:dev
+```
+
+この script は次の manifest validate を実行します。
+
+```sh
+sf project deploy validate --manifest manifest/deployable-dev.xml --test-level RunLocalTests
 ```
 
 validate が失敗した場合は、失敗理由と対象ファイルを確認し、必要な修正だけを行います。
+`sf project deploy validate --source-dir force-app` の失敗は、広く retrieve した org 固有 metadata の混入確認として扱い、通常作業の失敗判定にはしません。
 
 ## Deploy
 
 validate が成功したら、同じ現在接続中の組織へ反映します。
 
 ```sh
-sf project deploy start --source-dir force-app
+npm run sf:deploy:dev
+```
+
+この script は次の manifest deploy を実行します。
+
+```sh
+sf project deploy start --manifest manifest/deployable-dev.xml
 ```
 
 ## Apex test
