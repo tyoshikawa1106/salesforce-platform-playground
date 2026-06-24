@@ -77,10 +77,13 @@ sf org login web --set-default --alias dev
 Dev 組織に対する操作は、対象と目的を確認してから実行します。
 
 ```sh
-sf project deploy validate --source-dir force-app
-sf project deploy start --source-dir force-app
+npm run sf:validate:dev
+npm run sf:deploy:dev
 sf apex run test --result-format human
 ```
+
+Dev 組織への標準 validate / deploy は `manifest/deployable-dev.xml` を使います。
+詳しくは [Dev 組織デプロイ](docs/deployment/dev-org-deploy.md) を参照してください。
 
 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
 
