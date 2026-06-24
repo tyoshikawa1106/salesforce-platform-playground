@@ -11,10 +11,11 @@
 ## 初期セットアップ
 
 ```sh
-npm install
+npm ci
 ```
 
-`npm install` は、Husky、lint-staged、Prettier、ESLint、LWC Jest など、コミット前チェックや LWC 開発に必要な npm 依存をインストールします。
+`npm ci` は、`package-lock.json` に固定された npm 依存を再現します。
+Husky、lint-staged、Prettier、ESLint、LWC Jest など、コミット前チェックや LWC 開発に必要な依存もここで入ります。
 
 `package-lock.json` は npm 依存の再現性を保つために管理対象とします。
 
