@@ -61,6 +61,45 @@ npm run sf:validate:dev -- --target-org ci-dev
 Secrets には実値の秘密情報を入れますが、リポジトリ内の docs、workflow、commit message には値を書きません。
 `SF_JWT_PRIVATE_KEY` は `-----BEGIN ... KEY-----` から `-----END ... KEY-----` までを GitHub Secret に保存します。
 
+### GitHub Secrets の登録場所
+
+GitHub の repository 画面から次の順に開きます。
+
+1. `Settings`
+2. `Secrets and variables`
+3. `Actions`
+4. `Repository secrets`
+5. `New repository secret`
+
+`SF_JWT_CLIENT_ID`、`SF_JWT_USERNAME`、`SF_JWT_PRIVATE_KEY` を 1 つずつ登録します。
+Sandbox に対して validate する場合は、`SF_LOGIN_URL` に `https://test.salesforce.com` を登録します。
+Developer Edition や Production login を使う場合、`SF_LOGIN_URL` は未設定で構いません。
+
+### Salesforce 側で準備するもの
+
+CI で validate を実行するには、Salesforce 側で JWT bearer flow 用の Connected App と CI 用連携ユーザーを用意します。
+
+準備するもの:
+
+- CI 用連携ユーザー
+- CI 用連携ユーザーに必要な権限
+- Connected App
+- Connected App の Consumer Key
+- JWT bearer flow 用の証明書 / 秘密鍵
+- Connected App の policy で CI 用連携ユーザーが利用できる設定
+
+GitHub Secrets へ入れる値は次の対応です。
+
+| GitHub Secret        | Salesforce 側の値                                   |
+| -------------------- | --------------------------------------------------- |
+| `SF_JWT_CLIENT_ID`   | Connected App の Consumer Key                       |
+| `SF_JWT_USERNAME`    | CI 用連携ユーザーの username                        |
+| `SF_JWT_PRIVATE_KEY` | JWT bearer flow 用の秘密鍵 PEM 全体                 |
+| `SF_LOGIN_URL`       | login URL。Sandbox は `https://test.salesforce.com` |
+
+秘密鍵、証明書、Consumer Secret、token、password などの実値は、リポジトリに保存しません。
+Connected App の Consumer Secret は JWT bearer flow の CI validate では使いません。
+
 ## Deploy
 
 validate が成功したら、同じ現在接続中の組織へ反映します。
