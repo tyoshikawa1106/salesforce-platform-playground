@@ -35,16 +35,16 @@
 
 ## GitHub
 
-| ファイル                                    | 概要                                                                                                                                      | 変更時の確認                                                                            |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール入口を示す。                                                                             | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。   |
-| `.github/workflows/ci.yml`                  | pull request と `main` push で npm install、audit、format check、lint、Salesforce Code Analyzer、LWC unit test を実行する CI を定義する。 | GitHub Actions は品質確認に寄せ、Issue / Project などの運用 metadata 自動化を混ぜない。 |
-| `.github/dependabot.yml`                    | npm 依存の weekly update、ラベル、commit message、grouping を定義する。                                                                   | 特定の個人ユーザー名を assignee や reviewer として固定しない。                          |
-| `.github/release.yml`                       | GitHub Release の自動生成 changelog category をラベルごとに定義する。                                                                     | ラベル体系を変えた場合は category も合わせて見直す。                                    |
-| `.github/ISSUE_TEMPLATE/config.yml`         | Issue template 全体の挙動を定義する。                                                                                                     | blank issue を許可するかどうかを運用方針に合わせる。                                    |
-| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                                   | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                  |
-| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                                   | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                |
-| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                                   | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。               |
+| ファイル                                    | 概要                                                                                                                                                 | 変更時の確認                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール入口を示す。                                                                                        | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。   |
+| `.github/workflows/ci.yml`                  | pull request と `main` push で `npm ci --include=dev`、audit、format check、lint、Salesforce Code Analyzer、LWC unit test を実行する CI を定義する。 | GitHub Actions は品質確認に寄せ、Issue / Project などの運用 metadata 自動化を混ぜない。 |
+| `.github/dependabot.yml`                    | npm 依存の weekly update、ラベル、commit message、grouping を定義する。                                                                              | 特定の個人ユーザー名を assignee や reviewer として固定しない。                          |
+| `.github/release.yml`                       | GitHub Release の自動生成 changelog category をラベルごとに定義する。                                                                                | ラベル体系を変えた場合は category も合わせて見直す。                                    |
+| `.github/ISSUE_TEMPLATE/config.yml`         | Issue template 全体の挙動を定義する。                                                                                                                | blank issue を許可するかどうかを運用方針に合わせる。                                    |
+| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                                              | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                  |
+| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                                              | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                |
+| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                                              | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。               |
 
 ## Agent
 
