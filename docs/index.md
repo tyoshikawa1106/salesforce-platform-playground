@@ -60,6 +60,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [Salesforce API version の上げ方](knowledge/salesforce-api-version-upgrade.md)
 - [Scratch Org と manifest の使い分け](knowledge/salesforce-scratch-org-manifest-workflow.md)
 - [Salesforce CLI で主要標準オブジェクトの seed を作る考え方](knowledge/salesforce-cli-standard-object-seed.md)
+- [Scratch Org definition の feature 設定](knowledge/salesforce-scratch-org-definition-features.md)
 - [Sales / Service で使う主要な標準オブジェクト](knowledge/sales-and-service-standard-objects.md)
 - [Salesforce 製品別の標準オブジェクト](knowledge/salesforce-standard-objects/index.md)
 - [Salesforce 公式参考リンク](knowledge/salesforce-official-references.md)
