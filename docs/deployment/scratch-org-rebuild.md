@@ -76,6 +76,12 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 - Scratch Org に投入する metadata が `force-app/main/default` に揃っているか
 - 作成に使う alias と duration
 
+`config/project-scratch-def.json` の `features` は、主要な標準オブジェクトの再現性を上げるため、Sales / Service / Field Service / Knowledge / Experience Cloud / 開発・自動化系を広めに指定します。
+ただし、Scratch Org 作成時に Dev Hub 側で許可されているものだけが使えます。
+Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Cloud など、契約や追加 package に強く依存する feature は、必要になった時点で個別に追加します。
+`AddCustomRelationships` は `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` にします。
+`TransactionFinalizers` は CLI の schema では候補に含まれますが、現在の Dev Hub では Scratch Org 作成時に無効な feature として失敗したため指定しません。
+
 ## 自動再現
 
 通常の再現確認はスクリプトで実行します。
@@ -265,6 +271,9 @@ Settings は `force-app/main/default/settings` 全体をそのまま反映しま
 
 これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。
+
+`WorkPlan` / `WorkPlanTemplate` / `WorkStep` と、それらの関連リストを含む WorkOrder 周辺 Layout は Field Service feature に依存します。
+`FieldService.settings` の `enableWorkOrders=true` だけでは既存 Scratch Org に WorkPlan 系オブジェクトは追加されないため、Scratch Org 作成時点で `config/project-scratch-def.json` の `features` に `FieldService:<ライセンス数>` を指定します。
 
 ## 変更の取り込み
 
