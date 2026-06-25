@@ -58,9 +58,8 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 1. Scratch Org 作成
 2. 必要 package install
 3. manifest/scratch-org-rebuild.xml deploy
-4. scratch-org/main/default deploy
-5. 必要に応じて scratch-org/generated deploy
-6. Apex test
+4. Scratch Org ユーザー用 Permission Set assign
+5. Apex test
 ```
 
 現時点の Dev 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
@@ -75,10 +74,16 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 - Scratch Org に投入する metadata が `force-app/main/default` に揃っているか
 - 作成に使う alias と duration
 
+`config/project-scratch-def.json` の `features` は、主要な標準オブジェクトの再現性を上げるため、Sales / Service / Field Service / Knowledge / Experience Cloud / 開発・自動化系を広めに指定します。
+ただし、Scratch Org 作成時に Dev Hub 側で許可されているものだけが使えます。
+Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Cloud など、契約や追加 package に強く依存する feature は、必要になった時点で個別に追加します。
+`AddCustomRelationships` は `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` にします。
+`TransactionFinalizers` は CLI の schema では候補に含まれますが、現在の Dev Hub では Scratch Org 作成時に無効な feature として失敗したため指定しません。
+
 ## 自動再現
 
 通常の再現確認はスクリプトで実行します。
-Scratch Org 作成、manifest deploy、`scratch-org/main/default` deploy、client credentials policy 生成と deploy、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
+Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
 
 ```sh
 node scripts/deployment/rebuild-scratch-org.js
@@ -170,61 +175,19 @@ sf project deploy start \
 - `force-app/main/default/transactionSecurityPolicies`
 - `force-app/main/default/workflows`
 
-External Client App は、Scratch Org へ反映できる範囲だけを `scratch-org/main/default` に分けます。
-Dev 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などをそのまま使わないため、`force-app/main/default` とは別 source directory として扱います。
+Scratch Org 専用 source directory は作りません。
+初期反映の正本は `force-app/main/default` と `manifest/scratch-org-rebuild.xml` に寄せ、Scratch Org の機能有効化は `config/project-scratch-def.json` で扱います。
+Settings や DuplicateRule を Scratch Org 用にコピーして個別補正すると二重管理になりやすいため、必要な場合は対象 metadata ごとに manifest、scratch definition、または手順 docs で扱います。
+
+External Client App は Dev 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
+Scratch Org で External Client App まで検証する必要が出た場合は、初期反映手順とは別に、org 固有値を含まない方法を個別に設計します。
+
+Scratch Org の作成ユーザーには、ユーザー作成アプリへのアクセス権として `Salesforce_Platform_Playground_User` Permission Set を割り当てます。
+スクリプトでは metadata deploy 後に自動実行します。
 
 ```sh
-sf project deploy start \
-    --dry-run \
-    --source-dir scratch-org/main/default \
-    --target-org scratch-platform-playground \
-    --wait 30
+sf org assign permset --name Salesforce_Platform_Playground_User --target-org scratch-platform-playground
 ```
-
-dry-run が成功したら、同じ scope で反映します。
-
-```sh
-sf project deploy start \
-    --source-dir scratch-org/main/default \
-    --target-org scratch-platform-playground \
-    --wait 30
-```
-
-`scratch-org/main/default` は、External Client App 本体、基本ポリシー、OAuth Settings、Global OAuth 設定、OAuth Security 設定、Scratch Org で dry-run 成功する OAuth policy、DuplicateRule、Settings の deploy 可能な subset だけを含みます。
-client credentials flow の実行ユーザーに依存する OAuth policy は、Scratch Org の username を差し込んで生成します。
-
-先に `manifest/scratch-org-rebuild.xml` と `scratch-org/main/default` を反映し、`Salesforce_API_Playground_Integration` Permission Set と External Client App の OAuth Settings が存在する状態にします。
-
-```sh
-node scripts/deployment/generate-client-credentials-policy.js scratch-platform-playground
-```
-
-生成された source を dry-run します。
-
-```sh
-sf project deploy start \
-    --dry-run \
-    --source-dir scratch-org/generated/client-credentials/main/default \
-    --target-org scratch-platform-playground \
-    --wait 30
-```
-
-dry-run が成功したら、同じ scope で反映します。
-
-```sh
-sf project deploy start \
-    --source-dir scratch-org/generated/client-credentials/main/default \
-    --target-org scratch-platform-playground \
-    --wait 30
-```
-
-`scratch-org/generated/` は Scratch Org ごとの値を含む生成物なので Git 管理しません。
-
-DuplicateRule は Dev 組織から取得したままの `sortOrder=1` では Scratch Org の標準 DuplicateRule と衝突します。
-`scratch-org/main/default/duplicateRules` では `sortOrder=2` に補正した source を使います。
-
-Settings は `force-app/main/default/settings` 全体をそのまま反映しません。
-`scratch-org/main/default/settings` には Scratch Org で dry-run と実 deploy が成功した Settings だけを置きます。
 
 この manifest で反映できる主なメタデータ:
 
@@ -232,6 +195,7 @@ Settings は `force-app/main/default/settings` 全体をそのまま反映しま
 - Lightning Web Components
 - Object 配下の標準オブジェクト差分、ListView、ValidationRule、WebLink
 - Permission Set
+- Custom Application（ユーザー作成アプリ）
 - FlexiPage
 - Flow
 - Layout
@@ -239,7 +203,6 @@ Settings は `force-app/main/default/settings` 全体をそのまま反映しま
 - Assignment Rule / Auto Response Rule / Workflow
 - Matching Rule
 - Role、Report Type、Remote Site Setting など Scratch Org で dry-run 成功した周辺メタデータ
-- `scratch-org/main/default` の External Client App / DuplicateRule / Settings subset
 
 この manifest で反映しない主なメタデータ:
 
@@ -256,6 +219,9 @@ Settings は `force-app/main/default/settings` 全体をそのまま反映しま
 
 これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。
+
+`WorkPlan` / `WorkPlanTemplate` / `WorkStep` と、それらの関連リストを含む WorkOrder 周辺 Layout は Field Service feature に依存します。
+`FieldService.settings` の `enableWorkOrders=true` だけでは既存 Scratch Org に WorkPlan 系オブジェクトは追加されないため、Scratch Org 作成時点で `config/project-scratch-def.json` の `features` に `FieldService:<ライセンス数>` を指定します。
 
 ## 変更の取り込み
 
@@ -296,8 +262,6 @@ sf apex run test --test-level RunLocalTests --result-format human --target-org s
 Scratch Org 初期反映対象を変更した場合は、少なくとも次を確認します。
 
 - `manifest/scratch-org-rebuild.xml` の deploy が成功すること
-- `scratch-org/main/default` の deploy が成功すること
-- client credentials policy 生成と `scratch-org/generated/client-credentials/main/default` の deploy が成功すること
 - Apex `RunLocalTests` が成功すること
 - 確認後に Scratch Org が削除されること
 

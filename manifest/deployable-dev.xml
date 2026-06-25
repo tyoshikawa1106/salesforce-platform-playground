@@ -655,6 +655,10 @@
         <name>CustomObject</name>
     </types>
     <types>
+        <members>Salesforce</members>
+        <name>CustomApplication</name>
+    </types>
+    <types>
         <members>AdvertisingInventoryCalendar_UtilityBar</members>
         <members>DataGovernanceConsole_UtilityBar</members>
         <members>FlowsApp_UtilityBar</members>
@@ -745,6 +749,7 @@
     </types>
     <types>
         <members>Salesforce_API_Playground_Integration</members>
+        <members>Salesforce_Platform_Playground_User</members>
         <members>sfdcInternalInt__sfdc_scrt2</members>
         <name>PermissionSet</name>
     </types>

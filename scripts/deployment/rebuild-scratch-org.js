@@ -20,7 +20,6 @@ function parseArgs(argv) {
         packageIds: [],
         keepOrg: false,
         skipCreate: false,
-        skipGeneratedPolicy: false,
         skipTests: false
     };
 
@@ -47,9 +46,6 @@ function parseArgs(argv) {
                 break;
             case '--skip-create':
                 options.skipCreate = true;
-                break;
-            case '--skip-generated-policy':
-                options.skipGeneratedPolicy = true;
                 break;
             case '--skip-tests':
                 options.skipTests = true;
@@ -88,7 +84,6 @@ Options:
   --package <04t...>           Package version id to install before metadata deploy. Repeatable
   --keep-org                   Keep the Scratch Org after verification
   --skip-create                Reuse an existing Scratch Org alias
-  --skip-generated-policy      Skip client credentials policy generation/deploy
   --skip-tests                 Skip RunLocalTests
   --help                       Show this help`);
 }
@@ -170,68 +165,17 @@ function deployScratchMetadata(options) {
         '--wait',
         options.wait
     ]);
-
-    run('Dry-run scratch-org source deploy', 'sf', [
-        'project',
-        'deploy',
-        'start',
-        '--dry-run',
-        '--source-dir',
-        'scratch-org/main/default',
-        '--target-org',
-        options.alias,
-        '--wait',
-        options.wait
-    ]);
-
-    run('Deploy scratch-org source', 'sf', [
-        'project',
-        'deploy',
-        'start',
-        '--source-dir',
-        'scratch-org/main/default',
-        '--target-org',
-        options.alias,
-        '--wait',
-        options.wait
-    ]);
 }
 
-function deployGeneratedPolicy(options) {
-    if (options.skipGeneratedPolicy) {
-        console.log('\n==> Skip generated client credentials policy');
-        return;
-    }
-
-    run('Generate client credentials policy', process.execPath, [
-        'scripts/deployment/generate-client-credentials-policy.js',
+function assignScratchUserPermissions(options) {
+    run('Assign Scratch Org user permission set', 'sf', [
+        'org',
+        'assign',
+        'permset',
+        '--name',
+        'Salesforce_Platform_Playground_User',
+        '--target-org',
         options.alias
-    ]);
-
-    const sourceDir = 'scratch-org/generated/client-credentials/main/default';
-    run('Dry-run generated policy deploy', 'sf', [
-        'project',
-        'deploy',
-        'start',
-        '--dry-run',
-        '--source-dir',
-        sourceDir,
-        '--target-org',
-        options.alias,
-        '--wait',
-        options.wait
-    ]);
-
-    run('Deploy generated policy', 'sf', [
-        'project',
-        'deploy',
-        'start',
-        '--source-dir',
-        sourceDir,
-        '--target-org',
-        options.alias,
-        '--wait',
-        options.wait
     ]);
 }
 
@@ -301,7 +245,7 @@ function main() {
 
         installPackages(options);
         deployScratchMetadata(options);
-        deployGeneratedPolicy(options);
+        assignScratchUserPermissions(options);
         runApexTests(options);
     } catch (error) {
         exitCode = error instanceof RebuildError ? error.status : 1;

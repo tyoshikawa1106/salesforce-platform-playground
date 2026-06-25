@@ -1,0 +1,10 @@
+{
+    "description": "Synthetic standard object seed plan. This uses sf apex run so related standard object records can be created in one org transaction.",
+    "imports": [
+        {
+            "label": "standard-objects",
+            "operation": "apex",
+            "file": "data/test-data/standard-objects/seed-standard-objects.apex"
+        }
+    ]
+}
