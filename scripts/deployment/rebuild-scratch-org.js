@@ -235,6 +235,18 @@ function deployGeneratedPolicy(options) {
     ]);
 }
 
+function assignScratchUserPermissions(options) {
+    run('Assign Scratch Org user permission set', 'sf', [
+        'org',
+        'assign',
+        'permset',
+        '--name',
+        'Salesforce_Platform_Playground_User',
+        '--target-org',
+        options.alias
+    ]);
+}
+
 function runApexTests(options) {
     if (options.skipTests) {
         console.log('\n==> Skip Apex RunLocalTests');
@@ -301,6 +313,7 @@ function main() {
 
         installPackages(options);
         deployScratchMetadata(options);
+        assignScratchUserPermissions(options);
         deployGeneratedPolicy(options);
         runApexTests(options);
     } catch (error) {

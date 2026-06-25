@@ -59,8 +59,9 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 2. 必要 package install
 3. manifest/scratch-org-rebuild.xml deploy
 4. scratch-org/main/default deploy
-5. 必要に応じて scratch-org/generated deploy
-6. Apex test
+5. Scratch Org ユーザー用 Permission Set assign
+6. 必要に応じて scratch-org/generated deploy
+7. Apex test
 ```
 
 現時点の Dev 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
@@ -78,7 +79,7 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 ## 自動再現
 
 通常の再現確認はスクリプトで実行します。
-Scratch Org 作成、manifest deploy、`scratch-org/main/default` deploy、client credentials policy 生成と deploy、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
+Scratch Org 作成、manifest deploy、`scratch-org/main/default` deploy、Scratch Org ユーザー用 Permission Set assign、client credentials policy 生成と deploy、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
 
 ```sh
 node scripts/deployment/rebuild-scratch-org.js
@@ -194,6 +195,13 @@ sf project deploy start \
 client credentials flow の実行ユーザーに依存する OAuth policy は、Scratch Org の username を差し込んで生成します。
 
 先に `manifest/scratch-org-rebuild.xml` と `scratch-org/main/default` を反映し、`Salesforce_API_Playground_Integration` Permission Set と External Client App の OAuth Settings が存在する状態にします。
+
+Scratch Org の作成ユーザーには、ユーザー作成アプリへのアクセス権として `Salesforce_Platform_Playground_User` Permission Set を割り当てます。
+スクリプトでは metadata deploy 後に自動実行します。
+
+```sh
+sf org assign permset --name Salesforce_Platform_Playground_User --target-org scratch-platform-playground
+```
 
 ```sh
 node scripts/deployment/generate-client-credentials-policy.js scratch-platform-playground
