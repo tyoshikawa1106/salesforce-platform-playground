@@ -7,11 +7,11 @@
 
 ## 現在の標準入口
 
-| 用途                 | コマンド                                         | scope                                                            |
-| -------------------- | ------------------------------------------------ | ---------------------------------------------------------------- |
-| Dev 組織 validate    | `npm run sf:validate:dev`                        | `manifest/deployable-dev.xml`                                    |
-| Dev 組織 deploy      | `npm run sf:deploy:dev`                          | `manifest/deployable-dev.xml`                                    |
-| Scratch Org 初期反映 | `node scripts/deployment/rebuild-scratch-org.js` | `manifest/scratch-org-rebuild.xml` と `scratch-org/main/default` |
+| 用途                 | コマンド                                         | scope                              |
+| -------------------- | ------------------------------------------------ | ---------------------------------- |
+| Dev 組織 validate    | `npm run sf:validate:dev`                        | `manifest/deployable-dev.xml`      |
+| Dev 組織 deploy      | `npm run sf:deploy:dev`                          | `manifest/deployable-dev.xml`      |
+| Scratch Org 初期反映 | `node scripts/deployment/rebuild-scratch-org.js` | `manifest/scratch-org-rebuild.xml` |
 
 `sf project deploy validate --source-dir force-app` は、標準の成功条件ではなく、広く retrieve した metadata の分類調査として扱います。
 
@@ -52,7 +52,7 @@
 | `profilePasswordPolicies/`          | 1          | 対象外            | Profile と同じく org / 権限運用依存。                                                       |
 | `profileSessionSettings/`           | 1          | 対象外            | Profile と同じく org / 権限運用依存。                                                       |
 | `translations/`                     | 8          | 対象外            | 標準項目や有効化機能の前提が広いため、標準 Dev scope には入れない。                         |
-| `externalClientApps/`               | 2          | 対象外            | OAuth link や配信状態など org 依存値がある。Scratch Org 用は `scratch-org/` で扱う。        |
+| `externalClientApps/`               | 2          | 対象外            | OAuth link や配信状態など org 依存値があるため、通常の Scratch Org 初期反映には含めない。   |
 | `extlClntAppGlobalOauthSets/`       | 2          | 対象外            | OAuth / secret / token 関連の設定名を含むため、標準 Dev scope には入れない。                |
 | `extlClntAppOauthPolicies/`         | 2          | 対象外            | OAuth policy は org 状態に依存する。                                                        |
 | `extlClntAppOauthSecuritySettings/` | 2          | 対象外            | OAuth security は org 状態に依存する。                                                      |
@@ -109,9 +109,9 @@
 
 | 種別                          | 理由                                                           | 今後の扱い                                                                         |
 | ----------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `settings/`                   | org 固有値、未有効化機能、接続設定、セキュリティ設定が混ざる。 | 設定ごとに個別 manifest または `scratch-org/main/default/settings` へ分離する。    |
+| `settings/`                   | org 固有値、未有効化機能、接続設定、セキュリティ設定が混ざる。 | 設定ごとに scratch definition、個別 manifest、または手順 docs で扱う。             |
 | `profiles/` / profile 系      | 標準 Profile や標準タブ設定のノイズが大きい。                  | Permission Set / Permission Set Group へ寄せる。                                   |
-| External Client App 系        | OAuth link、配信状態、security settings など org 依存が強い。  | Dev 用と Scratch Org 用を分け、生成が必要な値は `scratch-org/generated/` に置く。  |
+| External Client App 系        | OAuth link、配信状態、security settings など org 依存が強い。  | 通常の初期反映から外し、必要になった時点で org 固有値を含まない手順を設計する。    |
 | `managedContentTypes/`        | CMS 状態依存、更新不可のものがある。                           | CMS を作業対象にする Issue で個別に検証する。                                      |
 | `entitlementProcesses/`       | 使用中 SLA process は更新不可になることがある。                | 新規 / 変更が必要なときだけ専用 manifest で検証する。                              |
 | `applications/` / `appMenus/` | 標準 app、tab、namespace、表示順に依存する。                   | ユーザー作成 app は標準 deploy scope に含め、標準 app / AppMenu は個別に管理する。 |
