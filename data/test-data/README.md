@@ -22,6 +22,13 @@ npm run data:import:test -- --target-org <alias>
 npm run data:import:test -- --target-org <alias> --only accounts
 ```
 
+主要標準オブジェクト一式は、関係 ID を同一トランザクションで扱うため、専用の Apex seed を CLI から実行します。
+
+```sh
+npm run data:seed:standard:dry-run
+npm run data:seed:standard -- --target-org <alias>
+```
+
 ## 追加ルール
 
 - 実在の個人情報や顧客情報は置かない。

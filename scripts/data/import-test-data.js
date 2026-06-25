@@ -55,6 +55,8 @@ function printHelp() {
     console.log(`Usage:
   npm run data:import:test:dry-run
   npm run data:import:test -- --target-org <alias>
+  npm run data:seed:standard:dry-run
+  npm run data:seed:standard -- --target-org <alias>
 
 Options:
   --plan <path>        Import plan JSON. Default: data/test-data/import-plan.json
@@ -90,7 +92,7 @@ function readPlan(planPath) {
 }
 
 function validateEntry(entry) {
-    const requiredKeys = ['label', 'operation', 'sobject', 'file'];
+    const requiredKeys = ['label', 'operation', 'file'];
     const missingKeys = requiredKeys.filter((key) => !entry[key]);
 
     if (missingKeys.length > 0) {
@@ -99,9 +101,15 @@ function validateEntry(entry) {
         );
     }
 
-    if (!['insert', 'upsert'].includes(entry.operation)) {
+    if (!['insert', 'upsert', 'apex'].includes(entry.operation)) {
         throw new Error(
             `Unsupported operation for ${entry.label}: ${entry.operation}`
+        );
+    }
+
+    if (['insert', 'upsert'].includes(entry.operation) && !entry.sobject) {
+        throw new Error(
+            `Data import entry must include sobject: ${entry.label}`
         );
     }
 
@@ -117,14 +125,20 @@ function validateEntry(entry) {
         );
     }
 
-    const firstLine = fs
-        .readFileSync(absoluteFilePath, 'utf8')
-        .split(/\r?\n/, 1)[0];
+    const fileContent = fs.readFileSync(absoluteFilePath, 'utf8');
+    const firstLine = fileContent.split(/\r?\n/, 1)[0];
 
-    if (!firstLine || firstLine.split(',').length < 2) {
+    if (
+        ['insert', 'upsert'].includes(entry.operation) &&
+        (!firstLine || firstLine.split(',').length < 2)
+    ) {
         throw new Error(
             `CSV file must include a header with at least two columns: ${entry.file}`
         );
+    }
+
+    if (entry.operation === 'apex' && fileContent.trim().length === 0) {
+        throw new Error(`Apex file must not be empty: ${entry.file}`);
     }
 
     return absoluteFilePath;
@@ -132,6 +146,17 @@ function validateEntry(entry) {
 
 function buildSfArgs(entry, absoluteFilePath, targetOrg) {
     const wait = String(entry.wait ?? 30);
+
+    if (entry.operation === 'apex') {
+        return [
+            'apex',
+            'run',
+            '--file',
+            absoluteFilePath,
+            '--target-org',
+            targetOrg
+        ];
+    }
 
     if (entry.operation === 'upsert') {
         return [

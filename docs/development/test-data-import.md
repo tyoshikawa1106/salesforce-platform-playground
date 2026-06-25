@@ -11,8 +11,10 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 ## ファイル構成
 
 - `data/test-data/import-plan.json`: 投入対象の順序、SObject、CSV を定義する。
+- `data/test-data/standard-objects/import-plan.json`: 主要標準オブジェクト seed の実行計画。
 - `data/test-data/*.csv`: Salesforce CLI に渡す CSV。
-- `scripts/data/import-test-data.js`: import plan を読み、`sf data import bulk` を実行する。
+- `data/test-data/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
+- `scripts/data/import-test-data.js`: import plan を読み、`sf data import bulk` または `sf apex run` を実行する。
 
 ## 事前確認
 
@@ -50,6 +52,29 @@ npm run data:import:test -- --target-org <alias>
 npm run data:import:test -- --target-org <alias> --only accounts
 ```
 
+## 主要標準オブジェクト seed
+
+主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
+
+```sh
+npm run data:seed:standard:dry-run
+npm run data:seed:standard -- --target-org <alias>
+```
+
+作成対象は次のとおりです。
+
+| 分類         | API 名                                                         |
+| ------------ | -------------------------------------------------------------- |
+| 顧客         | `Account`, `Contact`, `Lead`                                   |
+| キャンペーン | `Campaign`, `CampaignMember`                                   |
+| 商品・価格   | `Product2`, `PricebookEntry`                                   |
+| 商談         | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
+| 契約・注文   | `Contract`, `Order`, `OrderItem`                               |
+| サポート     | `Asset`, `Case`, `WorkOrder`, `WorkOrderLineItem`              |
+| 活動         | `Task`, `Event`                                                |
+
+組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。
+
 ## cleanup
 
 投入後は、必要に応じて対象を確認してから削除します。
@@ -70,6 +95,12 @@ sf data delete record --sobject Account --record-id <record-id> --target-org <al
 
 ```sh
 sf data delete bulk --file data/test-data/delete-accounts.csv --sobject Account --target-org <alias> --wait 30
+```
+
+主要標準オブジェクト seed は、接頭辞 `CLI Standard Seed` を使って cleanup します。
+
+```sh
+sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
 ```
 
 ## データ追加時の注意
