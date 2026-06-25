@@ -65,7 +65,7 @@ if (!assets.isEmpty()) {
 List<OrderItem> orderItems = [
     SELECT Id
     FROM OrderItem
-    WHERE Description LIKE :seedPrefix
+    WHERE Order.Account.Name LIKE :seedPrefix
 ];
 if (!orderItems.isEmpty()) {
     delete orderItems;
@@ -75,7 +75,7 @@ if (!orderItems.isEmpty()) {
 List<Order> orders = [
     SELECT Id
     FROM Order
-    WHERE Description LIKE :seedPrefix
+    WHERE Account.Name LIKE :seedPrefix
 ];
 if (!orders.isEmpty()) {
     delete orders;
@@ -85,7 +85,7 @@ if (!orders.isEmpty()) {
 List<Contract> contracts = [
     SELECT Id
     FROM Contract
-    WHERE Description LIKE :seedPrefix
+    WHERE Account.Name LIKE :seedPrefix
 ];
 if (!contracts.isEmpty()) {
     delete contracts;
@@ -95,7 +95,7 @@ if (!contracts.isEmpty()) {
 List<OpportunityLineItem> opportunityLineItems = [
     SELECT Id
     FROM OpportunityLineItem
-    WHERE Description LIKE :seedPrefix
+    WHERE Opportunity.Name LIKE :seedPrefix
 ];
 if (!opportunityLineItems.isEmpty()) {
     delete opportunityLineItems;
