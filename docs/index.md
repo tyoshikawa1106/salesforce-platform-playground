@@ -29,6 +29,7 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 
 - [ドキュメント配置ルール](development/documentation-rules.md)
 - [設定ファイル管理](development/configuration-files.md)
+- [Salesforce CLI テストデータインポート](development/test-data-import.md)
 - [Settings 有効化状況](development/settings-enable-candidates.md)
 - [.gitignore 運用メモ](development/gitignore-rules.md)
 
