@@ -655,6 +655,10 @@
         <name>CustomObject</name>
     </types>
     <types>
+        <members>Salesforce</members>
+        <name>CustomApplication</name>
+    </types>
+    <types>
         <members>AdvertisingInventoryCalendar_UtilityBar</members>
         <members>DataGovernanceConsole_UtilityBar</members>
         <members>FlowsApp_UtilityBar</members>

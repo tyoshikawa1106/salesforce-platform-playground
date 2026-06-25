@@ -232,6 +232,7 @@ Settings は `force-app/main/default/settings` 全体をそのまま反映しま
 - Lightning Web Components
 - Object 配下の標準オブジェクト差分、ListView、ValidationRule、WebLink
 - Permission Set
+- Custom Application（ユーザー作成アプリ）
 - FlexiPage
 - Flow
 - Layout
