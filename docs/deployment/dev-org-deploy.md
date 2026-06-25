@@ -38,6 +38,68 @@ sf project deploy validate --manifest manifest/deployable-dev.xml --test-level R
 validate が失敗した場合は、失敗理由と対象ファイルを確認し、必要な修正だけを行います。
 `sf project deploy validate --source-dir force-app` の失敗は、広く retrieve した org 固有 metadata の混入確認として扱い、通常作業の失敗判定にはしません。
 
+## CI validate
+
+GitHub Actions の `npm checks` は、Salesforce JWT 認証用の Secrets が揃っている場合だけ Dev 組織 validate を実行します。
+Secrets が未設定の場合は、Salesforce validate を skip して CI は成功扱いにします。
+
+設定する Secrets:
+
+| Secret               | 用途                                                 | 必須                                           |
+| -------------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| `SF_JWT_CLIENT_ID`   | Connected App の Consumer Key                        | Salesforce validate を CI で実行する場合は必須 |
+| `SF_JWT_USERNAME`    | CI 用連携ユーザーの username                         | Salesforce validate を CI で実行する場合は必須 |
+| `SF_JWT_PRIVATE_KEY` | JWT bearer flow 用の秘密鍵 PEM 全体                  | Salesforce validate を CI で実行する場合は必須 |
+| `SF_LOGIN_URL`       | login URL。未設定時は `https://login.salesforce.com` | 任意                                           |
+
+Secrets を設定した場合、CI は `sf org login jwt` で `ci-dev` alias を作成し、次を実行します。
+
+```sh
+npm run sf:validate:dev -- --target-org ci-dev
+```
+
+Secrets には実値の秘密情報を入れますが、リポジトリ内の docs、workflow、commit message には値を書きません。
+`SF_JWT_PRIVATE_KEY` は `-----BEGIN ... KEY-----` から `-----END ... KEY-----` までを GitHub Secret に保存します。
+
+### GitHub Secrets の登録場所
+
+GitHub の repository 画面から次の順に開きます。
+
+1. `Settings`
+2. `Secrets and variables`
+3. `Actions`
+4. `Repository secrets`
+5. `New repository secret`
+
+`SF_JWT_CLIENT_ID`、`SF_JWT_USERNAME`、`SF_JWT_PRIVATE_KEY` を 1 つずつ登録します。
+Sandbox に対して validate する場合は、`SF_LOGIN_URL` に `https://test.salesforce.com` を登録します。
+Developer Edition や Production login を使う場合、`SF_LOGIN_URL` は未設定で構いません。
+
+### Salesforce 側で準備するもの
+
+CI で validate を実行するには、Salesforce 側で JWT bearer flow 用の Connected App と CI 用連携ユーザーを用意します。
+
+準備するもの:
+
+- CI 用連携ユーザー
+- CI 用連携ユーザーに必要な権限
+- Connected App
+- Connected App の Consumer Key
+- JWT bearer flow 用の証明書 / 秘密鍵
+- Connected App の policy で CI 用連携ユーザーが利用できる設定
+
+GitHub Secrets へ入れる値は次の対応です。
+
+| GitHub Secret        | Salesforce 側の値                                   |
+| -------------------- | --------------------------------------------------- |
+| `SF_JWT_CLIENT_ID`   | Connected App の Consumer Key                       |
+| `SF_JWT_USERNAME`    | CI 用連携ユーザーの username                        |
+| `SF_JWT_PRIVATE_KEY` | JWT bearer flow 用の秘密鍵 PEM 全体                 |
+| `SF_LOGIN_URL`       | login URL。Sandbox は `https://test.salesforce.com` |
+
+秘密鍵、証明書、Consumer Secret、token、password などの実値は、リポジトリに保存しません。
+Connected App の Consumer Secret は JWT bearer flow の CI validate では使いません。
+
 ## Deploy
 
 validate が成功したら、同じ現在接続中の組織へ反映します。
