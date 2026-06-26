@@ -56,7 +56,7 @@ npm run data:import:test -- --target-org <alias> --only accounts
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
-各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
+各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
 
 execute anonymous の CPU / サイズ制限を避けるため、accounts、contacts-leads、campaign-product-price、sales、service、activity-content の 6 フェーズに分けて実行します。
 
@@ -105,7 +105,7 @@ sf data delete record --sobject Account --record-id <record-id> --target-org <al
 sf data delete bulk --file data/test-data/delete-accounts.csv --sobject Account --target-org <alias> --wait 30
 ```
 
-主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。
+主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。cleanup は governor limit を避けるため、各オブジェクト最大 100 件ずつ削除します。大量投入後は `Deleted records: none` になるまで複数回実行します。
 
 ```sh
 sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
