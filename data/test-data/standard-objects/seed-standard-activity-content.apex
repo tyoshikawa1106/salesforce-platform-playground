@@ -180,9 +180,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         new Task(
             Subject = seedPrefix +
                 ' ' +
-                taskSubjects[Math.mod(sequence - 1, taskSubjects.size())] +
-                ' ' +
-                String.valueOf(sequence).leftPad(4, '0'),
+                taskSubjects[Math.mod(sequence - 1, taskSubjects.size())],
             WhoId = contact.Id,
             WhatId = opportunity.Id,
             Status = taskStatus,
@@ -195,9 +193,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         new Event(
             Subject = seedPrefix +
                 ' ' +
-                eventSubjects[Math.mod(sequence - 1, eventSubjects.size())] +
-                ' ' +
-                String.valueOf(sequence).leftPad(4, '0'),
+                eventSubjects[Math.mod(sequence - 1, eventSubjects.size())],
             WhoId = contact.Id,
             WhatId = opportunity.Id,
             StartDateTime = Datetime.now().addDays(Math.mod(sequence, 180)),
@@ -212,9 +208,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     );
     files.add(
         new ContentVersion(
-            Title = seedPrefix +
-                ' 提案メモ ' +
-                String.valueOf(sequence).leftPad(4, '0'),
+            Title = seedPrefix + ' 提案メモ',
             PathOnClient = 'proposal-note-' +
                 String.valueOf(sequence).leftPad(4, '0') +
                 '.txt',
@@ -237,9 +231,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         putIfCreateable(
             email,
             'Subject',
-            seedPrefix +
-                ' お問い合わせ内容の確認 ' +
-                String.valueOf(sequence).leftPad(4, '0')
+            seedPrefix + ' お問い合わせ内容の確認'
         );
         putIfCreateable(
             email,

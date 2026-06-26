@@ -74,4 +74,5 @@ sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex
 - 実行前に `sf org display --target-org <alias>` で対象 org を確認する。
 - 組織の機能や権限によって、一部の標準オブジェクトは作成できない場合がある。
 - seed script は optional object の失敗を debug log に出し、作成可能な範囲を続行する。
-- `Account.Name` は `[TEST]A0001` 形式のテスト番号を先頭に含める。名称中の都道府県と請求先/納入先住所の都道府県は一致させる。
+- `Account.Name` は `[TEST] 東京都 青山データ企画株式会社` のように、テスト接頭辞、都道府県、自然な会社名で構成する。名称中の都道府県と請求先/納入先住所の都道府県は一致させる。
+- `Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には、連番プレフィックスを付けない。内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持する。

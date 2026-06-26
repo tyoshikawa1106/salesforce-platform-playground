@@ -209,9 +209,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 ' ' +
                 opportunityNames[
                     Math.mod(sequence - 1, opportunityNames.size())
-                ] +
-                ' ' +
-                String.valueOf(sequence).leftPad(4, '0'),
+                ],
             AccountId = accounts[Math.mod(sequence - 1, accounts.size())].Id,
             CampaignId = campaigns[Math.mod(sequence - 1, campaigns.size())].Id,
             Pricebook2Id = entry.Pricebook2Id,
@@ -324,8 +322,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Name = seedPrefix +
                 ' ' +
                 product.Name.replace(seedPrefix, '').trim() +
-                ' 利用環境 ' +
-                String.valueOf(sequence).leftPad(4, '0'),
+                ' 利用環境',
             AccountId = account.Id,
             ContactId = contact.Id,
             Product2Id = product.Id,
@@ -342,9 +339,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         new Case(
             Subject = seedPrefix +
                 ' ' +
-                caseSubjects[Math.mod(sequence - 1, caseSubjects.size())] +
-                ' ' +
-                String.valueOf(sequence).leftPad(4, '0'),
+                caseSubjects[Math.mod(sequence - 1, caseSubjects.size())],
             AccountId = account.Id,
             ContactId = contact.Id,
             Origin = caseOrigin,

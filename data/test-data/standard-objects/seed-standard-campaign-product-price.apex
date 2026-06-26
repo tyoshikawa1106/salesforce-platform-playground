@@ -39,7 +39,9 @@ void logResults(String objectName, Database.SaveResult[] results) {
     }
     System.debug('Created records: ' + objectName + ': ' + successCount);
     if (!errors.isEmpty()) {
-        System.debug('Skipped records: ' + objectName + ': ' + String.join(errors, ' / '));
+        System.debug(
+            'Skipped records: ' + objectName + ': ' + String.join(errors, ' / ')
+        );
     }
 }
 
@@ -51,14 +53,32 @@ List<Contact> contacts = [
     LIMIT :countPerObject
 ];
 if (contacts.isEmpty()) {
-    System.assert(false, 'Run standard-objects-contacts-leads before campaigns and products.');
+    System.assert(
+        false,
+        'Run standard-objects-contacts-leads before campaigns and products.'
+    );
 }
 
-String campaignType = pick(Campaign.Type.getDescribe(), new List<String>{ 'Webinar', 'Email', 'Conference' });
-String campaignStatus = pick(Campaign.Status.getDescribe(), new List<String>{ 'In Progress', 'Planned', 'Completed' });
-String memberStatus = pick(CampaignMember.Status.getDescribe(), new List<String>{ 'Sent', 'Responded' });
-String productFamily = pick(Product2.Family.getDescribe(), new List<String>{ 'Software', 'Hardware', 'Services' });
-String quantityUnit = pick(Product2.QuantityUnitOfMeasure.getDescribe(), new List<String>{ 'Each', 'Hours' });
+String campaignType = pick(
+    Campaign.Type.getDescribe(),
+    new List<String>{ 'Webinar', 'Email', 'Conference' }
+);
+String campaignStatus = pick(
+    Campaign.Status.getDescribe(),
+    new List<String>{ 'In Progress', 'Planned', 'Completed' }
+);
+String memberStatus = pick(
+    CampaignMember.Status.getDescribe(),
+    new List<String>{ 'Sent', 'Responded' }
+);
+String productFamily = pick(
+    Product2.Family.getDescribe(),
+    new List<String>{ 'Software', 'Hardware', 'Services' }
+);
+String quantityUnit = pick(
+    Product2.QuantityUnitOfMeasure.getDescribe(),
+    new List<String>{ 'Each', 'Hours' }
+);
 
 List<String> campaignNames = new List<String>{
     '春の営業改革ウェビナー',
@@ -109,8 +129,8 @@ List<Campaign> campaigns = new List<Campaign>();
 List<Product2> products = new List<Product2>();
 List<Pricebook2> pricebooks = new List<Pricebook2>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
-    String campaignName = campaignNames[Math.mod(i - 1, campaignNames.size())] + ' ' + String.valueOf(i).leftPad(3, '0');
-    String productName = productNames[Math.mod(i - 1, productNames.size())] + ' ' + String.valueOf(i).leftPad(3, '0');
+    String campaignName = campaignNames[Math.mod(i - 1, campaignNames.size())];
+    String productName = productNames[Math.mod(i - 1, productNames.size())];
     campaigns.add(
         new Campaign(
             Name = seedPrefix + ' ' + campaignName,
@@ -124,7 +144,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             ActualCost = 300000 + (i * 20000),
             ExpectedResponse = 10 + i,
             NumberSent = 100 + i,
-            Description = campaignName + ' の反応率、商談化率、フォロー状況を確認するための合成キャンペーンです。'
+            Description = campaignName +
+                ' の反応率、商談化率、フォロー状況を確認するための合成キャンペーンです。'
         )
     );
 
@@ -135,7 +156,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Family = productFamily,
             QuantityUnitOfMeasure = quantityUnit,
             IsActive = true,
-            Description = productName + '。標準の販売・契約・サポートフロー検証に使うテスト商品です。'
+            Description = productName +
+                '。標準の販売・契約・サポートフロー検証に使うテスト商品です。'
         )
     );
 
@@ -143,7 +165,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         new Pricebook2(
             Name = seedPrefix + ' ' + productName + ' 価格表',
             IsActive = true,
-            Description = productName + ' の標準販売価格を確認するためのテスト価格表です。'
+            Description = productName +
+                ' の標準販売価格を確認するためのテスト価格表です。'
         )
     );
 }
@@ -193,14 +216,41 @@ List<CampaignMember> members = new List<CampaignMember>();
 List<PricebookEntry> standardEntries = new List<PricebookEntry>();
 List<PricebookEntry> customEntries = new List<PricebookEntry>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
-    Campaign campaign = insertedCampaigns[Math.mod(i - 1, insertedCampaigns.size())];
+    Campaign campaign = insertedCampaigns[
+        Math.mod(i - 1, insertedCampaigns.size())
+    ];
     Contact contact = contacts[Math.mod(i - 1, contacts.size())];
-    Product2 product = insertedProducts[Math.mod(i - 1, insertedProducts.size())];
-    Pricebook2 pricebook = insertedPricebooks[Math.mod(i - 1, insertedPricebooks.size())];
+    Product2 product = insertedProducts[
+        Math.mod(i - 1, insertedProducts.size())
+    ];
+    Pricebook2 pricebook = insertedPricebooks[
+        Math.mod(i - 1, insertedPricebooks.size())
+    ];
 
-    members.add(new CampaignMember(CampaignId = campaign.Id, ContactId = contact.Id, Status = memberStatus));
-    standardEntries.add(new PricebookEntry(Pricebook2Id = standardPricebook.Id, Product2Id = product.Id, UnitPrice = 10000 + (i * 500), IsActive = true));
-    customEntries.add(new PricebookEntry(Pricebook2Id = pricebook.Id, Product2Id = product.Id, UnitPrice = 12000 + (i * 500), IsActive = true, UseStandardPrice = false));
+    members.add(
+        new CampaignMember(
+            CampaignId = campaign.Id,
+            ContactId = contact.Id,
+            Status = memberStatus
+        )
+    );
+    standardEntries.add(
+        new PricebookEntry(
+            Pricebook2Id = standardPricebook.Id,
+            Product2Id = product.Id,
+            UnitPrice = 10000 + (i * 500),
+            IsActive = true
+        )
+    );
+    customEntries.add(
+        new PricebookEntry(
+            Pricebook2Id = pricebook.Id,
+            Product2Id = product.Id,
+            UnitPrice = 12000 + (i * 500),
+            IsActive = true,
+            UseStandardPrice = false
+        )
+    );
 }
 
 logResults('CampaignMember', Database.insert(members, false));

@@ -79,7 +79,7 @@ npm run data:seed:standard -- --target-org <alias>
 | 活動             | `Task`, `Event`                                                |
 | メール・ファイル | `EmailMessage`, `ContentVersion`                               |
 
-組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。`Account.Name` は `[TEST]A0001` 形式のテスト番号を先頭に含め、名称中の都道府県と請求先/納入先住所の都道府県を一致させます。
+組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。`Account.Name` は `[TEST] 東京都 青山データ企画株式会社` のように、テスト接頭辞、都道府県、自然な会社名で構成し、名称中の都道府県と請求先/納入先住所の都道府県を一致させます。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 

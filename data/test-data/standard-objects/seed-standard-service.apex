@@ -129,13 +129,7 @@ if (
     for (Integer i = 1; i <= countPerObject; i += 1) {
         Integer sequence = existingWorkOrderCount + i;
         SObject record = gd.get('ServiceContract').newSObject();
-        putIfCreateable(
-            record,
-            'Name',
-            seedPrefix +
-                ' 年間サポート契約 ' +
-                String.valueOf(sequence).leftPad(4, '0')
-        );
+        putIfCreateable(record, 'Name', seedPrefix + ' 年間サポート契約');
         putIfCreateable(
             record,
             'AccountId',
@@ -201,13 +195,7 @@ if (
     for (Integer i = 1; i <= countPerObject; i += 1) {
         Integer sequence = existingWorkOrderCount + i;
         SObject record = gd.get('Entitlement').newSObject();
-        putIfCreateable(
-            record,
-            'Name',
-            seedPrefix +
-                ' 平日サポート権利 ' +
-                String.valueOf(sequence).leftPad(4, '0')
-        );
+        putIfCreateable(record, 'Name', seedPrefix + ' 平日サポート権利');
         putIfCreateable(
             record,
             'AccountId',
@@ -290,13 +278,7 @@ if (
     for (Integer i = 1; i <= countPerObject; i += 1) {
         Integer sequence = existingWorkOrderCount + i;
         SObject record = gd.get('WorkOrder').newSObject();
-        putIfCreateable(
-            record,
-            'Subject',
-            seedPrefix +
-                ' 導入後設定確認 ' +
-                String.valueOf(sequence).leftPad(4, '0')
-        );
+        putIfCreateable(record, 'Subject', seedPrefix + ' 導入後設定確認');
         putIfCreateable(
             record,
             'AccountId',
@@ -390,9 +372,7 @@ if (
         putIfCreateable(
             record,
             'Subject',
-            seedPrefix +
-                ' 権限と通知設定の確認 ' +
-                String.valueOf(sequence).leftPad(4, '0')
+            seedPrefix + ' 権限と通知設定の確認'
         );
         putIfCreateable(
             record,
