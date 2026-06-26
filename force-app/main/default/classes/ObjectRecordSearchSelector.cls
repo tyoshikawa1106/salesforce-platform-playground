@@ -1,8 +1,10 @@
 /**
  * 汎用レコード検索画面で使う Salesforce レコードを問い合わせます。
  */
+@SuppressWarnings('PMD.CyclomaticComplexity')
 public virtual with sharing class ObjectRecordSearchSelector {
-    private static final Integer MAX_ROWS = 200;
+    private static final Integer PAGE_SIZE = 500;
+    private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
 
     /**
      * 表示キーに対応する検索画面設定を返します。
@@ -31,19 +33,18 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
-     * @param metricKey データボードカードの表示キー
-     * @param searchTerm Name 項目に対する検索語
-     * @return 最大 200 件の検索結果
+     * @param request 検索条件とページ指定
+     * @return 1 ページ最大 500 件の検索結果
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
-        String metricKey,
-        String searchTerm
+        ObjectRecordSearchController.ObjectRecordSearchRequest request
     ) {
         ObjectRecordSearchController.ObjectRecordSearchConfig config = getObjectConfig(
-            metricKey
+            request?.metricKey
         );
-        String normalizedSearchTerm = searchTerm?.trim();
+        PageCursor cursor = parsePageToken(request?.pageToken);
+        String normalizedSearchTerm = request?.searchTerm?.trim();
         String likeSearchTerm = usesNameSearch(normalizedSearchTerm, config)
             ? '%' + normalizedSearchTerm + '%'
             : null;
@@ -51,7 +52,11 @@ public virtual with sharing class ObjectRecordSearchSelector {
         if (likeSearchTerm != null) {
             bindValues.put('nameSearchTerm', likeSearchTerm);
         }
-        String query = createSearchQuery(config, likeSearchTerm != null);
+        if (cursor != null) {
+            bindValues.put('cursorName', cursor.name);
+            bindValues.put('cursorRecordId', cursor.recordId);
+        }
+        String query = createSearchQuery(config, likeSearchTerm != null, cursor);
 
         List<ObjectRecordSearchController.ObjectRecordRow> rows = new List<ObjectRecordSearchController.ObjectRecordRow>();
         for (
@@ -70,16 +75,25 @@ public virtual with sharing class ObjectRecordSearchSelector {
             );
         }
 
+        Boolean hasNextPage = rows.size() > PAGE_SIZE;
+        if (hasNextPage) {
+            rows.remove(PAGE_SIZE);
+        }
+
         return new ObjectRecordSearchController.ObjectRecordSearchResult(
             config,
             rows,
-            MAX_ROWS
+            createPageState(
+                normalizePageNumber(request?.pageNumber),
+                hasNextPage ? createNextPageToken(rows) : null
+            )
         );
     }
 
     private String createSearchQuery(
         ObjectRecordSearchController.ObjectRecordSearchConfig config,
-        Boolean includeNameSearch
+        Boolean includeNameSearch,
+        PageCursor cursor
     ) {
         String query =
             'SELECT Id, ' +
@@ -87,16 +101,31 @@ public virtual with sharing class ObjectRecordSearchSelector {
             ', CreatedDate, LastModifiedDate FROM ' +
             config.objectApiName;
 
+        List<String> whereClauses = new List<String>();
         if (includeNameSearch) {
-            query +=
-                ' WHERE ' +
-                config.nameFieldApiName +
-                ' LIKE :nameSearchTerm';
+            whereClauses.add(
+                config.nameFieldApiName + ' LIKE :nameSearchTerm'
+            );
+        }
+        if (cursor != null) {
+            whereClauses.add(
+                '(' +
+                    config.nameFieldApiName +
+                    ' > :cursorName OR (' +
+                    config.nameFieldApiName +
+                    ' = :cursorName AND Id > :cursorRecordId))'
+            );
+        }
+
+        if (!whereClauses.isEmpty()) {
+            query += ' WHERE ' + String.join(whereClauses, ' AND ');
         }
 
         return query +
-            ' ORDER BY LastModifiedDate DESC LIMIT ' +
-            MAX_ROWS;
+            ' ORDER BY ' +
+            config.nameFieldApiName +
+            ' ASC, Id ASC LIMIT ' +
+            PAGE_FETCH_SIZE;
     }
 
     private Boolean usesNameSearch(
@@ -169,10 +198,68 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'SELECT Id FROM ' +
                 objectApiName +
                 ' WHERE Id IN :recordIds LIMIT ' +
-                MAX_ROWS,
+                recordIds.size(),
             new Map<String, Object>{ 'recordIds' => recordIds },
             AccessLevel.USER_MODE
         );
+    }
+
+    private Integer normalizePageNumber(Integer pageNumber) {
+        return pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
+    }
+
+    private String createNextPageToken(
+        List<ObjectRecordSearchController.ObjectRecordRow> rows
+    ) {
+        ObjectRecordSearchController.ObjectRecordRow lastRow = rows[
+            rows.size() - 1
+        ];
+        return JSON.serialize(
+            new Map<String, String>{
+                'name' => lastRow.name,
+                'recordId' => String.valueOf(lastRow.id)
+            }
+        );
+    }
+
+    private ObjectRecordSearchController.ObjectRecordSearchPageState createPageState(
+        Integer pageNumber,
+        String nextPageToken
+    ) {
+        ObjectRecordSearchController.ObjectRecordSearchPageState pageState = new ObjectRecordSearchController.ObjectRecordSearchPageState();
+        pageState.pageSize = PAGE_SIZE;
+        pageState.pageNumber = pageNumber;
+        pageState.nextPageToken = nextPageToken;
+        return pageState;
+    }
+
+    private PageCursor parsePageToken(String pageToken) {
+        if (String.isBlank(pageToken)) {
+            return null;
+        }
+
+        Map<String, Object> tokenParts = (Map<String, Object>) JSON.deserializeUntyped(
+            pageToken
+        );
+        String cursorName = (String) tokenParts.get('name');
+        String cursorRecordId = (String) tokenParts.get('recordId');
+        if (String.isBlank(cursorName) || String.isBlank(cursorRecordId)) {
+            throw new ObjectRecordSearchException(
+                'ページ指定を読み込めません。'
+            );
+        }
+
+        return new PageCursor(cursorName, (Id) cursorRecordId);
+    }
+
+    private class PageCursor {
+        private final String name;
+        private final Id recordId;
+
+        private PageCursor(String name, Id recordId) {
+            this.name = name;
+            this.recordId = recordId;
+        }
     }
 
     private ObjectMetricCatalog.MetricDefinition requireDefinition(

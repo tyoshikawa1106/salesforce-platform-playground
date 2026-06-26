@@ -34,15 +34,13 @@ public with sharing class ObjectRecordSearchService {
 
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
-     * @param metricKey データボードカードの表示キー
-     * @param searchTerm Name 項目に対する検索語
-     * @return 最大 200 件の検索結果
+     * @param request 検索条件とページ指定
+     * @return 1 ページ最大 500 件の検索結果
      */
     public ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
-        String metricKey,
-        String searchTerm
+        ObjectRecordSearchController.ObjectRecordSearchRequest request
     ) {
-        return selector.searchRecords(metricKey, searchTerm);
+        return selector.searchRecords(request);
     }
 
     /**

@@ -23,6 +23,10 @@
     position: relative;
 }
 
+.pagination {
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
 .form-section__fields {
     display: grid;
     gap: 0 var(--slds-g-spacing-4, 1rem);
@@ -34,6 +38,10 @@
 }
 
 @media (max-width: 48em) {
+    .pagination {
+        justify-content: flex-start;
+    }
+
     .toolbar__actions {
         justify-content: flex-start;
     }

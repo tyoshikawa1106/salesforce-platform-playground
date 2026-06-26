@@ -80,6 +80,12 @@ export default class ObjectRecordSearch extends LightningElement {
     rows = [];
     selectedRowIds = [];
     config;
+    pageNumber = 1;
+    pageSize = 500;
+    currentPageToken;
+    nextPageToken;
+    pageTokenHistory = [];
+    hasNextPage = false;
     errorTitle;
     errorMessage;
     isDeleting = false;
@@ -91,8 +97,7 @@ export default class ObjectRecordSearch extends LightningElement {
     formLayoutResult;
 
     @wire(searchRecords, {
-        metricKey: '$metricKey',
-        searchTerm: '$searchTerm'
+        request: '$searchRequest'
     })
     wiredRecords(result) {
         this.wiredSearchResult = result;
@@ -105,11 +110,17 @@ export default class ObjectRecordSearch extends LightningElement {
                 createdDateLabel: this.formatDate(record.createdDate),
                 lastModifiedDateLabel: this.formatDate(record.lastModifiedDate)
             }));
+            this.pageNumber = data.pageNumber ?? this.pageNumber;
+            this.pageSize = data.pageSize ?? this.pageSize;
+            this.nextPageToken = data.nextPageToken;
+            this.hasNextPage = Boolean(data.hasNextPage);
             this.selectedRowIds = [];
             this.errorTitle = undefined;
             this.errorMessage = undefined;
         } else if (error) {
             this.rows = [];
+            this.nextPageToken = undefined;
+            this.hasNextPage = false;
             this.selectedRowIds = [];
             this.errorTitle = this.isAccessError(error)
                 ? 'アクセス権限を確認してください'
@@ -142,6 +153,15 @@ export default class ObjectRecordSearch extends LightningElement {
             : 'レコード一覧';
     }
 
+    get searchRequest() {
+        return {
+            metricKey: this.metricKey,
+            searchTerm: this.searchTerm,
+            pageToken: this.currentPageToken,
+            pageNumber: this.pageNumber
+        };
+    }
+
     get searchLabel() {
         const nameFieldLabel = this.config?.nameFieldLabel ?? 'Name';
         return `${nameFieldLabel} を検索`;
@@ -172,7 +192,19 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get recordCountLabel() {
-        return `${this.rows.length} 個の項目`;
+        return `${this.rows.length} / ${this.pageSize} 件`;
+    }
+
+    get pageLabel() {
+        return `${this.pageNumber} ページ目`;
+    }
+
+    get previousDisabled() {
+        return this.isBusy || this.pageNumber <= 1;
+    }
+
+    get nextDisabled() {
+        return this.isBusy || !this.hasNextPage;
     }
 
     get selectedCount() {
@@ -506,6 +538,28 @@ export default class ObjectRecordSearch extends LightningElement {
 
     handleSearch() {
         this.searchTerm = this.draftSearchTerm.trim();
+        this.resetPagination();
+    }
+
+    handlePreviousPage() {
+        if (this.previousDisabled) {
+            return;
+        }
+
+        this.pageTokenHistory.pop();
+        this.pageNumber -= 1;
+        this.currentPageToken =
+            this.pageTokenHistory[this.pageTokenHistory.length - 1];
+    }
+
+    handleNextPage() {
+        if (this.nextDisabled) {
+            return;
+        }
+
+        this.currentPageToken = this.nextPageToken;
+        this.pageTokenHistory.push(this.nextPageToken);
+        this.pageNumber += 1;
     }
 
     handleRowSelection(event) {
@@ -714,4 +768,11 @@ export default class ObjectRecordSearch extends LightningElement {
         };
     }
 
+    resetPagination() {
+        this.pageNumber = 1;
+        this.currentPageToken = undefined;
+        this.nextPageToken = undefined;
+        this.pageTokenHistory = [];
+        this.hasNextPage = false;
+    }
 }

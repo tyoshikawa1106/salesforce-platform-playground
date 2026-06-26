@@ -15,12 +15,17 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     @IsTest
     static void searchRecordsShouldFilterByBoundNameTerm() {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+            'accounts',
+            ' Alpha '
+        );
+        request.pageNumber = 1;
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         ObjectRecordSearchController.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            result = selector.searchRecords('accounts', ' Alpha ');
+            result = selector.searchRecords(request);
             Test.stopTest();
         }
 
@@ -35,20 +40,24 @@ private with sharing class ObjectRecordSearchSelectorTest {
             'Selector row should expose the matching Account name.'
         );
         Assert.areEqual(
-            200,
-            result.limitSize,
-            'Selector result should expose the configured row limit.'
+            500,
+            result.pageSize,
+            'Selector result should expose the configured page size.'
         );
     }
 
     @IsTest
     static void searchRecordsShouldReturnRowsWhenSearchTermIsBlank() {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+            'accounts',
+            ' '
+        );
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         ObjectRecordSearchController.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            result = selector.searchRecords('accounts', ' ');
+            result = selector.searchRecords(request);
             Test.stopTest();
         }
 
@@ -56,6 +65,76 @@ private with sharing class ObjectRecordSearchSelectorTest {
             4,
             result.records.size(),
             'Blank selector searches should return all visible setup Accounts.'
+        );
+        Assert.areEqual(
+            'Selector Alpha',
+            result.records[0].name,
+            'Blank selector searches should order rows by Name ascending.'
+        );
+        Assert.areEqual(
+            'Selector Beta',
+            result.records[1].name,
+            'Blank selector searches should keep Name ascending order.'
+        );
+    }
+
+    @IsTest
+    static void searchRecordsShouldPageWithCursorToken() {
+        List<Account> accounts = TestDataFactory.createAccounts(501);
+        for (Integer index = 0; index < accounts.size(); index++) {
+            accounts[index].Name = 'Selector Page ' + index;
+        }
+        insert accounts;
+
+        ObjectRecordSearchController.ObjectRecordSearchRequest firstRequest = createSearchRequest(
+            'accounts',
+            'Selector Page'
+        );
+        firstRequest.pageNumber = 1;
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        ObjectRecordSearchController.ObjectRecordSearchResult firstPage;
+        ObjectRecordSearchController.ObjectRecordSearchResult secondPage;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            firstPage = selector.searchRecords(firstRequest);
+
+            ObjectRecordSearchController.ObjectRecordSearchRequest secondRequest = createSearchRequest(
+                'accounts',
+                'Selector Page'
+            );
+            secondRequest.pageToken = firstPage.nextPageToken;
+            secondRequest.pageNumber = 2;
+            secondPage = selector.searchRecords(secondRequest);
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            500,
+            firstPage.records.size(),
+            'First page should return the configured number of rows.'
+        );
+        Assert.isTrue(
+            firstPage.hasNextPage,
+            'First page should indicate that another page exists.'
+        );
+        Assert.isNotNull(
+            firstPage.nextPageToken,
+            'First page should include a cursor token for the next page.'
+        );
+        Assert.areEqual(
+            1,
+            secondPage.records.size(),
+            'Second page should return the remaining matching row.'
+        );
+        Assert.areEqual(
+            2,
+            secondPage.pageNumber,
+            'Second page should preserve the requested page number.'
+        );
+        Assert.isFalse(
+            secondPage.hasNextPage,
+            'Second page should indicate there are no more rows.'
         );
     }
 
@@ -131,5 +210,15 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     private static User getCurrentUser() {
         return new User(Id = UserInfo.getUserId());
+    }
+
+    private static ObjectRecordSearchController.ObjectRecordSearchRequest createSearchRequest(
+        String metricKey,
+        String searchTerm
+    ) {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = new ObjectRecordSearchController.ObjectRecordSearchRequest();
+        request.metricKey = metricKey;
+        request.searchTerm = searchTerm;
+        return request;
     }
 }
