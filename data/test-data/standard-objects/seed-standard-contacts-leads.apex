@@ -1,4 +1,4 @@
-Integer countPerObject = 20;
+Integer countPerObject = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
@@ -66,15 +66,25 @@ List<String> departments = new List<String>{ '営業企画部', '情報システ
 List<String> contactTitles = new List<String>{ '部長', '課長', 'マネージャー', '主任', 'プロジェクトリーダー' };
 List<String> prospectCompanies = new List<String>{ '晴海データサービス', '赤坂マーケットリサーチ', '品川サブスクリプションズ', '池袋スマート店舗', '豊洲サプライチェーン', '恵比寿ワークプレイス', '中野ヘルステック', '立川教育プラットフォーム', '川崎インダストリアル', '浦和ファイナンス' };
 
+Database.DMLOptions duplicateRuleOptions = new Database.DMLOptions();
+duplicateRuleOptions.DuplicateRuleHeader.allowSave = true;
+duplicateRuleOptions.optAllOrNone = false;
+
 List<Contact> contacts = new List<Contact>();
 List<Lead> leads = new List<Lead>();
+Integer existingContactCount = [SELECT COUNT() FROM Contact WHERE LastName LIKE :seedLike];
+Integer existingLeadCount = [SELECT COUNT() FROM Lead WHERE LastName LIKE :seedLike];
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Account account = accounts[Math.mod(i - 1, accounts.size())];
-    String familyName = familyNames[i - 1];
-    String givenName = givenNames[i - 1];
+    Integer contactSequence = existingContactCount + i;
+    Integer leadSequence = existingLeadCount + i;
+    String paddedContactSequence = String.valueOf(contactSequence).leftPad(4, '0');
+    String paddedLeadSequence = String.valueOf(leadSequence).leftPad(4, '0');
+    String familyName = familyNames[Math.mod(contactSequence - 1, familyNames.size())] + paddedContactSequence;
+    String givenName = givenNames[Math.mod(contactSequence - 1, givenNames.size())];
     String department = departments[Math.mod(i - 1, departments.size())];
     String contactTitle = contactTitles[Math.mod(i - 1, contactTitles.size())];
-    String prospectCompany = prospectCompanies[Math.mod(i - 1, prospectCompanies.size())];
+    String prospectCompany = prospectCompanies[Math.mod(leadSequence - 1, prospectCompanies.size())] + ' ' + paddedLeadSequence;
     contacts.add(
         new Contact(
             AccountId = account.Id,
@@ -82,10 +92,10 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             LastName = seedPrefix + ' ' + familyName,
             Title = department + ' ' + contactTitle,
             Department = department,
-            Email = 'standard.seed.contact+' + i + '@example.invalid',
-            Phone = '03-5555-' + String.valueOf(3000 + i),
-            MobilePhone = '090-5555-' + String.valueOf(3000 + i),
-            Fax = '03-5555-' + String.valueOf(4000 + i),
+            Email = 'standard.seed.contact+' + paddedContactSequence + '@example.invalid',
+            Phone = '03-5555-' + String.valueOf(3000 + Math.mod(contactSequence, 7000)).leftPad(4, '0'),
+            MobilePhone = '090-5555-' + String.valueOf(3000 + Math.mod(contactSequence, 7000)).leftPad(4, '0'),
+            Fax = '03-5555-' + String.valueOf(4000 + Math.mod(contactSequence, 6000)).leftPad(4, '0'),
             LeadSource = contactLeadSource,
             MailingStreet = '八重洲 ' + i + '-3-' + Math.mod(i + 1, 9),
             MailingCity = '中央区',
@@ -101,19 +111,19 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
 
     leads.add(
         new Lead(
-            FirstName = givenNames[Math.mod(i + 4, givenNames.size())],
-            LastName = seedPrefix + ' ' + familyNames[Math.mod(i + 5, familyNames.size())],
+            FirstName = givenNames[Math.mod(leadSequence + 4, givenNames.size())],
+            LastName = seedPrefix + ' ' + familyNames[Math.mod(leadSequence + 5, familyNames.size())] + paddedLeadSequence,
             Company = seedPrefix + ' ' + prospectCompany,
             Title = '業務改善プロジェクト責任者',
             Status = leadStatus,
             Rating = leadRating,
             Industry = leadIndustry,
             LeadSource = leadSource,
-            Email = 'standard.seed.lead+' + i + '@example.invalid',
-            Phone = '03-5555-' + String.valueOf(6000 + i),
-            MobilePhone = '080-5555-' + String.valueOf(6000 + i),
-            Fax = '03-5555-' + String.valueOf(7000 + i),
-            Website = 'https://example.invalid/seed/lead-' + i,
+            Email = 'standard.seed.lead+' + paddedLeadSequence + '@example.invalid',
+            Phone = '03-5555-' + String.valueOf(6000 + Math.mod(leadSequence, 4000)).leftPad(4, '0'),
+            MobilePhone = '080-5555-' + String.valueOf(6000 + Math.mod(leadSequence, 4000)).leftPad(4, '0'),
+            Fax = '03-5555-' + String.valueOf(7000 + Math.mod(leadSequence, 3000)).leftPad(4, '0'),
+            Website = 'https://example.invalid/seed/lead-' + paddedLeadSequence,
             Street = '桜丘町 ' + i + '-6-' + Math.mod(i + 3, 9),
             City = '渋谷区',
             PostalCode = '150-' + String.valueOf(1000 + i),
@@ -125,5 +135,5 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
 }
 
 System.debug('Seed run key: ' + seedRunKey);
-logResults('Contact', Database.insert(contacts, false));
-logResults('Lead', Database.insert(leads, false));
+logResults('Contact', Database.insert(contacts, duplicateRuleOptions));
+logResults('Lead', Database.insert(leads, duplicateRuleOptions));

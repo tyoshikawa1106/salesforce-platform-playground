@@ -56,7 +56,7 @@ npm run data:import:test -- --target-org <alias> --only accounts
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
-各オブジェクトにつき 20 件を目安に作成します。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
+各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
 
 execute anonymous の CPU / サイズ制限を避けるため、accounts、contacts-leads、campaign-product-price、sales、service、activity-content の 6 フェーズに分けて実行します。
 
@@ -79,7 +79,7 @@ npm run data:seed:standard -- --target-org <alias>
 | 活動             | `Task`, `Event`                                                |
 | メール・ファイル | `EmailMessage`, `ContentVersion`                               |
 
-組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。
+組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。`Account.Name` は `[TEST]A0001` 形式のテスト番号を先頭に含め、名称中の都道府県と請求先/納入先住所の都道府県を一致させます。
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 

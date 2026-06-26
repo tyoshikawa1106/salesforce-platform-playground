@@ -1,4 +1,4 @@
-Integer countPerObject = 20;
+Integer countPerObject = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
@@ -123,7 +123,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     PricebookEntry entry = pricebookEntries[Math.mod(i - 1, pricebookEntries.size())];
     opportunities.add(
         new Opportunity(
-            Name = seedPrefix + ' ' + opportunityNames[i - 1],
+            Name = seedPrefix + ' ' + opportunityNames[Math.mod(i - 1, opportunityNames.size())] + ' ' + String.valueOf(i).leftPad(3, '0'),
             AccountId = accounts[Math.mod(i - 1, accounts.size())].Id,
             CampaignId = campaigns[Math.mod(i - 1, campaigns.size())].Id,
             Pricebook2Id = entry.Pricebook2Id,
@@ -134,7 +134,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Amount = 250000 + (i * 25000),
             Probability = 40 + Math.mod(i, 5) * 10,
             NextStep = '来週の定例で利用部門の要件と導入範囲を確認',
-            Description = opportunityNames[i - 1] + ' の検証用商談。提案、価格表、商談商品、注文連携を確認します。'
+            Description = opportunityNames[Math.mod(i - 1, opportunityNames.size())] + ' の検証用商談。提案、価格表、商談商品、注文連携を確認します。'
         )
     );
 }
@@ -168,7 +168,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     contracts.add(new Contract(AccountId = account.Id, StartDate = Date.today().addDays(i), ContractTerm = 12, Status = contractStatus, CustomerSignedTitle = '部門責任者', CustomerSignedDate = Date.today().addDays(i), Description = '年間利用契約のドラフト。更新条件、サポート範囲、請求開始日を確認中。'));
     orders.add(new Order(AccountId = account.Id, BillToContactId = contact.Id, ShipToContactId = contact.Id, Pricebook2Id = entry.Pricebook2Id, EffectiveDate = Date.today().addDays(i), Status = orderStatus, BillingStreet = '大手町 ' + i + '-1-' + Math.mod(i + 1, 9), BillingCity = '千代田区', BillingPostalCode = '100-' + String.valueOf(2000 + i), ShippingStreet = '銀座 ' + i + '-4-' + Math.mod(i + 2, 9), ShippingCity = '中央区', ShippingPostalCode = '104-' + String.valueOf(2000 + i), Description = '営業部門向け初回導入分の注文。請求先と納品先を分けた検証用データ。'));
     assets.add(new Asset(Name = seedPrefix + ' ' + product.Name.replace(seedPrefix, '').trim() + ' 利用環境', AccountId = account.Id, ContactId = contact.Id, Product2Id = product.Id, Status = assetStatus, Quantity = 1, Price = 12000 + (i * 500), PurchaseDate = Date.today().addDays(-30 - i), UsageEndDate = Date.today().addDays(335 + i), SerialNumber = 'SN-' + seedRunKey.right(14) + '-' + i, Description = '顧客環境に導入済みの商品。契約更新と作業指示の関連確認に使用。'));
-    cases.add(new Case(Subject = seedPrefix + ' ' + caseSubjects[i - 1], AccountId = account.Id, ContactId = contact.Id, Origin = caseOrigin, Status = caseStatus, Priority = casePriority, SuppliedName = contact.LastName.replace(seedPrefix, '').trim() + ' ' + contact.FirstName, SuppliedEmail = 'standard.seed.case+' + i + '@example.invalid', SuppliedPhone = '03-5555-' + String.valueOf(8000 + i), SuppliedCompany = '既存顧客サポート窓口', Description = '顧客からの問い合わせ内容を想定したケース。一次回答、関連活動、メール履歴の確認に使用。'));
+    cases.add(new Case(Subject = seedPrefix + ' ' + caseSubjects[Math.mod(i - 1, caseSubjects.size())] + ' ' + String.valueOf(i).leftPad(3, '0'), AccountId = account.Id, ContactId = contact.Id, Origin = caseOrigin, Status = caseStatus, Priority = casePriority, SuppliedName = contact.LastName.replace(seedPrefix, '').trim() + ' ' + contact.FirstName, SuppliedEmail = 'standard.seed.case+' + i + '@example.invalid', SuppliedPhone = '03-5555-' + String.valueOf(8000 + i), SuppliedCompany = '既存顧客サポート窓口', Description = '顧客からの問い合わせ内容を想定したケース。一次回答、関連活動、メール履歴の確認に使用。'));
 }
 
 logResults('OpportunityContactRole', Database.insert(roles, false));

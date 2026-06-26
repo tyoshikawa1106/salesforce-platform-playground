@@ -1,9 +1,11 @@
 {
-    "description": "Synthetic standard object seed plan. This uses sf apex run so related standard object records can be created in one org transaction.",
+    "description": "Synthetic standard object seed plan. This uses repeated sf apex run cycles so related standard object records stay within Apex transaction limits.",
+    "repeat": 40,
     "imports": [
         {
             "label": "standard-objects-accounts",
             "operation": "apex",
+            "repeat": 1,
             "file": "data/test-data/standard-objects/seed-standard-accounts.apex"
         },
         {

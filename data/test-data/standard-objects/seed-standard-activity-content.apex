@@ -1,4 +1,4 @@
-Integer countPerObject = 20;
+Integer countPerObject = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
@@ -120,7 +120,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
 
     tasks.add(
         new Task(
-            Subject = seedPrefix + ' ' + taskSubjects[i - 1],
+            Subject = seedPrefix + ' ' + taskSubjects[Math.mod(i - 1, taskSubjects.size())] + ' ' + String.valueOf(i).leftPad(3, '0'),
             WhoId = contact.Id,
             WhatId = opportunity.Id,
             Status = taskStatus,
@@ -131,7 +131,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     );
     events.add(
         new Event(
-            Subject = seedPrefix + ' ' + eventSubjects[i - 1],
+            Subject = seedPrefix + ' ' + eventSubjects[Math.mod(i - 1, eventSubjects.size())] + ' ' + String.valueOf(i).leftPad(3, '0'),
             WhoId = contact.Id,
             WhatId = opportunity.Id,
             StartDateTime = Datetime.now().addDays(i),

@@ -1,4 +1,4 @@
-Integer countPerObject = 20;
+Integer countPerObject = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
@@ -109,8 +109,8 @@ List<Campaign> campaigns = new List<Campaign>();
 List<Product2> products = new List<Product2>();
 List<Pricebook2> pricebooks = new List<Pricebook2>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
-    String campaignName = campaignNames[i - 1];
-    String productName = productNames[i - 1];
+    String campaignName = campaignNames[Math.mod(i - 1, campaignNames.size())] + ' ' + String.valueOf(i).leftPad(3, '0');
+    String productName = productNames[Math.mod(i - 1, productNames.size())] + ' ' + String.valueOf(i).leftPad(3, '0');
     campaigns.add(
         new Campaign(
             Name = seedPrefix + ' ' + campaignName,
