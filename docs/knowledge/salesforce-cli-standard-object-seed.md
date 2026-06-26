@@ -31,21 +31,28 @@ Apex seed は「作った親レコードの ID を、その場で子レコード
 4. `Campaign`
 5. `CampaignMember`
 6. `Product2`
-7. `PricebookEntry`
-8. `Opportunity`
-9. `OpportunityContactRole`
-10. `OpportunityLineItem`
-11. `Contract`
-12. `Order`
-13. `OrderItem`
-14. `Asset`
-15. `Case`
-16. `Task`
-17. `Event`
-18. `WorkOrder`
-19. `WorkOrderLineItem`
+7. `Pricebook2`
+8. `PricebookEntry`
+9. `Opportunity`
+10. `OpportunityContactRole`
+11. `OpportunityLineItem`
+12. `Contract`
+13. `Order`
+14. `OrderItem`
+15. `Asset`
+16. `Case`
+17. `ServiceContract`
+18. `Entitlement`
+19. `WorkOrder`
+20. `WorkOrderLineItem`
+21. `Task`
+22. `Event`
+23. `EmailMessage`
+24. `ContentVersion`
 
 `PricebookEntry` は `Product2` と価格表に依存します。`OpportunityLineItem` と `OrderItem` は `PricebookEntry` に依存します。`Task` や `Event` は `WhoId`、`WhatId` で `Contact` や `Opportunity` に関連付けられます。
+
+レイアウトにある項目でも、`CreatedById`、自動採番、集計項目、標準価格、合計金額などは insert できません。seed では対象 org の describe で createable な標準項目だけに値を設定します。
 
 ## 固定値を避けたい項目
 
@@ -88,7 +95,7 @@ OpportunityStage openStage = [
 
 ## 機能依存オブジェクトの扱い
 
-`WorkOrder` や `WorkOrderLineItem` のように、組織の機能やライセンス状態で利用可否が変わるオブジェクトがあります。
+`WorkOrder`、`WorkOrderLineItem`、Knowledge article のように、組織の機能やライセンス状態で利用可否が変わるオブジェクトがあります。
 
 このようなオブジェクトを anonymous Apex で直接型参照すると、利用できない org では seed 全体が compile で止まることがあります。
 
@@ -103,6 +110,8 @@ if (globalDescribe.containsKey('WorkOrder')) {
     insert workOrder;
 }
 ```
+
+`Report` と `Dashboard` は metadata-backed なので、通常の DML seed では作成しません。追加 `User` はライセンス、プロファイル、ユーザー名の一意性、メール設定の判断が必要なため、標準オブジェクト seed からは分けます。
 
 ## cleanup を先に考える
 

@@ -56,6 +56,10 @@ npm run data:import:test -- --target-org <alias> --only accounts
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
+各オブジェクトにつき 20 件を目安に作成します。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
+
+execute anonymous の CPU / サイズ制限を避けるため、accounts、contacts-leads、campaign-product-price、sales、service、activity-content の 6 フェーズに分けて実行します。
+
 ```sh
 npm run data:seed:standard:dry-run
 npm run data:seed:standard -- --target-org <alias>
@@ -63,17 +67,21 @@ npm run data:seed:standard -- --target-org <alias>
 
 作成対象は次のとおりです。
 
-| 分類         | API 名                                                         |
-| ------------ | -------------------------------------------------------------- |
-| 顧客         | `Account`, `Contact`, `Lead`                                   |
-| キャンペーン | `Campaign`, `CampaignMember`                                   |
-| 商品・価格   | `Product2`, `PricebookEntry`                                   |
-| 商談         | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
-| 契約・注文   | `Contract`, `Order`, `OrderItem`                               |
-| サポート     | `Asset`, `Case`, `WorkOrder`, `WorkOrderLineItem`              |
-| 活動         | `Task`, `Event`                                                |
+| 分類             | API 名                                                         |
+| ---------------- | -------------------------------------------------------------- |
+| 顧客             | `Account`, `Contact`, `Lead`                                   |
+| キャンペーン     | `Campaign`, `CampaignMember`                                   |
+| 商品・価格       | `Product2`, `Pricebook2`, `PricebookEntry`                     |
+| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
+| 契約・注文       | `Contract`, `Order`, `OrderItem`                               |
+| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`              |
+| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                               |
+| 活動             | `Task`, `Event`                                                |
+| メール・ファイル | `EmailMessage`, `ContentVersion`                               |
 
 組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。
+
+`Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 
 ## cleanup
 

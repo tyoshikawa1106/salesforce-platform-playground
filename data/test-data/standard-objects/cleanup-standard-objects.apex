@@ -2,6 +2,16 @@ String seedPrefix = 'CLI Standard Seed%';
 List<String> deleted = new List<String>();
 Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
 
+if (globalDescribe.containsKey('EmailMessage')) {
+    List<SObject> emailMessages = Database.query(
+        'SELECT Id FROM EmailMessage WHERE Subject LIKE :seedPrefix'
+    );
+    if (!emailMessages.isEmpty()) {
+        delete emailMessages;
+        deleted.add('EmailMessage: ' + emailMessages.size());
+    }
+}
+
 if (globalDescribe.containsKey('WorkOrderLineItem')) {
     List<SObject> workOrderLineItems = Database.query(
         'SELECT Id FROM WorkOrderLineItem WHERE Subject LIKE :seedPrefix'
@@ -60,6 +70,26 @@ List<Asset> assets = [
 if (!assets.isEmpty()) {
     delete assets;
     deleted.add('Asset: ' + assets.size());
+}
+
+if (globalDescribe.containsKey('Entitlement')) {
+    List<SObject> entitlements = Database.query(
+        'SELECT Id FROM Entitlement WHERE Name LIKE :seedPrefix'
+    );
+    if (!entitlements.isEmpty()) {
+        delete entitlements;
+        deleted.add('Entitlement: ' + entitlements.size());
+    }
+}
+
+if (globalDescribe.containsKey('ServiceContract')) {
+    List<SObject> serviceContracts = Database.query(
+        'SELECT Id FROM ServiceContract WHERE Name LIKE :seedPrefix'
+    );
+    if (!serviceContracts.isEmpty()) {
+        delete serviceContracts;
+        deleted.add('ServiceContract: ' + serviceContracts.size());
+    }
 }
 
 List<OrderItem> orderItems = [
@@ -128,8 +158,30 @@ List<PricebookEntry> pricebookEntries = [
     WHERE Product2.Name LIKE :seedPrefix
 ];
 if (!pricebookEntries.isEmpty()) {
-    delete pricebookEntries;
-    deleted.add('PricebookEntry: ' + pricebookEntries.size());
+    Database.DeleteResult[] pricebookEntryResults = Database.delete(pricebookEntries, false);
+    Integer pricebookEntryDeleteCount = 0;
+    for (Database.DeleteResult result : pricebookEntryResults) {
+        if (result.isSuccess()) {
+            pricebookEntryDeleteCount += 1;
+        }
+    }
+    deleted.add('PricebookEntry: ' + pricebookEntryDeleteCount + '/' + pricebookEntries.size());
+}
+
+List<Pricebook2> pricebooks = [
+    SELECT Id
+    FROM Pricebook2
+    WHERE Name LIKE :seedPrefix
+];
+if (!pricebooks.isEmpty()) {
+    Database.DeleteResult[] pricebookResults = Database.delete(pricebooks, false);
+    Integer pricebookDeleteCount = 0;
+    for (Database.DeleteResult result : pricebookResults) {
+        if (result.isSuccess()) {
+            pricebookDeleteCount += 1;
+        }
+    }
+    deleted.add('Pricebook2: ' + pricebookDeleteCount + '/' + pricebooks.size());
 }
 
 List<Product2> products = [
@@ -138,8 +190,14 @@ List<Product2> products = [
     WHERE Name LIKE :seedPrefix
 ];
 if (!products.isEmpty()) {
-    delete products;
-    deleted.add('Product2: ' + products.size());
+    Database.DeleteResult[] productResults = Database.delete(products, false);
+    Integer productDeleteCount = 0;
+    for (Database.DeleteResult result : productResults) {
+        if (result.isSuccess()) {
+            productDeleteCount += 1;
+        }
+    }
+    deleted.add('Product2: ' + productDeleteCount + '/' + products.size());
 }
 
 List<CampaignMember> campaignMembers = [
@@ -160,6 +218,28 @@ List<Campaign> campaigns = [
 if (!campaigns.isEmpty()) {
     delete campaigns;
     deleted.add('Campaign: ' + campaigns.size());
+}
+
+if (globalDescribe.containsKey('ContentDocument')) {
+    List<ContentDocument> contentDocuments = [
+        SELECT Id
+        FROM ContentDocument
+        WHERE Title LIKE :seedPrefix
+    ];
+    if (!contentDocuments.isEmpty()) {
+        delete contentDocuments;
+        deleted.add('ContentDocument: ' + contentDocuments.size());
+    }
+}
+
+if (globalDescribe.containsKey('EmailTemplate')) {
+    List<SObject> emailTemplates = Database.query(
+        'SELECT Id FROM EmailTemplate WHERE Name LIKE :seedPrefix'
+    );
+    if (!emailTemplates.isEmpty()) {
+        delete emailTemplates;
+        deleted.add('EmailTemplate: ' + emailTemplates.size());
+    }
 }
 
 List<Lead> leads = [
