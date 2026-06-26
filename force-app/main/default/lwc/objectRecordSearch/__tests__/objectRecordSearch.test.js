@@ -58,7 +58,10 @@ const searchResponse = {
             lastModifiedDate: '2026-06-21T01:00:00.000Z'
         }
     ],
-    limitSize: 200
+    pageSize: 500,
+    pageNumber: 1,
+    hasNextPage: false,
+    nextPageToken: null
 };
 
 function createSearchResponse(configOverrides = {}) {
@@ -725,8 +728,61 @@ describe('c-object-record-search', () => {
         await flushPromises();
 
         expect(searchRecords.getLastConfig()).toEqual({
-            metricKey: 'accounts',
-            searchTerm: 'Acme'
+            request: {
+                metricKey: 'accounts',
+                searchTerm: 'Acme',
+                pageToken: undefined,
+                pageNumber: 1
+            }
+        });
+    });
+
+    it('moves between server-side result pages', async () => {
+        const element = createComponent();
+
+        searchRecords.emit({
+            ...searchResponse,
+            hasNextPage: true,
+            nextPageToken: 'next-token'
+        });
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain('1 ページ目');
+        expect(element.shadowRoot.textContent).toContain('1 / 500 件');
+
+        findButton(element, '次へ').click();
+        await flushPromises();
+
+        expect(searchRecords.getLastConfig()).toEqual({
+            request: {
+                metricKey: 'accounts',
+                searchTerm: '',
+                pageToken: 'next-token',
+                pageNumber: 2
+            }
+        });
+
+        searchRecords.emit({
+            ...searchResponse,
+            records: [],
+            pageNumber: 2,
+            hasNextPage: false,
+            nextPageToken: null
+        });
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain('2 ページ目');
+
+        findButton(element, '前へ').click();
+        await flushPromises();
+
+        expect(searchRecords.getLastConfig()).toEqual({
+            request: {
+                metricKey: 'accounts',
+                searchTerm: '',
+                pageToken: undefined,
+                pageNumber: 1
+            }
         });
     });
 

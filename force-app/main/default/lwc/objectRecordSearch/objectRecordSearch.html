@@ -110,6 +110,26 @@
                 </template>
             </div>
         </template>
+
+        <div
+            class="pagination slds-grid slds-grid_align-end slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-vertical_small"
+            aria-live="polite"
+        >
+            <span class="slds-text-body_small slds-m-right_small">
+                {pageLabel}
+            </span>
+            <lightning-button
+                label="前へ"
+                onclick={handlePreviousPage}
+                disabled={previousDisabled}
+            ></lightning-button>
+            <lightning-button
+                class="slds-m-left_x-small"
+                label="次へ"
+                onclick={handleNextPage}
+                disabled={nextDisabled}
+            ></lightning-button>
+        </div>
     </lightning-card>
 
     <template lwc:if={showRecordForm}>

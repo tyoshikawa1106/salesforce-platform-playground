@@ -2,7 +2,6 @@
  * データボードから遷移する汎用レコード検索画面の Apex 入口です。
  */
 public with sharing class ObjectRecordSearchController {
-    private static final Integer MAX_ROWS = 200;
     private static final String USER_FACING_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
 
     /**
@@ -21,18 +20,15 @@ public with sharing class ObjectRecordSearchController {
 
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
-     * @param metricKey データボードカードの表示キー
-     * @param searchTerm Name 項目に対する検索語
-     * @return 最大 200 件の検索結果
+     * @param request 検索条件とページ指定
+     * @return 1 ページ最大 500 件の検索結果
      */
     @AuraEnabled(cacheable=true)
     public static ObjectRecordSearchResult searchRecords(
-        String metricKey,
-        String searchTerm
+        ObjectRecordSearchRequest request
     ) {
         try {
-            return new ObjectRecordSearchService()
-                .searchRecords(metricKey, searchTerm);
+            return new ObjectRecordSearchService().searchRecords(request);
         } catch (Exception error) {
             throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
         }
@@ -158,6 +154,55 @@ public with sharing class ObjectRecordSearchController {
     }
 
     /**
+     * レコード検索リクエスト DTO です。
+     */
+    public class ObjectRecordSearchRequest {
+        /**
+         * データボードカードの表示キーです。
+         */
+        @AuraEnabled
+        public String metricKey { get; set; }
+
+        /**
+         * Name 項目に対する検索語です。
+         */
+        @AuraEnabled
+        public String searchTerm { get; set; }
+
+        /**
+         * 次ページ取得用のカーソルトークンです。
+         */
+        @AuraEnabled
+        public String pageToken { get; set; }
+
+        /**
+         * 画面表示用のページ番号です。
+         */
+        @AuraEnabled
+        public Integer pageNumber { get; set; }
+    }
+
+    /**
+     * レコード検索ページ状態 DTO です。
+     */
+    public class ObjectRecordSearchPageState {
+        /**
+         * 1 ページあたりの最大表示件数です。
+         */
+        public Integer pageSize { get; set; }
+
+        /**
+         * 現在のページ番号です。
+         */
+        public Integer pageNumber { get; set; }
+
+        /**
+         * 次ページ取得用のカーソルトークンです。
+         */
+        public String nextPageToken { get; set; }
+    }
+
+    /**
      * レコード検索結果 DTO です。
      */
     public class ObjectRecordSearchResult {
@@ -174,26 +219,47 @@ public with sharing class ObjectRecordSearchController {
         public List<ObjectRecordRow> records { get; private set; }
 
         /**
-         * Apex 側の最大取得件数です。
+         * 1 ページあたりの最大表示件数です。
          */
         @AuraEnabled
-        public Integer limitSize { get; private set; }
+        public Integer pageSize { get; private set; }
+
+        /**
+         * 現在のページ番号です。
+         */
+        @AuraEnabled
+        public Integer pageNumber { get; private set; }
+
+        /**
+         * 次ページがあるかどうかです。
+         */
+        @AuraEnabled
+        public Boolean hasNextPage { get; private set; }
+
+        /**
+         * 次ページ取得用のカーソルトークンです。
+         */
+        @AuraEnabled
+        public String nextPageToken { get; private set; }
 
         /**
          * レコード検索結果を作成します。
          *
          * @param config 検索画面設定
          * @param records 一覧に表示するレコード行
-         * @param limitSize Apex 側の最大取得件数
+         * @param pageState ページ状態
          */
         public ObjectRecordSearchResult(
             ObjectRecordSearchConfig config,
             List<ObjectRecordRow> records,
-            Integer limitSize
+            ObjectRecordSearchPageState pageState
         ) {
             this.config = config;
             this.records = records;
-            this.limitSize = limitSize;
+            pageSize = pageState.pageSize;
+            pageNumber = pageState.pageNumber;
+            nextPageToken = pageState.nextPageToken;
+            hasNextPage = String.isNotBlank(nextPageToken);
         }
     }
 

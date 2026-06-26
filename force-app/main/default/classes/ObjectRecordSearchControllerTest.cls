@@ -57,14 +57,16 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldSearchRecordsByNameField() {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+            'accounts',
+            'Alpha'
+        );
+        request.pageNumber = 1;
         ObjectRecordSearchController.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            result = ObjectRecordSearchController.searchRecords(
-                'accounts',
-                'Alpha'
-            );
+            result = ObjectRecordSearchController.searchRecords(request);
             Test.stopTest();
         }
 
@@ -86,14 +88,15 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldReturnRowsWhenSearchTermIsBlank() {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+            'accounts',
+            ' '
+        );
         ObjectRecordSearchController.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            result = ObjectRecordSearchController.searchRecords(
-                'accounts',
-                ' '
-            );
+            result = ObjectRecordSearchController.searchRecords(request);
             Test.stopTest();
         }
 
@@ -103,9 +106,14 @@ private with sharing class ObjectRecordSearchControllerTest {
             'Blank searches should return all available Account rows.'
         );
         Assert.areEqual(
-            200,
-            result.limitSize,
-            'Search result should expose the Apex row limit.'
+            500,
+            result.pageSize,
+            'Search result should expose the page size.'
+        );
+        Assert.areEqual(
+            1,
+            result.pageNumber,
+            'Search result should default the page number to the first page.'
         );
     }
 
@@ -171,10 +179,16 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldThrowUserFacingErrorWhenMetricKeyIsUnsupported() {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+            'unknown',
+            null
+        );
+        request.pageNumber = 1;
+
         System.runAs(getCurrentUser()) {
             Test.startTest();
             try {
-                ObjectRecordSearchController.searchRecords('unknown', null);
+                ObjectRecordSearchController.searchRecords(request);
                 Assert.fail('Unsupported metric keys should throw.');
             } catch (AuraHandledException error) {
                 Assert.isNotNull(
@@ -234,5 +248,15 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     private static User getCurrentUser() {
         return new User(Id = UserInfo.getUserId());
+    }
+
+    private static ObjectRecordSearchController.ObjectRecordSearchRequest createSearchRequest(
+        String metricKey,
+        String searchTerm
+    ) {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = new ObjectRecordSearchController.ObjectRecordSearchRequest();
+        request.metricKey = metricKey;
+        request.searchTerm = searchTerm;
+        return request;
     }
 }
