@@ -11,6 +11,7 @@ function parseArgs(argv) {
         dryRun: false,
         plan: 'data/test-data/import-plan.json',
         only: null,
+        repeat: null,
         targetOrg: null
     };
 
@@ -30,6 +31,12 @@ function parseArgs(argv) {
 
         if (arg === '--only') {
             args.only = argv[index + 1];
+            index += 1;
+            continue;
+        }
+
+        if (arg === '--repeat') {
+            args.repeat = Number(argv[index + 1]);
             index += 1;
             continue;
         }
@@ -61,6 +68,7 @@ function printHelp() {
 Options:
   --plan <path>        Import plan JSON. Default: data/test-data/import-plan.json
   --only <label>       Run a single plan entry.
+  --repeat <count>     Repeat selected plan entries. Default: plan repeat or 1.
   --target-org, -o     Salesforce org alias for real import.
   --dry-run            Validate local files and print the sf commands.
 `);
@@ -191,9 +199,25 @@ function buildSfArgs(entry, absoluteFilePath, targetOrg) {
     ];
 }
 
+function printSfSummary(output) {
+    const summaryLines = output
+        .split(/\r?\n/)
+        .filter((line) =>
+            /USER_DEBUG\|.*\|(DEBUG)\|(Seed run key|Created records|Skipped records):/.test(
+                line
+            )
+        )
+        .map((line) => line.replace(/^.*\|DEBUG\|/, ''));
+
+    for (const line of summaryLines) {
+        console.log(line);
+    }
+}
+
 function run() {
     const args = parseArgs(process.argv.slice(2));
     const plan = readPlan(args.plan);
+    const repeatCount = args.repeat ?? plan.repeat ?? 1;
     const selectedEntries = args.only
         ? plan.imports.filter((entry) => entry.label === args.only)
         : plan.imports;
@@ -208,25 +232,45 @@ function run() {
         );
     }
 
-    for (const entry of selectedEntries) {
-        const absoluteFilePath = validateEntry(entry);
-        const targetOrg = args.targetOrg || '<target-org>';
-        const sfArgs = buildSfArgs(entry, absoluteFilePath, targetOrg);
+    if (!Number.isInteger(repeatCount) || repeatCount < 1) {
+        throw new Error('Repeat count must be a positive integer.');
+    }
 
-        console.log(`[${args.dryRun ? 'dry-run' : 'import'}] ${entry.label}`);
-        console.log(`sf ${sfArgs.join(' ')}`);
+    for (let cycle = 1; cycle <= repeatCount; cycle += 1) {
+        for (const entry of selectedEntries) {
+            const entryRepeatCount = args.repeat ?? entry.repeat ?? repeatCount;
 
-        if (args.dryRun) {
-            continue;
-        }
+            if (cycle > entryRepeatCount) {
+                continue;
+            }
 
-        const result = spawnSync('sf', sfArgs, {
-            cwd: repoRoot,
-            stdio: 'inherit'
-        });
+            const absoluteFilePath = validateEntry(entry);
+            const targetOrg = args.targetOrg || '<target-org>';
+            const sfArgs = buildSfArgs(entry, absoluteFilePath, targetOrg);
+            const cycleSuffix =
+                repeatCount > 1 ? ` (${cycle}/${repeatCount})` : '';
 
-        if (result.status !== 0) {
-            throw new Error(`sf command failed for ${entry.label}`);
+            console.log(
+                `[${args.dryRun ? 'dry-run' : 'import'}] ${entry.label}${cycleSuffix}`
+            );
+            console.log(`sf ${sfArgs.join(' ')}`);
+
+            if (args.dryRun) {
+                continue;
+            }
+
+            const result = spawnSync('sf', sfArgs, {
+                cwd: repoRoot,
+                encoding: 'utf8'
+            });
+
+            if (result.status !== 0) {
+                process.stdout.write(result.stdout || '');
+                process.stderr.write(result.stderr || '');
+                throw new Error(`sf command failed for ${entry.label}`);
+            }
+
+            printSfSummary(`${result.stdout || ''}\n${result.stderr || ''}`);
         }
     }
 }

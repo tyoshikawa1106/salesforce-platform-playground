@@ -56,6 +56,10 @@ npm run data:import:test -- --target-org <alias> --only accounts
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
+各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
+
+execute anonymous の CPU / サイズ制限を避けるため、accounts、contacts-leads、campaign-product-price、sales、service、activity-content の 6 フェーズに分けて実行します。
+
 ```sh
 npm run data:seed:standard:dry-run
 npm run data:seed:standard -- --target-org <alias>
@@ -63,17 +67,21 @@ npm run data:seed:standard -- --target-org <alias>
 
 作成対象は次のとおりです。
 
-| 分類         | API 名                                                         |
-| ------------ | -------------------------------------------------------------- |
-| 顧客         | `Account`, `Contact`, `Lead`                                   |
-| キャンペーン | `Campaign`, `CampaignMember`                                   |
-| 商品・価格   | `Product2`, `PricebookEntry`                                   |
-| 商談         | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
-| 契約・注文   | `Contract`, `Order`, `OrderItem`                               |
-| サポート     | `Asset`, `Case`, `WorkOrder`, `WorkOrderLineItem`              |
-| 活動         | `Task`, `Event`                                                |
+| 分類             | API 名                                                         |
+| ---------------- | -------------------------------------------------------------- |
+| 顧客             | `Account`, `Contact`, `Lead`                                   |
+| キャンペーン     | `Campaign`, `CampaignMember`                                   |
+| 商品・価格       | `Product2`, `Pricebook2`, `PricebookEntry`                     |
+| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
+| 契約・注文       | `Contract`, `Order`, `OrderItem`                               |
+| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`              |
+| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                               |
+| 活動             | `Task`, `Event`                                                |
+| メール・ファイル | `EmailMessage`, `ContentVersion`                               |
 
-組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。
+組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。`Account.Name` は `[TEST] 東京都 青山データ企画株式会社` のように、テスト接頭辞、都道府県、自然な会社名で構成し、名称中の都道府県と請求先/納入先住所の都道府県を一致させます。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
+
+`Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 
 ## cleanup
 
@@ -81,7 +89,7 @@ npm run data:seed:standard -- --target-org <alias>
 
 ```sh
 sf data query \
-  --query "SELECT Id, Name FROM Account WHERE Name LIKE 'CLI Test Account %'" \
+  --query "SELECT Id, Name FROM Account WHERE Name LIKE '[TEST]%'" \
   --target-org <alias>
 ```
 
@@ -97,7 +105,7 @@ sf data delete record --sobject Account --record-id <record-id> --target-org <al
 sf data delete bulk --file data/test-data/delete-accounts.csv --sobject Account --target-org <alias> --wait 30
 ```
 
-主要標準オブジェクト seed は、接頭辞 `CLI Standard Seed` を使って cleanup します。
+主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。cleanup は governor limit を避けるため、各オブジェクト最大 100 件ずつ削除します。大量投入後は `Deleted records: none` になるまで複数回実行します。
 
 ```sh
 sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
