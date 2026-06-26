@@ -4,26 +4,26 @@ String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
 List<String> companyNames = new List<String>{
-    '青山',
-    '丸の内',
-    '日本橋',
-    '渋谷',
-    '横浜',
-    '名古屋',
-    '大阪',
-    '京都',
-    '神戸',
-    '福岡',
-    '札幌',
-    '仙台',
-    '広島',
-    '金沢',
-    '長野',
-    '新潟',
-    '静岡',
-    '岡山',
-    '熊本',
-    '沖縄'
+    'さくら',
+    'みらい',
+    'ひかり',
+    'つばさ',
+    'あおぞら',
+    'かけはし',
+    'かなめ',
+    'むすび',
+    'しずく',
+    'はるか',
+    '奏',
+    '凪',
+    '結',
+    '彩',
+    '碧',
+    '灯',
+    '紡',
+    '栞',
+    '実り',
+    'こもれび'
 };
 List<String> businessThemes = new List<String>{
     'データ',
@@ -83,18 +83,6 @@ List<String> streets = new List<String>{
     '三宮町',
     '博多駅前'
 };
-List<String> prefectures = new List<String>{
-    '東京都',
-    '東京都',
-    '東京都',
-    '東京都',
-    '神奈川県',
-    '愛知県',
-    '大阪府',
-    '京都府',
-    '兵庫県',
-    '福岡県'
-};
 List<String> prefectureCodes = new List<String>{
     '13',
     '13',
@@ -138,13 +126,12 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         '株式会社';
     String city = cities[Math.mod(sequence - 1, cities.size())];
     String street = streets[Math.mod(sequence - 1, streets.size())];
-    String prefecture = prefectures[Math.mod(sequence - 1, prefectures.size())];
     String prefectureCode = prefectureCodes[
         Math.mod(sequence - 1, prefectureCodes.size())
     ];
     accounts.add(
         new Account(
-            Name = seedPrefix + ' ' + prefecture + ' ' + companyName,
+            Name = seedPrefix + ' ' + companyName,
             AccountNumber = 'ACCT-' +
                 seedRunKey.right(14) +
                 '-' +
