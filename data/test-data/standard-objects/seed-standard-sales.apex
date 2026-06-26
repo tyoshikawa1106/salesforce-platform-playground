@@ -1,6 +1,6 @@
 Integer countPerObject = 20;
-String seedPrefix = 'CLI Standard Seed';
-String seedKey = seedPrefix + ' ' + Datetime.now().formatGmt('yyyyMMddHHmmss');
+String seedPrefix = '[TEST]';
+String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
 String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
@@ -44,9 +44,9 @@ void logResults(String objectName, Database.SaveResult[] results) {
 }
 
 List<Account> accounts = [SELECT Id FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
-List<Contact> contacts = [SELECT Id FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
+List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
 List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
-List<Product2> products = [SELECT Id FROM Product2 WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
+List<Product2> products = [SELECT Id, Name FROM Product2 WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
 List<Pricebook2> pricebooks = [SELECT Id FROM Pricebook2 WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
 List<PricebookEntry> pricebookEntries = [
     SELECT Id, Pricebook2Id, Product2Id
@@ -73,12 +73,57 @@ String caseOrigin = pick(Case.Origin.getDescribe(), new List<String>{ 'Web', 'Ph
 String caseStatus = pick(Case.Status.getDescribe(), new List<String>{ 'New', 'Working', 'Open' });
 String casePriority = pick(Case.Priority.getDescribe(), new List<String>{ 'Medium', 'High', 'Low' });
 
+List<String> opportunityNames = new List<String>{
+    '東日本営業部 CRM 活用拡大',
+    '保守契約更新プロセス標準化',
+    '小売店舗問い合わせ管理導入',
+    '製造ライン作業指示デジタル化',
+    '経営会議向けKPI可視化',
+    '顧客サポート履歴統合',
+    '代理店商談管理トライアル',
+    '受注から納品までの業務改善',
+    'フィールドサービス初期展開',
+    '契約更新アラート導入',
+    '地域営業所レポート整備',
+    'ヘルスケア相談履歴管理',
+    '金融窓口案件管理刷新',
+    '公共案件進捗共有基盤',
+    'データ移行と利用定着支援',
+    '営業マネージャーダッシュボード',
+    'サービス品質分析パッケージ',
+    'キャンペーン効果測定改善',
+    '商品マスタ整備プロジェクト',
+    '年間活用支援契約'
+};
+List<String> caseSubjects = new List<String>{
+    'ログイン後に商談一覧が表示されない',
+    '契約更新通知の送信条件を確認したい',
+    '注文商品の数量変更が反映されない',
+    '作業指示の担当者割り当てを相談したい',
+    'レポートの集計条件について質問',
+    'メール履歴の関連付け先を変更したい',
+    'キャンペーンメンバーの重複を解消したい',
+    '価格表エントリの有効化方法を確認',
+    'ケースの優先度ルールを見直したい',
+    'ファイル共有範囲の確認依頼',
+    'モバイル画面で項目が見切れる',
+    '取引先責任者の部署名を一括更新したい',
+    '納入商品の保証期間を確認したい',
+    '商談商品の単価が想定と異なる',
+    'サービス契約の開始日を修正したい',
+    '問い合わせ分類の追加可否を相談',
+    '活動予定のリマインダー設定を確認',
+    'リード変換時の関連付けを確認',
+    '注文ステータスの更新タイミングを相談',
+    'ダッシュボード表示権限を確認したい'
+};
+
 List<Opportunity> opportunities = new List<Opportunity>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     PricebookEntry entry = pricebookEntries[Math.mod(i - 1, pricebookEntries.size())];
     opportunities.add(
         new Opportunity(
-            Name = seedKey + ' Opportunity ' + String.valueOf(i).leftPad(2, '0'),
+            Name = seedPrefix + ' ' + opportunityNames[i - 1],
             AccountId = accounts[Math.mod(i - 1, accounts.size())].Id,
             CampaignId = campaigns[Math.mod(i - 1, campaigns.size())].Id,
             Pricebook2Id = entry.Pricebook2Id,
@@ -88,13 +133,13 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             CloseDate = Date.today().addDays(30 + i),
             Amount = 250000 + (i * 25000),
             Probability = 40 + Math.mod(i, 5) * 10,
-            NextStep = 'Confirm business requirements ' + i,
-            Description = 'Synthetic opportunity for standard object seed ' + i + '.'
+            NextStep = '来週の定例で利用部門の要件と導入範囲を確認',
+            Description = opportunityNames[i - 1] + ' の検証用商談。提案、価格表、商談商品、注文連携を確認します。'
         )
     );
 }
 
-System.debug('Seed key: ' + seedKey);
+System.debug('Seed run key: ' + seedRunKey);
 Database.SaveResult[] opportunityResults = Database.insert(opportunities, false);
 logResults('Opportunity', opportunityResults);
 List<Opportunity> insertedOpportunities = new List<Opportunity>();
@@ -119,11 +164,11 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Opportunity opportunity = insertedOpportunities[Math.mod(i - 1, insertedOpportunities.size())];
 
     roles.add(new OpportunityContactRole(OpportunityId = opportunity.Id, ContactId = contact.Id, Role = opportunityRole, IsPrimary = true));
-    opportunityLineItems.add(new OpportunityLineItem(OpportunityId = opportunity.Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(i, 4), UnitPrice = 12000 + (i * 500), ServiceDate = Date.today().addDays(10 + i), Description = 'Synthetic opportunity product for standard object seed ' + i + '.'));
-    contracts.add(new Contract(AccountId = account.Id, StartDate = Date.today().addDays(i), ContractTerm = 12, Status = contractStatus, CustomerSignedTitle = 'Director', CustomerSignedDate = Date.today().addDays(i), Description = 'Synthetic contract for standard object seed ' + i + '.'));
-    orders.add(new Order(AccountId = account.Id, BillToContactId = contact.Id, ShipToContactId = contact.Id, Pricebook2Id = entry.Pricebook2Id, EffectiveDate = Date.today().addDays(i), Status = orderStatus, BillingStreet = '6-' + i + '-1 Otemachi', BillingCity = 'Chiyoda-ku', BillingPostalCode = '100-' + String.valueOf(2000 + i), ShippingStreet = '7-' + i + '-1 Ginza', ShippingCity = 'Chuo-ku', ShippingPostalCode = '104-' + String.valueOf(2000 + i), Description = 'Synthetic order for standard object seed ' + i + '.'));
-    assets.add(new Asset(Name = seedKey + ' Asset ' + String.valueOf(i).leftPad(2, '0'), AccountId = account.Id, ContactId = contact.Id, Product2Id = product.Id, Status = assetStatus, Quantity = 1, Price = 12000 + (i * 500), PurchaseDate = Date.today().addDays(-30 - i), UsageEndDate = Date.today().addDays(335 + i), SerialNumber = 'SN-' + seedKey.right(14) + '-' + i, Description = 'Synthetic asset for standard object seed ' + i + '.'));
-    cases.add(new Case(Subject = seedKey + ' Case ' + String.valueOf(i).leftPad(2, '0'), AccountId = account.Id, ContactId = contact.Id, Origin = caseOrigin, Status = caseStatus, Priority = casePriority, SuppliedName = 'Seed Requester ' + i, SuppliedEmail = 'standard.seed.case+' + i + '@example.invalid', SuppliedPhone = '03-5555-' + String.valueOf(8000 + i), SuppliedCompany = 'Seed Support Customer ' + i, Description = 'Synthetic case for standard object seed ' + i + '.'));
+    opportunityLineItems.add(new OpportunityLineItem(OpportunityId = opportunity.Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(i, 4), UnitPrice = 12000 + (i * 500), ServiceDate = Date.today().addDays(10 + i), Description = '初期導入範囲に含める商品。PoC後に本番利用数を確定予定。'));
+    contracts.add(new Contract(AccountId = account.Id, StartDate = Date.today().addDays(i), ContractTerm = 12, Status = contractStatus, CustomerSignedTitle = '部門責任者', CustomerSignedDate = Date.today().addDays(i), Description = '年間利用契約のドラフト。更新条件、サポート範囲、請求開始日を確認中。'));
+    orders.add(new Order(AccountId = account.Id, BillToContactId = contact.Id, ShipToContactId = contact.Id, Pricebook2Id = entry.Pricebook2Id, EffectiveDate = Date.today().addDays(i), Status = orderStatus, BillingStreet = '大手町 ' + i + '-1-' + Math.mod(i + 1, 9), BillingCity = '千代田区', BillingPostalCode = '100-' + String.valueOf(2000 + i), ShippingStreet = '銀座 ' + i + '-4-' + Math.mod(i + 2, 9), ShippingCity = '中央区', ShippingPostalCode = '104-' + String.valueOf(2000 + i), Description = '営業部門向け初回導入分の注文。請求先と納品先を分けた検証用データ。'));
+    assets.add(new Asset(Name = seedPrefix + ' ' + product.Name.replace(seedPrefix, '').trim() + ' 利用環境', AccountId = account.Id, ContactId = contact.Id, Product2Id = product.Id, Status = assetStatus, Quantity = 1, Price = 12000 + (i * 500), PurchaseDate = Date.today().addDays(-30 - i), UsageEndDate = Date.today().addDays(335 + i), SerialNumber = 'SN-' + seedRunKey.right(14) + '-' + i, Description = '顧客環境に導入済みの商品。契約更新と作業指示の関連確認に使用。'));
+    cases.add(new Case(Subject = seedPrefix + ' ' + caseSubjects[i - 1], AccountId = account.Id, ContactId = contact.Id, Origin = caseOrigin, Status = caseStatus, Priority = casePriority, SuppliedName = contact.LastName.replace(seedPrefix, '').trim() + ' ' + contact.FirstName, SuppliedEmail = 'standard.seed.case+' + i + '@example.invalid', SuppliedPhone = '03-5555-' + String.valueOf(8000 + i), SuppliedCompany = '既存顧客サポート窓口', Description = '顧客からの問い合わせ内容を想定したケース。一次回答、関連活動、メール履歴の確認に使用。'));
 }
 
 logResults('OpportunityContactRole', Database.insert(roles, false));
@@ -142,7 +187,7 @@ for (Integer i = 0; i < orderResults.size(); i += 1) {
 List<OrderItem> orderItems = new List<OrderItem>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     PricebookEntry entry = pricebookEntries[Math.mod(i - 1, pricebookEntries.size())];
-    orderItems.add(new OrderItem(OrderId = insertedOrders[Math.mod(i - 1, insertedOrders.size())].Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(i, 4), UnitPrice = 12000 + (i * 500), ServiceDate = Date.today().addDays(15 + i), Description = 'Synthetic order product for standard object seed ' + i + '.'));
+    orderItems.add(new OrderItem(OrderId = insertedOrders[Math.mod(i - 1, insertedOrders.size())].Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(i, 4), UnitPrice = 12000 + (i * 500), ServiceDate = Date.today().addDays(15 + i), Description = '初回注文に含まれる明細。納品予定日と数量確認のための検証データ。'));
 }
 
 logResults('OrderItem', Database.insert(orderItems, false));

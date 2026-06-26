@@ -1,6 +1,6 @@
 Integer countPerObject = 20;
-String seedPrefix = 'CLI Standard Seed';
-String seedKey = seedPrefix + ' ' + Datetime.now().formatGmt('yyyyMMddHHmmss');
+String seedPrefix = '[TEST]';
+String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
 String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
@@ -60,13 +60,60 @@ String memberStatus = pick(CampaignMember.Status.getDescribe(), new List<String>
 String productFamily = pick(Product2.Family.getDescribe(), new List<String>{ 'Software', 'Hardware', 'Services' });
 String quantityUnit = pick(Product2.QuantityUnitOfMeasure.getDescribe(), new List<String>{ 'Each', 'Hours' });
 
+List<String> campaignNames = new List<String>{
+    '春の営業改革ウェビナー',
+    '製造業向け保守契約セミナー',
+    '小売店舗DX相談会',
+    '顧客サポート高度化キャンペーン',
+    '経営ダッシュボード体験会',
+    'フィールドサービス個別相談',
+    '夏季ユーザー会',
+    '既存顧客アップセル施策',
+    '新規リード育成メール',
+    'パートナー共催商談創出',
+    '公共向け業務改善勉強会',
+    'ヘルスケアCRM活用セミナー',
+    '金融業界向けオンライン展示会',
+    '受注管理標準化ワークショップ',
+    'アフターサービス改善相談会',
+    '営業マネージャー向け朝会',
+    '地域顧客訪問キャンペーン',
+    '価格改定フォローアップ',
+    '契約更新促進キャンペーン',
+    '年末重点商談レビュー'
+};
+List<String> productNames = new List<String>{
+    '営業活動可視化パッケージ',
+    '顧客問い合わせ管理テンプレート',
+    '保守契約更新支援サービス',
+    'フィールド作業管理スターター',
+    '商品マスタ整備アドオン',
+    '注文プロセス標準化キット',
+    'ダッシュボード設計ワークショップ',
+    'データ移行支援チケット',
+    '営業部門オンボーディング',
+    'サポート品質分析レポート',
+    'モバイル作業報告ライセンス',
+    'ナレッジ整備コンサルティング',
+    '見積承認フロー設計',
+    '顧客360ビュー設定支援',
+    '契約管理運用レビュー',
+    'キャンペーン効果測定セット',
+    '代理店管理スターター',
+    'サービスKPI改善パック',
+    '商談レビュー自動化支援',
+    '年間活用定着プラン'
+};
+
 List<Campaign> campaigns = new List<Campaign>();
 List<Product2> products = new List<Product2>();
 List<Pricebook2> pricebooks = new List<Pricebook2>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
+    String campaignName = campaignNames[i - 1];
+    String productName = productNames[i - 1];
     campaigns.add(
         new Campaign(
-            Name = seedKey + ' Campaign ' + String.valueOf(i).leftPad(2, '0'),
+            Name = seedPrefix + ' ' + campaignName,
             Type = campaignType,
             Status = campaignStatus,
             IsActive = true,
@@ -77,31 +124,31 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             ActualCost = 300000 + (i * 20000),
             ExpectedResponse = 10 + i,
             NumberSent = 100 + i,
-            Description = 'Synthetic campaign for standard object seed ' + i + '.'
+            Description = campaignName + ' の反応率、商談化率、フォロー状況を確認するための合成キャンペーンです。'
         )
     );
 
     products.add(
         new Product2(
-            Name = seedKey + ' Product ' + String.valueOf(i).leftPad(2, '0'),
-            ProductCode = 'CLI-SEED-' + seedKey.right(14) + '-' + i,
+            Name = seedPrefix + ' ' + productName,
+            ProductCode = 'CLI-SEED-' + seedRunKey.right(14) + '-' + i,
             Family = productFamily,
             QuantityUnitOfMeasure = quantityUnit,
             IsActive = true,
-            Description = 'Synthetic product for standard object seed ' + i + '.'
+            Description = productName + '。標準の販売・契約・サポートフロー検証に使うテスト商品です。'
         )
     );
 
     pricebooks.add(
         new Pricebook2(
-            Name = seedKey + ' Price Book ' + String.valueOf(i).leftPad(2, '0'),
+            Name = seedPrefix + ' ' + productName + ' 価格表',
             IsActive = true,
-            Description = 'Synthetic price book for standard object seed ' + i + '.'
+            Description = productName + ' の標準販売価格を確認するためのテスト価格表です。'
         )
     );
 }
 
-System.debug('Seed key: ' + seedKey);
+System.debug('Seed run key: ' + seedRunKey);
 Database.SaveResult[] campaignResults = Database.insert(campaigns, false);
 Database.SaveResult[] productResults = Database.insert(products, false);
 Database.SaveResult[] pricebookResults = Database.insert(pricebooks, false);

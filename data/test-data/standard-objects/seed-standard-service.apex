@@ -1,6 +1,6 @@
 Integer countPerObject = 20;
-String seedPrefix = 'CLI Standard Seed';
-String seedKey = seedPrefix + ' ' + Datetime.now().formatGmt('yyyyMMddHHmmss');
+String seedPrefix = '[TEST]';
+String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
 String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
@@ -60,20 +60,20 @@ if (accounts.isEmpty() || contacts.isEmpty() || assets.isEmpty() || cases.isEmpt
     System.assert(false, 'Run previous standard object seed phases before service.');
 }
 
-System.debug('Seed key: ' + seedKey);
+System.debug('Seed run key: ' + seedRunKey);
 List<SObject> serviceContracts = new List<SObject>();
 if (gd.containsKey('ServiceContract') && gd.get('ServiceContract').getDescribe().isCreateable()) {
     String serviceStatus = pick(gd.get('ServiceContract').getDescribe().fields.getMap().get('Status').getDescribe(), new List<String>{ 'Draft' });
     for (Integer i = 1; i <= countPerObject; i += 1) {
         SObject record = gd.get('ServiceContract').newSObject();
-        putIfCreateable(record, 'Name', seedKey + ' Service Contract ' + String.valueOf(i).leftPad(2, '0'));
+        putIfCreateable(record, 'Name', seedPrefix + ' 年間サポート契約 ' + String.valueOf(i).leftPad(2, '0'));
         putIfCreateable(record, 'AccountId', accounts[Math.mod(i - 1, accounts.size())].Id);
         putIfCreateable(record, 'ContactId', contacts[Math.mod(i - 1, contacts.size())].Id);
         putIfCreateable(record, 'StartDate', Date.today().addDays(i));
         putIfCreateable(record, 'EndDate', Date.today().addDays(365 + i));
         putIfCreateable(record, 'Term', 12);
         putIfCreateable(record, 'Status', serviceStatus);
-        putIfCreateable(record, 'Description', 'Synthetic service contract for standard object seed ' + i + '.');
+        putIfCreateable(record, 'Description', '問い合わせ対応、障害一次切り分け、月次利用レビューを含む年間サポート契約。');
         serviceContracts.add(record);
     }
     logResults('ServiceContract', Database.insert(serviceContracts, false));
@@ -94,7 +94,7 @@ if (gd.containsKey('Entitlement') && gd.get('Entitlement').getDescribe().isCreat
     List<BusinessHours> businessHours = [SELECT Id FROM BusinessHours WHERE IsDefault = TRUE LIMIT 1];
     for (Integer i = 1; i <= countPerObject; i += 1) {
         SObject record = gd.get('Entitlement').newSObject();
-        putIfCreateable(record, 'Name', seedKey + ' Entitlement ' + String.valueOf(i).leftPad(2, '0'));
+        putIfCreateable(record, 'Name', seedPrefix + ' 平日サポート権利 ' + String.valueOf(i).leftPad(2, '0'));
         putIfCreateable(record, 'AccountId', accounts[Math.mod(i - 1, accounts.size())].Id);
         putIfCreateable(record, 'ContactId', contacts[Math.mod(i - 1, contacts.size())].Id);
         putIfCreateable(record, 'AssetId', assets[Math.mod(i - 1, assets.size())].Id);
@@ -107,7 +107,7 @@ if (gd.containsKey('Entitlement') && gd.get('Entitlement').getDescribe().isCreat
         if (!businessHours.isEmpty()) {
             putIfCreateable(record, 'BusinessHoursId', businessHours[0].Id);
         }
-        putIfCreateable(record, 'Description', 'Synthetic entitlement for standard object seed ' + i + '.');
+        putIfCreateable(record, 'Description', '平日営業時間内の標準サポートを受けられる検証用エンタイトルメント。');
         entitlements.add(record);
     }
     logResults('Entitlement', Database.insert(entitlements, false));
@@ -130,7 +130,7 @@ if (gd.containsKey('WorkOrder') && gd.get('WorkOrder').getDescribe().isCreateabl
         : null;
     for (Integer i = 1; i <= countPerObject; i += 1) {
         SObject record = gd.get('WorkOrder').newSObject();
-        putIfCreateable(record, 'Subject', seedKey + ' Work Order ' + String.valueOf(i).leftPad(2, '0'));
+        putIfCreateable(record, 'Subject', seedPrefix + ' 導入後設定確認 ' + String.valueOf(i).leftPad(2, '0'));
         putIfCreateable(record, 'AccountId', accounts[Math.mod(i - 1, accounts.size())].Id);
         putIfCreateable(record, 'ContactId', contacts[Math.mod(i - 1, contacts.size())].Id);
         putIfCreateable(record, 'AssetId', assets[Math.mod(i - 1, assets.size())].Id);
@@ -143,10 +143,10 @@ if (gd.containsKey('WorkOrder') && gd.get('WorkOrder').getDescribe().isCreateabl
         }
         putIfCreateable(record, 'Status', workOrderStatus);
         putIfCreateable(record, 'Priority', workOrderPriority);
-        putIfCreateable(record, 'Street', '8-' + i + '-1 Shinagawa');
-        putIfCreateable(record, 'City', 'Minato-ku');
+        putIfCreateable(record, 'Street', '品川 ' + i + '-2-' + Math.mod(i + 3, 9));
+        putIfCreateable(record, 'City', '港区');
         putIfCreateable(record, 'PostalCode', '108-' + String.valueOf(1000 + i));
-        putIfCreateable(record, 'Description', 'Synthetic work order for standard object seed ' + i + '.');
+        putIfCreateable(record, 'Description', '顧客環境の初期設定、権限、通知、レポート表示を確認する作業指示。');
         workOrders.add(record);
     }
     logResults('WorkOrder', Database.insert(workOrders, false));
@@ -165,11 +165,11 @@ if (gd.containsKey('WorkOrderLineItem') && gd.get('WorkOrderLineItem').getDescri
         : null;
     for (Integer i = 1; i <= countPerObject; i += 1) {
         SObject record = gd.get('WorkOrderLineItem').newSObject();
-        putIfCreateable(record, 'Subject', seedKey + ' Work Order Line Item ' + String.valueOf(i).leftPad(2, '0'));
+        putIfCreateable(record, 'Subject', seedPrefix + ' 権限と通知設定の確認 ' + String.valueOf(i).leftPad(2, '0'));
         putIfCreateable(record, 'WorkOrderId', insertedWorkOrders[Math.mod(i - 1, insertedWorkOrders.size())].Id);
         putIfCreateable(record, 'AssetId', assets[Math.mod(i - 1, assets.size())].Id);
         putIfCreateable(record, 'Status', lineStatus);
-        putIfCreateable(record, 'Description', 'Synthetic work order line item for standard object seed ' + i + '.');
+        putIfCreateable(record, 'Description', '作業担当者がユーザー権限、通知メール、活動記録の動作を確認する明細。');
         workOrderLineItems.add(record);
     }
     logResults('WorkOrderLineItem', Database.insert(workOrderLineItems, false));

@@ -89,7 +89,7 @@ npm run data:seed:standard -- --target-org <alias>
 
 ```sh
 sf data query \
-  --query "SELECT Id, Name FROM Account WHERE Name LIKE 'CLI Test Account %'" \
+  --query "SELECT Id, Name FROM Account WHERE Name LIKE '[TEST]%'" \
   --target-org <alias>
 ```
 
@@ -105,7 +105,7 @@ sf data delete record --sobject Account --record-id <record-id> --target-org <al
 sf data delete bulk --file data/test-data/delete-accounts.csv --sobject Account --target-org <alias> --wait 30
 ```
 
-主要標準オブジェクト seed は、接頭辞 `CLI Standard Seed` を使って cleanup します。
+主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。
 
 ```sh
 sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>

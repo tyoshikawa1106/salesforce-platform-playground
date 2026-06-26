@@ -1,4 +1,4 @@
-String seedPrefix = 'CLI Standard Seed%';
+String seedPrefix = '[TEST]%';
 List<String> deleted = new List<String>();
 Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
 
