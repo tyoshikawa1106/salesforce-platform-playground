@@ -84,16 +84,16 @@ List<String> streets = new List<String>{
     '博多駅前'
 };
 List<String> prefectureCodes = new List<String>{
-    '13',
-    '13',
-    '13',
-    '13',
-    '14',
-    '23',
-    '27',
-    '26',
-    '28',
-    '40'
+    '東京都',
+    '東京都',
+    '東京都',
+    '東京都',
+    '神奈川県',
+    '愛知県',
+    '大阪府',
+    '京都府',
+    '兵庫県',
+    '福岡県'
 };
 
 Database.DMLOptions duplicateRuleOptions = new Database.DMLOptions();
@@ -126,7 +126,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         '株式会社';
     String city = cities[Math.mod(sequence - 1, cities.size())];
     String street = streets[Math.mod(sequence - 1, streets.size())];
-    String prefectureCode = prefectureCodes[
+    String prefecture = prefectureCodes[
         Math.mod(sequence - 1, prefectureCodes.size())
     ];
     accounts.add(
@@ -153,8 +153,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '-12-' +
                 Math.mod(sequence + 2, 9),
             BillingCity = city,
-            BillingStateCode = prefectureCode,
-            BillingCountryCode = 'JP',
+            BillingState = prefecture,
+            BillingCountry = 'Japan',
             BillingPostalCode = '10' +
                 Math.mod(sequence, 9) +
                 '-' +
@@ -165,8 +165,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '-5-' +
                 Math.mod(sequence + 4, 9),
             ShippingCity = city,
-            ShippingStateCode = prefectureCode,
-            ShippingCountryCode = 'JP',
+            ShippingState = prefecture,
+            ShippingCountry = 'Japan',
             ShippingPostalCode = '11' +
                 Math.mod(sequence, 9) +
                 '-' +
