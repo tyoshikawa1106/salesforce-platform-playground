@@ -52,7 +52,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local generated exports
-export/
+export-out/*
+!export-out/export-out-guide.md
 
 # Dependency directories
 node_modules/
