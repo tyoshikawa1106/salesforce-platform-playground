@@ -29,6 +29,8 @@ npm run data:seed:standard:dry-run
 npm run data:seed:standard -- --target-org <alias>
 ```
 
+主要標準オブジェクト seed は通常 org では 50 件規模、Scratch Org と判定できる対象では 2,000 件規模で作成します。
+
 ## 追加ルール
 
 - 実在の個人情報や顧客情報は置かない。

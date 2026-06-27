@@ -42,7 +42,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
             'Selector row should expose the matching Account name.'
         );
         Assert.areEqual(
-            500,
+            50,
             result.pageSize,
             'Selector result should expose the configured page size.'
         );
@@ -124,7 +124,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     @IsTest
     static void searchRecordsShouldPageWithCursorToken() {
-        List<Account> accounts = TestDataFactory.createAccounts(501);
+        List<Account> accounts = TestDataFactory.createAccounts(51);
         for (Integer index = 0; index < accounts.size(); index++) {
             accounts[index].Name = 'Selector Page ' + index;
         }
@@ -154,7 +154,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
 
         Assert.areEqual(
-            500,
+            50,
             firstPage.records.size(),
             'First page should return the configured number of rows.'
         );

@@ -3,7 +3,7 @@
  */
 @SuppressWarnings('PMD.CyclomaticComplexity')
 public virtual with sharing class ObjectRecordSearchSelector {
-    private static final Integer PAGE_SIZE = 500;
+    private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
     private static final Map<String, List<String>> DISPLAY_FIELDS_BY_OBJECT = new Map<String, List<String>>{
         'Account' => new List<String>{
@@ -225,7 +225,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
      * @param request 検索条件とページ指定
-     * @return 1 ページ最大 500 件の検索結果
+     * @return 1 ページ最大 50 件の検索結果
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(

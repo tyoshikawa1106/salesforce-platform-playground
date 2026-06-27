@@ -74,7 +74,7 @@ export default class ObjectRecordSearch extends LightningElement {
     selectedRowIds = [];
     config;
     pageNumber = 1;
-    pageSize = 500;
+    pageSize = 50;
     currentPageToken;
     nextPageToken;
     pageTokenHistory = [];

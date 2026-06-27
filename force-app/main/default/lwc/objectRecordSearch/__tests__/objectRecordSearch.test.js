@@ -64,7 +64,7 @@ const searchResponse = {
             }
         }
     ],
-    pageSize: 500,
+    pageSize: 50,
     pageNumber: 1,
     hasNextPage: false,
     nextPageToken: null
@@ -761,7 +761,7 @@ describe('c-object-record-search', () => {
         await flushPromises();
 
         expect(element.shadowRoot.textContent).toContain('現在のページ: 1');
-        expect(element.shadowRoot.textContent).not.toContain('1 / 500 件');
+        expect(element.shadowRoot.textContent).not.toContain('1 / 50 件');
 
         findButton(element, '次へ').click();
         await flushPromises();

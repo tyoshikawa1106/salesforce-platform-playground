@@ -2,7 +2,7 @@
 
 Sales / Service でよく使う標準オブジェクトの合成テストデータを作成します。
 
-各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。`Campaign` は前年・今年・来年の月次キャンペーン 36 件、`Product2` / `PricebookEntry` はオフィス備品販売を想定した定義済み商品カタログとして作成・更新し、repeat で件数を増やしません。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
+通常 org では各オブジェクトにつき 50 件を目安に作成します。Scratch Org では `sf org list --all --json` の scratch org 一覧に対象 alias / username / orgId が含まれる場合、各オブジェクトにつき 2,000 件を目安に自動で拡張します。`Account` は通常 org では 1 回で 50 件、Scratch Org では一時 Apex ファイルで 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` / `scratchOrgRepeat` で実行します。`Campaign` は前年・今年・来年の月次キャンペーン 36 件、`Product2` / `PricebookEntry` はオフィス備品販売を想定した定義済み商品カタログとして作成・更新し、repeat で件数を増やしません。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
 
 ## 作成対象
 
@@ -54,6 +54,8 @@ npm run data:seed:standard:dry-run
 ```sh
 npm run data:seed:standard -- --target-org <alias>
 ```
+
+通常 org では 50 件規模、Scratch Org と判定できる対象では 2,000 件規模で作成します。明示的にサイクル数を固定したい場合は `--repeat <count>` を指定します。
 
 seed は execute anonymous の CPU / サイズ制限を避けるため、次のフェーズで順番に実行します。
 

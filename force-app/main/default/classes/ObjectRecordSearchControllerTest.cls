@@ -136,7 +136,7 @@ private with sharing class ObjectRecordSearchControllerTest {
             'Blank searches should return all available Account rows.'
         );
         Assert.areEqual(
-            500,
+            50,
             result.pageSize,
             'Search result should expose the page size.'
         );

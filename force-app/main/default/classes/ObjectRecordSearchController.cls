@@ -21,7 +21,7 @@ public with sharing class ObjectRecordSearchController {
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
      * @param request 検索条件とページ指定
-     * @return 1 ページ最大 500 件の検索結果
+     * @return 1 ページ最大 50 件の検索結果
      */
     @AuraEnabled(cacheable=true)
     public static ObjectRecordSearchResult searchRecords(
