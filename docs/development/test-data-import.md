@@ -14,6 +14,8 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 - `scripts/setup/standard-objects/import-plan.json`: 主要標準オブジェクト seed の実行計画。
 - `scripts/apex/setup/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
+- `scripts/soql/setup-data/*.soql`: 初期データ投入後の横断確認用 SOQL。
+- `scripts/soql/<object>/*.soql`: オブジェクトごとの調査・運用確認用 SOQL。
 - `scripts/setup/import-test-data.js`: import plan を読み、`sf data import bulk` または `sf apex run` を実行する。
 
 ## 事前確認
@@ -52,6 +54,16 @@ npm run setup:data:standard -- --target-org <alias>
 ```sh
 npm run setup:data:standard -- --target-org <alias> --only standard-objects-accounts
 ```
+
+投入後の主要レコードは、確認用 SOQL で確認できます。
+
+```sh
+sf data query --file scripts/soql/setup-data/accounts.soql --target-org <alias>
+sf data query --file scripts/soql/setup-data/opportunities.soql --target-org <alias>
+sf data query --file scripts/soql/setup-data/cases.soql --target-org <alias>
+```
+
+オブジェクトごとの調査クエリ例は、`scripts/soql/account/`、`scripts/soql/opportunity/`、`scripts/soql/case/` に置きます。
 
 作成対象は次のとおりです。
 
