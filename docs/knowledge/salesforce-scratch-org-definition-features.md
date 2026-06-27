@@ -50,7 +50,7 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | API / 開発               | `API`, `AuthorApex`, `DebugApex`, `ForceComPlatform`                                                                              | Apex、CLI、メタデータ deploy、開発操作の前提を揃える。                   |
 | カスタマイズ上限         | `AddCustomApps:30`, `AddCustomObjects:30`, `AddCustomRelationships:10`, `AddCustomTabs:30`                                        | 検証用に app / object / relation / tab の作成枠を増やす。                |
-| Sales                    | `SalesUser`, `ProductsAndSchedules`, `MultiCurrency`, `PersonAccounts`                                                            | Account、Contact、Opportunity、Product、Pricebook 周辺の再現性を上げる。 |
+| Sales                    | `SalesUser`, `ProductsAndSchedules`, `PersonAccounts`                                                                             | Account、Contact、Opportunity、Product、Pricebook 周辺の再現性を上げる。 |
 | Service                  | `ServiceCloud`, `ServiceUser`, `Entitlements`, `CaseClassification`, `CaseWrapUp`, `LiveAgent`                                    | Case、Entitlement、Service Console、Live Agent 周辺の再現性を上げる。    |
 | Field Service            | `FieldService:5`, `FieldServiceDispatcherUser:5`, `FieldServiceMobileUser:5`, `FieldServiceSchedulingUser:5`, `AssetScheduling:5` | Work Order、Work Plan、Service Resource 周辺の前提を作る。               |
 | Knowledge / Content      | `Knowledge`, `SalesforceContentUser`                                                                                              | Knowledge、File / Content 周辺の前提を作る。                             |
@@ -70,7 +70,7 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 `FieldService.settings` の `enableWorkOrders=true` を Settings メタデータとして deploy するだけでは、既存 Scratch Org に WorkPlan 系オブジェクトは追加されません。
 Scratch Org 作成時点で `FieldService:<ライセンス数>` を指定する必要があります。
 
-`MultiCurrency` や `SharedActivities` のように、作成後に Metadata API で有効化/無効化できない、または更新できない設定があります。
+`SharedActivities` のように、作成後に Metadata API で有効化/無効化できない、または更新できない設定があります。
 これらは Settings メタデータを別 source として deploy するのではなく、Scratch Org definition の `features` で扱います。
 
 ## settings の扱い

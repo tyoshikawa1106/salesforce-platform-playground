@@ -74,7 +74,8 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 - Scratch Org に投入する metadata が `force-app/main/default` に揃っているか
 - 作成に使う alias と duration
 
-`config/project-scratch-def.json` の `features` は、主要な標準オブジェクトの再現性を上げるため、Sales / Service / Field Service / Knowledge / Experience Cloud / 開発・自動化系を広めに指定します。
+`config/project-scratch-def.json` の `features` は、通常時は Scratch Org 作成に必要な最小限だけを指定します。
+主要な標準オブジェクトの再現性を上げる追加 feature は、必要になった時点で目的別に追加します。
 ただし、Scratch Org 作成時に Dev Hub 側で許可されているものだけが使えます。
 Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Cloud など、契約や追加 package に強く依存する feature は、必要になった時点で個別に追加します。
 `AddCustomRelationships` は `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` にします。
