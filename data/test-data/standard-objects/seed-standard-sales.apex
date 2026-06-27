@@ -177,6 +177,10 @@ String contractStatus = pick(
     Contract.Status.getDescribe(),
     new List<String>{ 'Draft' }
 );
+String contractOwnerExpirationNotice = pick(
+    Contract.OwnerExpirationNotice.getDescribe(),
+    new List<String>{ '30', '60', '90' }
+);
 String orderStatus = pick(
     Order.Status.getDescribe(),
     new List<String>{ 'Draft' }
@@ -397,11 +401,28 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     contracts.add(
         new Contract(
             AccountId = account.Id,
+            Pricebook2Id = entry.Pricebook2Id,
             StartDate = Date.today().addDays(Math.mod(sequence, 180)),
             ContractTerm = 12,
             Status = contractStatus,
+            CustomerSignedId = contact.Id,
             CustomerSignedTitle = '部門責任者',
             CustomerSignedDate = Date.today().addDays(Math.mod(sequence, 180)),
+            OwnerExpirationNotice = contractOwnerExpirationNotice,
+            CompanySignedId = UserInfo.getUserId(),
+            CompanySignedDate = Date.today()
+                .addDays(Math.mod(sequence, 180))
+                .addDays(-3),
+            BillingStreet = '大手町 ' +
+                sequence +
+                '-1-' +
+                Math.mod(sequence + 1, 9),
+            BillingCity = '千代田区',
+            BillingState = '東京都',
+            BillingPostalCode = '100-' +
+                String.valueOf(2000 + Math.mod(sequence, 8000)),
+            BillingCountry = '日本',
+            SpecialTerms = 'オフィス製品の標準保守、初期交換対応、ライセンス更新案内を含む。価格表は標準価格表を利用し、請求先住所は契約取引先の本社住所に準拠する。',
             Description = '年間利用契約のドラフト。更新条件、サポート範囲、請求開始日を確認中。'
         )
     );
