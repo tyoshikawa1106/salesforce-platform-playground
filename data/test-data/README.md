@@ -1,32 +1,27 @@
-# テストデータ
+# テストデータ plan
 
-Salesforce CLI で投入する合成テストデータを置きます。
+Salesforce CLI で投入する合成テストデータの実行計画を置きます。
+
+匿名 Apex の seed / cleanup / repair script は `scripts/apex/test-data/` に置きます。
 
 ## 実行
-
-ローカル検証だけ行います。
-
-```sh
-npm run data:import:test:dry-run
-```
-
-接続済み org へ投入します。
-
-```sh
-npm run data:import:test -- --target-org <alias>
-```
-
-一部だけ投入する場合は `import-plan.json` の `label` を指定します。
-
-```sh
-npm run data:import:test -- --target-org <alias> --only accounts
-```
 
 主要標準オブジェクト一式は、関係 ID を同一トランザクションで扱うため、専用の Apex seed を CLI から実行します。
 
 ```sh
 npm run data:seed:standard:dry-run
+```
+
+接続済み org へ投入します。
+
+```sh
 npm run data:seed:standard -- --target-org <alias>
+```
+
+一部だけ投入する場合は `standard-objects/import-plan.json` の `label` を指定します。
+
+```sh
+npm run data:seed:standard -- --target-org <alias> --only standard-objects-accounts
 ```
 
 主要標準オブジェクト seed は通常 org では 50 件規模、Scratch Org と判定できる対象では 2,000 件規模で作成します。

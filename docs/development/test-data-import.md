@@ -10,10 +10,8 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-- `data/test-data/import-plan.json`: 投入対象の順序、SObject、CSV を定義する。
 - `data/test-data/standard-objects/import-plan.json`: 主要標準オブジェクト seed の実行計画。
-- `data/test-data/*.csv`: Salesforce CLI に渡す CSV。
-- `data/test-data/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
+- `scripts/apex/test-data/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
 - `scripts/data/import-test-data.js`: import plan を読み、`sf data import bulk` または `sf apex run` を実行する。
 
 ## 事前確認
@@ -24,32 +22,12 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 sf org display --target-org <alias>
 ```
 
-CSV の列が対象 SObject に作成可能か不明な場合は describe を確認します。
-
-```sh
-sf sobject describe --sobject Account --target-org <alias> --json
-```
-
 ## dry-run
 
 実行前に、ローカルファイルと実行予定コマンドを確認します。
 
 ```sh
-npm run data:import:test:dry-run
-```
-
-## import
-
-接続済み org に投入します。明示的に `--target-org` を指定します。
-
-```sh
-npm run data:import:test -- --target-org <alias>
-```
-
-特定の plan entry だけ投入します。
-
-```sh
-npm run data:import:test -- --target-org <alias> --only accounts
+npm run data:seed:standard:dry-run
 ```
 
 ## 主要標準オブジェクト seed
@@ -58,7 +36,7 @@ npm run data:import:test -- --target-org <alias> --only accounts
 
 通常 org では各オブジェクトにつき 50 件、Scratch Org では各オブジェクトにつき 2,000 件を目安に作成します。`Account` は通常 org では 1 回で 50 件、Scratch Org では一時 Apex ファイルで 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` / `scratchOrgRepeat` で実行します。`Campaign` は前年・今年・来年の月次キャンペーン 36 件、`Product2` / `PricebookEntry` はオフィス備品販売を想定した定義済み商品カタログとして作成・更新し、repeat で件数を増やしません。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
 
-execute anonymous の CPU / サイズ制限を避けるため、accounts、contacts-leads、campaign-product-price、sales、service、activity-content の 6 フェーズに分けて実行します。
+execute anonymous の CPU / サイズ制限を避けるため、1 つの primary object につき 1 つの anonymous Apex ファイルに分け、`data/test-data/standard-objects/import-plan.json` の順序で実行します。
 
 ```sh
 npm run data:seed:standard:dry-run
@@ -99,16 +77,10 @@ sf data query \
 sf data delete record --sobject Account --record-id <record-id> --target-org <alias>
 ```
 
-大量データを扱う場合は、削除用 CSV を作って `sf data delete bulk` を使います。
-
-```sh
-sf data delete bulk --file data/test-data/delete-accounts.csv --sobject Account --target-org <alias> --wait 30
-```
-
 主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。cleanup は governor limit を避けるため、各オブジェクト最大 100 件ずつ削除します。大量投入後は `Deleted records: none` になるまで複数回実行します。
 
 ```sh
-sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
+sf apex run --file scripts/apex/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
 ```
 
 ## データ追加時の注意

@@ -57,21 +57,16 @@ npm run data:seed:standard -- --target-org <alias>
 
 通常 org では 50 件規模、Scratch Org と判定できる対象では 2,000 件規模で作成します。明示的にサイクル数を固定したい場合は `--repeat <count>` を指定します。
 
-seed は execute anonymous の CPU / サイズ制限を避けるため、次のフェーズで順番に実行します。
+seed は execute anonymous の CPU / サイズ制限を避けるため、1 つの primary object につき 1 つの anonymous Apex ファイルに分け、`data/test-data/standard-objects/import-plan.json` の順序で実行します。
 
-- `seed-standard-accounts.apex`
-- `seed-standard-contacts-leads.apex`
-- `seed-standard-campaign-product-price.apex`
-- `seed-standard-sales.apex`
-- `seed-standard-service.apex`
-- `seed-standard-activity-content.apex`
+固定マスタ寄りの `Campaign`、`Product2`、`PricebookEntry`、`CampaignMember` は repeat せず、取引先配下のトランザクション系 object は通常 org で 50 件、Scratch Org で 2,000 件規模になるよう repeat します。
 
 ## cleanup
 
 seed 実行時の接頭辞 `[TEST]` で対象を削除します。cleanup は governor limit を避けるため、各オブジェクト最大 100 件ずつ削除します。大量投入後は `Deleted records: none` になるまで複数回実行します。
 
 ```sh
-sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
+sf apex run --file scripts/apex/test-data/standard-objects/cleanup-standard-objects.apex --target-org <alias>
 ```
 
 ## 注意

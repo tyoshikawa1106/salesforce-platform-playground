@@ -12,8 +12,6 @@
         "test:unit:coverage": "sfdx-lwc-jest --coverage",
         "code-analyzer": "sf code-analyzer run --rule-selector Recommended --target force-app --output-file code-analyzer-results-local.json",
         "code-analyzer:ci": "sf code-analyzer run --rule-selector Recommended --target force-app --severity-threshold 3 --output-file code-analyzer-results-ci.json",
-        "data:import:test": "node scripts/data/import-test-data.js --plan data/test-data/import-plan.json",
-        "data:import:test:dry-run": "node scripts/data/import-test-data.js --plan data/test-data/import-plan.json --dry-run",
         "data:seed:standard": "node scripts/data/import-test-data.js --plan data/test-data/standard-objects/import-plan.json",
         "data:seed:standard:dry-run": "node scripts/data/import-test-data.js --plan data/test-data/standard-objects/import-plan.json --dry-run",
         "sf:validate:dev": "sf project deploy validate --manifest manifest/deployable-dev.xml --test-level RunLocalTests",
