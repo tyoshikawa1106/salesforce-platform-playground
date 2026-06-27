@@ -124,13 +124,70 @@ List<String> productNames = new List<String>{
     '商談レビュー自動化支援',
     '年間活用定着プラン'
 };
+List<String> productSegments = new List<String>{
+    '営業部門向け',
+    'サポート部門向け',
+    '管理部門向け',
+    '現場担当者向け',
+    '経営企画向け',
+    '代理店向け',
+    '小規模チーム向け',
+    'エンタープライズ向け',
+    '地域拠点向け',
+    '導入初期向け'
+};
+List<String> productEditions = new List<String>{
+    'スターター',
+    'スタンダード',
+    'プロフェッショナル',
+    'アドバンス',
+    'プレミアム',
+    '分析強化',
+    '自動化強化',
+    '運用支援',
+    '移行支援',
+    '定着支援'
+};
+
+Integer existingProductCount = [
+    SELECT COUNT()
+    FROM Product2
+    WHERE Name LIKE :seedLike
+];
 
 List<Campaign> campaigns = new List<Campaign>();
 List<Product2> products = new List<Product2>();
 List<Pricebook2> pricebooks = new List<Pricebook2>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
+    Integer productSequence = existingProductCount + i;
     String campaignName = campaignNames[Math.mod(i - 1, campaignNames.size())];
-    String productName = productNames[Math.mod(i - 1, productNames.size())];
+    String productName =
+        productSegments[
+            Math.mod(
+                (productSequence - 1) / productNames.size(),
+                productSegments.size()
+            )
+        ] +
+        ' ' +
+        productNames[Math.mod(productSequence - 1, productNames.size())] +
+        ' ' +
+        productEditions[
+            Math.mod(
+                (productSequence - 1) /
+                (productNames.size() * productSegments.size()),
+                productEditions.size()
+            )
+        ] +
+        ' 第' +
+        (1 +
+        Math.mod(
+            (productSequence - 1) /
+            (productNames.size() *
+            productSegments.size() *
+            productEditions.size()),
+            20
+        )) +
+        '版';
     campaigns.add(
         new Campaign(
             Name = seedPrefix + ' ' + campaignName,
