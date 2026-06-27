@@ -166,9 +166,16 @@ public with sharing class ObjectRecordSearchController {
      * 検索画面設定に使う参照権限と固定項目です。
      */
     public class ObjectRecordSearchAccess {
+        /** 対象オブジェクトでレコード削除が許可されているかどうか。 */
         public Boolean deletable { get; private set; }
+
+        /** 対象オブジェクトでレコード作成が許可されているかどうか。 */
         public Boolean createable { get; private set; }
+
+        /** 対象オブジェクトでレコード更新が許可されているかどうか。 */
         public Boolean updateable { get; private set; }
+
+        /** 一覧に追加表示する固定項目。 */
         public List<ObjectRecordDisplayField> displayFields { get; private set; }
 
         /**

@@ -29,7 +29,10 @@
 }
 
 .record-table lightning-datatable {
-    min-width: 80rem;
+    min-width: calc(
+        var(--slds-g-sizing-16, 30rem) + var(--slds-g-sizing-16, 30rem) +
+            var(--slds-g-sizing-15, 20rem)
+    );
 }
 
 .record-table_empty {
