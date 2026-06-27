@@ -79,19 +79,12 @@ List<Product2> products = [
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
-List<Pricebook2> pricebooks = [
-    SELECT Id
-    FROM Pricebook2
-    WHERE Name LIKE :seedLike
-    ORDER BY CreatedDate ASC
-    LIMIT :parentPoolSize
-];
 List<PricebookEntry> pricebookEntries = [
     SELECT Id, Pricebook2Id, Product2Id
     FROM PricebookEntry
     WHERE
         Product2.Name LIKE :seedLike
-        AND Pricebook2.Name LIKE :seedLike
+        AND Pricebook2.IsStandard = TRUE
         AND IsActive = TRUE
         AND Pricebook2.IsActive = TRUE
     ORDER BY CreatedDate ASC
@@ -102,12 +95,11 @@ if (
     contacts.isEmpty() ||
     campaigns.isEmpty() ||
     products.isEmpty() ||
-    pricebooks.isEmpty() ||
     pricebookEntries.isEmpty()
 ) {
     System.assert(
         false,
-        'Run account, contact, campaign, product, and pricebook phases before sales.'
+        'Run account, contact, campaign, and product phases before sales.'
     );
 }
 

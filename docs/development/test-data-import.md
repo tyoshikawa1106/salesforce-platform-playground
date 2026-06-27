@@ -71,7 +71,7 @@ npm run data:seed:standard -- --target-org <alias>
 | ---------------- | -------------------------------------------------------------- |
 | 顧客             | `Account`, `Contact`, `Lead`                                   |
 | キャンペーン     | `Campaign`, `CampaignMember`                                   |
-| 商品・価格       | `Product2`, `Pricebook2`, `PricebookEntry`                     |
+| 商品・価格       | `Product2`, `PricebookEntry`                                   |
 | 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
 | 契約・注文       | `Contract`, `Order`, `OrderItem`                               |
 | サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`              |
@@ -79,7 +79,7 @@ npm run data:seed:standard -- --target-org <alias>
 | 活動             | `Task`, `Event`                                                |
 | メール・ファイル | `EmailMessage`, `ContentVersion`                               |
 
-組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにします。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
+組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにします。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 

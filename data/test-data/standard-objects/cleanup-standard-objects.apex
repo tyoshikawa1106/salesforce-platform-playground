@@ -178,8 +178,6 @@ deleteBatch(
     'PricebookEntry',
     'SELECT Id FROM PricebookEntry WHERE Product2.Name LIKE ' +
         seedLikeLiteral +
-        ' AND Pricebook2.Name LIKE ' +
-        seedLikeLiteral +
         ' ORDER BY CreatedDate ASC',
     deleteBatchSize,
     deleted

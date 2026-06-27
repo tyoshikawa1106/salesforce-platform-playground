@@ -157,7 +157,6 @@ Integer existingProductCount = [
 
 List<Campaign> campaigns = new List<Campaign>();
 List<Product2> products = new List<Product2>();
-List<Pricebook2> pricebooks = new List<Pricebook2>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer productSequence = existingProductCount + i;
     String campaignName = campaignNames[Math.mod(i - 1, campaignNames.size())];
@@ -217,24 +216,13 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '。標準の販売・契約・サポートフロー検証に使うテスト商品です。'
         )
     );
-
-    pricebooks.add(
-        new Pricebook2(
-            Name = seedPrefix + ' ' + productName + ' 価格表',
-            IsActive = true,
-            Description = productName +
-                ' の標準販売価格を確認するためのテスト価格表です。'
-        )
-    );
 }
 
 System.debug('Seed run key: ' + seedRunKey);
 Database.SaveResult[] campaignResults = Database.insert(campaigns, false);
 Database.SaveResult[] productResults = Database.insert(products, false);
-Database.SaveResult[] pricebookResults = Database.insert(pricebooks, false);
 logResults('Campaign', campaignResults);
 logResults('Product2', productResults);
-logResults('Pricebook2', pricebookResults);
 
 List<Campaign> insertedCampaigns = [
     SELECT Id
@@ -246,13 +234,6 @@ List<Campaign> insertedCampaigns = [
 List<Product2> insertedProducts = [
     SELECT Id
     FROM Product2
-    WHERE Name LIKE :seedLike
-    ORDER BY CreatedDate DESC
-    LIMIT :countPerObject
-];
-List<Pricebook2> insertedPricebooks = [
-    SELECT Id
-    FROM Pricebook2
     WHERE Name LIKE :seedLike
     ORDER BY CreatedDate DESC
     LIMIT :countPerObject
@@ -271,7 +252,6 @@ if (!standardPricebook.IsActive) {
 
 List<CampaignMember> members = new List<CampaignMember>();
 List<PricebookEntry> standardEntries = new List<PricebookEntry>();
-List<PricebookEntry> customEntries = new List<PricebookEntry>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Campaign campaign = insertedCampaigns[
         Math.mod(i - 1, insertedCampaigns.size())
@@ -279,9 +259,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Contact contact = contacts[Math.mod(i - 1, contacts.size())];
     Product2 product = insertedProducts[
         Math.mod(i - 1, insertedProducts.size())
-    ];
-    Pricebook2 pricebook = insertedPricebooks[
-        Math.mod(i - 1, insertedPricebooks.size())
     ];
 
     members.add(
@@ -299,17 +276,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             IsActive = true
         )
     );
-    customEntries.add(
-        new PricebookEntry(
-            Pricebook2Id = pricebook.Id,
-            Product2Id = product.Id,
-            UnitPrice = 12000 + (i * 500),
-            IsActive = true,
-            UseStandardPrice = false
-        )
-    );
 }
 
 logResults('CampaignMember', Database.insert(members, false));
 logResults('Standard PricebookEntry', Database.insert(standardEntries, false));
-logResults('PricebookEntry', Database.insert(customEntries, false));
