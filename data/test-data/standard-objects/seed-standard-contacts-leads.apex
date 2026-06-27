@@ -288,14 +288,16 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         )
     );
 
+    String leadFamilyName = familyNames[
+        Math.mod(leadSequence - 1, familyNames.size())
+    ];
+    String leadGivenName = givenNames[
+        Math.mod((leadSequence - 1) / familyNames.size(), givenNames.size())
+    ];
     leads.add(
         new Lead(
-            FirstName = givenNames[
-                Math.mod(leadSequence + 4, givenNames.size())
-            ],
-            LastName = seedPrefix +
-                ' ' +
-                familyNames[Math.mod(leadSequence + 5, familyNames.size())],
+            FirstName = leadGivenName,
+            LastName = seedPrefix + ' ' + leadFamilyName,
             Company = seedPrefix + ' ' + prospectCompany,
             Title = '業務改善プロジェクト責任者',
             Status = leadStatus,
