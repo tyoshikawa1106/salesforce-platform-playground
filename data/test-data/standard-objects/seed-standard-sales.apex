@@ -52,7 +52,7 @@ Integer existingOpportunityCount = [
     WHERE Name LIKE :seedLike
 ];
 List<Account> accounts = [
-    SELECT Id
+    SELECT Id, Name
     FROM Account
     WHERE Name LIKE :seedLike
     ORDER BY CreatedDate ASC
@@ -200,6 +200,13 @@ List<String> caseSubjects = new List<String>{
 List<Opportunity> opportunities = new List<Opportunity>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer sequence = existingOpportunityCount + i;
+    Account account = accounts[Math.mod(sequence - 1, accounts.size())];
+    String cleanAccountName = account.Name.replace(seedPrefix, '').trim();
+    String opportunityName = opportunityNames[
+        Math.mod(sequence - 1, opportunityNames.size())
+    ];
+    Integer opportunityPhase =
+        1 + Math.mod((sequence - 1) / accounts.size(), 20);
     PricebookEntry entry = pricebookEntries[
         Math.mod(sequence - 1, pricebookEntries.size())
     ];
@@ -207,10 +214,13 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         new Opportunity(
             Name = seedPrefix +
                 ' ' +
-                opportunityNames[
-                    Math.mod(sequence - 1, opportunityNames.size())
-                ],
-            AccountId = accounts[Math.mod(sequence - 1, accounts.size())].Id,
+                cleanAccountName +
+                ' ' +
+                opportunityName +
+                ' 第' +
+                opportunityPhase +
+                '期',
+            AccountId = account.Id,
             CampaignId = campaigns[Math.mod(sequence - 1, campaigns.size())].Id,
             Pricebook2Id = entry.Pricebook2Id,
             StageName = opportunityStage,
@@ -220,9 +230,9 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Amount = 250000 + (sequence * 25000),
             Probability = 40 + Math.mod(sequence, 5) * 10,
             NextStep = '来週の定例で利用部門の要件と導入範囲を確認',
-            Description = opportunityNames[
-                    Math.mod(sequence - 1, opportunityNames.size())
-                ] +
+            Description = cleanAccountName +
+                ' 向け ' +
+                opportunityName +
                 ' の検証用商談。提案、価格表、商談商品、注文連携を確認します。'
         )
     );
