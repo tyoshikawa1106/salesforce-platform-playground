@@ -25,6 +25,10 @@ String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
     return null;
 }
 
+String testEmail(Integer sequence) {
+    return 'test+' + String.valueOf(sequence).leftPad(4, '0') + '@example.com';
+}
+
 void logResults(String objectName, Database.SaveResult[] results) {
     Integer successCount = 0;
     List<String> errors = new List<String>();
@@ -230,9 +234,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Account account = accounts[Math.mod(i - 1, accounts.size())];
     Integer contactSequence = existingContactCount + i;
     Integer leadSequence = existingLeadCount + i;
-    String paddedContactSequence = String.valueOf(contactSequence)
-        .leftPad(4, '0');
-    String paddedLeadSequence = String.valueOf(leadSequence).leftPad(4, '0');
     String familyName = familyNames[
         Math.mod(contactSequence - 1, familyNames.size())
     ];
@@ -251,9 +252,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             LastName = seedPrefix + ' ' + familyName,
             Title = department + ' ' + contactTitle,
             Department = department,
-            Email = 'standard.seed.contact+' +
-                paddedContactSequence +
-                '@example.invalid',
+            Email = testEmail(contactSequence),
             Phone = '03-5555-' +
                 String.valueOf(3000 + Math.mod(contactSequence, 7000))
                     .leftPad(4, '0'),
@@ -304,9 +303,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Rating = leadRating,
             Industry = leadIndustry,
             LeadSource = leadSource,
-            Email = 'standard.seed.lead+' +
-                paddedLeadSequence +
-                '@example.invalid',
+            Email = testEmail(leadSequence),
             Phone = '03-5555-' +
                 String.valueOf(6000 + Math.mod(leadSequence, 4000))
                     .leftPad(4, '0'),
@@ -316,7 +313,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Fax = '03-5555-' +
                 String.valueOf(7000 + Math.mod(leadSequence, 3000))
                     .leftPad(4, '0'),
-            Website = 'https://example.invalid/seed/lead-' + paddedLeadSequence,
+            Website = 'https://example.com',
             Street = '桜丘町 ' + i + '-6-' + Math.mod(i + 3, 9),
             City = '渋谷区',
             PostalCode = '150-' + String.valueOf(1000 + i),

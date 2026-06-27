@@ -39,6 +39,10 @@ void putIfCreateable(SObject record, String fieldName, Object value) {
     }
 }
 
+String testEmail(Integer sequence) {
+    return 'test+' + String.valueOf(sequence).leftPad(4, '0') + '@example.com';
+}
+
 void logResults(String objectName, Database.SaveResult[] results) {
     Integer successCount = 0;
     List<String> errors = new List<String>();
@@ -216,16 +220,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             'Subject',
             seedPrefix + ' お問い合わせ内容の確認'
         );
-        putIfCreateable(
-            email,
-            'FromAddress',
-            'support+' + sequence + '@example.invalid'
-        );
-        putIfCreateable(
-            email,
-            'ToAddress',
-            'standard.seed.contact+' + sequence + '@example.invalid'
-        );
+        putIfCreateable(email, 'FromAddress', testEmail(sequence));
+        putIfCreateable(email, 'ToAddress', testEmail(sequence));
         putIfCreateable(
             email,
             'MessageDate',
