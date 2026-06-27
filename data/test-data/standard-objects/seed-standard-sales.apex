@@ -75,15 +75,43 @@ List<Campaign> campaigns = [
 List<Product2> products = [
     SELECT Id, Name
     FROM Product2
-    WHERE Name LIKE :seedLike
+    WHERE
+        Name LIKE :seedLike
+        AND (ProductCode LIKE 'NB-%'
+        OR ProductCode LIKE 'DT-%'
+        OR ProductCode LIKE 'MN-%'
+        OR ProductCode LIKE 'KB-%'
+        OR ProductCode LIKE 'DK-%'
+        OR ProductCode LIKE 'PR-%'
+        OR ProductCode LIKE 'NW-%'
+        OR ProductCode LIKE 'VC-%'
+        OR ProductCode LIKE 'OF-%'
+        OR ProductCode LIKE 'SW-%')
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
 List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id
+    SELECT
+        Id,
+        Pricebook2Id,
+        Product2Id,
+        UnitPrice,
+        Product2.Name,
+        Product2.ProductCode,
+        Product2.Family
     FROM PricebookEntry
     WHERE
         Product2.Name LIKE :seedLike
+        AND (Product2.ProductCode LIKE 'NB-%'
+        OR Product2.ProductCode LIKE 'DT-%'
+        OR Product2.ProductCode LIKE 'MN-%'
+        OR Product2.ProductCode LIKE 'KB-%'
+        OR Product2.ProductCode LIKE 'DK-%'
+        OR Product2.ProductCode LIKE 'PR-%'
+        OR Product2.ProductCode LIKE 'NW-%'
+        OR Product2.ProductCode LIKE 'VC-%'
+        OR Product2.ProductCode LIKE 'OF-%'
+        OR Product2.ProductCode LIKE 'SW-%')
         AND Pricebook2.IsStandard = TRUE
         AND IsActive = TRUE
         AND Pricebook2.IsActive = TRUE
@@ -189,26 +217,22 @@ List<String> caseSubjects = new List<String>{
     'ダッシュボード表示権限を確認したい'
 };
 List<String> assetUsageNames = new List<String>{
-    '本社営業チーム向け CRM 利用環境',
-    '問い合わせ一次受付ポータル',
-    '契約更新管理ワークスペース',
-    '店舗スタッフ支援端末',
-    'フィールド作業報告環境',
-    '代理店共有ダッシュボード',
-    '製造ライン実績入力環境',
-    '経営指標モニタリング環境',
-    '顧客サポート履歴統合環境',
-    'キャンペーン効果分析環境',
-    '金融窓口案件管理環境',
-    'ヘルスケア相談受付環境',
-    '公共案件進捗共有環境',
-    'データ移行検証環境',
-    '商品マスタ運用環境',
-    'モバイル営業活動環境',
-    '保守契約確認環境',
-    '請求前レビュー環境',
-    '受注納品追跡環境',
-    'サービス品質分析環境'
+    '営業部',
+    '総務部',
+    '経理部',
+    '開発部',
+    '情報システム部',
+    'カスタマーサポート',
+    '人事部',
+    '役員室',
+    '受付',
+    '会議室A',
+    '大会議室',
+    '東京本社',
+    '大阪支社',
+    '名古屋営業所',
+    '福岡サポートセンター',
+    '札幌コンタクトセンター'
 };
 List<String> assetLocations = new List<String>{
     '東京本社',
@@ -223,22 +247,12 @@ List<String> assetLocations = new List<String>{
     '那覇リモート拠点'
 };
 List<String> assetPlans = new List<String>{
-    '初期導入プラン',
-    '標準運用プラン',
-    '拡張分析プラン',
-    'モバイル活用プラン',
-    '保守更新プラン',
-    '部門展開プラン'
-};
-List<String> assetSerialPrefixes = new List<String>{
-    'CRM',
-    'SUP',
-    'ORD',
-    'MOB',
-    'ANL',
-    'FSC',
-    'CTR',
-    'MST'
+    '新入社員配備',
+    '部門標準化',
+    '会議室更新',
+    '拠点増床',
+    'リモートワーク対応',
+    '保守交換'
 };
 
 List<Opportunity> opportunities = new List<Opportunity>();
@@ -309,11 +323,14 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer sequence = existingOpportunityCount + i;
     Account account = accounts[Math.mod(sequence - 1, accounts.size())];
     Contact contact = contacts[Math.mod(sequence - 1, contacts.size())];
-    Product2 product = products[Math.mod(sequence - 1, products.size())];
-    String cleanProductName = product.Name.replace(seedPrefix, '').trim();
     PricebookEntry entry = pricebookEntries[
         Math.mod(sequence - 1, pricebookEntries.size())
     ];
+    Product2 product = entry.Product2;
+    String cleanProductName = product.Name.replace(seedPrefix, '').trim();
+    String productCode = String.isBlank(product.ProductCode)
+        ? 'PRD'
+        : product.ProductCode;
     Opportunity opportunity = insertedOpportunities[
         Math.mod(i - 1, insertedOpportunities.size())
     ];
@@ -331,9 +348,12 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             OpportunityId = opportunity.Id,
             PricebookEntryId = entry.Id,
             Quantity = 1 + Math.mod(sequence, 4),
-            UnitPrice = 12000 + (sequence * 500),
+            UnitPrice = entry.UnitPrice,
             ServiceDate = Date.today().addDays(10 + Math.mod(sequence, 180)),
-            Description = '初期導入範囲に含める商品。PoC後に本番利用数を確定予定。'
+            Description = cleanProductName +
+                ' を初期導入範囲に含める。商品コード ' +
+                productCode +
+                ' の価格と数量を確認する検証用明細。'
         )
     );
     contracts.add(
@@ -379,41 +399,35 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         Math.mod(sequence + 2, assetLocations.size())
     ];
     String assetPlan = assetPlans[Math.mod(sequence + 4, assetPlans.size())];
-    String assetSerialPrefix = assetSerialPrefixes[
-        Math.mod(sequence + 6, assetSerialPrefixes.size())
-    ];
-    Integer assetPhase =
-        1 + Math.mod((sequence - 1) / assetUsageNames.size(), 20);
     assets.add(
         new Asset(
             Name = seedPrefix +
                 ' ' +
-                assetUsage +
-                ' ' +
                 cleanProductName +
-                ' 第' +
-                assetPhase +
-                '環境 ' +
-                assetSerialPrefix +
-                '-' +
-                String.valueOf(100000 + sequence),
+                '（' +
+                assetUsage +
+                '）',
             AccountId = account.Id,
             ContactId = contact.Id,
             Product2Id = product.Id,
             Status = assetStatus,
             Quantity = 1 + Math.mod(sequence + 1, 5),
-            Price = 11000 + (Math.mod(sequence, 36) * 1250),
+            Price = entry.UnitPrice,
             PurchaseDate = Date.today().addDays(-45 - Math.mod(sequence, 210)),
             UsageEndDate = Date.today().addDays(300 + Math.mod(sequence, 240)),
-            SerialNumber = assetSerialPrefix +
+            SerialNumber = productCode +
                 '-' +
                 seedRunKey.right(8) +
                 '-' +
                 String.valueOf(100000 + sequence),
             Description = assetLocation +
-                ' で利用中の ' +
+                ' の ' +
+                assetUsage +
+                ' に導入済みの ' +
+                cleanProductName +
+                '。' +
                 assetPlan +
-                '。契約更新、保守対応、作業指示連携の確認に使用。'
+                ' として、契約更新、保守対応、作業指示連携の確認に使用。'
         )
     );
     cases.add(
@@ -467,9 +481,11 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             OrderId = insertedOrders[Math.mod(i - 1, insertedOrders.size())].Id,
             PricebookEntryId = entry.Id,
             Quantity = 1 + Math.mod(sequence, 4),
-            UnitPrice = 12000 + (sequence * 500),
+            UnitPrice = entry.UnitPrice,
             ServiceDate = Date.today().addDays(15 + Math.mod(sequence, 180)),
-            Description = '初回注文に含まれる明細。納品予定日と数量確認のための検証データ。'
+            Description = '初回注文に含まれる ' +
+                entry.Product2.Name.replace(seedPrefix, '').trim() +
+                '。納品予定日と数量確認のための検証データ。'
         )
     );
 }
