@@ -245,6 +245,11 @@ if (
             SObject record = gd.get('ContractLineItem').newSObject();
             putIfCreateable(record, 'ServiceContractId', serviceContract.Id);
             putIfCreateable(record, 'PricebookEntryId', entry.Id);
+            putIfCreateable(
+                record,
+                'AssetId',
+                assets[Math.mod(sequence - 1, assets.size())].Id
+            );
             putIfCreateable(record, 'Quantity', 1 + Math.mod(sequence, 3));
             putIfCreateable(record, 'UnitPrice', entry.UnitPrice);
             putIfCreateable(record, 'Discount', Math.mod(sequence, 4) * 2);
