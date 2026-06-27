@@ -1,0 +1,8 @@
+// Run: sf data query --file scripts/soql/account/duplicate-candidates.soql --target-org <alias>
+
+SELECT Name, COUNT(Id)
+FROM Account
+GROUP BY Name
+HAVING COUNT(Id) > 1
+ORDER BY COUNT(Id) DESC
+LIMIT 50

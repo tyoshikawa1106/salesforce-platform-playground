@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/opportunities.soql --target-org <alias>
+
+SELECT Id, Name, Account.Name, StageName, Amount, CloseDate, CreatedDate
+FROM Opportunity
+ORDER BY CreatedDate DESC
+LIMIT 200

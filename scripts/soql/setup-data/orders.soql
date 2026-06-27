@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/orders.soql --target-org <alias>
+
+SELECT Id, OrderNumber, Account.Name, Contract.ContractNumber, Status, Type, EffectiveDate, CreatedDate
+FROM Order
+ORDER BY CreatedDate DESC
+LIMIT 200
