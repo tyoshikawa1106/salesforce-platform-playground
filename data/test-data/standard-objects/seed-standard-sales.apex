@@ -68,7 +68,7 @@ List<Contact> contacts = [
 List<Campaign> campaigns = [
     SELECT Id
     FROM Campaign
-    WHERE Name LIKE :seedLike
+    WHERE Name LIKE '[TEST] 20%'
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];

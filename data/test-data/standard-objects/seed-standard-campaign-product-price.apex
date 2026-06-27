@@ -1,7 +1,15 @@
-Integer campaignCount = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
+Integer monthlyCampaignCount = 36;
+
+String pad2(Integer value) {
+    String result = String.valueOf(value);
+    while (result.length() < 2) {
+        result = '0' + result;
+    }
+    return result;
+}
 
 String pad3(Integer value) {
     String result = String.valueOf(value);
@@ -58,7 +66,7 @@ List<Contact> contacts = [
     FROM Contact
     WHERE LastName LIKE :seedLike
     ORDER BY CreatedDate DESC
-    LIMIT :campaignCount
+    LIMIT :monthlyCampaignCount
 ];
 if (contacts.isEmpty()) {
     System.assert(
@@ -69,11 +77,19 @@ if (contacts.isEmpty()) {
 
 String campaignType = pick(
     Campaign.Type.getDescribe(),
-    new List<String>{ 'Webinar', 'Email', 'Conference' }
+    new List<String>{ 'Email', 'Webinar', 'Conference' }
 );
-String campaignStatus = pick(
+String campaignStatusPlanned = pick(
+    Campaign.Status.getDescribe(),
+    new List<String>{ 'Planned', 'In Progress', 'Completed' }
+);
+String campaignStatusInProgress = pick(
     Campaign.Status.getDescribe(),
     new List<String>{ 'In Progress', 'Planned', 'Completed' }
+);
+String campaignStatusCompleted = pick(
+    Campaign.Status.getDescribe(),
+    new List<String>{ 'Completed', 'In Progress', 'Planned' }
 );
 String memberStatus = pick(
     CampaignMember.Status.getDescribe(),
@@ -84,27 +100,19 @@ String quantityUnit = pick(
     new List<String>{ 'Each', 'Hours' }
 );
 
-List<String> campaignNames = new List<String>{
-    '春の営業改革ウェビナー',
-    '製造業向け保守契約セミナー',
-    '小売店舗DX相談会',
-    '顧客サポート高度化キャンペーン',
-    '経営ダッシュボード体験会',
-    'フィールドサービス個別相談',
-    '夏季ユーザー会',
-    '既存顧客アップセル施策',
-    '新規リード育成メール',
-    'パートナー共催商談創出',
-    '公共向け業務改善勉強会',
-    'ヘルスケアCRM活用セミナー',
-    '金融業界向けオンライン展示会',
-    '受注管理標準化ワークショップ',
-    'アフターサービス改善相談会',
-    '営業マネージャー向け朝会',
-    '地域顧客訪問キャンペーン',
-    '価格改定フォローアップ',
-    '契約更新促進キャンペーン',
-    '年末重点商談レビュー'
+List<String> monthlyCampaignThemes = new List<String>{
+    '新年度オフィス環境準備キャンペーン',
+    'リモートワーク機器見直しキャンペーン',
+    '会議室アップデートキャンペーン',
+    '新入社員PC配備キャンペーン',
+    'プリンター・スキャナー更新キャンペーン',
+    'ネットワーク強化キャンペーン',
+    '夏季オフィス家具リフレッシュキャンペーン',
+    'セキュリティソフト更新キャンペーン',
+    '下期IT備品標準化キャンペーン',
+    '会議機器まとめ買いキャンペーン',
+    '年末オフィス備品棚卸キャンペーン',
+    '年度末予算消化キャンペーン'
 };
 List<String> productDefinitions = new List<String>{
     'NB|ノートPC|Business Laptop 14|168000|外出先でも扱いやすい14インチの標準業務ノートPCです。',
@@ -196,7 +204,50 @@ for (Product2 product : [
     existingProductsByCode.put(product.ProductCode, product);
 }
 
-List<Campaign> campaigns = new List<Campaign>();
+Integer currentYear = Date.today().year();
+List<Integer> campaignYears = new List<Integer>{
+    currentYear - 1,
+    currentYear,
+    currentYear + 1
+};
+Map<String, Campaign> existingCampaignsByName = new Map<String, Campaign>();
+List<String> monthlyCampaignNames = new List<String>();
+for (Integer year : campaignYears) {
+    for (Integer month = 1; month <= 12; month += 1) {
+        String campaignName =
+            seedPrefix +
+            ' ' +
+            year +
+            '年' +
+            pad2(month) +
+            '月 ' +
+            monthlyCampaignThemes[month - 1];
+        monthlyCampaignNames.add(campaignName);
+    }
+}
+for (Campaign campaign : [
+    SELECT
+        Id,
+        Name,
+        Type,
+        Status,
+        IsActive,
+        StartDate,
+        EndDate,
+        ExpectedRevenue,
+        BudgetedCost,
+        ActualCost,
+        ExpectedResponse,
+        NumberSent,
+        Description
+    FROM Campaign
+    WHERE Name IN :monthlyCampaignNames
+]) {
+    existingCampaignsByName.put(campaign.Name, campaign);
+}
+
+List<Campaign> campaignsToInsert = new List<Campaign>();
+List<Campaign> campaignsToUpdate = new List<Campaign>();
 List<Product2> productsToInsert = new List<Product2>();
 List<Product2> productsToUpdate = new List<Product2>();
 for (String productCode : productCodes) {
@@ -222,6 +273,67 @@ for (String productCode : productCodes) {
     productsToUpdate.add(existingProduct);
 }
 
+for (Integer index = 0; index < monthlyCampaignNames.size(); index += 1) {
+    Integer year = campaignYears[index / 12];
+    Integer month = 1 + Math.mod(index, 12);
+    Date startDate = Date.newInstance(year, month, 1);
+    Date endDate = startDate.addMonths(1).addDays(-1);
+    String campaignName = monthlyCampaignNames[index];
+    String campaignStatus = startDate.year() < currentYear
+        ? campaignStatusCompleted
+        : startDate.year() > currentYear
+              ? campaignStatusPlanned
+              : campaignStatusInProgress;
+    Integer monthFactor = month + ((year - (currentYear - 1)) * 12);
+    Campaign campaign = existingCampaignsByName.get(campaignName);
+    if (campaign == null) {
+        campaignsToInsert.add(
+            new Campaign(
+                Name = campaignName,
+                Type = campaignType,
+                Status = campaignStatus,
+                IsActive = true,
+                StartDate = startDate,
+                EndDate = endDate,
+                ExpectedRevenue = 1500000 + (monthFactor * 120000),
+                BudgetedCost = 250000 + (month * 15000),
+                ActualCost = startDate.year() <= currentYear
+                    ? 180000 + (month * 12000)
+                    : 0,
+                ExpectedResponse = 8 + Math.mod(monthFactor, 12),
+                NumberSent = 300 + (monthFactor * 20),
+                Description = year +
+                    '年' +
+                    month +
+                    '月の ' +
+                    monthlyCampaignThemes[month - 1] +
+                    '。月次のオフィス製品販売施策として、反応率、商談化率、フォロー状況を確認します。'
+            )
+        );
+        continue;
+    }
+    campaign.Type = campaignType;
+    campaign.Status = campaignStatus;
+    campaign.IsActive = true;
+    campaign.StartDate = startDate;
+    campaign.EndDate = endDate;
+    campaign.ExpectedRevenue = 1500000 + (monthFactor * 120000);
+    campaign.BudgetedCost = 250000 + (month * 15000);
+    campaign.ActualCost = startDate.year() <= currentYear
+        ? 180000 + (month * 12000)
+        : 0;
+    campaign.ExpectedResponse = 8 + Math.mod(monthFactor, 12);
+    campaign.NumberSent = 300 + (monthFactor * 20);
+    campaign.Description =
+        year +
+        '年' +
+        month +
+        '月の ' +
+        monthlyCampaignThemes[month - 1] +
+        '。月次のオフィス製品販売施策として、反応率、商談化率、フォロー状況を確認します。';
+    campaignsToUpdate.add(campaign);
+}
+
 Database.SaveResult[] productInsertResults = Database.insert(
     productsToInsert,
     false
@@ -230,41 +342,62 @@ Database.SaveResult[] productUpdateResults = Database.update(
     productsToUpdate,
     false
 );
-
-for (Integer i = 1; i <= campaignCount; i += 1) {
-    String campaignName = campaignNames[Math.mod(i - 1, campaignNames.size())];
-    campaigns.add(
-        new Campaign(
-            Name = seedPrefix + ' ' + campaignName,
-            Type = campaignType,
-            Status = campaignStatus,
-            IsActive = true,
-            StartDate = Date.today().addDays(i),
-            EndDate = Date.today().addDays(30 + i),
-            ExpectedRevenue = 2000000 + (i * 100000),
-            BudgetedCost = 500000 + (i * 25000),
-            ActualCost = 300000 + (i * 20000),
-            ExpectedResponse = 10 + i,
-            NumberSent = 100 + i,
-            Description = campaignName +
-                ' の反応率、商談化率、フォロー状況を確認するための合成キャンペーンです。'
-        )
-    );
-}
+Database.SaveResult[] campaignInsertResults = Database.insert(
+    campaignsToInsert,
+    false
+);
+Database.SaveResult[] campaignUpdateResults = Database.update(
+    campaignsToUpdate,
+    false
+);
 
 System.debug('Seed run key: ' + seedRunKey);
-Database.SaveResult[] campaignResults = Database.insert(campaigns, false);
-logResults('Campaign', campaignResults);
+logResults('Campaign insert', campaignInsertResults);
+logResults('Campaign update', campaignUpdateResults);
 logResults('Product2 insert', productInsertResults);
 logResults('Product2 update', productUpdateResults);
 
 List<Campaign> insertedCampaigns = [
-    SELECT Id
+    SELECT Id, Name
     FROM Campaign
-    WHERE Name LIKE :seedLike
-    ORDER BY CreatedDate DESC
-    LIMIT :campaignCount
+    WHERE Name IN :monthlyCampaignNames
+    ORDER BY StartDate ASC
 ];
+Set<Id> insertedCampaignIds = new Set<Id>();
+for (Campaign campaign : insertedCampaigns) {
+    insertedCampaignIds.add(campaign.Id);
+}
+Set<Id> contactIds = new Set<Id>();
+for (Contact contact : contacts) {
+    contactIds.add(contact.Id);
+}
+
+Set<String> existingCampaignMemberKeys = new Set<String>();
+for (CampaignMember member : [
+    SELECT CampaignId, ContactId
+    FROM CampaignMember
+    WHERE CampaignId IN :insertedCampaignIds AND ContactId IN :contactIds
+]) {
+    existingCampaignMemberKeys.add(member.CampaignId + '-' + member.ContactId);
+}
+
+List<CampaignMember> members = new List<CampaignMember>();
+for (Integer i = 0; i < insertedCampaigns.size(); i += 1) {
+    Campaign campaign = insertedCampaigns[i];
+    Contact contact = contacts[Math.mod(i, contacts.size())];
+    String memberKey = campaign.Id + '-' + contact.Id;
+    if (existingCampaignMemberKeys.contains(memberKey)) {
+        continue;
+    }
+    members.add(
+        new CampaignMember(
+            CampaignId = campaign.Id,
+            ContactId = contact.Id,
+            Status = memberStatus
+        )
+    );
+}
+
 List<Product2> insertedProducts = [
     SELECT Id, ProductCode
     FROM Product2
@@ -285,25 +418,6 @@ Pricebook2 standardPricebook = [
 if (!standardPricebook.IsActive) {
     standardPricebook.IsActive = true;
     update standardPricebook;
-}
-
-List<CampaignMember> members = new List<CampaignMember>();
-for (Integer i = 1; i <= campaignCount; i += 1) {
-    Campaign campaign = insertedCampaigns[
-        Math.mod(i - 1, insertedCampaigns.size())
-    ];
-    Contact contact = contacts[Math.mod(i - 1, contacts.size())];
-    Product2 product = insertedProducts[
-        Math.mod(i - 1, insertedProducts.size())
-    ];
-
-    members.add(
-        new CampaignMember(
-            CampaignId = campaign.Id,
-            ContactId = contact.Id,
-            Status = memberStatus
-        )
-    );
 }
 
 Map<Id, PricebookEntry> entriesByProductId = new Map<Id, PricebookEntry>();
@@ -338,7 +452,7 @@ for (Product2 product : insertedProducts) {
     standardEntriesToUpdate.add(existingEntry);
 }
 
-logResults('CampaignMember', Database.insert(members, false));
+logResults('CampaignMember insert', Database.insert(members, false));
 logResults(
     'Standard PricebookEntry insert',
     Database.insert(standardEntriesToInsert, false)
