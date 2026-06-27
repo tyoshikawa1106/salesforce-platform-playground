@@ -3,6 +3,31 @@ String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
+String pick(
+    Schema.DescribeFieldResult fieldDescribe,
+    List<String> preferred,
+    Integer sequence
+) {
+    List<String> fallbackValues = new List<String>();
+    List<String> preferredValues = new List<String>();
+    for (Schema.PicklistEntry entry : fieldDescribe.getPicklistValues()) {
+        if (!entry.isActive()) {
+            continue;
+        }
+        fallbackValues.add(entry.getValue());
+        if (preferred.contains(entry.getValue())) {
+            preferredValues.add(entry.getValue());
+        }
+    }
+    if (!preferredValues.isEmpty()) {
+        return preferredValues[Math.mod(sequence - 1, preferredValues.size())];
+    }
+    if (!fallbackValues.isEmpty()) {
+        return fallbackValues[Math.mod(sequence - 1, fallbackValues.size())];
+    }
+    return null;
+}
+
 List<String> companyNames = new List<String>{
     'さくら',
     'みらい',
@@ -84,16 +109,16 @@ List<String> streets = new List<String>{
     '博多駅前'
 };
 List<String> prefectureCodes = new List<String>{
-    '13',
-    '13',
-    '13',
-    '13',
-    '14',
-    '23',
-    '27',
-    '26',
-    '28',
-    '40'
+    '東京都',
+    '東京都',
+    '東京都',
+    '東京都',
+    '神奈川県',
+    '愛知県',
+    '大阪府',
+    '京都府',
+    '兵庫県',
+    '福岡県'
 };
 
 Database.DMLOptions duplicateRuleOptions = new Database.DMLOptions();
@@ -126,9 +151,34 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         '株式会社';
     String city = cities[Math.mod(sequence - 1, cities.size())];
     String street = streets[Math.mod(sequence - 1, streets.size())];
-    String prefectureCode = prefectureCodes[
+    String prefecture = prefectureCodes[
         Math.mod(sequence - 1, prefectureCodes.size())
     ];
+    String accountRating = pick(
+        Account.Rating.getDescribe(),
+        new List<String>{ 'Hot', 'Warm', 'Cold' },
+        sequence
+    );
+    String accountType = pick(
+        Account.Type.getDescribe(),
+        new List<String>{
+            'Prospect',
+            'Customer - Direct',
+            'Customer - Channel',
+            'Partner'
+        },
+        sequence
+    );
+    String accountIndustry = pick(
+        Account.Industry.getDescribe(),
+        new List<String>{ 'Technology', 'Consulting', 'Manufacturing' },
+        sequence
+    );
+    String accountOwnership = pick(
+        Account.Ownership.getDescribe(),
+        new List<String>{ 'Public', 'Private', 'Subsidiary', 'Other' },
+        sequence
+    );
     accounts.add(
         new Account(
             Name = seedPrefix + ' ' + companyName,
@@ -144,6 +194,10 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Site = city + ' 第' + paddedSequence + '拠点',
             TickerSymbol = 'SD' +
                 String.valueOf(Math.mod(sequence, 100)).leftPad(2, '0'),
+            Rating = accountRating,
+            Type = accountType,
+            Industry = accountIndustry,
+            Ownership = accountOwnership,
             AnnualRevenue = 420000000 + (i * 18000000),
             NumberOfEmployees = 120 + (i * 8),
             Sic = '737' + Math.mod(i, 10),
@@ -153,8 +207,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '-12-' +
                 Math.mod(sequence + 2, 9),
             BillingCity = city,
-            BillingStateCode = prefectureCode,
-            BillingCountryCode = 'JP',
+            BillingState = prefecture,
+            BillingCountry = 'Japan',
             BillingPostalCode = '10' +
                 Math.mod(sequence, 9) +
                 '-' +
@@ -165,8 +219,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '-5-' +
                 Math.mod(sequence + 4, 9),
             ShippingCity = city,
-            ShippingStateCode = prefectureCode,
-            ShippingCountryCode = 'JP',
+            ShippingState = prefecture,
+            ShippingCountry = 'Japan',
             ShippingPostalCode = '11' +
                 Math.mod(sequence, 9) +
                 '-' +

@@ -56,7 +56,7 @@ npm run data:import:test -- --target-org <alias> --only accounts
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
-各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
+各オブジェクトにつき 2,000 件を目安に作成します。`Account` は標準 Duplicate Rule の 200 件チャンク判定を避けるため 1 回で 2,000 件作成し、その他の関連オブジェクトは 1 回 50 件ずつ、plan の `repeat` で 40 サイクル実行します。`Campaign` は前年・今年・来年の月次キャンペーン 36 件、`Product2` / `PricebookEntry` はオフィス備品販売を想定した定義済み商品カタログとして作成・更新し、repeat で件数を増やしません。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
 
 execute anonymous の CPU / サイズ制限を避けるため、accounts、contacts-leads、campaign-product-price、sales、service、activity-content の 6 フェーズに分けて実行します。
 
@@ -67,19 +67,19 @@ npm run data:seed:standard -- --target-org <alias>
 
 作成対象は次のとおりです。
 
-| 分類             | API 名                                                         |
-| ---------------- | -------------------------------------------------------------- |
-| 顧客             | `Account`, `Contact`, `Lead`                                   |
-| キャンペーン     | `Campaign`, `CampaignMember`                                   |
-| 商品・価格       | `Product2`, `Pricebook2`, `PricebookEntry`                     |
-| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
-| 契約・注文       | `Contract`, `Order`, `OrderItem`                               |
-| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`              |
-| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                               |
-| 活動             | `Task`, `Event`                                                |
-| メール・ファイル | `EmailMessage`, `ContentVersion`                               |
+| 分類             | API 名                                                                |
+| ---------------- | --------------------------------------------------------------------- |
+| 顧客             | `Account`, `Contact`, `Lead`                                          |
+| キャンペーン     | `Campaign`, `CampaignMember`                                          |
+| 商品・価格       | `Product2`, `PricebookEntry`                                          |
+| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem`        |
+| 契約・注文       | `Contract`, `Order`, `OrderItem`                                      |
+| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`, `ContractLineItem` |
+| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                                      |
+| 活動             | `Task`, `Event`                                                       |
+| メール・ファイル | `EmailMessage`, `ContentVersion`                                      |
 
-組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `StateCode` で設定します。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
+組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。キャンペーンは前年・今年・来年の各月 1 件ずつ作成します。商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成します。商品マスターはノートPC、モニター、会議機器、オフィス家具、ソフトウェアなどの office product catalog として作成します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにします。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 

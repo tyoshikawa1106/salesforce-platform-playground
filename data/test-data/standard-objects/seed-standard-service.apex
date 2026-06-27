@@ -100,16 +100,42 @@ List<Case> cases = [
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
+List<Order> orders = [
+    SELECT Id, AccountId
+    FROM Order
+    WHERE Account.Name LIKE :seedLike
+    ORDER BY CreatedDate ASC
+    LIMIT :parentPoolSize
+];
+List<PricebookEntry> pricebookEntries = [
+    SELECT Id, UnitPrice, Pricebook2Id, Product2.Name
+    FROM PricebookEntry
+    WHERE
+        Product2.Name LIKE :seedLike
+        AND Pricebook2.IsStandard = TRUE
+        AND IsActive = TRUE
+        AND Pricebook2.IsActive = TRUE
+    ORDER BY CreatedDate ASC
+    LIMIT :parentPoolSize
+];
 if (
     accounts.isEmpty() ||
     contacts.isEmpty() ||
     assets.isEmpty() ||
-    cases.isEmpty()
+    cases.isEmpty() ||
+    orders.isEmpty()
 ) {
     System.assert(
         false,
         'Run previous standard object seed phases before service.'
     );
+}
+Map<Id, List<Order>> ordersByAccountId = new Map<Id, List<Order>>();
+for (Order orderRecord : orders) {
+    if (!ordersByAccountId.containsKey(orderRecord.AccountId)) {
+        ordersByAccountId.put(orderRecord.AccountId, new List<Order>());
+    }
+    ordersByAccountId.get(orderRecord.AccountId).add(orderRecord);
 }
 
 System.debug('Seed run key: ' + seedRunKey);
@@ -140,6 +166,16 @@ if (
             'ContactId',
             contacts[Math.mod(sequence - 1, contacts.size())].Id
         );
+        if (!pricebookEntries.isEmpty()) {
+            putIfCreateable(
+                record,
+                'Pricebook2Id',
+                pricebookEntries[
+                        Math.mod(sequence - 1, pricebookEntries.size())
+                    ]
+                    .Pricebook2Id
+            );
+        }
         putIfCreateable(
             record,
             'StartDate',
@@ -152,6 +188,38 @@ if (
         );
         putIfCreateable(record, 'Term', 12);
         putIfCreateable(record, 'Status', serviceStatus);
+        putIfCreateable(
+            record,
+            'BillingStreet',
+            '大手町 ' + sequence + '-2-' + Math.mod(sequence + 1, 9)
+        );
+        putIfCreateable(record, 'BillingCity', '千代田区');
+        putIfCreateable(record, 'BillingState', '東京都');
+        putIfCreateable(
+            record,
+            'BillingPostalCode',
+            '100-' + String.valueOf(3000 + Math.mod(sequence, 7000))
+        );
+        putIfCreateable(record, 'BillingCountry', '日本');
+        putIfCreateable(
+            record,
+            'ShippingStreet',
+            '晴海 ' + sequence + '-3-' + Math.mod(sequence + 2, 9)
+        );
+        putIfCreateable(record, 'ShippingCity', '中央区');
+        putIfCreateable(record, 'ShippingState', '東京都');
+        putIfCreateable(
+            record,
+            'ShippingPostalCode',
+            '104-' + String.valueOf(3000 + Math.mod(sequence, 7000))
+        );
+        putIfCreateable(record, 'ShippingCountry', '日本');
+        putIfCreateable(
+            record,
+            'ShippingHandling',
+            2500 + (Math.mod(sequence, 8) * 500)
+        );
+        putIfCreateable(record, 'Tax', 12000 + (Math.mod(sequence, 15) * 800));
         putIfCreateable(
             record,
             'Description',
@@ -168,9 +236,55 @@ if (
 
 List<SObject> insertedServiceContracts = gd.containsKey('ServiceContract')
     ? Database.query(
-          'SELECT Id FROM ServiceContract WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
+          'SELECT Id, StartDate, EndDate FROM ServiceContract WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
       )
     : new List<SObject>();
+
+List<SObject> contractLineItems = new List<SObject>();
+if (
+    gd.containsKey('ContractLineItem') &&
+    gd.get('ContractLineItem').getDescribe().isCreateable() &&
+    !insertedServiceContracts.isEmpty() &&
+    !pricebookEntries.isEmpty()
+) {
+    for (Integer i = 0; i < insertedServiceContracts.size(); i += 1) {
+        SObject serviceContract = insertedServiceContracts[i];
+        Date startDate = (Date) serviceContract.get('StartDate');
+        Date endDate = (Date) serviceContract.get('EndDate');
+        Integer lineItemCount = 3 + Math.mod(i, 3);
+        for (Integer j = 0; j < lineItemCount; j += 1) {
+            Integer sequence = existingWorkOrderCount + (i * 5) + j + 1;
+            PricebookEntry entry = pricebookEntries[
+                Math.mod(sequence - 1, pricebookEntries.size())
+            ];
+            SObject record = gd.get('ContractLineItem').newSObject();
+            putIfCreateable(record, 'ServiceContractId', serviceContract.Id);
+            putIfCreateable(record, 'PricebookEntryId', entry.Id);
+            putIfCreateable(
+                record,
+                'AssetId',
+                assets[Math.mod(sequence - 1, assets.size())].Id
+            );
+            putIfCreateable(record, 'Quantity', 1 + Math.mod(sequence, 3));
+            putIfCreateable(record, 'UnitPrice', entry.UnitPrice);
+            putIfCreateable(record, 'Discount', Math.mod(sequence, 4) * 2);
+            putIfCreateable(record, 'StartDate', startDate);
+            putIfCreateable(record, 'EndDate', endDate);
+            putIfCreateable(
+                record,
+                'Description',
+                entry.Product2.Name.replace(seedPrefix, '').trim() +
+                ' の保守、交換対応、問い合わせ受付を含む契約品目。'
+            );
+            contractLineItems.add(record);
+        }
+    }
+    logResults('ContractLineItem', Database.insert(contractLineItems, false));
+} else {
+    System.debug(
+        'Skipped records: ContractLineItem: object is not createable, unavailable, or no service contracts / pricebook entries were available'
+    );
+}
 
 List<SObject> entitlements = new List<SObject>();
 if (
@@ -348,7 +462,7 @@ if (
 
 List<SObject> insertedWorkOrders = gd.containsKey('WorkOrder')
     ? Database.query(
-          'SELECT Id FROM WorkOrder WHERE Subject LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
+          'SELECT Id, AccountId FROM WorkOrder WHERE Subject LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
       )
     : new List<SObject>();
 List<SObject> workOrderLineItems = new List<SObject>();
@@ -379,6 +493,18 @@ if (
             'WorkOrderId',
             insertedWorkOrders[Math.mod(i - 1, insertedWorkOrders.size())].Id
         );
+        Id workOrderAccountId = (Id) insertedWorkOrders[
+                Math.mod(i - 1, insertedWorkOrders.size())
+            ]
+            .get('AccountId');
+        List<Order> accountOrders = ordersByAccountId.get(workOrderAccountId);
+        if (accountOrders != null && !accountOrders.isEmpty()) {
+            putIfCreateable(
+                record,
+                'OrderId',
+                accountOrders[Math.mod(sequence - 1, accountOrders.size())].Id
+            );
+        }
         putIfCreateable(
             record,
             'AssetId',

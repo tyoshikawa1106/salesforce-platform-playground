@@ -115,6 +115,17 @@ if (globalDescribe.containsKey('Entitlement')) {
     );
 }
 
+if (globalDescribe.containsKey('ContractLineItem')) {
+    deleteBatch(
+        'ContractLineItem',
+        'SELECT Id FROM ContractLineItem WHERE ServiceContract.Name LIKE ' +
+            seedLikeLiteral +
+            ' ORDER BY CreatedDate ASC',
+        deleteBatchSize,
+        deleted
+    );
+}
+
 if (globalDescribe.containsKey('ServiceContract')) {
     deleteBatch(
         'ServiceContract',
@@ -177,8 +188,6 @@ deleteBatch(
 deleteBatch(
     'PricebookEntry',
     'SELECT Id FROM PricebookEntry WHERE Product2.Name LIKE ' +
-        seedLikeLiteral +
-        ' AND Pricebook2.Name LIKE ' +
         seedLikeLiteral +
         ' ORDER BY CreatedDate ASC',
     deleteBatchSize,
