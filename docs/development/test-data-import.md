@@ -10,7 +10,7 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-`scripts/setup/` は初期セットアップの実行入口と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/setup/` に置きます。
+`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行入口と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/setup/` に置きます。
 
 - `scripts/setup/standard-objects/import-plan.json`: 主要標準オブジェクト seed の実行計画。
 - `scripts/apex/setup/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
@@ -64,28 +64,6 @@ sf data query --file scripts/soql/setup-data/cases.soql --target-org <alias>
 ```
 
 オブジェクトごとの調査クエリ例は、`scripts/soql/account/`、`scripts/soql/opportunity/`、`scripts/soql/case/` に置きます。
-
-大量確認や CSV 出力が必要な場合は、Bulk API 2.0 を使う `sf data export bulk` で出力します。結果は `export/` に出力します。
-
-```sh
-sf data export bulk \
-  --query-file scripts/soql/setup-data/accounts.soql \
-  --output-file export/accounts.csv \
-  --result-format csv \
-  --wait 30 \
-  --target-org <alias>
-```
-
-JSON で出力する場合は `--result-format json` を指定します。
-
-```sh
-sf data export bulk \
-  --query-file scripts/soql/setup-data/accounts.soql \
-  --output-file export/accounts.json \
-  --result-format json \
-  --wait 30 \
-  --target-org <alias>
-```
 
 作成対象は次のとおりです。
 
