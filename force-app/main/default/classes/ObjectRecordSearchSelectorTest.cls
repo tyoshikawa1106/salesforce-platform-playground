@@ -9,6 +9,8 @@ private with sharing class ObjectRecordSearchSelectorTest {
         accounts[0].Name = 'Selector Alpha';
         accounts[0].Industry = 'Technology';
         accounts[0].Type = 'Prospect';
+        accounts[0].BillingState = '東京都';
+        accounts[0].BillingCity = '千代田区';
         accounts[1].Name = 'Selector Beta';
         accounts[2].Name = 'Selector Delete One';
         accounts[3].Name = 'Selector Delete Two';
@@ -56,6 +58,16 @@ private with sharing class ObjectRecordSearchSelectorTest {
             result.records[0].fieldValues.get('Type'),
             'Selector rows should include Account Type.'
         );
+        Assert.areEqual(
+            '東京都',
+            result.records[0].fieldValues.get('BillingState'),
+            'Selector rows should expose Account billing state as prefecture.'
+        );
+        Assert.areEqual(
+            '千代田区',
+            result.records[0].fieldValues.get('BillingCity'),
+            'Selector rows should expose Account billing city.'
+        );
     }
 
     @IsTest
@@ -84,9 +96,107 @@ private with sharing class ObjectRecordSearchSelectorTest {
             displayFieldApiNames.contains('Type'),
             'Account display fields should include Type.'
         );
+        Assert.isTrue(
+            displayFieldApiNames.contains('BillingState'),
+            'Account display fields should include BillingState.'
+        );
+        Assert.isTrue(
+            displayFieldApiNames.contains('BillingCity'),
+            'Account display fields should include BillingCity.'
+        );
+        Assert.isFalse(
+            displayFieldApiNames.contains('BillingCountry'),
+            'Account display fields should not include BillingCountry.'
+        );
         Assert.isFalse(
             displayFieldApiNames.contains('Description'),
             'Account display fields should not include Description.'
+        );
+    }
+
+    @IsTest
+    static void getObjectConfigShouldExposeAddressFieldsAsStateThenCity() {
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        List<AddressDisplayExpectation> expectations = new List<AddressDisplayExpectation>{
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'contacts',
+                    'Contact',
+                    'MailingState',
+                    'MailingCity'
+                }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{ 'leads', 'Lead', 'State', 'City' }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'contracts',
+                    'Contract',
+                    'BillingState',
+                    'BillingCity'
+                }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'orders',
+                    'Order',
+                    'BillingState',
+                    'BillingCity',
+                    'BillingCountry'
+                }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'orders',
+                    'Order',
+                    'ShippingState',
+                    'ShippingCity',
+                    'ShippingCountry'
+                }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'serviceContracts',
+                    'ServiceContract',
+                    'BillingState',
+                    'BillingCity',
+                    'BillingCountry'
+                }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'serviceContracts',
+                    'ServiceContract',
+                    'ShippingState',
+                    'ShippingCity',
+                    'ShippingCountry'
+                }
+            ),
+            new AddressDisplayExpectation(
+                new List<String>{
+                    'workOrders',
+                    'WorkOrder',
+                    'State',
+                    'City',
+                    'Country',
+                    'PostalCode'
+                }
+            )
+        };
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            for (AddressDisplayExpectation expectation : expectations) {
+                assertAddressDisplayFields(selector, expectation);
+            }
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            8,
+            expectations.size(),
+            'Address display checks should cover every configured address pair.'
         );
     }
 
@@ -264,5 +374,98 @@ private with sharing class ObjectRecordSearchSelectorTest {
         request.metricKey = metricKey;
         request.searchTerm = searchTerm;
         return request;
+    }
+
+    private static void assertAddressDisplayFields(
+        ObjectRecordSearchSelector selector,
+        AddressDisplayExpectation expectation
+    ) {
+        ObjectRecordSearchController.ObjectRecordSearchConfig config = selector.getObjectConfig(
+            expectation.metricKey
+        );
+        List<String> displayFieldApiNames = getDisplayFieldApiNames(config);
+
+        if (
+            hasAccessibleField(
+                expectation.objectApiName,
+                expectation.stateFieldApiName
+            ) &&
+            hasAccessibleField(
+                expectation.objectApiName,
+                expectation.cityFieldApiName
+            )
+        ) {
+            Assert.isTrue(
+                displayFieldApiNames.contains(expectation.stateFieldApiName),
+                expectation.objectApiName +
+                    ' display fields should include state.'
+            );
+            Assert.isTrue(
+                displayFieldApiNames.contains(expectation.cityFieldApiName),
+                expectation.objectApiName +
+                    ' display fields should include city.'
+            );
+            Assert.isTrue(
+                displayFieldApiNames.indexOf(expectation.stateFieldApiName) <
+                    displayFieldApiNames.indexOf(expectation.cityFieldApiName),
+                expectation.objectApiName +
+                    ' display fields should show state before city.'
+            );
+        }
+
+        for (String excludedFieldApiName : expectation.excludedFieldApiNames) {
+            Assert.isFalse(
+                displayFieldApiNames.contains(excludedFieldApiName),
+                expectation.objectApiName +
+                    ' display fields should omit address detail fields.'
+            );
+        }
+    }
+
+    private static List<String> getDisplayFieldApiNames(
+        ObjectRecordSearchController.ObjectRecordSearchConfig config
+    ) {
+        List<String> displayFieldApiNames = new List<String>();
+        for (
+            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
+        ) {
+            displayFieldApiNames.add(displayField.apiName);
+        }
+        return displayFieldApiNames;
+    }
+
+    private static Boolean hasAccessibleField(
+        String objectApiName,
+        String fieldApiName
+    ) {
+        Schema.SObjectType objectType = Schema.getGlobalDescribe()
+            .get(objectApiName);
+        if (objectType == null) {
+            return false;
+        }
+
+        Map<String, Schema.SObjectField> fieldsByApiName = objectType.getDescribe()
+            .fields.getMap();
+        return fieldsByApiName.containsKey(fieldApiName) &&
+            fieldsByApiName.get(fieldApiName).getDescribe().isAccessible();
+    }
+
+    private class AddressDisplayExpectation {
+        private String metricKey;
+        private String objectApiName;
+        private String stateFieldApiName;
+        private String cityFieldApiName;
+        private List<String> excludedFieldApiNames;
+
+        private AddressDisplayExpectation(List<String> values) {
+            metricKey = values[0];
+            objectApiName = values[1];
+            stateFieldApiName = values[2];
+            cityFieldApiName = values[3];
+            excludedFieldApiNames = new List<String>();
+            for (Integer index = 4; index < values.size(); index++) {
+                excludedFieldApiNames.add(values[index]);
+            }
+        }
     }
 }

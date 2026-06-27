@@ -53,8 +53,8 @@ const searchResponse = {
             { apiName: 'Type', label: '種別' },
             { apiName: 'Website', label: 'Webサイト' },
             { apiName: 'Phone', label: '電話' },
-            { apiName: 'OwnerEmail', label: '担当者メール' },
-            { apiName: 'FromAddress', label: '送信元' }
+            { apiName: 'BillingState', label: '都道府県' },
+            { apiName: 'BillingCity', label: '市区郡' }
         ]
     },
     records: [
@@ -67,8 +67,8 @@ const searchResponse = {
                 Type: 'Prospect',
                 Website: 'https://example.com',
                 Phone: '03-5555-0001',
-                OwnerEmail: 'test+0001@example.com',
-                FromAddress: 'test+0002@example.com'
+                BillingState: '東京都',
+                BillingCity: '千代田区'
             }
         }
     ],
@@ -204,8 +204,8 @@ describe('c-object-record-search', () => {
             '種別',
             'Webサイト',
             '電話',
-            '担当者メール',
-            '送信元'
+            '都道府県',
+            '市区郡'
         ]);
         expect(datatable.columns.map((column) => column.type)).toEqual([
             'url',
@@ -213,8 +213,8 @@ describe('c-object-record-search', () => {
             'text',
             'url',
             'phone',
-            'email',
-            'email'
+            'text',
+            'text'
         ]);
         expect(datatable.columns[3].typeAttributes).toEqual({
             label: { fieldName: 'displayField_Website' },
@@ -226,12 +226,8 @@ describe('c-object-record-search', () => {
             'https://example.com'
         );
         expect(datatable.data[0].displayField_Phone).toBe('03-5555-0001');
-        expect(datatable.data[0].displayField_OwnerEmail).toBe(
-            'test+0001@example.com'
-        );
-        expect(datatable.data[0].displayField_FromAddress).toBe(
-            'test+0002@example.com'
-        );
+        expect(datatable.data[0].displayField_BillingState).toBe('東京都');
+        expect(datatable.data[0].displayField_BillingCity).toBe('千代田区');
         await expect(element).toBeAccessible();
     });
 
