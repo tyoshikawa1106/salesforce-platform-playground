@@ -50,8 +50,7 @@ const searchResponse = {
         nameFieldUpdateable: true,
         displayFields: [
             { apiName: 'Industry', label: '業種' },
-            { apiName: 'Type', label: '種別' },
-            { apiName: 'Description', label: '説明' }
+            { apiName: 'Type', label: '種別' }
         ]
     },
     records: [
@@ -61,8 +60,7 @@ const searchResponse = {
             recordUrl: '/lightning/r/Account/001xx000003DGbYAAW/view',
             fieldValues: {
                 Industry: 'Technology',
-                Type: 'Prospect',
-                Description: 'Synthetic account for list verification.'
+                Type: 'Prospect'
             }
         }
     ],
@@ -195,14 +193,10 @@ describe('c-object-record-search', () => {
         expect(datatable.columns.map((column) => column.label)).toEqual([
             '取引先名',
             '業種',
-            '種別',
-            '説明'
+            '種別'
         ]);
         expect(datatable.data[0].displayField_Industry).toBe('Technology');
         expect(datatable.data[0].displayField_Type).toBe('Prospect');
-        expect(datatable.data[0].displayField_Description).toBe(
-            'Synthetic account for list verification.'
-        );
         await expect(element).toBeAccessible();
     });
 

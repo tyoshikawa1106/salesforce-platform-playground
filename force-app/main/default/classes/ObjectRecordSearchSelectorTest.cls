@@ -9,7 +9,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
         accounts[0].Name = 'Selector Alpha';
         accounts[0].Industry = 'Technology';
         accounts[0].Type = 'Prospect';
-        accounts[0].Description = 'Selector fixed column description.';
         accounts[1].Name = 'Selector Beta';
         accounts[2].Name = 'Selector Delete One';
         accounts[3].Name = 'Selector Delete Two';
@@ -85,9 +84,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
             displayFieldApiNames.contains('Type'),
             'Account display fields should include Type.'
         );
-        Assert.isTrue(
+        Assert.isFalse(
             displayFieldApiNames.contains('Description'),
-            'Account display fields should include Description.'
+            'Account display fields should not include Description.'
         );
     }
 

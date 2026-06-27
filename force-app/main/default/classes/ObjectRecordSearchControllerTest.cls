@@ -9,7 +9,6 @@ private with sharing class ObjectRecordSearchControllerTest {
         accounts[0].Name = '検索対象 Alpha';
         accounts[0].Industry = 'Technology';
         accounts[0].Type = 'Prospect';
-        accounts[0].Description = '検索画面の固定列に表示する説明です。';
         accounts[1].Name = '検索対象 Beta';
         accounts[2].Name = '削除対象 Gamma';
         insert accounts;
@@ -114,11 +113,6 @@ private with sharing class ObjectRecordSearchControllerTest {
             'Prospect',
             result.records[0].fieldValues.get('Type'),
             'Rows should include Account Type from the import plan.'
-        );
-        Assert.areEqual(
-            '検索画面の固定列に表示する説明です。',
-            result.records[0].fieldValues.get('Description'),
-            'Rows should include Account Description from the import plan.'
         );
     }
 

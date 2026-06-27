@@ -15,8 +15,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'Website',
             'BillingCity',
             'BillingState',
-            'BillingCountry',
-            'Description'
+            'BillingCountry'
         },
         'Contact' => new List<String>{
             'Title',
