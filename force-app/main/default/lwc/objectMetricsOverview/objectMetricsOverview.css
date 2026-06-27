@@ -8,9 +8,11 @@
 .count-card {
     display: flex;
     flex-direction: column;
+    height: 5rem;
 }
 
 .count-card-cell {
+    display: flex;
     min-width: 0;
 }
 
@@ -21,6 +23,7 @@
     cursor: pointer;
     display: block;
     font: inherit;
+    height: 100%;
     padding: 0;
     text-align: inherit;
 }
@@ -30,6 +33,7 @@
     display: flex;
     flex: 1 1 auto;
     justify-content: center;
+    min-height: 2rem;
 }
 
 @media (max-width: 48em) {
