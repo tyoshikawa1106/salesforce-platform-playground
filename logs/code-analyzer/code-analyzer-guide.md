@@ -31,3 +31,19 @@ logs/code-analyzer/ci.json
 ```
 
 `--output-file` の拡張子を変えると、HTML、CSV、XML、SARIF などの形式でも出力できます。
+
+## ローカル解析結果の削除
+
+削除対象を事前確認する:
+
+```sh
+git clean -ndX logs/code-analyzer
+```
+
+生成済みの Code Analyzer 解析結果を削除する:
+
+```sh
+git clean -fdX logs/code-analyzer
+```
+
+`git clean -fdX` は ignore 対象だけを削除するため、このガイドは残ります。
