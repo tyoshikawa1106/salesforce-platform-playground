@@ -1,14 +1,12 @@
-# scripts guide
+# scripts ガイド
 
-`scripts/` contains repository-managed helper scripts and query files.
+`scripts/` には、リポジトリで管理する補助スクリプトとクエリファイルを置きます。
 
-- `scripts/setup/`: Node entrypoints and plans for initial org setup.
-- `scripts/apex/`: Anonymous Apex scripts, grouped by purpose.
-- `scripts/soql/`: SOQL files used for setup verification and object-level checks.
-- `scripts/deployment/`: Deployment and org rebuild helper scripts.
+- `scripts/setup/`: 初期 org セットアップ用の Node 実行入口と plan。
+- `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。
+- `scripts/soql/`: セットアップ後の確認やオブジェクト別確認に使う SOQL ファイル。
+- `scripts/deployment/`: デプロイや org 再構築の補助スクリプト。
 
-Generated export files do not belong in `scripts/`. Write local Salesforce CLI
-export output to `export-out/` instead.
+生成された export ファイルは `scripts/` に置きません。Salesforce CLI のローカル export 出力は `export-out/` に書き出します。
 
-See [test-data-import.md](../docs/development/test-data-import.md) for standard
-object setup and export examples.
+標準オブジェクトの初期データセットアップと export 例は [test-data-import.md](../docs/development/test-data-import.md) を参照してください。
