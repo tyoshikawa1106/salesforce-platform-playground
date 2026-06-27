@@ -154,6 +154,38 @@ if (
         putIfCreateable(record, 'Status', serviceStatus);
         putIfCreateable(
             record,
+            'BillingStreet',
+            '大手町 ' + sequence + '-2-' + Math.mod(sequence + 1, 9)
+        );
+        putIfCreateable(record, 'BillingCity', '千代田区');
+        putIfCreateable(record, 'BillingState', '東京都');
+        putIfCreateable(
+            record,
+            'BillingPostalCode',
+            '100-' + String.valueOf(3000 + Math.mod(sequence, 7000))
+        );
+        putIfCreateable(record, 'BillingCountry', '日本');
+        putIfCreateable(
+            record,
+            'ShippingStreet',
+            '晴海 ' + sequence + '-3-' + Math.mod(sequence + 2, 9)
+        );
+        putIfCreateable(record, 'ShippingCity', '中央区');
+        putIfCreateable(record, 'ShippingState', '東京都');
+        putIfCreateable(
+            record,
+            'ShippingPostalCode',
+            '104-' + String.valueOf(3000 + Math.mod(sequence, 7000))
+        );
+        putIfCreateable(record, 'ShippingCountry', '日本');
+        putIfCreateable(
+            record,
+            'ShippingHandling',
+            2500 + (Math.mod(sequence, 8) * 500)
+        );
+        putIfCreateable(record, 'Tax', 12000 + (Math.mod(sequence, 15) * 800));
+        putIfCreateable(
+            record,
             'Description',
             '問い合わせ対応、障害一次切り分け、月次利用レビューを含む年間サポート契約。'
         );
