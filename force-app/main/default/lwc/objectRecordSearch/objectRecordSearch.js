@@ -12,6 +12,7 @@ const BASE_COLUMNS = [
         label: 'Name',
         fieldName: 'recordUrl',
         type: 'url',
+        sortable: true,
         typeAttributes: {
             label: { fieldName: 'name' },
             target: '_self'
@@ -78,6 +79,8 @@ export default class ObjectRecordSearch extends LightningElement {
     currentPageToken;
     nextPageToken;
     pageTokenHistory = [];
+    sortedBy = 'recordUrl';
+    sortedDirection = 'asc';
     hasNextPage = false;
     errorTitle;
     errorMessage;
@@ -149,8 +152,18 @@ export default class ObjectRecordSearch extends LightningElement {
             metricKey: this.metricKey,
             searchTerm: this.searchTerm,
             pageToken: this.currentPageToken,
+            sortBy: this.sortFieldApiName,
+            sortDirection: this.sortedDirection,
             pageNumber: this.pageNumber
         };
+    }
+
+    get sortFieldApiName() {
+        if (this.sortedBy === 'recordUrl') {
+            return this.config?.nameFieldApiName ?? 'Name';
+        }
+
+        return this.getApiNameFromDisplayFieldName(this.sortedBy);
     }
 
     get searchLabel() {
@@ -556,6 +569,13 @@ export default class ObjectRecordSearch extends LightningElement {
         this.pageNumber += 1;
     }
 
+    handleSort(event) {
+        const { fieldName, sortDirection } = event.detail;
+        this.sortedBy = fieldName;
+        this.sortedDirection = sortDirection === 'desc' ? 'desc' : 'asc';
+        this.resetPagination();
+    }
+
     handleRowSelection(event) {
         this.selectedRowIds = event.detail.selectedRows.map((row) => row.id);
     }
@@ -783,6 +803,7 @@ export default class ObjectRecordSearch extends LightningElement {
             label: field.label,
             fieldName,
             type,
+            sortable: true,
             wrapText: true,
             initialWidth: 180
         };
@@ -836,5 +857,14 @@ export default class ObjectRecordSearch extends LightningElement {
 
     getDisplayFieldName(apiName) {
         return `displayField_${apiName}`;
+    }
+
+    getApiNameFromDisplayFieldName(fieldName) {
+        const prefix = 'displayField_';
+        if (fieldName?.startsWith(prefix)) {
+            return fieldName.slice(prefix.length);
+        }
+
+        return this.config?.nameFieldApiName ?? 'Name';
     }
 }

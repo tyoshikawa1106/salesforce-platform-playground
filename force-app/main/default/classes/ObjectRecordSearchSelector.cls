@@ -239,7 +239,14 @@ public virtual with sharing class ObjectRecordSearchSelector {
         ObjectRecordSearchController.ObjectRecordSearchConfig config = getObjectConfig(
             request?.metricKey
         );
-        PageCursor cursor = parsePageToken(request?.pageToken);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            config,
+            request
+        );
+        ObjectRecordSearchSortSupport.PageCursor cursor = ObjectRecordSearchSortSupport.parsePageToken(
+            request?.pageToken,
+            sortSpec
+        );
         String normalizedSearchTerm = request?.searchTerm?.trim();
         String likeSearchTerm = usesNameSearch(normalizedSearchTerm, config)
             ? '%' + normalizedSearchTerm + '%'
@@ -249,10 +256,15 @@ public virtual with sharing class ObjectRecordSearchSelector {
             bindValues.put('nameSearchTerm', likeSearchTerm);
         }
         if (cursor != null) {
-            bindValues.put('cursorName', cursor.name);
+            bindValues.put('cursorSortValue', cursor.sortValue);
             bindValues.put('cursorRecordId', cursor.recordId);
         }
-        String query = createSearchQuery(config, likeSearchTerm != null, cursor);
+        SearchQueryParts queryParts = new SearchQueryParts();
+        queryParts.config = config;
+        queryParts.includeNameSearch = likeSearchTerm != null;
+        queryParts.cursor = cursor;
+        queryParts.sortSpec = sortSpec;
+        String query = createSearchQuery(queryParts);
 
         List<ObjectRecordSearchController.ObjectRecordRow> rows = new List<ObjectRecordSearchController.ObjectRecordRow>();
         for (
@@ -281,35 +293,35 @@ public virtual with sharing class ObjectRecordSearchSelector {
             rows,
             createPageState(
                 normalizePageNumber(request?.pageNumber),
-                hasNextPage ? createNextPageToken(rows) : null
+                hasNextPage
+                    ? ObjectRecordSearchSortSupport.createNextPageToken(
+                          rows,
+                          sortSpec
+                      )
+                    : null
             )
         );
     }
 
-    private String createSearchQuery(
-        ObjectRecordSearchController.ObjectRecordSearchConfig config,
-        Boolean includeNameSearch,
-        PageCursor cursor
-    ) {
+    private String createSearchQuery(SearchQueryParts queryParts) {
         String query =
             'SELECT Id, ' +
-            String.join(getQueryFields(config), ', ') +
+            String.join(getQueryFields(queryParts.config), ', ') +
             ' FROM ' +
-            config.objectApiName;
+            queryParts.config.objectApiName;
 
         List<String> whereClauses = new List<String>();
-        if (includeNameSearch) {
+        if (queryParts.includeNameSearch) {
             whereClauses.add(
-                config.nameFieldApiName + ' LIKE :nameSearchTerm'
+                queryParts.config.nameFieldApiName + ' LIKE :nameSearchTerm'
             );
         }
-        if (cursor != null) {
+        if (queryParts.cursor != null) {
             whereClauses.add(
-                '(' +
-                    config.nameFieldApiName +
-                    ' > :cursorName OR (' +
-                    config.nameFieldApiName +
-                    ' = :cursorName AND Id > :cursorRecordId))'
+                ObjectRecordSearchSortSupport.createCursorWhereClause(
+                    queryParts.sortSpec,
+                    queryParts.cursor
+                )
             );
         }
 
@@ -319,8 +331,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
         return query +
             ' ORDER BY ' +
-            config.nameFieldApiName +
-            ' ASC, Id ASC LIMIT ' +
+            queryParts.sortSpec.fieldApiName +
+            ' ' +
+            queryParts.sortSpec.direction.toUpperCase() +
+            ' NULLS LAST, Id ASC LIMIT ' +
             PAGE_FETCH_SIZE;
     }
 
@@ -452,20 +466,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
         return pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
     }
 
-    private String createNextPageToken(
-        List<ObjectRecordSearchController.ObjectRecordRow> rows
-    ) {
-        ObjectRecordSearchController.ObjectRecordRow lastRow = rows[
-            rows.size() - 1
-        ];
-        return JSON.serialize(
-            new Map<String, String>{
-                'name' => lastRow.name,
-                'recordId' => String.valueOf(lastRow.id)
-            }
-        );
-    }
-
     private ObjectRecordSearchController.ObjectRecordSearchPageState createPageState(
         Integer pageNumber,
         String nextPageToken
@@ -477,33 +477,11 @@ public virtual with sharing class ObjectRecordSearchSelector {
         return pageState;
     }
 
-    private PageCursor parsePageToken(String pageToken) {
-        if (String.isBlank(pageToken)) {
-            return null;
-        }
-
-        Map<String, Object> tokenParts = (Map<String, Object>) JSON.deserializeUntyped(
-            pageToken
-        );
-        String cursorName = (String) tokenParts.get('name');
-        String cursorRecordId = (String) tokenParts.get('recordId');
-        if (String.isBlank(cursorName) || String.isBlank(cursorRecordId)) {
-            throw new ObjectRecordSearchException(
-                'ページ指定を読み込めません。'
-            );
-        }
-
-        return new PageCursor(cursorName, (Id) cursorRecordId);
-    }
-
-    private class PageCursor {
-        private final String name;
-        private final Id recordId;
-
-        private PageCursor(String name, Id recordId) {
-            this.name = name;
-            this.recordId = recordId;
-        }
+    private class SearchQueryParts {
+        private ObjectRecordSearchController.ObjectRecordSearchConfig config;
+        private Boolean includeNameSearch;
+        private ObjectRecordSearchSortSupport.PageCursor cursor;
+        private ObjectRecordSearchSortSupport.SortSpec sortSpec;
     }
 
     private ObjectMetricCatalog.MetricDefinition requireDefinition(

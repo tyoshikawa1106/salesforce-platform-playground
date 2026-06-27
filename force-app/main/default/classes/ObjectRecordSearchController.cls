@@ -246,6 +246,18 @@ public with sharing class ObjectRecordSearchController {
         public String pageToken { get; set; }
 
         /**
+         * 一覧のソート項目です。
+         */
+        @AuraEnabled
+        public String sortBy { get; set; }
+
+        /**
+         * 一覧のソート方向です。
+         */
+        @AuraEnabled
+        public String sortDirection { get; set; }
+
+        /**
          * 画面表示用のページ番号です。
          */
         @AuraEnabled
