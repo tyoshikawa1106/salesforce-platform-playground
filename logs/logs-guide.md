@@ -1,36 +1,13 @@
 # logs ガイド
 
-`logs/` は、Salesforce CLI で取得した Apex debug log のローカル出力先です。
+`logs/` は、Salesforce CLI で取得した Apex debug log やローカル解析結果の出力先です。
 
-`sf apex get log` で生成したログファイルは Git 管理しません。このガイドだけを Git 管理し、ログ出力先フォルダ名を `logs/` に固定します。
+`sf apex get log` や解析コマンドで生成したファイルは Git 管理しません。ガイドだけを Git 管理し、ローカル出力先フォルダ名を `logs/` に固定します。
 
-## ログ一覧
+## Apex debug log
 
-```sh
-sf apex list log --target-org <alias>
-```
+Apex debug log の出力先は `logs/apex/` です。詳細は `logs/apex/apex-log-guide.md` を参照します。
 
-## 直近ログの保存
+## Code Analyzer
 
-```sh
-sf apex get log \
-  --number 2 \
-  --output-dir logs \
-  --target-org <alias>
-```
-
-## 指定ログの表示
-
-```sh
-sf apex get log \
-  --log-id <log-id> \
-  --target-org <alias>
-```
-
-## tail
-
-```sh
-sf apex tail log --target-org <alias>
-```
-
-`sf apex tail log` の出力をファイルに残す場合は、利用している shell のリダイレクトや `tee` を使います。
+Salesforce Code Analyzer の出力先は `logs/code-analyzer/` です。詳細は `logs/code-analyzer/code-analyzer-guide.md` を参照します。

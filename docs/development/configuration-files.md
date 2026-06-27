@@ -26,6 +26,14 @@
 | `.prettierignore`     | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                | 整形対象に含めるべき source を除外していないか確認する。                                  |
 | `.husky/pre-commit`   | commit 前に `npm run precommit` を実行する。                                                                | hook を変えた場合は staged files に対する挙動を確認する。                                 |
 
+## ローカル出力先
+
+| ファイル                                    | 概要                                                                                         | 変更時の確認                                                             |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `logs/logs-guide.md`                        | Apex debug log やローカル解析結果の出力先として `logs/` を固定する。                         | 出力ファイルそのものを Git 管理対象にしていないか確認する。              |
+| `logs/apex/apex-log-guide.md`               | Salesforce CLI で取得した Apex debug log の出力先として `logs/apex/` を固定する。            | Apex debug log の実ファイルを Git 管理対象にしていないか確認する。       |
+| `logs/code-analyzer/code-analyzer-guide.md` | Salesforce Code Analyzer のローカル解析結果の出力先として `logs/code-analyzer/` を固定する。 | `package.json` の Code Analyzer 出力先と `.gitignore` の例外を確認する。 |
+
 ## Git / エディタ
 
 | ファイル                  | 概要                                                                                                      | 変更時の確認                                                          |
