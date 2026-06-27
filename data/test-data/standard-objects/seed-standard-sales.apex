@@ -188,6 +188,58 @@ List<String> caseSubjects = new List<String>{
     '注文ステータスの更新タイミングを相談',
     'ダッシュボード表示権限を確認したい'
 };
+List<String> assetUsageNames = new List<String>{
+    '本社営業チーム向け CRM 利用環境',
+    '問い合わせ一次受付ポータル',
+    '契約更新管理ワークスペース',
+    '店舗スタッフ支援端末',
+    'フィールド作業報告環境',
+    '代理店共有ダッシュボード',
+    '製造ライン実績入力環境',
+    '経営指標モニタリング環境',
+    '顧客サポート履歴統合環境',
+    'キャンペーン効果分析環境',
+    '金融窓口案件管理環境',
+    'ヘルスケア相談受付環境',
+    '公共案件進捗共有環境',
+    'データ移行検証環境',
+    '商品マスタ運用環境',
+    'モバイル営業活動環境',
+    '保守契約確認環境',
+    '請求前レビュー環境',
+    '受注納品追跡環境',
+    'サービス品質分析環境'
+};
+List<String> assetLocations = new List<String>{
+    '東京本社',
+    '大阪支社',
+    '名古屋営業所',
+    '福岡サポートセンター',
+    '札幌コンタクトセンター',
+    '仙台サービス拠点',
+    '横浜ショールーム',
+    '京都バックオフィス',
+    '広島物流センター',
+    '那覇リモート拠点'
+};
+List<String> assetPlans = new List<String>{
+    '初期導入プラン',
+    '標準運用プラン',
+    '拡張分析プラン',
+    'モバイル活用プラン',
+    '保守更新プラン',
+    '部門展開プラン'
+};
+List<String> assetSerialPrefixes = new List<String>{
+    'CRM',
+    'SUP',
+    'ORD',
+    'MOB',
+    'ANL',
+    'FSC',
+    'CTR',
+    'MST'
+};
 
 List<Opportunity> opportunities = new List<Opportunity>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
@@ -258,6 +310,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Account account = accounts[Math.mod(sequence - 1, accounts.size())];
     Contact contact = contacts[Math.mod(sequence - 1, contacts.size())];
     Product2 product = products[Math.mod(sequence - 1, products.size())];
+    String cleanProductName = product.Name.replace(seedPrefix, '').trim();
     PricebookEntry entry = pricebookEntries[
         Math.mod(sequence - 1, pricebookEntries.size())
     ];
@@ -319,22 +372,48 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Description = '営業部門向け初回導入分の注文。請求先と納品先を分けた検証用データ。'
         )
     );
+    String assetUsage = assetUsageNames[
+        Math.mod(sequence - 1, assetUsageNames.size())
+    ];
+    String assetLocation = assetLocations[
+        Math.mod(sequence + 2, assetLocations.size())
+    ];
+    String assetPlan = assetPlans[Math.mod(sequence + 4, assetPlans.size())];
+    String assetSerialPrefix = assetSerialPrefixes[
+        Math.mod(sequence + 6, assetSerialPrefixes.size())
+    ];
+    Integer assetPhase =
+        1 + Math.mod((sequence - 1) / assetUsageNames.size(), 20);
     assets.add(
         new Asset(
             Name = seedPrefix +
                 ' ' +
-                product.Name.replace(seedPrefix, '').trim() +
-                ' 利用環境',
+                assetUsage +
+                ' ' +
+                cleanProductName +
+                ' 第' +
+                assetPhase +
+                '環境 ' +
+                assetSerialPrefix +
+                '-' +
+                String.valueOf(100000 + sequence),
             AccountId = account.Id,
             ContactId = contact.Id,
             Product2Id = product.Id,
             Status = assetStatus,
-            Quantity = 1,
-            Price = 12000 + (sequence * 500),
-            PurchaseDate = Date.today().addDays(-30 - Math.mod(sequence, 180)),
-            UsageEndDate = Date.today().addDays(335 + Math.mod(sequence, 180)),
-            SerialNumber = 'SN-' + seedRunKey.right(14) + '-' + sequence,
-            Description = '顧客環境に導入済みの商品。契約更新と作業指示の関連確認に使用。'
+            Quantity = 1 + Math.mod(sequence + 1, 5),
+            Price = 11000 + (Math.mod(sequence, 36) * 1250),
+            PurchaseDate = Date.today().addDays(-45 - Math.mod(sequence, 210)),
+            UsageEndDate = Date.today().addDays(300 + Math.mod(sequence, 240)),
+            SerialNumber = assetSerialPrefix +
+                '-' +
+                seedRunKey.right(8) +
+                '-' +
+                String.valueOf(100000 + sequence),
+            Description = assetLocation +
+                ' で利用中の ' +
+                assetPlan +
+                '。契約更新、保守対応、作業指示連携の確認に使用。'
         )
     );
     cases.add(
