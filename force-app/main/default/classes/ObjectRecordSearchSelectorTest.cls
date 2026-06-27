@@ -7,6 +7,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void setupTestData() {
         List<Account> accounts = TestDataFactory.createAccounts(4);
         accounts[0].Name = 'Selector Alpha';
+        accounts[0].Industry = 'Technology';
+        accounts[0].Type = 'Prospect';
+        accounts[0].Description = 'Selector fixed column description.';
         accounts[1].Name = 'Selector Beta';
         accounts[2].Name = 'Selector Delete One';
         accounts[3].Name = 'Selector Delete Two';
@@ -43,6 +46,48 @@ private with sharing class ObjectRecordSearchSelectorTest {
             500,
             result.pageSize,
             'Selector result should expose the configured page size.'
+        );
+        Assert.areEqual(
+            'Technology',
+            result.records[0].fieldValues.get('Industry'),
+            'Selector rows should expose fixed seed/import fields.'
+        );
+        Assert.areEqual(
+            'Prospect',
+            result.records[0].fieldValues.get('Type'),
+            'Selector rows should include Account Type.'
+        );
+    }
+
+    @IsTest
+    static void getObjectConfigShouldExposeFixedDisplayFields() {
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        ObjectRecordSearchController.ObjectRecordSearchConfig config;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            config = selector.getObjectConfig('accounts');
+            Test.stopTest();
+        }
+
+        Set<String> displayFieldApiNames = new Set<String>();
+        for (
+            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
+        ) {
+            displayFieldApiNames.add(displayField.apiName);
+        }
+
+        Assert.isTrue(
+            displayFieldApiNames.contains('Industry'),
+            'Account display fields should include Industry.'
+        );
+        Assert.isTrue(
+            displayFieldApiNames.contains('Type'),
+            'Account display fields should include Type.'
+        );
+        Assert.isTrue(
+            displayFieldApiNames.contains('Description'),
+            'Account display fields should include Description.'
         );
     }
 

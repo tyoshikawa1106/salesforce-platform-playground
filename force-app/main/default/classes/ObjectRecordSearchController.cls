@@ -126,30 +126,93 @@ public with sharing class ObjectRecordSearchController {
         public Boolean nameFieldUpdateable { get; private set; }
 
         /**
+         * 一覧に追加表示する固定項目です。
+         */
+        @AuraEnabled
+        public List<ObjectRecordDisplayField> displayFields { get; private set; }
+
+        /**
          * 検索画面設定を作成します。
          *
          * @param definition データボードカードと対象オブジェクトの定義
-         * @param objectDescribe 対象オブジェクトの describe 結果
          * @param nameFieldDescribe Name 相当項目の describe 結果
+         * @param access 対象オブジェクトの参照権限と固定項目
          */
         public ObjectRecordSearchConfig(
             ObjectMetricCatalog.MetricDefinition definition,
-            Schema.DescribeSObjectResult objectDescribe,
-            Schema.DescribeFieldResult nameFieldDescribe
+            Schema.DescribeFieldResult nameFieldDescribe,
+            ObjectRecordSearchAccess access
         ) {
             metricKey = definition.key;
             objectApiName = definition.objectApiName;
             objectLabel = definition.label;
             nameFieldApiName = nameFieldDescribe.getName();
             nameFieldLabel = nameFieldDescribe.getLabel();
-            deletable = objectDescribe.isDeletable();
-            createable = objectDescribe.isCreateable();
-            updateable = objectDescribe.isUpdateable();
+            deletable = access.deletable;
+            createable = access.createable;
+            updateable = access.updateable;
             searchable =
                 nameFieldDescribe.isAccessible() &&
                 nameFieldDescribe.isFilterable();
             nameFieldCreateable = nameFieldDescribe.isCreateable();
             nameFieldUpdateable = nameFieldDescribe.isUpdateable();
+            displayFields = access.displayFields == null
+                ? new List<ObjectRecordDisplayField>()
+                : access.displayFields;
+        }
+    }
+
+    /**
+     * 検索画面設定に使う参照権限と固定項目です。
+     */
+    public class ObjectRecordSearchAccess {
+        public Boolean deletable { get; private set; }
+        public Boolean createable { get; private set; }
+        public Boolean updateable { get; private set; }
+        public List<ObjectRecordDisplayField> displayFields { get; private set; }
+
+        /**
+         * 検索画面設定向けの参照権限と固定項目を作成します。
+         *
+         * @param objectDescribe 対象オブジェクトの describe 結果
+         * @param displayFields 一覧に追加表示する固定項目
+         */
+        public ObjectRecordSearchAccess(
+            Schema.DescribeSObjectResult objectDescribe,
+            List<ObjectRecordDisplayField> displayFields
+        ) {
+            deletable = objectDescribe.isDeletable();
+            createable = objectDescribe.isCreateable();
+            updateable = objectDescribe.isUpdateable();
+            this.displayFields = displayFields;
+        }
+    }
+
+    /**
+     * 一覧に表示する固定項目の定義です。
+     */
+    public class ObjectRecordDisplayField {
+        /**
+         * 項目 API 参照名です。
+         */
+        @AuraEnabled
+        public String apiName { get; private set; }
+
+        /**
+         * 項目の画面表示ラベルです。
+         */
+        @AuraEnabled
+        public String label { get; private set; }
+
+        /**
+         * 固定項目定義を作成します。
+         *
+         * @param apiName 項目 API 参照名
+         * @param label 項目の画面表示ラベル
+         */
+        public ObjectRecordDisplayField(String apiName, String label) {
+            this.apiName = apiName;
+            this.label = label;
         }
     }
 
@@ -286,28 +349,22 @@ public with sharing class ObjectRecordSearchController {
         public String recordUrl { get; private set; }
 
         /**
-         * レコード作成日時です。
+         * 固定表示項目の値です。
          */
         @AuraEnabled
-        public Datetime createdDate { get; private set; }
-
-        /**
-         * レコード最終更新日時です。
-         */
-        @AuraEnabled
-        public Datetime lastModifiedDate { get; private set; }
+        public Map<String, String> fieldValues { get; private set; }
 
         /**
          * 検索結果 SObject から一覧行を作成します。
          *
          * @param record 検索結果 SObject
-         * @param objectApiName 対象オブジェクト API 参照名
          * @param nameFieldApiName Name 相当項目 API 参照名
+         * @param displayFields 一覧に追加表示する固定項目
          */
         public ObjectRecordRow(
             SObject record,
-            String objectApiName,
-            String nameFieldApiName
+            String nameFieldApiName,
+            List<ObjectRecordDisplayField> displayFields
         ) {
             id = (Id) record.get('Id');
             Object rawName = record.get(nameFieldApiName);
@@ -316,12 +373,32 @@ public with sharing class ObjectRecordSearchController {
                 : String.valueOf(rawName);
             recordUrl =
                 '/lightning/r/' +
-                objectApiName +
+                record.getSObjectType().getDescribe().getName() +
                 '/' +
                 String.valueOf(id) +
                 '/view';
-            createdDate = (Datetime) record.get('CreatedDate');
-            lastModifiedDate = (Datetime) record.get('LastModifiedDate');
+            fieldValues = createFieldValues(record, displayFields);
+        }
+
+        private Map<String, String> createFieldValues(
+            SObject record,
+            List<ObjectRecordDisplayField> displayFields
+        ) {
+            Map<String, String> valuesByField = new Map<String, String>();
+            for (ObjectRecordDisplayField displayField : displayFields) {
+                valuesByField.put(
+                    displayField.apiName,
+                    formatValue(record.get(displayField.apiName))
+                );
+            }
+            return valuesByField;
+        }
+
+        private String formatValue(Object value) {
+            if (value == null) {
+                return '';
+            }
+            return String.valueOf(value);
         }
     }
 

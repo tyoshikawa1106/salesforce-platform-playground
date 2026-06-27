@@ -7,11 +7,6 @@ import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchR
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 import { createToastMessage, reduceErrors } from 'c/errorUtils';
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('ja-JP', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-});
-
 const BASE_COLUMNS = [
     {
         label: 'Name',
@@ -21,9 +16,7 @@ const BASE_COLUMNS = [
             label: { fieldName: 'name' },
             target: '_self'
         }
-    },
-    { label: '作成日', fieldName: 'createdDateLabel', type: 'text' },
-    { label: '最終更新日', fieldName: 'lastModifiedDateLabel', type: 'text' }
+    }
 ];
 
 const ROW_ACTIONS = [{ label: '編集', name: 'edit' }];
@@ -105,11 +98,9 @@ export default class ObjectRecordSearch extends LightningElement {
 
         if (data) {
             this.config = data.config;
-            this.rows = (data.records ?? []).map((record) => ({
-                ...record,
-                createdDateLabel: this.formatDate(record.createdDate),
-                lastModifiedDateLabel: this.formatDate(record.lastModifiedDate)
-            }));
+            this.rows = (data.records ?? []).map((record) =>
+                this.createDisplayRow(record)
+            );
             this.pageNumber = data.pageNumber ?? this.pageNumber;
             this.pageSize = data.pageSize ?? this.pageSize;
             this.nextPageToken = data.nextPageToken;
@@ -172,9 +163,10 @@ export default class ObjectRecordSearch extends LightningElement {
         const columns = [
             {
                 ...BASE_COLUMNS[0],
-                label: nameFieldLabel
+                label: nameFieldLabel,
+                initialWidth: 220
             },
-            ...BASE_COLUMNS.slice(1)
+            ...this.displayFieldColumns
         ];
 
         if (!this.editDisabled) {
@@ -187,6 +179,16 @@ export default class ObjectRecordSearch extends LightningElement {
         return columns;
     }
 
+    get displayFieldColumns() {
+        return (this.config?.displayFields ?? []).map((field) => ({
+            label: field.label,
+            fieldName: this.getDisplayFieldName(field.apiName),
+            type: 'text',
+            wrapText: true,
+            initialWidth: 180
+        }));
+    }
+
     get hasRows() {
         return this.rows.length > 0;
     }
@@ -196,7 +198,7 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get pageLabel() {
-        return `${this.pageNumber} ページ目`;
+        return `現在のページ: ${this.pageNumber}`;
     }
 
     get previousDisabled() {
@@ -693,13 +695,6 @@ export default class ObjectRecordSearch extends LightningElement {
             .includes('insufficient access');
     }
 
-    formatDate(value) {
-        if (!value) {
-            return '';
-        }
-        return DATE_TIME_FORMATTER.format(new Date(value));
-    }
-
     isEditableLayoutItem(item) {
         return this.formRecordId ? item.editableForUpdate : item.editableForNew;
     }
@@ -774,5 +769,22 @@ export default class ObjectRecordSearch extends LightningElement {
         this.nextPageToken = undefined;
         this.pageTokenHistory = [];
         this.hasNextPage = false;
+    }
+
+    createDisplayRow(record) {
+        const displayValues = {};
+        const fieldValues = record.fieldValues ?? {};
+        (this.config?.displayFields ?? []).forEach((field) => {
+            displayValues[this.getDisplayFieldName(field.apiName)] =
+                fieldValues[field.apiName] ?? '';
+        });
+        return {
+            ...record,
+            ...displayValues
+        };
+    }
+
+    getDisplayFieldName(apiName) {
+        return `displayField_${apiName}`;
     }
 }
