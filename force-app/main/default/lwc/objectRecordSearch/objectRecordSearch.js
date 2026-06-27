@@ -180,13 +180,9 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get displayFieldColumns() {
-        return (this.config?.displayFields ?? []).map((field) => ({
-            label: field.label,
-            fieldName: this.getDisplayFieldName(field.apiName),
-            type: 'text',
-            wrapText: true,
-            initialWidth: 180
-        }));
+        return (this.config?.displayFields ?? []).map((field) =>
+            this.createDisplayFieldColumn(field)
+        );
     }
 
     get hasRows() {
@@ -778,6 +774,64 @@ export default class ObjectRecordSearch extends LightningElement {
             ...record,
             ...displayValues
         };
+    }
+
+    createDisplayFieldColumn(field) {
+        const fieldName = this.getDisplayFieldName(field.apiName);
+        const type = this.getDisplayFieldType(field.apiName);
+        const column = {
+            label: field.label,
+            fieldName,
+            type,
+            wrapText: true,
+            initialWidth: 180
+        };
+
+        if (type === 'url') {
+            column.typeAttributes = {
+                label: { fieldName },
+                target: '_blank'
+            };
+        }
+
+        return column;
+    }
+
+    getDisplayFieldType(apiName) {
+        if (this.isUrlField(apiName)) {
+            return 'url';
+        }
+
+        if (this.isEmailField(apiName)) {
+            return 'email';
+        }
+
+        if (this.isPhoneField(apiName)) {
+            return 'phone';
+        }
+
+        return 'text';
+    }
+
+    isUrlField(apiName) {
+        const normalizedApiName = apiName.toLowerCase();
+        return (
+            normalizedApiName === 'website' ||
+            normalizedApiName.endsWith('url')
+        );
+    }
+
+    isEmailField(apiName) {
+        const normalizedApiName = apiName.toLowerCase();
+        return (
+            normalizedApiName.endsWith('email') ||
+            normalizedApiName === 'fromaddress' ||
+            normalizedApiName === 'toaddress'
+        );
+    }
+
+    isPhoneField(apiName) {
+        return apiName.toLowerCase().endsWith('phone');
     }
 
     getDisplayFieldName(apiName) {

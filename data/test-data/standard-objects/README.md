@@ -80,4 +80,7 @@ sf apex run --file data/test-data/standard-objects/cleanup-standard-objects.apex
 - 組織の機能や権限によって、一部の標準オブジェクトは作成できない場合がある。
 - seed script は optional object の失敗を debug log に出し、作成可能な範囲を続行する。
 - `Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成する。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しない。
+- `Account.AccountNumber` は `ACCT-0001` のように連番だけを保持し、実行日時は含めない。
+- URL 項目のテストデータは一律 `https://example.com` を設定する。
+- メールアドレス項目のテストデータは `test+0001@example.com` のように、`test+` と 4 桁以上の自動採番で設定する。
 - `Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には、連番プレフィックスを付けない。内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持する。

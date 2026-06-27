@@ -50,7 +50,11 @@ const searchResponse = {
         nameFieldUpdateable: true,
         displayFields: [
             { apiName: 'Industry', label: '業種' },
-            { apiName: 'Type', label: '種別' }
+            { apiName: 'Type', label: '種別' },
+            { apiName: 'Website', label: 'Webサイト' },
+            { apiName: 'Phone', label: '電話' },
+            { apiName: 'OwnerEmail', label: '担当者メール' },
+            { apiName: 'FromAddress', label: '送信元' }
         ]
     },
     records: [
@@ -60,7 +64,11 @@ const searchResponse = {
             recordUrl: '/lightning/r/Account/001xx000003DGbYAAW/view',
             fieldValues: {
                 Industry: 'Technology',
-                Type: 'Prospect'
+                Type: 'Prospect',
+                Website: 'https://example.com',
+                Phone: '03-5555-0001',
+                OwnerEmail: 'test+0001@example.com',
+                FromAddress: 'test+0002@example.com'
             }
         }
     ],
@@ -193,10 +201,37 @@ describe('c-object-record-search', () => {
         expect(datatable.columns.map((column) => column.label)).toEqual([
             '取引先名',
             '業種',
-            '種別'
+            '種別',
+            'Webサイト',
+            '電話',
+            '担当者メール',
+            '送信元'
         ]);
+        expect(datatable.columns.map((column) => column.type)).toEqual([
+            'url',
+            'text',
+            'text',
+            'url',
+            'phone',
+            'email',
+            'email'
+        ]);
+        expect(datatable.columns[3].typeAttributes).toEqual({
+            label: { fieldName: 'displayField_Website' },
+            target: '_blank'
+        });
         expect(datatable.data[0].displayField_Industry).toBe('Technology');
         expect(datatable.data[0].displayField_Type).toBe('Prospect');
+        expect(datatable.data[0].displayField_Website).toBe(
+            'https://example.com'
+        );
+        expect(datatable.data[0].displayField_Phone).toBe('03-5555-0001');
+        expect(datatable.data[0].displayField_OwnerEmail).toBe(
+            'test+0001@example.com'
+        );
+        expect(datatable.data[0].displayField_FromAddress).toBe(
+            'test+0002@example.com'
+        );
         await expect(element).toBeAccessible();
     });
 

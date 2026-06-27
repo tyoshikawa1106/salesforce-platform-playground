@@ -52,6 +52,10 @@ String pickAt(
     return candidates[Math.mod(index, candidates.size())];
 }
 
+String testEmail(Integer sequence) {
+    return 'test+' + String.valueOf(sequence).leftPad(4, '0') + '@example.com';
+}
+
 void logResults(String objectName, Database.SaveResult[] results) {
     Integer successCount = 0;
     List<String> errors = new List<String>();
@@ -526,9 +530,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             SuppliedName = contact.LastName.replace(seedPrefix, '').trim() +
                 ' ' +
                 contact.FirstName,
-            SuppliedEmail = 'standard.seed.case+' +
-                sequence +
-                '@example.invalid',
+            SuppliedEmail = testEmail(sequence),
             SuppliedPhone = '03-5555-' +
                 String.valueOf(8000 + Math.mod(sequence, 1000)),
             SuppliedCompany = account.Name.replace(seedPrefix, '').trim(),

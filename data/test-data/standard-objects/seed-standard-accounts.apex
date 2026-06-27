@@ -182,15 +182,12 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     accounts.add(
         new Account(
             Name = seedPrefix + ' ' + companyName,
-            AccountNumber = 'ACCT-' +
-                seedRunKey.right(14) +
-                '-' +
-                paddedSequence,
+            AccountNumber = 'ACCT-' + paddedSequence,
             Phone = '03-5555-' +
                 String.valueOf(1000 + Math.mod(sequence, 9000)).leftPad(4, '0'),
             Fax = '03-5555-' +
                 String.valueOf(2000 + Math.mod(sequence, 8000)).leftPad(4, '0'),
-            Website = 'https://example.invalid/customers/' + paddedSequence,
+            Website = 'https://example.com',
             Site = city + ' 第' + paddedSequence + '拠点',
             TickerSymbol = 'SD' +
                 String.valueOf(Math.mod(sequence, 100)).leftPad(2, '0'),
