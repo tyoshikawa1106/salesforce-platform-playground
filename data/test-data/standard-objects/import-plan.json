@@ -8,32 +8,32 @@
             "operation": "apex",
             "repeat": 1,
             "scratchOrgCountPerObject": 2000,
-            "file": "data/test-data/standard-objects/seed-standard-accounts.apex"
+            "file": "scripts/apex/test-data/standard-objects/seed-standard-accounts.apex"
         },
         {
             "label": "standard-objects-contacts-leads",
             "operation": "apex",
-            "file": "data/test-data/standard-objects/seed-standard-contacts-leads.apex"
+            "file": "scripts/apex/test-data/standard-objects/seed-standard-contacts-leads.apex"
         },
         {
             "label": "standard-objects-campaign-product-price",
             "operation": "apex",
-            "file": "data/test-data/standard-objects/seed-standard-campaign-product-price.apex"
+            "file": "scripts/apex/test-data/standard-objects/seed-standard-campaign-product-price.apex"
         },
         {
             "label": "standard-objects-sales",
             "operation": "apex",
-            "file": "data/test-data/standard-objects/seed-standard-sales.apex"
+            "file": "scripts/apex/test-data/standard-objects/seed-standard-sales.apex"
         },
         {
             "label": "standard-objects-service",
             "operation": "apex",
-            "file": "data/test-data/standard-objects/seed-standard-service.apex"
+            "file": "scripts/apex/test-data/standard-objects/seed-standard-service.apex"
         },
         {
             "label": "standard-objects-activity-content",
             "operation": "apex",
-            "file": "data/test-data/standard-objects/seed-standard-activity-content.apex"
+            "file": "scripts/apex/test-data/standard-objects/seed-standard-activity-content.apex"
         }
     ]
 }

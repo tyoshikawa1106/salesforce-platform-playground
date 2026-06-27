@@ -10,7 +10,7 @@ const repoRoot = process.cwd();
 function parseArgs(argv) {
     const args = {
         dryRun: false,
-        plan: 'data/test-data/import-plan.json',
+        plan: 'data/test-data/standard-objects/import-plan.json',
         only: null,
         repeat: null,
         targetOrg: null
@@ -61,13 +61,11 @@ function parseArgs(argv) {
 
 function printHelp() {
     console.log(`Usage:
-  npm run data:import:test:dry-run
-  npm run data:import:test -- --target-org <alias>
   npm run data:seed:standard:dry-run
   npm run data:seed:standard -- --target-org <alias>
 
 Options:
-  --plan <path>        Import plan JSON. Default: data/test-data/import-plan.json
+  --plan <path>        Import plan JSON. Default: data/test-data/standard-objects/import-plan.json
   --only <label>       Run a single plan entry.
   --repeat <count>     Repeat selected plan entries. Default: plan repeat, or scratchOrgRepeat for Scratch Orgs.
   --target-org, -o     Salesforce org alias for real import.
