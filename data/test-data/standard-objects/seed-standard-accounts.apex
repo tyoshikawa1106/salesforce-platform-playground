@@ -3,6 +3,31 @@ String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
+String pick(
+    Schema.DescribeFieldResult fieldDescribe,
+    List<String> preferred,
+    Integer sequence
+) {
+    List<String> fallbackValues = new List<String>();
+    List<String> preferredValues = new List<String>();
+    for (Schema.PicklistEntry entry : fieldDescribe.getPicklistValues()) {
+        if (!entry.isActive()) {
+            continue;
+        }
+        fallbackValues.add(entry.getValue());
+        if (preferred.contains(entry.getValue())) {
+            preferredValues.add(entry.getValue());
+        }
+    }
+    if (!preferredValues.isEmpty()) {
+        return preferredValues[Math.mod(sequence - 1, preferredValues.size())];
+    }
+    if (!fallbackValues.isEmpty()) {
+        return fallbackValues[Math.mod(sequence - 1, fallbackValues.size())];
+    }
+    return null;
+}
+
 List<String> companyNames = new List<String>{
     'さくら',
     'みらい',
@@ -129,6 +154,31 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     String prefecture = prefectureCodes[
         Math.mod(sequence - 1, prefectureCodes.size())
     ];
+    String accountRating = pick(
+        Account.Rating.getDescribe(),
+        new List<String>{ 'Hot', 'Warm', 'Cold' },
+        sequence
+    );
+    String accountType = pick(
+        Account.Type.getDescribe(),
+        new List<String>{
+            'Prospect',
+            'Customer - Direct',
+            'Customer - Channel',
+            'Partner'
+        },
+        sequence
+    );
+    String accountIndustry = pick(
+        Account.Industry.getDescribe(),
+        new List<String>{ 'Technology', 'Consulting', 'Manufacturing' },
+        sequence
+    );
+    String accountOwnership = pick(
+        Account.Ownership.getDescribe(),
+        new List<String>{ 'Public', 'Private', 'Subsidiary', 'Other' },
+        sequence
+    );
     accounts.add(
         new Account(
             Name = seedPrefix + ' ' + companyName,
@@ -144,6 +194,10 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Site = city + ' 第' + paddedSequence + '拠点',
             TickerSymbol = 'SD' +
                 String.valueOf(Math.mod(sequence, 100)).leftPad(2, '0'),
+            Rating = accountRating,
+            Type = accountType,
+            Industry = accountIndustry,
+            Ownership = accountOwnership,
             AnnualRevenue = 420000000 + (i * 18000000),
             NumberOfEmployees = 120 + (i * 8),
             Sic = '737' + Math.mod(i, 10),
