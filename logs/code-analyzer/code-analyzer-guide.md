@@ -4,6 +4,8 @@
 
 `sf code-analyzer run --output-file` で生成した解析結果ファイルは Git 管理しません。このガイドだけを Git 管理し、Code Analyzer の出力先フォルダ名を固定します。
 
+このリポジトリの npm scripts は `--output-file` で `logs/code-analyzer/` 配下を指定しているため、以下のコマンドを実行すると同ディレクトリに結果ファイルが生成されます。
+
 ## ローカル確認
 
 ```sh
