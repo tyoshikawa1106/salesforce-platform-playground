@@ -185,6 +185,7 @@ String orderStatus = pick(
     Order.Status.getDescribe(),
     new List<String>{ 'Draft' }
 );
+List<String> orderTypes = new List<String>{ 'New', 'Renewal', 'Add-On' };
 String assetStatus = pick(
     Asset.Status.getDescribe(),
     new List<String>{ 'Purchased', 'Installed' }
@@ -432,6 +433,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             BillToContactId = contact.Id,
             ShipToContactId = contact.Id,
             Pricebook2Id = entry.Pricebook2Id,
+            Type = orderTypes[Math.mod(sequence - 1, orderTypes.size())],
+            CustomerAuthorizedById = contact.Id,
             EffectiveDate = Date.today().addDays(Math.mod(sequence, 180)),
             Status = orderStatus,
             BillingStreet = '大手町 ' +
@@ -439,8 +442,10 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '-1-' +
                 Math.mod(sequence + 1, 9),
             BillingCity = '千代田区',
+            BillingState = '東京都',
             BillingPostalCode = '100-' +
                 String.valueOf(2000 + Math.mod(sequence, 8000)),
+            BillingCountry = '日本',
             ShippingStreet = '銀座 ' +
                 sequence +
                 '-4-' +
@@ -541,7 +546,13 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
 
 logResults('OpportunityContactRole', Database.insert(roles, false));
 logResults('OpportunityLineItem', Database.insert(opportunityLineItems, false));
-logResults('Contract', Database.insert(contracts, false));
+Database.SaveResult[] contractResults = Database.insert(contracts, false);
+logResults('Contract', contractResults);
+for (Integer i = 0; i < orders.size(); i += 1) {
+    if (i < contractResults.size() && contractResults[i].isSuccess()) {
+        orders[i].ContractId = contractResults[i].getId();
+    }
+}
 Database.SaveResult[] orderResults = Database.insert(orders, false);
 logResults('Order', orderResults);
 
