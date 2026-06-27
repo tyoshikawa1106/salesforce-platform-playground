@@ -399,6 +399,14 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         Math.mod(sequence + 2, assetLocations.size())
     ];
     String assetPlan = assetPlans[Math.mod(sequence + 4, assetPlans.size())];
+    Date assetPurchaseDate = Date.today()
+        .addDays(-60 - Math.mod(sequence, 210));
+    Date assetInstallDate = assetPurchaseDate.addDays(
+        7 + Math.mod(sequence, 21)
+    );
+    Date assetUsageEndDate = assetInstallDate.addDays(
+        365 + Math.mod(sequence, 180)
+    );
     assets.add(
         new Asset(
             Name = seedPrefix +
@@ -413,8 +421,9 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             Status = assetStatus,
             Quantity = 1 + Math.mod(sequence + 1, 5),
             Price = entry.UnitPrice,
-            PurchaseDate = Date.today().addDays(-45 - Math.mod(sequence, 210)),
-            UsageEndDate = Date.today().addDays(300 + Math.mod(sequence, 240)),
+            PurchaseDate = assetPurchaseDate,
+            InstallDate = assetInstallDate,
+            UsageEndDate = assetUsageEndDate,
             SerialNumber = productCode +
                 '-' +
                 seedRunKey.right(8) +
