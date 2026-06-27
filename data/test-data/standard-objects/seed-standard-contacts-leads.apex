@@ -100,7 +100,37 @@ List<String> familyNames = new List<String>{
     '木村',
     '林',
     '清水',
-    '山崎'
+    '山崎',
+    '森',
+    '池田',
+    '橋本',
+    '阿部',
+    '石川',
+    '山下',
+    '中島',
+    '前田',
+    '藤田',
+    '小川',
+    '岡田',
+    '後藤',
+    '長谷川',
+    '村上',
+    '近藤',
+    '石井',
+    '坂本',
+    '遠藤',
+    '青木',
+    '藤井',
+    '西村',
+    '福田',
+    '太田',
+    '三浦',
+    '藤原',
+    '岡本',
+    '松田',
+    '中川',
+    '中野',
+    '原田'
 };
 List<String> givenNames = new List<String>{
     '葵',
@@ -122,7 +152,36 @@ List<String> givenNames = new List<String>{
     '遥',
     '健太',
     '紗季',
-    '亮'
+    '亮',
+    '翔',
+    '美月',
+    '優斗',
+    '結菜',
+    '大輔',
+    '愛莉',
+    '悠人',
+    '花',
+    '颯',
+    '凛',
+    '優奈',
+    '海斗',
+    '咲良',
+    '陸',
+    '菜々',
+    '隼人',
+    '美優',
+    '悠希',
+    '七海',
+    '拓真',
+    '杏',
+    '陽翔',
+    '紬',
+    '一樹',
+    '琴葉',
+    '航',
+    '芽衣',
+    '悠斗',
+    '心春'
 };
 List<String> departments = new List<String>{
     '営業企画部',
@@ -178,7 +237,7 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         Math.mod(contactSequence - 1, familyNames.size())
     ];
     String givenName = givenNames[
-        Math.mod(contactSequence - 1, givenNames.size())
+        Math.mod((contactSequence - 1) / familyNames.size(), givenNames.size())
     ];
     String department = departments[Math.mod(i - 1, departments.size())];
     String contactTitle = contactTitles[Math.mod(i - 1, contactTitles.size())];
@@ -201,9 +260,20 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             MobilePhone = '090-5555-' +
                 String.valueOf(3000 + Math.mod(contactSequence, 7000))
                     .leftPad(4, '0'),
+            HomePhone = '03-5555-' +
+                String.valueOf(3500 + Math.mod(contactSequence, 6500))
+                    .leftPad(4, '0'),
+            OtherPhone = '050-5555-' +
+                String.valueOf(4500 + Math.mod(contactSequence, 5500))
+                    .leftPad(4, '0'),
             Fax = '03-5555-' +
                 String.valueOf(4000 + Math.mod(contactSequence, 6000))
                     .leftPad(4, '0'),
+            Birthdate = Date.newInstance(
+                1975 + Math.mod(contactSequence, 25),
+                1 + Math.mod(contactSequence, 12),
+                1 + Math.mod(contactSequence, 28)
+            ),
             LeadSource = contactLeadSource,
             MailingStreet = '八重洲 ' + i + '-3-' + Math.mod(i + 1, 9),
             MailingCity = '中央区',
