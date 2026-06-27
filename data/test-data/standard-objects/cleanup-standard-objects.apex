@@ -115,6 +115,17 @@ if (globalDescribe.containsKey('Entitlement')) {
     );
 }
 
+if (globalDescribe.containsKey('ContractLineItem')) {
+    deleteBatch(
+        'ContractLineItem',
+        'SELECT Id FROM ContractLineItem WHERE ServiceContract.Name LIKE ' +
+            seedLikeLiteral +
+            ' ORDER BY CreatedDate ASC',
+        deleteBatchSize,
+        deleted
+    );
+}
+
 if (globalDescribe.containsKey('ServiceContract')) {
     deleteBatch(
         'ServiceContract',

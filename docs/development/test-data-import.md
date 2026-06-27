@@ -67,17 +67,17 @@ npm run data:seed:standard -- --target-org <alias>
 
 作成対象は次のとおりです。
 
-| 分類             | API 名                                                         |
-| ---------------- | -------------------------------------------------------------- |
-| 顧客             | `Account`, `Contact`, `Lead`                                   |
-| キャンペーン     | `Campaign`, `CampaignMember`                                   |
-| 商品・価格       | `Product2`, `PricebookEntry`                                   |
-| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem` |
-| 契約・注文       | `Contract`, `Order`, `OrderItem`                               |
-| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`              |
-| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                               |
-| 活動             | `Task`, `Event`                                                |
-| メール・ファイル | `EmailMessage`, `ContentVersion`                               |
+| 分類             | API 名                                                                |
+| ---------------- | --------------------------------------------------------------------- |
+| 顧客             | `Account`, `Contact`, `Lead`                                          |
+| キャンペーン     | `Campaign`, `CampaignMember`                                          |
+| 商品・価格       | `Product2`, `PricebookEntry`                                          |
+| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem`        |
+| 契約・注文       | `Contract`, `Order`, `OrderItem`                                      |
+| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`, `ContractLineItem` |
+| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                                      |
+| 活動             | `Task`, `Event`                                                       |
+| メール・ファイル | `EmailMessage`, `ContentVersion`                                      |
 
 組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。キャンペーンは前年・今年・来年の各月 1 件ずつ作成します。商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成します。商品マスターはノートPC、モニター、会議機器、オフィス家具、ソフトウェアなどの office product catalog として作成します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにします。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
 

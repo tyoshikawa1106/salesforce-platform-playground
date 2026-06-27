@@ -100,6 +100,17 @@ List<Case> cases = [
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
+List<PricebookEntry> pricebookEntries = [
+    SELECT Id, UnitPrice, Pricebook2Id, Product2.Name
+    FROM PricebookEntry
+    WHERE
+        Product2.Name LIKE :seedLike
+        AND Pricebook2.IsStandard = TRUE
+        AND IsActive = TRUE
+        AND Pricebook2.IsActive = TRUE
+    ORDER BY CreatedDate ASC
+    LIMIT :parentPoolSize
+];
 if (
     accounts.isEmpty() ||
     contacts.isEmpty() ||
@@ -140,6 +151,16 @@ if (
             'ContactId',
             contacts[Math.mod(sequence - 1, contacts.size())].Id
         );
+        if (!pricebookEntries.isEmpty()) {
+            putIfCreateable(
+                record,
+                'Pricebook2Id',
+                pricebookEntries[
+                        Math.mod(sequence - 1, pricebookEntries.size())
+                    ]
+                    .Pricebook2Id
+            );
+        }
         putIfCreateable(
             record,
             'StartDate',
@@ -200,9 +221,50 @@ if (
 
 List<SObject> insertedServiceContracts = gd.containsKey('ServiceContract')
     ? Database.query(
-          'SELECT Id FROM ServiceContract WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
+          'SELECT Id, StartDate, EndDate FROM ServiceContract WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
       )
     : new List<SObject>();
+
+List<SObject> contractLineItems = new List<SObject>();
+if (
+    gd.containsKey('ContractLineItem') &&
+    gd.get('ContractLineItem').getDescribe().isCreateable() &&
+    !insertedServiceContracts.isEmpty() &&
+    !pricebookEntries.isEmpty()
+) {
+    for (Integer i = 0; i < insertedServiceContracts.size(); i += 1) {
+        SObject serviceContract = insertedServiceContracts[i];
+        Date startDate = (Date) serviceContract.get('StartDate');
+        Date endDate = (Date) serviceContract.get('EndDate');
+        Integer lineItemCount = 3 + Math.mod(i, 3);
+        for (Integer j = 0; j < lineItemCount; j += 1) {
+            Integer sequence = existingWorkOrderCount + (i * 5) + j + 1;
+            PricebookEntry entry = pricebookEntries[
+                Math.mod(sequence - 1, pricebookEntries.size())
+            ];
+            SObject record = gd.get('ContractLineItem').newSObject();
+            putIfCreateable(record, 'ServiceContractId', serviceContract.Id);
+            putIfCreateable(record, 'PricebookEntryId', entry.Id);
+            putIfCreateable(record, 'Quantity', 1 + Math.mod(sequence, 3));
+            putIfCreateable(record, 'UnitPrice', entry.UnitPrice);
+            putIfCreateable(record, 'Discount', Math.mod(sequence, 4) * 2);
+            putIfCreateable(record, 'StartDate', startDate);
+            putIfCreateable(record, 'EndDate', endDate);
+            putIfCreateable(
+                record,
+                'Description',
+                entry.Product2.Name.replace(seedPrefix, '').trim() +
+                ' の保守、交換対応、問い合わせ受付を含む契約品目。'
+            );
+            contractLineItems.add(record);
+        }
+    }
+    logResults('ContractLineItem', Database.insert(contractLineItems, false));
+} else {
+    System.debug(
+        'Skipped records: ContractLineItem: object is not createable, unavailable, or no service contracts / pricebook entries were available'
+    );
+}
 
 List<SObject> entitlements = new List<SObject>();
 if (
