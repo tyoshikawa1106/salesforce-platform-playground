@@ -26,6 +26,32 @@ String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
     return null;
 }
 
+String pickAt(
+    Schema.DescribeFieldResult fieldDescribe,
+    List<String> preferred,
+    Integer index
+) {
+    List<String> candidates = new List<String>();
+    List<Schema.PicklistEntry> entries = fieldDescribe.getPicklistValues();
+    for (String value : preferred) {
+        for (Schema.PicklistEntry entry : entries) {
+            if (entry.isActive() && entry.getValue() == value) {
+                candidates.add(entry.getValue());
+                break;
+            }
+        }
+    }
+    for (Schema.PicklistEntry entry : entries) {
+        if (entry.isActive() && !candidates.contains(entry.getValue())) {
+            candidates.add(entry.getValue());
+        }
+    }
+    if (candidates.isEmpty()) {
+        return null;
+    }
+    return candidates[Math.mod(index, candidates.size())];
+}
+
 void logResults(String objectName, Database.SaveResult[] results) {
     Integer successCount = 0;
     List<String> errors = new List<String>();
@@ -167,10 +193,22 @@ String caseStatus = pick(
     Case.Status.getDescribe(),
     new List<String>{ 'New', 'Working', 'Open' }
 );
-String casePriority = pick(
-    Case.Priority.getDescribe(),
-    new List<String>{ 'Medium', 'High', 'Low' }
-);
+List<String> casePriorityValues = new List<String>{ 'Medium', 'High', 'Low' };
+List<String> caseTypeValues = new List<String>{
+    'Question',
+    'Problem',
+    'Feature Request',
+    'Other'
+};
+List<String> caseReasonValues = new List<String>{
+    'Installation',
+    'Equipment Complexity',
+    'Performance',
+    'Breakdown',
+    'Equipment Design',
+    'Feedback',
+    'Other'
+};
 
 List<String> opportunityNames = new List<String>{
     '東日本営業部 CRM 活用拡大',
@@ -195,26 +233,26 @@ List<String> opportunityNames = new List<String>{
     '年間活用支援契約'
 };
 List<String> caseSubjects = new List<String>{
-    'ログイン後に商談一覧が表示されない',
-    '契約更新通知の送信条件を確認したい',
-    '注文商品の数量変更が反映されない',
-    '作業指示の担当者割り当てを相談したい',
-    'レポートの集計条件について質問',
-    'メール履歴の関連付け先を変更したい',
-    'キャンペーンメンバーの重複を解消したい',
-    '価格表エントリの有効化方法を確認',
-    'ケースの優先度ルールを見直したい',
-    'ファイル共有範囲の確認依頼',
-    'モバイル画面で項目が見切れる',
-    '取引先責任者の部署名を一括更新したい',
-    '納入商品の保証期間を確認したい',
-    '商談商品の単価が想定と異なる',
-    'サービス契約の開始日を修正したい',
-    '問い合わせ分類の追加可否を相談',
-    '活動予定のリマインダー設定を確認',
-    'リード変換時の関連付けを確認',
-    '注文ステータスの更新タイミングを相談',
-    'ダッシュボード表示権限を確認したい'
+    'ノートPCの初期設定方法を確認したい',
+    'デスクトップPCの追加メモリ構成を相談したい',
+    'モニターの画面ちらつきについて確認したい',
+    'ワイヤレスキーボードの接続が不安定',
+    'ワイヤレスマウスの交換可否を確認したい',
+    'USB-Cドッキングステーションの対応機種を知りたい',
+    'レーザープリンターの印字かすれを解消したい',
+    '複合機のスキャン保存先を変更したい',
+    'Wi-Fiアクセスポイントの増設を相談したい',
+    'VPNルーターの設定内容を確認したい',
+    '会議用Webカメラの映像が暗い',
+    'スピーカーフォンの音声が途切れる',
+    '会議室ディスプレイの入力切替を確認したい',
+    'オフィスチェアの保証期間を確認したい',
+    '昇降デスクの動作音について相談したい',
+    'キャビネットの追加鍵を手配したい',
+    'CRMライセンスの追加購入を相談したい',
+    'Office Suite License の更新時期を確認したい',
+    'Endpoint Security License の端末追加を相談したい',
+    '納入済みオフィス製品の保守窓口を確認したい'
 };
 List<String> assetUsageNames = new List<String>{
     '営業部',
@@ -446,9 +484,19 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 caseSubjects[Math.mod(sequence - 1, caseSubjects.size())],
             AccountId = account.Id,
             ContactId = contact.Id,
+            Type = pickAt(Case.Type.getDescribe(), caseTypeValues, sequence),
             Origin = caseOrigin,
             Status = caseStatus,
-            Priority = casePriority,
+            Priority = pickAt(
+                Case.Priority.getDescribe(),
+                casePriorityValues,
+                sequence
+            ),
+            Reason = pickAt(
+                Case.Reason.getDescribe(),
+                caseReasonValues,
+                sequence
+            ),
             SuppliedName = contact.LastName.replace(seedPrefix, '').trim() +
                 ' ' +
                 contact.FirstName,
@@ -457,8 +505,15 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 '@example.invalid',
             SuppliedPhone = '03-5555-' +
                 String.valueOf(8000 + Math.mod(sequence, 1000)),
-            SuppliedCompany = '既存顧客サポート窓口',
-            Description = '顧客からの問い合わせ内容を想定したケース。一次回答、関連活動、メール履歴の確認に使用。'
+            SuppliedCompany = account.Name.replace(seedPrefix, '').trim(),
+            Description = account.Name.replace(seedPrefix, '').trim() +
+                ' の ' +
+                contact.LastName.replace(seedPrefix, '').trim() +
+                ' ' +
+                contact.FirstName +
+                ' 様から、' +
+                cleanProductName +
+                ' に関する問い合わせ。利用部門での設置状況、発生している症状、希望対応日を確認し、一次回答と必要な保守手配を記録する。'
         )
     );
 }
