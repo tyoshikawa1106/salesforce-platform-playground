@@ -46,7 +46,6 @@ coverage/
 
 # Logs
 logs/*
-!logs/logs-guide.md
 !logs/apex/
 logs/apex/*
 !logs/apex/apex-log-guide.md
