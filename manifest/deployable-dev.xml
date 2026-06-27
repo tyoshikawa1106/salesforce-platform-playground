@@ -20,7 +20,9 @@
         <members>ObjectRecordSearchController</members>
         <members>ObjectRecordSearchControllerTest</members>
         <members>ObjectRecordSearchSelector</members>
+        <members>ObjectRecordSearchSelectorTest</members>
         <members>ObjectRecordSearchService</members>
+        <members>ObjectRecordSearchSortSupport</members>
         <members>TestDataFactory</members>
         <members>TestDataFactoryTest</members>
         <name>ApexClass</name>

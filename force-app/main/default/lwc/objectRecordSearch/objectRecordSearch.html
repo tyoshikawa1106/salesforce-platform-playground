@@ -87,6 +87,9 @@
                     selected-rows={selectedRowIds}
                     onrowselection={handleRowSelection}
                     onrowaction={handleRowAction}
+                    onsort={handleSort}
+                    sorted-by={sortedBy}
+                    sorted-direction={sortedDirection}
                     is-loading={isBusy}
                 ></lightning-datatable>
             </div>

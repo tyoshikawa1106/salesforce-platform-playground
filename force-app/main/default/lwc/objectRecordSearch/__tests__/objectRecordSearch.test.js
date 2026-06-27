@@ -198,6 +198,7 @@ describe('c-object-record-search', () => {
             '/lightning/r/Account/001xx000003DGbYAAW/view'
         );
         expect(datatable.columns[0].label).toBe('取引先名');
+        expect(datatable.columns[0].sortable).toBe(true);
         expect(datatable.columns.map((column) => column.label)).toEqual([
             '取引先名',
             '業種',
@@ -776,6 +777,41 @@ describe('c-object-record-search', () => {
                 metricKey: 'accounts',
                 searchTerm: 'Acme',
                 pageToken: undefined,
+                sortBy: 'Name',
+                sortDirection: 'asc',
+                pageNumber: 1
+            }
+        });
+    });
+
+    it('requests server-side sorting when a table header is clicked', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        const datatable = element.shadowRoot.querySelector(
+            'lightning-datatable'
+        );
+        datatable.dispatchEvent(
+            new CustomEvent('sort', {
+                detail: {
+                    fieldName: 'displayField_Industry',
+                    sortDirection: 'desc'
+                }
+            })
+        );
+        await flushPromises();
+
+        expect(datatable.sortedBy).toBe('displayField_Industry');
+        expect(datatable.sortedDirection).toBe('desc');
+        expect(searchRecords.getLastConfig()).toEqual({
+            request: {
+                metricKey: 'accounts',
+                searchTerm: '',
+                pageToken: undefined,
+                sortBy: 'Industry',
+                sortDirection: 'desc',
                 pageNumber: 1
             }
         });
@@ -802,6 +838,8 @@ describe('c-object-record-search', () => {
                 metricKey: 'accounts',
                 searchTerm: '',
                 pageToken: 'next-token',
+                sortBy: 'Name',
+                sortDirection: 'asc',
                 pageNumber: 2
             }
         });
@@ -825,6 +863,8 @@ describe('c-object-record-search', () => {
                 metricKey: 'accounts',
                 searchTerm: '',
                 pageToken: undefined,
+                sortBy: 'Name',
+                sortDirection: 'asc',
                 pageNumber: 1
             }
         });

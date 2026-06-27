@@ -12,8 +12,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
         accounts[0].BillingState = '東京都';
         accounts[0].BillingCity = '千代田区';
         accounts[1].Name = 'Selector Beta';
+        accounts[1].Industry = 'Finance';
         accounts[2].Name = 'Selector Delete One';
+        accounts[2].Industry = 'Healthcare';
         accounts[3].Name = 'Selector Delete Two';
+        accounts[3].Industry = 'Retail';
         insert accounts;
     }
 
@@ -233,6 +236,35 @@ private with sharing class ObjectRecordSearchSelectorTest {
     }
 
     @IsTest
+    static void searchRecordsShouldSortByAllowedDisplayField() {
+        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+            'accounts',
+            'Selector'
+        );
+        request.sortBy = 'Industry';
+        request.sortDirection = 'desc';
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        ObjectRecordSearchController.ObjectRecordSearchResult result;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            result = selector.searchRecords(request);
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'Technology',
+            result.records[0].fieldValues.get('Industry'),
+            'Selector should sort by an allowed display field descending.'
+        );
+        Assert.areEqual(
+            'Retail',
+            result.records[1].fieldValues.get('Industry'),
+            'Selector should keep the requested display-field sort order.'
+        );
+    }
+
+    @IsTest
     static void searchRecordsShouldPageWithCursorToken() {
         List<Account> accounts = TestDataFactory.createAccounts(51);
         for (Integer index = 0; index < accounts.size(); index++) {
@@ -289,6 +321,110 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.isFalse(
             secondPage.hasNextPage,
             'Second page should indicate there are no more rows.'
+        );
+    }
+
+    @IsTest
+    static void searchRecordsShouldPageWithDescendingSortCursor() {
+        List<Account> accounts = TestDataFactory.createAccounts(51);
+        for (Integer index = 0; index < accounts.size(); index++) {
+            accounts[index].Name = 'Selector Desc Page ' + index;
+        }
+        insert accounts;
+
+        ObjectRecordSearchController.ObjectRecordSearchRequest firstRequest = createSearchRequest(
+            'accounts',
+            'Selector Desc Page'
+        );
+        firstRequest.sortBy = 'Name';
+        firstRequest.sortDirection = 'desc';
+        firstRequest.pageNumber = 1;
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        ObjectRecordSearchController.ObjectRecordSearchResult firstPage;
+        ObjectRecordSearchController.ObjectRecordSearchResult secondPage;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            firstPage = selector.searchRecords(firstRequest);
+
+            ObjectRecordSearchController.ObjectRecordSearchRequest secondRequest = createSearchRequest(
+                'accounts',
+                'Selector Desc Page'
+            );
+            secondRequest.sortBy = 'Name';
+            secondRequest.sortDirection = 'desc';
+            secondRequest.pageToken = firstPage.nextPageToken;
+            secondRequest.pageNumber = 2;
+            secondPage = selector.searchRecords(secondRequest);
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            50,
+            firstPage.records.size(),
+            'Descending first page should return the configured number of rows.'
+        );
+        Assert.areEqual(
+            1,
+            secondPage.records.size(),
+            'Descending second page should return the remaining row.'
+        );
+        Assert.areEqual(
+            'Selector Desc Page 0',
+            secondPage.records[0].name,
+            'Descending cursor should continue after the first page without repeating rows.'
+        );
+    }
+
+    @IsTest
+    static void searchRecordsShouldPageIntoNullSortValues() {
+        List<Account> accounts = TestDataFactory.createAccounts(51);
+        for (Integer index = 0; index < accounts.size(); index++) {
+            accounts[index].Name = 'Selector Null Page ' + index;
+            accounts[index].Industry = index < 50 ? 'Technology' : null;
+        }
+        insert accounts;
+
+        ObjectRecordSearchController.ObjectRecordSearchRequest firstRequest = createSearchRequest(
+            'accounts',
+            'Selector Null Page'
+        );
+        firstRequest.sortBy = 'Industry';
+        firstRequest.sortDirection = 'asc';
+        firstRequest.pageNumber = 1;
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        ObjectRecordSearchController.ObjectRecordSearchResult firstPage;
+        ObjectRecordSearchController.ObjectRecordSearchResult secondPage;
+
+        System.runAs(getCurrentUser()) {
+            Test.startTest();
+            firstPage = selector.searchRecords(firstRequest);
+
+            ObjectRecordSearchController.ObjectRecordSearchRequest secondRequest = createSearchRequest(
+                'accounts',
+                'Selector Null Page'
+            );
+            secondRequest.sortBy = 'Industry';
+            secondRequest.sortDirection = 'asc';
+            secondRequest.pageToken = firstPage.nextPageToken;
+            secondRequest.pageNumber = 2;
+            secondPage = selector.searchRecords(secondRequest);
+            Test.stopTest();
+        }
+
+        Assert.isTrue(
+            firstPage.hasNextPage,
+            'First page should include a cursor when null sort values remain.'
+        );
+        Assert.areEqual(
+            1,
+            secondPage.records.size(),
+            'Second page should include the remaining null-sort row.'
+        );
+        Assert.areEqual(
+            '',
+            secondPage.records[0].fieldValues.get('Industry'),
+            'Null sort values should remain reachable after non-null values.'
         );
     }
 
