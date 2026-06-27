@@ -3,8 +3,196 @@
  */
 @SuppressWarnings('PMD.CyclomaticComplexity')
 public virtual with sharing class ObjectRecordSearchSelector {
-    private static final Integer PAGE_SIZE = 500;
+    private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
+    private static final Map<String, List<String>> DISPLAY_FIELDS_BY_OBJECT = new Map<String, List<String>>{
+        'Account' => new List<String>{
+            'AccountNumber',
+            'Industry',
+            'Type',
+            'Rating',
+            'Phone',
+            'Website',
+            'BillingCity',
+            'BillingState',
+            'BillingCountry'
+        },
+        'Contact' => new List<String>{
+            'Title',
+            'Department',
+            'Email',
+            'Phone',
+            'MobilePhone',
+            'LeadSource',
+            'MailingCity',
+            'Description'
+        },
+        'Lead' => new List<String>{
+            'Company',
+            'Title',
+            'Status',
+            'Rating',
+            'Industry',
+            'LeadSource',
+            'Email',
+            'Phone',
+            'Website',
+            'City',
+            'Description'
+        },
+        'Opportunity' => new List<String>{
+            'StageName',
+            'Type',
+            'LeadSource',
+            'CloseDate',
+            'Amount',
+            'Probability',
+            'NextStep',
+            'Description'
+        },
+        'OpportunityLineItem' => new List<String>{
+            'Quantity',
+            'UnitPrice',
+            'ServiceDate',
+            'Description'
+        },
+        'Product2' => new List<String>{
+            'ProductCode',
+            'Family',
+            'QuantityUnitOfMeasure',
+            'IsActive',
+            'Description'
+        },
+        'Pricebook2' => new List<String>{ 'IsStandard', 'IsActive' },
+        'PricebookEntry' => new List<String>{
+            'UnitPrice',
+            'IsActive',
+            'UseStandardPrice'
+        },
+        'Asset' => new List<String>{
+            'Status',
+            'Quantity',
+            'Price',
+            'PurchaseDate',
+            'InstallDate',
+            'UsageEndDate',
+            'SerialNumber',
+            'Description'
+        },
+        'Campaign' => new List<String>{
+            'Type',
+            'Status',
+            'IsActive',
+            'StartDate',
+            'EndDate',
+            'ExpectedRevenue',
+            'BudgetedCost',
+            'ActualCost',
+            'ExpectedResponse',
+            'NumberSent',
+            'Description'
+        },
+        'CampaignMember' => new List<String>{ 'Status' },
+        'Case' => new List<String>{
+            'Type',
+            'Origin',
+            'Status',
+            'Priority',
+            'Reason',
+            'SuppliedName',
+            'SuppliedEmail',
+            'SuppliedPhone',
+            'SuppliedCompany',
+            'Description'
+        },
+        'Contract' => new List<String>{
+            'Status',
+            'StartDate',
+            'ContractTerm',
+            'CustomerSignedTitle',
+            'CustomerSignedDate',
+            'OwnerExpirationNotice',
+            'BillingCity',
+            'BillingState',
+            'Description'
+        },
+        'Order' => new List<String>{
+            'Type',
+            'Status',
+            'EffectiveDate',
+            'BillingCity',
+            'ShippingCity',
+            'Description'
+        },
+        'OrderItem' => new List<String>{
+            'Quantity',
+            'UnitPrice',
+            'ServiceDate',
+            'Description'
+        },
+        'Entitlement' => new List<String>{
+            'Type',
+            'StartDate',
+            'EndDate',
+            'Description'
+        },
+        'ServiceContract' => new List<String>{
+            'Status',
+            'StartDate',
+            'EndDate',
+            'Term',
+            'BillingCity',
+            'ShippingCity',
+            'ShippingHandling',
+            'Tax',
+            'Description'
+        },
+        'ContractLineItem' => new List<String>{
+            'Quantity',
+            'UnitPrice',
+            'Discount',
+            'StartDate',
+            'EndDate',
+            'Description'
+        },
+        'WorkOrder' => new List<String>{
+            'Status',
+            'Priority',
+            'City',
+            'PostalCode',
+            'Description'
+        },
+        'WorkOrderLineItem' => new List<String>{
+            'Status',
+            'Description'
+        },
+        'Task' => new List<String>{
+            'Status',
+            'Priority',
+            'ActivityDate',
+            'Description'
+        },
+        'Event' => new List<String>{
+            'StartDateTime',
+            'EndDateTime',
+            'Location',
+            'ShowAs',
+            'Description'
+        },
+        'EmailMessage' => new List<String>{
+            'FromAddress',
+            'ToAddress',
+            'MessageDate',
+            'Incoming',
+            'Status',
+            'TextBody'
+        },
+        'ContentDocument' => new List<String>{
+            'FileType',
+            'FileExtension',
+            'ContentSize'
+        }
+    };
 
     /**
      * 表示キーに対応する検索画面設定を返します。
@@ -26,15 +214,18 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
         return new ObjectRecordSearchController.ObjectRecordSearchConfig(
             definition,
-            objectDescribe,
-            nameFieldDescribe
+            nameFieldDescribe,
+            new ObjectRecordSearchController.ObjectRecordSearchAccess(
+                objectDescribe,
+                getDisplayFields(definition.objectApiName, objectDescribe)
+            )
         );
     }
 
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
      * @param request 検索条件とページ指定
-     * @return 1 ページ最大 500 件の検索結果
+     * @return 1 ページ最大 50 件の検索結果
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
@@ -69,8 +260,8 @@ public virtual with sharing class ObjectRecordSearchSelector {
             rows.add(
                 new ObjectRecordSearchController.ObjectRecordRow(
                     record,
-                    config.objectApiName,
-                    config.nameFieldApiName
+                    config.nameFieldApiName,
+                    config.displayFields
                 )
             );
         }
@@ -97,8 +288,8 @@ public virtual with sharing class ObjectRecordSearchSelector {
     ) {
         String query =
             'SELECT Id, ' +
-            config.nameFieldApiName +
-            ', CreatedDate, LastModifiedDate FROM ' +
+            String.join(getQueryFields(config), ', ') +
+            ' FROM ' +
             config.objectApiName;
 
         List<String> whereClauses = new List<String>();
@@ -128,11 +319,59 @@ public virtual with sharing class ObjectRecordSearchSelector {
             PAGE_FETCH_SIZE;
     }
 
+    private List<String> getQueryFields(
+        ObjectRecordSearchController.ObjectRecordSearchConfig config
+    ) {
+        Set<String> fieldApiNames = new Set<String>{ config.nameFieldApiName };
+        for (
+            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
+        ) {
+            fieldApiNames.add(displayField.apiName);
+        }
+        return new List<String>(fieldApiNames);
+    }
+
     private Boolean usesNameSearch(
         String normalizedSearchTerm,
         ObjectRecordSearchController.ObjectRecordSearchConfig config
     ) {
         return String.isNotBlank(normalizedSearchTerm) && config.searchable;
+    }
+
+    private List<ObjectRecordSearchController.ObjectRecordDisplayField> getDisplayFields(
+        String objectApiName,
+        Schema.DescribeSObjectResult objectDescribe
+    ) {
+        List<ObjectRecordSearchController.ObjectRecordDisplayField> displayFields = new List<ObjectRecordSearchController.ObjectRecordDisplayField>();
+        Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
+        for (String fieldApiName : getDisplayFieldApiNames(objectApiName)) {
+            if (!fieldsByApiName.containsKey(fieldApiName)) {
+                continue;
+            }
+
+            Schema.DescribeFieldResult fieldDescribe = fieldsByApiName.get(
+                    fieldApiName
+                )
+                .getDescribe();
+            if (!fieldDescribe.isAccessible()) {
+                continue;
+            }
+
+            displayFields.add(
+                new ObjectRecordSearchController.ObjectRecordDisplayField(
+                    fieldDescribe.getName(),
+                    fieldDescribe.getLabel()
+                )
+            );
+        }
+        return displayFields;
+    }
+
+    private List<String> getDisplayFieldApiNames(String objectApiName) {
+        if (!DISPLAY_FIELDS_BY_OBJECT.containsKey(objectApiName)) {
+            return new List<String>();
+        }
+        return DISPLAY_FIELDS_BY_OBJECT.get(objectApiName);
     }
 
     /**

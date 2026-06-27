@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -68,7 +69,7 @@ function printHelp() {
 Options:
   --plan <path>        Import plan JSON. Default: data/test-data/import-plan.json
   --only <label>       Run a single plan entry.
-  --repeat <count>     Repeat selected plan entries. Default: plan repeat or 1.
+  --repeat <count>     Repeat selected plan entries. Default: plan repeat, or scratchOrgRepeat for Scratch Orgs.
   --target-org, -o     Salesforce org alias for real import.
   --dry-run            Validate local files and print the sf commands.
 `);
@@ -152,6 +153,67 @@ function validateEntry(entry) {
     return absoluteFilePath;
 }
 
+function getScratchOrgAliases() {
+    const result = spawnSync('sf', ['org', 'list', '--all', '--json'], {
+        cwd: repoRoot,
+        encoding: 'utf8'
+    });
+
+    if (result.status !== 0) {
+        return new Set();
+    }
+
+    const orgList = JSON.parse(result.stdout);
+    const scratchOrgs = orgList.result?.scratchOrgs ?? [];
+    const aliases = new Set();
+
+    for (const org of scratchOrgs) {
+        for (const key of ['alias', 'username', 'orgId']) {
+            if (org[key]) {
+                aliases.add(org[key]);
+            }
+        }
+        for (const alias of org.aliases ?? []) {
+            aliases.add(alias);
+        }
+    }
+
+    return aliases;
+}
+
+function isScratchOrg(targetOrg) {
+    if (!targetOrg) {
+        return false;
+    }
+
+    return getScratchOrgAliases().has(targetOrg);
+}
+
+function createScratchOrgApexFile(entry, absoluteFilePath) {
+    if (entry.operation !== 'apex' || !entry.scratchOrgCountPerObject) {
+        return absoluteFilePath;
+    }
+
+    const fileContent = fs.readFileSync(absoluteFilePath, 'utf8');
+    const updatedContent = fileContent.replace(
+        /^Integer countPerObject = \d+;/m,
+        `Integer countPerObject = ${entry.scratchOrgCountPerObject};`
+    );
+
+    if (updatedContent === fileContent) {
+        throw new Error(
+            `Apex file does not contain a countPerObject declaration: ${entry.file}`
+        );
+    }
+
+    const generatedPath = path.join(
+        os.tmpdir(),
+        `sf-test-data-${process.pid}-${entry.label}.apex`
+    );
+    fs.writeFileSync(generatedPath, updatedContent, 'utf8');
+    return generatedPath;
+}
+
 function buildSfArgs(entry, absoluteFilePath, targetOrg) {
     const wait = String(entry.wait ?? 30);
 
@@ -217,7 +279,9 @@ function printSfSummary(output) {
 function run() {
     const args = parseArgs(process.argv.slice(2));
     const plan = readPlan(args.plan);
-    const repeatCount = args.repeat ?? plan.repeat ?? 1;
+    const scratchOrg = Boolean(args.targetOrg) && isScratchOrg(args.targetOrg);
+    const repeatCount =
+        args.repeat ?? (scratchOrg ? plan.scratchOrgRepeat : plan.repeat) ?? 1;
     const selectedEntries = args.only
         ? plan.imports.filter((entry) => entry.label === args.only)
         : plan.imports;
@@ -238,15 +302,21 @@ function run() {
 
     for (let cycle = 1; cycle <= repeatCount; cycle += 1) {
         for (const entry of selectedEntries) {
-            const entryRepeatCount = args.repeat ?? entry.repeat ?? repeatCount;
+            const entryRepeatCount =
+                args.repeat ??
+                (scratchOrg ? entry.scratchOrgRepeat : entry.repeat) ??
+                repeatCount;
 
             if (cycle > entryRepeatCount) {
                 continue;
             }
 
             const absoluteFilePath = validateEntry(entry);
+            const importFilePath = scratchOrg
+                ? createScratchOrgApexFile(entry, absoluteFilePath)
+                : absoluteFilePath;
             const targetOrg = args.targetOrg || '<target-org>';
-            const sfArgs = buildSfArgs(entry, absoluteFilePath, targetOrg);
+            const sfArgs = buildSfArgs(entry, importFilePath, targetOrg);
             const cycleSuffix =
                 repeatCount > 1 ? ` (${cycle}/${repeatCount})` : '';
 

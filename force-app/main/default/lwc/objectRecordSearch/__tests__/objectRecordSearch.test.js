@@ -47,18 +47,24 @@ const searchResponse = {
         updateable: true,
         searchable: true,
         nameFieldCreateable: true,
-        nameFieldUpdateable: true
+        nameFieldUpdateable: true,
+        displayFields: [
+            { apiName: 'Industry', label: '業種' },
+            { apiName: 'Type', label: '種別' }
+        ]
     },
     records: [
         {
             id: '001xx000003DGbYAAW',
             name: 'Acme',
             recordUrl: '/lightning/r/Account/001xx000003DGbYAAW/view',
-            createdDate: '2026-06-21T00:00:00.000Z',
-            lastModifiedDate: '2026-06-21T01:00:00.000Z'
+            fieldValues: {
+                Industry: 'Technology',
+                Type: 'Prospect'
+            }
         }
     ],
-    pageSize: 500,
+    pageSize: 50,
     pageNumber: 1,
     hasNextPage: false,
     nextPageToken: null
@@ -184,6 +190,13 @@ describe('c-object-record-search', () => {
             '/lightning/r/Account/001xx000003DGbYAAW/view'
         );
         expect(datatable.columns[0].label).toBe('取引先名');
+        expect(datatable.columns.map((column) => column.label)).toEqual([
+            '取引先名',
+            '業種',
+            '種別'
+        ]);
+        expect(datatable.data[0].displayField_Industry).toBe('Technology');
+        expect(datatable.data[0].displayField_Type).toBe('Prospect');
         await expect(element).toBeAccessible();
     });
 
@@ -747,8 +760,8 @@ describe('c-object-record-search', () => {
         });
         await flushPromises();
 
-        expect(element.shadowRoot.textContent).toContain('1 ページ目');
-        expect(element.shadowRoot.textContent).toContain('1 / 500 件');
+        expect(element.shadowRoot.textContent).toContain('現在のページ: 1');
+        expect(element.shadowRoot.textContent).not.toContain('1 / 50 件');
 
         findButton(element, '次へ').click();
         await flushPromises();
@@ -771,7 +784,7 @@ describe('c-object-record-search', () => {
         });
         await flushPromises();
 
-        expect(element.shadowRoot.textContent).toContain('2 ページ目');
+        expect(element.shadowRoot.textContent).toContain('現在のページ: 2');
 
         findButton(element, '前へ').click();
         await flushPromises();

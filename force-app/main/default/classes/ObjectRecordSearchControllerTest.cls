@@ -7,6 +7,8 @@ private with sharing class ObjectRecordSearchControllerTest {
     static void setupTestData() {
         List<Account> accounts = TestDataFactory.createAccounts(3);
         accounts[0].Name = '検索対象 Alpha';
+        accounts[0].Industry = 'Technology';
+        accounts[0].Type = 'Prospect';
         accounts[1].Name = '検索対象 Beta';
         accounts[2].Name = '削除対象 Gamma';
         insert accounts;
@@ -53,6 +55,24 @@ private with sharing class ObjectRecordSearchControllerTest {
             config.nameFieldUpdateable,
             'Account config should expose Name update permission.'
         );
+        Assert.isTrue(
+            config.displayFields.size() > 0,
+            'Account config should expose fixed seed/import display fields.'
+        );
+        Set<String> displayFieldApiNames = new Set<String>();
+        for (
+            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
+        ) {
+            displayFieldApiNames.add(displayField.apiName);
+        }
+        Assert.isTrue(
+            displayFieldApiNames.contains('AccountNumber'),
+            'Account display fields should include AccountNumber.'
+        );
+        Assert.isTrue(
+            displayFieldApiNames.contains('Industry'),
+            'Account display fields should include Industry.'
+        );
     }
 
     @IsTest
@@ -84,6 +104,16 @@ private with sharing class ObjectRecordSearchControllerTest {
             result.records[0].recordUrl.contains('/lightning/r/Account/'),
             'Rows should include a standard record URL.'
         );
+        Assert.areEqual(
+            'Technology',
+            result.records[0].fieldValues.get('Industry'),
+            'Rows should expose fixed seed/import fields.'
+        );
+        Assert.areEqual(
+            'Prospect',
+            result.records[0].fieldValues.get('Type'),
+            'Rows should include Account Type from the import plan.'
+        );
     }
 
     @IsTest
@@ -106,7 +136,7 @@ private with sharing class ObjectRecordSearchControllerTest {
             'Blank searches should return all available Account rows.'
         );
         Assert.areEqual(
-            500,
+            50,
             result.pageSize,
             'Search result should expose the page size.'
         );

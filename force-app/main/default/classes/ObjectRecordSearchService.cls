@@ -35,7 +35,7 @@ public with sharing class ObjectRecordSearchService {
     /**
      * 表示キーに対応するオブジェクトのレコードを検索します。
      * @param request 検索条件とページ指定
-     * @return 1 ページ最大 500 件の検索結果
+     * @return 1 ページ最大 50 件の検索結果
      */
     public ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
         ObjectRecordSearchController.ObjectRecordSearchRequest request

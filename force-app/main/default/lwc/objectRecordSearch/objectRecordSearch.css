@@ -23,6 +23,21 @@
     position: relative;
 }
 
+.record-table {
+    height: clamp(16rem, 45vh, 600px);
+    overflow: auto;
+}
+
+.record-table lightning-datatable {
+    min-width: 80rem;
+}
+
+.record-table_empty {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
 .pagination {
     gap: var(--slds-g-spacing-1, 0.25rem);
 }

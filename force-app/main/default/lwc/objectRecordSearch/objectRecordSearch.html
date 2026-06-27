@@ -44,12 +44,6 @@
             <div
                 class="toolbar__actions slds-col slds-no-flex slds-p-top_medium"
             >
-                <span
-                    class="slds-text-body_small slds-m-right_small"
-                    aria-live="polite"
-                >
-                    {recordCountLabel}
-                </span>
                 <lightning-button
                     label="検索"
                     variant="brand"
@@ -85,7 +79,7 @@
         </template>
 
         <template lwc:if={hasRows}>
-            <div>
+            <div class="record-table" tabindex="0">
                 <lightning-datatable
                     key-field="id"
                     data={rows}
@@ -98,7 +92,9 @@
             </div>
         </template>
         <template lwc:else>
-            <div class="empty slds-p-around_large slds-text-align_center">
+            <div
+                class="record-table record-table_empty empty slds-p-around_large slds-text-align_center"
+            >
                 <template lwc:if={isBusy}>
                     <lightning-spinner
                         alternative-text="レコード一覧を読み込んでいます"
