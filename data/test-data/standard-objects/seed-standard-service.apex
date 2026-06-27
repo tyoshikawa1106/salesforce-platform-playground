@@ -100,6 +100,13 @@ List<Case> cases = [
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
+List<Order> orders = [
+    SELECT Id, AccountId
+    FROM Order
+    WHERE Account.Name LIKE :seedLike
+    ORDER BY CreatedDate ASC
+    LIMIT :parentPoolSize
+];
 List<PricebookEntry> pricebookEntries = [
     SELECT Id, UnitPrice, Pricebook2Id, Product2.Name
     FROM PricebookEntry
@@ -115,12 +122,20 @@ if (
     accounts.isEmpty() ||
     contacts.isEmpty() ||
     assets.isEmpty() ||
-    cases.isEmpty()
+    cases.isEmpty() ||
+    orders.isEmpty()
 ) {
     System.assert(
         false,
         'Run previous standard object seed phases before service.'
     );
+}
+Map<Id, List<Order>> ordersByAccountId = new Map<Id, List<Order>>();
+for (Order orderRecord : orders) {
+    if (!ordersByAccountId.containsKey(orderRecord.AccountId)) {
+        ordersByAccountId.put(orderRecord.AccountId, new List<Order>());
+    }
+    ordersByAccountId.get(orderRecord.AccountId).add(orderRecord);
 }
 
 System.debug('Seed run key: ' + seedRunKey);
@@ -447,7 +462,7 @@ if (
 
 List<SObject> insertedWorkOrders = gd.containsKey('WorkOrder')
     ? Database.query(
-          'SELECT Id FROM WorkOrder WHERE Subject LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
+          'SELECT Id, AccountId FROM WorkOrder WHERE Subject LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject'
       )
     : new List<SObject>();
 List<SObject> workOrderLineItems = new List<SObject>();
@@ -478,6 +493,18 @@ if (
             'WorkOrderId',
             insertedWorkOrders[Math.mod(i - 1, insertedWorkOrders.size())].Id
         );
+        Id workOrderAccountId = (Id) insertedWorkOrders[
+                Math.mod(i - 1, insertedWorkOrders.size())
+            ]
+            .get('AccountId');
+        List<Order> accountOrders = ordersByAccountId.get(workOrderAccountId);
+        if (accountOrders != null && !accountOrders.isEmpty()) {
+            putIfCreateable(
+                record,
+                'OrderId',
+                accountOrders[Math.mod(sequence - 1, accountOrders.size())].Id
+            );
+        }
         putIfCreateable(
             record,
             'AssetId',
