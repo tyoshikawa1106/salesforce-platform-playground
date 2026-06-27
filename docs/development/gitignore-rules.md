@@ -26,6 +26,7 @@ DreamHouse の `.gitignore` に加えて、このリポジトリでは次を ign
 
 - `.agents/`, `skills-lock.json`: agent / sf-skills のローカル生成物。
 - `.pmdCache`: ApexPMD のキャッシュ。
+- `export-out/*`: Salesforce CLI の export 結果。CSV / JSON などの生成物は Git 管理しない。`export-out/export-out-guide.md` だけは出力先フォルダ名を固定するため Git 管理する。
 - `logs/apex/*`: Salesforce CLI で取得した Apex debug log のローカル出力。ログファイルは Git 管理しない。`logs/apex/apex-log-guide.md` だけは出力先フォルダ名を固定するため Git 管理する。
 - `logs/code-analyzer/*`: Salesforce Code Analyzer のローカル解析出力。JSON / log / HTML など、解析結果として再生成できるファイルは Git 管理しない。`logs/code-analyzer/code-analyzer-guide.md` だけは出力先フォルダ名を固定するため Git 管理する。
 - `**/__pycache__/`, `**/.venv/`, `**/venv/`: Python Salesforce Functions 用のローカル生成物。

@@ -11,6 +11,9 @@
 
 coverage/
 
+export-out/*
+!export-out/export-out-guide.md
+
 logs/apex/*
 !logs/apex/apex-log-guide.md
 logs/code-analyzer/*

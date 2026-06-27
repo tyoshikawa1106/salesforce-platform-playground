@@ -27,3 +27,19 @@ sf data export bulk \
 ```
 
 標準オブジェクトの初期データセットアップ手順は [test-data-import.md](../docs/development/test-data-import.md) を参照してください。
+
+## ローカル export 結果の削除
+
+削除対象を事前確認する:
+
+```sh
+git clean -ndX export-out
+```
+
+生成済みの export 結果を削除する:
+
+```sh
+git clean -fdX export-out
+```
+
+`git clean -fdX` は ignore 対象だけを削除するため、このガイドは残ります。

@@ -30,6 +30,7 @@
 
 | ファイル                                    | 概要                                                                                         | 変更時の確認                                                             |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `export-out/export-out-guide.md`            | Salesforce CLI の export 結果の出力先として `export-out/` を固定する。                       | CSV / JSON などの export 結果を Git 管理対象にしていないか確認する。     |
 | `logs/apex/apex-log-guide.md`               | Salesforce CLI で取得した Apex debug log の出力先として `logs/apex/` を固定する。            | Apex debug log の実ファイルを Git 管理対象にしていないか確認する。       |
 | `logs/code-analyzer/code-analyzer-guide.md` | Salesforce Code Analyzer のローカル解析結果の出力先として `logs/code-analyzer/` を固定する。 | `package.json` の Code Analyzer 出力先と `.gitignore` の例外を確認する。 |
 
