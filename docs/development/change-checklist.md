@@ -79,4 +79,4 @@ CI と同じ severity threshold まで確認する場合は次を実行します
 npm run code-analyzer:ci
 ```
 
-`code-analyzer-results-*.json` と `code-analyzer-results-*.log` は解析結果の生成物なので Git 管理しません。
+`code-analyzer-results/` 配下の解析結果ファイルは生成物なので Git 管理しません。出力先フォルダの扱いは `code-analyzer-results/code-analyzer-results-guide.md` を参照します。
