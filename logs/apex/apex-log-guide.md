@@ -34,3 +34,19 @@ sf apex tail log --target-org <alias>
 ```
 
 `sf apex tail log` の出力をファイルに残す場合は、利用している shell のリダイレクトや `tee` を使います。
+
+## ローカルログの削除
+
+削除対象を事前確認する:
+
+```sh
+git clean -ndX logs/apex
+```
+
+生成済みの Apex debug log を削除する:
+
+```sh
+git clean -fdX logs/apex
+```
+
+`git clean -fdX` は ignore 対象だけを削除するため、このガイドは残ります。
