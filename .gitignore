@@ -67,7 +67,8 @@ skills-lock.json
 .pmdCache
 
 # Salesforce Code Analyzer reports
-code-analyzer-results-*
+code-analyzer-results/*
+!code-analyzer-results/code-analyzer-results-guide.md
 
 # Eslint cache
 .eslintcache
