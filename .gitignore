@@ -47,6 +47,12 @@ coverage/
 # Logs
 logs/*
 !logs/logs-guide.md
+!logs/apex/
+logs/apex/*
+!logs/apex/apex-log-guide.md
+!logs/code-analyzer/
+logs/code-analyzer/*
+!logs/code-analyzer/code-analyzer-guide.md
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -65,10 +71,6 @@ skills-lock.json
 
 # ApexPMD cache
 .pmdCache
-
-# Salesforce Code Analyzer reports
-code-analyzer-results/*
-!code-analyzer-results/code-analyzer-results-guide.md
 
 # Eslint cache
 .eslintcache

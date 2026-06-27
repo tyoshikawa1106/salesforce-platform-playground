@@ -11,7 +11,10 @@
 
 coverage/
 
-code-analyzer-results-*
+logs/apex/*
+!logs/apex/apex-log-guide.md
+logs/code-analyzer/*
+!logs/code-analyzer/code-analyzer-guide.md
 
 # Keep Salesforce retrieve output stable.
 force-app/main/default/classes/**
