@@ -13,9 +13,8 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'Rating',
             'Phone',
             'Website',
-            'BillingCity',
             'BillingState',
-            'BillingCountry'
+            'BillingCity'
         },
         'Contact' => new List<String>{
             'Title',
@@ -24,6 +23,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'Phone',
             'MobilePhone',
             'LeadSource',
+            'MailingState',
             'MailingCity',
             'Description'
         },
@@ -37,6 +37,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'Email',
             'Phone',
             'Website',
+            'State',
             'City',
             'Description'
         },
@@ -112,15 +113,17 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'CustomerSignedTitle',
             'CustomerSignedDate',
             'OwnerExpirationNotice',
-            'BillingCity',
             'BillingState',
+            'BillingCity',
             'Description'
         },
         'Order' => new List<String>{
             'Type',
             'Status',
             'EffectiveDate',
+            'BillingState',
             'BillingCity',
+            'ShippingState',
             'ShippingCity',
             'Description'
         },
@@ -141,7 +144,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'StartDate',
             'EndDate',
             'Term',
+            'BillingState',
             'BillingCity',
+            'ShippingState',
             'ShippingCity',
             'ShippingHandling',
             'Tax',
@@ -158,8 +163,8 @@ public virtual with sharing class ObjectRecordSearchSelector {
         'WorkOrder' => new List<String>{
             'Status',
             'Priority',
+            'State',
             'City',
-            'PostalCode',
             'Description'
         },
         'WorkOrderLineItem' => new List<String>{

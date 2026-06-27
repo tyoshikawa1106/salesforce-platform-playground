@@ -9,6 +9,8 @@ private with sharing class ObjectRecordSearchControllerTest {
         accounts[0].Name = '検索対象 Alpha';
         accounts[0].Industry = 'Technology';
         accounts[0].Type = 'Prospect';
+        accounts[0].BillingState = '東京都';
+        accounts[0].BillingCity = '千代田区';
         accounts[1].Name = '検索対象 Beta';
         accounts[2].Name = '削除対象 Gamma';
         insert accounts;
@@ -73,6 +75,18 @@ private with sharing class ObjectRecordSearchControllerTest {
             displayFieldApiNames.contains('Industry'),
             'Account display fields should include Industry.'
         );
+        Assert.isTrue(
+            displayFieldApiNames.contains('BillingState'),
+            'Account display fields should include BillingState.'
+        );
+        Assert.isTrue(
+            displayFieldApiNames.contains('BillingCity'),
+            'Account display fields should include BillingCity.'
+        );
+        Assert.isFalse(
+            displayFieldApiNames.contains('BillingCountry'),
+            'Account display fields should not include BillingCountry.'
+        );
     }
 
     @IsTest
@@ -113,6 +127,16 @@ private with sharing class ObjectRecordSearchControllerTest {
             'Prospect',
             result.records[0].fieldValues.get('Type'),
             'Rows should include Account Type from the import plan.'
+        );
+        Assert.areEqual(
+            '東京都',
+            result.records[0].fieldValues.get('BillingState'),
+            'Rows should expose Account billing state as prefecture.'
+        );
+        Assert.areEqual(
+            '千代田区',
+            result.records[0].fieldValues.get('BillingCity'),
+            'Rows should expose Account billing city.'
         );
     }
 
