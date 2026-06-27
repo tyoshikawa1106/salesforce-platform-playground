@@ -193,10 +193,6 @@ export default class ObjectRecordSearch extends LightningElement {
         return this.rows.length > 0;
     }
 
-    get recordCountLabel() {
-        return `${this.rows.length} / ${this.pageSize} 件`;
-    }
-
     get pageLabel() {
         return `現在のページ: ${this.pageNumber}`;
     }

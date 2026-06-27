@@ -24,7 +24,7 @@
 }
 
 .record-table {
-    height: 600px;
+    height: clamp(16rem, 45vh, 600px);
     overflow: auto;
 }
 
