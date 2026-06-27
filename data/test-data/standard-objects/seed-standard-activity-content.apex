@@ -132,6 +132,13 @@ List<String> eventSubjects = new List<String>{
     'Send Letter/Quete',
     'Other'
 };
+List<Time> eventStartTimes = new List<Time>();
+for (Integer hour = 8; hour <= 20; hour += 1) {
+    eventStartTimes.add(Time.newInstance(hour, 0, 0, 0));
+    if (hour < 20) {
+        eventStartTimes.add(Time.newInstance(hour, 30, 0, 0));
+    }
+}
 
 List<Task> tasks = new List<Task>();
 List<Event> events = new List<Event>();
@@ -145,6 +152,14 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     ];
     Case supportCase = cases[Math.mod(sequence - 1, cases.size())];
     Account account = accounts[Math.mod(sequence - 1, accounts.size())];
+    Integer eventStartTimeIndex = Math.mod(
+        Math.abs(Crypto.getRandomInteger()),
+        eventStartTimes.size()
+    );
+    Datetime eventStartDateTime = Datetime.newInstance(
+        Date.today().addDays(Math.mod(sequence, 180)),
+        eventStartTimes[eventStartTimeIndex]
+    );
 
     tasks.add(
         new Task(
@@ -166,10 +181,8 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
                 eventSubjects[Math.mod(sequence - 1, eventSubjects.size())],
             WhoId = contact.Id,
             WhatId = opportunity.Id,
-            StartDateTime = Datetime.now().addDays(Math.mod(sequence, 180)),
-            EndDateTime = Datetime.now()
-                .addDays(Math.mod(sequence, 180))
-                .addHours(1),
+            StartDateTime = eventStartDateTime,
+            EndDateTime = eventStartDateTime.addHours(1),
             Location = '東京本社 会議室 ' +
                 String.valueOf(Math.mod(sequence, 5) + 1),
             ShowAs = eventShowAs,
