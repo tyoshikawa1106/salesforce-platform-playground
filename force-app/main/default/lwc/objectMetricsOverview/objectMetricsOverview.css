@@ -8,7 +8,7 @@
 .count-card {
     display: flex;
     flex-direction: column;
-    height: 5rem;
+    height: var(--slds-g-sizing-12, 5rem);
 }
 
 .count-card-cell {
@@ -23,7 +23,7 @@
     cursor: pointer;
     display: block;
     font: inherit;
-    height: 100%;
+    height: var(--slds-g-sizing-12, 5rem);
     padding: 0;
     text-align: inherit;
 }
@@ -33,7 +33,7 @@
     display: flex;
     flex: 1 1 auto;
     justify-content: center;
-    min-height: 2rem;
+    min-height: var(--slds-g-sizing-9, 2rem);
 }
 
 @media (max-width: 48em) {
