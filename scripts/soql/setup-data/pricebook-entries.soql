@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/pricebook-entries.soql --target-org <alias>
+
+SELECT Id, Pricebook2.Name, Product2.Name, Product2.ProductCode, UnitPrice, IsActive, CreatedDate
+FROM PricebookEntry
+ORDER BY Product2.ProductCode ASC
+LIMIT 200

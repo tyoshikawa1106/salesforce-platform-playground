@@ -2,6 +2,5 @@
 
 SELECT Id, CaseNumber, Subject, Account.Name, Status, Priority, CreatedDate
 FROM Case
-WHERE Subject LIKE '[TEST]%'
 ORDER BY CreatedDate DESC
-LIMIT 20
+LIMIT 200

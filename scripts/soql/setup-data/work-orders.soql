@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/work-orders.soql --target-org <alias>
+
+SELECT Id, WorkOrderNumber, Subject, Account.Name, Contact.LastName, Asset.Name, Case.CaseNumber, Status, CreatedDate
+FROM WorkOrder
+ORDER BY CreatedDate DESC
+LIMIT 200

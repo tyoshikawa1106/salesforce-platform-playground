@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/products.soql --target-org <alias>
+
+SELECT Id, Name, ProductCode, Family, IsActive, CreatedDate
+FROM Product2
+ORDER BY ProductCode ASC
+LIMIT 200

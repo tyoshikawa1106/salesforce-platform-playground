@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/opportunity-contact-roles.soql --target-org <alias>
+
+SELECT Id, Opportunity.Name, Contact.LastName, Role, IsPrimary, CreatedDate
+FROM OpportunityContactRole
+ORDER BY CreatedDate DESC
+LIMIT 200

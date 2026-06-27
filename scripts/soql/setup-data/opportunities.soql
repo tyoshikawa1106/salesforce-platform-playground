@@ -2,6 +2,5 @@
 
 SELECT Id, Name, Account.Name, StageName, Amount, CloseDate, CreatedDate
 FROM Opportunity
-WHERE Name LIKE '[TEST]%'
 ORDER BY CreatedDate DESC
-LIMIT 20
+LIMIT 200

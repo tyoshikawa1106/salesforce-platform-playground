@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/setup-data/campaign-members.soql --target-org <alias>
+
+SELECT Id, Campaign.Name, Contact.LastName, Lead.LastName, Status, CreatedDate
+FROM CampaignMember
+ORDER BY CreatedDate DESC
+LIMIT 200
