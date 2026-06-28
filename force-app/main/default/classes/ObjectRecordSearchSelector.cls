@@ -2,208 +2,16 @@
  * 汎用レコード検索画面で使う Salesforce レコードを問い合わせます。
  */
 public virtual with sharing class ObjectRecordSearchSelector {
-    private static final Integer PAGE_SIZE = 50;
-    private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
-
     /**
-     * 表示キーに対応する検索画面設定を返します。
-     * @param metricKey データボードカードの表示キー
-     * @return 検索画面設定
+     * 対象オブジェクトの describe 結果を返します。
+     * @param objectApiName 対象オブジェクト API 参照名
+     * @return 対象オブジェクトの describe 結果
      */
-    public virtual ObjectRecordSearchConfigWrapper getObjectConfig(
-        String metricKey
-    ) {
-        ObjectMetricCatalog.MetricDefinition definition = requireDefinition(
-            metricKey
-        );
-        Schema.DescribeSObjectResult objectDescribe = requireObjectDescribe(
-            definition
-        );
-        Schema.DescribeFieldResult nameFieldDescribe = requireNameFieldDescribe(
-            objectDescribe
-        );
-
-        return new ObjectRecordSearchConfigWrapper(
-            definition,
-            nameFieldDescribe,
-            new ObjectRecordSearchAccessWrapper(
-                objectDescribe,
-                ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
-                    definition.objectApiName,
-                    objectDescribe
-                )
-            )
-        );
-    }
-
-    /**
-     * 表示キーに対応するオブジェクトのレコードを検索します。
-     * @param request 検索条件とページ指定
-     * @return 1 ページ最大 50 件の検索結果
-     */
-    @SuppressWarnings('PMD.ApexSOQLInjection')
-    public virtual ObjectRecordSearchResultWrapper searchRecords(
-        ObjectRecordSearchRequestWrapper request
-    ) {
-        ObjectRecordSearchConfigWrapper config = getObjectConfig(
-            request?.metricKey
-        );
-        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-            config,
-            request
-        );
-        ObjectRecordSearchSortSupport.PageCursor cursor = ObjectRecordSearchSortSupport.parsePageToken(
-            request?.pageToken,
-            sortSpec
-        );
-        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
-        searchQueryRequest.config = config;
-        searchQueryRequest.searchRequest = request;
-        searchQueryRequest.sortSpec = sortSpec;
-        searchQueryRequest.cursor = cursor;
-        searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
-        ObjectRecordSearchQueryPlan.SearchQuery searchQuery = ObjectRecordSearchQueryPlan.createSearchQuery(
-            searchQueryRequest
-        );
-
-        List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
-        for (
-            SObject record : Database.queryWithBinds(
-                searchQuery.soql,
-                searchQuery.bindValues,
-                AccessLevel.USER_MODE
-            )
-        ) {
-            rows.add(
-                new ObjectRecordSearchRowWrapper(
-                    record,
-                    config.nameFieldApiName,
-                    config.displayFields
-                )
-            );
-        }
-
-        Boolean hasNextPage = rows.size() > PAGE_SIZE;
-        if (hasNextPage) {
-            rows.remove(PAGE_SIZE);
-        }
-
-        return new ObjectRecordSearchResultWrapper(
-            config,
-            rows,
-            createPageState(
-                normalizePageNumber(request?.pageNumber),
-                hasNextPage
-                    ? ObjectRecordSearchSortSupport.createNextPageToken(
-                          rows,
-                          sortSpec
-                      )
-                    : null
-            )
-        );
-    }
-
-    /**
-     * 表示キーに対応するオブジェクトの選択レコードを削除します。
-     * @param metricKey データボードカードの表示キー
-     * @param recordIds 削除するレコード ID
-     * @return 削除結果
-     */
-    public virtual ObjectRecordSearchDeleteWrapper deleteRecords(
-        String metricKey,
-        List<Id> recordIds
-    ) {
-        ObjectRecordSearchConfigWrapper config = getObjectConfig(
-            metricKey
-        );
-        if (!config.deletable || recordIds == null || recordIds.isEmpty()) {
-            return new ObjectRecordSearchDeleteWrapper(
-                recordIds == null ? 0 : recordIds.size(),
-                0,
-                new List<String>()
-            );
-        }
-
-        List<SObject> recordsToDelete = queryRecordsById(
-            config.objectApiName,
-            new Set<Id>(recordIds)
-        );
-        Database.DeleteResult[] deleteResults = Database.delete(
-            recordsToDelete,
-            false,
-            AccessLevel.USER_MODE
-        );
-        Integer deletedCount = 0;
-        List<String> errors = new List<String>();
-
-        for (Database.DeleteResult deleteResult : deleteResults) {
-            if (deleteResult.isSuccess()) {
-                deletedCount++;
-                continue;
-            }
-            for (Database.Error deleteError : deleteResult.getErrors()) {
-                errors.add(deleteError.getMessage());
-            }
-        }
-
-        return new ObjectRecordSearchDeleteWrapper(
-            recordIds.size(),
-            deletedCount,
-            errors
-        );
-    }
-
-    @SuppressWarnings('PMD.ApexSOQLInjection')
-    private List<SObject> queryRecordsById(
-        String objectApiName,
-        Set<Id> recordIds
-    ) {
-        if (recordIds == null || recordIds.isEmpty()) {
-            return new List<SObject>();
-        }
-
-        return Database.queryWithBinds(
-            'SELECT Id FROM ' +
-                objectApiName +
-                ' WHERE Id IN :recordIds LIMIT ' +
-                recordIds.size(),
-            new Map<String, Object>{ 'recordIds' => recordIds },
-            AccessLevel.USER_MODE
-        );
-    }
-
-    private Integer normalizePageNumber(Integer pageNumber) {
-        return pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
-    }
-
-    private ObjectRecordSearchPageStateWrapper createPageState(
-        Integer pageNumber,
-        String nextPageToken
-    ) {
-        ObjectRecordSearchPageStateWrapper pageState = new ObjectRecordSearchPageStateWrapper();
-        pageState.pageSize = PAGE_SIZE;
-        pageState.pageNumber = pageNumber;
-        pageState.nextPageToken = nextPageToken;
-        return pageState;
-    }
-
-    private ObjectMetricCatalog.MetricDefinition requireDefinition(
-        String metricKey
-    ) {
-        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
-            metricKey
-        );
-        if (definition == null) {
-            throw new ObjectRecordSearchException('未対応のオブジェクトです。');
-        }
-        return definition;
-    }
-
-    private Schema.DescribeSObjectResult requireObjectDescribe(
-        ObjectMetricCatalog.MetricDefinition definition
+    public virtual Schema.DescribeSObjectResult getObjectDescribe(
+        String objectApiName
     ) {
         Schema.SObjectType sObjectType = Schema.getGlobalDescribe()
-            .get(definition.objectApiName);
+            .get(objectApiName);
         if (sObjectType == null) {
             throw new ObjectRecordSearchException(
                 '対象オブジェクトが見つかりません。'
@@ -221,7 +29,12 @@ public virtual with sharing class ObjectRecordSearchSelector {
         return objectDescribe;
     }
 
-    private Schema.DescribeFieldResult requireNameFieldDescribe(
+    /**
+     * 対象オブジェクトの Name 相当項目の describe 結果を返します。
+     * @param objectDescribe 対象オブジェクトの describe 結果
+     * @return Name 相当項目の describe 結果
+     */
+    public virtual Schema.DescribeFieldResult getNameFieldDescribe(
         Schema.DescribeSObjectResult objectDescribe
     ) {
         Schema.DescribeFieldResult nameFieldDescribe;
@@ -258,6 +71,58 @@ public virtual with sharing class ObjectRecordSearchSelector {
             );
         }
         return nameFieldDescribe;
+    }
+
+    /**
+     * 作成済みの検索クエリ計画でレコードを取得します。
+     * @param searchQuery 実行する SOQL と bind 値
+     * @return 検索結果 SObject
+     */
+    @SuppressWarnings('PMD.ApexSOQLInjection')
+    public virtual List<SObject> searchRecords(
+        ObjectRecordSearchQueryPlan.SearchQuery searchQuery
+    ) {
+        return Database.queryWithBinds(
+            searchQuery.soql,
+            searchQuery.bindValues,
+            AccessLevel.USER_MODE
+        );
+    }
+
+    /**
+     * 対象オブジェクトから ID 指定で削除対象レコードを取得します。
+     * @param objectApiName 対象オブジェクト API 参照名
+     * @param recordIds 取得するレコード ID
+     * @return 削除対象 SObject
+     */
+    @SuppressWarnings('PMD.ApexSOQLInjection')
+    public virtual List<SObject> getRecordsById(
+        String objectApiName,
+        Set<Id> recordIds
+    ) {
+        if (recordIds == null || recordIds.isEmpty()) {
+            return new List<SObject>();
+        }
+
+        return Database.queryWithBinds(
+            'SELECT Id FROM ' +
+                objectApiName +
+                ' WHERE Id IN :recordIds LIMIT ' +
+                recordIds.size(),
+            new Map<String, Object>{ 'recordIds' => recordIds },
+            AccessLevel.USER_MODE
+        );
+    }
+
+    /**
+     * 指定レコードを削除します。
+     * @param recordsToDelete 削除対象レコード
+     * @return DML 削除結果
+     */
+    public virtual List<Database.DeleteResult> deleteRecords(
+        List<SObject> recordsToDelete
+    ) {
+        return Database.delete(recordsToDelete, false, AccessLevel.USER_MODE);
     }
 
     /**
