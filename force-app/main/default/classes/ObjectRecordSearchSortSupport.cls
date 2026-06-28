@@ -15,18 +15,13 @@ public with sharing class ObjectRecordSearchSortSupport {
         ObjectRecordSearchConfigWrapper config,
         ObjectRecordSearchRequestWrapper request
     ) {
-        Map<String, Schema.SObjectField> fieldsByApiName = Schema.getGlobalDescribe()
-            .get(config.objectApiName)
-            .getDescribe(SObjectDescribeOptions.DEFERRED)
-            .fields.getMap();
         String fieldApiName = getSortFieldApiName(config, request);
-        Schema.DescribeFieldResult fieldDescribe = fieldsByApiName.get(
-                fieldApiName
-            )
-            .getDescribe();
+        Schema.DescribeFieldResult fieldDescribe = config.getAllowedFieldDescribe(
+            fieldApiName
+        );
         if (!fieldDescribe.isSortable()) {
             fieldApiName = config.nameFieldApiName;
-            fieldDescribe = fieldsByApiName.get(fieldApiName).getDescribe();
+            fieldDescribe = config.getAllowedFieldDescribe(fieldApiName);
         }
 
         SortSpec sortSpec = new SortSpec();
@@ -127,8 +122,7 @@ public with sharing class ObjectRecordSearchSortSupport {
         ObjectRecordSearchConfigWrapper config,
         ObjectRecordSearchRequestWrapper request
     ) {
-        return ObjectRecordSearchQueryPlan.getAllowedFieldApiNames(config)
-                .contains(request?.sortBy)
+        return config.getAllowedFieldApiNames().contains(request?.sortBy)
             ? request.sortBy
             : config.nameFieldApiName;
     }

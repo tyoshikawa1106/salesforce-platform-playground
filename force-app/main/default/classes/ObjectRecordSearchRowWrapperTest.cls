@@ -18,7 +18,7 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         ];
         ObjectRecordSearchRowWrapper wrapper;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             wrapper = new ObjectRecordSearchRowWrapper(
                 queriedAccount,
                 'Name',
@@ -51,9 +51,5 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
             wrapper.fieldValues.get('Industry'),
             'Row wrapper should expose configured field values.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
     }
 }

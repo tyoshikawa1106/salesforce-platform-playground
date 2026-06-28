@@ -38,7 +38,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ];
 
         ObjectRecordSearchResultWrapper result;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             result = service.createSearchResult(
                 searchQueryRequest,
@@ -81,7 +81,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
 
         ObjectRecordSearchDeleteWrapper result;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             result = service.createDeleteResult(recordIds, deleteResults);
             Test.stopTest();
@@ -108,7 +108,7 @@ private with sharing class ObjectRecordSearchServiceTest {
     static void shouldThrowWhenMetricKeyIsUnsupported() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             try {
                 service.requireDefinition('unknown');
@@ -129,7 +129,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ObjectRecordSearchConfigWrapper config = createAccountConfig(service);
 
         Boolean canDelete;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             canDelete = service.canDeleteRecords(config, new List<Id>());
             Test.stopTest();
@@ -160,11 +160,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             nameFieldDescribe,
             objectDescribe
         )
-            .withDisplayFields(displayFields);
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
+            .withDisplayFields(displayFields, objectDescribe);
     }
 
     private static ObjectRecordSearchRequestWrapper createSearchRequest(

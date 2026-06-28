@@ -40,27 +40,13 @@ public with sharing class ObjectRecordSearchQueryPlan {
     public static List<String> getQueryFields(
         ObjectRecordSearchConfigWrapper config
     ) {
-        return new List<String>(getAllowedFieldApiNames(config));
+        return config.getQueryFieldApiNames();
     }
 
-    /**
-     * 検索画面で参照・ソートを許可する項目 API 参照名を返します。
-     * @param config 検索画面設定
-     * @return Name 項目と表示項目の集合
-     */
-    public static Set<String> getAllowedFieldApiNames(
-        ObjectRecordSearchConfigWrapper config
+    private static String buildSearchSoql(
+        SearchQueryRequest request,
+        Boolean includeNameSearch
     ) {
-        Set<String> fieldApiNames = new Set<String>{ config.nameFieldApiName };
-        for (
-            ObjectRecordSearchFieldWrapper displayField : config.displayFields
-        ) {
-            fieldApiNames.add(displayField.apiName);
-        }
-        return fieldApiNames;
-    }
-
-    private static String buildSearchSoql(SearchQueryRequest request, Boolean includeNameSearch) {
         String query =
             'SELECT Id, ' +
             String.join(getQueryFields(request.config), ', ') +

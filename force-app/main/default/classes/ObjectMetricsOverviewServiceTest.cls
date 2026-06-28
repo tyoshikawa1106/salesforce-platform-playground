@@ -11,7 +11,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             summary = service.createObjectMetrics(metricValues);
             Test.stopTest();
@@ -75,7 +75,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             summary = service.createObjectMetrics(null);
             Test.stopTest();
@@ -103,9 +103,5 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             'accounts' => ObjectMetricsOverviewSelector.createCount(50000),
             'contacts' => ObjectMetricsOverviewSelector.createCount(34)
         };
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

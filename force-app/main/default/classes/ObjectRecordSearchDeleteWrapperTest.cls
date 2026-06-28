@@ -7,7 +7,7 @@ private with sharing class ObjectRecordSearchDeleteWrapperTest {
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchDeleteWrapper wrapper;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             wrapper = new ObjectRecordSearchDeleteWrapper(
                 2,
                 1,
@@ -30,9 +30,5 @@ private with sharing class ObjectRecordSearchDeleteWrapperTest {
             wrapper.errors[0],
             'Delete wrapper should expose user-facing errors.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
     }
 }

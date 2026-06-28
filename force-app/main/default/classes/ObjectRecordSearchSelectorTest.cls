@@ -22,7 +22,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         Schema.DescribeSObjectResult objectDescribe;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             objectDescribe = selector.getObjectDescribe('Account');
             Test.stopTest();
@@ -44,7 +44,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         Schema.DescribeFieldResult nameFieldDescribe;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             nameFieldDescribe = selector.getNameFieldDescribe(
                 Account.SObjectType.getDescribe(
@@ -69,7 +69,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
         List<SObject> records;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             records = selector.searchRecords(searchQuery);
             Test.stopTest();
@@ -98,7 +98,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<SObject> records;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             records = selector.getRecordsById(
                 'Account',
@@ -132,7 +132,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<Database.DeleteResult> deleteResults;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             deleteResults = selector.deleteRecords(recordsToDelete);
             Test.stopTest();
@@ -157,7 +157,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void getObjectDescribeShouldThrowWhenObjectIsUnknown() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             try {
                 selector.getObjectDescribe('UnknownObject__c');
@@ -170,10 +170,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             }
             Test.stopTest();
         }
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 
     private static ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(
@@ -214,6 +210,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             .withDisplayFields(ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
                 'Account',
                 objectDescribe
-            ));
+            ), objectDescribe);
     }
 }

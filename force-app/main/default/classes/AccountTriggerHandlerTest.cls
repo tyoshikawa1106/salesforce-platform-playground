@@ -16,7 +16,7 @@ private with sharing class AccountTriggerHandlerTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -63,7 +63,7 @@ private with sharing class AccountTriggerHandlerTest {
         accountRecord.Name = 'テスト（株）';
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             update accountRecord;
             Test.stopTest();
@@ -87,7 +87,7 @@ private with sharing class AccountTriggerHandlerTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -115,7 +115,7 @@ private with sharing class AccountTriggerHandlerTest {
         );
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             insert accountRecord;
             Test.stopTest();
@@ -136,7 +136,7 @@ private with sharing class AccountTriggerHandlerTest {
         Account accountRecord = TestDataFactory.createAccount('株式会社テスト');
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             insert accountRecord;
             Test.stopTest();
@@ -162,7 +162,7 @@ private with sharing class AccountTriggerHandlerTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -201,7 +201,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -247,9 +247,5 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         return accountIds;
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

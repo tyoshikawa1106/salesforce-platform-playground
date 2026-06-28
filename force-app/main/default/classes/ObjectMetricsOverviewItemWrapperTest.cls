@@ -10,7 +10,7 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         );
 
         ObjectMetricsOverviewItemWrapper wrapper;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewItemWrapper(
                 definition,
@@ -57,7 +57,7 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         );
 
         ObjectMetricsOverviewItemWrapper wrapper;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewItemWrapper(definition, null);
             Test.stopTest();
@@ -72,9 +72,5 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
             wrapper.capped,
             'Missing metric counts should not be capped.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

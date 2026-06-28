@@ -17,13 +17,13 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
         };
         ObjectRecordSearchConfigWrapper wrapper;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             wrapper = new ObjectRecordSearchConfigWrapper(
                 definition,
                 nameFieldDescribe,
                 objectDescribe
             )
-                .withDisplayFields(displayFields);
+                .withDisplayFields(displayFields, objectDescribe);
         }
 
         Assert.areEqual(
@@ -51,9 +51,9 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
             wrapper.displayFields[0].apiName,
             'Config wrapper should expose display fields.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
+        Assert.isTrue(
+            wrapper.getAllowedFieldApiNames().contains('Industry'),
+            'Config wrapper should expose allowed field API names for sorting.'
+        );
     }
 }

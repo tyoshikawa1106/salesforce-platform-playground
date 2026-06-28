@@ -7,7 +7,7 @@ private with sharing class ObjectRecordSearchFieldWrapperTest {
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchFieldWrapper wrapper;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             wrapper = new ObjectRecordSearchFieldWrapper(
                 'Industry',
                 'Industry',
@@ -30,9 +30,5 @@ private with sharing class ObjectRecordSearchFieldWrapperTest {
             wrapper.dataType,
             'Field wrapper should expose the datatable type.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
     }
 }

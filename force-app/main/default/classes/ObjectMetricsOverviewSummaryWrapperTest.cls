@@ -13,7 +13,7 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
         };
 
         ObjectMetricsOverviewSummaryWrapper wrapper;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewSummaryWrapper(items);
             Test.stopTest();
@@ -26,16 +26,12 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
     @IsTest
     static void shouldDefaultNullItemsToEmptyList() {
         ObjectMetricsOverviewSummaryWrapper wrapper;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewSummaryWrapper(null);
             Test.stopTest();
         }
 
         Assert.areEqual(0, wrapper.metrics.size(), 'Null metric items should become an empty list.');
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

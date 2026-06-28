@@ -7,7 +7,7 @@ private with sharing class ObjectRecordSearchRequestWrapperTest {
     static void shouldExposeAssignedValues() {
         ObjectRecordSearchRequestWrapper wrapper;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             wrapper = new ObjectRecordSearchRequestWrapper();
             wrapper.metricKey = 'accounts';
             wrapper.searchTerm = 'Alpha';
@@ -47,9 +47,5 @@ private with sharing class ObjectRecordSearchRequestWrapperTest {
             wrapper.pageNumber,
             'Request wrapper should expose the page number.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
     }
 }
