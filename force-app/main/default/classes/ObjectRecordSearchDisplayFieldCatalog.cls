@@ -214,11 +214,11 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
      * @param objectDescribe 対象オブジェクトの describe 結果
      * @return 一覧に追加表示する固定項目
      */
-    public static List<ObjectRecordSearchDtos.ObjectRecordDisplayField> getDisplayFields(
+    public static List<ObjectRecordSearchFieldWrapper> getDisplayFields(
         String objectApiName,
         Schema.DescribeSObjectResult objectDescribe
     ) {
-        List<ObjectRecordSearchDtos.ObjectRecordDisplayField> displayFields = new List<ObjectRecordSearchDtos.ObjectRecordDisplayField>();
+        List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>();
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         for (String fieldApiName : getDisplayFieldApiNames(objectApiName)) {
             if (!fieldsByApiName.containsKey(fieldApiName)) {
@@ -234,7 +234,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
             }
 
             displayFields.add(
-                new ObjectRecordSearchDtos.ObjectRecordDisplayField(
+                new ObjectRecordSearchFieldWrapper(
                     fieldDescribe.getName(),
                     fieldDescribe.getLabel(),
                     getDatatableType(fieldDescribe.getType())
