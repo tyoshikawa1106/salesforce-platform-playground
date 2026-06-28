@@ -16,28 +16,7 @@ public with sharing class ObjectRecordSearchController {
         String metricKey
     ) {
         try {
-            ObjectMetricCatalog.MetricDefinition definition = SERVICE.requireDefinition(
-                metricKey
-            );
-            Schema.DescribeSObjectResult objectDescribe = SELECTOR.getObjectDescribe(
-                definition.objectApiName
-            );
-            Schema.DescribeFieldResult nameFieldDescribe = SELECTOR.getNameFieldDescribe(
-                objectDescribe
-            );
-            ObjectRecordSearchAccessWrapper access = SERVICE.createAccess(
-                objectDescribe,
-                ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
-                    definition.objectApiName,
-                    objectDescribe
-                )
-            );
-
-            return SERVICE.createObjectConfig(
-                definition,
-                nameFieldDescribe,
-                access
-            );
+            return buildObjectConfig(metricKey);
         } catch (Exception error) {
             throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
         }
@@ -53,16 +32,27 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchRequestWrapper request
     ) {
         try {
-            ObjectRecordSearchConfigWrapper config = getObjectConfig(
+            ObjectRecordSearchConfigWrapper config = buildObjectConfig(
                 request?.metricKey
             );
-            ObjectRecordSearchQueryPlan.SearchQuery searchQuery = SERVICE.createSearchQuery(
+            ObjectRecordSearchSortSupport.SortSpec sortSpec = SERVICE.createSortSpec(
                 config,
                 request
             );
+            ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = SERVICE.createSearchQueryRequest(
+                config,
+                request,
+                sortSpec
+            );
+            ObjectRecordSearchQueryPlan.SearchQuery searchQuery = SERVICE.createSearchQuery(
+                searchQueryRequest
+            );
             List<SObject> records = SELECTOR.searchRecords(searchQuery);
 
-            return SERVICE.createSearchResult(config, records, request);
+            return SERVICE.createSearchResult(
+                searchQueryRequest,
+                records
+            );
         } catch (Exception error) {
             throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
         }
@@ -80,7 +70,9 @@ public with sharing class ObjectRecordSearchController {
         List<Id> recordIds
     ) {
         try {
-            ObjectRecordSearchConfigWrapper config = getObjectConfig(metricKey);
+            ObjectRecordSearchConfigWrapper config = buildObjectConfig(
+                metricKey
+            );
             if (!SERVICE.canDeleteRecords(config, recordIds)) {
                 return SERVICE.createDeleteResult(recordIds, null);
             }
@@ -100,4 +92,30 @@ public with sharing class ObjectRecordSearchController {
         }
     }
 
+    private static ObjectRecordSearchConfigWrapper buildObjectConfig(
+        String metricKey
+    ) {
+        ObjectMetricCatalog.MetricDefinition definition = SERVICE.requireDefinition(
+            metricKey
+        );
+        Schema.DescribeSObjectResult objectDescribe = SELECTOR.getObjectDescribe(
+            definition.objectApiName
+        );
+        Schema.DescribeFieldResult nameFieldDescribe = SELECTOR.getNameFieldDescribe(
+            objectDescribe
+        );
+        ObjectRecordSearchAccessWrapper access = SERVICE.createAccess(
+            objectDescribe,
+            ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
+                definition.objectApiName,
+                objectDescribe
+            )
+        );
+
+        return SERVICE.createObjectConfig(
+            definition,
+            nameFieldDescribe,
+            access
+        );
+    }
 }

@@ -184,8 +184,17 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.metricKey = 'accounts';
         request.searchTerm = searchTerm;
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
+            config,
+            request
+        );
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
+            config,
+            request,
+            sortSpec
+        );
 
-        return service.createSearchQuery(config, request);
+        return service.createSearchQuery(searchQueryRequest);
     }
 
     private static ObjectRecordSearchConfigWrapper createAccountConfig(
