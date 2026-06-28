@@ -10,7 +10,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param metricKey データボードカードの表示キー
      * @return 検索画面設定
      */
-    public virtual ObjectRecordSearchDtos.ObjectRecordSearchConfig getObjectConfig(
+    public virtual ObjectRecordSearchConfigWrapper getObjectConfig(
         String metricKey
     ) {
         ObjectMetricCatalog.MetricDefinition definition = requireDefinition(
@@ -23,10 +23,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
             objectDescribe
         );
 
-        return new ObjectRecordSearchDtos.ObjectRecordSearchConfig(
+        return new ObjectRecordSearchConfigWrapper(
             definition,
             nameFieldDescribe,
-            new ObjectRecordSearchDtos.ObjectRecordSearchAccess(
+            new ObjectRecordSearchAccessWrapper(
                 objectDescribe,
                 ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
                     definition.objectApiName,
@@ -42,10 +42,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 1 ページ最大 50 件の検索結果
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
-    public virtual ObjectRecordSearchDtos.ObjectRecordSearchResult searchRecords(
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
+    public virtual ObjectRecordSearchResultWrapper searchRecords(
+        ObjectRecordSearchRequestWrapper request
     ) {
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config = getObjectConfig(
+        ObjectRecordSearchConfigWrapper config = getObjectConfig(
             request?.metricKey
         );
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
@@ -66,7 +66,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             searchQueryRequest
         );
 
-        List<ObjectRecordSearchDtos.ObjectRecordRow> rows = new List<ObjectRecordSearchDtos.ObjectRecordRow>();
+        List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
         for (
             SObject record : Database.queryWithBinds(
                 searchQuery.soql,
@@ -75,7 +75,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             )
         ) {
             rows.add(
-                new ObjectRecordSearchDtos.ObjectRecordRow(
+                new ObjectRecordSearchRowWrapper(
                     record,
                     config.nameFieldApiName,
                     config.displayFields
@@ -88,7 +88,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             rows.remove(PAGE_SIZE);
         }
 
-        return new ObjectRecordSearchDtos.ObjectRecordSearchResult(
+        return new ObjectRecordSearchResultWrapper(
             config,
             rows,
             createPageState(
@@ -109,15 +109,15 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param recordIds 削除するレコード ID
      * @return 削除結果
      */
-    public virtual ObjectRecordSearchDtos.ObjectRecordDeleteResult deleteRecords(
+    public virtual ObjectRecordSearchDeleteWrapper deleteRecords(
         String metricKey,
         List<Id> recordIds
     ) {
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config = getObjectConfig(
+        ObjectRecordSearchConfigWrapper config = getObjectConfig(
             metricKey
         );
         if (!config.deletable || recordIds == null || recordIds.isEmpty()) {
-            return new ObjectRecordSearchDtos.ObjectRecordDeleteResult(
+            return new ObjectRecordSearchDeleteWrapper(
                 recordIds == null ? 0 : recordIds.size(),
                 0,
                 new List<String>()
@@ -146,7 +146,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             }
         }
 
-        return new ObjectRecordSearchDtos.ObjectRecordDeleteResult(
+        return new ObjectRecordSearchDeleteWrapper(
             recordIds.size(),
             deletedCount,
             errors
@@ -176,11 +176,11 @@ public virtual with sharing class ObjectRecordSearchSelector {
         return pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
     }
 
-    private ObjectRecordSearchDtos.ObjectRecordSearchPageState createPageState(
+    private ObjectRecordSearchPageStateWrapper createPageState(
         Integer pageNumber,
         String nextPageToken
     ) {
-        ObjectRecordSearchDtos.ObjectRecordSearchPageState pageState = new ObjectRecordSearchDtos.ObjectRecordSearchPageState();
+        ObjectRecordSearchPageStateWrapper pageState = new ObjectRecordSearchPageStateWrapper();
         pageState.pageSize = PAGE_SIZE;
         pageState.pageNumber = pageNumber;
         pageState.nextPageToken = nextPageToken;

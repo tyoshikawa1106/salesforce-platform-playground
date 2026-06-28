@@ -10,7 +10,7 @@ public with sharing class ObjectRecordSearchController {
      * @return 検索画面設定
      */
     @AuraEnabled(cacheable=true)
-    public static ObjectRecordSearchDtos.ObjectRecordSearchConfig getObjectConfig(
+    public static ObjectRecordSearchConfigWrapper getObjectConfig(
         String metricKey
     ) {
         try {
@@ -26,8 +26,8 @@ public with sharing class ObjectRecordSearchController {
      * @return 1 ページ最大 50 件の検索結果
      */
     @AuraEnabled(cacheable=true)
-    public static ObjectRecordSearchDtos.ObjectRecordSearchResult searchRecords(
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
+    public static ObjectRecordSearchResultWrapper searchRecords(
+        ObjectRecordSearchRequestWrapper request
     ) {
         try {
             return new ObjectRecordSearchService().searchRecords(request);
@@ -43,7 +43,7 @@ public with sharing class ObjectRecordSearchController {
      * @return 削除結果
      */
     @AuraEnabled
-    public static ObjectRecordSearchDtos.ObjectRecordDeleteResult deleteRecords(
+    public static ObjectRecordSearchDeleteWrapper deleteRecords(
         String metricKey,
         List<Id> recordIds
     ) {

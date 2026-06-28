@@ -12,8 +12,8 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 許可済み項目と方向だけを持つソート条件
      */
     public static SortSpec createSortSpec(
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config,
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
+        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchRequestWrapper request
     ) {
         Map<String, Schema.SObjectField> fieldsByApiName = Schema.getGlobalDescribe()
             .get(config.objectApiName)
@@ -72,10 +72,10 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 次ページ取得用トークン
      */
     public static String createNextPageToken(
-        List<ObjectRecordSearchDtos.ObjectRecordRow> rows,
+        List<ObjectRecordSearchRowWrapper> rows,
         SortSpec sortSpec
     ) {
-        ObjectRecordSearchDtos.ObjectRecordRow lastRow = rows[
+        ObjectRecordSearchRowWrapper lastRow = rows[
             rows.size() - 1
         ];
         return JSON.serialize(
@@ -124,8 +124,8 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     private static String getSortFieldApiName(
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config,
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
+        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchRequestWrapper request
     ) {
         return ObjectRecordSearchQueryPlan.getAllowedFieldApiNames(config)
                 .contains(request?.sortBy)
@@ -134,7 +134,7 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     private static String getSortDirection(
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
+        ObjectRecordSearchRequestWrapper request
     ) {
         return request?.sortDirection?.toLowerCase() == SORT_DESCENDING
             ? SORT_DESCENDING
@@ -142,7 +142,7 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     private static String getRowSortValue(
-        ObjectRecordSearchDtos.ObjectRecordRow row,
+        ObjectRecordSearchRowWrapper row,
         SortSpec sortSpec
     ) {
         if (sortSpec.fieldApiName == sortSpec.nameFieldApiName) {

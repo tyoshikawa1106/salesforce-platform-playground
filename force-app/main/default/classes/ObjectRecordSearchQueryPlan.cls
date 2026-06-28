@@ -38,7 +38,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * @return Name 項目と表示項目の重複を除いた一覧
      */
     public static List<String> getQueryFields(
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config
+        ObjectRecordSearchConfigWrapper config
     ) {
         return new List<String>(getAllowedFieldApiNames(config));
     }
@@ -49,11 +49,11 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * @return Name 項目と表示項目の集合
      */
     public static Set<String> getAllowedFieldApiNames(
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config
+        ObjectRecordSearchConfigWrapper config
     ) {
         Set<String> fieldApiNames = new Set<String>{ config.nameFieldApiName };
         for (
-            ObjectRecordSearchDtos.ObjectRecordDisplayField displayField : config.displayFields
+            ObjectRecordSearchFieldWrapper displayField : config.displayFields
         ) {
             fieldApiNames.add(displayField.apiName);
         }
@@ -97,7 +97,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
 
     private static Boolean usesNameSearch(
         String normalizedSearchTerm,
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config
+        ObjectRecordSearchConfigWrapper config
     ) {
         return String.isNotBlank(normalizedSearchTerm) && config.searchable;
     }
@@ -114,8 +114,8 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * 検索クエリ計画を作るための入力です。
      */
     public class SearchQueryRequest {
-        public ObjectRecordSearchDtos.ObjectRecordSearchConfig config;
-        public ObjectRecordSearchDtos.ObjectRecordSearchRequest searchRequest;
+        public ObjectRecordSearchConfigWrapper config;
+        public ObjectRecordSearchRequestWrapper searchRequest;
         public ObjectRecordSearchSortSupport.SortSpec sortSpec;
         public ObjectRecordSearchSortSupport.PageCursor cursor;
         public Integer fetchSize;

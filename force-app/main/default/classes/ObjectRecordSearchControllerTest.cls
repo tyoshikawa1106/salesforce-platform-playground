@@ -18,7 +18,7 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldReturnObjectConfigForMetricKey() {
-        ObjectRecordSearchDtos.ObjectRecordSearchConfig config;
+        ObjectRecordSearchConfigWrapper config;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -61,9 +61,9 @@ private with sharing class ObjectRecordSearchControllerTest {
             config.displayFields.size() > 0,
             'Account config should expose fixed seed/import display fields.'
         );
-        Map<String, ObjectRecordSearchDtos.ObjectRecordDisplayField> displayFieldsByApiName = new Map<String, ObjectRecordSearchDtos.ObjectRecordDisplayField>();
+        Map<String, ObjectRecordSearchFieldWrapper> displayFieldsByApiName = new Map<String, ObjectRecordSearchFieldWrapper>();
         for (
-            ObjectRecordSearchDtos.ObjectRecordDisplayField displayField : config.displayFields
+            ObjectRecordSearchFieldWrapper displayField : config.displayFields
         ) {
             displayFieldsByApiName.put(displayField.apiName, displayField);
         }
@@ -106,12 +106,12 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldSearchRecordsByNameField() {
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = createSearchRequest(
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             'Alpha'
         );
         request.pageNumber = 1;
-        ObjectRecordSearchDtos.ObjectRecordSearchResult result;
+        ObjectRecordSearchResultWrapper result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -157,11 +157,11 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldReturnRowsWhenSearchTermIsBlank() {
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = createSearchRequest(
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             ' '
         );
-        ObjectRecordSearchDtos.ObjectRecordSearchResult result;
+        ObjectRecordSearchResultWrapper result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -188,7 +188,7 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldReturnEmptyDeleteResultWhenRecordIdsAreNull() {
-        ObjectRecordSearchDtos.ObjectRecordDeleteResult result;
+        ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -218,7 +218,7 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldReturnEmptyDeleteResultWhenRecordIdsAreEmpty() {
-        ObjectRecordSearchDtos.ObjectRecordDeleteResult result;
+        ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -248,7 +248,7 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     @IsTest
     static void shouldThrowUserFacingErrorWhenMetricKeyIsUnsupported() {
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = createSearchRequest(
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'unknown',
             null
         );
@@ -278,7 +278,7 @@ private with sharing class ObjectRecordSearchControllerTest {
             LIMIT 1
         ];
 
-        ObjectRecordSearchDtos.ObjectRecordDeleteResult result;
+        ObjectRecordSearchDeleteWrapper result;
         System.runAs(getCurrentUser()) {
             Test.startTest();
             result = ObjectRecordSearchController.deleteRecords(
@@ -319,11 +319,11 @@ private with sharing class ObjectRecordSearchControllerTest {
         return new User(Id = UserInfo.getUserId());
     }
 
-    private static ObjectRecordSearchDtos.ObjectRecordSearchRequest createSearchRequest(
+    private static ObjectRecordSearchRequestWrapper createSearchRequest(
         String metricKey,
         String searchTerm
     ) {
-        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = new ObjectRecordSearchDtos.ObjectRecordSearchRequest();
+        ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.metricKey = metricKey;
         request.searchTerm = searchTerm;
         return request;

@@ -12,11 +12,26 @@
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
         <members>ObjectMetricsOverviewServiceTest</members>
+        <members>ObjectRecordSearchAccessWrapper</members>
+        <members>ObjectRecordSearchAccessWrapperTest</members>
+        <members>ObjectRecordSearchConfigWrapper</members>
+        <members>ObjectRecordSearchConfigWrapperTest</members>
         <members>ObjectRecordSearchController</members>
         <members>ObjectRecordSearchControllerTest</members>
+        <members>ObjectRecordSearchDeleteWrapper</members>
+        <members>ObjectRecordSearchDeleteWrapperTest</members>
         <members>ObjectRecordSearchDisplayFieldCatalog</members>
-        <members>ObjectRecordSearchDtos</members>
+        <members>ObjectRecordSearchFieldWrapper</members>
+        <members>ObjectRecordSearchFieldWrapperTest</members>
+        <members>ObjectRecordSearchPageStateWrapper</members>
+        <members>ObjectRecordSearchPageStateWrapperTest</members>
         <members>ObjectRecordSearchQueryPlan</members>
+        <members>ObjectRecordSearchRequestWrapper</members>
+        <members>ObjectRecordSearchRequestWrapperTest</members>
+        <members>ObjectRecordSearchResultWrapper</members>
+        <members>ObjectRecordSearchResultWrapperTest</members>
+        <members>ObjectRecordSearchRowWrapper</members>
+        <members>ObjectRecordSearchRowWrapperTest</members>
         <members>ObjectRecordSearchSelector</members>
         <members>ObjectRecordSearchSelectorTest</members>
         <members>ObjectRecordSearchService</members>
