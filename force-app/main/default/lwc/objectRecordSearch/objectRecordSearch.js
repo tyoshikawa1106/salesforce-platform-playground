@@ -6,65 +6,20 @@ import { getLayout } from 'lightning/uiLayoutApi';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 import { createToastMessage, reduceErrors } from 'c/errorUtils';
-
-const BASE_COLUMNS = [
-    {
-        label: 'Name',
-        fieldName: 'recordUrl',
-        type: 'url',
-        sortable: true,
-        typeAttributes: {
-            label: { fieldName: 'name' },
-            target: '_self'
-        }
-    }
-];
-
-const ROW_ACTIONS = [{ label: '編集', name: 'edit' }];
-const DEFAULT_FORM_SECTION_LABEL = '基本情報';
-
-const FORM_FIELD_OVERRIDES = {
-    Account: [
-        { apiName: 'Name', required: true },
-        { apiName: 'Industry', required: false }
-    ],
-    Contact: [
-        { apiName: 'FirstName', required: true },
-        { apiName: 'LastName', required: true }
-    ],
-    Lead: [
-        { apiName: 'FirstName', required: true },
-        { apiName: 'LastName', required: true },
-        { apiName: 'Company', required: true }
-    ],
-    Opportunity: [
-        { apiName: 'Name', required: true },
-        { apiName: 'StageName', required: true },
-        { apiName: 'CloseDate', required: true }
-    ]
-};
-
-const FORM_MODE_RECORD = 'record';
-const FORM_MODE_FILE_UPLOAD = 'fileUpload';
-const FORM_MODE_UNSUPPORTED = 'unsupported';
-
-const DEFAULT_OBJECT_UI_CAPABILITY = {
-    formMode: FORM_MODE_RECORD,
-    newButtonLabel: '新規'
-};
-
-const OBJECT_UI_CAPABILITIES = {
-    ContentDocument: {
-        formMode: FORM_MODE_FILE_UPLOAD,
-        newButtonLabel: 'アップロード',
-        message: 'ファイルはアップロードで新規登録します。'
-    },
-    EmailMessage: {
-        formMode: FORM_MODE_UNSUPPORTED,
-        newButtonLabel: '新規',
-        message: 'メールメッセージは汎用フォームの対象外です。'
-    }
-};
+import {
+    createColumns,
+    createDisplayRow,
+    getSortFieldApiName
+} from './objectRecordSearchDisplay';
+import {
+    FORM_MODE_FILE_UPLOAD,
+    FORM_MODE_RECORD,
+    applyFormFieldOverrides,
+    createFallbackFormSections,
+    createLayoutFormSections,
+    getCurrentLayout,
+    getObjectUiCapability
+} from './objectRecordSearchForm';
 
 export default class ObjectRecordSearch extends LightningElement {
     @api metricKey;
@@ -102,7 +57,7 @@ export default class ObjectRecordSearch extends LightningElement {
         if (data) {
             this.config = data.config;
             this.rows = (data.records ?? []).map((record) =>
-                this.createDisplayRow(record)
+                createDisplayRow(record, this.config?.displayFields)
             );
             this.pageNumber = data.pageNumber ?? this.pageNumber;
             this.pageSize = data.pageSize ?? this.pageSize;
@@ -159,11 +114,10 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get sortFieldApiName() {
-        if (this.sortedBy === 'recordUrl') {
-            return this.config?.nameFieldApiName ?? 'Name';
-        }
-
-        return this.getApiNameFromDisplayFieldName(this.sortedBy);
+        return getSortFieldApiName({
+            sortedBy: this.sortedBy,
+            nameFieldApiName: this.config?.nameFieldApiName ?? 'Name'
+        });
     }
 
     get searchLabel() {
@@ -172,30 +126,11 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get columns() {
-        const nameFieldLabel = this.config?.nameFieldLabel ?? 'Name';
-        const columns = [
-            {
-                ...BASE_COLUMNS[0],
-                label: nameFieldLabel,
-                initialWidth: 220
-            },
-            ...this.displayFieldColumns
-        ];
-
-        if (!this.editDisabled) {
-            columns.push({
-                type: 'action',
-                typeAttributes: { rowActions: ROW_ACTIONS }
-            });
-        }
-
-        return columns;
-    }
-
-    get displayFieldColumns() {
-        return (this.config?.displayFields ?? []).map((field) =>
-            this.createDisplayFieldColumn(field)
-        );
+        return createColumns({
+            nameFieldLabel: this.config?.nameFieldLabel ?? 'Name',
+            displayFields: this.config?.displayFields,
+            editDisabled: this.editDisabled
+        });
     }
 
     get hasRows() {
@@ -261,10 +196,7 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get objectUiCapability() {
-        return (
-            OBJECT_UI_CAPABILITIES[this.config?.objectApiName] ??
-            DEFAULT_OBJECT_UI_CAPABILITY
-        );
+        return getObjectUiCapability(this.config?.objectApiName);
     }
 
     get isFileUploadObject() {
@@ -401,7 +333,12 @@ export default class ObjectRecordSearch extends LightningElement {
 
         const layoutSections = this.layoutFormSections;
         if (layoutSections.length > 0) {
-            return this.applyFormFieldOverrides(layoutSections);
+            return applyFormFieldOverrides({
+                sections: layoutSections,
+                objectApiName: this.config?.objectApiName,
+                fieldInfoByApiName: this.objectInfoResult?.data?.fields,
+                formRecordId: this.formRecordId
+            });
         }
 
         if (this.formLayoutResult?.error) {
@@ -412,95 +349,26 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get layoutFormSections() {
-        const layout = this.currentLayout;
-        const fieldInfoByApiName = this.objectInfoResult?.data?.fields ?? {};
-        const fieldApiNames = new Set();
-        const sections = [];
-
-        (layout?.sections ?? []).forEach((section, index) => {
-            const fields = [];
-            (section.layoutRows ?? []).forEach((row) => {
-                (row.layoutItems ?? []).forEach((item) => {
-                    (item.layoutComponents ?? []).forEach((component) => {
-                        const apiName = component.apiName;
-                        const fieldInfo = fieldInfoByApiName[apiName];
-                        if (
-                            component.componentType !== 'Field' ||
-                            !apiName ||
-                            fieldApiNames.has(apiName) ||
-                            !this.isEditableLayoutItem(item) ||
-                            !this.isSupportedStandardField(fieldInfo)
-                        ) {
-                            return;
-                        }
-
-                        fieldApiNames.add(apiName);
-                        fields.push({
-                            apiName,
-                            required: Boolean(item.required)
-                        });
-                    });
-                });
-            });
-
-            if (fields.length > 0) {
-                sections.push(
-                    this.createFormSection(
-                        section.heading ||
-                            section.label ||
-                            DEFAULT_FORM_SECTION_LABEL,
-                        fields,
-                        index
-                    )
-                );
-            }
+        return createLayoutFormSections({
+            layout: this.currentLayout,
+            fieldInfoByApiName: this.objectInfoResult?.data?.fields,
+            formRecordId: this.formRecordId
         });
-
-        return sections;
     }
 
     get currentLayout() {
-        const data = this.formLayoutResult?.data;
-        if (!data) {
-            return undefined;
-        }
-
-        return (
-            data.layouts?.[this.config.objectApiName]?.Full?.[
-                this.layoutMode
-            ] ?? data
-        );
+        return getCurrentLayout({
+            formLayoutData: this.formLayoutResult?.data,
+            objectApiName: this.config.objectApiName,
+            layoutMode: this.layoutMode
+        });
     }
 
     get fallbackFormSections() {
-        const configuredFields =
-            FORM_FIELD_OVERRIDES[this.config?.objectApiName];
-        if (configuredFields) {
-            return [
-                this.createFormSection(
-                    DEFAULT_FORM_SECTION_LABEL,
-                    configuredFields,
-                    0
-                )
-            ];
-        }
-
-        if (!this.config?.nameFieldApiName) {
-            return [];
-        }
-
-        return [
-            this.createFormSection(
-                DEFAULT_FORM_SECTION_LABEL,
-                [
-                    {
-                        apiName: this.config.nameFieldApiName,
-                        required: true
-                    }
-                ],
-                0
-            )
-        ];
+        return createFallbackFormSections({
+            objectApiName: this.config?.objectApiName,
+            nameFieldApiName: this.config?.nameFieldApiName
+        });
     }
 
     get formTitle() {
@@ -707,74 +575,6 @@ export default class ObjectRecordSearch extends LightningElement {
             .includes('insufficient access');
     }
 
-    isEditableLayoutItem(item) {
-        return this.formRecordId ? item.editableForUpdate : item.editableForNew;
-    }
-
-    isSupportedStandardField(fieldInfo) {
-        if (!fieldInfo || fieldInfo.custom) {
-            return false;
-        }
-
-        return this.formRecordId ? fieldInfo.updateable : fieldInfo.createable;
-    }
-
-    applyFormFieldOverrides(sections) {
-        const configuredFields =
-            FORM_FIELD_OVERRIDES[this.config?.objectApiName] ?? [];
-        if (configuredFields.length === 0) {
-            return sections;
-        }
-
-        const fieldInfoByApiName = this.objectInfoResult?.data?.fields ?? {};
-        const existingFieldApiNames = new Set(
-            sections.flatMap((section) =>
-                section.fields.map((field) => field.apiName)
-            )
-        );
-        const nextSections = sections.map((section) => ({
-            ...section,
-            fields: [...section.fields]
-        }));
-
-        configuredFields.forEach((field) => {
-            const fieldInfo = fieldInfoByApiName[field.apiName];
-            if (
-                !existingFieldApiNames.has(field.apiName) &&
-                this.isSupportedStandardField(fieldInfo)
-            ) {
-                nextSections[0].fields.push(field);
-                existingFieldApiNames.add(field.apiName);
-                return;
-            }
-
-            nextSections.forEach((section) => {
-                section.fields = section.fields.map((sectionField) => {
-                    if (sectionField.apiName !== field.apiName) {
-                        return sectionField;
-                    }
-
-                    return {
-                        ...sectionField,
-                        required: sectionField.required || field.required
-                    };
-                });
-            });
-        });
-
-        return nextSections;
-    }
-
-    createFormSection(label, fields, index) {
-        const key = `section-${index}`;
-        return {
-            key,
-            headingId: `object-record-form-${key}`,
-            label: label || DEFAULT_FORM_SECTION_LABEL,
-            fields
-        };
-    }
-
     resetPagination() {
         this.pageNumber = 1;
         this.currentPageToken = undefined;
@@ -783,88 +583,4 @@ export default class ObjectRecordSearch extends LightningElement {
         this.hasNextPage = false;
     }
 
-    createDisplayRow(record) {
-        const displayValues = {};
-        const fieldValues = record.fieldValues ?? {};
-        (this.config?.displayFields ?? []).forEach((field) => {
-            displayValues[this.getDisplayFieldName(field.apiName)] =
-                fieldValues[field.apiName] ?? '';
-        });
-        return {
-            ...record,
-            ...displayValues
-        };
-    }
-
-    createDisplayFieldColumn(field) {
-        const fieldName = this.getDisplayFieldName(field.apiName);
-        const type = this.getDisplayFieldType(field.apiName);
-        const column = {
-            label: field.label,
-            fieldName,
-            type,
-            sortable: true,
-            wrapText: true,
-            initialWidth: 180
-        };
-
-        if (type === 'url') {
-            column.typeAttributes = {
-                label: { fieldName },
-                target: '_blank'
-            };
-        }
-
-        return column;
-    }
-
-    getDisplayFieldType(apiName) {
-        if (this.isUrlField(apiName)) {
-            return 'url';
-        }
-
-        if (this.isEmailField(apiName)) {
-            return 'email';
-        }
-
-        if (this.isPhoneField(apiName)) {
-            return 'phone';
-        }
-
-        return 'text';
-    }
-
-    isUrlField(apiName) {
-        const normalizedApiName = apiName.toLowerCase();
-        return (
-            normalizedApiName === 'website' ||
-            normalizedApiName.endsWith('url')
-        );
-    }
-
-    isEmailField(apiName) {
-        const normalizedApiName = apiName.toLowerCase();
-        return (
-            normalizedApiName.endsWith('email') ||
-            normalizedApiName === 'fromaddress' ||
-            normalizedApiName === 'toaddress'
-        );
-    }
-
-    isPhoneField(apiName) {
-        return apiName.toLowerCase().endsWith('phone');
-    }
-
-    getDisplayFieldName(apiName) {
-        return `displayField_${apiName}`;
-    }
-
-    getApiNameFromDisplayFieldName(fieldName) {
-        const prefix = 'displayField_';
-        if (fieldName?.startsWith(prefix)) {
-            return fieldName.slice(prefix.length);
-        }
-
-        return this.config?.nameFieldApiName ?? 'Name';
-    }
 }

@@ -26,33 +26,134 @@ jest.mock(
 
 const countResponse = {
     metrics: [
-        { key: 'accounts', label: '取引先', value: 50000, capped: true },
-        { key: 'contacts', label: '取引先責任者', value: 34 },
-        { key: 'leads', label: 'リード', value: 8 },
-        { key: 'opportunities', label: '商談', value: 13 },
-        { key: 'opportunityLineItems', label: '商談商品', value: 7 },
-        { key: 'products', label: '商品', value: 21 },
-        { key: 'pricebooks', label: '価格表', value: 2 },
-        { key: 'pricebookEntries', label: '価格表エントリ', value: 3 },
-        { key: 'assets', label: '納入商品', value: 10 },
-        { key: 'campaigns', label: 'キャンペーン', value: 1 },
-        { key: 'cases', label: 'ケース', value: 4 },
-        { key: 'contracts', label: '契約', value: 6 },
-        { key: 'orders', label: '注文', value: 11 },
-        { key: 'orderItems', label: '注文商品', value: 12 },
-        { key: 'entitlements', label: 'エンタイトルメント', value: 13 },
-        { key: 'serviceContracts', label: 'サービス契約', value: 14 },
-        { key: 'workOrders', label: '作業指示', value: 15 },
-        { key: 'workOrderLineItems', label: '作業指示品目', value: 16 },
-        { key: 'knowledgeArticles', label: 'ナレッジ', value: 17 },
-        { key: 'events', label: '行動', value: 2 },
-        { key: 'tasks', label: 'ToDo', value: 5 },
-        { key: 'emailMessages', label: 'メールメッセージ', value: 55 },
-        { key: 'emailTemplates', label: 'メールテンプレート', value: 9 },
-        { key: 'reports', label: 'レポート', value: 18 },
-        { key: 'dashboards', label: 'ダッシュボード', value: 19 },
-        { key: 'files', label: 'ファイル', value: 20 },
-        { key: 'users', label: 'ユーザー', value: 1 }
+        {
+            key: 'accounts',
+            label: '取引先',
+            iconName: 'standard:account',
+            value: 50000,
+            capped: true
+        },
+        {
+            key: 'contacts',
+            label: '取引先責任者',
+            iconName: 'standard:contact',
+            value: 34
+        },
+        { key: 'leads', label: 'リード', iconName: 'standard:lead', value: 8 },
+        {
+            key: 'opportunities',
+            label: '商談',
+            iconName: 'standard:opportunity',
+            value: 13
+        },
+        {
+            key: 'opportunityLineItems',
+            label: '商談商品',
+            iconName: 'standard:product_consumed',
+            value: 7
+        },
+        { key: 'products', label: '商品', iconName: 'standard:product', value: 21 },
+        {
+            key: 'pricebooks',
+            label: '価格表',
+            iconName: 'standard:pricebook',
+            value: 2
+        },
+        {
+            key: 'pricebookEntries',
+            label: '価格表エントリ',
+            iconName: 'standard:price_book_entries',
+            value: 3
+        },
+        {
+            key: 'assets',
+            label: '納入商品',
+            iconName: 'standard:asset_object',
+            value: 10
+        },
+        {
+            key: 'campaigns',
+            label: 'キャンペーン',
+            iconName: 'standard:campaign',
+            value: 1
+        },
+        { key: 'cases', label: 'ケース', iconName: 'standard:case', value: 4 },
+        {
+            key: 'contracts',
+            label: '契約',
+            iconName: 'standard:contract',
+            value: 6
+        },
+        {
+            key: 'orders',
+            label: '注文',
+            iconName: 'standard:order_item',
+            value: 11
+        },
+        {
+            key: 'orderItems',
+            label: '注文商品',
+            iconName: 'standard:order_item',
+            value: 12
+        },
+        {
+            key: 'entitlements',
+            label: 'エンタイトルメント',
+            iconName: 'standard:entitlement',
+            value: 13
+        },
+        {
+            key: 'serviceContracts',
+            label: 'サービス契約',
+            iconName: 'standard:service_contract',
+            value: 14
+        },
+        {
+            key: 'workOrders',
+            label: '作業指示',
+            iconName: 'standard:work_order',
+            value: 15
+        },
+        {
+            key: 'workOrderLineItems',
+            label: '作業指示品目',
+            iconName: 'standard:work_order_item',
+            value: 16
+        },
+        {
+            key: 'knowledgeArticles',
+            label: 'ナレッジ',
+            iconName: 'utility:knowledge_base',
+            value: 17
+        },
+        { key: 'events', label: '行動', iconName: 'standard:event', value: 2 },
+        { key: 'tasks', label: 'ToDo', iconName: 'standard:task', value: 5 },
+        {
+            key: 'emailMessages',
+            label: 'メールメッセージ',
+            iconName: 'standard:email',
+            value: 55
+        },
+        {
+            key: 'emailTemplates',
+            label: 'メールテンプレート',
+            iconName: 'utility:insert_template',
+            value: 9
+        },
+        {
+            key: 'reports',
+            label: 'レポート',
+            iconName: 'standard:report',
+            value: 18
+        },
+        {
+            key: 'dashboards',
+            label: 'ダッシュボード',
+            iconName: 'standard:dashboard',
+            value: 19
+        },
+        { key: 'files', label: 'ファイル', iconName: 'standard:file', value: 20 },
+        { key: 'users', label: 'ユーザー', iconName: 'standard:user', value: 1 }
     ]
 };
 
@@ -111,6 +212,9 @@ describe('c-object-metrics-overview', () => {
         expect(element.shadowRoot.textContent).not.toContain('承認履歴');
         expect(element.shadowRoot.textContent).toContain('50,000+');
         expect(element.shadowRoot.textContent).toContain('55');
+        expect(
+            element.shadowRoot.querySelector('lightning-icon').iconName
+        ).toBe('standard:account');
         await expect(element).toBeAccessible();
     });
 
