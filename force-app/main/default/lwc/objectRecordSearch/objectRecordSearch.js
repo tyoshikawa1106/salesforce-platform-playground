@@ -12,6 +12,16 @@ import {
     getSortFieldApiName
 } from './objectRecordSearchDisplay';
 import {
+    DEFAULT_SORT_DIRECTION,
+    DEFAULT_SORTED_BY,
+    createAccessMessages,
+    createInitialPaginationState,
+    createNextPageState,
+    createPaginationStateFromResponse,
+    createPreviousPageState,
+    normalizeSortDirection
+} from './objectRecordSearchState';
+import {
     FORM_MODE_FILE_UPLOAD,
     FORM_MODE_RECORD,
     applyFormFieldOverrides,
@@ -21,6 +31,8 @@ import {
     getObjectUiCapability
 } from './objectRecordSearchForm';
 
+const INITIAL_PAGINATION_STATE = createInitialPaginationState();
+
 export default class ObjectRecordSearch extends LightningElement {
     @api metricKey;
 
@@ -29,14 +41,14 @@ export default class ObjectRecordSearch extends LightningElement {
     rows = [];
     selectedRowIds = [];
     config;
-    pageNumber = 1;
-    pageSize = 50;
-    currentPageToken;
-    nextPageToken;
-    pageTokenHistory = [];
-    sortedBy = 'recordUrl';
-    sortedDirection = 'asc';
-    hasNextPage = false;
+    pageNumber = INITIAL_PAGINATION_STATE.pageNumber;
+    pageSize = INITIAL_PAGINATION_STATE.pageSize;
+    currentPageToken = INITIAL_PAGINATION_STATE.currentPageToken;
+    nextPageToken = INITIAL_PAGINATION_STATE.nextPageToken;
+    pageTokenHistory = INITIAL_PAGINATION_STATE.pageTokenHistory;
+    sortedBy = DEFAULT_SORTED_BY;
+    sortedDirection = DEFAULT_SORT_DIRECTION;
+    hasNextPage = INITIAL_PAGINATION_STATE.hasNextPage;
     errorTitle;
     errorMessage;
     isDeleting = false;
@@ -59,10 +71,9 @@ export default class ObjectRecordSearch extends LightningElement {
             this.rows = (data.records ?? []).map((record) =>
                 createDisplayRow(record, this.config?.displayFields)
             );
-            this.pageNumber = data.pageNumber ?? this.pageNumber;
-            this.pageSize = data.pageSize ?? this.pageSize;
-            this.nextPageToken = data.nextPageToken;
-            this.hasNextPage = Boolean(data.hasNextPage);
+            this.applyPaginationState(
+                createPaginationStateFromResponse(data, this.pageSize)
+            );
             this.selectedRowIds = [];
             this.errorTitle = undefined;
             this.errorMessage = undefined;
@@ -253,63 +264,14 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     get accessMessages() {
-        if (!this.config) {
-            return [];
-        }
-
-        const messages = [];
-        const objectLabel = this.config.objectLabel ?? 'レコード';
-        const addMessage = (key, message) => {
-            if (message) {
-                messages.push({ key, message });
-            }
-        };
-
-        addMessage('form-capability', this.formCapabilityMessage);
-
-        if (!this.config.searchable) {
-            addMessage(
-                'searchable',
-                `${objectLabel}の検索対象項目を参照できないため、検索条件を使えません。`
-            );
-        }
-
-        if (!this.config.createable && !this.isFileUploadObject) {
-            addMessage(
-                'createable',
-                `${objectLabel}を作成する権限がありません。`
-            );
-        }
-
-        if (!this.config.updateable && this.isRecordFormObject) {
-            addMessage(
-                'updateable',
-                `${objectLabel}を編集する権限がありません。`
-            );
-        }
-
-        if (!this.config.deletable) {
-            addMessage(
-                'deletable',
-                `${objectLabel}を削除する権限がありません。`
-            );
-        }
-
-        if (this.shouldShowFormFieldMessage) {
-            addMessage(
-                'form-fields',
-                `${objectLabel}の作成・編集に使える標準項目がありません。`
-            );
-        }
-
-        if (this.formLayoutResult?.error && this.isRecordFormObject) {
-            addMessage(
-                'layout-fallback',
-                'ページレイアウトを取得できないため、標準の入力項目で表示します。'
-            );
-        }
-
-        return messages;
+        return createAccessMessages({
+            config: this.config,
+            formCapabilityMessage: this.formCapabilityMessage,
+            isFileUploadObject: this.isFileUploadObject,
+            isRecordFormObject: this.isRecordFormObject,
+            shouldShowFormFieldMessage: this.shouldShowFormFieldMessage,
+            hasFormLayoutError: Boolean(this.formLayoutResult?.error)
+        });
     }
 
     get shouldShowFormFieldMessage() {
@@ -421,10 +383,12 @@ export default class ObjectRecordSearch extends LightningElement {
             return;
         }
 
-        this.pageTokenHistory.pop();
-        this.pageNumber -= 1;
-        this.currentPageToken =
-            this.pageTokenHistory[this.pageTokenHistory.length - 1];
+        this.applyPaginationState(
+            createPreviousPageState({
+                pageNumber: this.pageNumber,
+                pageTokenHistory: this.pageTokenHistory
+            })
+        );
     }
 
     handleNextPage() {
@@ -432,15 +396,19 @@ export default class ObjectRecordSearch extends LightningElement {
             return;
         }
 
-        this.currentPageToken = this.nextPageToken;
-        this.pageTokenHistory.push(this.nextPageToken);
-        this.pageNumber += 1;
+        this.applyPaginationState(
+            createNextPageState({
+                pageNumber: this.pageNumber,
+                pageTokenHistory: this.pageTokenHistory,
+                nextPageToken: this.nextPageToken
+            })
+        );
     }
 
     handleSort(event) {
         const { fieldName, sortDirection } = event.detail;
         this.sortedBy = fieldName;
-        this.sortedDirection = sortDirection === 'desc' ? 'desc' : 'asc';
+        this.sortedDirection = normalizeSortDirection(sortDirection);
         this.resetPagination();
     }
 
@@ -576,11 +544,10 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     resetPagination() {
-        this.pageNumber = 1;
-        this.currentPageToken = undefined;
-        this.nextPageToken = undefined;
-        this.pageTokenHistory = [];
-        this.hasNextPage = false;
+        this.applyPaginationState(createInitialPaginationState());
     }
 
+    applyPaginationState(paginationState) {
+        Object.assign(this, paginationState);
+    }
 }
