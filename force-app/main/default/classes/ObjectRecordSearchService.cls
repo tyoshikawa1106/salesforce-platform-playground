@@ -26,7 +26,7 @@ public with sharing class ObjectRecordSearchService {
      * @param metricKey データボードカードの表示キー
      * @return 検索画面設定
      */
-    public ObjectRecordSearchController.ObjectRecordSearchConfig getObjectConfig(
+    public ObjectRecordSearchDtos.ObjectRecordSearchConfig getObjectConfig(
         String metricKey
     ) {
         return selector.getObjectConfig(metricKey);
@@ -37,8 +37,8 @@ public with sharing class ObjectRecordSearchService {
      * @param request 検索条件とページ指定
      * @return 1 ページ最大 50 件の検索結果
      */
-    public ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
-        ObjectRecordSearchController.ObjectRecordSearchRequest request
+    public ObjectRecordSearchDtos.ObjectRecordSearchResult searchRecords(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
     ) {
         return selector.searchRecords(request);
     }
@@ -49,7 +49,7 @@ public with sharing class ObjectRecordSearchService {
      * @param recordIds 削除するレコード ID
      * @return 削除結果
      */
-    public ObjectRecordSearchController.ObjectRecordDeleteResult deleteRecords(
+    public ObjectRecordSearchDtos.ObjectRecordDeleteResult deleteRecords(
         String metricKey,
         List<Id> recordIds
     ) {

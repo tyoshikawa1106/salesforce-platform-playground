@@ -22,13 +22,13 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     @IsTest
     static void searchRecordsShouldFilterByBoundNameTerm() {
-        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = createSearchRequest(
             'accounts',
             ' Alpha '
         );
         request.pageNumber = 1;
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchResult result;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -76,7 +76,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     @IsTest
     static void getObjectConfigShouldExposeFixedDisplayFields() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchConfig config;
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -86,7 +86,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         Set<String> displayFieldApiNames = new Set<String>();
         for (
-            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
+            ObjectRecordSearchDtos.ObjectRecordDisplayField displayField : config.displayFields
         ) {
             displayFieldApiNames.add(displayField.apiName);
         }
@@ -205,12 +205,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     @IsTest
     static void searchRecordsShouldReturnRowsWhenSearchTermIsBlank() {
-        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = createSearchRequest(
             'accounts',
             ' '
         );
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchResult result;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -237,14 +237,14 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     @IsTest
     static void searchRecordsShouldSortByAllowedDisplayField() {
-        ObjectRecordSearchController.ObjectRecordSearchRequest request = createSearchRequest(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = createSearchRequest(
             'accounts',
             'Selector'
         );
         request.sortBy = 'Industry';
         request.sortDirection = 'desc';
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchResult result;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -272,20 +272,20 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
         insert accounts;
 
-        ObjectRecordSearchController.ObjectRecordSearchRequest firstRequest = createSearchRequest(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest firstRequest = createSearchRequest(
             'accounts',
             'Selector Page'
         );
         firstRequest.pageNumber = 1;
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchResult firstPage;
-        ObjectRecordSearchController.ObjectRecordSearchResult secondPage;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult firstPage;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult secondPage;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
             firstPage = selector.searchRecords(firstRequest);
 
-            ObjectRecordSearchController.ObjectRecordSearchRequest secondRequest = createSearchRequest(
+            ObjectRecordSearchDtos.ObjectRecordSearchRequest secondRequest = createSearchRequest(
                 'accounts',
                 'Selector Page'
             );
@@ -332,7 +332,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
         insert accounts;
 
-        ObjectRecordSearchController.ObjectRecordSearchRequest firstRequest = createSearchRequest(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest firstRequest = createSearchRequest(
             'accounts',
             'Selector Desc Page'
         );
@@ -340,14 +340,14 @@ private with sharing class ObjectRecordSearchSelectorTest {
         firstRequest.sortDirection = 'desc';
         firstRequest.pageNumber = 1;
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchResult firstPage;
-        ObjectRecordSearchController.ObjectRecordSearchResult secondPage;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult firstPage;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult secondPage;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
             firstPage = selector.searchRecords(firstRequest);
 
-            ObjectRecordSearchController.ObjectRecordSearchRequest secondRequest = createSearchRequest(
+            ObjectRecordSearchDtos.ObjectRecordSearchRequest secondRequest = createSearchRequest(
                 'accounts',
                 'Selector Desc Page'
             );
@@ -385,7 +385,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
         insert accounts;
 
-        ObjectRecordSearchController.ObjectRecordSearchRequest firstRequest = createSearchRequest(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest firstRequest = createSearchRequest(
             'accounts',
             'Selector Null Page'
         );
@@ -393,14 +393,14 @@ private with sharing class ObjectRecordSearchSelectorTest {
         firstRequest.sortDirection = 'asc';
         firstRequest.pageNumber = 1;
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordSearchResult firstPage;
-        ObjectRecordSearchController.ObjectRecordSearchResult secondPage;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult firstPage;
+        ObjectRecordSearchDtos.ObjectRecordSearchResult secondPage;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
             firstPage = selector.searchRecords(firstRequest);
 
-            ObjectRecordSearchController.ObjectRecordSearchRequest secondRequest = createSearchRequest(
+            ObjectRecordSearchDtos.ObjectRecordSearchRequest secondRequest = createSearchRequest(
                 'accounts',
                 'Selector Null Page'
             );
@@ -442,7 +442,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
 
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchController.ObjectRecordDeleteResult result;
+        ObjectRecordSearchDtos.ObjectRecordDeleteResult result;
 
         System.runAs(getCurrentUser()) {
             Test.startTest();
@@ -502,11 +502,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
         return new User(Id = UserInfo.getUserId());
     }
 
-    private static ObjectRecordSearchController.ObjectRecordSearchRequest createSearchRequest(
+    private static ObjectRecordSearchDtos.ObjectRecordSearchRequest createSearchRequest(
         String metricKey,
         String searchTerm
     ) {
-        ObjectRecordSearchController.ObjectRecordSearchRequest request = new ObjectRecordSearchController.ObjectRecordSearchRequest();
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request = new ObjectRecordSearchDtos.ObjectRecordSearchRequest();
         request.metricKey = metricKey;
         request.searchTerm = searchTerm;
         return request;
@@ -516,7 +516,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector,
         AddressDisplayExpectation expectation
     ) {
-        ObjectRecordSearchController.ObjectRecordSearchConfig config = selector.getObjectConfig(
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config = selector.getObjectConfig(
             expectation.metricKey
         );
         List<String> displayFieldApiNames = getDisplayFieldApiNames(config);
@@ -559,11 +559,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
     }
 
     private static List<String> getDisplayFieldApiNames(
-        ObjectRecordSearchController.ObjectRecordSearchConfig config
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config
     ) {
         List<String> displayFieldApiNames = new List<String>();
         for (
-            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
+            ObjectRecordSearchDtos.ObjectRecordDisplayField displayField : config.displayFields
         ) {
             displayFieldApiNames.add(displayField.apiName);
         }

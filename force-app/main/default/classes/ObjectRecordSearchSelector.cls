@@ -10,7 +10,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param metricKey データボードカードの表示キー
      * @return 検索画面設定
      */
-    public virtual ObjectRecordSearchController.ObjectRecordSearchConfig getObjectConfig(
+    public virtual ObjectRecordSearchDtos.ObjectRecordSearchConfig getObjectConfig(
         String metricKey
     ) {
         ObjectMetricCatalog.MetricDefinition definition = requireDefinition(
@@ -23,10 +23,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
             objectDescribe
         );
 
-        return new ObjectRecordSearchController.ObjectRecordSearchConfig(
+        return new ObjectRecordSearchDtos.ObjectRecordSearchConfig(
             definition,
             nameFieldDescribe,
-            new ObjectRecordSearchController.ObjectRecordSearchAccess(
+            new ObjectRecordSearchDtos.ObjectRecordSearchAccess(
                 objectDescribe,
                 ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
                     definition.objectApiName,
@@ -42,10 +42,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 1 ページ最大 50 件の検索結果
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
-    public virtual ObjectRecordSearchController.ObjectRecordSearchResult searchRecords(
-        ObjectRecordSearchController.ObjectRecordSearchRequest request
+    public virtual ObjectRecordSearchDtos.ObjectRecordSearchResult searchRecords(
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
     ) {
-        ObjectRecordSearchController.ObjectRecordSearchConfig config = getObjectConfig(
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config = getObjectConfig(
             request?.metricKey
         );
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
@@ -66,7 +66,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             searchQueryRequest
         );
 
-        List<ObjectRecordSearchController.ObjectRecordRow> rows = new List<ObjectRecordSearchController.ObjectRecordRow>();
+        List<ObjectRecordSearchDtos.ObjectRecordRow> rows = new List<ObjectRecordSearchDtos.ObjectRecordRow>();
         for (
             SObject record : Database.queryWithBinds(
                 searchQuery.soql,
@@ -75,7 +75,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             )
         ) {
             rows.add(
-                new ObjectRecordSearchController.ObjectRecordRow(
+                new ObjectRecordSearchDtos.ObjectRecordRow(
                     record,
                     config.nameFieldApiName,
                     config.displayFields
@@ -88,7 +88,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             rows.remove(PAGE_SIZE);
         }
 
-        return new ObjectRecordSearchController.ObjectRecordSearchResult(
+        return new ObjectRecordSearchDtos.ObjectRecordSearchResult(
             config,
             rows,
             createPageState(
@@ -109,15 +109,15 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param recordIds 削除するレコード ID
      * @return 削除結果
      */
-    public virtual ObjectRecordSearchController.ObjectRecordDeleteResult deleteRecords(
+    public virtual ObjectRecordSearchDtos.ObjectRecordDeleteResult deleteRecords(
         String metricKey,
         List<Id> recordIds
     ) {
-        ObjectRecordSearchController.ObjectRecordSearchConfig config = getObjectConfig(
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config = getObjectConfig(
             metricKey
         );
         if (!config.deletable || recordIds == null || recordIds.isEmpty()) {
-            return new ObjectRecordSearchController.ObjectRecordDeleteResult(
+            return new ObjectRecordSearchDtos.ObjectRecordDeleteResult(
                 recordIds == null ? 0 : recordIds.size(),
                 0,
                 new List<String>()
@@ -146,7 +146,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             }
         }
 
-        return new ObjectRecordSearchController.ObjectRecordDeleteResult(
+        return new ObjectRecordSearchDtos.ObjectRecordDeleteResult(
             recordIds.size(),
             deletedCount,
             errors
@@ -176,11 +176,11 @@ public virtual with sharing class ObjectRecordSearchSelector {
         return pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
     }
 
-    private ObjectRecordSearchController.ObjectRecordSearchPageState createPageState(
+    private ObjectRecordSearchDtos.ObjectRecordSearchPageState createPageState(
         Integer pageNumber,
         String nextPageToken
     ) {
-        ObjectRecordSearchController.ObjectRecordSearchPageState pageState = new ObjectRecordSearchController.ObjectRecordSearchPageState();
+        ObjectRecordSearchDtos.ObjectRecordSearchPageState pageState = new ObjectRecordSearchDtos.ObjectRecordSearchPageState();
         pageState.pageSize = PAGE_SIZE;
         pageState.pageNumber = pageNumber;
         pageState.nextPageToken = nextPageToken;
