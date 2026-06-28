@@ -3,6 +3,8 @@
  */
 public with sharing class ObjectRecordSearchController {
     private static final String USER_FACING_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
+    private static final ObjectRecordSearchService SERVICE = new ObjectRecordSearchService();
+    private static final ObjectRecordSearchSelector SELECTOR = new ObjectRecordSearchSelector();
 
     /**
      * 表示キーに対応する検索画面設定を返します。
@@ -14,7 +16,28 @@ public with sharing class ObjectRecordSearchController {
         String metricKey
     ) {
         try {
-            return new ObjectRecordSearchService().getObjectConfig(metricKey);
+            ObjectMetricCatalog.MetricDefinition definition = SERVICE.requireDefinition(
+                metricKey
+            );
+            Schema.DescribeSObjectResult objectDescribe = SELECTOR.getObjectDescribe(
+                definition.objectApiName
+            );
+            Schema.DescribeFieldResult nameFieldDescribe = SELECTOR.getNameFieldDescribe(
+                objectDescribe
+            );
+            ObjectRecordSearchAccessWrapper access = SERVICE.createAccess(
+                objectDescribe,
+                ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
+                    definition.objectApiName,
+                    objectDescribe
+                )
+            );
+
+            return SERVICE.createObjectConfig(
+                definition,
+                nameFieldDescribe,
+                access
+            );
         } catch (Exception error) {
             throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
         }
@@ -30,7 +53,16 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchRequestWrapper request
     ) {
         try {
-            return new ObjectRecordSearchService().searchRecords(request);
+            ObjectRecordSearchConfigWrapper config = getObjectConfig(
+                request?.metricKey
+            );
+            ObjectRecordSearchQueryPlan.SearchQuery searchQuery = SERVICE.createSearchQuery(
+                config,
+                request
+            );
+            List<SObject> records = SELECTOR.searchRecords(searchQuery);
+
+            return SERVICE.createSearchResult(config, records, request);
         } catch (Exception error) {
             throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
         }
@@ -48,8 +80,19 @@ public with sharing class ObjectRecordSearchController {
         List<Id> recordIds
     ) {
         try {
-            return new ObjectRecordSearchService()
-                .deleteRecords(metricKey, recordIds);
+            ObjectRecordSearchConfigWrapper config = getObjectConfig(metricKey);
+            if (!SERVICE.canDeleteRecords(config, recordIds)) {
+                return SERVICE.createDeleteResult(recordIds, null);
+            }
+
+            List<SObject> recordsToDelete = SELECTOR.getRecordsById(
+                config.objectApiName,
+                new Set<Id>(recordIds)
+            );
+            return SERVICE.createDeleteResult(
+                recordIds,
+                SELECTOR.deleteRecords(recordsToDelete)
+            );
         } catch (Exception error) {
             throw new AuraHandledException(
                 '選択したレコードを削除できませんでした。'
