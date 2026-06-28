@@ -67,38 +67,43 @@ private with sharing class ObjectRecordSearchSortSupportTest {
     }
 
     @IsTest
+    static void shouldFallbackToNameWhenSortFieldIsNotSortable() {
+        ObjectRecordSearchContext context = createAccountContextWithDescription();
+        ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
+        request.sortBy = 'Description';
+
+        ObjectRecordSearchSortSupport.SortSpec sortSpec;
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+                context,
+                request
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'Name',
+            sortSpec.fieldApiName,
+            'Non-sortable display fields should fall back to the name field.'
+        );
+    }
+
+    @IsTest
     static void shouldCreateAndParseNextPageToken() {
         ObjectRecordSearchContext context = createAccountContext();
-        ObjectRecordSearchConfigWrapper config = context.config;
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Industry';
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
             request
         );
-        Account accountRecord = new Account(
-            Id = getTestAccountId(),
-            Name = 'Cursor Account',
-            Industry = 'Technology'
-        );
-        List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>{
-            new ObjectRecordSearchRowWrapper(
-                accountRecord,
-                config.nameFieldApiName,
-                config.displayFields
-            )
-        };
 
-        String pageToken;
         ObjectRecordSearchSortSupport.PageCursor cursor;
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
-                rows,
-                sortSpec
-            );
-            cursor = ObjectRecordSearchSortSupport.parsePageToken(
-                pageToken,
+            cursor = createParsedCursor(
+                context.config,
                 sortSpec
             );
             Test.stopTest();
@@ -110,9 +115,65 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             'Parsed cursor should keep the row sort value.'
         );
         Assert.areEqual(
-            accountRecord.Id,
+            getTestAccountId(),
             cursor.recordId,
             'Parsed cursor should keep the last row Id.'
+        );
+    }
+
+    @IsTest
+    static void shouldCreateAndParseNameSortPageToken() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            context,
+            new ObjectRecordSearchRequestWrapper()
+        );
+
+        ObjectRecordSearchSortSupport.PageCursor cursor;
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            cursor = createParsedCursor(
+                context.config,
+                sortSpec
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'Cursor Account',
+            cursor.sortValue,
+            'Name sort tokens should use the row name as the cursor value.'
+        );
+    }
+
+    @IsTest
+    static void shouldParseLegacyNamePageToken() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            context,
+            new ObjectRecordSearchRequestWrapper()
+        );
+        String pageToken = JSON.serialize(
+            new Map<String, String>{
+                'recordId' => String.valueOf(getTestAccountId()),
+                'name' => 'Cursor Account'
+            }
+        );
+
+        ObjectRecordSearchSortSupport.PageCursor cursor;
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            cursor = ObjectRecordSearchSortSupport.parsePageToken(
+                pageToken,
+                sortSpec
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'Cursor Account',
+            cursor.sortValue,
+            'Legacy name tokens should keep reading the name cursor value.'
         );
     }
 
@@ -259,6 +320,37 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    private static ObjectRecordSearchContext createAccountContextWithDescription() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
+            'accounts'
+        );
+        Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
+            SObjectDescribeOptions.DEFERRED
+        );
+        Schema.DescribeFieldResult nameFieldDescribe = objectDescribe.fields
+            .getMap()
+            .get('Name')
+            .getDescribe();
+        ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
+            definition,
+            nameFieldDescribe,
+            objectDescribe
+        )
+            .withDisplayFields(new List<ObjectRecordSearchFieldWrapper>{
+                new ObjectRecordSearchFieldWrapper(
+                    'Description',
+                    'Description',
+                    'text'
+                )
+            });
+        return service.createSearchContext(
+            config,
+            nameFieldDescribe,
+            objectDescribe
+        );
+    }
+
     private static Id getTestAccountId() {
         return [
             SELECT Id
@@ -266,5 +358,31 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             WHERE Name = 'Cursor Account'
             LIMIT 1
         ].Id;
+    }
+
+    private static ObjectRecordSearchSortSupport.PageCursor createParsedCursor(
+        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchSortSupport.SortSpec sortSpec
+    ) {
+        Account accountRecord = new Account(
+            Id = getTestAccountId(),
+            Name = 'Cursor Account',
+            Industry = 'Technology'
+        );
+        List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>{
+            new ObjectRecordSearchRowWrapper(
+                accountRecord,
+                config.nameFieldApiName,
+                config.displayFields
+            )
+        };
+        String pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
+            rows,
+            sortSpec
+        );
+        return ObjectRecordSearchSortSupport.parsePageToken(
+            pageToken,
+            sortSpec
+        );
     }
 }
