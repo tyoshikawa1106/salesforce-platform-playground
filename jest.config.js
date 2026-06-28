@@ -10,10 +10,11 @@ module.exports = {
             '<rootDir>/force-app/test/jest-mocks/lightning/uiObjectInfoApi.js'
     },
     collectCoverageFrom: [
-        '<rootDir>/force-app/main/default/lwc/**/*.js',
-        '!<rootDir>/force-app/main/default/lwc/**/__tests__/**',
-        '!<rootDir>/force-app/main/default/lwc/**/__mocks__/**'
+        'force-app/main/default/lwc/**/*.js',
+        '!force-app/main/default/lwc/**/__tests__/**',
+        '!force-app/main/default/lwc/**/__mocks__/**'
     ],
+    coverageProvider: 'v8',
     modulePathIgnorePatterns: ['<rootDir>/.localdevserver'],
     setupFilesAfterEnv: [
         ...(jestConfig.setupFilesAfterEnv || []),

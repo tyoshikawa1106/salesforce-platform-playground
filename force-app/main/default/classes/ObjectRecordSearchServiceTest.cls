@@ -65,6 +65,69 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     @IsTest
+    static void shouldCreatePagedSearchResultWhenMoreThanPageSizeIsFetched() {
+        List<Account> accounts = TestDataFactory.createAccounts(51);
+        for (Integer index = 0; index < accounts.size(); index++) {
+            accounts[index].Name = 'Paged Account ' + index;
+            accounts[index].Industry = 'Technology';
+        }
+        insert accounts;
+
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
+            'accounts',
+            'Paged'
+        );
+        request.pageNumber = 0;
+        ObjectRecordSearchContext context = createAccountContext(service);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
+            context,
+            request
+        );
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
+            context,
+            request,
+            sortSpec
+        );
+        List<SObject> records = [
+            SELECT Id, Name, Industry
+            FROM Account
+            WHERE Name LIKE 'Paged Account%'
+            ORDER BY Name, Id
+            LIMIT 51
+        ];
+
+        ObjectRecordSearchResultWrapper result;
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            result = service.createSearchResult(
+                searchQueryRequest,
+                records
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            50,
+            result.records.size(),
+            'Service should remove the extra fetched row from the response.'
+        );
+        Assert.isTrue(
+            result.hasNextPage,
+            'Fetching more than one page should create the next page state.'
+        );
+        Assert.isNotNull(
+            result.nextPageToken,
+            'Next page state should include a cursor token.'
+        );
+        Assert.areEqual(
+            1,
+            result.pageNumber,
+            'Invalid page numbers should be normalized to the first page.'
+        );
+    }
+
+    @IsTest
     static void shouldCreateDeleteResultFromDmlResults() {
         Account target = [
             SELECT Id
