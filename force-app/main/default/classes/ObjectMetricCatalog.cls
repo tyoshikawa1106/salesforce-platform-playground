@@ -2,7 +2,6 @@
  * データボードで扱うオブジェクト定義を一元管理します。
  */
 public with sharing class ObjectMetricCatalog {
-    private static final Map<String, String> ICON_NAMES_BY_KEY = createIconNamesByKey();
     private static final List<MetricDefinition> ORDERED_DEFINITIONS = createOrderedDefinitions();
     private static final Map<String, MetricDefinition> DEFINITIONS_BY_KEY = createDefinitionsByKey();
     private static final Set<String> OBJECT_API_NAMES = createObjectApiNames();
@@ -67,100 +66,122 @@ public with sharing class ObjectMetricCatalog {
         return objectApiNames;
     }
 
-    private static Map<String, String> createIconNamesByKey() {
-        return new Map<String, String>{
-            'accounts' => 'standard:account',
-            'contacts' => 'standard:contact',
-            'leads' => 'standard:lead',
-            'opportunities' => 'standard:opportunity',
-            'opportunityLineItems' => 'standard:product_consumed',
-            'products' => 'standard:product',
-            'pricebooks' => 'standard:pricebook',
-            'pricebookEntries' => 'standard:price_book_entries',
-            'assets' => 'standard:asset_object',
-            'campaigns' => 'standard:campaign',
-            'cases' => 'standard:case',
-            'contracts' => 'standard:contract',
-            'orders' => 'standard:order_item',
-            'orderItems' => 'standard:order_item',
-            'entitlements' => 'standard:entitlement',
-            'serviceContracts' => 'standard:service_contract',
-            'workOrders' => 'standard:work_order',
-            'workOrderLineItems' => 'standard:work_order_item',
-            'knowledgeArticles' => 'utility:knowledge_base',
-            'events' => 'standard:event',
-            'tasks' => 'standard:task',
-            'emailMessages' => 'standard:email',
-            'emailTemplates' => 'utility:insert_template',
-            'reports' => 'standard:report',
-            'dashboards' => 'standard:dashboard',
-            'files' => 'standard:file',
-            'users' => 'standard:user'
-        };
-    }
-
     private static List<MetricDefinition> createOrderedDefinitions() {
         return new List<MetricDefinition>{
-            new MetricDefinition('accounts', 'Account', '取引先'),
-            new MetricDefinition('contacts', 'Contact', '取引先責任者'),
-            new MetricDefinition('leads', 'Lead', 'リード'),
-            new MetricDefinition('opportunities', 'Opportunity', '商談'),
+            new MetricDefinition('accounts', 'Account', present('取引先', 'standard:account')),
+            new MetricDefinition(
+                'contacts',
+                'Contact',
+                present('取引先責任者', 'standard:contact')
+            ),
+            new MetricDefinition('leads', 'Lead', present('リード', 'standard:lead')),
+            new MetricDefinition(
+                'opportunities',
+                'Opportunity',
+                present('商談', 'standard:opportunity')
+            ),
             new MetricDefinition(
                 'opportunityLineItems',
                 'OpportunityLineItem',
-                '商談商品'
+                present('商談商品', 'standard:product_consumed')
             ),
-            new MetricDefinition('products', 'Product2', '商品'),
-            new MetricDefinition('pricebooks', 'Pricebook2', '価格表'),
+            new MetricDefinition('products', 'Product2', present('商品', 'standard:product')),
+            new MetricDefinition(
+                'pricebooks',
+                'Pricebook2',
+                present('価格表', 'standard:pricebook')
+            ),
             new MetricDefinition(
                 'pricebookEntries',
                 'PricebookEntry',
-                '価格表エントリ'
+                present('価格表エントリ', 'standard:price_book_entries')
             ),
-            new MetricDefinition('assets', 'Asset', '納入商品'),
-            new MetricDefinition('campaigns', 'Campaign', 'キャンペーン'),
-            new MetricDefinition('cases', 'Case', 'ケース'),
-            new MetricDefinition('contracts', 'Contract', '契約'),
-            new MetricDefinition('orders', 'Order', '注文'),
-            new MetricDefinition('orderItems', 'OrderItem', '注文商品'),
+            new MetricDefinition('assets', 'Asset', present('納入商品', 'standard:asset_object')),
+            new MetricDefinition(
+                'campaigns',
+                'Campaign',
+                present('キャンペーン', 'standard:campaign')
+            ),
+            new MetricDefinition('cases', 'Case', present('ケース', 'standard:case')),
+            new MetricDefinition(
+                'contracts',
+                'Contract',
+                present('契約', 'standard:contract')
+            ),
+            new MetricDefinition('orders', 'Order', present('注文', 'standard:order_item')),
+            new MetricDefinition(
+                'orderItems',
+                'OrderItem',
+                present('注文商品', 'standard:order_item')
+            ),
             new MetricDefinition(
                 'entitlements',
                 'Entitlement',
-                'エンタイトルメント'
+                present('エンタイトルメント', 'standard:entitlement')
             ),
             new MetricDefinition(
                 'serviceContracts',
                 'ServiceContract',
-                'サービス契約'
+                present('サービス契約', 'standard:service_contract')
             ),
-            new MetricDefinition('workOrders', 'WorkOrder', '作業指示'),
+            new MetricDefinition(
+                'workOrders',
+                'WorkOrder',
+                present('作業指示', 'standard:work_order')
+            ),
             new MetricDefinition(
                 'workOrderLineItems',
                 'WorkOrderLineItem',
-                '作業指示品目'
+                present('作業指示品目', 'standard:work_order_item')
             ),
             new MetricDefinition(
                 'knowledgeArticles',
                 'KnowledgeArticleVersion',
-                'ナレッジ'
+                present('ナレッジ', 'utility:knowledge_base')
             ),
-            new MetricDefinition('events', 'Event', '行動'),
-            new MetricDefinition('tasks', 'Task', 'ToDo'),
+            new MetricDefinition('events', 'Event', present('行動', 'standard:event')),
+            new MetricDefinition('tasks', 'Task', present('ToDo', 'standard:task')),
             new MetricDefinition(
                 'emailMessages',
                 'EmailMessage',
-                'メールメッセージ'
+                present('メールメッセージ', 'standard:email')
             ),
             new MetricDefinition(
                 'emailTemplates',
                 'EmailTemplate',
-                'メールテンプレート'
+                present('メールテンプレート', 'utility:insert_template')
             ),
-            new MetricDefinition('reports', 'Report', 'レポート'),
-            new MetricDefinition('dashboards', 'Dashboard', 'ダッシュボード'),
-            new MetricDefinition('files', 'ContentDocument', 'ファイル'),
-            new MetricDefinition('users', 'User', 'ユーザー')
+            new MetricDefinition(
+                'reports',
+                'Report',
+                present('レポート', 'standard:report')
+            ),
+            new MetricDefinition(
+                'dashboards',
+                'Dashboard',
+                present('ダッシュボード', 'standard:dashboard')
+            ),
+            new MetricDefinition(
+                'files',
+                'ContentDocument',
+                present('ファイル', 'standard:file')
+            ),
+            new MetricDefinition('users', 'User', present('ユーザー', 'standard:user'))
         };
+    }
+
+    private static MetricPresentation present(String label, String iconName) {
+        return new MetricPresentation(label, iconName);
+    }
+
+    private class MetricPresentation {
+        private String label;
+        private String iconName;
+
+        private MetricPresentation(String label, String iconName) {
+            this.label = label;
+            this.iconName = iconName;
+        }
     }
 
     /**
@@ -194,12 +215,12 @@ public with sharing class ObjectMetricCatalog {
         private MetricDefinition(
             String key,
             String objectApiName,
-            String label
+            MetricPresentation presentation
         ) {
             this.key = key;
             this.objectApiName = objectApiName;
-            this.label = label;
-            this.iconName = ICON_NAMES_BY_KEY.get(key);
+            this.label = presentation.label;
+            this.iconName = presentation.iconName;
         }
     }
 }
