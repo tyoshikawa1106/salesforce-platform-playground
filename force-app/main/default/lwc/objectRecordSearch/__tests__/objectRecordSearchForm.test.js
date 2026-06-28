@@ -146,6 +146,20 @@ describe('objectRecordSearchForm', () => {
         ]);
     });
 
+    it('keeps empty sections empty when object field overrides exist', () => {
+        expect(
+            applyFormFieldOverrides({
+                sections: [],
+                objectApiName: 'Opportunity',
+                fieldInfoByApiName: {
+                    Name: createFieldInfo(),
+                    StageName: createFieldInfo(),
+                    CloseDate: createFieldInfo()
+                }
+            })
+        ).toEqual([]);
+    });
+
     it('creates fallback sections from configured fields or the name field', () => {
         expect(
             createFallbackFormSections({

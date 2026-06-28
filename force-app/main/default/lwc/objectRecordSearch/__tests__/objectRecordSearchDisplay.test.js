@@ -9,10 +9,10 @@ describe('objectRecordSearchDisplay', () => {
         const columns = createColumns({
             nameFieldLabel: '取引先名',
             displayFields: [
-                { apiName: 'Website', label: 'Webサイト' },
-                { apiName: 'Email', label: 'メール' },
-                { apiName: 'Phone', label: '電話' },
-                { apiName: 'Industry', label: '業種' }
+                { apiName: 'Website', label: 'Webサイト', dataType: 'url' },
+                { apiName: 'Email', label: 'メール', dataType: 'email' },
+                { apiName: 'Phone', label: '電話', dataType: 'phone' },
+                { apiName: 'Industry', label: '業種', dataType: 'text' }
             ],
             editDisabled: false
         });

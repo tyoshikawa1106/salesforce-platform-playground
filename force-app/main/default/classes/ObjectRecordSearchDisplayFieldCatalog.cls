@@ -195,6 +195,18 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
             'ContentSize'
         }
     };
+    private static final Map<Schema.DisplayType, String> DATATABLE_TYPES_BY_SCHEMA_TYPE = new Map<Schema.DisplayType, String>{
+        Schema.DisplayType.Boolean => 'boolean',
+        Schema.DisplayType.Currency => 'number',
+        Schema.DisplayType.Date => 'date-local',
+        Schema.DisplayType.DateTime => 'date',
+        Schema.DisplayType.Double => 'number',
+        Schema.DisplayType.Email => 'email',
+        Schema.DisplayType.Integer => 'number',
+        Schema.DisplayType.Percent => 'number',
+        Schema.DisplayType.Phone => 'phone',
+        Schema.DisplayType.Url => 'url'
+    };
 
     /**
      * 対象オブジェクトで参照できる固定表示項目を返します。
@@ -224,7 +236,8 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
             displayFields.add(
                 new ObjectRecordSearchController.ObjectRecordDisplayField(
                     fieldDescribe.getName(),
-                    fieldDescribe.getLabel()
+                    fieldDescribe.getLabel(),
+                    getDatatableType(fieldDescribe.getType())
                 )
             );
         }
@@ -236,5 +249,9 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
             return new List<String>();
         }
         return DISPLAY_FIELDS_BY_OBJECT.get(objectApiName);
+    }
+
+    private static String getDatatableType(Schema.DisplayType fieldType) {
+        return DATATABLE_TYPES_BY_SCHEMA_TYPE.get(fieldType) ?? 'text';
     }
 }

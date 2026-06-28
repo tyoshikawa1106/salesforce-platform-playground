@@ -212,14 +212,26 @@ public with sharing class ObjectRecordSearchController {
         public String label { get; private set; }
 
         /**
+         * lightning-datatable で使う表示型です。
+         */
+        @AuraEnabled
+        public String dataType { get; private set; }
+
+        /**
          * 固定項目定義を作成します。
          *
          * @param apiName 項目 API 参照名
          * @param label 項目の画面表示ラベル
+         * @param dataType lightning-datatable で使う表示型
          */
-        public ObjectRecordDisplayField(String apiName, String label) {
+        public ObjectRecordDisplayField(
+            String apiName,
+            String label,
+            String dataType
+        ) {
             this.apiName = apiName;
             this.label = label;
+            this.dataType = dataType;
         }
     }
 
