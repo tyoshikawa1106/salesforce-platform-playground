@@ -7,7 +7,9 @@
  * LWC に返す例外メッセージへの変換も Apex 境界である Controller に集約します。
  */
 public with sharing class ObjectRecordSearchController {
-    private static final String USER_FACING_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
+    private static final String CONFIG_ERROR_MESSAGE = '検索画面設定を読み込めませんでした。';
+    private static final String SEARCH_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
+    private static final String DELETE_ERROR_MESSAGE = '選択したレコードを削除できませんでした。';
     private static final ObjectRecordSearchService SERVICE = new ObjectRecordSearchService();
     private static final ObjectRecordSearchSelector SELECTOR = new ObjectRecordSearchSelector();
 
@@ -22,8 +24,10 @@ public with sharing class ObjectRecordSearchController {
     ) {
         try {
             return buildSearchContext(metricKey).config;
+        } catch (ObjectRecordSearchException error) {
+            throw createHandledException(error.getMessage());
         } catch (Exception error) {
-            throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
+            throw createHandledException(CONFIG_ERROR_MESSAGE);
         }
     }
 
@@ -58,8 +62,10 @@ public with sharing class ObjectRecordSearchController {
                 searchQueryRequest,
                 records
             );
+        } catch (ObjectRecordSearchException error) {
+            throw createHandledException(error.getMessage());
         } catch (Exception error) {
-            throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
+            throw createHandledException(SEARCH_ERROR_MESSAGE);
         }
     }
 
@@ -91,10 +97,10 @@ public with sharing class ObjectRecordSearchController {
                 recordIds,
                 SELECTOR.deleteRecords(recordsToDelete)
             );
+        } catch (ObjectRecordSearchException error) {
+            throw createHandledException(error.getMessage());
         } catch (Exception error) {
-            throw new AuraHandledException(
-                '選択したレコードを削除できませんでした。'
-            );
+            throw createHandledException(DELETE_ERROR_MESSAGE);
         }
     }
 
@@ -126,5 +132,9 @@ public with sharing class ObjectRecordSearchController {
             nameFieldDescribe,
             objectDescribe
         );
+    }
+
+    private static AuraHandledException createHandledException(String message) {
+        return new AuraHandledException(message);
     }
 }

@@ -8,6 +8,7 @@
 public with sharing class ObjectRecordSearchService {
     private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
+    private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。';
 
     /**
      * 表示キーに対応するデータボード定義を返します。
@@ -188,9 +189,7 @@ public with sharing class ObjectRecordSearchService {
                     deletedCount++;
                     continue;
                 }
-                for (Database.Error deleteError : deleteResult.getErrors()) {
-                    errors.add(deleteError.getMessage());
-                }
+                errors.add(DELETE_ROW_ERROR_MESSAGE);
             }
         }
 

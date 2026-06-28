@@ -270,6 +270,29 @@ private with sharing class ObjectRecordSearchControllerTest {
     }
 
     @IsTest
+    static void shouldThrowUserFacingErrorWhenPageTokenIsInvalid() {
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
+            'accounts',
+            null
+        );
+        request.pageToken = 'not-json';
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchController.searchRecords(request);
+                Assert.fail('Invalid page tokens should throw.');
+            } catch (AuraHandledException error) {
+                Assert.isNotNull(
+                    error,
+                    'Invalid page tokens should be wrapped for LWC.'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+
+    @IsTest
     static void shouldDeleteSelectedRecords() {
         Account target = [
             SELECT Id
