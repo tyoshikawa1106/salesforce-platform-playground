@@ -175,10 +175,4 @@ public with sharing class ObjectRecordSearchService {
     private Integer normalizePageNumber(Integer pageNumber) {
         return pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
     }
-
-    /**
-     * 汎用レコード検索の入力・権限検証エラーです。
-     */
-    public class ObjectRecordSearchException extends Exception {
-    }
 }
