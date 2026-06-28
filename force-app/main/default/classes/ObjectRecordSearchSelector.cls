@@ -124,10 +124,4 @@ public virtual with sharing class ObjectRecordSearchSelector {
     ) {
         return Database.delete(recordsToDelete, false, AccessLevel.USER_MODE);
     }
-
-    /**
-     * 汎用レコード検索の入力・権限検証エラーです。
-     */
-    public class ObjectRecordSearchException extends Exception {
-    }
 }

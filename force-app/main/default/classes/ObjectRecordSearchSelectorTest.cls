@@ -162,9 +162,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
             try {
                 selector.getObjectDescribe('UnknownObject__c');
                 Assert.fail('Unknown object API names should throw.');
-            } catch (
-                ObjectRecordSearchSelector.ObjectRecordSearchException error
-            ) {
+            } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
                     error.getMessage().contains('見つかりません'),
                     'Unknown object API names should explain the object was not found.'

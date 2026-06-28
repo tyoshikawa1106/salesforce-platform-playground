@@ -112,7 +112,7 @@ public with sharing class ObjectRecordSearchSortSupport {
             cursorFieldApiName != sortSpec.fieldApiName ||
             String.isBlank(cursorRecordId)
         ) {
-            throw new ObjectRecordSearchSelector.ObjectRecordSearchException(
+            throw new ObjectRecordSearchException(
                 'ページ指定を読み込めません。'
             );
         }

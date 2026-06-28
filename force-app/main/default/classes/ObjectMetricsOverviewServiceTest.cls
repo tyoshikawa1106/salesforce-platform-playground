@@ -4,17 +4,16 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
     @IsTest
-    static void shouldBuildOrderedSummaryFromSelectorValues() {
+    static void shouldBuildOrderedSummaryFromMetricValues() {
         // 準備
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService(
-            new StubObjectMetricsOverviewSelector()
-        );
+        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
+        Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues = createMetricValues();
 
         // 実行
-        ObjectMetricsOverviewController.ObjectMetricSummary summary;
+        ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            summary = service.getObjectMetrics();
+            summary = service.createObjectMetrics(metricValues);
             Test.stopTest();
         }
 
@@ -51,7 +50,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         Assert.areEqual(
             34,
             summary.metrics[1].value,
-            'Contact value should come from the selector.'
+            'Contact value should come from the supplied metric values.'
         );
         Assert.isFalse(
             summary.metrics[1].capped,
@@ -70,17 +69,15 @@ private with sharing class ObjectMetricsOverviewServiceTest {
     }
 
     @IsTest
-    static void shouldUseDefaultSelectorWhenSelectorIsNull() {
+    static void shouldReturnZeroValuesWhenMetricValuesAreNull() {
         // 準備
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService(
-            null
-        );
+        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
 
         // 実行
-        ObjectMetricsOverviewController.ObjectMetricSummary summary;
+        ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            summary = service.getObjectMetrics();
+            summary = service.createObjectMetrics(null);
             Test.stopTest();
         }
 
@@ -88,17 +85,24 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         Assert.areEqual(
             ObjectMetricCatalog.getDefinitions().size(),
             summary.metrics.size(),
-            'Service should fall back to the default selector.'
+            'Service should return all configured metric items.'
+        );
+        Assert.areEqual(
+            0,
+            summary.metrics[0].value,
+            'Missing metric values should default to zero.'
+        );
+        Assert.isFalse(
+            summary.metrics[0].capped,
+            'Missing metric values should not be capped.'
         );
     }
 
-    private class StubObjectMetricsOverviewSelector extends ObjectMetricsOverviewSelector {
-        public override Map<String, ObjectMetricCount> getObjectMetricValues() {
-            return new Map<String, ObjectMetricCount>{
-                'accounts' => ObjectMetricsOverviewSelector.createCount(50000),
-                'contacts' => ObjectMetricsOverviewSelector.createCount(34)
-            };
-        }
+    private static Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> createMetricValues() {
+        return new Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount>{
+            'accounts' => ObjectMetricsOverviewSelector.createCount(50000),
+            'contacts' => ObjectMetricsOverviewSelector.createCount(34)
+        };
     }
 
     private static User getCurrentUser() {

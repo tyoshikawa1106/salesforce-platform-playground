@@ -101,9 +101,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             try {
                 service.requireDefinition('unknown');
                 Assert.fail('Unsupported metric keys should throw.');
-            } catch (
-                ObjectRecordSearchService.ObjectRecordSearchException error
-            ) {
+            } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
                     error.getMessage().contains('未対応'),
                     'Unsupported metric keys should explain the object is unsupported.'
