@@ -127,16 +127,8 @@ public with sharing class ObjectRecordSearchSortSupport {
         ObjectRecordSearchController.ObjectRecordSearchConfig config,
         ObjectRecordSearchController.ObjectRecordSearchRequest request
     ) {
-        Set<String> allowedFieldApiNames = new Set<String>{
-            config.nameFieldApiName
-        };
-        for (
-            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
-        ) {
-            allowedFieldApiNames.add(displayField.apiName);
-        }
-
-        return allowedFieldApiNames.contains(request?.sortBy)
+        return ObjectRecordSearchQueryPlan.getAllowedFieldApiNames(config)
+                .contains(request?.sortBy)
             ? request.sortBy
             : config.nameFieldApiName;
     }

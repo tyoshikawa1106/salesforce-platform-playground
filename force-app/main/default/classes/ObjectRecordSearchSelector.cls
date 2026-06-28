@@ -1,7 +1,6 @@
 /**
  * 汎用レコード検索画面で使う Salesforce レコードを問い合わせます。
  */
-@SuppressWarnings('PMD.CyclomaticComplexity')
 public virtual with sharing class ObjectRecordSearchSelector {
     private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
@@ -57,30 +56,21 @@ public virtual with sharing class ObjectRecordSearchSelector {
             request?.pageToken,
             sortSpec
         );
-        String normalizedSearchTerm = request?.searchTerm?.trim();
-        String likeSearchTerm = usesNameSearch(normalizedSearchTerm, config)
-            ? '%' + normalizedSearchTerm + '%'
-            : null;
-        Map<String, Object> bindValues = new Map<String, Object>();
-        if (likeSearchTerm != null) {
-            bindValues.put('nameSearchTerm', likeSearchTerm);
-        }
-        if (cursor != null) {
-            bindValues.put('cursorSortValue', cursor.sortValue);
-            bindValues.put('cursorRecordId', cursor.recordId);
-        }
-        SearchQueryParts queryParts = new SearchQueryParts();
-        queryParts.config = config;
-        queryParts.includeNameSearch = likeSearchTerm != null;
-        queryParts.cursor = cursor;
-        queryParts.sortSpec = sortSpec;
-        String query = createSearchQuery(queryParts);
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
+        searchQueryRequest.config = config;
+        searchQueryRequest.searchRequest = request;
+        searchQueryRequest.sortSpec = sortSpec;
+        searchQueryRequest.cursor = cursor;
+        searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
+        ObjectRecordSearchQueryPlan.SearchQuery searchQuery = ObjectRecordSearchQueryPlan.createSearchQuery(
+            searchQueryRequest
+        );
 
         List<ObjectRecordSearchController.ObjectRecordRow> rows = new List<ObjectRecordSearchController.ObjectRecordRow>();
         for (
             SObject record : Database.queryWithBinds(
-                query,
-                bindValues,
+                searchQuery.soql,
+                searchQuery.bindValues,
                 AccessLevel.USER_MODE
             )
         ) {
@@ -111,60 +101,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
                     : null
             )
         );
-    }
-
-    private String createSearchQuery(SearchQueryParts queryParts) {
-        String query =
-            'SELECT Id, ' +
-            String.join(getQueryFields(queryParts.config), ', ') +
-            ' FROM ' +
-            queryParts.config.objectApiName;
-
-        List<String> whereClauses = new List<String>();
-        if (queryParts.includeNameSearch) {
-            whereClauses.add(
-                queryParts.config.nameFieldApiName + ' LIKE :nameSearchTerm'
-            );
-        }
-        if (queryParts.cursor != null) {
-            whereClauses.add(
-                ObjectRecordSearchSortSupport.createCursorWhereClause(
-                    queryParts.sortSpec,
-                    queryParts.cursor
-                )
-            );
-        }
-
-        if (!whereClauses.isEmpty()) {
-            query += ' WHERE ' + String.join(whereClauses, ' AND ');
-        }
-
-        return query +
-            ' ORDER BY ' +
-            queryParts.sortSpec.fieldApiName +
-            ' ' +
-            queryParts.sortSpec.direction.toUpperCase() +
-            ' NULLS LAST, Id ASC LIMIT ' +
-            PAGE_FETCH_SIZE;
-    }
-
-    private List<String> getQueryFields(
-        ObjectRecordSearchController.ObjectRecordSearchConfig config
-    ) {
-        Set<String> fieldApiNames = new Set<String>{ config.nameFieldApiName };
-        for (
-            ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
-        ) {
-            fieldApiNames.add(displayField.apiName);
-        }
-        return new List<String>(fieldApiNames);
-    }
-
-    private Boolean usesNameSearch(
-        String normalizedSearchTerm,
-        ObjectRecordSearchController.ObjectRecordSearchConfig config
-    ) {
-        return String.isNotBlank(normalizedSearchTerm) && config.searchable;
     }
 
     /**
@@ -249,13 +185,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
         pageState.pageNumber = pageNumber;
         pageState.nextPageToken = nextPageToken;
         return pageState;
-    }
-
-    private class SearchQueryParts {
-        private ObjectRecordSearchController.ObjectRecordSearchConfig config;
-        private Boolean includeNameSearch;
-        private ObjectRecordSearchSortSupport.PageCursor cursor;
-        private ObjectRecordSearchSortSupport.SortSpec sortSpec;
     }
 
     private ObjectMetricCatalog.MetricDefinition requireDefinition(
