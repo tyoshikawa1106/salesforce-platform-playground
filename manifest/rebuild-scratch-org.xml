@@ -14,6 +14,8 @@
         <members>ObjectMetricsOverviewServiceTest</members>
         <members>ObjectRecordSearchController</members>
         <members>ObjectRecordSearchControllerTest</members>
+        <members>ObjectRecordSearchDisplayFieldCatalog</members>
+        <members>ObjectRecordSearchDtos</members>
         <members>ObjectRecordSearchQueryPlan</members>
         <members>ObjectRecordSearchSelector</members>
         <members>ObjectRecordSearchSelectorTest</members>

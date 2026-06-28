@@ -12,8 +12,8 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 許可済み項目と方向だけを持つソート条件
      */
     public static SortSpec createSortSpec(
-        ObjectRecordSearchController.ObjectRecordSearchConfig config,
-        ObjectRecordSearchController.ObjectRecordSearchRequest request
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config,
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
     ) {
         Map<String, Schema.SObjectField> fieldsByApiName = Schema.getGlobalDescribe()
             .get(config.objectApiName)
@@ -72,10 +72,10 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 次ページ取得用トークン
      */
     public static String createNextPageToken(
-        List<ObjectRecordSearchController.ObjectRecordRow> rows,
+        List<ObjectRecordSearchDtos.ObjectRecordRow> rows,
         SortSpec sortSpec
     ) {
-        ObjectRecordSearchController.ObjectRecordRow lastRow = rows[
+        ObjectRecordSearchDtos.ObjectRecordRow lastRow = rows[
             rows.size() - 1
         ];
         return JSON.serialize(
@@ -124,8 +124,8 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     private static String getSortFieldApiName(
-        ObjectRecordSearchController.ObjectRecordSearchConfig config,
-        ObjectRecordSearchController.ObjectRecordSearchRequest request
+        ObjectRecordSearchDtos.ObjectRecordSearchConfig config,
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
     ) {
         return ObjectRecordSearchQueryPlan.getAllowedFieldApiNames(config)
                 .contains(request?.sortBy)
@@ -134,7 +134,7 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     private static String getSortDirection(
-        ObjectRecordSearchController.ObjectRecordSearchRequest request
+        ObjectRecordSearchDtos.ObjectRecordSearchRequest request
     ) {
         return request?.sortDirection?.toLowerCase() == SORT_DESCENDING
             ? SORT_DESCENDING
@@ -142,7 +142,7 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     private static String getRowSortValue(
-        ObjectRecordSearchController.ObjectRecordRow row,
+        ObjectRecordSearchDtos.ObjectRecordRow row,
         SortSpec sortSpec
     ) {
         if (sortSpec.fieldApiName == sortSpec.nameFieldApiName) {
