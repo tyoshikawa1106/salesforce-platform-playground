@@ -148,4 +148,4 @@ metadata type ごとに次の順で進めます。
 - [メタデータ開発ルール](metadata-rules.md)
 - [Dev 組織デプロイ](../deployment/dev-org-deploy.md)
 - [Scratch Org 再現](../deployment/scratch-org-rebuild.md)
-- [Salesforce メタデータの Git 管理候補](../knowledge/salesforce-metadata-git-management-candidates.md)
+- [Salesforce メタデータの Git 管理候補](salesforce-metadata-git-management-candidates.md)
