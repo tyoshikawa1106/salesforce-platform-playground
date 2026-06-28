@@ -32,6 +32,9 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 - [Salesforce CLI テストデータインポート](development/test-data-import.md)
 - [Settings 有効化状況](development/settings-enable-candidates.md)
 - [.gitignore 運用メモ](development/gitignore-rules.md)
+- [Salesforce メタデータの Git 管理候補](development/salesforce-metadata-git-management-candidates.md)
+- [package.xml のメタデータ一覧](development/salesforce-package-xml-metadata-types.md)
+- [package.xml retrieve の分析ポイント](development/salesforce-package-xml-retrieve-analysis.md)
 
 ## デプロイ
 
