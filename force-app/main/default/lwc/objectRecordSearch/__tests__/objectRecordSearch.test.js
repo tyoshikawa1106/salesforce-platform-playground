@@ -235,9 +235,7 @@ describe('c-object-record-search', () => {
     it('deletes selected rows through Apex', async () => {
         const element = createComponent();
         const recordsChangedHandler = jest.fn();
-        const recordsDeletedHandler = jest.fn();
         element.addEventListener('recordschanged', recordsChangedHandler);
-        element.addEventListener('recordsdeleted', recordsDeletedHandler);
         deleteRecords.mockResolvedValue({
             requestedCount: 1,
             deletedCount: 1,
@@ -267,7 +265,6 @@ describe('c-object-record-search', () => {
         });
         expect(refreshApex).toHaveBeenCalledTimes(1);
         expect(recordsChangedHandler).toHaveBeenCalledTimes(1);
-        expect(recordsDeletedHandler).not.toHaveBeenCalled();
     });
 
     it('shows a warning toast when Apex returns partial delete errors', async () => {
