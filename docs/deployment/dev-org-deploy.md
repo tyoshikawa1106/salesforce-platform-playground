@@ -9,7 +9,7 @@
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしない。
 - 反映前に `sf project deploy validate` を実行する。
 - `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証入口にはしない。
-- Dev 組織への通常検証は `manifest/deployable-dev.xml` を使う。作業範囲がさらに狭い場合は、作業対象 manifest または `--metadata` で絞る。
+- Dev 組織への通常検証は `manifest/rebuild-developer-org.xml` を使う。作業範囲がさらに狭い場合は、作業対象 manifest または `--metadata` で絞る。
 
 ## 対象組織の確認
 
@@ -32,7 +32,7 @@ npm run sf:validate:dev
 この script は次の manifest validate を実行します。
 
 ```sh
-sf project deploy validate --manifest manifest/deployable-dev.xml --test-level RunLocalTests
+sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests
 ```
 
 validate が失敗した場合は、失敗理由と対象ファイルを確認し、必要な修正だけを行います。
@@ -111,7 +111,7 @@ npm run sf:deploy:dev
 この script は次の manifest deploy を実行します。
 
 ```sh
-sf project deploy start --manifest manifest/deployable-dev.xml
+sf project deploy start --manifest manifest/rebuild-developer-org.xml
 ```
 
 ## Apex test

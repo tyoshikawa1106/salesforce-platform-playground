@@ -9,7 +9,7 @@
 - Scratch Org で再現できない前提が見つかった場合は、設定または docs に残す。
 - 個人環境の alias や認証情報をコミットしない。
 - Scratch Org は一時環境として扱い、確認が終わったら削除する。
-- `manifest/scratch-org-rebuild.xml` は Scratch Org への反映にだけ使う。
+- `manifest/rebuild-scratch-org.xml` は Scratch Org への反映にだけ使う。
 - Scratch Org で作成、変更したメタデータを戻す場合は、作業対象を絞った manifest を用意して retrieve / deploy に使う。
 - `force-app` 全体 dry-run は、Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
 
@@ -57,7 +57,7 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 ```text
 1. Scratch Org 作成
 2. 必要 package install
-3. manifest/scratch-org-rebuild.xml deploy
+3. manifest/rebuild-scratch-org.xml deploy
 4. Scratch Org ユーザー用 Permission Set assign
 5. Apex test
 ```
@@ -125,13 +125,13 @@ sf org display --target-org scratch-platform-playground
 
 ## 反映
 
-Scratch Org へ反映する deploy scope は `manifest/scratch-org-rebuild.xml` で管理します。
+Scratch Org へ反映する deploy scope は `manifest/rebuild-scratch-org.xml` で管理します。
 Scratch Org 用 manifest で dry-run します。
 
 ```sh
 sf project deploy start \
     --dry-run \
-    --manifest manifest/scratch-org-rebuild.xml \
+    --manifest manifest/rebuild-scratch-org.xml \
     --target-org scratch-platform-playground \
     --wait 30
 ```
@@ -146,12 +146,12 @@ dry-run が成功したら、同じ scope で反映します。
 
 ```sh
 sf project deploy start \
-    --manifest manifest/scratch-org-rebuild.xml \
+    --manifest manifest/rebuild-scratch-org.xml \
     --target-org scratch-platform-playground \
     --wait 30
 ```
 
-`manifest/scratch-org-rebuild.xml` は、次の source directory から生成した manifest を検査し、Scratch Org に deploy できる scope として残したものです。
+`manifest/rebuild-scratch-org.xml` は、次の source directory から生成した manifest を検査し、Scratch Org に deploy できる scope として残したものです。
 
 - `force-app/main/default/classes`
 - `force-app/main/default/triggers`
@@ -177,7 +177,7 @@ sf project deploy start \
 - `force-app/main/default/workflows`
 
 Scratch Org 専用 source directory は作りません。
-初期反映の正本は `force-app/main/default` と `manifest/scratch-org-rebuild.xml` に寄せ、Scratch Org の機能有効化は `config/project-scratch-def.json` で扱います。
+初期反映の正本は `force-app/main/default` と `manifest/rebuild-scratch-org.xml` に寄せ、Scratch Org の機能有効化は `config/project-scratch-def.json` で扱います。
 Settings や DuplicateRule を Scratch Org 用にコピーして個別補正すると二重管理になりやすいため、必要な場合は対象 metadata ごとに manifest、scratch definition、または手順 docs で扱います。
 
 External Client App は Dev 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
@@ -250,7 +250,7 @@ sf project deploy start --manifest manifest/scratch-work.xml --target-org salesf
 `manifest/scratch-work.xml` は作業単位の manifest です。
 必要に応じてファイル名を作業内容に合わせます。
 作業対象 manifest は、Scratch Org で実際に変更する予定のメタデータだけを含めます。
-`manifest/scratch-org-rebuild.xml` は Scratch Org 作成後の初期反映用なので、Scratch Org から Dev 組織へ戻す用途には使いません。
+`manifest/rebuild-scratch-org.xml` は Scratch Org 作成後の初期反映用なので、Scratch Org から Dev 組織へ戻す用途には使いません。
 
 ## 確認
 
@@ -262,7 +262,7 @@ sf apex run test --test-level RunLocalTests --result-format human --target-org s
 
 Scratch Org 初期反映対象を変更した場合は、少なくとも次を確認します。
 
-- `manifest/scratch-org-rebuild.xml` の deploy が成功すること
+- `manifest/rebuild-scratch-org.xml` の deploy が成功すること
 - Apex `RunLocalTests` が成功すること
 - 確認後に Scratch Org が削除されること
 
