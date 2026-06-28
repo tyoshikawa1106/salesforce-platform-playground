@@ -46,32 +46,51 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
+     * 検索画面の内部処理状態を作成します。
+     * @param config LWC に返す検索画面設定
+     * @param nameFieldDescribe Name 相当項目の describe 結果
+     * @param objectDescribe 対象オブジェクトの describe 結果
+     * @return 検索画面の内部処理状態
+     */
+    public ObjectRecordSearchContext createSearchContext(
+        ObjectRecordSearchConfigWrapper config,
+        Schema.DescribeFieldResult nameFieldDescribe,
+        Schema.DescribeSObjectResult objectDescribe
+    ) {
+        return new ObjectRecordSearchContext(
+            config,
+            nameFieldDescribe,
+            objectDescribe
+        );
+    }
+
+    /**
      * 検索リクエストから安全なソート条件を作成します。
-     * @param config 検索画面設定
+     * @param context 検索画面の内部処理状態
      * @param request 検索条件とページ指定
      * @return 許可済み項目と方向だけを持つソート条件
      */
     public ObjectRecordSearchSortSupport.SortSpec createSortSpec(
-        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request
     ) {
-        return ObjectRecordSearchSortSupport.createSortSpec(config, request);
+        return ObjectRecordSearchSortSupport.createSortSpec(context, request);
     }
 
     /**
      * 検索条件、ソート条件、ページング条件をまとめます。
-     * @param config 検索画面設定
+     * @param context 検索画面の内部処理状態
      * @param request 検索条件とページ指定
      * @param sortSpec 正規化済みソート条件
      * @return 検索クエリと結果整形で共有する検索条件
      */
     public ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(
-        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
-        searchQueryRequest.config = config;
+        searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
         searchQueryRequest.sortSpec = sortSpec;
         searchQueryRequest.cursor = ObjectRecordSearchSortSupport.parsePageToken(
@@ -110,8 +129,8 @@ public with sharing class ObjectRecordSearchService {
             rows.add(
                 new ObjectRecordSearchRowWrapper(
                     record,
-                    request.config.nameFieldApiName,
-                    request.config.displayFields
+                    request.context.config.nameFieldApiName,
+                    request.context.config.displayFields
                 )
             );
         }
@@ -128,7 +147,7 @@ public with sharing class ObjectRecordSearchService {
               )
             : null;
 
-        return new ObjectRecordSearchResultWrapper(request.config, rows)
+        return new ObjectRecordSearchResultWrapper(request.context.config, rows)
             .withPageState(
                 PAGE_SIZE,
                 normalizePageNumber(request.searchRequest?.pageNumber),

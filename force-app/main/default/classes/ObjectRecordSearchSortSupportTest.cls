@@ -13,13 +13,13 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     @IsTest
     static void shouldCreateDefaultSortSpecWhenSortRequestIsMissing() {
-        ObjectRecordSearchConfigWrapper config = createAccountConfig();
+        ObjectRecordSearchContext context = createAccountContext();
 
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-                config,
+                context,
                 new ObjectRecordSearchRequestWrapper()
             );
             Test.stopTest();
@@ -39,7 +39,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     @IsTest
     static void shouldCreateRequestedSortSpecWhenFieldIsAllowed() {
-        ObjectRecordSearchConfigWrapper config = createAccountConfig();
+        ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Industry';
         request.sortDirection = 'desc';
@@ -48,7 +48,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-                config,
+                context,
                 request
             );
             Test.stopTest();
@@ -68,11 +68,12 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     @IsTest
     static void shouldCreateAndParseNextPageToken() {
-        ObjectRecordSearchConfigWrapper config = createAccountConfig();
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchConfigWrapper config = context.config;
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Industry';
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-            config,
+            context,
             request
         );
         Account accountRecord = new Account(
@@ -117,9 +118,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     @IsTest
     static void shouldCreateCursorWhereClauseForAscendingSort() {
-        ObjectRecordSearchConfigWrapper config = createAccountConfig();
+        ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-            config,
+            context,
             new ObjectRecordSearchRequestWrapper()
         );
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
@@ -148,9 +149,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     @IsTest
     static void shouldCreateCursorWhereClauseForNullSortValue() {
-        ObjectRecordSearchConfigWrapper config = createAccountConfig();
+        ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-            config,
+            context,
             new ObjectRecordSearchRequestWrapper()
         );
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
@@ -174,9 +175,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     @IsTest
     static void shouldThrowWhenPageTokenDoesNotMatchSortField() {
-        ObjectRecordSearchConfigWrapper config = createAccountConfig();
+        ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-            config,
+            context,
             new ObjectRecordSearchRequestWrapper()
         );
         String pageToken = JSON.serialize(
@@ -205,7 +206,33 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         }
     }
 
-    private static ObjectRecordSearchConfigWrapper createAccountConfig() {
+    @IsTest
+    static void shouldThrowDomainExceptionWhenPageTokenIsMalformed() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            context,
+            new ObjectRecordSearchRequestWrapper()
+        );
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchSortSupport.parsePageToken(
+                    '{malformed',
+                    sortSpec
+                );
+                Assert.fail('Malformed page tokens should throw.');
+            } catch (ObjectRecordSearchException error) {
+                Assert.isTrue(
+                    error.getMessage().contains('ページ指定'),
+                    'Malformed page tokens should be normalized into the search exception.'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+
+    private static ObjectRecordSearchContext createAccountContext() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
             'accounts'
@@ -213,7 +240,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
         );
-        return service.createObjectConfig(
+        ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             objectDescribe.fields.getMap().get('Name').getDescribe(),
             objectDescribe
@@ -224,7 +251,12 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                     'Industry',
                     'text'
                 )
-            }, objectDescribe);
+            });
+        return service.createSearchContext(
+            config,
+            objectDescribe.fields.getMap().get('Name').getDescribe(),
+            objectDescribe
+        );
     }
 
     private static Id getTestAccountId() {

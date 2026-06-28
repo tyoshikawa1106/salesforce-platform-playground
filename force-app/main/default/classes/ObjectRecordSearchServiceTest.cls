@@ -20,13 +20,13 @@ private with sharing class ObjectRecordSearchServiceTest {
             'accounts',
             'Service'
         );
-        ObjectRecordSearchConfigWrapper config = createAccountConfig(service);
+        ObjectRecordSearchContext context = createAccountContext(service);
         ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
-            config,
+            context,
             request
         );
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
-            config,
+            context,
             request,
             sortSpec
         );
@@ -126,7 +126,10 @@ private with sharing class ObjectRecordSearchServiceTest {
     @IsTest
     static void shouldReturnFalseWhenDeleteRequestIsEmpty() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectRecordSearchConfigWrapper config = createAccountConfig(service);
+        ObjectRecordSearchConfigWrapper config = createAccountContext(
+                service
+            )
+            .config;
 
         Boolean canDelete;
         System.runAs(TestDataFactory.currentUser()) {
@@ -141,7 +144,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
-    private static ObjectRecordSearchConfigWrapper createAccountConfig(
+    private static ObjectRecordSearchContext createAccountContext(
         ObjectRecordSearchService service
     ) {
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
@@ -155,12 +158,17 @@ private with sharing class ObjectRecordSearchServiceTest {
             new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
         };
 
-        return service.createObjectConfig(
+        ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             nameFieldDescribe,
             objectDescribe
         )
-            .withDisplayFields(displayFields, objectDescribe);
+            .withDisplayFields(displayFields);
+        return service.createSearchContext(
+            config,
+            nameFieldDescribe,
+            objectDescribe
+        );
     }
 
     private static ObjectRecordSearchRequestWrapper createSearchRequest(

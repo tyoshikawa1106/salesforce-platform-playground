@@ -38,11 +38,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
         Schema.DescribeSObjectResult objectDescribe
     ) {
         Schema.DescribeFieldResult nameFieldDescribe;
+        Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
 
-        for (
-            Schema.SObjectField fieldToken : objectDescribe.fields.getMap()
-                .values()
-        ) {
+        for (Schema.SObjectField fieldToken : fieldsByApiName.values()) {
             Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
             if (fieldDescribe.isNameField()) {
                 nameFieldDescribe = fieldDescribe;
@@ -52,11 +50,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
         if (
             nameFieldDescribe == null &&
-            objectDescribe.fields.getMap().containsKey('Name')
+            fieldsByApiName.containsKey('Name')
         ) {
-            nameFieldDescribe = objectDescribe.fields.getMap()
-                .get('Name')
-                .getDescribe();
+            nameFieldDescribe = fieldsByApiName.get('Name').getDescribe();
         }
 
         if (nameFieldDescribe == null) {

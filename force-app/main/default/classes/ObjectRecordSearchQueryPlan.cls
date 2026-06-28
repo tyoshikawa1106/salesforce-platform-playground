@@ -16,7 +16,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
         String normalizedSearchTerm = request.searchRequest?.searchTerm?.trim();
         String likeSearchTerm = usesNameSearch(
                 normalizedSearchTerm,
-                request.config
+                request.context.config
             )
             ? '%' + normalizedSearchTerm + '%'
             : null;
@@ -34,13 +34,13 @@ public with sharing class ObjectRecordSearchQueryPlan {
 
     /**
      * 検索時に SELECT する項目 API 参照名を返します。
-     * @param config 検索画面設定
+     * @param context 検索画面の内部処理状態
      * @return Name 項目と表示項目の重複を除いた一覧
      */
     public static List<String> getQueryFields(
-        ObjectRecordSearchConfigWrapper config
+        ObjectRecordSearchContext context
     ) {
-        return config.getQueryFieldApiNames();
+        return context.getQueryFieldApiNames();
     }
 
     private static String buildSearchSoql(
@@ -49,14 +49,14 @@ public with sharing class ObjectRecordSearchQueryPlan {
     ) {
         String query =
             'SELECT Id, ' +
-            String.join(getQueryFields(request.config), ', ') +
+            String.join(getQueryFields(request.context), ', ') +
             ' FROM ' +
-            request.config.objectApiName;
+            request.context.config.objectApiName;
 
         List<String> whereClauses = new List<String>();
         if (includeNameSearch) {
             whereClauses.add(
-                request.config.nameFieldApiName + ' LIKE :nameSearchTerm'
+                request.context.config.nameFieldApiName + ' LIKE :nameSearchTerm'
             );
         }
         if (request.cursor != null) {
@@ -100,7 +100,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * 検索クエリ計画を作るための入力です。
      */
     public class SearchQueryRequest {
-        public ObjectRecordSearchConfigWrapper config;
+        public ObjectRecordSearchContext context;
         public ObjectRecordSearchRequestWrapper searchRequest;
         public ObjectRecordSearchSortSupport.SortSpec sortSpec;
         public ObjectRecordSearchSortSupport.PageCursor cursor;
