@@ -40,6 +40,8 @@
 | ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `.gitignore`              | Git 管理対象外にする Salesforce cache、依存、coverage、OS / editor 生成物、秘密情報系ファイルを定義する。 | source、metadata、docs、GitHub 設定を誤って除外していないか確認する。 |
 | `.vscode/extensions.json` | このリポジトリで推奨する VS Code 拡張機能を定義する。                                                     | 個人環境専用の拡張や設定を固定しない。                                |
+| `.vscode/launch.json`     | Apex Replay Debugger など、このリポジトリで共有する VS Code debug configuration を定義する。              | 個人環境専用のパスやログファイル名を固定しない。                      |
+| `.vscode/settings.json`   | このリポジトリで共有する VS Code workspace settings を定義する。                                          | 個人環境専用の設定や秘密情報を含めない。                              |
 
 ## GitHub
 

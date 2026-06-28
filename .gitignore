@@ -83,10 +83,6 @@ ehthumbs.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
 
-# VS Code project settings
-.vscode/*
-!.vscode/extensions.json
-
 # Local environment variables
 .env
 .env.local
