@@ -17,11 +17,11 @@
 
 ## force-app 配下の metadata
 
-2026-06-24 時点で、`force-app/main/default` には次の top-level metadata directory があります。
+2026-06-28 時点で、`force-app/main/default` には次の top-level metadata directory があります。
 
 | ディレクトリ                        | ファイル数 | 標準 Dev manifest | 判断                                                                                        |
 | ----------------------------------- | ---------- | ----------------- | ------------------------------------------------------------------------------------------- |
-| `classes/`                          | 36         | 対象              | Apex とテスト。標準 deploy scope に含める。                                                 |
+| `classes/`                          | 38         | 対象              | Apex とテスト。標準 deploy scope に含める。                                                 |
 | `triggers/`                         | 2          | 対象              | Apex Trigger。標準 deploy scope に含める。                                                  |
 | `lwc/`                              | 15         | 対象              | LWC bundle。`__tests__` は manifest に含めない。                                            |
 | `objects/`                          | 687        | 一部対象          | Object / Field / ListView / ValidationRule / WebLink を manifest で明示する。               |
@@ -30,7 +30,7 @@
 | `quickActions/`                     | 25         | 対象              | 標準 deploy scope に含める。                                                                |
 | `flows/`                            | 3          | 一部対象          | 有効化や org 前提を確認し、必要な Flow だけを manifest に含める。                           |
 | `flowDefinitions/`                  | 3          | 対象外            | Flow active version 指定は org 状態の影響を受けるため、標準 Dev scope には入れない。        |
-| `permissionsets/`                   | 2          | 対象              | Profile ではなく Permission Set を優先する。                                                |
+| `permissionsets/`                   | 3          | 対象              | Profile ではなく Permission Set を優先する。                                                |
 | `permissionsetgroups/`              | 1          | 対象外            | 権限セットグループ運用を決めたときに個別 manifest で扱う。                                  |
 | `reportTypes/`                      | 6          | 一部対象          | manifest に含めた ReportType だけを Dev 標準 scope にする。                                 |
 | `matchingRules/`                    | 4          | 対象              | DuplicateRule と依存する場合はセットで確認する。                                            |

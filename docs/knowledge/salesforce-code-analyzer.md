@@ -83,11 +83,12 @@ sf code-analyzer run --rule-selector Recommended --target force-app
 結果をファイルに出力する:
 
 ```sh
-sf code-analyzer run --rule-selector Recommended --target force-app --output-file logs/code-analyzer/local.html
+sf code-analyzer run --rule-selector Recommended --target force-app --output-file logs/code-analyzer/local.json
 ```
 
 `--output-file` の拡張子に応じて、HTML、JSON、CSV、XML、SARIF などの形式で出力できます。
 このリポジトリでは、再生成できる解析結果を Git 管理しないため、出力先は `.gitignore` の `logs/code-analyzer/` に揃えます。
+標準の npm script は `logs/code-analyzer/local.json` に出力します。
 
 severity を指定して CI で失敗させたい場合:
 
