@@ -63,7 +63,7 @@ export function getSortFieldApiName({
 
 function createDisplayFieldColumn(field) {
     const fieldName = getDisplayFieldName(field.apiName);
-    const type = getDisplayFieldType(field.apiName);
+    const type = field.dataType ?? 'text';
     const column = {
         label: field.label,
         fieldName,
@@ -81,40 +81,6 @@ function createDisplayFieldColumn(field) {
     }
 
     return column;
-}
-
-function getDisplayFieldType(apiName) {
-    if (isUrlField(apiName)) {
-        return 'url';
-    }
-
-    if (isEmailField(apiName)) {
-        return 'email';
-    }
-
-    if (isPhoneField(apiName)) {
-        return 'phone';
-    }
-
-    return 'text';
-}
-
-function isUrlField(apiName) {
-    const normalizedApiName = apiName.toLowerCase();
-    return normalizedApiName === 'website' || normalizedApiName.endsWith('url');
-}
-
-function isEmailField(apiName) {
-    const normalizedApiName = apiName.toLowerCase();
-    return (
-        normalizedApiName.endsWith('email') ||
-        normalizedApiName === 'fromaddress' ||
-        normalizedApiName === 'toaddress'
-    );
-}
-
-function isPhoneField(apiName) {
-    return apiName.toLowerCase().endsWith('phone');
 }
 
 function getDisplayFieldName(apiName) {

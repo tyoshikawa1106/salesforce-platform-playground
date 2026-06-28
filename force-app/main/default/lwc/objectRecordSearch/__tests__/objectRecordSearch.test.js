@@ -49,12 +49,12 @@ const searchResponse = {
         nameFieldCreateable: true,
         nameFieldUpdateable: true,
         displayFields: [
-            { apiName: 'Industry', label: '業種' },
-            { apiName: 'Type', label: '種別' },
-            { apiName: 'Website', label: 'Webサイト' },
-            { apiName: 'Phone', label: '電話' },
-            { apiName: 'BillingState', label: '都道府県' },
-            { apiName: 'BillingCity', label: '市区郡' }
+            { apiName: 'Industry', label: '業種', dataType: 'text' },
+            { apiName: 'Type', label: '種別', dataType: 'text' },
+            { apiName: 'Website', label: 'Webサイト', dataType: 'url' },
+            { apiName: 'Phone', label: '電話', dataType: 'phone' },
+            { apiName: 'BillingState', label: '都道府県', dataType: 'text' },
+            { apiName: 'BillingCity', label: '市区郡', dataType: 'text' }
         ]
     },
     records: [

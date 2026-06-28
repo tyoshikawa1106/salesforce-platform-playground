@@ -61,31 +61,46 @@ private with sharing class ObjectRecordSearchControllerTest {
             config.displayFields.size() > 0,
             'Account config should expose fixed seed/import display fields.'
         );
-        Set<String> displayFieldApiNames = new Set<String>();
+        Map<String, ObjectRecordSearchController.ObjectRecordDisplayField> displayFieldsByApiName = new Map<String, ObjectRecordSearchController.ObjectRecordDisplayField>();
         for (
             ObjectRecordSearchController.ObjectRecordDisplayField displayField : config.displayFields
         ) {
-            displayFieldApiNames.add(displayField.apiName);
+            displayFieldsByApiName.put(displayField.apiName, displayField);
         }
         Assert.isTrue(
-            displayFieldApiNames.contains('AccountNumber'),
+            displayFieldsByApiName.containsKey('AccountNumber'),
             'Account display fields should include AccountNumber.'
         );
         Assert.isTrue(
-            displayFieldApiNames.contains('Industry'),
+            displayFieldsByApiName.containsKey('Industry'),
             'Account display fields should include Industry.'
         );
         Assert.isTrue(
-            displayFieldApiNames.contains('BillingState'),
+            displayFieldsByApiName.containsKey('BillingState'),
             'Account display fields should include BillingState.'
         );
         Assert.isTrue(
-            displayFieldApiNames.contains('BillingCity'),
+            displayFieldsByApiName.containsKey('BillingCity'),
             'Account display fields should include BillingCity.'
         );
         Assert.isFalse(
-            displayFieldApiNames.contains('BillingCountry'),
+            displayFieldsByApiName.containsKey('BillingCountry'),
             'Account display fields should not include BillingCountry.'
+        );
+        Assert.areEqual(
+            'text',
+            displayFieldsByApiName.get('Industry').dataType,
+            'Picklist display fields should use the text datatable type.'
+        );
+        Assert.areEqual(
+            'phone',
+            displayFieldsByApiName.get('Phone').dataType,
+            'Phone display fields should use the phone datatable type.'
+        );
+        Assert.areEqual(
+            'url',
+            displayFieldsByApiName.get('Website').dataType,
+            'URL display fields should use the url datatable type.'
         );
     }
 
