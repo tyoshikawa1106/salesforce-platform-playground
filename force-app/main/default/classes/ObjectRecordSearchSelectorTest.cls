@@ -209,13 +209,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
         return service.createObjectConfig(
             definition,
             Account.Name.getDescribe(),
-            service.createAccess(
-                objectDescribe,
-                ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
-                    'Account',
-                    objectDescribe
-                )
-            )
-        );
+            objectDescribe
+        )
+            .withDisplayFields(ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
+                'Account',
+                objectDescribe
+            ));
     }
 }

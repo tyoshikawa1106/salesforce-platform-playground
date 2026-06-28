@@ -216,17 +216,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         return service.createObjectConfig(
             definition,
             objectDescribe.fields.getMap().get('Name').getDescribe(),
-            service.createAccess(
-                objectDescribe,
-                new List<ObjectRecordSearchFieldWrapper>{
-                    new ObjectRecordSearchFieldWrapper(
-                        'Industry',
-                        'Industry',
-                        'text'
-                    )
-                }
-            )
-        );
+            objectDescribe
+        )
+            .withDisplayFields(new List<ObjectRecordSearchFieldWrapper>{
+                new ObjectRecordSearchFieldWrapper(
+                    'Industry',
+                    'Industry',
+                    'text'
+                )
+            });
     }
 
     private static Id getTestAccountId() {

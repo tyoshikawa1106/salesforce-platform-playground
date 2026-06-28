@@ -6,18 +6,14 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
     @IsTest
     static void shouldExposeResultValuesAndNextPageState() {
         ObjectRecordSearchConfigWrapper config = createConfigWrapper();
-        ObjectRecordSearchPageStateWrapper pageState = new ObjectRecordSearchPageStateWrapper();
-        pageState.pageSize = 50;
-        pageState.pageNumber = 2;
-        pageState.nextPageToken = 'next-token';
         ObjectRecordSearchResultWrapper wrapper;
 
         System.runAs(getCurrentUser()) {
             wrapper = new ObjectRecordSearchResultWrapper(
                 config,
-                new List<ObjectRecordSearchRowWrapper>(),
-                pageState
-            );
+                new List<ObjectRecordSearchRowWrapper>()
+            )
+                .withPageState(50, 2, 'next-token');
         }
 
         Assert.areEqual(
@@ -55,11 +51,9 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
         return new ObjectRecordSearchConfigWrapper(
             ObjectMetricCatalog.getDefinition('accounts'),
             Account.Name.getDescribe(),
-            new ObjectRecordSearchAccessWrapper(
-                Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
-                new List<ObjectRecordSearchFieldWrapper>()
-            )
-        );
+            Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
+        )
+            .withDisplayFields(new List<ObjectRecordSearchFieldWrapper>());
     }
 
     private static User getCurrentUser() {

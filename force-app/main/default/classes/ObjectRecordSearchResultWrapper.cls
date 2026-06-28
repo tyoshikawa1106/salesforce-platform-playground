@@ -43,18 +43,33 @@ public with sharing class ObjectRecordSearchResultWrapper {
      *
      * @param config 検索画面設定
      * @param records 一覧に表示するレコード行
-     * @param pageState ページ状態
      */
     public ObjectRecordSearchResultWrapper(
         ObjectRecordSearchConfigWrapper config,
-        List<ObjectRecordSearchRowWrapper> records,
-        ObjectRecordSearchPageStateWrapper pageState
+        List<ObjectRecordSearchRowWrapper> records
     ) {
         this.config = config;
         this.records = records;
-        pageSize = pageState.pageSize;
-        pageNumber = pageState.pageNumber;
-        nextPageToken = pageState.nextPageToken;
+    }
+
+    /**
+     * 検索結果にページング状態を反映します。
+     * ResultWrapper は LWC へ返す最終形だけを持ち、次ページ判定は Service 側で完了させます。
+     *
+     * @param pageSize 1 ページあたりの最大表示件数
+     * @param pageNumber 現在のページ番号
+     * @param nextPageToken 次ページ取得用のカーソルトークン
+     * @return ページング状態を反映した検索結果
+     */
+    public ObjectRecordSearchResultWrapper withPageState(
+        Integer pageSize,
+        Integer pageNumber,
+        String nextPageToken
+    ) {
+        this.pageSize = pageSize;
+        this.pageNumber = pageNumber;
+        this.nextPageToken = nextPageToken;
         hasNextPage = String.isNotBlank(nextPageToken);
+        return this;
     }
 }

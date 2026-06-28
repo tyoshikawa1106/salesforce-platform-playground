@@ -158,8 +158,9 @@ private with sharing class ObjectRecordSearchServiceTest {
         return service.createObjectConfig(
             definition,
             nameFieldDescribe,
-            service.createAccess(objectDescribe, displayFields)
-        );
+            objectDescribe
+        )
+            .withDisplayFields(displayFields);
     }
 
     private static User getCurrentUser() {

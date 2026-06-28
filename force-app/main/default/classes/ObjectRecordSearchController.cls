@@ -1,5 +1,10 @@
 /**
  * データボードから遷移する汎用レコード検索画面の Apex 入口です。
+ *
+ * Controller は LWC から呼ばれる公開 API と処理順序の組み立てだけを担当します。
+ * Service と Selector のやり取りはここで引数と戻り値として明示し、
+ * Service から直接 SOQL / DML を呼ばない構成にしています。
+ * LWC に返す例外メッセージへの変換も Apex 境界である Controller に集約します。
  */
 public with sharing class ObjectRecordSearchController {
     private static final String USER_FACING_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
@@ -104,18 +109,16 @@ public with sharing class ObjectRecordSearchController {
         Schema.DescribeFieldResult nameFieldDescribe = SELECTOR.getNameFieldDescribe(
             objectDescribe
         );
-        ObjectRecordSearchAccessWrapper access = SERVICE.createAccess(
-            objectDescribe,
-            ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
-                definition.objectApiName,
-                objectDescribe
-            )
+        List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
+            definition.objectApiName,
+            objectDescribe
         );
 
         return SERVICE.createObjectConfig(
             definition,
             nameFieldDescribe,
-            access
-        );
+            objectDescribe
+        )
+            .withDisplayFields(displayFields);
     }
 }
