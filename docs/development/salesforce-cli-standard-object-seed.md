@@ -150,7 +150,7 @@ sf sobject describe --sobject Account --target-org <alias> --json
 
 ## このリポジトリでの実装例
 
-このリポジトリでは、具体的な運用手順を [Salesforce CLI テストデータインポート](../development/test-data-import.md) に置いています。
+このリポジトリでは、具体的な運用手順を [Salesforce CLI テストデータインポート](test-data-import.md) に置いています。
 
 主要標準オブジェクト seed の実体は次です。
 
