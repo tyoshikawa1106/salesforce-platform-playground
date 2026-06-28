@@ -7,7 +7,7 @@ private with sharing class ObjectRecordSearchExceptionTest {
     static void shouldExposeExceptionMessage() {
         ObjectRecordSearchException error;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             error = new ObjectRecordSearchException('検索条件が不正です。');
             Test.stopTest();
@@ -18,9 +18,5 @@ private with sharing class ObjectRecordSearchExceptionTest {
             error.getMessage(),
             'Exception should expose the supplied message.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

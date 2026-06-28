@@ -2,7 +2,7 @@
 private class TestDataFactoryTest {
     @IsTest
     static void createAccountsWhenCountIsPositiveReturnsNamedAccounts() {
-        System.runAs(currentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             List<Account> accounts = TestDataFactory.createAccounts(3);
 
             Assert.areEqual(
@@ -25,7 +25,7 @@ private class TestDataFactoryTest {
 
     @IsTest
     static void createAccountsWhenCountIsNullOrZeroReturnsEmptyList() {
-        System.runAs(currentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Assert.areEqual(
                 0,
                 TestDataFactory.createAccounts(null).size(),
@@ -41,7 +41,7 @@ private class TestDataFactoryTest {
 
     @IsTest
     static void insertAccountWhenNameIsProvidedSavesAccount() {
-        System.runAs(currentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             Account accountRecord = TestDataFactory.insertAccount(
                 'Factory Account'
@@ -64,7 +64,7 @@ private class TestDataFactoryTest {
 
     @IsTest
     static void createRelatedRecordsWhenParentsAreProvidedPopulatesLookups() {
-        System.runAs(currentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Account accountRecord = TestDataFactory.insertAccount(
                 'Factory Parent Account'
             );
@@ -129,7 +129,7 @@ private class TestDataFactoryTest {
 
     @IsTest
     static void createLeadAndCaseWhenRequiredValuesProvidedPopulatesFields() {
-        System.runAs(currentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Lead leadRecord = TestDataFactory.createLead(
                 'Factory Lead',
                 'Factory Company'
@@ -152,9 +152,5 @@ private class TestDataFactoryTest {
                 'Case should use the requested subject.'
             );
         }
-    }
-
-    private static User currentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

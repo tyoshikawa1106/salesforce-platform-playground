@@ -119,6 +119,6 @@ public with sharing class ObjectRecordSearchController {
             nameFieldDescribe,
             objectDescribe
         )
-            .withDisplayFields(displayFields);
+            .withDisplayFields(displayFields, objectDescribe);
     }
 }

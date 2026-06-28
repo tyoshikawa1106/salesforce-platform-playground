@@ -12,7 +12,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeInsert(accounts);
             Test.stopTest();
@@ -44,7 +44,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeUpdate(
                 new List<Account>{ updatedAccount },
@@ -78,7 +78,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeUpdate(
                 new List<Account>{ accountRecord },
@@ -101,7 +101,7 @@ private with sharing class AccountTriggerServiceTest {
         List<Account> accounts = new List<Account>();
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeInsert(accounts);
             Test.stopTest();
@@ -121,7 +121,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeInsert(accounts);
             Test.stopTest();
@@ -151,7 +151,7 @@ private with sharing class AccountTriggerServiceTest {
         );
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeUpdate(
                 new List<Account>{ updatedAccount },
@@ -178,7 +178,7 @@ private with sharing class AccountTriggerServiceTest {
         );
 
         // 実行
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             AccountTriggerService.beforeUpdate(
                 new List<Account>{ updatedAccount },
@@ -193,9 +193,5 @@ private with sharing class AccountTriggerServiceTest {
             updatedAccount.Name,
             'Null old Account entries should be treated as changed.'
         );
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

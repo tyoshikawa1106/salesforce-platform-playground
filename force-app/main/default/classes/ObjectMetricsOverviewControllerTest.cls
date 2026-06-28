@@ -10,7 +10,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             summary = ObjectMetricsOverviewController.getObjectMetrics();
             Test.stopTest();
@@ -34,7 +34,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
         ObjectMetricsOverviewController.selector = new FailingObjectMetricsOverviewSelector();
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             try {
                 ObjectMetricsOverviewController.getObjectMetrics();
@@ -58,9 +58,5 @@ private with sharing class ObjectMetricsOverviewControllerTest {
     }
 
     private class FailingObjectMetricsOverviewException extends Exception {
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

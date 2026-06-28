@@ -8,7 +8,7 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
         ObjectRecordSearchConfigWrapper config = createConfigWrapper();
         ObjectRecordSearchResultWrapper wrapper;
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             wrapper = new ObjectRecordSearchResultWrapper(
                 config,
                 new List<ObjectRecordSearchRowWrapper>()
@@ -48,15 +48,17 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
     }
 
     private static ObjectRecordSearchConfigWrapper createConfigWrapper() {
+        Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
+            SObjectDescribeOptions.DEFERRED
+        );
         return new ObjectRecordSearchConfigWrapper(
             ObjectMetricCatalog.getDefinition('accounts'),
             Account.Name.getDescribe(),
-            Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
+            objectDescribe
         )
-            .withDisplayFields(new List<ObjectRecordSearchFieldWrapper>());
-    }
-
-    private static User getCurrentUser() {
-        return [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
+            .withDisplayFields(
+                new List<ObjectRecordSearchFieldWrapper>(),
+                objectDescribe
+            );
     }
 }

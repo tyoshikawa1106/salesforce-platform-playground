@@ -221,27 +221,42 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>();
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         for (String fieldApiName : getDisplayFieldApiNames(objectApiName)) {
-            if (!fieldsByApiName.containsKey(fieldApiName)) {
-                continue;
-            }
-
-            Schema.DescribeFieldResult fieldDescribe = fieldsByApiName.get(
-                    fieldApiName
-                )
-                .getDescribe();
-            if (!fieldDescribe.isAccessible()) {
-                continue;
-            }
-
-            displayFields.add(
-                new ObjectRecordSearchFieldWrapper(
-                    fieldDescribe.getName(),
-                    fieldDescribe.getLabel(),
-                    getDatatableType(fieldDescribe.getType())
-                )
+            Schema.DescribeFieldResult fieldDescribe = getAccessibleFieldDescribe(
+                fieldsByApiName,
+                fieldApiName
             );
+            if (fieldDescribe == null) {
+                continue;
+            }
+
+            displayFields.add(createDisplayField(fieldDescribe));
         }
         return displayFields;
+    }
+
+    private static Schema.DescribeFieldResult getAccessibleFieldDescribe(
+        Map<String, Schema.SObjectField> fieldsByApiName,
+        String fieldApiName
+    ) {
+        if (!fieldsByApiName.containsKey(fieldApiName)) {
+            return null;
+        }
+
+        Schema.DescribeFieldResult fieldDescribe = fieldsByApiName.get(
+                fieldApiName
+            )
+            .getDescribe();
+        return fieldDescribe.isAccessible() ? fieldDescribe : null;
+    }
+
+    private static ObjectRecordSearchFieldWrapper createDisplayField(
+        Schema.DescribeFieldResult fieldDescribe
+    ) {
+        return new ObjectRecordSearchFieldWrapper(
+            fieldDescribe.getName(),
+            fieldDescribe.getLabel(),
+            getDatatableType(fieldDescribe.getType())
+        );
     }
 
     private static List<String> getDisplayFieldApiNames(String objectApiName) {

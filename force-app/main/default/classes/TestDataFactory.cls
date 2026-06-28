@@ -4,6 +4,14 @@
 @IsTest
 public with sharing class TestDataFactory {
     /**
+     * System.runAs に渡す現在ユーザーの参照を作成します。
+     * @return 現在実行ユーザーの Id だけを持つ User レコード
+     */
+    public static User currentUser() {
+        return new User(Id = UserInfo.getUserId());
+    }
+
+    /**
      * 既定値を持つ取引先レコードを作成します。
      * @param count 作成する取引先件数
      * @return 作成した取引先レコード

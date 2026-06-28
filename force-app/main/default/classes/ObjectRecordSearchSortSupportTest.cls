@@ -16,7 +16,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchConfigWrapper config = createAccountConfig();
 
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 config,
@@ -45,7 +45,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         request.sortDirection = 'desc';
 
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 config,
@@ -90,7 +90,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         String pageToken;
         ObjectRecordSearchSortSupport.PageCursor cursor;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
                 rows,
@@ -127,7 +127,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         cursor.recordId = getTestAccountId();
 
         String whereClause;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             whereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
                 sortSpec,
@@ -157,7 +157,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         cursor.recordId = getTestAccountId();
 
         String whereClause;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             whereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
                 sortSpec,
@@ -187,7 +187,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             }
         );
 
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             try {
                 ObjectRecordSearchSortSupport.parsePageToken(
@@ -224,7 +224,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                     'Industry',
                     'text'
                 )
-            });
+            }, objectDescribe);
     }
 
     private static Id getTestAccountId() {
@@ -234,9 +234,5 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             WHERE Name = 'Cursor Account'
             LIMIT 1
         ].Id;
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }

@@ -11,7 +11,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 実行
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricsByKey;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             metricsByKey = selector.getObjectMetricValues();
             Test.stopTest();
@@ -168,7 +168,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             metricCount = selector.countVisibleRecords('UnknownObject__c');
             Test.stopTest();
@@ -188,7 +188,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
     @IsTest
     static void shouldExposeWhetherObjectApiNameIsConfigured() {
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             Boolean hasAccount = ObjectMetricCatalog.hasObjectApiName(
                 'Account'
@@ -221,7 +221,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             metricCount = selector.countVisibleRecords(' ');
             Test.stopTest();
@@ -244,7 +244,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount exactCount;
         ObjectMetricsOverviewSelector.ObjectMetricCount cappedCount;
-        System.runAs(getCurrentUser()) {
+        System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
             exactCount = ObjectMetricsOverviewSelector.createCount(49999);
             cappedCount = ObjectMetricsOverviewSelector.createCount(50000);
@@ -304,9 +304,5 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             StartDate = Date.today(),
             ContractTerm = 12
         );
-    }
-
-    private static User getCurrentUser() {
-        return new User(Id = UserInfo.getUserId());
     }
 }
