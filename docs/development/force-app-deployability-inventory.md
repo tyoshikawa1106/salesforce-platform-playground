@@ -3,15 +3,15 @@
 `force-app/main/default` を丸ごと Dev 組織へ validate / deploy するのではなく、どの metadata を標準 deploy scope に含めるかを判断するための棚卸しです。
 
 このリポジトリでは `force-app/main/default` を source の正本にします。
-ただし、`force-app` には Dev 組織から広く retrieve した org 固有 metadata も含まれるため、標準の Dev 組織 validate / deploy 入口は `manifest/deployable-dev.xml` とします。
+ただし、`force-app` には Dev 組織から広く retrieve した org 固有 metadata も含まれるため、標準の Dev 組織 validate / deploy 入口は `manifest/rebuild-developer-org.xml` とします。
 
 ## 現在の標準入口
 
-| 用途                 | コマンド                                         | scope                              |
-| -------------------- | ------------------------------------------------ | ---------------------------------- |
-| Dev 組織 validate    | `npm run sf:validate:dev`                        | `manifest/deployable-dev.xml`      |
-| Dev 組織 deploy      | `npm run sf:deploy:dev`                          | `manifest/deployable-dev.xml`      |
-| Scratch Org 初期反映 | `node scripts/deployment/rebuild-scratch-org.js` | `manifest/scratch-org-rebuild.xml` |
+| 用途                 | コマンド                                         | scope                                |
+| -------------------- | ------------------------------------------------ | ------------------------------------ |
+| Dev 組織 validate    | `npm run sf:validate:dev`                        | `manifest/rebuild-developer-org.xml` |
+| Dev 組織 deploy      | `npm run sf:deploy:dev`                          | `manifest/rebuild-developer-org.xml` |
+| Scratch Org 初期反映 | `node scripts/deployment/rebuild-scratch-org.js` | `manifest/rebuild-scratch-org.xml`   |
 
 `sf project deploy validate --source-dir force-app` は、標準の成功条件ではなく、広く retrieve した metadata の分類調査として扱います。
 
@@ -70,7 +70,7 @@
 
 ## 標準 Dev manifest に含める metadata type
 
-`manifest/deployable-dev.xml` は、次の metadata type を標準 Dev validate / deploy scope とします。
+`manifest/rebuild-developer-org.xml` は、次の metadata type を標準 Dev validate / deploy scope とします。
 
 - `ApexClass`
 - `ApexEmailNotifications`
@@ -105,7 +105,7 @@
 
 ## 標準 scope から外す主な metadata
 
-次の metadata は Git 管理していても、`manifest/deployable-dev.xml` には含めません。
+次の metadata は Git 管理していても、`manifest/rebuild-developer-org.xml` には含めません。
 
 | 種別                          | 理由                                                           | 今後の扱い                                                                         |
 | ----------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -127,7 +127,7 @@ metadata type ごとに次の順で進めます。
 
 1. 対象 metadata type の目的を決める。
 2. Dev 組織に残す source と、Scratch Org / 別 org 用に分離する source を決める。
-3. `manifest/deployable-dev.xml` に入れる場合は、追加前に対象 org で validate する。
+3. `manifest/rebuild-developer-org.xml` に入れる場合は、追加前に対象 org で validate する。
 4. 標準 scope から外す場合は、理由をこの docs か該当 deployment docs に残す。
 5. retrieve で再混入しやすい metadata は、取得 manifest 側を絞る。
 

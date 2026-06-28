@@ -28,7 +28,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 - 取得したメタデータはコミット前に確認する。特に権限や自動生成に見えるファイルに注意する。
 - タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
 - Scratch Org 初期反映の対象を変えた場合は、`node scripts/deployment/rebuild-scratch-org.js` で再現手順を確認する。
-- Dev 組織へ反映する標準 scope は `manifest/deployable-dev.xml` で管理する。`force-app` 全体 validate は、広く retrieve した metadata の分類調査に限る。
+- Dev 組織へ反映する標準 scope は `manifest/rebuild-developer-org.xml` で管理する。`force-app` 全体 validate は、広く retrieve した metadata の分類調査に限る。
 - `force-app` 全体を deployable に寄せる判断は、[force-app deployability 棚卸し](force-app-deployability-inventory.md) に従って metadata type ごとに進める。
 
 ## Dev 組織での検証
@@ -55,7 +55,7 @@ npm run sf:validate:dev
 npm run sf:deploy:dev
 ```
 
-`npm run sf:validate:dev` は `manifest/deployable-dev.xml` を使います。
+`npm run sf:validate:dev` は `manifest/rebuild-developer-org.xml` を使います。
 作業範囲がさらに狭い場合は、作業対象 manifest または `--metadata` で対象を絞ります。
 
 Apex 変更を含む PR を作成する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
