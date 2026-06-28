@@ -21,7 +21,7 @@ public with sharing class ObjectRecordSearchController {
         String metricKey
     ) {
         try {
-            return buildObjectConfig(metricKey);
+            return buildSearchContext(metricKey).config;
         } catch (Exception error) {
             throw new AuraHandledException(USER_FACING_ERROR_MESSAGE);
         }
@@ -37,15 +37,15 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchRequestWrapper request
     ) {
         try {
-            ObjectRecordSearchConfigWrapper config = buildObjectConfig(
+            ObjectRecordSearchContext context = buildSearchContext(
                 request?.metricKey
             );
             ObjectRecordSearchSortSupport.SortSpec sortSpec = SERVICE.createSortSpec(
-                config,
+                context,
                 request
             );
             ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = SERVICE.createSearchQueryRequest(
-                config,
+                context,
                 request,
                 sortSpec
             );
@@ -75,9 +75,10 @@ public with sharing class ObjectRecordSearchController {
         List<Id> recordIds
     ) {
         try {
-            ObjectRecordSearchConfigWrapper config = buildObjectConfig(
+            ObjectRecordSearchContext context = buildSearchContext(
                 metricKey
             );
+            ObjectRecordSearchConfigWrapper config = context.config;
             if (!SERVICE.canDeleteRecords(config, recordIds)) {
                 return SERVICE.createDeleteResult(recordIds, null);
             }
@@ -97,7 +98,7 @@ public with sharing class ObjectRecordSearchController {
         }
     }
 
-    private static ObjectRecordSearchConfigWrapper buildObjectConfig(
+    private static ObjectRecordSearchContext buildSearchContext(
         String metricKey
     ) {
         ObjectMetricCatalog.MetricDefinition definition = SERVICE.requireDefinition(
@@ -114,11 +115,16 @@ public with sharing class ObjectRecordSearchController {
             objectDescribe
         );
 
-        return SERVICE.createObjectConfig(
+        ObjectRecordSearchConfigWrapper config = SERVICE.createObjectConfig(
             definition,
             nameFieldDescribe,
             objectDescribe
         )
-            .withDisplayFields(displayFields, objectDescribe);
+            .withDisplayFields(displayFields);
+        return SERVICE.createSearchContext(
+            config,
+            nameFieldDescribe,
+            objectDescribe
+        );
     }
 }

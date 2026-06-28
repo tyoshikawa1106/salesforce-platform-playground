@@ -176,16 +176,16 @@ private with sharing class ObjectRecordSearchSelectorTest {
         String searchTerm
     ) {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectRecordSearchConfigWrapper config = createAccountConfig(service);
+        ObjectRecordSearchContext context = createAccountContext(service);
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.metricKey = 'accounts';
         request.searchTerm = searchTerm;
         ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
-            config,
+            context,
             request
         );
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
-            config,
+            context,
             request,
             sortSpec
         );
@@ -193,7 +193,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         return service.createSearchQuery(searchQueryRequest);
     }
 
-    private static ObjectRecordSearchConfigWrapper createAccountConfig(
+    private static ObjectRecordSearchContext createAccountContext(
         ObjectRecordSearchService service
     ) {
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
@@ -202,7 +202,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
         );
-        return service.createObjectConfig(
+        ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             Account.Name.getDescribe(),
             objectDescribe
@@ -210,6 +210,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
             .withDisplayFields(ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
                 'Account',
                 objectDescribe
-            ), objectDescribe);
+            ));
+        return service.createSearchContext(
+            config,
+            Account.Name.getDescribe(),
+            objectDescribe
+        );
     }
 }

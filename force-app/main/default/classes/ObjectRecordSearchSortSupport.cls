@@ -7,28 +7,28 @@ public with sharing class ObjectRecordSearchSortSupport {
 
     /**
      * リクエストから安全なソート条件を作成します。
-     * @param config 検索画面設定
+     * @param context 検索画面の内部処理状態
      * @param request 検索リクエスト
      * @return 許可済み項目と方向だけを持つソート条件
      */
     public static SortSpec createSortSpec(
-        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request
     ) {
-        String fieldApiName = getSortFieldApiName(config, request);
-        Schema.DescribeFieldResult fieldDescribe = config.getAllowedFieldDescribe(
+        String fieldApiName = getSortFieldApiName(context, request);
+        Schema.DescribeFieldResult fieldDescribe = context.getAllowedFieldDescribe(
             fieldApiName
         );
         if (!fieldDescribe.isSortable()) {
-            fieldApiName = config.nameFieldApiName;
-            fieldDescribe = config.getAllowedFieldDescribe(fieldApiName);
+            fieldApiName = context.config.nameFieldApiName;
+            fieldDescribe = context.getAllowedFieldDescribe(fieldApiName);
         }
 
         SortSpec sortSpec = new SortSpec();
         sortSpec.fieldApiName = fieldApiName;
         sortSpec.direction = getSortDirection(request);
         sortSpec.fieldDescribe = fieldDescribe;
-        sortSpec.nameFieldApiName = config.nameFieldApiName;
+        sortSpec.nameFieldApiName = context.config.nameFieldApiName;
         return sortSpec;
     }
 
@@ -93,38 +93,64 @@ public with sharing class ObjectRecordSearchSortSupport {
             return null;
         }
 
-        Map<String, Object> tokenParts = (Map<String, Object>) JSON.deserializeUntyped(
-            pageToken
-        );
-        String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
-        String cursorRecordId = (String) tokenParts.get('recordId');
-        Object cursorSortValue = tokenParts.get('sortValue');
-        if (String.isBlank(cursorFieldApiName)) {
-            cursorFieldApiName = sortSpec.fieldApiName;
-            cursorSortValue = tokenParts.get('name');
+        try {
+            return createPageCursor(parseTokenParts(pageToken), sortSpec);
+        } catch (ObjectRecordSearchException error) {
+            throw error;
+        } catch (Exception error) {
+            throw createUnreadablePageTokenException(error);
         }
+    }
+
+    private static Map<String, Object> parseTokenParts(String pageToken) {
+        return (Map<String, Object>) JSON.deserializeUntyped(pageToken);
+    }
+
+    private static PageCursor createPageCursor(
+        Map<String, Object> tokenParts,
+        SortSpec sortSpec
+    ) {
+        String cursorFieldApiName = getCursorFieldApiName(tokenParts, sortSpec);
+        String cursorRecordId = (String) tokenParts.get('recordId');
         if (
             cursorFieldApiName != sortSpec.fieldApiName ||
             String.isBlank(cursorRecordId)
         ) {
-            throw new ObjectRecordSearchException(
-                'ページ指定を読み込めません。'
-            );
+            throw createUnreadablePageTokenException(null);
         }
 
         PageCursor cursor = new PageCursor();
-        cursor.sortValue = parseCursorSortValue(cursorSortValue, sortSpec);
+        cursor.sortValue = parseCursorSortValue(
+            getCursorSortValue(tokenParts),
+            sortSpec
+        );
         cursor.recordId = (Id) cursorRecordId;
         return cursor;
     }
 
+    private static String getCursorFieldApiName(
+        Map<String, Object> tokenParts,
+        SortSpec sortSpec
+    ) {
+        String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
+        return String.isBlank(cursorFieldApiName)
+            ? sortSpec.fieldApiName
+            : cursorFieldApiName;
+    }
+
+    private static Object getCursorSortValue(Map<String, Object> tokenParts) {
+        return String.isBlank((String) tokenParts.get('fieldApiName'))
+            ? tokenParts.get('name')
+            : tokenParts.get('sortValue');
+    }
+
     private static String getSortFieldApiName(
-        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request
     ) {
-        return config.getAllowedFieldApiNames().contains(request?.sortBy)
+        return context.getAllowedFieldApiNames().contains(request?.sortBy)
             ? request.sortBy
-            : config.nameFieldApiName;
+            : context.config.nameFieldApiName;
     }
 
     private static String getSortDirection(
@@ -174,6 +200,17 @@ public with sharing class ObjectRecordSearchSortSupport {
         }
 
         return stringValue;
+    }
+
+    private static ObjectRecordSearchException createUnreadablePageTokenException(
+        Exception cause
+    ) {
+        return cause == null
+            ? new ObjectRecordSearchException('ページ指定を読み込めません。')
+            : new ObjectRecordSearchException(
+                  'ページ指定を読み込めません。',
+                  cause
+              );
     }
 
     /**

@@ -56,9 +56,6 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
             Account.Name.getDescribe(),
             objectDescribe
         )
-            .withDisplayFields(
-                new List<ObjectRecordSearchFieldWrapper>(),
-                objectDescribe
-            );
+            .withDisplayFields(new List<ObjectRecordSearchFieldWrapper>());
     }
 }

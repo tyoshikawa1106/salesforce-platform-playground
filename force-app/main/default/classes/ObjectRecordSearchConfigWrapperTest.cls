@@ -23,7 +23,7 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
                 nameFieldDescribe,
                 objectDescribe
             )
-                .withDisplayFields(displayFields, objectDescribe);
+                .withDisplayFields(displayFields);
         }
 
         Assert.areEqual(
@@ -50,10 +50,6 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
             'Industry',
             wrapper.displayFields[0].apiName,
             'Config wrapper should expose display fields.'
-        );
-        Assert.isTrue(
-            wrapper.getAllowedFieldApiNames().contains('Industry'),
-            'Config wrapper should expose allowed field API names for sorting.'
         );
     }
 }
