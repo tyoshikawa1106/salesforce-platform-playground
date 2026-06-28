@@ -453,14 +453,14 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     async handleRecordFormSuccess() {
+        const toastTitle = this.formRecordId ? '更新しました' : '作成しました';
         this.showToast(
-            this.formRecordId ? '更新しました' : '作成しました',
+            toastTitle,
             `${this.config.objectLabel}を保存しました。`,
             'success'
         );
         this.handleCloseRecordForm();
-        await refreshApex(this.wiredSearchResult);
-        this.dispatchEvent(new CustomEvent('recordschanged'));
+        await this.refreshRecordsAndNotifyChange();
     }
 
     async handleUploadFinished(event) {
@@ -471,8 +471,7 @@ export default class ObjectRecordSearch extends LightningElement {
             'success'
         );
         this.handleCloseRecordForm();
-        await refreshApex(this.wiredSearchResult);
-        this.dispatchEvent(new CustomEvent('recordschanged'));
+        await this.refreshRecordsAndNotifyChange();
     }
 
     handleRecordFormError(event) {
@@ -509,8 +508,7 @@ export default class ObjectRecordSearch extends LightningElement {
                     'warning'
                 );
             }
-            await refreshApex(this.wiredSearchResult);
-            this.dispatchEvent(new CustomEvent('recordschanged'));
+            await this.refreshRecordsAndNotifyChange();
         } catch (error) {
             this.errorMessage = reduceErrors(
                 error,
@@ -520,6 +518,11 @@ export default class ObjectRecordSearch extends LightningElement {
         } finally {
             this.isDeleting = false;
         }
+    }
+
+    async refreshRecordsAndNotifyChange() {
+        await refreshApex(this.wiredSearchResult);
+        this.dispatchEvent(new CustomEvent('recordschanged'));
     }
 
     showToast(title, message, variant) {
