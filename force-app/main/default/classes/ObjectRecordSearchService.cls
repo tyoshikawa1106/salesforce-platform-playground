@@ -58,19 +58,30 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 検索条件から SOQL と bind 値を作成します。
+     * 検索リクエストから安全なソート条件を作成します。
      * @param config 検索画面設定
      * @param request 検索条件とページ指定
-     * @return 実行可能な検索クエリ計画
+     * @return 許可済み項目と方向だけを持つソート条件
      */
-    public ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(
+    public ObjectRecordSearchSortSupport.SortSpec createSortSpec(
         ObjectRecordSearchConfigWrapper config,
         ObjectRecordSearchRequestWrapper request
     ) {
-        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
-            config,
-            request
-        );
+        return ObjectRecordSearchSortSupport.createSortSpec(config, request);
+    }
+
+    /**
+     * 検索条件、ソート条件、ページング条件をまとめます。
+     * @param config 検索画面設定
+     * @param request 検索条件とページ指定
+     * @param sortSpec 正規化済みソート条件
+     * @return 検索クエリと結果整形で共有する検索条件
+     */
+    public ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(
+        ObjectRecordSearchConfigWrapper config,
+        ObjectRecordSearchRequestWrapper request,
+        ObjectRecordSearchSortSupport.SortSpec sortSpec
+    ) {
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         searchQueryRequest.config = config;
         searchQueryRequest.searchRequest = request;
@@ -80,30 +91,39 @@ public with sharing class ObjectRecordSearchService {
             sortSpec
         );
         searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
+        return searchQueryRequest;
+    }
+
+    /**
+     * 検索条件から SOQL と bind 値を作成します。
+     * @param request 検索クエリと結果整形で共有する検索条件
+     * @return 実行可能な検索クエリ計画
+     */
+    public ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request
+    ) {
         return ObjectRecordSearchQueryPlan.createSearchQuery(
-            searchQueryRequest
+            request
         );
     }
 
     /**
      * 検索結果レコードを LWC 返却用 Wrapper に変換します。
-     * @param config 検索画面設定
+     * @param request 検索クエリと結果整形で共有する検索条件
      * @param records 検索結果 SObject
-     * @param request 検索条件とページ指定
      * @return 1 ページ最大 50 件の検索結果
      */
     public ObjectRecordSearchResultWrapper createSearchResult(
-        ObjectRecordSearchConfigWrapper config,
-        List<SObject> records,
-        ObjectRecordSearchRequestWrapper request
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request,
+        List<SObject> records
     ) {
         List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
         for (SObject record : records) {
             rows.add(
                 new ObjectRecordSearchRowWrapper(
                     record,
-                    config.nameFieldApiName,
-                    config.displayFields
+                    request.config.nameFieldApiName,
+                    request.config.displayFields
                 )
             );
         }
@@ -115,15 +135,21 @@ public with sharing class ObjectRecordSearchService {
 
         ObjectRecordSearchPageStateWrapper pageState = new ObjectRecordSearchPageStateWrapper();
         pageState.pageSize = PAGE_SIZE;
-        pageState.pageNumber = normalizePageNumber(request?.pageNumber);
+        pageState.pageNumber = normalizePageNumber(
+            request.searchRequest?.pageNumber
+        );
         pageState.nextPageToken = hasNextPage
             ? ObjectRecordSearchSortSupport.createNextPageToken(
                   rows,
-                  ObjectRecordSearchSortSupport.createSortSpec(config, request)
+                  request.sortSpec
               )
             : null;
 
-        return new ObjectRecordSearchResultWrapper(config, rows, pageState);
+        return new ObjectRecordSearchResultWrapper(
+            request.config,
+            rows,
+            pageState
+        );
     }
 
     /**

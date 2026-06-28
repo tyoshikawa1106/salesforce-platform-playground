@@ -21,6 +21,15 @@ private with sharing class ObjectRecordSearchServiceTest {
             'Service'
         );
         ObjectRecordSearchConfigWrapper config = createAccountConfig(service);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
+            config,
+            request
+        );
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
+            config,
+            request,
+            sortSpec
+        );
         List<SObject> records = [
             SELECT Id, Name, Industry
             FROM Account
@@ -31,7 +40,10 @@ private with sharing class ObjectRecordSearchServiceTest {
         ObjectRecordSearchResultWrapper result;
         System.runAs(getCurrentUser()) {
             Test.startTest();
-            result = service.createSearchResult(config, records, request);
+            result = service.createSearchResult(
+                searchQueryRequest,
+                records
+            );
             Test.stopTest();
         }
 
