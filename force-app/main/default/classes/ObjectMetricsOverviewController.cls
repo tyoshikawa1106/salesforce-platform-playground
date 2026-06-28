@@ -67,6 +67,12 @@ public with sharing class ObjectMetricsOverviewController {
         public String label { get; private set; }
 
         /**
+         * LWC 件数カードに表示する Lightning icon 名です。
+         */
+        @AuraEnabled
+        public String iconName { get; private set; }
+
+        /**
          * 表示対象キーに対応する件数です。
          */
         @AuraEnabled
@@ -93,6 +99,7 @@ public with sharing class ObjectMetricsOverviewController {
             this.key = definition.key;
             this.objectApiName = definition.objectApiName;
             this.label = definition.label;
+            this.iconName = definition.iconName;
             this.value = metricCount?.value ?? 0;
             this.capped = metricCount?.capped ?? false;
         }

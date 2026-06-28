@@ -34,6 +34,11 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             summary.metrics[0].value,
             'Capped account value should be preserved.'
         );
+        Assert.areEqual(
+            'standard:account',
+            summary.metrics[0].iconName,
+            'Account metric should carry the card icon from the catalog.'
+        );
         Assert.isTrue(
             summary.metrics[0].capped,
             'Capped account value should carry the capped marker.'

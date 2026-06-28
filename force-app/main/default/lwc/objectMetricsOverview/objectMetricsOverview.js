@@ -4,87 +4,10 @@ import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.g
 import { reduceErrors } from 'c/errorUtils';
 
 const NUMBER_FORMATTER = new Intl.NumberFormat('ja-JP');
-
-const COUNT_CARD_CONFIGS = [
-    { key: 'accounts', iconName: 'standard:account' },
-    { key: 'contacts', iconName: 'standard:contact' },
-    { key: 'leads', iconName: 'standard:lead' },
-    { key: 'opportunities', iconName: 'standard:opportunity' },
-    {
-        key: 'opportunityLineItems',
-        iconName: 'standard:product_consumed'
-    },
-    { key: 'products', iconName: 'standard:product' },
-    { key: 'pricebooks', iconName: 'standard:pricebook' },
-    {
-        key: 'pricebookEntries',
-        iconName: 'standard:price_book_entries'
-    },
-    {
-        key: 'assets',
-        iconName: 'standard:asset_object'
-    },
-    { key: 'campaigns', iconName: 'standard:campaign' },
-    { key: 'cases', iconName: 'standard:case' },
-    { key: 'contracts', iconName: 'standard:contract' },
-    {
-        key: 'orders',
-        iconName: 'standard:order_item'
-    },
-    {
-        key: 'orderItems',
-        iconName: 'standard:order_item'
-    },
-    {
-        key: 'entitlements',
-        iconName: 'standard:entitlement'
-    },
-    {
-        key: 'serviceContracts',
-        iconName: 'standard:service_contract'
-    },
-    {
-        key: 'workOrders',
-        iconName: 'standard:work_order'
-    },
-    {
-        key: 'workOrderLineItems',
-        iconName: 'standard:work_order_item'
-    },
-    {
-        key: 'knowledgeArticles',
-        iconName: 'utility:knowledge_base'
-    },
-    { key: 'events', iconName: 'standard:event' },
-    { key: 'tasks', iconName: 'standard:task' },
-    {
-        key: 'emailMessages',
-        iconName: 'standard:email'
-    },
-    {
-        key: 'emailTemplates',
-        iconName: 'utility:insert_template'
-    },
-    {
-        key: 'reports',
-        iconName: 'standard:report'
-    },
-    {
-        key: 'dashboards',
-        iconName: 'standard:dashboard'
-    },
-    {
-        key: 'files',
-        iconName: 'standard:file'
-    },
-    {
-        key: 'users',
-        iconName: 'standard:user'
-    }
-];
+const DEFAULT_CARD_ICON = 'standard:record';
 
 export default class ObjectMetricsOverview extends LightningElement {
-    metricValues = {};
+    metricItems = [];
     errorMessage;
     isRefreshing = false;
     selectedMetricKey;
@@ -96,10 +19,10 @@ export default class ObjectMetricsOverview extends LightningElement {
         const { data, error } = result;
 
         if (data) {
-            this.metricValues = this.createMetricValues(data.metrics);
+            this.metricItems = this.createMetricItems(data.metrics);
             this.errorMessage = undefined;
         } else if (error) {
-            this.metricValues = {};
+            this.metricItems = [];
             this.errorMessage = reduceErrors(
                 error,
                 'データボードを読み込めませんでした。'
@@ -108,16 +31,12 @@ export default class ObjectMetricsOverview extends LightningElement {
     }
 
     get countCards() {
-        return COUNT_CARD_CONFIGS.map((config) => {
-            const metricValue = this.metricValues[config.key] ?? {
-                value: 0,
-                capped: false,
-                label: config.key
-            };
-            const formattedValue = `${NUMBER_FORMATTER.format(metricValue.value)}${metricValue.capped ? '+' : ''}`;
-            const label = metricValue.label ?? config.key;
+        return this.metricItems.map((metricItem) => {
+            const formattedValue = `${NUMBER_FORMATTER.format(metricItem.value)}${metricItem.capped ? '+' : ''}`;
+            const label = metricItem.label ?? metricItem.key;
             return {
-                ...config,
+                key: metricItem.key,
+                iconName: metricItem.iconName ?? DEFAULT_CARD_ICON,
                 label,
                 countTitle: `${formattedValue} 件`,
                 formattedValue,
@@ -174,15 +93,14 @@ export default class ObjectMetricsOverview extends LightningElement {
         }
     }
 
-    createMetricValues(metrics = []) {
-        return metrics.reduce((values, metricItem) => {
-            values[metricItem.key] = {
-                value: metricItem.value,
-                capped: metricItem.capped ?? false,
-                label: metricItem.label
-            };
-            return values;
-        }, {});
+    createMetricItems(metrics = []) {
+        return metrics.map((metricItem) => ({
+            key: metricItem.key,
+            iconName: metricItem.iconName,
+            value: metricItem.value,
+            capped: metricItem.capped ?? false,
+            label: metricItem.label
+        }));
     }
 
     scrollToTop() {

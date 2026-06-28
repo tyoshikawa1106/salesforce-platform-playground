@@ -2,6 +2,7 @@
  * データボードで扱うオブジェクト定義を一元管理します。
  */
 public with sharing class ObjectMetricCatalog {
+    private static final Map<String, String> ICON_NAMES_BY_KEY = createIconNamesByKey();
     private static final List<MetricDefinition> ORDERED_DEFINITIONS = createOrderedDefinitions();
     private static final Map<String, MetricDefinition> DEFINITIONS_BY_KEY = createDefinitionsByKey();
     private static final Set<String> OBJECT_API_NAMES = createObjectApiNames();
@@ -64,6 +65,38 @@ public with sharing class ObjectMetricCatalog {
         }
 
         return objectApiNames;
+    }
+
+    private static Map<String, String> createIconNamesByKey() {
+        return new Map<String, String>{
+            'accounts' => 'standard:account',
+            'contacts' => 'standard:contact',
+            'leads' => 'standard:lead',
+            'opportunities' => 'standard:opportunity',
+            'opportunityLineItems' => 'standard:product_consumed',
+            'products' => 'standard:product',
+            'pricebooks' => 'standard:pricebook',
+            'pricebookEntries' => 'standard:price_book_entries',
+            'assets' => 'standard:asset_object',
+            'campaigns' => 'standard:campaign',
+            'cases' => 'standard:case',
+            'contracts' => 'standard:contract',
+            'orders' => 'standard:order_item',
+            'orderItems' => 'standard:order_item',
+            'entitlements' => 'standard:entitlement',
+            'serviceContracts' => 'standard:service_contract',
+            'workOrders' => 'standard:work_order',
+            'workOrderLineItems' => 'standard:work_order_item',
+            'knowledgeArticles' => 'utility:knowledge_base',
+            'events' => 'standard:event',
+            'tasks' => 'standard:task',
+            'emailMessages' => 'standard:email',
+            'emailTemplates' => 'utility:insert_template',
+            'reports' => 'standard:report',
+            'dashboards' => 'standard:dashboard',
+            'files' => 'standard:file',
+            'users' => 'standard:user'
+        };
     }
 
     private static List<MetricDefinition> createOrderedDefinitions() {
@@ -152,6 +185,12 @@ public with sharing class ObjectMetricCatalog {
         @AuraEnabled
         public String label { get; private set; }
 
+        /**
+         * LWC 件数カードに表示する Lightning icon 名です。
+         */
+        @AuraEnabled
+        public String iconName { get; private set; }
+
         private MetricDefinition(
             String key,
             String objectApiName,
@@ -160,6 +199,7 @@ public with sharing class ObjectMetricCatalog {
             this.key = key;
             this.objectApiName = objectApiName;
             this.label = label;
+            this.iconName = ICON_NAMES_BY_KEY.get(key);
         }
     }
 }
