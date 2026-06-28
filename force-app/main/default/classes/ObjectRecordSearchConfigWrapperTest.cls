@@ -8,21 +8,22 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
-        Schema.DescribeFieldResult nameFieldDescribe = Account.Name.getDescribe();
-        ObjectRecordSearchAccessWrapper access = new ObjectRecordSearchAccessWrapper(
-            Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
-            new List<ObjectRecordSearchFieldWrapper>{
-                new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
-            }
+        Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
+            SObjectDescribeOptions.DEFERRED
         );
+        Schema.DescribeFieldResult nameFieldDescribe = Account.Name.getDescribe();
+        List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>{
+            new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
+        };
         ObjectRecordSearchConfigWrapper wrapper;
 
         System.runAs(getCurrentUser()) {
             wrapper = new ObjectRecordSearchConfigWrapper(
                 definition,
                 nameFieldDescribe,
-                access
-            );
+                objectDescribe
+            )
+                .withDisplayFields(displayFields);
         }
 
         Assert.areEqual(
@@ -41,7 +42,7 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
             'Config wrapper should expose the name field API name.'
         );
         Assert.areEqual(
-            access.createable,
+            objectDescribe.isCreateable(),
             wrapper.createable,
             'Config wrapper should copy access flags.'
         );

@@ -1,5 +1,9 @@
 /**
  * 汎用レコード検索画面の判定と Wrapper 組み立てを提供します。
+ *
+ * Controller が Selector から取得した describe / SOQL / DML 結果を受け取り、
+ * Service は入力値の正規化、権限値の反映、返却用 Wrapper の作成に集中します。
+ * Service から Selector を直接呼び出さないことで、データ取得順序を Controller 側で追いやすくします。
  */
 public with sharing class ObjectRecordSearchService {
     private static final Integer PAGE_SIZE = 50;
@@ -23,37 +27,21 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 対象オブジェクトの参照権限と固定項目を作成します。
-     * @param objectDescribe 対象オブジェクトの describe 結果
-     * @param displayFields 一覧に追加表示する固定項目
-     * @return 対象オブジェクトの参照権限と固定項目
-     */
-    public ObjectRecordSearchAccessWrapper createAccess(
-        Schema.DescribeSObjectResult objectDescribe,
-        List<ObjectRecordSearchFieldWrapper> displayFields
-    ) {
-        return new ObjectRecordSearchAccessWrapper(
-            objectDescribe,
-            displayFields
-        );
-    }
-
-    /**
      * 検索画面設定を作成します。
      * @param definition データボードカードと対象オブジェクトの定義
      * @param nameFieldDescribe Name 相当項目の describe 結果
-     * @param access 対象オブジェクトの参照権限と固定項目
+     * @param objectDescribe 対象オブジェクトの describe 結果
      * @return 検索画面設定
      */
     public ObjectRecordSearchConfigWrapper createObjectConfig(
         ObjectMetricCatalog.MetricDefinition definition,
         Schema.DescribeFieldResult nameFieldDescribe,
-        ObjectRecordSearchAccessWrapper access
+        Schema.DescribeSObjectResult objectDescribe
     ) {
         return new ObjectRecordSearchConfigWrapper(
             definition,
             nameFieldDescribe,
-            access
+            objectDescribe
         );
     }
 
@@ -133,23 +121,19 @@ public with sharing class ObjectRecordSearchService {
             rows.remove(PAGE_SIZE);
         }
 
-        ObjectRecordSearchPageStateWrapper pageState = new ObjectRecordSearchPageStateWrapper();
-        pageState.pageSize = PAGE_SIZE;
-        pageState.pageNumber = normalizePageNumber(
-            request.searchRequest?.pageNumber
-        );
-        pageState.nextPageToken = hasNextPage
+        String nextPageToken = hasNextPage
             ? ObjectRecordSearchSortSupport.createNextPageToken(
                   rows,
                   request.sortSpec
               )
             : null;
 
-        return new ObjectRecordSearchResultWrapper(
-            request.config,
-            rows,
-            pageState
-        );
+        return new ObjectRecordSearchResultWrapper(request.config, rows)
+            .withPageState(
+                PAGE_SIZE,
+                normalizePageNumber(request.searchRequest?.pageNumber),
+                nextPageToken
+            );
     }
 
     /**

@@ -82,27 +82,41 @@ public with sharing class ObjectRecordSearchConfigWrapper {
      *
      * @param definition データボードカードと対象オブジェクトの定義
      * @param nameFieldDescribe Name 相当項目の describe 結果
-     * @param access 対象オブジェクトの参照権限と固定項目
+     * @param objectDescribe 対象オブジェクトの describe 結果
      */
     public ObjectRecordSearchConfigWrapper(
         ObjectMetricCatalog.MetricDefinition definition,
         Schema.DescribeFieldResult nameFieldDescribe,
-        ObjectRecordSearchAccessWrapper access
+        Schema.DescribeSObjectResult objectDescribe
     ) {
         metricKey = definition.key;
         objectApiName = definition.objectApiName;
         objectLabel = definition.label;
         nameFieldApiName = nameFieldDescribe.getName();
         nameFieldLabel = nameFieldDescribe.getLabel();
-        deletable = access.deletable;
-        createable = access.createable;
-        updateable = access.updateable;
+        deletable = objectDescribe.isDeletable();
+        createable = objectDescribe.isCreateable();
+        updateable = objectDescribe.isUpdateable();
         searchable =
             nameFieldDescribe.isAccessible() && nameFieldDescribe.isFilterable();
         nameFieldCreateable = nameFieldDescribe.isCreateable();
         nameFieldUpdateable = nameFieldDescribe.isUpdateable();
-        displayFields = access.displayFields == null
+        displayFields = new List<ObjectRecordSearchFieldWrapper>();
+    }
+
+    /**
+     * 一覧に追加表示する固定項目を反映します。
+     * ConfigWrapper は LWC 返却用の形だけを持ち、表示項目の取得順序は Controller / Service 側で明示します。
+     *
+     * @param displayFields 一覧に追加表示する固定項目
+     * @return 固定項目を反映した検索画面設定
+     */
+    public ObjectRecordSearchConfigWrapper withDisplayFields(
+        List<ObjectRecordSearchFieldWrapper> displayFields
+    ) {
+        this.displayFields = displayFields == null
             ? new List<ObjectRecordSearchFieldWrapper>()
-            : access.displayFields;
+            : displayFields;
+        return this;
     }
 }
