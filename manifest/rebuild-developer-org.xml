@@ -815,8 +815,7 @@
         <members>Account-Account %28Sales%29 Layout</members>
         <members>Account-Account %28Support%29 Layout</members>
         <members>Account-Account Layout</members>
-        <members
-        >AlternativePaymentMethod-Alternative Payment Method Layout</members>
+        <members>AlternativePaymentMethod-Alternative Payment Method Layout</members>
         <members>ApiAnomalyEventStore-API Anomaly Event Store Layout</members>
         <members>Asset-Asset Layout</members>
         <members>AssetAction-Asset Action Layout</members>
@@ -825,10 +824,8 @@
         <members>AssetStatePeriod-Asset State Period Layout</members>
         <members>AssociatedLocation-Associated Location Layout</members>
         <members>AuthorizationForm-Authorization Form Layout</members>
-        <members
-        >AuthorizationFormConsent-Authorization Form Consent Layout</members>
-        <members
-        >AuthorizationFormDataUse-Authorization Form Data Use Layout</members>
+        <members>AuthorizationFormConsent-Authorization Form Consent Layout</members>
+        <members>AuthorizationFormDataUse-Authorization Form Data Use Layout</members>
         <members>AuthorizationFormText-Authorization Form Text Layout</members>
         <members>BusinessBrand-Business Brand Layout</members>
         <members>Campaign-Campaign Layout</members>
@@ -850,13 +847,11 @@
         <members>ContactPointAddress-Contact Point Address Layout</members>
         <members>ContactPointEmail-Contact Point Email Layout</members>
         <members>ContactPointPhone-Contact Point Phone Layout</members>
-        <members
-        >ContactPointTypeConsent-Contact Point Type Consent Layout</members>
+        <members>ContactPointTypeConsent-Contact Point Type Consent Layout</members>
         <members>ContentVersion-Content Version Layout</members>
         <members>Contract-Contract Layout</members>
         <members>ContractLineItem-Contract Line Item Layout</members>
-        <members
-        >CredentialStuffingEventStore-Credential Stuffing Event Store Layout</members>
+        <members>CredentialStuffingEventStore-Credential Stuffing Event Store Layout</members>
         <members>CreditMemo-Credit Memo Layout</members>
         <members>CreditMemoLine-Credit Memo Line Layout</members>
         <members>Customer-Customer Layout</members>
@@ -870,12 +865,10 @@
         <members>EntityMilestone-Object Milestone Layout</members>
         <members>Event-Event Layout</members>
         <members>FeedItem-Feed Item Layout</members>
-        <members
-        >FinanceBalanceSnapshot-Finance Balance Snapshot Layout</members>
+        <members>FinanceBalanceSnapshot-Finance Balance Snapshot Layout</members>
         <members>FinanceTransaction-Finance Transaction Layout</members>
         <members>Global-Global Layout</members>
-        <members
-        >GuestUserAnomalyEventStore-Guest User Anomaly Event Store Layout</members>
+        <members>GuestUserAnomalyEventStore-Guest User Anomaly Event Store Layout</members>
         <members>Idea-Idea Layout</members>
         <members>Individual-Individual Layout</members>
         <members>Invoice-Invoice Layout</members>
@@ -886,8 +879,7 @@
         <members>Lead-Lead Layout</members>
         <members>LegalEntity-Legal Entity Layout</members>
         <members>Location-Location Layout</members>
-        <members
-        >LoginAnomalyEventStore-Login Anomaly Event Store Layout</members>
+        <members>LoginAnomalyEventStore-Login Anomaly Event Store Layout</members>
         <members>Macro-Macro Layout</members>
         <members>Opportunity-Opportunity %28Marketing%29 Layout</members>
         <members>Opportunity-Opportunity %28Sales%29 Layout</members>
@@ -897,8 +889,7 @@
         <members>Order-Order Layout</members>
         <members>OrderItem-Order Product Layout</members>
         <members>Payment-Payment Layout</members>
-        <members
-        >PaymentAuthAdjustment-Payment Authorization Adjustment Layout</members>
+        <members>PaymentAuthAdjustment-Payment Authorization Adjustment Layout</members>
         <members>PaymentAuthorization-Payment Authorization Layout</members>
         <members>PaymentGateway-Payment Gateway Layout</members>
         <members>PaymentGatewayLog-Payment Gateway Log Layout</members>
@@ -908,32 +899,26 @@
         <members>PricebookEntry-Price Book Entry Layout</members>
         <members>ProcessException-Process Exception Layout</members>
         <members>Product2-Product Layout</members>
-        <members
-        >ProductConsumptionSchedule-Product Consumption Schedule Layout</members>
+        <members>ProductConsumptionSchedule-Product Consumption Schedule Layout</members>
         <members>QuickText-Quick Text Layout</members>
         <members>Refund-Refund Layout</members>
         <members>RefundLinePayment-Refund Line Payment Layout</members>
-        <members
-        >ReportAnomalyEventStore-Report Anomaly Event Store Layout</members>
+        <members>ReportAnomalyEventStore-Report Anomaly Event Store Layout</members>
         <members>Scorecard-Scorecard Layout</members>
         <members>ScorecardAssociation-Scorecard Association Layout</members>
         <members>ScorecardMetric-Scorecard Metric Layout</members>
         <members>Seller-Seller Layout</members>
         <members>ServiceContract-Service Contract Layout</members>
-        <members
-        >SessionHijackingEventStore-Session Hijacking Event Store Layout</members>
+        <members>SessionHijackingEventStore-Session Hijacking Event Store Layout</members>
         <members>SocialPersona-Social Persona Layout</members>
         <members>Solution-Solution Layout</members>
         <members>Task-Task Layout</members>
-        <members
-        >ThreatDetectionFeedback-Threat Detection Feedback Layout</members>
-        <members
-        >UniversalAnomalyEventStore-Universal Anomaly Event Store Layout</members>
+        <members>ThreatDetectionFeedback-Threat Detection Feedback Layout</members>
+        <members>UniversalAnomalyEventStore-Universal Anomaly Event Store Layout</members>
         <members>User-User Layout</members>
         <members>UserProvAccount-User Provisioning Account Layout</members>
         <members>UserProvisioningLog-User Provisioning Log Layout</members>
-        <members
-        >UserProvisioningRequest-User Provisioning Request Layout</members>
+        <members>UserProvisioningRequest-User Provisioning Request Layout</members>
         <members>WorkAccess-Access Layout</members>
         <members>WorkBadge-Badge Received Layout</members>
         <members>WorkBadgeDefinition-Badge Layout</members>
