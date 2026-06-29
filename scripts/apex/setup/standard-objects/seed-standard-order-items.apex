@@ -86,16 +86,18 @@ List<PricebookEntry> pricebookEntries = [
     LIMIT :parentPoolSize
 ];
 
-List<Order> orders = [SELECT Id FROM Order WHERE Account.Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+List<Order> orders = [SELECT Id, EffectiveDate FROM Order WHERE Account.Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 if (orders.isEmpty() || pricebookEntries.isEmpty()) {
     System.assert(false, 'Run orders and pricebook entries before order items.');
 }
 
+Integer existingCount = [SELECT COUNT() FROM OrderItem WHERE Order.Account.Name LIKE :seedLike];
 List<OrderItem> records = new List<OrderItem>();
 for (Integer i = 1; i <= Math.min(countPerObject, orders.size()); i += 1) {
-    PricebookEntry entry = pricebookEntries[Math.mod(i - 1, pricebookEntries.size())];
-    records.add(new OrderItem(OrderId = orders[i - 1].Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(i, 4), UnitPrice = entry.UnitPrice, ServiceDate = Date.today().addDays(15 + Math.mod(i, 180)), Description = '初回注文に含まれる検証用注文明細。'));
+    Integer sequence = existingCount + i;
+    Order order = orders[Math.mod(sequence - 1, orders.size())];
+    PricebookEntry entry = pricebookEntries[Math.mod(sequence - 1, pricebookEntries.size())];
+    records.add(new OrderItem(OrderId = order.Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(sequence, 4), UnitPrice = entry.UnitPrice, ServiceDate = order.EffectiveDate.addDays(Math.mod(sequence, 30)), Description = '初回注文に含まれる検証用注文明細。'));
 }
 System.debug('Seed run key: ' + seedRunKey);
 logResults('OrderItem', Database.insert(records, false));
-

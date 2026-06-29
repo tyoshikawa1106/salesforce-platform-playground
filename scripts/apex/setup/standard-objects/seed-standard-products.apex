@@ -92,7 +92,7 @@ List<String> codes = new List<String>();
 Map<String, List<String>> partsByCode = new Map<String, List<String>>();
 Map<String, Integer> familyCounts = new Map<String, Integer>();
 for (String definition : definitions) {
-    List<String> parts = definition.split('\|');
+    List<String> parts = definition.split('\\|');
     Integer nextNumber = familyCounts.containsKey(parts[0]) ? familyCounts.get(parts[0]) + 1 : 1;
     familyCounts.put(parts[0], nextNumber);
     String code = parts[0] + '-' + pad3(nextNumber);
@@ -123,4 +123,3 @@ for (String code : codes) {
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Product2 insert', Database.insert(inserts, false));
 logResults('Product2 update', Database.update(updates, false));
-
