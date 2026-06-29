@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/order-items.soql --target-org <alias>
-
-SELECT Id, OrderId, PricebookEntry.Product2.Name, Quantity, UnitPrice, TotalPrice, ServiceDate, CreatedDate
-FROM OrderItem
-ORDER BY CreatedDate DESC
-LIMIT 200

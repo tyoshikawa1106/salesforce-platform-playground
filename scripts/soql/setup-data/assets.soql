@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/assets.soql --target-org <alias>
-
-SELECT Id, Name, Account.Name, Contact.LastName, Product2.Name, Status, Quantity, CreatedDate
-FROM Asset
-ORDER BY CreatedDate DESC
-LIMIT 200

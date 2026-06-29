@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/leads.soql --target-org <alias>
-
-SELECT Id, FirstName, LastName, Company, Status, Email, CreatedDate
-FROM Lead
-ORDER BY CreatedDate DESC
-LIMIT 200

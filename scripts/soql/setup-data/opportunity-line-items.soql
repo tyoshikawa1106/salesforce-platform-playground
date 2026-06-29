@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/opportunity-line-items.soql --target-org <alias>
-
-SELECT Id, Opportunity.Name, PricebookEntry.Product2.Name, Quantity, UnitPrice, TotalPrice, ServiceDate, CreatedDate
-FROM OpportunityLineItem
-ORDER BY CreatedDate DESC
-LIMIT 200

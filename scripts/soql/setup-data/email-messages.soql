@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/email-messages.soql --target-org <alias>
-
-SELECT Id, ParentId, RelatedToId, Subject, FromAddress, ToAddress, MessageDate, CreatedDate
-FROM EmailMessage
-ORDER BY CreatedDate DESC
-LIMIT 200

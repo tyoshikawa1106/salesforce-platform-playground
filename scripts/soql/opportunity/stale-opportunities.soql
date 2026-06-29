@@ -1,7 +1,0 @@
-// Run: sf data query --file scripts/soql/opportunity/stale-opportunities.soql --target-org <alias>
-
-SELECT Id, Name, Account.Name, StageName, Amount, CloseDate, LastActivityDate, LastModifiedDate, Owner.Name
-FROM Opportunity
-WHERE IsClosed = FALSE AND LastModifiedDate < LAST_N_DAYS:30
-ORDER BY LastModifiedDate ASC
-LIMIT 50
