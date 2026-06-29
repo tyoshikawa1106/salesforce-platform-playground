@@ -289,7 +289,7 @@ sf org delete scratch --target-org scratch-platform-playground
 同じ確認付き削除はスクリプトでも実行できます。
 
 ```sh
-node scripts/deployment/scratch-org/scratch-org-delete.js
+node scripts/deployment/scratch-org/delete-scratch-org.js
 ```
 
 自動化や明示的に削除対象を確認済みの場合は、確認プロンプトを省略できます。
