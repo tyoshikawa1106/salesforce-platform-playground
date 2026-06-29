@@ -80,9 +80,7 @@ function resolveInsideRepo(relativePath) {
     const relative = path.relative(repoRoot, absolutePath);
 
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
-        throw new Error(
-            `Path must stay inside the repository: ${relativePath}`
-        );
+        throw new Error(`Path must stay inside the repository: ${relativePath}`);
     }
 
     return absolutePath;
@@ -105,21 +103,15 @@ function validateEntry(entry) {
     const missingKeys = requiredKeys.filter((key) => !entry[key]);
 
     if (missingKeys.length > 0) {
-        throw new Error(
-            `Plan entry is missing required keys: ${missingKeys.join(', ')}`
-        );
+        throw new Error(`Plan entry is missing required keys: ${missingKeys.join(', ')}`);
     }
 
     if (!['insert', 'upsert', 'apex'].includes(entry.operation)) {
-        throw new Error(
-            `Unsupported operation for ${entry.label}: ${entry.operation}`
-        );
+        throw new Error(`Unsupported operation for ${entry.label}: ${entry.operation}`);
     }
 
     if (['insert', 'upsert'].includes(entry.operation) && !entry.sobject) {
-        throw new Error(
-            `Data import entry must include sobject: ${entry.label}`
-        );
+        throw new Error(`Data import entry must include sobject: ${entry.label}`);
     }
 
     if (entry.operation === 'upsert' && !entry.externalId) {
@@ -129,21 +121,14 @@ function validateEntry(entry) {
     const absoluteFilePath = resolveInsideRepo(entry.file);
 
     if (!fs.existsSync(absoluteFilePath)) {
-        throw new Error(
-            `CSV file does not exist for ${entry.label}: ${entry.file}`
-        );
+        throw new Error(`CSV file does not exist for ${entry.label}: ${entry.file}`);
     }
 
     const fileContent = fs.readFileSync(absoluteFilePath, 'utf8');
     const firstLine = fileContent.split(/\r?\n/, 1)[0];
 
-    if (
-        ['insert', 'upsert'].includes(entry.operation) &&
-        (!firstLine || firstLine.split(',').length < 2)
-    ) {
-        throw new Error(
-            `CSV file must include a header with at least two columns: ${entry.file}`
-        );
+    if (['insert', 'upsert'].includes(entry.operation) && (!firstLine || firstLine.split(',').length < 2)) {
+        throw new Error(`CSV file must include a header with at least two columns: ${entry.file}`);
     }
 
     if (entry.operation === 'apex' && fileContent.trim().length === 0) {
@@ -195,21 +180,13 @@ function createScratchOrgApexFile(entry, absoluteFilePath) {
     }
 
     const fileContent = fs.readFileSync(absoluteFilePath, 'utf8');
-    const updatedContent = fileContent.replace(
-        /^Integer countPerObject = \d+;/m,
-        `Integer countPerObject = ${entry.scratchOrgCountPerObject};`
-    );
+    const updatedContent = fileContent.replace(/^Integer countPerObject = \d+;/m, `Integer countPerObject = ${entry.scratchOrgCountPerObject};`);
 
     if (updatedContent === fileContent) {
-        throw new Error(
-            `Apex file does not contain a countPerObject declaration: ${entry.file}`
-        );
+        throw new Error(`Apex file does not contain a countPerObject declaration: ${entry.file}`);
     }
 
-    const generatedPath = path.join(
-        os.tmpdir(),
-        `sf-test-data-${process.pid}-${entry.label}.apex`
-    );
+    const generatedPath = path.join(os.tmpdir(), `sf-test-data-${process.pid}-${entry.label}.apex`);
     fs.writeFileSync(generatedPath, updatedContent, 'utf8');
     return generatedPath;
 }
@@ -218,57 +195,20 @@ function buildSfArgs(entry, absoluteFilePath, targetOrg) {
     const wait = String(entry.wait ?? 30);
 
     if (entry.operation === 'apex') {
-        return [
-            'apex',
-            'run',
-            '--file',
-            absoluteFilePath,
-            '--target-org',
-            targetOrg
-        ];
+        return ['apex', 'run', '--file', absoluteFilePath, '--target-org', targetOrg];
     }
 
     if (entry.operation === 'upsert') {
-        return [
-            'data',
-            'upsert',
-            'bulk',
-            '--file',
-            absoluteFilePath,
-            '--sobject',
-            entry.sobject,
-            '--external-id',
-            entry.externalId,
-            '--target-org',
-            targetOrg,
-            '--wait',
-            wait
-        ];
+        return ['data', 'upsert', 'bulk', '--file', absoluteFilePath, '--sobject', entry.sobject, '--external-id', entry.externalId, '--target-org', targetOrg, '--wait', wait];
     }
 
-    return [
-        'data',
-        'import',
-        'bulk',
-        '--file',
-        absoluteFilePath,
-        '--sobject',
-        entry.sobject,
-        '--target-org',
-        targetOrg,
-        '--wait',
-        wait
-    ];
+    return ['data', 'import', 'bulk', '--file', absoluteFilePath, '--sobject', entry.sobject, '--target-org', targetOrg, '--wait', wait];
 }
 
 function printSfSummary(output) {
     const summaryLines = output
         .split(/\r?\n/)
-        .filter((line) =>
-            /USER_DEBUG\|.*\|(DEBUG)\|(Seed run key|Created records|Skipped records):/.test(
-                line
-            )
-        )
+        .filter((line) => /USER_DEBUG\|.*\|(DEBUG)\|(Seed run key|Created records|Skipped records):/.test(line))
         .map((line) => line.replace(/^.*\|DEBUG\|/, ''));
 
     for (const line of summaryLines) {
@@ -280,20 +220,15 @@ function run() {
     const args = parseArgs(process.argv.slice(2));
     const plan = readPlan(args.plan);
     const scratchOrg = Boolean(args.targetOrg) && isScratchOrg(args.targetOrg);
-    const repeatCount =
-        args.repeat ?? (scratchOrg ? plan.scratchOrgRepeat : plan.repeat) ?? 1;
-    const selectedEntries = args.only
-        ? plan.imports.filter((entry) => entry.label === args.only)
-        : plan.imports;
+    const repeatCount = args.repeat ?? (scratchOrg ? plan.scratchOrgRepeat : plan.repeat) ?? 1;
+    const selectedEntries = args.only ? plan.imports.filter((entry) => entry.label === args.only) : plan.imports;
 
     if (selectedEntries.length === 0) {
         throw new Error(`No import plan entries matched --only ${args.only}`);
     }
 
     if (!args.dryRun && !args.targetOrg) {
-        throw new Error(
-            'Real import requires --target-org <alias>. Use --dry-run to validate locally.'
-        );
+        throw new Error('Real import requires --target-org <alias>. Use --dry-run to validate locally.');
     }
 
     if (!Number.isInteger(repeatCount) || repeatCount < 1) {
@@ -302,27 +237,19 @@ function run() {
 
     for (let cycle = 1; cycle <= repeatCount; cycle += 1) {
         for (const entry of selectedEntries) {
-            const entryRepeatCount =
-                args.repeat ??
-                (scratchOrg ? entry.scratchOrgRepeat : entry.repeat) ??
-                repeatCount;
+            const entryRepeatCount = args.repeat ?? (scratchOrg ? entry.scratchOrgRepeat : entry.repeat) ?? repeatCount;
 
             if (cycle > entryRepeatCount) {
                 continue;
             }
 
             const absoluteFilePath = validateEntry(entry);
-            const importFilePath = scratchOrg
-                ? createScratchOrgApexFile(entry, absoluteFilePath)
-                : absoluteFilePath;
+            const importFilePath = scratchOrg ? createScratchOrgApexFile(entry, absoluteFilePath) : absoluteFilePath;
             const targetOrg = args.targetOrg || '<target-org>';
             const sfArgs = buildSfArgs(entry, importFilePath, targetOrg);
-            const cycleSuffix =
-                repeatCount > 1 ? ` (${cycle}/${repeatCount})` : '';
+            const cycleSuffix = repeatCount > 1 ? ` (${cycle}/${repeatCount})` : '';
 
-            console.log(
-                `[${args.dryRun ? 'dry-run' : 'import'}] ${entry.label}${cycleSuffix}`
-            );
+            console.log(`[${args.dryRun ? 'dry-run' : 'import'}] ${entry.label}${cycleSuffix}`);
             console.log(`sf ${sfArgs.join(' ')}`);
 
             if (args.dryRun) {

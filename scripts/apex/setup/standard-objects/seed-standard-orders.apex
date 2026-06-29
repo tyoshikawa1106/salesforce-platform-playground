@@ -75,7 +75,7 @@ void putIfCreateable(SObject record, String fieldName, Object value) {
 }
 
 List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+List<Contact> contacts = [SELECT Id, AccountId, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<PricebookEntry> pricebookEntries = [
@@ -86,9 +86,20 @@ List<PricebookEntry> pricebookEntries = [
     LIMIT :parentPoolSize
 ];
 
-List<Contract> contracts = [SELECT Id, AccountId FROM Contract WHERE Account.Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+List<Contract> contracts = [SELECT Id, AccountId, StartDate FROM Contract WHERE Account.Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 if (accounts.isEmpty() || contacts.isEmpty() || contracts.isEmpty() || pricebookEntries.isEmpty()) {
     System.assert(false, 'Run contracts before orders.');
+}
+
+Map<Id, List<Contact>> contactsByAccountId = new Map<Id, List<Contact>>();
+for (Contact contact : contacts) {
+    if (contact.AccountId == null) {
+        continue;
+    }
+    if (!contactsByAccountId.containsKey(contact.AccountId)) {
+        contactsByAccountId.put(contact.AccountId, new List<Contact>());
+    }
+    contactsByAccountId.get(contact.AccountId).add(contact);
 }
 
 String status = pick(Order.Status.getDescribe(), new List<String>{ 'Draft' });
@@ -97,9 +108,13 @@ Integer existingCount = [SELECT COUNT() FROM Order WHERE Account.Name LIKE :seed
 List<Order> records = new List<Order>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer sequence = existingCount + i;
-    Account account = accounts[Math.mod(sequence - 1, accounts.size())];
-    records.add(new Order(AccountId = account.Id, ContractId = contracts[Math.mod(sequence - 1, contracts.size())].Id, BillToContactId = contacts[Math.mod(sequence - 1, contacts.size())].Id, ShipToContactId = contacts[Math.mod(sequence - 1, contacts.size())].Id, Pricebook2Id = pricebookEntries[Math.mod(sequence - 1, pricebookEntries.size())].Pricebook2Id, Type = types[Math.mod(sequence - 1, types.size())], EffectiveDate = Date.today().addDays(Math.mod(sequence, 180)), Status = status, Description = '初回導入分の注文。'));
+    Contract contract = contracts[Math.mod(sequence - 1, contracts.size())];
+    List<Contact> accountContacts = contactsByAccountId.get(contract.AccountId);
+    Contact contact = accountContacts == null || accountContacts.isEmpty()
+        ? contacts[Math.mod(sequence - 1, contacts.size())]
+        : accountContacts[Math.mod(sequence - 1, accountContacts.size())];
+    Date effectiveDate = contract.StartDate.addDays(Math.mod(sequence, 30));
+    records.add(new Order(AccountId = contract.AccountId, ContractId = contract.Id, BillToContactId = contact.Id, ShipToContactId = contact.Id, Pricebook2Id = pricebookEntries[Math.mod(sequence - 1, pricebookEntries.size())].Pricebook2Id, Type = types[Math.mod(sequence - 1, types.size())], EffectiveDate = effectiveDate, Status = status, Description = '初回導入分の注文。'));
 }
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Order', Database.insert(records, false));
-

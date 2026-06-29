@@ -8,24 +8,29 @@
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricsOverviewController</members>
         <members>ObjectMetricsOverviewControllerTest</members>
+        <members>ObjectMetricsOverviewItemWrapper</members>
+        <members>ObjectMetricsOverviewItemWrapperTest</members>
         <members>ObjectMetricsOverviewSelector</members>
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
         <members>ObjectMetricsOverviewServiceTest</members>
-        <members>ObjectRecordSearchAccessWrapper</members>
-        <members>ObjectRecordSearchAccessWrapperTest</members>
+        <members>ObjectMetricsOverviewSummaryWrapper</members>
+        <members>ObjectMetricsOverviewSummaryWrapperTest</members>
         <members>ObjectRecordSearchConfigWrapper</members>
         <members>ObjectRecordSearchConfigWrapperTest</members>
+        <members>ObjectRecordSearchContext</members>
+        <members>ObjectRecordSearchContextTest</members>
         <members>ObjectRecordSearchController</members>
         <members>ObjectRecordSearchControllerTest</members>
         <members>ObjectRecordSearchDeleteWrapper</members>
         <members>ObjectRecordSearchDeleteWrapperTest</members>
         <members>ObjectRecordSearchDisplayFieldCatalog</members>
+        <members>ObjectRecordSearchException</members>
+        <members>ObjectRecordSearchExceptionTest</members>
         <members>ObjectRecordSearchFieldWrapper</members>
         <members>ObjectRecordSearchFieldWrapperTest</members>
-        <members>ObjectRecordSearchPageStateWrapper</members>
-        <members>ObjectRecordSearchPageStateWrapperTest</members>
         <members>ObjectRecordSearchQueryPlan</members>
+        <members>ObjectRecordSearchQueryPlanTest</members>
         <members>ObjectRecordSearchRequestWrapper</members>
         <members>ObjectRecordSearchRequestWrapperTest</members>
         <members>ObjectRecordSearchResultWrapper</members>
@@ -35,7 +40,9 @@
         <members>ObjectRecordSearchSelector</members>
         <members>ObjectRecordSearchSelectorTest</members>
         <members>ObjectRecordSearchService</members>
+        <members>ObjectRecordSearchServiceTest</members>
         <members>ObjectRecordSearchSortSupport</members>
+        <members>ObjectRecordSearchSortSupportTest</members>
         <members>TestDataFactory</members>
         <members>TestDataFactoryTest</members>
         <name>ApexClass</name>

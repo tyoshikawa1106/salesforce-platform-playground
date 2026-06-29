@@ -7,11 +7,11 @@
 
 ## 現在の標準入口
 
-| 用途                 | コマンド                                         | scope                                |
-| -------------------- | ------------------------------------------------ | ------------------------------------ |
-| Dev 組織 validate    | `npm run sf:validate:dev`                        | `manifest/rebuild-developer-org.xml` |
-| Dev 組織 deploy      | `npm run sf:deploy:dev`                          | `manifest/rebuild-developer-org.xml` |
-| Scratch Org 初期反映 | `node scripts/deployment/rebuild-scratch-org.js` | `manifest/rebuild-scratch-org.xml`   |
+| 用途                 | コマンド                                                     | scope                                |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------ |
+| Dev 組織 validate    | `npm run sf:validate:dev`                                    | `manifest/rebuild-developer-org.xml` |
+| Dev 組織 deploy      | `npm run sf:deploy:dev`                                      | `manifest/rebuild-developer-org.xml` |
+| Scratch Org 初期反映 | `node scripts/deployment/scratch-org/rebuild-scratch-org.js` | `manifest/rebuild-scratch-org.xml`   |
 
 `sf project deploy validate --source-dir force-app` は、標準の成功条件ではなく、広く retrieve した metadata の分類調査として扱います。
 

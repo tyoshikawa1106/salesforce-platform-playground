@@ -86,32 +86,25 @@ export function emitObjectInfo(fieldOverrides = {}) {
     });
 }
 
-export function emitLayout({
-    objectApiName = 'Account',
-    mode = 'Create',
-    fields = ['Name', 'Industry'],
-    sections
-} = {}) {
-    const layoutSections = (sections ?? [{ heading: '基本情報', fields }]).map(
-        (section) => ({
-            heading: section.heading,
-            layoutRows: [
-                {
-                    layoutItems: section.fields.map((field) => ({
-                        editableForNew: true,
-                        editableForUpdate: true,
-                        required: true,
-                        layoutComponents: [
-                            {
-                                apiName: field,
-                                componentType: 'Field'
-                            }
-                        ]
-                    }))
-                }
-            ]
-        })
-    );
+export function emitLayout({ objectApiName = 'Account', mode = 'Create', fields = ['Name', 'Industry'], sections } = {}) {
+    const layoutSections = (sections ?? [{ heading: '基本情報', fields }]).map((section) => ({
+        heading: section.heading,
+        layoutRows: [
+            {
+                layoutItems: section.fields.map((field) => ({
+                    editableForNew: true,
+                    editableForUpdate: true,
+                    required: true,
+                    layoutComponents: [
+                        {
+                            apiName: field,
+                            componentType: 'Field'
+                        }
+                    ]
+                }))
+            }
+        ]
+    }));
 
     getLayout.emit({
         layouts: {
@@ -127,9 +120,7 @@ export function emitLayout({
 }
 
 export function findButton(element, label) {
-    return Array.from(
-        element.shadowRoot.querySelectorAll('lightning-button')
-    ).find((button) => button.label === label);
+    return Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find((button) => button.label === label);
 }
 
 function createFieldInfo(overrides = {}) {

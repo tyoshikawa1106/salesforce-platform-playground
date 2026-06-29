@@ -81,32 +81,27 @@ Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Clo
 `AddCustomRelationships` は `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` にします。
 `TransactionFinalizers` は CLI の schema では候補に含まれますが、現在の Dev Hub では Scratch Org 作成時に無効な feature として失敗したため指定しません。
 
-## 自動再現
+## 一括実行
 
-通常の再現確認はスクリプトで実行します。
-Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
-
-```sh
-node scripts/deployment/rebuild-scratch-org.js
-```
-
-alias や Dev Hub を明示する場合:
+通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するだけのスクリプトで行います。
+Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign、標準オブジェクトのテストデータ投入までを順に実行します。
+途中で失敗した場合はそこで停止します。
+alias、duration、manifest、Permission Set、import plan は `scripts/deployment/scratch-org/scratch-org.json` で定義します。
 
 ```sh
-node scripts/deployment/rebuild-scratch-org.js \
-    --alias scratch-platform-playground \
-    --target-dev-hub salesforce-platform-playground \
-    --duration-days 7
+node scripts/deployment/scratch-org/rebuild-scratch-org.js
 ```
 
-package install が必要な場合は、metadata deploy より前に入れる package version id を渡します。
+途中で失敗した場合は、失敗したステップのスクリプトだけを再実行します。
 
 ```sh
-node scripts/deployment/rebuild-scratch-org.js --package 04tXXXXXXXXXXXXXXX
+node scripts/deployment/scratch-org/scratch-org-create.js
+node scripts/deployment/scratch-org/scratch-org-deploy.js
+node scripts/deployment/scratch-org/scratch-org-assign-permset.js
+node scripts/deployment/scratch-org/scratch-org-import-test-data.js
 ```
 
-調査のため Scratch Org を残す場合だけ `--keep-org` を付けます。
-`--skip-create` で既存 alias を使う場合、スクリプトはその org を自動削除しません。
+alias、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json` または次の手順の個別 `sf` コマンドを確認します。
 
 ## 作成
 
@@ -116,7 +111,7 @@ Scratch Org を作成します。
 sf org create scratch --definition-file config/project-scratch-def.json --alias scratch-platform-playground --duration-days 7
 ```
 
-alias は個人環境の値なので、必要に応じて各自のローカルで変えます。
+alias は `scripts/deployment/scratch-org/scratch-org.json` で指定します。
 Dev Hub を明示する必要がある場合は、確認済みの Dev Hub を `--target-dev-hub` で指定します。
 
 ```sh
@@ -260,13 +255,12 @@ sf project deploy start --manifest manifest/scratch-work.xml --target-org salesf
 sf apex run test --test-level RunLocalTests --result-format human --target-org scratch-platform-playground
 ```
 
-Scratch Org 初期反映対象を変更した場合は、少なくとも次を確認します。
+Scratch Org 初期反映対象を変更した場合は、必要に応じて次を確認します。
 
 - `manifest/rebuild-scratch-org.xml` の deploy が成功すること
 - Apex `RunLocalTests` が成功すること
-- 確認後に Scratch Org が削除されること
 
-通常は `node scripts/deployment/rebuild-scratch-org.js` の実行結果でこの確認をまとめます。
+通常は `node scripts/deployment/scratch-org/rebuild-scratch-org.js` の実行結果、またはこのページの個別 `sf` コマンドの実行結果で準備内容をまとめます。
 
 組織をブラウザで確認する場合:
 
@@ -290,6 +284,12 @@ sf org display --target-org scratch-platform-playground
 
 ```sh
 sf org delete scratch --target-org scratch-platform-playground
+```
+
+同じ確認付き削除はスクリプトでも実行できます。
+
+```sh
+node scripts/deployment/scratch-org/delete-scratch-org.js
 ```
 
 自動化や明示的に削除対象を確認済みの場合は、確認プロンプトを省略できます。

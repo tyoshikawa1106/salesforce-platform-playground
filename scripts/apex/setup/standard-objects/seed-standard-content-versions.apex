@@ -83,10 +83,7 @@ Integer existingCount = [SELECT COUNT() FROM ContentVersion WHERE Title LIKE :se
 List<ContentVersion> records = new List<ContentVersion>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer sequence = existingCount + i;
-    records.add(new ContentVersion(Title = seedPrefix + ' 提案メモ', PathOnClient = 'proposal-note-' + String.valueOf(sequence).leftPad(4, '0') + '.txt', VersionData = Blob.valueOf('提案メモ
-
-顧客課題と次回確認事項。
-'), FirstPublishLocationId = accounts[Math.mod(sequence - 1, accounts.size())].Id, ContentLocation = 'S', Description = '提案メモの表示確認に使うテストファイル。'));
+    records.add(new ContentVersion(Title = seedPrefix + ' 提案メモ', PathOnClient = 'proposal-note-' + String.valueOf(sequence).leftPad(4, '0') + '.txt', VersionData = Blob.valueOf('提案メモ\n\n顧客課題と次回確認事項。\n'), FirstPublishLocationId = accounts[Math.mod(sequence - 1, accounts.size())].Id, ContentLocation = 'S', Description = '提案メモの表示確認に使うテストファイル。'));
 }
 System.debug('Seed run key: ' + seedRunKey);
 logResults('ContentVersion', Database.insert(records, false));
@@ -94,4 +91,3 @@ System.debug('Skipped records: Knowledge: Knowledge article sObject is not inser
 System.debug('Skipped records: Report: Report is metadata-backed and not inserted by this DML seed script');
 System.debug('Skipped records: Dashboard: Dashboard is metadata-backed and not inserted by this DML seed script');
 System.debug('Skipped records: User: extra users require license/profile decisions and are not inserted by this seed script');
-

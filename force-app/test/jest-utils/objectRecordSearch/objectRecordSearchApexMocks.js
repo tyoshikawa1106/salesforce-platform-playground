@@ -11,9 +11,7 @@ jest.mock(
 jest.mock(
     '@salesforce/apex/ObjectRecordSearchController.searchRecords',
     () => {
-        const {
-            createApexTestWireAdapter
-        } = require('@salesforce/sfdx-lwc-jest');
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
         return {
             default: createApexTestWireAdapter(jest.fn())
         };
