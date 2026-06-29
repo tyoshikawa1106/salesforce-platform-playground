@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/account/active-accounts.soql --target-org <alias>
-
-SELECT Id, Name, AccountNumber, Industry, Type, Owner.Name, LastModifiedDate
-FROM Account
-ORDER BY LastModifiedDate DESC
-LIMIT 50

@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/accounts.soql --target-org <alias>
-
-SELECT Id, Name, AccountNumber, Industry, Type, CreatedDate
-FROM Account
-ORDER BY CreatedDate DESC
-LIMIT 200

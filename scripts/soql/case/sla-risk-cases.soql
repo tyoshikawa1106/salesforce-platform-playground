@@ -1,7 +1,0 @@
-// Run: sf data query --file scripts/soql/case/sla-risk-cases.soql --target-org <alias>
-
-SELECT Id, CaseNumber, Subject, Account.Name, Status, Priority, CreatedDate, LastModifiedDate, Owner.Name
-FROM Case
-WHERE IsClosed = FALSE AND (Priority = 'High' OR CreatedDate < LAST_N_DAYS:7)
-ORDER BY CreatedDate ASC
-LIMIT 50

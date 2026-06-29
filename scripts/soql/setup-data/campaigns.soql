@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/campaigns.soql --target-org <alias>
-
-SELECT Id, Name, Type, Status, IsActive, StartDate, EndDate, CreatedDate
-FROM Campaign
-ORDER BY StartDate DESC
-LIMIT 200

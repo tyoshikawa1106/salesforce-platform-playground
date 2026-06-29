@@ -8,7 +8,7 @@
 
 ```sh
 sf data export bulk \
-  --query-file scripts/soql/setup-data/accounts.soql \
+  --query-file scripts/soql/test-data-check-queries/accounts.soql \
   --output-file export-out/accounts.csv \
   --result-format csv \
   --wait 30 \
@@ -19,7 +19,7 @@ sf data export bulk \
 
 ```sh
 sf data export bulk \
-  --query-file scripts/soql/setup-data/accounts.soql \
+  --query-file scripts/soql/test-data-check-queries/accounts.soql \
   --output-file export-out/accounts.json \
   --result-format json \
   --wait 30 \

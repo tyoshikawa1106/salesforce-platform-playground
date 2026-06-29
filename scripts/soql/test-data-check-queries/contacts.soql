@@ -1,0 +1,6 @@
+// Run: sf data query --file scripts/soql/test-data-check-queries/contacts.soql --target-org <alias>
+
+SELECT Id, FirstName, LastName, Account.Name, Email, Title, CreatedDate
+FROM Contact
+ORDER BY CreatedDate DESC
+LIMIT 200

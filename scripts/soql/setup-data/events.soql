@@ -1,6 +1,0 @@
-// Run: sf data query --file scripts/soql/setup-data/events.soql --target-org <alias>
-
-SELECT Id, Subject, Who.Name, What.Name, StartDateTime, EndDateTime, Location, CreatedDate
-FROM Event
-ORDER BY CreatedDate DESC
-LIMIT 200
