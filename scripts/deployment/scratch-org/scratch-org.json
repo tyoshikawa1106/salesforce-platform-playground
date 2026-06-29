@@ -2,6 +2,7 @@
     "alias": "scratch-platform-playground",
     "definitionFile": "config/project-scratch-def.json",
     "durationDays": 7,
+    "importPlan": "scripts/setup/standard-objects/import-plan.json",
     "manifest": "manifest/rebuild-scratch-org.xml",
     "permissionSet": "Salesforce_Platform_Playground_User",
     "waitMinutes": 30

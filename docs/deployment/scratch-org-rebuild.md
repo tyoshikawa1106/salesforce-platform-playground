@@ -83,10 +83,10 @@ Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Clo
 
 ## 一括実行
 
-通常の Scratch Org 準備は、固定の `sf` コマンドを順に実行するだけのスクリプトで行います。
-Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign までを順に実行します。
+通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するだけのスクリプトで行います。
+Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign、標準オブジェクトのテストデータ投入までを順に実行します。
 途中で失敗した場合はそこで停止します。
-alias、duration、manifest、Permission Set は `scripts/deployment/scratch-org/scratch-org.json` で定義します。
+alias、duration、manifest、Permission Set、import plan は `scripts/deployment/scratch-org/scratch-org.json` で定義します。
 
 ```sh
 node scripts/deployment/scratch-org/rebuild-scratch-org.js
@@ -98,6 +98,7 @@ node scripts/deployment/scratch-org/rebuild-scratch-org.js
 node scripts/deployment/scratch-org/scratch-org-create.js
 node scripts/deployment/scratch-org/scratch-org-deploy.js
 node scripts/deployment/scratch-org/scratch-org-assign-permset.js
+node scripts/deployment/scratch-org/scratch-org-import-test-data.js
 ```
 
 alias、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json` または次の手順の個別 `sf` コマンドを確認します。
@@ -110,7 +111,7 @@ Scratch Org を作成します。
 sf org create scratch --definition-file config/project-scratch-def.json --alias scratch-platform-playground --duration-days 7
 ```
 
-alias は個人環境の値なので、必要に応じて各自のローカルで変えます。
+alias は `scripts/deployment/scratch-org/scratch-org.json` で指定します。
 Dev Hub を明示する必要がある場合は、確認済みの Dev Hub を `--target-dev-hub` で指定します。
 
 ```sh
