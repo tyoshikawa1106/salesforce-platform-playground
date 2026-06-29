@@ -83,9 +83,9 @@ Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Clo
 
 ## 一括実行
 
-通常の再現確認は、固定の `sf` コマンドを順に実行するだけのスクリプトで行います。
-Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign、Apex `RunLocalTests`、Scratch Org 削除までを順に実行します。
-途中で失敗した場合はそこで停止し、最後の Scratch Org 削除までは進みません。
+通常の Scratch Org 準備は、固定の `sf` コマンドを順に実行するだけのスクリプトで行います。
+Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign までを順に実行します。
+途中で失敗した場合はそこで停止します。
 
 ```sh
 bash scripts/deployment/rebuild-scratch-org.sh
@@ -246,13 +246,12 @@ sf project deploy start --manifest manifest/scratch-work.xml --target-org salesf
 sf apex run test --test-level RunLocalTests --result-format human --target-org scratch-platform-playground
 ```
 
-Scratch Org 初期反映対象を変更した場合は、少なくとも次を確認します。
+Scratch Org 初期反映対象を変更した場合は、必要に応じて次を確認します。
 
 - `manifest/rebuild-scratch-org.xml` の deploy が成功すること
 - Apex `RunLocalTests` が成功すること
-- 確認後に Scratch Org が削除されること
 
-通常は `bash scripts/deployment/rebuild-scratch-org.sh` の実行結果、またはこのページの個別 `sf` コマンドの実行結果で確認をまとめます。
+通常は `bash scripts/deployment/rebuild-scratch-org.sh` の実行結果、またはこのページの個別 `sf` コマンドの実行結果で準備内容をまとめます。
 
 組織をブラウザで確認する場合:
 
