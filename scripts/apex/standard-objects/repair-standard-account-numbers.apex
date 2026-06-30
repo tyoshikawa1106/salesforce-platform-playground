@@ -1,4 +1,4 @@
-// Run: sf apex run --file scripts/apex/setup/standard-objects/repair-standard-account-numbers.apex --target-org <alias>
+// Run: sf apex run --file scripts/apex/standard-objects/repair-standard-account-numbers.apex --target-org <alias>
 String seedPrefix = '[TEST]';
 String seedLike = seedPrefix + '%';
 String longAccountNumberLike = 'ACCT-%-%';

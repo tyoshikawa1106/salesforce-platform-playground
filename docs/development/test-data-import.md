@@ -10,10 +10,10 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行入口と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/setup/` に置きます。
+`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行入口と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/` に置きます。
 
 - `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画。
-- `scripts/apex/setup/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
+- `scripts/apex/standard-objects/*.apex`: 関連レコードを作成・削除する anonymous Apex。
 - `scripts/soql/test-data-check-queries/*.soql`: 初期データ投入後の横断確認用 SOQL。
 - `scripts/soql/object-queries/<object>/*.soql`: オブジェクトごとの調査・運用確認用 SOQL。
 - `scripts/setup/import-test-data.js`: import plan を読み、`sf apex run` を順番に実行する。
@@ -102,7 +102,7 @@ sf data delete record --sobject Account --record-id <record-id> --target-org <al
 主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。cleanup は governor limit を避けるため、各オブジェクト最大 100 件ずつ削除します。大量投入後は `Deleted records: none` になるまで複数回実行します。
 
 ```sh
-sf apex run --file scripts/apex/setup/standard-objects/cleanup-standard-objects.apex --target-org <alias>
+sf apex run --file scripts/apex/standard-objects/cleanup-standard-objects.apex --target-org <alias>
 ```
 
 ## データ追加時の注意
