@@ -5,7 +5,7 @@
 ## 前提
 
 - Salesforce CLI
-- Node.js / npm
+- Node.js 26 / npm
 - Dev 組織へのログイン
 
 ## 初期セットアップ
@@ -18,6 +18,8 @@ npm ci
 Husky、lint-staged、Prettier、ESLint、LWC Jest など、コミット前チェックや LWC 開発に必要な依存もここで入ります。
 
 `package-lock.json` は npm 依存の再現性を保つために管理対象とします。
+
+このリポジトリの npm scripts と CI は Node.js 26 を前提にします。
 
 ## Prettier
 
