@@ -1,13 +1,10 @@
 {
     "description": "Synthetic standard object seed plan. Each entry runs one anonymous Apex file for one primary Salesforce object, while import order preserves object dependencies.",
     "repeat": 1,
-    "scratchOrgRepeat": 40,
     "imports": [
         {
             "label": "standard-objects-accounts",
             "operation": "apex",
-            "repeat": 1,
-            "scratchOrgCountPerObject": 2000,
             "file": "scripts/apex/setup/standard-objects/seed-standard-accounts.apex"
         },
         {
