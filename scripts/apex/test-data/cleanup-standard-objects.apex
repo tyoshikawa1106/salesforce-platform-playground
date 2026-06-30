@@ -1,4 +1,4 @@
-// Run: sf apex run --file scripts/apex/setup/standard-objects/cleanup-standard-objects.apex --target-org <alias>
+// Run: sf apex run --file scripts/apex/test-data/cleanup-standard-objects.apex --target-org <alias>
 String seedPrefix = '[TEST]%';
 Integer deleteBatchSize = 100;
 String seedLikeLiteral = '\'' + String.escapeSingleQuotes(seedPrefix) + '\'';

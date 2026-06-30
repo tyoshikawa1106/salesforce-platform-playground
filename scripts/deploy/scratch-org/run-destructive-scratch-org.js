@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run: node scripts/deployment/scratch-org/delete-scratch-org.js
+// Run: node scripts/deploy/scratch-org/run-destructive-scratch-org.js
 
 const { execSync } = require('node:child_process');
 const { repoRoot, scratchOrg } = require('./scratch-org-context');

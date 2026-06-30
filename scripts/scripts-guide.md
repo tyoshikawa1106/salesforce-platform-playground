@@ -5,7 +5,7 @@
 - `scripts/setup/`: 初期 org セットアップ用の Node 実行入口と plan。
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
-- `scripts/deployment/`: デプロイや org 再構築の補助スクリプト。
+- `scripts/deploy/`: デプロイや org 再構築の補助スクリプト。
 
 生成された export ファイルは `scripts/` に置きません。Salesforce CLI のローカル export 出力は `export-out/` に書き出します。
 

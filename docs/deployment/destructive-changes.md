@@ -24,6 +24,23 @@ Salesforce メタデータを削除する destructive changes の実務ルール
 sf org display
 ```
 
+## Apex クラス削除
+
+削除対象の Apex クラスは `manifest/destructiveChanges.xml` の `ApexClass` に書きます。
+`REPLACE_WITH_APEX_CLASS_NAME` は実際の Apex クラス名に置き換えます。
+
+削除前に dry-run します。
+
+```sh
+node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias> --dry-run
+```
+
+問題なければ削除を実行します。
+
+```sh
+node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
+```
+
 ## 実行方針
 
 - destructive manifest は作業単位ごとに最小化する。

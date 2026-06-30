@@ -27,7 +27,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 - タスクに必要なメタデータだけを取得する。
 - 取得したメタデータはコミット前に確認する。特に権限や自動生成に見えるファイルに注意する。
 - タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
-- Scratch Org 初期反映の対象を変えた場合は、`node scripts/deployment/scratch-org/rebuild-scratch-org.js` で再現手順を確認する。
+- Scratch Org 初期反映の対象を変えた場合は、`node scripts/deploy/scratch-org/run-constructive-scratch-org.js` で再現手順を確認する。
 - Dev 組織へ反映する標準 scope は `manifest/rebuild-developer-org.xml` で管理する。`force-app` 全体 validate は、広く retrieve した metadata の分類調査に限る。
 - `force-app` 全体を deployable に寄せる判断は、[force-app deployability 棚卸し](force-app-deployability-inventory.md) に従って metadata type ごとに進める。
 

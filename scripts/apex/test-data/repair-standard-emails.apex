@@ -1,4 +1,4 @@
-// Run: sf apex run --file scripts/apex/setup/standard-objects/repair-standard-emails.apex --target-org <alias>
+// Run: sf apex run --file scripts/apex/test-data/repair-standard-emails.apex --target-org <alias>
 String seedPrefix = '[TEST]';
 String seedLike = seedPrefix + '%';
 
