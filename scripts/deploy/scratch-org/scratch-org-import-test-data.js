@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run: node scripts/deployment/scratch-org/scratch-org-import-test-data.js
+// Run: node scripts/deploy/scratch-org/scratch-org-import-test-data.js
 
 const { execFileSync } = require('node:child_process');
 const { repoRoot, scratchOrg } = require('./scratch-org-context');

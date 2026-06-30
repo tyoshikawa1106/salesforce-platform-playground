@@ -6,15 +6,15 @@
 
 ## Salesforce / DX
 
-| ファイル                                          | 概要                                                                                                                                     | 変更時の確認                                                                                          |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `sfdx-project.json`                               | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を正本の source directory とする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。   |
-| `config/project-scratch-def.json`                 | Scratch org 作成時の edition、features、settings を定義する。Dev 組織への deploy 先設定ではない。                                        | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Dev 組織との差分を確認する。            |
-| `scripts/deployment/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、docs の Scratch Org 手順と一致しているか確認する。                 |
-| `manifest/rebuild-developer-org.xml`              | Dev 組織への標準 validate / deploy scope を定義する。                                                                                    | 追加前に対象 org で validate し、`docs/development/force-app-deployability-inventory.md` と合わせる。 |
-| `manifest/rebuild-scratch-org.xml`                | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                       |
-| `manifest/package*.xml`                           | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                      |
-| `.forceignore`                                    | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                           |
+| ファイル                                      | 概要                                                                                                                                     | 変更時の確認                                                                                          |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `sfdx-project.json`                           | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を正本の source directory とする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。   |
+| `config/project-scratch-def.json`             | Scratch org 作成時の edition、features、settings を定義する。Dev 組織への deploy 先設定ではない。                                        | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Dev 組織との差分を確認する。            |
+| `scripts/deploy/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、docs の Scratch Org 手順と一致しているか確認する。                 |
+| `manifest/rebuild-developer-org.xml`          | Dev 組織への標準 validate / deploy scope を定義する。                                                                                    | 追加前に対象 org で validate し、`docs/development/force-app-deployability-inventory.md` と合わせる。 |
+| `manifest/rebuild-scratch-org.xml`            | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                       |
+| `manifest/package*.xml`                       | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                      |
+| `.forceignore`                                | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                           |
 
 ## npm / 品質チェック
 
