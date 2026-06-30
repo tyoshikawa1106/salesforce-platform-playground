@@ -28,7 +28,7 @@ Node.js はプロジェクトの要求バージョンに合わせます。たと
 
 ```sh
 brew install volta
-volta install node@26
+volta install node@24
 ```
 
 Homebrew の Java を優先する必要がある場合:
@@ -61,7 +61,7 @@ Node.js はプロジェクトの要求バージョンに合わせます。たと
 
 ```powershell
 winget install --id Volta.Volta -e
-volta install node@26
+volta install node@24
 ```
 
 Windows で Python Launcher を使う場合は、Python 3.13 が入っているか確認します。

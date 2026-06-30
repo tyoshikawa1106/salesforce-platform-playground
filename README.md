@@ -39,7 +39,7 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 - Salesforce CLI
 - Apex
 - Salesforce metadata
-- Node.js 26 / npm
+- Node.js 24 / npm
 - Prettier
 - ESLint
 - LWC Jest
@@ -49,7 +49,7 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 ローカルで開発するには、以下が必要です。
 
 - Git
-- Node.js 26
+- Node.js 24
 - npm
 - Salesforce CLI
 - Dev 組織
