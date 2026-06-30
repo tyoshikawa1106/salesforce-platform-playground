@@ -21,7 +21,6 @@
         <members>*</members>
         <name>ApexTestSuite</name>
     </types>
-
     <!-- Lightning コンポーネント -->
     <types>
         <members>*</members>
@@ -47,7 +46,6 @@
         <members>*</members>
         <name>DataWeaveResource</name>
     </types>
-
     <!-- アプリケーション / ナビゲーション -->
     <types>
         <members>*</members>
@@ -61,7 +59,6 @@
         <members>*</members>
         <name>AppMenu</name>
     </types>
-
     <!-- 画面 / レイアウト -->
     <types>
         <members>*</members>
@@ -87,7 +84,6 @@
         <members>*</members>
         <name>BrandingSet</name>
     </types>
-
     <!-- オブジェクト / データモデル -->
     <types>
         <members>Account</members>
@@ -166,7 +162,6 @@
         <members>*</members>
         <name>StandardValueSet</name>
     </types>
-
     <!-- 自動化 / プロセス -->
     <types>
         <members>*</members>
@@ -204,7 +199,6 @@
         <members>*</members>
         <name>MatchingRules</name>
     </types>
-
     <!-- 権限 / 共有 -->
     <types>
         <members>*</members>
@@ -258,7 +252,6 @@
         <members>*</members>
         <name>ProfileSessionSetting</name>
     </types>
-
     <!-- 認証 / セキュリティ -->
     <types>
         <members>*</members>
@@ -376,7 +369,6 @@
         <members>*</members>
         <name>PublicKeyCertificateSet</name>
     </types>
-
     <!-- 外部接続 / API -->
     <types>
         <members>*</members>
@@ -422,7 +414,6 @@
         <members>*</members>
         <name>McpServerDefinition</name>
     </types>
-
     <!-- イベント / メッセージング -->
     <types>
         <members>*</members>
@@ -444,7 +435,6 @@
         <members>*</members>
         <name>EventRelayConfig</name>
     </types>
-
     <!-- レポート / 分析 -->
     <types>
         <members>*</members>
@@ -462,7 +452,6 @@
         <members>*</members>
         <name>WaveAnalyticAssetCollection</name>
     </types>
-
     <!-- メール / 通知 -->
     <types>
         <members>*</members>
@@ -484,7 +473,6 @@
         <members>*</members>
         <name>ApexEmailNotifications</name>
     </types>
-
     <!-- Experience / サイト -->
     <types>
         <members>*</members>
@@ -518,7 +506,6 @@
         <members>*</members>
         <name>LightningBolt</name>
     </types>
-
     <!-- Service 設定 -->
     <types>
         <members>*</members>
@@ -560,7 +547,6 @@
         <members>*</members>
         <name>LiveChatSensitiveDataRule</name>
     </types>
-
     <!-- モバイル / オフライン -->
     <types>
         <members>*</members>
@@ -570,7 +556,6 @@
         <members>*</members>
         <name>MobileApplicationDetail</name>
     </types>
-
     <!-- AI / 機械学習 -->
     <types>
         <members>*</members>
@@ -608,7 +593,6 @@
         <members>*</members>
         <name>MLDataDefinition</name>
     </types>
-
     <!-- コンテンツ / CMS -->
     <types>
         <members>*</members>
@@ -622,7 +606,6 @@
         <members>*</members>
         <name>DataCategoryGroup</name>
     </types>
-
     <!-- 検索 / ナレッジ補助 -->
     <types>
         <members>*</members>
@@ -640,7 +623,6 @@
         <members>*</members>
         <name>TopicsForObjects</name>
     </types>
-
     <!-- 組織設定 -->
     <types>
         <members>*</members>
@@ -674,7 +656,6 @@
         <members>*</members>
         <name>UserProvisioningConfig</name>
     </types>
-
     <!-- Classic UI -->
     <types>
         <members>*</members>
@@ -688,7 +669,6 @@
         <members>*</members>
         <name>Scontrol</name>
     </types>
-
     <!-- その他のプラットフォーム設定 -->
     <types>
         <members>*</members>
@@ -838,7 +818,6 @@
         <members>*</members>
         <name>UiFormatSpecificationSet</name>
     </types>
-
     <!-- 翻訳 -->
     <types>
         <members>*</members>
@@ -856,6 +835,5 @@
         <members>*</members>
         <name>StandardValueSetTranslation</name>
     </types>
-
     <version>67.0</version>
 </Package>
