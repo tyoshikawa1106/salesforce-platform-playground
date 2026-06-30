@@ -156,4 +156,4 @@ sf sobject describe --sobject Account --target-org <alias> --json
 
 - `scripts/apex/setup/standard-objects/seed-standard-objects.apex`
 - `scripts/apex/setup/standard-objects/cleanup-standard-objects.apex`
-- `scripts/setup/standard-objects/import-plan.json`
+- `scripts/setup/import-plan.json`

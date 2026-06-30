@@ -7,7 +7,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const repoRoot = process.cwd();
-const defaultPlan = 'scripts/setup/standard-objects/import-plan.json';
+const defaultPlan = 'scripts/setup/import-plan.json';
 
 // CLI 引数を読む。実処理は run() に集約し、ここでは値の取り出しだけを行う。
 function parseArgs(argv) {
