@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- Apex / Visualforce -->
+    <!-- コード / UI コンポーネント -->
     <!-- Apex クラス -->
     <types>
         <members>*</members>
@@ -26,7 +26,6 @@
         <members>*</members>
         <name>ApexTestSuite</name>
     </types>
-    <!-- Lightning コンポーネント -->
     <!-- Aura コンポーネントバンドル -->
     <types>
         <members>*</members>
@@ -37,15 +36,16 @@
         <members>*</members>
         <name>LightningComponentBundle</name>
     </types>
-    <!-- Lightning Message Channel -->
-    <types>
-        <members>*</members>
-        <name>LightningMessageChannel</name>
-    </types>
     <!-- 静的リソース -->
     <types>
         <members>*</members>
         <name>StaticResource</name>
+    </types>
+    <!-- 共有 / 補助リソース -->
+    <!-- Lightning Message Channel -->
+    <types>
+        <members>*</members>
+        <name>LightningMessageChannel</name>
     </types>
     <!-- コンテンツアセット -->
     <types>
@@ -195,16 +195,21 @@
         <members>*</members>
         <name>StandardValueSet</name>
     </types>
+    <!-- Business Process Group -->
+    <types>
+        <members>*</members>
+        <name>BusinessProcessGroup</name>
+    </types>
+    <!-- Index -->
+    <types>
+        <members>*</members>
+        <name>Index</name>
+    </types>
     <!-- 自動化 / プロセス -->
     <!-- フロー -->
     <types>
         <members>*</members>
         <name>Flow</name>
-    </types>
-    <!-- フロー -->
-    <types>
-        <members>*</members>
-        <name>FlowDefinition</name>
     </types>
     <!-- ワークフロー -->
     <types>
@@ -241,6 +246,46 @@
         <members>*</members>
         <name>MatchingRules</name>
     </types>
+    <!-- Workflow Alert -->
+    <types>
+        <members>*</members>
+        <name>WorkflowAlert</name>
+    </types>
+    <!-- Workflow Field Update -->
+    <types>
+        <members>*</members>
+        <name>WorkflowFieldUpdate</name>
+    </types>
+    <!-- Workflow Flow Action -->
+    <types>
+        <members>*</members>
+        <name>WorkflowFlowAction</name>
+    </types>
+    <!-- Workflow Knowledge Publish -->
+    <types>
+        <members>*</members>
+        <name>WorkflowKnowledgePublish</name>
+    </types>
+    <!-- Workflow Outbound Message -->
+    <types>
+        <members>*</members>
+        <name>WorkflowOutboundMessage</name>
+    </types>
+    <!-- Workflow Rule -->
+    <types>
+        <members>*</members>
+        <name>WorkflowRule</name>
+    </types>
+    <!-- Workflow Send -->
+    <types>
+        <members>*</members>
+        <name>WorkflowSend</name>
+    </types>
+    <!-- Workflow Task -->
+    <types>
+        <members>*</members>
+        <name>WorkflowTask</name>
+    </types>
     <!-- 権限 / 共有 -->
     <!-- 権限セット -->
     <types>
@@ -256,11 +301,6 @@
     <types>
         <members>*</members>
         <name>MutingPermissionSet</name>
-    </types>
-    <!-- プロファイル -->
-    <types>
-        <members>*</members>
-        <name>Profile</name>
     </types>
     <!-- キュー -->
     <types>
@@ -306,6 +346,42 @@
     <types>
         <members>*</members>
         <name>ProfileSessionSetting</name>
+    </types>
+    <!-- Sharing Criteria Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingCriteriaRule</name>
+    </types>
+    <!-- Sharing Guest Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingGuestRule</name>
+    </types>
+    <!-- Sharing Owner Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingOwnerRule</name>
+    </types>
+    <!-- Sharing Reason -->
+    <types>
+        <members>*</members>
+        <name>SharingReason</name>
+    </types>
+    <!-- Sharing Territory Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingTerritoryRule</name>
+    </types>
+    <!-- 組織依存メタデータ -->
+    <!-- フロー定義 -->
+    <types>
+        <members>*</members>
+        <name>FlowDefinition</name>
+    </types>
+    <!-- プロファイル -->
+    <types>
+        <members>*</members>
+        <name>Profile</name>
     </types>
     <!-- 認証 / セキュリティ -->
     <!-- Connected App -->
@@ -509,6 +585,11 @@
         <members>*</members>
         <name>McpServerDefinition</name>
     </types>
+    <!-- External Data Transform Object -->
+    <types>
+        <members>*</members>
+        <name>ExternalDataTranObject</name>
+    </types>
     <!-- イベント / メッセージング -->
     <!-- Platform Event チャネル -->
     <types>
@@ -556,6 +637,11 @@
         <members>*</members>
         <name>WaveAnalyticAssetCollection</name>
     </types>
+    <!-- Classic Document のフォルダー -->
+    <types>
+        <members>*</members>
+        <name>DocumentFolder</name>
+    </types>
     <!-- メール / 通知 -->
     <!-- メールテンプレート -->
     <types>
@@ -581,6 +667,16 @@
     <types>
         <members>*</members>
         <name>ApexEmailNotifications</name>
+    </types>
+    <!-- メールフォルダー -->
+    <types>
+        <members>*</members>
+        <name>EmailFolder</name>
+    </types>
+    <!-- メールテンプレートフォルダー -->
+    <types>
+        <members>*</members>
+        <name>EmailTemplateFolder</name>
     </types>
     <!-- Experience / サイト -->
     <!-- Digital Experience Bundle -->
@@ -622,6 +718,11 @@
     <types>
         <members>*</members>
         <name>LightningBolt</name>
+    </types>
+    <!-- Digital Experience -->
+    <types>
+        <members>*</members>
+        <name>DigitalExperience</name>
     </types>
     <!-- Service 設定 -->
     <!-- Call Center -->
@@ -715,6 +816,11 @@
     <types>
         <members>*</members>
         <name>MLDataDefinition</name>
+    </types>
+    <!-- AI Scoring Model Definition Version -->
+    <types>
+        <members>*</members>
+        <name>AIScoringModelDefVersion</name>
     </types>
     <!-- コンテンツ / CMS -->
     <!-- Content Type Bundle -->
@@ -996,42 +1102,6 @@
         <members>*</members>
         <name>UiFormatSpecificationSet</name>
     </types>
-    <!-- Metadata Coverage Report 追加取得候補 -->
-    <!-- AI Scoring Model Definition Version -->
-    <types>
-        <members>*</members>
-        <name>AIScoringModelDefVersion</name>
-    </types>
-    <!-- Business Process Group -->
-    <types>
-        <members>*</members>
-        <name>BusinessProcessGroup</name>
-    </types>
-    <!-- Digital Experience -->
-    <types>
-        <members>*</members>
-        <name>DigitalExperience</name>
-    </types>
-    <!-- Classic Document のフォルダー -->
-    <types>
-        <members>*</members>
-        <name>DocumentFolder</name>
-    </types>
-    <!-- メールフォルダー -->
-    <types>
-        <members>*</members>
-        <name>EmailFolder</name>
-    </types>
-    <!-- メールテンプレートフォルダー -->
-    <types>
-        <members>*</members>
-        <name>EmailTemplateFolder</name>
-    </types>
-    <!-- External Data Transform Object -->
-    <types>
-        <members>*</members>
-        <name>ExternalDataTranObject</name>
-    </types>
     <!-- Feature Parameter Boolean -->
     <types>
         <members>*</members>
@@ -1046,76 +1116,6 @@
     <types>
         <members>*</members>
         <name>FeatureParameterInteger</name>
-    </types>
-    <!-- Index -->
-    <types>
-        <members>*</members>
-        <name>Index</name>
-    </types>
-    <!-- Sharing Criteria Rule -->
-    <types>
-        <members>*</members>
-        <name>SharingCriteriaRule</name>
-    </types>
-    <!-- Sharing Guest Rule -->
-    <types>
-        <members>*</members>
-        <name>SharingGuestRule</name>
-    </types>
-    <!-- Sharing Owner Rule -->
-    <types>
-        <members>*</members>
-        <name>SharingOwnerRule</name>
-    </types>
-    <!-- Sharing Reason -->
-    <types>
-        <members>*</members>
-        <name>SharingReason</name>
-    </types>
-    <!-- Sharing Territory Rule -->
-    <types>
-        <members>*</members>
-        <name>SharingTerritoryRule</name>
-    </types>
-    <!-- Workflow Alert -->
-    <types>
-        <members>*</members>
-        <name>WorkflowAlert</name>
-    </types>
-    <!-- Workflow Field Update -->
-    <types>
-        <members>*</members>
-        <name>WorkflowFieldUpdate</name>
-    </types>
-    <!-- Workflow Flow Action -->
-    <types>
-        <members>*</members>
-        <name>WorkflowFlowAction</name>
-    </types>
-    <!-- Workflow Knowledge Publish -->
-    <types>
-        <members>*</members>
-        <name>WorkflowKnowledgePublish</name>
-    </types>
-    <!-- Workflow Outbound Message -->
-    <types>
-        <members>*</members>
-        <name>WorkflowOutboundMessage</name>
-    </types>
-    <!-- Workflow Rule -->
-    <types>
-        <members>*</members>
-        <name>WorkflowRule</name>
-    </types>
-    <!-- Workflow Send -->
-    <types>
-        <members>*</members>
-        <name>WorkflowSend</name>
-    </types>
-    <!-- Workflow Task -->
-    <types>
-        <members>*</members>
-        <name>WorkflowTask</name>
     </types>
     <!-- 翻訳 -->
     <!-- 言語別翻訳 -->
