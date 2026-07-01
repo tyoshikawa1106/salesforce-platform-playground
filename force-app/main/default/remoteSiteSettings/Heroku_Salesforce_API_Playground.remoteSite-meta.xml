@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RemoteSiteSetting xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Heroku Salesforce API Playground Application</description>
+    <disableProtocolSecurity>false</disableProtocolSecurity>
+    <isActive>true</isActive>
+    <url>https://tyoshikawa1106-salesforce-api-b1221b4025f3.herokuapp.com</url>
+</RemoteSiteSetting>
