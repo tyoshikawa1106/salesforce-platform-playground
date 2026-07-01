@@ -21,22 +21,16 @@ force-app/main/default/extlClntAppOauthPolicies/
 force-app/main/default/extlClntAppOauthSecuritySettings/
 force-app/main/default/extlClntAppOauthSettings/
 force-app/main/default/extlClntAppPolicies/
-force-app/main/default/homePageLayouts/
-force-app/main/default/iframeWhiteListUrlSettings/
 force-app/main/default/installedPackages/
-force-app/main/default/notificationTypeConfig/
 force-app/main/default/objects/*/listViews/
 force-app/main/default/profilePasswordPolicies/
 force-app/main/default/profileSessionSettings/
 force-app/main/default/profiles/
-force-app/main/default/remoteSiteSettings/
 force-app/main/default/roles/
 force-app/main/default/samlssoconfigs/
 force-app/main/default/settings/Case.settings-meta.xml
 force-app/main/default/settings/Forecasting.settings-meta.xml
 force-app/main/default/settings/MyDomain.settings-meta.xml
-force-app/main/default/topicsForObjects/
-force-app/main/default/transactionSecurityPolicies/
 
 # LWC VSCode autocomplete
 jsconfig.json
