@@ -11,18 +11,6 @@
     </types>
     <types>
         <members>*</members>
-        <name>ExternalAIModel</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>ServiceAISetupDefinition</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>ServiceAISetupField</name>
-    </types>
-    <types>
-        <members>*</members>
         <name>Prompt</name>
     </types>
     <types>
