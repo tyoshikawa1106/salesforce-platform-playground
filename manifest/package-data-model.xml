@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- オブジェクト / データモデル -->
+    <!-- オブジェクト -->
     <types>
         <members>Account</members>
         <members>Asset</members>
@@ -30,53 +31,75 @@
         <members>*</members>
         <name>CustomObject</name>
     </types>
+    <!-- オブジェクト項目 -->
     <types>
         <members>*</members>
         <name>CustomField</name>
     </types>
+    <!-- レコードタイプ -->
     <types>
         <members>*</members>
         <name>RecordType</name>
     </types>
+    <!-- ビジネスプロセス -->
     <types>
         <members>*</members>
         <name>BusinessProcess</name>
     </types>
+    <!-- Field Set -->
     <types>
         <members>*</members>
         <name>FieldSet</name>
     </types>
+    <!-- リストビュー -->
     <types>
         <members>*</members>
         <name>ListView</name>
     </types>
+    <!-- 入力規則 -->
     <types>
         <members>*</members>
         <name>ValidationRule</name>
     </types>
+    <!-- Web リンク -->
     <types>
         <members>*</members>
         <name>WebLink</name>
     </types>
+    <!-- カスタムメタデータ -->
     <types>
         <members>*</members>
         <name>CustomMetadata</name>
     </types>
+    <!-- カスタム表示ラベル -->
     <types>
         <members>*</members>
         <name>CustomLabels</name>
     </types>
+    <!-- カスタム権限 -->
     <types>
         <members>*</members>
         <name>CustomPermission</name>
     </types>
+    <!-- グローバル選択リスト値セット -->
     <types>
         <members>*</members>
         <name>GlobalValueSet</name>
     </types>
+    <!-- 標準項目の選択リスト値セット -->
     <types>
         <members>*</members>
         <name>StandardValueSet</name>
+    </types>
+    <!-- Business Process Group -->
+    <types>
+        <members>*</members>
+        <name>BusinessProcessGroup</name>
+    </types>
+    <!-- Index -->
+    <types>
+        <members>*</members>
+        <name>Index</name>
     </types>
     <version>67.0</version>
 </Package>

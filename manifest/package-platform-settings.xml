@@ -1,153 +1,205 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- その他のプラットフォーム設定 -->
+    <!-- Action Launcher Item Definition -->
     <types>
         <members>*</members>
         <name>ActionLauncherItemDef</name>
     </types>
+    <!-- Action Link Group Template -->
     <types>
         <members>*</members>
         <name>ActionLinkGroupTemplate</name>
     </types>
+    <!-- アニメーションルール -->
     <types>
         <members>*</members>
         <name>AnimationRule</name>
     </types>
+    <!-- App Framework Template Bundle -->
     <types>
         <members>*</members>
         <name>AppFrameworkTemplateBundle</name>
     </types>
+    <!-- Batch Process Job Definition -->
     <types>
         <members>*</members>
         <name>BatchProcessJobDefinition</name>
     </types>
+    <!-- Blacklisted Consumer -->
     <types>
         <members>*</members>
         <name>BlacklistedConsumer</name>
     </types>
+    <!-- Call Coaching Media Provider -->
     <types>
         <members>*</members>
         <name>CallCoachingMediaProvider</name>
     </types>
+    <!-- Chatter Extension -->
     <types>
         <members>*</members>
         <name>ChatterExtension</name>
     </types>
+    <!-- Choice List -->
     <types>
         <members>*</members>
         <name>ChoiceList</name>
     </types>
+    <!-- Clean Data Service -->
     <types>
         <members>*</members>
         <name>CleanDataService</name>
     </types>
+    <!-- Conversation Intelligence Signal Rule -->
     <types>
         <members>*</members>
         <name>ConvIntelligenceSignalRule</name>
     </types>
+    <!-- Conversation Message Definition -->
     <types>
         <members>*</members>
         <name>ConversationMessageDefinition</name>
     </types>
+    <!-- Custom Application Component -->
     <types>
         <members>*</members>
         <name>CustomApplicationComponent</name>
     </types>
+    <!-- Custom Feed Filter -->
     <types>
         <members>*</members>
         <name>CustomFeedFilter</name>
     </types>
+    <!-- Custom Help Menu Section -->
     <types>
         <members>*</members>
         <name>CustomHelpMenuSection</name>
     </types>
+    <!-- カスタムインデックス -->
     <types>
         <members>*</members>
         <name>CustomIndex</name>
     </types>
+    <!-- Custom Page Web Link -->
     <types>
         <members>*</members>
         <name>CustomPageWebLink</name>
     </types>
+    <!-- DAM Provider -->
     <types>
         <members>*</members>
         <name>DgtAssetMgmtProvider</name>
     </types>
+    <!-- DAM Lightning Component -->
     <types>
         <members>*</members>
         <name>DgtAssetMgmtPrvdLghtCpnt</name>
     </types>
+    <!-- Eclair Geo Data -->
     <types>
         <members>*</members>
         <name>EclairGeoData</name>
     </types>
+    <!-- External Client App Push 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppPushConfigurablePolicies</name>
     </types>
+    <!-- Flow Category -->
     <types>
         <members>*</members>
         <name>FlowCategory</name>
     </types>
+    <!-- Flow Test -->
     <types>
         <members>*</members>
         <name>FlowTest</name>
     </types>
+    <!-- Flow Value Map -->
     <types>
         <members>*</members>
         <name>FlowValueMap</name>
     </types>
+    <!-- Gateway Payment Method Type -->
     <types>
         <members>*</members>
         <name>GatewayProviderPaymentMethodType</name>
     </types>
+    <!-- Lightning Onboarding Config -->
     <types>
         <members>*</members>
         <name>LightningOnboardingConfig</name>
     </types>
+    <!-- Lightning Type Bundle -->
     <types>
         <members>*</members>
         <name>LightningTypeBundle</name>
     </types>
+    <!-- Path Assistant -->
     <types>
         <members>*</members>
         <name>PathAssistant</name>
     </types>
+    <!-- Payment Gateway Provider -->
     <types>
         <members>*</members>
         <name>PaymentGatewayProvider</name>
     </types>
+    <!-- 投稿テンプレート -->
     <types>
         <members>*</members>
         <name>PostTemplate</name>
     </types>
+    <!-- Process Flow Migration -->
     <types>
         <members>*</members>
         <name>ProcessFlowMigration</name>
     </types>
+    <!-- 推奨戦略 -->
     <types>
         <members>*</members>
         <name>RecommendationStrategy</name>
     </types>
+    <!-- Record Action Deployment -->
     <types>
         <members>*</members>
         <name>RecordActionDeployment</name>
     </types>
+    <!-- Redirect Whitelist URL -->
     <types>
         <members>*</members>
         <name>RedirectWhitelistUrl</name>
     </types>
+    <!-- Transaction Security Policy -->
     <types>
         <members>*</members>
         <name>TransactionSecurityPolicy</name>
     </types>
+    <!-- UI Bundle -->
     <types>
         <members>*</members>
         <name>UIBundle</name>
     </types>
+    <!-- UI Format Specification Set -->
     <types>
         <members>*</members>
         <name>UiFormatSpecificationSet</name>
+    </types>
+    <!-- Feature Parameter Boolean -->
+    <types>
+        <members>*</members>
+        <name>FeatureParameterBoolean</name>
+    </types>
+    <!-- Feature Parameter Date -->
+    <types>
+        <members>*</members>
+        <name>FeatureParameterDate</name>
+    </types>
+    <!-- Feature Parameter Integer -->
+    <types>
+        <members>*</members>
+        <name>FeatureParameterInteger</name>
     </types>
     <version>67.0</version>
 </Package>

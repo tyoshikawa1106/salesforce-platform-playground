@@ -1,42 +1,52 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- Service 設定 -->
+    <!-- Call Center -->
     <types>
         <members>*</members>
         <name>CallCenter</name>
     </types>
+    <!-- マイルストーン種別 -->
     <types>
         <members>*</members>
         <name>MilestoneType</name>
     </types>
+    <!-- エンタイトルメントプロセス -->
     <types>
         <members>*</members>
         <name>EntitlementProcess</name>
     </types>
+    <!-- エンタイトルメントテンプレート -->
     <types>
         <members>*</members>
         <name>EntitlementTemplate</name>
     </types>
+    <!-- Messaging チャネル -->
     <types>
         <members>*</members>
         <name>MessagingChannel</name>
     </types>
+    <!-- Embedded Service Config -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceConfig</name>
     </types>
+    <!-- Embedded Service Branding -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceBranding</name>
     </types>
+    <!-- Embedded Service Flow Config -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceFlowConfig</name>
     </types>
+    <!-- Embedded Service Menu Settings -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceMenuSettings</name>
     </types>
+    <!-- Live Chat Sensitive Data Rule -->
     <types>
         <members>*</members>
         <name>LiveChatSensitiveDataRule</name>

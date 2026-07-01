@@ -1,29 +1,40 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- AI / 機械学習 -->
+    <!-- AI Application -->
     <types>
         <members>*</members>
         <name>AIApplication</name>
     </types>
+    <!-- AI Application Config -->
     <types>
         <members>*</members>
         <name>AIApplicationConfig</name>
     </types>
+    <!-- プロンプト -->
     <types>
         <members>*</members>
         <name>Prompt</name>
     </types>
+    <!-- ML Prediction Definition -->
     <types>
         <members>*</members>
         <name>MLPredictionDefinition</name>
     </types>
+    <!-- ML Recommendation Definition -->
     <types>
         <members>*</members>
         <name>MLRecommendationDefinition</name>
     </types>
+    <!-- ML Data Definition -->
     <types>
         <members>*</members>
         <name>MLDataDefinition</name>
+    </types>
+    <!-- AI Scoring Model Definition Version -->
+    <types>
+        <members>*</members>
+        <name>AIScoringModelDefVersion</name>
     </types>
     <version>67.0</version>
 </Package>

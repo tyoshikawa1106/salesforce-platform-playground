@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- Apex / Visualforce -->
+    <!-- Apex クラス -->
     <types>
         <members>*</members>
         <name>ApexClass</name>
     </types>
+    <!-- Apex トリガー -->
     <types>
         <members>*</members>
         <name>ApexTrigger</name>
     </types>
+    <!-- Visualforce ページ -->
     <types>
         <members>*</members>
         <name>ApexPage</name>
     </types>
+    <!-- Visualforce コンポーネント -->
     <types>
         <members>*</members>
         <name>ApexComponent</name>
     </types>
+    <!-- Apex テストスイート -->
     <types>
         <members>*</members>
         <name>ApexTestSuite</name>

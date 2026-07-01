@@ -1,118 +1,147 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 認証 / セキュリティ -->
+    <!-- Connected App -->
     <types>
         <members>*</members>
         <name>ConnectedApp</name>
     </types>
+    <!-- External Client Application -->
     <types>
         <members>*</members>
         <name>ExternalClientApplication</name>
     </types>
+    <!-- External Client App OAuth 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthSettings</name>
     </types>
+    <!-- External Client App Global OAuth 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
+    <!-- External Client App OAuth セキュリティ設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthSecuritySettings</name>
     </types>
+    <!-- External Client App OAuth 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>
+    <!-- External Client App 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppConfigurablePolicies</name>
     </types>
+    <!-- External Client App SAML 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppSamlConfigurablePolicies</name>
     </types>
+    <!-- External Client App モバイル設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppMobileSettings</name>
     </types>
+    <!-- External Client App モバイル設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppMobileConfigurablePolicies</name>
     </types>
+    <!-- External Client App Canvas 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppCanvasSettings</name>
     </types>
+    <!-- External Client App Push 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppPushSettings</name>
     </types>
+    <!-- External Client App 通知設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppNotificationSettings</name>
     </types>
+    <!-- 外部認証 ID プロバイダー -->
     <types>
         <members>*</members>
         <name>ExternalAuthIdentityProvider</name>
     </types>
+    <!-- Named Credential -->
     <types>
         <members>*</members>
         <name>NamedCredential</name>
     </types>
+    <!-- External Credential -->
     <types>
         <members>*</members>
         <name>ExternalCredential</name>
     </types>
+    <!-- 認証プロバイダー -->
     <types>
         <members>*</members>
         <name>AuthProvider</name>
     </types>
+    <!-- SAML SSO 設定 -->
     <types>
         <members>*</members>
         <name>SamlSsoConfig</name>
     </types>
+    <!-- OAuth カスタムスコープ -->
     <types>
         <members>*</members>
         <name>OauthCustomScope</name>
     </types>
+    <!-- OAuth トークン交換ハンドラー -->
     <types>
         <members>*</members>
         <name>OauthTokenExchangeHandler</name>
     </types>
+    <!-- Remote Site Setting -->
     <types>
         <members>*</members>
         <name>RemoteSiteSetting</name>
     </types>
+    <!-- CSP Trusted Site -->
     <types>
         <members>*</members>
         <name>CspTrustedSite</name>
     </types>
+    <!-- CORS Whitelist Origin -->
     <types>
         <members>*</members>
         <name>CorsWhitelistOrigin</name>
     </types>
+    <!-- iframe ホワイトリスト URL 設定 -->
     <types>
         <members>*</members>
         <name>IframeWhiteListUrlSettings</name>
     </types>
+    <!-- IP アドレス範囲 -->
     <types>
         <members>*</members>
         <name>IPAddressRange</name>
     </types>
+    <!-- My Domain Discoverable Login -->
     <types>
         <members>*</members>
         <name>MyDomainDiscoverableLogin</name>
     </types>
+    <!-- 証明書 -->
     <types>
         <members>*</members>
         <name>Certificate</name>
     </types>
+    <!-- 公開鍵証明書 -->
     <types>
         <members>*</members>
         <name>PublicKeyCertificate</name>
     </types>
+    <!-- 公開鍵証明書セット -->
     <types>
         <members>*</members>
         <name>PublicKeyCertificateSet</name>

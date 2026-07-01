@@ -1,57 +1,95 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 権限 / 共有 -->
+    <!-- 権限セット -->
     <types>
         <members>*</members>
         <name>PermissionSet</name>
     </types>
+    <!-- 権限セットグループ -->
     <types>
         <members>*</members>
         <name>PermissionSetGroup</name>
     </types>
+    <!-- ミュート権限セット -->
     <types>
         <members>*</members>
         <name>MutingPermissionSet</name>
     </types>
+    <!-- プロファイル -->
     <types>
         <members>*</members>
         <name>Profile</name>
     </types>
+    <!-- キュー -->
     <types>
         <members>*</members>
         <name>Queue</name>
     </types>
+    <!-- ロール -->
     <types>
         <members>*</members>
         <name>Role</name>
     </types>
+    <!-- 公開グループ -->
     <types>
         <members>*</members>
         <name>Group</name>
     </types>
+    <!-- 共有ルール -->
     <types>
         <members>*</members>
         <name>SharingRules</name>
     </types>
+    <!-- 共有セット -->
     <types>
         <members>*</members>
         <name>SharingSet</name>
     </types>
+    <!-- 制限ルール -->
     <types>
         <members>*</members>
         <name>RestrictionRule</name>
     </types>
+    <!-- 項目制限ルール -->
     <types>
         <members>*</members>
         <name>FieldRestrictionRule</name>
     </types>
+    <!-- プロファイル別パスワードポリシー -->
     <types>
         <members>*</members>
         <name>ProfilePasswordPolicy</name>
     </types>
+    <!-- プロファイル別セッション設定 -->
     <types>
         <members>*</members>
         <name>ProfileSessionSetting</name>
+    </types>
+    <!-- Sharing Criteria Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingCriteriaRule</name>
+    </types>
+    <!-- Sharing Guest Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingGuestRule</name>
+    </types>
+    <!-- Sharing Owner Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingOwnerRule</name>
+    </types>
+    <!-- Sharing Reason -->
+    <types>
+        <members>*</members>
+        <name>SharingReason</name>
+    </types>
+    <!-- Sharing Territory Rule -->
+    <types>
+        <members>*</members>
+        <name>SharingTerritoryRule</name>
     </types>
     <version>67.0</version>
 </Package>
