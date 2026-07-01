@@ -1,5 +1,5 @@
 {
-    "orgName": "Salesforce Platform Playground",
+    "orgName": "Salesforce Scratch Org",
     "edition": "Developer",
     "features": ["EnableSetPasswordInApi"],
     "settings": {
