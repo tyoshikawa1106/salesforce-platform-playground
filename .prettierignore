@@ -13,10 +13,9 @@ coverage/
 export-out/*
 !export-out/export-out-guide.md
 
-logs/apex/*
-!logs/apex/apex-log-guide.md
-logs/code-analyzer/*
-!logs/code-analyzer/code-analyzer-guide.md
+logs/**
+!logs/**/
+!logs/**/*.md
 
 # Keep Salesforce retrieve output stable.
 force-app/main/default/classes/**
