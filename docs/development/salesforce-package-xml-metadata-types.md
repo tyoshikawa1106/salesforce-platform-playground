@@ -2,7 +2,7 @@
 
 このメモは、`manifest/package.xml` に含めている Salesforce metadata の主要カテゴリを整理します。
 
-現時点の manifest は API 67.0 を前提に、metadata type 221 件を並べています。主要カテゴリに入らない Metadata Coverage Report 由来の追加取得候補は、Salesforce CLI の registry で扱え、かつ Playground 組織で retrieve エラーにならない type に絞って `manifest/package.xml` の `Metadata Coverage Report 追加取得候補` セクションにまとめています。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
+現時点の manifest は API 67.0 を前提に、metadata type 218 件を並べています。主要カテゴリに入らない Metadata Coverage Report 由来の追加取得候補は、Salesforce CLI の registry で扱え、かつ Playground 組織で retrieve エラーにならない type に絞って `manifest/package.xml` の `Metadata Coverage Report 追加取得候補` セクションにまとめています。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
 
 ## Apex / Visualforce
 
