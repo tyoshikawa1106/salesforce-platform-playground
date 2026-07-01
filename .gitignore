@@ -8,8 +8,7 @@
 .localdevserver/
 deploy-options.json
 
-# Salesforce metadata excluded from Git-managed Dev-to-Dev reproduction
-force-app/main/default/appMenus/
+# Salesforce metadata excluded from Git management
 force-app/main/default/apexEmailNotifications/
 force-app/main/default/assignmentRules/
 force-app/main/default/autoResponseRules/
