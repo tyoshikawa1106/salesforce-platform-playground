@@ -1,8 +1,8 @@
 # package.xml のメタデータ一覧
 
-このメモは、`manifest/package.xml` に含めている Salesforce metadata の範囲を整理します。
+このメモは、`manifest/package.xml` に含めている Salesforce metadata の主要カテゴリを整理します。
 
-現時点の manifest は API 67.0 を前提に、metadata type 202 件をカテゴリ別に並べています。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
+現時点の manifest は API 67.0 を前提に、metadata type 221 件を並べています。主要カテゴリに入らない Metadata Coverage Report 由来の追加取得候補は、Salesforce CLI の registry で扱え、かつ Playground 組織で retrieve エラーにならない type に絞って `manifest/package.xml` の `Metadata Coverage Report 追加取得候補` セクションにまとめています。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
 
 ## Apex / Visualforce
 
@@ -251,9 +251,6 @@
 | ---------------------------- | ------------------------------- |
 | `AIApplication`              | AI アプリケーション定義         |
 | `AIApplicationConfig`        | AI アプリケーション設定         |
-| `ExternalAIModel`            | 外部 AI モデル定義              |
-| `ServiceAISetupDefinition`   | Service AI のセットアップ定義   |
-| `ServiceAISetupField`        | Service AI のセットアップ項目   |
 | `Prompt`                     | Prompt Builder のプロンプト定義 |
 | `MLPredictionDefinition`     | Einstein 予測定義               |
 | `MLRecommendationDefinition` | Einstein 推奨定義               |
