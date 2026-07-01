@@ -16,11 +16,6 @@
         <members>*</members>
         <name>MutingPermissionSet</name>
     </types>
-    <!-- プロファイル -->
-    <types>
-        <members>*</members>
-        <name>Profile</name>
-    </types>
     <!-- キュー -->
     <types>
         <members>*</members>

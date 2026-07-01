@@ -6,11 +6,6 @@
         <members>*</members>
         <name>Flow</name>
     </types>
-    <!-- フロー -->
-    <types>
-        <members>*</members>
-        <name>FlowDefinition</name>
-    </types>
     <!-- ワークフロー -->
     <types>
         <members>*</members>
