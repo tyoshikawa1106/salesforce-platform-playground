@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- モバイル / オフライン -->
-    <!-- Briefcase Definition -->
+    <!-- 組織依存メタデータ -->
+    <!-- フロー定義 -->
     <types>
         <members>*</members>
-        <name>BriefcaseDefinition</name>
+        <name>FlowDefinition</name>
     </types>
-    <!-- Mobile Application Detail -->
+    <!-- プロファイル -->
     <types>
         <members>*</members>
-        <name>MobileApplicationDetail</name>
+        <name>Profile</name>
     </types>
     <version>67.0</version>
 </Package>

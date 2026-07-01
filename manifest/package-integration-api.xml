@@ -1,49 +1,65 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 外部接続 / API -->
+    <!-- 外部データソース -->
     <types>
         <members>*</members>
         <name>ExternalDataSource</name>
     </types>
+    <!-- External Service Registration -->
     <types>
         <members>*</members>
         <name>ExternalServiceRegistration</name>
     </types>
+    <!-- API Named Query -->
     <types>
         <members>*</members>
         <name>ApiNamedQuery</name>
     </types>
+    <!-- Canvas Metadata -->
     <types>
         <members>*</members>
         <name>CanvasMetadata</name>
     </types>
+    <!-- Cataloged API -->
     <types>
         <members>*</members>
         <name>CatalogedApi</name>
     </types>
+    <!-- Cataloged API Artifact Version Info -->
     <types>
         <members>*</members>
         <name>CatalogedApiArtifactVersionInfo</name>
     </types>
+    <!-- Cataloged API Version -->
     <types>
         <members>*</members>
         <name>CatalogedApiVersion</name>
     </types>
+    <!-- インバウンドネットワーク接続 -->
     <types>
         <members>*</members>
         <name>InboundNetworkConnection</name>
     </types>
+    <!-- アウトバウンドネットワーク接続 -->
     <types>
         <members>*</members>
         <name>OutboundNetworkConnection</name>
     </types>
+    <!-- Invocable Action Extension -->
     <types>
         <members>*</members>
         <name>InvocableActionExtension</name>
     </types>
+    <!-- MCP Server Definition -->
     <types>
         <members>*</members>
         <name>McpServerDefinition</name>
+    </types>
+    <!-- External Data Transform Object -->
+    <types>
+        <members>*</members>
+        <name>ExternalDataTranObject</name>
     </types>
     <version>67.0</version>
 </Package>

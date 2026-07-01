@@ -1,29 +1,57 @@
 # package.xml のメタデータ一覧
 
-このメモは、`manifest/package.xml` に含めている Salesforce metadata の範囲を整理します。
+このメモは、`manifest/package.xml` に含めている Salesforce metadata の主要カテゴリを整理します。
 
-現時点の manifest は API 67.0 を前提に、metadata type 202 件をカテゴリ別に並べています。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
+現時点の manifest は API 67.0 を前提に、metadata type 218 件を並べています。`manifest/package.xml` は広めの取得用 manifest です。`manifest/package-*.xml` は同じ 218 件をカテゴリ別に分割した補助 manifest で、分割合計が `manifest/package.xml` と一致する状態を保ちます。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
 
-## Apex / Visualforce
+## 分割 manifest
 
-| Metadata type   | 取得できる内容             |
-| --------------- | -------------------------- |
-| `ApexClass`     | Apex クラスとテストクラス  |
-| `ApexTrigger`   | Apex トリガー              |
-| `ApexPage`      | Visualforce ページ         |
-| `ApexComponent` | Visualforce コンポーネント |
-| `ApexTestSuite` | Apex テストスイート        |
+| Manifest                                  | 分類                              | 件数 |
+| ----------------------------------------- | --------------------------------- | ---- |
+| `manifest/package-apex.xml`               | コード / UI コンポーネント        | 8    |
+| `manifest/package-lightning.xml`          | 共有 / 補助リソース               | 3    |
+| `manifest/package-app-navigation.xml`     | アプリケーション / ナビゲーション | 3    |
+| `manifest/package-ui-layout.xml`          | 画面 / レイアウト                 | 6    |
+| `manifest/package-data-model.xml`         | オブジェクト / データモデル       | 15   |
+| `manifest/package-automation.xml`         | 自動化 / プロセス                 | 16   |
+| `manifest/package-access-sharing.xml`     | 権限 / 共有                       | 17   |
+| `manifest/package-org-dependent.xml`      | 組織依存メタデータ                | 2    |
+| `manifest/package-auth-security.xml`      | 認証 / セキュリティ               | 29   |
+| `manifest/package-integration-api.xml`    | 外部接続 / API                    | 12   |
+| `manifest/package-events-messaging.xml`   | イベント / メッセージング         | 5    |
+| `manifest/package-analytics.xml`          | レポート / 分析                   | 5    |
+| `manifest/package-email-notification.xml` | メール / 通知                     | 7    |
+| `manifest/package-experience-sites.xml`   | Experience / サイト               | 9    |
+| `manifest/package-service.xml`            | Service 設定                      | 10   |
+| `manifest/package-mobile-offline.xml`     | モバイル / オフライン             | 2    |
+| `manifest/package-ai-ml.xml`              | AI / 機械学習                     | 7    |
+| `manifest/package-content-cms.xml`        | コンテンツ / CMS                  | 3    |
+| `manifest/package-search-knowledge.xml`   | 検索 / ナレッジ補助               | 4    |
+| `manifest/package-org-settings.xml`       | 組織設定                          | 8    |
+| `manifest/package-classic-ui.xml`         | Classic UI                        | 3    |
+| `manifest/package-platform-settings.xml`  | その他のプラットフォーム設定      | 40   |
+| `manifest/package-translations.xml`       | 翻訳                              | 4    |
 
-## Lightning コンポーネント
+## コード / UI コンポーネント
 
-| Metadata type              | 取得できる内容                                |
-| -------------------------- | --------------------------------------------- |
-| `AuraDefinitionBundle`     | Aura コンポーネントバンドル                   |
-| `LightningComponentBundle` | Lightning Web Component バンドル              |
-| `LightningMessageChannel`  | Lightning Message Service のチャネル          |
-| `StaticResource`           | 静的リソース                                  |
-| `ContentAsset`             | Experience Cloud などで使うコンテンツアセット |
-| `DataWeaveResource`        | Apex から使う DataWeave スクリプト            |
+| Metadata type              | 取得できる内容                   |
+| -------------------------- | -------------------------------- |
+| `ApexClass`                | Apex クラスとテストクラス        |
+| `ApexTrigger`              | Apex トリガー                    |
+| `ApexPage`                 | Visualforce ページ               |
+| `ApexComponent`            | Visualforce コンポーネント       |
+| `ApexTestSuite`            | Apex テストスイート              |
+| `AuraDefinitionBundle`     | Aura コンポーネントバンドル      |
+| `LightningComponentBundle` | Lightning Web Component バンドル |
+| `StaticResource`           | 静的リソース                     |
+
+## 共有 / 補助リソース
+
+| Metadata type             | 取得できる内容                                |
+| ------------------------- | --------------------------------------------- |
+| `LightningMessageChannel` | Lightning Message Service のチャネル          |
+| `ContentAsset`            | Experience Cloud などで使うコンテンツアセット |
+| `DataWeaveResource`       | Apex から使う DataWeave スクリプト            |
 
 ## アプリケーション / ナビゲーション
 
@@ -46,21 +74,23 @@
 
 ## オブジェクト / データモデル
 
-| Metadata type      | 取得できる内容                             |
-| ------------------ | ------------------------------------------ |
-| `CustomObject`     | カスタムオブジェクトと標準オブジェクト定義 |
-| `CustomField`      | オブジェクト項目                           |
-| `RecordType`       | レコードタイプ                             |
-| `BusinessProcess`  | 商談、ケース、リードなどの業務プロセス     |
-| `FieldSet`         | Field Set                                  |
-| `ListView`         | リストビュー                               |
-| `ValidationRule`   | 入力規則                                   |
-| `WebLink`          | カスタムボタン、リンク                     |
-| `CustomMetadata`   | カスタムメタデータレコード                 |
-| `CustomLabels`     | カスタム表示ラベル                         |
-| `CustomPermission` | カスタム権限                               |
-| `GlobalValueSet`   | グローバル選択リスト値セット               |
-| `StandardValueSet` | 標準項目の選択リスト値セット               |
+| Metadata type          | 取得できる内容                             |
+| ---------------------- | ------------------------------------------ |
+| `CustomObject`         | カスタムオブジェクトと標準オブジェクト定義 |
+| `CustomField`          | オブジェクト項目                           |
+| `RecordType`           | レコードタイプ                             |
+| `BusinessProcess`      | 商談、ケース、リードなどの業務プロセス     |
+| `FieldSet`             | Field Set                                  |
+| `ListView`             | リストビュー                               |
+| `ValidationRule`       | 入力規則                                   |
+| `WebLink`              | カスタムボタン、リンク                     |
+| `CustomMetadata`       | カスタムメタデータレコード                 |
+| `CustomLabels`         | カスタム表示ラベル                         |
+| `CustomPermission`     | カスタム権限                               |
+| `GlobalValueSet`       | グローバル選択リスト値セット               |
+| `StandardValueSet`     | 標準項目の選択リスト値セット               |
+| `BusinessProcessGroup` | Business Process Group                     |
+| `Index`                | Index                                      |
 
 ### CustomObject の標準オブジェクト指定
 
@@ -97,17 +127,24 @@
 
 ## 自動化 / プロセス
 
-| Metadata type       | 取得できる内容                     |
-| ------------------- | ---------------------------------- |
-| `Flow`              | フロー本体、各バージョンの定義     |
-| `FlowDefinition`    | フローの有効バージョンなどの定義   |
-| `Workflow`          | ワークフロールール、項目自動更新等 |
-| `ApprovalProcess`   | 承認プロセス定義                   |
-| `AssignmentRules`   | リード、ケースなどの割り当てルール |
-| `AutoResponseRules` | 自動レスポンスルール               |
-| `EscalationRules`   | ケースエスカレーションルール       |
-| `DuplicateRule`     | 重複ルール                         |
-| `MatchingRules`     | 重複判定に使う一致ルール           |
+| Metadata type              | 取得できる内容                     |
+| -------------------------- | ---------------------------------- |
+| `Flow`                     | フロー本体、各バージョンの定義     |
+| `Workflow`                 | ワークフロールール、項目自動更新等 |
+| `ApprovalProcess`          | 承認プロセス定義                   |
+| `AssignmentRules`          | リード、ケースなどの割り当てルール |
+| `AutoResponseRules`        | 自動レスポンスルール               |
+| `EscalationRules`          | ケースエスカレーションルール       |
+| `DuplicateRule`            | 重複ルール                         |
+| `MatchingRules`            | 重複判定に使う一致ルール           |
+| `WorkflowAlert`            | Workflow Alert                     |
+| `WorkflowFieldUpdate`      | Workflow Field Update              |
+| `WorkflowFlowAction`       | Workflow Flow Action               |
+| `WorkflowKnowledgePublish` | Workflow Knowledge Publish         |
+| `WorkflowOutboundMessage`  | Workflow Outbound Message          |
+| `WorkflowRule`             | Workflow Rule                      |
+| `WorkflowSend`             | Workflow Send                      |
+| `WorkflowTask`             | Workflow Task                      |
 
 ## 権限 / 共有
 
@@ -116,7 +153,6 @@
 | `PermissionSet`         | 権限セット                       |
 | `PermissionSetGroup`    | 権限セットグループ               |
 | `MutingPermissionSet`   | 権限セットグループのミュート権限 |
-| `Profile`               | プロファイル権限                 |
 | `Queue`                 | キュー定義                       |
 | `Role`                  | ロール階層                       |
 | `Group`                 | 公開グループ                     |
@@ -126,6 +162,18 @@
 | `FieldRestrictionRule`  | 項目制限ルール                   |
 | `ProfilePasswordPolicy` | プロファイル別パスワードポリシー |
 | `ProfileSessionSetting` | プロファイル別セッション設定     |
+| `SharingCriteriaRule`   | Sharing Criteria Rule            |
+| `SharingGuestRule`      | Sharing Guest Rule               |
+| `SharingOwnerRule`      | Sharing Owner Rule               |
+| `SharingReason`         | Sharing Reason                   |
+| `SharingTerritoryRule`  | Sharing Territory Rule           |
+
+## 組織依存メタデータ
+
+| Metadata type    | 取得できる内容 |
+| ---------------- | -------------- |
+| `FlowDefinition` | フロー定義     |
+| `Profile`        | プロファイル   |
 
 ## 認証 / セキュリティ
 
@@ -176,6 +224,7 @@
 | `OutboundNetworkConnection`       | アウトバウンドネットワーク接続設定   |
 | `InvocableActionExtension`        | Invocable Action 拡張                |
 | `McpServerDefinition`             | MCP Server 定義                      |
+| `ExternalDataTranObject`          | External Data Transform Object       |
 
 ## イベント / メッセージング
 
@@ -184,7 +233,6 @@
 | `PlatformEventChannel`          | Platform Event チャネル         |
 | `PlatformEventChannelMember`    | Platform Event チャネルメンバー |
 | `PlatformEventSubscriberConfig` | Platform Event 購読設定         |
-| `PlatformEventMigration`        | Platform Event の移行 metadata  |
 | `ManagedEventSubscription`      | 管理イベント購読設定            |
 | `EventRelayConfig`              | Event Relay 設定                |
 
@@ -192,12 +240,11 @@
 
 | Metadata type                 | 取得できる内容                     |
 | ----------------------------- | ---------------------------------- |
-| `Report`                      | レポート定義                       |
 | `ReportType`                  | カスタムレポートタイプ             |
-| `Dashboard`                   | ダッシュボード定義                 |
 | `Document`                    | Classic Document                   |
 | `AnalyticSnapshot`            | レポートスナップショット           |
 | `WaveAnalyticAssetCollection` | CRM Analytics アセットコレクション |
+| `DocumentFolder`              | Classic Document のフォルダー      |
 
 ## メール / 通知
 
@@ -208,20 +255,22 @@
 | `CustomNotificationType` | カスタム通知タイプ                       |
 | `EmailServicesFunction`  | Apex Email Service の関数設定            |
 | `ApexEmailNotifications` | Apex 例外メール通知設定                  |
+| `EmailFolder`            | メールフォルダー                         |
+| `EmailTemplateFolder`    | メールテンプレートフォルダー             |
 
 ## Experience / サイト
 
-| Metadata type                  | 取得できる内容                       |
-| ------------------------------ | ------------------------------------ |
-| `DigitalExperienceBundle`      | Experience Cloud サイトバンドル      |
-| `Community`                    | Community metadata                   |
-| `NetworkBranding`              | Experience Cloud のブランド設定      |
-| `CustomSite`                   | Salesforce Site 設定                 |
-| `SiteDotCom`                   | Site.com metadata                    |
-| `ExperienceContainer`          | Experience Builder コンテナ metadata |
-| `ExperiencePropertyTypeBundle` | Experience Property Type Bundle      |
-| `ChannelLayout`                | チャネルレイアウト                   |
-| `LightningBolt`                | Lightning Bolt ソリューション        |
+| Metadata type                  | 取得できる内容                  |
+| ------------------------------ | ------------------------------- |
+| `DigitalExperienceBundle`      | Experience Cloud サイトバンドル |
+| `Community`                    | Community metadata              |
+| `NetworkBranding`              | Experience Cloud のブランド設定 |
+| `CustomSite`                   | Salesforce Site 設定            |
+| `SiteDotCom`                   | Site.com metadata               |
+| `ExperiencePropertyTypeBundle` | Experience Property Type Bundle |
+| `ChannelLayout`                | チャネルレイアウト              |
+| `LightningBolt`                | Lightning Bolt ソリューション   |
+| `DigitalExperience`            | Digital Experience              |
 
 ## Service 設定
 
@@ -247,17 +296,15 @@
 
 ## AI / 機械学習
 
-| Metadata type                | 取得できる内容                  |
-| ---------------------------- | ------------------------------- |
-| `AIApplication`              | AI アプリケーション定義         |
-| `AIApplicationConfig`        | AI アプリケーション設定         |
-| `ExternalAIModel`            | 外部 AI モデル定義              |
-| `ServiceAISetupDefinition`   | Service AI のセットアップ定義   |
-| `ServiceAISetupField`        | Service AI のセットアップ項目   |
-| `Prompt`                     | Prompt Builder のプロンプト定義 |
-| `MLPredictionDefinition`     | Einstein 予測定義               |
-| `MLRecommendationDefinition` | Einstein 推奨定義               |
-| `MLDataDefinition`           | 機械学習向けデータ定義          |
+| Metadata type                | 取得できる内容                      |
+| ---------------------------- | ----------------------------------- |
+| `AIApplication`              | AI アプリケーション定義             |
+| `AIApplicationConfig`        | AI アプリケーション設定             |
+| `Prompt`                     | Prompt Builder のプロンプト定義     |
+| `MLPredictionDefinition`     | Einstein 予測定義                   |
+| `MLRecommendationDefinition` | Einstein 推奨定義                   |
+| `MLDataDefinition`           | 機械学習向けデータ定義              |
+| `AIScoringModelDefVersion`   | AI Scoring Model Definition Version |
 
 ## コンテンツ / CMS
 
@@ -266,7 +313,6 @@
 | `ContentTypeBundle`  | CMS コンテンツタイプバンドル |
 | `ManagedContentType` | 管理コンテンツタイプ         |
 | `DataCategoryGroup`  | データカテゴリグループ       |
-| `TagSet`             | タグセット                   |
 
 ## 検索 / ナレッジ補助
 
@@ -339,6 +385,9 @@
 | `TransactionSecurityPolicy`           | トランザクションセキュリティポリシー            |
 | `UIBundle`                            | UI Bundle                                       |
 | `UiFormatSpecificationSet`            | UI 表示形式仕様セット                           |
+| `FeatureParameterBoolean`             | Feature Parameter Boolean                       |
+| `FeatureParameterDate`                | Feature Parameter Date                          |
+| `FeatureParameterInteger`             | Feature Parameter Integer                       |
 
 ## 翻訳
 
@@ -351,11 +400,13 @@
 
 ## 取得に注意が必要なもの
 
-| 対象                                | 注意点                                 |
-| ----------------------------------- | -------------------------------------- |
-| `PlatformEventMigration`            | 今回の CLI registry では未対応         |
-| `ExperienceContainer`               | 今回の CLI registry では未対応         |
-| `TagSet`                            | 今回の CLI registry では未対応         |
-| `Report`                            | `*` 指定だけでは取得できない場合がある |
-| `Dashboard`                         | `*` 指定だけでは取得できない場合がある |
-| Survey 系 `Flow` / `FlowDefinition` | 権限や機能により取得できない場合がある |
+| 対象                     | 扱い                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| `FlowDefinition`         | 本番 / Sandbox で差分が出やすいため `package-org-dependent.xml` に分離する。 |
+| `Profile`                | 本番 / Sandbox で差分が出やすいため `package-org-dependent.xml` に分離する。 |
+| `ExperienceContainer`    | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `PlatformEventMigration` | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `SurveyStyleSet`         | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `TagSet`                 | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `Report` / `Dashboard`   | `*` 指定では取得エラーになるため含めない。                                   |
+| `Bot` / `BotVersion`     | Playground 組織で利用できないため含めない。                                  |

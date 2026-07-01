@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 検索 / ナレッジ補助 -->
+    <!-- Search Customization -->
     <types>
         <members>*</members>
         <name>SearchCustomization</name>
     </types>
+    <!-- Search Org Wide Object Config -->
     <types>
         <members>*</members>
         <name>SearchOrgWideObjectConfig</name>
     </types>
+    <!-- 検索同義語辞書 -->
     <types>
         <members>*</members>
         <name>SynonymDictionary</name>
     </types>
+    <!-- Topics for Objects -->
     <types>
         <members>*</members>
         <name>TopicsForObjects</name>

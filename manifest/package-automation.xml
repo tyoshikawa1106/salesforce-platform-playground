@@ -1,41 +1,85 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 自動化 / プロセス -->
+    <!-- フロー -->
     <types>
         <members>*</members>
         <name>Flow</name>
     </types>
-    <types>
-        <members>*</members>
-        <name>FlowDefinition</name>
-    </types>
+    <!-- ワークフロー -->
     <types>
         <members>*</members>
         <name>Workflow</name>
     </types>
+    <!-- 承認プロセス -->
     <types>
         <members>*</members>
         <name>ApprovalProcess</name>
     </types>
+    <!-- 割り当てルール -->
     <types>
         <members>*</members>
         <name>AssignmentRules</name>
     </types>
+    <!-- 自動レスポンスルール -->
     <types>
         <members>*</members>
         <name>AutoResponseRules</name>
     </types>
+    <!-- エスカレーションルール -->
     <types>
         <members>*</members>
         <name>EscalationRules</name>
     </types>
+    <!-- 重複ルール -->
     <types>
         <members>*</members>
         <name>DuplicateRule</name>
     </types>
+    <!-- マッチングルール -->
     <types>
         <members>*</members>
         <name>MatchingRules</name>
+    </types>
+    <!-- Workflow Alert -->
+    <types>
+        <members>*</members>
+        <name>WorkflowAlert</name>
+    </types>
+    <!-- Workflow Field Update -->
+    <types>
+        <members>*</members>
+        <name>WorkflowFieldUpdate</name>
+    </types>
+    <!-- Workflow Flow Action -->
+    <types>
+        <members>*</members>
+        <name>WorkflowFlowAction</name>
+    </types>
+    <!-- Workflow Knowledge Publish -->
+    <types>
+        <members>*</members>
+        <name>WorkflowKnowledgePublish</name>
+    </types>
+    <!-- Workflow Outbound Message -->
+    <types>
+        <members>*</members>
+        <name>WorkflowOutboundMessage</name>
+    </types>
+    <!-- Workflow Rule -->
+    <types>
+        <members>*</members>
+        <name>WorkflowRule</name>
+    </types>
+    <!-- Workflow Send -->
+    <types>
+        <members>*</members>
+        <name>WorkflowSend</name>
+    </types>
+    <!-- Workflow Task -->
+    <types>
+        <members>*</members>
+        <name>WorkflowTask</name>
     </types>
     <version>67.0</version>
 </Package>

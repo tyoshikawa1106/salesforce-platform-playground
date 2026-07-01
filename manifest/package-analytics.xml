@@ -1,21 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- レポート / 分析 -->
+    <!-- カスタムレポートタイプ -->
     <types>
         <members>*</members>
         <name>ReportType</name>
     </types>
+    <!-- Document -->
     <types>
         <members>*</members>
         <name>Document</name>
     </types>
+    <!-- Analytic Snapshot -->
     <types>
         <members>*</members>
         <name>AnalyticSnapshot</name>
     </types>
+    <!-- CRM Analytics アセットコレクション -->
     <types>
         <members>*</members>
         <name>WaveAnalyticAssetCollection</name>
+    </types>
+    <!-- Classic Document のフォルダー -->
+    <types>
+        <members>*</members>
+        <name>DocumentFolder</name>
     </types>
     <version>67.0</version>
 </Package>

@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- コンテンツ / CMS -->
+    <!-- Content Type Bundle -->
     <types>
         <members>*</members>
         <name>ContentTypeBundle</name>
     </types>
+    <!-- Managed Content Type -->
     <types>
         <members>*</members>
         <name>ManagedContentType</name>
     </types>
+    <!-- データカテゴリグループ -->
     <types>
         <members>*</members>
         <name>DataCategoryGroup</name>
