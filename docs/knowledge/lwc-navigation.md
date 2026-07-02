@@ -164,7 +164,7 @@ export default class NewRecordNavigation extends NavigationMixin(LightningElemen
         const defaultFieldValues = encodeDefaultFieldValues({
             AccountId: accountId,
             StageName: 'Prospecting',
-            CloseDate: '2026-07-31'
+            CloseDate: 'YYYY-MM-DD'
         });
 
         this[NavigationMixin.Navigate]({
@@ -204,7 +204,7 @@ openCustomTab() {
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
-<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+<LightningComponentBundle>
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <targets>
@@ -212,6 +212,8 @@ openCustomTab() {
     </targets>
 </LightningComponentBundle>
 ```
+
+実ファイルでは、既存の LWC meta XML と同じ namespace を使います。
 
 遷移側は `standard__component` を使います。
 

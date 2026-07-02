@@ -2,7 +2,7 @@
 
 このメモは、`manifest/package.xml` に含めている Salesforce metadata の主要カテゴリを整理します。
 
-現時点の manifest は API 67.0 を前提に、metadata type 218 件を並べています。`manifest/package.xml` は広めの取得用 manifest です。`manifest/package-*.xml` は同じ 218 件をカテゴリ別に分割した補助 manifest で、分割合計が `manifest/package.xml` と一致する状態を保ちます。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
+この manifest は API 67.0 を前提に、metadata type 218 件を並べています。`manifest/package.xml` は広めの取得用 manifest です。`manifest/package-*.xml` は同じ 218 件をカテゴリ別に分割した補助 manifest で、分割合計が `manifest/package.xml` と一致する状態を保ちます。`CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残しています。
 
 ## 分割 manifest
 

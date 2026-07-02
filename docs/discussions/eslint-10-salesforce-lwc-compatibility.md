@@ -1,10 +1,10 @@
 # ESLint 10 と Salesforce / LWC ESLint パッケージの互換性
 
-2026-06-20 時点で、Dependabot PR #50 の `eslint` 10.5.0 更新を確認しました。
+Dependabot PR #50 の `eslint` 10.5.0 更新を確認しました。
 
 ## 結論
 
-現時点では、このリポジトリで `eslint` 10 系へ更新しません。
+このリポジトリでは、`eslint` 10 系へ更新しません。
 
 理由は、現在利用している Salesforce / LWC ESLint 関連パッケージの latest が、まだ `eslint` 10 を peer dependency として許可していないためです。
 
@@ -13,7 +13,7 @@ CI でも `npm ci --include=dev` の段階で `ERESOLVE` になり、lint 実行
 ## 確認した package metadata
 
 公開 npm registry の latest metadata を確認しました。
-2026-06-20 に再確認し、Salesforce / LWC ESLint 関連パッケージの ESLint peer dependency は引き続き `^9` でした。
+Salesforce / LWC ESLint 関連パッケージの ESLint peer dependency は引き続き `^9` でした。
 
 | package                               | latest  | ESLint peer dependency |
 | ------------------------------------- | ------- | ---------------------- |

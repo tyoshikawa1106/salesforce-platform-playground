@@ -29,6 +29,8 @@ Salesforce メタデータを追加・更新するときの実務ルールです
 - `package.xml` は、タスクで明示されていない限り一時的な取得・検証補助として扱う。
 - Permission Set や Profile を更新するときは、意図しない権限差分が混ざっていないか確認する。
 
+retrieve の具体的な事前確認と差分確認は [メタデータ取得ルール](../deployment/retrieve-rules.md) に従います。
+
 ## 検証
 
 メタデータを変更したら、[変更チェックリスト](change-checklist.md)、[Apex 開発ルール](apex-rules.md)、[Dev 組織デプロイ](../deployment/dev-org-deploy.md) の方針に従います。
@@ -38,5 +40,5 @@ Salesforce メタデータを追加・更新するときの実務ルールです
 - 変更したメタデータ種別とファイル
 - 依存確認の結果
 - 実行した validate / deploy / test
-- 対象 Salesforce 組織の alias / username
+- 対象 Salesforce 組織の alias
 - 実行しなかった確認と、その理由

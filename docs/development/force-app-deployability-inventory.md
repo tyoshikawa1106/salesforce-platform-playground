@@ -17,7 +17,7 @@
 
 ## force-app 配下の metadata
 
-2026-06-28 時点で、`force-app/main/default` には次の top-level metadata directory があります。
+`force-app/main/default` には次の top-level metadata directory があります。
 
 | ディレクトリ                        | ファイル数 | 標準 Dev manifest | 判断                                                                                        |
 | ----------------------------------- | ---------- | ----------------- | ------------------------------------------------------------------------------------------- |
