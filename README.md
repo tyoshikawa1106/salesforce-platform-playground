@@ -1,8 +1,6 @@
 # Salesforce Platform Playground
 
-Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce DX プロジェクトです。
-
-このリポジトリでは、Apex だけでなく Custom Object、Custom Field、Permission Set、Flow、Validation Rule なども扱い、メタデータで新しい Dev 組織へ再現できる状態を目指します。
+Salesforce Platform × Codex を使ったSalesforce DX プロジェクトです。
 
 ## ドキュメント
 
@@ -35,12 +33,11 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 
 - Salesforce DX
 - Salesforce CLI
-- Apex
-- Salesforce metadata
-- Node.js 24 / npm
+- Node.js 24
 - Prettier
 - ESLint
 - LWC Jest
+- Salesforce Code Analyzer
 
 ## 動作環境
 
