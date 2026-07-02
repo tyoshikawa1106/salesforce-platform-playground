@@ -86,7 +86,12 @@ export function emitObjectInfo(fieldOverrides = {}) {
     });
 }
 
-export function emitLayout({ objectApiName = 'Account', mode = 'Create', fields = ['Name', 'Industry'], sections } = {}) {
+export function emitLayout({
+    objectApiName = 'Account',
+    mode = 'Create',
+    fields = ['Name', 'Industry'],
+    sections
+} = {}) {
     const layoutSections = (sections ?? [{ heading: '基本情報', fields }]).map((section) => ({
         heading: section.heading,
         layoutRows: [

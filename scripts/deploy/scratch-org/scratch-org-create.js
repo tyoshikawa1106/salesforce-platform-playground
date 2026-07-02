@@ -7,4 +7,7 @@ const { repoRoot, scratchOrg } = require('./scratch-org-context');
 process.chdir(repoRoot);
 
 // Scratch Org を作成する。
-execSync(`sf org create scratch --definition-file ${scratchOrg.definitionFile} --alias ${scratchOrg.alias} --duration-days ${scratchOrg.durationDays}`, { stdio: 'inherit' });
+execSync(
+    `sf org create scratch --definition-file ${scratchOrg.definitionFile} --alias ${scratchOrg.alias} --duration-days ${scratchOrg.durationDays}`,
+    { stdio: 'inherit' }
+);

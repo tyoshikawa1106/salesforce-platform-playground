@@ -7,4 +7,7 @@ const { repoRoot, scratchOrg } = require('./scratch-org-context');
 process.chdir(repoRoot);
 
 // Scratch Org 初期反映用 manifest を反映する。
-execSync(`sf project deploy start --manifest ${scratchOrg.manifest} --target-org ${scratchOrg.alias} --wait ${scratchOrg.waitMinutes}`, { stdio: 'inherit' });
+execSync(
+    `sf project deploy start --manifest ${scratchOrg.manifest} --target-org ${scratchOrg.alias} --wait ${scratchOrg.waitMinutes}`,
+    { stdio: 'inherit' }
+);
