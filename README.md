@@ -7,10 +7,6 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 ## ドキュメント
 
 - [Docs](https://tyoshikawa1106.github.io/salesforce-platform-playground/)
-- [ローカル開発環境](docs/setup/local-development.md)
-- [開発コマンド一覧](docs/development/development-commands.md)
-- [変更チェックリスト](docs/development/change-checklist.md)
-- [Dev 組織デプロイ](docs/deployment/dev-org-deploy.md)
 
 ## 開発ルール
 
@@ -34,8 +30,6 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 | `ci`       | CI 設定の変更          |
 | `chore`    | その他の保守作業       |
 | `revert`   | 変更の取り消し         |
-
-詳細は [GitHub 運用ルール](docs/development/github-rules.md) を参照します。
 
 ## 技術スタック
 
@@ -74,8 +68,6 @@ npm ci
 sf org login web --set-default --alias dev
 ```
 
-詳しくは [ローカル開発環境](docs/setup/local-development.md) を参照してください。
-
 ## 確認方法
 
 Dev 組織に対する操作は、対象と目的を確認してから実行します。
@@ -87,7 +79,6 @@ sf apex run test --result-format human
 ```
 
 Dev 組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml` を使います。
-詳しくは [Dev 組織デプロイ](docs/deployment/dev-org-deploy.md) を参照してください。
 
 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
 
