@@ -96,9 +96,15 @@ sf apex run test --result-format human
 
 Salesforce 開発組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml` を使います。
 
-## forcedotcom/sf-skills
+## AI エージェントスキル
 
-`forcedotcom/sf-skills` は Salesforce 関連作業の補助情報として利用します。導入方針は [forcedotcom/sf-skills](docs/setup/sf-skills.md) を参照します。
+`forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の補助情報として利用します。
+
+```sh
+npx skills add forcedotcom/sf-skills
+```
+
+このコマンドを実行すると `.agents/skills/` と `skills-lock.json` が生成されます。
 
 ## 参考サイト
 
