@@ -1,8 +1,8 @@
-# Salesforce 公式 Skills
+# forcedotcom/sf-skills
 
-Salesforce 公式の `forcedotcom/sf-skills` は、Apex、Flow、メタデータ、SOQL、Apex テストなどを扱う agent skills 集です。
+`forcedotcom/sf-skills` は、Salesforce 公式 GitHub organization が提供する Apex、Flow、メタデータ、SOQL、Apex テストなどを扱う agent skills 集です。
 
-このリポジトリでは、`sf-skills` を公式知見の補助として使います。ただし、プロジェクト固有の判断や運用ルールは `AGENTS.md` と `docs/` を優先します。
+このリポジトリでは、`sf-skills` を Salesforce 関連知見の補助として使います。ただし、プロジェクト固有の判断や運用ルールは `AGENTS.md` と `docs/` を優先します。
 
 ## 導入
 
@@ -19,7 +19,7 @@ npx skills add forcedotcom/sf-skills
 
 - Apex、Apex テスト、Custom Object、Custom Field、Permission Set、Validation Rule、Flow、SOQL、デプロイ関連の作業で参照する。
 - skill の内容をそのままリポジトリのルールとして扱わない。
-- `AGENTS.md` と `docs/` のリポジトリ固有ルールを優先し、`sf-skills` は Salesforce 公式知見の裏取りとして使う。
+- `AGENTS.md` と `docs/` のリポジトリ固有ルールを優先し、`sf-skills` は Salesforce 関連知見の裏取りとして使う。
 - 実際にこのプロジェクトで採用した手順は、必要に応じて `docs/development/` または `docs/deployment/` に残す。
 
 ## 参照
