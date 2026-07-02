@@ -40,7 +40,17 @@ if (!targetOrg) {
 }
 
 // destructiveChanges.xml に書いた ApexClass を削除する。
-const sfArgs = ['project', 'deploy', 'start', '--post-destructive-changes', destructiveChanges, '--target-org', targetOrg, '--wait', waitMinutes];
+const sfArgs = [
+    'project',
+    'deploy',
+    'start',
+    '--post-destructive-changes',
+    destructiveChanges,
+    '--target-org',
+    targetOrg,
+    '--wait',
+    waitMinutes
+];
 
 if (hasFlag('--dry-run')) {
     sfArgs.push('--dry-run');
