@@ -17,8 +17,6 @@
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
         <members>ObjectMetricsOverviewServiceTest</members>
-        <members>ObjectRecordSearchAccessWrapper</members>
-        <members>ObjectRecordSearchAccessWrapperTest</members>
         <members>ObjectRecordSearchConfigWrapper</members>
         <members>ObjectRecordSearchConfigWrapperTest</members>
         <members>ObjectRecordSearchController</members>
@@ -28,8 +26,6 @@
         <members>ObjectRecordSearchDisplayFieldCatalog</members>
         <members>ObjectRecordSearchFieldWrapper</members>
         <members>ObjectRecordSearchFieldWrapperTest</members>
-        <members>ObjectRecordSearchPageStateWrapper</members>
-        <members>ObjectRecordSearchPageStateWrapperTest</members>
         <members>ObjectRecordSearchQueryPlan</members>
         <members>ObjectRecordSearchRequestWrapper</members>
         <members>ObjectRecordSearchRequestWrapperTest</members>

@@ -85,6 +85,9 @@
 | `.clineignore`              | Cline の自動 context / search から外すローカル生成物、接続情報、credential 系ファイルを定義する。 | source、docs、設定ファイル、テスト、skill 関連ファイルなど作業に必要な文脈を誤って除外していないか確認する。                |
 | `.clinerules/repository.md` | Cline 向けに、このリポジトリの共通ルール入口を示す。                                              | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。                                       |
 
+`.clineignore` は Git 管理対象外を決める `.gitignore` とは役割が異なります。
+Cline の自動 context / search に入れると危険またはノイズになりやすいローカル状態、credential、生成物を外すために使い、Salesforce metadata、source、docs、tests、manifest は原則として AI が確認できる状態にします。
+
 ## 更新ルール
 
 - 設定ファイルを追加、削除、または役割変更した場合は、このページも更新する。

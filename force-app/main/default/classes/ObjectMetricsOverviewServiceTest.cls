@@ -98,6 +98,34 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         );
     }
 
+    @IsTest
+    static void shouldResolveMetricDefinitionPresence() {
+        Boolean hasAccounts;
+        Boolean hasUnknownMetric;
+        ObjectMetricCatalog.MetricDefinition blankDefinition;
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            hasAccounts = ObjectMetricCatalog.hasDefinition('accounts');
+            hasUnknownMetric = ObjectMetricCatalog.hasDefinition('unknown');
+            blankDefinition = ObjectMetricCatalog.getDefinition(' ');
+            Test.stopTest();
+        }
+
+        Assert.isTrue(
+            hasAccounts,
+            'Catalog should report configured metric keys as present.'
+        );
+        Assert.isFalse(
+            hasUnknownMetric,
+            'Catalog should report unknown metric keys as absent.'
+        );
+        Assert.isNull(
+            blankDefinition,
+            'Blank metric keys should not resolve to a definition.'
+        );
+    }
+
     private static Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> createMetricValues() {
         return new Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount>{
             'accounts' => ObjectMetricsOverviewSelector.createCount(50000),
