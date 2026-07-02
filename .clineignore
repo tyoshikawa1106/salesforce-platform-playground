@@ -1,0 +1,60 @@
+# Cline context exclusions.
+# Keep source, metadata, docs, tests, manifests, package.json, and package-lock.json accessible.
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Git internals
+.git/
+
+# Salesforce local state
+.sf/
+.sfdx/
+.localdevserver/
+deploy-options.json
+
+# Local environment values and credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Generated test and analysis output
+coverage/
+logs/**
+!logs/**/
+!logs/**/*.md
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local generated exports
+export-out/*
+!export-out/export-out-guide.md
+
+# Tool caches
+.pmdCache
+.eslintcache
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Editor and tooling temporary files
+*.swp
+*.swo
+*~
+
+# Python Salesforce Functions
+**/__pycache__/
+**/.venv/
+**/venv/
