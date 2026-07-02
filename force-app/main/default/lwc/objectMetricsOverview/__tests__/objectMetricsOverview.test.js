@@ -334,4 +334,25 @@ describe('c-object-metrics-overview', () => {
             element.shadowRoot.querySelectorAll('lightning-spinner')
         ).toHaveLength(0);
     });
+
+    it('renders a user-facing error when refresh fails', async () => {
+        const element = createComponent();
+        refreshApex.mockRejectedValue({
+            body: {
+                message: '再読み込みに失敗しました。'
+            }
+        });
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+
+        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        expect(alert.textContent).toContain('再読み込みに失敗しました。');
+        expect(
+            element.shadowRoot.querySelectorAll('lightning-spinner')
+        ).toHaveLength(0);
+    });
 });

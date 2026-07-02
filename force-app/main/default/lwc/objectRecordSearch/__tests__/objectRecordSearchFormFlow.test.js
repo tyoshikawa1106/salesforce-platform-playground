@@ -290,6 +290,47 @@ describe('c-object-record-search form flows', () => {
         expect(submitEvent.preventDefault).toHaveBeenCalledTimes(1);
     });
 
+    it('enters saving state when record form validation succeeds', async () => {
+        const element = await createRecordFormReadyComponent();
+
+        await openNewRecordForm(element);
+
+        element.shadowRoot
+            .querySelectorAll('lightning-input-field')
+            .forEach((field) => {
+                field.reportValidity = jest.fn().mockReturnValue(true);
+            });
+        element.shadowRoot
+            .querySelector('lightning-record-edit-form')
+            .dispatchEvent(new CustomEvent('submit'));
+        await flushPromises();
+
+        expect(findButton(element, '保存').disabled).toBe(true);
+    });
+
+    it('shows fallback save error when record form save fails without a message', async () => {
+        const element = await createRecordFormReadyComponent();
+        const toastHandler = jest.fn();
+        element.addEventListener('lightning__showtoast', toastHandler);
+
+        await openNewRecordForm(element);
+
+        element.shadowRoot
+            .querySelector('lightning-record-edit-form')
+            .dispatchEvent(new CustomEvent('error'));
+        await flushPromises();
+
+        expect(toastHandler).toHaveBeenCalledWith(
+            expect.objectContaining({
+                detail: expect.objectContaining({
+                    title: '保存に失敗しました',
+                    message: '取引先を保存できませんでした。',
+                    variant: 'error'
+                })
+            })
+        );
+    });
+
     it('refreshes rows and dispatches recordschanged when a form save succeeds', async () => {
         const element = await createRecordFormReadyComponent();
         const recordsChangedHandler = jest.fn();

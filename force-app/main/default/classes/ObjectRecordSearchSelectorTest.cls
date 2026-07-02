@@ -120,6 +120,34 @@ private with sharing class ObjectRecordSearchSelectorTest {
     }
 
     @IsTest
+    static void getRecordsByIdShouldReturnEmptyListWhenIdsAreMissing() {
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        List<SObject> nullIdRecords;
+        List<SObject> emptyIdRecords;
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            nullIdRecords = selector.getRecordsById('Account', null);
+            emptyIdRecords = selector.getRecordsById(
+                'Account',
+                new Set<Id>()
+            );
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            0,
+            nullIdRecords.size(),
+            'Null IDs should not run a record lookup.'
+        );
+        Assert.areEqual(
+            0,
+            emptyIdRecords.size(),
+            'Empty IDs should not run a record lookup.'
+        );
+    }
+
+    @IsTest
     static void deleteRecordsShouldDeleteSuppliedRows() {
         List<Account> deleteTargets = [
             SELECT Id

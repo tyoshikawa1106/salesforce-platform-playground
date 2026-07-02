@@ -40,6 +40,12 @@ describe('c-error-utils', () => {
     it('creates toast messages from one or more display messages', () => {
         expect(
             createToastMessage(
+                '1 件は削除できませんでした。',
+                '削除できませんでした。'
+            )
+        ).toBe('1 件は削除できませんでした。');
+        expect(
+            createToastMessage(
                 ['1 件は削除できませんでした。', '1 件は権限不足です。'],
                 '削除できませんでした。'
             )

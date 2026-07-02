@@ -168,6 +168,27 @@ describe('c-object-record-search', () => {
         );
     });
 
+    it('keeps the record form closed when a non-edit row action is invoked', async () => {
+        const element = createComponent();
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(
+            new CustomEvent('rowaction', {
+                detail: {
+                    action: { name: 'view' },
+                    row: searchResponse.records[0]
+                }
+            })
+        );
+        await flushPromises();
+
+        expect(
+            element.shadowRoot.querySelector('lightning-record-edit-form')
+        ).toBeNull();
+    });
+
     it('explains when the record list cannot be loaded because of access', async () => {
         const element = createComponent();
 
@@ -183,6 +204,20 @@ describe('c-object-record-search', () => {
         );
         expect(alert.textContent).toContain('参照権限がありません。');
         await expect(element).toBeAccessible();
+    });
+
+    it('explains access errors detected from an error message', async () => {
+        const element = createComponent();
+
+        searchRecords.error(
+            { message: 'INSUFFICIENT ACCESS: 参照権限がありません。' },
+            500
+        );
+        await flushPromises();
+
+        expect(
+            element.shadowRoot.querySelector('[role="alert"]').textContent
+        ).toContain('アクセス権限を確認してください');
     });
 
     it('shows unavailable actions when object permissions are missing', async () => {
@@ -256,6 +291,30 @@ describe('c-object-record-search', () => {
         await flushPromises();
 
         expect(refreshApex).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the search-specific empty message after searching', async () => {
+        const element = createComponent();
+
+        searchRecords.emit({
+            ...searchResponse,
+            records: []
+        });
+        await flushPromises();
+
+        const input = element.shadowRoot.querySelector('lightning-input');
+        input.value = 'Missing';
+        input.dispatchEvent(new CustomEvent('change'));
+        findButton(element, '検索').click();
+        searchRecords.emit({
+            ...searchResponse,
+            records: []
+        });
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain(
+            '検索条件に一致するレコードが見つかりません。'
+        );
     });
 
     it('dispatches back when the back action is clicked', async () => {
