@@ -4,6 +4,15 @@
 
 秘密情報を含み得る `.env`、`.env.*`、認証ファイル、token、password、client secret、証明書、秘密鍵は管理対象の一覧に含めません。
 
+## 詳細ページ
+
+| ページ                                                      | 内容                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------- |
+| [package.json](package-json.md)                             | npm scripts、依存、hook 設定の読み方。                  |
+| [Salesforce DX 設定ファイル](salesforce-dx-config-files.md) | `sfdx-project.json`、Scratch Org 設定、`.forceignore`。 |
+| [品質チェック設定ファイル](quality-config-files.md)         | ESLint、Jest、Prettier、Code Analyzer、pre-commit。     |
+| [GitHub 設定ファイル](github-config-files.md)               | CI、Dependabot、Release、Issue / PR template。          |
+
 ## Salesforce / DX
 
 | ファイル                                      | 概要                                                                                                                                     | 変更時の確認                                                                                           |
@@ -20,26 +29,27 @@
 
 ## npm / 品質チェック
 
-| ファイル              | 概要                                                                                                        | 変更時の確認                                                                                |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `package.json`        | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。                                     | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。                    |
-| `package-lock.json`   | npm 依存の解決結果を固定する。                                                                              | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。                      |
-| `.node-version`       | ローカル実行、CI、docs で前提にする Node.js major version を固定する。                                      | `package.json` の `engines.node`、CI の Node version、setup docs と一致しているか確認する。 |
-| `eslint.config.js`    | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                      | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。                 |
-| `code-analyzer.yml`   | Salesforce Code Analyzer の engine 設定を管理する。ESLint engine は repo の `eslint.config.js` を使う。     | Code Analyzer と ESLint の設定が重複適用されないか確認する。                                |
-| `jest.config.js`      | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパス除外と LWC coverage 対象を定義する。 | LWC test / coverage の探索対象や除外対象が変わらないか確認する。                            |
-| `jest-sa11y-setup.js` | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                        | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。   |
-| `.prettierrc`         | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。      | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                            |
-| `.prettierignore`     | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                | 整形対象に含めるべき source を除外していないか確認する。                                    |
-| `.husky/pre-commit`   | commit 前に `npm run precommit` を実行する。                                                                | hook を変えた場合は staged files に対する挙動を確認する。                                   |
+| ファイル              | 概要                                                                                                                       | 変更時の確認                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `package.json`        | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。詳細は [package.json](package-json.md) を参照する。 | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。                    |
+| `package-lock.json`   | npm 依存の解決結果を固定する。                                                                                             | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。                      |
+| `.node-version`       | ローカル実行、CI、docs で前提にする Node.js major version を固定する。                                                     | `package.json` の `engines.node`、CI の Node version、setup docs と一致しているか確認する。 |
+| `eslint.config.js`    | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                                     | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。                 |
+| `code-analyzer.yml`   | Salesforce Code Analyzer の engine 設定を管理する。ESLint engine は repo の `eslint.config.js` を使う。                    | Code Analyzer と ESLint の設定が重複適用されないか確認する。                                |
+| `jest.config.js`      | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパス除外と LWC coverage 対象を定義する。                | LWC test / coverage の探索対象や除外対象が変わらないか確認する。                            |
+| `jest-sa11y-setup.js` | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                                       | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。   |
+| `.prettierrc`         | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。                     | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                            |
+| `.prettierignore`     | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                               | 整形対象に含めるべき source を除外していないか確認する。                                    |
+| `.husky/pre-commit`   | commit 前に `npm run precommit` を実行する。                                                                               | hook を変えた場合は staged files に対する挙動を確認する。                                   |
 
 ## ローカル出力先
 
-| ファイル                                    | 概要                                                                                         | 変更時の確認                                                             |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `export-out/export-out-guide.md`            | Salesforce CLI の export 結果の出力先として `export-out/` を固定する。                       | CSV / JSON などの export 結果を Git 管理対象にしていないか確認する。     |
-| `logs/apex/apex-log-guide.md`               | Salesforce CLI で取得した Apex debug log の出力先として `logs/apex/` を固定する。            | Apex debug log の実ファイルを Git 管理対象にしていないか確認する。       |
-| `logs/code-analyzer/code-analyzer-guide.md` | Salesforce Code Analyzer のローカル解析結果の出力先として `logs/code-analyzer/` を固定する。 | `package.json` の Code Analyzer 出力先と `.gitignore` の例外を確認する。 |
+| ファイル                                       | 概要                                                                                                    | 変更時の確認                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `export-out/export-out-guide.md`               | Salesforce CLI の export 結果の出力先として `export-out/` を固定する。                                  | CSV / JSON などの export 結果を Git 管理対象にしていないか確認する。     |
+| `logs/apex/apex-log-guide.md`                  | Salesforce CLI で取得した Apex debug log の出力先として `logs/apex/` を固定する。                       | Apex debug log の実ファイルを Git 管理対象にしていないか確認する。       |
+| `logs/code-analyzer/code-analyzer-guide.md`    | Salesforce Code Analyzer のローカル解析結果の出力先として `logs/code-analyzer/` を固定する。            | `package.json` の Code Analyzer 出力先と `.gitignore` の例外を確認する。 |
+| `logs/data-bulk-results/bulk-results-guide.md` | Salesforce CLI で取得した Bulk API 2.0 ingest 結果の出力先として `logs/data-bulk-results/` を固定する。 | Bulk 結果 CSV や実行ログを Git 管理対象にしていないか確認する。          |
 
 ## Git / エディタ
 
