@@ -30,7 +30,7 @@
 - Scratch Org を作成した場合は、ユーザーが別途指示しない限り、Scratch Org 用の標準 deploy 手順まで実施してから報告する。
 - 現在の Dev 組織には source tracking がないため、`sf project deploy preview` 前提で進めない。
 - Apex、メタデータ、deploy、retrieve、delete、Apex test の詳細手順は `docs/development/change-checklist.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
-- Salesforce 公式の `forcedotcom/sf-skills` は補助情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
+- `forcedotcom/sf-skills` は Salesforce 関連作業の補助情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
 - メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。

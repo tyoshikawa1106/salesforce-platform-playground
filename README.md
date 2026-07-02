@@ -82,9 +82,9 @@ Dev 組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml
 
 現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
 
-## Salesforce 公式 skills
+## forcedotcom/sf-skills
 
-Salesforce 公式の `forcedotcom/sf-skills` は補助情報として利用します。導入方針は [Salesforce 公式 skills](docs/setup/sf-skills.md) を参照します。
+`forcedotcom/sf-skills` は Salesforce 関連作業の補助情報として利用します。導入方針は [forcedotcom/sf-skills](docs/setup/sf-skills.md) を参照します。
 
 ## 参考サイト
 
