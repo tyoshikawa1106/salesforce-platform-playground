@@ -14,10 +14,10 @@ Salesforce DX プロジェクトでは、主に次の 2 種類を確認します
 まず、現在接続中の組織が新しい API version を使えるか確認します。
 
 ```sh
-sf org display
+sf config get target-org
 ```
 
-`apiVersion` が期待する version になっていれば、その組織では新しい API version を利用できます。
+alias だけでは API version を判断できないため、必要に応じて `sf org display` で対象組織の詳細を確認します。`apiVersion` が期待する version になっていれば、その組織では新しい API version を利用できます。
 
 Salesforce CLI がローカル Node.js との相性で起動しない場合は、CLI の更新、Node.js の LTS version での実行、または別のインストール経路を確認します。CLI 起動エラーと API version 非対応は切り分けて考えます。
 

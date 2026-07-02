@@ -16,10 +16,10 @@
 deploy、delete、retrieve、test の前に対象組織を確認します。
 
 ```sh
-sf org display
+sf config get target-org
 ```
 
-作業報告には、対象組織の alias / username を含めます。
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。作業報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
 
 ## Validate
 
@@ -128,7 +128,7 @@ sf apex run test --class-names MyClassTest --code-coverage --result-format human
 
 メタデータ変更後は次を報告します。
 
-- 対象 Salesforce 組織の alias / username
+- 対象 Salesforce 組織の alias
 - 実行した validate / deploy / test
 - Apex テストの成功件数と coverage
 - 実行しなかった確認と、その理由

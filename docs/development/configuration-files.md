@@ -6,29 +6,32 @@
 
 ## Salesforce / DX
 
-| ファイル                                      | 概要                                                                                                                                     | 変更時の確認                                                                                          |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `sfdx-project.json`                           | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を正本の source directory とする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。   |
-| `config/project-scratch-def.json`             | Scratch org 作成時の edition、features、settings を定義する。Dev 組織への deploy 先設定ではない。                                        | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Dev 組織との差分を確認する。            |
-| `scripts/deploy/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、docs の Scratch Org 手順と一致しているか確認する。                 |
-| `manifest/rebuild-developer-org.xml`          | Dev 組織への標準 validate / deploy scope を定義する。                                                                                    | 追加前に対象 org で validate し、`docs/development/force-app-deployability-inventory.md` と合わせる。 |
-| `manifest/rebuild-scratch-org.xml`            | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                       |
-| `manifest/package*.xml`                       | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                      |
-| `.forceignore`                                | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                           |
+| ファイル                                      | 概要                                                                                                                                     | 変更時の確認                                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `sfdx-project.json`                           | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を正本の source directory とする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。    |
+| `config/project-scratch-def.json`             | Scratch org 作成時の edition、features、settings を定義する。Dev 組織への deploy 先設定ではない。                                        | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Dev 組織との差分を確認する。             |
+| `scripts/deploy/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、docs の Scratch Org 手順と一致しているか確認する。                  |
+| `manifest/rebuild-developer-org.xml`          | Dev 組織への標準 validate / deploy scope を定義する。                                                                                    | 追加前に対象 org で validate し、`docs/development/force-app-deployability-inventory.md` と合わせる。  |
+| `manifest/rebuild-scratch-org.xml`            | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                        |
+| `manifest/destructiveChanges.xml`             | Dev 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                                   | 実行前に対象 org と削除 scope を確認し、`docs/deployment/destructive-changes.md` に従う。              |
+| `manifest/package*.xml`                       | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                       |
+| `.forceignore`                                | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                            |
+| `scripts/setup/import-plan.json`              | Salesforce CLI の data import plan。標準テストデータの import 順序と参照関係を定義する。                                                 | 実データや個人情報を入れず、`docs/development/test-data-import.md` と seed / cleanup Apex に合わせる。 |
 
 ## npm / 品質チェック
 
-| ファイル              | 概要                                                                                                        | 変更時の確認                                                                              |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `package.json`        | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。                                     | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。                  |
-| `package-lock.json`   | npm 依存の解決結果を固定する。                                                                              | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。                    |
-| `eslint.config.js`    | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                      | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。               |
-| `code-analyzer.yml`   | Salesforce Code Analyzer の engine 設定を管理する。ESLint engine は repo の `eslint.config.js` を使う。     | Code Analyzer と ESLint の設定が重複適用されないか確認する。                              |
-| `jest.config.js`      | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパス除外と LWC coverage 対象を定義する。 | LWC test / coverage の探索対象や除外対象が変わらないか確認する。                          |
-| `jest-sa11y-setup.js` | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                        | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。 |
-| `.prettierrc`         | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。      | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                          |
-| `.prettierignore`     | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                | 整形対象に含めるべき source を除外していないか確認する。                                  |
-| `.husky/pre-commit`   | commit 前に `npm run precommit` を実行する。                                                                | hook を変えた場合は staged files に対する挙動を確認する。                                 |
+| ファイル              | 概要                                                                                                        | 変更時の確認                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `package.json`        | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。                                     | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。                    |
+| `package-lock.json`   | npm 依存の解決結果を固定する。                                                                              | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。                      |
+| `.node-version`       | ローカル実行、CI、docs で前提にする Node.js major version を固定する。                                      | `package.json` の `engines.node`、CI の Node version、setup docs と一致しているか確認する。 |
+| `eslint.config.js`    | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                      | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。                 |
+| `code-analyzer.yml`   | Salesforce Code Analyzer の engine 設定を管理する。ESLint engine は repo の `eslint.config.js` を使う。     | Code Analyzer と ESLint の設定が重複適用されないか確認する。                                |
+| `jest.config.js`      | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパス除外と LWC coverage 対象を定義する。 | LWC test / coverage の探索対象や除外対象が変わらないか確認する。                            |
+| `jest-sa11y-setup.js` | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                        | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。   |
+| `.prettierrc`         | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。      | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                            |
+| `.prettierignore`     | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                | 整形対象に含めるべき source を除外していないか確認する。                                    |
+| `.husky/pre-commit`   | commit 前に `npm run precommit` を実行する。                                                                | hook を変えた場合は staged files に対する挙動を確認する。                                   |
 
 ## ローカル出力先
 

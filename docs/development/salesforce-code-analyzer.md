@@ -2,8 +2,6 @@
 
 このメモは、Salesforce Code Analyzer が何をするものか、ローカル環境や CI にどう導入するかを整理します。
 
-公式ドキュメントの確認日は 2026-06-20 です。
-
 ## 何をするものか
 
 Salesforce Code Analyzer は、Salesforce CLI、VS Code、GitHub Actions などから実行できる静的解析ツールです。
@@ -94,6 +92,12 @@ severity を指定して CI で失敗させたい場合:
 
 ```sh
 sf code-analyzer run --rule-selector Recommended --target force-app --severity-threshold 3
+```
+
+このリポジトリの CI 相当チェックは、結果を `logs/code-analyzer/ci.json` に出力します。
+
+```sh
+npm run code-analyzer:ci
 ```
 
 ## ルールの選び方

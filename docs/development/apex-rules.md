@@ -100,7 +100,7 @@ npm run sf:deploy:dev
 
 Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、deploy 後の Apex テストは PR 作成前の確認にまとめます。
 
-- 対象組織の確認: `sf org display`
+- 対象組織の確認: `sf config get target-org`
 - メタデータの整合性確認: `npm run sf:validate:dev`
 - 現在接続中の組織への反映: `npm run sf:deploy:dev`
 - PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage`
@@ -123,7 +123,7 @@ Apex やメタデータを変更した後は、次を報告します。
 
 - 変更した `.cls` と `-meta.xml`
 - 追加・更新した Apex テスト
-- 対象 Salesforce 組織の alias / username
+- 対象 Salesforce 組織の alias
 - 実行した `sf project deploy validate` と `sf project deploy start`
 - PR 作成前に実行した `sf apex run test --code-coverage`
 - Apex テストの成功件数と coverage、または PR 作成前にまとめる理由

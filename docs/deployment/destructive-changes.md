@@ -21,8 +21,10 @@ Salesforce メタデータを削除する destructive changes の実務ルール
 対象組織を確認します。
 
 ```sh
-sf org display
+sf config get target-org
 ```
+
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。
 
 ## Apex クラス削除
 
@@ -61,7 +63,7 @@ PR では次を重点的に確認します。
 
 destructive changes を扱った場合は次を報告します。
 
-- 対象 Salesforce 組織の alias / username
+- 対象 Salesforce 組織の alias
 - 削除した metadata type と名前
 - 依存確認の結果
 - 実行した validate / deploy / test

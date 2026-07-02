@@ -2,7 +2,7 @@
 
 Salesforce Platform を調べるときは、まず Salesforce 公式ドキュメント、開発者向けガイド、Trailhead、公式サンプルを確認します。
 
-このページは、Apex、Salesforce DX、メタデータ、LWC などの開発で参照しやすい公式リンクの入口です。リンク先は 2026-06-20 時点で確認しています。
+このページは、Apex、Salesforce DX、メタデータ、LWC などの開発で参照しやすい公式リンクの入口です。
 
 ## 全体
 

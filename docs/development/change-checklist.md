@@ -38,8 +38,10 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 操作対象を確認します:
 
 ```sh
-sf org display
+sf config get target-org
 ```
+
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。
 
 deploy と Apex test は現在接続されている Salesforce 組織に対してのみ実行します。明示依頼なしに `--target-org` 指定やデフォルト組織の切り替えで別組織へ反映しません。
 
@@ -80,3 +82,5 @@ npm run code-analyzer:ci
 ```
 
 `logs/code-analyzer/` 配下の解析結果ファイルは生成物なので Git 管理しません。出力先フォルダの扱いは `logs/code-analyzer/code-analyzer-guide.md` を参照します。
+
+開発時に使う主要コマンドの役割は [開発コマンド一覧](development-commands.md) を参照します。

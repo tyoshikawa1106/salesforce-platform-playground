@@ -2,8 +2,6 @@
 
 このメモは、LWC Jest と `@sa11y/jest` を使ったアクセシビリティ確認の考え方とセットアップ方法を整理します。
 
-確認日は 2026-06-20 です。
-
 ## LWC Jest とは
 
 LWC Jest は、Lightning Web Components を Salesforce 組織へ deploy せずにローカルでテストする仕組みです。
@@ -50,7 +48,7 @@ Salesforce チームで使われる前提の文脈はありますが、Salesforc
 
 ## セットアップ
 
-このリポジトリでは、2026-06-20 に PR #74 で `@sa11y/jest` と `jest-sa11y-setup.js` を導入済みです。
+このリポジトリでは、`@sa11y/jest` と `jest-sa11y-setup.js` を導入済みです。
 次の手順は、別プロジェクトや再セットアップ時の参考です。
 
 `@sa11y/jest` を devDependency に追加します。

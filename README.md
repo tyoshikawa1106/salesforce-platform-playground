@@ -7,6 +7,10 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 ## ドキュメント
 
 - [Docs](https://tyoshikawa1106.github.io/salesforce-platform-playground/)
+- [ローカル開発環境](docs/setup/local-development.md)
+- [開発コマンド一覧](docs/development/development-commands.md)
+- [変更チェックリスト](docs/development/change-checklist.md)
+- [Dev 組織デプロイ](docs/deployment/dev-org-deploy.md)
 
 ## 開発ルール
 
