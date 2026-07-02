@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Salesforce local state
+.sf/
+.sfdx/
+.localdevserver/
+deploy-options.json
+
+# Local environment values and credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Generated test and analysis output
+coverage/
+logs/**
+!logs/**/
+!logs/**/*.md
+
+# Local generated exports
+export-out/*
+!export-out/export-out-guide.md
+
+# Local agent skills
+.agents/
+skills-lock.json
+
+# Tool caches
+.pmdCache
+.eslintcache
+
+# Static resource payloads can be large or generated.
+**/staticresources/**
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Python Salesforce Functions
+**/__pycache__/
+**/.venv/
+**/venv/

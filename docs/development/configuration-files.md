@@ -62,25 +62,27 @@
 
 ## GitHub
 
-| ファイル                                    | 概要                                                                                                                                                                             | 変更時の確認                                                                            |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                                                                                 | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。        |
-| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール入口を示す。                                                                                                                    | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。   |
-| `.github/workflows/ci.yml`                  | pull request と `main` push で `npm ci --include=dev`、audit、format check、lint、Salesforce Code Analyzer、任意の Salesforce validate、LWC unit test を実行する CI を定義する。 | GitHub Actions は品質確認に寄せ、Issue / Project などの運用 metadata 自動化を混ぜない。 |
-| `.github/dependabot.yml`                    | npm 依存の weekly update、ラベル、commit message、grouping を定義する。                                                                                                          | 特定の個人ユーザー名を assignee や reviewer として固定しない。                          |
-| `.github/release.yml`                       | GitHub Release の自動生成 changelog category をラベルごとに定義する。                                                                                                            | ラベル体系を変えた場合は category も合わせて見直す。                                    |
-| `.github/ISSUE_TEMPLATE/config.yml`         | Issue template 全体の挙動を定義する。                                                                                                                                            | blank issue を許可するかどうかを運用方針に合わせる。                                    |
-| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                                                                          | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                  |
-| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                                                                          | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                |
-| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                                                                          | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。               |
+| ファイル                                    | 概要                                                                                                                                                                             | 変更時の確認                                                                             |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                                                                                 | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。         |
+| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール入口を示す。                                                                                                                    | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。    |
+| `.clineignore`                              | Cline の自動 context / search から外すローカル生成物、接続情報、credential 系ファイルを定義する。                                                                                | source、docs、設定ファイル、テストなど作業に必要な文脈を誤って除外していないか確認する。 |
+| `.github/workflows/ci.yml`                  | pull request と `main` push で `npm ci --include=dev`、audit、format check、lint、Salesforce Code Analyzer、任意の Salesforce validate、LWC unit test を実行する CI を定義する。 | GitHub Actions は品質確認に寄せ、Issue / Project などの運用 metadata 自動化を混ぜない。  |
+| `.github/dependabot.yml`                    | npm 依存の weekly update、ラベル、commit message、grouping を定義する。                                                                                                          | 特定の個人ユーザー名を assignee や reviewer として固定しない。                           |
+| `.github/release.yml`                       | GitHub Release の自動生成 changelog category をラベルごとに定義する。                                                                                                            | ラベル体系を変えた場合は category も合わせて見直す。                                     |
+| `.github/ISSUE_TEMPLATE/config.yml`         | Issue template 全体の挙動を定義する。                                                                                                                                            | blank issue を許可するかどうかを運用方針に合わせる。                                     |
+| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                                                                          | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                   |
+| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                                                                          | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                 |
+| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                                                                          | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。                |
 
 ## Agent
 
-| ファイル    | 概要                                                         | 変更時の確認                                                                                |
-| ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `AGENTS.md` | Codex などのエージェントが常に守る短い共通ルールを定義する。 | 詳細手順を詰め込みすぎず、実務手順は `docs/development/` または `docs/deployment/` に置く。 |
-| `CLAUDE.md` | Claude Code 向けに、このリポジトリの共通ルール入口を示す。   | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。       |
-| `GEMINI.md` | Gemini CLI 向けに、このリポジトリの共通ルール入口を示す。    | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。       |
+| ファイル                    | 概要                                                         | 変更時の確認                                                                                |
+| --------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `AGENTS.md`                 | Codex などのエージェントが常に守る短い共通ルールを定義する。 | 詳細手順を詰め込みすぎず、実務手順は `docs/development/` または `docs/deployment/` に置く。 |
+| `CLAUDE.md`                 | Claude Code 向けに、このリポジトリの共通ルール入口を示す。   | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。       |
+| `GEMINI.md`                 | Gemini CLI 向けに、このリポジトリの共通ルール入口を示す。    | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。       |
+| `.clinerules/repository.md` | Cline 向けに、このリポジトリの共通ルール入口を示す。         | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。       |
 
 ## 更新ルール
 

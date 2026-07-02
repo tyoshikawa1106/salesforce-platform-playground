@@ -5,7 +5,7 @@
 ## 基本方針
 
 - `AGENTS.md` は、Codex などのエージェントが常に守る短い共通ルールだけを書く。
-- `CLAUDE.md`、`GEMINI.md`、`.github/copilot-instructions.md` は各ツール向けの入口にとどめ、共通ルールは `AGENTS.md` に集約する。
+- `CLAUDE.md`、`GEMINI.md`、`.github/copilot-instructions.md`、`.clinerules/` は各ツール向けの入口にとどめ、共通ルールは `AGENTS.md` に集約する。
 - 詳しい手順、判断基準、背景説明は `docs/` 配下に分ける。
 - README は入口として簡潔に保ち、詳細は `docs/` へリンクする。
 - 同じ内容を複数箇所に長く重複させない。
@@ -20,6 +20,8 @@
 | `CLAUDE.md`                       | Claude Code 向けの入口                                   |
 | `GEMINI.md`                       | Gemini CLI 向けの入口                                    |
 | `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                                |
+| `.clinerules/`                    | Cline 向けの workspace rules                             |
+| `.clineignore`                    | Cline の自動 context / search から外す対象               |
 | `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線     |
 | `docs/setup/`                     | ローカル環境、ツール導入、組織ログイン、初期セットアップ |
 | `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認メモ       |
