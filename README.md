@@ -64,7 +64,7 @@ cd salesforce-platform-playground
 npm ci
 
 # Salesforce 開発組織へログインする
-sf org login web --set-default --alias dev
+sf org login web --set-default --alias <alias>
 ```
 
 ## 確認方法
@@ -72,14 +72,29 @@ sf org login web --set-default --alias dev
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
 
 ```sh
+# 整形を確認する
+npm run prettier:verify
+
+# Aura / LWC JavaScript を lint する
+npm run lint -- --no-error-on-unmatched-pattern
+
+# LWC unit test を実行する
+npm run test:unit -- -- --runInBand --passWithNoTests
+
+# Salesforce Code Analyzer を実行する
+npm run code-analyzer:ci
+
+# Salesforce 開発組織への反映を検証する
 npm run sf:validate:dev
+
+# Salesforce 開発組織へ反映する
 npm run sf:deploy:dev
+
+# Apex テストを実行する
 sf apex run test --result-format human
 ```
 
 Salesforce 開発組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml` を使います。
-
-現在の Salesforce 開発組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
 
 ## forcedotcom/sf-skills
 
