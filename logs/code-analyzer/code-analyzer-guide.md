@@ -6,6 +6,10 @@
 
 このリポジトリの npm scripts は `--output-file` で `logs/code-analyzer/` 配下を指定しているため、以下のコマンドを実行すると同ディレクトリに結果ファイルが生成されます。
 
+## 使いどころ
+
+Salesforce Code Analyzer のローカル実行結果を残すときに使います。通常の確認は `local.json`、CI 相当の確認は `ci.json` に出力します。
+
 ## ローカル確認
 
 ```sh
@@ -18,6 +22,8 @@ npm run code-analyzer
 logs/code-analyzer/local.json
 ```
 
+`local.json` は手元で内容を確認するための解析結果です。
+
 ## CI 相当の確認
 
 ```sh
@@ -29,6 +35,8 @@ npm run code-analyzer:ci
 ```text
 logs/code-analyzer/ci.json
 ```
+
+`ci.json` は severity threshold 付きの CI 相当確認で使います。
 
 `--output-file` の拡張子を変えると、HTML、CSV、XML、SARIF などの形式でも出力できます。
 

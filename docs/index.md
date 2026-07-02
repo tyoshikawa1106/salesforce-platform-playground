@@ -35,23 +35,27 @@ Salesforce DX 開発に関するこのプロジェクト固有のメモを置き
 
 ## 開発運用
 
-| タイトル                                                                                                        | 概要                                   |
-| --------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| [開発コマンド一覧](development/development-commands.md)                                                         | ローカルで使う検証、整形、解析コマンド |
-| [ドキュメント配置ルール](development/documentation-rules.md)                                                    | docs の置き場所、命名、入口更新ルール  |
-| [設定ファイル管理](development/configuration-files.md)                                                          | 設定ファイルの役割と管理方針           |
-| [npm と pre-commit hook](development/npm-and-precommit.md)                                                      | npm scripts と hook の確認観点         |
-| [CI で Prettier を確認する意味](development/prettier-check-in-ci.md)                                            | Prettier を CI で確認する理由          |
-| [Salesforce CLI テストデータインポート](development/test-data-import.md)                                        | テストデータ投入の手順と注意点         |
-| [Salesforce CLI で主要標準オブジェクトの seed を作る考え方](development/salesforce-cli-standard-object-seed.md) | 標準オブジェクト seed の作成方針       |
-| [Settings 有効化状況](development/settings-enable-candidates.md)                                                | Settings メタデータの有効化候補        |
-| [.gitignore 運用メモ](development/gitignore-rules.md)                                                           | Git 管理対象外にするファイルの考え方   |
-| [LWC Jest とアクセシビリティテスト](development/lwc-jest-accessibility-testing.md)                              | LWC Jest と a11y テストの扱い          |
-| [Salesforce Code Analyzer](development/salesforce-code-analyzer.md)                                             | Code Analyzer の実行と結果確認         |
-| [Salesforce API version の上げ方](development/salesforce-api-version-upgrade.md)                                | API version 更新時の確認手順           |
-| [Salesforce メタデータの Git 管理候補](development/salesforce-metadata-git-management-candidates.md)            | Git 管理するメタデータ候補             |
-| [package.xml のメタデータ一覧](development/salesforce-package-xml-metadata-types.md)                            | package.xml で扱うメタデータ種別       |
-| [package.xml retrieve の分析ポイント](development/salesforce-package-xml-retrieve-analysis.md)                  | retrieve 結果を分析する観点            |
+| タイトル                                                                                                        | 概要                                                |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [開発コマンド一覧](development/development-commands.md)                                                         | ローカルで使う検証、整形、解析コマンド              |
+| [ドキュメント配置ルール](development/documentation-rules.md)                                                    | docs の置き場所、命名、入口更新ルール               |
+| [設定ファイル管理](development/configuration-files.md)                                                          | 設定ファイルの役割と管理方針                        |
+| [package.json](development/package-json.md)                                                                     | npm scripts、依存、hook 設定の読み方                |
+| [Salesforce DX 設定ファイル](development/salesforce-dx-config-files.md)                                         | DX project、Scratch Org、forceignore の設定         |
+| [品質チェック設定ファイル](development/quality-config-files.md)                                                 | ESLint、Jest、Prettier、Code Analyzer の設定        |
+| [GitHub 設定ファイル](development/github-config-files.md)                                                       | CI、Dependabot、Release、Issue / PR template の設定 |
+| [npm と pre-commit hook](development/npm-and-precommit.md)                                                      | npm scripts と hook の確認観点                      |
+| [CI で Prettier を確認する意味](development/prettier-check-in-ci.md)                                            | Prettier を CI で確認する理由                       |
+| [Salesforce CLI テストデータインポート](development/test-data-import.md)                                        | テストデータ投入の手順と注意点                      |
+| [Salesforce CLI で主要標準オブジェクトの seed を作る考え方](development/salesforce-cli-standard-object-seed.md) | 標準オブジェクト seed の作成方針                    |
+| [Settings 有効化状況](development/settings-enable-candidates.md)                                                | Settings メタデータの有効化候補                     |
+| [.gitignore 運用メモ](development/gitignore-rules.md)                                                           | Git 管理対象外にするファイルの考え方                |
+| [LWC Jest とアクセシビリティテスト](development/lwc-jest-accessibility-testing.md)                              | LWC Jest と a11y テストの扱い                       |
+| [Salesforce Code Analyzer](development/salesforce-code-analyzer.md)                                             | Code Analyzer の実行と結果確認                      |
+| [Salesforce API version の上げ方](development/salesforce-api-version-upgrade.md)                                | API version 更新時の確認手順                        |
+| [Salesforce メタデータの Git 管理候補](development/salesforce-metadata-git-management-candidates.md)            | Git 管理するメタデータ候補                          |
+| [package.xml のメタデータ一覧](development/salesforce-package-xml-metadata-types.md)                            | package.xml で扱うメタデータ種別                    |
+| [package.xml retrieve の分析ポイント](development/salesforce-package-xml-retrieve-analysis.md)                  | retrieve 結果を分析する観点                         |
 
 ## デプロイ
 

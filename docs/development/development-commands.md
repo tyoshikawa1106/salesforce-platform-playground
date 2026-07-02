@@ -41,6 +41,7 @@
 | ------------------------------------- | --------------------------------------------- | ------------------------------------------- |
 | `npm run setup:data:standard:dry-run` | 標準テストデータ import の計画を確認する。    | 実データ投入前の確認に使う。                |
 | `npm run setup:data:standard`         | 標準テストデータを接続先 org に import する。 | 対象 org と投入範囲を確認してから実行する。 |
+| `npm run data:bulk:results`           | Bulk API 2.0 ingest job の結果を取得する。    | 結果は `logs/data-bulk-results/` に出る。   |
 
 ## 使い分け
 
