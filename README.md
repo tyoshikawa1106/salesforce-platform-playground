@@ -108,12 +108,18 @@ npx skills add forcedotcom/sf-skills
 
 ## 参考サイト
 
-| 用途                    | サイト                                                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Salesforce DX           | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev)                        |
-| Salesforce CLI          | [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)                                                           |
-| Salesforce CLI コマンド | [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference) |
-| Apex                    | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode)                                 |
-| Metadata API            | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta)                         |
-| Agent Skills            | [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills)                                                                |
-| GitHub CLI              | [GitHub CLI Manual](https://cli.github.com/manual/)                                                                              |
+| 用途                                                                 | サイト                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Salesforce DX                                                        | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev)           |
+| Salesforce CLI                                                       | [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)                                              |
+| Lightning Web Components                                             | [Lightning Web Components Developer Guide](https://developer.salesforce.com/docs/platform/lwc/guide)                |
+| Lightning Component Reference                                        | [Lightning Component Reference](https://developer.salesforce.com/docs/platform/lightning-component-reference/guide) |
+| Lightning Design System                                              | [Lightning Design System](https://www.lightningdesignsystem.com/)                                                   |
+| Apex                                                                 | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode)                    |
+| Salesforce Object Query Language / Salesforce Object Search Language | [SOQL and SOSL Reference](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl)               |
+| Metadata API                                                         | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta)            |
+| Salesforce Code Analyzer                                             | [Salesforce Code Analyzer](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide)           |
+| Data Loader                                                          | [Data Loader Guide](https://developer.salesforce.com/docs/atlas.ja-jp.260.0.dataLoader.meta/dataLoader/)            |
+| Salesforce Sample Apps                                               | [trailheadapps](https://github.com/trailheadapps)                                                                   |
+| Agent Skills                                                         | [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills)                                                   |
+| GitHub CLI                                                           | [GitHub CLI Manual](https://cli.github.com/manual/)                                                                 |
