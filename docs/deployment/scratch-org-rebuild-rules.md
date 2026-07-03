@@ -1,6 +1,6 @@
 # Scratch Org 再現
 
-新しい Scratch Org でこのプロジェクトのメタデータを再現するときの手順です。
+この文書は、新しい Scratch Org でこのプロジェクトのメタデータを再現するときの確認観点と手順を定義します。
 
 ## 基本方針
 
@@ -13,7 +13,7 @@
 - Scratch Org で作成、変更したメタデータを戻す場合は、作業対象を絞った manifest を用意して retrieve / deploy に使う。
 - `force-app` 全体 dry-run は、Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
 
-manifest の使い分けは [Scratch Org と manifest の使い分け](salesforce-scratch-org-manifest-workflow.md) を参照します。
+manifest の使い分けは [Scratch Org と manifest の使い分け](scratch-org-manifest-rules.md) を参照します。
 
 ## 前提
 
