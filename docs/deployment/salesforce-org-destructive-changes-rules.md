@@ -1,4 +1,4 @@
-# 削除変更
+# メタデータ削除
 
 この文書は、Salesforce メタデータを削除する destructive changes の確認観点と手順を定義します。
 

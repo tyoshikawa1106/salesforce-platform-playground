@@ -6,13 +6,13 @@
 
 ## ドキュメント構成
 
-| ディレクトリ                      | 役割                                                        |
-| --------------------------------- | ----------------------------------------------------------- |
-| [setup/](#セットアップ)           | 開発ツール導入とプロジェクト側の準備手順を定義する          |
-| [development/](#開発運用)         | 開発時のルール、設定、確認手順を定義する                    |
-| [deployment/](#デプロイ)          | Salesforce 組織への反映、取得、削除変更、再現手順を定義する |
-| [discussions/](#ディスカッション) | Codex による調査、設計検討、判断過程を整理する              |
-| [knowledge/](#ナレッジ)           | Codex による調査結果のうち、再利用できる参考情報を整理する  |
+| ディレクトリ                      | 役割                                                              |
+| --------------------------------- | ----------------------------------------------------------------- |
+| [setup/](#セットアップ)           | 開発ツール導入とプロジェクト側の準備手順を定義する                |
+| [development/](#開発運用)         | 開発時のルール、設定、確認手順を定義する                          |
+| [deployment/](#デプロイ)          | Salesforce 組織への反映、メタデータ取得、メタデータ削除を定義する |
+| [discussions/](#ディスカッション) | Codex による調査、設計検討、判断過程を整理する                    |
+| [knowledge/](#ナレッジ)           | Codex による調査結果のうち、再利用できる参考情報を整理する        |
 
 ## セットアップ
 
@@ -55,11 +55,13 @@
 
 ## デプロイ
 
+Salesforce 組織への反映、メタデータ取得、メタデータ削除を基本の運用対象とします。Scratch Org 関連の文書は、組織再現や検証環境を扱うための補助手順として整理します。
+
 | タイトル                                                                                     | 概要                                       |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | [Salesforce 組織への反映](deployment/salesforce-org-deploy-rules.md)                         | Salesforce 組織への deploy と検証手順      |
 | [メタデータ取得](deployment/salesforce-org-metadata-retrieve-rules.md)                       | retrieve の対象、確認、差分管理            |
-| [削除変更](deployment/salesforce-org-destructive-changes-rules.md)                           | destructive changes の扱い                 |
+| [メタデータ削除](deployment/salesforce-org-destructive-changes-rules.md)                     | destructive changes の扱い                 |
 | [Scratch Org 再現](deployment/scratch-org-rebuild-rules.md)                                  | Scratch Org の再現手順                     |
 | [Scratch Org と manifest の使い分け](deployment/scratch-org-manifest-rules.md)               | Scratch Org と manifest deploy の使い分け  |
 | [Scratch Org definition の feature 設定](deployment/scratch-org-definition-feature-rules.md) | Scratch Org definition の feature 設定方針 |
