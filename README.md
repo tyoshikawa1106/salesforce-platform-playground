@@ -67,7 +67,7 @@ npm ci
 sf org login web --set-default --alias <alias>
 ```
 
-## 確認方法
+## 開発コマンド
 
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
 
