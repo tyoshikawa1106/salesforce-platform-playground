@@ -1,6 +1,6 @@
 # Salesforce Platform Playground
 
-Salesforce Platform × Codex を使ったSalesforce DX プロジェクトです。
+Salesforce Platform × Codex を使った Salesforce DX プロジェクトです。
 
 ## ドキュメント
 
@@ -94,7 +94,7 @@ npm run test:unit -- -- --runInBand --passWithNoTests
 npm run code-analyzer:ci
 ```
 
-Salesforce 開発組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml` を使います。
+Salesforce 開発組織を初期反映するときは `manifest/rebuild-developer-org.xml` を使います。
 
 ## AI エージェントスキル
 
@@ -110,14 +110,14 @@ npx skills add forcedotcom/sf-skills
 
 | 用途                                                                 | サイト                                                                                                              |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Salesforce DX                                                        | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev)           |
+| Salesforce DX                                                        | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.ja-jp.sfdx_dev.meta/sfdx_dev)           |
 | Salesforce CLI                                                       | [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)                                              |
 | Lightning Web Components                                             | [Lightning Web Components Developer Guide](https://developer.salesforce.com/docs/platform/lwc/guide)                |
 | Lightning Component Reference                                        | [Lightning Component Reference](https://developer.salesforce.com/docs/platform/lightning-component-reference/guide) |
 | Lightning Design System                                              | [Lightning Design System](https://www.lightningdesignsystem.com/)                                                   |
-| Apex                                                                 | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode)                    |
-| Salesforce Object Query Language / Salesforce Object Search Language | [SOQL and SOSL Reference](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl)               |
-| Metadata API                                                         | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta)            |
+| Apex                                                                 | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.ja-jp.apexcode.meta/apexcode)                    |
+| Salesforce Object Query Language / Salesforce Object Search Language | [SOQL and SOSL Reference](https://developer.salesforce.com/docs/atlas.ja-jp.soql_sosl.meta/soql_sosl)               |
+| Metadata API                                                         | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.ja-jp.api_meta.meta/api_meta)            |
 | Salesforce Code Analyzer                                             | [Salesforce Code Analyzer](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide)           |
 | Data Loader                                                          | [Data Loader Guide](https://developer.salesforce.com/docs/atlas.ja-jp.260.0.dataLoader.meta/dataLoader/)            |
 | Salesforce Sample Apps                                               | [trailheadapps](https://github.com/trailheadapps)                                                                   |
