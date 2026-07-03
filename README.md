@@ -72,6 +72,15 @@ sf org login web --set-default --alias <alias>
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
 
 ```sh
+# Salesforce 開発組織への反映を検証する
+npm run sf:validate:dev
+
+# Salesforce 開発組織へ反映する
+npm run sf:deploy:dev
+
+# Apex テストを実行する
+sf apex run test --result-format human
+
 # 整形を確認する
 npm run prettier:verify
 
@@ -83,15 +92,6 @@ npm run test:unit -- -- --runInBand --passWithNoTests
 
 # Salesforce Code Analyzer を実行する
 npm run code-analyzer:ci
-
-# Salesforce 開発組織への反映を検証する
-npm run sf:validate:dev
-
-# Salesforce 開発組織へ反映する
-npm run sf:deploy:dev
-
-# Apex テストを実行する
-sf apex run test --result-format human
 ```
 
 Salesforce 開発組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml` を使います。
@@ -122,4 +122,3 @@ npx skills add forcedotcom/sf-skills
 | Data Loader                                                          | [Data Loader Guide](https://developer.salesforce.com/docs/atlas.ja-jp.260.0.dataLoader.meta/dataLoader/)            |
 | Salesforce Sample Apps                                               | [trailheadapps](https://github.com/trailheadapps)                                                                   |
 | Agent Skills                                                         | [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills)                                                   |
-| GitHub CLI                                                           | [GitHub CLI Manual](https://cli.github.com/manual/)                                                                 |
