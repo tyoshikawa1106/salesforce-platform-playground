@@ -1,8 +1,8 @@
-# Scratch Org 再現
+# Scratch Org 再現ルール
 
-この文書は、新しい Scratch Org でこのプロジェクトのメタデータを再現するときの確認観点と手順を定義します。
+この文書は、AI エージェントが Scratch Org を作成し、このプロジェクトのメタデータを再現するときの実行ルールを定義します。
 
-## 基本方針
+## 実行ルール
 
 - `config/project-scratch-def.json` は Scratch Org 作成用の設定として扱う。
 - Dev 組織への deploy 先設定とは分けて考える。
@@ -13,7 +13,7 @@
 - Scratch Org で作成、変更したメタデータを戻す場合は、作業対象を絞った manifest を用意して retrieve / deploy に使う。
 - `force-app` 全体 dry-run は、Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
 
-manifest の使い分けは [Scratch Org と manifest の使い分け](scratch-org-manifest-rules.md) を参照します。
+manifest の使い分けは [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md) を参照します。
 
 ## 前提
 
@@ -64,7 +64,7 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 
 現時点の Dev 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
 
-## 作成前の確認
+## 作成前確認
 
 作成前に次を確認します。
 
@@ -307,7 +307,7 @@ sf org list
 削除対象の alias は個人環境の値です。
 複数の Scratch Org がある場合は、`sf org list` で `Type`、`Alias`、`Username`、`Expires` を見て、削除対象を取り違えないようにします。
 
-## 作業報告
+## 報告ルール
 
 Scratch Org 再現を確認した場合は次を報告します。
 

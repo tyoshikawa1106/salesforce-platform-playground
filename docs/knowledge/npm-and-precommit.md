@@ -30,4 +30,4 @@ Prettier の確認コマンドと手動の write コマンドを残し、pre-com
 
 コミット時に hook が依存不足で失敗した場合は、勝手に `npm install` や `--no-verify` を実行せず、先に方針を確認します。
 
-通常の確認コマンドは [開発コマンド一覧](development-commands.md) を参照します。
+通常の確認コマンドは [開発コマンド一覧](../development/development-commands.md) を参照します。

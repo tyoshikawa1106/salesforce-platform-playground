@@ -1,11 +1,11 @@
-# Scratch Org と manifest の使い分け
+# Scratch Org manifest 運用ルール
 
-この文書は、Scratch Org と manifest を使って Salesforce メタデータを取得・反映するときの使い分け方針を定義します。
+この文書は、AI エージェントが Scratch Org と manifest を使って Salesforce メタデータを取得・反映するときの scope 管理ルールを定義します。
 
 Salesforce DX で Scratch Org を使う場合、manifest は用途ごとに分けます。
 同じ XML をすべての retrieve / deploy に使うと、不要な標準メタデータや組織固有設定を混ぜやすくなります。
 
-## 役割
+## manifest の役割
 
 | 用途                            | 役割                                                                |
 | ------------------------------- | ------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ Scratch Org で作業した変更を別 org へ戻す用途には使いません
 作業対象 manifest は、作業開始前に対象 scope を決めて用意します。
 Scratch Org からローカルへ retrieve するときも、ローカルから別 org へ deploy するときも同じ scope を使います。
 
-## 基本フロー
+## 基本ルール
 
 Scratch Org で作業した metadata を別 org へ反映する場合は、Scratch Org から直接別 org へ deploy しません。
 いったんローカルへ retrieve し、Git 差分を確認してから deploy します。
@@ -107,7 +107,7 @@ DevOps Center を使う場合も考え方は同じです。
 Scratch Org の変更を Git に戻し、Pull Request や Work Item の単位で Dev 組織へ昇格します。
 Scratch Org 初期反映用 manifest を、Dev 組織へ戻す変更 scope として使い回しません。
 
-## 入口で絞る
+## retrieve scope の制限
 
 Scratch Org から `force-app` 全体を retrieve すると、今回の作業ではない差分が混ざることがあります。
 特に標準メタデータ、組織固有設定、更新不可コンポーネントはノイズになりやすいです。
