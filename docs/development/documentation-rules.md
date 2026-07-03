@@ -14,21 +14,21 @@
 
 ## 配置
 
-| 場所                              | 用途                                                 |
-| --------------------------------- | ---------------------------------------------------- |
-| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                 |
-| `CLAUDE.md`                       | Claude Code 向けの入口                               |
-| `GEMINI.md`                       | Gemini CLI 向けの入口                                |
-| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                            |
-| `.clinerules/`                    | Cline 向けの workspace rules                         |
-| `.cline/skills/`                  | Cline 向けの skill router                            |
-| `.clineignore`                    | Cline の自動 context / search から外す対象           |
-| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線 |
-| `docs/setup/`                     | 開発ツール導入、プロジェクト側の準備、組織ログイン   |
-| `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認記録   |
-| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順       |
-| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理する文書 |
-| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な参考文書             |
+| 場所                              | 用途                                                      |
+| --------------------------------- | --------------------------------------------------------- |
+| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                      |
+| `CLAUDE.md`                       | Claude Code 向けの入口                                    |
+| `GEMINI.md`                       | Gemini CLI 向けの入口                                     |
+| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                                 |
+| `.clinerules/`                    | Cline 向けの workspace rules                              |
+| `.cline/skills/`                  | Cline 向けの skill router                                 |
+| `.clineignore`                    | Cline の自動 context / search から外す対象                |
+| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線      |
+| `docs/setup/`                     | 開発ツール導入、プロジェクト側の準備、組織ログイン        |
+| `docs/development/`               | AI エージェントが守る開発ルール、チェックリスト、確認手順 |
+| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順            |
+| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理する文書      |
+| `docs/knowledge/`                 | ルールとして強制しない概念、設定説明、参考文書            |
 
 ## Discussions の扱い
 
@@ -52,13 +52,14 @@ discussion のファイル名は、日付ではなく内容を表す slug にし
 
 ## Knowledge の扱い
 
-`docs/knowledge/` には、特定リポジトリ固有の運用判断を置きません。
+`docs/knowledge/` には、AI エージェントの実行ルールとして強制しない概念、設定説明、参考情報を置きます。
 
 良い例:
 
 - GitHub Issue テンプレート設定の意味
-- npm と pre-commit hook の一般的な関係
+- npm と pre-commit hook の関係
 - Salesforce DX の概念整理
+- リポジトリ内の設定ファイルの読み方
 
 避ける例:
 
@@ -66,7 +67,7 @@ discussion のファイル名は、日付ではなく内容を表す slug にし
 - 特定 Dev 組織の設定値
 - 今回の Issue だけの作業方針
 
-リポジトリ固有の実務ルール、チェックリスト、設定台帳、確認記録は `docs/development/`、セットアップ手順は `docs/setup/`、デプロイ判断は `docs/deployment/` に置きます。
+AI エージェントに必ず守らせる実務ルール、チェックリスト、確認手順は `docs/development/`、セットアップ手順は `docs/setup/`、Salesforce 組織操作ルールは `docs/deployment/` に置きます。
 
 ## GitHub Pages の入口
 
