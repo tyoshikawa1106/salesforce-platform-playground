@@ -1,6 +1,6 @@
-# Windows 開発環境構築手順（winget 版）
+# インストール (Windows / winget ベース)
 
-この手順では、Windows の開発ツールを winget で管理します。
+この手順では、Windows で Salesforce DX 開発に必要なツール一式を winget ベースで導入します。
 Node.js / npm はプロジェクトごとに要求バージョンが変わりやすいため、Volta で管理します。
 
 コマンドは PowerShell で実行します。

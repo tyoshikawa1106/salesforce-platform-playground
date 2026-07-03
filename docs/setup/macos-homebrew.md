@@ -1,6 +1,6 @@
-# macOS 開発環境構築手順（Homebrew 版）
+# インストール (macOS / Homebrew ベース)
 
-この手順では、macOS の開発ツールを Homebrew で管理します。
+この手順では、macOS で Salesforce DX 開発に必要なツール一式を Homebrew ベースで導入します。
 Node.js / npm はプロジェクトごとに要求バージョンが変わりやすいため、Volta で管理します。
 
 ## 管理対象ツール

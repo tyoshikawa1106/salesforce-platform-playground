@@ -1,27 +1,27 @@
 # Salesforce Platform Playground
 
-## ドキュメント
+## Docs
 
-Salesforce DX 開発に関するこのプロジェクト固有のメモを置きます。
+本プロジェクトの Salesforce DX 開発に関するドキュメントです。
 
-## 構成
+## ドキュメント構成
 
-| タイトル       | 概要                                                   |
-| -------------- | ------------------------------------------------------ |
-| `setup/`       | ローカルツール、組織ログイン、環境セットアップ         |
-| `development/` | Apex やメタデータ変更時の実務チェック                  |
-| `deployment/`  | デプロイ、取得、削除変更、新規組織への再現に関するメモ |
-| `discussions/` | 設計案、課題、見直し内容など、判断過程を整理したメモ   |
-| `knowledge/`   | Salesforce Platform の概念を学ぶためのメモ             |
+| ディレクトリ                      | 役割                                                       |
+| --------------------------------- | ---------------------------------------------------------- |
+| [setup/](#セットアップ)           | 開発ツール導入とプロジェクトセットアップ手順を定義する     |
+| [development/](#開発運用)         | 開発時のルール、設定、確認手順を定義する                   |
+| [deployment/](#デプロイ)          | デプロイ、取得、削除変更、組織再現の手順を定義する         |
+| [discussions/](#ディスカッション) | Codex による調査、設計検討、判断過程を整理する             |
+| [knowledge/](#ナレッジ)           | Codex による調査結果のうち、再利用できる参考情報を整理する |
 
 ## セットアップ
 
-| タイトル                                                                     | 概要                                      |
-| ---------------------------------------------------------------------------- | ----------------------------------------- |
-| [ローカル開発環境](setup/local-development.md)                               | Salesforce CLI とローカル作業環境の基本   |
-| [macOS / Homebrew 開発環境](setup/macos-homebrew-development-environment.md) | macOS での Homebrew ベースのセットアップ  |
-| [Windows / winget 開発環境](setup/windows-winget-development-environment.md) | Windows での winget ベースのセットアップ  |
-| [forcedotcom/sf-skills](setup/sf-skills.md)                                  | Salesforce 関連 agent skills の導入と扱い |
+| タイトル                                                          | 概要                                              |
+| ----------------------------------------------------------------- | ------------------------------------------------- |
+| [インストール (macOS / Homebrew ベース)](setup/macos-homebrew.md) | macOS での開発ツール一式の導入                    |
+| [インストール (Windows / winget ベース)](setup/windows-winget.md) | Windows での開発ツール一式の導入                  |
+| [プロジェクトセットアップ](setup/local-development.md)            | npm 依存と Salesforce 組織ログインの手順          |
+| [AI エージェントスキル](setup/agent-skills.md)                    | Salesforce 関連 AI エージェントスキルの導入と扱い |
 
 ## 主要ドキュメント
 

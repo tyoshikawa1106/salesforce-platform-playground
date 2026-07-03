@@ -1,14 +1,16 @@
-# ローカル開発環境
+# プロジェクトセットアップ
 
-このプロジェクトでは、Salesforce CLI と npm 依存を使って開発します。
+この手順では、開発ツールのインストール後に実施する、Salesforce DX プロジェクトのセットアップを定義します。
 
 ## 前提
 
-- Salesforce CLI
-- Node.js 24 / npm
-- Dev 組織へのログイン
+- Salesforce CLI が使えること
+- Node.js 24 / npm が使えること
+- Salesforce 開発組織へログインできること
 
 ## 初期セットアップ
+
+npm 依存をインストールします。
 
 ```sh
 npm ci
@@ -37,7 +39,7 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 | `.prettierignore`                 | static resources、ローカル生成物、接続情報などを整形対象から外す設定                        |
 | `package.json`                    | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
 | `package-lock.json`               | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
-| `docs/setup/local-development.md` | そのプロジェクトで採用したセットアップ手順と運用メモ                                        |
+| `docs/setup/local-development.md` | そのプロジェクトで採用したセットアップ手順                                                  |
 
 適用順:
 
@@ -132,10 +134,10 @@ CLI の動作確認:
 sf --version
 ```
 
-Dev 組織へログインする場合:
+Salesforce 開発組織へログインする場合:
 
 ```sh
-sf org login web --set-default --alias dev
+sf org login web --set-default --alias <alias>
 ```
 
 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、実行前に対象と目的を確認します。
