@@ -1,8 +1,8 @@
 # Salesforce Platform Playground
 
-## ドキュメント
+## Docs
 
-Salesforce DX 開発に関するこのプロジェクト固有のメモを置きます。
+本プロジェクトの Salesforce DX 開発に関するドキュメント。
 
 ## 構成
 
