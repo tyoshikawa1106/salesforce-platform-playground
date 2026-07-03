@@ -1,4 +1,4 @@
-# .gitignore 運用メモ
+# .gitignore 運用ルール
 
 このリポジトリの `.gitignore` は、Salesforce 公式サンプルの `trailheadapps/dreamhouse-lwc` を基本形にし、リポジトリ固有のローカル生成物と Git 管理から外す Salesforce metadata を追加します。
 
@@ -86,7 +86,7 @@
 | --------------------------------------------------------------- | -------------------------------------------------------------- |
 | `logs/**`                                                       | `logs/` 配下の生成ログや解析結果を Git 管理しない。            |
 | `!logs/**/`                                                     | Markdown 例外を判定できるよう、ディレクトリだけ再許可する。    |
-| `!logs/**/*.md`                                                 | `logs/` 配下の guide や補足メモだけ Git 管理できるようにする。 |
+| `!logs/**/*.md`                                                 | `logs/` 配下の guide や補足文書だけ Git 管理できるようにする。 |
 | `*.log`, `npm-debug.log*`, `yarn-debug.log*`, `yarn-error.log*` | Node / package manager / 一般ログの生成物を除外する。          |
 
 ### Local generated exports

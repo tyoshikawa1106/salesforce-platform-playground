@@ -1,6 +1,6 @@
 # Salesforce Code Analyzer
 
-このメモは、Salesforce Code Analyzer が何をするものか、ローカル環境や CI にどう導入するかを整理します。
+この文書は、Salesforce Code Analyzer が何をするものか、ローカル環境や CI にどう導入するかを整理します。
 
 ## 何をするものか
 

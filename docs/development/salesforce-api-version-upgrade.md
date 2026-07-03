@@ -75,7 +75,7 @@ Apex class や trigger を含む場合、validate 時または PR 前に関連 A
 - `sourceApiVersion` だけを上げても、既存 metadata の `<apiVersion>` は自動では変わりません。
 - 新しい API version でコンパイルされるため、Apex や metadata の挙動差分がないか validate / test で確認します。
 - 接続先 org を切り替えて確認する場合は、意図した org か先に確認します。
-- deploy URL、access token、instance URL などの認証情報や組織固有値は、作業メモやコミットに残しません。
+- deploy URL、access token、instance URL などの認証情報や組織固有値は、作業記録やコミットに残しません。
 - 全体 validate の失敗が既存 metadata 由来の場合は、今回の version 更新による失敗かどうかを切り分けます。
 
 ## 参考リンク

@@ -8,21 +8,21 @@ Salesforce の標準オブジェクトは、製品ごとに完全に分かれて
 
 | タイトル                                                | 概要                                                     |
 | ------------------------------------------------------- | -------------------------------------------------------- |
-| [Sales Cloud](sales-cloud.md)                           | 営業管理でよく確認する標準オブジェクト                   |
-| [Service Cloud](service-cloud.md)                       | サービス業務でよく確認する標準オブジェクト               |
-| [Field Service](field-service.md)                       | フィールドサービス業務でよく確認する標準オブジェクト     |
-| [Revenue Cloud / CPQ](revenue-cpq.md)                   | 見積、価格、契約、収益管理でよく確認する標準オブジェクト |
 | [Commerce](commerce.md)                                 | Commerce 領域でよく確認する標準オブジェクト              |
-| [Marketing](marketing.md)                               | マーケティング領域でよく確認する標準オブジェクト         |
-| [Experience Cloud](experience-cloud.md)                 | Experience Cloud サイトでよく確認する標準オブジェクト    |
-| [Platform 共通](platform-common.md)                     | 複数製品で共通して使う標準オブジェクト                   |
-| [Digital Service](digital-service.md)                   | デジタルサービス領域でよく確認する標準オブジェクト       |
+| [Consumer Goods Cloud](consumer-goods-cloud.md)         | 消費財領域でよく確認する標準オブジェクト                 |
 | [Data Cloud](data-cloud.md)                             | Data Cloud 連携でよく確認する標準オブジェクト            |
+| [Digital Service](digital-service.md)                   | デジタルサービス領域でよく確認する標準オブジェクト       |
+| [Experience Cloud](experience-cloud.md)                 | Experience Cloud サイトでよく確認する標準オブジェクト    |
+| [Field Service](field-service.md)                       | フィールドサービス業務でよく確認する標準オブジェクト     |
 | [Financial Services Cloud](financial-services-cloud.md) | 金融サービス領域でよく確認する標準オブジェクト           |
 | [Health Cloud](health-cloud.md)                         | ヘルスケア領域でよく確認する標準オブジェクト             |
 | [Manufacturing Cloud](manufacturing-cloud.md)           | 製造業向け領域でよく確認する標準オブジェクト             |
-| [Consumer Goods Cloud](consumer-goods-cloud.md)         | 消費財領域でよく確認する標準オブジェクト                 |
+| [Marketing](marketing.md)                               | マーケティング領域でよく確認する標準オブジェクト         |
 | [Nonprofit / Education](nonprofit-education.md)         | 非営利、教育領域でよく確認する標準オブジェクト           |
+| [Platform 共通](platform-common.md)                     | 複数製品で共通して使う標準オブジェクト                   |
+| [Revenue Cloud / CPQ](revenue-cpq.md)                   | 見積、価格、契約、収益管理でよく確認する標準オブジェクト |
+| [Sales Cloud](sales-cloud.md)                           | 営業管理でよく確認する標準オブジェクト                   |
+| [Service Cloud](service-cloud.md)                       | サービス業務でよく確認する標準オブジェクト               |
 
 ## 読み方
 

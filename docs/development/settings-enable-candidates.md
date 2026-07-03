@@ -1,6 +1,6 @@
 # Settings 有効化状況
 
-このメモは、`force-app/main/default/settings` に retrieve 済みの Settings から、`enable*`、`*enabled`、`isEnabled`、`active` 系の値を拾い、有効化/無効化の状態を分類したものです。
+この文書は、`force-app/main/default/settings` に retrieve 済みの Settings から、`enable*`、`*enabled`、`isEnabled`、`active` 系の値を拾い、有効化/無効化の状態を分類したものです。
 
 ## 前提
 
