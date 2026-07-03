@@ -2,7 +2,7 @@
 
 Salesforce DX で広い `package.xml` を使って metadata retrieve すると、コマンドが成功しても一部メタデータが取得できていないことがあります。
 
-このメモは、`sf project retrieve start --manifest <package.xml> --json` の結果を確認するときの観点をまとめます。
+この文書は、`sf project retrieve start --manifest <package.xml> --json` の結果を確認するときの観点をまとめます。
 
 ## 確認する場所
 

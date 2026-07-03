@@ -25,10 +25,10 @@
 | `.clineignore`                    | Cline の自動 context / search から外す対象           |
 | `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線 |
 | `docs/setup/`                     | 開発ツール導入、プロジェクト側の準備、組織ログイン   |
-| `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認メモ   |
+| `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認記録   |
 | `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順       |
-| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理したメモ |
-| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な学習メモ             |
+| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理する文書 |
+| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な参考文書             |
 
 ## Discussions の扱い
 
@@ -58,7 +58,7 @@ discussion のファイル名は、日付ではなく内容を表す slug にし
 
 - GitHub Issue テンプレート設定の意味
 - npm と pre-commit hook の一般的な関係
-- Salesforce DX の概念メモ
+- Salesforce DX の概念整理
 
 避ける例:
 
@@ -66,7 +66,7 @@ discussion のファイル名は、日付ではなく内容を表す slug にし
 - 特定 Dev 組織の設定値
 - 今回の Issue だけの作業方針
 
-リポジトリ固有の実務ルール、チェックリスト、設定台帳、確認メモは `docs/development/`、セットアップ手順は `docs/setup/`、デプロイ判断は `docs/deployment/` に置きます。
+リポジトリ固有の実務ルール、チェックリスト、設定台帳、確認記録は `docs/development/`、セットアップ手順は `docs/setup/`、デプロイ判断は `docs/deployment/` に置きます。
 
 ## GitHub Pages の入口
 

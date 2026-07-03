@@ -1,4 +1,4 @@
-# Salesforce Code Analyzer のローカル環境構築
+# Salesforce Code Analyzer のローカル実行環境
 
 Salesforce Code Analyzer は、Salesforce CLI plugin として動作する静的解析ツールです。
 

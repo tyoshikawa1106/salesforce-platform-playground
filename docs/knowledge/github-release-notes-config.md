@@ -1,4 +1,4 @@
-# GitHub Release notes 設定
+# GitHub Release Notes 設定
 
 GitHub の `.github/release.yml` は、GitHub Release を作るときの自動生成リリースノートを整えるための設定です。
 

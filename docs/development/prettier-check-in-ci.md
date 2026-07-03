@@ -1,6 +1,6 @@
 # CI で Prettier を確認する意味
 
-このメモは、`npm run prettier:verify` を GitHub Actions などの CI で実行すると何が起きるのかを整理します。
+この文書は、`npm run prettier:verify` を GitHub Actions などの CI で実行すると何が起きるのかを整理します。
 
 ## Prettier とは
 
