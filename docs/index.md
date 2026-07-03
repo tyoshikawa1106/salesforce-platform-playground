@@ -23,20 +23,15 @@
 | [プロジェクト](setup/project.md)                                  | npm 依存と Salesforce 組織ログインの手順          |
 | [AI エージェントスキル](setup/agent-skills.md)                    | Salesforce 関連 AI エージェントスキルの導入と扱い |
 
-## 主要ドキュメント
-
-| タイトル                                                                           | 概要                                  |
-| ---------------------------------------------------------------------------------- | ------------------------------------- |
-| [変更チェックリスト](development/change-checklist.md)                              | 変更前後に確認する標準チェック        |
-| [Apex 開発ルール](development/apex-rules.md)                                       | Apex 実装、テスト、検証の方針         |
-| [メタデータ開発ルール](development/metadata-rules.md)                              | Salesforce メタデータ変更時の確認観点 |
-| [force-app deployability 棚卸し](development/force-app-deployability-inventory.md) | `force-app` 配下の deploy 可否の整理  |
-| [GitHub 運用ルール](development/github-rules.md)                                   | Issue、PR、CI、リリースの運用         |
-
 ## 開発運用
 
 | タイトル                                                                                                        | 概要                                                |
 | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [変更チェックリスト](development/change-checklist.md)                                                           | 変更前後に確認する標準チェック                      |
+| [Apex 開発ルール](development/apex-rules.md)                                                                    | Apex 実装、テスト、検証の方針                       |
+| [メタデータ開発ルール](development/metadata-rules.md)                                                           | Salesforce メタデータ変更時の確認観点               |
+| [force-app deployability 棚卸し](development/force-app-deployability-inventory.md)                              | `force-app` 配下の deploy 可否の整理                |
+| [GitHub 運用ルール](development/github-rules.md)                                                                | Issue、PR、CI、リリースの運用                       |
 | [開発コマンド一覧](development/development-commands.md)                                                         | ローカルで使う検証、整形、解析コマンド              |
 | [ドキュメント配置ルール](development/documentation-rules.md)                                                    | docs の置き場所、命名、入口更新ルール               |
 | [設定ファイル管理](development/configuration-files.md)                                                          | 設定ファイルの役割と管理方針                        |
@@ -56,6 +51,7 @@
 | [Salesforce メタデータの Git 管理候補](development/salesforce-metadata-git-management-candidates.md)            | Git 管理するメタデータ候補                          |
 | [package.xml のメタデータ一覧](development/salesforce-package-xml-metadata-types.md)                            | package.xml で扱うメタデータ種別                    |
 | [package.xml retrieve の分析ポイント](development/salesforce-package-xml-retrieve-analysis.md)                  | retrieve 結果を分析する観点                         |
+| [npm audit 確認メモ](development/npm-audit-review.md)                                                           | `npm audit` の確認結果と見方                        |
 
 ## デプロイ
 
@@ -68,11 +64,14 @@
 | [Scratch Org と manifest の使い分け](deployment/salesforce-scratch-org-manifest-workflow.md)       | Scratch Org と manifest deploy の使い分け  |
 | [Scratch Org definition の feature 設定](deployment/salesforce-scratch-org-definition-features.md) | Scratch Org definition の feature 設定方針 |
 
-## レビュー
+## ディスカッション
 
-| タイトル                                              | 概要                         |
-| ----------------------------------------------------- | ---------------------------- |
-| [npm audit 確認メモ](development/npm-audit-review.md) | `npm audit` の確認結果と見方 |
+| タイトル                                                                                                         | 概要                                               |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [Apex Trigger クラス構成](discussions/apex-trigger-class-structure.md)                                           | Trigger と service class の構成検討                |
+| [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](discussions/eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 と Salesforce LWC 関連パッケージの互換性 |
+| [DreamHouse 設定差分の扱い](discussions/dreamhouse-configuration-diff-policy.md)                                 | DreamHouse 由来の設定差分の扱い                    |
+| [Apex テストデータ作成クラスの命名](discussions/test-fixture-factory-naming.md)                                  | Apex テストデータ作成クラスの命名検討              |
 
 ## ナレッジ
 
@@ -89,14 +88,5 @@
 | [Salesforce 製品別の標準オブジェクト](knowledge/salesforce-standard-objects/index.md)              | 製品別の標準オブジェクト索引           |
 | [Salesforce Code Analyzer のローカル環境](knowledge/salesforce-code-analyzer-local-environment.md) | Code Analyzer のローカル環境メモ       |
 | [Salesforce 公式参考リンク](knowledge/salesforce-official-references.md)                           | Salesforce 公式ドキュメントへのリンク  |
-
-## ディスカッション
-
-| タイトル                                                                                                         | 概要                                               |
-| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [Apex Trigger クラス構成](discussions/apex-trigger-class-structure.md)                                           | Trigger と service class の構成検討                |
-| [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](discussions/eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 と Salesforce LWC 関連パッケージの互換性 |
-| [DreamHouse 設定差分の扱い](discussions/dreamhouse-configuration-diff-policy.md)                                 | DreamHouse 由来の設定差分の扱い                    |
-| [Apex テストデータ作成クラスの命名](discussions/test-fixture-factory-naming.md)                                  | Apex テストデータ作成クラスの命名検討              |
 
 ドキュメントの配置方針は [ドキュメント配置ルール](development/documentation-rules.md) に従います。
