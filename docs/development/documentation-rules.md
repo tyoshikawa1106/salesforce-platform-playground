@@ -14,21 +14,21 @@
 
 ## 配置
 
-| 場所                              | 用途                                                     |
-| --------------------------------- | -------------------------------------------------------- |
-| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                     |
-| `CLAUDE.md`                       | Claude Code 向けの入口                                   |
-| `GEMINI.md`                       | Gemini CLI 向けの入口                                    |
-| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                                |
-| `.clinerules/`                    | Cline 向けの workspace rules                             |
-| `.cline/skills/`                  | Cline 向けの skill router                                |
-| `.clineignore`                    | Cline の自動 context / search から外す対象               |
-| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線     |
-| `docs/setup/`                     | ローカル環境、ツール導入、組織ログイン、初期セットアップ |
-| `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認メモ       |
-| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順           |
-| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理したメモ     |
-| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な学習メモ                 |
+| 場所                              | 用途                                                 |
+| --------------------------------- | ---------------------------------------------------- |
+| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                 |
+| `CLAUDE.md`                       | Claude Code 向けの入口                               |
+| `GEMINI.md`                       | Gemini CLI 向けの入口                                |
+| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                            |
+| `.clinerules/`                    | Cline 向けの workspace rules                         |
+| `.cline/skills/`                  | Cline 向けの skill router                            |
+| `.clineignore`                    | Cline の自動 context / search から外す対象           |
+| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線 |
+| `docs/setup/`                     | 開発ツール導入、プロジェクト側の準備、組織ログイン   |
+| `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認メモ   |
+| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順       |
+| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理したメモ |
+| `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な学習メモ             |
 
 ## Discussions の扱い
 
