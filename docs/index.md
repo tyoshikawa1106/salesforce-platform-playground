@@ -16,12 +16,12 @@
 
 ## セットアップ
 
-| タイトル                                                          | 概要                                      |
-| ----------------------------------------------------------------- | ----------------------------------------- |
-| [インストール (macOS / Homebrew ベース)](setup/macos-homebrew.md) | macOS での開発ツール一式の導入            |
-| [インストール (Windows / winget ベース)](setup/windows-winget.md) | Windows での開発ツール一式の導入          |
-| [プロジェクトセットアップ](setup/local-development.md)            | npm 依存と Salesforce 組織ログインの手順  |
-| [forcedotcom/sf-skills](setup/sf-skills.md)                       | Salesforce 関連 agent skills の導入と扱い |
+| タイトル                                                          | 概要                                              |
+| ----------------------------------------------------------------- | ------------------------------------------------- |
+| [インストール (macOS / Homebrew ベース)](setup/macos-homebrew.md) | macOS での開発ツール一式の導入                    |
+| [インストール (Windows / winget ベース)](setup/windows-winget.md) | Windows での開発ツール一式の導入                  |
+| [プロジェクトセットアップ](setup/local-development.md)            | npm 依存と Salesforce 組織ログインの手順          |
+| [AI エージェントスキル](setup/agent-skills.md)                    | Salesforce 関連 AI エージェントスキルの導入と扱い |
 
 ## 主要ドキュメント
 
