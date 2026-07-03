@@ -1,8 +1,8 @@
-# Salesforce 組織への反映
+# Salesforce 組織反映ルール
 
-この文書は、Salesforce 組織へメタデータを検証・反映するときの確認観点と手順を定義します。標準の反映先は、このプロジェクトで接続している Dev 組織です。
+この文書は、AI エージェントが Salesforce 組織へメタデータを検証・反映するときの実行ルールを定義します。標準の反映先は、このプロジェクトで接続している Dev 組織です。
 
-## 基本方針
+## 実行ルール
 
 - deploy は現在接続されている Salesforce 組織に対してのみ実行する。
 - 明示依頼なしに `--target-org` 指定やデフォルト組織の切り替えをしない。
@@ -11,7 +11,7 @@
 - `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証入口にはしない。
 - Dev 組織への通常検証は `manifest/rebuild-developer-org.xml` を使う。作業範囲がさらに狭い場合は、作業対象 manifest または `--metadata` で絞る。
 
-## 対象組織の確認
+## 対象組織
 
 deploy、delete、retrieve、test の前に対象組織を確認します。
 
@@ -19,7 +19,7 @@ deploy、delete、retrieve、test の前に対象組織を確認します。
 sf config get target-org
 ```
 
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。作業報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
 
 ## Validate
 
@@ -124,7 +124,7 @@ sf apex run test --class-names MyClassTest --code-coverage --result-format human
 
 コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
 
-## 作業報告
+## 報告ルール
 
 メタデータ変更後は次を報告します。
 

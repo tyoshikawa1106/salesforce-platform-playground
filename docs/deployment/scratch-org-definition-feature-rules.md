@@ -1,12 +1,12 @@
-# Scratch Org definition の feature 設定
+# Scratch Org definition feature ルール
 
-この文書は、Scratch Org definition の features と settings を扱うときの確認観点を定義します。
+この文書は、AI エージェントが Scratch Org definition の features と settings を扱うときの判断ルールを定義します。
 
 Salesforce DX の Scratch Org は、作成時の definition file で edition、features、settings を指定します。
 標準オブジェクトや製品機能の一部は、作成後に Settings メタデータを deploy するだけでは追加されません。
 そのため、再現したい機能がある場合は、Scratch Org 作成時点で `features` に指定できるかを先に確認します。
 
-## 基本
+## 基本ルール
 
 Scratch Org definition の主な項目:
 

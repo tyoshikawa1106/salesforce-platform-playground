@@ -1,15 +1,15 @@
-# メタデータ削除
+# Salesforce メタデータ削除ルール
 
-この文書は、Salesforce メタデータを削除する destructive changes の確認観点と手順を定義します。
+この文書は、AI エージェントが Salesforce メタデータを削除する destructive changes を扱うときの実行ルールを定義します。
 
-## 基本方針
+## 実行ルール
 
 - destructive changes は、通常の追加・更新より影響が大きいため別タスクで扱う。
 - 削除対象、依存関係、復旧方法を確認してから実行する。
 - 明示依頼なしに本番や別 target org へ削除を実行しない。
 - 削除前に現在接続中の Salesforce 組織を確認する。
 
-## 削除前の確認
+## 削除前確認
 
 削除前に次を確認します。
 
@@ -43,14 +43,14 @@ node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias> 
 node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
 ```
 
-## 実行方針
+## destructive changes 実行ルール
 
 - destructive manifest は作業単位ごとに最小化する。
 - deploy validate が使える場合は、削除前に検証する。
 - 削除と無関係な metadata 更新を同じ変更に混ぜない。
 - 削除に伴う権限、レイアウト、Flow、Apex の修正は差分を明確に分けて確認する。
 
-## レビュー観点
+## PR レビュー観点
 
 PR では次を重点的に確認します。
 
@@ -59,7 +59,7 @@ PR では次を重点的に確認します。
 - 復旧手順や rollback 方針が説明できるか。
 - validate / deploy / test の結果が報告されているか。
 
-## 作業報告
+## 報告ルール
 
 destructive changes を扱った場合は次を報告します。
 
