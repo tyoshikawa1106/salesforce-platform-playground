@@ -16,12 +16,12 @@
 
 ## セットアップ
 
-| タイトル                                                   | 概要                                      |
-| ---------------------------------------------------------- | ----------------------------------------- |
-| [インストール (macOS / Homebrew)](setup/macos-homebrew.md) | macOS での Homebrew ベースのセットアップ  |
-| [インストール (Windows / winget)](setup/windows-winget.md) | Windows での winget ベースのセットアップ  |
-| [ローカル開発環境](setup/local-development.md)             | Salesforce CLI とローカル作業環境の基本   |
-| [forcedotcom/sf-skills](setup/sf-skills.md)                | Salesforce 関連 agent skills の導入と扱い |
+| タイトル                                                          | 概要                                      |
+| ----------------------------------------------------------------- | ----------------------------------------- |
+| [インストール (macOS / Homebrew ベース)](setup/macos-homebrew.md) | macOS での開発ツール一式の導入            |
+| [インストール (Windows / winget ベース)](setup/windows-winget.md) | Windows での開発ツール一式の導入          |
+| [ローカル開発環境](setup/local-development.md)                    | Salesforce CLI とローカル作業環境の基本   |
+| [forcedotcom/sf-skills](setup/sf-skills.md)                       | Salesforce 関連 agent skills の導入と扱い |
 
 ## 主要ドキュメント
 
