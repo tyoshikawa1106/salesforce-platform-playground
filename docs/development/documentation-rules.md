@@ -27,7 +27,7 @@
 | `docs/setup/`                     | 開発ツール導入、プロジェクト側の準備、組織ログイン   |
 | `docs/development/`               | 開発ルール、実務チェックリスト、設定台帳、確認メモ   |
 | `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順       |
-| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理したメモ |
+| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理する文書 |
 | `docs/knowledge/`                 | 他プロジェクトでも使える汎用的な学習メモ             |
 
 ## Discussions の扱い
