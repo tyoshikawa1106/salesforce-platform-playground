@@ -1,5 +1,7 @@
 # Scratch Org と manifest の使い分け
 
+この文書は、Scratch Org と manifest を使って Salesforce メタデータを取得・反映するときの使い分け方針を定義します。
+
 Salesforce DX で Scratch Org を使う場合、manifest は用途ごとに分けます。
 同じ XML をすべての retrieve / deploy に使うと、不要な標準メタデータや組織固有設定を混ぜやすくなります。
 

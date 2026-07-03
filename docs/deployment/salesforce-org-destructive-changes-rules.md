@@ -1,6 +1,6 @@
-# 削除変更ルール
+# メタデータ削除
 
-Salesforce メタデータを削除する destructive changes の実務ルールです。
+この文書は、Salesforce メタデータを削除する destructive changes の確認観点と手順を定義します。
 
 ## 基本方針
 
