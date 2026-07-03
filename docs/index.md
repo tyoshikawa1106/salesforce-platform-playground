@@ -69,9 +69,9 @@
 | タイトル                                                                                                         | 概要                                               |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | [Apex Trigger クラス構成](discussions/apex-trigger-class-structure.md)                                           | Trigger と service class の構成検討                |
-| [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](discussions/eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 と Salesforce LWC 関連パッケージの互換性 |
-| [DreamHouse 設定差分の扱い](discussions/dreamhouse-configuration-diff-policy.md)                                 | DreamHouse 由来の設定差分の扱い                    |
 | [Apex テストデータ作成クラスの命名](discussions/test-fixture-factory-naming.md)                                  | Apex テストデータ作成クラスの命名検討              |
+| [DreamHouse 設定差分の扱い](discussions/dreamhouse-configuration-diff-policy.md)                                 | DreamHouse 由来の設定差分の扱い                    |
+| [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](discussions/eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 と Salesforce LWC 関連パッケージの互換性 |
 
 ## ナレッジ
 
