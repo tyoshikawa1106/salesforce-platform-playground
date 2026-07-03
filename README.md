@@ -1,8 +1,6 @@
 # Salesforce Platform Playground
 
-Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce DX プロジェクトです。
-
-このリポジトリでは、Apex だけでなく Custom Object、Custom Field、Permission Set、Flow、Validation Rule なども扱い、メタデータで新しい Dev 組織へ再現できる状態を目指します。
+Salesforce Platform × Codex を使った Salesforce DX プロジェクトです。
 
 ## ドキュメント
 
@@ -35,26 +33,27 @@ Salesforce Platform / Apex / Salesforce metadata を学ぶための Salesforce D
 
 - Salesforce DX
 - Salesforce CLI
-- Apex
-- Salesforce metadata
-- Node.js 24 / npm
+- Node.js 24
 - Prettier
 - ESLint
 - LWC Jest
+- Salesforce Code Analyzer
 
-## 動作環境
+## 開発環境
 
 ローカルで開発するには、以下が必要です。
 
+- Salesforce 開発組織
+- Salesforce CLI
 - Git
 - Node.js 24
 - npm
-- Salesforce CLI
-- Dev 組織
+- OpenJDK
+- Python 3.10 以上
 
 ## セットアップ手順
 
-最初は、リポジトリを clone して依存関係を入れ、Dev 組織へログインします。
+リポジトリを取得し、依存関係をインストールして、Salesforce 開発組織へログインします。
 
 ```sh
 # リポジトリを取得して作業ディレクトリへ移動する
@@ -64,36 +63,62 @@ cd salesforce-platform-playground
 # package-lock.json に固定された依存関係をインストールする
 npm ci
 
-# Dev 組織へログインする
-sf org login web --set-default --alias dev
+# Salesforce 開発組織へログインする
+sf org login web --set-default --alias <alias>
 ```
 
-## 確認方法
+## 開発コマンド
 
-Dev 組織に対する操作は、対象と目的を確認してから実行します。
+Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
 
 ```sh
+# Salesforce 開発組織への反映を検証する
 npm run sf:validate:dev
+
+# Salesforce 開発組織へ反映する
 npm run sf:deploy:dev
+
+# Apex テストを実行する
 sf apex run test --result-format human
+
+# 整形を確認する
+npm run prettier:verify
+
+# Aura / LWC JavaScript を lint する
+npm run lint -- --no-error-on-unmatched-pattern
+
+# LWC unit test を実行する
+npm run test:unit -- -- --runInBand --passWithNoTests
+
+# Salesforce Code Analyzer を実行する
+npm run code-analyzer:ci
 ```
 
-Dev 組織への標準 validate / deploy は `manifest/rebuild-developer-org.xml` を使います。
+Salesforce 開発組織を初期反映するときは `manifest/rebuild-developer-org.xml` を使います。
 
-現在の Dev 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
+## AI エージェントスキル
 
-## forcedotcom/sf-skills
+`forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の補助情報として利用します。
 
-`forcedotcom/sf-skills` は Salesforce 関連作業の補助情報として利用します。導入方針は [forcedotcom/sf-skills](docs/setup/sf-skills.md) を参照します。
+```sh
+npx skills add forcedotcom/sf-skills
+```
+
+このコマンドを実行すると `.agents/skills/` と `skills-lock.json` が生成されます。
 
 ## 参考サイト
 
-| 用途                    | サイト                                                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Salesforce DX           | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev)                        |
-| Salesforce CLI          | [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)                                                           |
-| Salesforce CLI コマンド | [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference) |
-| Apex                    | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode)                                 |
-| Metadata API            | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta)                         |
-| Agent Skills            | [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills)                                                                |
-| GitHub CLI              | [GitHub CLI Manual](https://cli.github.com/manual/)                                                                              |
+| 用途                                                                 | サイト                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Salesforce DX                                                        | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.ja-jp.sfdx_dev.meta/sfdx_dev)           |
+| Salesforce CLI                                                       | [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli)                                              |
+| Lightning Web Components                                             | [Lightning Web Components Developer Guide](https://developer.salesforce.com/docs/platform/lwc/guide)                |
+| Lightning Component Reference                                        | [Lightning Component Reference](https://developer.salesforce.com/docs/platform/lightning-component-reference/guide) |
+| Lightning Design System                                              | [Lightning Design System](https://www.lightningdesignsystem.com/)                                                   |
+| Apex                                                                 | [Apex Developer Guide](https://developer.salesforce.com/docs/atlas.ja-jp.apexcode.meta/apexcode)                    |
+| Salesforce Object Query Language / Salesforce Object Search Language | [SOQL and SOSL Reference](https://developer.salesforce.com/docs/atlas.ja-jp.soql_sosl.meta/soql_sosl)               |
+| Metadata API                                                         | [Metadata API Developer Guide](https://developer.salesforce.com/docs/atlas.ja-jp.api_meta.meta/api_meta)            |
+| Salesforce Code Analyzer                                             | [Salesforce Code Analyzer](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide)           |
+| Data Loader                                                          | [Data Loader Guide](https://developer.salesforce.com/docs/atlas.ja-jp.260.0.dataLoader.meta/dataLoader/)            |
+| Salesforce Sample Apps                                               | [trailheadapps](https://github.com/trailheadapps)                                                                   |
+| Agent Skills                                                         | [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills)                                                   |
