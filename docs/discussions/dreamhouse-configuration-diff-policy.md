@@ -113,7 +113,7 @@ DreamHouse と同じく、CI で `npm run prettier:verify` を実行する構成
 
 - `package.json` に `prettier` と `prettier:verify` script がある。
 - pre-commit hook では staged files に対して `prettier --write` を実行する。
-- `docs/setup/local-development.md` では `npm run prettier:verify` を整形確認用として扱っている。
+- `docs/setup/project.md` では `npm run prettier:verify` を整形確認用として扱っている。
 
 一方で、当時の CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行していましたが、format check は実行していませんでした。
 

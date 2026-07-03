@@ -1,6 +1,6 @@
-# プロジェクトセットアップ
+# プロジェクト
 
-この手順では、開発ツールのインストール後に実施する、Salesforce DX プロジェクトのセットアップを定義します。
+この手順では、開発ツールのインストール後に実施する、Salesforce DX プロジェクト側の準備を定義します。
 
 ## 前提
 
@@ -33,13 +33,13 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 
 他の Salesforce プロジェクトで開発を開始する場合は、最初に次のファイルを確認・更新します。
 
-| ファイル                          | 目的                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------------------- |
-| `.prettierrc`                     | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
-| `.prettierignore`                 | static resources、ローカル生成物、接続情報などを整形対象から外す設定                        |
-| `package.json`                    | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
-| `package-lock.json`               | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
-| `docs/setup/local-development.md` | そのプロジェクトで採用したセットアップ手順                                                  |
+| ファイル                | 目的                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| `.prettierrc`           | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
+| `.prettierignore`       | static resources、ローカル生成物、接続情報などを整形対象から外す設定                        |
+| `package.json`          | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
+| `package-lock.json`     | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
+| `docs/setup/project.md` | そのプロジェクトで採用した準備手順                                                          |
 
 適用順:
 
@@ -55,13 +55,13 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 別プロジェクトへ適用する場合は、このリポジトリの設定ファイルをコピーしてよいです。
 ただし、ファイルごとに扱いを分けます。
 
-| ファイル                          | コピー方針                                                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `.prettierrc`                     | ほぼそのままコピーしてよい                                                                                                |
-| `.prettierignore`                 | 基本部分はコピーしてよい。プロジェクト固有の生成物があれば追加する                                                        |
-| `package.json`                    | 丸ごと上書きしない。`prettier` / `prettier:verify` / `precommit` / `lint-staged` / devDependencies の必要部分だけ移植する |
-| `package-lock.json`               | コピーしない。対象プロジェクトで `npm install` して生成・更新する                                                         |
-| `docs/setup/local-development.md` | Prettier セクションをコピーし、対象プロジェクトの前提に合わせて調整する                                                   |
+| ファイル                | コピー方針                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `.prettierrc`           | ほぼそのままコピーしてよい                                                                                                |
+| `.prettierignore`       | 基本部分はコピーしてよい。プロジェクト固有の生成物があれば追加する                                                        |
+| `package.json`          | 丸ごと上書きしない。`prettier` / `prettier:verify` / `precommit` / `lint-staged` / devDependencies の必要部分だけ移植する |
+| `package-lock.json`     | コピーしない。対象プロジェクトで `npm install` して生成・更新する                                                         |
+| `docs/setup/project.md` | Prettier セクションをコピーし、対象プロジェクトの前提に合わせて調整する                                                   |
 
 コピー後の確認:
 
