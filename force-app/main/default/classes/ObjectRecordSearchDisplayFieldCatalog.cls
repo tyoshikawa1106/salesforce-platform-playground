@@ -220,7 +220,10 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
     ) {
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>();
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
-        for (String fieldApiName : getDisplayFieldApiNames(objectApiName)) {
+        List<String> displayFieldApiNames = getDisplayFieldApiNames(
+            objectApiName
+        );
+        for (String fieldApiName : displayFieldApiNames) {
             Schema.DescribeFieldResult fieldDescribe = getAccessibleFieldDescribe(
                 fieldsByApiName,
                 fieldApiName
@@ -229,7 +232,10 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
                 continue;
             }
 
-            displayFields.add(createDisplayField(fieldDescribe));
+            ObjectRecordSearchFieldWrapper displayField = createDisplayField(
+                fieldDescribe
+            );
+            displayFields.add(displayField);
         }
         return displayFields;
     }
@@ -238,35 +244,48 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         Map<String, Schema.SObjectField> fieldsByApiName,
         String fieldApiName
     ) {
-        if (!fieldsByApiName.containsKey(fieldApiName)) {
+        Boolean hasFieldApiName = fieldsByApiName.containsKey(fieldApiName);
+        if (!hasFieldApiName) {
             return null;
         }
 
-        Schema.DescribeFieldResult fieldDescribe = fieldsByApiName.get(
-                fieldApiName
-            )
-            .getDescribe();
-        return fieldDescribe.isAccessible() ? fieldDescribe : null;
+        Schema.SObjectField fieldToken = fieldsByApiName.get(fieldApiName);
+        Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
+        Boolean isFieldAccessible = fieldDescribe.isAccessible();
+        if (!isFieldAccessible) {
+            return null;
+        }
+
+        return fieldDescribe;
     }
 
     private static ObjectRecordSearchFieldWrapper createDisplayField(
         Schema.DescribeFieldResult fieldDescribe
     ) {
+        String fieldApiName = fieldDescribe.getName();
+        String fieldLabel = fieldDescribe.getLabel();
+        Schema.DisplayType fieldType = fieldDescribe.getType();
+        String datatableType = getDatatableType(fieldType);
+
         return new ObjectRecordSearchFieldWrapper(
-            fieldDescribe.getName(),
-            fieldDescribe.getLabel(),
-            getDatatableType(fieldDescribe.getType())
+            fieldApiName,
+            fieldLabel,
+            datatableType
         );
     }
 
     private static List<String> getDisplayFieldApiNames(String objectApiName) {
-        if (!DISPLAY_FIELDS_BY_OBJECT.containsKey(objectApiName)) {
+        Boolean hasDisplayFields = DISPLAY_FIELDS_BY_OBJECT.containsKey(
+            objectApiName
+        );
+        if (!hasDisplayFields) {
             return new List<String>();
         }
         return DISPLAY_FIELDS_BY_OBJECT.get(objectApiName);
     }
 
     private static String getDatatableType(Schema.DisplayType fieldType) {
-        return DATATABLE_TYPES_BY_SCHEMA_TYPE.get(fieldType) ?? 'text';
+        String datatableType = DATATABLE_TYPES_BY_SCHEMA_TYPE.get(fieldType);
+        return datatableType ?? 'text';
     }
 }

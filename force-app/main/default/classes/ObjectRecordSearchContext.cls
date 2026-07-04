@@ -33,7 +33,8 @@ public with sharing class ObjectRecordSearchContext {
      * @return Name 相当項目と追加表示項目の API 参照名
      */
     public List<String> getQueryFieldApiNames() {
-        return new List<String>(getAllowedFieldApiNames());
+        Set<String> allowedFieldApiNames = getAllowedFieldApiNames();
+        return new List<String>(allowedFieldApiNames);
     }
 
     /**
@@ -41,7 +42,8 @@ public with sharing class ObjectRecordSearchContext {
      * @return Name 相当項目と追加表示項目の API 参照名
      */
     public Set<String> getAllowedFieldApiNames() {
-        return new Set<String>(allowedFieldDescribesByApiName.keySet());
+        Set<String> allowedFieldApiNames = allowedFieldDescribesByApiName.keySet();
+        return new Set<String>(allowedFieldApiNames);
     }
 
     /**
@@ -61,12 +63,19 @@ public with sharing class ObjectRecordSearchContext {
     ) {
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         for (ObjectRecordSearchFieldWrapper displayField : displayFields) {
-            if (!fieldsByApiName.containsKey(displayField.apiName)) {
+            Boolean hasDisplayField = fieldsByApiName.containsKey(
+                displayField.apiName
+            );
+            if (!hasDisplayField) {
                 continue;
             }
+            Schema.SObjectField fieldToken = fieldsByApiName.get(
+                displayField.apiName
+            );
+            Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
             allowedFieldDescribesByApiName.put(
                 displayField.apiName,
-                fieldsByApiName.get(displayField.apiName).getDescribe()
+                fieldDescribe
             );
         }
     }

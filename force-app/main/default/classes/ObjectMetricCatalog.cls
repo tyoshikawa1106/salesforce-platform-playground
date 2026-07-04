@@ -20,7 +20,8 @@ public with sharing class ObjectMetricCatalog {
      * @return 表示キーに対応する定義。未定義の場合は null
      */
     public static MetricDefinition getDefinition(String metricKey) {
-        if (String.isBlank(metricKey)) {
+        Boolean hasMetricKey = String.isNotBlank(metricKey);
+        if (!hasMetricKey) {
             return null;
         }
 
@@ -33,7 +34,8 @@ public with sharing class ObjectMetricCatalog {
      * @return 対応定義が存在する場合 true
      */
     public static Boolean hasDefinition(String metricKey) {
-        return getDefinition(metricKey) != null;
+        MetricDefinition definition = getDefinition(metricKey);
+        return definition != null;
     }
 
     /**
@@ -42,8 +44,10 @@ public with sharing class ObjectMetricCatalog {
      * @return 定義済みオブジェクトの場合 true
      */
     public static Boolean hasObjectApiName(String objectApiName) {
-        return String.isNotBlank(objectApiName) &&
+        Boolean hasObjectApiName = String.isNotBlank(objectApiName);
+        Boolean isCatalogObject = hasObjectApiName &&
             OBJECT_API_NAMES.contains(objectApiName);
+        return isCatalogObject;
     }
 
     private static Map<String, MetricDefinition> createDefinitionsByKey() {

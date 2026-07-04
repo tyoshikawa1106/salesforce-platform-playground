@@ -94,10 +94,12 @@ public with sharing class ObjectRecordSearchService {
         searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
         searchQueryRequest.sortSpec = sortSpec;
-        searchQueryRequest.cursor = ObjectRecordSearchSortSupport.parsePageToken(
-            request?.pageToken,
+        String pageToken = request?.pageToken;
+        ObjectRecordSearchSortSupport.PageCursor cursor = ObjectRecordSearchSortSupport.parsePageToken(
+            pageToken,
             sortSpec
         );
+        searchQueryRequest.cursor = cursor;
         searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
         return searchQueryRequest;
     }
@@ -114,13 +116,12 @@ public with sharing class ObjectRecordSearchService {
     ) {
         List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
         for (SObject record : records) {
-            rows.add(
-                new ObjectRecordSearchRowWrapper(
-                    record,
-                    request.context.config.nameFieldApiName,
-                    request.context.config.displayFields
-                )
+            ObjectRecordSearchRowWrapper row = new ObjectRecordSearchRowWrapper(
+                record,
+                request.context.config.nameFieldApiName,
+                request.context.config.displayFields
             );
+            rows.add(row);
         }
 
         Boolean hasNextPage = rows.size() > PAGE_SIZE;
@@ -128,19 +129,27 @@ public with sharing class ObjectRecordSearchService {
             rows.remove(PAGE_SIZE);
         }
 
-        String nextPageToken = hasNextPage
-            ? ObjectRecordSearchSortSupport.createNextPageToken(
-                  rows,
-                  request.sortSpec
-              )
-            : null;
-
-        return new ObjectRecordSearchResultWrapper(request.context.config, rows)
-            .withPageState(
-                PAGE_SIZE,
-                normalizePageNumber(request.searchRequest?.pageNumber),
-                nextPageToken
+        String nextPageToken;
+        if (hasNextPage) {
+            nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(
+                rows,
+                request.sortSpec
             );
+        }
+
+        ObjectRecordSearchResultWrapper result = new ObjectRecordSearchResultWrapper(
+            request.context.config,
+            rows
+        );
+        Integer pageNumber = normalizePageNumber(
+            request.searchRequest?.pageNumber
+        );
+        result = result.withPageState(
+            PAGE_SIZE,
+            pageNumber,
+            nextPageToken
+        );
+        return result;
     }
 
     /**
@@ -153,10 +162,10 @@ public with sharing class ObjectRecordSearchService {
         ObjectRecordSearchConfigWrapper config,
         List<Id> recordIds
     ) {
-        return config != null &&
-            config.deletable &&
-            recordIds != null &&
-            !recordIds.isEmpty();
+        Boolean hasConfig = config != null;
+        Boolean isDeletable = hasConfig && config.deletable;
+        Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
+        return isDeletable && hasRecordIds;
     }
 
     /**
@@ -175,7 +184,8 @@ public with sharing class ObjectRecordSearchService {
 
         if (deleteResults != null) {
             for (Database.DeleteResult deleteResult : deleteResults) {
-                if (deleteResult.isSuccess()) {
+                Boolean isDeleteSuccessful = deleteResult.isSuccess();
+                if (isDeleteSuccessful) {
                     deletedCount++;
                     continue;
                 }

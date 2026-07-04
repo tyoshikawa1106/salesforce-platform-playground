@@ -10,8 +10,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual Schema.DescribeSObjectResult getObjectDescribe(
         String objectApiName
     ) {
-        Schema.SObjectType sObjectType = Schema.getGlobalDescribe()
-            .get(objectApiName);
+        Map<String, Schema.SObjectType> sObjectTypesByApiName = Schema.getGlobalDescribe();
+        Schema.SObjectType sObjectType = sObjectTypesByApiName.get(
+            objectApiName
+        );
         if (sObjectType == null) {
             throw new ObjectRecordSearchException(
                 '対象オブジェクトが見つかりません。'
@@ -21,7 +23,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
         Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
         );
-        if (!objectDescribe.isAccessible() || !objectDescribe.isQueryable()) {
+        Boolean isObjectAccessible = objectDescribe.isAccessible();
+        Boolean isObjectQueryable = objectDescribe.isQueryable();
+        if (!isObjectAccessible || !isObjectQueryable) {
             throw new ObjectRecordSearchException(
                 '対象オブジェクトを参照できません。'
             );
@@ -39,18 +43,21 @@ public virtual with sharing class ObjectRecordSearchSelector {
     ) {
         Schema.DescribeFieldResult nameFieldDescribe;
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
+        List<Schema.SObjectField> fieldTokens = fieldsByApiName.values();
 
-        for (Schema.SObjectField fieldToken : fieldsByApiName.values()) {
+        for (Schema.SObjectField fieldToken : fieldTokens) {
             Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
-            if (fieldDescribe.isNameField()) {
+            Boolean isNameField = fieldDescribe.isNameField();
+            if (isNameField) {
                 nameFieldDescribe = fieldDescribe;
                 break;
             }
         }
 
+        Boolean hasNameField = fieldsByApiName.containsKey('Name');
         if (
             nameFieldDescribe == null &&
-            fieldsByApiName.containsKey('Name')
+            hasNameField
         ) {
             nameFieldDescribe = fieldsByApiName.get('Name').getDescribe();
         }
@@ -61,7 +68,8 @@ public virtual with sharing class ObjectRecordSearchSelector {
             );
         }
 
-        if (!nameFieldDescribe.isAccessible()) {
+        Boolean isNameFieldAccessible = nameFieldDescribe.isAccessible();
+        if (!isNameFieldAccessible) {
             throw new ObjectRecordSearchException(
                 'Name 項目を参照できません。'
             );
@@ -78,11 +86,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual List<SObject> searchRecords(
         ObjectRecordSearchQueryPlan.SearchQuery searchQuery
     ) {
-        if (
-            searchQuery == null ||
-            String.isBlank(searchQuery.soql) ||
-            searchQuery.bindValues == null
-        ) {
+        Boolean hasSearchQuery = searchQuery != null &&
+            String.isNotBlank(searchQuery.soql) &&
+            searchQuery.bindValues != null;
+        if (!hasSearchQuery) {
             throw new ObjectRecordSearchException(
                 '検索条件を作成できません。'
             );
@@ -106,18 +113,24 @@ public virtual with sharing class ObjectRecordSearchSelector {
         String objectApiName,
         Set<Id> recordIds
     ) {
-        if (recordIds == null || recordIds.isEmpty()) {
+        Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
+        if (!hasRecordIds) {
             return new List<SObject>();
         }
 
         requireSupportedObject(objectApiName);
 
+        String soql = 'SELECT Id FROM ' +
+            objectApiName +
+            ' WHERE Id IN :recordIds LIMIT ' +
+            recordIds.size();
+        Map<String, Object> bindValues = new Map<String, Object>{
+            'recordIds' => recordIds
+        };
+
         return Database.queryWithBinds(
-            'SELECT Id FROM ' +
-                objectApiName +
-                ' WHERE Id IN :recordIds LIMIT ' +
-                recordIds.size(),
-            new Map<String, Object>{ 'recordIds' => recordIds },
+            soql,
+            bindValues,
             AccessLevel.USER_MODE
         );
     }
@@ -130,7 +143,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual List<Database.DeleteResult> deleteRecords(
         List<SObject> recordsToDelete
     ) {
-        if (recordsToDelete == null || recordsToDelete.isEmpty()) {
+        Boolean hasRecordsToDelete = recordsToDelete != null &&
+            !recordsToDelete.isEmpty();
+        if (!hasRecordsToDelete) {
             return new List<Database.DeleteResult>();
         }
 
@@ -138,10 +153,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
     }
 
     private void requireSupportedObject(String objectApiName) {
-        if (
-            String.isBlank(objectApiName) ||
-            !ObjectMetricCatalog.hasObjectApiName(objectApiName)
-        ) {
+        Boolean hasObjectApiName = String.isNotBlank(objectApiName);
+        Boolean isSupportedObject = hasObjectApiName &&
+            ObjectMetricCatalog.hasObjectApiName(objectApiName);
+        if (!isSupportedObject) {
             throw new ObjectRecordSearchException('未対応のオブジェクトです。');
         }
     }
