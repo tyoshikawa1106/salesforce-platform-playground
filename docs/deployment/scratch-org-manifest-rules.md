@@ -41,6 +41,9 @@ git status
 git diff
 ```
 
+retrieve 結果に対象外の標準 metadata、org 固有値、権限系の広い差分が混ざった場合は、そのまま deploy しません。
+作業対象 manifest を絞り直すか、不要差分を戻してから validate / deploy します。
+
 別 org へ反映する場合は、同じ作業対象 manifest で dry-run してから deploy します。
 
 ```sh
@@ -106,6 +109,9 @@ sf project deploy start --manifest manifest/<work>.xml --target-org <dev-org> --
 DevOps Center を使う場合も考え方は同じです。
 Scratch Org の変更を Git に戻し、Pull Request や Work Item の単位で Salesforce 組織へ昇格します。
 Scratch Org 初期反映用 manifest を、Salesforce 組織へ戻す変更 scope として使い回しません。
+
+AI エージェントは、Scratch Org での検証成功を接続中の Salesforce 組織への反映完了として扱いません。
+接続中の Salesforce 組織へ出す場合は、ローカル source、Git 差分、target org、validate / dry-run 結果を別に確認します。
 
 ## retrieve scope の制限
 

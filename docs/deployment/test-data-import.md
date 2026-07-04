@@ -23,15 +23,19 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 対象 org を確認します。
 
 ```sh
-sf org display --target-org <alias>
+sf config get target-org
 ```
+
+default target org と異なる組織へ投入する場合は、確認済みの alias を `--target-org <alias>` で明示します。
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。
+報告には対象 org alias を書き、実ユーザー名や org 固有 URL は書きません。
 
 ## dry-run
 
 実行前に、ローカルファイルと実行予定コマンドを確認します。
 
 ```sh
-npm run setup:data:standard:dry-run
+npm run setup:data:standard:dry-run -- --target-org <alias>
 ```
 
 ## 主要標準オブジェクト seed
@@ -43,7 +47,7 @@ execute anonymous の CPU / サイズ制限を避けるため、1 つの primary
 件数や固定マスタの扱いは、このセクションの作成対象一覧の後にまとめます。
 
 ```sh
-npm run setup:data:standard:dry-run
+npm run setup:data:standard:dry-run -- --target-org <alias>
 npm run setup:data:standard -- --target-org <alias>
 ```
 
@@ -111,3 +115,5 @@ sf apex run --file scripts/apex/test-data/cleanup-standard-objects.apex --target
 - validation rule、required field、picklist 値を describe で確認する。
 - 親子関係のあるデータは親から投入する。
 - Trigger / Flow の bulk 動作を見たい場合は、200 件境界を超える件数を用意する。
+- データ投入は metadata deploy ではないため、投入したレコードを Git 差分や manifest に含めない。
+- 失敗しても作成済みレコードが残る場合があるため、再実行前に確認 SOQL または cleanup 方針を確認する。

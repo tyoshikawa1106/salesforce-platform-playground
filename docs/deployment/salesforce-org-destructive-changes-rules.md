@@ -5,9 +5,11 @@
 ## 実行ルール
 
 - destructive changes は、通常の追加・更新より影響が大きいため別タスクで扱う。
-- 削除対象、依存関係、復旧方法を確認してから実行する。
+- 削除対象、依存関係、復旧方法、対象 org alias を確認してから実行する。
 - 明示依頼なしに本番や別 target org へ削除を実行しない。
 - 削除前に対象 Salesforce 組織の alias を確認し、`--target-org <alias>` で明示して実行する。
+- destructive changes と通常 metadata 更新を同じ実行 scope に混ぜない。必要な場合も差分と検証結果を分けて報告する。
+- `manifest/destructiveChanges.xml` は作業中の削除対象だけを含め、作業後にプレースホルダーや不要な削除対象を残さない。
 
 ## 削除前確認
 
@@ -49,6 +51,8 @@ node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
 - deploy validate が使える場合は、削除前に検証する。
 - 削除と無関係な metadata 更新を同じ変更に混ぜない。
 - 削除に伴う権限、レイアウト、Flow、Apex の修正は差分を明確に分けて確認する。
+- Apex クラスなど source から削除する metadata は、ローカルファイル削除と org 側 destructive deploy の両方が必要かを確認する。
+- destructive deploy 後は、必要に応じて Tooling API、retrieve、または deploy report で削除状態を確認する。
 
 ## PR レビュー観点
 
