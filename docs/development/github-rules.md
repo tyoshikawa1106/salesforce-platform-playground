@@ -11,6 +11,16 @@ GitHub 作業の基本境界は `AGENTS.md` に従います。このファイル
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - hook が依存不足で失敗した場合、勝手に依存を導入せず確認する。
 
+## Issue ルール
+
+PR は、対応する実在 Issue を必ず持つものとして扱います。
+
+- PR 作成前に、対応 Issue が存在することを確認する。
+- 対応 Issue がない場合は、PR 作成前に Issue を作成するか、ユーザーに確認する。
+- PR 本文の `Issue` には `Closes #<issue番号>` を記載する。
+- Issue なしの PR は、ユーザーが明示的に例外として許可した場合だけ作成する。
+- Issue なし例外の場合も、PR 本文に理由と承認された例外であることを書く。
+
 ## PR マージ後の作業ブランチ整理
 
 PR マージ後は、次の条件をすべて満たす場合に限り、エージェントが明示確認なしで作業ブランチ整理を実行してよい。
@@ -104,13 +114,21 @@ GitHub の Issue と PR には必ずラベルを付けます。
 
 GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
 
+## リポジトリ保護ルール
+
+- `main` は Pull Request 経由の変更を前提にする。
+- `main` の required status checks は `npm checks` を必須にする。
+- `main` への force push と branch deletion は許可しない。
+- branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
+
 ## Assignee ルール
 
 Issue と PR には、作成時に assignee を設定します。
 
-- 特別な指定がない場合は、repository owner を assignee にする。
-- エージェントが Issue / PR を作成する場合は、作成コマンドで assignee を指定する。
-- assignee が未設定の Issue / PR を見つけた場合は、気づいた時点で補正する。
+- 特別な指定がない場合は、GitHub 操作の実行者を assignee にする。
+- エージェントが Issue / PR を作成する場合は、`gh api user` などで現在の実行者を確認し、作成コマンドで assignee を指定する。
+- 実行者を assignee にできない場合、または担当者が不明な場合は、勝手に repository owner へ割り当てずユーザーに確認する。
+- 作業対象の Issue / PR で assignee 未設定に気づいた場合は、同じ方針で補正する。
 - 特定の個人ユーザー名を運用ルールや automation config に固定しない。
 - author は作成者、assignee は現在の担当者として扱う。
 - PR 作成・更新後は、`assignees`、`labels`、Project 紐づけを確認する。
@@ -133,24 +151,25 @@ Issue と PR には、作成時に assignee を設定します。
 - Dependabot config には個人ユーザー名を assignee や reviewer として固定しない。
 - Dependabot PR の Project 紐づけや担当者設定は、必要に応じて手動で確認する。
 
-## リポジトリ保護ルール
+## Project ルール
 
-- `main` は Pull Request 経由の変更を前提にする。
-- `main` の required status checks は `npm checks` を必須にする。
-- `main` への force push と branch deletion は許可しない。
-- branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
-
-## Project / Milestone ルール
-
-Issue と PR は、このリポジトリ用の Project に紐づけます。Milestone は、期限やリリースなどの区切りがある場合だけ使います。
+Issue と PR は、このリポジトリ用の Project に紐づけます。
 
 - Project は `Salesforce Platform Playground` を使う。
 - 新規 Issue / PR の Project は手動で設定する。
 - Project 追加は `gh project item-add ...` などで、エージェントまたはユーザーが明示的に実行する。
+- Project の番号や owner は固定値を前提にせず、Project title から対象 Project を解決してから追加する。
 - Project 紐づけの確認は対象 Issue / PR の item だけを見る。Project 全件を取得して絞り込む運用は避ける。
 - Project 設定のために、個人アクセストークンを GitHub Actions の secret に保存しない。
-- Milestone は自動設定しない。必要な作業単位が決まったときに手動で設定する。
 - Project 設定が漏れた場合は、気づいた時点で手動で補正する。
+
+## Milestone ルール
+
+このセクションは、このリポジトリ固有の運用として扱います。別リポジトリへルールを流用する場合は、このセクションだけを差し替えてよいです。
+
+- 期限やリリースなどの作業単位が明確な場合だけ、Issue と PR に Milestone を設定する。
+- Milestone が未作成、またはどの Milestone に入れるべきか判断できない場合は、勝手に作成せず Milestone なしで進める。
+- Milestone を新しく作成する必要がある場合は、ユーザーに確認してから作成する。
 
 ## 例
 
