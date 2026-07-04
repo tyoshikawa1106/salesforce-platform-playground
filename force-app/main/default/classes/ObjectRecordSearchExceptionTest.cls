@@ -3,11 +3,13 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchExceptionTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeExceptionMessage() {
         ObjectRecordSearchException error;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             error = new ObjectRecordSearchException('検索条件が不正です。');
             Test.stopTest();

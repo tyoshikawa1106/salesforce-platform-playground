@@ -3,11 +3,13 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchDeleteWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchDeleteWrapper wrapper;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             wrapper = new ObjectRecordSearchDeleteWrapper(
                 2,
                 1,

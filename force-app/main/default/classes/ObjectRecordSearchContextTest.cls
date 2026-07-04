@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchContextTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldCreateConfigAndAllowedFields() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -16,7 +18,7 @@ private with sharing class ObjectRecordSearchContextTest {
         };
 
         ObjectRecordSearchContext context;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             context = new ObjectRecordSearchContext(
                 new ObjectRecordSearchConfigWrapper(

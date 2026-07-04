@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewItemWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldCreateItemFromDefinitionAndMetricCount() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -10,7 +12,7 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         );
 
         ObjectMetricsOverviewItemWrapper wrapper;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewItemWrapper(
                 definition,
@@ -57,7 +59,7 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         );
 
         ObjectMetricsOverviewItemWrapper wrapper;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewItemWrapper(definition, null);
             Test.stopTest();

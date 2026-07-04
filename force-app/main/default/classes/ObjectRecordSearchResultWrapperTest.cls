@@ -3,12 +3,14 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchResultWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeResultValuesAndNextPageState() {
         ObjectRecordSearchConfigWrapper config = createConfigWrapper();
         ObjectRecordSearchResultWrapper wrapper;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             wrapper = new ObjectRecordSearchResultWrapper(
                 config,
                 new List<ObjectRecordSearchRowWrapper>()

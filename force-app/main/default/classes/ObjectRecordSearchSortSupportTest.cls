@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchSortSupportTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @TestSetup
     static void setupData() {
         insert new Account(
@@ -16,7 +18,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchContext context = createAccountContext();
 
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 context,
@@ -45,7 +47,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         request.sortDirection = 'desc';
 
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 context,
@@ -73,7 +75,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         request.sortBy = 'Description';
 
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 context,
@@ -100,7 +102,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
 
         ObjectRecordSearchSortSupport.PageCursor cursor;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             cursor = createParsedCursor(
                 context.config,
@@ -130,7 +132,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
 
         ObjectRecordSearchSortSupport.PageCursor cursor;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             cursor = createParsedCursor(
                 context.config,
@@ -155,7 +157,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
         String pageToken;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
                 new List<ObjectRecordSearchRowWrapper>(),
@@ -185,7 +187,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
 
         ObjectRecordSearchSortSupport.PageCursor cursor;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             cursor = ObjectRecordSearchSortSupport.parsePageToken(
                 pageToken,
@@ -213,7 +215,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         cursor.recordId = getTestAccountId();
 
         String whereClause;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             whereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
                 sortSpec,
@@ -243,7 +245,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         cursor.recordId = getTestAccountId();
 
         String whereClause;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             whereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
                 sortSpec,
@@ -273,7 +275,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             }
         );
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectRecordSearchSortSupport.parsePageToken(
@@ -299,7 +301,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             new ObjectRecordSearchRequestWrapper()
         );
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectRecordSearchSortSupport.parsePageToken(

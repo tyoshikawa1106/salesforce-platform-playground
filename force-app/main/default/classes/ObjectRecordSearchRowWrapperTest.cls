@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchRowWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeRecordValues() {
         Account accountRecord = TestDataFactory.createAccount(
@@ -18,7 +20,7 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         ];
         ObjectRecordSearchRowWrapper wrapper;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             wrapper = new ObjectRecordSearchRowWrapper(
                 queriedAccount,
                 'Name',

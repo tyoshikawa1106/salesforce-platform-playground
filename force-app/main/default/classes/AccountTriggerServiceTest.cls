@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class AccountTriggerServiceTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     private static AccountTriggerService service = new AccountTriggerService();
 
     @IsTest
@@ -14,7 +16,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
             Test.stopTest();
@@ -46,7 +48,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
@@ -80,7 +82,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ accountRecord },
@@ -103,7 +105,7 @@ private with sharing class AccountTriggerServiceTest {
         List<Account> accounts = new List<Account>();
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
             Test.stopTest();
@@ -123,7 +125,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
             Test.stopTest();
@@ -153,7 +155,7 @@ private with sharing class AccountTriggerServiceTest {
         );
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
@@ -180,7 +182,7 @@ private with sharing class AccountTriggerServiceTest {
         );
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },

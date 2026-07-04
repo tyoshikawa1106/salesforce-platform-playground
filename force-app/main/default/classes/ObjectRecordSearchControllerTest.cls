@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchControllerTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @TestSetup
     static void setupTestData() {
         List<Account> accounts = TestDataFactory.createAccounts(3);
@@ -20,7 +22,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     static void shouldReturnObjectConfigForMetricKey() {
         ObjectRecordSearchConfigWrapper config;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             config = ObjectRecordSearchController.getObjectConfig('accounts');
             Test.stopTest();
@@ -113,7 +115,7 @@ private with sharing class ObjectRecordSearchControllerTest {
         request.pageNumber = 1;
         ObjectRecordSearchResultWrapper result;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = ObjectRecordSearchController.searchRecords(request);
             Test.stopTest();
@@ -163,7 +165,7 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
         ObjectRecordSearchResultWrapper result;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = ObjectRecordSearchController.searchRecords(request);
             Test.stopTest();
@@ -190,7 +192,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     static void shouldReturnEmptyDeleteResultWhenRecordIdsAreNull() {
         ObjectRecordSearchDeleteWrapper result;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = ObjectRecordSearchController.deleteRecords(
                 'accounts',
@@ -220,7 +222,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     static void shouldReturnEmptyDeleteResultWhenRecordIdsAreEmpty() {
         ObjectRecordSearchDeleteWrapper result;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = ObjectRecordSearchController.deleteRecords(
                 'accounts',
@@ -254,7 +256,7 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
         request.pageNumber = 1;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectRecordSearchController.searchRecords(request);
@@ -277,7 +279,7 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
         request.pageToken = 'not-json';
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectRecordSearchController.searchRecords(request);
@@ -302,7 +304,7 @@ private with sharing class ObjectRecordSearchControllerTest {
         ];
 
         ObjectRecordSearchDeleteWrapper result;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = ObjectRecordSearchController.deleteRecords(
                 'accounts',

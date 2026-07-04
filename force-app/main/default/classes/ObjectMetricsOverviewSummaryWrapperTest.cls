@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldKeepSuppliedMetricItems() {
         List<ObjectMetricsOverviewItemWrapper> items = new List<ObjectMetricsOverviewItemWrapper>{
@@ -13,7 +15,7 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
         };
 
         ObjectMetricsOverviewSummaryWrapper wrapper;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewSummaryWrapper(items);
             Test.stopTest();
@@ -26,7 +28,7 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
     @IsTest
     static void shouldDefaultNullItemsToEmptyList() {
         ObjectMetricsOverviewSummaryWrapper wrapper;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             wrapper = new ObjectMetricsOverviewSummaryWrapper(null);
             Test.stopTest();

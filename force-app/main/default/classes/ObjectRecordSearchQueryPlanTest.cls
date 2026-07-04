@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchQueryPlanTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldCreateQueryWithSearchAndCursorConditions() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -27,7 +29,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         queryRequest.fetchSize = 51;
 
         ObjectRecordSearchQueryPlan.SearchQuery query;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             query = ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);
             Test.stopTest();
@@ -78,7 +80,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         queryRequest.fetchSize = 51;
 
         ObjectRecordSearchQueryPlan.SearchQuery query;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             query = ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);
             Test.stopTest();
@@ -97,7 +99,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
 
     @IsTest
     static void shouldThrowWhenRequestIsMissing() {
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectRecordSearchQueryPlan.createSearchQuery(null);
@@ -122,7 +124,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         queryRequest.sortSpec.fieldApiName = 'Description';
         queryRequest.fetchSize = 51;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);

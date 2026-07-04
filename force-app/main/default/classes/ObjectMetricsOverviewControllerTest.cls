@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewControllerTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldReturnObjectMetricSummary() {
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
@@ -10,7 +12,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             summary = ObjectMetricsOverviewController.getObjectMetrics();
             Test.stopTest();
@@ -34,7 +36,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
         ObjectMetricsOverviewController.selector = new FailingObjectMetricsOverviewSelector();
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 ObjectMetricsOverviewController.getObjectMetrics();
