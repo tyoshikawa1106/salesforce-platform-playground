@@ -239,7 +239,7 @@ test は確認済みの Salesforce 組織に対してのみ実行し、`--target
 
 ## Deploy validate と deploy start
 
-デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、作業対象 manifest、対象 metadata type を絞った `--metadata`、または標準 manifest のうち、変更範囲に合う scope で validate します。Salesforce 組織への反映は、依頼範囲に deploy が含まれる場合だけ実行します。
+デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、作業対象 manifest、対象 metadata type を絞った `--metadata`、または標準 manifest のうち、変更範囲に合う scope で validate します。`deploy validate` は反映前チェックであり、ユーザーが動作確認できる状態とは扱いません。
 
 Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
 
@@ -247,11 +247,15 @@ Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 de
 npm run sf:validate:dev -- --target-org <alias>
 ```
 
-依頼範囲に Salesforce 組織への反映が含まれ、validate が成功したら、同じ確認済みの組織へ反映します。
+通常の Apex / Salesforce メタデータ開発では、PR 作成前、またはユーザーへ作業完了や動作確認可能と報告する前に、validate に成功した同じ対象 org へ実 deploy します。
+
+validate が成功したら、同じ対象 org へ反映します。
 
 ```sh
 npm run sf:deploy:dev -- --target-org <alias>
 ```
+
+PR マージまで依頼されている場合は、実 deploy と自動チェックの成功をもって、ユーザーの手動動作確認待ちは省略してよいです。本番環境への deploy は、ユーザーが本番リリースを明示した場合だけ実行します。
 
 Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、deploy 後の Apex テストは PR 作成前の確認にまとめます。
 
