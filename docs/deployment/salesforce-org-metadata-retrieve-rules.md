@@ -24,7 +24,8 @@ retrieve 前に次を確認します。
 sf config get target-org
 ```
 
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。報告には秘密情報、実ユーザー名、org 固有 URL を書きません。
+retrieve は確認済みの alias を `--target-org <alias>` で明示して実行します。
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。報告には秘密情報、実ユーザー名、org 固有 URL を書きません。
 
 ## 取得後確認
 

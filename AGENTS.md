@@ -25,7 +25,7 @@
 - `.env`、`.env.*`、秘密鍵、証明書、token、password、client secret などの実値を含み得るファイルを読まない。
 - `npm install` など依存関係を変更・導入するコマンドは、明示確認してから実行する。
 - デプロイ対象のメタデータは `force-app/main/default` を正本とする。
-- 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、対象組織を確認し、依頼範囲内でのみ実行する。明示依頼なしに target org を切り替えない。
+- Salesforce 組織に対する deploy、delete、retrieve、test、data import などの操作は、対象 org の alias を確認し、依頼範囲内でのみ `--target-org <alias>` を明示して実行する。明示依頼なしに default target org を切り替えない。
 - Scratch Org の作成と削除は、ユーザーの明示依頼がある場合のみ実行する。動作確認後も勝手に削除しない。
 - Scratch Org を作成した場合は、ユーザーが別途指示しない限り、Scratch Org 用の標準 deploy 手順まで実施してから報告する。
 - `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。

@@ -7,7 +7,7 @@
 - destructive changes は、通常の追加・更新より影響が大きいため別タスクで扱う。
 - 削除対象、依存関係、復旧方法を確認してから実行する。
 - 明示依頼なしに本番や別 target org へ削除を実行しない。
-- 削除前に現在接続中の Salesforce 組織を確認する。
+- 削除前に対象 Salesforce 組織の alias を確認し、`--target-org <alias>` で明示して実行する。
 
 ## 削除前確認
 
@@ -24,7 +24,7 @@
 sf config get target-org
 ```
 
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。
 
 ## Apex クラス削除
 

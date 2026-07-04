@@ -31,7 +31,7 @@ Dev Hub が未設定の場合は、利用する Dev Hub を確認してからロ
 Salesforce 組織の installed package は Scratch Org に自動では引き継がれません。
 必要な package がある場合は、Scratch Org 作成後、metadata deploy より前に `sf package install` で明示的にインストールします。
 
-現在接続されている Salesforce 組織の package は Tooling API で確認します。
+比較元の Salesforce 組織の package は Tooling API で確認します。
 
 ```sh
 sf data query \
