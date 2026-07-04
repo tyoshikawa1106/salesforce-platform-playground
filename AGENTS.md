@@ -28,7 +28,7 @@
 - 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、対象組織を確認し、依頼範囲内でのみ実行する。明示依頼なしに target org を切り替えない。
 - Scratch Org の作成と削除は、ユーザーの明示依頼がある場合のみ実行する。動作確認後も勝手に削除しない。
 - Scratch Org を作成した場合は、ユーザーが別途指示しない限り、Scratch Org 用の標準 deploy 手順まで実施してから報告する。
-- 現在接続されている Salesforce 組織には source tracking がないため、`sf project deploy preview` 前提で進めない。
+- `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。
 - Apex、メタデータ、deploy、retrieve、delete、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の補助情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。

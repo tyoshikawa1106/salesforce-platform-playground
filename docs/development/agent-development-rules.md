@@ -43,9 +43,8 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 - タスクに必要なメタデータだけを取得する。
 - 取得したメタデータはコミット前に確認する。特に権限や自動生成に見えるファイルに注意する。
 - タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
-- Scratch Org 初期反映の対象を変えた場合は、`node scripts/deploy/scratch-org/run-constructive-scratch-org.js` で再現手順を確認する。
-- Salesforce 組織へ反映する標準 scope は `manifest/rebuild-developer-org.xml` で管理する。`force-app` 全体 validate は、広く retrieve した metadata の分類調査に限る。
-- `force-app` 全体を deployable に寄せる判断は、[force-app deployability 棚卸し](../knowledge/force-app-deployability-inventory.md) に従って metadata type ごとに進める。
+- 広い `package.xml` では過剰な場合は、対象 metadata type を絞った `*` manifest を用意して取得範囲を管理する。
+- Scratch Org、Salesforce 組織反映、`force-app` deployability の詳細は `docs/deployment/` と関連 knowledge docs に従う。
 
 ## docs / 設定変更
 
@@ -56,7 +55,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 
 ## Salesforce 組織での検証
 
-現在接続されている Salesforce 組織には source tracking がないため、`sf project deploy preview` は標準の確認手段にしません。
+`sf project deploy preview` は標準の確認手段にしません。反映前は Git の差分確認と `sf project deploy validate` で確認します。
 
 操作対象を確認します:
 
@@ -80,8 +79,8 @@ npm run sf:validate:dev
 npm run sf:deploy:dev
 ```
 
-`npm run sf:validate:dev` は `manifest/rebuild-developer-org.xml` を使います。
-作業範囲がさらに狭い場合は、作業対象 manifest または `--metadata` で対象を絞ります。
+`npm run sf:validate:dev` は Salesforce 組織への初回デプロイ / 再構築用の `manifest/rebuild-developer-org.xml` を使います。
+変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って検証します。
 
 Apex 変更を含む PR を作成する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
 

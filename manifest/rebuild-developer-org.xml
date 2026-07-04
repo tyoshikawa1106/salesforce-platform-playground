@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!--
-        Dev 組織への通常 validate / deploy 入口。
+        Salesforce 組織への初回デプロイ / 再構築用 manifest。
         force-app 全体には org 固有 Settings、Profile、更新不可 metadata も含まれるため、
-        通常作業ではこの manifest または作業対象 manifest で scope を絞る。
+        変更範囲を狭く確認する場合は、作業対象 manifest または対象 metadata type を絞った manifest で scope を絞る。
     -->
     <types>
         <members>AccountTriggerHandler</members>

@@ -3,15 +3,16 @@
 `force-app/main/default` を丸ごと Salesforce 組織へ validate / deploy するのではなく、どの metadata を標準 deploy scope に含めるかを判断するための棚卸しです。
 
 このリポジトリでは `force-app/main/default` を source の正本にします。
-ただし、`force-app` には Salesforce 組織から広く retrieve した org 固有 metadata も含まれるため、標準の Salesforce 組織 validate / deploy 入口は `manifest/rebuild-developer-org.xml` とします。
+ただし、`force-app` には Salesforce 組織から広く retrieve した org 固有 metadata も含まれるため、Salesforce 組織への初回デプロイ / 再構築は `manifest/rebuild-developer-org.xml` を入口にします。
+変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞ります。
 
 ## 現在の標準入口
 
-| 用途                     | コマンド                                                          | scope                                |
-| ------------------------ | ----------------------------------------------------------------- | ------------------------------------ |
-| Salesforce 組織 validate | `npm run sf:validate:dev`                                         | `manifest/rebuild-developer-org.xml` |
-| Salesforce 組織 deploy   | `npm run sf:deploy:dev`                                           | `manifest/rebuild-developer-org.xml` |
-| Scratch Org 初期反映     | `node scripts/deploy/scratch-org/run-constructive-scratch-org.js` | `manifest/rebuild-scratch-org.xml`   |
+| 用途                         | コマンド                                                          | scope                                |
+| ---------------------------- | ----------------------------------------------------------------- | ------------------------------------ |
+| Salesforce 組織初回 validate | `npm run sf:validate:dev`                                         | `manifest/rebuild-developer-org.xml` |
+| Salesforce 組織初回 deploy   | `npm run sf:deploy:dev`                                           | `manifest/rebuild-developer-org.xml` |
+| Scratch Org 初期反映         | `node scripts/deploy/scratch-org/run-constructive-scratch-org.js` | `manifest/rebuild-scratch-org.xml`   |
 
 `sf project deploy validate --source-dir force-app` は、標準の成功条件ではなく、広く retrieve した metadata の分類調査として扱います。
 
@@ -68,9 +69,9 @@
 | `topicsForObjects/`                 | 27         | 対象外        | Chatter / topic 有効化状態に依存する。                                                           |
 | `transactionSecurityPolicies/`      | 1          | 対象          | セキュリティ運用への影響があるため変更時は個別確認する。                                         |
 
-## 標準 manifest に含める metadata type
+## 初回デプロイ manifest に含める metadata type
 
-`manifest/rebuild-developer-org.xml` は、次の metadata type を標準 validate / deploy scope とします。
+`manifest/rebuild-developer-org.xml` は、次の metadata type を初回デプロイ / 再構築 scope とします。
 
 - `ApexClass`
 - `ApexEmailNotifications`
@@ -100,12 +101,12 @@
 - `Workflow`
 
 この一覧は「常にすべての org で安全」という意味ではありません。
-現在接続されている Salesforce 組織で通常作業の validate / deploy 入口として使う scope です。
+現在接続されている Salesforce 組織へ初回デプロイ / 再構築するときの scope です。
 別 org や Scratch Org に移す場合は、対象 org の機能有効化、標準 app、接続先 URL、権限、ユーザー / キュー参照を確認します。
 
 ## 標準 scope から外す主な metadata
 
-次の metadata は Git 管理していても、`manifest/rebuild-developer-org.xml` には含めません。
+次の metadata は Git 管理していても、初回デプロイ / 再構築用の `manifest/rebuild-developer-org.xml` には含めません。
 
 | 種別                          | 理由                                                           | 今後の扱い                                                                         |
 | ----------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |

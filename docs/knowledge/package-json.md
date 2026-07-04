@@ -86,14 +86,15 @@ npm run setup:data:standard:dry-run
 npm run setup:data:standard -- --target-org <alias>
 ```
 
-### Salesforce 組織 validate / deploy
+### Salesforce 組織初回デプロイ / 再構築
 
 ```json
 "sf:validate:dev": "sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests",
 "sf:deploy:dev": "sf project deploy start --manifest manifest/rebuild-developer-org.xml"
 ```
 
-Salesforce 組織向けの標準 manifest を使う validate / deploy entrypoint です。実行前に対象 org を確認します。
+Salesforce 組織への初回デプロイ / 再構築用 manifest を使う validate / deploy entrypoint です。実行前に対象 org を確認します。
+変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞ります。
 
 ### Prettier
 
