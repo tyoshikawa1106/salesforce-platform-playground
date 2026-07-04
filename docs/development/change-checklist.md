@@ -29,7 +29,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 - タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
 - Scratch Org 初期反映の対象を変えた場合は、`node scripts/deploy/scratch-org/run-constructive-scratch-org.js` で再現手順を確認する。
 - Dev 組織へ反映する標準 scope は `manifest/rebuild-developer-org.xml` で管理する。`force-app` 全体 validate は、広く retrieve した metadata の分類調査に限る。
-- `force-app` 全体を deployable に寄せる判断は、[force-app deployability 棚卸し](force-app-deployability-inventory.md) に従って metadata type ごとに進める。
+- `force-app` 全体を deployable に寄せる判断は、[force-app deployability 棚卸し](../knowledge/force-app-deployability-inventory.md) に従って metadata type ごとに進める。
 
 ## Dev 組織での検証
 
@@ -83,4 +83,4 @@ npm run code-analyzer:ci
 
 `logs/code-analyzer/` 配下の解析結果ファイルは生成物なので Git 管理しません。出力先フォルダの扱いは `logs/code-analyzer/code-analyzer-guide.md` を参照します。
 
-開発時に使う主要コマンドの役割は [開発コマンド一覧](development-commands.md) を参照します。
+開発時に使う主要コマンドの役割は [ローカル開発コマンド](../knowledge/local-development-commands.md) を参照します。
