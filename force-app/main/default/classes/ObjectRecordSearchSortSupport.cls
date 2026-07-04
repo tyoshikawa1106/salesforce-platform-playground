@@ -25,7 +25,8 @@ public with sharing class ObjectRecordSearchSortSupport {
         Schema.DescribeFieldResult fieldDescribe = context.getAllowedFieldDescribe(
             fieldApiName
         );
-        if (!fieldDescribe.isSortable()) {
+        Boolean isFieldSortable = fieldDescribe.isSortable();
+        if (!isFieldSortable) {
             fieldApiName = context.config.nameFieldApiName;
             fieldDescribe = context.getAllowedFieldDescribe(fieldApiName);
         }
@@ -76,10 +77,11 @@ public with sharing class ObjectRecordSearchSortSupport {
         List<ObjectRecordSearchRowWrapper> rows,
         SortSpec sortSpec
     ) {
-        return ObjectRecordSearchPageTokenCodec.createNextPageToken(
+        String nextPageToken = ObjectRecordSearchPageTokenCodec.createNextPageToken(
             rows,
             sortSpec
         );
+        return nextPageToken;
     }
 
     /**
@@ -89,25 +91,29 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 次ページ取得用カーソル
      */
     public static PageCursor parsePageToken(String pageToken, SortSpec sortSpec) {
-        return ObjectRecordSearchPageTokenCodec.parsePageToken(
+        PageCursor cursor = ObjectRecordSearchPageTokenCodec.parsePageToken(
             pageToken,
             sortSpec
         );
+        return cursor;
     }
 
     private static String getSortFieldApiName(
         ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request
     ) {
-        return context.getAllowedFieldApiNames().contains(request?.sortBy)
-            ? request.sortBy
-            : context.config.nameFieldApiName;
+        Set<String> allowedFieldApiNames = context.getAllowedFieldApiNames();
+        Boolean hasAllowedSortField = allowedFieldApiNames.contains(
+            request?.sortBy
+        );
+        return hasAllowedSortField ? request.sortBy : context.config.nameFieldApiName;
     }
 
     private static String getSortDirection(
         ObjectRecordSearchRequestWrapper request
     ) {
-        return request?.sortDirection?.toLowerCase() == SORT_DESCENDING
+        String normalizedSortDirection = request?.sortDirection?.toLowerCase();
+        return normalizedSortDirection == SORT_DESCENDING
             ? SORT_DESCENDING
             : SORT_ASCENDING;
     }

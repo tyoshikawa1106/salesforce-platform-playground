@@ -35,12 +35,17 @@ public with sharing class AccountTriggerService {
         List<Account> accounts,
         Map<Id, Account> oldAccountsById
     ) {
-        if (accounts == null || accounts.isEmpty()) {
+        Boolean hasAccounts = accounts != null && !accounts.isEmpty();
+        if (!hasAccounts) {
             return;
         }
 
         for (Account accountRecord : accounts) {
-            if (!shouldNormalizeName(accountRecord, oldAccountsById)) {
+            Boolean shouldNormalize = shouldNormalizeName(
+                accountRecord,
+                oldAccountsById
+            );
+            if (!shouldNormalize) {
                 continue;
             }
 
@@ -52,14 +57,17 @@ public with sharing class AccountTriggerService {
         Account accountRecord,
         Map<Id, Account> oldAccountsById
     ) {
-        if (accountRecord == null || String.isBlank(accountRecord.Name)) {
+        Boolean hasAccountName = accountRecord != null &&
+            String.isNotBlank(accountRecord.Name);
+        if (!hasAccountName) {
             return false;
         }
 
+        Boolean hasOldAccount = oldAccountsById != null &&
+            accountRecord.Id != null &&
+            oldAccountsById.containsKey(accountRecord.Id);
         if (
-            oldAccountsById == null ||
-            accountRecord.Id == null ||
-            !oldAccountsById.containsKey(accountRecord.Id)
+            !hasOldAccount
         ) {
             return true;
         }

@@ -19,20 +19,22 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         List<ObjectRecordSearchRowWrapper> rows,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
-        if (rows == null || rows.isEmpty() || sortSpec == null) {
+        Boolean hasRows = rows != null && !rows.isEmpty();
+        if (!hasRows || sortSpec == null) {
             return null;
         }
 
-        ObjectRecordSearchRowWrapper lastRow = rows[
-            rows.size() - 1
-        ];
-        return JSON.serialize(
-            new Map<String, String>{
-                'fieldApiName' => sortSpec.fieldApiName,
-                'recordId' => String.valueOf(lastRow.id),
-                'sortValue' => getRowSortValue(lastRow, sortSpec)
-            }
-        );
+        Integer lastRowIndex = rows.size() - 1;
+        ObjectRecordSearchRowWrapper lastRow = rows[lastRowIndex];
+        String recordIdValue = String.valueOf(lastRow.id);
+        String rowSortValue = getRowSortValue(lastRow, sortSpec);
+        Map<String, String> tokenParts = new Map<String, String>{
+            'fieldApiName' => sortSpec.fieldApiName,
+            'recordId' => recordIdValue,
+            'sortValue' => rowSortValue
+        };
+        String pageToken = JSON.serialize(tokenParts);
+        return pageToken;
     }
 
     /**
@@ -45,12 +47,18 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         String pageToken,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
-        if (String.isBlank(pageToken)) {
+        Boolean hasPageToken = String.isNotBlank(pageToken);
+        if (!hasPageToken) {
             return null;
         }
 
         try {
-            return createPageCursor(parseTokenParts(pageToken), sortSpec);
+            Map<String, Object> tokenParts = parseTokenParts(pageToken);
+            ObjectRecordSearchSortSupport.PageCursor cursor = createPageCursor(
+                tokenParts,
+                sortSpec
+            );
+            return cursor;
         } catch (ObjectRecordSearchException error) {
             throw error;
         } catch (Exception error) {
@@ -59,7 +67,10 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     }
 
     private static Map<String, Object> parseTokenParts(String pageToken) {
-        return (Map<String, Object>) JSON.deserializeUntyped(pageToken);
+        Map<String, Object> tokenParts = (Map<String, Object>) JSON.deserializeUntyped(
+            pageToken
+        );
+        return tokenParts;
     }
 
     private static ObjectRecordSearchSortSupport.PageCursor createPageCursor(
@@ -68,18 +79,15 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     ) {
         String cursorFieldApiName = getCursorFieldApiName(tokenParts, sortSpec);
         String cursorRecordId = (String) tokenParts.get('recordId');
-        if (
-            cursorFieldApiName != sortSpec.fieldApiName ||
-            String.isBlank(cursorRecordId)
-        ) {
+        Boolean isCursorFieldExpected = cursorFieldApiName == sortSpec.fieldApiName;
+        Boolean hasCursorRecordId = String.isNotBlank(cursorRecordId);
+        if (!isCursorFieldExpected || !hasCursorRecordId) {
             throw createUnreadablePageTokenException(null);
         }
 
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
-        cursor.sortValue = parseCursorSortValue(
-            getCursorSortValue(tokenParts),
-            sortSpec
-        );
+        Object rawCursorSortValue = getCursorSortValue(tokenParts);
+        cursor.sortValue = parseCursorSortValue(rawCursorSortValue, sortSpec);
         cursor.recordId = (Id) cursorRecordId;
         return cursor;
     }
@@ -89,15 +97,16 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
-        return String.isBlank(cursorFieldApiName)
-            ? sortSpec.fieldApiName
-            : cursorFieldApiName;
+        Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
+        return hasCursorFieldApiName ? cursorFieldApiName : sortSpec.fieldApiName;
     }
 
     private static Object getCursorSortValue(Map<String, Object> tokenParts) {
-        return String.isBlank((String) tokenParts.get('fieldApiName'))
-            ? tokenParts.get('name')
-            : tokenParts.get('sortValue');
+        String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
+        Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
+        return hasCursorFieldApiName
+            ? tokenParts.get('sortValue')
+            : tokenParts.get('name');
     }
 
     private static String getRowSortValue(
@@ -107,7 +116,8 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (sortSpec.fieldApiName == sortSpec.nameFieldApiName) {
             return row.name;
         }
-        return row.fieldValues.get(sortSpec.fieldApiName);
+        String sortValue = row.fieldValues.get(sortSpec.fieldApiName);
+        return sortValue;
     }
 
     private static Object parseCursorSortValue(
@@ -126,7 +136,8 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (displayType == Schema.DisplayType.DATETIME) {
             return Datetime.valueOf(stringValue);
         }
-        if (NUMERIC_DISPLAY_TYPES.contains(displayType)) {
+        Boolean isNumericDisplayType = NUMERIC_DISPLAY_TYPES.contains(displayType);
+        if (isNumericDisplayType) {
             return Decimal.valueOf(stringValue);
         }
         if (displayType == Schema.DisplayType.BOOLEAN) {

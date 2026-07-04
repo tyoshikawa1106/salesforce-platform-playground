@@ -42,9 +42,11 @@ public with sharing class ObjectRecordSearchController {
         String metricKey
     ) {
         try {
-            return buildSearchContext(metricKey).config;
+            ObjectRecordSearchContext context = buildSearchContext(metricKey);
+            return context.config;
         } catch (ObjectRecordSearchException error) {
-            throw createHandledException(error.getMessage());
+            String errorMessage = error.getMessage();
+            throw createHandledException(errorMessage);
         } catch (Exception error) {
             throw createHandledException(CONFIG_ERROR_MESSAGE);
         }
@@ -70,8 +72,9 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchRequestWrapper request
     ) {
         try {
+            String metricKey = request?.metricKey;
             ObjectRecordSearchContext context = buildSearchContext(
-                request?.metricKey
+                metricKey
             );
             ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
                 context,
@@ -87,12 +90,14 @@ public with sharing class ObjectRecordSearchController {
             );
             List<SObject> records = selector.searchRecords(searchQuery);
 
-            return service.createSearchResult(
+            ObjectRecordSearchResultWrapper result = service.createSearchResult(
                 searchQueryRequest,
                 records
             );
+            return result;
         } catch (ObjectRecordSearchException error) {
-            throw createHandledException(error.getMessage());
+            String errorMessage = error.getMessage();
+            throw createHandledException(errorMessage);
         } catch (Exception error) {
             throw createHandledException(SEARCH_ERROR_MESSAGE);
         }
@@ -125,20 +130,30 @@ public with sharing class ObjectRecordSearchController {
                 metricKey
             );
             ObjectRecordSearchConfigWrapper config = context.config;
-            if (!service.canDeleteRecords(config, recordIds)) {
+            Boolean canDeleteRecords = service.canDeleteRecords(
+                config,
+                recordIds
+            );
+            if (!canDeleteRecords) {
                 return service.createDeleteResult(recordIds, null);
             }
 
+            Set<Id> recordIdsToDelete = new Set<Id>(recordIds);
             List<SObject> recordsToDelete = selector.getRecordsById(
                 config.objectApiName,
-                new Set<Id>(recordIds)
+                recordIdsToDelete
             );
-            return service.createDeleteResult(
+            List<Database.DeleteResult> deleteResults = selector.deleteRecords(
+                recordsToDelete
+            );
+            ObjectRecordSearchDeleteWrapper result = service.createDeleteResult(
                 recordIds,
-                selector.deleteRecords(recordsToDelete)
+                deleteResults
             );
+            return result;
         } catch (ObjectRecordSearchException error) {
-            throw createHandledException(error.getMessage());
+            String errorMessage = error.getMessage();
+            throw createHandledException(errorMessage);
         } catch (Exception error) {
             throw createHandledException(DELETE_ERROR_MESSAGE);
         }
@@ -165,13 +180,14 @@ public with sharing class ObjectRecordSearchController {
             definition,
             nameFieldDescribe,
             objectDescribe
-        )
-            .withDisplayFields(displayFields);
-        return service.createSearchContext(
+        );
+        config = config.withDisplayFields(displayFields);
+        ObjectRecordSearchContext context = service.createSearchContext(
             config,
             nameFieldDescribe,
             objectDescribe
         );
+        return context;
     }
 
     private static AuraHandledException createHandledException(String message) {

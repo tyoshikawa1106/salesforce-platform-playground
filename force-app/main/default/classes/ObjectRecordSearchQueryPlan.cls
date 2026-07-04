@@ -16,13 +16,13 @@ public with sharing class ObjectRecordSearchQueryPlan {
         query.bindValues = new Map<String, Object>();
 
         String normalizedSearchTerm = request.searchRequest?.searchTerm?.trim();
-        String likeSearchTerm = usesNameSearch(
-                normalizedSearchTerm,
-                request.context.config
-            )
-            ? '%' + normalizedSearchTerm + '%'
-            : null;
-        if (likeSearchTerm != null) {
+        Boolean shouldUseNameSearch = usesNameSearch(
+            normalizedSearchTerm,
+            request.context.config
+        );
+        String likeSearchTerm;
+        if (shouldUseNameSearch) {
+            likeSearchTerm = '%' + normalizedSearchTerm + '%';
             query.bindValues.put('nameSearchTerm', likeSearchTerm);
         }
         if (request.cursor != null) {
@@ -30,7 +30,8 @@ public with sharing class ObjectRecordSearchQueryPlan {
             query.bindValues.put('cursorRecordId', request.cursor.recordId);
         }
 
-        query.soql = buildSearchSoql(request, likeSearchTerm != null);
+        Boolean hasLikeSearchTerm = likeSearchTerm != null;
+        query.soql = buildSearchSoql(request, hasLikeSearchTerm);
         return query;
     }
 
@@ -49,9 +50,11 @@ public with sharing class ObjectRecordSearchQueryPlan {
         SearchQueryRequest request,
         Boolean includeNameSearch
     ) {
+        List<String> queryFields = getQueryFields(request.context);
+        String selectedFields = String.join(queryFields, ', ');
         String query =
             'SELECT Id, ' +
-            String.join(getQueryFields(request.context), ', ') +
+            selectedFields +
             ' FROM ' +
             request.context.config.objectApiName;
 
@@ -62,47 +65,56 @@ public with sharing class ObjectRecordSearchQueryPlan {
             );
         }
         if (request.cursor != null) {
-            whereClauses.add(
-                ObjectRecordSearchSortSupport.createCursorWhereClause(
-                    request.sortSpec,
-                    request.cursor
-                )
+            String cursorWhereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
+                request.sortSpec,
+                request.cursor
             );
+            whereClauses.add(cursorWhereClause);
         }
 
-        if (!whereClauses.isEmpty()) {
-            query += ' WHERE ' + String.join(whereClauses, ' AND ');
+        Boolean hasWhereClauses = !whereClauses.isEmpty();
+        if (hasWhereClauses) {
+            String joinedWhereClauses = String.join(whereClauses, ' AND ');
+            query += ' WHERE ' + joinedWhereClauses;
         }
 
-        return query +
+        String sortDirection = request.sortSpec.direction.toUpperCase();
+        String soql = query +
             ' ORDER BY ' +
             request.sortSpec.fieldApiName +
             ' ' +
-            request.sortSpec.direction.toUpperCase() +
+            sortDirection +
             ' NULLS LAST, Id ASC LIMIT ' +
             request.fetchSize;
+        return soql;
     }
 
     private static Boolean usesNameSearch(
         String normalizedSearchTerm,
         ObjectRecordSearchConfigWrapper config
     ) {
-        return String.isNotBlank(normalizedSearchTerm) && config.searchable;
+        Boolean hasSearchTerm = String.isNotBlank(normalizedSearchTerm);
+        return hasSearchTerm && config.searchable;
     }
 
     private static void validateSearchQueryRequest(
         SearchQueryRequest request
     ) {
-        if (!hasRequiredSearchQueryParts(request)) {
+        Boolean hasRequiredParts = hasRequiredSearchQueryParts(request);
+        if (!hasRequiredParts) {
             throw new ObjectRecordSearchException(
                 '検索条件を作成できません。'
             );
         }
 
-        if (
-            !isSupportedObject(request.context.config.objectApiName) ||
-            !isAllowedSortField(request.context, request.sortSpec)
-        ) {
+        Boolean isSupportedObject = isSupportedObject(
+            request.context.config.objectApiName
+        );
+        Boolean isAllowedSortField = isAllowedSortField(
+            request.context,
+            request.sortSpec
+        );
+        if (!isSupportedObject || !isAllowedSortField) {
             throw new ObjectRecordSearchException(
                 '検索条件を作成できません。'
             );
@@ -121,15 +133,21 @@ public with sharing class ObjectRecordSearchQueryPlan {
     }
 
     private static Boolean isSupportedObject(String objectApiName) {
-        return ObjectMetricCatalog.hasObjectApiName(objectApiName);
+        Boolean hasObjectApiName = ObjectMetricCatalog.hasObjectApiName(
+            objectApiName
+        );
+        return hasObjectApiName;
     }
 
     private static Boolean isAllowedSortField(
         ObjectRecordSearchContext context,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
-        return context.getAllowedFieldApiNames()
-            .contains(sortSpec.fieldApiName);
+        Set<String> allowedFieldApiNames = context.getAllowedFieldApiNames();
+        Boolean hasAllowedField = allowedFieldApiNames.contains(
+            sortSpec.fieldApiName
+        );
+        return hasAllowedField;
     }
 
     /**
