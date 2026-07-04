@@ -3,11 +3,13 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchFieldWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchFieldWrapper wrapper;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             wrapper = new ObjectRecordSearchFieldWrapper(
                 'Industry',
                 'Industry',

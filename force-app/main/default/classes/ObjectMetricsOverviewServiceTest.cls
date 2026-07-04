@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldBuildOrderedSummaryFromMetricValues() {
         // 準備
@@ -11,7 +13,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             summary = service.createObjectMetrics(metricValues);
             Test.stopTest();
@@ -75,7 +77,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             summary = service.createObjectMetrics(null);
             Test.stopTest();
@@ -104,7 +106,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         Boolean hasUnknownMetric;
         ObjectMetricCatalog.MetricDefinition blankDefinition;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             hasAccounts = ObjectMetricCatalog.hasDefinition('accounts');
             hasUnknownMetric = ObjectMetricCatalog.hasDefinition('unknown');

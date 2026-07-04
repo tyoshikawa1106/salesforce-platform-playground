@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchServiceTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @TestSetup
     static void setupTestData() {
         List<Account> accounts = TestDataFactory.createAccounts(2);
@@ -38,7 +40,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ];
 
         ObjectRecordSearchResultWrapper result;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = service.createSearchResult(
                 searchQueryRequest,
@@ -98,7 +100,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ];
 
         ObjectRecordSearchResultWrapper result;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = service.createSearchResult(
                 searchQueryRequest,
@@ -144,7 +146,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
 
         ObjectRecordSearchDeleteWrapper result;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             result = service.createDeleteResult(recordIds, deleteResults);
             Test.stopTest();
@@ -171,7 +173,7 @@ private with sharing class ObjectRecordSearchServiceTest {
     static void shouldThrowWhenMetricKeyIsUnsupported() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 service.requireDefinition('unknown');
@@ -195,7 +197,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             .config;
 
         Boolean canDelete;
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             canDelete = service.canDeleteRecords(config, new List<Id>());
             Test.stopTest();
@@ -212,7 +214,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         Boolean canDelete;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             canDelete = service.canDeleteRecords(
                 null,

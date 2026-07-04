@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchConfigWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeMetricAndAccessValues() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -17,7 +19,7 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
         };
         ObjectRecordSearchConfigWrapper wrapper;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             wrapper = new ObjectRecordSearchConfigWrapper(
                 definition,
                 nameFieldDescribe,

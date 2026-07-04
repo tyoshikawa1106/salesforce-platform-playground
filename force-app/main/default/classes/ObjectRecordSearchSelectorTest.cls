@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchSelectorTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @TestSetup
     static void setupTestData() {
         List<Account> accounts = TestDataFactory.createAccounts(4);
@@ -22,7 +24,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         Schema.DescribeSObjectResult objectDescribe;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             objectDescribe = selector.getObjectDescribe('Account');
             Test.stopTest();
@@ -44,7 +46,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         Schema.DescribeFieldResult nameFieldDescribe;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             nameFieldDescribe = selector.getNameFieldDescribe(
                 Account.SObjectType.getDescribe(
@@ -69,7 +71,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
         List<SObject> records;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             records = selector.searchRecords(searchQuery);
             Test.stopTest();
@@ -91,7 +93,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void searchRecordsShouldThrowWhenQueryPlanIsMissing() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 selector.searchRecords(null);
@@ -117,7 +119,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<SObject> records;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             records = selector.getRecordsById(
                 'Account',
@@ -144,7 +146,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         List<SObject> nullIdRecords;
         List<SObject> emptyIdRecords;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             nullIdRecords = selector.getRecordsById('Account', null);
             emptyIdRecords = selector.getRecordsById(
@@ -170,7 +172,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void getRecordsByIdShouldThrowWhenObjectIsUnsupported() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 selector.getRecordsById(
@@ -201,7 +203,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<Database.DeleteResult> deleteResults;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             deleteResults = selector.deleteRecords(recordsToDelete);
             Test.stopTest();
@@ -226,7 +228,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void getObjectDescribeShouldThrowWhenObjectIsUnknown() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             try {
                 selector.getObjectDescribe('UnknownObject__c');

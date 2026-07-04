@@ -3,6 +3,8 @@
  */
 @IsTest
 private with sharing class AccountTriggerHandlerTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsInserted() {
         // 準備
@@ -16,7 +18,7 @@ private with sharing class AccountTriggerHandlerTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -63,7 +65,7 @@ private with sharing class AccountTriggerHandlerTest {
         accountRecord.Name = 'テスト（株）';
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             update accountRecord;
             Test.stopTest();
@@ -87,7 +89,7 @@ private with sharing class AccountTriggerHandlerTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -115,7 +117,7 @@ private with sharing class AccountTriggerHandlerTest {
         );
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             insert accountRecord;
             Test.stopTest();
@@ -136,7 +138,7 @@ private with sharing class AccountTriggerHandlerTest {
         Account accountRecord = TestDataFactory.createAccount('株式会社テスト');
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             insert accountRecord;
             Test.stopTest();
@@ -162,7 +164,7 @@ private with sharing class AccountTriggerHandlerTest {
         };
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             insert accounts;
             Test.stopTest();
@@ -201,7 +203,7 @@ private with sharing class AccountTriggerHandlerTest {
         }
 
         // 実行
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             Test.startTest();
             insert accounts;
             Test.stopTest();

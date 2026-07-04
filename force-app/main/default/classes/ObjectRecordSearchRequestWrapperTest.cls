@@ -3,11 +3,13 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchRequestWrapperTest {
+    private static User testUser = TestDataFactory.currentUser();
+
     @IsTest
     static void shouldExposeAssignedValues() {
         ObjectRecordSearchRequestWrapper wrapper;
 
-        System.runAs(TestDataFactory.currentUser()) {
+        System.runAs(testUser) {
             wrapper = new ObjectRecordSearchRequestWrapper();
             wrapper.metricKey = 'accounts';
             wrapper.searchTerm = 'Alpha';
