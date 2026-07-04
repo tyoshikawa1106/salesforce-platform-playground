@@ -4,7 +4,6 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 基本方針
 
-- デプロイ対象の正本は `force-app/main/default` 配下に置く。
 - `manifest/package.xml` と `manifest/package-*.xml` は、AI エージェントが Salesforce 組織から retrieve して参照・編集するための作業対象 catalog として扱う。
 - package 系 manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
 - 組織から retrieve したメタデータは、コミット前または反映前に差分を確認する。
@@ -37,7 +36,6 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 - Git 管理対象にする metadata type は、原則として type 単位で扱う。個別ファイルを部分選別する場合は、Git の再現性が崩れない理由を確認する。
 - Permission Set や Profile を更新するときは、意図しない権限差分が混ざっていないか確認する。
 - Profile、Role、installed package、通知先、メール送信設定、My Domain、OAuth / SAML など、組織依存や機密情報を含み得る metadata は除外寄りに扱う。
-- App menu、remote site、iframe whitelist など環境依存だが Git 管理対象にしている metadata は、`docs/development/gitignore-rules.md` の管理方針と矛盾しないか確認する。
 - Settings を追加・更新する場合は、ユーザー名、My Domain、ライセンス、Edition、不可逆な有効化、セキュリティ影響を確認する。
 
 取得後は `git status --short`、`git diff --stat`、必要に応じて `git diff` で差分を確認します。
@@ -45,9 +43,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 コミット判断では CLI の表示だけでなく Git の差分を正とします。
 ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認します。
 
-## 検証
-
-メタデータを変更したら、[AIエージェント開発ルール](agent-development-rules.md)、[Apex 開発ルール](apex-rules.md)、[Salesforce 組織反映ルール](../deployment/salesforce-org-deploy-rules.md) の方針に従います。
+## 確認と報告
 
 作業報告には次を含めます。
 

@@ -50,10 +50,8 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 ## メタデータ変更
 
 - デプロイ対象のメタデータは `force-app/main/default` 配下に置く。
-- タスクに必要なメタデータだけを取得する。
 - 取得したメタデータはコミット前に確認する。特に権限や自動生成に見えるファイルに注意する。
-- タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
-- 広い `package.xml` では過剰な場合は、対象 metadata type を絞った `*` manifest を用意して取得範囲を管理する。
+- retrieve / 作業対象 catalog、Git 管理対象、deploy scope の扱いは `docs/development/metadata-rules.md` に従う。
 - Settings の `false` を有効化候補として機械的に扱わない。ライセンス、Edition、依存設定、不可逆性、セキュリティ影響を確認してから小さく分けて検証する。
 - Scratch Org と Salesforce 組織反映の詳細は `docs/deployment/` に従う。
 
