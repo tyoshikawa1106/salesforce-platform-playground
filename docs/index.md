@@ -29,15 +29,15 @@
 
 AI エージェントによる開発時のルール、設定、確認手順を定義します。
 
-| タイトル                                                                 | 概要                                  |
-| ------------------------------------------------------------------------ | ------------------------------------- |
-| [AIエージェント開発ルール](development/agent-development-rules.md)       | AI エージェントが守る共通開発ルール   |
-| [ドキュメント配置ルール](development/documentation-rules.md)             | docs の置き場所、命名、入口更新ルール |
-| [Apex 開発ルール](development/apex-rules.md)                             | Apex 実装、テスト、検証の方針         |
-| [GitHub 運用ルール](development/github-rules.md)                         | Issue、PR、CI、リリースの運用         |
-| [メタデータ開発ルール](development/metadata-rules.md)                    | Salesforce メタデータ変更時の確認観点 |
-| [.gitignore 運用ルール](development/gitignore-rules.md)                  | Git 管理対象外にするファイルの考え方  |
-| [Salesforce CLI テストデータインポート](development/test-data-import.md) | テストデータ投入の手順と注意点        |
+| タイトル                                                           | 概要                                  |
+| ------------------------------------------------------------------ | ------------------------------------- |
+| [AIエージェント開発ルール](development/agent-development-rules.md) | AI エージェントが守る共通開発ルール   |
+| [ドキュメント配置ルール](development/documentation-rules.md)       | docs の置き場所、命名、入口更新ルール |
+| [Apex 開発ルール](development/apex-rules.md)                       | Apex 実装、テスト、検証の方針         |
+| [GitHub 運用ルール](development/github-rules.md)                   | Issue、PR、CI、リリースの運用         |
+| [メタデータ開発ルール](development/metadata-rules.md)              | Salesforce メタデータ変更時の確認観点 |
+| [テストデータ投入手順](development/test-data-import.md)            | テストデータ投入の手順と注意点        |
+| [.gitignore 運用ルール](development/gitignore-rules.md)            | Git 管理対象外にするファイルの考え方  |
 
 ## デプロイ
 
