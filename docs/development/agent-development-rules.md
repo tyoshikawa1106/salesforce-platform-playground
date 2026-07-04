@@ -125,8 +125,6 @@ npm run code-analyzer:ci
 
 `logs/code-analyzer/` 配下の解析結果ファイルは生成物なので Git 管理しません。出力先フォルダの扱いは `logs/code-analyzer/code-analyzer-guide.md` を参照します。
 
-開発時に使う主要コマンドの役割は [ローカル開発コマンド](../knowledge/local-development-commands.md) を参照します。
-
 ## 変更後確認
 
 - `git status --short` と `git diff --stat` で変更範囲を確認する。
