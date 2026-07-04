@@ -143,10 +143,6 @@ metadata type ごとに次の順で進めます。
 | 中     | `sharingRules/`                          | 空ルールや標準 object 由来の差分を減らせる可能性がある。                     |
 | 低     | `translations/` / `managedContentTypes/` | 使う機能が明確になってから扱う方が安全。                                     |
 
-## 関連 docs
+## 関連メモ
 
-- [AIエージェント開発ルール](../development/agent-development-rules.md)
-- [メタデータ開発ルール](../development/metadata-rules.md)
-- [Salesforce 組織反映ルール](../deployment/salesforce-org-deploy-rules.md)
-- [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md)
 - [Salesforce メタデータの Git 管理候補](../discussions/salesforce-metadata-git-management-candidates.md)

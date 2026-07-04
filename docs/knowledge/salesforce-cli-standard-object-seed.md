@@ -150,8 +150,6 @@ sf sobject describe --sobject Account --target-org <alias> --json
 
 ## このリポジトリでの実装例
 
-このリポジトリでは、具体的な運用手順を [テストデータ投入手順](../development/test-data-import.md) に置いています。
-
 主要標準オブジェクト seed の実体は次です。
 
 - `scripts/apex/test-data/seed-standard-objects.apex`
