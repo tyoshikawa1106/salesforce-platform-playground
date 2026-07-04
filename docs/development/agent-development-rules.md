@@ -80,23 +80,26 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 sf config get target-org
 ```
 
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display` を使います。
+org 操作では、default target org の切り替え忘れによる誤実行を避けるため、確認済みの alias を `--target-org <alias>` で明示します。
+default target org を使う wrapper command を実行する場合も、事前に `sf config get target-org` で対象を確認します。
+alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。
 
-deploy、delete、retrieve、Apex test は現在接続されている Salesforce 組織に対してのみ実行します。明示依頼なしに `--target-org` 指定やデフォルト組織の切り替えで別組織へ反映しません。
+deploy、delete、retrieve、Apex test、data import は、確認済みの Salesforce 組織に対してのみ実行します。明示依頼なしに default target org を切り替えません。
 
-メタデータを接続中の Salesforce 組織へ反映する作業では、反映前に検証します:
+メタデータを確認済みの Salesforce 組織へ反映する作業では、反映前に検証します:
 
 ```sh
-npm run sf:validate:dev
+npm run sf:validate:dev -- --target-org <alias>
 ```
 
-依頼範囲に接続中の Salesforce 組織への反映が含まれ、検証結果に問題がなければ反映します:
+依頼範囲に確認済みの Salesforce 組織への反映が含まれ、検証結果に問題がなければ反映します:
 
 ```sh
-npm run sf:deploy:dev
+npm run sf:deploy:dev -- --target-org <alias>
 ```
 
 `npm run sf:validate:dev` は Salesforce 組織への初回デプロイ / 再構築用の `manifest/rebuild-developer-org.xml` を使います。
+対象 org は、`npm run sf:validate:dev -- --target-org <alias>`、`npm run sf:deploy:dev -- --target-org <alias>` のように npm script へ渡します。
 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って検証します。
 
 Apex 変更を含む PR を作成する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。

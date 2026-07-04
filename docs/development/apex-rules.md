@@ -103,7 +103,7 @@ sf apex run test --test-level RunLocalTests --result-format human --synchronous
 ```
 
 接続済み組織に対する test 実行は組織操作に含まれるため、実行前に対象と目的を確認します。
-test は現在接続されている Salesforce 組織に対してのみ実行し、明示依頼なしに target org を切り替えません。
+test は確認済みの Salesforce 組織に対してのみ実行し、`--target-org <alias>` で対象を明示します。明示依頼なしに default target org を切り替えません。
 
 ## Deploy validate と deploy start
 
@@ -112,25 +112,25 @@ test は現在接続されている Salesforce 組織に対してのみ実行し
 Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
 
 ```sh
-npm run sf:validate:dev
+npm run sf:validate:dev -- --target-org <alias>
 ```
 
-依頼範囲に Salesforce 組織への反映が含まれ、validate が成功したら、同じ現在接続中の組織へ反映します。
+依頼範囲に Salesforce 組織への反映が含まれ、validate が成功したら、同じ確認済みの組織へ反映します。
 
 ```sh
-npm run sf:deploy:dev
+npm run sf:deploy:dev -- --target-org <alias>
 ```
 
 Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、deploy 後の Apex テストは PR 作成前の確認にまとめます。
 
-- 対象組織の確認: `sf config get target-org`
-- メタデータの整合性確認: `npm run sf:validate:dev`
-- 変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest`
-- 現在接続中の組織への反映: `npm run sf:deploy:dev`
-- PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage`
+- 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
+- メタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
+- 変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
+- 確認済みの組織への反映: `npm run sf:deploy:dev -- --target-org <alias>`
+- PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage --target-org <alias>`
 
 `sf project deploy preview` は標準の確認手段にしません。反映前は Git の差分確認と `sf project deploy validate` で確認します。
-明示依頼がない限り、`--target-org` 指定やデフォルト組織の切り替えで別組織へデプロイしません。
+明示依頼がない限り、default target org の切り替えで別組織へデプロイしません。
 
 ## Coverage の扱い
 
