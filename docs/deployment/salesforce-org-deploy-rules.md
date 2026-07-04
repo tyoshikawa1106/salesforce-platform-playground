@@ -1,17 +1,35 @@
-# Salesforce 組織反映ルール
+# Salesforce 組織操作ルール
 
-この文書は、AI エージェントが Salesforce 組織へメタデータを検証・反映するときの実行ルールを定義します。標準の反映先は、このプロジェクトで接続している Salesforce 組織です。
+この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断入口です。
+実行コマンドの暗記ではなく、対象 org、scope、検証結果、報告内容を取り違えないための運用ルールとして扱います。
+
+Scratch Org の作成・初期反映は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md) を参照します。
+destructive changes は [Salesforce メタデータ削除ルール](salesforce-org-destructive-changes-rules.md) を参照します。
+テストデータ投入は [テストデータ投入手順](test-data-import.md) を参照します。
 
 ## 実行ルール
 
-- deploy は確認済みの Salesforce 組織に対してのみ実行する。
-- default target org の切り替え忘れによる誤実行を避けるため、deploy / validate では確認済みの alias を `--target-org <alias>` で明示する。
+- validate / deploy / test / retrieve は、確認済みの Salesforce 組織に対してのみ実行する。
+- default target org の切り替え忘れによる誤実行を避けるため、Salesforce 組織操作では確認済みの alias を `--target-org <alias>` で明示する。
 - 明示依頼なしに default target org を切り替えない。
 - `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。
-- 反映前に `sf project deploy validate` を実行する。
+- deploy 前に `sf project deploy validate`、dry-run、または同等の preflight を実行する。どれを使ったかを報告する。
 - `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証入口にはしない。
-- `manifest/rebuild-developer-org.xml` は Salesforce 組織への初回デプロイ / 再構築用として扱う。
+- `manifest/rebuild-developer-org.xml` は接続中の Salesforce 組織への初回デプロイ / 再構築 scope として扱う。
 - 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞る。
+- org 側の retrieve 結果が `Changed` でも、その表示だけで repo 反映を判断しない。Git 差分を確認して、対象外差分や空白差分を除外する。
+- `sf org display --json` など token を含み得る出力は、必要性が明確な場合だけ使う。報告や docs に token、実ユーザー名、org 固有 URL を残さない。
+
+## 判断順序
+
+Salesforce 組織操作を行う前に、次の順で判断します。
+
+1. 依頼範囲が validate / deploy / retrieve / test / data import / destructive changes のどれかを切り分ける。
+2. 対象 org alias を確認する。
+3. deploy / retrieve scope を manifest、`--metadata`、または script の設定で絞る。
+4. Git 差分を確認し、対象外の metadata や org 固有値が混ざっていないことを確認する。
+5. deploy 前に validate、dry-run、または script の dry-run を実行する。
+6. 実行結果、対象 org alias、未実行の確認と理由を報告する。
 
 ## 対象組織
 
@@ -25,7 +43,7 @@ alias だけでは判断できない場合に限り、必要な範囲で `sf org
 
 ## Validate
 
-Salesforce 組織の初回デプロイ / 再構築では、反映前にメタデータの整合性を確認します。
+接続中の Salesforce 組織の初回デプロイ / 再構築では、反映前にメタデータの整合性を確認します。
 
 ```sh
 npm run sf:validate:dev -- --target-org <alias>
@@ -40,6 +58,9 @@ sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-
 validate が失敗した場合は、失敗理由と対象ファイルを確認し、必要な修正だけを行います。
 `sf project deploy validate --source-dir force-app` の失敗は、広く retrieve した org 固有 metadata の混入確認として扱い、通常作業の失敗判定にはしません。
 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って validate します。
+
+PR 前の確認では、変更内容に応じてこの validate に加えて LWC test、Code Analyzer、Apex test を実行します。
+Salesforce 組織へ永続反映する deploy は、ユーザーの明示依頼または repo の運用ルールで要求される場合だけ実行します。
 
 ## CI validate
 
@@ -118,13 +139,14 @@ sf project deploy start --manifest manifest/rebuild-developer-org.xml --target-o
 ```
 
 変更範囲を狭く反映したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って deploy します。
+validate の job id を使って quick deploy する場合も、対象 org alias を明示し、元の validate 結果と deploy 結果を両方報告します。
 
 ## Apex test
 
 Apex クラスやトリガーを含む PR を作成する前に、関連 Apex テストを coverage 付きで実行します。
 
 ```sh
-sf apex run test --class-names MyClassTest --code-coverage --result-format human
+sf apex run test --class-names MyClassTest --code-coverage --result-format human --target-org <alias>
 ```
 
 コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
