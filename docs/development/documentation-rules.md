@@ -1,6 +1,6 @@
 # ドキュメント配置ルール
 
-AI エージェントが docs を配置・参照するときは、このルールに従います。
+AI エージェントが docs を追加、移動、分割するときは、このルールに従って配置します。
 
 ## 基本方針
 
@@ -22,59 +22,48 @@ docs を追加、移動、分割するときは、上から順に判定します
 5. 実行ルールではない概念説明、背景、参考情報なら `docs/knowledge/` に置く。
 6. README には、プロジェクト概要、主要な入口、セットアップの最短導線だけを書く。
 
-## 迷ったときの移動先
+## 配置の補足
 
 ### README.md
 
-- 詳細な運用ルールや長いチェックリストは `docs/development/` へ移す。
-- 一時的な判断過程は `docs/discussions/` へ移す。
+- 詳細な運用ルールや長いチェックリストは `docs/development/` に置く。
+- 一時的な判断過程は `docs/discussions/` に置く。
 - 個別 docs の一覧は `docs/index.md` に集約する。
 
 ### docs/setup/
 
-- 日常開発で守る実装ルールは `docs/development/` へ移す。
-- Salesforce 組織操作の実行ルールは `docs/deployment/` へ移す。
-- 一般概念だけの説明は `docs/knowledge/` へ移す。
+- 日常開発で守る実装ルールは `docs/development/` に置く。
+- Salesforce 組織操作の実行ルールは `docs/deployment/` に置く。
+- 一般概念だけの説明は `docs/knowledge/` に置く。
 
 ### docs/development/
 
-- Salesforce 組織操作の詳細手順は `docs/deployment/` へ移す。
-- 初回セットアップは `docs/setup/` へ移す。
-- 決定前の設計案は `docs/discussions/` へ移す。
-- 一般概念だけの説明は `docs/knowledge/` へ移す。
+- Salesforce 組織操作の詳細手順は `docs/deployment/` に置く。
+- 初回セットアップは `docs/setup/` に置く。
+- 決定前の設計案は `docs/discussions/` に置く。
+- 一般概念だけの説明は `docs/knowledge/` に置く。
 
 ### docs/deployment/
 
-- Apex や metadata の通常開発ルールは `docs/development/` へ移す。
-- npm やローカル開発環境の準備手順は `docs/setup/` へ移す。
-- 組織操作を伴わない一般概念説明は `docs/knowledge/` へ移す。
+- Apex や metadata の通常開発ルールは `docs/development/` に置く。
+- npm やローカル開発環境の準備手順は `docs/setup/` に置く。
+- 組織操作を伴わない一般概念説明は `docs/knowledge/` に置く。
 
 ### docs/discussions/
 
 - エージェントとの会話ログそのものは置かない。
-- 実務で必ず守るルール、決定済みの手順、チェックリストは `docs/development/` へ移す。
-- 一般概念だけの説明は `docs/knowledge/` へ移す。
-
-決定済みの実務ルールになった内容は `docs/development/` に移すか、要点だけをリンクする。
-ファイル名は日付ではなく、内容を表す slug にする。
+- 実務で必ず守るルール、決定済みの手順、チェックリストは、内容に応じて `docs/development/` または `docs/deployment/` に置く。
+- 一般概念だけの説明は `docs/knowledge/` に置く。
+- 決定済みの実務ルールになった内容は `docs/development/` または `docs/deployment/` に移すか、要点だけをリンクする。
+- ファイル名は日付ではなく、内容を表す slug にする。
 
 ### docs/knowledge/
 
-- repo 固有の運用判断や実行すべきチェックリストは `docs/development/` へ移す。
-- 特定 Salesforce 組織の操作手順や設定値は `docs/deployment/` へ移す。
-- 今回の Issue だけの作業方針は、必要な場合だけ `docs/discussions/` へ移す。
+- repo 固有の運用判断や実行すべきチェックリストは `docs/development/` に置く。
+- 特定 Salesforce 組織に対する操作手順や設定前提は `docs/deployment/` に置く。
+- 今回の Issue だけの作業方針は、必要な場合だけ `docs/discussions/` に置く。
 
 AI エージェントに守らせる実務ルールは `docs/development/`、セットアップ手順は `docs/setup/`、Salesforce 組織操作ルールは `docs/deployment/` へ置く。
-
-## 参照ルール
-
-作業前に、変更対象に対応する docs を確認する。
-
-1. セットアップや依存準備を変更する場合は `docs/setup/` を確認する。
-2. Apex、metadata、GitHub、docs などの開発ルールに関わる場合は `docs/development/` を確認する。
-3. Salesforce 組織操作を行う場合は `docs/deployment/` を確認する。
-4. 背景や概念を確認する場合だけ `docs/knowledge/` を参照する。
-5. 判断過程や未決定事項を確認する場合だけ `docs/discussions/` を参照する。
 
 ## 入口更新
 
