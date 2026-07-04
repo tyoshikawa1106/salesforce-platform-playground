@@ -70,16 +70,17 @@ sf org login web --set-default --alias salesforce-platform-playground
 ## 開発コマンド
 
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
+`<alias>` は実行前に確認した対象 org alias に置き換えます。
 
 ```sh
 # Salesforce 開発組織への反映を検証する
-npm run sf:validate:dev
+npm run sf:validate:dev -- --target-org <alias>
 
 # Salesforce 開発組織へ反映する
-npm run sf:deploy:dev
+npm run sf:deploy:dev -- --target-org <alias>
 
 # Apex テストを実行する
-sf apex run test --result-format human
+sf apex run test --result-format human --target-org <alias>
 
 # 整形を確認する
 npm run prettier:verify
