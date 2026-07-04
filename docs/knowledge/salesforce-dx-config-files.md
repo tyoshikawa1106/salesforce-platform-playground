@@ -20,7 +20,7 @@ Salesforce DX project の基本設定です。
 
 ## config/project-scratch-def.json
 
-Scratch Org 作成時の edition、features、作成時 settings を定義します。Dev 組織への deploy 先設定ではありません。
+Scratch Org 作成時の edition、features、作成時 settings を定義します。Salesforce 組織への deploy 先設定ではありません。
 
 | key        | 内容                                                                |
 | ---------- | ------------------------------------------------------------------- |

@@ -86,14 +86,14 @@ npm run setup:data:standard:dry-run
 npm run setup:data:standard -- --target-org <alias>
 ```
 
-### Dev 組織 validate / deploy
+### Salesforce 組織 validate / deploy
 
 ```json
 "sf:validate:dev": "sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests",
 "sf:deploy:dev": "sf project deploy start --manifest manifest/rebuild-developer-org.xml"
 ```
 
-Dev 組織向けの標準 manifest を使う validate / deploy entrypoint です。実行前に対象 org を確認します。
+Salesforce 組織向けの標準 manifest を使う validate / deploy entrypoint です。実行前に対象 org を確認します。
 
 ### Prettier
 

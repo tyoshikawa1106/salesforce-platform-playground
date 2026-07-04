@@ -64,7 +64,7 @@ discussion のファイル名は、日付ではなく内容を表す slug にし
 避ける例:
 
 - このリポジトリだけのブランチ運用判断
-- 特定 Dev 組織の設定値
+- 特定 Salesforce 組織の設定値
 - 今回の Issue だけの作業方針
 
 AI エージェントに必ず守らせる実務ルール、チェックリスト、確認手順は `docs/development/`、セットアップ手順は `docs/setup/`、Salesforce 組織操作ルールは `docs/deployment/` に置きます。
