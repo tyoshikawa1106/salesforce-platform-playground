@@ -58,7 +58,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 ## テストデータ / seed 変更
 
 - org に投入する seed data には、実在の個人情報、顧客情報、秘密情報、org 固有 ID を入れない。
-- seed を追加・変更する場合は、`docs/development/test-data-import.md` に従い、投入前に dry-run、cleanup 方針、対象 org の前提を確認する。
+- seed を追加・変更する場合は、`docs/deployment/test-data-import.md` に従い、投入前に dry-run、cleanup 方針、対象 org の前提を確認する。
 
 ## docs / 設定変更
 
