@@ -26,7 +26,7 @@ sf data export bulk \
   --target-org <alias>
 ```
 
-標準オブジェクトの初期データセットアップ手順は [test-data-import.md](../docs/development/test-data-import.md) を参照してください。
+標準オブジェクトの初期データセットアップ手順は [test-data-import.md](../docs/deployment/test-data-import.md) を参照してください。
 
 ## ローカル export 結果の削除
 
