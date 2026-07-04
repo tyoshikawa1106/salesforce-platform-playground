@@ -1,74 +1,57 @@
 # ドキュメント配置ルール
 
-このプロジェクトのドキュメントは、読む頻度と役割に応じて配置します。
+AI エージェントが docs を追加、移動、分割するときは、このルールに従って配置します。
 
 ## 基本方針
 
-- `AGENTS.md` は、Codex などのエージェントが常に守る短い共通ルールだけを書く。
-- `CLAUDE.md`、`GEMINI.md`、`.github/copilot-instructions.md`、`.clinerules/`、`.cline/skills/` は各ツール向けの入口にとどめ、共通ルールは `AGENTS.md` に集約する。
-- 詳しい手順、判断基準、背景説明は `docs/` 配下に分ける。
-- README は入口として簡潔に保ち、詳細は `docs/` へリンクする。
-- 同じ内容を複数箇所に長く重複させない。
-- docs の本文、見出し、ファイル名には、時系列の記録を固定しない。
-- 時点依存の記録より、現在使う判断基準、確認観点、再確認条件を残す。
+- AI エージェントが作業中に参照する必要があるルール、手順、確認観点は、実行時に見つけやすい場所へ置く。
+- README は入口にとどめ、詳細なルール、手順、判断基準は `docs/` 配下に置く。
+- 同じ内容を複数箇所に長く重複させない。重複が必要な場合は要点だけを書き、詳細ページへリンクする。
+- 本文、見出し、ファイル名には時系列の記録を固定しない。現在使う判断基準、確認観点、再確認条件を残す。
 
-## 配置
+## 配置判断
 
-| 場所                              | 用途                                                      |
-| --------------------------------- | --------------------------------------------------------- |
-| `AGENTS.md`                       | エージェントが常に守る短い共通ルール                      |
-| `CLAUDE.md`                       | Claude Code 向けの入口                                    |
-| `GEMINI.md`                       | Gemini CLI 向けの入口                                     |
-| `.github/copilot-instructions.md` | GitHub Copilot 向けの入口                                 |
-| `.clinerules/`                    | Cline 向けの workspace rules                              |
-| `.cline/skills/`                  | Cline 向けの skill router                                 |
-| `.clineignore`                    | Cline の自動 context / search から外す対象                |
-| `README.md`                       | プロジェクト概要、主要な入口、セットアップの最短導線      |
-| `docs/setup/`                     | 開発ツール導入、プロジェクト側の準備、組織ログイン        |
-| `docs/development/`               | AI エージェントが守る開発ルール、チェックリスト、確認手順 |
-| `docs/deployment/`                | デプロイ、取得、削除変更、組織再現に関する手順            |
-| `docs/discussions/`               | 設計案、課題、見直し内容など、判断過程を整理する文書      |
-| `docs/knowledge/`                 | ルールとして強制しない概念、設定説明、参考文書            |
+docs を追加、移動、分割するときは、上から順に判定します。
+先に一致した場所へ置きます。
 
-## Discussions の扱い
+1. 作業前に一度だけ行う準備なら `docs/setup/` に置く。
+2. 作業中に毎回守る開発ルール、確認観点、チェックリストなら `docs/development/` に置く。
+3. Salesforce 組織に対する deploy / validate / retrieve / destructive changes / data import / Scratch Org 再現の手順なら `docs/deployment/` に置く。
+4. まだ決定していない比較、検討、判断材料なら `docs/discussions/` に置く。
+5. 実行ルールではない概念説明、背景、参考情報なら `docs/knowledge/` に置く。
+6. README には、プロジェクト概要、主要な入口、セットアップの最短導線だけを書く。
 
-`docs/discussions/` には、決定済みルールとして固定する前の設計案や判断過程を置きます。
+## 置かないもの
 
-良い例:
+### README.md
 
-- 最初の設計案と、その課題
-- 見直した構成案
-- 今後の開発で再検討する判断基準
+詳細な運用ルール、長いチェックリスト、個別 docs の一覧、一時的な判断過程は置かない。
 
-避ける例:
+### docs/setup/
 
-- エージェントとの会話ログそのもの
-- 実務で必ず守るルール
-- Salesforce や GitHub の一般的な概念説明
+日常開発で守る実装ルール、Salesforce 組織操作の実行ルール、一般概念だけの説明は置かない。
 
-決定済みの実務ルールになった内容は `docs/development/` に移すか、要点だけをリンクします。
+### docs/development/
 
-discussion のファイル名は、日付ではなく内容を表す slug にします。
+Salesforce 組織操作の詳細手順、初回セットアップ、決定前の設計案、一般概念だけの説明は置かない。
 
-## Knowledge の扱い
+### docs/deployment/
 
-`docs/knowledge/` には、AI エージェントの実行ルールとして強制しない概念、設定説明、参考情報を置きます。
+Apex や metadata の通常開発ルール、npm やローカル開発環境の準備手順、組織操作を伴わない一般概念説明は置かない。
 
-良い例:
+### docs/discussions/
 
-- GitHub Issue テンプレート設定の意味
-- npm と pre-commit hook の関係
-- Salesforce DX の概念整理
-- リポジトリ内の設定ファイルの読み方
+エージェントとの会話ログそのもの、実務で必ず守るルール、決定済みの手順やチェックリスト、一般概念だけの説明は置かない。
 
-避ける例:
+決定済みの実務ルールになった内容は `docs/development/` に移すか、要点だけをリンクする。
+ファイル名は日付ではなく、内容を表す slug にする。
 
-- このリポジトリだけのブランチ運用判断
-- 特定 Salesforce 組織の設定値
-- 今回の Issue だけの作業方針
+### docs/knowledge/
 
-AI エージェントに必ず守らせる実務ルール、チェックリスト、確認手順は `docs/development/`、セットアップ手順は `docs/setup/`、Salesforce 組織操作ルールは `docs/deployment/` に置きます。
+repo 固有の運用判断、特定 Salesforce 組織の設定値、今回の Issue だけの作業方針、実行すべきチェックリストや作業手順は置かない。
 
-## GitHub Pages の入口
+AI エージェントに守らせる実務ルールは `docs/development/`、セットアップ手順は `docs/setup/`、Salesforce 組織操作ルールは `docs/deployment/` へ置く。
 
-`docs/index.md` は GitHub Pages の入口として扱います。新しい docs を追加、移動、削除した場合は、`docs/index.md` から辿れるか確認します。
+## 入口更新
+
+新しい docs を追加、移動、削除した場合は、`docs/index.md` から辿れる状態にする。
