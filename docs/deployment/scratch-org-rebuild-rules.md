@@ -8,7 +8,7 @@
 - Salesforce 組織への deploy 先設定とは分けて考える。
 - Scratch Org で再現できない前提が見つかった場合は、設定または docs に残す。
 - 個人環境の alias や認証情報をコミットしない。
-- Scratch Org は一時環境として扱い、確認が終わったら削除する。
+- Scratch Org は一時環境として扱う。削除はユーザーの明示依頼がある場合だけ実行する。
 - `manifest/rebuild-scratch-org.xml` は Scratch Org への反映にだけ使う。
 - Scratch Org で作成、変更したメタデータを戻す場合は、作業対象を絞った manifest を用意して retrieve / deploy に使う。
 - `force-app` 全体 dry-run は、Salesforce 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
@@ -61,8 +61,6 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 4. Scratch Org ユーザー用 Permission Set assign
 5. Apex test
 ```
-
-現時点の Salesforce 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
 
 ## 作成前確認
 
@@ -270,7 +268,7 @@ sf org open --target-org scratch-platform-playground -b chrome
 
 ## 削除
 
-確認が終わったら Scratch Org を削除します。
+Scratch Org の削除は、ユーザーの明示依頼がある場合だけ実行します。
 削除前に、必要な metadata や確認結果がリポジトリ側に反映されているか確認します。
 
 対象の alias、状態、有効期限を確認します。

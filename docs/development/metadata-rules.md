@@ -7,6 +7,7 @@ Salesforce メタデータを追加・更新するときの実務ルールです
 - デプロイ対象の正本は `force-app/main/default` 配下に置く。
 - 変更対象に必要なメタデータだけを追加・取得する。
 - 組織から retrieve したメタデータは、コミット前に差分を確認する。
+- 広い manifest で retrieve した結果を、そのまま正本として扱わない。
 - 組織固有の値、認証情報、個人環境の値はメタデータに入れない。
 - コードや既存メタデータから確認できない業務仕様を推測で固定しない。
 
@@ -28,7 +29,11 @@ Salesforce メタデータを追加・更新するときの実務ルールです
 - 自動生成に見える差分や権限系の広い差分は、必要性を確認してから残す。
 - `package.xml` は、タスクで明示されていない限り一時的な取得・検証補助として扱う。
 - 広い `package.xml` では取得範囲が過剰な場合は、対象 metadata type を絞った `*` manifest を用意して取得範囲を管理する。
+- Git 管理対象にする metadata type は、原則として type 単位で扱う。個別ファイルを部分選別する場合は、再現性が崩れない理由を確認する。
 - Permission Set や Profile を更新するときは、意図しない権限差分が混ざっていないか確認する。
+- Profile、Role、installed package、通知先、メール送信設定、My Domain、OAuth / SAML など、組織依存や機密情報を含み得る metadata は除外寄りに扱う。
+- App menu、remote site、iframe whitelist など環境依存だが Git 管理対象にしている metadata は、`docs/development/gitignore-rules.md` の管理方針と矛盾しないか確認する。
+- Settings を追加・更新する場合は、ユーザー名、My Domain、ライセンス、Edition、不可逆な有効化、セキュリティ影響を確認する。
 
 retrieve の具体的な事前確認と差分確認は [Salesforce メタデータ取得ルール](../deployment/salesforce-org-metadata-retrieve-rules.md) に従います。
 

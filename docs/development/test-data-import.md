@@ -38,11 +38,9 @@ npm run setup:data:standard:dry-run
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
-通常 org では各オブジェクトにつき 50 件、Scratch Org では各オブジェクトにつき 2,000 件を目安に作成します。各 anonymous Apex は 1 回あたり 50 件を作成します。Scratch Org 用のスクリプトは `--default-repeat 40` を指定し、`import-plan.json` で `repeat` を指定していない entry だけを 40 回実行します。`Campaign` は前年・今年・来年の月次キャンペーン 36 件、`Product2` / `PricebookEntry` はオフィス備品販売を想定した定義済み商品カタログとして作成・更新し、repeat で件数を増やしません。関連先の親レコードはサイクルごとにローテーションし、最新 50 件だけに偏らないようにします。レイアウトにある標準項目のうち、対象 org で DML insert 可能な項目には合成値を設定します。
-
 execute anonymous の CPU / サイズ制限を避けるため、1 つの primary object につき 1 つの anonymous Apex ファイルに分け、`scripts/setup/import-plan.json` の順序で実行します。
 
-固定マスタ寄りの `Campaign`、`Product2`、`PricebookEntry`、`CampaignMember` は repeat せず、取引先配下のトランザクション系 object は通常 org で 50 件、Scratch Org で 2,000 件規模になるよう repeat します。
+件数や固定マスタの扱いは、このセクションの作成対象一覧の後にまとめます。
 
 ```sh
 npm run setup:data:standard:dry-run

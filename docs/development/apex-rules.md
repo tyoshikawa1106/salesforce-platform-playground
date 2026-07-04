@@ -107,7 +107,7 @@ test は現在接続されている Salesforce 組織に対してのみ実行し
 
 ## Deploy validate と deploy start
 
-デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、変更単位で `deploy validate` と `deploy start` を実行し、現在接続中の組織へ反映します。
+デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、変更単位で validate します。Salesforce 組織への反映は、依頼範囲に deploy が含まれる場合だけ実行します。
 
 Salesforce 組織への標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
 
@@ -115,7 +115,7 @@ Salesforce 組織への標準検証は、全体 deploy に向かない metadata 
 npm run sf:validate:dev
 ```
 
-validate が成功したら、同じ現在接続中の組織へ反映します。
+依頼範囲に Salesforce 組織への反映が含まれ、validate が成功したら、同じ現在接続中の組織へ反映します。
 
 ```sh
 npm run sf:deploy:dev
