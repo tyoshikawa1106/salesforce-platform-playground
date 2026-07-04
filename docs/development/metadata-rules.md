@@ -27,6 +27,7 @@ Salesforce メタデータを追加・更新するときの実務ルールです
 - retrieve はタスクに必要な範囲に絞る。
 - 自動生成に見える差分や権限系の広い差分は、必要性を確認してから残す。
 - `package.xml` は、タスクで明示されていない限り一時的な取得・検証補助として扱う。
+- 広い `package.xml` では取得範囲が過剰な場合は、対象 metadata type を絞った `*` manifest を用意して取得範囲を管理する。
 - Permission Set や Profile を更新するときは、意図しない権限差分が混ざっていないか確認する。
 
 retrieve の具体的な事前確認と差分確認は [Salesforce メタデータ取得ルール](../deployment/salesforce-org-metadata-retrieve-rules.md) に従います。

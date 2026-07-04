@@ -51,6 +51,10 @@ git diff
 
 コミット対象にする場合は、なぜその manifest がリポジトリに必要かを報告に残します。
 
+広い `package.xml` では取得範囲が過剰になる場合は、対象 metadata type を絞った manifest を用意します。
+同じ metadata type を継続して扱う場合は、`manifest/package-<metadata-type>.xml` などの分かる名前で、必要な type だけを `<members>*</members>` で全取得する manifest として管理します。
+一時的な調査だけで使う manifest は、恒久的な docs や運用判断に必要な場合を除きコミット対象にしません。
+
 ## 報告ルール
 
 retrieve を行った場合は次を報告します。
