@@ -4,25 +4,12 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 基本方針
 
-- デプロイ対象の正本は `force-app/main/default` 配下に置く。
 - `manifest/package.xml` と `manifest/package-*.xml` は、AI エージェントが Salesforce 組織から retrieve して参照・編集するための作業対象 catalog として扱う。
 - package 系 manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
 - 組織から retrieve したメタデータは、コミット前または反映前に差分を確認する。
 - 広い manifest で retrieve した結果を、そのまま Git の正本や deploy scope として扱わない。
 - 組織固有の値、認証情報、個人環境の値はメタデータに入れない。
 - コードや既存メタデータから確認できない業務仕様を推測で固定しない。
-
-## 依存関係の確認
-
-振る舞いを変える前に、関連する依存を確認します。
-
-- Object / Field
-- Record Type / Page Layout / Lightning Page
-- Permission Set / Profile
-- Flow / Validation Rule / Approval Process
-- Apex / Trigger / LWC / Aura
-
-依存が確認できない場合は、作業報告に確認事項として残します。
 
 ## 取得と追加
 
@@ -32,27 +19,21 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 - retrieve 前に、対象 Salesforce 組織の alias、取得方法、既存ファイルへの上書き影響、権限系メタデータへの影響を確認する。
 - retrieve は確認済みの alias を `--target-org <alias>` で明示して実行する。
 - 自動生成に見える差分や権限系の広い差分は、必要性を確認してから残す。
-- Git 管理対象外の metadata でも、タスクに必要な場合は retrieve して参照・編集・反映してよい。
+- Git 管理対象外の metadata でも、タスクに必要な場合は retrieve して参照してよい。編集や反映は依頼範囲に含まれる場合だけ行う。
 - Git 管理対象外の metadata を扱う場合は、対象 metadata、対象 org、反映方法、Git に残さない理由を作業報告に残す。
 - Git 管理対象にする metadata type は、原則として type 単位で扱う。個別ファイルを部分選別する場合は、Git の再現性が崩れない理由を確認する。
-- Permission Set や Profile を更新するときは、意図しない権限差分が混ざっていないか確認する。
-- Profile、Role、installed package、通知先、メール送信設定、My Domain、OAuth / SAML など、組織依存や機密情報を含み得る metadata は除外寄りに扱う。
-- App menu、remote site、iframe whitelist など環境依存だが Git 管理対象にしている metadata は、`docs/development/gitignore-rules.md` の管理方針と矛盾しないか確認する。
-- Settings を追加・更新する場合は、ユーザー名、My Domain、ライセンス、Edition、不可逆な有効化、セキュリティ影響を確認する。
+- 組織依存、権限、認証、通知、ユーザー参照、機密情報を含み得る metadata は、Git 管理や反映対象にする前に必要性を確認する。
 
 取得後は `git status --short`、`git diff --stat`、必要に応じて `git diff` で差分を確認します。
 広い manifest で retrieve すると、Salesforce CLI の結果表では `Changed` が多数表示されることがあります。
 コミット判断では CLI の表示だけでなく Git の差分を正とします。
 ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認します。
 
-## 検証
-
-メタデータを変更したら、[AIエージェント開発ルール](agent-development-rules.md)、[Apex 開発ルール](apex-rules.md)、[Salesforce 組織反映ルール](../deployment/salesforce-org-deploy-rules.md) の方針に従います。
+## 確認と報告
 
 作業報告には次を含めます。
 
 - 変更したメタデータ種別とファイル
-- 依存確認の結果
 - Git 管理対象外 metadata を扱った場合は、対象 metadata、対象 org、反映方法、Git に残さない理由
 - 実行した validate / deploy / test
 - 対象 Salesforce 組織の alias
