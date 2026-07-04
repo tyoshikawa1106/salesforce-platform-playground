@@ -11,6 +11,16 @@ GitHub 作業の基本境界は `AGENTS.md` に従います。このファイル
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - hook が依存不足で失敗した場合、勝手に依存を導入せず確認する。
 
+## Issue ルール
+
+PR は、対応する実在 Issue を必ず持つものとして扱います。
+
+- PR 作成前に、対応 Issue が存在することを確認する。
+- 対応 Issue がない場合は、PR 作成前に Issue を作成するか、ユーザーに確認する。
+- PR 本文の `Issue` には `Closes #<issue番号>` を記載する。
+- Issue なしの PR は、ユーザーが明示的に例外として許可した場合だけ作成する。
+- Issue なし例外の場合も、PR 本文に理由と承認された例外であることを書く。
+
 ## PR マージ後の作業ブランチ整理
 
 PR マージ後は、次の条件をすべて満たす場合に限り、エージェントが明示確認なしで作業ブランチ整理を実行してよい。
@@ -140,17 +150,25 @@ Issue と PR には、作成時に assignee を設定します。
 - `main` への force push と branch deletion は許可しない。
 - branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
 
-## Project / Milestone ルール
+## Project ルール
 
-Issue と PR は、このリポジトリ用の Project に紐づけます。Milestone は、期限やリリースなどの区切りがある場合だけ使います。
+Issue と PR は、このリポジトリ用の Project に紐づけます。
 
 - Project は `Salesforce Platform Playground` を使う。
 - 新規 Issue / PR の Project は手動で設定する。
 - Project 追加は `gh project item-add ...` などで、エージェントまたはユーザーが明示的に実行する。
+- Project の番号や owner は固定値を前提にせず、Project title から対象 Project を解決してから追加する。
 - Project 紐づけの確認は対象 Issue / PR の item だけを見る。Project 全件を取得して絞り込む運用は避ける。
 - Project 設定のために、個人アクセストークンを GitHub Actions の secret に保存しない。
-- Milestone は自動設定しない。必要な作業単位が決まったときに手動で設定する。
 - Project 設定が漏れた場合は、気づいた時点で手動で補正する。
+
+## Milestone ルール
+
+このセクションは、このリポジトリ固有の運用として扱います。別リポジトリへルールを流用する場合は、このセクションだけを差し替えてよいです。
+
+- Issue と PR には、必要な作業単位に合う Milestone を設定する。
+- Milestone が未作成、またはどの Milestone に入れるべきか判断できない場合は、勝手に作成せずユーザーに確認する。
+- Milestone が不要な例外作業は、ユーザーが明示的に許可した場合だけ Milestone なしで扱う。
 
 ## 例
 
