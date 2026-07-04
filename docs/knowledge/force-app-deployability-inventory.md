@@ -144,8 +144,8 @@ metadata type ごとに次の順で進めます。
 
 ## 関連 docs
 
-- [変更チェックリスト](change-checklist.md)
-- [メタデータ開発ルール](metadata-rules.md)
+- [変更チェックリスト](../development/change-checklist.md)
+- [メタデータ開発ルール](../development/metadata-rules.md)
 - [Salesforce 組織反映ルール](../deployment/salesforce-org-deploy-rules.md)
 - [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md)
-- [Salesforce メタデータの Git 管理候補](salesforce-metadata-git-management-candidates.md)
+- [Salesforce メタデータの Git 管理候補](../discussions/salesforce-metadata-git-management-candidates.md)
