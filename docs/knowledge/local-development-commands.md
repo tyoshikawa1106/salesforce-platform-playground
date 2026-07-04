@@ -25,15 +25,15 @@
 
 ## Salesforce CLI
 
-| コマンド                                                                       | 役割                                            | 補足                                                                      |
-| ------------------------------------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------- |
-| `sf --version`                                                                 | Salesforce CLI のバージョンを確認する。         | ローカル環境の切り分けに使う。                                            |
-| `sf config get target-org`                                                     | 現在の default target org alias を確認する。    | org 詳細や認証情報を広く出さずに対象確認できる。                          |
-| `sf org login web --set-default --alias dev`                                   | Dev 組織へ Web ログインする。                   | 明示依頼なしに target org を切り替えない。                                |
-| `npm run sf:validate:dev`                                                      | Dev 組織向け標準 manifest で validate する。    | `manifest/rebuild-developer-org.xml` を使う。                             |
-| `npm run sf:deploy:dev`                                                        | Dev 組織へ標準 manifest を deploy する。        | validate 結果と対象 org を確認してから実行する。                          |
-| `sf project retrieve start --manifest <path>`                                  | manifest に基づいて metadata を retrieve する。 | 実行後は `git status --short`、`git diff --stat`、`git diff` を確認する。 |
-| `sf apex run test --class-names <names> --code-coverage --result-format human` | Apex test を絞って実行する。                    | Apex 変更時は関連テストを優先する。                                       |
+| コマンド                                                                       | 役割                                                | 補足                                                                      |
+| ------------------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `sf --version`                                                                 | Salesforce CLI のバージョンを確認する。             | ローカル環境の切り分けに使う。                                            |
+| `sf config get target-org`                                                     | 現在の default target org alias を確認する。        | org 詳細や認証情報を広く出さずに対象確認できる。                          |
+| `sf org login web --set-default --alias dev`                                   | Salesforce 組織へ Web ログインする。                | 明示依頼なしに target org を切り替えない。                                |
+| `npm run sf:validate:dev`                                                      | Salesforce 組織向け標準 manifest で validate する。 | `manifest/rebuild-developer-org.xml` を使う。                             |
+| `npm run sf:deploy:dev`                                                        | Salesforce 組織へ標準 manifest を deploy する。     | validate 結果と対象 org を確認してから実行する。                          |
+| `sf project retrieve start --manifest <path>`                                  | manifest に基づいて metadata を retrieve する。     | 実行後は `git status --short`、`git diff --stat`、`git diff` を確認する。 |
+| `sf apex run test --class-names <names> --code-coverage --result-format human` | Apex test を絞って実行する。                        | Apex 変更時は関連テストを優先する。                                       |
 
 ## データ準備
 

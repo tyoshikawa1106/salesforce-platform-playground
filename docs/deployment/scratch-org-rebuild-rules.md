@@ -5,13 +5,13 @@
 ## 実行ルール
 
 - `config/project-scratch-def.json` は Scratch Org 作成用の設定として扱う。
-- Dev 組織への deploy 先設定とは分けて考える。
+- Salesforce 組織への deploy 先設定とは分けて考える。
 - Scratch Org で再現できない前提が見つかった場合は、設定または docs に残す。
 - 個人環境の alias や認証情報をコミットしない。
 - Scratch Org は一時環境として扱い、確認が終わったら削除する。
 - `manifest/rebuild-scratch-org.xml` は Scratch Org への反映にだけ使う。
 - Scratch Org で作成、変更したメタデータを戻す場合は、作業対象を絞った manifest を用意して retrieve / deploy に使う。
-- `force-app` 全体 dry-run は、Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
+- `force-app` 全体 dry-run は、Salesforce 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
 
 manifest の使い分けは [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md) を参照します。
 
@@ -24,14 +24,14 @@ sf org list
 ```
 
 Dev Hub が未設定の場合は、利用する Dev Hub を確認してからログインまたは指定します。
-このリポジトリの通常開発で使う Dev 組織とは別の前提として扱います。
+このリポジトリの通常開発で使う Salesforce 組織とは別の前提として扱います。
 
 ## Installed Package の確認
 
-Dev 組織の installed package は Scratch Org に自動では引き継がれません。
+Salesforce 組織の installed package は Scratch Org に自動では引き継がれません。
 必要な package がある場合は、Scratch Org 作成後、metadata deploy より前に `sf package install` で明示的にインストールします。
 
-現 Dev 組織の package は Tooling API で確認します。
+現在接続されている Salesforce 組織の package は Tooling API で確認します。
 
 ```sh
 sf data query \
@@ -62,7 +62,7 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 5. Apex test
 ```
 
-現時点の Dev 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
+現時点の Salesforce 組織では、Tooling API の `InstalledSubscriberPackage` と `PackageLicense` はどちらも 0 件です。
 
 ## 作成前確認
 
@@ -70,7 +70,7 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org scratch-platform-pl
 
 - `sfdx-project.json` の package directory と API version
 - `config/project-scratch-def.json` の edition、features、settings
-- Dev 組織との差分として明示すべき前提
+- Salesforce 組織との差分として明示すべき前提
 - Scratch Org に投入する metadata が `force-app/main/default` に揃っているか
 - 作成に使う alias と duration
 
@@ -131,7 +131,7 @@ sf project deploy start \
     --wait 30
 ```
 
-Dev 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ、`force-app` 全体 dry-run で失敗範囲を確認します。
+Salesforce 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ、`force-app` 全体 dry-run で失敗範囲を確認します。
 
 ```sh
 sf project deploy start --dry-run --source-dir force-app --target-org scratch-platform-playground --wait 30
@@ -175,7 +175,7 @@ Scratch Org 専用 source directory は作りません。
 初期反映の正本は `force-app/main/default` と `manifest/rebuild-scratch-org.xml` に寄せ、Scratch Org の機能有効化は `config/project-scratch-def.json` で扱います。
 Settings や DuplicateRule を Scratch Org 用にコピーして個別補正すると二重管理になりやすいため、必要な場合は対象 metadata ごとに manifest、scratch definition、または手順 docs で扱います。
 
-External Client App は Dev 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
+External Client App は Salesforce 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
 Scratch Org で External Client App まで検証する必要が出た場合は、初期反映手順とは別に、org 固有値を含まない方法を個別に設計します。
 
 Scratch Org の作成ユーザーには、ユーザー作成アプリへのアクセス権として `Salesforce_Platform_Playground_User` Permission Set を割り当てます。
@@ -211,9 +211,9 @@ sf org assign permset --name Salesforce_Platform_Playground_User --target-org sc
 - External Client App OAuth 系メタデータのうち、OAuth link や配信状態に依存するもの
 - Settings のうち、未有効化機能、証明書、EmailTemplate、Data Cloud、Territory などの前提で Scratch Org deploy に失敗するもの
 - SAML SSO など組織固有の認証設定
-- Dev 組織から取得したままの DuplicateRule
+- Salesforce 組織から取得したままの DuplicateRule
 
-これらは Dev 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
+これらは Salesforce 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。
 
 `WorkPlan` / `WorkPlanTemplate` / `WorkStep` と、それらの関連リストを含む WorkOrder 周辺 Layout は Field Service feature に依存します。
@@ -235,7 +235,7 @@ git status
 git diff
 ```
 
-Dev 組織へ反映する場合も、同じ作業対象 manifest で dry-run してから deploy します。
+Salesforce 組織へ反映する場合も、同じ作業対象 manifest で dry-run してから deploy します。
 
 ```sh
 sf project deploy start --dry-run --manifest manifest/scratch-work.xml --target-org salesforce-platform-playground --wait 30
@@ -245,7 +245,7 @@ sf project deploy start --manifest manifest/scratch-work.xml --target-org salesf
 `manifest/scratch-work.xml` は作業単位の manifest です。
 必要に応じてファイル名を作業内容に合わせます。
 作業対象 manifest は、Scratch Org で実際に変更する予定のメタデータだけを含めます。
-`manifest/rebuild-scratch-org.xml` は Scratch Org 作成後の初期反映用なので、Scratch Org から Dev 組織へ戻す用途には使いません。
+`manifest/rebuild-scratch-org.xml` は Scratch Org 作成後の初期反映用なので、Scratch Org から Salesforce 組織へ戻す用途には使いません。
 
 ## 確認
 
