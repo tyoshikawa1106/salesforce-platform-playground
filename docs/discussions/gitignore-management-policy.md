@@ -1,15 +1,18 @@
-# .gitignore 運用ルール
+# .gitignore 管理方針の判断記録
 
-このリポジトリの `.gitignore` は、Salesforce 公式サンプルの `trailheadapps/dreamhouse-lwc` を基本形にし、リポジトリ固有のローカル生成物と Git 管理から外す Salesforce metadata を追加します。
+この文書は、このリポジトリの `.gitignore` を完成させる過程で整理した判断記録です。
+現在の Git 管理対象外ファイルの正本は `.gitignore` とし、この文書は判断理由を再確認するときに参照します。
 
-## 基本方針
+このリポジトリの `.gitignore` は、Salesforce 公式サンプルの `trailheadapps/dreamhouse-lwc` を基本形にし、リポジトリ固有のローカル生成物と Git 管理から外す Salesforce metadata を追加したものです。
+
+## 判断方針
 
 - Salesforce CLI、LWC、Node、OS、エディタが生成するローカルファイルはコミットしない。
 - 秘密情報や個人環境の値が入り得る `.env` 系ファイルはコミットしない。
 - 共有価値がある設定例やテンプレートは ignore しない。
 - 成果物になり得るファイル拡張子は、用途が決まるまで広く ignore しない。
 - Salesforce metadata は、メールアドレス、OAuth / SAML、認証・権限設定、個人情報を含み得る条件、org 固有 ID / ドメインを含むものを Git 管理から外す。
-- Developer Org の機能状態や URL など、秘匿性が低く再現対象として扱える metadata は Git 管理対象にする。
+- Salesforce 組織の機能状態や URL など、秘匿性が低く再現対象として扱える metadata は Git 管理対象にする。
 
 ## `.env` 系ファイル
 
@@ -69,7 +72,7 @@
 | `homePageLayouts/`             | Classic Home の標準コンポーネント配置。高秘匿情報を含まない。                                         |
 | `iframeWhiteListUrlSettings/`  | iframe 許可 URL 設定。現物は空で、URL は secret ではない。                                            |
 | `notificationTypeConfig/`      | 通知タイプごとの desktop / mobile 有効状態。個人情報や secret を含まない。                            |
-| `remoteSiteSettings/`          | 外部接続先 URL。環境依存ではあるが secret ではなく、Developer Org の再現対象として扱う。              |
+| `remoteSiteSettings/`          | 外部接続先 URL。環境依存ではあるが secret ではなく、Salesforce 組織の再現対象として扱う。             |
 | `topicsForObjects/`            | オブジェクトごとの Topics 有効状態。実データの topic 名や投稿内容は含まない。                         |
 | `transactionSecurityPolicies/` | Transaction Security policy。現物は inactive の標準 Report Export 保護 policy で、secret を含まない。 |
 
