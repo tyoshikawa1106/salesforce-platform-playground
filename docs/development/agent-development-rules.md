@@ -55,13 +55,12 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous
 - タスクで明示されていない限り、`package.xml` は一時的な取得・検証補助として扱う。
 - 広い `package.xml` では過剰な場合は、対象 metadata type を絞った `*` manifest を用意して取得範囲を管理する。
 - Settings の `false` を有効化候補として機械的に扱わない。ライセンス、Edition、依存設定、不可逆性、セキュリティ影響を確認してから小さく分けて検証する。
-- Scratch Org、Salesforce 組織反映、`force-app` deployability の詳細は `docs/deployment/` と関連 knowledge docs に従う。
+- Scratch Org と Salesforce 組織反映の詳細は `docs/deployment/` に従う。
 
 ## テストデータ / seed 変更
 
 - org に投入する seed data には、実在の個人情報、顧客情報、秘密情報、org 固有 ID を入れない。
-- seed を追加・変更する場合は、投入前に dry-run と cleanup 方針を確認する。
-- 標準項目、picklist、機能依存オブジェクトを扱う seed は、固定値を前提にせず、describe や setup object で対象 org の利用可否を確認する。
+- seed を追加・変更する場合は、`docs/development/test-data-import.md` に従い、投入前に dry-run、cleanup 方針、対象 org の前提を確認する。
 
 ## docs / 設定変更
 
