@@ -114,6 +114,13 @@ GitHub の Issue と PR には必ずラベルを付けます。
 
 GitHub 標準ラベルの `bug`、`documentation`、`enhancement`、`question` も、内容に合う場合は利用します。
 
+## リポジトリ保護ルール
+
+- `main` は Pull Request 経由の変更を前提にする。
+- `main` の required status checks は `npm checks` を必須にする。
+- `main` への force push と branch deletion は許可しない。
+- branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
+
 ## Assignee ルール
 
 Issue と PR には、作成時に assignee を設定します。
@@ -143,13 +150,6 @@ Issue と PR には、作成時に assignee を設定します。
 - Dependabot PR を見送って close する場合は、理由を書いた request changes review を残してから close する。
 - Dependabot config には個人ユーザー名を assignee や reviewer として固定しない。
 - Dependabot PR の Project 紐づけや担当者設定は、必要に応じて手動で確認する。
-
-## リポジトリ保護ルール
-
-- `main` は Pull Request 経由の変更を前提にする。
-- `main` の required status checks は `npm checks` を必須にする。
-- `main` への force push と branch deletion は許可しない。
-- branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
 
 ## Project ルール
 
