@@ -81,6 +81,7 @@
 | `AGENTS.md`                 | Codex などのエージェントが常に守る短い共通ルールを定義する。                                      | 詳細手順を詰め込みすぎず、実務手順はルール文書側で管理する。                                                                |
 | `CLAUDE.md`                 | Claude Code 向けに、このリポジトリの共通ルール入口を示す。                                        | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。                                       |
 | `GEMINI.md`                 | Gemini CLI 向けに、このリポジトリの共通ルール入口を示す。                                         | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。                                       |
+| `.gemini/settings.json`     | Gemini CLI が読み込む context file を定義する。                                                   | `GEMINI.md` と `AGENTS.md` を context file として読み込む設定が残っているか確認する。                                       |
 | `.cline/skills/`            | Cline 向けに `.agents/skills/` への skill router を置く。                                         | router に共通ルールを重複させず、参照先の `.agents/skills/` と `AGENTS.md` / `docs/` の優先関係が明記されているか確認する。 |
 | `.clineignore`              | Cline の自動 context / search から外すローカル生成物、接続情報、credential 系ファイルを定義する。 | source、docs、設定ファイル、テスト、skill 関連ファイルなど作業に必要な文脈を誤って除外していないか確認する。                |
 | `.clinerules/repository.md` | Cline 向けに、このリポジトリの共通ルール入口を示す。                                              | 共通ルールを重複させず、`AGENTS.md` と `docs/` を正とする導線が残っているか確認する。                                       |
