@@ -10,8 +10,17 @@ public with sharing class ObjectRecordSearchController {
     private static final String CONFIG_ERROR_MESSAGE = '検索画面設定を読み込めませんでした。';
     private static final String SEARCH_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
     private static final String DELETE_ERROR_MESSAGE = '選択したレコードを削除できませんでした。';
-    private static final ObjectRecordSearchService SERVICE = new ObjectRecordSearchService();
-    private static final ObjectRecordSearchSelector SELECTOR = new ObjectRecordSearchSelector();
+
+    private ObjectRecordSearchService service;
+    private ObjectRecordSearchSelector selector;
+
+    private ObjectRecordSearchController(
+        ObjectRecordSearchService service,
+        ObjectRecordSearchSelector selector
+    ) {
+        this.service = service;
+        this.selector = selector;
+    }
 
     /**
      * 表示キーに対応する検索画面設定を返します。
@@ -20,6 +29,16 @@ public with sharing class ObjectRecordSearchController {
      */
     @AuraEnabled(cacheable=true)
     public static ObjectRecordSearchConfigWrapper getObjectConfig(
+        String metricKey
+    ) {
+        ObjectRecordSearchController controller = new ObjectRecordSearchController(
+            new ObjectRecordSearchService(),
+            new ObjectRecordSearchSelector()
+        );
+        return controller.getObjectConfigForMetricKey(metricKey);
+    }
+
+    private ObjectRecordSearchConfigWrapper getObjectConfigForMetricKey(
         String metricKey
     ) {
         try {
@@ -40,25 +59,35 @@ public with sharing class ObjectRecordSearchController {
     public static ObjectRecordSearchResultWrapper searchRecords(
         ObjectRecordSearchRequestWrapper request
     ) {
+        ObjectRecordSearchController controller = new ObjectRecordSearchController(
+            new ObjectRecordSearchService(),
+            new ObjectRecordSearchSelector()
+        );
+        return controller.searchRecordsForRequest(request);
+    }
+
+    private ObjectRecordSearchResultWrapper searchRecordsForRequest(
+        ObjectRecordSearchRequestWrapper request
+    ) {
         try {
             ObjectRecordSearchContext context = buildSearchContext(
                 request?.metricKey
             );
-            ObjectRecordSearchSortSupport.SortSpec sortSpec = SERVICE.createSortSpec(
+            ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
                 context,
                 request
             );
-            ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = SERVICE.createSearchQueryRequest(
+            ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
                 context,
                 request,
                 sortSpec
             );
-            ObjectRecordSearchQueryPlan.SearchQuery searchQuery = SERVICE.createSearchQuery(
+            ObjectRecordSearchQueryPlan.SearchQuery searchQuery = ObjectRecordSearchQueryPlan.createSearchQuery(
                 searchQueryRequest
             );
-            List<SObject> records = SELECTOR.searchRecords(searchQuery);
+            List<SObject> records = selector.searchRecords(searchQuery);
 
-            return SERVICE.createSearchResult(
+            return service.createSearchResult(
                 searchQueryRequest,
                 records
             );
@@ -80,22 +109,33 @@ public with sharing class ObjectRecordSearchController {
         String metricKey,
         List<Id> recordIds
     ) {
+        ObjectRecordSearchController controller = new ObjectRecordSearchController(
+            new ObjectRecordSearchService(),
+            new ObjectRecordSearchSelector()
+        );
+        return controller.deleteSelectedRecords(metricKey, recordIds);
+    }
+
+    private ObjectRecordSearchDeleteWrapper deleteSelectedRecords(
+        String metricKey,
+        List<Id> recordIds
+    ) {
         try {
             ObjectRecordSearchContext context = buildSearchContext(
                 metricKey
             );
             ObjectRecordSearchConfigWrapper config = context.config;
-            if (!SERVICE.canDeleteRecords(config, recordIds)) {
-                return SERVICE.createDeleteResult(recordIds, null);
+            if (!service.canDeleteRecords(config, recordIds)) {
+                return service.createDeleteResult(recordIds, null);
             }
 
-            List<SObject> recordsToDelete = SELECTOR.getRecordsById(
+            List<SObject> recordsToDelete = selector.getRecordsById(
                 config.objectApiName,
                 new Set<Id>(recordIds)
             );
-            return SERVICE.createDeleteResult(
+            return service.createDeleteResult(
                 recordIds,
-                SELECTOR.deleteRecords(recordsToDelete)
+                selector.deleteRecords(recordsToDelete)
             );
         } catch (ObjectRecordSearchException error) {
             throw createHandledException(error.getMessage());
@@ -104,16 +144,16 @@ public with sharing class ObjectRecordSearchController {
         }
     }
 
-    private static ObjectRecordSearchContext buildSearchContext(
+    private ObjectRecordSearchContext buildSearchContext(
         String metricKey
     ) {
-        ObjectMetricCatalog.MetricDefinition definition = SERVICE.requireDefinition(
+        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
             metricKey
         );
-        Schema.DescribeSObjectResult objectDescribe = SELECTOR.getObjectDescribe(
+        Schema.DescribeSObjectResult objectDescribe = selector.getObjectDescribe(
             definition.objectApiName
         );
-        Schema.DescribeFieldResult nameFieldDescribe = SELECTOR.getNameFieldDescribe(
+        Schema.DescribeFieldResult nameFieldDescribe = selector.getNameFieldDescribe(
             objectDescribe
         );
         List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
@@ -121,13 +161,13 @@ public with sharing class ObjectRecordSearchController {
             objectDescribe
         );
 
-        ObjectRecordSearchConfigWrapper config = SERVICE.createObjectConfig(
+        ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             nameFieldDescribe,
             objectDescribe
         )
             .withDisplayFields(displayFields);
-        return SERVICE.createSearchContext(
+        return service.createSearchContext(
             config,
             nameFieldDescribe,
             objectDescribe

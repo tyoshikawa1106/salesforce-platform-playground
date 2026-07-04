@@ -207,6 +207,26 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
+    @IsTest
+    static void shouldReturnFalseWhenDeleteConfigIsMissing() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        Boolean canDelete;
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            canDelete = service.canDeleteRecords(
+                null,
+                new List<Id>{ UserInfo.getUserId() }
+            );
+            Test.stopTest();
+        }
+
+        Assert.isFalse(
+            canDelete,
+            'Missing config should not allow delete DML.'
+        );
+    }
+
     private static ObjectRecordSearchContext createAccountContext(
         ObjectRecordSearchService service
     ) {

@@ -10,6 +10,8 @@ public with sharing class ObjectRecordSearchQueryPlan {
     public static SearchQuery createSearchQuery(
         SearchQueryRequest request
     ) {
+        validateSearchQueryRequest(request);
+
         SearchQuery query = new SearchQuery();
         query.bindValues = new Map<String, Object>();
 
@@ -86,6 +88,48 @@ public with sharing class ObjectRecordSearchQueryPlan {
         ObjectRecordSearchConfigWrapper config
     ) {
         return String.isNotBlank(normalizedSearchTerm) && config.searchable;
+    }
+
+    private static void validateSearchQueryRequest(
+        SearchQueryRequest request
+    ) {
+        if (!hasRequiredSearchQueryParts(request)) {
+            throw new ObjectRecordSearchException(
+                '検索条件を作成できません。'
+            );
+        }
+
+        if (
+            !isSupportedObject(request.context.config.objectApiName) ||
+            !isAllowedSortField(request.context, request.sortSpec)
+        ) {
+            throw new ObjectRecordSearchException(
+                '検索条件を作成できません。'
+            );
+        }
+    }
+
+    private static Boolean hasRequiredSearchQueryParts(
+        SearchQueryRequest request
+    ) {
+        return request != null &&
+            request.context != null &&
+            request.context.config != null &&
+            request.sortSpec != null &&
+            request.fetchSize != null &&
+            request.fetchSize > 0;
+    }
+
+    private static Boolean isSupportedObject(String objectApiName) {
+        return ObjectMetricCatalog.hasObjectApiName(objectApiName);
+    }
+
+    private static Boolean isAllowedSortField(
+        ObjectRecordSearchContext context,
+        ObjectRecordSearchSortSupport.SortSpec sortSpec
+    ) {
+        return context.getAllowedFieldApiNames()
+            .contains(sortSpec.fieldApiName);
     }
 
     /**

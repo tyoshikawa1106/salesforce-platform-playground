@@ -147,6 +147,30 @@ private with sharing class ObjectRecordSearchSortSupportTest {
     }
 
     @IsTest
+    static void shouldReturnNullTokenWhenRowsAreMissing() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            context,
+            new ObjectRecordSearchRequestWrapper()
+        );
+        String pageToken;
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
+                new List<ObjectRecordSearchRowWrapper>(),
+                sortSpec
+            );
+            Test.stopTest();
+        }
+
+        Assert.isNull(
+            pageToken,
+            'Empty row lists should not create a page token.'
+        );
+    }
+
+    @IsTest
     static void shouldParseLegacyNamePageToken() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(

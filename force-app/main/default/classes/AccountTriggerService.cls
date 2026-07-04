@@ -15,7 +15,7 @@ public with sharing class AccountTriggerService {
      * 取引先作成前の補正処理を適用します。
      * @param accounts Trigger.new から渡された取引先レコード
      */
-    public static void beforeInsert(List<Account> accounts) {
+    public void normalizeAccountNamesForInsert(List<Account> accounts) {
         normalizeNames(accounts, null);
     }
 
@@ -24,14 +24,14 @@ public with sharing class AccountTriggerService {
      * @param accounts Trigger.new から渡された取引先レコード
      * @param oldAccountsById Id をキーにした変更前の取引先レコード
      */
-    public static void beforeUpdate(
+    public void normalizeChangedAccountNamesForUpdate(
         List<Account> accounts,
         Map<Id, Account> oldAccountsById
     ) {
         normalizeNames(accounts, oldAccountsById);
     }
 
-    private static void normalizeNames(
+    private void normalizeNames(
         List<Account> accounts,
         Map<Id, Account> oldAccountsById
     ) {
@@ -48,7 +48,7 @@ public with sharing class AccountTriggerService {
         }
     }
 
-    private static Boolean shouldNormalizeName(
+    private Boolean shouldNormalizeName(
         Account accountRecord,
         Map<Id, Account> oldAccountsById
     ) {
@@ -68,7 +68,7 @@ public with sharing class AccountTriggerService {
         return oldAccount == null || accountRecord.Name != oldAccount.Name;
     }
 
-    private static String normalizeName(String accountName) {
+    private String normalizeName(String accountName) {
         return accountName.replace(STOCK_COMPANY_SYMBOL, STOCK_COMPANY_FORMAL)
             .replace(STOCK_COMPANY_FULL_WIDTH, STOCK_COMPANY_FORMAL)
             .replace(STOCK_COMPANY_HALF_WIDTH, STOCK_COMPANY_FORMAL)
