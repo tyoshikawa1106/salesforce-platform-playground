@@ -18,6 +18,7 @@
 - 実質的な変更のコミットには、目的、主な変更、検証結果を本文に記載する。
 - エージェントが PR を作成する場合は、対応する実在 Issue を必ず `Closes #<issue番号>` で紐づける。対応 Issue がない場合は、PR 作成前に Issue を作成するかユーザーに確認する。
 - GitHub の Issue / PR はテンプレートに従い、ラベル、assignee、Project 紐づけなどの詳細運用は `docs/development/github-rules.md` に従う。
+- リリースノートは GitHub Release を正本とし、日次リリースの作成手順は `docs/development/github-rules.md` に従う。
 - 特定の個人ユーザー名を運用ルールや automation config に固定しない。
 - Issue、PR、コミット本文、検証ログの記録では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
