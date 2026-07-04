@@ -9,4 +9,4 @@
 
 生成された export ファイルや bulk 結果ファイルは `scripts/` に置きません。Salesforce CLI のローカル export 出力は `export-out/`、bulk results の出力は `logs/data-bulk-results/` に書き出します。
 
-標準オブジェクトの初期データセットアップと export 例は [test-data-import.md](../docs/development/test-data-import.md) を参照してください。
+標準オブジェクトの初期データセットアップと export 例は [test-data-import.md](../docs/deployment/test-data-import.md) を参照してください。
