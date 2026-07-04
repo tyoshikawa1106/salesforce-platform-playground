@@ -78,6 +78,16 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual List<SObject> searchRecords(
         ObjectRecordSearchQueryPlan.SearchQuery searchQuery
     ) {
+        if (
+            searchQuery == null ||
+            String.isBlank(searchQuery.soql) ||
+            searchQuery.bindValues == null
+        ) {
+            throw new ObjectRecordSearchException(
+                '検索条件を作成できません。'
+            );
+        }
+
         return Database.queryWithBinds(
             searchQuery.soql,
             searchQuery.bindValues,
@@ -100,6 +110,8 @@ public virtual with sharing class ObjectRecordSearchSelector {
             return new List<SObject>();
         }
 
+        requireSupportedObject(objectApiName);
+
         return Database.queryWithBinds(
             'SELECT Id FROM ' +
                 objectApiName +
@@ -118,6 +130,19 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual List<Database.DeleteResult> deleteRecords(
         List<SObject> recordsToDelete
     ) {
+        if (recordsToDelete == null || recordsToDelete.isEmpty()) {
+            return new List<Database.DeleteResult>();
+        }
+
         return Database.delete(recordsToDelete, false, AccessLevel.USER_MODE);
+    }
+
+    private void requireSupportedObject(String objectApiName) {
+        if (
+            String.isBlank(objectApiName) ||
+            !ObjectMetricCatalog.hasObjectApiName(objectApiName)
+        ) {
+            throw new ObjectRecordSearchException('未対応のオブジェクトです。');
+        }
     }
 }

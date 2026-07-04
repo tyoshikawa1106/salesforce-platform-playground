@@ -103,19 +103,6 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 検索条件から SOQL と bind 値を作成します。
-     * @param request 検索クエリと結果整形で共有する検索条件
-     * @return 実行可能な検索クエリ計画
-     */
-    public ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request
-    ) {
-        return ObjectRecordSearchQueryPlan.createSearchQuery(
-            request
-        );
-    }
-
-    /**
      * 検索結果レコードを LWC 返却用 Wrapper に変換します。
      * @param request 検索クエリと結果整形で共有する検索条件
      * @param records 検索結果 SObject
@@ -166,7 +153,10 @@ public with sharing class ObjectRecordSearchService {
         ObjectRecordSearchConfigWrapper config,
         List<Id> recordIds
     ) {
-        return config.deletable && recordIds != null && !recordIds.isEmpty();
+        return config != null &&
+            config.deletable &&
+            recordIds != null &&
+            !recordIds.isEmpty();
     }
 
     /**

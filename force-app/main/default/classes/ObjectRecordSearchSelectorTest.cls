@@ -88,6 +88,25 @@ private with sharing class ObjectRecordSearchSelectorTest {
     }
 
     @IsTest
+    static void searchRecordsShouldThrowWhenQueryPlanIsMissing() {
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            try {
+                selector.searchRecords(null);
+                Assert.fail('Missing query plans should throw.');
+            } catch (ObjectRecordSearchException error) {
+                Assert.isTrue(
+                    error.getMessage().contains('検索条件'),
+                    'Missing query plans should explain the search condition is invalid.'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+
+    @IsTest
     static void getRecordsByIdShouldReturnMatchingRows() {
         Account target = [
             SELECT Id
@@ -145,6 +164,28 @@ private with sharing class ObjectRecordSearchSelectorTest {
             emptyIdRecords.size(),
             'Empty IDs should not run a record lookup.'
         );
+    }
+
+    @IsTest
+    static void getRecordsByIdShouldThrowWhenObjectIsUnsupported() {
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            try {
+                selector.getRecordsById(
+                    'UnknownObject__c',
+                    new Set<Id>{ UserInfo.getUserId() }
+                );
+                Assert.fail('Unsupported object API names should throw.');
+            } catch (ObjectRecordSearchException error) {
+                Assert.isTrue(
+                    error.getMessage().contains('未対応'),
+                    'Unsupported object API names should be rejected before SOQL execution.'
+                );
+            }
+            Test.stopTest();
+        }
     }
 
     @IsTest
@@ -218,7 +259,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
             sortSpec
         );
 
-        return service.createSearchQuery(searchQueryRequest);
+        return ObjectRecordSearchQueryPlan.createSearchQuery(
+            searchQueryRequest
+        );
     }
 
     private static ObjectRecordSearchContext createAccountContext(

@@ -95,6 +95,48 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         );
     }
 
+    @IsTest
+    static void shouldThrowWhenRequestIsMissing() {
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchQueryPlan.createSearchQuery(null);
+                Assert.fail('Missing query requests should throw.');
+            } catch (ObjectRecordSearchException error) {
+                Assert.isTrue(
+                    error.getMessage().contains('検索条件'),
+                    'Missing query requests should explain the search condition is invalid.'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+
+    @IsTest
+    static void shouldThrowWhenSortFieldIsNotAllowed() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchQueryPlan.SearchQueryRequest queryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
+        queryRequest.context = context;
+        queryRequest.searchRequest = new ObjectRecordSearchRequestWrapper();
+        queryRequest.sortSpec = new ObjectRecordSearchSortSupport.SortSpec();
+        queryRequest.sortSpec.fieldApiName = 'Description';
+        queryRequest.fetchSize = 51;
+
+        System.runAs(TestDataFactory.currentUser()) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);
+                Assert.fail('Unallowed sort fields should throw.');
+            } catch (ObjectRecordSearchException error) {
+                Assert.isTrue(
+                    error.getMessage().contains('検索条件'),
+                    'Unallowed sort fields should be rejected before SOQL construction.'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+
     private static ObjectRecordSearchContext createAccountContext() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(

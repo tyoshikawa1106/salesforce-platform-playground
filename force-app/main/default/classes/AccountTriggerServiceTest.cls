@@ -3,8 +3,10 @@
  */
 @IsTest
 private with sharing class AccountTriggerServiceTest {
+    private static AccountTriggerService service = new AccountTriggerService();
+
     @IsTest
-    static void beforeInsertShouldNormalizeAccountNames() {
+    static void shouldNormalizeAccountNamesWhenInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
             TestDataFactory.createAccount('㈱テスト'),
@@ -14,7 +16,7 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeInsert(accounts);
+            service.normalizeAccountNamesForInsert(accounts);
             Test.stopTest();
         }
 
@@ -22,17 +24,17 @@ private with sharing class AccountTriggerServiceTest {
         Assert.areEqual(
             '株式会社テスト',
             accounts[0].Name,
-            'Before insert service should normalize Account names.'
+            'Insert service should normalize Account names.'
         );
         Assert.areEqual(
             'テスト有限会社支店',
             accounts[1].Name,
-            'Before insert service should normalize limited company names.'
+            'Insert service should normalize limited company names.'
         );
     }
 
     @IsTest
-    static void beforeUpdateShouldNormalizeChangedAccountNames() {
+    static void shouldNormalizeChangedAccountNamesWhenUpdated() {
         // 準備
         Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
         Account updatedAccount = new Account(
@@ -46,7 +48,7 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeUpdate(
+            service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
                 oldAccountsById
             );
@@ -57,12 +59,12 @@ private with sharing class AccountTriggerServiceTest {
         Assert.areEqual(
             'テスト株式会社',
             updatedAccount.Name,
-            'Before update service should normalize changed Account names.'
+            'Update service should normalize changed Account names.'
         );
     }
 
     @IsTest
-    static void beforeUpdateShouldSkipUnchangedAccountNames() {
+    static void shouldSkipUnchangedAccountNamesWhenUpdated() {
         // 準備
         Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
         Account accountRecord = new Account(
@@ -80,7 +82,7 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeUpdate(
+            service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ accountRecord },
                 oldAccountsById
             );
@@ -96,14 +98,14 @@ private with sharing class AccountTriggerServiceTest {
     }
 
     @IsTest
-    static void beforeInsertShouldDoNothingWhenAccountsEmpty() {
+    static void shouldDoNothingWhenInsertedAccountsEmpty() {
         // 準備
         List<Account> accounts = new List<Account>();
 
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeInsert(accounts);
+            service.normalizeAccountNamesForInsert(accounts);
             Test.stopTest();
         }
 
@@ -112,7 +114,7 @@ private with sharing class AccountTriggerServiceTest {
     }
 
     @IsTest
-    static void beforeInsertShouldSkipNullAndBlankNames() {
+    static void shouldSkipNullAndBlankNamesWhenInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
             null,
@@ -123,7 +125,7 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeInsert(accounts);
+            service.normalizeAccountNamesForInsert(accounts);
             Test.stopTest();
         }
 
@@ -142,7 +144,7 @@ private with sharing class AccountTriggerServiceTest {
     }
 
     @IsTest
-    static void beforeUpdateShouldNormalizeWhenOldAccountIsMissing() {
+    static void shouldNormalizeWhenUpdatedOldAccountIsMissing() {
         // 準備
         Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
         Account updatedAccount = new Account(
@@ -153,7 +155,7 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeUpdate(
+            service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
                 new Map<Id, Account>()
             );
@@ -169,7 +171,7 @@ private with sharing class AccountTriggerServiceTest {
     }
 
     @IsTest
-    static void beforeUpdateShouldNormalizeWhenOldAccountIsNull() {
+    static void shouldNormalizeWhenUpdatedOldAccountIsNull() {
         // 準備
         Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
         Account updatedAccount = new Account(
@@ -180,7 +182,7 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(TestDataFactory.currentUser()) {
             Test.startTest();
-            AccountTriggerService.beforeUpdate(
+            service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
                 new Map<Id, Account>{ savedAccount.Id => null }
             );

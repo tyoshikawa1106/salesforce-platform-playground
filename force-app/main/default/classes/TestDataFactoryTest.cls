@@ -1,5 +1,5 @@
 @IsTest
-private class TestDataFactoryTest {
+private with sharing class TestDataFactoryTest {
     @IsTest
     static void createAccountsWhenCountIsPositiveReturnsNamedAccounts() {
         System.runAs(TestDataFactory.currentUser()) {
