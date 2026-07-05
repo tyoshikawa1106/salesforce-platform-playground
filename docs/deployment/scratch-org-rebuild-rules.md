@@ -197,6 +197,7 @@ sf project deploy start \
 - `force-app/main/default/remoteSiteSettings`
 - `force-app/main/default/reportTypes`
 - `force-app/main/default/roles`
+- `force-app/main/default/topicsForObjects`
 - `force-app/main/default/transactionSecurityPolicies`
 - `force-app/main/default/workflows`
 
@@ -227,7 +228,7 @@ sf org assign permset --name Salesforce_Platform_Playground_User --target-org <s
 - Quick Action
 - Assignment Rule / Auto Response Rule / Workflow
 - Matching Rule
-- Role、Report Type、Remote Site Setting など Scratch Org で dry-run 成功した周辺メタデータ
+- Role、Report Type、Remote Site Setting、Topics for Objects など Scratch Org で dry-run 成功した周辺メタデータ
 
 この manifest で反映しない主なメタデータ:
 
@@ -241,6 +242,7 @@ sf org assign permset --name Salesforce_Platform_Playground_User --target-org <s
 - Settings のうち、未有効化機能、証明書、EmailTemplate、Data Cloud、Territory などの前提で Scratch Org deploy に失敗するもの
 - SAML SSO など組織固有の認証設定
 - Salesforce 組織から取得したままの DuplicateRule
+- Scratch Org で有効化できない標準オブジェクトの Topics for Objects
 
 これらは Salesforce 組織から取得できても、Scratch Org では標準アプリ参照、未有効化機能、更新不可コンポーネント、実行ユーザーや証明書などの組織固有前提により dry-run で失敗することがあります。
 必要なものだけを個別に有効化、設定、または Scratch Org 用のメタデータへ分離します。

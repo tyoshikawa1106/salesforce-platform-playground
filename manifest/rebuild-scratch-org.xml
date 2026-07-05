@@ -1038,6 +1038,24 @@
         <name>TransactionSecurityPolicy</name>
     </types>
     <types>
+        <members>Account</members>
+        <members>Asset</members>
+        <members>Campaign</members>
+        <members>Case</members>
+        <members>Contact</members>
+        <members>ContentDocument</members>
+        <members>Contract</members>
+        <members>Event</members>
+        <members>Lead</members>
+        <members>Opportunity</members>
+        <members>Order</members>
+        <members>Solution</members>
+        <members>Task</members>
+        <members>WorkOrder</members>
+        <members>WorkOrderLineItem</members>
+        <name>TopicsForObjects</name>
+    </types>
+    <types>
         <members>Case</members>
         <name>Workflow</name>
     </types>
