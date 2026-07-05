@@ -678,16 +678,35 @@
     <types>
         <members>AccountFlexiPage</members>
         <members>AdvertisingInventoryCalendar_UtilityBar</members>
+        <members>AssetFlexiPage</members>
+        <members>CampaignFlexiPage</members>
+        <members>CampaignMemberFlexiPage</members>
+        <members>CaseFlexiPage</members>
         <members>ContactFlexiPage</members>
+        <members>ContractFlexiPage</members>
         <members>DataGovernanceConsole_UtilityBar</members>
+        <members>EntitlementFlexiPage</members>
+        <members>EventFlexiPage</members>
         <members>FlowsApp_UtilityBar</members>
         <members>HomeFlexiPage</members>
+        <members>LeadFlexiPage</members>
         <members>LightningSalesConsole_UtilityBar</members>
         <members>LightningSales_UtilityBar</members>
         <members>LightningService_UtilityBar</members>
         <members>MediaAdSalesManagement_UtilityBar</members>
+        <members>OpportunityFlexiPage</members>
+        <members>OpportunityLineItemFlexiPage</members>
+        <members>OrderFlexiPage</members>
+        <members>OrderItemFlexiPage</members>
+        <members>Pricebook2FlexiPage</members>
+        <members>PricebookEntryFlexiPage</members>
+        <members>Product2FlexiPage</members>
         <members>SalesCloudMobile_UtilityBar</members>
         <members>Salesforce_UtilityBar</members>
+        <members>ServiceContractFlexiPage</members>
+        <members>TaskFlexiPage</members>
+        <members>WorkOrderFlexiPage</members>
+        <members>WorkOrderLineItemFlexiPage</members>
         <name>FlexiPage</name>
     </types>
     <types>
