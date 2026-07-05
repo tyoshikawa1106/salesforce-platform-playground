@@ -682,7 +682,9 @@
         <name>CustomApplication</name>
     </types>
     <types>
+        <members>AccountFlexiPage</members>
         <members>AdvertisingInventoryCalendar_UtilityBar</members>
+        <members>ContactFlexiPage</members>
         <members>DataGovernanceConsole_UtilityBar</members>
         <members>FlowsApp_UtilityBar</members>
         <members>HomeFlexiPage</members>
