@@ -649,6 +649,7 @@
         <members>Campaign</members>
         <members>CampaignMember</members>
         <members>Case</members>
+        <members>CollaborationGroup</members>
         <members>Contact</members>
         <members>ContentDocument</members>
         <members>Contract</members>
@@ -682,6 +683,7 @@
         <members>CampaignFlexiPage</members>
         <members>CampaignMemberFlexiPage</members>
         <members>CaseFlexiPage</members>
+        <members>CollaborationGroupFlexiPage</members>
         <members>ContactFlexiPage</members>
         <members>ContractFlexiPage</members>
         <members>DataGovernanceConsole_UtilityBar</members>
@@ -705,6 +707,7 @@
         <members>Salesforce_UtilityBar</members>
         <members>ServiceContractFlexiPage</members>
         <members>TaskFlexiPage</members>
+        <members>UserFlexiPage</members>
         <members>WorkOrderFlexiPage</members>
         <members>WorkOrderLineItemFlexiPage</members>
         <name>FlexiPage</name>
