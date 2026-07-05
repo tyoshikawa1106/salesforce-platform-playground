@@ -18,14 +18,11 @@ docs を追加、移動、分割するときは、上から順に判定します
 1. 作業前に一度だけ行う準備なら `docs/setup/` に置く。
 2. 作業中に毎回守る開発ルール、確認観点、チェックリストなら `docs/development/` に置く。
 3. Salesforce 組織に対する deploy / validate / retrieve / destructive changes / data import / Scratch Org 再現の手順なら `docs/deployment/` に置く。
-4. まだ決定していない比較、検討、判断材料なら `docs/discussions/` に置く。
-5. 実行ルールではない概念説明、背景、参考情報なら `docs/knowledge/` に置く。
-6. README には、プロジェクト概要、主要な入口、セットアップの最短導線だけを書く。
+4. README には、プロジェクト概要、主要な入口、セットアップの最短導線だけを書く。
 
 ## 配置の補足
 
 - README には個別 docs の一覧や長いチェックリストを置かず、`docs/index.md` へ案内する。
-- `docs/discussions/` には会話ログそのものを置かず、検討内容と判断材料に要約する。
 - 決定済みの実務ルールになった内容は、要点だけ残して `docs/development/` または `docs/deployment/` の正本へ移す。
 - ファイル名は日付ではなく、内容を表す slug にする。
 
