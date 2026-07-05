@@ -655,6 +655,7 @@
         <members>Campaign</members>
         <members>CampaignMember</members>
         <members>Case</members>
+        <members>CollaborationGroup</members>
         <members>Contact</members>
         <members>ContentDocument</members>
         <members>Contract</members>
@@ -682,16 +683,39 @@
         <name>CustomApplication</name>
     </types>
     <types>
+        <members>AccountFlexiPage</members>
         <members>AdvertisingInventoryCalendar_UtilityBar</members>
+        <members>AssetFlexiPage</members>
+        <members>CampaignFlexiPage</members>
+        <members>CampaignMemberFlexiPage</members>
+        <members>CaseFlexiPage</members>
+        <members>CollaborationGroupFlexiPage</members>
+        <members>ContactFlexiPage</members>
+        <members>ContractFlexiPage</members>
         <members>DataGovernanceConsole_UtilityBar</members>
+        <members>EntitlementFlexiPage</members>
+        <members>EventFlexiPage</members>
         <members>FlowsApp_UtilityBar</members>
         <members>HomeFlexiPage</members>
+        <members>LeadFlexiPage</members>
         <members>LightningSalesConsole_UtilityBar</members>
         <members>LightningSales_UtilityBar</members>
         <members>LightningService_UtilityBar</members>
         <members>MediaAdSalesManagement_UtilityBar</members>
+        <members>OpportunityFlexiPage</members>
+        <members>OpportunityLineItemFlexiPage</members>
+        <members>OrderFlexiPage</members>
+        <members>OrderItemFlexiPage</members>
+        <members>Pricebook2FlexiPage</members>
+        <members>PricebookEntryFlexiPage</members>
+        <members>Product2FlexiPage</members>
         <members>SalesCloudMobile_UtilityBar</members>
         <members>Salesforce_UtilityBar</members>
+        <members>ServiceContractFlexiPage</members>
+        <members>TaskFlexiPage</members>
+        <members>UserFlexiPage</members>
+        <members>WorkOrderFlexiPage</members>
+        <members>WorkOrderLineItemFlexiPage</members>
         <name>FlexiPage</name>
     </types>
     <types>
@@ -1012,6 +1036,24 @@
     <types>
         <members>sfdc_default_ReportExport_Protection</members>
         <name>TransactionSecurityPolicy</name>
+    </types>
+    <types>
+        <members>Account</members>
+        <members>Asset</members>
+        <members>Campaign</members>
+        <members>Case</members>
+        <members>Contact</members>
+        <members>ContentDocument</members>
+        <members>Contract</members>
+        <members>Event</members>
+        <members>Lead</members>
+        <members>Opportunity</members>
+        <members>Order</members>
+        <members>Solution</members>
+        <members>Task</members>
+        <members>WorkOrder</members>
+        <members>WorkOrderLineItem</members>
+        <name>TopicsForObjects</name>
     </types>
     <types>
         <members>Case</members>
