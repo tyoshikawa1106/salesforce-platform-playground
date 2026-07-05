@@ -37,15 +37,15 @@ Scratch Org 作成時の edition、features、作成時 settings を定義しま
 
 Scratch Org 準備スクリプトの repo-local 設定です。
 
-| key              | 内容                                           |
-| ---------------- | ---------------------------------------------- |
-| `alias`          | 作成する Scratch Org alias。                   |
-| `definitionFile` | Scratch Org definition file。                  |
-| `durationDays`   | Scratch Org の有効日数。                       |
-| `importPlan`     | テストデータ import plan。                     |
-| `manifest`       | Scratch Org 初期反映に使う manifest。          |
-| `permissionSet`  | Scratch Org user に割り当てる permission set。 |
-| `waitMinutes`    | CLI の作成 / deploy 待機時間。                 |
+| key              | 内容                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `aliasPrefix`    | 作成する Scratch Org alias の接頭辞。実 alias は `scratch-org-YYYYMMDD` 形式で生成する。 |
+| `definitionFile` | Scratch Org definition file。                                                            |
+| `durationDays`   | Scratch Org の有効日数。                                                                 |
+| `importPlan`     | テストデータ import plan。                                                               |
+| `manifest`       | Scratch Org 初期反映に使う manifest。                                                    |
+| `permissionSet`  | Scratch Org user に割り当てる permission set。                                           |
+| `waitMinutes`    | CLI の作成 / deploy 待機時間。                                                           |
 
 個人専用 alias、ユーザー名、秘密情報は固定しません。
 
