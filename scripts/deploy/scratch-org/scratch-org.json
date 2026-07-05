@@ -1,5 +1,5 @@
 {
-    "aliasPrefix": "scratch-org",
+    "alias": "scratch-org",
     "definitionFile": "config/project-scratch-def.json",
     "durationDays": 7,
     "importPlan": "scripts/setup/import-plan.json",

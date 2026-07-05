@@ -14,7 +14,7 @@
 - `force-app` 全体 dry-run は、Salesforce 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ実行する。
 - Scratch Org 作成、package install、metadata deploy、Permission Set assign、test data import のどこで失敗したかを分けて報告する。
 - Scratch Org の成功を接続中の Salesforce 組織への deploy 成功として扱わない。
-- Scratch Org の alias は作成日を含め、通常は `scratch-org-YYYYMMDD` とする。
+- Scratch Org の alias は通常 `scratch-org` とする。
 - 同じ日に複数の Scratch Org を作成する場合は、作成前にユーザーへ alias を確認し、`SCRATCH_ORG_ALIAS` で明示する。
 
 manifest の使い分けは [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md) を参照します。
@@ -78,17 +78,10 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org <scratch-org-alias>
 
 ## alias ルール
 
-Scratch Org の alias は、個人名や用途が固定された値ではなく、作成日ベースで付けます。
-作成日の基準は作業時点のローカル日付です。
+Scratch Org の alias は、個人名や用途が固定された値ではなく、通常は `scratch-org` にします。
 
 ```text
-scratch-org-YYYYMMDD
-```
-
-例:
-
-```text
-scratch-org-20260705
+scratch-org
 ```
 
 同じ日に複数の Scratch Org を作成する場合は、作成前にユーザーへ alias を確認します。
@@ -119,7 +112,7 @@ alias、duration、manifest、Permission Set、import plan は `scripts/deploy/s
 node scripts/deploy/scratch-org/run-constructive-scratch-org.js
 ```
 
-一括実行では、`scratch-org-YYYYMMDD` 形式の alias を使います。
+一括実行では、通常 `scratch-org` alias を使います。
 `SCRATCH_ORG_ALIAS` を指定した場合は、その alias を作成と後続ステップで使います。
 
 途中で失敗した場合は、失敗したステップのスクリプトだけを再実行します。
@@ -132,7 +125,7 @@ SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/scratch-or
 SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/scratch-org-import-test-data.js
 ```
 
-alias prefix、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json`、`SCRATCH_ORG_ALIAS`、または次の手順の個別 `sf` コマンドを確認します。
+alias、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json`、`SCRATCH_ORG_ALIAS`、または次の手順の個別 `sf` コマンドを確認します。
 
 ## 作成
 
@@ -142,7 +135,7 @@ Scratch Org を作成します。
 sf org create scratch --definition-file config/project-scratch-def.json --alias <scratch-org-alias> --duration-days 7
 ```
 
-alias は通常 `scratch-org-YYYYMMDD` を使います。
+alias は通常 `scratch-org` を使います。
 同じ日に複数作成する場合は、作成前にユーザーへ alias を確認します。
 スクリプト実行時の alias 生成ルールは `scripts/deploy/scratch-org/scratch-org.json` と `scripts/deploy/scratch-org/scratch-org-context.js` で扱います。
 Dev Hub を明示する必要がある場合は、確認済みの Dev Hub を `--target-dev-hub` で指定します。
