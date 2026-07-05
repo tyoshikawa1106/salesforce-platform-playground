@@ -7,7 +7,7 @@
 
 - GitHub Actions の Salesforce validate は任意設定として扱い、JWT 認証用 Secrets が揃っている場合だけ実行する。
 - Secrets が未設定の場合は Salesforce validate を skip し、CI は成功扱いにする。
-- CI 用 alias は workflow 内で `ci-dev` として作成する。ローカル作業やユーザー依頼の target org alias と混同しない。
+- CI 用 alias は workflow 内で `ci-dev` として作成する。ローカル作業や依頼範囲の target org alias と混同しない。
 - Secrets、秘密鍵、証明書、Consumer Secret、token、password などの実値を docs、workflow、commit message、PR body に書かない。
 - CI validate は反映前チェックであり、Salesforce 組織への deploy 完了として扱わない。
 
