@@ -31,7 +31,7 @@ PR は、対応する実在 Issue を必ず持つものとして扱います。
 
 Salesforce メタデータ変更を含む PR は、merge 前に Salesforce validate を確認します。
 
-- `force-app/`、`manifest/`、Salesforce deploy script、Permission Set 名、Apex、LWC、Aura、その他 Salesforce metadata 参照を変更した PR は Salesforce メタデータ変更として扱う。
+- `force-app/`、`manifest/`、Salesforce deploy script、`sfdx-project.json`、`.forceignore`、`config/project-scratch-def.json`、Permission Set 名、Apex、LWC、Aura、その他 Salesforce metadata 参照を変更した PR は Salesforce メタデータ変更として扱う。
 - 対象 org は現在の default target org とし、`sf config get target-org` で alias を確認する。
 - validate コマンドでは、確認した alias を `--target-org <alias>` で明示する。
 - 標準確認は `npm run sf:validate:dev -- --target-org <alias>` とする。
