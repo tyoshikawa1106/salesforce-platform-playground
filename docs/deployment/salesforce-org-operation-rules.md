@@ -21,6 +21,7 @@ Salesforce 組織操作を依頼されたら、AI エージェントは最初に
 ## 実行ルール
 
 - validate / deploy / test / retrieve は、確認済みの Salesforce 組織に対してのみ実行する。
+- 対象 org が個別指定されていない場合は、現在の default target org を確認して対象にする。
 - default target org の切り替え忘れによる誤実行を避けるため、Salesforce 組織操作では確認済みの alias を `--target-org <alias>` で明示する。
 - 明示依頼なしに default target org を切り替えない。
 - `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。
@@ -39,7 +40,7 @@ Salesforce 組織操作を依頼されたら、AI エージェントは最初に
 Salesforce 組織操作を行う前に、次の順で判断します。
 
 1. 依頼範囲が validate / deploy / retrieve / test / data import / destructive changes のどれかを切り分ける。
-2. 対象 org alias を確認する。
+2. 対象 org alias を確認する。個別指定がない場合は、現在の default target org を確認して使う。
 3. deploy / retrieve scope を manifest、`--metadata`、または script の設定で絞る。
 4. Git 差分を確認し、対象外の metadata や org 固有値が混ざっていないことを確認する。
 5. deploy 前に validate、dry-run、または script の dry-run を実行する。
@@ -53,7 +54,21 @@ deploy、delete、retrieve、test の前に対象組織を確認します。
 sf config get target-org
 ```
 
+対象 org の個別指定がない場合は、この default target org を対象にします。ただし後続の validate / deploy / retrieve / test コマンドでは、取得した alias を `--target-org <alias>` で明示します。
+
 alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
+
+## Merge 前 validate
+
+Salesforce メタデータ変更を含む PR を merge する前に、現在の default target org を対象に validate します。
+
+```sh
+sf config get target-org
+npm run sf:validate:dev -- --target-org <alias>
+```
+
+`<alias>` は `sf config get target-org` で確認した default target org alias に置き換えます。
+default target org が未設定、認証切れ、または対象として不適切と判断できる場合は merge せず、必要な対象 org / 確認方針をユーザーに報告します。
 
 ## Validate
 

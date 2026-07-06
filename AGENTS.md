@@ -19,6 +19,7 @@
 - Issue、PR、コミット本文では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
 - コミット時の hook は原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、push、PR 作成、CI 確認、merge はユーザーが明示した場合のみ進める。
+- Salesforce メタデータ変更を含む PR は、merge 前に現在の default target org を確認し、明示 alias で validate する。
 - PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、`docs/development/github-rules.md` の条件を満たす場合は自動実行してよい。
 
 ## 安全・秘密情報
