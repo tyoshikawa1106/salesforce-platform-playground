@@ -5,7 +5,7 @@
             "default": true
         }
     ],
-    "name": "salesforce-platform-playground",
+    "name": "salesforce-dx-project",
     "namespace": "",
     "sfdcLoginUrl": "https://login.salesforce.com",
     "sourceApiVersion": "67.0"

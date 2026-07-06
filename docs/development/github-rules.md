@@ -101,7 +101,7 @@ AccountTriggerHandler から取引先名の会社略称正規化ロジックを 
 
 AccountNameNormalizerTest を追加し、直接テストと trigger 経由の回帰テストで複数略称を含む取引先名の正規化を確認する。
 
-検証: sf code-analyzer run は違反 0 件。npm run sf:validate:dev は salesforce-platform-playground で成功し、対象 Apex テスト 10 件が通過。
+検証: sf code-analyzer run は違反 0 件。npm run sf:validate:dev は `<alias>` で成功し、対象 Apex テスト 10 件が通過。
 ```
 
 次のような機械的・軽微なコミットでは、本文を省略してよいです。

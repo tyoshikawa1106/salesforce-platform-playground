@@ -27,7 +27,7 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 
 ```json
 {
-    "orgName": "Salesforce Platform Playground",
+    "orgName": "Scratch Org",
     "edition": "Developer",
     "features": ["EnableSetPasswordInApi"],
     "settings": {
