@@ -2,7 +2,7 @@
 
 `force-app/main/default` を丸ごと Salesforce 組織へ validate / deploy するのではなく、どの metadata を標準 deploy scope に含めるかを判断するための棚卸しです。
 
-このリポジトリでは `force-app/main/default` を source の正本にします。
+このリポジトリでは `force-app/main/default` を source の基準にします。
 ただし、`force-app` には Salesforce 組織から広く retrieve した org 固有 metadata も含まれるため、Salesforce 組織への初回デプロイ / 再構築は `manifest/rebuild-developer-org.xml` を入口にします。
 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞ります。
 

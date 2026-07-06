@@ -1,11 +1,9 @@
 # GitHub Copilot Instructions
 
-このファイルは GitHub Copilot 向けのリポジトリ指示です。
+このファイルは GitHub Copilot 向けの指示です。
 
 - 作業や提案を始める前に `AGENTS.md` を確認し、リポジトリ運用ルールに従う。
-- 詳細な開発、GitHub 運用、デプロイ、ドキュメント配置の判断は `docs/` 配下の関連ページを優先する。
-- Apex、LWC、Aura、Salesforce メタデータの変更では、既存の設計、命名、配置、テスト方針に合わせる。
-- コードやメタデータから確認できない仕様を推測で固定しない。不明点は確認事項として残す。
-- 秘密情報、認証ファイル、組織固有の一時ファイル、個人環境の値を提案や変更に含めない。
-- `AGENTS.md` または `docs/` とこのファイルの内容がずれる場合は、`AGENTS.md` と `docs/` を正とする。
-- Salesforce 関連作業では、`.agents/skills/` が存在する場合のみ、必要に応じて関連 `SKILL.md` を検索し、該当する手順を確認してから提案する。
+- 詳細な実務手順は `docs/development/` と `docs/deployment/` の関連ページを確認する。
+- `AGENTS.md` または `docs/` とこのファイルの内容がずれる場合は、`AGENTS.md` と `docs/` を優先する。
+- このファイルには GitHub Copilot 固有の指示だけを書き、リポジトリ共通ルールは重複させない。
+- Salesforce 関連作業では、`.agents/skills/` が存在する場合のみ、必要に応じて関連 `SKILL.md` を検索し、関連する手順を確認してから提案する。

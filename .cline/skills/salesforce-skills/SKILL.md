@@ -5,12 +5,12 @@ description: '`.agents/skills` にある Salesforce sf-skills を参照する。
 
 # Salesforce Skills
 
-この skill は、Cline からローカルに存在する `.agents/skills/` の Salesforce skill set を参照するための入口です。
+この skill は、Cline からローカルに存在する `.agents/skills/` の Salesforce 関連 skill を参照するための指示です。
 
-## 正本
+## 優先する情報
 
-- このリポジトリでは、`AGENTS.md`、`docs/`、ユーザー依頼を正本として扱う。
-- `.agents/skills/` が存在する場合は、Salesforce 関連の補助情報として使う。
+- このリポジトリでは、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
+- `.agents/skills/` が存在する場合は、Salesforce 関連の参考情報として使う。
 - skill の内容が `AGENTS.md`、`docs/`、ユーザー依頼と矛盾する場合は、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
 
 ## 使い方

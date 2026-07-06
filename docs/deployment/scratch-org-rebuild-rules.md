@@ -202,7 +202,7 @@ sf project deploy start \
 - `force-app/main/default/workflows`
 
 Scratch Org 専用 source directory は作りません。
-初期反映の正本は `force-app/main/default` と `manifest/rebuild-scratch-org.xml` に寄せ、Scratch Org の機能有効化は `config/project-scratch-def.json` で扱います。
+初期反映の基準は `force-app/main/default` と `manifest/rebuild-scratch-org.xml` に寄せ、Scratch Org の機能有効化は `config/project-scratch-def.json` で扱います。
 Settings や DuplicateRule を Scratch Org 用にコピーして個別補正すると二重管理になりやすいため、必要な場合は対象 metadata ごとに manifest、scratch definition、または手順 docs で扱います。
 
 External Client App は Salesforce 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。

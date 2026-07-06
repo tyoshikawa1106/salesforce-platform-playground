@@ -1,7 +1,7 @@
 # .gitignore 管理方針の判断記録
 
 この文書は、このリポジトリの `.gitignore` を完成させる過程で整理した判断記録です。
-現在の Git 管理対象外ファイルの正本は `.gitignore` とし、この文書は判断理由を再確認するときに参照します。
+現在の Git 管理対象外ファイルは `.gitignore` を基準にし、この文書は判断理由を再確認するときに参照します。
 
 このリポジトリの `.gitignore` は、Salesforce 公式サンプルの `trailheadapps/dreamhouse-lwc` を基本形にし、リポジトリ固有のローカル生成物と Git 管理から外す Salesforce metadata を追加したものです。
 
