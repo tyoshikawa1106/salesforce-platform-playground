@@ -231,7 +231,7 @@ OpportunityTriggerService
   -> PricebookEntrySelector
 ```
 
-このため、機能改修時の導線は `Service` から呼び出し先を追う形になる。
+このため、機能改修時は `Service` から呼び出し先を追う形になる。
 クラス名だけでは、どの機能で使われているクエリかは判断しにくい。
 
 ### 機能単位 Selector 案

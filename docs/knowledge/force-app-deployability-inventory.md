@@ -1,6 +1,6 @@
 # force-app deployability 棚卸し
 
-`force-app/main/default` を丸ごと Salesforce 組織へ validate / deploy するのではなく、どの metadata を標準 deploy scope に含めるかを判断するための棚卸しです。
+`force-app/main/default` 全体を Salesforce 組織へ validate / deploy するのではなく、どの metadata を標準 deploy scope に含めるかを判断するための棚卸しです。
 
 このリポジトリでは `force-app/main/default` を source の基準にします。
 ただし、`force-app` には Salesforce 組織から広く retrieve した org 固有 metadata も含まれるため、Salesforce 組織への初回デプロイ / 再構築は `manifest/rebuild-developer-org.xml` を使います。
