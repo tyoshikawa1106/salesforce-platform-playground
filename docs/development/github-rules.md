@@ -2,6 +2,8 @@
 
 このリポジトリでは GitHub Flow で開発します。
 
+`docs/development/documentation-rules.md` のフォルダ配置ルールは、GitHub 運用ルールとは独立した共通ルールとして扱います。
+
 ## 基本ルール
 
 GitHub 作業の基本境界は `AGENTS.md` に従います。このファイルには Issue、PR、label、assignee、Project、CI などの詳細運用を置きます。
@@ -10,6 +12,10 @@ GitHub 作業の基本境界は `AGENTS.md` に従います。このファイル
 - PR 本文は `.github/pull_request_template.md` の構成に従って作成する。
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - hook が依存不足で失敗した場合、勝手に依存を導入せず確認する。
+
+## このリポジトリ固有の運用
+
+次の運用は、このリポジトリの GitHub 運用として扱います。
 
 ## Issue ルール
 
@@ -192,8 +198,6 @@ Issue と PR は、このリポジトリ用の Project に紐づけます。
 - Project 設定が漏れた場合は、気づいた時点で手動で補正する。
 
 ## Milestone ルール
-
-このセクションは、このリポジトリ固有の運用として扱います。別リポジトリへルールを流用する場合は、このセクションだけを差し替えてよいです。
 
 - 期限やリリースなどの作業単位が明確な場合だけ、Issue と PR に Milestone を設定する。
 - Milestone が未作成、またはどの Milestone に入れるべきか判断できない場合は、勝手に作成せず Milestone なしで進める。
