@@ -1,10 +1,8 @@
-# Salesforce Platform Playground
-
-Salesforce Platform × Codex を使った Salesforce DX プロジェクトです。
+# Salesforce DX Project
 
 ## ドキュメント
 
-- [Docs](https://tyoshikawa1106.github.io/salesforce-platform-playground/)
+- [Docs](docs/index.md)
 
 ## 開発ルール
 
@@ -53,18 +51,14 @@ Salesforce Platform × Codex を使った Salesforce DX プロジェクトです
 
 ## セットアップ手順
 
-リポジトリを取得し、依存関係をインストールして、Salesforce 開発組織へログインします。
+作業ディレクトリで依存関係をインストールし、Salesforce 開発組織へログインします。
 
 ```sh
-# リポジトリを取得して作業ディレクトリへ移動する
-git clone https://github.com/tyoshikawa1106/salesforce-platform-playground.git
-cd salesforce-platform-playground
-
 # package-lock.json に固定された依存関係をインストールする
 npm ci
 
 # Salesforce 開発組織へログインする
-sf org login web --set-default --alias salesforce-platform-playground
+sf org login web --alias <alias>
 ```
 
 ## 開発コマンド

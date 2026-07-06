@@ -5,7 +5,7 @@
         <visible>true</visible>
     </applicationVisibilities>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>Salesforce Platform Playground User</label>
+    <label>Salesforce Application User</label>
     <tabSettings>
         <tab>standard-Account</tab>
         <visibility>Visible</visibility>

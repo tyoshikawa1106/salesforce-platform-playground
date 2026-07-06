@@ -1,4 +1,4 @@
-# Salesforce Platform Playground
+# Salesforce DX Project
 
 ## Docs
 
