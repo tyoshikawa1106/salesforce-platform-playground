@@ -1,6 +1,6 @@
 # Salesforce 組織操作ルール
 
-この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断入口です。
+この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断の起点です。
 実行コマンドの暗記ではなく、対象 org、scope、検証結果、報告内容を取り違えないための運用ルールとして扱います。
 
 Scratch Org の作成・初期反映は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md) を参照します。
@@ -27,9 +27,9 @@ Salesforce 組織操作を依頼されたら、AI エージェントは最初に
 - `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。
 - deploy 前に `sf project deploy validate`、dry-run、または同等の preflight を実行する。どれを使ったかを報告する。
 - `sf project deploy validate` は反映前チェックであり、ユーザーが動作確認できる状態とは扱わない。
-- `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証入口にはしない。
+- `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証の起点にはしない。
 - `manifest/rebuild-developer-org.xml` は接続中の Salesforce 組織への初回デプロイ / 再構築 scope として扱う。
-- `npm run sf:validate:dev` と `npm run sf:deploy:dev` は `manifest/rebuild-developer-org.xml` を使う標準入口として扱う。
+- `npm run sf:validate:dev` と `npm run sf:deploy:dev` は `manifest/rebuild-developer-org.xml` を使う標準コマンドとして扱う。
 - 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞る。
 - org 側の retrieve 結果が `Changed` でも、その表示だけで repo 反映を判断しない。Git 差分を確認して、対象外差分や空白差分を除外する。
 - `sf org display --json` など token を含み得る出力は、必要性が明確な場合だけ使う。報告や docs に token、実ユーザー名、org 固有 URL を残さない。

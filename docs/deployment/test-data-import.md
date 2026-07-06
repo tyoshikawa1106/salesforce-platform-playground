@@ -10,7 +10,7 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行入口と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/` に置きます。
+`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/` に置きます。
 
 - `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画。
 - `scripts/apex/test-data/*.apex`: 関連レコードを作成・削除する anonymous Apex。

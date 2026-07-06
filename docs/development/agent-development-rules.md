@@ -80,7 +80,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous -
 ## Salesforce 組織での検証
 
 Salesforce 組織に対する validate / deploy / retrieve / delete / Apex test / data import は、対象 org、scope、preflight、報告内容を取り違えないよう `docs/deployment/` の該当ルールに従います。
-接続中の Salesforce 組織への通常操作は `docs/deployment/salesforce-org-operation-rules.md` を入口にします。
+接続中の Salesforce 組織への通常操作は `docs/deployment/salesforce-org-operation-rules.md` を参照します。
 
 Apex 変更を含む PR を作成する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。
 コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。

@@ -37,7 +37,7 @@ Sandbox に対して validate する場合は、`SF_LOGIN_URL` に `https://test
 Developer Edition や Production login を使う場合、`SF_LOGIN_URL` は未設定で構いません。
 
 `SF_JWT_PRIVATE_KEY` は `-----BEGIN ... KEY-----` から `-----END ... KEY-----` までを GitHub Secret に保存します。
-秘密鍵ファイルそのものや値のコピーをリポジトリへ置きません。
+秘密鍵ファイルそのものや値をリポジトリへ置きません。
 
 ## Salesforce 側で準備するもの
 
