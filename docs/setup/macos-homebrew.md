@@ -131,6 +131,8 @@ volta list
 
 Salesforce Code Analyzer の Flow engine は Python 3.10 以降を必要とします。
 
+### インストール
+
 Homebrew で Python 3.13 を入れます。
 
 ```sh
@@ -142,6 +144,8 @@ Homebrew の versioned Python は `python3.13` を提供します。
 ```sh
 python3.13 --version
 ```
+
+### PATH 設定
 
 ただし、Code Analyzer は環境から `python3` または `python` を探します。
 
@@ -175,6 +179,8 @@ zsh で Homebrew Python 3.13 を優先します。
 printf '\n# Homebrew Python 3.13 for Salesforce Code Analyzer Flow engine\nexport PATH="$(brew --prefix python@3.13)/libexec/bin:$PATH"\n' >> ~/.zshrc
 source ~/.zshrc
 ```
+
+### 確認
 
 確認:
 
@@ -219,6 +225,8 @@ sf plugins install @salesforce/plugin-code-analyzer
 
 ## インストール確認
 
+### Homebrew パッケージ
+
 Homebrew で直接管理しているトップレベルパッケージを確認します。
 
 ```sh
@@ -242,6 +250,8 @@ Heroku CLI を任意で入れている場合は、次も表示されます。
 heroku/brew/heroku
 ```
 
+### バージョン
+
 各ツールのバージョンを確認します。
 
 ```sh
@@ -256,6 +266,8 @@ npm --version
 volta --version
 ```
 
+### コマンド参照先
+
 コマンドの参照先を確認します。
 
 ```sh
@@ -269,6 +281,8 @@ which node
 which npm
 which volta
 ```
+
+### Salesforce CLI plugin
 
 Salesforce CLI の plugin を確認します。
 

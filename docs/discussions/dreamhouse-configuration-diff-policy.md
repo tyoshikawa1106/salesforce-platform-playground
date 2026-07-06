@@ -378,7 +378,7 @@ Pull Request template は Markdown で、次の項目を持ちます。
 
 この中で、このリポジトリでも参考になりそうなのは Bug Report の「Salesforce 組織タイプ」と、PR template の「テスト」「lint / format」の明示です。
 
-一方で、Code of Conduct 確認、外部コミュニティへの誘導、before / after の gif 前提は、公開サンプルアプリ向けの色が強いです。このリポジトリに入れる場合は、DreamHouse の項目をそのまま移すのではなく、日本語の現行 template に必要な項目だけ足す形が自然です。
+一方で、Code of Conduct 確認、外部コミュニティへの誘導、before / after の gif 前提は、公開サンプルアプリ向けの色が強いです。このリポジトリに入れる場合は、DreamHouse の項目構成に合わせるのではなく、日本語の現行 template に必要な項目だけ足す形が自然です。
 
 ### Dependabot
 

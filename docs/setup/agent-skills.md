@@ -28,6 +28,6 @@ npx skills add forcedotcom/sf-skills
 
 AI エージェントが Apex、Apex テスト、Custom Object、Custom Field、Permission Set、Validation Rule、Flow、SOQL、デプロイ関連の作業で Salesforce 関連の参考情報を参照できる。
 
-## 参照
+## 外部リンク
 
 - https://github.com/forcedotcom/sf-skills

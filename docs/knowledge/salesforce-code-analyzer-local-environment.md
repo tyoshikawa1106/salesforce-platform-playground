@@ -47,6 +47,8 @@ source ~/.zshrc
 
 ## Windows のセットアップ例
 
+### 基本ツール
+
 PowerShell で winget を使う例:
 
 ```powershell
@@ -63,6 +65,8 @@ Node.js はプロジェクトの要求バージョンに合わせます。たと
 winget install --id Volta.Volta -e
 volta install node@24
 ```
+
+### Python PATH
 
 Windows で Python Launcher を使う場合は、Python 3.13 が入っているか確認します。
 
@@ -180,6 +184,8 @@ python3 --version
 
 ## Code Analyzer の実行確認
 
+### 設定確認
+
 設定ファイルを確認します。
 
 macOS / Linux:
@@ -194,6 +200,8 @@ Windows PowerShell:
 sf code-analyzer config
 ```
 
+### 直接実行
+
 実際に解析します。
 
 macOS / Linux:
@@ -207,6 +215,8 @@ Windows PowerShell:
 ```powershell
 sf code-analyzer run --rule-selector Recommended --target force-app --output-file logs/code-analyzer/local.json
 ```
+
+### npm script
 
 npm script があるプロジェクトでは、プロジェクト側の script を使います。
 
