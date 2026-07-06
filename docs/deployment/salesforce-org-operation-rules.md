@@ -1,6 +1,6 @@
 # Salesforce 組織操作ルール
 
-この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断入口です。
+この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断の起点です。
 実行コマンドの暗記ではなく、対象 org、scope、検証結果、報告内容を取り違えないための運用ルールとして扱います。
 
 Scratch Org の作成・初期反映は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md) を参照します。
@@ -18,7 +18,7 @@ Salesforce 組織操作を依頼されたら、AI エージェントは最初に
 - テストデータ投入は [テストデータ投入手順](test-data-import.md) に従い、dry-run と cleanup 方針を確認する。
 - GitHub Actions の Salesforce validate 設定は [CI Salesforce validate ルール](ci-salesforce-validate-rules.md) に従う。
 
-## 実行ルール
+## 共通実行ルール
 
 - validate / deploy / test / retrieve は、確認済みの Salesforce 組織に対してのみ実行する。
 - 対象 org が個別指定されていない場合は、現在の default target org を確認して対象にする。
@@ -27,9 +27,9 @@ Salesforce 組織操作を依頼されたら、AI エージェントは最初に
 - `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。
 - deploy 前に `sf project deploy validate`、dry-run、または同等の preflight を実行する。どれを使ったかを報告する。
 - `sf project deploy validate` は反映前チェックであり、ユーザーが動作確認できる状態とは扱わない。
-- `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証入口にはしない。
+- `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証の起点にはしない。
 - `manifest/rebuild-developer-org.xml` は接続中の Salesforce 組織への初回デプロイ / 再構築 scope として扱う。
-- `npm run sf:validate:dev` と `npm run sf:deploy:dev` は `manifest/rebuild-developer-org.xml` を使う標準入口として扱う。
+- `npm run sf:validate:dev` と `npm run sf:deploy:dev` は `manifest/rebuild-developer-org.xml` を使う標準コマンドとして扱う。
 - 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞る。
 - org 側の retrieve 結果が `Changed` でも、その表示だけで repo 反映を判断しない。Git 差分を確認して、対象外差分や空白差分を除外する。
 - `sf org display --json` など token を含み得る出力は、必要性が明確な場合だけ使う。報告や docs に token、実ユーザー名、org 固有 URL を残さない。
@@ -58,7 +58,7 @@ sf config get target-org
 
 alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
 
-## Merge 前 validate
+## PR merge 前 validate
 
 Salesforce メタデータ変更を含む PR を merge する前に、現在の default target org を対象に validate します。
 
@@ -70,7 +70,9 @@ npm run sf:validate:dev -- --target-org <alias>
 `<alias>` は `sf config get target-org` で確認した default target org alias に置き換えます。
 default target org が未設定、認証切れ、または対象として不適切と判断できる場合は merge せず、必要な対象 org / 確認方針をユーザーに報告します。
 
-## Validate
+## 実行手順
+
+### Validate
 
 接続中の Salesforce 組織の初回デプロイ / 再構築では、反映前にメタデータの整合性を確認します。
 
@@ -92,7 +94,7 @@ PR 前の確認では、変更内容に応じてこの validate に加えて LWC
 Salesforce 組織へ永続反映する deploy は、ユーザーの明示依頼または repo の運用ルールで要求される場合だけ実行します。通常の Apex / Salesforce メタデータ開発では、PR 作成前に、validate に成功した同じ対象 org への実 deploy まで完了します。
 PR 作成前の deploy は開発完了確認として扱い、merge 前 validate は merge 直前の最終 gate として扱います。
 
-## CI validate
+### CI validate
 
 GitHub Actions の `npm checks` は、Salesforce JWT 認証用の Secrets が揃っている場合だけ Salesforce 組織 validate を実行します。
 Secrets が未設定の場合は、Salesforce validate を skip して CI は成功扱いにします。
@@ -100,7 +102,7 @@ Secrets が未設定の場合は、Salesforce validate を skip して CI は成
 CI の Secrets、Connected App、`ci-dev` alias の詳細は [CI Salesforce validate ルール](ci-salesforce-validate-rules.md) に分けます。
 AI エージェントがローカル deploy / retrieve / test を実行するときは、CI 用の `ci-dev` alias ではなく、依頼範囲の対象 org alias を確認して `--target-org <alias>` で明示します。
 
-## Deploy
+### Deploy
 
 初回デプロイ / 再構築で validate が成功したら、同じ確認済みの組織へ反映します。
 通常開発で PR を作成する場合も、PR 作成前に、validate に成功した同じ対象 org へ実 deploy します。
@@ -118,7 +120,7 @@ sf project deploy start --manifest manifest/rebuild-developer-org.xml --target-o
 変更範囲を狭く反映したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って deploy します。
 validate の job id を使って quick deploy する場合も、対象 org alias を明示し、元の validate 結果と deploy 結果を両方報告します。
 
-## Apex test
+### Apex test
 
 Apex クラスやトリガーを含む PR を作成する前に、関連 Apex テストを coverage 付きで実行します。
 

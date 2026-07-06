@@ -29,7 +29,7 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 
 このプロジェクトの Prettier 設定は、Salesforce のサンプルギャラリーで使われている DreamHouse、E-Bikes、LWC Recipes、Apex Recipes の構成を参考にします。
 
-他の Salesforce プロジェクトで開発を開始する場合は、最初に次のファイルを確認・更新します。
+### Prettier 関連ファイル
 
 | ファイル                | 目的                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------- |
@@ -39,7 +39,7 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 | `package-lock.json`     | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
 | `docs/setup/project.md` | そのプロジェクトで採用した準備手順                                                          |
 
-適用順:
+### 導入手順
 
 1. `.prettierrc` に 4 spaces 前提の Prettier 設定を入れる。
 2. `.prettierignore` で整形対象外を確認する。
@@ -50,18 +50,7 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 7. Apex を含む場合は、必要に応じて `sf code-analyzer run` と Apex test を実行する。
 8. このドキュメントと同じ粒度で、対象プロジェクトの setup docs に採用内容を残す。
 
-別プロジェクトへ適用する場合は、このリポジトリの設定ファイルをコピーしてよいです。
-ただし、ファイルごとに扱いを分けます。
-
-| ファイル                | コピー方針                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `.prettierrc`           | ほぼそのままコピーしてよい                                                                                                |
-| `.prettierignore`       | 基本部分はコピーしてよい。プロジェクト固有の生成物があれば追加する                                                        |
-| `package.json`          | 丸ごと上書きしない。`prettier` / `prettier:verify` / `precommit` / `lint-staged` / devDependencies の必要部分だけ移植する |
-| `package-lock.json`     | コピーしない。対象プロジェクトで `npm install` して生成・更新する                                                         |
-| `docs/setup/project.md` | Prettier セクションをコピーし、対象プロジェクトの前提に合わせて調整する                                                   |
-
-コピー後の確認:
+### 確認コマンド
 
 ```sh
 npm install

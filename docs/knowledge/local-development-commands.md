@@ -48,4 +48,4 @@
 - docs / config だけの変更では、まず `npm run prettier:verify` と差分確認を行う。
 - LWC を含む変更では、Prettier、lint、LWC Jest を実行する。
 - Apex / metadata を含む変更では、Code Analyzer、関連 Apex test、必要な validate を実行する。
-- retrieve 後は CLI の表示だけで判断せず、Git 差分を正として意図しない更新を確認する。
+- retrieve 後は CLI の表示だけで判断せず、Git 差分を基準にして意図しない更新を確認する。

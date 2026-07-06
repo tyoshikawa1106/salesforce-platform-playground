@@ -10,7 +10,7 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行入口と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/` に置きます。
+`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/` に置きます。
 
 - `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画。
 - `scripts/apex/test-data/*.apex`: 関連レコードを作成・削除する anonymous Apex。
@@ -40,6 +40,8 @@ npm run setup:data:standard:dry-run -- --target-org <alias>
 
 ## 主要標準オブジェクト seed
 
+### 実行単位
+
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
 execute anonymous の CPU / サイズ制限を避けるため、1 つの primary object につき 1 つの anonymous Apex ファイルに分け、`scripts/setup/import-plan.json` の順序で実行します。
@@ -67,6 +69,8 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 
 オブジェクトごとの調査クエリ例は、`scripts/soql/object-queries/account/`、`scripts/soql/object-queries/opportunity/`、`scripts/soql/object-queries/case/` に置きます。
 
+### 作成対象
+
 作成対象は次のとおりです。
 
 | 分類             | API 名                                                                |
@@ -81,7 +85,11 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 | 活動             | `Task`, `Event`                                                       |
 | メール・ファイル | `EmailMessage`, `ContentVersion`                                      |
 
+### 件数と表示名
+
 通常 org では各オブジェクト 50 件規模で作成します。Scratch Org では `scripts/deploy/scratch-org/scratch-org-import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張します。組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。キャンペーンは前年・今年・来年の各月 1 件ずつ作成します。商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成します。商品マスターはノートPC、モニター、会議機器、オフィス家具、ソフトウェアなどの office product catalog として作成します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにします。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
+
+### 作成しない対象
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 

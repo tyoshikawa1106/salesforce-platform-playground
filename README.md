@@ -93,7 +93,7 @@ Salesforce 開発組織を初期反映するときは `manifest/rebuild-develope
 
 ## AI エージェントスキル
 
-`forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の補助情報として利用します。
+`forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の参考情報として利用します。
 
 ```sh
 npx skills add forcedotcom/sf-skills

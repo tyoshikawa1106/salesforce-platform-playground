@@ -41,6 +41,8 @@ handleBack() {
 
 ## Salesforce の別ページへ遷移する
 
+### NavigationMixin の基本
+
 Lightning Experience、Salesforce モバイル、Experience Builder サイトでは、`lightning/navigation` の `NavigationMixin` と `PageReference` を使います。
 
 ```js
@@ -88,6 +90,8 @@ this[NavigationMixin.Navigate](
     true
 );
 ```
+
+### PageReference の種類
 
 主な `PageReference` は次の通りです。
 
@@ -200,6 +204,8 @@ openCustomTab() {
 
 ## LWC 自体を URL で開けるようにする
 
+### meta XML
+
 独立した LWC 画面として開きたい場合は、対象 LWC の meta XML に `lightning__UrlAddressable` を追加します。
 
 ```xml
@@ -214,6 +220,8 @@ openCustomTab() {
 ```
 
 実ファイルでは、既存の LWC meta XML と同じ namespace を使います。
+
+### 遷移側
 
 遷移側は `standard__component` を使います。
 
@@ -236,6 +244,8 @@ URL は次のような形式になります。
 ```
 
 `state` に渡すキーは名前空間付きにします。名前空間がない組織では `c__` を使います。値は文字列として扱います。
+
+### 受け取り側
 
 受け取り側は `CurrentPageReference` で URL state を読みます。
 
@@ -401,14 +411,14 @@ Apex に渡す場合も、LWC 側の検証だけで終わらせず、Apex 側で
 
 ### 画面状態と URL の同期
 
-URL を正本にするか、コンポーネントの内部 state を正本にするかを先に決めます。
+URL を状態の基準にするか、コンポーネントの内部 state を状態の基準にするかを先に決めます。
 
-| 方針                    | 使いどころ                                                           |
-| ----------------------- | -------------------------------------------------------------------- |
-| URL を正本にする        | 検索条件、ページ番号、選択中オブジェクトなど、共有・復元したい状態。 |
-| 内部 state を正本にする | 保存中、削除確認モーダル、チェック中の行など、画面操作中だけの状態。 |
+| 方針                          | 使いどころ                                                           |
+| ----------------------------- | -------------------------------------------------------------------- |
+| URL を状態の基準にする        | 検索条件、ページ番号、選択中オブジェクトなど、共有・復元したい状態。 |
+| 内部 state を状態の基準にする | 保存中、削除確認モーダル、チェック中の行など、画面操作中だけの状態。 |
 
-URL を正本にする場合は、入力変更のたびに Apex を直接呼ぶのではなく、URL 更新と `CurrentPageReference` の反映を経由させると状態の入口が 1 つになります。
+URL を状態の基準にする場合は、入力変更のたびに Apex を直接呼ぶのではなく、URL 更新と `CurrentPageReference` の反映を経由させると状態の入口が 1 つになります。
 
 ```js
 handleSearch() {

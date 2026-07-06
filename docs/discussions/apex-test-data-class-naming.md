@@ -62,7 +62,7 @@ FixtureFactoryTest
 - `CommonTester` より責務が狭く、データ作成クラスだと分かりやすい。
 - `TestDataFactory` よりはテスト用語に寄るため、`fixture` の意味を知らない読み手には少し分かりにくい。
 
-## 判断
+## 命名判断
 
 意味の明確さだけなら `TestDataFactory` が強いです。
 

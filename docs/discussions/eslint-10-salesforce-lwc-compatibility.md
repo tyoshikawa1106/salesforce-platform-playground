@@ -43,7 +43,7 @@ peer eslint@"^7.5.0 || ^8.0.0 || ^9.0.0" from @babel/eslint-parser@7.29.7
 
 これは実行時の lint warning ではなく、npm の peer dependency 解決が成立しない状態です。
 
-## 判断
+## 更新判断
 
 この更新は、`--legacy-peer-deps` や `--force` で通しません。
 

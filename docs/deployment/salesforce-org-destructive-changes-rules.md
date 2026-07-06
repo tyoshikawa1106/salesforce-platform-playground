@@ -45,7 +45,7 @@ node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias> 
 node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
 ```
 
-## destructive changes 実行ルール
+## destructive changes 実行手順
 
 - destructive manifest は作業単位ごとに最小化する。
 - deploy validate が使える場合は、削除前に検証する。

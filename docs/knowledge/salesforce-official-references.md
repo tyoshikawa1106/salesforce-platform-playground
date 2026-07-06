@@ -2,22 +2,22 @@
 
 Salesforce Platform を調べるときは、まず Salesforce 公式ドキュメント、開発者向けガイド、Trailhead、公式サンプルを確認します。
 
-この文書は、Apex、Salesforce DX、メタデータ、LWC などの開発で参照しやすい公式リンクの入口です。
+この文書は、Apex、Salesforce DX、メタデータ、LWC などの開発で参照しやすい公式リンクの案内です。
 
 ## 全体
 
-| 用途                         | 公式リンク                                                                                                                 |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 開発者向けドキュメントの入口 | [Salesforce Developers Documentation](https://developer.salesforce.com/docs)                                               |
-| 学習コンテンツ               | [Trailhead](https://trailhead.salesforce.com/)                                                                             |
-| リリースごとの差分           | [Salesforce Release Notes](https://help.salesforce.com/s/articleView?id=release-notes.salesforce_release_notes.htm&type=5) |
-| 開発者ブログ                 | [Salesforce Developers Blog](https://developer.salesforce.com/blogs)                                                       |
+| 用途                   | 公式リンク                                                                                                                 |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 開発者向けドキュメント | [Salesforce Developers Documentation](https://developer.salesforce.com/docs)                                               |
+| 学習コンテンツ         | [Trailhead](https://trailhead.salesforce.com/)                                                                             |
+| リリースごとの差分     | [Salesforce Release Notes](https://help.salesforce.com/s/articleView?id=release-notes.salesforce_release_notes.htm&type=5) |
+| 開発者ブログ           | [Salesforce Developers Blog](https://developer.salesforce.com/blogs)                                                       |
 
 ## 公式サンプルコード
 
 | 用途                          | 公式リンク                                                                      |
 | ----------------------------- | ------------------------------------------------------------------------------- |
-| サンプルアプリ全体の入口      | [Salesforce Developers Sample Apps](https://github.com/trailheadapps)           |
+| サンプルアプリ全体            | [Salesforce Developers Sample Apps](https://github.com/trailheadapps)           |
 | 不動産業務のサンプルアプリ    | [Dreamhouse](https://github.com/trailheadapps/dreamhouse-lwc)                   |
 | 小売と Experience Cloud       | [E-Bikes](https://github.com/trailheadapps/ebikes-lwc)                          |
 | イベント管理のサンプルアプリ  | [Easy Spaces](https://github.com/trailheadapps/easy-spaces-lwc)                 |

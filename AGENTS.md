@@ -34,9 +34,9 @@
 ## Salesforce 固有
 
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
-- デプロイ対象のメタデータは `force-app/main/default` を正本とする。
+- デプロイ対象のメタデータは `force-app/main/default` を基準にする。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
-- `forcedotcom/sf-skills` は Salesforce 関連作業の補助情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
+- `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
 - メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
 
@@ -47,4 +47,4 @@
 
 ## 検証
 
-- Salesforce メタデータ変更後は、関連 docs に従い、実行した validate / deploy / test と対象組織を報告する。
+- Salesforce メタデータ変更後は、該当するルール文書に従い、実行した validate / deploy / test と対象組織を報告する。
