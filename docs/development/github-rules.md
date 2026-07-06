@@ -27,6 +27,16 @@ PR は、対応する実在 Issue を必ず持つものとして扱います。
 - Issue なしの PR は、ユーザーが明示的に例外として許可した場合だけ作成する。
 - Issue なし例外の場合も、PR 本文に理由と承認された例外であることを書く。
 
+## PR merge 前の Salesforce validate
+
+Salesforce メタデータ変更を含む PR は、merge 前に Salesforce validate を確認します。
+
+- `force-app/`、`manifest/`、Salesforce deploy script、Permission Set 名、Apex、LWC、Aura、その他 Salesforce metadata 参照を変更した PR は Salesforce メタデータ変更として扱う。
+- 対象 org は現在の default target org とし、`sf config get target-org` で alias を確認する。
+- validate コマンドでは、確認した alias を `--target-org <alias>` で明示する。
+- 標準確認は `npm run sf:validate:dev -- --target-org <alias>` とする。
+- merge 前に validate を実行できない場合は、merge せず、未実行理由と必要な対象 org / 確認方針をユーザーに報告する。
+
 ## PR マージ後の作業ブランチ整理
 
 PR マージ後は、次の条件をすべて満たす場合に限り、エージェントが明示確認なしで作業ブランチ整理を実行してよい。
