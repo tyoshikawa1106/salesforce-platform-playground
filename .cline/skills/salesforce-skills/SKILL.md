@@ -1,6 +1,6 @@
 ---
 name: salesforce-skills
-description: '`.agents/skills` にある Salesforce sf-skills を参照する。Apex、LWC、metadata、SOQL、deploy、Code Analyzer、Data Cloud、Agentforce、OmniStudio、SLDS、mobile、組織操作の作業で使う。'
+description: '`.agents/skills` にある Salesforce sf-skills を参照する。Apex、LWC、metadata、SOQL、deploy、Code Analyzer、Data Cloud、Agentforce、OmniStudio、SLDS、mobile、組織操作の作業で参照する。'
 ---
 
 # Salesforce Skills
@@ -10,7 +10,7 @@ description: '`.agents/skills` にある Salesforce sf-skills を参照する。
 ## 優先する情報
 
 - このリポジトリでは、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
-- `.agents/skills/` が存在する場合は、Salesforce 関連の参考情報として使う。
+- `.agents/skills/` が存在する場合は、Salesforce 関連の参考情報として参照する。
 - skill の内容が `AGENTS.md`、`docs/`、ユーザー依頼と矛盾する場合は、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
 
 ## 参照手順
@@ -18,8 +18,8 @@ description: '`.agents/skills` にある Salesforce sf-skills を参照する。
 1. `.agents/skills/` が存在する場合のみ、`.agents/skills/*/SKILL.md` から作業に関係する skill を name、description、trigger text で探す。
 2. 作業前に、選んだ `.agents/skills/<skill-name>/SKILL.md` を最後まで読む。
 3. 相対参照、scripts、docs、assets、templates は `.agents/skills/<skill-name>/` を基準に解決する。
-4. 現在の作業に関係する skill file だけを使う。
-5. 関連する skill がない場合は、`AGENTS.md` と `docs/` に従って進める。
+4. 現在の作業に関係する skill file だけを参照する。
+5. 該当する skill がない場合は、`AGENTS.md` と `docs/` に従って進める。
 
 ## Skill がない場合
 

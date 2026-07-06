@@ -428,6 +428,8 @@ DreamHouse の公開サンプル運用と release notes の粒度は、このリ
 
 今回の「設定・環境ファイル」観点では、DreamHouse との差分を一通り確認しました。
 
+### 確認済み範囲
+
 確認済みの範囲は次の通りです。
 
 - `.forceignore`
@@ -444,6 +446,8 @@ DreamHouse の公開サンプル運用と release notes の粒度は、このリ
 - Dependabot
 - release 設定
 
+### 採用判断
+
 DreamHouse の良いところは、必要なものだけ採用判断できています。
 
 - Code Analyzer: 採用候補として Issue 化済み。
@@ -452,12 +456,16 @@ DreamHouse の良いところは、必要なものだけ採用判断できてい
 - GitHub Release notes 設定: ナレッジ化済み。
 - 不要な設定: 理由付きでこの discussion に記録済み。
 
+### 導入済み
+
 その後、次の項目は導入済みになりました。
 
 - Code Analyzer 設定: PR #72。
 - CI の Prettier check: PR #73。
 - LWC Jest + accessibility: PR #74。
 - `sa11y` の提供元と用途の補足: PR #76。
+
+### 採用しない判断
 
 一方で、DreamHouse に合わせないと判断したものも明確です。
 

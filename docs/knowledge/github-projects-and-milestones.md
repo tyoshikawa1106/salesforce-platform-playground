@@ -6,7 +6,7 @@ GitHub Projects と Milestones は、Issue や PR を違う観点で整理する
 
 Project は、Issue や PR の状態を管理するための場所です。
 
-よくある使い方:
+主な用途:
 
 - `Todo`、`In Progress`、`Done` で進行状況を見る。
 - Issue と PR を同じボードで管理する。
@@ -19,7 +19,7 @@ Project は、継続的な作業管理に向いています。期限が決まっ
 
 Milestone は、Issue や PR を終わりのある区切りでまとめるための機能です。
 
-よくある使い方:
+主な用途:
 
 - `v1.0`、`v1.1` などのリリース単位でまとめる。
 - `Sprint 1`、`Release train` などの作業単位でまとめる。

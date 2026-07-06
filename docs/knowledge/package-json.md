@@ -66,7 +66,7 @@ LWC unit test 用です。`test` は `test:unit` への alias です。
 
 `sf data bulk results` には出力先 directory flag がないため、npm script 内で `logs/data-bulk-results/` に移動して実行します。`cd` は npm の子プロセス内だけで有効なため、実行後に作業ディレクトリを戻す必要はありません。
 
-使い方:
+実行例:
 
 ```sh
 npm run data:bulk:results -- --job-id <job-id> --target-org <alias>
