@@ -24,7 +24,7 @@ npx skills add forcedotcom/sf-skills
 - `.agents/skills/` が存在しない場合も、作業を止めず、`AGENTS.md` と `docs/` を優先して進める。
 - sf-skills が必要な場合だけ、この手順に従ってローカル環境へ導入する。
 
-## 導入効果
+## 参照できる作業
 
 AI エージェントが Apex、Apex テスト、Custom Object、Custom Field、Permission Set、Validation Rule、Flow、SOQL、デプロイ関連の作業で Salesforce 関連の参考情報を参照できる。
 

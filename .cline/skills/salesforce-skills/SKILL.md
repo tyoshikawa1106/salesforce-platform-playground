@@ -13,7 +13,7 @@ description: '`.agents/skills` にある Salesforce sf-skills を参照する。
 - `.agents/skills/` が存在する場合は、Salesforce 関連の参考情報として使う。
 - skill の内容が `AGENTS.md`、`docs/`、ユーザー依頼と矛盾する場合は、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
 
-## 使い方
+## 参照手順
 
 1. `.agents/skills/` が存在する場合のみ、`.agents/skills/*/SKILL.md` から作業に関係する skill を name、description、trigger text で探す。
 2. 作業前に、選んだ `.agents/skills/<skill-name>/SKILL.md` を最後まで読む。
