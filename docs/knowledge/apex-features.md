@@ -4,6 +4,25 @@ Apex の seasonal release 差分を確認するときは、Apex Developer Guide 
 
 このメモは API version 50.0 から 67.0 までで、Apex 開発時に確認しやすい主要追加点をまとめます。製品固有 namespace の細かい追加は多いため、汎用 Apex、Agentforce、Flow、managed package、Data Cloud / Commerce 連携に関係する項目を優先します。
 
+## API 67.0 時点の状態
+
+API 67.0 の Apex Developer Guide / Apex Reference Guide で確認した範囲では、このメモで扱う汎用 Apex 主要項目の中に `Deprecated` / `Retired` と明示されたものはありません。
+
+ただし、追加当時の lifecycle status と API 67.0 時点の status が異なるものがあります。古い API version の説明を読むときは、追加時点の Pilot / Beta / Developer Preview 表記をそのまま現行状態とみなさず、最新 API の Reference Guide に残っているかを確認します。
+
+| 項目                                   | 追加時点の状態                  | API 67.0 時点の見方                                                                                     |
+| -------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Transaction Finalizers                 | API 50.0 では Pilot             | API 67.0 Reference Guide に `System.Finalizer` / `FinalizerContext` / `System.attachFinalizer` がある。 |
+| User-mode database operations          | API 55.0 では Beta              | API 67.0 Developer Guide では access mode の設定として説明され、`AccessLevel` API も残っている。        |
+| DataWeave in Apex                      | API 56.0 では Developer Preview | API 67.0 Reference Guide に `DataWeave` namespace がある。                                              |
+| Compression / ZIP                      | API 60.0 では Developer Preview | API 67.0 Reference Guide に `Compression` namespace がある。                                            |
+| Formula Evaluation in Apex             | API 60.0 では Developer Preview | API 67.0 Reference Guide に `FormulaEval` namespace がある。                                            |
+| Apex Cursors                           | API 61.0 では Beta              | API 67.0 Developer Guide / Reference Guide に `Database.Cursor` がある。                                |
+| Apex Integration Tests                 | API 67.0 でも Developer Preview | scratch org 限定などの制約があるため、標準の `@IsTest` と同じ扱いにしない。                             |
+| `AccessLevel.withPermissionSetId(...)` | Developer Preview               | API 67.0 Reference Guide でも Developer Preview として扱われる。                                        |
+
+API 67.0 Reference Guide には ConnectApi の一部に `Retired ... Methods` が存在します。このメモでは製品固有 ConnectApi の細かい method 差分は主要対象外にしているため、ConnectApi を使う場合は対象 class / method の最新 Reference Guide を個別に確認します。
+
 ## API 67.0 / Summer '26
 
 主な追加点は Apex Integration Tests です。
