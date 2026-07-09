@@ -113,7 +113,7 @@ annotation が付く要素では、その annotation が利用者に与える意
 - `@InvocableMethod` では、Flow Builder から見た action の目的、input / output の構造、表示 label / description と ApexDoc の説明が矛盾しないことを確認する。
 - `@InvocableVariable` では、Flow から渡される値の役割、必須/任意、許可値を書く。
 - `@RestResource` と HTTP method annotation では、resource の役割、request / response、status code、認証/権限前提を書く。
-- `@Future` を既存コードで扱う場合は、非同期 transaction、callout、governor limit、呼び出し制約を書く。新規実装では Queueable Apex を優先する。
+- `@Future` は新規実装で使わない。既存コードで扱う場合は Queueable Apex へ移行できるか確認し、残す必要があるときだけ、非同期 transaction、callout、governor limit、呼び出し制約、残す理由を書く。
 - `@Deprecated` では `@deprecated` tag も併用し、代替手段を書く。
 - `@TestVisible` では、テストのために visibility を変えている理由を書く。
 - `@SuppressWarnings` では、抑止する警告と抑止理由を書く。
@@ -270,7 +270,7 @@ Apex アノテーションは公開範囲や実行方式を変えるため、付
 - `@AuraEnabled(cacheable=true)` は読み取り専用処理にだけ使い、DML や状態変更を含む処理には付けない。
 - UI / Flow / API に公開する範囲は最小にする。
 - `@TestVisible` は、テストのためだけに `public` / `protected` を増やすより、`private` の責務を保ったまま単体で確認したい場合に使う。
-- 新規の非同期処理では、理由がなければ `@future` より Queueable Apex を優先する。
+- 新規の非同期処理では `@future` を使わず、Queueable Apex を使う。既存の `@future` を変更対象に含める場合は、Queueable Apex へ移行できるか確認する。
 - `@SuppressWarnings` は最後の手段にし、まずは実装で警告を解消できないか確認する。
 - dynamic SOQL は任意文字列をそのまま入れず、許可リスト、describe、必要に応じた escape で入力を制限する。
 
