@@ -93,6 +93,8 @@ public List<Account> createAccounts(List<AccountRequest> requests) {
 
 `@throws` には、例外型だけでなく、どの条件で投げるかを書きます。内部実装で捕捉して利用者に見せない例外をすべて列挙する必要はありません。
 
+`@example` は、呼び出し例があることで誤用を防げる場合だけ書きます。全メソッドへ機械的に付けません。外部境界から呼ばれる公開 API、引数の組み合わせや null / 空コレクションの扱いが分かりにくいメソッド、例外処理や戻り値の扱いを利用者に示したいメソッド、パッケージや `global` API のように利用者が実装を直接読まない可能性があるメソッドでは優先して検討します。単純な getter、factory、Wrapper constructor、private helper、テストコードの代わりになる長すぎる例には付けません。
+
 ### 要素別ルール
 
 クラスでは、責務、共有モデル、主な呼び出し元、重要な副作用を書きます。`without sharing` や `inherited sharing` を使う場合は、なぜその共有モデルが必要かを ApexDoc または近接する設計説明で分かるようにします。

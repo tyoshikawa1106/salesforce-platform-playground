@@ -1,11 +1,16 @@
 /**
- * オブジェクト件数一覧のサマリを組み立てます。
+ * データボードで表示するオブジェクト件数サマリを組み立てます。
+ *
+ * カタログ定義の表示順を基準に、Selector から取得した件数値を LWC 用の Wrapper へ変換します。
  */
 public with sharing class ObjectMetricsOverviewService {
     /**
-     * 画面表示用に順序を固定した件数サマリを組み立てます。
-     * @param metricValues 表示キー別の件数
-     * @return 表示順に整列済みのオブジェクト件数サマリ
+     * 表示順を固定したオブジェクト件数サマリを作成します。
+     *
+     * metricValues が null の場合、またはカタログ定義に対応する件数がない場合は、該当カードの件数を 0 として扱います。
+     *
+     * @param metricValues 表示キー別の件数。キーは ObjectMetricCatalog の定義キーと対応します。
+     * @return カタログ定義順に整列したオブジェクト件数サマリ。
      */
     public ObjectMetricsOverviewSummaryWrapper createObjectMetrics(
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues
