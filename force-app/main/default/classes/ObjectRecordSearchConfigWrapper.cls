@@ -89,6 +89,7 @@ public with sharing class ObjectRecordSearchConfigWrapper {
         Schema.DescribeFieldResult nameFieldDescribe,
         Schema.DescribeSObjectResult objectDescribe
     ) {
+        // describe 結果から LWC が必要な表示名と権限フラグを固定
         metricKey = definition.key;
         objectApiName = definition.objectApiName;
         objectLabel = definition.label;
@@ -113,6 +114,7 @@ public with sharing class ObjectRecordSearchConfigWrapper {
     public ObjectRecordSearchConfigWrapper withDisplayFields(
         List<ObjectRecordSearchFieldWrapper> displayFields
     ) {
+        // null 入力でも LWC へ空リストを返す
         this.displayFields = displayFields == null
             ? new List<ObjectRecordSearchFieldWrapper>()
             : displayFields;

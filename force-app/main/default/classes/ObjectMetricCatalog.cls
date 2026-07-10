@@ -21,6 +21,7 @@ public with sharing class ObjectMetricCatalog {
      * @return 表示キーに対応する定義、未定義または空白の場合は null
      */
     public static MetricDefinition getDefinition(String metricKey) {
+        // 空白キーは未定義として扱い後続の Map 参照を避ける
         Boolean hasMetricKey = String.isNotBlank(metricKey);
         if (!hasMetricKey) {
             return null;
@@ -45,6 +46,7 @@ public with sharing class ObjectMetricCatalog {
      * @return 定義済みオブジェクトの場合 true
      */
     public static Boolean hasObjectApiName(String objectApiName) {
+        // 動的 SOQL で許可するオブジェクトをカタログ定義に限定
         Boolean hasObjectApiName = String.isNotBlank(objectApiName);
         Boolean isCatalogObject = hasObjectApiName &&
             OBJECT_API_NAMES.contains(objectApiName);
@@ -52,6 +54,7 @@ public with sharing class ObjectMetricCatalog {
     }
 
     private static Map<String, MetricDefinition> createDefinitionsByKey() {
+        // LWC の表示キーから対象オブジェクト定義を引ける Map を作成
         Map<String, MetricDefinition> definitionsByKey = new Map<String, MetricDefinition>();
 
         for (MetricDefinition definition : ORDERED_DEFINITIONS) {
@@ -62,6 +65,7 @@ public with sharing class ObjectMetricCatalog {
     }
 
     private static Set<String> createObjectApiNames() {
+        // 動的 SOQL の許可リストとして使うオブジェクト API 参照名を抽出
         Set<String> objectApiNames = new Set<String>();
 
         for (MetricDefinition definition : ORDERED_DEFINITIONS) {

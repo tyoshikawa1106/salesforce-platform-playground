@@ -219,12 +219,14 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         String objectApiName,
         Schema.DescribeSObjectResult objectDescribe
     ) {
+        // カタログ定義済み項目から参照可能な項目だけを画面へ返す
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>();
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         List<String> displayFieldApiNames = getDisplayFieldApiNames(
             objectApiName
         );
         for (String fieldApiName : displayFieldApiNames) {
+            // 権限がない項目は一覧の追加表示対象から除外
             Schema.DescribeFieldResult fieldDescribe = getAccessibleFieldDescribe(
                 fieldsByApiName,
                 fieldApiName
@@ -244,12 +246,14 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         Map<String, Schema.SObjectField> fieldsByApiName,
         String fieldApiName
     ) {
+        // オブジェクトに存在しない項目は表示対象から除外
         Boolean hasFieldApiName = fieldsByApiName.containsKey(fieldApiName);
         if (!hasFieldApiName) {
             return null;
         }
         Schema.SObjectField fieldToken = fieldsByApiName.get(fieldApiName);
         Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
+        // 参照権限がある項目だけを datatable 列にする
         Boolean isFieldAccessible = fieldDescribe.isAccessible();
         if (!isFieldAccessible) {
             return null;
@@ -261,6 +265,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
     private static ObjectRecordSearchFieldWrapper createDisplayField(
         Schema.DescribeFieldResult fieldDescribe
     ) {
+        // Salesforce の項目型を lightning-datatable の型へ変換
         String fieldApiName = fieldDescribe.getName();
         String fieldLabel = fieldDescribe.getLabel();
         Schema.DisplayType fieldType = fieldDescribe.getType();
@@ -274,6 +279,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
     }
 
     private static List<String> getDisplayFieldApiNames(String objectApiName) {
+        // 固定項目未定義のオブジェクトは追加表示項目なしで扱う
         Boolean hasDisplayFields = DISPLAY_FIELDS_BY_OBJECT.containsKey(
             objectApiName
         );
@@ -284,6 +290,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
     }
 
     private static String getDatatableType(Schema.DisplayType fieldType) {
+        // 未定義の型は安全な text 表示へフォールバック
         String datatableType = DATATABLE_TYPES_BY_SCHEMA_TYPE.get(fieldType);
         return datatableType ?? 'text';
     }

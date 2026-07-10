@@ -39,14 +39,17 @@ public with sharing class ObjectRecordSearchRowWrapper {
         List<ObjectRecordSearchFieldWrapper> displayFields
     ) {
         id = (Id) record.get('Id');
+        // Name が空の場合でも行リンクを識別できる表示名を確保
         Object rawName = record.get(nameFieldApiName);
         name = rawName == null ? String.valueOf(id) : String.valueOf(rawName);
+        // 標準レコード詳細へ遷移できる相対 URL を作成
         recordUrl =
             '/lightning/r/' +
             record.getSObjectType().getDescribe().getName() +
             '/' +
             String.valueOf(id) +
             '/view';
+        // 固定表示項目の値を datatable で扱える文字列に変換
         fieldValues = createFieldValues(record, displayFields);
     }
 
@@ -54,6 +57,7 @@ public with sharing class ObjectRecordSearchRowWrapper {
         SObject record,
         List<ObjectRecordSearchFieldWrapper> displayFields
     ) {
+        // 項目 API 参照名をキーにして追加列の表示値を保持
         Map<String, String> valuesByField = new Map<String, String>();
         for (ObjectRecordSearchFieldWrapper displayField : displayFields) {
             valuesByField.put(

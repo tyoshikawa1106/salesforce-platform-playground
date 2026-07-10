@@ -16,6 +16,7 @@ public with sharing class ObjectMetricsOverviewController {
     @AuraEnabled(cacheable=true)
     public static ObjectMetricsOverviewSummaryWrapper getObjectMetrics() {
         try {
+            // Selector の件数結果を Service で画面表示順のサマリへ変換
             return service.createObjectMetrics(
                 selector.getObjectMetricValues()
             );

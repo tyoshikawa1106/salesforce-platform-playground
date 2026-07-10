@@ -65,6 +65,7 @@ public with sharing class ObjectRecordSearchResultWrapper {
         Integer pageNumber,
         String nextPageToken
     ) {
+        // token の有無から次ページ表示状態を確定
         this.pageSize = pageSize;
         this.pageNumber = pageNumber;
         this.nextPageToken = nextPageToken;

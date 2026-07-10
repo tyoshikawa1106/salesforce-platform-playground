@@ -21,6 +21,7 @@ private with sharing class AccountTriggerHandlerTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 挿入時トリガーで法人格略称を正式名称へ補正
             insert accounts;
 
             Test.stopTest();
@@ -70,6 +71,7 @@ private with sharing class AccountTriggerHandlerTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 更新時トリガーで変更後の法人格略称を補正
             update accountRecord;
 
             Test.stopTest();
@@ -96,6 +98,7 @@ private with sharing class AccountTriggerHandlerTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 法人格略称の位置を保ったまま挿入時補正を適用
             insert accounts;
 
             Test.stopTest();
@@ -126,6 +129,7 @@ private with sharing class AccountTriggerHandlerTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 一つの名称に含まれる複数の略称をまとめて補正
             insert accountRecord;
 
             Test.stopTest();
@@ -149,6 +153,7 @@ private with sharing class AccountTriggerHandlerTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 既に正式名称の取引先名を変更対象から除外
             insert accountRecord;
 
             Test.stopTest();
@@ -177,6 +182,7 @@ private with sharing class AccountTriggerHandlerTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 不完全な略称を補正対象にしない挿入処理を検証
             insert accounts;
 
             Test.stopTest();

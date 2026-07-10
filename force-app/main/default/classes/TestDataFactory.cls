@@ -17,6 +17,7 @@ public with sharing class TestDataFactory {
      * @return 作成した取引先レコード
      */
     public static List<Account> createAccounts(Integer count) {
+        // 無効な件数はテストデータなしとして扱う
         List<Account> accounts = new List<Account>();
         if (count == null || count <= 0) {
             return accounts;
@@ -35,6 +36,7 @@ public with sharing class TestDataFactory {
      * @return 保存した取引先レコード
      */
     public static List<Account> insertAccounts(Integer count) {
+        // 後続テストで Id を使える取引先一覧を保存
         List<Account> accounts = createAccounts(count);
         insert accounts;
         return accounts;
@@ -55,6 +57,7 @@ public with sharing class TestDataFactory {
      * @return 保存した取引先レコード
      */
     public static Account insertAccount(String accountName) {
+        // 後続テストで Id を使える取引先を保存
         Account accountRecord = createAccount(accountName);
         insert accountRecord;
         return accountRecord;
@@ -83,6 +86,7 @@ public with sharing class TestDataFactory {
         Account accountRecord,
         String lastName
     ) {
+        // 後続テストで取引先配下の責任者を参照できるよう保存
         Contact contactRecord = createContact(accountRecord, lastName);
         insert contactRecord;
         return contactRecord;
@@ -116,6 +120,7 @@ public with sharing class TestDataFactory {
         Account accountRecord,
         String opportunityName
     ) {
+        // 後続テストで取引先配下の商談を参照できるよう保存
         Opportunity opportunityRecord = createOpportunity(
             accountRecord,
             opportunityName
@@ -139,6 +144,7 @@ public with sharing class TestDataFactory {
      * @return 保存した商品レコード
      */
     public static Product2 insertProduct(String productName) {
+        // 後続テストで価格表エントリに紐づけられる商品を保存
         Product2 productRecord = createProduct(productName);
         insert productRecord;
         return productRecord;
@@ -176,6 +182,7 @@ public with sharing class TestDataFactory {
         Id pricebook2Id,
         Decimal unitPrice
     ) {
+        // 後続テストで商談商品に紐づけられる価格表エントリを保存
         PricebookEntry pricebookEntryRecord = createPricebookEntry(
             productRecord,
             pricebook2Id,
@@ -213,6 +220,7 @@ public with sharing class TestDataFactory {
         Opportunity opportunityRecord,
         PricebookEntry pricebookEntryRecord
     ) {
+        // 後続テストで商談商品件数や検索結果に含められる明細を保存
         OpportunityLineItem lineItemRecord = createOpportunityLineItem(
             opportunityRecord,
             pricebookEntryRecord
@@ -238,6 +246,7 @@ public with sharing class TestDataFactory {
      * @return 保存したリードレコード
      */
     public static Lead insertLead(String lastName, String company) {
+        // 後続テストでリード件数や検索結果に含められるリードを保存
         Lead leadRecord = createLead(lastName, company);
         insert leadRecord;
         return leadRecord;
@@ -258,6 +267,7 @@ public with sharing class TestDataFactory {
      * @return 保存したケースレコード
      */
     public static Case insertCase(String subject) {
+        // 後続テストでケース件数や検索結果に含められるケースを保存
         Case caseRecord = createCase(subject);
         insert caseRecord;
         return caseRecord;

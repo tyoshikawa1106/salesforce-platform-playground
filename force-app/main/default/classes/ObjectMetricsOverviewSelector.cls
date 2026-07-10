@@ -10,11 +10,13 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
      * @return オブジェクト件数一覧で使う表示キー別の件数
      */
     public virtual Map<String, ObjectMetricCount> getObjectMetricValues() {
+        // カタログの表示キーごとに件数結果を返す
         Map<String, ObjectMetricCount> metricValues = new Map<String, ObjectMetricCount>();
 
         for (
             ObjectMetricCatalog.MetricDefinition definition : ObjectMetricCatalog.getDefinitions()
         ) {
+            // 対象オブジェクトごとの参照権限を考慮して件数を取得
             metricValues.put(
                 definition.key,
                 countVisibleRecords(definition.objectApiName)
@@ -32,6 +34,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
      */
     @TestVisible
     private static ObjectMetricCount createCount(Integer value) {
+        // null 件数はゼロとして扱い画面表示を安定化
         Integer safeValue = value ?? 0;
         return safeValue >= MAX_DISPLAY_COUNT
             ? createCappedCount()
@@ -49,6 +52,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     @TestVisible
     @SuppressWarnings('PMD.ApexSOQLInjection')
     private ObjectMetricCount countVisibleRecords(String objectApiName) {
+        // カタログ外または参照不可のオブジェクトはゼロ件として扱う
         if (
             String.isBlank(objectApiName) ||
             !ObjectMetricCatalog.hasObjectApiName(objectApiName) ||
@@ -56,9 +60,11 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         ) {
             return toObjectMetricCount(0);
         }
+        // User は有効ユーザーだけを件数対象にする
         String whereClause = objectApiName == 'User'
             ? ' WHERE IsActive = TRUE'
             : '';
+        // 表示上限で COUNT を止めて大規模データでも応答を安定化
         String query =
             'SELECT COUNT() FROM ' +
             objectApiName +
@@ -69,11 +75,13 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         try {
             return toObjectMetricCount(Database.countQuery(query));
         } catch (QueryException queryException) {
+            // 件数取得できない標準オブジェクトは画面表示を止めずゼロ件にする
             return toObjectMetricCount(0);
         }
     }
 
     private Boolean isObjectAccessible(String objectApiName) {
+        // ユーザーが参照できるオブジェクトだけ件数取得対象にする
         Schema.SObjectType sObjectType = Schema.getGlobalDescribe()
             .get(objectApiName);
         return sObjectType != null &&

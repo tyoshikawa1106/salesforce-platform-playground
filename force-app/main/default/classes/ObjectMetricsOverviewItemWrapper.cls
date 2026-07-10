@@ -48,6 +48,7 @@ public with sharing class ObjectMetricsOverviewItemWrapper {
         ObjectMetricCatalog.MetricDefinition definition,
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount
     ) {
+        // 件数が取れないカードもゼロ件として LWC に返す
         this.key = definition.key;
         this.objectApiName = definition.objectApiName;
         this.label = definition.label;

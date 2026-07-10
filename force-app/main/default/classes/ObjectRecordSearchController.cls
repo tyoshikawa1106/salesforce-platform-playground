@@ -27,6 +27,7 @@ public with sharing class ObjectRecordSearchController {
     public static ObjectRecordSearchConfigWrapper getObjectConfig(
         String metricKey
     ) {
+        // 静的 Apex 入口から差し替え可能な内部インスタンスへ処理を委譲
         ObjectRecordSearchController controller = new ObjectRecordSearchController(
             new ObjectRecordSearchService(),
             new ObjectRecordSearchSelector()
@@ -38,6 +39,7 @@ public with sharing class ObjectRecordSearchController {
         String metricKey
     ) {
         try {
+            // 表示キーから検索画面に必要な describe 情報を集約
             ObjectRecordSearchContext context = buildSearchContext(metricKey);
             return context.config;
         } catch (ObjectRecordSearchException error) {
@@ -58,6 +60,7 @@ public with sharing class ObjectRecordSearchController {
     public static ObjectRecordSearchResultWrapper searchRecords(
         ObjectRecordSearchRequestWrapper request
     ) {
+        // 静的 Apex 入口から検索フローの組み立てへ処理を委譲
         ObjectRecordSearchController controller = new ObjectRecordSearchController(
             new ObjectRecordSearchService(),
             new ObjectRecordSearchSelector()
@@ -69,23 +72,28 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchRequestWrapper request
     ) {
         try {
+            // リクエストの表示キーで検索対象オブジェクトを確定
             String metricKey = request?.metricKey;
             ObjectRecordSearchContext context = buildSearchContext(
                 metricKey
             );
+            // 許可済み項目だけで検索用ソート条件を作成
             ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
                 context,
                 request
             );
+            // SOQL 作成と結果整形で共有する検索条件を作成
             ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
                 context,
                 request,
                 sortSpec
             );
+            // bind 値付き SOQL に変換して USER_MODE 実行へ渡す
             ObjectRecordSearchQueryPlan.SearchQuery searchQuery = ObjectRecordSearchQueryPlan.createSearchQuery(
                 searchQueryRequest
             );
             List<SObject> records = selector.searchRecords(searchQuery);
+            // 検索結果を LWC 返却用の行とページ状態へ変換
             ObjectRecordSearchResultWrapper result = service.createSearchResult(
                 searchQueryRequest,
                 records
@@ -111,6 +119,7 @@ public with sharing class ObjectRecordSearchController {
         String metricKey,
         List<Id> recordIds
     ) {
+        // 静的 Apex 入口から削除フローの組み立てへ処理を委譲
         ObjectRecordSearchController controller = new ObjectRecordSearchController(
             new ObjectRecordSearchService(),
             new ObjectRecordSearchSelector()
@@ -123,10 +132,12 @@ public with sharing class ObjectRecordSearchController {
         List<Id> recordIds
     ) {
         try {
+            // 削除対象オブジェクトの権限と表示設定を確定
             ObjectRecordSearchContext context = buildSearchContext(
                 metricKey
             );
             ObjectRecordSearchConfigWrapper config = context.config;
+            // DML 不要なリクエストは空の削除結果へ短絡
             Boolean canDeleteRecords = service.canDeleteRecords(
                 config,
                 recordIds
@@ -134,11 +145,13 @@ public with sharing class ObjectRecordSearchController {
             if (!canDeleteRecords) {
                 return service.createDeleteResult(recordIds, null);
             }
+            // 指定 ID だけを USER_MODE で取得して削除対象を確定
             Set<Id> recordIdsToDelete = new Set<Id>(recordIds);
             List<SObject> recordsToDelete = selector.getRecordsById(
                 config.objectApiName,
                 recordIdsToDelete
             );
+            // 部分成功を許容した DML 結果を画面向け結果へ変換
             List<Database.DeleteResult> deleteResults = selector.deleteRecords(
                 recordsToDelete
             );
@@ -158,19 +171,24 @@ public with sharing class ObjectRecordSearchController {
     private ObjectRecordSearchContext buildSearchContext(
         String metricKey
     ) {
+        // 表示キーからカタログ定義を解決して対象オブジェクトを固定
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
             metricKey
         );
+        // オブジェクト参照権限とクエリ可能性を検証
         Schema.DescribeSObjectResult objectDescribe = selector.getObjectDescribe(
             definition.objectApiName
         );
+        // 一覧の主表示項目として使う Name 相当項目を解決
         Schema.DescribeFieldResult nameFieldDescribe = selector.getNameFieldDescribe(
             objectDescribe
         );
+        // 画面に返す固定表示項目を権限で絞り込み
         List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
             definition.objectApiName,
             objectDescribe
         );
+        // LWC 返却用設定と内部検索状態を同じ describe 情報で構築
         ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             nameFieldDescribe,

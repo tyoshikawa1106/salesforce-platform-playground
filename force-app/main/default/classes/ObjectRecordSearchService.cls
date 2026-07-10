@@ -16,6 +16,7 @@ public with sharing class ObjectRecordSearchService {
     public ObjectMetricCatalog.MetricDefinition requireDefinition(
         String metricKey
     ) {
+        // 表示キーを検索対象オブジェクトのカタログ定義へ変換
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             metricKey
         );
@@ -93,6 +94,7 @@ public with sharing class ObjectRecordSearchService {
         ObjectRecordSearchRequestWrapper request,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
+        // ページトークンを現在のソート条件に対応するカーソルへ復元
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
@@ -118,6 +120,7 @@ public with sharing class ObjectRecordSearchService {
         ObjectRecordSearchQueryPlan.SearchQueryRequest request,
         List<SObject> records
     ) {
+        // SOQL 結果を LWC が扱う行 Wrapper へ変換
         List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
         for (SObject record : records) {
             ObjectRecordSearchRowWrapper row = new ObjectRecordSearchRowWrapper(
@@ -127,21 +130,25 @@ public with sharing class ObjectRecordSearchService {
             );
             rows.add(row);
         }
+        // 1 件多く取得した結果で次ページ有無を判定
         Boolean hasNextPage = rows.size() > PAGE_SIZE;
         if (hasNextPage) {
             rows.remove(PAGE_SIZE);
         }
         String nextPageToken;
         if (hasNextPage) {
+            // 最終表示行から次ページ取得用カーソルを作成
             nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(
                 rows,
                 request.sortSpec
             );
         }
+        // 表示設定、行、ページ状態を 1 つの返却 Wrapper に集約
         ObjectRecordSearchResultWrapper result = new ObjectRecordSearchResultWrapper(
             request.context.config,
             rows
         );
+        // 不正なページ番号は最初のページとして扱う
         Integer pageNumber = normalizePageNumber(
             request.searchRequest?.pageNumber
         );
@@ -163,6 +170,7 @@ public with sharing class ObjectRecordSearchService {
         ObjectRecordSearchConfigWrapper config,
         List<Id> recordIds
     ) {
+        // 設定と削除 ID がそろった場合だけ DML を許可
         Boolean hasConfig = config != null;
         Boolean isDeletable = hasConfig && config.deletable;
         Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
@@ -180,12 +188,14 @@ public with sharing class ObjectRecordSearchService {
         List<Id> recordIds,
         List<Database.DeleteResult> deleteResults
     ) {
+        // リクエスト件数は DML 実行有無に関係なく画面へ返す
         Integer requestedCount = recordIds == null ? 0 : recordIds.size();
         Integer deletedCount = 0;
         List<String> errors = new List<String>();
 
         if (deleteResults != null) {
             for (Database.DeleteResult deleteResult : deleteResults) {
+                // 成功件数とユーザー向けエラーを DML 結果から集計
                 Boolean isDeleteSuccessful = deleteResult.isSuccess();
                 if (isDeleteSuccessful) {
                     deletedCount++;

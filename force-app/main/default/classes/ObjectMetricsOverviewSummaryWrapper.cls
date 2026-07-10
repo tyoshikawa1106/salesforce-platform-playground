@@ -16,6 +16,7 @@ public with sharing class ObjectMetricsOverviewSummaryWrapper {
     public ObjectMetricsOverviewSummaryWrapper(
         List<ObjectMetricsOverviewItemWrapper> metrics
     ) {
+        // null 入力でも LWC へ空リストを返す
         this.metrics = metrics == null
             ? new List<ObjectMetricsOverviewItemWrapper>()
             : metrics;

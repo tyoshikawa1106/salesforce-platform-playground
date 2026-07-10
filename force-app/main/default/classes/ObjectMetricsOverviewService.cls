@@ -11,6 +11,7 @@ public with sharing class ObjectMetricsOverviewService {
     public ObjectMetricsOverviewSummaryWrapper createObjectMetrics(
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues
     ) {
+        // null 入力でも全カードをゼロ件で返せるよう空 Map に正規化
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> safeMetricValues = metricValues ==
             null
             ? new Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount>()
@@ -20,6 +21,7 @@ public with sharing class ObjectMetricsOverviewService {
         for (
             ObjectMetricCatalog.MetricDefinition definition : ObjectMetricCatalog.getDefinitions()
         ) {
+            // カタログ定義順を保って画面表示用カードを組み立て
             metricItems.add(
                 new ObjectMetricsOverviewItemWrapper(
                     definition,

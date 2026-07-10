@@ -22,10 +22,12 @@ public with sharing class ObjectRecordSearchSortSupport {
                 '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
             );
         }
+        // 許可済み項目だけをソート対象に採用
         String fieldApiName = getSortFieldApiName(context, request);
         Schema.DescribeFieldResult fieldDescribe = context.getAllowedFieldDescribe(
             fieldApiName
         );
+        // ソート不可項目は Name 相当項目へフォールバック
         Boolean isFieldSortable = fieldDescribe.isSortable();
         if (!isFieldSortable) {
             fieldApiName = context.config.nameFieldApiName;
@@ -51,10 +53,12 @@ public with sharing class ObjectRecordSearchSortSupport {
         PageCursor cursor
     ) {
         if (cursor.sortValue == null) {
+            // null 値ソートでは Id だけで次ページ境界を進める
             return '(' +
                 sortSpec.fieldApiName +
                 ' = NULL AND Id > :cursorRecordId)';
         }
+        // 昇順と降順でカーソル境界の比較演算子を切り替え
         String sortOperator = sortSpec.direction == SORT_DESCENDING ? '<' : '>';
         return '(' +
             sortSpec.fieldApiName +
@@ -77,6 +81,7 @@ public with sharing class ObjectRecordSearchSortSupport {
         List<ObjectRecordSearchRowWrapper> rows,
         SortSpec sortSpec
     ) {
+        // 最終行のソート値と Id を次ページ token に変換
         String nextPageToken = ObjectRecordSearchPageTokenCodec.createNextPageToken(
             rows,
             sortSpec
@@ -91,6 +96,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 次ページ取得用カーソル、pageToken が空白の場合は null
      */
     public static PageCursor parsePageToken(String pageToken, SortSpec sortSpec) {
+        // LWC から戻った token を現在のソート条件に対応するカーソルへ復元
         PageCursor cursor = ObjectRecordSearchPageTokenCodec.parsePageToken(
             pageToken,
             sortSpec
@@ -102,6 +108,7 @@ public with sharing class ObjectRecordSearchSortSupport {
         ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request
     ) {
+        // リクエスト指定が許可済みでない場合は Name 相当項目で並べる
         Set<String> allowedFieldApiNames = context.getAllowedFieldApiNames();
         Boolean hasAllowedSortField = allowedFieldApiNames.contains(
             request?.sortBy
@@ -112,6 +119,7 @@ public with sharing class ObjectRecordSearchSortSupport {
     private static String getSortDirection(
         ObjectRecordSearchRequestWrapper request
     ) {
+        // desc 以外は既定の昇順として扱う
         String normalizedSortDirection = request?.sortDirection?.toLowerCase();
         return normalizedSortDirection == SORT_DESCENDING
             ? SORT_DESCENDING

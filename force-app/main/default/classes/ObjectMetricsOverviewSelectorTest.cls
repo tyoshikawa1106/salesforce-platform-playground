@@ -16,6 +16,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 作成済みレコードをメトリクスキー別の件数へ集計
             metricsByKey = selector.getObjectMetricValues();
 
             Test.stopTest();
@@ -175,6 +176,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 未対応オブジェクトは安全なゼロ件カウントへ変換
             metricCount = selector.countVisibleRecords('UnknownObject__c');
 
             Test.stopTest();
@@ -196,6 +198,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
     static void shouldExposeWhetherObjectApiNameIsConfigured() {
         System.runAs(testUser) {
             Test.startTest();
+            // カタログ対象外のオブジェクト名を件数対象から除外
             Boolean hasAccount = ObjectMetricCatalog.hasObjectApiName(
                 'Account'
             );
@@ -231,6 +234,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 空白のオブジェクト名は安全なゼロ件カウントへ変換
             metricCount = selector.countVisibleRecords(' ');
 
             Test.stopTest();
@@ -256,6 +260,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
+            // 表示上限の前後で capped 判定を分岐
             exactCount = ObjectMetricsOverviewSelector.createCount(49999);
             cappedCount = ObjectMetricsOverviewSelector.createCount(50000);
 

@@ -22,9 +22,11 @@ public with sharing class ObjectRecordSearchContext {
         Schema.DescribeSObjectResult objectDescribe
     ) {
         this.config = config;
+        // Name 相当項目は検索・表示・ソートで常に許可
         allowedFieldDescribesByApiName = new Map<String, Schema.DescribeFieldResult>{
             config.nameFieldApiName => nameFieldDescribe
         };
+        // 固定表示項目も検索 SELECT とソート許可項目に加える
         addDisplayFieldDescribes(config.displayFields, objectDescribe);
     }
 
@@ -33,6 +35,7 @@ public with sharing class ObjectRecordSearchContext {
      * @return Name 相当項目と追加表示項目の API 参照名
      */
     public List<String> getQueryFieldApiNames() {
+        // 動的 SOQL の SELECT 対象を許可済み項目だけに限定
         Set<String> allowedFieldApiNames = getAllowedFieldApiNames();
         return new List<String>(allowedFieldApiNames);
     }
@@ -43,6 +46,7 @@ public with sharing class ObjectRecordSearchContext {
      * @return Name 相当項目と追加表示項目の API 参照名
      */
     public Set<String> getAllowedFieldApiNames() {
+        // 呼び出し元が内部 Map を変更できないようコピーを返す
         Set<String> allowedFieldApiNames = allowedFieldDescribesByApiName.keySet();
         return new Set<String>(allowedFieldApiNames);
     }
@@ -62,6 +66,7 @@ public with sharing class ObjectRecordSearchContext {
         List<ObjectRecordSearchFieldWrapper> displayFields,
         Schema.DescribeSObjectResult objectDescribe
     ) {
+        // 表示設定に残った項目だけを検索・ソート許可 Map に追加
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         for (ObjectRecordSearchFieldWrapper displayField : displayFields) {
             Boolean hasDisplayField = fieldsByApiName.containsKey(

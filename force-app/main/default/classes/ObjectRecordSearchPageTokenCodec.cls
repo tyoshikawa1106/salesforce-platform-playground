@@ -20,10 +20,12 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         List<ObjectRecordSearchRowWrapper> rows,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
+        // 行またはソート条件がない場合は次ページなしとして扱う
         Boolean hasRows = rows != null && !rows.isEmpty();
         if (!hasRows || sortSpec == null) {
             return null;
         }
+        // 現在ページ末尾の行を次ページ取得境界にする
         Integer lastRowIndex = rows.size() - 1;
         ObjectRecordSearchRowWrapper lastRow = rows[lastRowIndex];
         String recordIdValue = String.valueOf(lastRow.id);
@@ -33,6 +35,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
             'recordId' => recordIdValue,
             'sortValue' => rowSortValue
         };
+        // token は LWC が保持しやすい JSON 文字列にする
         String pageToken = JSON.serialize(tokenParts);
         return pageToken;
     }
@@ -49,12 +52,14 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         String pageToken,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
+        // 空白 token は先頭ページとして扱う
         Boolean hasPageToken = String.isNotBlank(pageToken);
         if (!hasPageToken) {
             return null;
         }
 
         try {
+            // JSON token を現在の sortSpec で使えるカーソルへ変換
             Map<String, Object> tokenParts = parseTokenParts(pageToken);
             ObjectRecordSearchSortSupport.PageCursor cursor = createPageCursor(
                 tokenParts,
@@ -79,6 +84,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         Map<String, Object> tokenParts,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
+        // token の field と現在の sortSpec がずれた場合は読み込み不可
         String cursorFieldApiName = getCursorFieldApiName(tokenParts, sortSpec);
         String cursorRecordId = (String) tokenParts.get('recordId');
         Boolean isCursorFieldExpected = cursorFieldApiName == sortSpec.fieldApiName;
@@ -86,6 +92,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (!isCursorFieldExpected || !hasCursorRecordId) {
             throw createUnreadablePageTokenException(null);
         }
+        // SOQL bind に渡せる型へ sort 値を復元
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         Object rawCursorSortValue = getCursorSortValue(tokenParts);
         cursor.sortValue = parseCursorSortValue(rawCursorSortValue, sortSpec);
@@ -97,12 +104,14 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         Map<String, Object> tokenParts,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
+        // 旧形式 token は現在の sortSpec の項目として扱う
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
         return hasCursorFieldApiName ? cursorFieldApiName : sortSpec.fieldApiName;
     }
 
     private static Object getCursorSortValue(Map<String, Object> tokenParts) {
+        // 旧形式 token の name 値も sort 値として読み替える
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
         return hasCursorFieldApiName
@@ -117,6 +126,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (sortSpec.fieldApiName == sortSpec.nameFieldApiName) {
             return row.name;
         }
+        // 表示項目でソートしている場合は行の fieldValues から境界値を取る
         String sortValue = row.fieldValues.get(sortSpec.fieldApiName);
         return sortValue;
     }
@@ -128,6 +138,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (rawValue == null) {
             return null;
         }
+        // describe 型に合わせて SOQL bind 用の値へ戻す
         String stringValue = String.valueOf(rawValue);
         Schema.DisplayType displayType = sortSpec.fieldDescribe.getType();
         if (displayType == Schema.DisplayType.DATE) {

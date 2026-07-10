@@ -12,6 +12,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual Schema.DescribeSObjectResult getObjectDescribe(
         String objectApiName
     ) {
+        // API 参照名を describe 対象の SObjectType へ解決
         Map<String, Schema.SObjectType> sObjectTypesByApiName = Schema.getGlobalDescribe();
         Schema.SObjectType sObjectType = sObjectTypesByApiName.get(
             objectApiName
@@ -24,6 +25,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
         Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
         );
+        // 参照権限とクエリ可能性の両方を満たす場合だけ検索対象にする
         Boolean isObjectAccessible = objectDescribe.isAccessible();
         Boolean isObjectQueryable = objectDescribe.isQueryable();
         if (!isObjectAccessible || !isObjectQueryable) {
@@ -44,6 +46,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual Schema.DescribeFieldResult getNameFieldDescribe(
         Schema.DescribeSObjectResult objectDescribe
     ) {
+        // isNameField を優先して主表示項目を検出
         Schema.DescribeFieldResult nameFieldDescribe;
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         List<Schema.SObjectField> fieldTokens = fieldsByApiName.values();
@@ -56,6 +59,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
                 break;
             }
         }
+        // isNameField が取れないオブジェクトは Name 項目をフォールバック
         Boolean hasNameField = fieldsByApiName.containsKey('Name');
         if (
             nameFieldDescribe == null &&
@@ -69,6 +73,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
                 '検索に必要な項目を利用できません。管理者に項目設定を確認してください。'
             );
         }
+        // 主表示項目の参照権限がある場合だけ一覧表示を許可
         Boolean isNameFieldAccessible = nameFieldDescribe.isAccessible();
         if (!isNameFieldAccessible) {
             throw new ObjectRecordSearchException(
@@ -89,6 +94,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual List<SObject> searchRecords(
         ObjectRecordSearchQueryPlan.SearchQuery searchQuery
     ) {
+        // SOQL と bind 値がそろったクエリ計画だけを許可
         Boolean hasSearchQuery = searchQuery != null &&
             String.isNotBlank(searchQuery.soql) &&
             searchQuery.bindValues != null;
@@ -98,6 +104,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             );
         }
 
+        // 画面利用者の権限で bind 付き動的 SOQL を評価
         return Database.queryWithBinds(
             searchQuery.soql,
             searchQuery.bindValues,
@@ -118,10 +125,12 @@ public virtual with sharing class ObjectRecordSearchSelector {
         String objectApiName,
         Set<Id> recordIds
     ) {
+        // 削除対象 ID がない場合は SOQL を実行せず空結果へ短絡
         Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
         if (!hasRecordIds) {
             return new List<SObject>();
         }
+        // カタログ対象オブジェクトだけを動的 SOQL の対象にする
         requireSupportedObject(objectApiName);
         String soql = 'SELECT Id FROM ' +
             objectApiName +
@@ -131,6 +140,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
             'recordIds' => recordIds
         };
 
+        // 画面利用者の権限で削除対象レコードだけを取得
         return Database.queryWithBinds(
             soql,
             bindValues,
@@ -147,16 +157,19 @@ public virtual with sharing class ObjectRecordSearchSelector {
     public virtual List<Database.DeleteResult> deleteRecords(
         List<SObject> recordsToDelete
     ) {
+        // 削除対象がない場合は DML を実行せず空結果へ短絡
         Boolean hasRecordsToDelete = recordsToDelete != null &&
             !recordsToDelete.isEmpty();
         if (!hasRecordsToDelete) {
             return new List<Database.DeleteResult>();
         }
 
+        // 画面利用者の権限で部分成功を許容して削除
         return Database.delete(recordsToDelete, false, AccessLevel.USER_MODE);
     }
 
     private void requireSupportedObject(String objectApiName) {
+        // カタログ定義済みオブジェクトだけを動的 SOQL に許可
         Boolean hasObjectApiName = String.isNotBlank(objectApiName);
         Boolean isSupportedObject = hasObjectApiName &&
             ObjectMetricCatalog.hasObjectApiName(objectApiName);

@@ -17,6 +17,7 @@ public with sharing class AccountTriggerService {
      * @param accounts Trigger.new から渡された取引先レコード
      */
     public void normalizeAccountNamesForInsert(List<Account> accounts) {
+        // 作成前レコードは旧値なしで名称補正を判定
         normalizeNames(accounts, null);
     }
 
@@ -30,6 +31,7 @@ public with sharing class AccountTriggerService {
         List<Account> accounts,
         Map<Id, Account> oldAccountsById
     ) {
+        // 更新前後の差分を使って変更された名称だけを補正
         normalizeNames(accounts, oldAccountsById);
     }
 
@@ -37,12 +39,14 @@ public with sharing class AccountTriggerService {
         List<Account> accounts,
         Map<Id, Account> oldAccountsById
     ) {
+        // 空リストではトリガー処理を即時終了
         Boolean hasAccounts = accounts != null && !accounts.isEmpty();
         if (!hasAccounts) {
             return;
         }
 
         for (Account accountRecord : accounts) {
+            // レコード単位で補正対象かを判定
             Boolean shouldNormalize = shouldNormalizeName(
                 accountRecord,
                 oldAccountsById
@@ -64,6 +68,7 @@ public with sharing class AccountTriggerService {
         if (!hasAccountName) {
             return false;
         }
+        // 更新時は旧値がある場合だけ名称差分を比較
         Boolean hasOldAccount = oldAccountsById != null &&
             accountRecord.Id != null &&
             oldAccountsById.containsKey(accountRecord.Id);
@@ -72,11 +77,13 @@ public with sharing class AccountTriggerService {
         ) {
             return true;
         }
+        // 旧値が削除済み扱いの場合は補正対象として扱う
         Account oldAccount = oldAccountsById.get(accountRecord.Id);
         return oldAccount == null || accountRecord.Name != oldAccount.Name;
     }
 
     private String normalizeName(String accountName) {
+        // 入力位置を保ったまま法人格略称だけを正式名称へ置換
         return accountName.replace(STOCK_COMPANY_SYMBOL, STOCK_COMPANY_FORMAL)
             .replace(STOCK_COMPANY_FULL_WIDTH, STOCK_COMPANY_FORMAL)
             .replace(STOCK_COMPANY_HALF_WIDTH, STOCK_COMPANY_FORMAL)
