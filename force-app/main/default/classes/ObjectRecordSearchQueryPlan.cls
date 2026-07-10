@@ -154,14 +154,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * 実行する SOQL と bind 値です。
      */
     public class SearchQuery {
-        /**
-         * Database.queryWithBinds に渡す SOQL 文字列です。
-         */
         public String soql;
-
-        /**
-         * SOQL 内の bind 変数名をキーにした値です。
-         */
         public Map<String, Object> bindValues;
     }
 
@@ -169,29 +162,10 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * 検索クエリ計画を作るための入力です。
      */
     public class SearchQueryRequest {
-        /**
-         * 検索対象オブジェクトと表示項目の describe 情報です。
-         */
         public ObjectRecordSearchContext context;
-
-        /**
-         * LWC から渡された検索条件、ソート条件、ページ指定です。
-         */
         public ObjectRecordSearchRequestWrapper searchRequest;
-
-        /**
-         * 検証済みのソート項目と方向です。
-         */
         public ObjectRecordSearchSortSupport.SortSpec sortSpec;
-
-        /**
-         * 次ページ取得時に使う前ページ末尾のカーソルです。
-         */
         public ObjectRecordSearchSortSupport.PageCursor cursor;
-
-        /**
-         * 次ページ有無の判定用に 1 件多く取得する検索件数です。
-         */
         public Integer fetchSize;
     }
 }
