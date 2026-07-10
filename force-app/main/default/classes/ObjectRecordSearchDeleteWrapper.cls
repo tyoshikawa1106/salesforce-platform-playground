@@ -23,9 +23,9 @@ public with sharing class ObjectRecordSearchDeleteWrapper {
     /**
      * 削除結果を作成します。
      *
-     * @param requestedCount LWC から削除要求された ID 件数
-     * @param deletedCount 削除に成功した件数
-     * @param errors 削除に失敗した場合のユーザー表示向けメッセージ
+     * @param requestedCount LWC から削除要求された ID 件数。
+     * @param deletedCount 削除に成功した件数。
+     * @param errors 削除に失敗した場合のユーザー表示向けメッセージ。
      */
     public ObjectRecordSearchDeleteWrapper(
         Integer requestedCount,

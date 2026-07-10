@@ -4,8 +4,10 @@
 public with sharing class ObjectRecordSearchQueryPlan {
     /**
      * 検索条件から SOQL と bind 値を作成します。
-     * @param request 検索クエリ計画の作成条件
-     * @return 実行可能な検索クエリ計画
+     *
+     * @param request 検索クエリ計画の作成条件。
+     * @return 実行可能な検索クエリ計画。
+     * @throws ObjectRecordSearchException 必須条件が不足する、または許可外のオブジェクト・項目が指定された場合。
      */
     public static SearchQuery createSearchQuery(
         SearchQueryRequest request
@@ -37,8 +39,9 @@ public with sharing class ObjectRecordSearchQueryPlan {
 
     /**
      * 検索時に SELECT する項目 API 参照名を返します。
-     * @param context 検索画面の内部処理状態
-     * @return Name 項目と表示項目の重複を除いた一覧
+     *
+     * @param context 検索画面の内部処理状態。
+     * @return Name 項目と表示項目の重複を除いた一覧。
      */
     public static List<String> getQueryFields(
         ObjectRecordSearchContext context

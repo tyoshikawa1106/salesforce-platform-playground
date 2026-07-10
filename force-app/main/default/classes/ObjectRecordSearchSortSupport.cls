@@ -7,9 +7,11 @@ public with sharing class ObjectRecordSearchSortSupport {
 
     /**
      * リクエストから安全なソート条件を作成します。
-     * @param context 検索画面の内部処理状態
-     * @param request 検索リクエスト
-     * @return 許可済み項目と方向だけを持つソート条件
+     *
+     * @param context 検索画面の内部処理状態。
+     * @param request 検索リクエスト。
+     * @return 許可済み項目と方向だけを持つソート条件。
+     * @throws ObjectRecordSearchException context または config が不足している場合。
      */
     public static SortSpec createSortSpec(
         ObjectRecordSearchContext context,
@@ -41,9 +43,10 @@ public with sharing class ObjectRecordSearchSortSupport {
 
     /**
      * 次ページ取得用の WHERE 条件を作成します。
-     * @param sortSpec ソート条件
-     * @param cursor 現在ページ末尾のカーソル
-     * @return SOQL の WHERE 句へ追加するカーソル条件
+     *
+     * @param sortSpec ソート条件。
+     * @param cursor 現在ページ末尾のカーソル。
+     * @return SOQL の WHERE 句へ追加するカーソル条件。
      */
     public static String createCursorWhereClause(
         SortSpec sortSpec,
@@ -69,9 +72,9 @@ public with sharing class ObjectRecordSearchSortSupport {
 
     /**
      * 次ページ取得用のカーソルトークンを作成します。
-     * @param rows 現在ページの表示行
-     * @param sortSpec ソート条件
-     * @return 次ページ取得用トークン
+     * @param rows 現在ページの表示行。
+     * @param sortSpec ソート条件。
+     * @return 次ページ取得用トークン。行またはソート条件がない場合は null。
      */
     public static String createNextPageToken(
         List<ObjectRecordSearchRowWrapper> rows,
@@ -86,9 +89,9 @@ public with sharing class ObjectRecordSearchSortSupport {
 
     /**
      * カーソルトークンを読み込みます。
-     * @param pageToken LWC から受け取ったページトークン
-     * @param sortSpec 現在のソート条件
-     * @return 次ページ取得用カーソル
+     * @param pageToken LWC から受け取ったページトークン。
+     * @param sortSpec 現在のソート条件。
+     * @return 次ページ取得用カーソル。pageToken が空白の場合は null。
      */
     public static PageCursor parsePageToken(String pageToken, SortSpec sortSpec) {
         PageCursor cursor = ObjectRecordSearchPageTokenCodec.parsePageToken(

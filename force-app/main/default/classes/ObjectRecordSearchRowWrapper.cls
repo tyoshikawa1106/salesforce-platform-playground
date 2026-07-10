@@ -29,9 +29,9 @@ public with sharing class ObjectRecordSearchRowWrapper {
     /**
      * 検索結果 SObject から一覧行を作成します。
      *
-     * @param record 検索結果 SObject
-     * @param nameFieldApiName Name 相当項目 API 参照名
-     * @param displayFields 一覧に追加表示する固定項目
+     * @param record 検索結果 SObject。
+     * @param nameFieldApiName Name 相当項目 API 参照名。
+     * @param displayFields 一覧に追加表示する固定項目。
      */
     public ObjectRecordSearchRowWrapper(
         SObject record,

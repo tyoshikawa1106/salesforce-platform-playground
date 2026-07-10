@@ -6,7 +6,8 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
 
     /**
      * 表示キーごとのオブジェクト件数を取得します。
-     * @return オブジェクト件数一覧で使う表示キー別の件数
+     *
+     * @return オブジェクト件数一覧で使う表示キー別の件数。
      */
     public virtual Map<String, ObjectMetricCount> getObjectMetricValues() {
         Map<String, ObjectMetricCount> metricValues = new Map<String, ObjectMetricCount>();
@@ -25,8 +26,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
 
     /**
      * 表示上限を考慮した件数結果を作成します。
-     * @param value 件数値
-     * @return 表示上限に達した場合は capped を付けた件数結果
+     *
+     * @param value 件数値。
+     * @return 表示上限に達した場合は capped を付けた件数結果。
      */
     @TestVisible
     private static ObjectMetricCount createCount(Integer value) {
@@ -38,7 +40,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
 
     /**
      * 表示上限に達した件数結果を作成します。
-     * @return capped を付けた件数結果
+     * @return capped を付けた件数結果。
      */
     private static ObjectMetricCount createCappedCount() {
         return new ObjectMetricCount(MAX_DISPLAY_COUNT, true);
@@ -100,8 +102,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
 
         /**
          * 表示用に上限処理済みの件数を作成します。
-         * @param value 表示用に上限処理済みの件数値
-         * @param capped 件数が表示上限に達したかどうか
+         *
+         * @param value 表示用に上限処理済みの件数値。
+         * @param capped 件数が表示上限に達したかどうか。
          */
         private ObjectMetricCount(Integer value, Boolean capped) {
             this.value = value;

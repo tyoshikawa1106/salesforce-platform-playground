@@ -1,11 +1,12 @@
 /**
- * オブジェクト件数一覧のサマリを組み立てます。
+ * データボードで表示するオブジェクト件数サマリを組み立てます。
  */
 public with sharing class ObjectMetricsOverviewService {
     /**
-     * 画面表示用に順序を固定した件数サマリを組み立てます。
-     * @param metricValues 表示キー別の件数
-     * @return 表示順に整列済みのオブジェクト件数サマリ
+     * 表示順を固定したオブジェクト件数サマリを作成します。
+     *
+     * @param metricValues 表示キー別の件数。キーは ObjectMetricCatalog の定義キーと対応します。
+     * @return カタログ定義順に整列したオブジェクト件数サマリ。
      */
     public ObjectMetricsOverviewSummaryWrapper createObjectMetrics(
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricValues

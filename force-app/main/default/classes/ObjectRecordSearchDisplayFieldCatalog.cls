@@ -210,9 +210,10 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
 
     /**
      * 対象オブジェクトで参照できる固定表示項目を返します。
-     * @param objectApiName 対象オブジェクト API 参照名
-     * @param objectDescribe 対象オブジェクトの describe 結果
-     * @return 一覧に追加表示する固定項目
+     *
+     * @param objectApiName 対象オブジェクト API 参照名。
+     * @param objectDescribe 対象オブジェクトの describe 結果。
+     * @return 一覧に追加表示する固定項目。
      */
     public static List<ObjectRecordSearchFieldWrapper> getDisplayFields(
         String objectApiName,

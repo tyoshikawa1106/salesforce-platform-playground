@@ -4,8 +4,10 @@
 public virtual with sharing class ObjectRecordSearchSelector {
     /**
      * 対象オブジェクトの describe 結果を返します。
-     * @param objectApiName 対象オブジェクト API 参照名
-     * @return 対象オブジェクトの describe 結果
+     *
+     * @param objectApiName 対象オブジェクト API 参照名。
+     * @return 対象オブジェクトの describe 結果。
+     * @throws ObjectRecordSearchException 対象オブジェクトを検索できない場合。
      */
     public virtual Schema.DescribeSObjectResult getObjectDescribe(
         String objectApiName
@@ -35,8 +37,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
     /**
      * 対象オブジェクトの Name 相当項目の describe 結果を返します。
-     * @param objectDescribe 対象オブジェクトの describe 結果
-     * @return Name 相当項目の describe 結果
+     *
+     * @param objectDescribe 対象オブジェクトの describe 結果。
+     * @return Name 相当項目の describe 結果。
+     * @throws ObjectRecordSearchException Name 相当項目を参照できない場合。
      */
     public virtual Schema.DescribeFieldResult getNameFieldDescribe(
         Schema.DescribeSObjectResult objectDescribe
@@ -79,8 +83,10 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
     /**
      * 作成済みの検索クエリ計画でレコードを取得します。
-     * @param searchQuery 実行する SOQL と bind 値
-     * @return 検索結果 SObject
+     *
+     * @param searchQuery 実行する SOQL と bind 値。
+     * @return 検索結果 SObject。
+     * @throws ObjectRecordSearchException 検索クエリ計画が不完全な場合。
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual List<SObject> searchRecords(
@@ -104,9 +110,11 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
     /**
      * 対象オブジェクトから ID 指定で削除対象レコードを取得します。
-     * @param objectApiName 対象オブジェクト API 参照名
-     * @param recordIds 取得するレコード ID
-     * @return 削除対象 SObject
+     *
+     * @param objectApiName 対象オブジェクト API 参照名。
+     * @param recordIds 取得するレコード ID。
+     * @return 削除対象 SObject。
+     * @throws ObjectRecordSearchException 対象オブジェクトがカタログ外の場合。
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual List<SObject> getRecordsById(
@@ -137,8 +145,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
 
     /**
      * 指定レコードを削除します。
-     * @param recordsToDelete 削除対象レコード
-     * @return DML 削除結果
+     *
+     * @param recordsToDelete 削除対象レコード。
+     * @return DML 削除結果。
      */
     public virtual List<Database.DeleteResult> deleteRecords(
         List<SObject> recordsToDelete

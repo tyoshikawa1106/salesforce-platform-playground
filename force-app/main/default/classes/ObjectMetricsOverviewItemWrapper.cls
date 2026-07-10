@@ -40,8 +40,9 @@ public with sharing class ObjectMetricsOverviewItemWrapper {
 
     /**
      * Selector の件数結果から LWC 用の件数項目を作成します。
-     * @param definition LWC 側のカード設定と対応するオブジェクト定義
-     * @param metricCount 表示上限情報を含む件数結果
+     *
+     * @param definition LWC 側のカード設定と対応するオブジェクト定義。
+     * @param metricCount 表示上限情報を含む件数結果。
      */
     public ObjectMetricsOverviewItemWrapper(
         ObjectMetricCatalog.MetricDefinition definition,

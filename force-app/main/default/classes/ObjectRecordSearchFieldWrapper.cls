@@ -23,9 +23,9 @@ public with sharing class ObjectRecordSearchFieldWrapper {
     /**
      * 固定項目定義を作成します。
      *
-     * @param apiName 項目 API 参照名
-     * @param label 項目の画面表示ラベル
-     * @param dataType lightning-datatable で使う表示型
+     * @param apiName 項目 API 参照名。
+     * @param label 項目の画面表示ラベル。
+     * @param dataType lightning-datatable で使う表示型。
      */
     public ObjectRecordSearchFieldWrapper(
         String apiName,
