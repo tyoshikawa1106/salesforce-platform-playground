@@ -4,17 +4,20 @@
 public with sharing class AccountTriggerHandler {
     private AccountTriggerService service;
 
-    private AccountTriggerHandler(AccountTriggerService service) {
-        this.service = service;
+    /**
+     * コンストラクタ
+     */
+    private AccountTriggerHandler() {
+        service = new AccountTriggerService();
     }
 
     /**
      * 実行中のトリガーコンテキストに応じて対象処理へ振り分け
      */
     public static void run() {
-        AccountTriggerHandler handler = new AccountTriggerHandler(
-            new AccountTriggerService()
-        );
+        // 静的トリガー入口からインスタンス処理へ渡す
+        AccountTriggerHandler handler = new AccountTriggerHandler();
+        // before insert/update の対象処理へ振り分け
         handler.normalizeAccountNames();
     }
 

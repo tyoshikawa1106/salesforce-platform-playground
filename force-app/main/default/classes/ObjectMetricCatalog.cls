@@ -187,10 +187,19 @@ public with sharing class ObjectMetricCatalog {
      * カード表示情報
      */
     private class MetricPresentation {
+        // カード見出しとして LWC に渡す表示名
         private String label;
+        // カードに表示する Lightning icon 名
         private String iconName;
 
+        /**
+         * カード表示情報を作成
+         *
+         * @param label カード見出しとして LWC に渡す表示名
+         * @param iconName カードに表示する Lightning icon 名
+         */
         private MetricPresentation(String label, String iconName) {
+            // カタログ定義から表示情報だけを分離して保持
             this.label = label;
             this.iconName = iconName;
         }
@@ -224,6 +233,13 @@ public with sharing class ObjectMetricCatalog {
         @AuraEnabled
         public String iconName { get; private set; }
 
+        /**
+         * データボードカード定義を作成
+         *
+         * @param key LWC 側のカードキー
+         * @param objectApiName 対象オブジェクト API 参照名
+         * @param presentation カード表示情報
+         */
         private MetricDefinition(
             String key,
             String objectApiName,
