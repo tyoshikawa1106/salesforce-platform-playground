@@ -39,11 +39,11 @@ Apex アノテーションは、クラス、メソッド、変数などに追加
 
 | アノテーション | 主な用途                                                          |
 | -------------- | ----------------------------------------------------------------- |
-| `@future`      | メソッドを非同期実行する。                                        |
+| `@Future`      | メソッドを非同期実行する。                                        |
 | `@ReadOnly`    | Visualforce controller などで読み取り専用トランザクションにする。 |
 | `@Deprecated`  | クラスやメソッドが非推奨であることを示す。                        |
 
-新規実装では、`@future` より Queueable Apex を優先します。Queueable は job ID、チェーン、複雑な引数、Finalizer などを扱いやすいためです。
+新規実装では、`@Future` より Queueable Apex を優先します。Queueable は job ID、チェーン、複雑な引数、Finalizer などを扱いやすいためです。
 
 ## JSON / パッケージ
 
