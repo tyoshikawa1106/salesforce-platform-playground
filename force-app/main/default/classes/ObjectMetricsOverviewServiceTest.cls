@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数一覧サービスの振る舞いをテストします。
+ * オブジェクト件数一覧サービスの振る舞いテスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
@@ -15,7 +15,10 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(testUser) {
             Test.startTest();
+
+            // カタログ順の画面表示用サマリへ集計値を変換
             summary = service.createObjectMetrics(metricValues);
+
             Test.stopTest();
         }
 
@@ -79,7 +82,10 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(testUser) {
             Test.startTest();
+
+            // 集計値がない場合のゼロ埋めサマリを生成
             summary = service.createObjectMetrics(null);
+
             Test.stopTest();
         }
 
@@ -108,9 +114,12 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
+            // カタログが既知キー、未知キー、空白キーを判別
             hasAccounts = ObjectMetricCatalog.hasDefinition('accounts');
             hasUnknownMetric = ObjectMetricCatalog.hasDefinition('unknown');
             blankDefinition = ObjectMetricCatalog.getDefinition(' ');
+
             Test.stopTest();
         }
 

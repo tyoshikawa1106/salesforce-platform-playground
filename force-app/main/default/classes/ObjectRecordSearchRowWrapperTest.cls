@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索画面の一覧行 Wrapper をテストします。
+ * 汎用レコード検索画面の一覧行 Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchRowWrapperTest {
@@ -12,7 +12,6 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         );
         accountRecord.Industry = 'Technology';
         insert accountRecord;
-
         Account queriedAccount = [
             SELECT Id, Name, Industry
             FROM Account

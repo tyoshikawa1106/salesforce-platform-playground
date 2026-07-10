@@ -1,5 +1,5 @@
 /**
- * データボード LWC に表示するレコード件数サマリを提供します。
+ * データボード LWC に表示するレコード件数サマリ提供
  */
 public with sharing class ObjectMetricsOverviewController {
     @TestVisible
@@ -9,19 +9,20 @@ public with sharing class ObjectMetricsOverviewController {
     private static ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
 
     /**
-     * 現在のユーザーが参照できる各オブジェクトの件数を取得します。
+     * 現在のユーザーが参照できる各オブジェクトの件数取得
      *
-     * @return LWC 表示順に整列済みのレコード件数サマリ。
+     * @return LWC 表示順に整列済みのレコード件数サマリ
      */
     @AuraEnabled(cacheable=true)
     public static ObjectMetricsOverviewSummaryWrapper getObjectMetrics() {
         try {
+            // Selector の件数結果を Service で画面表示順のサマリへ変換
             return service.createObjectMetrics(
                 selector.getObjectMetricValues()
             );
         } catch (Exception error) {
             throw new AuraHandledException(
-                'データボードを読み込めませんでした。'
+                'データボードを表示できませんでした。時間をおいてもう一度お試しください。'
             );
         }
     }

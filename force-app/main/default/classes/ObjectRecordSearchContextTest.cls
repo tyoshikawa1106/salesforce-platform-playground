@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索の内部処理 Context をテストします。
+ * 汎用レコード検索の内部処理 Context テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchContextTest {
@@ -16,10 +16,10 @@ private with sharing class ObjectRecordSearchContextTest {
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>{
             new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
         };
-
         ObjectRecordSearchContext context;
         System.runAs(testUser) {
             Test.startTest();
+
             context = new ObjectRecordSearchContext(
                 new ObjectRecordSearchConfigWrapper(
                         definition,
@@ -30,6 +30,7 @@ private with sharing class ObjectRecordSearchContextTest {
                 Account.Name.getDescribe(),
                 objectDescribe
             );
+
             Test.stopTest();
         }
 

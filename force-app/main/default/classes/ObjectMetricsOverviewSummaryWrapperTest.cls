@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数サマリ Wrapper をテストします。
+ * オブジェクト件数サマリ Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
@@ -13,14 +13,14 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
                 ObjectMetricsOverviewSelector.createCount(1)
             )
         };
-
         ObjectMetricsOverviewSummaryWrapper wrapper;
         System.runAs(testUser) {
             Test.startTest();
+
             wrapper = new ObjectMetricsOverviewSummaryWrapper(items);
+
             Test.stopTest();
         }
-
         Assert.areEqual(1, wrapper.metrics.size(), 'Wrapper should expose supplied metric items.');
         Assert.areEqual('accounts', wrapper.metrics[0].key, 'Wrapper should keep item order.');
     }
@@ -30,10 +30,11 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
         ObjectMetricsOverviewSummaryWrapper wrapper;
         System.runAs(testUser) {
             Test.startTest();
+
             wrapper = new ObjectMetricsOverviewSummaryWrapper(null);
+
             Test.stopTest();
         }
-
         Assert.areEqual(0, wrapper.metrics.size(), 'Null metric items should become an empty list.');
     }
 }

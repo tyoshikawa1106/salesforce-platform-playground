@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数カード Wrapper をテストします。
+ * オブジェクト件数カード Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewItemWrapperTest {
@@ -10,14 +10,15 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
-
         ObjectMetricsOverviewItemWrapper wrapper;
         System.runAs(testUser) {
             Test.startTest();
+
             wrapper = new ObjectMetricsOverviewItemWrapper(
                 definition,
                 ObjectMetricsOverviewSelector.createCount(50000)
             );
+
             Test.stopTest();
         }
 
@@ -57,11 +58,12 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'contacts'
         );
-
         ObjectMetricsOverviewItemWrapper wrapper;
         System.runAs(testUser) {
             Test.startTest();
+
             wrapper = new ObjectMetricsOverviewItemWrapper(definition, null);
+
             Test.stopTest();
         }
 

@@ -1,5 +1,5 @@
 /**
- * データボードで扱うオブジェクト定義を一元管理します。
+ * データボードで扱うオブジェクト定義一元管理
  */
 public with sharing class ObjectMetricCatalog {
     private static final List<MetricDefinition> ORDERED_DEFINITIONS = createOrderedDefinitions();
@@ -7,20 +7,21 @@ public with sharing class ObjectMetricCatalog {
     private static final Set<String> OBJECT_API_NAMES = createObjectApiNames();
 
     /**
-     * 表示キー順に並べた定義を返します。
+     * 表示キー順に並べた定義を返す
      *
-     * @return データボード表示順のオブジェクト定義。
+     * @return データボード表示順のオブジェクト定義
      */
     public static List<MetricDefinition> getDefinitions() {
         return new List<MetricDefinition>(ORDERED_DEFINITIONS);
     }
 
     /**
-     * 表示キーに対応する定義を返します。
-     * @param metricKey LWC から渡される表示キー。
-     * @return 表示キーに対応する定義。未定義または空白の場合は null。
+     * 表示キーに対応する定義を返す
+     * @param metricKey LWC から渡される表示キー
+     * @return 表示キーに対応する定義、未定義または空白の場合は null
      */
     public static MetricDefinition getDefinition(String metricKey) {
+        // 空白キーは未定義として扱い後続の Map 参照を避ける
         Boolean hasMetricKey = String.isNotBlank(metricKey);
         if (!hasMetricKey) {
             return null;
@@ -30,9 +31,9 @@ public with sharing class ObjectMetricCatalog {
     }
 
     /**
-     * 表示キーに対応する定義が存在するかを返します。
-     * @param metricKey LWC から渡される表示キー。
-     * @return 対応定義が存在する場合 true。
+     * 表示キーに対応する定義が存在するかを返す
+     * @param metricKey LWC から渡される表示キー
+     * @return 対応定義が存在する場合 true
      */
     public static Boolean hasDefinition(String metricKey) {
         MetricDefinition definition = getDefinition(metricKey);
@@ -40,11 +41,12 @@ public with sharing class ObjectMetricCatalog {
     }
 
     /**
-     * 対象オブジェクト API 参照名がデータボード定義に含まれるかを返します。
-     * @param objectApiName 対象オブジェクト API 参照名。
-     * @return 定義済みオブジェクトの場合 true。
+     * 対象オブジェクト API 参照名がデータボード定義に含まれるかを返す
+     * @param objectApiName 対象オブジェクト API 参照名
+     * @return 定義済みオブジェクトの場合 true
      */
     public static Boolean hasObjectApiName(String objectApiName) {
+        // 動的 SOQL で許可するオブジェクトをカタログ定義に限定
         Boolean hasObjectApiName = String.isNotBlank(objectApiName);
         Boolean isCatalogObject = hasObjectApiName &&
             OBJECT_API_NAMES.contains(objectApiName);
@@ -52,6 +54,7 @@ public with sharing class ObjectMetricCatalog {
     }
 
     private static Map<String, MetricDefinition> createDefinitionsByKey() {
+        // LWC の表示キーから対象オブジェクト定義を引ける Map を作成
         Map<String, MetricDefinition> definitionsByKey = new Map<String, MetricDefinition>();
 
         for (MetricDefinition definition : ORDERED_DEFINITIONS) {
@@ -62,6 +65,7 @@ public with sharing class ObjectMetricCatalog {
     }
 
     private static Set<String> createObjectApiNames() {
+        // 動的 SOQL の許可リストとして使うオブジェクト API 参照名を抽出
         Set<String> objectApiNames = new Set<String>();
 
         for (MetricDefinition definition : ORDERED_DEFINITIONS) {
@@ -179,6 +183,9 @@ public with sharing class ObjectMetricCatalog {
         return new MetricPresentation(label, iconName);
     }
 
+    /**
+     * カード表示情報
+     */
     private class MetricPresentation {
         private String label;
         private String iconName;
@@ -190,29 +197,29 @@ public with sharing class ObjectMetricCatalog {
     }
 
     /**
-     * データボードカードと対象オブジェクトを対応付ける定義です。
+     * データボードカードと対象オブジェクトを対応付ける定義
      */
     public class MetricDefinition {
         /**
-         * LWC 側のカードキーです。
+         * LWC 側のカードキー
          */
         @AuraEnabled
         public String key { get; private set; }
 
         /**
-         * 対象オブジェクト API 参照名です。
+         * 対象オブジェクト API 参照名
          */
         @AuraEnabled
         public String objectApiName { get; private set; }
 
         /**
-         * 画面表示ラベルです。
+         * 画面表示ラベル
          */
         @AuraEnabled
         public String label { get; private set; }
 
         /**
-         * LWC 件数カードに表示する Lightning icon 名です。
+         * LWC 件数カードに表示する Lightning icon 名
          */
         @AuraEnabled
         public String iconName { get; private set; }

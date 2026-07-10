@@ -1,37 +1,40 @@
 /**
- * 汎用レコード検索画面の判定と Wrapper 組み立てを提供します。
+ * 汎用レコード検索画面の判定と Wrapper 組み立て提供
  */
 public with sharing class ObjectRecordSearchService {
     private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
-    private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。';
+    private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。権限や関連データを確認してください。';
 
     /**
-     * 表示キーに対応するデータボード定義を返します。
+     * 表示キーに対応するデータボード定義を返す
      *
-     * @param metricKey データボードカードの表示キー。
-     * @return データボードカードと対象オブジェクトの定義。
-     * @throws ObjectRecordSearchException 表示キーに対応する定義がない場合。
+     * @param metricKey データボードカードの表示キー
+     * @return データボードカードと対象オブジェクトの定義
+     * @throws ObjectRecordSearchException 表示キーに対応する定義がない場合
      */
     public ObjectMetricCatalog.MetricDefinition requireDefinition(
         String metricKey
     ) {
+        // 表示キーを検索対象オブジェクトのカタログ定義へ変換
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             metricKey
         );
         if (definition == null) {
-            throw new ObjectRecordSearchException('未対応のオブジェクトです。');
+            throw new ObjectRecordSearchException(
+                'このカードのレコード一覧は表示できません。別のカードを選択してください。'
+            );
         }
         return definition;
     }
 
     /**
-     * 検索画面設定を作成します。
+     * 検索画面設定を作成
      *
-     * @param definition データボードカードと対象オブジェクトの定義。
-     * @param nameFieldDescribe Name 相当項目の describe 結果。
-     * @param objectDescribe 対象オブジェクトの describe 結果。
-     * @return 検索画面設定。
+     * @param definition データボードカードと対象オブジェクトの定義
+     * @param nameFieldDescribe Name 相当項目の describe 結果
+     * @param objectDescribe 対象オブジェクトの describe 結果
+     * @return 検索画面設定
      */
     public ObjectRecordSearchConfigWrapper createObjectConfig(
         ObjectMetricCatalog.MetricDefinition definition,
@@ -46,12 +49,12 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 検索画面の内部処理状態を作成します。
+     * 検索画面の内部処理状態を作成
      *
-     * @param config LWC に返す検索画面設定。
-     * @param nameFieldDescribe Name 相当項目の describe 結果。
-     * @param objectDescribe 対象オブジェクトの describe 結果。
-     * @return 検索画面の内部処理状態。
+     * @param config LWC に返す検索画面設定
+     * @param nameFieldDescribe Name 相当項目の describe 結果
+     * @param objectDescribe 対象オブジェクトの describe 結果
+     * @return 検索画面の内部処理状態
      */
     public ObjectRecordSearchContext createSearchContext(
         ObjectRecordSearchConfigWrapper config,
@@ -66,10 +69,10 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 検索リクエストから安全なソート条件を作成します。
-     * @param context 検索画面の内部処理状態。
-     * @param request 検索条件とページ指定。
-     * @return 許可済み項目と方向だけを持つソート条件。
+     * 検索リクエストから安全なソート条件を作成
+     * @param context 検索画面の内部処理状態
+     * @param request 検索条件とページ指定
+     * @return 許可済み項目と方向だけを持つソート条件
      */
     public ObjectRecordSearchSortSupport.SortSpec createSortSpec(
         ObjectRecordSearchContext context,
@@ -79,18 +82,19 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 検索条件、ソート条件、ページング条件をまとめます。
+     * 検索条件、ソート条件、ページング条件まとめ
      *
-     * @param context 検索画面の内部処理状態。
-     * @param request 検索条件とページ指定。
-     * @param sortSpec 正規化済みソート条件。
-     * @return 検索クエリと結果整形で共有する検索条件。
+     * @param context 検索画面の内部処理状態
+     * @param request 検索条件とページ指定
+     * @param sortSpec 正規化済みソート条件
+     * @return 検索クエリと結果整形で共有する検索条件
      */
     public ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(
         ObjectRecordSearchContext context,
         ObjectRecordSearchRequestWrapper request,
         ObjectRecordSearchSortSupport.SortSpec sortSpec
     ) {
+        // ページトークンを現在のソート条件に対応するカーソルへ復元
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
@@ -106,16 +110,17 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 検索結果レコードを LWC 返却用 Wrapper に変換します。
+     * 検索結果レコードを LWC 返却用 Wrapper に変換
      *
-     * @param request 検索クエリと結果整形で共有する検索条件。
-     * @param records 検索結果 SObject。
-     * @return 1 ページ最大 50 件の検索結果。
+     * @param request 検索クエリと結果整形で共有する検索条件
+     * @param records 検索結果 SObject
+     * @return 1 ページ最大 50 件の検索結果
      */
     public ObjectRecordSearchResultWrapper createSearchResult(
         ObjectRecordSearchQueryPlan.SearchQueryRequest request,
         List<SObject> records
     ) {
+        // SOQL 結果を LWC が扱う行 Wrapper へ変換
         List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
         for (SObject record : records) {
             ObjectRecordSearchRowWrapper row = new ObjectRecordSearchRowWrapper(
@@ -125,24 +130,25 @@ public with sharing class ObjectRecordSearchService {
             );
             rows.add(row);
         }
-
+        // 1 件多く取得した結果で次ページ有無を判定
         Boolean hasNextPage = rows.size() > PAGE_SIZE;
         if (hasNextPage) {
             rows.remove(PAGE_SIZE);
         }
-
         String nextPageToken;
         if (hasNextPage) {
+            // 最終表示行から次ページ取得用カーソルを作成
             nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(
                 rows,
                 request.sortSpec
             );
         }
-
+        // 表示設定、行、ページ状態を 1 つの返却 Wrapper に集約
         ObjectRecordSearchResultWrapper result = new ObjectRecordSearchResultWrapper(
             request.context.config,
             rows
         );
+        // 不正なページ番号は最初のページとして扱う
         Integer pageNumber = normalizePageNumber(
             request.searchRequest?.pageNumber
         );
@@ -155,15 +161,16 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * 選択レコードを削除してよいかを返します。
-     * @param config 検索画面設定。
-     * @param recordIds 削除するレコード ID。
-     * @return 削除対象 ID があり、対象オブジェクトを削除可能な場合 true。
+     * 選択レコードを削除してよいかを返す
+     * @param config 検索画面設定
+     * @param recordIds 削除するレコード ID
+     * @return 削除対象 ID があり、対象オブジェクトを削除可能な場合 true
      */
     public Boolean canDeleteRecords(
         ObjectRecordSearchConfigWrapper config,
         List<Id> recordIds
     ) {
+        // 設定と削除 ID がそろった場合だけ DML を許可
         Boolean hasConfig = config != null;
         Boolean isDeletable = hasConfig && config.deletable;
         Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
@@ -171,22 +178,24 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * DML 削除結果を LWC 返却用 Wrapper に変換します。
+     * DML 削除結果を LWC 返却用 Wrapper に変換
      *
-     * @param recordIds LWC から削除要求された ID。
-     * @param deleteResults DML 削除結果。
-     * @return 削除結果。
+     * @param recordIds LWC から削除要求された ID
+     * @param deleteResults DML 削除結果
+     * @return 削除結果
      */
     public ObjectRecordSearchDeleteWrapper createDeleteResult(
         List<Id> recordIds,
         List<Database.DeleteResult> deleteResults
     ) {
+        // リクエスト件数は DML 実行有無に関係なく画面へ返す
         Integer requestedCount = recordIds == null ? 0 : recordIds.size();
         Integer deletedCount = 0;
         List<String> errors = new List<String>();
 
         if (deleteResults != null) {
             for (Database.DeleteResult deleteResult : deleteResults) {
+                // 成功件数とユーザー向けエラーを DML 結果から集計
                 Boolean isDeleteSuccessful = deleteResult.isSuccess();
                 if (isDeleteSuccessful) {
                     deletedCount++;

@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索 Service の判定と Wrapper 組み立てをテストします。
+ * 汎用レコード検索 Service の判定と Wrapper 組み立てテスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchServiceTest {
@@ -38,14 +38,15 @@ private with sharing class ObjectRecordSearchServiceTest {
             WHERE Name LIKE 'Service%'
             ORDER BY Name
         ];
-
         ObjectRecordSearchResultWrapper result;
         System.runAs(testUser) {
             Test.startTest();
+
             result = service.createSearchResult(
                 searchQueryRequest,
                 records
             );
+
             Test.stopTest();
         }
 
@@ -74,7 +75,6 @@ private with sharing class ObjectRecordSearchServiceTest {
             accounts[index].Industry = 'Technology';
         }
         insert accounts;
-
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
@@ -98,14 +98,15 @@ private with sharing class ObjectRecordSearchServiceTest {
             ORDER BY Name, Id
             LIMIT 51
         ];
-
         ObjectRecordSearchResultWrapper result;
         System.runAs(testUser) {
             Test.startTest();
+
             result = service.createSearchResult(
                 searchQueryRequest,
                 records
             );
+
             Test.stopTest();
         }
 
@@ -144,11 +145,12 @@ private with sharing class ObjectRecordSearchServiceTest {
             AccessLevel.USER_MODE
         );
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-
         ObjectRecordSearchDeleteWrapper result;
         System.runAs(testUser) {
             Test.startTest();
+
             result = service.createDeleteResult(recordIds, deleteResults);
+
             Test.stopTest();
         }
 
@@ -175,15 +177,17 @@ private with sharing class ObjectRecordSearchServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 service.requireDefinition('unknown');
                 Assert.fail('Unsupported metric keys should throw.');
             } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
-                    error.getMessage().contains('未対応'),
+                    error.getMessage().contains('表示できません'),
                     'Unsupported metric keys should explain the object is unsupported.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -195,11 +199,12 @@ private with sharing class ObjectRecordSearchServiceTest {
                 service
             )
             .config;
-
         Boolean canDelete;
         System.runAs(testUser) {
             Test.startTest();
+
             canDelete = service.canDeleteRecords(config, new List<Id>());
+
             Test.stopTest();
         }
 
@@ -216,10 +221,12 @@ private with sharing class ObjectRecordSearchServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             canDelete = service.canDeleteRecords(
                 null,
                 new List<Id>{ UserInfo.getUserId() }
             );
+
             Test.stopTest();
         }
 
@@ -242,7 +249,6 @@ private with sharing class ObjectRecordSearchServiceTest {
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>{
             new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
         };
-
         ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             nameFieldDescribe,
