@@ -22,7 +22,6 @@ public with sharing class ObjectRecordSearchSortSupport {
                 '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
             );
         }
-
         String fieldApiName = getSortFieldApiName(context, request);
         Schema.DescribeFieldResult fieldDescribe = context.getAllowedFieldDescribe(
             fieldApiName
@@ -32,7 +31,6 @@ public with sharing class ObjectRecordSearchSortSupport {
             fieldApiName = context.config.nameFieldApiName;
             fieldDescribe = context.getAllowedFieldDescribe(fieldApiName);
         }
-
         SortSpec sortSpec = new SortSpec();
         sortSpec.fieldApiName = fieldApiName;
         sortSpec.direction = getSortDirection(request);
@@ -57,7 +55,6 @@ public with sharing class ObjectRecordSearchSortSupport {
                 sortSpec.fieldApiName +
                 ' = NULL AND Id > :cursorRecordId)';
         }
-
         String sortOperator = sortSpec.direction == SORT_DESCENDING ? '<' : '>';
         return '(' +
             sortSpec.fieldApiName +

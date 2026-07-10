@@ -20,7 +20,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             insert accounts;
+
             Test.stopTest();
         }
 
@@ -67,7 +69,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             update accountRecord;
+
             Test.stopTest();
         }
 
@@ -91,7 +95,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             insert accounts;
+
             Test.stopTest();
         }
 
@@ -119,7 +125,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             insert accountRecord;
+
             Test.stopTest();
         }
 
@@ -140,7 +148,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             insert accountRecord;
+
             Test.stopTest();
         }
 
@@ -166,7 +176,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             insert accounts;
+
             Test.stopTest();
         }
 
@@ -205,7 +217,9 @@ private with sharing class AccountTriggerHandlerTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             insert accounts;
+
             Test.stopTest();
         }
 

@@ -15,7 +15,9 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(testUser) {
             Test.startTest();
+
             summary = service.createObjectMetrics(metricValues);
+
             Test.stopTest();
         }
 
@@ -79,7 +81,9 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(testUser) {
             Test.startTest();
+
             summary = service.createObjectMetrics(null);
+
             Test.stopTest();
         }
 
@@ -108,9 +112,11 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             hasAccounts = ObjectMetricCatalog.hasDefinition('accounts');
             hasUnknownMetric = ObjectMetricCatalog.hasDefinition('unknown');
             blankDefinition = ObjectMetricCatalog.getDefinition(' ');
+
             Test.stopTest();
         }
 

@@ -64,7 +64,6 @@ public with sharing class AccountTriggerService {
         if (!hasAccountName) {
             return false;
         }
-
         Boolean hasOldAccount = oldAccountsById != null &&
             accountRecord.Id != null &&
             oldAccountsById.containsKey(accountRecord.Id);
@@ -73,7 +72,6 @@ public with sharing class AccountTriggerService {
         ) {
             return true;
         }
-
         Account oldAccount = oldAccountsById.get(accountRecord.Id);
         return oldAccount == null || accountRecord.Name != oldAccount.Name;
     }

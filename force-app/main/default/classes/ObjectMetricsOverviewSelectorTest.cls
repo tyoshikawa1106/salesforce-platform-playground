@@ -15,7 +15,9 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricsByKey;
         System.runAs(testUser) {
             Test.startTest();
+
             metricsByKey = selector.getObjectMetricValues();
+
             Test.stopTest();
         }
 
@@ -172,7 +174,9 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
         System.runAs(testUser) {
             Test.startTest();
+
             metricCount = selector.countVisibleRecords('UnknownObject__c');
+
             Test.stopTest();
         }
 
@@ -199,6 +203,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
                 'UnknownObject__c'
             );
             Boolean hasBlankObject = ObjectMetricCatalog.hasObjectApiName(' ');
+
             Test.stopTest();
 
             Assert.isTrue(
@@ -225,7 +230,9 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
         System.runAs(testUser) {
             Test.startTest();
+
             metricCount = selector.countVisibleRecords(' ');
+
             Test.stopTest();
         }
 
@@ -248,8 +255,10 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         ObjectMetricsOverviewSelector.ObjectMetricCount cappedCount;
         System.runAs(testUser) {
             Test.startTest();
+
             exactCount = ObjectMetricsOverviewSelector.createCount(49999);
             cappedCount = ObjectMetricsOverviewSelector.createCount(50000);
+
             Test.stopTest();
         }
 

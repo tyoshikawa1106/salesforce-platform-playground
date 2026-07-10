@@ -24,7 +24,6 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (!hasRows || sortSpec == null) {
             return null;
         }
-
         Integer lastRowIndex = rows.size() - 1;
         ObjectRecordSearchRowWrapper lastRow = rows[lastRowIndex];
         String recordIdValue = String.valueOf(lastRow.id);
@@ -87,7 +86,6 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (!isCursorFieldExpected || !hasCursorRecordId) {
             throw createUnreadablePageTokenException(null);
         }
-
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         Object rawCursorSortValue = getCursorSortValue(tokenParts);
         cursor.sortValue = parseCursorSortValue(rawCursorSortValue, sortSpec);
@@ -130,7 +128,6 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (rawValue == null) {
             return null;
         }
-
         String stringValue = String.valueOf(rawValue);
         Schema.DisplayType displayType = sortSpec.fieldDescribe.getType();
         if (displayType == Schema.DisplayType.DATE) {

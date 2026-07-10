@@ -21,7 +21,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
                 'このカードの対象オブジェクトを利用できません。別のカードを選択してください。'
             );
         }
-
         Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
         );
@@ -57,7 +56,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
                 break;
             }
         }
-
         Boolean hasNameField = fieldsByApiName.containsKey('Name');
         if (
             nameFieldDescribe == null &&
@@ -71,7 +69,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
                 '検索に必要な項目を利用できません。管理者に項目設定を確認してください。'
             );
         }
-
         Boolean isNameFieldAccessible = nameFieldDescribe.isAccessible();
         if (!isNameFieldAccessible) {
             throw new ObjectRecordSearchException(
@@ -125,9 +122,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
         if (!hasRecordIds) {
             return new List<SObject>();
         }
-
         requireSupportedObject(objectApiName);
-
         String soql = 'SELECT Id FROM ' +
             objectApiName +
             ' WHERE Id IN :recordIds LIMIT ' +

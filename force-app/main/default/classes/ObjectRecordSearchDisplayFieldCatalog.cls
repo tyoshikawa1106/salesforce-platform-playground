@@ -232,7 +232,6 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
             if (fieldDescribe == null) {
                 continue;
             }
-
             ObjectRecordSearchFieldWrapper displayField = createDisplayField(
                 fieldDescribe
             );
@@ -249,7 +248,6 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         if (!hasFieldApiName) {
             return null;
         }
-
         Schema.SObjectField fieldToken = fieldsByApiName.get(fieldApiName);
         Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
         Boolean isFieldAccessible = fieldDescribe.isAccessible();

@@ -11,7 +11,9 @@ private with sharing class ObjectRecordSearchExceptionTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             error = new ObjectRecordSearchException('検索条件が不正');
+
             Test.stopTest();
         }
 

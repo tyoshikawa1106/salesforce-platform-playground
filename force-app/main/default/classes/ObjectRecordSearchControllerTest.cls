@@ -24,7 +24,9 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             config = ObjectRecordSearchController.getObjectConfig('accounts');
+
             Test.stopTest();
         }
 
@@ -117,7 +119,9 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             result = ObjectRecordSearchController.searchRecords(request);
+
             Test.stopTest();
         }
 
@@ -167,7 +171,9 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             result = ObjectRecordSearchController.searchRecords(request);
+
             Test.stopTest();
         }
 
@@ -194,10 +200,12 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             result = ObjectRecordSearchController.deleteRecords(
                 'accounts',
                 null
             );
+
             Test.stopTest();
         }
 
@@ -224,10 +232,12 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             result = ObjectRecordSearchController.deleteRecords(
                 'accounts',
                 new List<Id>()
             );
+
             Test.stopTest();
         }
 
@@ -258,6 +268,7 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectRecordSearchController.searchRecords(request);
                 Assert.fail('Unsupported metric keys should throw.');
@@ -267,6 +278,7 @@ private with sharing class ObjectRecordSearchControllerTest {
                     'Unsupported metric keys should be wrapped for LWC.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -281,6 +293,7 @@ private with sharing class ObjectRecordSearchControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectRecordSearchController.searchRecords(request);
                 Assert.fail('Invalid page tokens should throw.');
@@ -290,6 +303,7 @@ private with sharing class ObjectRecordSearchControllerTest {
                     'Invalid page tokens should be wrapped for LWC.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -302,14 +316,15 @@ private with sharing class ObjectRecordSearchControllerTest {
             WHERE Name = '削除対象 Gamma'
             LIMIT 1
         ];
-
         ObjectRecordSearchDeleteWrapper result;
         System.runAs(testUser) {
             Test.startTest();
+
             result = ObjectRecordSearchController.deleteRecords(
                 'accounts',
                 new List<Id>{ target.Id }
             );
+
             Test.stopTest();
         }
 

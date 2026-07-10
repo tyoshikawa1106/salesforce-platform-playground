@@ -51,8 +51,8 @@ private with sharing class TestDataFactoryTest {
             Account accountRecord = TestDataFactory.insertAccount(
                 'Factory Account'
             );
-            Test.stopTest();
 
+            Test.stopTest();
             Account savedAccount = [
                 SELECT Name
                 FROM Account
@@ -85,7 +85,6 @@ private with sharing class TestDataFactoryTest {
                 accountRecord,
                 'Factory Opportunity'
             );
-
             Contact contactRecord = TestDataFactory.createContact(
                 accountRecord,
                 'Factory Contact'

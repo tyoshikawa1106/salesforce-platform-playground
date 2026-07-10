@@ -26,7 +26,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             objectDescribe = selector.getObjectDescribe('Account');
+
             Test.stopTest();
         }
 
@@ -48,11 +50,13 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             nameFieldDescribe = selector.getNameFieldDescribe(
                 Account.SObjectType.getDescribe(
                     SObjectDescribeOptions.DEFERRED
                 )
             );
+
             Test.stopTest();
         }
 
@@ -73,7 +77,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             records = selector.searchRecords(searchQuery);
+
             Test.stopTest();
         }
 
@@ -95,6 +101,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 selector.searchRecords(null);
                 Assert.fail('Missing query plans should throw.');
@@ -104,6 +111,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
                     'Missing query plans should explain the search condition is invalid.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -121,10 +129,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             records = selector.getRecordsById(
                 'Account',
                 new Set<Id>{ target.Id }
             );
+
             Test.stopTest();
         }
 
@@ -148,11 +158,13 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             nullIdRecords = selector.getRecordsById('Account', null);
             emptyIdRecords = selector.getRecordsById(
                 'Account',
                 new Set<Id>()
             );
+
             Test.stopTest();
         }
 
@@ -174,6 +186,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 selector.getRecordsById(
                     'UnknownObject__c',
@@ -186,6 +199,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
                     'Unsupported object API names should be rejected before SOQL execution.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -205,7 +219,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             deleteResults = selector.deleteRecords(recordsToDelete);
+
             Test.stopTest();
         }
 
@@ -230,6 +246,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 selector.getObjectDescribe('UnknownObject__c');
                 Assert.fail('Unknown object API names should throw.');
@@ -239,6 +256,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
                     'Unknown object API names should explain the object was not found.'
                 );
             }
+
             Test.stopTest();
         }
     }

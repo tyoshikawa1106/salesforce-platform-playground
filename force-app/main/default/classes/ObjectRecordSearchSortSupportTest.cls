@@ -16,14 +16,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
     @IsTest
     static void shouldCreateDefaultSortSpecWhenSortRequestIsMissing() {
         ObjectRecordSearchContext context = createAccountContext();
-
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
         System.runAs(testUser) {
             Test.startTest();
+
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 context,
                 new ObjectRecordSearchRequestWrapper()
             );
+
             Test.stopTest();
         }
 
@@ -45,14 +46,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Industry';
         request.sortDirection = 'desc';
-
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
         System.runAs(testUser) {
             Test.startTest();
+
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 context,
                 request
             );
+
             Test.stopTest();
         }
 
@@ -73,14 +75,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchContext context = createAccountContextWithDescription();
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Description';
-
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
         System.runAs(testUser) {
             Test.startTest();
+
             sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
                 context,
                 request
             );
+
             Test.stopTest();
         }
 
@@ -100,14 +103,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             context,
             request
         );
-
         ObjectRecordSearchSortSupport.PageCursor cursor;
         System.runAs(testUser) {
             Test.startTest();
+
             cursor = createParsedCursor(
                 context.config,
                 sortSpec
             );
+
             Test.stopTest();
         }
 
@@ -130,14 +134,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             context,
             new ObjectRecordSearchRequestWrapper()
         );
-
         ObjectRecordSearchSortSupport.PageCursor cursor;
         System.runAs(testUser) {
             Test.startTest();
+
             cursor = createParsedCursor(
                 context.config,
                 sortSpec
             );
+
             Test.stopTest();
         }
 
@@ -159,10 +164,12 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
                 new List<ObjectRecordSearchRowWrapper>(),
                 sortSpec
             );
+
             Test.stopTest();
         }
 
@@ -185,14 +192,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 'name' => 'Cursor Account'
             }
         );
-
         ObjectRecordSearchSortSupport.PageCursor cursor;
         System.runAs(testUser) {
             Test.startTest();
+
             cursor = ObjectRecordSearchSortSupport.parsePageToken(
                 pageToken,
                 sortSpec
             );
+
             Test.stopTest();
         }
 
@@ -213,14 +221,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.sortValue = 'Cursor Account';
         cursor.recordId = getTestAccountId();
-
         String whereClause;
         System.runAs(testUser) {
             Test.startTest();
+
             whereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
                 sortSpec,
                 cursor
             );
+
             Test.stopTest();
         }
 
@@ -243,14 +252,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.recordId = getTestAccountId();
-
         String whereClause;
         System.runAs(testUser) {
             Test.startTest();
+
             whereClause = ObjectRecordSearchSortSupport.createCursorWhereClause(
                 sortSpec,
                 cursor
             );
+
             Test.stopTest();
         }
 
@@ -277,6 +287,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectRecordSearchSortSupport.parsePageToken(
                     pageToken,
@@ -289,6 +300,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                     'Mismatched page tokens should explain the page token cannot be read.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -303,6 +315,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectRecordSearchSortSupport.parsePageToken(
                     '{malformed',
@@ -315,6 +328,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                     'Malformed page tokens should be normalized into the search exception.'
                 );
             }
+
             Test.stopTest();
         }
     }

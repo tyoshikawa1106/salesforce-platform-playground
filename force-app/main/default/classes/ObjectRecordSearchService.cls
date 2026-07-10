@@ -127,12 +127,10 @@ public with sharing class ObjectRecordSearchService {
             );
             rows.add(row);
         }
-
         Boolean hasNextPage = rows.size() > PAGE_SIZE;
         if (hasNextPage) {
             rows.remove(PAGE_SIZE);
         }
-
         String nextPageToken;
         if (hasNextPage) {
             nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(
@@ -140,7 +138,6 @@ public with sharing class ObjectRecordSearchService {
                 request.sortSpec
             );
         }
-
         ObjectRecordSearchResultWrapper result = new ObjectRecordSearchResultWrapper(
             request.context.config,
             rows

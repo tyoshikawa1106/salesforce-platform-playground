@@ -12,7 +12,6 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         );
         accountRecord.Industry = 'Technology';
         insert accountRecord;
-
         Account queriedAccount = [
             SELECT Id, Name, Industry
             FROM Account

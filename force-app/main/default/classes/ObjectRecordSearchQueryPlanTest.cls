@@ -12,7 +12,6 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         request.searchTerm = ' Query ';
         request.sortBy = 'Industry';
         request.sortDirection = 'desc';
-
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
             request
@@ -20,18 +19,18 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.sortValue = 'Technology';
         cursor.recordId = TestDataFactory.insertAccount('Query Cursor').Id;
-
         ObjectRecordSearchQueryPlan.SearchQueryRequest queryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         queryRequest.context = context;
         queryRequest.searchRequest = request;
         queryRequest.sortSpec = sortSpec;
         queryRequest.cursor = cursor;
         queryRequest.fetchSize = 51;
-
         ObjectRecordSearchQueryPlan.SearchQuery query;
         System.runAs(testUser) {
             Test.startTest();
+
             query = ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);
+
             Test.stopTest();
         }
 
@@ -72,17 +71,17 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
             context,
             request
         );
-
         ObjectRecordSearchQueryPlan.SearchQueryRequest queryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         queryRequest.context = context;
         queryRequest.searchRequest = request;
         queryRequest.sortSpec = sortSpec;
         queryRequest.fetchSize = 51;
-
         ObjectRecordSearchQueryPlan.SearchQuery query;
         System.runAs(testUser) {
             Test.startTest();
+
             query = ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);
+
             Test.stopTest();
         }
 
@@ -101,6 +100,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
     static void shouldThrowWhenRequestIsMissing() {
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectRecordSearchQueryPlan.createSearchQuery(null);
                 Assert.fail('Missing query requests should throw.');
@@ -110,6 +110,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
                     'Missing query requests should explain the search condition is invalid.'
                 );
             }
+
             Test.stopTest();
         }
     }
@@ -126,6 +127,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectRecordSearchQueryPlan.createSearchQuery(queryRequest);
                 Assert.fail('Unallowed sort fields should throw.');
@@ -135,6 +137,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
                     'Unallowed sort fields should be rejected before SOQL construction.'
                 );
             }
+
             Test.stopTest();
         }
     }

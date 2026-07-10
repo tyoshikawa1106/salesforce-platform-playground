@@ -13,10 +13,8 @@ public with sharing class ObjectRecordSearchQueryPlan {
         SearchQueryRequest request
     ) {
         validateSearchQueryRequest(request);
-
         SearchQuery query = new SearchQuery();
         query.bindValues = new Map<String, Object>();
-
         String normalizedSearchTerm = request.searchRequest?.searchTerm?.trim();
         Boolean shouldUseNameSearch = usesNameSearch(
             normalizedSearchTerm,
@@ -31,7 +29,6 @@ public with sharing class ObjectRecordSearchQueryPlan {
             query.bindValues.put('cursorSortValue', request.cursor.sortValue);
             query.bindValues.put('cursorRecordId', request.cursor.recordId);
         }
-
         Boolean hasLikeSearchTerm = likeSearchTerm != null;
         query.soql = buildSearchSoql(request, hasLikeSearchTerm);
         return query;
@@ -60,7 +57,6 @@ public with sharing class ObjectRecordSearchQueryPlan {
             selectedFields +
             ' FROM ' +
             request.context.config.objectApiName;
-
         List<String> whereClauses = new List<String>();
         if (includeNameSearch) {
             whereClauses.add(
@@ -74,13 +70,11 @@ public with sharing class ObjectRecordSearchQueryPlan {
             );
             whereClauses.add(cursorWhereClause);
         }
-
         Boolean hasWhereClauses = !whereClauses.isEmpty();
         if (hasWhereClauses) {
             String joinedWhereClauses = String.join(whereClauses, ' AND ');
             query += ' WHERE ' + joinedWhereClauses;
         }
-
         String sortDirection = request.sortSpec.direction.toUpperCase();
         String soql = query +
             ' ORDER BY ' +
@@ -109,7 +103,6 @@ public with sharing class ObjectRecordSearchQueryPlan {
                 '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
             );
         }
-
         Boolean isSupportedObject = isSupportedObject(
             request.context.config.objectApiName
         );

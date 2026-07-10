@@ -56,7 +56,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
         ) {
             return toObjectMetricCount(0);
         }
-
         String whereClause = objectApiName == 'User'
             ? ' WHERE IsActive = TRUE'
             : '';

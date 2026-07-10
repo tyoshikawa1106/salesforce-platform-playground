@@ -18,7 +18,10 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
+            // 新規レコード一覧の法人格表記を標準表記へ補正
             service.normalizeAccountNamesForInsert(accounts);
+
             Test.stopTest();
         }
 
@@ -39,10 +42,12 @@ private with sharing class AccountTriggerServiceTest {
     static void shouldNormalizeChangedAccountNamesWhenUpdated() {
         // 準備
         Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
+        // 更新前後の名称差分を発生させる入力値
         Account updatedAccount = new Account(
             Id = accountRecord.Id,
             Name = 'テスト（株）'
         );
+        // 更新前レコードを Id で引ける状態にして差分判定を成立
         Map<Id, Account> oldAccountsById = new Map<Id, Account>{
             accountRecord.Id => accountRecord
         };
@@ -50,10 +55,13 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
+            // 変更された名称だけを補正対象にする更新処理を検証
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
                 oldAccountsById
             );
+
             Test.stopTest();
         }
 
@@ -84,10 +92,12 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ accountRecord },
                 oldAccountsById
             );
+
             Test.stopTest();
         }
 
@@ -108,6 +118,7 @@ private with sharing class AccountTriggerServiceTest {
         System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
+
             Test.stopTest();
         }
 
@@ -128,6 +139,7 @@ private with sharing class AccountTriggerServiceTest {
         System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
+
             Test.stopTest();
         }
 
@@ -157,10 +169,12 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
                 new Map<Id, Account>()
             );
+
             Test.stopTest();
         }
 
@@ -184,10 +198,12 @@ private with sharing class AccountTriggerServiceTest {
         // 実行
         System.runAs(testUser) {
             Test.startTest();
+
             service.normalizeChangedAccountNamesForUpdate(
                 new List<Account>{ updatedAccount },
                 new Map<Id, Account>{ savedAccount.Id => null }
             );
+
             Test.stopTest();
         }
 

@@ -14,7 +14,9 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         ObjectMetricsOverviewSummaryWrapper summary;
         System.runAs(testUser) {
             Test.startTest();
+
             summary = ObjectMetricsOverviewController.getObjectMetrics();
+
             Test.stopTest();
         }
 
@@ -38,6 +40,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
+
             try {
                 ObjectMetricsOverviewController.getObjectMetrics();
                 Assert.fail('Selector failures should be converted to AuraHandledException.');
@@ -47,6 +50,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
                     'Controller should throw a user-facing exception.'
                 );
             }
+
             Test.stopTest();
         }
     }

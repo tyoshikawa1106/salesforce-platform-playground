@@ -86,7 +86,6 @@ public with sharing class ObjectRecordSearchController {
                 searchQueryRequest
             );
             List<SObject> records = selector.searchRecords(searchQuery);
-
             ObjectRecordSearchResultWrapper result = service.createSearchResult(
                 searchQueryRequest,
                 records
@@ -135,7 +134,6 @@ public with sharing class ObjectRecordSearchController {
             if (!canDeleteRecords) {
                 return service.createDeleteResult(recordIds, null);
             }
-
             Set<Id> recordIdsToDelete = new Set<Id>(recordIds);
             List<SObject> recordsToDelete = selector.getRecordsById(
                 config.objectApiName,
@@ -173,7 +171,6 @@ public with sharing class ObjectRecordSearchController {
             definition.objectApiName,
             objectDescribe
         );
-
         ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
             definition,
             nameFieldDescribe,
