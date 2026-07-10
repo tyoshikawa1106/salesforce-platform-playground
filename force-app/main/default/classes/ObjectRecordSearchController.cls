@@ -9,6 +9,12 @@ public with sharing class ObjectRecordSearchController {
     private ObjectRecordSearchService service;
     private ObjectRecordSearchSelector selector;
 
+    /**
+     * コンストラクタ
+     *
+     * @param service レコード検索の設定作成と結果整形
+     * @param selector レコード検索に必要な describe と SOQL 実行
+     */
     private ObjectRecordSearchController(
         ObjectRecordSearchService service,
         ObjectRecordSearchSelector selector

@@ -43,7 +43,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
             Test.startTest();
 
             try {
-                // Selector 例外を画面向け例外へ変換
+                // 件数取得例外を画面向け例外へ変換
                 ObjectMetricsOverviewController.getObjectMetrics();
                 Assert.fail('Selector failures should be converted to AuraHandledException.');
             } catch (AuraHandledException error) {
