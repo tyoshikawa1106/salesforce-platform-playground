@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchFieldWrapperTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -20,17 +21,17 @@ private with sharing class ObjectRecordSearchFieldWrapperTest {
         Assert.areEqual(
             'Industry',
             wrapper.apiName,
-            'Field wrapper should expose the API name.'
+            'Field wrapper は API 名を公開する必要あり'
         );
         Assert.areEqual(
             'Industry',
             wrapper.label,
-            'Field wrapper should expose the label.'
+            'Field wrapper はラベルを公開する必要あり'
         );
         Assert.areEqual(
             'text',
             wrapper.dataType,
-            'Field wrapper should expose the datatable type.'
+            'Field wrapper はデータテーブル型を公開する必要あり'
         );
     }
 }

@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class TestDataFactoryTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -13,17 +14,17 @@ private with sharing class TestDataFactoryTest {
             Assert.areEqual(
                 3,
                 accounts.size(),
-                'Three Accounts should be created.'
+                '取引先は 3 件作成する必要あり'
             );
             Assert.areEqual(
                 'Test Account 0',
                 accounts[0].Name,
-                'The first Account should use the expected default name.'
+                '先頭の取引先は期待するデフォルト名を使う必要あり'
             );
             Assert.areEqual(
                 'Test Account 2',
                 accounts[2].Name,
-                'The last Account should include the zero-based index.'
+                '最後の取引先は 0 始まりのインデックスを含む必要あり'
             );
         }
     }
@@ -34,12 +35,12 @@ private with sharing class TestDataFactoryTest {
             Assert.areEqual(
                 0,
                 TestDataFactory.createAccounts(null).size(),
-                'Null count should return an empty list.'
+                'null 件数は空リストを返す必要あり'
             );
             Assert.areEqual(
                 0,
                 TestDataFactory.createAccounts(0).size(),
-                'Zero count should return an empty list.'
+                '0 件数は空リストを返す必要あり'
             );
         }
     }
@@ -62,7 +63,7 @@ private with sharing class TestDataFactoryTest {
             Assert.areEqual(
                 'Factory Account',
                 savedAccount.Name,
-                'Inserted Account should keep the requested name.'
+                '作成済み取引先は指定された名前を保つ必要あり'
             );
         }
     }
@@ -106,27 +107,27 @@ private with sharing class TestDataFactoryTest {
             Assert.areEqual(
                 accountRecord.Id,
                 contactRecord.AccountId,
-                'Contact should reference the provided Account.'
+                '取引先責任者は指定された取引先を参照する必要あり'
             );
             Assert.areEqual(
                 accountRecord.Id,
                 createdOpportunity.AccountId,
-                'Opportunity should reference the provided Account.'
+                '商談は指定された取引先を参照する必要あり'
             );
             Assert.areEqual(
                 productRecord.Id,
                 createdPricebookEntry.Product2Id,
-                'PricebookEntry should reference the provided Product.'
+                '価格表エントリは指定された商品を参照する必要あり'
             );
             Assert.areEqual(
                 opportunityRecord.Id,
                 lineItemRecord.OpportunityId,
-                'OpportunityLineItem should reference the provided Opportunity.'
+                '商談商品は指定された商談を参照する必要あり'
             );
             Assert.areEqual(
                 pricebookEntryRecord.Id,
                 lineItemRecord.PricebookEntryId,
-                'OpportunityLineItem should reference the provided PricebookEntry.'
+                '商談商品は指定された価格表エントリを参照する必要あり'
             );
         }
     }
@@ -143,17 +144,17 @@ private with sharing class TestDataFactoryTest {
             Assert.areEqual(
                 'Factory Lead',
                 leadRecord.LastName,
-                'Lead should use the requested last name.'
+                'リードは指定された姓を使う必要あり'
             );
             Assert.areEqual(
                 'Factory Company',
                 leadRecord.Company,
-                'Lead should use the requested company.'
+                'リードは指定された会社名を使う必要あり'
             );
             Assert.areEqual(
                 'Factory Case',
                 caseRecord.Subject,
-                'Case should use the requested subject.'
+                'ケースは指定された件名を使う必要あり'
             );
         }
     }

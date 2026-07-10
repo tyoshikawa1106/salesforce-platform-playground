@@ -2,9 +2,8 @@
  * オブジェクト件数結果を LWC に返す Wrapper
  */
 public with sharing class ObjectMetricsOverviewSummaryWrapper {
-    /**
-     * LWC に表示する順序付きの件数項目
-     */
+
+    // LWC に表示する順序付きの件数項目
     @AuraEnabled
     public List<ObjectMetricsOverviewItemWrapper> metrics { get; private set; }
 
@@ -13,12 +12,8 @@ public with sharing class ObjectMetricsOverviewSummaryWrapper {
      *
      * @param metrics LWC に返す順序付き件数項目
      */
-    public ObjectMetricsOverviewSummaryWrapper(
-        List<ObjectMetricsOverviewItemWrapper> metrics
-    ) {
+    public ObjectMetricsOverviewSummaryWrapper(List<ObjectMetricsOverviewItemWrapper> metrics) {
         // null 入力でも LWC へ空リストを返す
-        this.metrics = metrics == null
-            ? new List<ObjectMetricsOverviewItemWrapper>()
-            : metrics;
+        this.metrics = metrics == null ? new List<ObjectMetricsOverviewItemWrapper>() : metrics;
     }
 }

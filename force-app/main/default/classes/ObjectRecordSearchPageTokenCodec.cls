@@ -2,6 +2,7 @@
  * 汎用レコード検索のページング token 生成・復元
  */
 public with sharing class ObjectRecordSearchPageTokenCodec {
+
     private static final Set<Schema.DisplayType> NUMERIC_DISPLAY_TYPES = new Set<Schema.DisplayType>{
         Schema.DisplayType.CURRENCY,
         Schema.DisplayType.DOUBLE,
@@ -16,10 +17,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
      * @param sortSpec ソート条件
      * @return 次ページ取得用 token
      */
-    public static String createNextPageToken(
-        List<ObjectRecordSearchRowWrapper> rows,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    public static String createNextPageToken(List<ObjectRecordSearchRowWrapper> rows, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         // 行またはソート条件がない場合は次ページなしとして扱う
         Boolean hasRows = rows != null && !rows.isEmpty();
         if (!hasRows || sortSpec == null) {
@@ -48,10 +46,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
      * @return 次ページ取得用カーソル、pageToken が空白の場合は null
      * @throws ObjectRecordSearchException token を読み込めない場合
      */
-    public static ObjectRecordSearchSortSupport.PageCursor parsePageToken(
-        String pageToken,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    public static ObjectRecordSearchSortSupport.PageCursor parsePageToken(String pageToken, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         // 空白 token は先頭ページとして扱う
         Boolean hasPageToken = String.isNotBlank(pageToken);
         if (!hasPageToken) {
@@ -66,10 +61,10 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
                 sortSpec
             );
             return cursor;
-        } catch (ObjectRecordSearchException error) {
-            throw error;
-        } catch (Exception error) {
-            throw createUnreadablePageTokenException(error);
+        } catch (ObjectRecordSearchException e) {
+            throw e;
+        } catch (Exception e) {
+            throw createUnreadablePageTokenException(e);
         }
     }
 
@@ -80,10 +75,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return tokenParts;
     }
 
-    private static ObjectRecordSearchSortSupport.PageCursor createPageCursor(
-        Map<String, Object> tokenParts,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    private static ObjectRecordSearchSortSupport.PageCursor createPageCursor(Map<String, Object> tokenParts, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         // token の field と現在の sortSpec がずれた場合は読み込み不可
         String cursorFieldApiName = getCursorFieldApiName(tokenParts, sortSpec);
         String cursorRecordId = (String) tokenParts.get('recordId');
@@ -100,10 +92,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return cursor;
     }
 
-    private static String getCursorFieldApiName(
-        Map<String, Object> tokenParts,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    private static String getCursorFieldApiName(Map<String, Object> tokenParts, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         // 旧形式 token は現在の sortSpec の項目として扱う
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
@@ -114,15 +103,10 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         // 旧形式 token の name 値も sort 値として読み替える
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
-        return hasCursorFieldApiName
-            ? tokenParts.get('sortValue')
-            : tokenParts.get('name');
+        return hasCursorFieldApiName ? tokenParts.get('sortValue') : tokenParts.get('name');
     }
 
-    private static String getRowSortValue(
-        ObjectRecordSearchRowWrapper row,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    private static String getRowSortValue(ObjectRecordSearchRowWrapper row, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         if (sortSpec.fieldApiName == sortSpec.nameFieldApiName) {
             return row.name;
         }
@@ -131,10 +115,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return sortValue;
     }
 
-    private static Object parseCursorSortValue(
-        Object rawValue,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    private static Object parseCursorSortValue(Object rawValue, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         if (rawValue == null) {
             return null;
         }
@@ -158,13 +139,9 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return stringValue;
     }
 
-    private static ObjectRecordSearchException createUnreadablePageTokenException(
-        Exception cause
-    ) {
+    private static ObjectRecordSearchException createUnreadablePageTokenException(Exception cause) {
         return cause == null
-            ? new ObjectRecordSearchException(
-                  'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。'
-              )
+            ? new ObjectRecordSearchException('ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。')
             : new ObjectRecordSearchException(
                   'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。',
                   cause

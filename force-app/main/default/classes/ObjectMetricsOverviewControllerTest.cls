@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewControllerTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -25,12 +26,12 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         Assert.areEqual(
             ObjectMetricCatalog.getDefinitions().size(),
             summary.metrics.size(),
-            'All object metric cards should have a matching metric item.'
+            'すべてのメトリクスカードに対応する項目が必要'
         );
         Assert.areEqual(
             'accounts',
             summary.metrics[0].key,
-            'Controller should return the ordered service response.'
+            'Controller は Service の並び順を保って返す必要あり'
         );
     }
 
@@ -45,11 +46,11 @@ private with sharing class ObjectMetricsOverviewControllerTest {
             try {
                 // 件数取得例外を画面向け例外へ変換
                 ObjectMetricsOverviewController.getObjectMetrics();
-                Assert.fail('Selector failures should be converted to AuraHandledException.');
-            } catch (AuraHandledException error) {
+                Assert.fail('Selector の失敗は AuraHandledException に変換する必要あり');
+            } catch (AuraHandledException e) {
                 Assert.isNotNull(
-                    error.getMessage(),
-                    'Controller should throw a user-facing exception.'
+                    e.getMessage(),
+                    'Controller はユーザー向け例外を返す必要あり'
                 );
             }
 
@@ -61,10 +62,9 @@ private with sharing class ObjectMetricsOverviewControllerTest {
      * 失敗用 Selector
      */
     private class FailingObjectMetricsOverviewSelector extends ObjectMetricsOverviewSelector {
+
         public override Map<String, ObjectMetricCount> getObjectMetricValues() {
-            throw new FailingObjectMetricsOverviewException(
-                'Unexpected selector failure.'
-            );
+            throw new FailingObjectMetricsOverviewException('想定外の Selector エラー');
         }
     }
 
@@ -72,5 +72,6 @@ private with sharing class ObjectMetricsOverviewControllerTest {
      * 失敗用例外
      */
     private class FailingObjectMetricsOverviewException extends Exception {
+
     }
 }

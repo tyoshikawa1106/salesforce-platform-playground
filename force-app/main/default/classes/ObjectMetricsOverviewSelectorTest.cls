@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSelectorTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -26,143 +27,143 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         Assert.areEqual(
             ObjectMetricCatalog.getDefinitions().size(),
             metricsByKey.size(),
-            'Selector should return all object metric keys.'
+            'Selector はすべてのオブジェクトメトリクスキーを返す必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('accounts').value,
-            'Account count should include inserted Accounts.'
+            'Account 件数は作成済み取引先を含める必要あり'
         );
         Assert.isFalse(
             metricsByKey.get('accounts').capped,
-            'Small Account counts should not be capped.'
+            '少数の Account 件数は上限到達扱いにしない必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('contacts').value,
-            'Contact count should include inserted Contacts.'
+            'Contact 件数は作成済み取引先責任者を含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('tasks').value,
-            'Task count should include inserted Tasks.'
+            'Task 件数は作成済み ToDo を含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('events').value,
-            'Event count should include inserted Events.'
+            'Event 件数は作成済み行動を含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('leads').value,
-            'Lead count should include inserted Leads.'
+            'Lead 件数は作成済みリードを含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('opportunities').value,
-            'Opportunity count should include inserted Opportunities.'
+            'Opportunity 件数は作成済み商談を含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('opportunityLineItems').value,
-            'OpportunityLineItem count should include inserted Opportunity Products.'
+            'OpportunityLineItem 件数は作成済み商談商品を含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('contracts').value,
-            'Contract count should include inserted Contracts.'
+            'Contract 件数は作成済み契約を含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('products').value,
-            'Product count should include inserted Products.'
+            'Product 件数は作成済み商品を含める必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('pricebooks').value,
-            'Pricebook count should be returned.'
+            'Pricebook 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('pricebookEntries').value,
-            'PricebookEntry count should be returned.'
+            'PricebookEntry 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('assets').value,
-            'Asset count should be returned.'
+            'Asset 件数を返す必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('campaigns').value,
-            'Campaign count should include inserted Campaigns.'
+            'Campaign 件数は作成済みキャンペーンを含める必要あり'
         );
         Assert.areEqual(
             1,
             metricsByKey.get('cases').value,
-            'Case count should include inserted Cases.'
+            'Case 件数は作成済みケースを含める必要あり'
         );
         Assert.areEqual(
             0,
             metricsByKey.get('emailMessages').value,
-            'EmailMessage count should be zero when no EmailMessages exist.'
+            'EmailMessage がない場合は件数を 0 にする必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('emailTemplates').value,
-            'EmailTemplate count should be returned.'
+            'EmailTemplate 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('reports').value,
-            'Report count should be returned.'
+            'Report 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('dashboards').value,
-            'Dashboard count should be returned.'
+            'Dashboard 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('files').value,
-            'ContentDocument count should be returned.'
+            'ContentDocument 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('orders').value,
-            'Order count should be returned.'
+            'Order 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('orderItems').value,
-            'OrderItem count should be returned.'
+            'OrderItem 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('entitlements').value,
-            'Entitlement count should be returned.'
+            'Entitlement 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('serviceContracts').value,
-            'ServiceContract count should be returned.'
+            'ServiceContract 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('workOrders').value,
-            'WorkOrder count should be returned.'
+            'WorkOrder 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('workOrderLineItems').value,
-            'WorkOrderLineItem count should be returned.'
+            'WorkOrderLineItem 件数を返す必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('knowledgeArticles').value,
-            'KnowledgeArticleVersion count should be returned.'
+            'KnowledgeArticleVersion 件数を返す必要あり'
         );
         Assert.isFalse(
             metricsByKey.containsKey('processInstances'),
-            'ProcessInstance count should not be returned.'
+            'ProcessInstance 件数は返さない必要あり'
         );
         Assert.isFalse(
             metricsByKey.containsKey('processInstanceWorkitems'),
-            'ProcessInstanceWorkitem count should not be returned.'
+            'ProcessInstanceWorkitem 件数は返さない必要あり'
         );
         Assert.isFalse(
             metricsByKey.containsKey('processInstanceSteps'),
-            'ProcessInstanceStep count should not be returned.'
+            'ProcessInstanceStep 件数は返さない必要あり'
         );
         Assert.isNotNull(
             metricsByKey.get('users').value,
-            'Active user count should be returned.'
+            '有効ユーザー件数を返す必要あり'
         );
     }
 
@@ -186,11 +187,11 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         Assert.areEqual(
             0,
             metricCount.value,
-            'Unknown object API names should return zero.'
+            '未知のオブジェクト API 名は 0 を返す必要あり'
         );
         Assert.isFalse(
             metricCount.capped,
-            'Unknown object API names should not be capped.'
+            '未知のオブジェクト API 名は上限到達扱いにしない必要あり'
         );
     }
 
@@ -211,15 +212,15 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
             Assert.isTrue(
                 hasAccount,
-                'Account should be available as a configured metric object.'
+                'Account は設定済みメトリクスオブジェクトとして利用可能な必要あり'
             );
             Assert.isFalse(
                 hasUnknownObject,
-                'Unknown objects should not be counted as configured metrics.'
+                '未知のオブジェクトは設定済みメトリクスとして扱わない必要あり'
             );
             Assert.isFalse(
                 hasBlankObject,
-                'Blank object API names should not be configured metrics.'
+                '空白のオブジェクト API 名は設定済みメトリクスとして扱わない必要あり'
             );
         }
     }
@@ -244,11 +245,11 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         Assert.areEqual(
             0,
             metricCount.value,
-            'Blank object API names should return zero.'
+            '空白のオブジェクト API 名は 0 を返す必要あり'
         );
         Assert.isFalse(
             metricCount.capped,
-            'Blank object API names should not be capped.'
+            '空白のオブジェクト API 名は上限到達扱いにしない必要あり'
         );
     }
 
@@ -271,20 +272,20 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         Assert.areEqual(
             49999,
             exactCount.value,
-            'Counts below the display limit should keep the exact value.'
+            '表示上限未満の件数は正確な値を保つ必要あり'
         );
         Assert.isFalse(
             exactCount.capped,
-            'Counts below the display limit should not be capped.'
+            '表示上限未満の件数は上限到達扱いにしない必要あり'
         );
         Assert.areEqual(
             50000,
             cappedCount.value,
-            'Counts at the display limit should keep the display limit value.'
+            '表示上限の件数は表示上限値を保つ必要あり'
         );
         Assert.isTrue(
             cappedCount.capped,
-            'Counts at the display limit should carry the capped marker.'
+            '表示上限の件数は上限到達フラグを持つ必要あり'
         );
     }
 

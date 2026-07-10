@@ -2,6 +2,7 @@
  * 汎用レコード検索の Apex 内部処理で共有する状態
  */
 public with sharing class ObjectRecordSearchContext {
+
     /**
      * LWC に返す検索画面設定
      */
@@ -16,11 +17,7 @@ public with sharing class ObjectRecordSearchContext {
      * @param nameFieldDescribe Name 相当項目の describe 結果
      * @param objectDescribe 対象オブジェクトの describe 結果
      */
-    public ObjectRecordSearchContext(
-        ObjectRecordSearchConfigWrapper config,
-        Schema.DescribeFieldResult nameFieldDescribe,
-        Schema.DescribeSObjectResult objectDescribe
-    ) {
+    public ObjectRecordSearchContext(ObjectRecordSearchConfigWrapper config, Schema.DescribeFieldResult nameFieldDescribe, Schema.DescribeSObjectResult objectDescribe) {
         this.config = config;
         // Name 相当項目は検索・表示・ソートで常に許可
         allowedFieldDescribesByApiName = new Map<String, Schema.DescribeFieldResult>{
@@ -56,16 +53,11 @@ public with sharing class ObjectRecordSearchContext {
      * @param fieldApiName 項目 API 参照名
      * @return 許可済み項目の describe 結果、対象外の項目は null
      */
-    public Schema.DescribeFieldResult getAllowedFieldDescribe(
-        String fieldApiName
-    ) {
+    public Schema.DescribeFieldResult getAllowedFieldDescribe(String fieldApiName) {
         return allowedFieldDescribesByApiName.get(fieldApiName);
     }
 
-    private void addDisplayFieldDescribes(
-        List<ObjectRecordSearchFieldWrapper> displayFields,
-        Schema.DescribeSObjectResult objectDescribe
-    ) {
+    private void addDisplayFieldDescribes(List<ObjectRecordSearchFieldWrapper> displayFields, Schema.DescribeSObjectResult objectDescribe) {
         // 表示設定に残った項目だけを検索・ソート許可 Map に追加
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
         for (ObjectRecordSearchFieldWrapper displayField : displayFields) {

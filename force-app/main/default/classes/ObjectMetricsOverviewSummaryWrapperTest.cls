@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -21,8 +22,8 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
 
             Test.stopTest();
         }
-        Assert.areEqual(1, wrapper.metrics.size(), 'Wrapper should expose supplied metric items.');
-        Assert.areEqual('accounts', wrapper.metrics[0].key, 'Wrapper should keep item order.');
+        Assert.areEqual(1, wrapper.metrics.size(), 'Wrapper は指定されたメトリクス項目を公開する必要あり');
+        Assert.areEqual('accounts', wrapper.metrics[0].key, 'Wrapper は項目の並び順を保つ必要あり');
     }
 
     @IsTest
@@ -35,6 +36,6 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
 
             Test.stopTest();
         }
-        Assert.areEqual(0, wrapper.metrics.size(), 'Null metric items should become an empty list.');
+        Assert.areEqual(0, wrapper.metrics.size(), 'null のメトリクス項目は空リストにする必要あり');
     }
 }

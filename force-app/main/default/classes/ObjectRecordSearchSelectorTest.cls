@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchSelectorTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @TestSetup
@@ -35,11 +36,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             'Account',
             objectDescribe.getName(),
-            'Selector should return the requested object describe.'
+            'Selector は指定されたオブジェクト describe を返す必要あり'
         );
         Assert.isTrue(
             objectDescribe.isAccessible(),
-            'Selector should only return accessible object describes.'
+            'Selector はアクセス可能なオブジェクト describe だけを返す必要あり'
         );
     }
 
@@ -63,7 +64,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             'Name',
             nameFieldDescribe.getName(),
-            'Selector should return the Name-equivalent field describe.'
+            'Selector は Name 相当項目の describe を返す必要あり'
         );
     }
 
@@ -86,12 +87,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             1,
             records.size(),
-            'Selector should execute the provided query plan.'
+            'Selector は指定されたクエリプランを実行する必要あり'
         );
         Assert.areEqual(
             'Selector Alpha',
             (String) records[0].get('Name'),
-            'Selector should return records matched by bind values.'
+            'Selector はバインド値に一致するレコードを返す必要あり'
         );
     }
 
@@ -104,11 +105,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
             try {
                 selector.searchRecords(null);
-                Assert.fail('Missing query plans should throw.');
-            } catch (ObjectRecordSearchException error) {
+                Assert.fail('クエリプラン未指定は例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
                 Assert.isTrue(
-                    error.getMessage().contains('検索条件'),
-                    'Missing query plans should explain the search condition is invalid.'
+                    e.getMessage().contains('検索条件'),
+                    'クエリプラン未指定は検索条件の不正を説明する必要あり'
                 );
             }
 
@@ -141,12 +142,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             1,
             records.size(),
-            'Selector should return records matching the supplied IDs.'
+            'Selector は指定 ID に一致するレコードを返す必要あり'
         );
         Assert.areEqual(
             target.Id,
             (Id) records[0].get('Id'),
-            'Selector should preserve the requested record ID.'
+            'Selector は指定されたレコード ID を保つ必要あり'
         );
     }
 
@@ -171,12 +172,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             0,
             nullIdRecords.size(),
-            'Null IDs should not run a record lookup.'
+            'null ID はレコード検索を実行しない必要あり'
         );
         Assert.areEqual(
             0,
             emptyIdRecords.size(),
-            'Empty IDs should not run a record lookup.'
+            '空 ID はレコード検索を実行しない必要あり'
         );
     }
 
@@ -192,11 +193,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
                     'UnknownObject__c',
                     new Set<Id>{ UserInfo.getUserId() }
                 );
-                Assert.fail('Unsupported object API names should throw.');
-            } catch (ObjectRecordSearchException error) {
+                Assert.fail('未対応のオブジェクト API 名は例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
                 Assert.isTrue(
-                    error.getMessage().contains('表示できません'),
-                    'Unsupported object API names should be rejected before SOQL execution.'
+                    e.getMessage().contains('表示できません'),
+                    '未対応のオブジェクト API 名は SOQL 実行前に拒否する必要あり'
                 );
             }
 
@@ -228,15 +229,15 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             2,
             deleteResults.size(),
-            'Selector should return a DML result for each supplied row.'
+            'Selector は指定行ごとに DML 結果を返す必要あり'
         );
         Assert.isTrue(
             deleteResults[0].isSuccess(),
-            'Selector should delete the first supplied row.'
+            'Selector は指定された 1 件目の行を削除する必要あり'
         );
         Assert.isTrue(
             deleteResults[1].isSuccess(),
-            'Selector should delete the second supplied row.'
+            'Selector は指定された 2 件目の行を削除する必要あり'
         );
     }
 
@@ -249,11 +250,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
             try {
                 selector.getObjectDescribe('UnknownObject__c');
-                Assert.fail('Unknown object API names should throw.');
-            } catch (ObjectRecordSearchException error) {
+                Assert.fail('未知のオブジェクト API 名は例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
                 Assert.isTrue(
-                    error.getMessage().contains('利用できません'),
-                    'Unknown object API names should explain the object was not found.'
+                    e.getMessage().contains('利用できません'),
+                    '未知のオブジェクト API 名はオブジェクト未検出を説明する必要あり'
                 );
             }
 
@@ -261,9 +262,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
     }
 
-    private static ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(
-        String searchTerm
-    ) {
+    private static ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(String searchTerm) {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchContext context = createAccountContext(service);
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
@@ -284,9 +283,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
-    private static ObjectRecordSearchContext createAccountContext(
-        ObjectRecordSearchService service
-    ) {
+    private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
             'accounts'
         );

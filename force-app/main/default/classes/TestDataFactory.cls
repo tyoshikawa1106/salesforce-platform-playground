@@ -3,6 +3,7 @@
  */
 @IsTest
 public with sharing class TestDataFactory {
+
     /**
      * System.runAs に渡す現在ユーザーの参照を作成
      * @return 現在実行ユーザーの Id だけを持つ User レコード
@@ -69,10 +70,7 @@ public with sharing class TestDataFactory {
      * @param lastName 使用する姓
      * @return 作成した取引先責任者レコード
      */
-    public static Contact createContact(
-        Account accountRecord,
-        String lastName
-    ) {
+    public static Contact createContact(Account accountRecord, String lastName) {
         return new Contact(AccountId = accountRecord.Id, LastName = lastName);
     }
 
@@ -82,10 +80,7 @@ public with sharing class TestDataFactory {
      * @param lastName 使用する姓
      * @return 保存した取引先責任者レコード
      */
-    public static Contact insertContact(
-        Account accountRecord,
-        String lastName
-    ) {
+    public static Contact insertContact(Account accountRecord, String lastName) {
         // 後続テストで取引先配下の責任者を参照できるよう保存
         Contact contactRecord = createContact(accountRecord, lastName);
         insert contactRecord;
@@ -98,10 +93,7 @@ public with sharing class TestDataFactory {
      * @param opportunityName 使用する商談名
      * @return 作成した商談レコード
      */
-    public static Opportunity createOpportunity(
-        Account accountRecord,
-        String opportunityName
-    ) {
+    public static Opportunity createOpportunity(Account accountRecord, String opportunityName) {
         return new Opportunity(
             AccountId = accountRecord.Id,
             Name = opportunityName,
@@ -116,10 +108,7 @@ public with sharing class TestDataFactory {
      * @param opportunityName 使用する商談名
      * @return 保存した商談レコード
      */
-    public static Opportunity insertOpportunity(
-        Account accountRecord,
-        String opportunityName
-    ) {
+    public static Opportunity insertOpportunity(Account accountRecord, String opportunityName) {
         // 後続テストで取引先配下の商談を参照できるよう保存
         Opportunity opportunityRecord = createOpportunity(
             accountRecord,
@@ -157,11 +146,7 @@ public with sharing class TestDataFactory {
      * @param unitPrice 単価
      * @return 作成した価格表エントリレコード
      */
-    public static PricebookEntry createPricebookEntry(
-        Product2 productRecord,
-        Id pricebook2Id,
-        Decimal unitPrice
-    ) {
+    public static PricebookEntry createPricebookEntry(Product2 productRecord, Id pricebook2Id, Decimal unitPrice) {
         return new PricebookEntry(
             Pricebook2Id = pricebook2Id,
             Product2Id = productRecord.Id,
@@ -177,11 +162,7 @@ public with sharing class TestDataFactory {
      * @param unitPrice 単価
      * @return 保存した価格表エントリレコード
      */
-    public static PricebookEntry insertPricebookEntry(
-        Product2 productRecord,
-        Id pricebook2Id,
-        Decimal unitPrice
-    ) {
+    public static PricebookEntry insertPricebookEntry(Product2 productRecord, Id pricebook2Id, Decimal unitPrice) {
         // 後続テストで商談商品に紐づけられる価格表エントリを保存
         PricebookEntry pricebookEntryRecord = createPricebookEntry(
             productRecord,
@@ -198,10 +179,7 @@ public with sharing class TestDataFactory {
      * @param pricebookEntryRecord 紐づける価格表エントリ
      * @return 作成した商談商品レコード
      */
-    public static OpportunityLineItem createOpportunityLineItem(
-        Opportunity opportunityRecord,
-        PricebookEntry pricebookEntryRecord
-    ) {
+    public static OpportunityLineItem createOpportunityLineItem(Opportunity opportunityRecord, PricebookEntry pricebookEntryRecord) {
         return new OpportunityLineItem(
             OpportunityId = opportunityRecord.Id,
             PricebookEntryId = pricebookEntryRecord.Id,
@@ -216,10 +194,7 @@ public with sharing class TestDataFactory {
      * @param pricebookEntryRecord 紐づける価格表エントリ
      * @return 保存した商談商品レコード
      */
-    public static OpportunityLineItem insertOpportunityLineItem(
-        Opportunity opportunityRecord,
-        PricebookEntry pricebookEntryRecord
-    ) {
+    public static OpportunityLineItem insertOpportunityLineItem(Opportunity opportunityRecord, PricebookEntry pricebookEntryRecord) {
         // 後続テストで商談商品件数や検索結果に含められる明細を保存
         OpportunityLineItem lineItemRecord = createOpportunityLineItem(
             opportunityRecord,

@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class AccountTriggerHandlerTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -32,32 +33,32 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             '株式会社テスト',
             accountsById.get(accounts[0].Id).Name,
-            '㈱ should be normalized.'
+            '㈱ は正式名称へ補正する必要あり'
         );
         Assert.areEqual(
             '株式会社テスト',
             accountsById.get(accounts[1].Id).Name,
-            '（株） should be normalized.'
+            '（株）は正式名称へ補正する必要あり'
         );
         Assert.areEqual(
             '株式会社テスト',
             accountsById.get(accounts[2].Id).Name,
-            '(株) should be normalized.'
+            '(株) は正式名称へ補正する必要あり'
         );
         Assert.areEqual(
             '有限会社テスト',
             accountsById.get(accounts[3].Id).Name,
-            '㈲ should be normalized.'
+            '㈲ は正式名称へ補正する必要あり'
         );
         Assert.areEqual(
             '有限会社テスト',
             accountsById.get(accounts[4].Id).Name,
-            '（有） should be normalized.'
+            '（有）は正式名称へ補正する必要あり'
         );
         Assert.areEqual(
             '有限会社テスト',
             accountsById.get(accounts[5].Id).Name,
-            '(有) should be normalized.'
+            '(有) は正式名称へ補正する必要あり'
         );
     }
 
@@ -82,7 +83,7 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             'テスト株式会社',
             updatedAccount.Name,
-            'Updated Account name should be normalized.'
+            '更新後の取引先名は正式名称へ補正する必要あり'
         );
     }
 
@@ -109,12 +110,12 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             'テスト株式会社',
             accountsById.get(accounts[0].Id).Name,
-            'Company type position should be preserved for stock company names.'
+            '株式会社の法人格位置は維持する必要あり'
         );
         Assert.areEqual(
             'テスト有限会社',
             accountsById.get(accounts[1].Id).Name,
-            'Company type position should be preserved for limited company names.'
+            '有限会社の法人格位置は維持する必要あり'
         );
     }
 
@@ -140,7 +141,7 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             '株式会社テスト有限会社支店',
             insertedAccount.Name,
-            'All company abbreviations in the Account name should be normalized.'
+            '取引先名に含まれる法人格略称はすべて補正する必要あり'
         );
     }
 
@@ -164,7 +165,7 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             '株式会社テスト',
             insertedAccount.Name,
-            'Formal company name should not change.'
+            '正式名称の取引先名は変更しない必要あり'
         );
     }
 
@@ -193,22 +194,22 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             '株）テスト',
             accountsById.get(accounts[0].Id).Name,
-            'Incomplete stock company abbreviation should not be changed.'
+            '不完全な株式会社略称は変更しない必要あり'
         );
         Assert.areEqual(
             '（株テスト',
             accountsById.get(accounts[1].Id).Name,
-            'Incomplete stock company abbreviation should not be changed.'
+            '不完全な株式会社略称は変更しない必要あり'
         );
         Assert.areEqual(
             '有)テスト',
             accountsById.get(accounts[2].Id).Name,
-            'Incomplete limited company abbreviation should not be changed.'
+            '不完全な有限会社略称は変更しない必要あり'
         );
         Assert.areEqual(
             '(有テスト',
             accountsById.get(accounts[3].Id).Name,
-            'Incomplete limited company abbreviation should not be changed.'
+            '不完全な有限会社略称は変更しない必要あり'
         );
     }
 
@@ -217,7 +218,8 @@ private with sharing class AccountTriggerHandlerTest {
         // 準備
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 251; index++) {
-            accounts.add(TestDataFactory.createAccount('㈱テスト ' + index));
+            Account accountRecord = TestDataFactory.createAccount('㈱テスト ' + index);
+            accounts.add(accountRecord);
         }
 
         // 実行
@@ -234,12 +236,12 @@ private with sharing class AccountTriggerHandlerTest {
         Assert.areEqual(
             251,
             insertedAccounts.size(),
-            'All bulk Accounts should be inserted.'
+            '一括取引先はすべて作成される必要あり'
         );
         for (Account accountRecord : insertedAccounts) {
             Assert.isTrue(
                 accountRecord.Name.startsWith('株式会社テスト '),
-                'Bulk Account name should be normalized.'
+                '一括取引先名は正式名称へ補正する必要あり'
             );
         }
     }
@@ -250,7 +252,8 @@ private with sharing class AccountTriggerHandlerTest {
     }
 
     private static Map<Id, Account> getAccountsById(List<Account> accounts) {
-        return new Map<Id, Account>(getAccounts(accounts));
+        List<Account> insertedAccounts = getAccounts(accounts);
+        return new Map<Id, Account>(insertedAccounts);
     }
 
     private static List<Account> getAccounts(List<Account> accounts) {

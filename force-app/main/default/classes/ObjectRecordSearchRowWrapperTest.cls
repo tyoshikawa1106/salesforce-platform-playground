@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchRowWrapperTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -36,21 +37,21 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         Assert.areEqual(
             queriedAccount.Id,
             wrapper.id,
-            'Row wrapper should expose the record Id.'
+            'Row wrapper はレコード ID を公開する必要あり'
         );
         Assert.areEqual(
             'Wrapper Row Account',
             wrapper.name,
-            'Row wrapper should expose the name field value.'
+            'Row wrapper は名前項目値を公開する必要あり'
         );
         Assert.isTrue(
             wrapper.recordUrl.contains('/lightning/r/Account/'),
-            'Row wrapper should expose the standard record URL.'
+            'Row wrapper は標準レコード URL を公開する必要あり'
         );
         Assert.areEqual(
             'Technology',
             wrapper.fieldValues.get('Industry'),
-            'Row wrapper should expose configured field values.'
+            'Row wrapper は設定済み項目値を公開する必要あり'
         );
     }
 }

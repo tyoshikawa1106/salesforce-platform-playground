@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchControllerTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @TestSetup
@@ -33,37 +34,37 @@ private with sharing class ObjectRecordSearchControllerTest {
         Assert.areEqual(
             'accounts',
             config.metricKey,
-            'Config should keep the metric key.'
+            'Config はメトリクスキーを保つ必要あり'
         );
         Assert.areEqual(
             'Account',
             config.objectApiName,
-            'Account metric should resolve to Account.'
+            'Account メトリクスは Account に解決する必要あり'
         );
         Assert.areEqual(
             'Name',
             config.nameFieldApiName,
-            'Account list should use the Name field.'
+            'Account 一覧は Name 項目を使う必要あり'
         );
         Assert.isTrue(
             config.createable,
-            'Account config should expose object create permission.'
+            'Account config はオブジェクト作成可否を公開する必要あり'
         );
         Assert.isTrue(
             config.updateable,
-            'Account config should expose object update permission.'
+            'Account config はオブジェクト更新可否を公開する必要あり'
         );
         Assert.isTrue(
             config.nameFieldCreateable,
-            'Account config should expose Name create permission.'
+            'Account config は Name 作成可否を公開する必要あり'
         );
         Assert.isTrue(
             config.nameFieldUpdateable,
-            'Account config should expose Name update permission.'
+            'Account config は Name 更新可否を公開する必要あり'
         );
         Assert.isTrue(
             config.displayFields.size() > 0,
-            'Account config should expose fixed seed/import display fields.'
+            'Account config は seed/import の表示項目を公開する必要あり'
         );
         Map<String, ObjectRecordSearchFieldWrapper> displayFieldsByApiName = new Map<String, ObjectRecordSearchFieldWrapper>();
         for (
@@ -73,38 +74,38 @@ private with sharing class ObjectRecordSearchControllerTest {
         }
         Assert.isTrue(
             displayFieldsByApiName.containsKey('AccountNumber'),
-            'Account display fields should include AccountNumber.'
+            'Account 表示項目は AccountNumber を含む必要あり'
         );
         Assert.isTrue(
             displayFieldsByApiName.containsKey('Industry'),
-            'Account display fields should include Industry.'
+            'Account 表示項目は Industry を含む必要あり'
         );
         Assert.isTrue(
             displayFieldsByApiName.containsKey('BillingState'),
-            'Account display fields should include BillingState.'
+            'Account 表示項目は BillingState を含む必要あり'
         );
         Assert.isTrue(
             displayFieldsByApiName.containsKey('BillingCity'),
-            'Account display fields should include BillingCity.'
+            'Account 表示項目は BillingCity を含む必要あり'
         );
         Assert.isFalse(
             displayFieldsByApiName.containsKey('BillingCountry'),
-            'Account display fields should not include BillingCountry.'
+            'Account 表示項目は BillingCountry を含めない必要あり'
         );
         Assert.areEqual(
             'text',
             displayFieldsByApiName.get('Industry').dataType,
-            'Picklist display fields should use the text datatable type.'
+            '選択リストの表示項目は text データテーブル型を使う必要あり'
         );
         Assert.areEqual(
             'phone',
             displayFieldsByApiName.get('Phone').dataType,
-            'Phone display fields should use the phone datatable type.'
+            '電話の表示項目は phone データテーブル型を使う必要あり'
         );
         Assert.areEqual(
             'url',
             displayFieldsByApiName.get('Website').dataType,
-            'URL display fields should use the url datatable type.'
+            'URL の表示項目は url データテーブル型を使う必要あり'
         );
     }
 
@@ -128,36 +129,36 @@ private with sharing class ObjectRecordSearchControllerTest {
         Assert.areEqual(
             1,
             result.records.size(),
-            'Search should return matching records only.'
+            '検索は一致するレコードだけを返す必要あり'
         );
         Assert.areEqual(
             '検索対象 Alpha',
             result.records[0].name,
-            'Name field should be mapped to the row label.'
+            'Name 項目は行ラベルにマッピングする必要あり'
         );
         Assert.isTrue(
             result.records[0].recordUrl.contains('/lightning/r/Account/'),
-            'Rows should include a standard record URL.'
+            '行は標準レコード URL を含む必要あり'
         );
         Assert.areEqual(
             'Technology',
             result.records[0].fieldValues.get('Industry'),
-            'Rows should expose fixed seed/import fields.'
+            '行は seed/import の固定項目を公開する必要あり'
         );
         Assert.areEqual(
             'Prospect',
             result.records[0].fieldValues.get('Type'),
-            'Rows should include Account Type from the import plan.'
+            '行はインポートプランの Account Type を含む必要あり'
         );
         Assert.areEqual(
             '東京都',
             result.records[0].fieldValues.get('BillingState'),
-            'Rows should expose Account billing state as prefecture.'
+            '行は Account の請求先都道府県を公開する必要あり'
         );
         Assert.areEqual(
             '千代田区',
             result.records[0].fieldValues.get('BillingCity'),
-            'Rows should expose Account billing city.'
+            '行は Account の請求先市区町村を公開する必要あり'
         );
     }
 
@@ -180,17 +181,17 @@ private with sharing class ObjectRecordSearchControllerTest {
         Assert.areEqual(
             3,
             result.records.size(),
-            'Blank searches should return all available Account rows.'
+            '空白検索は利用可能な Account 行をすべて返す必要あり'
         );
         Assert.areEqual(
             50,
             result.pageSize,
-            'Search result should expose the page size.'
+            '検索結果はページサイズを公開する必要あり'
         );
         Assert.areEqual(
             1,
             result.pageNumber,
-            'Search result should default the page number to the first page.'
+            '検索結果はページ番号を 1 ページ目に初期化する必要あり'
         );
     }
 
@@ -212,17 +213,17 @@ private with sharing class ObjectRecordSearchControllerTest {
         Assert.areEqual(
             0,
             result.requestedCount,
-            'Null delete requests should count zero requested records.'
+            'null の削除リクエストは依頼件数を 0 にする必要あり'
         );
         Assert.areEqual(
             0,
             result.deletedCount,
-            'Null delete requests should not delete records.'
+            'null の削除リクエストはレコードを削除しない必要あり'
         );
         Assert.areEqual(
             0,
             result.errors.size(),
-            'Null delete requests should not return errors.'
+            'null の削除リクエストはエラーを返さない必要あり'
         );
     }
 
@@ -244,17 +245,17 @@ private with sharing class ObjectRecordSearchControllerTest {
         Assert.areEqual(
             0,
             result.requestedCount,
-            'Empty delete requests should count zero requested records.'
+            '空の削除リクエストは依頼件数を 0 にする必要あり'
         );
         Assert.areEqual(
             0,
             result.deletedCount,
-            'Empty delete requests should not delete records.'
+            '空の削除リクエストはレコードを削除しない必要あり'
         );
         Assert.areEqual(
             0,
             result.errors.size(),
-            'Empty delete requests should not return errors.'
+            '空の削除リクエストはエラーを返さない必要あり'
         );
     }
 
@@ -271,11 +272,11 @@ private with sharing class ObjectRecordSearchControllerTest {
 
             try {
                 ObjectRecordSearchController.searchRecords(request);
-                Assert.fail('Unsupported metric keys should throw.');
-            } catch (AuraHandledException error) {
+                Assert.fail('未対応のメトリクスキーは例外にする必要あり');
+            } catch (AuraHandledException e) {
                 Assert.isNotNull(
-                    error,
-                    'Unsupported metric keys should be wrapped for LWC.'
+                    e,
+                    '未対応のメトリクスキーは LWC 向け例外に変換する必要あり'
                 );
             }
 
@@ -296,11 +297,11 @@ private with sharing class ObjectRecordSearchControllerTest {
 
             try {
                 ObjectRecordSearchController.searchRecords(request);
-                Assert.fail('Invalid page tokens should throw.');
-            } catch (AuraHandledException error) {
+                Assert.fail('不正なページトークンは例外にする必要あり');
+            } catch (AuraHandledException e) {
                 Assert.isNotNull(
-                    error,
-                    'Invalid page tokens should be wrapped for LWC.'
+                    e,
+                    '不正なページトークンは LWC 向け例外に変換する必要あり'
                 );
             }
 
@@ -331,17 +332,17 @@ private with sharing class ObjectRecordSearchControllerTest {
         Assert.areEqual(
             1,
             result.requestedCount,
-            'Delete result should include the requested count.'
+            '削除結果は依頼件数を含む必要あり'
         );
         Assert.areEqual(
             1,
             result.deletedCount,
-            'Delete result should include the deleted count.'
+            '削除結果は削除件数を含む必要あり'
         );
         Assert.areEqual(
             0,
             result.errors.size(),
-            'Successful deletes should not return errors.'
+            '成功した削除はエラーを返さない必要あり'
         );
         Assert.areEqual(
             0,
@@ -351,14 +352,11 @@ private with sharing class ObjectRecordSearchControllerTest {
                 WHERE Id = :target.Id AND IsDeleted = FALSE
                 ALL ROWS
             ],
-            'Deleted record should no longer be active.'
+            '削除済みレコードは有効な状態で残らない必要あり'
         );
     }
 
-    private static ObjectRecordSearchRequestWrapper createSearchRequest(
-        String metricKey,
-        String searchTerm
-    ) {
+    private static ObjectRecordSearchRequestWrapper createSearchRequest(String metricKey, String searchTerm) {
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.metricKey = metricKey;
         request.searchTerm = searchTerm;

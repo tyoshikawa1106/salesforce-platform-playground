@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchContextTest {
+
     private static User testUser = TestDataFactory.currentUser();
 
     @IsTest
@@ -37,16 +38,16 @@ private with sharing class ObjectRecordSearchContextTest {
         Assert.areEqual(
             'accounts',
             context.config.metricKey,
-            'Context should expose the LWC config wrapper.'
+            'Context は LWC config wrapper を公開する必要あり'
         );
         Assert.isTrue(
             context.getAllowedFieldApiNames().contains('Industry'),
-            'Context should allow configured display fields for sorting.'
+            'Context は設定済み表示項目のソートを許可する必要あり'
         );
         Assert.areEqual(
             Schema.DisplayType.PICKLIST,
             context.getAllowedFieldDescribe('Industry').getType(),
-            'Context should keep field describe values for cursor parsing.'
+            'Context はカーソル解析用の項目 describe を保つ必要あり'
         );
     }
 }
