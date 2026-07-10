@@ -1,17 +1,17 @@
 /**
- * オブジェクト件数結果を LWC に返す Wrapper です。
+ * オブジェクト件数結果を LWC に返す Wrapper
  */
 public with sharing class ObjectMetricsOverviewSummaryWrapper {
     /**
-     * LWC に表示する順序付きの件数項目です。
+     * LWC に表示する順序付きの件数項目
      */
     @AuraEnabled
     public List<ObjectMetricsOverviewItemWrapper> metrics { get; private set; }
 
     /**
-     * 順序付き件数項目を保持するサマリを作成します。
+     * 順序付き件数項目を保持するサマリを作成
      *
-     * @param metrics LWC に返す順序付き件数項目。
+     * @param metrics LWC に返す順序付き件数項目
      */
     public ObjectMetricsOverviewSummaryWrapper(
         List<ObjectMetricsOverviewItemWrapper> metrics

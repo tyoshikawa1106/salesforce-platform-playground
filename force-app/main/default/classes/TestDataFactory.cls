@@ -1,10 +1,10 @@
 /**
- * Apex テストで再利用するテストデータを作成します。
+ * Apex テストで再利用するテストデータを作成
  */
 @IsTest
 public with sharing class TestDataFactory {
     /**
-     * System.runAs に渡す現在ユーザーの参照を作成します。
+     * System.runAs に渡す現在ユーザーの参照を作成
      * @return 現在実行ユーザーの Id だけを持つ User レコード
      */
     public static User currentUser() {
@@ -12,7 +12,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 既定値を持つ取引先レコードを作成します。
+     * 既定値を持つ取引先レコードを作成
      * @param count 作成する取引先件数
      * @return 作成した取引先レコード
      */
@@ -30,7 +30,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 既定値を持つ取引先レコードを作成して保存します。
+     * 既定値を持つ取引先レコードを作成して保存
      * @param count 保存する取引先件数
      * @return 保存した取引先レコード
      */
@@ -41,7 +41,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した名前の未保存取引先を 1 件作成します。
+     * 指定した名前の未保存取引先を 1 件作成
      * @param accountName 使用する取引先名
      * @return 作成した取引先レコード
      */
@@ -50,7 +50,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した名前の取引先を 1 件作成して保存します。
+     * 指定した名前の取引先を 1 件作成して保存
      * @param accountName 使用する取引先名
      * @return 保存した取引先レコード
      */
@@ -61,7 +61,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した取引先に紐づく未保存取引先責任者を 1 件作成します。
+     * 指定した取引先に紐づく未保存取引先責任者を 1 件作成
      * @param accountRecord 紐づける取引先
      * @param lastName 使用する姓
      * @return 作成した取引先責任者レコード
@@ -74,7 +74,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した取引先に紐づく取引先責任者を 1 件作成して保存します。
+     * 指定した取引先に紐づく取引先責任者を 1 件作成して保存
      * @param accountRecord 紐づける取引先
      * @param lastName 使用する姓
      * @return 保存した取引先責任者レコード
@@ -89,7 +89,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した取引先に紐づく未保存商談を 1 件作成します。
+     * 指定した取引先に紐づく未保存商談を 1 件作成
      * @param accountRecord 紐づける取引先
      * @param opportunityName 使用する商談名
      * @return 作成した商談レコード
@@ -107,7 +107,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した取引先に紐づく商談を 1 件作成して保存します。
+     * 指定した取引先に紐づく商談を 1 件作成して保存
      * @param accountRecord 紐づける取引先
      * @param opportunityName 使用する商談名
      * @return 保存した商談レコード
@@ -125,7 +125,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 未保存商品を 1 件作成します。
+     * 未保存商品を 1 件作成
      * @param productName 使用する商品名
      * @return 作成した商品レコード
      */
@@ -134,7 +134,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 商品を 1 件作成して保存します。
+     * 商品を 1 件作成して保存
      * @param productName 使用する商品名
      * @return 保存した商品レコード
      */
@@ -145,7 +145,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した商品に紐づく未保存価格表エントリを 1 件作成します。
+     * 指定した商品に紐づく未保存価格表エントリを 1 件作成
      * @param productRecord 紐づける商品
      * @param pricebook2Id 紐づける価格表 ID
      * @param unitPrice 単価
@@ -165,7 +165,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した商品に紐づく価格表エントリを 1 件作成して保存します。
+     * 指定した商品に紐づく価格表エントリを 1 件作成して保存
      * @param productRecord 紐づける商品
      * @param pricebook2Id 紐づける価格表 ID
      * @param unitPrice 単価
@@ -186,7 +186,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した商談と価格表エントリに紐づく未保存商談商品を 1 件作成します。
+     * 指定した商談と価格表エントリに紐づく未保存商談商品を 1 件作成
      * @param opportunityRecord 紐づける商談
      * @param pricebookEntryRecord 紐づける価格表エントリ
      * @return 作成した商談商品レコード
@@ -204,7 +204,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 指定した商談と価格表エントリに紐づく商談商品を 1 件作成して保存します。
+     * 指定した商談と価格表エントリに紐づく商談商品を 1 件作成して保存
      * @param opportunityRecord 紐づける商談
      * @param pricebookEntryRecord 紐づける価格表エントリ
      * @return 保存した商談商品レコード
@@ -222,7 +222,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 未保存リードを 1 件作成します。
+     * 未保存リードを 1 件作成
      * @param lastName 使用する姓
      * @param company 使用する会社名
      * @return 作成したリードレコード
@@ -232,7 +232,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * リードを 1 件作成して保存します。
+     * リードを 1 件作成して保存
      * @param lastName 使用する姓
      * @param company 使用する会社名
      * @return 保存したリードレコード
@@ -244,7 +244,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * 未保存ケースを 1 件作成します。
+     * 未保存ケースを 1 件作成
      * @param subject 使用する件名
      * @return 作成したケースレコード
      */
@@ -253,7 +253,7 @@ public with sharing class TestDataFactory {
     }
 
     /**
-     * ケースを 1 件作成して保存します。
+     * ケースを 1 件作成して保存
      * @param subject 使用する件名
      * @return 保存したケースレコード
      */

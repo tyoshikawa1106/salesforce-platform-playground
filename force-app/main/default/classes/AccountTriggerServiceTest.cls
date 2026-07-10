@@ -1,5 +1,5 @@
 /**
- * 取引先トリガーサービスの振る舞いをテストします。
+ * 取引先トリガーサービスの振る舞いテスト
  */
 @IsTest
 private with sharing class AccountTriggerServiceTest {

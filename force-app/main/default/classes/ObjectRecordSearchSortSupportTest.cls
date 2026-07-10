@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索のソート・ページング補助をテストします。
+ * 汎用レコード検索のソート・ページング補助テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchSortSupportTest {
@@ -285,7 +285,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 Assert.fail('Mismatched page tokens should throw.');
             } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
-                    error.getMessage().contains('ページ指定'),
+                    error.getMessage().contains('ページ情報'),
                     'Mismatched page tokens should explain the page token cannot be read.'
                 );
             }
@@ -311,7 +311,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 Assert.fail('Malformed page tokens should throw.');
             } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
-                    error.getMessage().contains('ページ指定'),
+                    error.getMessage().contains('ページ情報'),
                     'Malformed page tokens should be normalized into the search exception.'
                 );
             }

@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索画面の検索リクエスト Wrapper をテストします。
+ * 汎用レコード検索画面の検索リクエスト Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchRequestWrapperTest {

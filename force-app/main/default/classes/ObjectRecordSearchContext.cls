@@ -1,20 +1,20 @@
 /**
- * 汎用レコード検索の Apex 内部処理で共有する状態です。
+ * 汎用レコード検索の Apex 内部処理で共有する状態
  */
 public with sharing class ObjectRecordSearchContext {
     /**
-     * LWC に返す検索画面設定です。
+     * LWC に返す検索画面設定
      */
     public ObjectRecordSearchConfigWrapper config { get; private set; }
 
     private Map<String, Schema.DescribeFieldResult> allowedFieldDescribesByApiName;
 
     /**
-     * 検索画面の内部処理状態を作成します。
+     * 検索画面の内部処理状態を作成
      *
-     * @param config LWC に返す検索画面設定。
-     * @param nameFieldDescribe Name 相当項目の describe 結果。
-     * @param objectDescribe 対象オブジェクトの describe 結果。
+     * @param config LWC に返す検索画面設定
+     * @param nameFieldDescribe Name 相当項目の describe 結果
+     * @param objectDescribe 対象オブジェクトの describe 結果
      */
     public ObjectRecordSearchContext(
         ObjectRecordSearchConfigWrapper config,
@@ -29,8 +29,8 @@ public with sharing class ObjectRecordSearchContext {
     }
 
     /**
-     * 検索クエリで SELECT できる項目 API 参照名を返します。
-     * @return Name 相当項目と追加表示項目の API 参照名。
+     * 検索クエリで SELECT できる項目 API 参照名を返す
+     * @return Name 相当項目と追加表示項目の API 参照名
      */
     public List<String> getQueryFieldApiNames() {
         Set<String> allowedFieldApiNames = getAllowedFieldApiNames();
@@ -38,9 +38,9 @@ public with sharing class ObjectRecordSearchContext {
     }
 
     /**
-     * 画面からのソート指定を受け付ける項目 API 参照名を返します。
+     * 画面からのソート指定を受け付ける項目 API 参照名を返す
      *
-     * @return Name 相当項目と追加表示項目の API 参照名。
+     * @return Name 相当項目と追加表示項目の API 参照名
      */
     public Set<String> getAllowedFieldApiNames() {
         Set<String> allowedFieldApiNames = allowedFieldDescribesByApiName.keySet();
@@ -48,9 +48,9 @@ public with sharing class ObjectRecordSearchContext {
     }
 
     /**
-     * 検索やソートで利用できる項目の describe 結果を返します。
-     * @param fieldApiName 項目 API 参照名。
-     * @return 許可済み項目の describe 結果。対象外の項目は null。
+     * 検索やソートで利用できる項目の describe 結果を返す
+     * @param fieldApiName 項目 API 参照名
+     * @return 許可済み項目の describe 結果、対象外の項目は null
      */
     public Schema.DescribeFieldResult getAllowedFieldDescribe(
         String fieldApiName

@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数カード Wrapper をテストします。
+ * オブジェクト件数カード Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewItemWrapperTest {

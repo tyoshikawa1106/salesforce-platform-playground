@@ -1,10 +1,10 @@
 /**
- * データボードから遷移する汎用レコード検索画面の Apex 入口です。
+ * データボードから遷移する汎用レコード検索画面の Apex 入口
  */
 public with sharing class ObjectRecordSearchController {
-    private static final String CONFIG_ERROR_MESSAGE = '検索画面設定を読み込めませんでした。';
-    private static final String SEARCH_ERROR_MESSAGE = 'レコード一覧を読み込めませんでした。';
-    private static final String DELETE_ERROR_MESSAGE = '選択したレコードを削除できませんでした。';
+    private static final String CONFIG_ERROR_MESSAGE = '検索画面を表示できませんでした。時間をおいてもう一度お試しください。';
+    private static final String SEARCH_ERROR_MESSAGE = 'レコード一覧を表示できませんでした。検索条件を見直して、もう一度お試しください。';
+    private static final String DELETE_ERROR_MESSAGE = '選択したレコードを削除できませんでした。権限やレコードの状態を確認してください。';
 
     private ObjectRecordSearchService service;
     private ObjectRecordSearchSelector selector;
@@ -18,10 +18,10 @@ public with sharing class ObjectRecordSearchController {
     }
 
     /**
-     * 表示キーに対応する検索画面設定を返します。
+     * 表示キーに対応する検索画面設定を返す
      *
-     * @param metricKey データボードカードの表示キー。
-     * @return 検索画面設定。
+     * @param metricKey データボードカードの表示キー
+     * @return 検索画面設定
      */
     @AuraEnabled(cacheable=true)
     public static ObjectRecordSearchConfigWrapper getObjectConfig(
@@ -49,10 +49,10 @@ public with sharing class ObjectRecordSearchController {
     }
 
     /**
-     * 表示キーに対応するオブジェクトのレコードを検索します。
+     * 表示キーに対応するオブジェクトのレコードを検索
      *
-     * @param request 検索条件とページ指定。
-     * @return 1 ページ最大 50 件の検索結果。
+     * @param request 検索条件とページ指定
+     * @return 1 ページ最大 50 件の検索結果
      */
     @AuraEnabled(cacheable=true)
     public static ObjectRecordSearchResultWrapper searchRecords(
@@ -101,11 +101,11 @@ public with sharing class ObjectRecordSearchController {
     }
 
     /**
-     * 表示キーに対応するオブジェクトの選択レコードを削除します。
+     * 表示キーに対応するオブジェクトの選択レコード削除
      *
-     * @param metricKey データボードカードの表示キー。
-     * @param recordIds 削除するレコード ID。
-     * @return 削除結果。
+     * @param metricKey データボードカードの表示キー
+     * @param recordIds 削除するレコード ID
+     * @return 削除結果
      */
     @AuraEnabled
     public static ObjectRecordSearchDeleteWrapper deleteRecords(

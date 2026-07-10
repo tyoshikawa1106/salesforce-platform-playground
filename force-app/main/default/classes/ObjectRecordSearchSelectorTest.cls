@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索 Selector の describe、検索、削除 DML をテストします。
+ * 汎用レコード検索 Selector の describe、検索、削除 DML テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchSelectorTest {
@@ -182,7 +182,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
                 Assert.fail('Unsupported object API names should throw.');
             } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
-                    error.getMessage().contains('未対応'),
+                    error.getMessage().contains('表示できません'),
                     'Unsupported object API names should be rejected before SOQL execution.'
                 );
             }
@@ -235,7 +235,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
                 Assert.fail('Unknown object API names should throw.');
             } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
-                    error.getMessage().contains('見つかりません'),
+                    error.getMessage().contains('利用できません'),
                     'Unknown object API names should explain the object was not found.'
                 );
             }

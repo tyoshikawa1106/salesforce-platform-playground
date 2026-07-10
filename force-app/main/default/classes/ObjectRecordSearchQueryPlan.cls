@@ -1,13 +1,13 @@
 /**
- * 汎用レコード検索の安全なクエリ計画を組み立てます。
+ * 汎用レコード検索の安全なクエリ計画組み立て
  */
 public with sharing class ObjectRecordSearchQueryPlan {
     /**
-     * 検索条件から SOQL と bind 値を作成します。
+     * 検索条件から SOQL と bind 値を作成
      *
-     * @param request 検索クエリ計画の作成条件。
-     * @return 実行可能な検索クエリ計画。
-     * @throws ObjectRecordSearchException 必須条件が不足する、または許可外のオブジェクト・項目が指定された場合。
+     * @param request 検索クエリ計画の作成条件
+     * @return 実行可能な検索クエリ計画
+     * @throws ObjectRecordSearchException 必須条件が不足する、または許可外のオブジェクト・項目が指定された場合
      */
     public static SearchQuery createSearchQuery(
         SearchQueryRequest request
@@ -38,10 +38,10 @@ public with sharing class ObjectRecordSearchQueryPlan {
     }
 
     /**
-     * 検索時に SELECT する項目 API 参照名を返します。
+     * 検索時に SELECT する項目 API 参照名を返す
      *
-     * @param context 検索画面の内部処理状態。
-     * @return Name 項目と表示項目の重複を除いた一覧。
+     * @param context 検索画面の内部処理状態
+     * @return Name 項目と表示項目の重複を除いた一覧
      */
     public static List<String> getQueryFields(
         ObjectRecordSearchContext context
@@ -106,7 +106,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
         Boolean hasRequiredParts = hasRequiredSearchQueryParts(request);
         if (!hasRequiredParts) {
             throw new ObjectRecordSearchException(
-                '検索条件を作成できません。'
+                '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
             );
         }
 
@@ -119,7 +119,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
         );
         if (!isSupportedObject || !isAllowedSortField) {
             throw new ObjectRecordSearchException(
-                '検索条件を作成できません。'
+                '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
             );
         }
     }
@@ -154,7 +154,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
     }
 
     /**
-     * 実行する SOQL と bind 値です。
+     * 実行する SOQL と bind 値
      */
     public class SearchQuery {
         public String soql;
@@ -162,7 +162,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
     }
 
     /**
-     * 検索クエリ計画を作るための入力です。
+     * 検索クエリ計画を作るための入力
      */
     public class SearchQueryRequest {
         public ObjectRecordSearchContext context;

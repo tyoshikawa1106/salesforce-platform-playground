@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索画面の Apex 入口をテストします。
+ * 汎用レコード検索画面の Apex 入口テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchControllerTest {

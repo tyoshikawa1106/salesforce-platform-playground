@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索の一覧に追加表示する固定項目を管理します。
+ * 汎用レコード検索の一覧に追加表示する固定項目管理
  */
 public with sharing class ObjectRecordSearchDisplayFieldCatalog {
     private static final Map<String, List<String>> DISPLAY_FIELDS_BY_OBJECT = new Map<String, List<String>>{
@@ -209,11 +209,11 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
     };
 
     /**
-     * 対象オブジェクトで参照できる固定表示項目を返します。
+     * 対象オブジェクトで参照できる固定表示項目を返す
      *
-     * @param objectApiName 対象オブジェクト API 参照名。
-     * @param objectDescribe 対象オブジェクトの describe 結果。
-     * @return 一覧に追加表示する固定項目。
+     * @param objectApiName 対象オブジェクト API 参照名
+     * @param objectDescribe 対象オブジェクトの describe 結果
+     * @return 一覧に追加表示する固定項目
      */
     public static List<ObjectRecordSearchFieldWrapper> getDisplayFields(
         String objectApiName,

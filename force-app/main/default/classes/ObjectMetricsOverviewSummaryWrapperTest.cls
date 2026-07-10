@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数サマリ Wrapper をテストします。
+ * オブジェクト件数サマリ Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSummaryWrapperTest {

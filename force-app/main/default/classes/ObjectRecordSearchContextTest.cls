@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索の内部処理 Context をテストします。
+ * 汎用レコード検索の内部処理 Context テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchContextTest {

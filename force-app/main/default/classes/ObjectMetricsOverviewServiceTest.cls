@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数一覧サービスの振る舞いをテストします。
+ * オブジェクト件数一覧サービスの振る舞いテスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {

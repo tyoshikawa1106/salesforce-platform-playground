@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数一覧 Selector の件数取得をテストします。
+ * オブジェクト件数一覧 Selector の件数取得テスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewSelectorTest {

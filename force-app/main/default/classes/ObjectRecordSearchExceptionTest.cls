@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索例外をテストします。
+ * 汎用レコード検索例外テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchExceptionTest {
@@ -11,12 +11,12 @@ private with sharing class ObjectRecordSearchExceptionTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            error = new ObjectRecordSearchException('検索条件が不正です。');
+            error = new ObjectRecordSearchException('検索条件が不正');
             Test.stopTest();
         }
 
         Assert.areEqual(
-            '検索条件が不正です。',
+            '検索条件が不正',
             error.getMessage(),
             'Exception should expose the supplied message.'
         );

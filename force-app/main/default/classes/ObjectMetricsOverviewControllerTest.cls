@@ -1,5 +1,5 @@
 /**
- * オブジェクト件数パネルのサマリをテストします。
+ * オブジェクト件数パネルのサマリテスト
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewControllerTest {
@@ -51,6 +51,9 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         }
     }
 
+    /**
+     * 失敗用 Selector
+     */
     private class FailingObjectMetricsOverviewSelector extends ObjectMetricsOverviewSelector {
         public override Map<String, ObjectMetricCount> getObjectMetricValues() {
             throw new FailingObjectMetricsOverviewException(
@@ -59,6 +62,9 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         }
     }
 
+    /**
+     * 失敗用例外
+     */
     private class FailingObjectMetricsOverviewException extends Exception {
     }
 }

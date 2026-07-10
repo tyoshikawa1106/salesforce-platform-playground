@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索の SOQL 組み立てをテストします。
+ * 汎用レコード検索の SOQL 組み立てテスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchQueryPlanTest {

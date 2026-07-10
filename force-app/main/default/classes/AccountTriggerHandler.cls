@@ -1,5 +1,5 @@
 /**
- * 取引先トリガーのコンテキスト判定だけを担当します。
+ * 取引先トリガーのコンテキスト判定だけ担当
  */
 public with sharing class AccountTriggerHandler {
     private AccountTriggerService service;
@@ -9,7 +9,7 @@ public with sharing class AccountTriggerHandler {
     }
 
     /**
-     * 実行中のトリガーコンテキストに応じて対象処理へ振り分けます。
+     * 実行中のトリガーコンテキストに応じて対象処理へ振り分け
      */
     public static void run() {
         AccountTriggerHandler handler = new AccountTriggerHandler(

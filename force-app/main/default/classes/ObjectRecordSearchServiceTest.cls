@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索 Service の判定と Wrapper 組み立てをテストします。
+ * 汎用レコード検索 Service の判定と Wrapper 組み立てテスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchServiceTest {
@@ -180,7 +180,7 @@ private with sharing class ObjectRecordSearchServiceTest {
                 Assert.fail('Unsupported metric keys should throw.');
             } catch (ObjectRecordSearchException error) {
                 Assert.isTrue(
-                    error.getMessage().contains('未対応'),
+                    error.getMessage().contains('表示できません'),
                     'Unsupported metric keys should explain the object is unsupported.'
                 );
             }

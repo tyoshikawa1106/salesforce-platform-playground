@@ -1,3 +1,6 @@
+/**
+ * TestDataFactory テスト
+ */
 @IsTest
 private with sharing class TestDataFactoryTest {
     private static User testUser = TestDataFactory.currentUser();

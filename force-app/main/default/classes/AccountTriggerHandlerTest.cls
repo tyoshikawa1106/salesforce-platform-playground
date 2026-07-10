@@ -1,5 +1,5 @@
 /**
- * 取引先トリガーによる名称補正をテストします。
+ * 取引先トリガーによる名称補正テスト
  */
 @IsTest
 private with sharing class AccountTriggerHandlerTest {

@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索画面の削除結果 Wrapper をテストします。
+ * 汎用レコード検索画面の削除結果 Wrapper テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchDeleteWrapperTest {
@@ -13,7 +13,9 @@ private with sharing class ObjectRecordSearchDeleteWrapperTest {
             wrapper = new ObjectRecordSearchDeleteWrapper(
                 2,
                 1,
-                new List<String>{ '削除できませんでした。' }
+                new List<String>{
+                    '削除できないレコードがありました。権限や関連データを確認してください。'
+                }
             );
         }
 
@@ -28,7 +30,7 @@ private with sharing class ObjectRecordSearchDeleteWrapperTest {
             'Delete wrapper should expose the deleted count.'
         );
         Assert.areEqual(
-            '削除できませんでした。',
+            '削除できないレコードがありました。権限や関連データを確認してください。',
             wrapper.errors[0],
             'Delete wrapper should expose user-facing errors.'
         );

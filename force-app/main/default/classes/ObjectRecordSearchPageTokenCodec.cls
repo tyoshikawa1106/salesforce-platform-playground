@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索のページング token を生成・復元します。
+ * 汎用レコード検索のページング token 生成・復元
  */
 public with sharing class ObjectRecordSearchPageTokenCodec {
     private static final Set<Schema.DisplayType> NUMERIC_DISPLAY_TYPES = new Set<Schema.DisplayType>{
@@ -10,11 +10,11 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     };
 
     /**
-     * 現在ページ末尾の行から次ページ取得用 token を作成します。
+     * 現在ページ末尾の行から次ページ取得用 token を作成
      *
-     * @param rows 現在ページの表示行。
-     * @param sortSpec ソート条件。
-     * @return 次ページ取得用 token。
+     * @param rows 現在ページの表示行
+     * @param sortSpec ソート条件
+     * @return 次ページ取得用 token
      */
     public static String createNextPageToken(
         List<ObjectRecordSearchRowWrapper> rows,
@@ -39,12 +39,12 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     }
 
     /**
-     * 次ページ取得用 token をカーソル値に復元します。
+     * 次ページ取得用 token をカーソル値に復元
      *
-     * @param pageToken LWC から受け取ったページ token。
-     * @param sortSpec 現在のソート条件。
-     * @return 次ページ取得用カーソル。pageToken が空白の場合は null。
-     * @throws ObjectRecordSearchException token を読み込めない場合。
+     * @param pageToken LWC から受け取ったページ token
+     * @param sortSpec 現在のソート条件
+     * @return 次ページ取得用カーソル、pageToken が空白の場合は null
+     * @throws ObjectRecordSearchException token を読み込めない場合
      */
     public static ObjectRecordSearchSortSupport.PageCursor parsePageToken(
         String pageToken,
@@ -154,9 +154,11 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         Exception cause
     ) {
         return cause == null
-            ? new ObjectRecordSearchException('ページ指定を読み込めません。')
+            ? new ObjectRecordSearchException(
+                  'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。'
+              )
             : new ObjectRecordSearchException(
-                  'ページ指定を読み込めません。',
+                  'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。',
                   cause
               );
     }
