@@ -2,14 +2,7 @@
  * 取引先トリガーのコンテキスト判定だけ担当
  */
 public with sharing class AccountTriggerHandler {
-    private AccountTriggerService service;
-
-    /**
-     * コンストラクタ
-     */
-    private AccountTriggerHandler() {
-        service = new AccountTriggerService();
-    }
+    private AccountTriggerService service = new AccountTriggerService();
 
     /**
      * 実行中のトリガーコンテキストに応じて対象処理へ振り分け

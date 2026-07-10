@@ -161,6 +161,17 @@ ApexDoc の対象ではないローカル変数や関数呼び出しには、必
 
 この構成は、意味のある責務分離を目的に使います。単純な処理を機械的に細かく分割しすぎないようにし、クラスを増やす場合は、読みやすさ、テストしやすさ、変更影響の小ささを説明できる単位にします。
 
+### Service / Selector の初期化
+
+`Controller` や `Handler` が内部で使う標準の `Service` / `Selector` は、コンストラクタ引数ではなくフィールド宣言時に初期化します。
+
+```apex
+private ObjectRecordSearchService service = new ObjectRecordSearchService();
+private ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+```
+
+コンストラクタで `Service` / `Selector` を受け取るのは、呼び出し元が実装を選ぶ公開契約、複数実装を切り替える設計、または `@TestVisible` などで明示的な差し替え口を持つ場合に限定します。
+
 ### static と instance の使い分け
 
 Salesforce のフレームワーク入口では `static` が必要になることがありますが、下位の処理まで機械的に `static` にしません。

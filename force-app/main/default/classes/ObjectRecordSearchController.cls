@@ -6,22 +6,8 @@ public with sharing class ObjectRecordSearchController {
     private static final String SEARCH_ERROR_MESSAGE = 'レコード一覧を表示できませんでした。検索条件を見直して、もう一度お試しください。';
     private static final String DELETE_ERROR_MESSAGE = '選択したレコードを削除できませんでした。権限やレコードの状態を確認してください。';
 
-    private ObjectRecordSearchService service;
-    private ObjectRecordSearchSelector selector;
-
-    /**
-     * コンストラクタ
-     *
-     * @param service レコード検索の設定作成と結果整形
-     * @param selector レコード検索に必要な describe と SOQL 実行
-     */
-    private ObjectRecordSearchController(
-        ObjectRecordSearchService service,
-        ObjectRecordSearchSelector selector
-    ) {
-        this.service = service;
-        this.selector = selector;
-    }
+    private ObjectRecordSearchService service = new ObjectRecordSearchService();
+    private ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
     /**
      * 表示キーに対応する検索画面設定を返す
@@ -33,11 +19,8 @@ public with sharing class ObjectRecordSearchController {
     public static ObjectRecordSearchConfigWrapper getObjectConfig(
         String metricKey
     ) {
-        // 静的 Apex 入口から差し替え可能な内部インスタンスへ処理を委譲
-        ObjectRecordSearchController controller = new ObjectRecordSearchController(
-            new ObjectRecordSearchService(),
-            new ObjectRecordSearchSelector()
-        );
+        // 静的 Apex 入口から内部インスタンスへ処理を委譲
+        ObjectRecordSearchController controller = new ObjectRecordSearchController();
         return controller.getObjectConfigForMetricKey(metricKey);
     }
 
@@ -67,10 +50,7 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchRequestWrapper request
     ) {
         // 静的 Apex 入口から検索フローの組み立てへ処理を委譲
-        ObjectRecordSearchController controller = new ObjectRecordSearchController(
-            new ObjectRecordSearchService(),
-            new ObjectRecordSearchSelector()
-        );
+        ObjectRecordSearchController controller = new ObjectRecordSearchController();
         return controller.searchRecordsForRequest(request);
     }
 
@@ -126,10 +106,7 @@ public with sharing class ObjectRecordSearchController {
         List<Id> recordIds
     ) {
         // 静的 Apex 入口から削除フローの組み立てへ処理を委譲
-        ObjectRecordSearchController controller = new ObjectRecordSearchController(
-            new ObjectRecordSearchService(),
-            new ObjectRecordSearchSelector()
-        );
+        ObjectRecordSearchController controller = new ObjectRecordSearchController();
         return controller.deleteSelectedRecords(metricKey, recordIds);
     }
 
