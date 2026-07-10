@@ -8,7 +8,8 @@ public with sharing class ObjectMetricCatalog {
 
     /**
      * 表示キー順に並べた定義を返します。
-     * @return データボード表示順のオブジェクト定義
+     *
+     * @return データボード表示順のオブジェクト定義。
      */
     public static List<MetricDefinition> getDefinitions() {
         return new List<MetricDefinition>(ORDERED_DEFINITIONS);
@@ -16,8 +17,8 @@ public with sharing class ObjectMetricCatalog {
 
     /**
      * 表示キーに対応する定義を返します。
-     * @param metricKey LWC から渡される表示キー
-     * @return 表示キーに対応する定義。未定義の場合は null
+     * @param metricKey LWC から渡される表示キー。
+     * @return 表示キーに対応する定義。未定義または空白の場合は null。
      */
     public static MetricDefinition getDefinition(String metricKey) {
         Boolean hasMetricKey = String.isNotBlank(metricKey);
@@ -30,8 +31,8 @@ public with sharing class ObjectMetricCatalog {
 
     /**
      * 表示キーに対応する定義が存在するかを返します。
-     * @param metricKey LWC から渡される表示キー
-     * @return 対応定義が存在する場合 true
+     * @param metricKey LWC から渡される表示キー。
+     * @return 対応定義が存在する場合 true。
      */
     public static Boolean hasDefinition(String metricKey) {
         MetricDefinition definition = getDefinition(metricKey);
@@ -40,8 +41,8 @@ public with sharing class ObjectMetricCatalog {
 
     /**
      * 対象オブジェクト API 参照名がデータボード定義に含まれるかを返します。
-     * @param objectApiName 対象オブジェクト API 参照名
-     * @return 定義済みオブジェクトの場合 true
+     * @param objectApiName 対象オブジェクト API 参照名。
+     * @return 定義済みオブジェクトの場合 true。
      */
     public static Boolean hasObjectApiName(String objectApiName) {
         Boolean hasObjectApiName = String.isNotBlank(objectApiName);

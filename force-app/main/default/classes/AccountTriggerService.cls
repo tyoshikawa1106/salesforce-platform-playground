@@ -13,7 +13,8 @@ public with sharing class AccountTriggerService {
 
     /**
      * 取引先作成前の補正処理を適用します。
-     * @param accounts Trigger.new から渡された取引先レコード
+     *
+     * @param accounts Trigger.new から渡された取引先レコード。
      */
     public void normalizeAccountNamesForInsert(List<Account> accounts) {
         normalizeNames(accounts, null);
@@ -21,8 +22,9 @@ public with sharing class AccountTriggerService {
 
     /**
      * 取引先更新前の補正処理を適用します。
-     * @param accounts Trigger.new から渡された取引先レコード
-     * @param oldAccountsById Id をキーにした変更前の取引先レコード
+     *
+     * @param accounts Trigger.new から渡された取引先レコード。
+     * @param oldAccountsById Id をキーにした変更前の取引先レコード。
      */
     public void normalizeChangedAccountNamesForUpdate(
         List<Account> accounts,

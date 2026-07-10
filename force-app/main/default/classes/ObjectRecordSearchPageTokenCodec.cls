@@ -11,9 +11,10 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
 
     /**
      * 現在ページ末尾の行から次ページ取得用 token を作成します。
-     * @param rows 現在ページの表示行
-     * @param sortSpec ソート条件
-     * @return 次ページ取得用 token
+     *
+     * @param rows 現在ページの表示行。
+     * @param sortSpec ソート条件。
+     * @return 次ページ取得用 token。
      */
     public static String createNextPageToken(
         List<ObjectRecordSearchRowWrapper> rows,
@@ -39,9 +40,11 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
 
     /**
      * 次ページ取得用 token をカーソル値に復元します。
-     * @param pageToken LWC から受け取ったページ token
-     * @param sortSpec 現在のソート条件
-     * @return 次ページ取得用カーソル
+     *
+     * @param pageToken LWC から受け取ったページ token。
+     * @param sortSpec 現在のソート条件。
+     * @return 次ページ取得用カーソル。pageToken が空白の場合は null。
+     * @throws ObjectRecordSearchException token を読み込めない場合。
      */
     public static ObjectRecordSearchSortSupport.PageCursor parsePageToken(
         String pageToken,

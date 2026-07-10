@@ -80,9 +80,9 @@ public with sharing class ObjectRecordSearchConfigWrapper {
     /**
      * 検索画面設定を作成します。
      *
-     * @param definition データボードカードと対象オブジェクトの定義
-     * @param nameFieldDescribe Name 相当項目の describe 結果
-     * @param objectDescribe 対象オブジェクトの describe 結果
+     * @param definition データボードカードと対象オブジェクトの定義。
+     * @param nameFieldDescribe Name 相当項目の describe 結果。
+     * @param objectDescribe 対象オブジェクトの describe 結果。
      */
     public ObjectRecordSearchConfigWrapper(
         ObjectMetricCatalog.MetricDefinition definition,
@@ -107,8 +107,8 @@ public with sharing class ObjectRecordSearchConfigWrapper {
     /**
      * 一覧に追加表示する固定項目を反映します。
      *
-     * @param displayFields 一覧に追加表示する固定項目
-     * @return 固定項目を反映した検索画面設定
+     * @param displayFields 一覧に追加表示する固定項目。
+     * @return 固定項目を反映した検索画面設定。
      */
     public ObjectRecordSearchConfigWrapper withDisplayFields(
         List<ObjectRecordSearchFieldWrapper> displayFields
