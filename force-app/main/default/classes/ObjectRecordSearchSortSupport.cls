@@ -122,9 +122,24 @@ public with sharing class ObjectRecordSearchSortSupport {
      * 正規化済みのソート条件です。
      */
     public class SortSpec {
+        /**
+         * SOQL の ORDER BY に使う検証済み項目 API 参照名です。
+         */
         public String fieldApiName;
+
+        /**
+         * 昇順または降順を表す正規化済みの値です。
+         */
         public String direction;
+
+        /**
+         * ソート項目の describe 情報です。
+         */
         public Schema.DescribeFieldResult fieldDescribe;
+
+        /**
+         * 対象オブジェクトの Name 相当項目 API 参照名です。
+         */
         public String nameFieldApiName;
     }
 
@@ -132,7 +147,14 @@ public with sharing class ObjectRecordSearchSortSupport {
      * ページングに使う現在ページ末尾の値です。
      */
     public class PageCursor {
+        /**
+         * 現在ページ末尾レコードのソート項目値です。
+         */
         public Object sortValue;
+
+        /**
+         * 同一ソート値の続きを安定取得するためのレコード ID です。
+         */
         public Id recordId;
     }
 }
