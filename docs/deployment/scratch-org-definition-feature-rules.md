@@ -62,18 +62,12 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 
 ## feature 別の注意点
 
-`AddCustomRelationships` は `30` を指定すると Scratch Org 作成時に無効な数量として失敗しました。
-現在は作成確認済みの `10` を指定します。
-
-`TransactionFinalizers` は Salesforce CLI の schema 候補に含まれますが、検証時点の Dev Hub では Scratch Org 作成時に無効な feature として失敗しました。
-そのため、現在の設定例には含めません。
-
-`WorkPlan` / `WorkPlanTemplate` / `WorkStep` は Field Service feature に依存します。
-`FieldService.settings` の `enableWorkOrders=true` を Settings メタデータとして deploy するだけでは、既存 Scratch Org に WorkPlan 系オブジェクトは追加されません。
-Scratch Org 作成時点で `FieldService:<ライセンス数>` を指定する必要があります。
-
-`SharedActivities` のように、作成後に Metadata API で有効化/無効化できない、または更新できない設定があります。
-これらは Settings メタデータを別 source として deploy するのではなく、Scratch Org definition の `features` で扱います。
+| feature                                      | 注意点                                                                                                                                                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AddCustomRelationships`                     | `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` を指定する                                                                                                        |
+| `TransactionFinalizers`                      | Salesforce CLI の schema 候補には含まれるが、検証時点の Dev Hub では無効な feature として失敗したため、現在の設定例には含めない                                                                   |
+| `WorkPlan` / `WorkPlanTemplate` / `WorkStep` | Field Service feature に依存する。`FieldService.settings` の `enableWorkOrders=true` を deploy するだけでは既存 Scratch Org に追加されないため、作成時に `FieldService:<ライセンス数>` を指定する |
+| `SharedActivities` など                      | 作成後に Metadata API で有効化、無効化、更新できない設定は、Settings メタデータを別 source として deploy せず、Scratch Org definition の `features` で扱う                                        |
 
 ## settings の扱い
 

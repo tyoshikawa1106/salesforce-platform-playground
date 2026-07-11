@@ -87,7 +87,15 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 
 ### 件数と表示名
 
-通常 org では各オブジェクト 50 件規模で作成します。Scratch Org では `scripts/deploy/scratch-org/scratch-org-import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張します。組織の機能や権限で作成できない optional object は、debug log に理由を出して、作成可能な範囲を続行します。キャンペーンは前年・今年・来年の各月 1 件ずつ作成します。商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成します。商品マスターはノートPC、モニター、会議機器、オフィス家具、ソフトウェアなどの office product catalog として作成します。`Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成します。請求先/納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにします。`Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けず、内部識別が必要な値はメール、URL、外部識別用フィールド、ファイルパスなどに保持します。
+- 通常 org では、各オブジェクトを 50 件規模で作成する。
+- Scratch Org では、`scripts/deploy/scratch-org/scratch-org-import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張する。
+- 組織の機能や権限で作成できない optional object は、debug log に理由を出し、作成可能な範囲を続行する。
+- キャンペーンは、前年・今年・来年の各月 1 件ずつ作成する。
+- 商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成する。
+- 商品マスターは、ノート PC、モニター、会議機器、オフィス家具、ソフトウェアなどの office product catalog として作成する。
+- `Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成する。
+- 請求先・納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにする。
+- `Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けない。内部識別が必要な値は、メール、URL、外部識別用フィールド、ファイルパスなどに保持する。
 
 ### 作成しない対象
 
@@ -109,7 +117,10 @@ sf data query \
 sf data delete record --sobject Account --record-id <record-id> --target-org <alias>
 ```
 
-主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。cleanup は governor limit を避けるため、各オブジェクト最大 100 件ずつ削除します。大量投入後は `Deleted records: none` になるまで複数回実行します。
+主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。
+
+- governor limit を避けるため、各オブジェクト最大 100 件ずつ削除する。
+- 大量投入後は `Deleted records: none` になるまで複数回実行する。
 
 ```sh
 sf apex run --file scripts/apex/test-data/cleanup-standard-objects.apex --target-org <alias>

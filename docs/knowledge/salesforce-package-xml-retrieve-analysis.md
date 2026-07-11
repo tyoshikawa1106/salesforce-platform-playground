@@ -1,4 +1,4 @@
-# package.xml retrieve の分析ポイント
+# package.xml による retrieve の分析ポイント
 
 Salesforce DX で広い `package.xml` を使って metadata retrieve すると、コマンドが成功しても一部メタデータが取得できていないことがあります。
 

@@ -3,20 +3,18 @@
 この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断の起点です。
 実行コマンドの暗記ではなく、対象 org、scope、検証結果、報告内容を取り違えないための運用ルールとして扱います。
 
-Scratch Org の作成・初期反映は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md) を参照します。
-destructive changes は [Salesforce メタデータ削除ルール](salesforce-org-destructive-changes-rules.md) を参照します。
-テストデータ投入は [テストデータ投入手順](test-data-import.md) を参照します。
-GitHub Actions での任意 Salesforce validate 設定は [CI Salesforce validate ルール](ci-salesforce-validate-rules.md) を参照します。
-
 ## 最初に判断すること
 
-Salesforce 組織操作を依頼されたら、AI エージェントは最初に対象を切り分けます。
+Salesforce 組織操作を依頼されたら、最初に対象を切り分けます。
 
-- 接続中の Salesforce 組織へ validate / deploy / retrieve / test する場合は、このページに従う。
-- Scratch Org の作成・再現は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md)、Scratch Org から変更を戻す場合は [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md) に従う。
-- metadata 削除は [Salesforce メタデータ削除ルール](salesforce-org-destructive-changes-rules.md) として別タスクで扱う。
-- テストデータ投入は [テストデータ投入手順](test-data-import.md) に従い、dry-run と cleanup 方針を確認する。
-- GitHub Actions の Salesforce validate 設定は [CI Salesforce validate ルール](ci-salesforce-validate-rules.md) に従う。
+| 対象                                                     | 参照先                                                                                             |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 接続中の組織に対する validate / deploy / retrieve / test | このページ                                                                                         |
+| Scratch Org の作成・再現                                 | [Scratch Org 再現ルール](scratch-org-rebuild-rules.md)                                             |
+| Scratch Org からの変更取り込み                           | [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md)                                   |
+| metadata の削除                                          | [Salesforce メタデータ削除ルール](salesforce-org-destructive-changes-rules.md)。別タスクとして扱う |
+| テストデータ投入                                         | [テストデータ投入手順](test-data-import.md)。dry-run と cleanup 方針を確認する                     |
+| GitHub Actions の Salesforce validate 設定               | [CI Salesforce validate ルール](ci-salesforce-validate-rules.md)                                   |
 
 ## 共通実行ルール
 
@@ -54,7 +52,7 @@ deploy、delete、retrieve、test の前に対象組織を確認します。
 sf config get target-org
 ```
 
-対象 org の個別指定がない場合は、この default target org を対象にします。ただし後続の validate / deploy / retrieve / test コマンドでは、取得した alias を `--target-org <alias>` で明示します。
+対象 org の個別指定がない場合は、この default target org を対象にします。後続の validate / deploy / retrieve / test コマンドでは、取得した alias を `--target-org <alias>` で明示します。
 
 alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
 

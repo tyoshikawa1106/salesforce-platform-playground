@@ -1,4 +1,4 @@
-# force-app deployability 棚卸し
+# force-app の deploy 対象棚卸し
 
 `force-app/main/default` 全体を Salesforce 組織へ validate / deploy するのではなく、どの metadata を標準 deploy scope に含めるかを判断するための棚卸しです。
 

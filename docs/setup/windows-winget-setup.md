@@ -1,4 +1,4 @@
-# インストール (Windows / winget ベース)
+# Windows 開発環境のセットアップ
 
 この手順では、Windows で Salesforce DX 開発に必要なツール一式を winget ベースで導入します。
 Node.js / npm はプロジェクトごとに要求バージョンが変わりやすいため、Volta で管理します。
@@ -19,7 +19,7 @@ Node.js / npm はプロジェクトごとに要求バージョンが変わりや
 | Python 3.10 以降 | Salesforce Code Analyzer の Flow engine で利用             | winget   |
 | Heroku CLI       | Heroku アプリケーション管理                                | 任意     |
 
-## winget の確認
+## 1. winget の確認
 
 winget が使えることを確認します。
 
@@ -29,7 +29,7 @@ winget --version
 
 winget が使えない場合は、Microsoft Store の「アプリ インストーラー」を更新します。
 
-## 基本ツールのインストール
+## 2. 基本ツールのインストール
 
 Git:
 
@@ -55,7 +55,7 @@ Salesforce CLI:
 winget install --id Salesforce.CLI -e
 ```
 
-## Java JDK
+## 3. Java JDK
 
 Salesforce Code Analyzer の PMD / CPD / SFGE engine では Java が必要です。
 
@@ -72,7 +72,7 @@ java --version
 where.exe java
 ```
 
-## Node.js / npm
+## 4. Node.js / npm
 
 このリポジトリの npm scripts と CI は Node.js 24 を前提にします。
 
@@ -110,7 +110,7 @@ volta list
 
 `node --version` は `v24.x` であることを確認します。
 
-## Python 3.13
+## 5. Python 3.13
 
 Salesforce Code Analyzer の Flow engine は Python 3.10 以降を必要とします。
 
@@ -168,7 +168,7 @@ python3 --version
 
 `python` または `python3` が Python 3.10 以降であれば、Code Analyzer の Flow engine も Python を検出できます。
 
-## Heroku CLI（任意）
+## 6. Heroku CLI（任意）
 
 このリポジトリでは Heroku CLI は不要です。Heroku アプリケーションを扱う場合だけインストールします。
 
@@ -182,7 +182,7 @@ Heroku にログインする場合:
 heroku login
 ```
 
-## Salesforce Code Analyzer plugin
+## 7. Salesforce Code Analyzer plugin
 
 Salesforce CLI に Code Analyzer plugin が入っていることを確認します。
 
@@ -198,7 +198,7 @@ sf plugins
 sf plugins install @salesforce/plugin-code-analyzer
 ```
 
-## インストール確認
+## 8. インストール確認
 
 ### winget パッケージ
 
@@ -262,7 +262,7 @@ Salesforce CLI の plugin を確認します。
 sf plugins
 ```
 
-## プロジェクト依存のセットアップ
+## 9. プロジェクト依存のセットアップ
 
 このリポジトリでは、`package-lock.json` に固定された依存を再現します。
 
@@ -284,7 +284,7 @@ npm run code-analyzer:ci
 
 Python の初期化エラーが出る場合は、`python --version`、`python3 --version`、`py -3.13 --version`、`where.exe python` を再確認します。
 
-## 定期メンテナンス
+## 10. 定期メンテナンス
 
 winget で管理しているツールは、定期的に更新します。
 
