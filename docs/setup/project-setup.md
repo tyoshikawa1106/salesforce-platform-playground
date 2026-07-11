@@ -1,4 +1,4 @@
-# プロジェクト
+# プロジェクトのセットアップ
 
 この手順では、開発ツールのインストール後に実施する、Salesforce DX プロジェクト側の準備を定義します。
 
@@ -31,13 +31,13 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 
 ### Prettier 関連ファイル
 
-| ファイル                | 目的                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| `.prettierrc`           | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
-| `.prettierignore`       | static resources、ローカル生成物、接続情報などを整形対象から外す設定                        |
-| `package.json`          | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
-| `package-lock.json`     | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
-| `docs/setup/project.md` | そのプロジェクトで採用した準備手順                                                          |
+| ファイル                      | 目的                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| `.prettierrc`                 | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
+| `.prettierignore`             | static resources、ローカル生成物、接続情報などを整形対象から外す設定                        |
+| `package.json`                | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
+| `package-lock.json`           | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
+| `docs/setup/project-setup.md` | そのプロジェクトで採用した準備手順                                                          |
 
 ### 導入手順
 

@@ -29,10 +29,11 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 取得後確認
 
-取得後は `git status --short`、`git diff --stat`、必要に応じて `git diff` で差分を確認します。
-広い manifest で retrieve すると、Salesforce CLI の結果表では `Changed` が多数表示されることがあります。
-コミット判断では CLI の表示だけでなく Git の差分を基準にします。
-ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認します。
+1. `git status --short` と `git diff --stat` で差分の範囲を確認する。
+2. 必要に応じて `git diff` で内容を確認する。
+3. ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認する。
+
+広い manifest で retrieve すると、Salesforce CLI の結果表では `Changed` が多数表示されることがあります。コミット判断では、CLI の表示だけでなく Git の差分を基準にします。
 
 ## 作業報告
 

@@ -94,6 +94,8 @@ SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/run-constr
 作成後の deploy、retrieve、Permission Set assign、test data import、削除では、作成時に使った alias を `<scratch-org-alias>` として明示します。
 報告にもこの alias を書き、ユーザー名や org 固有 URL は書きません。
 
+## Scratch definition の扱い
+
 `config/project-scratch-def.json` の `features` は、通常時は Scratch Org 作成に必要な最小限だけを指定します。
 主要な標準オブジェクトの再現性を上げる追加 feature は、必要になった時点で目的別に追加します。
 ただし、Scratch Org 作成時に Dev Hub 側で許可されているものだけが使えます。
@@ -103,10 +105,14 @@ Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Clo
 
 ## 一括実行
 
-通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するだけのスクリプトで行います。
-Scratch Org 作成、manifest deploy、Scratch Org ユーザー用 Permission Set assign、標準オブジェクトのテストデータ投入までを順に実行します。
-途中で失敗した場合はそこで停止します。
-alias、duration、manifest、Permission Set、import plan は `scripts/deploy/scratch-org/scratch-org.json` で定義します。
+通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するスクリプトで行います。
+
+1. Scratch Org を作成する。
+2. manifest を deploy する。
+3. Scratch Org ユーザー用 Permission Set を割り当てる。
+4. 標準オブジェクトのテストデータを投入する。
+
+途中で失敗した場合は、その時点で停止します。alias、duration、manifest、Permission Set、import plan は `scripts/deploy/scratch-org/scratch-org.json` で定義します。
 
 ```sh
 node scripts/deploy/scratch-org/run-constructive-scratch-org.js
