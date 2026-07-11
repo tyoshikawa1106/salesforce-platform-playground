@@ -1,67 +1,72 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 認証 / セキュリティ -->
-    <!-- Connected App -->
+    <!-- 接続アプリケーション -->
     <types>
         <members>*</members>
         <name>ConnectedApp</name>
     </types>
-    <!-- External Client Application -->
+    <!-- 外部クライアントアプリケーション -->
     <types>
         <members>*</members>
         <name>ExternalClientApplication</name>
     </types>
-    <!-- External Client App OAuth 設定 -->
+    <!-- 外部クライアントアプリの OAuth 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthSettings</name>
     </types>
-    <!-- External Client App Global OAuth 設定 -->
+    <!-- 外部クライアントアプリのグローバル OAuth 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
-    <!-- External Client App OAuth セキュリティ設定 -->
+    <!-- 外部クライアントアプリの OAuth セキュリティ設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthSecuritySettings</name>
     </types>
-    <!-- External Client App OAuth 設定可能ポリシー -->
+    <!-- 外部クライアントアプリの OAuth 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>
-    <!-- External Client App 設定可能ポリシー -->
+    <!-- 外部クライアントアプリの設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppConfigurablePolicies</name>
     </types>
-    <!-- External Client App SAML 設定可能ポリシー -->
+    <!-- 外部クライアントアプリの SAML 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppSamlConfigurablePolicies</name>
     </types>
-    <!-- External Client App モバイル設定 -->
+    <!-- 外部クライアントアプリのモバイル設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppMobileSettings</name>
     </types>
-    <!-- External Client App モバイル設定可能ポリシー -->
+    <!-- 外部クライアントアプリのモバイル設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppMobileConfigurablePolicies</name>
     </types>
-    <!-- External Client App Canvas 設定 -->
+    <!-- 外部クライアントアプリの Canvas 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppCanvasSettings</name>
     </types>
-    <!-- External Client App Push 設定 -->
+    <!-- 外部クライアントアプリのプッシュ設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppPushSettings</name>
     </types>
-    <!-- External Client App 通知設定 -->
+    <!-- 外部クライアントアプリのプッシュ設定可能ポリシー -->
+    <types>
+        <members>*</members>
+        <name>ExtlClntAppPushConfigurablePolicies</name>
+    </types>
+    <!-- 外部クライアントアプリの通知設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppNotificationSettings</name>
@@ -71,12 +76,12 @@
         <members>*</members>
         <name>ExternalAuthIdentityProvider</name>
     </types>
-    <!-- Named Credential -->
+    <!-- 指定ログイン情報 -->
     <types>
         <members>*</members>
         <name>NamedCredential</name>
     </types>
-    <!-- External Credential -->
+    <!-- 外部ログイン情報 -->
     <types>
         <members>*</members>
         <name>ExternalCredential</name>
@@ -101,17 +106,17 @@
         <members>*</members>
         <name>OauthTokenExchangeHandler</name>
     </types>
-    <!-- Remote Site Setting -->
+    <!-- リモートサイト設定 -->
     <types>
         <members>*</members>
         <name>RemoteSiteSetting</name>
     </types>
-    <!-- CSP Trusted Site -->
+    <!-- CSP 信頼済みサイト -->
     <types>
         <members>*</members>
         <name>CspTrustedSite</name>
     </types>
-    <!-- CORS Whitelist Origin -->
+    <!-- CORS 許可オリジン -->
     <types>
         <members>*</members>
         <name>CorsWhitelistOrigin</name>
@@ -126,7 +131,7 @@
         <members>*</members>
         <name>IPAddressRange</name>
     </types>
-    <!-- My Domain Discoverable Login -->
+    <!-- 私のドメインの検出可能ログイン設定 -->
     <types>
         <members>*</members>
         <name>MyDomainDiscoverableLogin</name>
@@ -145,6 +150,11 @@
     <types>
         <members>*</members>
         <name>PublicKeyCertificateSet</name>
+    </types>
+    <!-- トランザクションセキュリティポリシー -->
+    <types>
+        <members>*</members>
+        <name>TransactionSecurityPolicy</name>
     </types>
     <version>67.0</version>
 </Package>

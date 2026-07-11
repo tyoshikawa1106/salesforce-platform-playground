@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- UI / アクション拡張 -->
+    <!-- アクションランチャー項目定義 -->
+    <types><members>*</members><name>ActionLauncherItemDef</name></types>
+    <!-- アクションリンクグループテンプレート -->
+    <types><members>*</members><name>ActionLinkGroupTemplate</name></types>
+    <!-- アプリフレームワークテンプレートバンドル -->
+    <types><members>*</members><name>AppFrameworkTemplateBundle</name></types>
+    <!-- Chatter 拡張 -->
+    <types><members>*</members><name>ChatterExtension</name></types>
+    <!-- 選択肢リスト -->
+    <types><members>*</members><name>ChoiceList</name></types>
+    <!-- カスタムアプリケーションコンポーネント -->
+    <types><members>*</members><name>CustomApplicationComponent</name></types>
+    <!-- カスタムフィードフィルター -->
+    <types><members>*</members><name>CustomFeedFilter</name></types>
+    <!-- カスタムヘルプメニューセクション -->
+    <types><members>*</members><name>CustomHelpMenuSection</name></types>
+    <!-- カスタムページリンク -->
+    <types><members>*</members><name>CustomPageWebLink</name></types>
+    <!-- Lightning オンボーディング設定 -->
+    <types><members>*</members><name>LightningOnboardingConfig</name></types>
+    <!-- Lightning 型バンドル -->
+    <types><members>*</members><name>LightningTypeBundle</name></types>
+    <!-- パス設定 -->
+    <types><members>*</members><name>PathAssistant</name></types>
+    <!-- 投稿テンプレート -->
+    <types><members>*</members><name>PostTemplate</name></types>
+    <!-- レコードアクション配置 -->
+    <types><members>*</members><name>RecordActionDeployment</name></types>
+    <!-- リダイレクト許可 URL -->
+    <types><members>*</members><name>RedirectWhitelistUrl</name></types>
+    <!-- UI バンドル -->
+    <types><members>*</members><name>UIBundle</name></types>
+    <!-- UI 表示形式仕様セット -->
+    <types><members>*</members><name>UiFormatSpecificationSet</name></types>
+    <version>67.0</version>
+</Package>

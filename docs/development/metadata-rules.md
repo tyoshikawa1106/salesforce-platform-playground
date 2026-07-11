@@ -6,7 +6,6 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 - `manifest/package.xml` と `manifest/package-*.xml` は、AI エージェントが Salesforce 組織から retrieve して参照・編集するための作業対象 catalog として扱う。
 - package 系 manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
-- package 系 manifest を変更した場合は、`npm run manifest:check` で `package.xml`、分割 manifest、docs の整合性を確認する。
 - 組織から retrieve したメタデータは、コミット前または反映前に差分を確認する。
 - 広い manifest で retrieve した結果を、そのまま Git 管理の基準や deploy scope として扱わない。
 - 組織固有の値、認証情報、個人環境の値はメタデータに入れない。

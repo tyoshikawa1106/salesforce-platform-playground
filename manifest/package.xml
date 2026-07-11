@@ -42,7 +42,7 @@
         <name>StaticResource</name>
     </types>
     <!-- 共有 / 補助リソース -->
-    <!-- Lightning Message Channel -->
+    <!-- Lightning メッセージチャネル -->
     <types>
         <members>*</members>
         <name>LightningMessageChannel</name>
@@ -74,7 +74,7 @@
         <name>AppMenu</name>
     </types>
     <!-- 画面 / レイアウト -->
-    <!-- FlexiPage -->
+    <!-- Lightning ページ -->
     <types>
         <members>*</members>
         <name>FlexiPage</name>
@@ -99,7 +99,7 @@
         <members>*</members>
         <name>LightningExperienceTheme</name>
     </types>
-    <!-- Branding Set -->
+    <!-- ブランド設定 -->
     <types>
         <members>*</members>
         <name>BrandingSet</name>
@@ -150,7 +150,7 @@
         <members>*</members>
         <name>BusinessProcess</name>
     </types>
-    <!-- Field Set -->
+    <!-- 項目セット -->
     <types>
         <members>*</members>
         <name>FieldSet</name>
@@ -195,12 +195,12 @@
         <members>*</members>
         <name>StandardValueSet</name>
     </types>
-    <!-- Business Process Group -->
+    <!-- ビジネスプロセスグループ -->
     <types>
         <members>*</members>
         <name>BusinessProcessGroup</name>
     </types>
-    <!-- Index -->
+    <!-- インデックス -->
     <types>
         <members>*</members>
         <name>Index</name>
@@ -246,42 +246,42 @@
         <members>*</members>
         <name>MatchingRules</name>
     </types>
-    <!-- Workflow Alert -->
+    <!-- ワークフローアラート -->
     <types>
         <members>*</members>
         <name>WorkflowAlert</name>
     </types>
-    <!-- Workflow Field Update -->
+    <!-- ワークフロー項目自動更新 -->
     <types>
         <members>*</members>
         <name>WorkflowFieldUpdate</name>
     </types>
-    <!-- Workflow Flow Action -->
+    <!-- ワークフローのフローアクション -->
     <types>
         <members>*</members>
         <name>WorkflowFlowAction</name>
     </types>
-    <!-- Workflow Knowledge Publish -->
+    <!-- ワークフローナレッジ公開アクション -->
     <types>
         <members>*</members>
         <name>WorkflowKnowledgePublish</name>
     </types>
-    <!-- Workflow Outbound Message -->
+    <!-- ワークフローアウトバウンドメッセージ -->
     <types>
         <members>*</members>
         <name>WorkflowOutboundMessage</name>
     </types>
-    <!-- Workflow Rule -->
+    <!-- ワークフロールール -->
     <types>
         <members>*</members>
         <name>WorkflowRule</name>
     </types>
-    <!-- Workflow Send -->
+    <!-- ワークフロー送信アクション -->
     <types>
         <members>*</members>
         <name>WorkflowSend</name>
     </types>
-    <!-- Workflow Task -->
+    <!-- ワークフロー ToDo -->
     <types>
         <members>*</members>
         <name>WorkflowTask</name>
@@ -347,27 +347,27 @@
         <members>*</members>
         <name>ProfileSessionSetting</name>
     </types>
-    <!-- Sharing Criteria Rule -->
+    <!-- 条件ベース共有ルール -->
     <types>
         <members>*</members>
         <name>SharingCriteriaRule</name>
     </types>
-    <!-- Sharing Guest Rule -->
+    <!-- ゲストユーザー共有ルール -->
     <types>
         <members>*</members>
         <name>SharingGuestRule</name>
     </types>
-    <!-- Sharing Owner Rule -->
+    <!-- 所有者ベース共有ルール -->
     <types>
         <members>*</members>
         <name>SharingOwnerRule</name>
     </types>
-    <!-- Sharing Reason -->
+    <!-- 共有理由 -->
     <types>
         <members>*</members>
         <name>SharingReason</name>
     </types>
-    <!-- Sharing Territory Rule -->
+    <!-- テリトリーベース共有ルール -->
     <types>
         <members>*</members>
         <name>SharingTerritoryRule</name>
@@ -384,67 +384,67 @@
         <name>Profile</name>
     </types>
     <!-- 認証 / セキュリティ -->
-    <!-- Connected App -->
+    <!-- 接続アプリケーション -->
     <types>
         <members>*</members>
         <name>ConnectedApp</name>
     </types>
-    <!-- External Client Application -->
+    <!-- 外部クライアントアプリケーション -->
     <types>
         <members>*</members>
         <name>ExternalClientApplication</name>
     </types>
-    <!-- External Client App OAuth 設定 -->
+    <!-- 外部クライアントアプリの OAuth 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthSettings</name>
     </types>
-    <!-- External Client App Global OAuth 設定 -->
+    <!-- 外部クライアントアプリのグローバル OAuth 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
-    <!-- External Client App OAuth セキュリティ設定 -->
+    <!-- 外部クライアントアプリの OAuth セキュリティ設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthSecuritySettings</name>
     </types>
-    <!-- External Client App OAuth 設定可能ポリシー -->
+    <!-- 外部クライアントアプリの OAuth 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>
-    <!-- External Client App 設定可能ポリシー -->
+    <!-- 外部クライアントアプリの設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppConfigurablePolicies</name>
     </types>
-    <!-- External Client App SAML 設定可能ポリシー -->
+    <!-- 外部クライアントアプリの SAML 設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppSamlConfigurablePolicies</name>
     </types>
-    <!-- External Client App モバイル設定 -->
+    <!-- 外部クライアントアプリのモバイル設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppMobileSettings</name>
     </types>
-    <!-- External Client App モバイル設定可能ポリシー -->
+    <!-- 外部クライアントアプリのモバイル設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppMobileConfigurablePolicies</name>
     </types>
-    <!-- External Client App Canvas 設定 -->
+    <!-- 外部クライアントアプリの Canvas 設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppCanvasSettings</name>
     </types>
-    <!-- External Client App Push 設定 -->
+    <!-- 外部クライアントアプリのプッシュ設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppPushSettings</name>
     </types>
-    <!-- External Client App 通知設定 -->
+    <!-- 外部クライアントアプリの通知設定 -->
     <types>
         <members>*</members>
         <name>ExtlClntAppNotificationSettings</name>
@@ -454,12 +454,12 @@
         <members>*</members>
         <name>ExternalAuthIdentityProvider</name>
     </types>
-    <!-- Named Credential -->
+    <!-- 指定ログイン情報 -->
     <types>
         <members>*</members>
         <name>NamedCredential</name>
     </types>
-    <!-- External Credential -->
+    <!-- 外部ログイン情報 -->
     <types>
         <members>*</members>
         <name>ExternalCredential</name>
@@ -484,17 +484,17 @@
         <members>*</members>
         <name>OauthTokenExchangeHandler</name>
     </types>
-    <!-- Remote Site Setting -->
+    <!-- リモートサイト設定 -->
     <types>
         <members>*</members>
         <name>RemoteSiteSetting</name>
     </types>
-    <!-- CSP Trusted Site -->
+    <!-- CSP 信頼済みサイト -->
     <types>
         <members>*</members>
         <name>CspTrustedSite</name>
     </types>
-    <!-- CORS Whitelist Origin -->
+    <!-- CORS 許可オリジン -->
     <types>
         <members>*</members>
         <name>CorsWhitelistOrigin</name>
@@ -509,7 +509,7 @@
         <members>*</members>
         <name>IPAddressRange</name>
     </types>
-    <!-- My Domain Discoverable Login -->
+    <!-- 私のドメインの検出可能ログイン設定 -->
     <types>
         <members>*</members>
         <name>MyDomainDiscoverableLogin</name>
@@ -535,32 +535,32 @@
         <members>*</members>
         <name>ExternalDataSource</name>
     </types>
-    <!-- External Service Registration -->
+    <!-- 外部サービス登録 -->
     <types>
         <members>*</members>
         <name>ExternalServiceRegistration</name>
     </types>
-    <!-- API Named Query -->
+    <!-- API 名前付きクエリ -->
     <types>
         <members>*</members>
         <name>ApiNamedQuery</name>
     </types>
-    <!-- Canvas Metadata -->
+    <!-- Canvas メタデータ -->
     <types>
         <members>*</members>
         <name>CanvasMetadata</name>
     </types>
-    <!-- Cataloged API -->
+    <!-- API カタログ定義 -->
     <types>
         <members>*</members>
         <name>CatalogedApi</name>
     </types>
-    <!-- Cataloged API Artifact Version Info -->
+    <!-- API カタログ成果物バージョン情報 -->
     <types>
         <members>*</members>
         <name>CatalogedApiArtifactVersionInfo</name>
     </types>
-    <!-- Cataloged API Version -->
+    <!-- API カタログバージョン -->
     <types>
         <members>*</members>
         <name>CatalogedApiVersion</name>
@@ -575,43 +575,43 @@
         <members>*</members>
         <name>OutboundNetworkConnection</name>
     </types>
-    <!-- Invocable Action Extension -->
+    <!-- 呼び出し可能アクション拡張 -->
     <types>
         <members>*</members>
         <name>InvocableActionExtension</name>
     </types>
-    <!-- MCP Server Definition -->
+    <!-- MCP サーバー定義 -->
     <types>
         <members>*</members>
         <name>McpServerDefinition</name>
     </types>
-    <!-- External Data Transform Object -->
+    <!-- 外部データ変換オブジェクト -->
     <types>
         <members>*</members>
         <name>ExternalDataTranObject</name>
     </types>
     <!-- イベント / メッセージング -->
-    <!-- Platform Event チャネル -->
+    <!-- プラットフォームイベントチャネル -->
     <types>
         <members>*</members>
         <name>PlatformEventChannel</name>
     </types>
-    <!-- Platform Event チャネルメンバー -->
+    <!-- プラットフォームイベントチャネルメンバー -->
     <types>
         <members>*</members>
         <name>PlatformEventChannelMember</name>
     </types>
-    <!-- Platform Event Subscriber Config -->
+    <!-- プラットフォームイベント購読者設定 -->
     <types>
         <members>*</members>
         <name>PlatformEventSubscriberConfig</name>
     </types>
-    <!-- Managed Event Subscription -->
+    <!-- 管理イベント購読設定 -->
     <types>
         <members>*</members>
         <name>ManagedEventSubscription</name>
     </types>
-    <!-- Event Relay Config -->
+    <!-- イベントリレー設定 -->
     <types>
         <members>*</members>
         <name>EventRelayConfig</name>
@@ -622,12 +622,12 @@
         <members>*</members>
         <name>ReportType</name>
     </types>
-    <!-- Document -->
+    <!-- Classic ドキュメント -->
     <types>
         <members>*</members>
         <name>Document</name>
     </types>
-    <!-- Analytic Snapshot -->
+    <!-- レポートスナップショット -->
     <types>
         <members>*</members>
         <name>AnalyticSnapshot</name>
@@ -637,7 +637,7 @@
         <members>*</members>
         <name>WaveAnalyticAssetCollection</name>
     </types>
-    <!-- Classic Document のフォルダー -->
+    <!-- Classic ドキュメントフォルダー -->
     <types>
         <members>*</members>
         <name>DocumentFolder</name>
@@ -658,12 +658,12 @@
         <members>*</members>
         <name>CustomNotificationType</name>
     </types>
-    <!-- Email Services Function -->
+    <!-- メールサービス関数 -->
     <types>
         <members>*</members>
         <name>EmailServicesFunction</name>
     </types>
-    <!-- Apex Email Notifications -->
+    <!-- Apex 例外メール通知設定 -->
     <types>
         <members>*</members>
         <name>ApexEmailNotifications</name>
@@ -679,37 +679,37 @@
         <name>EmailTemplateFolder</name>
     </types>
     <!-- Experience / サイト -->
-    <!-- Digital Experience Bundle -->
+    <!-- デジタルエクスペリエンスバンドル -->
     <types>
         <members>*</members>
         <name>DigitalExperienceBundle</name>
     </types>
-    <!-- Community -->
+    <!-- Experience Cloud コミュニティ設定 -->
     <types>
         <members>*</members>
         <name>Community</name>
     </types>
-    <!-- Network Branding -->
+    <!-- Experience Cloud ブランド設定 -->
     <types>
         <members>*</members>
         <name>NetworkBranding</name>
     </types>
-    <!-- Custom Site -->
+    <!-- Salesforce サイト設定 -->
     <types>
         <members>*</members>
         <name>CustomSite</name>
     </types>
-    <!-- Site.com -->
+    <!-- Site.com サイト設定 -->
     <types>
         <members>*</members>
         <name>SiteDotCom</name>
     </types>
-    <!-- Experience Property Type Bundle -->
+    <!-- Experience プロパティタイプバンドル -->
     <types>
         <members>*</members>
         <name>ExperiencePropertyTypeBundle</name>
     </types>
-    <!-- Channel Layout -->
+    <!-- チャネルレイアウト -->
     <types>
         <members>*</members>
         <name>ChannelLayout</name>
@@ -719,13 +719,13 @@
         <members>*</members>
         <name>LightningBolt</name>
     </types>
-    <!-- Digital Experience -->
+    <!-- デジタルエクスペリエンス -->
     <types>
         <members>*</members>
         <name>DigitalExperience</name>
     </types>
-    <!-- Service 設定 -->
-    <!-- Call Center -->
+    <!-- サービス設定 -->
+    <!-- コールセンター -->
     <types>
         <members>*</members>
         <name>CallCenter</name>
@@ -745,54 +745,54 @@
         <members>*</members>
         <name>EntitlementTemplate</name>
     </types>
-    <!-- Messaging チャネル -->
+    <!-- メッセージングチャネル -->
     <types>
         <members>*</members>
         <name>MessagingChannel</name>
     </types>
-    <!-- Embedded Service Config -->
+    <!-- 組み込みサービス設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceConfig</name>
     </types>
-    <!-- Embedded Service Branding -->
+    <!-- 組み込みサービスのブランド設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceBranding</name>
     </types>
-    <!-- Embedded Service Flow Config -->
+    <!-- 組み込みサービスのフロー設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceFlowConfig</name>
     </types>
-    <!-- Embedded Service Menu Settings -->
+    <!-- 組み込みサービスのメニュー設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceMenuSettings</name>
     </types>
-    <!-- Live Chat Sensitive Data Rule -->
+    <!-- Live Chat 機密データルール -->
     <types>
         <members>*</members>
         <name>LiveChatSensitiveDataRule</name>
     </types>
     <!-- モバイル / オフライン -->
-    <!-- Briefcase Definition -->
+    <!-- ブリーフケース定義 -->
     <types>
         <members>*</members>
         <name>BriefcaseDefinition</name>
     </types>
-    <!-- Mobile Application Detail -->
+    <!-- モバイルアプリケーション詳細 -->
     <types>
         <members>*</members>
         <name>MobileApplicationDetail</name>
     </types>
     <!-- AI / 機械学習 -->
-    <!-- AI Application -->
+    <!-- AI アプリケーション -->
     <types>
         <members>*</members>
         <name>AIApplication</name>
     </types>
-    <!-- AI Application Config -->
+    <!-- AI アプリケーション設定 -->
     <types>
         <members>*</members>
         <name>AIApplicationConfig</name>
@@ -802,33 +802,33 @@
         <members>*</members>
         <name>Prompt</name>
     </types>
-    <!-- ML Prediction Definition -->
+    <!-- 機械学習予測定義 -->
     <types>
         <members>*</members>
         <name>MLPredictionDefinition</name>
     </types>
-    <!-- ML Recommendation Definition -->
+    <!-- 機械学習推奨定義 -->
     <types>
         <members>*</members>
         <name>MLRecommendationDefinition</name>
     </types>
-    <!-- ML Data Definition -->
+    <!-- 機械学習データ定義 -->
     <types>
         <members>*</members>
         <name>MLDataDefinition</name>
     </types>
-    <!-- AI Scoring Model Definition Version -->
+    <!-- AI スコアリングモデル定義バージョン -->
     <types>
         <members>*</members>
         <name>AIScoringModelDefVersion</name>
     </types>
     <!-- コンテンツ / CMS -->
-    <!-- Content Type Bundle -->
+    <!-- コンテンツタイプバンドル -->
     <types>
         <members>*</members>
         <name>ContentTypeBundle</name>
     </types>
-    <!-- Managed Content Type -->
+    <!-- 管理コンテンツタイプ -->
     <types>
         <members>*</members>
         <name>ManagedContentType</name>
@@ -839,12 +839,12 @@
         <name>DataCategoryGroup</name>
     </types>
     <!-- 検索 / ナレッジ補助 -->
-    <!-- Search Customization -->
+    <!-- 検索カスタマイズ -->
     <types>
         <members>*</members>
         <name>SearchCustomization</name>
     </types>
-    <!-- Search Org Wide Object Config -->
+    <!-- 組織全体のオブジェクト検索設定 -->
     <types>
         <members>*</members>
         <name>SearchOrgWideObjectConfig</name>
@@ -854,13 +854,13 @@
         <members>*</members>
         <name>SynonymDictionary</name>
     </types>
-    <!-- Topics for Objects -->
+    <!-- オブジェクトのトピック設定 -->
     <types>
         <members>*</members>
         <name>TopicsForObjects</name>
     </types>
     <!-- 組織設定 -->
-    <!-- Installed Package -->
+    <!-- インストール済みパッケージ -->
     <types>
         <members>*</members>
         <name>InstalledPackage</name>
@@ -870,37 +870,37 @@
         <members>*</members>
         <name>Settings</name>
     </types>
-    <!-- Lead Convert Settings -->
+    <!-- リード取引開始設定 -->
     <types>
         <members>*</members>
         <name>LeadConvertSettings</name>
     </types>
-    <!-- Delegate Group -->
+    <!-- 委任管理グループ -->
     <types>
         <members>*</members>
         <name>DelegateGroup</name>
     </types>
-    <!-- Notification Type Config -->
+    <!-- 通知タイプ設定 -->
     <types>
         <members>*</members>
         <name>NotificationTypeConfig</name>
     </types>
-    <!-- Permission Set License Definition -->
+    <!-- 権限セットライセンス定義 -->
     <types>
         <members>*</members>
         <name>PermissionSetLicenseDefinition</name>
     </types>
-    <!-- Platform Cache パーティション -->
+    <!-- プラットフォームキャッシュパーティション -->
     <types>
         <members>*</members>
         <name>PlatformCachePartition</name>
     </types>
-    <!-- User Provisioning Config -->
+    <!-- ユーザープロビジョニング設定 -->
     <types>
         <members>*</members>
         <name>UserProvisioningConfig</name>
     </types>
-    <!-- Classic UI -->
+    <!-- Classic UI 設定 -->
     <!-- Classic ホームページコンポーネント -->
     <types>
         <members>*</members>
@@ -911,18 +911,18 @@
         <members>*</members>
         <name>HomePageLayout</name>
     </types>
-    <!-- S-Control -->
+    <!-- S-Control 定義 -->
     <types>
         <members>*</members>
         <name>Scontrol</name>
     </types>
-    <!-- その他のプラットフォーム設定 -->
-    <!-- Action Launcher Item Definition -->
+    <!-- 分割 manifest では用途別に分類するメタデータ -->
+    <!-- アクションランチャー項目定義 -->
     <types>
         <members>*</members>
         <name>ActionLauncherItemDef</name>
     </types>
-    <!-- Action Link Group Template -->
+    <!-- アクションリンクグループテンプレート -->
     <types>
         <members>*</members>
         <name>ActionLinkGroupTemplate</name>
@@ -932,62 +932,62 @@
         <members>*</members>
         <name>AnimationRule</name>
     </types>
-    <!-- App Framework Template Bundle -->
+    <!-- アプリフレームワークテンプレートバンドル -->
     <types>
         <members>*</members>
         <name>AppFrameworkTemplateBundle</name>
     </types>
-    <!-- Batch Process Job Definition -->
+    <!-- バッチプロセスジョブ定義 -->
     <types>
         <members>*</members>
         <name>BatchProcessJobDefinition</name>
     </types>
-    <!-- Blacklisted Consumer -->
+    <!-- ブロック対象コンシューマー設定 -->
     <types>
         <members>*</members>
         <name>BlacklistedConsumer</name>
     </types>
-    <!-- Call Coaching Media Provider -->
+    <!-- 通話コーチングメディアプロバイダー -->
     <types>
         <members>*</members>
         <name>CallCoachingMediaProvider</name>
     </types>
-    <!-- Chatter Extension -->
+    <!-- Chatter 拡張 -->
     <types>
         <members>*</members>
         <name>ChatterExtension</name>
     </types>
-    <!-- Choice List -->
+    <!-- 選択肢リスト -->
     <types>
         <members>*</members>
         <name>ChoiceList</name>
     </types>
-    <!-- Clean Data Service -->
+    <!-- データクレンジングサービス -->
     <types>
         <members>*</members>
         <name>CleanDataService</name>
     </types>
-    <!-- Conversation Intelligence Signal Rule -->
+    <!-- 会話インテリジェンスシグナルルール -->
     <types>
         <members>*</members>
         <name>ConvIntelligenceSignalRule</name>
     </types>
-    <!-- Conversation Message Definition -->
+    <!-- 会話メッセージ定義 -->
     <types>
         <members>*</members>
         <name>ConversationMessageDefinition</name>
     </types>
-    <!-- Custom Application Component -->
+    <!-- カスタムアプリケーションコンポーネント -->
     <types>
         <members>*</members>
         <name>CustomApplicationComponent</name>
     </types>
-    <!-- Custom Feed Filter -->
+    <!-- カスタムフィードフィルター -->
     <types>
         <members>*</members>
         <name>CustomFeedFilter</name>
     </types>
-    <!-- Custom Help Menu Section -->
+    <!-- カスタムヘルプメニューセクション -->
     <types>
         <members>*</members>
         <name>CustomHelpMenuSection</name>
@@ -997,67 +997,67 @@
         <members>*</members>
         <name>CustomIndex</name>
     </types>
-    <!-- Custom Page Web Link -->
+    <!-- カスタムページリンク -->
     <types>
         <members>*</members>
         <name>CustomPageWebLink</name>
     </types>
-    <!-- DAM Provider -->
+    <!-- デジタルアセット管理プロバイダー -->
     <types>
         <members>*</members>
         <name>DgtAssetMgmtProvider</name>
     </types>
-    <!-- DAM Lightning Component -->
+    <!-- デジタルアセット管理用 Lightning コンポーネント -->
     <types>
         <members>*</members>
         <name>DgtAssetMgmtPrvdLghtCpnt</name>
     </types>
-    <!-- Eclair Geo Data -->
+    <!-- Eclair 地理データ -->
     <types>
         <members>*</members>
         <name>EclairGeoData</name>
     </types>
-    <!-- External Client App Push 設定可能ポリシー -->
+    <!-- 外部クライアントアプリのプッシュ設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppPushConfigurablePolicies</name>
     </types>
-    <!-- Flow Category -->
+    <!-- フローカテゴリ -->
     <types>
         <members>*</members>
         <name>FlowCategory</name>
     </types>
-    <!-- Flow Test -->
+    <!-- フローテスト -->
     <types>
         <members>*</members>
         <name>FlowTest</name>
     </types>
-    <!-- Flow Value Map -->
+    <!-- フロー値マップ -->
     <types>
         <members>*</members>
         <name>FlowValueMap</name>
     </types>
-    <!-- Gateway Payment Method Type -->
+    <!-- 決済ゲートウェイプロバイダーの支払方法種別 -->
     <types>
         <members>*</members>
         <name>GatewayProviderPaymentMethodType</name>
     </types>
-    <!-- Lightning Onboarding Config -->
+    <!-- Lightning オンボーディング設定 -->
     <types>
         <members>*</members>
         <name>LightningOnboardingConfig</name>
     </types>
-    <!-- Lightning Type Bundle -->
+    <!-- Lightning 型バンドル -->
     <types>
         <members>*</members>
         <name>LightningTypeBundle</name>
     </types>
-    <!-- Path Assistant -->
+    <!-- パス設定 -->
     <types>
         <members>*</members>
         <name>PathAssistant</name>
     </types>
-    <!-- Payment Gateway Provider -->
+    <!-- 決済ゲートウェイプロバイダー -->
     <types>
         <members>*</members>
         <name>PaymentGatewayProvider</name>
@@ -1067,7 +1067,7 @@
         <members>*</members>
         <name>PostTemplate</name>
     </types>
-    <!-- Process Flow Migration -->
+    <!-- Process Builder からフローへの移行設定 -->
     <types>
         <members>*</members>
         <name>ProcessFlowMigration</name>
@@ -1077,42 +1077,42 @@
         <members>*</members>
         <name>RecommendationStrategy</name>
     </types>
-    <!-- Record Action Deployment -->
+    <!-- レコードアクション配置 -->
     <types>
         <members>*</members>
         <name>RecordActionDeployment</name>
     </types>
-    <!-- Redirect Whitelist URL -->
+    <!-- リダイレクト許可 URL -->
     <types>
         <members>*</members>
         <name>RedirectWhitelistUrl</name>
     </types>
-    <!-- Transaction Security Policy -->
+    <!-- トランザクションセキュリティポリシー -->
     <types>
         <members>*</members>
         <name>TransactionSecurityPolicy</name>
     </types>
-    <!-- UI Bundle -->
+    <!-- UI バンドル -->
     <types>
         <members>*</members>
         <name>UIBundle</name>
     </types>
-    <!-- UI Format Specification Set -->
+    <!-- UI 表示形式仕様セット -->
     <types>
         <members>*</members>
         <name>UiFormatSpecificationSet</name>
     </types>
-    <!-- Feature Parameter Boolean -->
+    <!-- Boolean 型機能パラメーター -->
     <types>
         <members>*</members>
         <name>FeatureParameterBoolean</name>
     </types>
-    <!-- Feature Parameter Date -->
+    <!-- 日付型機能パラメーター -->
     <types>
         <members>*</members>
         <name>FeatureParameterDate</name>
     </types>
-    <!-- Feature Parameter Integer -->
+    <!-- 整数型機能パラメーター -->
     <types>
         <members>*</members>
         <name>FeatureParameterInteger</name>

@@ -6,12 +6,12 @@
         <members>*</members>
         <name>ReportType</name>
     </types>
-    <!-- Document -->
+    <!-- Classic ドキュメント -->
     <types>
         <members>*</members>
         <name>Document</name>
     </types>
-    <!-- Analytic Snapshot -->
+    <!-- レポートスナップショット -->
     <types>
         <members>*</members>
         <name>AnalyticSnapshot</name>
@@ -21,7 +21,7 @@
         <members>*</members>
         <name>WaveAnalyticAssetCollection</name>
     </types>
-    <!-- Classic Document のフォルダー -->
+    <!-- Classic ドキュメントフォルダー -->
     <types>
         <members>*</members>
         <name>DocumentFolder</name>

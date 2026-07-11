@@ -41,45 +41,65 @@
         <members>*</members>
         <name>MatchingRules</name>
     </types>
-    <!-- Workflow Alert -->
+    <!-- ワークフローアラート -->
     <types>
         <members>*</members>
         <name>WorkflowAlert</name>
     </types>
-    <!-- Workflow Field Update -->
+    <!-- ワークフロー項目自動更新 -->
     <types>
         <members>*</members>
         <name>WorkflowFieldUpdate</name>
     </types>
-    <!-- Workflow Flow Action -->
+    <!-- ワークフローのフローアクション -->
     <types>
         <members>*</members>
         <name>WorkflowFlowAction</name>
     </types>
-    <!-- Workflow Knowledge Publish -->
+    <!-- ワークフローナレッジ公開アクション -->
     <types>
         <members>*</members>
         <name>WorkflowKnowledgePublish</name>
     </types>
-    <!-- Workflow Outbound Message -->
+    <!-- ワークフローアウトバウンドメッセージ -->
     <types>
         <members>*</members>
         <name>WorkflowOutboundMessage</name>
     </types>
-    <!-- Workflow Rule -->
+    <!-- ワークフロールール -->
     <types>
         <members>*</members>
         <name>WorkflowRule</name>
     </types>
-    <!-- Workflow Send -->
+    <!-- ワークフロー送信アクション -->
     <types>
         <members>*</members>
         <name>WorkflowSend</name>
     </types>
-    <!-- Workflow Task -->
+    <!-- ワークフロー ToDo -->
     <types>
         <members>*</members>
         <name>WorkflowTask</name>
+    </types>
+    <!-- フローカテゴリ -->
+    <types>
+        <members>*</members>
+        <name>FlowCategory</name>
+    </types>
+    <!-- フローテスト -->
+    <types>
+        <members>*</members>
+        <name>FlowTest</name>
+    </types>
+    <!-- フロー値マップ -->
+    <types>
+        <members>*</members>
+        <name>FlowValueMap</name>
+    </types>
+    <!-- Process Builder からフローへの移行設定 -->
+    <types>
+        <members>*</members>
+        <name>ProcessFlowMigration</name>
     </types>
     <version>67.0</version>
 </Package>

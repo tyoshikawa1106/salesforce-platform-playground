@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- Service 設定 -->
-    <!-- Call Center -->
+    <!-- サービス設定 -->
+    <!-- コールセンター -->
     <types>
         <members>*</members>
         <name>CallCenter</name>
@@ -21,32 +21,32 @@
         <members>*</members>
         <name>EntitlementTemplate</name>
     </types>
-    <!-- Messaging チャネル -->
+    <!-- メッセージングチャネル -->
     <types>
         <members>*</members>
         <name>MessagingChannel</name>
     </types>
-    <!-- Embedded Service Config -->
+    <!-- 組み込みサービス設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceConfig</name>
     </types>
-    <!-- Embedded Service Branding -->
+    <!-- 組み込みサービスのブランド設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceBranding</name>
     </types>
-    <!-- Embedded Service Flow Config -->
+    <!-- 組み込みサービスのフロー設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceFlowConfig</name>
     </types>
-    <!-- Embedded Service Menu Settings -->
+    <!-- 組み込みサービスのメニュー設定 -->
     <types>
         <members>*</members>
         <name>EmbeddedServiceMenuSettings</name>
     </types>
-    <!-- Live Chat Sensitive Data Rule -->
+    <!-- Live Chat 機密データルール -->
     <types>
         <members>*</members>
         <name>LiveChatSensitiveDataRule</name>

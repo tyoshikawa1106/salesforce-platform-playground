@@ -16,12 +16,12 @@
         <members>*</members>
         <name>CustomNotificationType</name>
     </types>
-    <!-- Email Services Function -->
+    <!-- メールサービス関数 -->
     <types>
         <members>*</members>
         <name>EmailServicesFunction</name>
     </types>
-    <!-- Apex Email Notifications -->
+    <!-- Apex 例外メール通知設定 -->
     <types>
         <members>*</members>
         <name>ApexEmailNotifications</name>

@@ -6,32 +6,32 @@
         <members>*</members>
         <name>ExternalDataSource</name>
     </types>
-    <!-- External Service Registration -->
+    <!-- 外部サービス登録 -->
     <types>
         <members>*</members>
         <name>ExternalServiceRegistration</name>
     </types>
-    <!-- API Named Query -->
+    <!-- API 名前付きクエリ -->
     <types>
         <members>*</members>
         <name>ApiNamedQuery</name>
     </types>
-    <!-- Canvas Metadata -->
+    <!-- Canvas メタデータ -->
     <types>
         <members>*</members>
         <name>CanvasMetadata</name>
     </types>
-    <!-- Cataloged API -->
+    <!-- API カタログ定義 -->
     <types>
         <members>*</members>
         <name>CatalogedApi</name>
     </types>
-    <!-- Cataloged API Artifact Version Info -->
+    <!-- API カタログ成果物バージョン情報 -->
     <types>
         <members>*</members>
         <name>CatalogedApiArtifactVersionInfo</name>
     </types>
-    <!-- Cataloged API Version -->
+    <!-- API カタログバージョン -->
     <types>
         <members>*</members>
         <name>CatalogedApiVersion</name>
@@ -46,17 +46,17 @@
         <members>*</members>
         <name>OutboundNetworkConnection</name>
     </types>
-    <!-- Invocable Action Extension -->
+    <!-- 呼び出し可能アクション拡張 -->
     <types>
         <members>*</members>
         <name>InvocableActionExtension</name>
     </types>
-    <!-- MCP Server Definition -->
+    <!-- MCP サーバー定義 -->
     <types>
         <members>*</members>
         <name>McpServerDefinition</name>
     </types>
-    <!-- External Data Transform Object -->
+    <!-- 外部データ変換オブジェクト -->
     <types>
         <members>*</members>
         <name>ExternalDataTranObject</name>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 画面 / レイアウト -->
-    <!-- FlexiPage -->
+    <!-- Lightning ページ -->
     <types>
         <members>*</members>
         <name>FlexiPage</name>
@@ -26,7 +26,7 @@
         <members>*</members>
         <name>LightningExperienceTheme</name>
     </types>
-    <!-- Branding Set -->
+    <!-- ブランド設定 -->
     <types>
         <members>*</members>
         <name>BrandingSet</name>

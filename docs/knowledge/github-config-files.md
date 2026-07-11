@@ -17,7 +17,6 @@ pull request と `main` push で実行する CI です。
 | `npm audit --omit=dev`                            | production dependency の脆弱性確認。                           |
 | `npm run prettier:verify`                         | formatter 確認。                                               |
 | `npm run docs:check`                              | docs のリンク、見出し、ファイル名、索引到達性を確認。          |
-| `npm run manifest:check`                          | package manifest と docs の整合性を確認。                      |
 | `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                           |
 | Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。 |
 | Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。   |

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- モバイル / オフライン -->
-    <!-- Briefcase Definition -->
+    <!-- ブリーフケース定義 -->
     <types>
         <members>*</members>
         <name>BriefcaseDefinition</name>
     </types>
-    <!-- Mobile Application Detail -->
+    <!-- モバイルアプリケーション詳細 -->
     <types>
         <members>*</members>
         <name>MobileApplicationDetail</name>

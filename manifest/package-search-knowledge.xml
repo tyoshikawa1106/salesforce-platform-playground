@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 検索 / ナレッジ補助 -->
-    <!-- Search Customization -->
+    <!-- 検索カスタマイズ -->
     <types>
         <members>*</members>
         <name>SearchCustomization</name>
     </types>
-    <!-- Search Org Wide Object Config -->
+    <!-- 組織全体のオブジェクト検索設定 -->
     <types>
         <members>*</members>
         <name>SearchOrgWideObjectConfig</name>
@@ -16,7 +16,7 @@
         <members>*</members>
         <name>SynonymDictionary</name>
     </types>
-    <!-- Topics for Objects -->
+    <!-- オブジェクトのトピック設定 -->
     <types>
         <members>*</members>
         <name>TopicsForObjects</name>
