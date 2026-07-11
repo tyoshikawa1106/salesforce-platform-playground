@@ -2,10 +2,10 @@
 
 この文書は、`manifest/package.xml` に含めている Salesforce メタデータの主要カテゴリを整理します。
 
-この manifest は API 67.0 を前提に、メタデータ型 222 件を並べています。
+この manifest は API 67.0 を前提に、メタデータ型 218 件を並べています。
 
 - `manifest/package.xml` は広めの取得用 manifest。
-- `manifest/package-*.xml` は同じ 222 件をカテゴリ別に分割した補助 manifest。分割合計が `manifest/package.xml` と一致する状態を保つ。
+- `manifest/package-*.xml` は同じ 218 件をカテゴリ別に分割した補助 manifest。分割合計が `manifest/package.xml` と一致する状態を保つ。
 - `CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残す。
 
 ## 分割 manifest
@@ -22,10 +22,10 @@
 | `manifest/package-org-dependent.xml`             | 組織依存メタデータ                | 2    |
 | `manifest/package-auth-security.xml`             | 認証 / セキュリティ               | 31   |
 | `manifest/package-integration-api.xml`           | 外部接続 / API                    | 12   |
-| `manifest/package-events-messaging.xml`          | イベント / メッセージング         | 6    |
+| `manifest/package-events-messaging.xml`          | イベント / メッセージング         | 5    |
 | `manifest/package-analytics.xml`                 | レポート / 分析                   | 5    |
 | `manifest/package-email-notification.xml`        | メール / 通知                     | 7    |
-| `manifest/package-experience-sites.xml`          | Experience / サイト               | 10   |
+| `manifest/package-experience-sites.xml`          | Experience / サイト               | 9    |
 | `manifest/package-service.xml`                   | サービス設定                      | 10   |
 | `manifest/package-mobile-offline.xml`            | モバイル / オフライン             | 2    |
 | `manifest/package-ai-ml.xml`                     | AI / 機械学習                     | 7    |
@@ -33,10 +33,10 @@
 | `manifest/package-search-knowledge.xml`          | 検索 / ナレッジ補助               | 4    |
 | `manifest/package-org-settings.xml`              | 組織設定                          | 8    |
 | `manifest/package-classic-ui.xml`                | Classic UI                        | 3    |
-| `manifest/package-ui-extensions.xml`             | UI / アクション拡張               | 18   |
+| `manifest/package-ui-extensions.xml`             | UI / アクション拡張               | 17   |
 | `manifest/package-conversation-intelligence.xml` | 会話インテリジェンス              | 3    |
 | `manifest/package-payments.xml`                  | 決済                              | 2    |
-| `manifest/package-platform-features.xml`         | プラットフォーム機能              | 10   |
+| `manifest/package-platform-features.xml`         | プラットフォーム機能              | 9    |
 | `manifest/package-translations.xml`              | 翻訳                              | 4    |
 
 ## コード / UI コンポーネント
@@ -249,7 +249,6 @@
 | `PlatformEventSubscriberConfig` | プラットフォームイベント購読者設定       |
 | `ManagedEventSubscription`      | 管理イベント購読設定                     |
 | `EventRelayConfig`              | イベントリレー設定                       |
-| `PlatformEventMigration`        | プラットフォームイベント移行設定         |
 
 ## レポート / 分析
 
@@ -286,7 +285,6 @@
 | `ChannelLayout`                | チャネルレイアウト                  |
 | `LightningBolt`                | Lightning Bolt ソリューション       |
 | `DigitalExperience`            | デジタルエクスペリエンス            |
-| `ExperienceContainer`          | エクスペリエンスコンテナ            |
 
 ## サービス設定
 
@@ -383,7 +381,6 @@
 | `RedirectWhitelistUrl`       | リダイレクト許可 URL                   |
 | `UIBundle`                   | UI バンドル                            |
 | `UiFormatSpecificationSet`   | UI 表示形式仕様セット                  |
-| `SurveyStyleSet`             | アンケートスタイルセット               |
 
 ## 会話インテリジェンス
 
@@ -413,7 +410,6 @@
 | `FeatureParameterBoolean`   | Boolean 型機能パラメーター     |
 | `FeatureParameterDate`      | 日付型機能パラメーター         |
 | `FeatureParameterInteger`   | 整数型機能パラメーター         |
-| `TagSet`                    | タグセット                     |
 
 ## 翻訳
 
@@ -426,9 +422,13 @@
 
 ## 取得に注意が必要なもの
 
-| 対象                   | 扱い                                                                         |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| `FlowDefinition`       | 本番 / Sandbox で差分が出やすいため `package-org-dependent.xml` に分離する。 |
-| `Profile`              | 本番 / Sandbox で差分が出やすいため `package-org-dependent.xml` に分離する。 |
-| `Report` / `Dashboard` | `*` 指定では取得エラーになるため含めない。                                   |
-| `Bot` / `BotVersion`   | Playground 組織で利用できないため含めない。                                  |
+| 対象                     | 扱い                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| `FlowDefinition`         | 本番 / Sandbox で差分が出やすいため `package-org-dependent.xml` に分離する。 |
+| `Profile`                | 本番 / Sandbox で差分が出やすいため `package-org-dependent.xml` に分離する。 |
+| `ExperienceContainer`    | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `PlatformEventMigration` | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `SurveyStyleSet`         | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `TagSet`                 | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。        |
+| `Report` / `Dashboard`   | `*` 指定では取得エラーになるため含めない。                                   |
+| `Bot` / `BotVersion`     | Playground 組織で利用できないため含めない。                                  |

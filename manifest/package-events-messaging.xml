@@ -26,10 +26,5 @@
         <members>*</members>
         <name>EventRelayConfig</name>
     </types>
-    <!-- プラットフォームイベント移行設定 -->
-    <types>
-        <members>*</members>
-        <name>PlatformEventMigration</name>
-    </types>
     <version>67.0</version>
 </Package>

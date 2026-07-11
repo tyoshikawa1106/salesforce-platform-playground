@@ -19,7 +19,5 @@
     <types><members>*</members><name>FeatureParameterDate</name></types>
     <!-- 整数型機能パラメーター -->
     <types><members>*</members><name>FeatureParameterInteger</name></types>
-    <!-- タグセット -->
-    <types><members>*</members><name>TagSet</name></types>
     <version>67.0</version>
 </Package>

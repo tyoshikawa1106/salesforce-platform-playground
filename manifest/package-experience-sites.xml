@@ -46,10 +46,5 @@
         <members>*</members>
         <name>DigitalExperience</name>
     </types>
-    <!-- エクスペリエンスコンテナ -->
-    <types>
-        <members>*</members>
-        <name>ExperienceContainer</name>
-    </types>
     <version>67.0</version>
 </Package>

@@ -35,7 +35,5 @@
     <types><members>*</members><name>UIBundle</name></types>
     <!-- UI 表示形式仕様セット -->
     <types><members>*</members><name>UiFormatSpecificationSet</name></types>
-    <!-- アンケートスタイルセット -->
-    <types><members>*</members><name>SurveyStyleSet</name></types>
     <version>67.0</version>
 </Package>

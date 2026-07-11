@@ -616,11 +616,6 @@
         <members>*</members>
         <name>EventRelayConfig</name>
     </types>
-    <!-- プラットフォームイベント移行設定 -->
-    <types>
-        <members>*</members>
-        <name>PlatformEventMigration</name>
-    </types>
     <!-- レポート / 分析 -->
     <!-- カスタムレポートタイプ -->
     <types>
@@ -728,11 +723,6 @@
     <types>
         <members>*</members>
         <name>DigitalExperience</name>
-    </types>
-    <!-- エクスペリエンスコンテナ -->
-    <types>
-        <members>*</members>
-        <name>ExperienceContainer</name>
     </types>
     <!-- サービス設定 -->
     <!-- コールセンター -->
@@ -1112,11 +1102,6 @@
         <members>*</members>
         <name>UiFormatSpecificationSet</name>
     </types>
-    <!-- アンケートスタイルセット -->
-    <types>
-        <members>*</members>
-        <name>SurveyStyleSet</name>
-    </types>
     <!-- Boolean 型機能パラメーター -->
     <types>
         <members>*</members>
@@ -1131,11 +1116,6 @@
     <types>
         <members>*</members>
         <name>FeatureParameterInteger</name>
-    </types>
-    <!-- タグセット -->
-    <types>
-        <members>*</members>
-        <name>TagSet</name>
     </types>
     <!-- 翻訳 -->
     <!-- 言語別翻訳 -->
