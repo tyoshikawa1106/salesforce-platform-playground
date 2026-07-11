@@ -341,14 +341,21 @@ catch 句の例外変数名は `e` にします。
 
 - テストクラス名は原則 `<対象名>Test` にする。
 - テストメソッド名は、期待する振る舞いが読める名前にする。
+- テストメソッドの `@IsTest` の上には、確認できる振る舞いを短い ApexDoc コメントで書く。
 - テストデータはテスト内で作成し、組織内の既存データに依存しない。
-- 既存の `TestDataFactory` が使える場合は優先し、作成だけの helper と insert する helper の責務を混ぜない。
-- `System.runAs(...)` に渡す `User` は、原則としてテストクラス先頭の `private static User testUser = ...;` で一度取得し、各テストメソッド内で毎回 User query や user 取得 helper を呼ばない。
-- 既存の `TestDataFactory.currentUser()` などがある場合は使ってよい。まだ user 取得 helper がないリポジトリでは、`private static User testUser = new User(Id = UserInfo.getUserId());` を使い、`System.runAs(...)` のためだけに helper 作成や User query を増やさない。
+- 既存の `TestDataFactory` が使える場合は優先する。
+- `TestDataFactory` のレコード作成 helper は原則 1 レコード作成に限定し、複数件が必要な場合はテストクラス側で繰り返し呼び出す。
+- `TestDataFactory` のレコード作成 helper は、`createAccount(..., Boolean isInsert)` のように `Boolean isInsert` で保存有無を切り替え、`insertAccount(...)` のような保存専用 helper と分けない。
+- `TestDataFactory` の `Boolean isInsert` が Code Analyzer の `PMD.AvoidBooleanMethodParameters` に該当する場合は、TestDataFactory の保存有無を明示する契約として限定的に抑止する。
+- `TestDataFactory` 内の SObject 初期化は `new Account();` の後に `accountRecord.Name = ...;` のように項目ごとに代入し、どの項目へ値を入れるかを 1 行ずつ分かる形にする。
+- `System.runAs(...)` に渡す `User` は、原則としてテストクラス先頭の `private static User testUser = TestDataFactory.getTestUser();` で一度取得し、各テストメソッド内で毎回 User query や user 取得 helper を呼ばない。
+- このリポジトリでは、現在ログインユーザーをテスト実行ユーザーとして扱う。テスト側はユーザー取得方法を直接書かず、`TestDataFactory.getTestUser()` を使う。
 - 権限や profile の違いを確認するテストでは、必要な user をテストクラス先頭で用途別に用意し、メソッド内では `System.runAs(testUser)` のように参照する。
 - 再利用するテストデータ作成クラスは、作成データの契約もテストで確認する。
 - 正常系だけでなく、権限、入力不足、例外、bulk 件数、変更なし record など変更範囲に関係する境界も確認する。
-- 各テストメソッドの中で必ず `System.runAs(...)` を宣言し、テスト対象の DML や assertion をその中で実行する。
+- 各テストメソッドの中で必ず `System.runAs(...)` を宣言し、テスト対象の処理をその中で実行する。
+- 各テストメソッドの `System.runAs(...)` 内では、`Test.startTest()` と `Test.stopTest()` を必ず宣言する。
+- `System.runAs(...)` ブロックの前後には空行を入れる。
 - `System.runAs(...)` は、ApexUnitTestClassShouldHaveRunAs などの Code Analyzer ルールへの対応だけでなく、非設定オブジェクトと設定オブジェクトの DML が同じ transaction に混在して `MIXED_DML_OPERATION` になるリスクを避けるためにも使う。
 - 検証には `System.assert`、`System.assertEquals`、`System.assertNotEquals` ではなく `Assert` クラスの関数を使う。
 - `SeeAllData=true` は、既存データが必要な理由を説明できる場合だけ使う。
@@ -359,15 +366,23 @@ catch 句の例外変数名は `e` にします。
 ```apex
 @IsTest
 private class MyServiceTest {
-    private static User testUser = new User(Id = UserInfo.getUserId());
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 有効な入力から取引先を作成
+     */
     @IsTest
     static void createsRecordWhenInputIsValid() {
         System.runAs(testUser) {
-            Account actual = new Account(Name = 'Example');
+            Test.startTest();
 
+            Account actual = new Account();
+            actual.Name = 'Example';
+
+            Test.stopTest();
             Assert.areEqual('Example', actual.Name);
         }
+
     }
 }
 ```

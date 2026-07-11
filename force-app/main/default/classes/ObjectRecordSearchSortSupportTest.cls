@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchSortSupportTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
     static void setupData() {
@@ -14,10 +14,14 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * ソート指定なしの場合は既定ソート条件を作成
+     */
     @IsTest
     static void shouldCreateDefaultSortSpecWhenSortRequestIsMissing() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -41,6 +45,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * 許可項目のソート指定からソート条件を作成
+     */
     @IsTest
     static void shouldCreateRequestedSortSpecWhenFieldIsAllowed() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -48,6 +55,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         request.sortBy = 'Industry';
         request.sortDirection = 'desc';
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -71,12 +79,16 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * ソート不可項目は Name ソートへ切り替え
+     */
     @IsTest
     static void shouldFallbackToNameWhenSortFieldIsNotSortable() {
         ObjectRecordSearchContext context = createAccountContextWithDescription();
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Description';
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -95,6 +107,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * 次ページトークンを作成して復元
+     */
     @IsTest
     static void shouldCreateAndParseNextPageToken() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -105,6 +120,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             request
         );
         ObjectRecordSearchSortSupport.PageCursor cursor;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -128,6 +144,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * Name ソート用ページトークンを作成して復元
+     */
     @IsTest
     static void shouldCreateAndParseNameSortPageToken() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -136,6 +155,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             new ObjectRecordSearchRequestWrapper()
         );
         ObjectRecordSearchSortSupport.PageCursor cursor;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -154,6 +174,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * 行がない場合はページトークンを返さない
+     */
     @IsTest
     static void shouldReturnNullTokenWhenRowsAreMissing() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -180,6 +203,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * 旧形式の Name ページトークンを復元
+     */
     @IsTest
     static void shouldParseLegacyNamePageToken() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -195,6 +221,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             }
         );
         ObjectRecordSearchSortSupport.PageCursor cursor;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -213,6 +240,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * 昇順ソート用のカーソル WHERE 条件を作成
+     */
     @IsTest
     static void shouldCreateCursorWhereClauseForAscendingSort() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -224,6 +254,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         cursor.sortValue = 'Cursor Account';
         cursor.recordId = getTestAccountId();
         String whereClause;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -245,6 +276,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * null ソート値用のカーソル WHERE 条件を作成
+     */
     @IsTest
     static void shouldCreateCursorWhereClauseForNullSortValue() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -255,6 +289,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.recordId = getTestAccountId();
         String whereClause;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -272,6 +307,9 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * ソート項目と異なるページトークンは例外を送出
+     */
     @IsTest
     static void shouldThrowWhenPageTokenDoesNotMatchSortField() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -306,8 +344,12 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 壊れたページトークンはドメイン例外へ変換
+     */
     @IsTest
     static void shouldThrowDomainExceptionWhenPageTokenIsMalformed() {
         ObjectRecordSearchContext context = createAccountContext();

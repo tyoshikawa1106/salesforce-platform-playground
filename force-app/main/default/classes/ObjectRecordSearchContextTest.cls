@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectRecordSearchContextTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 検索コンテキストから設定と許可項目を作成
+     */
     @IsTest
     static void shouldCreateConfigAndAllowedFields() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -18,6 +21,7 @@ private with sharing class ObjectRecordSearchContextTest {
             new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
         };
         ObjectRecordSearchContext context;
+
         System.runAs(testUser) {
             Test.startTest();
 

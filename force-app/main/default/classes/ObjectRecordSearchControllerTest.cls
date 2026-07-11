@@ -4,21 +4,27 @@
 @IsTest
 private with sharing class ObjectRecordSearchControllerTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
     static void setupTestData() {
-        List<Account> accounts = TestDataFactory.createAccounts(3);
-        accounts[0].Name = '検索対象 Alpha';
-        accounts[0].Industry = 'Technology';
-        accounts[0].Type = 'Prospect';
-        accounts[0].BillingState = '東京都';
-        accounts[0].BillingCity = '千代田区';
-        accounts[1].Name = '検索対象 Beta';
-        accounts[2].Name = '削除対象 Gamma';
+        List<Account> accounts = new List<Account>();
+
+        Account alphaAccount = TestDataFactory.createAccount('検索対象 Alpha', false);
+        alphaAccount.Industry = 'Technology';
+        alphaAccount.Type = 'Prospect';
+        alphaAccount.BillingState = '東京都';
+        alphaAccount.BillingCity = '千代田区';
+        accounts.add(alphaAccount);
+
+        accounts.add(TestDataFactory.createAccount('検索対象 Beta', false));
+        accounts.add(TestDataFactory.createAccount('削除対象 Gamma', false));
         insert accounts;
     }
 
+    /**
+     * メトリクスキーに対応する検索設定を返却
+     */
     @IsTest
     static void shouldReturnObjectConfigForMetricKey() {
         ObjectRecordSearchConfigWrapper config;
@@ -109,6 +115,9 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
     }
 
+    /**
+     * Name 項目の検索語でレコード一覧を返却
+     */
     @IsTest
     static void shouldSearchRecordsByNameField() {
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
@@ -162,6 +171,9 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
     }
 
+    /**
+     * 検索語なしでも初期表示用レコード一覧を返却
+     */
     @IsTest
     static void shouldReturnRowsWhenSearchTermIsBlank() {
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
@@ -195,6 +207,9 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
     }
 
+    /**
+     * 削除 ID が null の場合は空の削除結果を返却
+     */
     @IsTest
     static void shouldReturnEmptyDeleteResultWhenRecordIdsAreNull() {
         ObjectRecordSearchDeleteWrapper result;
@@ -227,6 +242,9 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
     }
 
+    /**
+     * 削除 ID が空の場合は空の削除結果を返却
+     */
     @IsTest
     static void shouldReturnEmptyDeleteResultWhenRecordIdsAreEmpty() {
         ObjectRecordSearchDeleteWrapper result;
@@ -259,6 +277,9 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
     }
 
+    /**
+     * 未対応メトリクスキーは画面向けエラーへ変換
+     */
     @IsTest
     static void shouldThrowUserFacingErrorWhenMetricKeyIsUnsupported() {
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
@@ -282,8 +303,12 @@ private with sharing class ObjectRecordSearchControllerTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 不正なページトークンは画面向けエラーへ変換
+     */
     @IsTest
     static void shouldThrowUserFacingErrorWhenPageTokenIsInvalid() {
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
@@ -307,8 +332,12 @@ private with sharing class ObjectRecordSearchControllerTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 指定されたレコードを削除して結果を返却
+     */
     @IsTest
     static void shouldDeleteSelectedRecords() {
         Account target = [
@@ -318,6 +347,7 @@ private with sharing class ObjectRecordSearchControllerTest {
             LIMIT 1
         ];
         ObjectRecordSearchDeleteWrapper result;
+
         System.runAs(testUser) {
             Test.startTest();
 

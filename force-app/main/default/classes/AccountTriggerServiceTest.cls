@@ -4,19 +4,23 @@
 @IsTest
 private with sharing class AccountTriggerServiceTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
     private static AccountTriggerService service = new AccountTriggerService();
 
+    /**
+     * 新規取引先名の法人格略称を正式名称へ補正
+     */
     @IsTest
     static void shouldNormalizeAccountNamesWhenInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('㈱テスト'),
-            TestDataFactory.createAccount('テスト(有)支店')
+            TestDataFactory.createAccount('㈱テスト', false),
+            TestDataFactory.createAccount('テスト(有)支店', false)
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -39,10 +43,13 @@ private with sharing class AccountTriggerServiceTest {
         );
     }
 
+    /**
+     * 変更された取引先名の法人格略称だけを補正
+     */
     @IsTest
     static void shouldNormalizeChangedAccountNamesWhenUpdated() {
         // 準備
-        Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
+        Account accountRecord = TestDataFactory.createAccount('テスト取引先', true);
         // 更新前後の名称差分を発生させる入力値
         Account updatedAccount = new Account(
             Id = accountRecord.Id,
@@ -54,6 +61,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -71,10 +79,13 @@ private with sharing class AccountTriggerServiceTest {
         );
     }
 
+    /**
+     * 未変更の取引先名は補正処理を行わず保持
+     */
     @IsTest
     static void shouldSkipUnchangedAccountNamesWhenUpdated() {
         // 準備
-        Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
+        Account savedAccount = TestDataFactory.createAccount('テスト取引先', true);
         Account accountRecord = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'
@@ -88,6 +99,7 @@ private with sharing class AccountTriggerServiceTest {
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -104,12 +116,16 @@ private with sharing class AccountTriggerServiceTest {
         );
     }
 
+    /**
+     * 空の新規取引先一覧は処理せず完了
+     */
     @IsTest
     static void shouldDoNothingWhenInsertedAccountsEmpty() {
         // 準備
         List<Account> accounts = new List<Account>();
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
@@ -121,16 +137,20 @@ private with sharing class AccountTriggerServiceTest {
         Assert.areEqual(0, accounts.size(), '空の入力は空のままにする必要あり');
     }
 
+    /**
+     * null と空白の取引先名は補正対象外として保持
+     */
     @IsTest
     static void shouldSkipNullAndBlankNamesWhenInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
             null,
-            TestDataFactory.createAccount(' '),
-            TestDataFactory.createAccount('㈱テスト')
+            TestDataFactory.createAccount(' ', false),
+            TestDataFactory.createAccount('㈱テスト', false)
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
             service.normalizeAccountNamesForInsert(accounts);
@@ -152,16 +172,20 @@ private with sharing class AccountTriggerServiceTest {
         );
     }
 
+    /**
+     * 更新前レコードが見つからない場合も新名称を補正
+     */
     @IsTest
     static void shouldNormalizeWhenUpdatedOldAccountIsMissing() {
         // 準備
-        Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
+        Account savedAccount = TestDataFactory.createAccount('テスト取引先', true);
         Account updatedAccount = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'
         );
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -178,16 +202,20 @@ private with sharing class AccountTriggerServiceTest {
         );
     }
 
+    /**
+     * 更新前レコードが null の場合も新名称を補正
+     */
     @IsTest
     static void shouldNormalizeWhenUpdatedOldAccountIsNull() {
         // 準備
-        Account savedAccount = TestDataFactory.insertAccount('テスト取引先');
+        Account savedAccount = TestDataFactory.createAccount('テスト取引先', true);
         Account updatedAccount = new Account(
             Id = savedAccount.Id,
             Name = '㈲テスト'
         );
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 

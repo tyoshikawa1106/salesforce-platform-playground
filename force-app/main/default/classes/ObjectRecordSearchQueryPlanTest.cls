@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectRecordSearchQueryPlanTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 検索条件とカーソル条件を含む SOQL を作成
+     */
     @IsTest
     static void shouldCreateQueryWithSearchAndCursorConditions() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -19,7 +22,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         );
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.sortValue = 'Technology';
-        cursor.recordId = TestDataFactory.insertAccount('Query Cursor').Id;
+        cursor.recordId = TestDataFactory.createAccount('Query Cursor', true).Id;
         ObjectRecordSearchQueryPlan.SearchQueryRequest queryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         queryRequest.context = context;
         queryRequest.searchRequest = request;
@@ -27,6 +30,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         queryRequest.cursor = cursor;
         queryRequest.fetchSize = 51;
         ObjectRecordSearchQueryPlan.SearchQuery query;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -64,6 +68,9 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         );
     }
 
+    /**
+     * 検索条件とカーソル条件なしで基本 SOQL を作成
+     */
     @IsTest
     static void shouldCreateQueryWithoutWhereWhenSearchAndCursorAreMissing() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -78,6 +85,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         queryRequest.sortSpec = sortSpec;
         queryRequest.fetchSize = 51;
         ObjectRecordSearchQueryPlan.SearchQuery query;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -97,8 +105,12 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         );
     }
 
+    /**
+     * 検索リクエスト未指定時は例外を送出
+     */
     @IsTest
     static void shouldThrowWhenRequestIsMissing() {
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -114,8 +126,12 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 許可されていないソート項目は例外を送出
+     */
     @IsTest
     static void shouldThrowWhenSortFieldIsNotAllowed() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -141,6 +157,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
 
             Test.stopTest();
         }
+
     }
 
     private static ObjectRecordSearchContext createAccountContext() {

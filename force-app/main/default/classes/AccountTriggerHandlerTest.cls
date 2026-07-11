@@ -4,21 +4,25 @@
 @IsTest
 private with sharing class AccountTriggerHandlerTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 新規取引先の法人格略称を正式名称へ補正
+     */
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('㈱テスト'),
-            TestDataFactory.createAccount('（株）テスト'),
-            TestDataFactory.createAccount('(株)テスト'),
-            TestDataFactory.createAccount('㈲テスト'),
-            TestDataFactory.createAccount('（有）テスト'),
-            TestDataFactory.createAccount('(有)テスト')
+            TestDataFactory.createAccount('㈱テスト', false),
+            TestDataFactory.createAccount('（株）テスト', false),
+            TestDataFactory.createAccount('(株)テスト', false),
+            TestDataFactory.createAccount('㈲テスト', false),
+            TestDataFactory.createAccount('（有）テスト', false),
+            TestDataFactory.createAccount('(有)テスト', false)
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -62,13 +66,17 @@ private with sharing class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * 名称変更時の法人格略称を正式名称へ補正
+     */
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenNameUpdated() {
         // 準備
-        Account accountRecord = TestDataFactory.insertAccount('テスト取引先');
+        Account accountRecord = TestDataFactory.createAccount('テスト取引先', true);
         accountRecord.Name = 'テスト（株）';
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -87,15 +95,19 @@ private with sharing class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * 法人格略称の前後位置を保って正式名称へ補正
+     */
     @IsTest
     static void shouldKeepCompanyTypePositionWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('テスト（株）'),
-            TestDataFactory.createAccount('テスト(有)')
+            TestDataFactory.createAccount('テスト（株）', false),
+            TestDataFactory.createAccount('テスト(有)', false)
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -119,14 +131,19 @@ private with sharing class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * 複数の法人格略称を含む取引先名を正式名称へ補正
+     */
     @IsTest
     static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
         // 準備
         Account accountRecord = TestDataFactory.createAccount(
-            '㈱テスト(有)支店'
+            '㈱テスト(有)支店',
+            false
         );
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -145,12 +162,16 @@ private with sharing class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * 正式名称の法人格表記は変更せず保持
+     */
     @IsTest
     static void shouldKeepFormalCompanyNamesWhenAlreadyNormalized() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount('株式会社テスト');
+        Account accountRecord = TestDataFactory.createAccount('株式会社テスト', false);
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -169,17 +190,21 @@ private with sharing class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * 不完全な法人格略称は補正対象外として保持
+     */
     @IsTest
     static void shouldKeepIncompleteAbbreviationsWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('株）テスト'),
-            TestDataFactory.createAccount('（株テスト'),
-            TestDataFactory.createAccount('有)テスト'),
-            TestDataFactory.createAccount('(有テスト')
+            TestDataFactory.createAccount('株）テスト', false),
+            TestDataFactory.createAccount('（株テスト', false),
+            TestDataFactory.createAccount('有)テスト', false),
+            TestDataFactory.createAccount('(有テスト', false)
         };
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -213,16 +238,20 @@ private with sharing class AccountTriggerHandlerTest {
         );
     }
 
+    /**
+     * 一括作成された取引先名の法人格略称を補正
+     */
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenBulkInserted() {
         // 準備
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 251; index++) {
-            Account accountRecord = TestDataFactory.createAccount('㈱テスト ' + index);
+            Account accountRecord = TestDataFactory.createAccount('㈱テスト ' + index, false);
             accounts.add(accountRecord);
         }
 
         // 実行
+
         System.runAs(testUser) {
             Test.startTest();
 

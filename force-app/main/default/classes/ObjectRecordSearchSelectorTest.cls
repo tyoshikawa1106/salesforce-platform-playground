@@ -4,22 +4,33 @@
 @IsTest
 private with sharing class ObjectRecordSearchSelectorTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
     static void setupTestData() {
-        List<Account> accounts = TestDataFactory.createAccounts(4);
-        accounts[0].Name = 'Selector Alpha';
-        accounts[0].Industry = 'Technology';
-        accounts[1].Name = 'Selector Beta';
-        accounts[1].Industry = 'Finance';
-        accounts[2].Name = 'Selector Delete One';
-        accounts[2].Industry = 'Healthcare';
-        accounts[3].Name = 'Selector Delete Two';
-        accounts[3].Industry = 'Retail';
+        List<Account> accounts = new List<Account>();
+
+        Account alphaAccount = TestDataFactory.createAccount('Selector Alpha', false);
+        alphaAccount.Industry = 'Technology';
+        accounts.add(alphaAccount);
+
+        Account betaAccount = TestDataFactory.createAccount('Selector Beta', false);
+        betaAccount.Industry = 'Finance';
+        accounts.add(betaAccount);
+
+        Account deleteOneAccount = TestDataFactory.createAccount('Selector Delete One', false);
+        deleteOneAccount.Industry = 'Healthcare';
+        accounts.add(deleteOneAccount);
+
+        Account deleteTwoAccount = TestDataFactory.createAccount('Selector Delete Two', false);
+        deleteTwoAccount.Industry = 'Retail';
+        accounts.add(deleteTwoAccount);
         insert accounts;
     }
 
+    /**
+     * 参照可能なオブジェクトの describe を返却
+     */
     @IsTest
     static void getObjectDescribeShouldReturnAccessibleObject() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -44,6 +55,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
+    /**
+     * Name 項目の describe を返却
+     */
     @IsTest
     static void getNameFieldDescribeShouldReturnNameField() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -68,6 +82,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
+    /**
+     * 組み立て済み検索条件でレコードを取得
+     */
     @IsTest
     static void searchRecordsShouldRunBoundQueryPlan() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -96,6 +113,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
+    /**
+     * 検索条件未指定時は例外を送出
+     */
     @IsTest
     static void searchRecordsShouldThrowWhenQueryPlanIsMissing() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -115,8 +135,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 指定 ID に一致するレコードを取得
+     */
     @IsTest
     static void getRecordsByIdShouldReturnMatchingRows() {
         Account target = [
@@ -151,6 +175,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
+    /**
+     * ID 未指定時は空リストを返却
+     */
     @IsTest
     static void getRecordsByIdShouldReturnEmptyListWhenIdsAreMissing() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -181,6 +208,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
+    /**
+     * 未対応オブジェクトの ID 取得は例外を送出
+     */
     @IsTest
     static void getRecordsByIdShouldThrowWhenObjectIsUnsupported() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -203,8 +233,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 指定されたレコードを削除
+     */
     @IsTest
     static void deleteRecordsShouldDeleteSuppliedRows() {
         List<Account> deleteTargets = [
@@ -241,6 +275,9 @@ private with sharing class ObjectRecordSearchSelectorTest {
         );
     }
 
+    /**
+     * 未知のオブジェクト API 名は例外を送出
+     */
     @IsTest
     static void getObjectDescribeShouldThrowWhenObjectIsUnknown() {
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
@@ -260,6 +297,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
             Test.stopTest();
         }
+
     }
 
     private static ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(String searchTerm) {

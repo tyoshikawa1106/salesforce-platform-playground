@@ -4,19 +4,26 @@
 @IsTest
 private with sharing class ObjectRecordSearchResultWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 検索結果と次ページ有無を公開
+     */
     @IsTest
     static void shouldExposeResultValuesAndNextPageState() {
         ObjectRecordSearchConfigWrapper config = createConfigWrapper();
         ObjectRecordSearchResultWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchResultWrapper(
                 config,
                 new List<ObjectRecordSearchRowWrapper>()
             )
                 .withPageState(50, 2, 'next-token');
+
+            Test.stopTest();
         }
 
         Assert.areEqual(

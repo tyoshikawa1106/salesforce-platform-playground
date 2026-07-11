@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectRecordSearchExceptionTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 例外メッセージを呼び出し元へ公開
+     */
     @IsTest
     static void shouldExposeExceptionMessage() {
         ObjectRecordSearchException e;

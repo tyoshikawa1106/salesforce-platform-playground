@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * メトリクス定義順でサマリーを作成
+     */
     @IsTest
     static void shouldBuildOrderedSummaryFromMetricValues() {
         // 準備
@@ -14,6 +17,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -74,6 +78,9 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         );
     }
 
+    /**
+     * メトリクス件数が null の場合は 0 件サマリーを作成
+     */
     @IsTest
     static void shouldReturnZeroValuesWhenMetricValuesAreNull() {
         // 準備
@@ -81,6 +88,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -107,6 +115,9 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         );
     }
 
+    /**
+     * メトリクス定義の有無をキーで判定
+     */
     @IsTest
     static void shouldResolveMetricDefinitionPresence() {
         Boolean hasAccounts;

@@ -4,13 +4,18 @@
 @IsTest
 private with sharing class ObjectRecordSearchDeleteWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * コンストラクタで受け取った値を公開
+     */
     @IsTest
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchDeleteWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchDeleteWrapper(
                 2,
                 1,
@@ -18,6 +23,8 @@ private with sharing class ObjectRecordSearchDeleteWrapperTest {
                     '削除できないレコードがありました。権限や関連データを確認してください。'
                 }
             );
+
+            Test.stopTest();
         }
 
         Assert.areEqual(

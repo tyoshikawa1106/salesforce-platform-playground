@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewControllerTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * オブジェクト件数サマリーを画面用に返却
+     */
     @IsTest
     static void shouldReturnObjectMetricSummary() {
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
@@ -13,6 +16,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -35,6 +39,9 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         );
     }
 
+    /**
+     * 集計取得に失敗した場合は画面向けエラーを返却
+     */
     @IsTest
     static void shouldReturnUserFacingErrorWhenSelectorFails() {
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
@@ -56,6 +63,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
             Test.stopTest();
         }
+
     }
 
     /**

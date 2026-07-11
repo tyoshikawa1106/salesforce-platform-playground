@@ -4,12 +4,16 @@
 @IsTest
 private with sharing class ObjectRecordSearchRowWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * レコード行の表示値を公開
+     */
     @IsTest
     static void shouldExposeRecordValues() {
         Account accountRecord = TestDataFactory.createAccount(
-            'Wrapper Row Account'
+            'Wrapper Row Account',
+            false
         );
         accountRecord.Industry = 'Technology';
         insert accountRecord;
@@ -21,6 +25,8 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         ObjectRecordSearchRowWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchRowWrapper(
                 queriedAccount,
                 'Name',
@@ -32,6 +38,8 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
                     )
                 }
             );
+
+            Test.stopTest();
         }
 
         Assert.areEqual(

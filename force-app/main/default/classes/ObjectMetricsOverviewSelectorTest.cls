@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewSelectorTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 存在する各オブジェクトの件数をメトリクス別に返却
+     */
     @IsTest
     static void shouldReturnMetricValuesWhenRecordsExist() {
         // 準備
@@ -14,6 +17,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 実行
         Map<String, ObjectMetricsOverviewSelector.ObjectMetricCount> metricsByKey;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -167,6 +171,9 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         );
     }
 
+    /**
+     * 未対応オブジェクトの件数は 0 として返却
+     */
     @IsTest
     static void shouldReturnZeroWhenObjectApiNameIsUnknown() {
         // 準備
@@ -174,6 +181,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -195,8 +203,12 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         );
     }
 
+    /**
+     * オブジェクト API 名が集計対象か判定
+     */
     @IsTest
     static void shouldExposeWhetherObjectApiNameIsConfigured() {
+
         System.runAs(testUser) {
             Test.startTest();
             // カタログ対象外のオブジェクト名を件数対象から除外
@@ -223,8 +235,12 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
                 '空白のオブジェクト API 名は設定済みメトリクスとして扱わない必要あり'
             );
         }
+
     }
 
+    /**
+     * 空のオブジェクト API 名は 0 件として返却
+     */
     @IsTest
     static void shouldReturnZeroWhenObjectApiNameIsBlank() {
         // 準備
@@ -232,6 +248,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
 
         // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount metricCount;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -253,11 +270,15 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         );
     }
 
+    /**
+     * 表示上限を超えた件数は上限値で返却
+     */
     @IsTest
     static void shouldCapMetricCountWhenDisplayLimitIsReached() {
         // 実行
         ObjectMetricsOverviewSelector.ObjectMetricCount exactCount;
         ObjectMetricsOverviewSelector.ObjectMetricCount cappedCount;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -290,31 +311,29 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
     }
 
     private static void insertObjectMetricRecords() {
-        Account accountRecord = TestDataFactory.insertAccount('件数取引先');
-        TestDataFactory.insertContact(accountRecord, '件数責任者');
+        Account accountRecord = TestDataFactory.createAccount('件数取引先', true);
+        TestDataFactory.createContact(accountRecord, '件数責任者', true);
         insert new Task(Subject = '件数 ToDo', Status = 'Not Started');
         insert new Event(
             Subject = '件数 行動',
             StartDateTime = Datetime.now().addHours(1),
             EndDateTime = Datetime.now().addHours(2)
         );
-        TestDataFactory.insertLead('件数リード', '件数会社');
-        Opportunity opportunityRecord = TestDataFactory.insertOpportunity(
+        TestDataFactory.createLead('件数リード', '件数会社', true);
+        Opportunity opportunityRecord = TestDataFactory.createOpportunity(
             accountRecord,
-            '件数商談'
+            '件数商談',
+            true
         );
-        Product2 productRecord = TestDataFactory.insertProduct('件数商品');
-        PricebookEntry pricebookEntryRecord = TestDataFactory.insertPricebookEntry(
-            productRecord,
-            Test.getStandardPricebookId(),
-            100
-        );
-        TestDataFactory.insertOpportunityLineItem(
+        Product2 productRecord = TestDataFactory.createProduct('件数商品', true);
+        PricebookEntry pricebookEntryRecord = TestDataFactory.createPricebookEntry(productRecord, true);
+        TestDataFactory.createOpportunityLineItem(
             opportunityRecord,
-            pricebookEntryRecord
+            pricebookEntryRecord,
+            true
         );
         insert new Campaign(Name = '件数キャンペーン');
-        TestDataFactory.insertCase('件数ケース');
+        TestDataFactory.createCase('件数ケース', true);
         insert new Contract(
             AccountId = accountRecord.Id,
             Status = 'Draft',

@@ -4,14 +4,18 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewItemWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 定義と件数から表示用メトリクス行を作成
+     */
     @IsTest
     static void shouldCreateItemFromDefinitionAndMetricCount() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         ObjectMetricsOverviewItemWrapper wrapper;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -54,12 +58,16 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         );
     }
 
+    /**
+     * 件数が未取得のメトリクスは 0 件として表示
+     */
     @IsTest
     static void shouldDefaultMissingMetricCountToZero() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'contacts'
         );
         ObjectMetricsOverviewItemWrapper wrapper;
+
         System.runAs(testUser) {
             Test.startTest();
 

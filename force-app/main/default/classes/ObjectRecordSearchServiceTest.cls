@@ -4,18 +4,25 @@
 @IsTest
 private with sharing class ObjectRecordSearchServiceTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
     static void setupTestData() {
-        List<Account> accounts = TestDataFactory.createAccounts(2);
-        accounts[0].Name = 'Service Alpha';
-        accounts[0].Industry = 'Technology';
-        accounts[1].Name = 'Service Beta';
-        accounts[1].Industry = 'Finance';
+        List<Account> accounts = new List<Account>();
+
+        Account alphaAccount = TestDataFactory.createAccount('Service Alpha', false);
+        alphaAccount.Industry = 'Technology';
+        accounts.add(alphaAccount);
+
+        Account betaAccount = TestDataFactory.createAccount('Service Beta', false);
+        betaAccount.Industry = 'Finance';
+        accounts.add(betaAccount);
         insert accounts;
     }
 
+    /**
+     * 取得レコードから検索結果を作成
+     */
     @IsTest
     static void shouldCreateSearchResultFromQueriedRecords() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
@@ -40,6 +47,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             ORDER BY Name
         ];
         ObjectRecordSearchResultWrapper result;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -68,12 +76,16 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
+    /**
+     * ページサイズ超過時に次ページ情報を作成
+     */
     @IsTest
     static void shouldCreatePagedSearchResultWhenMoreThanPageSizeIsFetched() {
-        List<Account> accounts = TestDataFactory.createAccounts(51);
-        for (Integer index = 0; index < accounts.size(); index++) {
-            accounts[index].Name = 'Paged Account ' + index;
-            accounts[index].Industry = 'Technology';
+        List<Account> accounts = new List<Account>();
+        for (Integer index = 0; index < 51; index++) {
+            Account accountRecord = TestDataFactory.createAccount('Paged Account ' + index, false);
+            accountRecord.Industry = 'Technology';
+            accounts.add(accountRecord);
         }
         insert accounts;
         ObjectRecordSearchService service = new ObjectRecordSearchService();
@@ -100,6 +112,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             LIMIT 51
         ];
         ObjectRecordSearchResultWrapper result;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -131,6 +144,9 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
+    /**
+     * DML 結果から削除結果を作成
+     */
     @IsTest
     static void shouldCreateDeleteResultFromDmlResults() {
         Account target = [
@@ -147,6 +163,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchDeleteWrapper result;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -172,6 +189,9 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
+    /**
+     * 未対応メトリクスキーは例外を送出
+     */
     @IsTest
     static void shouldThrowWhenMetricKeyIsUnsupported() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
@@ -191,8 +211,12 @@ private with sharing class ObjectRecordSearchServiceTest {
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 削除リクエストが空の場合は削除不可を返却
+     */
     @IsTest
     static void shouldReturnFalseWhenDeleteRequestIsEmpty() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
@@ -201,6 +225,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             )
             .config;
         Boolean canDelete;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -215,6 +240,9 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
+    /**
+     * 削除設定がない場合は削除不可を返却
+     */
     @IsTest
     static void shouldReturnFalseWhenDeleteConfigIsMissing() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();

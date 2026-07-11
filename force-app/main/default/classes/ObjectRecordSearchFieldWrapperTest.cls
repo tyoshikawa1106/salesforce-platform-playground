@@ -4,18 +4,25 @@
 @IsTest
 private with sharing class ObjectRecordSearchFieldWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * コンストラクタで受け取った値を公開
+     */
     @IsTest
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchFieldWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchFieldWrapper(
                 'Industry',
                 'Industry',
                 'text'
             );
+
+            Test.stopTest();
         }
 
         Assert.areEqual(

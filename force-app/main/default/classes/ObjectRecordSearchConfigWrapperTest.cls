@@ -4,8 +4,11 @@
 @IsTest
 private with sharing class ObjectRecordSearchConfigWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 検索設定のメトリクス定義と操作可否を公開
+     */
     @IsTest
     static void shouldExposeMetricAndAccessValues() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -21,12 +24,16 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
         ObjectRecordSearchConfigWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchConfigWrapper(
                 definition,
                 nameFieldDescribe,
                 objectDescribe
             )
                 .withDisplayFields(displayFields);
+
+            Test.stopTest();
         }
 
         Assert.areEqual(

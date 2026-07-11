@@ -4,13 +4,18 @@
 @IsTest
 private with sharing class ObjectRecordSearchRequestWrapperTest {
 
-    private static User testUser = TestDataFactory.currentUser();
+    private static User testUser = TestDataFactory.getTestUser();
 
+    /**
+     * 代入された検索リクエスト値を公開
+     */
     @IsTest
     static void shouldExposeAssignedValues() {
         ObjectRecordSearchRequestWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchRequestWrapper();
             wrapper.metricKey = 'accounts';
             wrapper.searchTerm = 'Alpha';
@@ -18,6 +23,8 @@ private with sharing class ObjectRecordSearchRequestWrapperTest {
             wrapper.sortBy = 'Name';
             wrapper.sortDirection = 'asc';
             wrapper.pageNumber = 2;
+
+            Test.stopTest();
         }
 
         Assert.areEqual(
@@ -52,12 +59,19 @@ private with sharing class ObjectRecordSearchRequestWrapperTest {
         );
     }
 
+    /**
+     * 検索リクエストの未指定項目を既定値で初期化
+     */
     @IsTest
     static void shouldInitializeDefaultValues() {
         ObjectRecordSearchRequestWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchRequestWrapper();
+
+            Test.stopTest();
         }
 
         Assert.areEqual('', wrapper.metricKey, 'Request wrapper は空のメトリクスキーで初期化する必要あり');
