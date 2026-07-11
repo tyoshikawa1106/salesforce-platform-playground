@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MatchingAttribute</fullName>
+    <inlineHelpText>レコードが同じ一致属性値を共有している場合、利用状況は消費スケジュールと一致します。</inlineHelpText>
+    <trackHistory>false</trackHistory>
+</CustomField>

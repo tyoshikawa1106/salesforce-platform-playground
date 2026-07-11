@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>BillingTerm</fullName>
+    <inlineHelpText>この消費スケジュールが適用される請求単位数。たとえば、選択した請求期間単位が月の場合、12 か月の消費スケジュールを適用するには 12 を入力します。消費スケジュール を適用できのは、20 四半期、60 か月、または 5 年までです。</inlineHelpText>
+    <trackHistory>false</trackHistory>
+</CustomField>
