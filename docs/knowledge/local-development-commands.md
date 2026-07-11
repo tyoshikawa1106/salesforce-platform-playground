@@ -17,6 +17,8 @@
 | ------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
 | `npm ci`                                                | `package-lock.json` に固定された依存を再現する。 | 依存導入系なので、作業ルールに従って実行判断する。                 |
 | `npm run prettier:verify`                               | Apex、metadata、docs、LWC などの整形を確認する。 | ファイルは書き換えない。                                           |
+| `npm run docs:check`                                    | docs の構造とローカルリンクを確認する。          | 見出し、ファイル名、`docs/index.md` からの到達性も確認する。       |
+| `npm run manifest:check`                                | package manifest の整合性を確認する。            | 分割、重複、API version、docs の件数を確認する。                   |
 | `npm run prettier`                                      | 対象ファイルを Prettier で整形する。             | 実行後は `git diff` で意図しない差分を確認する。                   |
 | `npm run lint -- --no-error-on-unmatched-pattern`       | Aura / LWC JavaScript を ESLint で確認する。     | 対象ファイルがない場合も CI と同じく成功扱いにする。               |
 | `npm run test:unit -- -- --runInBand --passWithNoTests` | LWC Jest を CI に近い形で実行する。              | LWC 変更時は関連テストを優先してから全体確認する。                 |

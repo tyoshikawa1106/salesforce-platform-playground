@@ -56,6 +56,22 @@ LWC unit test 用です。`test` は `test:unit` への alias です。
 
 `code-analyzer:ci` は severity threshold 付きで CI 相当の確認に使います。
 
+### Docs
+
+```json
+"docs:check": "node scripts/docs/check-docs.js"
+```
+
+docs のローカルリンク、アンカー、見出し階層、ファイル名、`docs/index.md` からの到達性を確認します。
+
+### Manifest
+
+```json
+"manifest:check": "node scripts/manifest/check-package-manifests.js"
+```
+
+`manifest/package.xml` と分割 manifest の metadata type、API version、重複、docs の件数を確認します。
+
 ### Bulk results
 
 ```json
@@ -194,7 +210,8 @@ pre-commit で Prettier が staged files を書き換える可能性がありま
 
 | 変更内容                   | 確認コマンド例                                                |
 | -------------------------- | ------------------------------------------------------------- |
-| scripts / docs だけ        | `npm run prettier:verify`                                     |
+| scripts / docs だけ        | `npm run prettier:verify`、`npm run docs:check`               |
+| package manifest           | `npm run manifest:check`                                      |
 | ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`             |
 | LWC test 関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`       |
 | Code Analyzer 関連         | `npm run code-analyzer:ci`                                    |
