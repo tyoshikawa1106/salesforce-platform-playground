@@ -4,17 +4,27 @@
     <!-- オブジェクト -->
     <types>
         <members>Account</members>
+        <members>Activity</members>
         <members>Asset</members>
+        <members>AssetRelationship</members>
+        <members>AssociatedLocation</members>
         <members>Campaign</members>
         <members>CampaignMember</members>
         <members>Case</members>
         <members>Contact</members>
         <members>ContentDocument</members>
+        <members>ContentVersion</members>
+        <members>ConsumptionRate</members>
+        <members>ConsumptionSchedule</members>
         <members>Contract</members>
+        <members>ContractLineItem</members>
         <members>EmailMessage</members>
         <members>Entitlement</members>
         <members>Event</members>
+        <members>Individual</members>
         <members>Lead</members>
+        <members>Location</members>
+        <members>Macro</members>
         <members>Opportunity</members>
         <members>OpportunityContactRole</members>
         <members>OpportunityLineItem</members>
@@ -23,11 +33,17 @@
         <members>Pricebook2</members>
         <members>PricebookEntry</members>
         <members>Product2</members>
+        <members>ProductConsumptionSchedule</members>
+        <members>QuickText</members>
         <members>ServiceContract</members>
+        <members>Solution</members>
         <members>Task</members>
         <members>User</members>
         <members>WorkOrder</members>
         <members>WorkOrderLineItem</members>
+        <members>WorkPlan</members>
+        <members>WorkPlanTemplate</members>
+        <members>WorkStep</members>
         <members>*</members>
         <name>CustomObject</name>
     </types>
