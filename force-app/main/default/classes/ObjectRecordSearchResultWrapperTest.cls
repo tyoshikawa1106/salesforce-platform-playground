@@ -3,49 +3,57 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchResultWrapperTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * 検索結果と次ページ有無を公開
+     */
     @IsTest
     static void shouldExposeResultValuesAndNextPageState() {
         ObjectRecordSearchConfigWrapper config = createConfigWrapper();
         ObjectRecordSearchResultWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchResultWrapper(
                 config,
                 new List<ObjectRecordSearchRowWrapper>()
             )
                 .withPageState(50, 2, 'next-token');
+
+            Test.stopTest();
         }
 
         Assert.areEqual(
             'accounts',
             wrapper.config.metricKey,
-            'Result wrapper should expose the config wrapper.'
+            'Result wrapper は config wrapper を公開する必要あり'
         );
         Assert.areEqual(
             0,
             wrapper.records.size(),
-            'Result wrapper should expose record rows.'
+            'Result wrapper はレコード行を公開する必要あり'
         );
         Assert.areEqual(
             50,
             wrapper.pageSize,
-            'Result wrapper should expose the page size.'
+            'Result wrapper はページサイズを公開する必要あり'
         );
         Assert.areEqual(
             2,
             wrapper.pageNumber,
-            'Result wrapper should expose the page number.'
+            'Result wrapper はページ番号を公開する必要あり'
         );
         Assert.areEqual(
             'next-token',
             wrapper.nextPageToken,
-            'Result wrapper should expose the next page token.'
+            'Result wrapper は次ページトークンを公開する必要あり'
         );
         Assert.isTrue(
             wrapper.hasNextPage,
-            'Result wrapper should mark a nonblank next page token as available.'
+            'Result wrapper は空でない次ページトークンを利用可能として扱う必要あり'
         );
     }
 

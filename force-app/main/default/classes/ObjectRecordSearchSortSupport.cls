@@ -2,6 +2,7 @@
  * 汎用レコード検索のソート条件とページングカーソル取り扱い
  */
 public with sharing class ObjectRecordSearchSortSupport {
+
     private static final String SORT_ASCENDING = 'asc';
     private static final String SORT_DESCENDING = 'desc';
 
@@ -13,14 +14,9 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @return 許可済み項目と方向だけを持つソート条件
      * @throws ObjectRecordSearchException context または config が不足している場合
      */
-    public static SortSpec createSortSpec(
-        ObjectRecordSearchContext context,
-        ObjectRecordSearchRequestWrapper request
-    ) {
+    public static SortSpec createSortSpec(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request) {
         if (context == null || context.config == null) {
-            throw new ObjectRecordSearchException(
-                '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
-            );
+            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
         }
         // 許可済み項目だけをソート対象に採用
         String fieldApiName = getSortFieldApiName(context, request);
@@ -48,10 +44,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @param cursor 現在ページ末尾のカーソル
      * @return SOQL の WHERE 句へ追加するカーソル条件
      */
-    public static String createCursorWhereClause(
-        SortSpec sortSpec,
-        PageCursor cursor
-    ) {
+    public static String createCursorWhereClause(SortSpec sortSpec, PageCursor cursor) {
         if (cursor.sortValue == null) {
             // null 値ソートでは Id だけで次ページ境界を進める
             return '(' +
@@ -77,10 +70,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @param sortSpec ソート条件
      * @return 次ページ取得用トークン、行またはソート条件がない場合は null
      */
-    public static String createNextPageToken(
-        List<ObjectRecordSearchRowWrapper> rows,
-        SortSpec sortSpec
-    ) {
+    public static String createNextPageToken(List<ObjectRecordSearchRowWrapper> rows, SortSpec sortSpec) {
         // 最終行のソート値と Id を次ページ token に変換
         String nextPageToken = ObjectRecordSearchPageTokenCodec.createNextPageToken(
             rows,
@@ -104,10 +94,7 @@ public with sharing class ObjectRecordSearchSortSupport {
         return cursor;
     }
 
-    private static String getSortFieldApiName(
-        ObjectRecordSearchContext context,
-        ObjectRecordSearchRequestWrapper request
-    ) {
+    private static String getSortFieldApiName(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request) {
         // リクエスト指定が許可済みでない場合は Name 相当項目で並べる
         Set<String> allowedFieldApiNames = context.getAllowedFieldApiNames();
         Boolean hasAllowedSortField = allowedFieldApiNames.contains(
@@ -116,20 +103,17 @@ public with sharing class ObjectRecordSearchSortSupport {
         return hasAllowedSortField ? request.sortBy : context.config.nameFieldApiName;
     }
 
-    private static String getSortDirection(
-        ObjectRecordSearchRequestWrapper request
-    ) {
+    private static String getSortDirection(ObjectRecordSearchRequestWrapper request) {
         // desc 以外は既定の昇順として扱う
         String normalizedSortDirection = request?.sortDirection?.toLowerCase();
-        return normalizedSortDirection == SORT_DESCENDING
-            ? SORT_DESCENDING
-            : SORT_ASCENDING;
+        return normalizedSortDirection == SORT_DESCENDING ? SORT_DESCENDING : SORT_ASCENDING;
     }
 
     /**
      * 正規化済みのソート条件
      */
     public class SortSpec {
+
         public String fieldApiName;
         public String direction;
         public Schema.DescribeFieldResult fieldDescribe;
@@ -140,6 +124,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      * ページングに使う現在ページ末尾の値
      */
     public class PageCursor {
+
         public Object sortValue;
         public Id recordId;
     }

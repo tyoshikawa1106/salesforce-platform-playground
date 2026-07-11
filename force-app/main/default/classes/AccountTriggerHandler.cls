@@ -1,33 +1,28 @@
 /**
- * 取引先トリガーのコンテキスト判定だけ担当
+ * 取引先トリガーハンドラークラス
  */
 public with sharing class AccountTriggerHandler {
+
     private AccountTriggerService service = new AccountTriggerService();
 
     /**
-     * 実行中のトリガーコンテキストに応じて対象処理へ振り分け
+     * 新規取引先名の法人格略称を正式名称に補正
+     *
+     * @param accounts 新規取引先
      */
-    public static void run() {
-        // 静的トリガー入口からインスタンス処理へ渡す
-        AccountTriggerHandler handler = new AccountTriggerHandler();
-        // before insert/update の対象処理へ振り分け
-        handler.normalizeAccountNames();
+    public void normalizeAccountNamesForInsert(List<Account> accounts) {
+        // 新規取引先名の法人格略称を正式名称へ補正
+        this.service.normalizeAccountNamesForInsert(accounts);
     }
 
-    private void normalizeAccountNames() {
-        if (!Trigger.isBefore) {
-            return;
-        }
-
-        if (Trigger.isInsert) {
-            // 作成前の取引先名略称を正式名称に補正
-            service.normalizeAccountNamesForInsert((List<Account>) Trigger.new);
-        } else if (Trigger.isUpdate) {
-            // 変更された取引先名略称を正式名称に補正
-            service.normalizeChangedAccountNamesForUpdate(
-                (List<Account>) Trigger.new,
-                (Map<Id, Account>) Trigger.oldMap
-            );
-        }
+    /**
+     * 変更された取引先名の法人格略称を正式名称に補正
+     *
+     * @param accounts 更新後の取引先
+     * @param oldAccountMap 更新前の取引先
+     */
+    public void normalizeChangedAccountNamesForUpdate(List<Account> accounts, Map<Id, Account> oldAccountMap) {
+        // 変更された取引先名の法人格略称だけを正式名称へ補正
+        this.service.normalizeChangedAccountNamesForUpdate(accounts, oldAccountMap);
     }
 }

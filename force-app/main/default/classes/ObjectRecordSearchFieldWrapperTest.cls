@@ -3,34 +3,42 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchFieldWrapperTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * コンストラクタで受け取った値を公開
+     */
     @IsTest
     static void shouldExposeConstructorValues() {
         ObjectRecordSearchFieldWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchFieldWrapper(
                 'Industry',
                 'Industry',
                 'text'
             );
+
+            Test.stopTest();
         }
 
         Assert.areEqual(
             'Industry',
             wrapper.apiName,
-            'Field wrapper should expose the API name.'
+            'Field wrapper は API 名を公開する必要あり'
         );
         Assert.areEqual(
             'Industry',
             wrapper.label,
-            'Field wrapper should expose the label.'
+            'Field wrapper はラベルを公開する必要あり'
         );
         Assert.areEqual(
             'text',
             wrapper.dataType,
-            'Field wrapper should expose the datatable type.'
+            'Field wrapper はデータテーブル型を公開する必要あり'
         );
     }
 }

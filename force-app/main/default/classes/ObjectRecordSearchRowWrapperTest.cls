@@ -3,12 +3,16 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchRowWrapperTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * レコード行の表示値を公開
+     */
     @IsTest
     static void shouldExposeRecordValues() {
         Account accountRecord = TestDataFactory.createAccount(
-            'Wrapper Row Account'
+            'Wrapper Row Account', TestDataFactory.SaveMode.DO_NOT_INSERT
         );
         accountRecord.Industry = 'Technology';
         insert accountRecord;
@@ -20,6 +24,8 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         ObjectRecordSearchRowWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchRowWrapper(
                 queriedAccount,
                 'Name',
@@ -31,26 +37,28 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
                     )
                 }
             );
+
+            Test.stopTest();
         }
 
         Assert.areEqual(
             queriedAccount.Id,
             wrapper.id,
-            'Row wrapper should expose the record Id.'
+            'Row wrapper はレコード ID を公開する必要あり'
         );
         Assert.areEqual(
             'Wrapper Row Account',
             wrapper.name,
-            'Row wrapper should expose the name field value.'
+            'Row wrapper は名前項目値を公開する必要あり'
         );
         Assert.isTrue(
             wrapper.recordUrl.contains('/lightning/r/Account/'),
-            'Row wrapper should expose the standard record URL.'
+            'Row wrapper は標準レコード URL を公開する必要あり'
         );
         Assert.areEqual(
             'Technology',
             wrapper.fieldValues.get('Industry'),
-            'Row wrapper should expose configured field values.'
+            'Row wrapper は設定済み項目値を公開する必要あり'
         );
     }
 }

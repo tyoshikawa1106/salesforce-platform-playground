@@ -3,14 +3,19 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewItemWrapperTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * 定義と件数から表示用メトリクス行を作成
+     */
     @IsTest
     static void shouldCreateItemFromDefinitionAndMetricCount() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         ObjectMetricsOverviewItemWrapper wrapper;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -25,40 +30,44 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         Assert.areEqual(
             'accounts',
             wrapper.key,
-            'Wrapper should expose the metric key.'
+            'Wrapper はメトリクスキーを公開する必要あり'
         );
         Assert.areEqual(
             'Account',
             wrapper.objectApiName,
-            'Wrapper should expose the object API name.'
+            'Wrapper はオブジェクト API 名を公開する必要あり'
         );
         Assert.areEqual(
             '取引先',
             wrapper.label,
-            'Wrapper should expose the display label.'
+            'Wrapper は表示ラベルを公開する必要あり'
         );
         Assert.areEqual(
             'standard:account',
             wrapper.iconName,
-            'Wrapper should expose the icon name.'
+            'Wrapper はアイコン名を公開する必要あり'
         );
         Assert.areEqual(
             50000,
             wrapper.value,
-            'Wrapper should expose the metric value.'
+            'Wrapper はメトリクス値を公開する必要あり'
         );
         Assert.isTrue(
             wrapper.capped,
-            'Wrapper should expose the capped marker.'
+            'Wrapper は上限到達フラグを公開する必要あり'
         );
     }
 
+    /**
+     * 件数が未取得のメトリクスは 0 件として表示
+     */
     @IsTest
     static void shouldDefaultMissingMetricCountToZero() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'contacts'
         );
         ObjectMetricsOverviewItemWrapper wrapper;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -70,11 +79,11 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
         Assert.areEqual(
             0,
             wrapper.value,
-            'Missing metric counts should default to zero.'
+            '不足しているメトリクス件数は 0 にする必要あり'
         );
         Assert.isFalse(
             wrapper.capped,
-            'Missing metric counts should not be capped.'
+            '不足しているメトリクス件数は上限到達扱いにしない必要あり'
         );
     }
 }

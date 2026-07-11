@@ -3,8 +3,12 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchConfigWrapperTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * 検索設定のメトリクス定義と操作可否を公開
+     */
     @IsTest
     static void shouldExposeMetricAndAccessValues() {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -20,38 +24,42 @@ private with sharing class ObjectRecordSearchConfigWrapperTest {
         ObjectRecordSearchConfigWrapper wrapper;
 
         System.runAs(testUser) {
+            Test.startTest();
+
             wrapper = new ObjectRecordSearchConfigWrapper(
                 definition,
                 nameFieldDescribe,
                 objectDescribe
             )
                 .withDisplayFields(displayFields);
+
+            Test.stopTest();
         }
 
         Assert.areEqual(
             'accounts',
             wrapper.metricKey,
-            'Config wrapper should expose the metric key.'
+            'Config wrapper はメトリクスキーを公開する必要あり'
         );
         Assert.areEqual(
             'Account',
             wrapper.objectApiName,
-            'Config wrapper should expose the object API name.'
+            'Config wrapper はオブジェクト API 名を公開する必要あり'
         );
         Assert.areEqual(
             nameFieldDescribe.getName(),
             wrapper.nameFieldApiName,
-            'Config wrapper should expose the name field API name.'
+            'Config wrapper は名前項目 API 名を公開する必要あり'
         );
         Assert.areEqual(
             objectDescribe.isCreateable(),
             wrapper.createable,
-            'Config wrapper should copy access flags.'
+            'Config wrapper はアクセス可否を引き継ぐ必要あり'
         );
         Assert.areEqual(
             'Industry',
             wrapper.displayFields[0].apiName,
-            'Config wrapper should expose display fields.'
+            'Config wrapper は表示項目を公開する必要あり'
         );
     }
 }

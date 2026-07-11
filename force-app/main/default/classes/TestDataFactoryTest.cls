@@ -3,158 +3,216 @@
  */
 @IsTest
 private with sharing class TestDataFactoryTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * テスト実行ユーザーとして現在ログインユーザーを参照
+     */
     @IsTest
-    static void createAccountsWhenCountIsPositiveReturnsNamedAccounts() {
-        System.runAs(testUser) {
-            List<Account> accounts = TestDataFactory.createAccounts(3);
+    static void getTestUserReturnsCurrentLoginUser() {
 
-            Assert.areEqual(
-                3,
-                accounts.size(),
-                'Three Accounts should be created.'
-            );
-            Assert.areEqual(
-                'Test Account 0',
-                accounts[0].Name,
-                'The first Account should use the expected default name.'
-            );
-            Assert.areEqual(
-                'Test Account 2',
-                accounts[2].Name,
-                'The last Account should include the zero-based index.'
-            );
-        }
-    }
-
-    @IsTest
-    static void createAccountsWhenCountIsNullOrZeroReturnsEmptyList() {
-        System.runAs(testUser) {
-            Assert.areEqual(
-                0,
-                TestDataFactory.createAccounts(null).size(),
-                'Null count should return an empty list.'
-            );
-            Assert.areEqual(
-                0,
-                TestDataFactory.createAccounts(0).size(),
-                'Zero count should return an empty list.'
-            );
-        }
-    }
-
-    @IsTest
-    static void insertAccountWhenNameIsProvidedSavesAccount() {
         System.runAs(testUser) {
             Test.startTest();
-            Account accountRecord = TestDataFactory.insertAccount(
-                'Factory Account'
+
+            User actual = TestDataFactory.getTestUser();
+
+            Test.stopTest();
+            Assert.areEqual(
+                UserInfo.getUserId(),
+                actual.Id,
+                'テスト実行ユーザーは現在ログインユーザーを参照する必要あり'
+            );
+        }
+
+    }
+
+    /**
+     * 保存モード指定で取引先の保存有無を切り替え
+     */
+    @IsTest
+    static void createAccountWhenInsertFlagProvidedControlsDml() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            Account unsavedAccount = TestDataFactory.createAccount('Factory Account Draft', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Account savedAccount = TestDataFactory.createAccount('Factory Account', TestDataFactory.SaveMode.INSERT_RECORD);
+
+            Test.stopTest();
+            Account queriedAccount = [
+                SELECT Name
+                FROM Account
+                WHERE Id = :savedAccount.Id
+                LIMIT 1
+            ];
+            Assert.isNull(
+                unsavedAccount.Id,
+                '未保存指定の取引先は Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                savedAccount.Id,
+                '保存指定の取引先は Id を持つ必要あり'
+            );
+            Assert.areEqual(
+                'Factory Account',
+                queriedAccount.Name,
+                '作成済み取引先は指定された名前を保つ必要あり'
+            );
+        }
+
+    }
+
+    /**
+     * 親レコードを参照する関連テストデータを作成
+     */
+    @IsTest
+    static void createRelatedRecordsWhenParentsAreProvidedPopulatesLookups() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            Account accountRecord = TestDataFactory.createAccount('Factory Parent Account', TestDataFactory.SaveMode.INSERT_RECORD);
+            Product2 productRecord = TestDataFactory.createProduct('Factory Product', TestDataFactory.SaveMode.INSERT_RECORD);
+            PricebookEntry pricebookEntryRecord = TestDataFactory.createPricebookEntry(productRecord, TestDataFactory.SaveMode.INSERT_RECORD);
+            Opportunity opportunityRecord = TestDataFactory.createOpportunity(
+                accountRecord,
+                'Factory Opportunity', TestDataFactory.SaveMode.INSERT_RECORD
+            );
+            Contact unsavedContact = TestDataFactory.createContact(
+                accountRecord,
+                'Factory Contact', TestDataFactory.SaveMode.DO_NOT_INSERT
+            );
+            Contact savedContact = TestDataFactory.createContact(
+                accountRecord,
+                'Factory Contact Saved', TestDataFactory.SaveMode.INSERT_RECORD
+            );
+            Opportunity unsavedOpportunity = TestDataFactory.createOpportunity(
+                accountRecord,
+                'Factory Opportunity', TestDataFactory.SaveMode.DO_NOT_INSERT
+            );
+            PricebookEntry unsavedPricebookEntry = TestDataFactory.createPricebookEntry(productRecord, TestDataFactory.SaveMode.DO_NOT_INSERT);
+            OpportunityLineItem unsavedLineItem = TestDataFactory.createOpportunityLineItem(
+                opportunityRecord,
+                pricebookEntryRecord, TestDataFactory.SaveMode.DO_NOT_INSERT
+            );
+            OpportunityLineItem savedLineItem = TestDataFactory.createOpportunityLineItem(
+                opportunityRecord,
+                pricebookEntryRecord, TestDataFactory.SaveMode.INSERT_RECORD
             );
 
             Test.stopTest();
-            Account savedAccount = [
-                SELECT Name
-                FROM Account
-                WHERE Id = :accountRecord.Id
-                LIMIT 1
-            ];
-            Assert.areEqual(
-                'Factory Account',
-                savedAccount.Name,
-                'Inserted Account should keep the requested name.'
-            );
-        }
-    }
-
-    @IsTest
-    static void createRelatedRecordsWhenParentsAreProvidedPopulatesLookups() {
-        System.runAs(testUser) {
-            Account accountRecord = TestDataFactory.insertAccount(
-                'Factory Parent Account'
-            );
-            Product2 productRecord = TestDataFactory.insertProduct(
-                'Factory Product'
-            );
-            PricebookEntry pricebookEntryRecord = TestDataFactory.insertPricebookEntry(
-                productRecord,
-                Test.getStandardPricebookId(),
-                1200
-            );
-            Opportunity opportunityRecord = TestDataFactory.insertOpportunity(
-                accountRecord,
-                'Factory Opportunity'
-            );
-            Contact contactRecord = TestDataFactory.createContact(
-                accountRecord,
-                'Factory Contact'
-            );
-            Opportunity createdOpportunity = TestDataFactory.createOpportunity(
-                accountRecord,
-                'Factory Opportunity'
-            );
-            PricebookEntry createdPricebookEntry = TestDataFactory.createPricebookEntry(
-                productRecord,
-                Test.getStandardPricebookId(),
-                1200
-            );
-            OpportunityLineItem lineItemRecord = TestDataFactory.createOpportunityLineItem(
-                opportunityRecord,
-                pricebookEntryRecord
-            );
-
             Assert.areEqual(
                 accountRecord.Id,
-                contactRecord.AccountId,
-                'Contact should reference the provided Account.'
+                unsavedContact.AccountId,
+                '取引先責任者は指定された取引先を参照する必要あり'
             );
             Assert.areEqual(
                 accountRecord.Id,
-                createdOpportunity.AccountId,
-                'Opportunity should reference the provided Account.'
+                unsavedOpportunity.AccountId,
+                '商談は指定された取引先を参照する必要あり'
             );
             Assert.areEqual(
                 productRecord.Id,
-                createdPricebookEntry.Product2Id,
-                'PricebookEntry should reference the provided Product.'
+                unsavedPricebookEntry.Product2Id,
+                '価格表エントリは指定された商品を参照する必要あり'
             );
             Assert.areEqual(
                 opportunityRecord.Id,
-                lineItemRecord.OpportunityId,
-                'OpportunityLineItem should reference the provided Opportunity.'
+                unsavedLineItem.OpportunityId,
+                '商談商品は指定された商談を参照する必要あり'
             );
             Assert.areEqual(
                 pricebookEntryRecord.Id,
-                lineItemRecord.PricebookEntryId,
-                'OpportunityLineItem should reference the provided PricebookEntry.'
+                unsavedLineItem.PricebookEntryId,
+                '商談商品は指定された価格表エントリを参照する必要あり'
+            );
+            Assert.isNull(
+                unsavedContact.Id,
+                '未保存指定の取引先責任者は Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                savedContact.Id,
+                '保存指定の取引先責任者は Id を持つ必要あり'
+            );
+            Assert.isNull(
+                unsavedOpportunity.Id,
+                '未保存指定の商談は Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                opportunityRecord.Id,
+                '保存指定の商談は Id を持つ必要あり'
+            );
+            Assert.isNull(
+                unsavedPricebookEntry.Id,
+                '未保存指定の価格表エントリは Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                pricebookEntryRecord.Id,
+                '保存指定の価格表エントリは Id を持つ必要あり'
+            );
+            Assert.isNull(
+                unsavedLineItem.Id,
+                '未保存指定の商談商品は Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                savedLineItem.Id,
+                '保存指定の商談商品は Id を持つ必要あり'
             );
         }
+
     }
 
+    /**
+     * 必須値からリードとケースのテストデータを作成
+     */
     @IsTest
     static void createLeadAndCaseWhenRequiredValuesProvidedPopulatesFields() {
-        System.runAs(testUser) {
-            Lead leadRecord = TestDataFactory.createLead(
-                'Factory Lead',
-                'Factory Company'
-            );
-            Case caseRecord = TestDataFactory.createCase('Factory Case');
 
+        System.runAs(testUser) {
+            Test.startTest();
+
+            Lead unsavedLead = TestDataFactory.createLead(
+                'Factory Lead',
+                'Factory Company', TestDataFactory.SaveMode.DO_NOT_INSERT
+            );
+            Lead savedLead = TestDataFactory.createLead('Factory Lead Saved', 'Factory Company', TestDataFactory.SaveMode.INSERT_RECORD);
+            Case unsavedCase = TestDataFactory.createCase('Factory Case', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Case savedCase = TestDataFactory.createCase('Factory Case Saved', TestDataFactory.SaveMode.INSERT_RECORD);
+
+            Test.stopTest();
             Assert.areEqual(
                 'Factory Lead',
-                leadRecord.LastName,
-                'Lead should use the requested last name.'
+                unsavedLead.LastName,
+                'リードは指定された姓を使う必要あり'
             );
             Assert.areEqual(
                 'Factory Company',
-                leadRecord.Company,
-                'Lead should use the requested company.'
+                unsavedLead.Company,
+                'リードは指定された会社名を使う必要あり'
             );
             Assert.areEqual(
                 'Factory Case',
-                caseRecord.Subject,
-                'Case should use the requested subject.'
+                unsavedCase.Subject,
+                'ケースは指定された件名を使う必要あり'
+            );
+            Assert.isNull(
+                unsavedLead.Id,
+                '未保存指定のリードは Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                savedLead.Id,
+                '保存指定のリードは Id を持つ必要あり'
+            );
+            Assert.isNull(
+                unsavedCase.Id,
+                '未保存指定のケースは Id を持たない必要あり'
+            );
+            Assert.isNotNull(
+                savedCase.Id,
+                '保存指定のケースは Id を持つ必要あり'
             );
         }
+
     }
 }

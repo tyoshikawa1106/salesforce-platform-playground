@@ -3,7 +3,8 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchSortSupportTest {
-    private static User testUser = TestDataFactory.currentUser();
+
+    private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
     static void setupData() {
@@ -13,10 +14,14 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /**
+     * ソート指定なしの場合は既定ソート条件を作成
+     */
     @IsTest
     static void shouldCreateDefaultSortSpecWhenSortRequestIsMissing() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -31,15 +36,18 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             'Name',
             sortSpec.fieldApiName,
-            'Missing sort requests should use the name field.'
+            'ソート指定がない場合は名前項目を使う必要あり'
         );
         Assert.areEqual(
             'asc',
             sortSpec.direction,
-            'Missing sort directions should use ascending order.'
+            'ソート方向がない場合は昇順を使う必要あり'
         );
     }
 
+    /**
+     * 許可項目のソート指定からソート条件を作成
+     */
     @IsTest
     static void shouldCreateRequestedSortSpecWhenFieldIsAllowed() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -47,6 +55,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         request.sortBy = 'Industry';
         request.sortDirection = 'desc';
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -61,21 +70,25 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             'Industry',
             sortSpec.fieldApiName,
-            'Allowed sort fields should be preserved.'
+            '許可されたソート項目は維持する必要あり'
         );
         Assert.areEqual(
             'desc',
             sortSpec.direction,
-            'Descending sort requests should be preserved.'
+            '降順指定は維持する必要あり'
         );
     }
 
+    /**
+     * ソート不可項目は Name ソートへ切り替え
+     */
     @IsTest
     static void shouldFallbackToNameWhenSortFieldIsNotSortable() {
         ObjectRecordSearchContext context = createAccountContextWithDescription();
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.sortBy = 'Description';
         ObjectRecordSearchSortSupport.SortSpec sortSpec;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -90,10 +103,13 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             'Name',
             sortSpec.fieldApiName,
-            'Non-sortable display fields should fall back to the name field.'
+            'ソート不可の表示項目は名前項目へフォールバックする必要あり'
         );
     }
 
+    /**
+     * 次ページトークンを作成して復元
+     */
     @IsTest
     static void shouldCreateAndParseNextPageToken() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -104,6 +120,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             request
         );
         ObjectRecordSearchSortSupport.PageCursor cursor;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -118,15 +135,18 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             'Technology',
             cursor.sortValue,
-            'Parsed cursor should keep the row sort value.'
+            '解析後カーソルは行のソート値を保つ必要あり'
         );
         Assert.areEqual(
             getTestAccountId(),
             cursor.recordId,
-            'Parsed cursor should keep the last row Id.'
+            '解析後カーソルは最後の行 ID を保つ必要あり'
         );
     }
 
+    /**
+     * Name ソート用ページトークンを作成して復元
+     */
     @IsTest
     static void shouldCreateAndParseNameSortPageToken() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -135,6 +155,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             new ObjectRecordSearchRequestWrapper()
         );
         ObjectRecordSearchSortSupport.PageCursor cursor;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -149,10 +170,13 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             'Cursor Account',
             cursor.sortValue,
-            'Name sort tokens should use the row name as the cursor value.'
+            '名前ソートのトークンは行名をカーソル値にする必要あり'
         );
     }
 
+    /**
+     * 行がない場合はページトークンを返さない
+     */
     @IsTest
     static void shouldReturnNullTokenWhenRowsAreMissing() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -175,10 +199,13 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         Assert.isNull(
             pageToken,
-            'Empty row lists should not create a page token.'
+            '空の行リストはページトークンを作成しない必要あり'
         );
     }
 
+    /**
+     * 旧形式の Name ページトークンを復元
+     */
     @IsTest
     static void shouldParseLegacyNamePageToken() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -186,13 +213,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             context,
             new ObjectRecordSearchRequestWrapper()
         );
+        Id testAccountId = getTestAccountId();
         String pageToken = JSON.serialize(
             new Map<String, String>{
-                'recordId' => String.valueOf(getTestAccountId()),
+                'recordId' => String.valueOf(testAccountId),
                 'name' => 'Cursor Account'
             }
         );
         ObjectRecordSearchSortSupport.PageCursor cursor;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -207,10 +236,13 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             'Cursor Account',
             cursor.sortValue,
-            'Legacy name tokens should keep reading the name cursor value.'
+            '旧形式の名前トークンは名前カーソル値を読み取る必要あり'
         );
     }
 
+    /**
+     * 昇順ソート用のカーソル WHERE 条件を作成
+     */
     @IsTest
     static void shouldCreateCursorWhereClauseForAscendingSort() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -222,6 +254,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         cursor.sortValue = 'Cursor Account';
         cursor.recordId = getTestAccountId();
         String whereClause;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -235,14 +268,17 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         Assert.isTrue(
             whereClause.contains('Name > :cursorSortValue'),
-            'Ascending cursor clauses should use the greater-than operator.'
+            '昇順カーソル条件は大なり演算子を使う必要あり'
         );
         Assert.isTrue(
             whereClause.contains('Id > :cursorRecordId'),
-            'Cursor clauses should use Id as the deterministic tie breaker.'
+            'カーソル条件は決定的な同値解消に Id を使う必要あり'
         );
     }
 
+    /**
+     * null ソート値用のカーソル WHERE 条件を作成
+     */
     @IsTest
     static void shouldCreateCursorWhereClauseForNullSortValue() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -253,6 +289,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.recordId = getTestAccountId();
         String whereClause;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -266,10 +303,13 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
         Assert.isTrue(
             whereClause.contains('Name = NULL'),
-            'Null cursor values should keep the query inside the null sort group.'
+            'null カーソル値は null ソートグループ内を検索する必要あり'
         );
     }
 
+    /**
+     * ソート項目と異なるページトークンは例外を送出
+     */
     @IsTest
     static void shouldThrowWhenPageTokenDoesNotMatchSortField() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -277,10 +317,11 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             context,
             new ObjectRecordSearchRequestWrapper()
         );
+        Id testAccountId = getTestAccountId();
         String pageToken = JSON.serialize(
             new Map<String, String>{
                 'fieldApiName' => 'Industry',
-                'recordId' => String.valueOf(getTestAccountId()),
+                'recordId' => String.valueOf(testAccountId),
                 'sortValue' => 'Technology'
             }
         );
@@ -293,18 +334,22 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                     pageToken,
                     sortSpec
                 );
-                Assert.fail('Mismatched page tokens should throw.');
-            } catch (ObjectRecordSearchException error) {
+                Assert.fail('ソート条件と合わないページトークンは例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
                 Assert.isTrue(
-                    error.getMessage().contains('ページ情報'),
-                    'Mismatched page tokens should explain the page token cannot be read.'
+                    e.getMessage().contains('ページ情報'),
+                    'ソート条件と合わないページトークンは読み取り不可を説明する必要あり'
                 );
             }
 
             Test.stopTest();
         }
+
     }
 
+    /**
+     * 壊れたページトークンはドメイン例外へ変換
+     */
     @IsTest
     static void shouldThrowDomainExceptionWhenPageTokenIsMalformed() {
         ObjectRecordSearchContext context = createAccountContext();
@@ -321,11 +366,11 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                     '{malformed',
                     sortSpec
                 );
-                Assert.fail('Malformed page tokens should throw.');
-            } catch (ObjectRecordSearchException error) {
+                Assert.fail('壊れたページトークンは例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
                 Assert.isTrue(
-                    error.getMessage().contains('ページ情報'),
-                    'Malformed page tokens should be normalized into the search exception.'
+                    e.getMessage().contains('ページ情報'),
+                    '壊れたページトークンは検索例外に変換する必要あり'
                 );
             }
 
@@ -400,10 +445,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ].Id;
     }
 
-    private static ObjectRecordSearchSortSupport.PageCursor createParsedCursor(
-        ObjectRecordSearchConfigWrapper config,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    private static ObjectRecordSearchSortSupport.PageCursor createParsedCursor(ObjectRecordSearchConfigWrapper config, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         Account accountRecord = new Account(
             Id = getTestAccountId(),
             Name = 'Cursor Account',

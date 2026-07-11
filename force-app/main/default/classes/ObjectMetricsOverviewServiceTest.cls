@@ -3,8 +3,12 @@
  */
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
-    private static User testUser = TestDataFactory.currentUser();
 
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * メトリクス定義順でサマリーを作成
+     */
     @IsTest
     static void shouldBuildOrderedSummaryFromMetricValues() {
         // 準備
@@ -13,6 +17,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -26,53 +31,56 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         Assert.areEqual(
             ObjectMetricCatalog.getDefinitions().size(),
             summary.metrics.size(),
-            'Service should return all configured metric items.'
+            'Service は設定済みメトリクス項目をすべて返す必要あり'
         );
         Assert.areEqual(
             'accounts',
             summary.metrics[0].key,
-            'Account metric should be first.'
+            'Account メトリクスは先頭にする必要あり'
         );
         Assert.areEqual(
             50000,
             summary.metrics[0].value,
-            'Capped account value should be preserved.'
+            '上限到達した Account 値は維持する必要あり'
         );
         Assert.areEqual(
             'standard:account',
             summary.metrics[0].iconName,
-            'Account metric should carry the card icon from the catalog.'
+            'Account メトリクスは catalog のカードアイコンを持つ必要あり'
         );
         Assert.isTrue(
             summary.metrics[0].capped,
-            'Capped account value should carry the capped marker.'
+            '上限到達した Account 値は上限到達フラグを持つ必要あり'
         );
         Assert.areEqual(
             'contacts',
             summary.metrics[1].key,
-            'Contact metric should be second.'
+            'Contact メトリクスは 2 番目にする必要あり'
         );
         Assert.areEqual(
             34,
             summary.metrics[1].value,
-            'Contact value should come from the supplied metric values.'
+            'Contact 値は指定されたメトリクス値を使う必要あり'
         );
         Assert.isFalse(
             summary.metrics[1].capped,
-            'Exact contact value should not carry the capped marker.'
+            '正確な Contact 値は上限到達フラグを持たない必要あり'
         );
         Assert.areEqual(
             'leads',
             summary.metrics[2].key,
-            'Lead metric should be third.'
+            'Lead メトリクスは 3 番目にする必要あり'
         );
         Assert.areEqual(
             'users',
             summary.metrics[26].key,
-            'User metric should be last.'
+            'User メトリクスは最後にする必要あり'
         );
     }
 
+    /**
+     * メトリクス件数が null の場合は 0 件サマリーを作成
+     */
     @IsTest
     static void shouldReturnZeroValuesWhenMetricValuesAreNull() {
         // 準備
@@ -80,6 +88,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -93,19 +102,22 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         Assert.areEqual(
             ObjectMetricCatalog.getDefinitions().size(),
             summary.metrics.size(),
-            'Service should return all configured metric items.'
+            'Service は設定済みメトリクス項目をすべて返す必要あり'
         );
         Assert.areEqual(
             0,
             summary.metrics[0].value,
-            'Missing metric values should default to zero.'
+            '不足しているメトリクス値は 0 にする必要あり'
         );
         Assert.isFalse(
             summary.metrics[0].capped,
-            'Missing metric values should not be capped.'
+            '不足しているメトリクス値は上限到達扱いにしない必要あり'
         );
     }
 
+    /**
+     * メトリクス定義の有無をキーで判定
+     */
     @IsTest
     static void shouldResolveMetricDefinitionPresence() {
         Boolean hasAccounts;
@@ -125,15 +137,15 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
         Assert.isTrue(
             hasAccounts,
-            'Catalog should report configured metric keys as present.'
+            'Catalog は設定済みメトリクスキーを存在ありとして返す必要あり'
         );
         Assert.isFalse(
             hasUnknownMetric,
-            'Catalog should report unknown metric keys as absent.'
+            'Catalog は未知のメトリクスキーを存在なしとして返す必要あり'
         );
         Assert.isNull(
             blankDefinition,
-            'Blank metric keys should not resolve to a definition.'
+            '空白のメトリクスキーは定義に解決しない必要あり'
         );
     }
 

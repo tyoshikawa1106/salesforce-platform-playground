@@ -2,6 +2,7 @@
  * オブジェクト件数一覧で使う件数問い合わせ
  */
 public virtual with sharing class ObjectMetricsOverviewSelector {
+
     private static final Integer MAX_DISPLAY_COUNT = 50000;
 
     /**
@@ -36,9 +37,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     private static ObjectMetricCount createCount(Integer value) {
         // null 件数はゼロとして扱い画面表示を安定化
         Integer safeValue = value ?? 0;
-        return safeValue >= MAX_DISPLAY_COUNT
-            ? createCappedCount()
-            : new ObjectMetricCount(safeValue, false);
+        return safeValue >= MAX_DISPLAY_COUNT ? createCappedCount() : new ObjectMetricCount(safeValue, false);
     }
 
     /**
@@ -61,9 +60,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             return toObjectMetricCount(0);
         }
         // User は有効ユーザーだけを件数対象にする
-        String whereClause = objectApiName == 'User'
-            ? ' WHERE IsActive = TRUE'
-            : '';
+        String whereClause = objectApiName == 'User' ? ' WHERE IsActive = TRUE' : '';
         // 表示上限で COUNT を止めて大規模データでも応答を安定化
         String query =
             'SELECT COUNT() FROM ' +
@@ -73,8 +70,9 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             MAX_DISPLAY_COUNT;
 
         try {
-            return toObjectMetricCount(Database.countQuery(query));
-        } catch (QueryException queryException) {
+            Integer recordCount = Database.countQuery(query);
+            return toObjectMetricCount(recordCount);
+        } catch (QueryException e) {
             // 件数取得できない標準オブジェクトは画面表示を止めずゼロ件にする
             return toObjectMetricCount(0);
         }
@@ -97,6 +95,7 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
      * 表示上限情報を含む件数結果
      */
     public class ObjectMetricCount {
+
         /**
          * 表示上限で丸めた件数値
          */

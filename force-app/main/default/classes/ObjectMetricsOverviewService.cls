@@ -2,6 +2,7 @@
  * データボードで表示するオブジェクト件数サマリ組み立て
  */
 public with sharing class ObjectMetricsOverviewService {
+
     /**
      * 表示順を固定したオブジェクト件数サマリを作成
      *
@@ -30,8 +31,6 @@ public with sharing class ObjectMetricsOverviewService {
             );
         }
 
-        return new ObjectMetricsOverviewSummaryWrapper(
-            metricItems
-        );
+        return new ObjectMetricsOverviewSummaryWrapper(metricItems);
     }
 }

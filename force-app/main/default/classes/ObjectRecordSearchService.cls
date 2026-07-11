@@ -2,6 +2,7 @@
  * 汎用レコード検索画面の判定と Wrapper 組み立て提供
  */
 public with sharing class ObjectRecordSearchService {
+
     private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
     private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。権限や関連データを確認してください。';
@@ -13,17 +14,13 @@ public with sharing class ObjectRecordSearchService {
      * @return データボードカードと対象オブジェクトの定義
      * @throws ObjectRecordSearchException 表示キーに対応する定義がない場合
      */
-    public ObjectMetricCatalog.MetricDefinition requireDefinition(
-        String metricKey
-    ) {
+    public ObjectMetricCatalog.MetricDefinition requireDefinition(String metricKey) {
         // 表示キーを検索対象オブジェクトのカタログ定義へ変換
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             metricKey
         );
         if (definition == null) {
-            throw new ObjectRecordSearchException(
-                'このカードのレコード一覧は表示できません。別のカードを選択してください。'
-            );
+            throw new ObjectRecordSearchException('このカードのレコード一覧は表示できません。別のカードを選択してください。');
         }
         return definition;
     }
@@ -36,11 +33,7 @@ public with sharing class ObjectRecordSearchService {
      * @param objectDescribe 対象オブジェクトの describe 結果
      * @return 検索画面設定
      */
-    public ObjectRecordSearchConfigWrapper createObjectConfig(
-        ObjectMetricCatalog.MetricDefinition definition,
-        Schema.DescribeFieldResult nameFieldDescribe,
-        Schema.DescribeSObjectResult objectDescribe
-    ) {
+    public ObjectRecordSearchConfigWrapper createObjectConfig(ObjectMetricCatalog.MetricDefinition definition, Schema.DescribeFieldResult nameFieldDescribe, Schema.DescribeSObjectResult objectDescribe) {
         return new ObjectRecordSearchConfigWrapper(
             definition,
             nameFieldDescribe,
@@ -56,11 +49,7 @@ public with sharing class ObjectRecordSearchService {
      * @param objectDescribe 対象オブジェクトの describe 結果
      * @return 検索画面の内部処理状態
      */
-    public ObjectRecordSearchContext createSearchContext(
-        ObjectRecordSearchConfigWrapper config,
-        Schema.DescribeFieldResult nameFieldDescribe,
-        Schema.DescribeSObjectResult objectDescribe
-    ) {
+    public ObjectRecordSearchContext createSearchContext(ObjectRecordSearchConfigWrapper config, Schema.DescribeFieldResult nameFieldDescribe, Schema.DescribeSObjectResult objectDescribe) {
         return new ObjectRecordSearchContext(
             config,
             nameFieldDescribe,
@@ -74,10 +63,7 @@ public with sharing class ObjectRecordSearchService {
      * @param request 検索条件とページ指定
      * @return 許可済み項目と方向だけを持つソート条件
      */
-    public ObjectRecordSearchSortSupport.SortSpec createSortSpec(
-        ObjectRecordSearchContext context,
-        ObjectRecordSearchRequestWrapper request
-    ) {
+    public ObjectRecordSearchSortSupport.SortSpec createSortSpec(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request) {
         return ObjectRecordSearchSortSupport.createSortSpec(context, request);
     }
 
@@ -89,11 +75,7 @@ public with sharing class ObjectRecordSearchService {
      * @param sortSpec 正規化済みソート条件
      * @return 検索クエリと結果整形で共有する検索条件
      */
-    public ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(
-        ObjectRecordSearchContext context,
-        ObjectRecordSearchRequestWrapper request,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    public ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         // ページトークンを現在のソート条件に対応するカーソルへ復元
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         searchQueryRequest.context = context;
@@ -116,10 +98,7 @@ public with sharing class ObjectRecordSearchService {
      * @param records 検索結果 SObject
      * @return 1 ページ最大 50 件の検索結果
      */
-    public ObjectRecordSearchResultWrapper createSearchResult(
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request,
-        List<SObject> records
-    ) {
+    public ObjectRecordSearchResultWrapper createSearchResult(ObjectRecordSearchQueryPlan.SearchQueryRequest request, List<SObject> records) {
         // SOQL 結果を LWC が扱う行 Wrapper へ変換
         List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
         for (SObject record : records) {
@@ -166,10 +145,7 @@ public with sharing class ObjectRecordSearchService {
      * @param recordIds 削除するレコード ID
      * @return 削除対象 ID があり、対象オブジェクトを削除可能な場合 true
      */
-    public Boolean canDeleteRecords(
-        ObjectRecordSearchConfigWrapper config,
-        List<Id> recordIds
-    ) {
+    public Boolean canDeleteRecords(ObjectRecordSearchConfigWrapper config, List<Id> recordIds) {
         // 設定と削除 ID がそろった場合だけ DML を許可
         Boolean hasConfig = config != null;
         Boolean isDeletable = hasConfig && config.deletable;
@@ -184,10 +160,7 @@ public with sharing class ObjectRecordSearchService {
      * @param deleteResults DML 削除結果
      * @return 削除結果
      */
-    public ObjectRecordSearchDeleteWrapper createDeleteResult(
-        List<Id> recordIds,
-        List<Database.DeleteResult> deleteResults
-    ) {
+    public ObjectRecordSearchDeleteWrapper createDeleteResult(List<Id> recordIds, List<Database.DeleteResult> deleteResults) {
         // リクエスト件数は DML 実行有無に関係なく画面へ返す
         Integer requestedCount = recordIds == null ? 0 : recordIds.size();
         Integer deletedCount = 0;

@@ -2,6 +2,7 @@
  * 汎用レコード検索の安全なクエリ計画組み立て
  */
 public with sharing class ObjectRecordSearchQueryPlan {
+
     /**
      * 検索条件から SOQL と bind 値を作成
      *
@@ -9,9 +10,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * @return 実行可能な検索クエリ計画
      * @throws ObjectRecordSearchException 必須条件が不足する、または許可外のオブジェクト・項目が指定された場合
      */
-    public static SearchQuery createSearchQuery(
-        SearchQueryRequest request
-    ) {
+    public static SearchQuery createSearchQuery(SearchQueryRequest request) {
         // 動的 SOQL に渡す前に対象オブジェクトとソート項目を検証
         validateSearchQueryRequest(request);
         SearchQuery query = new SearchQuery();
@@ -44,16 +43,11 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * @param context 検索画面の内部処理状態
      * @return Name 項目と表示項目の重複を除いた一覧
      */
-    public static List<String> getQueryFields(
-        ObjectRecordSearchContext context
-    ) {
+    public static List<String> getQueryFields(ObjectRecordSearchContext context) {
         return context.getQueryFieldApiNames();
     }
 
-    private static String buildSearchSoql(
-        SearchQueryRequest request,
-        Boolean includeNameSearch
-    ) {
+    private static String buildSearchSoql(SearchQueryRequest request, Boolean includeNameSearch) {
         // Name 項目と表示項目を重複なしで SELECT 対象にする
         List<String> queryFields = getQueryFields(request.context);
         String selectedFields = String.join(queryFields, ', ');
@@ -95,24 +89,17 @@ public with sharing class ObjectRecordSearchQueryPlan {
         return soql;
     }
 
-    private static Boolean usesNameSearch(
-        String normalizedSearchTerm,
-        ObjectRecordSearchConfigWrapper config
-    ) {
+    private static Boolean usesNameSearch(String normalizedSearchTerm, ObjectRecordSearchConfigWrapper config) {
         // 検索語があり対象項目が検索可能な場合だけ LIKE 条件を使う
         Boolean hasSearchTerm = String.isNotBlank(normalizedSearchTerm);
         return hasSearchTerm && config.searchable;
     }
 
-    private static void validateSearchQueryRequest(
-        SearchQueryRequest request
-    ) {
+    private static void validateSearchQueryRequest(SearchQueryRequest request) {
         // クエリ計画に必要な context、sort、fetchSize の欠落を検出
         Boolean hasRequiredParts = hasRequiredSearchQueryParts(request);
         if (!hasRequiredParts) {
-            throw new ObjectRecordSearchException(
-                '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
-            );
+            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
         }
         Boolean isSupportedObject = isSupportedObject(
             request.context.config.objectApiName
@@ -123,15 +110,11 @@ public with sharing class ObjectRecordSearchQueryPlan {
             request.sortSpec
         );
         if (!isSupportedObject || !isAllowedSortField) {
-            throw new ObjectRecordSearchException(
-                '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
-            );
+            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
         }
     }
 
-    private static Boolean hasRequiredSearchQueryParts(
-        SearchQueryRequest request
-    ) {
+    private static Boolean hasRequiredSearchQueryParts(SearchQueryRequest request) {
         return request != null &&
             request.context != null &&
             request.context.config != null &&
@@ -147,10 +130,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
         return hasObjectApiName;
     }
 
-    private static Boolean isAllowedSortField(
-        ObjectRecordSearchContext context,
-        ObjectRecordSearchSortSupport.SortSpec sortSpec
-    ) {
+    private static Boolean isAllowedSortField(ObjectRecordSearchContext context, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         Set<String> allowedFieldApiNames = context.getAllowedFieldApiNames();
         Boolean hasAllowedField = allowedFieldApiNames.contains(
             sortSpec.fieldApiName
@@ -162,6 +142,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * 実行する SOQL と bind 値
      */
     public class SearchQuery {
+
         public String soql;
         public Map<String, Object> bindValues;
     }
@@ -170,6 +151,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
      * 検索クエリ計画を作るための入力
      */
     public class SearchQueryRequest {
+
         public ObjectRecordSearchContext context;
         public ObjectRecordSearchRequestWrapper searchRequest;
         public ObjectRecordSearchSortSupport.SortSpec sortSpec;

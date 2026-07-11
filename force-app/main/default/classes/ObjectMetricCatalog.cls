@@ -2,8 +2,12 @@
  * データボードで扱うオブジェクト定義一元管理
  */
 public with sharing class ObjectMetricCatalog {
+
+    // データボードのカード表示順を固定
     private static final List<MetricDefinition> ORDERED_DEFINITIONS = createOrderedDefinitions();
+    // LWC から受け取る表示キーで定義を解決
     private static final Map<String, MetricDefinition> DEFINITIONS_BY_KEY = createDefinitionsByKey();
+    // 動的 SOQL で参照できるオブジェクトを制限
     private static final Set<String> OBJECT_API_NAMES = createObjectApiNames();
 
     /**
@@ -187,6 +191,7 @@ public with sharing class ObjectMetricCatalog {
      * カード表示情報
      */
     private class MetricPresentation {
+
         // カード見出しとして LWC に渡す表示名
         private String label;
         // カードに表示する Lightning icon 名
@@ -209,6 +214,7 @@ public with sharing class ObjectMetricCatalog {
      * データボードカードと対象オブジェクトを対応付ける定義
      */
     public class MetricDefinition {
+
         /**
          * LWC 側のカードキー
          */

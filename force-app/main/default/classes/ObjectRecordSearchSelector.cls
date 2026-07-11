@@ -2,6 +2,7 @@
  * 汎用レコード検索画面で使う Salesforce レコード問い合わせ
  */
 public virtual with sharing class ObjectRecordSearchSelector {
+
     /**
      * 対象オブジェクトの describe 結果を返す
      *
@@ -9,18 +10,14 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 対象オブジェクトの describe 結果
      * @throws ObjectRecordSearchException 対象オブジェクトを検索できない場合
      */
-    public virtual Schema.DescribeSObjectResult getObjectDescribe(
-        String objectApiName
-    ) {
+    public virtual Schema.DescribeSObjectResult getObjectDescribe(String objectApiName) {
         // API 参照名を describe 対象の SObjectType へ解決
         Map<String, Schema.SObjectType> sObjectTypesByApiName = Schema.getGlobalDescribe();
         Schema.SObjectType sObjectType = sObjectTypesByApiName.get(
             objectApiName
         );
         if (sObjectType == null) {
-            throw new ObjectRecordSearchException(
-                'このカードの対象オブジェクトを利用できません。別のカードを選択してください。'
-            );
+            throw new ObjectRecordSearchException('このカードの対象オブジェクトを利用できません。別のカードを選択してください。');
         }
         Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
@@ -29,9 +26,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
         Boolean isObjectAccessible = objectDescribe.isAccessible();
         Boolean isObjectQueryable = objectDescribe.isQueryable();
         if (!isObjectAccessible || !isObjectQueryable) {
-            throw new ObjectRecordSearchException(
-                'このレコード一覧を表示する権限がありません。管理者にアクセス権限を確認してください。'
-            );
+            throw new ObjectRecordSearchException('このレコード一覧を表示する権限がありません。管理者にアクセス権限を確認してください。');
         }
         return objectDescribe;
     }
@@ -43,9 +38,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return Name 相当項目の describe 結果
      * @throws ObjectRecordSearchException Name 相当項目を参照できない場合
      */
-    public virtual Schema.DescribeFieldResult getNameFieldDescribe(
-        Schema.DescribeSObjectResult objectDescribe
-    ) {
+    public virtual Schema.DescribeFieldResult getNameFieldDescribe(Schema.DescribeSObjectResult objectDescribe) {
         // isNameField を優先して主表示項目を検出
         Schema.DescribeFieldResult nameFieldDescribe;
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
@@ -69,16 +62,12 @@ public virtual with sharing class ObjectRecordSearchSelector {
         }
 
         if (nameFieldDescribe == null) {
-            throw new ObjectRecordSearchException(
-                '検索に必要な項目を利用できません。管理者に項目設定を確認してください。'
-            );
+            throw new ObjectRecordSearchException('検索に必要な項目を利用できません。管理者に項目設定を確認してください。');
         }
         // 主表示項目の参照権限がある場合だけ一覧表示を許可
         Boolean isNameFieldAccessible = nameFieldDescribe.isAccessible();
         if (!isNameFieldAccessible) {
-            throw new ObjectRecordSearchException(
-                '検索に必要な項目を参照する権限がありません。管理者に項目権限を確認してください。'
-            );
+            throw new ObjectRecordSearchException('検索に必要な項目を参照する権限がありません。管理者に項目権限を確認してください。');
         }
         return nameFieldDescribe;
     }
@@ -91,17 +80,13 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @throws ObjectRecordSearchException 検索クエリ計画が不完全な場合
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
-    public virtual List<SObject> searchRecords(
-        ObjectRecordSearchQueryPlan.SearchQuery searchQuery
-    ) {
+    public virtual List<SObject> searchRecords(ObjectRecordSearchQueryPlan.SearchQuery searchQuery) {
         // SOQL と bind 値がそろったクエリ計画だけを許可
         Boolean hasSearchQuery = searchQuery != null &&
             String.isNotBlank(searchQuery.soql) &&
             searchQuery.bindValues != null;
         if (!hasSearchQuery) {
-            throw new ObjectRecordSearchException(
-                '検索条件を処理できませんでした。条件を見直して、もう一度お試しください。'
-            );
+            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
         }
 
         // 画面利用者の権限で bind 付き動的 SOQL を評価
@@ -121,10 +106,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @throws ObjectRecordSearchException 対象オブジェクトがカタログ外の場合
      */
     @SuppressWarnings('PMD.ApexSOQLInjection')
-    public virtual List<SObject> getRecordsById(
-        String objectApiName,
-        Set<Id> recordIds
-    ) {
+    public virtual List<SObject> getRecordsById(String objectApiName, Set<Id> recordIds) {
         // 削除対象 ID がない場合は SOQL を実行せず空結果へ短絡
         Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
         if (!hasRecordIds) {
@@ -154,9 +136,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param recordsToDelete 削除対象レコード
      * @return DML 削除結果
      */
-    public virtual List<Database.DeleteResult> deleteRecords(
-        List<SObject> recordsToDelete
-    ) {
+    public virtual List<Database.DeleteResult> deleteRecords(List<SObject> recordsToDelete) {
         // 削除対象がない場合は DML を実行せず空結果へ短絡
         Boolean hasRecordsToDelete = recordsToDelete != null &&
             !recordsToDelete.isEmpty();
@@ -174,9 +154,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
         Boolean isSupportedObject = hasObjectApiName &&
             ObjectMetricCatalog.hasObjectApiName(objectApiName);
         if (!isSupportedObject) {
-            throw new ObjectRecordSearchException(
-                'このカードのレコード一覧は表示できません。別のカードを選択してください。'
-            );
+            throw new ObjectRecordSearchException('このカードのレコード一覧は表示できません。別のカードを選択してください。');
         }
     }
 }

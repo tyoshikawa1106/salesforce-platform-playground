@@ -2,6 +2,7 @@
  * 汎用レコード検索の一覧に追加表示する固定項目管理
  */
 public with sharing class ObjectRecordSearchDisplayFieldCatalog {
+
     private static final Map<String, List<String>> DISPLAY_FIELDS_BY_OBJECT = new Map<String, List<String>>{
         'Account' => new List<String>{
             'AccountNumber',
@@ -215,10 +216,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
      * @param objectDescribe 対象オブジェクトの describe 結果
      * @return 一覧に追加表示する固定項目
      */
-    public static List<ObjectRecordSearchFieldWrapper> getDisplayFields(
-        String objectApiName,
-        Schema.DescribeSObjectResult objectDescribe
-    ) {
+    public static List<ObjectRecordSearchFieldWrapper> getDisplayFields(String objectApiName, Schema.DescribeSObjectResult objectDescribe) {
         // カタログ定義済み項目から参照可能な項目だけを画面へ返す
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>();
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
@@ -242,10 +240,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         return displayFields;
     }
 
-    private static Schema.DescribeFieldResult getAccessibleFieldDescribe(
-        Map<String, Schema.SObjectField> fieldsByApiName,
-        String fieldApiName
-    ) {
+    private static Schema.DescribeFieldResult getAccessibleFieldDescribe(Map<String, Schema.SObjectField> fieldsByApiName, String fieldApiName) {
         // オブジェクトに存在しない項目は表示対象から除外
         Boolean hasFieldApiName = fieldsByApiName.containsKey(fieldApiName);
         if (!hasFieldApiName) {
@@ -262,9 +257,7 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
         return fieldDescribe;
     }
 
-    private static ObjectRecordSearchFieldWrapper createDisplayField(
-        Schema.DescribeFieldResult fieldDescribe
-    ) {
+    private static ObjectRecordSearchFieldWrapper createDisplayField(Schema.DescribeFieldResult fieldDescribe) {
         // Salesforce の項目型を lightning-datatable の型へ変換
         String fieldApiName = fieldDescribe.getName();
         String fieldLabel = fieldDescribe.getLabel();
