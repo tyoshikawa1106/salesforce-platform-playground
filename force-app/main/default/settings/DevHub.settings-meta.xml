@@ -5,6 +5,7 @@
     <enableALMSimpleDeployPref>false</enableALMSimpleDeployPref>
     <enableDevOpsCenter>false</enableDevOpsCenter>
     <enableDevOpsCenterGA>false</enableDevOpsCenterGA>
+    <enableDevopsCenterMigrationPref>false</enableDevopsCenterMigrationPref>
     <enableDevopsTestingPref>false</enableDevopsTestingPref>
     <enablePackaging2>false</enablePackaging2>
     <enableScratchOrgManagementPref>true</enableScratchOrgManagementPref>
