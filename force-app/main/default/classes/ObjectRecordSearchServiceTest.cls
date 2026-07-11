@@ -10,11 +10,11 @@ private with sharing class ObjectRecordSearchServiceTest {
     static void setupTestData() {
         List<Account> accounts = new List<Account>();
 
-        Account alphaAccount = TestDataFactory.createAccount('Service Alpha', false);
+        Account alphaAccount = TestDataFactory.createAccount('Service Alpha', TestDataFactory.SaveMode.DO_NOT_INSERT);
         alphaAccount.Industry = 'Technology';
         accounts.add(alphaAccount);
 
-        Account betaAccount = TestDataFactory.createAccount('Service Beta', false);
+        Account betaAccount = TestDataFactory.createAccount('Service Beta', TestDataFactory.SaveMode.DO_NOT_INSERT);
         betaAccount.Industry = 'Finance';
         accounts.add(betaAccount);
         insert accounts;
@@ -83,7 +83,7 @@ private with sharing class ObjectRecordSearchServiceTest {
     static void shouldCreatePagedSearchResultWhenMoreThanPageSizeIsFetched() {
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 51; index++) {
-            Account accountRecord = TestDataFactory.createAccount('Paged Account ' + index, false);
+            Account accountRecord = TestDataFactory.createAccount('Paged Account ' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
             accountRecord.Industry = 'Technology';
             accounts.add(accountRecord);
         }

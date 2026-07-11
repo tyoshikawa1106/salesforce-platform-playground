@@ -10,19 +10,19 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void setupTestData() {
         List<Account> accounts = new List<Account>();
 
-        Account alphaAccount = TestDataFactory.createAccount('Selector Alpha', false);
+        Account alphaAccount = TestDataFactory.createAccount('Selector Alpha', TestDataFactory.SaveMode.DO_NOT_INSERT);
         alphaAccount.Industry = 'Technology';
         accounts.add(alphaAccount);
 
-        Account betaAccount = TestDataFactory.createAccount('Selector Beta', false);
+        Account betaAccount = TestDataFactory.createAccount('Selector Beta', TestDataFactory.SaveMode.DO_NOT_INSERT);
         betaAccount.Industry = 'Finance';
         accounts.add(betaAccount);
 
-        Account deleteOneAccount = TestDataFactory.createAccount('Selector Delete One', false);
+        Account deleteOneAccount = TestDataFactory.createAccount('Selector Delete One', TestDataFactory.SaveMode.DO_NOT_INSERT);
         deleteOneAccount.Industry = 'Healthcare';
         accounts.add(deleteOneAccount);
 
-        Account deleteTwoAccount = TestDataFactory.createAccount('Selector Delete Two', false);
+        Account deleteTwoAccount = TestDataFactory.createAccount('Selector Delete Two', TestDataFactory.SaveMode.DO_NOT_INSERT);
         deleteTwoAccount.Industry = 'Retail';
         accounts.add(deleteTwoAccount);
         insert accounts;

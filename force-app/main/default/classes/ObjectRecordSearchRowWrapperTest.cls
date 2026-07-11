@@ -12,8 +12,7 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
     @IsTest
     static void shouldExposeRecordValues() {
         Account accountRecord = TestDataFactory.createAccount(
-            'Wrapper Row Account',
-            false
+            'Wrapper Row Account', TestDataFactory.SaveMode.DO_NOT_INSERT
         );
         accountRecord.Industry = 'Technology';
         insert accountRecord;

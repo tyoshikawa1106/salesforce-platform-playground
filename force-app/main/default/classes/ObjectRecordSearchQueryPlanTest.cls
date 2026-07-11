@@ -22,7 +22,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         );
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
         cursor.sortValue = 'Technology';
-        cursor.recordId = TestDataFactory.createAccount('Query Cursor', true).Id;
+        cursor.recordId = TestDataFactory.createAccount('Query Cursor', TestDataFactory.SaveMode.INSERT_RECORD).Id;
         ObjectRecordSearchQueryPlan.SearchQueryRequest queryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         queryRequest.context = context;
         queryRequest.searchRequest = request;

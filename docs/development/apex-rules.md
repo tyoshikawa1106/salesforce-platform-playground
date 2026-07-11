@@ -345,8 +345,10 @@ catch 句の例外変数名は `e` にします。
 - テストデータはテスト内で作成し、組織内の既存データに依存しない。
 - 既存の `TestDataFactory` が使える場合は優先する。
 - `TestDataFactory` のレコード作成 helper は原則 1 レコード作成に限定し、複数件が必要な場合はテストクラス側で繰り返し呼び出す。
-- `TestDataFactory` のレコード作成 helper は、`createAccount(..., Boolean isInsert)` のように `Boolean isInsert` で保存有無を切り替え、`insertAccount(...)` のような保存専用 helper と分けない。
-- `TestDataFactory` の `Boolean isInsert` が Code Analyzer の `PMD.AvoidBooleanMethodParameters` に該当する場合は、TestDataFactory の保存有無を明示する契約として限定的に抑止する。
+- `TestDataFactory` のレコード作成 helper は、`createAccount(..., TestDataFactory.SaveMode.INSERT_RECORD)` のように、このリポジトリで定義した保存モード enum で保存有無を切り替える。
+- `TestDataFactory.SaveMode` は Salesforce 標準 API ではなく、このリポジトリの TestDataFactory 用 enum として定義する。
+- 保存モード enum の値は、保存する場合は `INSERT_RECORD`、保存しない場合は `DO_NOT_INSERT` を使う。
+- TestDataFactory の公開 helper では保存有無を `Boolean` 引数で受け取らない。`createAccount(true)` / `createAccount(false)` のように呼び出し側で意味が読みにくい API にしない。
 - `TestDataFactory` 内の SObject 初期化は `new Account();` の後に `accountRecord.Name = ...;` のように項目ごとに代入し、どの項目へ値を入れるかを 1 行ずつ分かる形にする。
 - `System.runAs(...)` に渡す `User` は、原則としてテストクラス先頭の `private static User testUser = TestDataFactory.getTestUser();` で一度取得し、各テストメソッド内で毎回 User query や user 取得 helper を呼ばない。
 - このリポジトリでは、現在ログインユーザーをテスト実行ユーザーとして扱う。テスト側はユーザー取得方法を直接書かず、`TestDataFactory.getTestUser()` を使う。

@@ -10,15 +10,15 @@ private with sharing class ObjectRecordSearchControllerTest {
     static void setupTestData() {
         List<Account> accounts = new List<Account>();
 
-        Account alphaAccount = TestDataFactory.createAccount('検索対象 Alpha', false);
+        Account alphaAccount = TestDataFactory.createAccount('検索対象 Alpha', TestDataFactory.SaveMode.DO_NOT_INSERT);
         alphaAccount.Industry = 'Technology';
         alphaAccount.Type = 'Prospect';
         alphaAccount.BillingState = '東京都';
         alphaAccount.BillingCity = '千代田区';
         accounts.add(alphaAccount);
 
-        accounts.add(TestDataFactory.createAccount('検索対象 Beta', false));
-        accounts.add(TestDataFactory.createAccount('削除対象 Gamma', false));
+        accounts.add(TestDataFactory.createAccount('検索対象 Beta', TestDataFactory.SaveMode.DO_NOT_INSERT));
+        accounts.add(TestDataFactory.createAccount('削除対象 Gamma', TestDataFactory.SaveMode.DO_NOT_INSERT));
         insert accounts;
     }
 

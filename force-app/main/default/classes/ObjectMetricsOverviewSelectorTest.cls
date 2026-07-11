@@ -311,29 +311,27 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
     }
 
     private static void insertObjectMetricRecords() {
-        Account accountRecord = TestDataFactory.createAccount('件数取引先', true);
-        TestDataFactory.createContact(accountRecord, '件数責任者', true);
+        Account accountRecord = TestDataFactory.createAccount('件数取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        TestDataFactory.createContact(accountRecord, '件数責任者', TestDataFactory.SaveMode.INSERT_RECORD);
         insert new Task(Subject = '件数 ToDo', Status = 'Not Started');
         insert new Event(
             Subject = '件数 行動',
             StartDateTime = Datetime.now().addHours(1),
             EndDateTime = Datetime.now().addHours(2)
         );
-        TestDataFactory.createLead('件数リード', '件数会社', true);
+        TestDataFactory.createLead('件数リード', '件数会社', TestDataFactory.SaveMode.INSERT_RECORD);
         Opportunity opportunityRecord = TestDataFactory.createOpportunity(
             accountRecord,
-            '件数商談',
-            true
+            '件数商談', TestDataFactory.SaveMode.INSERT_RECORD
         );
-        Product2 productRecord = TestDataFactory.createProduct('件数商品', true);
-        PricebookEntry pricebookEntryRecord = TestDataFactory.createPricebookEntry(productRecord, true);
+        Product2 productRecord = TestDataFactory.createProduct('件数商品', TestDataFactory.SaveMode.INSERT_RECORD);
+        PricebookEntry pricebookEntryRecord = TestDataFactory.createPricebookEntry(productRecord, TestDataFactory.SaveMode.INSERT_RECORD);
         TestDataFactory.createOpportunityLineItem(
             opportunityRecord,
-            pricebookEntryRecord,
-            true
+            pricebookEntryRecord, TestDataFactory.SaveMode.INSERT_RECORD
         );
         insert new Campaign(Name = '件数キャンペーン');
-        TestDataFactory.createCase('件数ケース', true);
+        TestDataFactory.createCase('件数ケース', TestDataFactory.SaveMode.INSERT_RECORD);
         insert new Contract(
             AccountId = accountRecord.Id,
             Status = 'Draft',

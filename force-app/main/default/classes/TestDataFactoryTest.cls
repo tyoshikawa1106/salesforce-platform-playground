@@ -28,7 +28,7 @@ private with sharing class TestDataFactoryTest {
     }
 
     /**
-     * isInsert 指定で取引先の保存有無を切り替え
+     * 保存モード指定で取引先の保存有無を切り替え
      */
     @IsTest
     static void createAccountWhenInsertFlagProvidedControlsDml() {
@@ -36,8 +36,8 @@ private with sharing class TestDataFactoryTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            Account unsavedAccount = TestDataFactory.createAccount('Factory Account Draft', false);
-            Account savedAccount = TestDataFactory.createAccount('Factory Account', true);
+            Account unsavedAccount = TestDataFactory.createAccount('Factory Account Draft', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Account savedAccount = TestDataFactory.createAccount('Factory Account', TestDataFactory.SaveMode.INSERT_RECORD);
 
             Test.stopTest();
             Account queriedAccount = [
@@ -72,39 +72,33 @@ private with sharing class TestDataFactoryTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            Account accountRecord = TestDataFactory.createAccount('Factory Parent Account', true);
-            Product2 productRecord = TestDataFactory.createProduct('Factory Product', true);
-            PricebookEntry pricebookEntryRecord = TestDataFactory.createPricebookEntry(productRecord, true);
+            Account accountRecord = TestDataFactory.createAccount('Factory Parent Account', TestDataFactory.SaveMode.INSERT_RECORD);
+            Product2 productRecord = TestDataFactory.createProduct('Factory Product', TestDataFactory.SaveMode.INSERT_RECORD);
+            PricebookEntry pricebookEntryRecord = TestDataFactory.createPricebookEntry(productRecord, TestDataFactory.SaveMode.INSERT_RECORD);
             Opportunity opportunityRecord = TestDataFactory.createOpportunity(
                 accountRecord,
-                'Factory Opportunity',
-                true
+                'Factory Opportunity', TestDataFactory.SaveMode.INSERT_RECORD
             );
             Contact unsavedContact = TestDataFactory.createContact(
                 accountRecord,
-                'Factory Contact',
-                false
+                'Factory Contact', TestDataFactory.SaveMode.DO_NOT_INSERT
             );
             Contact savedContact = TestDataFactory.createContact(
                 accountRecord,
-                'Factory Contact Saved',
-                true
+                'Factory Contact Saved', TestDataFactory.SaveMode.INSERT_RECORD
             );
             Opportunity unsavedOpportunity = TestDataFactory.createOpportunity(
                 accountRecord,
-                'Factory Opportunity',
-                false
+                'Factory Opportunity', TestDataFactory.SaveMode.DO_NOT_INSERT
             );
-            PricebookEntry unsavedPricebookEntry = TestDataFactory.createPricebookEntry(productRecord, false);
+            PricebookEntry unsavedPricebookEntry = TestDataFactory.createPricebookEntry(productRecord, TestDataFactory.SaveMode.DO_NOT_INSERT);
             OpportunityLineItem unsavedLineItem = TestDataFactory.createOpportunityLineItem(
                 opportunityRecord,
-                pricebookEntryRecord,
-                false
+                pricebookEntryRecord, TestDataFactory.SaveMode.DO_NOT_INSERT
             );
             OpportunityLineItem savedLineItem = TestDataFactory.createOpportunityLineItem(
                 opportunityRecord,
-                pricebookEntryRecord,
-                true
+                pricebookEntryRecord, TestDataFactory.SaveMode.INSERT_RECORD
             );
 
             Test.stopTest();
@@ -180,12 +174,11 @@ private with sharing class TestDataFactoryTest {
 
             Lead unsavedLead = TestDataFactory.createLead(
                 'Factory Lead',
-                'Factory Company',
-                false
+                'Factory Company', TestDataFactory.SaveMode.DO_NOT_INSERT
             );
-            Lead savedLead = TestDataFactory.createLead('Factory Lead Saved', 'Factory Company', true);
-            Case unsavedCase = TestDataFactory.createCase('Factory Case', false);
-            Case savedCase = TestDataFactory.createCase('Factory Case Saved', true);
+            Lead savedLead = TestDataFactory.createLead('Factory Lead Saved', 'Factory Company', TestDataFactory.SaveMode.INSERT_RECORD);
+            Case unsavedCase = TestDataFactory.createCase('Factory Case', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Case savedCase = TestDataFactory.createCase('Factory Case Saved', TestDataFactory.SaveMode.INSERT_RECORD);
 
             Test.stopTest();
             Assert.areEqual(
