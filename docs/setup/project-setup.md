@@ -136,6 +136,8 @@ sf org login web --set-default --alias <alias>
 
 ```sh
 npm run prettier:verify
+npm run docs:check
+npm run manifest:check
 npm run lint -- --no-error-on-unmatched-pattern
 npm run test:unit -- -- --runInBand --passWithNoTests
 npm audit --omit=dev
