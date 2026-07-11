@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- イベント / メッセージング -->
-    <!-- Platform Event チャネル -->
+    <!-- プラットフォームイベントチャネル -->
     <types>
         <members>*</members>
         <name>PlatformEventChannel</name>
     </types>
-    <!-- Platform Event チャネルメンバー -->
+    <!-- プラットフォームイベントチャネルメンバー -->
     <types>
         <members>*</members>
         <name>PlatformEventChannelMember</name>
     </types>
-    <!-- Platform Event Subscriber Config -->
+    <!-- プラットフォームイベント購読者設定 -->
     <types>
         <members>*</members>
         <name>PlatformEventSubscriberConfig</name>
     </types>
-    <!-- Managed Event Subscription -->
+    <!-- 管理イベント購読設定 -->
     <types>
         <members>*</members>
         <name>ManagedEventSubscription</name>
     </types>
-    <!-- Event Relay Config -->
+    <!-- イベントリレー設定 -->
     <types>
         <members>*</members>
         <name>EventRelayConfig</name>

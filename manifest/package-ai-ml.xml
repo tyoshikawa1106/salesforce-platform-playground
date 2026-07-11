@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- AI / 機械学習 -->
-    <!-- AI Application -->
+    <!-- AI アプリケーション -->
     <types>
         <members>*</members>
         <name>AIApplication</name>
     </types>
-    <!-- AI Application Config -->
+    <!-- AI アプリケーション設定 -->
     <types>
         <members>*</members>
         <name>AIApplicationConfig</name>
@@ -16,22 +16,22 @@
         <members>*</members>
         <name>Prompt</name>
     </types>
-    <!-- ML Prediction Definition -->
+    <!-- 機械学習予測定義 -->
     <types>
         <members>*</members>
         <name>MLPredictionDefinition</name>
     </types>
-    <!-- ML Recommendation Definition -->
+    <!-- 機械学習推奨定義 -->
     <types>
         <members>*</members>
         <name>MLRecommendationDefinition</name>
     </types>
-    <!-- ML Data Definition -->
+    <!-- 機械学習データ定義 -->
     <types>
         <members>*</members>
         <name>MLDataDefinition</name>
     </types>
-    <!-- AI Scoring Model Definition Version -->
+    <!-- AI スコアリングモデル定義バージョン -->
     <types>
         <members>*</members>
         <name>AIScoringModelDefVersion</name>

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- その他のプラットフォーム設定 -->
-    <!-- Action Launcher Item Definition -->
+    <!-- アクションランチャー項目定義 -->
     <types>
         <members>*</members>
         <name>ActionLauncherItemDef</name>
     </types>
-    <!-- Action Link Group Template -->
+    <!-- アクションリンクグループテンプレート -->
     <types>
         <members>*</members>
         <name>ActionLinkGroupTemplate</name>
@@ -16,62 +16,62 @@
         <members>*</members>
         <name>AnimationRule</name>
     </types>
-    <!-- App Framework Template Bundle -->
+    <!-- アプリフレームワークテンプレートバンドル -->
     <types>
         <members>*</members>
         <name>AppFrameworkTemplateBundle</name>
     </types>
-    <!-- Batch Process Job Definition -->
+    <!-- バッチプロセスジョブ定義 -->
     <types>
         <members>*</members>
         <name>BatchProcessJobDefinition</name>
     </types>
-    <!-- Blacklisted Consumer -->
+    <!-- ブロック対象コンシューマー設定 -->
     <types>
         <members>*</members>
         <name>BlacklistedConsumer</name>
     </types>
-    <!-- Call Coaching Media Provider -->
+    <!-- 通話コーチングメディアプロバイダー -->
     <types>
         <members>*</members>
         <name>CallCoachingMediaProvider</name>
     </types>
-    <!-- Chatter Extension -->
+    <!-- Chatter 拡張 -->
     <types>
         <members>*</members>
         <name>ChatterExtension</name>
     </types>
-    <!-- Choice List -->
+    <!-- 選択肢リスト -->
     <types>
         <members>*</members>
         <name>ChoiceList</name>
     </types>
-    <!-- Clean Data Service -->
+    <!-- データクレンジングサービス -->
     <types>
         <members>*</members>
         <name>CleanDataService</name>
     </types>
-    <!-- Conversation Intelligence Signal Rule -->
+    <!-- 会話インテリジェンスシグナルルール -->
     <types>
         <members>*</members>
         <name>ConvIntelligenceSignalRule</name>
     </types>
-    <!-- Conversation Message Definition -->
+    <!-- 会話メッセージ定義 -->
     <types>
         <members>*</members>
         <name>ConversationMessageDefinition</name>
     </types>
-    <!-- Custom Application Component -->
+    <!-- カスタムアプリケーションコンポーネント -->
     <types>
         <members>*</members>
         <name>CustomApplicationComponent</name>
     </types>
-    <!-- Custom Feed Filter -->
+    <!-- カスタムフィードフィルター -->
     <types>
         <members>*</members>
         <name>CustomFeedFilter</name>
     </types>
-    <!-- Custom Help Menu Section -->
+    <!-- カスタムヘルプメニューセクション -->
     <types>
         <members>*</members>
         <name>CustomHelpMenuSection</name>
@@ -81,67 +81,67 @@
         <members>*</members>
         <name>CustomIndex</name>
     </types>
-    <!-- Custom Page Web Link -->
+    <!-- カスタムページリンク -->
     <types>
         <members>*</members>
         <name>CustomPageWebLink</name>
     </types>
-    <!-- DAM Provider -->
+    <!-- デジタルアセット管理プロバイダー -->
     <types>
         <members>*</members>
         <name>DgtAssetMgmtProvider</name>
     </types>
-    <!-- DAM Lightning Component -->
+    <!-- デジタルアセット管理用 Lightning コンポーネント -->
     <types>
         <members>*</members>
         <name>DgtAssetMgmtPrvdLghtCpnt</name>
     </types>
-    <!-- Eclair Geo Data -->
+    <!-- Eclair 地理データ -->
     <types>
         <members>*</members>
         <name>EclairGeoData</name>
     </types>
-    <!-- External Client App Push 設定可能ポリシー -->
+    <!-- 外部クライアントアプリのプッシュ設定可能ポリシー -->
     <types>
         <members>*</members>
         <name>ExtlClntAppPushConfigurablePolicies</name>
     </types>
-    <!-- Flow Category -->
+    <!-- フローカテゴリ -->
     <types>
         <members>*</members>
         <name>FlowCategory</name>
     </types>
-    <!-- Flow Test -->
+    <!-- フローテスト -->
     <types>
         <members>*</members>
         <name>FlowTest</name>
     </types>
-    <!-- Flow Value Map -->
+    <!-- フロー値マップ -->
     <types>
         <members>*</members>
         <name>FlowValueMap</name>
     </types>
-    <!-- Gateway Payment Method Type -->
+    <!-- 決済ゲートウェイプロバイダーの支払方法種別 -->
     <types>
         <members>*</members>
         <name>GatewayProviderPaymentMethodType</name>
     </types>
-    <!-- Lightning Onboarding Config -->
+    <!-- Lightning オンボーディング設定 -->
     <types>
         <members>*</members>
         <name>LightningOnboardingConfig</name>
     </types>
-    <!-- Lightning Type Bundle -->
+    <!-- Lightning 型バンドル -->
     <types>
         <members>*</members>
         <name>LightningTypeBundle</name>
     </types>
-    <!-- Path Assistant -->
+    <!-- パス設定 -->
     <types>
         <members>*</members>
         <name>PathAssistant</name>
     </types>
-    <!-- Payment Gateway Provider -->
+    <!-- 決済ゲートウェイプロバイダー -->
     <types>
         <members>*</members>
         <name>PaymentGatewayProvider</name>
@@ -151,7 +151,7 @@
         <members>*</members>
         <name>PostTemplate</name>
     </types>
-    <!-- Process Flow Migration -->
+    <!-- Process Builder からフローへの移行設定 -->
     <types>
         <members>*</members>
         <name>ProcessFlowMigration</name>
@@ -161,42 +161,42 @@
         <members>*</members>
         <name>RecommendationStrategy</name>
     </types>
-    <!-- Record Action Deployment -->
+    <!-- レコードアクション配置 -->
     <types>
         <members>*</members>
         <name>RecordActionDeployment</name>
     </types>
-    <!-- Redirect Whitelist URL -->
+    <!-- リダイレクト許可 URL -->
     <types>
         <members>*</members>
         <name>RedirectWhitelistUrl</name>
     </types>
-    <!-- Transaction Security Policy -->
+    <!-- トランザクションセキュリティポリシー -->
     <types>
         <members>*</members>
         <name>TransactionSecurityPolicy</name>
     </types>
-    <!-- UI Bundle -->
+    <!-- UI バンドル -->
     <types>
         <members>*</members>
         <name>UIBundle</name>
     </types>
-    <!-- UI Format Specification Set -->
+    <!-- UI 表示形式仕様セット -->
     <types>
         <members>*</members>
         <name>UiFormatSpecificationSet</name>
     </types>
-    <!-- Feature Parameter Boolean -->
+    <!-- Boolean 型機能パラメーター -->
     <types>
         <members>*</members>
         <name>FeatureParameterBoolean</name>
     </types>
-    <!-- Feature Parameter Date -->
+    <!-- 日付型機能パラメーター -->
     <types>
         <members>*</members>
         <name>FeatureParameterDate</name>
     </types>
-    <!-- Feature Parameter Integer -->
+    <!-- 整数型機能パラメーター -->
     <types>
         <members>*</members>
         <name>FeatureParameterInteger</name>

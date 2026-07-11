@@ -7,38 +7,68 @@ const mainManifestPath = path.join(manifestRoot, 'package.xml');
 const docsPath = path.join(projectRoot, 'docs/knowledge/salesforce-package-xml-metadata-types.md');
 const issues = [];
 
+function isEnglishOnly(value) {
+    return /[A-Za-z]/.test(value) && !/[ぁ-んァ-ヶ一-龠]/.test(value);
+}
+
 function parseManifest(filePath) {
     const xml = fs.readFileSync(filePath, 'utf8');
-    const metadataTypes = [...xml.matchAll(/<types>([\s\S]*?)<\/types>/g)].map((match) => {
+    const relativePath = path.relative(projectRoot, filePath);
+    const metadataEntries = [...xml.matchAll(/<types>([\s\S]*?)<\/types>/g)].map((match) => {
         const nameMatch = match[1].match(/<name>([^<]+)<\/name>/);
 
         if (!nameMatch) {
-            issues.push(`${path.relative(projectRoot, filePath)}: <types> に <name> がありません。`);
+            issues.push(`${relativePath}: <types> に <name> がありません。`);
             return null;
         }
 
-        return nameMatch[1];
+        const precedingText = xml.slice(0, match.index);
+        const precedingComments = [...precedingText.matchAll(/<!--\s*([\s\S]*?)\s*-->/g)];
+        const commentMatch = precedingComments.at(-1);
+        const textAfterComment = commentMatch
+            ? precedingText.slice(commentMatch.index + commentMatch[0].length)
+            : precedingText;
+
+        if (!commentMatch || !/^\s*$/.test(textAfterComment)) {
+            issues.push(`${relativePath}: ${nameMatch[1]} の直前にコメントがありません。`);
+        }
+
+        return {
+            comment: commentMatch?.[1].trim(),
+            metadataType: nameMatch[1]
+        };
     });
     const versionMatch = xml.match(/<version>([^<]+)<\/version>/);
 
+    for (const commentMatch of xml.matchAll(/<!--\s*([\s\S]*?)\s*-->/g)) {
+        const comment = commentMatch[1].trim();
+
+        if (isEnglishOnly(comment)) {
+            issues.push(`${relativePath}: 英語のみのコメント「${comment}」が残っています。`);
+        }
+    }
+
     if (!versionMatch) {
-        issues.push(`${path.relative(projectRoot, filePath)}: <version> がありません。`);
+        issues.push(`${relativePath}: <version> がありません。`);
     }
 
     return {
-        metadataTypes: metadataTypes.filter(Boolean),
+        metadataEntries: metadataEntries.filter(Boolean),
+        metadataTypes: metadataEntries.filter(Boolean).map((entry) => entry.metadataType),
         version: versionMatch?.[1]
     };
 }
 
 const mainManifest = parseManifest(mainManifestPath);
 const mainMetadataTypeSet = new Set();
+const mainComments = new Map();
 
-mainManifest.metadataTypes.forEach((metadataType) => {
+mainManifest.metadataEntries.forEach(({ comment, metadataType }) => {
     if (mainMetadataTypeSet.has(metadataType)) {
         issues.push(`${metadataType}: package.xml 内で重複しています。`);
     } else {
         mainMetadataTypeSet.add(metadataType);
+        mainComments.set(metadataType, comment);
     }
 });
 
@@ -62,13 +92,19 @@ splitManifestPaths.forEach((filePath) => {
         );
     }
 
-    manifest.metadataTypes.forEach((metadataType) => {
+    manifest.metadataEntries.forEach(({ comment, metadataType }) => {
         const previousOwner = splitMetadataOwners.get(metadataType);
 
         if (previousOwner) {
             issues.push(`${metadataType}: ${previousOwner} と ${relativePath} に重複しています。`);
         } else {
             splitMetadataOwners.set(metadataType, relativePath);
+        }
+
+        if (mainComments.has(metadataType) && mainComments.get(metadataType) !== comment) {
+            issues.push(
+                `${metadataType}: package.xml のコメント「${mainComments.get(metadataType)}」と ${relativePath} の「${comment}」が一致しません。`
+            );
         }
     });
 });
@@ -91,6 +127,32 @@ const documentedCounts = new Map(
         (match) => [match.groups.file, Number(match.groups.count)]
     )
 );
+const documentedMetadataDescriptions = new Map();
+
+for (const match of docs.matchAll(/^\| `(?<metadataType>[^`]+)`\s*\|\s*(?<description>[^|]+?)\s*\|$/gm)) {
+    const { description, metadataType } = match.groups;
+
+    if (!mainMetadataTypeSet.has(metadataType)) {
+        continue;
+    }
+
+    if (documentedMetadataDescriptions.has(metadataType)) {
+        continue;
+    }
+
+    const trimmedDescription = description.trim();
+    documentedMetadataDescriptions.set(metadataType, trimmedDescription);
+
+    if (isEnglishOnly(trimmedDescription)) {
+        issues.push(`${metadataType}: docs に英語のみの説明「${trimmedDescription}」が残っています。`);
+    }
+}
+
+mainMetadataTypeSet.forEach((metadataType) => {
+    if (!documentedMetadataDescriptions.has(metadataType)) {
+        issues.push(`${metadataType}: docs の metadata 一覧に説明がありません。`);
+    }
+});
 
 splitCounts.forEach((count, relativePath) => {
     if (!documentedCounts.has(relativePath)) {
@@ -108,7 +170,7 @@ documentedCounts.forEach((_, relativePath) => {
     }
 });
 
-if (!docs.includes(`metadata type ${mainManifest.metadataTypes.length} 件`)) {
+if (!docs.includes(`メタデータ型 ${mainManifest.metadataTypes.length} 件`)) {
     issues.push(`docs: package.xml の件数 ${mainManifest.metadataTypes.length} が本文と一致しません。`);
 }
 

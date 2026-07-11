@@ -1,8 +1,8 @@
 # package.xml のメタデータ一覧
 
-この文書は、`manifest/package.xml` に含めている Salesforce metadata の主要カテゴリを整理します。
+この文書は、`manifest/package.xml` に含めている Salesforce メタデータの主要カテゴリを整理します。
 
-この manifest は API 67.0 を前提に、metadata type 218 件を並べています。
+この manifest は API 67.0 を前提に、メタデータ型 218 件を並べています。
 
 - `manifest/package.xml` は広めの取得用 manifest。
 - `manifest/package-*.xml` は同じ 218 件をカテゴリ別に分割した補助 manifest。分割合計が `manifest/package.xml` と一致する状態を保つ。
@@ -26,7 +26,7 @@
 | `manifest/package-analytics.xml`          | レポート / 分析                   | 5    |
 | `manifest/package-email-notification.xml` | メール / 通知                     | 7    |
 | `manifest/package-experience-sites.xml`   | Experience / サイト               | 9    |
-| `manifest/package-service.xml`            | Service 設定                      | 10   |
+| `manifest/package-service.xml`            | サービス設定                      | 10   |
 | `manifest/package-mobile-offline.xml`     | モバイル / オフライン             | 2    |
 | `manifest/package-ai-ml.xml`              | AI / 機械学習                     | 7    |
 | `manifest/package-content-cms.xml`        | コンテンツ / CMS                  | 3    |
@@ -38,7 +38,7 @@
 
 ## コード / UI コンポーネント
 
-| Metadata type              | 取得できる内容                   |
+| メタデータ型               | 取得できる内容                   |
 | -------------------------- | -------------------------------- |
 | `ApexClass`                | Apex クラスとテストクラス        |
 | `ApexTrigger`              | Apex トリガー                    |
@@ -51,7 +51,7 @@
 
 ## 共有 / 補助リソース
 
-| Metadata type             | 取得できる内容                                |
+| メタデータ型              | 取得できる内容                                |
 | ------------------------- | --------------------------------------------- |
 | `LightningMessageChannel` | Lightning Message Service のチャネル          |
 | `ContentAsset`            | Experience Cloud などで使うコンテンツアセット |
@@ -59,7 +59,7 @@
 
 ## アプリケーション / ナビゲーション
 
-| Metadata type       | 取得できる内容                     |
+| メタデータ型        | 取得できる内容                     |
 | ------------------- | ---------------------------------- |
 | `CustomApplication` | Lightning アプリ、Classic アプリ   |
 | `CustomTab`         | カスタムタブ、Web タブ             |
@@ -67,7 +67,7 @@
 
 ## 画面 / レイアウト
 
-| Metadata type              | 取得できる内容                         |
+| メタデータ型               | 取得できる内容                         |
 | -------------------------- | -------------------------------------- |
 | `FlexiPage`                | Lightning Record Page や Home Page     |
 | `Layout`                   | ページレイアウト                       |
@@ -78,13 +78,13 @@
 
 ## オブジェクト / データモデル
 
-| Metadata type          | 取得できる内容                             |
+| メタデータ型           | 取得できる内容                             |
 | ---------------------- | ------------------------------------------ |
 | `CustomObject`         | カスタムオブジェクトと標準オブジェクト定義 |
 | `CustomField`          | オブジェクト項目                           |
 | `RecordType`           | レコードタイプ                             |
 | `BusinessProcess`      | 商談、ケース、リードなどの業務プロセス     |
-| `FieldSet`             | Field Set                                  |
+| `FieldSet`             | 項目セット                                 |
 | `ListView`             | リストビュー                               |
 | `ValidationRule`       | 入力規則                                   |
 | `WebLink`              | カスタムボタン、リンク                     |
@@ -93,8 +93,8 @@
 | `CustomPermission`     | カスタム権限                               |
 | `GlobalValueSet`       | グローバル選択リスト値セット               |
 | `StandardValueSet`     | 標準項目の選択リスト値セット               |
-| `BusinessProcessGroup` | Business Process Group                     |
-| `Index`                | Index                                      |
+| `BusinessProcessGroup` | ビジネスプロセスグループ                   |
+| `Index`                | インデックス                               |
 
 ### CustomObject の標準オブジェクト指定
 
@@ -131,28 +131,28 @@
 
 ## 自動化 / プロセス
 
-| Metadata type              | 取得できる内容                     |
-| -------------------------- | ---------------------------------- |
-| `Flow`                     | フロー本体、各バージョンの定義     |
-| `Workflow`                 | ワークフロールール、項目自動更新等 |
-| `ApprovalProcess`          | 承認プロセス定義                   |
-| `AssignmentRules`          | リード、ケースなどの割り当てルール |
-| `AutoResponseRules`        | 自動レスポンスルール               |
-| `EscalationRules`          | ケースエスカレーションルール       |
-| `DuplicateRule`            | 重複ルール                         |
-| `MatchingRules`            | 重複判定に使う一致ルール           |
-| `WorkflowAlert`            | Workflow Alert                     |
-| `WorkflowFieldUpdate`      | Workflow Field Update              |
-| `WorkflowFlowAction`       | Workflow Flow Action               |
-| `WorkflowKnowledgePublish` | Workflow Knowledge Publish         |
-| `WorkflowOutboundMessage`  | Workflow Outbound Message          |
-| `WorkflowRule`             | Workflow Rule                      |
-| `WorkflowSend`             | Workflow Send                      |
-| `WorkflowTask`             | Workflow Task                      |
+| メタデータ型               | 取得できる内容                       |
+| -------------------------- | ------------------------------------ |
+| `Flow`                     | フロー本体、各バージョンの定義       |
+| `Workflow`                 | ワークフロールール、項目自動更新等   |
+| `ApprovalProcess`          | 承認プロセス定義                     |
+| `AssignmentRules`          | リード、ケースなどの割り当てルール   |
+| `AutoResponseRules`        | 自動レスポンスルール                 |
+| `EscalationRules`          | ケースエスカレーションルール         |
+| `DuplicateRule`            | 重複ルール                           |
+| `MatchingRules`            | 重複判定に使う一致ルール             |
+| `WorkflowAlert`            | ワークフローアラート                 |
+| `WorkflowFieldUpdate`      | ワークフロー項目自動更新             |
+| `WorkflowFlowAction`       | ワークフローフローアクション         |
+| `WorkflowKnowledgePublish` | ワークフローナレッジ公開アクション   |
+| `WorkflowOutboundMessage`  | ワークフローアウトバウンドメッセージ |
+| `WorkflowRule`             | ワークフロールール                   |
+| `WorkflowSend`             | ワークフロー送信アクション           |
+| `WorkflowTask`             | ワークフローToDo                     |
 
 ## 権限 / 共有
 
-| Metadata type           | 取得できる内容                   |
+| メタデータ型            | 取得できる内容                   |
 | ----------------------- | -------------------------------- |
 | `PermissionSet`         | 権限セット                       |
 | `PermissionSetGroup`    | 権限セットグループ               |
@@ -166,24 +166,24 @@
 | `FieldRestrictionRule`  | 項目制限ルール                   |
 | `ProfilePasswordPolicy` | プロファイル別パスワードポリシー |
 | `ProfileSessionSetting` | プロファイル別セッション設定     |
-| `SharingCriteriaRule`   | Sharing Criteria Rule            |
-| `SharingGuestRule`      | Sharing Guest Rule               |
-| `SharingOwnerRule`      | Sharing Owner Rule               |
-| `SharingReason`         | Sharing Reason                   |
-| `SharingTerritoryRule`  | Sharing Territory Rule           |
+| `SharingCriteriaRule`   | 条件ベース共有ルール             |
+| `SharingGuestRule`      | ゲストユーザー共有ルール         |
+| `SharingOwnerRule`      | 所有者ベース共有ルール           |
+| `SharingReason`         | 共有理由                         |
+| `SharingTerritoryRule`  | テリトリーベース共有ルール       |
 
 ## 組織依存メタデータ
 
-| Metadata type    | 取得できる内容 |
+| メタデータ型     | 取得できる内容 |
 | ---------------- | -------------- |
 | `FlowDefinition` | フロー定義     |
 | `Profile`        | プロファイル   |
 
 ## 認証 / セキュリティ
 
-| Metadata type                           | 取得できる内容                                  |
+| メタデータ型                            | 取得できる内容                                  |
 | --------------------------------------- | ----------------------------------------------- |
-| `ConnectedApp`                          | Connected App 定義                              |
+| `ConnectedApp`                          | 接続アプリケーション定義                        |
 | `ExternalClientApplication`             | 外部クライアントアプリ定義                      |
 | `ExtlClntAppOauthSettings`              | 外部クライアントアプリの OAuth 設定             |
 | `ExtlClntAppGlobalOauthSettings`        | 外部クライアントアプリのグローバル OAuth 設定   |
@@ -197,110 +197,110 @@
 | `ExtlClntAppPushSettings`               | プッシュ通知設定                                |
 | `ExtlClntAppNotificationSettings`       | 通知設定                                        |
 | `ExternalAuthIdentityProvider`          | 外部認証 ID プロバイダー設定                    |
-| `NamedCredential`                       | Named Credential                                |
-| `ExternalCredential`                    | External Credential                             |
+| `NamedCredential`                       | 指定ログイン情報                                |
+| `ExternalCredential`                    | 外部ログイン情報                                |
 | `AuthProvider`                          | 認証プロバイダー                                |
 | `SamlSsoConfig`                         | SAML SSO 設定                                   |
 | `OauthCustomScope`                      | OAuth カスタムスコープ                          |
 | `OauthTokenExchangeHandler`             | OAuth トークン交換ハンドラー                    |
-| `RemoteSiteSetting`                     | Remote Site Settings                            |
+| `RemoteSiteSetting`                     | リモートサイト設定                              |
 | `CspTrustedSite`                        | CSP 信頼済みサイト                              |
 | `CorsWhitelistOrigin`                   | CORS 許可オリジン                               |
 | `IframeWhiteListUrlSettings`            | iframe 許可 URL 設定                            |
 | `IPAddressRange`                        | IP アドレス範囲設定                             |
-| `MyDomainDiscoverableLogin`             | My Domain の検出可能ログイン設定                |
-| `Certificate`                           | 証明書と鍵の metadata                           |
+| `MyDomainDiscoverableLogin`             | 私のドメインの検出可能ログイン設定              |
+| `Certificate`                           | 証明書と鍵のメタデータ                          |
 | `PublicKeyCertificate`                  | 公開鍵証明書                                    |
 | `PublicKeyCertificateSet`               | 公開鍵証明書セット                              |
 
 ## 外部接続 / API
 
-| Metadata type                     | 取得できる内容                       |
+| メタデータ型                      | 取得できる内容                       |
 | --------------------------------- | ------------------------------------ |
 | `ExternalDataSource`              | 外部オブジェクト用の外部データソース |
-| `ExternalServiceRegistration`     | External Services 登録               |
-| `ApiNamedQuery`                   | API Named Query 定義                 |
-| `CanvasMetadata`                  | Canvas アプリ metadata               |
-| `CatalogedApi`                    | API Catalog の API 定義              |
-| `CatalogedApiArtifactVersionInfo` | API Catalog の成果物バージョン情報   |
-| `CatalogedApiVersion`             | API Catalog の API バージョン        |
+| `ExternalServiceRegistration`     | 外部サービス登録                     |
+| `ApiNamedQuery`                   | API 名前付きクエリ定義               |
+| `CanvasMetadata`                  | Canvas アプリのメタデータ            |
+| `CatalogedApi`                    | API カタログ定義                     |
+| `CatalogedApiArtifactVersionInfo` | API カタログ成果物バージョン情報     |
+| `CatalogedApiVersion`             | API カタログバージョン               |
 | `InboundNetworkConnection`        | インバウンドネットワーク接続設定     |
 | `OutboundNetworkConnection`       | アウトバウンドネットワーク接続設定   |
-| `InvocableActionExtension`        | Invocable Action 拡張                |
-| `McpServerDefinition`             | MCP Server 定義                      |
-| `ExternalDataTranObject`          | External Data Transform Object       |
+| `InvocableActionExtension`        | 呼び出し可能アクション拡張           |
+| `McpServerDefinition`             | MCP サーバー定義                     |
+| `ExternalDataTranObject`          | 外部データ変換オブジェクト           |
 
 ## イベント / メッセージング
 
-| Metadata type                   | 取得できる内容                  |
-| ------------------------------- | ------------------------------- |
-| `PlatformEventChannel`          | Platform Event チャネル         |
-| `PlatformEventChannelMember`    | Platform Event チャネルメンバー |
-| `PlatformEventSubscriberConfig` | Platform Event 購読設定         |
-| `ManagedEventSubscription`      | 管理イベント購読設定            |
-| `EventRelayConfig`              | Event Relay 設定                |
+| メタデータ型                    | 取得できる内容                           |
+| ------------------------------- | ---------------------------------------- |
+| `PlatformEventChannel`          | プラットフォームイベントチャネル         |
+| `PlatformEventChannelMember`    | プラットフォームイベントチャネルメンバー |
+| `PlatformEventSubscriberConfig` | プラットフォームイベント購読者設定       |
+| `ManagedEventSubscription`      | 管理イベント購読設定                     |
+| `EventRelayConfig`              | イベントリレー設定                       |
 
 ## レポート / 分析
 
-| Metadata type                 | 取得できる内容                     |
+| メタデータ型                  | 取得できる内容                     |
 | ----------------------------- | ---------------------------------- |
 | `ReportType`                  | カスタムレポートタイプ             |
-| `Document`                    | Classic Document                   |
+| `Document`                    | Classic ドキュメント               |
 | `AnalyticSnapshot`            | レポートスナップショット           |
 | `WaveAnalyticAssetCollection` | CRM Analytics アセットコレクション |
-| `DocumentFolder`              | Classic Document のフォルダー      |
+| `DocumentFolder`              | Classic ドキュメントフォルダー     |
 
 ## メール / 通知
 
-| Metadata type            | 取得できる内容                           |
+| メタデータ型             | 取得できる内容                           |
 | ------------------------ | ---------------------------------------- |
 | `EmailTemplate`          | メールテンプレート                       |
 | `Letterhead`             | Classic メールテンプレートのレターヘッド |
 | `CustomNotificationType` | カスタム通知タイプ                       |
-| `EmailServicesFunction`  | Apex Email Service の関数設定            |
+| `EmailServicesFunction`  | Apex メールサービスの関数設定            |
 | `ApexEmailNotifications` | Apex 例外メール通知設定                  |
 | `EmailFolder`            | メールフォルダー                         |
 | `EmailTemplateFolder`    | メールテンプレートフォルダー             |
 
 ## Experience / サイト
 
-| Metadata type                  | 取得できる内容                  |
-| ------------------------------ | ------------------------------- |
-| `DigitalExperienceBundle`      | Experience Cloud サイトバンドル |
-| `Community`                    | Community metadata              |
-| `NetworkBranding`              | Experience Cloud のブランド設定 |
-| `CustomSite`                   | Salesforce Site 設定            |
-| `SiteDotCom`                   | Site.com metadata               |
-| `ExperiencePropertyTypeBundle` | Experience Property Type Bundle |
-| `ChannelLayout`                | チャネルレイアウト              |
-| `LightningBolt`                | Lightning Bolt ソリューション   |
-| `DigitalExperience`            | Digital Experience              |
+| メタデータ型                   | 取得できる内容                      |
+| ------------------------------ | ----------------------------------- |
+| `DigitalExperienceBundle`      | Experience Cloud サイトバンドル     |
+| `Community`                    | Experience Cloud コミュニティ設定   |
+| `NetworkBranding`              | Experience Cloud のブランド設定     |
+| `CustomSite`                   | Salesforce サイト設定               |
+| `SiteDotCom`                   | Site.com サイト設定                 |
+| `ExperiencePropertyTypeBundle` | Experience プロパティタイプバンドル |
+| `ChannelLayout`                | チャネルレイアウト                  |
+| `LightningBolt`                | Lightning Bolt ソリューション       |
+| `DigitalExperience`            | デジタルエクスペリエンス            |
 
-## Service 設定
+## サービス設定
 
-| Metadata type                 | 取得できる内容                         |
+| メタデータ型                  | 取得できる内容                         |
 | ----------------------------- | -------------------------------------- |
 | `CallCenter`                  | CTI Call Center 定義                   |
 | `MilestoneType`               | エンタイトルメントのマイルストーン種別 |
 | `EntitlementProcess`          | エンタイトルメントプロセス             |
 | `EntitlementTemplate`         | エンタイトルメントテンプレート         |
 | `MessagingChannel`            | Messaging チャネル                     |
-| `EmbeddedServiceConfig`       | Embedded Service 設定                  |
-| `EmbeddedServiceBranding`     | Embedded Service のブランド設定        |
-| `EmbeddedServiceFlowConfig`   | Embedded Service と Flow の関連設定    |
-| `EmbeddedServiceMenuSettings` | Embedded Service のメニュー設定        |
+| `EmbeddedServiceConfig`       | 組み込みサービス設定                   |
+| `EmbeddedServiceBranding`     | 組み込みサービスのブランド設定         |
+| `EmbeddedServiceFlowConfig`   | 組み込みサービスとフローの関連設定     |
+| `EmbeddedServiceMenuSettings` | 組み込みサービスのメニュー設定         |
 | `LiveChatSensitiveDataRule`   | Live Chat の機密データルール           |
 
 ## モバイル / オフライン
 
-| Metadata type             | 取得できる内容                       |
+| メタデータ型              | 取得できる内容                       |
 | ------------------------- | ------------------------------------ |
 | `BriefcaseDefinition`     | Salesforce モバイルの Briefcase 定義 |
 | `MobileApplicationDetail` | モバイルアプリ詳細設定               |
 
 ## AI / 機械学習
 
-| Metadata type                | 取得できる内容                      |
+| メタデータ型                 | 取得できる内容                      |
 | ---------------------------- | ----------------------------------- |
 | `AIApplication`              | AI アプリケーション定義             |
 | `AIApplicationConfig`        | AI アプリケーション設定             |
@@ -308,11 +308,11 @@
 | `MLPredictionDefinition`     | Einstein 予測定義                   |
 | `MLRecommendationDefinition` | Einstein 推奨定義                   |
 | `MLDataDefinition`           | 機械学習向けデータ定義              |
-| `AIScoringModelDefVersion`   | AI Scoring Model Definition Version |
+| `AIScoringModelDefVersion`   | AI スコアリングモデル定義バージョン |
 
 ## コンテンツ / CMS
 
-| Metadata type        | 取得できる内容               |
+| メタデータ型         | 取得できる内容               |
 | -------------------- | ---------------------------- |
 | `ContentTypeBundle`  | CMS コンテンツタイプバンドル |
 | `ManagedContentType` | 管理コンテンツタイプ         |
@@ -320,7 +320,7 @@
 
 ## 検索 / ナレッジ補助
 
-| Metadata type               | 取得できる内容                   |
+| メタデータ型                | 取得できる内容                   |
 | --------------------------- | -------------------------------- |
 | `SearchCustomization`       | 検索 UI や検索結果のカスタマイズ |
 | `SearchOrgWideObjectConfig` | 組織全体のオブジェクト検索設定   |
@@ -329,7 +329,7 @@
 
 ## 組織設定
 
-| Metadata type                    | 取得できる内容                 |
+| メタデータ型                     | 取得できる内容                 |
 | -------------------------------- | ------------------------------ |
 | `InstalledPackage`               | インストール済みパッケージ参照 |
 | `Settings`                       | 組織設定一式                   |
@@ -342,15 +342,15 @@
 
 ## Classic UI
 
-| Metadata type       | 取得できる内容                     |
+| メタデータ型        | 取得できる内容                     |
 | ------------------- | ---------------------------------- |
 | `HomePageComponent` | Classic ホームページコンポーネント |
 | `HomePageLayout`    | Classic ホームページレイアウト     |
-| `Scontrol`          | S-Control                          |
+| `Scontrol`          | S-Control 定義                     |
 
 ## その他のプラットフォーム設定
 
-| Metadata type                         | 取得できる内容                                  |
+| メタデータ型                          | 取得できる内容                                  |
 | ------------------------------------- | ----------------------------------------------- |
 | `ActionLauncherItemDef`               | アクションランチャー項目定義                    |
 | `ActionLinkGroupTemplate`             | アクションリンクグループテンプレート            |
@@ -373,29 +373,29 @@
 | `DgtAssetMgmtPrvdLghtCpnt`            | デジタルアセット管理用 Lightning コンポーネント |
 | `EclairGeoData`                       | Eclair 地理データ                               |
 | `ExtlClntAppPushConfigurablePolicies` | 外部クライアントアプリの Push 設定可能ポリシー  |
-| `FlowCategory`                        | Flow カテゴリ                                   |
-| `FlowTest`                            | Flow テスト定義                                 |
-| `FlowValueMap`                        | Flow 値マップ                                   |
+| `FlowCategory`                        | フローカテゴリ                                  |
+| `FlowTest`                            | フローテスト定義                                |
+| `FlowValueMap`                        | フロー値マップ                                  |
 | `GatewayProviderPaymentMethodType`    | 決済ゲートウェイプロバイダーの支払方法種別      |
 | `LightningOnboardingConfig`           | Lightning オンボーディング設定                  |
-| `LightningTypeBundle`                 | Lightning Type Bundle                           |
+| `LightningTypeBundle`                 | Lightning 型バンドル                            |
 | `PathAssistant`                       | パス設定                                        |
 | `PaymentGatewayProvider`              | 決済ゲートウェイプロバイダー                    |
 | `PostTemplate`                        | 投稿テンプレート                                |
-| `ProcessFlowMigration`                | Process Builder から Flow への移行 metadata     |
+| `ProcessFlowMigration`                | Process Builder からフローへの移行設定          |
 | `RecommendationStrategy`              | 推奨戦略                                        |
 | `RecordActionDeployment`              | レコードアクション配置                          |
 | `RedirectWhitelistUrl`                | リダイレクト許可 URL                            |
 | `TransactionSecurityPolicy`           | トランザクションセキュリティポリシー            |
-| `UIBundle`                            | UI Bundle                                       |
+| `UIBundle`                            | UI バンドル                                     |
 | `UiFormatSpecificationSet`            | UI 表示形式仕様セット                           |
-| `FeatureParameterBoolean`             | Feature Parameter Boolean                       |
-| `FeatureParameterDate`                | Feature Parameter Date                          |
-| `FeatureParameterInteger`             | Feature Parameter Integer                       |
+| `FeatureParameterBoolean`             | Boolean 型機能パラメーター                      |
+| `FeatureParameterDate`                | 日付型機能パラメーター                          |
+| `FeatureParameterInteger`             | 整数型機能パラメーター                          |
 
 ## 翻訳
 
-| Metadata type                 | 取得できる内容           |
+| メタデータ型                  | 取得できる内容           |
 | ----------------------------- | ------------------------ |
 | `Translations`                | 言語別翻訳               |
 | `CustomObjectTranslation`     | カスタムオブジェクト翻訳 |

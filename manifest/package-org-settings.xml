@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- 組織設定 -->
-    <!-- Installed Package -->
+    <!-- インストール済みパッケージ -->
     <types>
         <members>*</members>
         <name>InstalledPackage</name>
@@ -11,32 +11,32 @@
         <members>*</members>
         <name>Settings</name>
     </types>
-    <!-- Lead Convert Settings -->
+    <!-- リード取引開始設定 -->
     <types>
         <members>*</members>
         <name>LeadConvertSettings</name>
     </types>
-    <!-- Delegate Group -->
+    <!-- 委任管理グループ -->
     <types>
         <members>*</members>
         <name>DelegateGroup</name>
     </types>
-    <!-- Notification Type Config -->
+    <!-- 通知タイプ設定 -->
     <types>
         <members>*</members>
         <name>NotificationTypeConfig</name>
     </types>
-    <!-- Permission Set License Definition -->
+    <!-- 権限セットライセンス定義 -->
     <types>
         <members>*</members>
         <name>PermissionSetLicenseDefinition</name>
     </types>
-    <!-- Platform Cache パーティション -->
+    <!-- プラットフォームキャッシュパーティション -->
     <types>
         <members>*</members>
         <name>PlatformCachePartition</name>
     </types>
-    <!-- User Provisioning Config -->
+    <!-- ユーザープロビジョニング設定 -->
     <types>
         <members>*</members>
         <name>UserProvisioningConfig</name>

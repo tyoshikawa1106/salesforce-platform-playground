@@ -61,27 +61,27 @@
         <members>*</members>
         <name>ProfileSessionSetting</name>
     </types>
-    <!-- Sharing Criteria Rule -->
+    <!-- 条件ベース共有ルール -->
     <types>
         <members>*</members>
         <name>SharingCriteriaRule</name>
     </types>
-    <!-- Sharing Guest Rule -->
+    <!-- ゲストユーザー共有ルール -->
     <types>
         <members>*</members>
         <name>SharingGuestRule</name>
     </types>
-    <!-- Sharing Owner Rule -->
+    <!-- 所有者ベース共有ルール -->
     <types>
         <members>*</members>
         <name>SharingOwnerRule</name>
     </types>
-    <!-- Sharing Reason -->
+    <!-- 共有理由 -->
     <types>
         <members>*</members>
         <name>SharingReason</name>
     </types>
-    <!-- Sharing Territory Rule -->
+    <!-- テリトリーベース共有ルール -->
     <types>
         <members>*</members>
         <name>SharingTerritoryRule</name>

@@ -46,7 +46,7 @@
         <members>*</members>
         <name>BusinessProcess</name>
     </types>
-    <!-- Field Set -->
+    <!-- 項目セット -->
     <types>
         <members>*</members>
         <name>FieldSet</name>
@@ -91,12 +91,12 @@
         <members>*</members>
         <name>StandardValueSet</name>
     </types>
-    <!-- Business Process Group -->
+    <!-- ビジネスプロセスグループ -->
     <types>
         <members>*</members>
         <name>BusinessProcessGroup</name>
     </types>
-    <!-- Index -->
+    <!-- インデックス -->
     <types>
         <members>*</members>
         <name>Index</name>
