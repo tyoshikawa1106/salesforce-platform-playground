@@ -35,6 +35,36 @@ Salesforce メタデータ変更を含む PR は、merge 前に Salesforce valid
 - 標準確認は `npm run sf:validate:dev -- --target-org <alias>` とする。
 - merge 前に validate を実行できない場合は、merge せず、未実行理由と必要な対象 org / 確認方針をユーザーに報告する。
 
+### PR マージ後の Salesforce deploy
+
+Salesforce メタデータ変更を含む PR の merge を依頼された場合は、merge 後に同期した `main` を確認済みの default target org へ実 deploy します。PR ブランチからの実 deploy は標準フローにしません。
+
+1. PR の deploy 可能な変更をすべて含む scope を決め、同じ scope の Salesforce validate と CI が成功していることを確認する。
+2. PR を merge する。
+3. ローカルの `main` を `origin/main` と同期する。
+4. 作業ツリーが clean で、`HEAD` と `origin/main` が一致することを確認する。
+5. 同期済みの `main` から、validate と同じ scope を実 deploy する。
+6. deploy report で成功、対象件数、エラー、テスト結果を確認する。
+7. org と Git の一致確認が必要な変更では、同じ scope を retrieve して実質差分がないことを確認する。
+8. deploy と必要な一致確認が成功するまでタスクを完了扱いにしない。
+
+変更対象がすべて `manifest/rebuild-developer-org.xml` に含まれる場合は、標準コマンドを使います。
+
+```sh
+npm run sf:validate:dev -- --target-org <alias>
+npm run sf:deploy:dev -- --target-org <alias>
+```
+
+標準 manifest に含まれない deploy 可能な metadata がある場合は、その変更を含む作業対象 manifest または `--metadata` をvalidateとdeployの両方で使います。標準 manifest の成功だけで、scope外の変更まで反映済みとは扱いません。
+
+deploy に失敗した場合は、失敗した状態を完了として報告せず、原因を修正する follow-up PR または revert が必要かを判断します。
+
+次の変更では merge 後の実 deploy を行いません。
+
+- `force-app/`、`manifest/`、Salesforce deploy script、Salesforce metadata 参照を変更しない docs-only PR
+- 対象 org から retrieve した状態だけを Git へ同期し、org へ戻す変更を含まない retrieve-only PR
+- 本番環境への deploy。ユーザーが本番リリースを明示した場合だけ実行する
+
 ### PR マージ後の作業ブランチ整理
 
 PR マージ後は、次の条件をすべて満たす場合に限り、エージェントが明示確認なしで作業ブランチ整理を実行してよい。

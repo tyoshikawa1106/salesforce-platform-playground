@@ -458,17 +458,17 @@ Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 de
 npm run sf:validate:dev -- --target-org <alias>
 ```
 
-通常の Apex / Salesforce メタデータ開発では、PR 作成前、またはユーザーへ作業完了や動作確認可能と報告する前に、validate に成功した同じ対象 org へ実 deploy します。
+通常の Apex / Salesforce メタデータ開発では、PR の deploy 可能な変更をすべて含む scope で validate を行い、merge 後に同期した clean な `main` から、validate に成功した同じ対象 org へ同じ scope で実 deploy します。
 
-validate が成功したら、同じ対象 org へ反映します。
+PR を merge せずに組織へ反映するよう明示された場合は、validate が成功した作業ブランチから同じ対象 org へ反映します。
 
 ```sh
 npm run sf:deploy:dev -- --target-org <alias>
 ```
 
-PR マージまで依頼されている場合は、実 deploy と自動チェックの成功をもって、ユーザーの手動動作確認待ちは省略してよいです。本番環境への deploy は、ユーザーが本番リリースを明示した場合だけ実行します。
+PR マージまで依頼されている場合は、merge 後に同期した `main` の実 deploy、deploy report、必要な retrieve 一致確認、自動チェックの成功をもって、ユーザーの手動動作確認待ちは省略してよいです。PR の変更を deploy scope がすべて含むことと、実 deploy が成功することを確認するまでタスクを完了扱いにしません。本番環境への deploy は、ユーザーが本番リリースを明示した場合だけ実行します。
 
-Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、deploy 後の Apex テストは PR 作成前の確認にまとめます。
+Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認し、merge 前 validate でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。merge 後は同期した `main` の deploy 結果を確認します。
 
 - 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
 - メタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
