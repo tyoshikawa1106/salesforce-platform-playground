@@ -45,7 +45,7 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 
 | タイトル                                                                                            | 概要                                       |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| [設定ファイル管理](configuration-files.md)                                                          | リポジトリ内の設定ファイル一覧             |
+| [設定ファイル一覧](configuration-files.md)                                                          | 設定ファイルの場所、役割、変更時の確認事項 |
 | [force-app の deploy 対象棚卸し](force-app-deployability-inventory.md)                              | 標準 deploy scope に含める metadata の判断 |
 | [Salesforce API version の上げ方](salesforce-api-version-upgrade.md)                                | API version 更新時の確認手順               |
 | [Salesforce CLI で主要標準オブジェクトの seed を作る考え方](salesforce-cli-standard-object-seed.md) | 関連データを投入する方式の選択             |

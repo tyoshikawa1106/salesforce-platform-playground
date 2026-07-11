@@ -264,23 +264,7 @@ sf plugins
 
 ## 9. プロジェクト依存のセットアップ
 
-このリポジトリでは、`package-lock.json` に固定された依存を再現します。
-
-```powershell
-npm ci
-```
-
-主要なローカルチェック:
-
-```powershell
-npm run prettier:verify
-npm run lint -- --no-error-on-unmatched-pattern
-npm run test:unit -- -- --runInBand --passWithNoTests
-npm audit --omit=dev
-npm run code-analyzer:ci
-```
-
-`npm run code-analyzer:ci` が `Found 0 violations.` または実際の violation 一覧を出せば、Salesforce Code Analyzer は実行できています。
+[プロジェクトのセットアップ](project-setup.md)に従って、npm 依存の再現とローカルチェックを実行します。
 
 Python の初期化エラーが出る場合は、`python --version`、`python3 --version`、`py -3.13 --version`、`where.exe python` を再確認します。
 
