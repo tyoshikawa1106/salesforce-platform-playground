@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RatingMethod</fullName>
+    <inlineHelpText>このスケジュールに対する利用状況を評価する特定の使用事例を選択します。これは [種別] 項目の制御選択リストです。</inlineHelpText>
+    <trackHistory>false</trackHistory>
+</CustomField>
