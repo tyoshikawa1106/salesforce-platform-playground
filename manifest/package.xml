@@ -916,7 +916,7 @@
         <members>*</members>
         <name>Scontrol</name>
     </types>
-    <!-- その他のプラットフォーム設定 -->
+    <!-- 分割 manifest では用途別に分類するメタデータ -->
     <!-- アクションランチャー項目定義 -->
     <types>
         <members>*</members>

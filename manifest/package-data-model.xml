@@ -101,5 +101,10 @@
         <members>*</members>
         <name>Index</name>
     </types>
+    <!-- カスタムインデックス -->
+    <types>
+        <members>*</members>
+        <name>CustomIndex</name>
+    </types>
     <version>67.0</version>
 </Package>

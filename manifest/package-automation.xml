@@ -81,5 +81,25 @@
         <members>*</members>
         <name>WorkflowTask</name>
     </types>
+    <!-- フローカテゴリ -->
+    <types>
+        <members>*</members>
+        <name>FlowCategory</name>
+    </types>
+    <!-- フローテスト -->
+    <types>
+        <members>*</members>
+        <name>FlowTest</name>
+    </types>
+    <!-- フロー値マップ -->
+    <types>
+        <members>*</members>
+        <name>FlowValueMap</name>
+    </types>
+    <!-- Process Builder からフローへの移行設定 -->
+    <types>
+        <members>*</members>
+        <name>ProcessFlowMigration</name>
+    </types>
     <version>67.0</version>
 </Package>

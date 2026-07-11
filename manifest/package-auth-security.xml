@@ -61,6 +61,11 @@
         <members>*</members>
         <name>ExtlClntAppPushSettings</name>
     </types>
+    <!-- 外部クライアントアプリのプッシュ設定可能ポリシー -->
+    <types>
+        <members>*</members>
+        <name>ExtlClntAppPushConfigurablePolicies</name>
+    </types>
     <!-- 外部クライアントアプリの通知設定 -->
     <types>
         <members>*</members>
@@ -145,6 +150,11 @@
     <types>
         <members>*</members>
         <name>PublicKeyCertificateSet</name>
+    </types>
+    <!-- トランザクションセキュリティポリシー -->
+    <types>
+        <members>*</members>
+        <name>TransactionSecurityPolicy</name>
     </types>
     <version>67.0</version>
 </Package>

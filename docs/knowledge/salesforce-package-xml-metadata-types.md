@@ -10,31 +10,34 @@
 
 ## 分割 manifest
 
-| Manifest                                  | 分類                              | 件数 |
-| ----------------------------------------- | --------------------------------- | ---- |
-| `manifest/package-apex.xml`               | コード / UI コンポーネント        | 8    |
-| `manifest/package-lightning.xml`          | 共有 / 補助リソース               | 3    |
-| `manifest/package-app-navigation.xml`     | アプリケーション / ナビゲーション | 3    |
-| `manifest/package-ui-layout.xml`          | 画面 / レイアウト                 | 6    |
-| `manifest/package-data-model.xml`         | オブジェクト / データモデル       | 15   |
-| `manifest/package-automation.xml`         | 自動化 / プロセス                 | 16   |
-| `manifest/package-access-sharing.xml`     | 権限 / 共有                       | 17   |
-| `manifest/package-org-dependent.xml`      | 組織依存メタデータ                | 2    |
-| `manifest/package-auth-security.xml`      | 認証 / セキュリティ               | 29   |
-| `manifest/package-integration-api.xml`    | 外部接続 / API                    | 12   |
-| `manifest/package-events-messaging.xml`   | イベント / メッセージング         | 5    |
-| `manifest/package-analytics.xml`          | レポート / 分析                   | 5    |
-| `manifest/package-email-notification.xml` | メール / 通知                     | 7    |
-| `manifest/package-experience-sites.xml`   | Experience / サイト               | 9    |
-| `manifest/package-service.xml`            | サービス設定                      | 10   |
-| `manifest/package-mobile-offline.xml`     | モバイル / オフライン             | 2    |
-| `manifest/package-ai-ml.xml`              | AI / 機械学習                     | 7    |
-| `manifest/package-content-cms.xml`        | コンテンツ / CMS                  | 3    |
-| `manifest/package-search-knowledge.xml`   | 検索 / ナレッジ補助               | 4    |
-| `manifest/package-org-settings.xml`       | 組織設定                          | 8    |
-| `manifest/package-classic-ui.xml`         | Classic UI                        | 3    |
-| `manifest/package-platform-settings.xml`  | その他のプラットフォーム設定      | 40   |
-| `manifest/package-translations.xml`       | 翻訳                              | 4    |
+| Manifest                                         | 分類                              | 件数 |
+| ------------------------------------------------ | --------------------------------- | ---- |
+| `manifest/package-apex.xml`                      | コード / UI コンポーネント        | 8    |
+| `manifest/package-shared-resources.xml`          | 共有 / 補助リソース               | 3    |
+| `manifest/package-app-navigation.xml`            | アプリケーション / ナビゲーション | 3    |
+| `manifest/package-ui-layout.xml`                 | 画面 / レイアウト                 | 6    |
+| `manifest/package-data-model.xml`                | オブジェクト / データモデル       | 16   |
+| `manifest/package-automation.xml`                | 自動化 / プロセス                 | 20   |
+| `manifest/package-access-sharing.xml`            | 権限 / 共有                       | 17   |
+| `manifest/package-org-dependent.xml`             | 組織依存メタデータ                | 2    |
+| `manifest/package-auth-security.xml`             | 認証 / セキュリティ               | 31   |
+| `manifest/package-integration-api.xml`           | 外部接続 / API                    | 12   |
+| `manifest/package-events-messaging.xml`          | イベント / メッセージング         | 5    |
+| `manifest/package-analytics.xml`                 | レポート / 分析                   | 5    |
+| `manifest/package-email-notification.xml`        | メール / 通知                     | 7    |
+| `manifest/package-experience-sites.xml`          | Experience / サイト               | 9    |
+| `manifest/package-service.xml`                   | サービス設定                      | 10   |
+| `manifest/package-mobile-offline.xml`            | モバイル / オフライン             | 2    |
+| `manifest/package-ai-ml.xml`                     | AI / 機械学習                     | 7    |
+| `manifest/package-content-cms.xml`               | コンテンツ / CMS                  | 5    |
+| `manifest/package-search-knowledge.xml`          | 検索 / ナレッジ補助               | 4    |
+| `manifest/package-org-settings.xml`              | 組織設定                          | 8    |
+| `manifest/package-classic-ui.xml`                | Classic UI                        | 3    |
+| `manifest/package-ui-extensions.xml`             | UI / アクション拡張               | 17   |
+| `manifest/package-conversation-intelligence.xml` | 会話インテリジェンス              | 3    |
+| `manifest/package-payments.xml`                  | 決済                              | 2    |
+| `manifest/package-platform-features.xml`         | プラットフォーム機能              | 9    |
+| `manifest/package-translations.xml`              | 翻訳                              | 4    |
 
 ## コード / UI コンポーネント
 
@@ -95,6 +98,7 @@
 | `StandardValueSet`     | 標準項目の選択リスト値セット               |
 | `BusinessProcessGroup` | ビジネスプロセスグループ                   |
 | `Index`                | インデックス                               |
+| `CustomIndex`          | カスタムインデックス                       |
 
 ### CustomObject の標準オブジェクト指定
 
@@ -131,24 +135,28 @@
 
 ## 自動化 / プロセス
 
-| メタデータ型               | 取得できる内容                       |
-| -------------------------- | ------------------------------------ |
-| `Flow`                     | フロー本体、各バージョンの定義       |
-| `Workflow`                 | ワークフロールール、項目自動更新等   |
-| `ApprovalProcess`          | 承認プロセス定義                     |
-| `AssignmentRules`          | リード、ケースなどの割り当てルール   |
-| `AutoResponseRules`        | 自動レスポンスルール                 |
-| `EscalationRules`          | ケースエスカレーションルール         |
-| `DuplicateRule`            | 重複ルール                           |
-| `MatchingRules`            | 重複判定に使う一致ルール             |
-| `WorkflowAlert`            | ワークフローアラート                 |
-| `WorkflowFieldUpdate`      | ワークフロー項目自動更新             |
-| `WorkflowFlowAction`       | ワークフローフローアクション         |
-| `WorkflowKnowledgePublish` | ワークフローナレッジ公開アクション   |
-| `WorkflowOutboundMessage`  | ワークフローアウトバウンドメッセージ |
-| `WorkflowRule`             | ワークフロールール                   |
-| `WorkflowSend`             | ワークフロー送信アクション           |
-| `WorkflowTask`             | ワークフローToDo                     |
+| メタデータ型               | 取得できる内容                         |
+| -------------------------- | -------------------------------------- |
+| `Flow`                     | フロー本体、各バージョンの定義         |
+| `Workflow`                 | ワークフロールール、項目自動更新等     |
+| `ApprovalProcess`          | 承認プロセス定義                       |
+| `AssignmentRules`          | リード、ケースなどの割り当てルール     |
+| `AutoResponseRules`        | 自動レスポンスルール                   |
+| `EscalationRules`          | ケースエスカレーションルール           |
+| `DuplicateRule`            | 重複ルール                             |
+| `MatchingRules`            | 重複判定に使う一致ルール               |
+| `WorkflowAlert`            | ワークフローアラート                   |
+| `WorkflowFieldUpdate`      | ワークフロー項目自動更新               |
+| `WorkflowFlowAction`       | ワークフローフローアクション           |
+| `WorkflowKnowledgePublish` | ワークフローナレッジ公開アクション     |
+| `WorkflowOutboundMessage`  | ワークフローアウトバウンドメッセージ   |
+| `WorkflowRule`             | ワークフロールール                     |
+| `WorkflowSend`             | ワークフロー送信アクション             |
+| `WorkflowTask`             | ワークフローToDo                       |
+| `FlowCategory`             | フローカテゴリ                         |
+| `FlowTest`                 | フローテスト                           |
+| `FlowValueMap`             | フロー値マップ                         |
+| `ProcessFlowMigration`     | Process Builder からフローへの移行設定 |
 
 ## 権限 / 共有
 
@@ -195,6 +203,7 @@
 | `ExtlClntAppMobileConfigurablePolicies` | モバイルの設定可能ポリシー                      |
 | `ExtlClntAppCanvasSettings`             | Canvas アプリ設定                               |
 | `ExtlClntAppPushSettings`               | プッシュ通知設定                                |
+| `ExtlClntAppPushConfigurablePolicies`   | プッシュ通知の設定可能ポリシー                  |
 | `ExtlClntAppNotificationSettings`       | 通知設定                                        |
 | `ExternalAuthIdentityProvider`          | 外部認証 ID プロバイダー設定                    |
 | `NamedCredential`                       | 指定ログイン情報                                |
@@ -212,6 +221,7 @@
 | `Certificate`                           | 証明書と鍵のメタデータ                          |
 | `PublicKeyCertificate`                  | 公開鍵証明書                                    |
 | `PublicKeyCertificateSet`               | 公開鍵証明書セット                              |
+| `TransactionSecurityPolicy`             | トランザクションセキュリティポリシー            |
 
 ## 外部接続 / API
 
@@ -312,11 +322,13 @@
 
 ## コンテンツ / CMS
 
-| メタデータ型         | 取得できる内容               |
-| -------------------- | ---------------------------- |
-| `ContentTypeBundle`  | CMS コンテンツタイプバンドル |
-| `ManagedContentType` | 管理コンテンツタイプ         |
-| `DataCategoryGroup`  | データカテゴリグループ       |
+| メタデータ型               | 取得できる内容                                  |
+| -------------------------- | ----------------------------------------------- |
+| `ContentTypeBundle`        | CMS コンテンツタイプバンドル                    |
+| `ManagedContentType`       | 管理コンテンツタイプ                            |
+| `DataCategoryGroup`        | データカテゴリグループ                          |
+| `DgtAssetMgmtProvider`     | デジタルアセット管理プロバイダー                |
+| `DgtAssetMgmtPrvdLghtCpnt` | デジタルアセット管理用 Lightning コンポーネント |
 
 ## 検索 / ナレッジ補助
 
@@ -348,50 +360,56 @@
 | `HomePageLayout`    | Classic ホームページレイアウト     |
 | `Scontrol`          | S-Control 定義                     |
 
-## その他のプラットフォーム設定
+## UI / アクション拡張
 
-| メタデータ型                          | 取得できる内容                                  |
-| ------------------------------------- | ----------------------------------------------- |
-| `ActionLauncherItemDef`               | アクションランチャー項目定義                    |
-| `ActionLinkGroupTemplate`             | アクションリンクグループテンプレート            |
-| `AnimationRule`                       | アニメーションルール                            |
-| `AppFrameworkTemplateBundle`          | アプリフレームワークテンプレート                |
-| `BatchProcessJobDefinition`           | バッチプロセスジョブ定義                        |
-| `BlacklistedConsumer`                 | ブロック対象コンシューマー設定                  |
-| `CallCoachingMediaProvider`           | 通話コーチングのメディアプロバイダー            |
-| `ChatterExtension`                    | Chatter 拡張                                    |
-| `ChoiceList`                          | 選択肢リスト定義                                |
-| `CleanDataService`                    | データクレンジングサービス設定                  |
-| `ConvIntelligenceSignalRule`          | 会話インテリジェンスのシグナルルール            |
-| `ConversationMessageDefinition`       | 会話メッセージ定義                              |
-| `CustomApplicationComponent`          | カスタムアプリケーションコンポーネント          |
-| `CustomFeedFilter`                    | Chatter フィードフィルター                      |
-| `CustomHelpMenuSection`               | ヘルプメニューのカスタムセクション              |
-| `CustomIndex`                         | カスタムインデックス                            |
-| `CustomPageWebLink`                   | カスタムページリンク                            |
-| `DgtAssetMgmtProvider`                | デジタルアセット管理プロバイダー                |
-| `DgtAssetMgmtPrvdLghtCpnt`            | デジタルアセット管理用 Lightning コンポーネント |
-| `EclairGeoData`                       | Eclair 地理データ                               |
-| `ExtlClntAppPushConfigurablePolicies` | 外部クライアントアプリの Push 設定可能ポリシー  |
-| `FlowCategory`                        | フローカテゴリ                                  |
-| `FlowTest`                            | フローテスト定義                                |
-| `FlowValueMap`                        | フロー値マップ                                  |
-| `GatewayProviderPaymentMethodType`    | 決済ゲートウェイプロバイダーの支払方法種別      |
-| `LightningOnboardingConfig`           | Lightning オンボーディング設定                  |
-| `LightningTypeBundle`                 | Lightning 型バンドル                            |
-| `PathAssistant`                       | パス設定                                        |
-| `PaymentGatewayProvider`              | 決済ゲートウェイプロバイダー                    |
-| `PostTemplate`                        | 投稿テンプレート                                |
-| `ProcessFlowMigration`                | Process Builder からフローへの移行設定          |
-| `RecommendationStrategy`              | 推奨戦略                                        |
-| `RecordActionDeployment`              | レコードアクション配置                          |
-| `RedirectWhitelistUrl`                | リダイレクト許可 URL                            |
-| `TransactionSecurityPolicy`           | トランザクションセキュリティポリシー            |
-| `UIBundle`                            | UI バンドル                                     |
-| `UiFormatSpecificationSet`            | UI 表示形式仕様セット                           |
-| `FeatureParameterBoolean`             | Boolean 型機能パラメーター                      |
-| `FeatureParameterDate`                | 日付型機能パラメーター                          |
-| `FeatureParameterInteger`             | 整数型機能パラメーター                          |
+| メタデータ型                 | 取得できる内容                         |
+| ---------------------------- | -------------------------------------- |
+| `ActionLauncherItemDef`      | アクションランチャー項目定義           |
+| `ActionLinkGroupTemplate`    | アクションリンクグループテンプレート   |
+| `AppFrameworkTemplateBundle` | アプリフレームワークテンプレート       |
+| `ChatterExtension`           | Chatter 拡張                           |
+| `ChoiceList`                 | 選択肢リスト定義                       |
+| `CustomApplicationComponent` | カスタムアプリケーションコンポーネント |
+| `CustomFeedFilter`           | Chatter フィードフィルター             |
+| `CustomHelpMenuSection`      | ヘルプメニューのカスタムセクション     |
+| `CustomPageWebLink`          | カスタムページリンク                   |
+| `LightningOnboardingConfig`  | Lightning オンボーディング設定         |
+| `LightningTypeBundle`        | Lightning 型バンドル                   |
+| `PathAssistant`              | パス設定                               |
+| `PostTemplate`               | 投稿テンプレート                       |
+| `RecordActionDeployment`     | レコードアクション配置                 |
+| `RedirectWhitelistUrl`       | リダイレクト許可 URL                   |
+| `UIBundle`                   | UI バンドル                            |
+| `UiFormatSpecificationSet`   | UI 表示形式仕様セット                  |
+
+## 会話インテリジェンス
+
+| メタデータ型                    | 取得できる内容                       |
+| ------------------------------- | ------------------------------------ |
+| `CallCoachingMediaProvider`     | 通話コーチングのメディアプロバイダー |
+| `ConvIntelligenceSignalRule`    | 会話インテリジェンスのシグナルルール |
+| `ConversationMessageDefinition` | 会話メッセージ定義                   |
+
+## 決済
+
+| メタデータ型                       | 取得できる内容                             |
+| ---------------------------------- | ------------------------------------------ |
+| `GatewayProviderPaymentMethodType` | 決済ゲートウェイプロバイダーの支払方法種別 |
+| `PaymentGatewayProvider`           | 決済ゲートウェイプロバイダー               |
+
+## プラットフォーム機能
+
+| メタデータ型                | 取得できる内容                 |
+| --------------------------- | ------------------------------ |
+| `AnimationRule`             | アニメーションルール           |
+| `BatchProcessJobDefinition` | バッチプロセスジョブ定義       |
+| `BlacklistedConsumer`       | ブロック対象コンシューマー設定 |
+| `CleanDataService`          | データクレンジングサービス設定 |
+| `EclairGeoData`             | Eclair 地理データ              |
+| `RecommendationStrategy`    | 推奨戦略                       |
+| `FeatureParameterBoolean`   | Boolean 型機能パラメーター     |
+| `FeatureParameterDate`      | 日付型機能パラメーター         |
+| `FeatureParameterInteger`   | 整数型機能パラメーター         |
 
 ## 翻訳
 

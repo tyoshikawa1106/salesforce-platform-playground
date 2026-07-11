@@ -16,5 +16,15 @@
         <members>*</members>
         <name>DataCategoryGroup</name>
     </types>
+    <!-- デジタルアセット管理プロバイダー -->
+    <types>
+        <members>*</members>
+        <name>DgtAssetMgmtProvider</name>
+    </types>
+    <!-- デジタルアセット管理用 Lightning コンポーネント -->
+    <types>
+        <members>*</members>
+        <name>DgtAssetMgmtPrvdLghtCpnt</name>
+    </types>
     <version>67.0</version>
 </Package>
