@@ -35,6 +35,7 @@ Salesforce DX 開発のセットアップ、運用ルール、組織操作、機
 | [GitHub 運用ルール](development/github-rules.md)                    | Issue、PR、CI、リリース               |
 | [メタデータ管理ルール](development/metadata-rules.md)               | metadata の取得、編集、反映、Git 管理 |
 | [ドキュメント配置ルール](development/documentation-rules.md)        | docs の配置、命名、案内更新           |
+| [機能仕様書ルール](development/specification-rules.md)              | 機能仕様の単位、命名、分割、更新      |
 
 ## Salesforce 組織操作
 
