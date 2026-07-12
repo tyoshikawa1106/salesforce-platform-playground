@@ -38,7 +38,7 @@
 - デプロイ対象のメタデータは `force-app/main/default` を基準にする。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
-- Flow、LWC、Aura、Visualforce、Apex Trigger、Batch、Scheduler を追加、削除する場合は、`docs/development/specification-rules.md` に従い、対応する機能仕様書と索引を同じ変更で更新する。既存機能の仕様書は、ユーザーが定期的な一括更新を依頼したときに、AI エージェントが実装を基準に更新する。
+- 機能仕様書は、ユーザーが一括更新を依頼したときに、AI エージェントが `docs/development/specification-rules.md` に従い、実装を基準に対象全体を棚卸しして更新する。通常の実装変更との自動同期や仕様書専用チェッカーは前提にしない。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
 - メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
 

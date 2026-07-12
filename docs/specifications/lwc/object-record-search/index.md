@@ -8,34 +8,41 @@
 
 データボードの件数カードから対象レコードの内容を確認し、同じ画面内で基本的なレコード操作を行うために利用します。
 
-## 対象メタデータ
+## 対象実装・メタデータ
 
-| 種別           | API名・ファイル名                       | 役割                                            |
-| -------------- | --------------------------------------- | ----------------------------------------------- |
-| LWC            | `objectRecordSearch`                    | 検索条件、一覧、ページング、作成、編集、削除 UI |
-| LWC            | `errorUtils`                            | Apex と UI API エラーのメッセージ変換           |
-| LWC JavaScript | `objectRecordSearch.js`                 | 画面操作と Apex、UI API 呼び出しの統括          |
-| LWC JavaScript | `errorUtils.js`                         | Apex と UI API エラーのメッセージ変換           |
-| LWC JavaScript | `objectRecordSearchDisplay.js`          | 一覧列と表示行の組み立て                        |
-| LWC JavaScript | `objectRecordSearchForm.js`             | レコードフォームとレイアウトの組み立て          |
-| LWC JavaScript | `objectRecordSearchFormPolicy.js`       | オブジェクト別のフォーム対応方針                |
-| LWC JavaScript | `objectRecordSearchState.js`            | 検索、ソート、ページング状態の管理              |
-| Apex Class     | `ObjectRecordSearchController`          | 検索と削除の Apex 入口                          |
-| Apex Class     | `ObjectRecordSearchSelector`            | Describe、USER_MODE 検索、USER_MODE 削除        |
-| Apex Class     | `ObjectRecordSearchService`             | 設定、検索結果、削除結果の組み立て              |
-| Apex Class     | `ObjectRecordSearchQueryPlan`           | 許可済み条件による動的 SOQL 生成                |
-| Apex Class     | `ObjectRecordSearchSortSupport`         | ソート条件の検証                                |
-| Apex Class     | `ObjectRecordSearchPageTokenCodec`      | カーソルページング用トークンの変換              |
-| Apex Class     | `ObjectRecordSearchDisplayFieldCatalog` | オブジェクト別の追加表示項目定義                |
-| Apex Class     | `ObjectMetricCatalog`                   | カードキーと対象オブジェクトの許可リスト        |
-| Apex Class     | `ObjectRecordSearchConfigWrapper`       | 検索画面の設定情報                              |
-| Apex Class     | `ObjectRecordSearchContext`             | 内部検索状態                                    |
-| Apex Class     | `ObjectRecordSearchDeleteWrapper`       | 削除要求と削除結果                              |
-| Apex Class     | `ObjectRecordSearchException`           | 検索機能固有の例外                              |
-| Apex Class     | `ObjectRecordSearchFieldWrapper`        | 表示項目情報                                    |
-| Apex Class     | `ObjectRecordSearchRequestWrapper`      | 検索要求                                        |
-| Apex Class     | `ObjectRecordSearchResultWrapper`       | 検索結果                                        |
-| Apex Class     | `ObjectRecordSearchRowWrapper`          | 一覧の行情報                                    |
+### LWC
+
+| 種別           | API 名・ファイル名                | 役割                                            |
+| -------------- | --------------------------------- | ----------------------------------------------- |
+| LWC            | `objectRecordSearch`              | 検索条件、一覧、ページング、作成、編集、削除 UI |
+| LWC            | `errorUtils`                      | Apex と UI API エラーのメッセージ変換           |
+| LWC JavaScript | `objectRecordSearch.js`           | 画面操作と Apex、UI API 呼び出しの統括          |
+| LWC JavaScript | `errorUtils.js`                   | Apex と UI API エラーのメッセージ変換           |
+| LWC JavaScript | `objectRecordSearchDisplay.js`    | 一覧列と表示行の組み立て                        |
+| LWC JavaScript | `objectRecordSearchForm.js`       | レコードフォームとレイアウトの組み立て          |
+| LWC JavaScript | `objectRecordSearchFormPolicy.js` | オブジェクト別のフォーム対応方針                |
+| LWC JavaScript | `objectRecordSearchState.js`      | 検索、ソート、ページング状態の管理              |
+
+### Apex
+
+| 種別       | API 名                                  | 役割                                     |
+| ---------- | --------------------------------------- | ---------------------------------------- |
+| Apex Class | `ObjectRecordSearchController`          | 検索と削除の Apex 入口                   |
+| Apex Class | `ObjectRecordSearchSelector`            | Describe、USER_MODE 検索、USER_MODE 削除 |
+| Apex Class | `ObjectRecordSearchService`             | 設定、検索結果、削除結果の組み立て       |
+| Apex Class | `ObjectRecordSearchQueryPlan`           | 許可済み条件による動的 SOQL 生成         |
+| Apex Class | `ObjectRecordSearchSortSupport`         | ソート条件の検証                         |
+| Apex Class | `ObjectRecordSearchPageTokenCodec`      | カーソルページング用トークンの変換       |
+| Apex Class | `ObjectRecordSearchDisplayFieldCatalog` | オブジェクト別の追加表示項目定義         |
+| Apex Class | `ObjectMetricCatalog`                   | カードキーと対象オブジェクトの許可リスト |
+| Apex Class | `ObjectRecordSearchConfigWrapper`       | 検索画面の設定情報                       |
+| Apex Class | `ObjectRecordSearchContext`             | 内部検索状態                             |
+| Apex Class | `ObjectRecordSearchDeleteWrapper`       | 削除要求と削除結果                       |
+| Apex Class | `ObjectRecordSearchException`           | 検索機能固有の例外                       |
+| Apex Class | `ObjectRecordSearchFieldWrapper`        | 表示項目情報                             |
+| Apex Class | `ObjectRecordSearchRequestWrapper`      | 検索要求                                 |
+| Apex Class | `ObjectRecordSearchResultWrapper`       | 検索結果                                 |
+| Apex Class | `ObjectRecordSearchRowWrapper`          | 一覧の行情報                             |
 
 ## 入力
 

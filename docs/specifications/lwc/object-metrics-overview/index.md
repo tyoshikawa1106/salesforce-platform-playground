@@ -8,20 +8,27 @@
 
 Lightningホームページで、主要データの件数を俯瞰し、確認したいオブジェクトのレコード一覧へ素早く移動するために利用します。
 
-## 対象メタデータ
+## 対象実装・メタデータ
 
-| 種別           | API名                                                                     | 役割                                                 |
-| -------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- |
-| LWC            | `objectMetricsOverview`                                                   | 件数カードの表示、再読み込み、検索画面への切り替え   |
-| LWC            | `objectRecordSearch`                                                      | 選択したカードのレコード一覧表示                     |
-| LWC            | `errorUtils`                                                              | Apex エラーの画面表示用メッセージ変換                |
-| LWC JavaScript | `objectMetricsOverview.js`                                                | 件数取得と画面状態の制御                             |
-| LWC JavaScript | `errorUtils.js`                                                           | Apex エラーの画面表示用メッセージ変換                |
-| Apex Class     | `ObjectMetricsOverviewController`                                         | LWCからの件数取得要求の入口                          |
-| Apex Class     | `ObjectMetricsOverviewSelector`                                           | 利用者が参照できるレコードの件数取得                 |
-| Apex Class     | `ObjectMetricsOverviewService`                                            | カタログ順の件数サマリ組み立て                       |
-| Apex Class     | `ObjectMetricCatalog`                                                     | カードキー、対象オブジェクト、ラベル、アイコンの定義 |
-| Apex Wrapper   | `ObjectMetricsOverviewSummaryWrapper`、`ObjectMetricsOverviewItemWrapper` | LWCへ返す件数情報                                    |
+### LWC
+
+| 種別           | API 名                     | 役割                                               |
+| -------------- | -------------------------- | -------------------------------------------------- |
+| LWC            | `objectMetricsOverview`    | 件数カードの表示、再読み込み、検索画面への切り替え |
+| LWC            | `objectRecordSearch`       | 選択したカードのレコード一覧表示                   |
+| LWC            | `errorUtils`               | Apex エラーの画面表示用メッセージ変換              |
+| LWC JavaScript | `objectMetricsOverview.js` | 件数取得と画面状態の制御                           |
+| LWC JavaScript | `errorUtils.js`            | Apex エラーの画面表示用メッセージ変換              |
+
+### Apex
+
+| 種別         | API 名                                                                    | 役割                                                 |
+| ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Apex Class   | `ObjectMetricsOverviewController`                                         | LWC からの件数取得要求の入口                         |
+| Apex Class   | `ObjectMetricsOverviewSelector`                                           | 利用者が参照できるレコードの件数取得                 |
+| Apex Class   | `ObjectMetricsOverviewService`                                            | カタログ順の件数サマリ組み立て                       |
+| Apex Class   | `ObjectMetricCatalog`                                                     | カードキー、対象オブジェクト、ラベル、アイコンの定義 |
+| Apex Wrapper | `ObjectMetricsOverviewSummaryWrapper`、`ObjectMetricsOverviewItemWrapper` | LWC へ返す件数情報                                   |
 
 ## 入力
 
