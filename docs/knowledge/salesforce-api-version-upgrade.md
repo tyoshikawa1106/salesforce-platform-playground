@@ -46,9 +46,9 @@ git diff
 
 ## 検証すること
 
-metadata version を上げた後は、対象 org alias と組織種別を確認し、組織が受け付けるか preflight で確認します。
+metadata version を上げた後は、対象 org alias、組織種別、利用する preflight を確認し、組織が受け付けるか確認します。
 
-production では deploy validate を実行します。
+Production 組織または実行確認済みの Developer Edition の Dev 組織では deploy validate を実行します。
 
 ```sh
 npm run sf:validate:dev -- --target-org <alias>
