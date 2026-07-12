@@ -125,6 +125,13 @@ docs/specifications/apex/triggers/account-trigger/
 - 主仕様書のファイル名は必ず `index.md` にする。
 - 日付、連番、作業者名をファイル名に含めない。
 
+## 仕様書索引
+
+- `docs/specifications/index.md` の仕様書一覧は、Flow、LWC、Aura、Visualforce、Apex、API / 連携、イベント処理などの実装種別で分ける。
+- Apex は対象が複数種別にまたがる場合、Trigger、Batch、Scheduler、非同期処理などの小見出しで分ける。
+- 対象が存在するカテゴリだけ一覧の見出しを作り、対象がないカテゴリは一覧の末尾にまとめて記載する。
+- 業務領域による分類は、承認済みの分類体系を確認できる場合だけ使用し、実装名から推測して作成しない。
+
 ## 主仕様書の構成
 
 主仕様書は次の見出しをこの順序で使用します。
