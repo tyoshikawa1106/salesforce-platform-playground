@@ -8,18 +8,19 @@
 
 | 種別         | 機能                         | 主なメタデータ                              | 仕様書                                                                  |
 | ------------ | ---------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| Flow         | Customer Satisfaction        | `customer_satisfaction`                     | [Customer Satisfaction](flows/customer-satisfaction/index.md)           |
-| Flow         | Net Promoter Score           | `net_promoter_score`                        | [Net Promoter Score](flows/net-promoter-score/index.md)                 |
+| Flow         | 顧客満足度アンケート         | `customer_satisfaction`                     | [顧客満足度アンケート](flows/customer-satisfaction/index.md)            |
+| Flow         | 推奨度アンケート（NPS）      | `net_promoter_score`                        | [推奨度アンケート（NPS）](flows/net-promoter-score/index.md)            |
 | Flow         | レポートエクスポート保護判定 | `sfdc_default_ReportExport_Protection_Flow` | [レポートエクスポート保護判定](flows/report-export-protection/index.md) |
 | LWC          | データボード                 | `objectMetricsOverview`                     | [データボード](lwc/object-metrics-overview/index.md)                    |
 | LWC          | 汎用レコード検索             | `objectRecordSearch`                        | [汎用レコード検索](lwc/object-record-search/index.md)                   |
-| Apex Trigger | Account Trigger              | `AccountTrigger`                            | [AccountTrigger](apex/triggers/account-trigger/index.md)                |
+| Apex Trigger | 取引先トリガー               | `AccountTrigger`                            | [取引先トリガー](apex/triggers/account-trigger/index.md)                |
 
 現在、Aura、Visualforce、Apex Batch、Apex Scheduler の対象実装はありません。
 
 ## 記載方針
 
 - 実装から確認できる現在の振る舞いを記載します。
+- 見出しと機能名は、日本語だけで役割を把握できる表現にします。API名、クラス名、実際の画面表示などの実装値はコード表記または日本語訳との併記で残します。
 - 実装予定、検討中の内容、判断過程は仕様として固定せず、必要に応じて `docs/discussions/` に記録します。
 - Salesforce や開発技術に関する汎用的な説明は `docs/knowledge/` に記録します。
 - 実装を変更した場合は、関連する仕様書も同じ変更で更新します。
