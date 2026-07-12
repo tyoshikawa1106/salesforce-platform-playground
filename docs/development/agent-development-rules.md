@@ -3,6 +3,23 @@
 AI エージェントがこのリポジトリで開発作業を行うときの共通ルールです。
 Apex、メタデータ、GitHub、デプロイなどの詳細は該当するルール文書に従います。
 
+## 適用する詳細ルール
+
+この文書を共通の作業順序として使用し、変更内容に応じて次の詳細ルールを併用します。
+
+| 作業内容                         | 詳細ルール                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| Apex クラス、Trigger、Apex test  | [Apex 開発ルール](apex-rules.md)                                                             |
+| metadata の取得、編集、Git 管理  | [メタデータ管理ルール](metadata-rules.md)                                                    |
+| 機能仕様書の追加、更新、棚卸し   | [機能仕様書ルール](specification-rules.md)                                                   |
+| Issue、branch、commit、PR、merge | [GitHub 運用ルール](github-rules.md)                                                         |
+| validate、deploy、retrieve、test | [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md)                 |
+| metadata の削除                  | [Salesforce メタデータ削除ルール](../deployment/salesforce-org-destructive-changes-rules.md) |
+| Scratch Org の作成、再現         | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md)                         |
+| テストデータ投入                 | [テストデータ投入手順](../deployment/test-data-import.md)                                    |
+
+複数の作業内容に該当する場合は、関連するルールをすべて適用します。詳細ルール間で判断が分かれる場合は、より対象を限定した文書を優先し、解消できない場合は変更前に確認します。
+
 ## 作業開始時
 
 - `git status --short --branch` で現在ブランチと未コミット変更を確認する。

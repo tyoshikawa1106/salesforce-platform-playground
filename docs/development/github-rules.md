@@ -13,6 +13,21 @@ GitHub 作業の基本境界は `AGENTS.md` に従います。このファイル
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - hook が依存不足で失敗した場合、勝手に依存を導入せず確認する。
 
+## GitHub Flow の実行順序
+
+通常の変更は次の順序で進めます。各操作の実行可否は `AGENTS.md` の確認境界に従います。
+
+1. 対応する Issue と現在の repository state を確認する。
+2. `main` から作業ブランチを作成する。
+3. 変更、ローカル検証、コミットを行う。
+4. ローカルコミット後に一度停止する。
+5. ユーザーの明示依頼がある場合だけ、push、PR 作成、CI 確認へ進む。
+6. Salesforce メタデータ変更を含む場合は、merge 前に必要な validate を確認する。
+7. ユーザーの明示依頼がある場合だけ PR を merge する。
+8. merge 後に `main` を同期し、必要な Salesforce deploy と作業ブランチ整理を行う。
+
+Salesforce の対象 org、scope、validate、deploy、retrieve、test の詳細は [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md) を正とします。
+
 ## PR 作成とマージ
 
 ### Issue ルール
@@ -27,43 +42,13 @@ PR は、対応する実在 Issue を必ず持つものとして扱います。
 
 ### PR merge 前の Salesforce validate
 
-Salesforce メタデータ変更を含む PR は、merge 前に Salesforce validate を確認します。
-
-- `force-app/`、`manifest/`、Salesforce deploy script、`sfdx-project.json`、`.forceignore`、`config/project-scratch-def.json`、Permission Set 名、Apex、LWC、Aura、その他 Salesforce metadata 参照を変更した PR は Salesforce メタデータ変更として扱う。
-- 対象 org は現在の default target org とし、`sf config get target-org` で alias を確認する。
-- validate コマンドでは、確認した alias を `--target-org <alias>` で明示する。
-- 標準確認は `npm run sf:validate:dev -- --target-org <alias>` とする。
-- merge 前に validate を実行できない場合は、merge せず、未実行理由と必要な対象 org / 確認方針をユーザーに報告する。
+Salesforce メタデータ変更を含む PR は、merge 前に [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#pr-merge-前-validate) に従って validate します。対象 org、deploy 可能な変更、scope、実行結果を確認できない場合は merge しません。
 
 ### PR マージ後の Salesforce deploy
 
-Salesforce メタデータ変更を含む PR の merge を依頼された場合は、merge 後に同期した `main` を確認済みの default target org へ実 deploy します。PR ブランチからの実 deploy は標準フローにしません。
+Salesforce メタデータ変更を含む PR の merge 依頼では、[Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#deploy) に従って、merge 後に同期した clean な `main` から必要な deploy と確認まで実行します。PR ブランチからの実 deploy は標準フローにしません。
 
-1. PR の deploy 可能な変更をすべて含む scope を決め、同じ scope の Salesforce validate と CI が成功していることを確認する。
-2. PR を merge する。
-3. ローカルの `main` を `origin/main` と同期する。
-4. 作業ツリーが clean で、`HEAD` と `origin/main` が一致することを確認する。
-5. 同期済みの `main` から、validate と同じ scope を実 deploy する。
-6. deploy report で成功、対象件数、エラー、テスト結果を確認する。
-7. org と Git の一致確認が必要な変更では、同じ scope を retrieve して実質差分がないことを確認する。
-8. deploy と必要な一致確認が成功するまでタスクを完了扱いにしない。
-
-変更対象がすべて `manifest/rebuild-developer-org.xml` に含まれる場合は、標準コマンドを使います。
-
-```sh
-npm run sf:validate:dev -- --target-org <alias>
-npm run sf:deploy:dev -- --target-org <alias>
-```
-
-標準 manifest に含まれない deploy 可能な metadata がある場合は、その変更を含む作業対象 manifest または `--metadata` をvalidateとdeployの両方で使います。標準 manifest の成功だけで、scope外の変更まで反映済みとは扱いません。
-
-deploy に失敗した場合は、失敗した状態を完了として報告せず、原因を修正する follow-up PR または revert が必要かを判断します。
-
-次の変更では merge 後の実 deploy を行いません。
-
-- `force-app/`、`manifest/`、Salesforce deploy script、Salesforce metadata 参照を変更しない docs-only PR
-- 対象 org から retrieve した状態だけを Git へ同期し、org へ戻す変更を含まない retrieve-only PR
-- 本番環境への deploy。ユーザーが本番リリースを明示した場合だけ実行する
+deploy 成否、対象 org、scope、例外条件は Salesforce 組織操作ルールで管理し、この文書には重複して定義しません。
 
 ### PR マージ後の作業ブランチ整理
 

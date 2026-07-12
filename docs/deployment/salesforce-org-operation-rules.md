@@ -3,7 +3,19 @@
 この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断の起点です。
 実行コマンドの暗記ではなく、対象 org、scope、検証結果、報告内容を取り違えないための運用ルールとして扱います。
 
-## 最初に判断すること
+## この文書の責務
+
+この文書は、接続中の Salesforce 組織に対する次の事項を一元管理します。
+
+- 操作対象となる org と alias
+- deploy / retrieve scope
+- validate、deploy、retrieve、Apex test の実行条件
+- PR merge 前 validate と merge 後 deploy
+- 実行結果と未実行項目の報告
+
+GitHub Flow、PR 作成、merge の承認境界は [GitHub 運用ルール](../development/github-rules.md) に従います。GitHub 運用ルールから参照された場合も、Salesforce 組織操作の詳細はこの文書を正とします。
+
+## 操作種別と参照先
 
 Salesforce 組織操作を依頼されたら、最初に対象を切り分けます。
 
