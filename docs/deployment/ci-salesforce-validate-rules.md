@@ -19,7 +19,7 @@
 npm run sf:validate:dev -- --target-org ci-dev
 ```
 
-`npm run sf:validate:dev` は `manifest/rebuild-developer-org.xml` を使います。この workflow は production login を使う検証先を前提とし、CI validate は `force-app` 全体 validate の代替ではありません。
+`npm run sf:validate:dev` は `manifest/rebuild-developer-org.xml` を使います。CI 接続先には、このコマンドを実行できることを事前確認した組織を使います。CI validate は `force-app` 全体 validate の代替ではありません。
 
 ## GitHub Secrets
 
@@ -33,8 +33,9 @@ npm run sf:validate:dev -- --target-org ci-dev
 | `SF_LOGIN_URL`       | login URL。未設定時は `https://login.salesforce.com` | 任意                                           |
 
 GitHub の repository 画面で、`Settings` -> `Secrets and variables` -> `Actions` -> `Repository secrets` から登録します。
-現在の workflow で使う production login では、`SF_LOGIN_URL` は未設定で構いません。
+`SF_LOGIN_URL` は認証先を指定する値であり、利用する preflight コマンドを決める情報として扱いません。
 Sandbox を検証先にする場合は、login URL の変更だけでは対応しません。workflow の preflight を `sf project deploy start --dry-run` に変更し、その変更を別タスクとしてレビューしてから `SF_LOGIN_URL` に `https://test.salesforce.com` を登録します。
+Developer Edition など別の組織へ CI 接続先を変更する場合も、現在の Dev 組織での成功実績をそのまま流用せず、対象組織で `npm run sf:validate:dev` が成功することを事前確認します。
 
 `SF_JWT_PRIVATE_KEY` は `-----BEGIN ... KEY-----` から `-----END ... KEY-----` までを GitHub Secret に保存します。
 秘密鍵ファイルそのものや値をリポジトリへ置きません。
@@ -57,6 +58,7 @@ CI validate の設定を変更した場合は次を確認します。
 
 - `.github/workflows/ci.yml` が Secrets 未設定時に skip できること。
 - `npm run sf:validate:dev -- --target-org ci-dev` が標準 manifest を使っていること。
+- CI 接続先で `npm run sf:validate:dev` を利用できることを事前確認していること。
 - 検証先が Sandbox の場合は、workflow が `sf project deploy start --dry-run` を使っていること。
 - docs、workflow、Issue、PR、commit message に秘密情報の実値が残っていないこと。
 - Salesforce 組織への実 deploy が必要な作業では、CI validate とは別に対象 org alias を確認して deploy 結果を報告していること。

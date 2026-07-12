@@ -452,9 +452,9 @@ test は確認済みの Salesforce 組織に対してのみ実行し、`--target
 
 デプロイ前の基本確認は、対象組織に応じた validate または dry-run です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、作業対象 manifest、対象 metadata type を絞った `--metadata`、または標準 manifest のうち、変更範囲に合う scope で確認します。`deploy validate` と dry-run は反映前チェックであり、ユーザーが動作確認できる状態とは扱いません。
 
-- production 向けの検証では `sf project deploy validate` を使う。
+- Production 組織と、このリポジトリで実行確認済みの Developer Edition の Dev 組織では `sf project deploy validate` を使う。
 - Sandbox と Scratch Org では `sf project deploy start --dry-run` を使う。
-- 組織種別が不明な場合は確認してからコマンドを選ぶ。
+- login URL だけで判断せず、対象 org または CI 接続先を変更する場合は組織種別と利用するコマンドを確認する。
 
 Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
 
@@ -475,8 +475,8 @@ PR マージまで依頼されている場合は、merge 後に同期した `mai
 Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認し、merge 前の validate または dry-run でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。merge 後は同期した `main` の deploy 結果を確認します。
 
 - 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
-- production login の組織でメタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
-- production で変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
+- Production 組織または実行確認済みの Developer Edition の Dev 組織でメタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
+- 同じ対象 org で変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
 - Sandbox / Scratch Org で変更範囲を絞った確認: `sf project deploy start --dry-run --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias> --wait 30`
 - 確認済みの組織への反映: `npm run sf:deploy:dev -- --target-org <alias>`
 - PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage --target-org <alias>`

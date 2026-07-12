@@ -129,7 +129,7 @@ docs: 機能仕様書の所属ルールを明確化
 
 Subflow と Invocable Apex の所属判断がなく、大規模構成で仕様書が技術単位に分散する可能性があったため、機能入口を基準とする分類へ統一する。
 
-production と Sandbox で異なる preflight 手順を、入口ルールから組織操作ルールまで整合させる。
+Dev 組織と Sandbox で異なる preflight 手順を、入口ルールから組織操作ルールまで整合させる。
 
 検証: npm run docs:check、npm run prettier:verify、git diff --check が成功。
 ```
