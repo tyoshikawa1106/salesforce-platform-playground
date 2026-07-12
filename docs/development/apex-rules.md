@@ -411,7 +411,7 @@ private class MyServiceTest {
 
 ## PR 前チェック
 
-Apex を追加・更新したら、PR 前に Code Analyzer、必要な Apex テスト、deploy validate を確認します。接続済み組織を使うコマンドは、対象 org alias を明示します。
+Apex を追加・更新したら、PR 前に Code Analyzer、必要な Apex テスト、対象組織に応じた validate または dry-run を確認します。接続済み組織を使うコマンドは、対象 org alias を明示します。
 
 ### Code Analyzer
 
@@ -435,13 +435,13 @@ sf apex run test --class-names MyServiceTest --result-format human --synchronous
 複数クラスを確認する場合:
 
 ```sh
-sf apex run test --class-names MyServiceTest,MyOtherServiceTest --result-format human --wait 30 --target-org <alias>
+sf apex run test --class-names MyServiceTest --class-names MyOtherServiceTest --result-format human --wait 30 --target-org <alias>
 ```
 
 広めに確認する必要がある場合:
 
 ```sh
-sf apex run test --test-level RunLocalTests --result-format human --synchronous --target-org <alias>
+sf apex run test --test-level RunLocalTests --result-format human --wait 30 --target-org <alias>
 ```
 
 接続済み組織に対する test 実行は組織操作に含まれるため、実行前に対象と目的を確認します。
@@ -450,7 +450,11 @@ test は確認済みの Salesforce 組織に対してのみ実行し、`--target
 
 ### Deploy validate / deploy start
 
-デプロイ前の基本確認は `sf project deploy validate` です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、作業対象 manifest、対象 metadata type を絞った `--metadata`、または標準 manifest のうち、変更範囲に合う scope で validate します。`deploy validate` は反映前チェックであり、ユーザーが動作確認できる状態とは扱いません。
+デプロイ前の基本確認は、対象組織に応じた validate または dry-run です。Apex クラス、トリガー、または Salesforce メタデータを変更したら、作業対象 manifest、対象 metadata type を絞った `--metadata`、または標準 manifest のうち、変更範囲に合う scope で確認します。`deploy validate` と dry-run は反映前チェックであり、ユーザーが動作確認できる状態とは扱いません。
+
+- production 向けの検証では `sf project deploy validate` を使う。
+- Sandbox と Scratch Org では `sf project deploy start --dry-run` を使う。
+- 組織種別が不明な場合は確認してからコマンドを選ぶ。
 
 Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
 
@@ -458,9 +462,9 @@ Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 de
 npm run sf:validate:dev -- --target-org <alias>
 ```
 
-通常の Apex / Salesforce メタデータ開発では、PR の deploy 可能な変更をすべて含む scope で validate を行い、merge 後に同期した clean な `main` から、validate に成功した同じ対象 org へ同じ scope で実 deploy します。
+通常の Apex / Salesforce メタデータ開発では、PR の deploy 可能な変更をすべて含む scope で validate または dry-run を行い、merge 後に同期した clean な `main` から、preflight に成功した同じ対象 org へ同じ scope で実 deploy します。
 
-PR を merge せずに組織へ反映するよう明示された場合は、validate が成功した作業ブランチから同じ対象 org へ反映します。
+PR を merge せずに組織へ反映するよう明示された場合は、preflight が成功した作業ブランチから同じ対象 org へ反映します。
 
 ```sh
 npm run sf:deploy:dev -- --target-org <alias>
@@ -468,15 +472,16 @@ npm run sf:deploy:dev -- --target-org <alias>
 
 PR マージまで依頼されている場合は、merge 後に同期した `main` の実 deploy、deploy report、必要な retrieve 一致確認、自動チェックの成功をもって、ユーザーの手動動作確認待ちは省略してよいです。PR の変更を deploy scope がすべて含むことと、実 deploy が成功することを確認するまでタスクを完了扱いにしません。本番環境への deploy は、ユーザーが本番リリースを明示した場合だけ実行します。
 
-Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認し、merge 前 validate でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。merge 後は同期した `main` の deploy 結果を確認します。
+Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認し、merge 前の validate または dry-run でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。merge 後は同期した `main` の deploy 結果を確認します。
 
 - 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
-- メタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
-- 変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
+- production login の組織でメタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
+- production で変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
+- Sandbox / Scratch Org で変更範囲を絞った確認: `sf project deploy start --dry-run --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias> --wait 30`
 - 確認済みの組織への反映: `npm run sf:deploy:dev -- --target-org <alias>`
 - PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage --target-org <alias>`
 
-`sf project deploy preview` は標準の確認手段にしません。反映前は Git の差分確認と `sf project deploy validate` で確認します。
+`sf project deploy preview` は標準の確認手段にしません。反映前は Git の差分確認と、対象組織に応じた validate または dry-run で確認します。
 明示依頼がない限り、default target org の切り替えで別組織へデプロイしません。
 
 ## Coverage の扱い

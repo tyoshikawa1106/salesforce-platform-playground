@@ -62,5 +62,6 @@ SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/run-constr
 主要な標準オブジェクトの再現性を上げる追加 feature は、必要になった時点で目的別に追加します。
 ただし、Scratch Org 作成時に Dev Hub 側で許可されているものだけが使えます。
 Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Cloud など、契約や追加 package に強く依存する feature は、必要になった時点で個別に追加します。
-`AddCustomRelationships` は `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` にします。
-`TransactionFinalizers` は CLI の schema では候補に含まれますが、現在の Dev Hub では Scratch Org 作成時に無効な feature として失敗したため指定しません。
+`AddCustomRelationships` は、検証時点では `30` が無効な数量として失敗し、`10` で作成できました。
+`TransactionFinalizers` は、検証時点では CLI schema の候補に含まれましたが、対象 Dev Hub で無効な feature として失敗したため指定していません。
+これらの数量や利用可否は Dev Hub、edition、Salesforce release、CLI schema に依存するため、definition file または Dev Hub を変更するときに再確認します。

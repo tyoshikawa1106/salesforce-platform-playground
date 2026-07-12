@@ -19,7 +19,7 @@
 - Issue、PR、コミット本文では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
 - コミット時の hook は原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、push、PR 作成、CI 確認、merge はユーザーが明示した場合のみ進める。
-- Salesforce メタデータ変更を含む PR は、merge 前に現在の default target org を確認し、確認済みの alias で validate する。
+- Salesforce メタデータ変更を含む PR は、merge 前に現在の default target org と組織種別を確認し、確認済みの alias で対象組織に応じた validate または dry-run を実行する。
 - Salesforce メタデータ変更を含む PR の merge を依頼された場合は、merge 後に同期した clean な `main` から、PR の deploy 可能な変更をすべて含む scope で確認済みの default target org へ実 deploy し、deploy 成功までタスクを完了扱いにしない。scope と例外は `docs/deployment/salesforce-org-operation-rules.md` に従う。
 - PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、`docs/development/github-rules.md` の条件を満たす場合は自動実行してよい。
 
@@ -38,7 +38,7 @@
 - デプロイ対象のメタデータは `force-app/main/default` を基準にする。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
-- 機能仕様書は、ユーザーが一括更新を依頼したときに、AI エージェントが `docs/development/specification-rules.md` に従い、実装を基準に対象全体を棚卸しして更新する。通常の実装変更との自動同期や仕様書専用チェッカーは前提にしない。
+- 振る舞いを変更した場合は `docs/development/specification-rules.md` に従って現行実装仕様への影響を判定し、影響がある仕様書を原則として同じ変更単位で更新する。一括更新は独自実装した開発機能を対象とし、Salesforce 設定全体の仕様書は作成しない。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
 - メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
 

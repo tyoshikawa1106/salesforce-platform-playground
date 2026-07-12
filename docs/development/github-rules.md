@@ -13,6 +13,21 @@ GitHub 作業の基本境界は `AGENTS.md` に従います。このファイル
 - ブランチ名には作業内容が分かる短い summary を入れる。
 - hook が依存不足で失敗した場合、勝手に依存を導入せず確認する。
 
+## GitHub Flow の実行順序
+
+通常の変更は次の順序で進めます。各操作の実行可否は `AGENTS.md` の確認境界に従います。
+
+1. 対応する Issue と現在の repository state を確認する。
+2. `main` から作業ブランチを作成する。
+3. 変更、ローカル検証、コミットを行う。
+4. ローカルコミット後に一度停止する。
+5. ユーザーの明示依頼がある場合だけ、push、PR 作成、CI 確認へ進む。
+6. Salesforce メタデータ変更を含む場合は、merge 前に対象組織に応じた validate または dry-run を確認する。
+7. ユーザーの明示依頼がある場合だけ PR を merge する。
+8. merge 後に `main` を同期し、必要な Salesforce deploy と作業ブランチ整理を行う。
+
+Salesforce の対象 org、scope、validate、deploy、retrieve、test の詳細は [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md) を正とします。
+
 ## PR 作成とマージ
 
 ### Issue ルール
@@ -25,45 +40,15 @@ PR は、対応する実在 Issue を必ず持つものとして扱います。
 - Issue なしの PR は、ユーザーが明示的に例外として許可した場合だけ作成する。
 - Issue なし例外の場合も、PR 本文に理由と承認された例外であることを書く。
 
-### PR merge 前の Salesforce validate
+### PR merge 前の Salesforce preflight
 
-Salesforce メタデータ変更を含む PR は、merge 前に Salesforce validate を確認します。
-
-- `force-app/`、`manifest/`、Salesforce deploy script、`sfdx-project.json`、`.forceignore`、`config/project-scratch-def.json`、Permission Set 名、Apex、LWC、Aura、その他 Salesforce metadata 参照を変更した PR は Salesforce メタデータ変更として扱う。
-- 対象 org は現在の default target org とし、`sf config get target-org` で alias を確認する。
-- validate コマンドでは、確認した alias を `--target-org <alias>` で明示する。
-- 標準確認は `npm run sf:validate:dev -- --target-org <alias>` とする。
-- merge 前に validate を実行できない場合は、merge せず、未実行理由と必要な対象 org / 確認方針をユーザーに報告する。
+Salesforce メタデータ変更を含む PR は、merge 前に [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#pr-merge-前-preflight) に従って、対象組織に応じた validate または dry-run を実行します。対象 org、組織種別、deploy 可能な変更、scope、実行結果を確認できない場合は merge しません。
 
 ### PR マージ後の Salesforce deploy
 
-Salesforce メタデータ変更を含む PR の merge を依頼された場合は、merge 後に同期した `main` を確認済みの default target org へ実 deploy します。PR ブランチからの実 deploy は標準フローにしません。
+Salesforce メタデータ変更を含む PR の merge 依頼では、[Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#deploy) に従って、merge 後に同期した clean な `main` から必要な deploy と確認まで実行します。PR ブランチからの実 deploy は標準フローにしません。
 
-1. PR の deploy 可能な変更をすべて含む scope を決め、同じ scope の Salesforce validate と CI が成功していることを確認する。
-2. PR を merge する。
-3. ローカルの `main` を `origin/main` と同期する。
-4. 作業ツリーが clean で、`HEAD` と `origin/main` が一致することを確認する。
-5. 同期済みの `main` から、validate と同じ scope を実 deploy する。
-6. deploy report で成功、対象件数、エラー、テスト結果を確認する。
-7. org と Git の一致確認が必要な変更では、同じ scope を retrieve して実質差分がないことを確認する。
-8. deploy と必要な一致確認が成功するまでタスクを完了扱いにしない。
-
-変更対象がすべて `manifest/rebuild-developer-org.xml` に含まれる場合は、標準コマンドを使います。
-
-```sh
-npm run sf:validate:dev -- --target-org <alias>
-npm run sf:deploy:dev -- --target-org <alias>
-```
-
-標準 manifest に含まれない deploy 可能な metadata がある場合は、その変更を含む作業対象 manifest または `--metadata` をvalidateとdeployの両方で使います。標準 manifest の成功だけで、scope外の変更まで反映済みとは扱いません。
-
-deploy に失敗した場合は、失敗した状態を完了として報告せず、原因を修正する follow-up PR または revert が必要かを判断します。
-
-次の変更では merge 後の実 deploy を行いません。
-
-- `force-app/`、`manifest/`、Salesforce deploy script、Salesforce metadata 参照を変更しない docs-only PR
-- 対象 org から retrieve した状態だけを Git へ同期し、org へ戻す変更を含まない retrieve-only PR
-- 本番環境への deploy。ユーザーが本番リリースを明示した場合だけ実行する
+deploy 成否、対象 org、scope、例外条件は Salesforce 組織操作ルールで管理し、この文書には重複して定義しません。
 
 ### PR マージ後の作業ブランチ整理
 
@@ -128,29 +113,32 @@ gh release list --json tagName,isLatest,publishedAt --limit 5
 
 ### コミット本文
 
-実質的な変更を含むコミットは、subject だけで終わらせず本文を付けます。本文には次を簡潔に書きます。
+実質的な変更を含むコミットは、subject だけで終わらせず本文を付けます。本文には、後から変更理由と確認結果を判断できる情報だけを簡潔に残します。
 
-- 目的: なぜ変更したか。
-- 主な変更: 何を変更したか。
-- 検証: 実行した確認コマンドと結果。未実行の確認があれば理由も書く。
+- subject から分からない背景、問題、判断理由を記載する。
+- 複数の重要な変更や判断境界がある場合は、主な変更内容を記載する。
+- 最後の段落を `検証:` で始め、実行した確認コマンドと結果を記載する。必要な検証を実行していない場合は理由も記載する。
+- subject を言い換えただけの本文や、変更ファイルの機械的な列挙だけで終わらせない。
+- 改行は実際の改行として入力し、本文に `\n` などのエスケープ表現を残さない。
+- 実ユーザー名、メールアドレス、org 固有のユーザー名や ID、秘密情報を記載しない。
 
 例:
 
 ```text
-refactor: 取引先名正規化を専用クラスへ分離
+docs: 機能仕様書の所属ルールを明確化
 
-AccountTriggerHandler から取引先名の会社略称正規化ロジックを AccountNameNormalizer へ切り出し、handler は trigger context の振り分けに集中させる。
+Subflow と Invocable Apex の所属判断がなく、大規模構成で仕様書が技術単位に分散する可能性があったため、機能入口を基準とする分類へ統一する。
 
-AccountNameNormalizerTest を追加し、直接テストと trigger 経由の回帰テストで複数略称を含む取引先名の正規化を確認する。
+production と Sandbox で異なる preflight 手順を、入口ルールから組織操作ルールまで整合させる。
 
-検証: sf code-analyzer run は違反 0 件。npm run sf:validate:dev は `<alias>` で成功し、対象 Apex テスト 10 件が通過。
+検証: npm run docs:check、npm run prettier:verify、git diff --check が成功。
 ```
 
-次のような機械的・軽微なコミットでは、本文を省略してよいです。
+次のように判断を伴わない機械的・軽微なコミットでは、本文を省略してよいです。
 
 - typo 修正のみ。
 - フォーマットのみ。
-- 依頼により明示的に subject だけにする場合。
+- 同じ生成手順による生成物更新のみ。
 
 ### type
 
@@ -210,6 +198,9 @@ Issue と PR には、作成時に assignee を設定します。
 
 - `main` は Pull Request 経由の変更を前提にする。
 - `main` の required status checks は `npm checks` を必須にする。
+- required status checks は最新の `main` を基準に実行する。
+- repository administrator にも branch protection を適用する。
+- merge 前に未解決の review conversation がないことを必須にする。
 - `main` への force push と branch deletion は許可しない。
 - branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
 
@@ -218,7 +209,8 @@ Issue と PR には、作成時に assignee を設定します。
 - GitHub Actions は CI、静的解析、secret scan など、変更内容の品質確認に使う。
 - assignee、label、milestone、Project 追加、Project status 更新などの運用メタデータ整理は Actions で自動化せず、エージェントまたはユーザーが明示的に行う。
 - CI workflow は `permissions: contents: read` を基本にし、必要な権限だけを明示する。
-- 最小 CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行する。
+- 現行 CI は `npm ci`、`npm audit --omit=dev`、Prettier、docs check、lint、Code Analyzer、LWC unit test を実行する。
+- Salesforce JWT 認証用 Secrets が揃っている場合は、同じ workflow で Salesforce validate も実行する。詳細は [CI Salesforce validate ルール](../deployment/ci-salesforce-validate-rules.md) に従う。
 
 ### Dependabot
 
@@ -255,5 +247,7 @@ Issue と PR は、このリポジトリ用の Project に紐づけます。
 
 ```sh
 git switch -c codex/setup-dev-docs
-git commit -m "docs: Salesforce DX開発運用ルールを追加"
+git commit -m "docs: Salesforce DX開発運用ルールを追加" \
+    -m "開発環境の構築手順と検証コマンドを整理する。" \
+    -m "検証: npm run docs:check と npm run prettier:verify が成功。"
 ```

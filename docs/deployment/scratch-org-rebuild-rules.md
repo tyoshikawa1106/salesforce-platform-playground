@@ -2,6 +2,18 @@
 
 この文書は、AI エージェントが Scratch Org を作成し、このプロジェクトのメタデータを再現するときの実行ルールを定義します。
 
+## 目的別の参照先
+
+| 目的                                     | 参照先                                                           |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| 標準構成をまとめて作成する               | [一括実行](#一括実行)                                            |
+| 作成または途中失敗後の処理を個別実行する | [作成](#作成)、[反映](#反映)                                     |
+| package、alias、Scratch definitionを確認 | [Scratch Org 再現の前提と設定](scratch-org-rebuild-reference.md) |
+| manifest の用途とscopeを確認             | [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md) |
+| Scratch Org の変更を取り込む             | [変更の取り込み](#変更の取り込み)                                |
+| 再現結果を検証する                       | [確認](#確認)                                                    |
+| Scratch Org を削除する                   | [削除](#削除)                                                    |
+
 ## 実行ルール
 
 - `config/project-scratch-def.json` は Scratch Org 作成用の設定として扱う。

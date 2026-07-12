@@ -3,6 +3,23 @@
 AI エージェントがこのリポジトリで開発作業を行うときの共通ルールです。
 Apex、メタデータ、GitHub、デプロイなどの詳細は該当するルール文書に従います。
 
+## 適用する詳細ルール
+
+この文書を共通の作業順序として使用し、変更内容に応じて次の詳細ルールを併用します。
+
+| 作業内容                         | 詳細ルール                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| Apex クラス、Trigger、Apex test  | [Apex 開発ルール](apex-rules.md)                                                             |
+| metadata の取得、編集、Git 管理  | [メタデータ管理ルール](metadata-rules.md)                                                    |
+| 機能仕様書の追加、更新、棚卸し   | [機能仕様書ルール](specification-rules.md)                                                   |
+| Issue、branch、commit、PR、merge | [GitHub 運用ルール](github-rules.md)                                                         |
+| validate、deploy、retrieve、test | [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md)                 |
+| metadata の削除                  | [Salesforce メタデータ削除ルール](../deployment/salesforce-org-destructive-changes-rules.md) |
+| Scratch Org の作成、再現         | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md)                         |
+| テストデータ投入                 | [テストデータ投入手順](../deployment/test-data-import.md)                                    |
+
+複数の作業内容に該当する場合は、関連するルールをすべて適用します。詳細ルール間で判断が分かれる場合は、より対象を限定した文書を優先し、解消できない場合は変更前に確認します。
+
 ## 作業開始時
 
 - `git status --short --branch` で現在ブランチと未コミット変更を確認する。
@@ -115,8 +132,9 @@ npm run code-analyzer:ci
 - 必要に応じて `git diff` で、タスク外差分、秘密情報、組織固有値、広すぎる retrieve 差分が混ざっていないか確認する。
 - `git ls-files --others --exclude-standard` で、ignore されていない生成物や一時ファイルが混ざっていないか確認する。
 - docs、Markdown、設定ファイルを変更した場合は、対象ファイルに対して Prettier を実行または確認する。
-- docs を追加、移動、分割した場合は、`npm run docs:check` でリンク、見出し、ファイル名、索引からの到達性を確認する。
-- ユーザーから機能仕様書の一括更新を依頼された場合は、[機能仕様書ルール](specification-rules.md) に従い、AI エージェントが実装を基準に対象全体を棚卸しする。
+- docs を変更した場合は、`npm run docs:check` でリンク、見出し、ファイル名、索引からの到達性を確認する。
+- 振る舞いを変更した場合は [機能仕様書ルール](specification-rules.md) に従って仕様影響を判定し、影響がある現行実装仕様を原則として同じ変更単位で更新する。
+- ユーザーから機能仕様書の一括更新を依頼された場合は、独自実装した開発機能を対象に、実装、仕様、既知の差異を棚卸しする。Salesforce 設定全体の仕様書は作成しない。
 - Apex、メタデータ、LWC、Aura など振る舞いに関わる変更では、関連する validate / deploy / test / 静的解析を実行する。
 - 実行しない検証がある場合は、理由を作業報告に残す。
 

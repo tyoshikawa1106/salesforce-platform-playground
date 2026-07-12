@@ -51,8 +51,8 @@ Trigger 全体の独自例外処理はありません。個別処理のエラー
 
 ## テスト・確認観点
 
-- before insert、before updateで対応するHandlerメソッドだけが呼ばれること
-- 複数レコードを一括登録、更新した場合も、各レコードを対応するHandlerへ渡すこと
+- `AccountTriggerHandlerTest` で、before insert、before update、251件の一括登録をTrigger経由で確認すること
+- `AccountTriggerServiceTest` で、名称変更判定、空入力、更新前レコードが取得できない場合をService単位で確認すること
 - 各詳細仕様に記載されたテスト観点を確認すること
 
 ## 制約・注意事項
@@ -60,3 +60,15 @@ Trigger 全体の独自例外処理はありません。個別処理のエラー
 - 取引先では一オブジェクト一トリガーを原則とし、自動処理を追加する場合も `AccountTrigger` からハンドラーへ振り分けます。
 - トリガー本体にはユースケースの詳細処理を実装せず、ハンドラーまたはサービスクラスへ委譲します。
 - 個別処理の制約は詳細仕様に記載します。
+
+### 大量データとGovernor Limits
+
+- Trigger、Handler、Serviceはリスト単位で処理し、レコードループ内でSOQLやDMLを実行しません。
+- 現行の名称正規化は追加のSOQL、DML、非同期処理を実行しません。
+- `AccountTriggerHandlerTest.shouldNormalizeCompanyAbbreviationsWhenBulkInserted` で251件の一括登録を検証します。
+
+## 既知の差異・確認事項
+
+- 状態: 未確認
+- 現行実装は `AccountTrigger`、関連Apexクラス、代表テストから確認しています。
+- 承認済み要求または外部契約の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
