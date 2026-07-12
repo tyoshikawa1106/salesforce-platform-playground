@@ -46,10 +46,18 @@ git diff
 
 ## 検証すること
 
-metadata version を上げた後は、deploy validate で組織が受け付けるか確認します。
+metadata version を上げた後は、対象 org alias と組織種別を確認し、組織が受け付けるか preflight で確認します。
+
+production では deploy validate を実行します。
 
 ```sh
-npm run sf:validate:dev
+npm run sf:validate:dev -- --target-org <alias>
+```
+
+Sandbox と Scratch Org では、同じ scope で dry-run を実行します。
+
+```sh
+sf project deploy start --dry-run --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests --target-org <alias> --wait 30
 ```
 
 `manifest/rebuild-developer-org.xml` に含まれない metadata の version を更新した場合は、今回 version を更新した metadata に scope を絞って検証します。
@@ -57,26 +65,28 @@ npm run sf:validate:dev
 ```sh
 sf project deploy validate \
     --metadata ApexClass:MyClass \
-    --metadata ApexTrigger:MyTrigger
+    --metadata ApexTrigger:MyTrigger \
+    --target-org <alias>
 ```
 
-validate が成功したら、同じ scope で deploy します。
+Sandbox と Scratch Org では、上のコマンドを `sf project deploy start --dry-run` に置き換えます。preflight が成功したら、同じ対象 org と scope で deploy します。
 
 ```sh
 sf project deploy start \
     --metadata ApexClass:MyClass \
-    --metadata ApexTrigger:MyTrigger
+    --metadata ApexTrigger:MyTrigger \
+    --target-org <alias>
 ```
 
-Apex class や trigger を含む場合、validate 時または PR 前に関連 Apex テストも確認します。
+Apex class や trigger を含む場合、preflight または PR 前に関連 Apex テストも確認します。
 
 ## 注意点
 
 - `sourceApiVersion` だけを上げても、既存 metadata の `<apiVersion>` は自動では変わりません。
-- 新しい API version でコンパイルされるため、Apex や metadata の挙動差分がないか validate / test で確認します。
+- 新しい API version でコンパイルされるため、Apex や metadata の挙動差分がないか preflight / test で確認します。
 - 接続先 org を切り替えて確認する場合は、意図した org か先に確認します。
 - deploy URL、access token、instance URL などの認証情報や組織固有値は、作業記録やコミットに残しません。
-- 全体 validate の失敗が既存 metadata 由来の場合は、今回の version 更新による失敗かどうかを切り分けます。
+- 広い scope の preflight が失敗した場合は、既存 metadata 由来か、今回の version 更新による失敗かを切り分けます。
 
 ## 参考リンク
 

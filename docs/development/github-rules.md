@@ -22,7 +22,7 @@ GitHub 作業の基本境界は `AGENTS.md` に従います。このファイル
 3. 変更、ローカル検証、コミットを行う。
 4. ローカルコミット後に一度停止する。
 5. ユーザーの明示依頼がある場合だけ、push、PR 作成、CI 確認へ進む。
-6. Salesforce メタデータ変更を含む場合は、merge 前に必要な validate を確認する。
+6. Salesforce メタデータ変更を含む場合は、merge 前に対象組織に応じた validate または dry-run を確認する。
 7. ユーザーの明示依頼がある場合だけ PR を merge する。
 8. merge 後に `main` を同期し、必要な Salesforce deploy と作業ブランチ整理を行う。
 
@@ -40,9 +40,9 @@ PR は、対応する実在 Issue を必ず持つものとして扱います。
 - Issue なしの PR は、ユーザーが明示的に例外として許可した場合だけ作成する。
 - Issue なし例外の場合も、PR 本文に理由と承認された例外であることを書く。
 
-### PR merge 前の Salesforce validate
+### PR merge 前の Salesforce preflight
 
-Salesforce メタデータ変更を含む PR は、merge 前に [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#pr-merge-前-validate) に従って validate します。対象 org、deploy 可能な変更、scope、実行結果を確認できない場合は merge しません。
+Salesforce メタデータ変更を含む PR は、merge 前に [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#pr-merge-前-preflight) に従って、対象組織に応じた validate または dry-run を実行します。対象 org、組織種別、deploy 可能な変更、scope、実行結果を確認できない場合は merge しません。
 
 ### PR マージ後の Salesforce deploy
 
@@ -113,29 +113,32 @@ gh release list --json tagName,isLatest,publishedAt --limit 5
 
 ### コミット本文
 
-実質的な変更を含むコミットは、subject だけで終わらせず本文を付けます。本文には次を簡潔に書きます。
+実質的な変更を含むコミットは、subject だけで終わらせず本文を付けます。本文には、後から変更理由と確認結果を判断できる情報だけを簡潔に残します。
 
-- 目的: なぜ変更したか。
-- 主な変更: 何を変更したか。
-- 検証: 実行した確認コマンドと結果。未実行の確認があれば理由も書く。
+- subject から分からない背景、問題、判断理由を記載する。
+- 複数の重要な変更や判断境界がある場合は、主な変更内容を記載する。
+- 最後の段落を `検証:` で始め、実行した確認コマンドと結果を記載する。必要な検証を実行していない場合は理由も記載する。
+- subject を言い換えただけの本文や、変更ファイルの機械的な列挙だけで終わらせない。
+- 改行は実際の改行として入力し、本文に `\n` などのエスケープ表現を残さない。
+- 実ユーザー名、メールアドレス、org 固有のユーザー名や ID、秘密情報を記載しない。
 
 例:
 
 ```text
-refactor: 取引先名正規化を専用クラスへ分離
+docs: 機能仕様書の所属ルールを明確化
 
-AccountTriggerHandler から取引先名の会社略称正規化ロジックを AccountNameNormalizer へ切り出し、handler は trigger context の振り分けに集中させる。
+Subflow と Invocable Apex の所属判断がなく、大規模構成で仕様書が技術単位に分散する可能性があったため、機能入口を基準とする分類へ統一する。
 
-AccountNameNormalizerTest を追加し、直接テストと trigger 経由の回帰テストで複数略称を含む取引先名の正規化を確認する。
+production と Sandbox で異なる preflight 手順を、入口ルールから組織操作ルールまで整合させる。
 
-検証: sf code-analyzer run は違反 0 件。npm run sf:validate:dev は `<alias>` で成功し、対象 Apex テスト 10 件が通過。
+検証: npm run docs:check、npm run prettier:verify、git diff --check が成功。
 ```
 
-次のような機械的・軽微なコミットでは、本文を省略してよいです。
+次のように判断を伴わない機械的・軽微なコミットでは、本文を省略してよいです。
 
 - typo 修正のみ。
 - フォーマットのみ。
-- 依頼により明示的に subject だけにする場合。
+- 同じ生成手順による生成物更新のみ。
 
 ### type
 

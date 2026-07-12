@@ -411,7 +411,7 @@ private class MyServiceTest {
 
 ## PR 前チェック
 
-Apex を追加・更新したら、PR 前に Code Analyzer、必要な Apex テスト、deploy validate を確認します。接続済み組織を使うコマンドは、対象 org alias を明示します。
+Apex を追加・更新したら、PR 前に Code Analyzer、必要な Apex テスト、対象組織に応じた validate または dry-run を確認します。接続済み組織を使うコマンドは、対象 org alias を明示します。
 
 ### Code Analyzer
 
@@ -462,9 +462,9 @@ Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 de
 npm run sf:validate:dev -- --target-org <alias>
 ```
 
-通常の Apex / Salesforce メタデータ開発では、PR の deploy 可能な変更をすべて含む scope で validate を行い、merge 後に同期した clean な `main` から、validate に成功した同じ対象 org へ同じ scope で実 deploy します。
+通常の Apex / Salesforce メタデータ開発では、PR の deploy 可能な変更をすべて含む scope で validate または dry-run を行い、merge 後に同期した clean な `main` から、preflight に成功した同じ対象 org へ同じ scope で実 deploy します。
 
-PR を merge せずに組織へ反映するよう明示された場合は、validate が成功した作業ブランチから同じ対象 org へ反映します。
+PR を merge せずに組織へ反映するよう明示された場合は、preflight が成功した作業ブランチから同じ対象 org へ反映します。
 
 ```sh
 npm run sf:deploy:dev -- --target-org <alias>
@@ -472,7 +472,7 @@ npm run sf:deploy:dev -- --target-org <alias>
 
 PR マージまで依頼されている場合は、merge 後に同期した `main` の実 deploy、deploy report、必要な retrieve 一致確認、自動チェックの成功をもって、ユーザーの手動動作確認待ちは省略してよいです。PR の変更を deploy scope がすべて含むことと、実 deploy が成功することを確認するまでタスクを完了扱いにしません。本番環境への deploy は、ユーザーが本番リリースを明示した場合だけ実行します。
 
-Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認し、merge 前 validate でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。merge 後は同期した `main` の deploy 結果を確認します。
+Apex を含む変更では、PR 作成前に関連 Apex テストを coverage 付きで確認し、merge 前の validate または dry-run でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。merge 後は同期した `main` の deploy 結果を確認します。
 
 - 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
 - production login の組織でメタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
