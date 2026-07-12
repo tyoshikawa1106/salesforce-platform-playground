@@ -22,14 +22,14 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 
 ## 現在の設定例
 
-`config/project-scratch-def.json` は、通常時は最小限の feature だけを指定します。
+`config/project-scratch-def.json` は、通常時の Scratch Org 再構築に必要な feature だけを指定します。
 主要な標準オブジェクトや製品機能の再現性を検証する場合は、後述の feature 候補を一時的に追加して、Scratch Org 作成が通るか確認します。
 
 ```json
 {
     "orgName": "Scratch Org",
     "edition": "Developer",
-    "features": ["EnableSetPasswordInApi"],
+    "features": ["EnableSetPasswordInApi", "FieldService:5"],
     "settings": {
         "lightningExperienceSettings": {
             "enableS1DesktopEnabled": true
@@ -62,10 +62,12 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 
 ## feature 別の注意点
 
+この節の数量や利用可否は、確認時点の Dev Hub、edition、Salesforce release、CLI schema に依存します。definition file または Dev Hub を変更するときは、記載値を固定仕様として流用せず、対象環境で Scratch Org 作成を再確認します。
+
 | feature                                      | 注意点                                                                                                                                                                                            |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AddCustomRelationships`                     | `30` では Scratch Org 作成時に無効な数量として失敗するため、作成確認済みの `10` を指定する                                                                                                        |
-| `TransactionFinalizers`                      | Salesforce CLI の schema 候補には含まれるが、検証時点の Dev Hub では無効な feature として失敗したため、現在の設定例には含めない                                                                   |
+| `AddCustomRelationships`                     | 検証時点では `30` が無効な数量として失敗し、`10` で作成できた。再利用時は対象 Dev Hub で再確認する                                                                                                |
+| `TransactionFinalizers`                      | 検証時点では CLI schema の候補に含まれたが、対象 Dev Hub で無効な feature として失敗した。再利用時は対象 Dev Hub と release で再確認する                                                          |
 | `WorkPlan` / `WorkPlanTemplate` / `WorkStep` | Field Service feature に依存する。`FieldService.settings` の `enableWorkOrders=true` を deploy するだけでは既存 Scratch Org に追加されないため、作成時に `FieldService:<ライセンス数>` を指定する |
 | `SharedActivities` など                      | 作成後に Metadata API で有効化、無効化、更新できない設定は、Settings メタデータを別 source として deploy せず、Scratch Org definition の `features` で扱う                                        |
 

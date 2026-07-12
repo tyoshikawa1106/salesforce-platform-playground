@@ -195,6 +195,9 @@ Issue と PR には、作成時に assignee を設定します。
 
 - `main` は Pull Request 経由の変更を前提にする。
 - `main` の required status checks は `npm checks` を必須にする。
+- required status checks は最新の `main` を基準に実行する。
+- repository administrator にも branch protection を適用する。
+- merge 前に未解決の review conversation がないことを必須にする。
 - `main` への force push と branch deletion は許可しない。
 - branch protection、secret scanning、Dependabot などの GitHub 側設定を変える場合は、現在の repository state を確認してから別タスクで扱う。
 
@@ -203,7 +206,8 @@ Issue と PR には、作成時に assignee を設定します。
 - GitHub Actions は CI、静的解析、secret scan など、変更内容の品質確認に使う。
 - assignee、label、milestone、Project 追加、Project status 更新などの運用メタデータ整理は Actions で自動化せず、エージェントまたはユーザーが明示的に行う。
 - CI workflow は `permissions: contents: read` を基本にし、必要な権限だけを明示する。
-- 最小 CI は `npm ci`、`npm audit --omit=dev`、lint、LWC unit test を実行する。
+- 現行 CI は `npm ci`、`npm audit --omit=dev`、Prettier、docs check、lint、Code Analyzer、LWC unit test を実行する。
+- Salesforce JWT 認証用 Secrets が揃っている場合は、同じ workflow で Salesforce validate も実行する。詳細は [CI Salesforce validate ルール](../deployment/ci-salesforce-validate-rules.md) に従う。
 
 ### Dependabot
 
@@ -240,5 +244,7 @@ Issue と PR は、このリポジトリ用の Project に紐づけます。
 
 ```sh
 git switch -c codex/setup-dev-docs
-git commit -m "docs: Salesforce DX開発運用ルールを追加"
+git commit -m "docs: Salesforce DX開発運用ルールを追加" \
+    -m "開発環境の構築手順と検証コマンドを整理する。" \
+    -m "検証: npm run docs:check と npm run prettier:verify が成功。"
 ```

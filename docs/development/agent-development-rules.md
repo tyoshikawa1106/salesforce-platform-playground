@@ -132,7 +132,7 @@ npm run code-analyzer:ci
 - 必要に応じて `git diff` で、タスク外差分、秘密情報、組織固有値、広すぎる retrieve 差分が混ざっていないか確認する。
 - `git ls-files --others --exclude-standard` で、ignore されていない生成物や一時ファイルが混ざっていないか確認する。
 - docs、Markdown、設定ファイルを変更した場合は、対象ファイルに対して Prettier を実行または確認する。
-- docs を追加、移動、分割した場合は、`npm run docs:check` でリンク、見出し、ファイル名、索引からの到達性を確認する。
+- docs を変更した場合は、`npm run docs:check` でリンク、見出し、ファイル名、索引からの到達性を確認する。
 - 振る舞いを変更した場合は [機能仕様書ルール](specification-rules.md) に従って仕様影響を判定し、影響がある現行実装仕様を原則として同じ変更単位で更新する。
 - ユーザーから機能仕様書の一括更新を依頼された場合は、独自実装した開発機能を対象に、実装、仕様、既知の差異を棚卸しする。Salesforce 設定全体の仕様書は作成しない。
 - Apex、メタデータ、LWC、Aura など振る舞いに関わる変更では、関連する validate / deploy / test / 静的解析を実行する。

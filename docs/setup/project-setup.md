@@ -63,7 +63,7 @@ Apex があるプロジェクトでは、必要に応じて次も確認します
 
 ```sh
 sf code-analyzer run --target force-app
-sf apex run test --test-level RunLocalTests --code-coverage --synchronous
+sf apex run test --test-level RunLocalTests --code-coverage --wait 30 --target-org <alias>
 ```
 
 - `.prettierrc` で `tabWidth: 4` を明示する。

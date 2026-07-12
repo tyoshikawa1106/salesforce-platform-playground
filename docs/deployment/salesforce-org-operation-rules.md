@@ -34,8 +34,9 @@ Salesforce 組織操作を依頼されたら、最初に対象を切り分けま
 - 対象 org が個別指定されていない場合は、現在の default target org を確認して対象にする。
 - default target org の切り替え忘れによる誤実行を避けるため、Salesforce 組織操作では確認済みの alias を `--target-org <alias>` で明示する。
 - 明示依頼なしに default target org を切り替えない。
-- `sf project deploy preview` 前提で進めず、差分確認と validate を標準の確認手段にする。
-- deploy 前に `sf project deploy validate`、dry-run、または同等の preflight を実行する。どれを使ったかを報告する。
+- `sf project deploy preview` 前提で進めず、差分確認と対象組織に応じた validate または dry-run を標準の確認手段にする。
+- production 向けの検証には `sf project deploy validate`、Sandbox と Scratch Org には `sf project deploy start --dry-run` を使う。組織種別が不明な場合は確認してから選ぶ。
+- deploy 前に validate、dry-run、または同等の preflight を実行し、どれを使ったかを報告する。
 - `sf project deploy validate` は反映前チェックであり、ユーザーが動作確認できる状態とは扱わない。
 - `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証の起点にはしない。
 - `manifest/rebuild-developer-org.xml` は接続中の Salesforce 組織への初回デプロイ / 再構築 scope として扱う。
@@ -54,7 +55,7 @@ Salesforce 組織操作を行う前に、次の順で判断します。
 2. 対象 org alias を確認する。個別指定がない場合は、現在の default target org を確認して使う。
 3. PR または作業差分に含まれる deploy 可能な metadata を列挙し、すべてを含む deploy / retrieve scope を manifest、`--metadata`、または script の設定で決める。
 4. Git 差分と選んだ scope を照合し、deploy 対象の漏れ、対象外の metadata、org 固有値が混ざっていないことを確認する。
-5. deploy 前に validate、dry-run、または script の dry-run を実行する。
+5. 対象組織の種別に応じて、deploy 前に validate、dry-run、または script の dry-run を実行する。
 6. 実行結果、対象 org alias、未実行の確認と理由を報告する。
 
 ## 対象組織
@@ -71,21 +72,27 @@ alias だけでは判断できない場合に限り、必要な範囲で `sf org
 
 ## PR merge 前 validate
 
-Salesforce メタデータ変更を含む PR を merge する前に、現在の default target org を対象に、PR の deploy 可能な変更をすべて含む scope で validate します。
+Salesforce メタデータ変更を含む PR を merge する前に、現在の default target org を対象に、PR の deploy 可能な変更をすべて含む scope で validate または dry-run を実行します。
 
 ```sh
 sf config get target-org
 npm run sf:validate:dev -- --target-org <alias>
 ```
 
-`<alias>` は `sf config get target-org` で確認した default target org alias に置き換えます。PR の変更がすべて標準 manifest に含まれる場合だけ、この標準コマンドをそのPR全体のvalidateとして扱います。含まれない変更は、作業対象 manifestまたは `--metadata` を使って同じ対象 org でvalidateします。
+この標準コマンドは production 向けの検証に使います。Sandbox と Scratch Org では、同じ scope を指定して次を実行します。
+
+```sh
+sf project deploy start --dry-run --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests --target-org <alias> --wait 30
+```
+
+`<alias>` は `sf config get target-org` で確認した default target org alias に置き換えます。PR の変更がすべて標準 manifest に含まれる場合だけ、選んだコマンドをその PR 全体の preflight として扱います。含まれない変更は、作業対象 manifest または `--metadata` を使って同じ対象 org で確認します。
 default target org が未設定、認証切れ、または対象として不適切と判断できる場合は merge せず、必要な対象 org / 確認方針をユーザーに報告します。
 
 ## 実行手順
 
 ### Validate
 
-接続中の Salesforce 組織の初回デプロイ / 再構築では、反映前にメタデータの整合性を確認します。
+接続中の production 組織の初回デプロイ / 再構築では、反映前にメタデータの整合性を確認します。
 
 ```sh
 npm run sf:validate:dev -- --target-org <alias>
@@ -100,6 +107,8 @@ sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-
 validate が失敗した場合は、失敗理由と対象ファイルを確認し、必要な修正だけを行います。
 `sf project deploy validate --source-dir force-app` の失敗は、広く retrieve した org 固有 metadata の混入確認として扱い、通常作業の失敗判定にはしません。
 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って validate します。
+
+Sandbox と Scratch Org では `sf project deploy validate` の代わりに `sf project deploy start --dry-run` を使い、同じ scope と test level を指定します。
 
 PR 前の確認では、変更内容に応じてこの validate に加えて LWC test、Code Analyzer、Apex test を実行します。
 PR ブランチでは実 deploy せず、merge 前 validate を最終 gate として扱います。通常の Apex / Salesforce メタデータ開発では、merge 後に同期した clean な `main` から、validate した同じ対象 org へ同じ scope で実 deploy します。
