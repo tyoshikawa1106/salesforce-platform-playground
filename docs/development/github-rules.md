@@ -35,23 +35,7 @@ GitHub Flowで変更を管理するときの共通ルールです。Issue、Proj
 
 ## PR merge後の作業branch整理
 
-PR merge後は、次の条件をすべて満たす場合に限り、エージェントが明示確認なしで作業branch整理を実行してよいです。
-
-- PRがmerge済みであることを確認できる。
-- 作業ツリーがcleanで、未コミット変更がない。
-- 現在の作業branchがmerge済みPRのbranchであることを確認できる。
-- default branchへ戻り、`git pull --ff-only`で同期できる。
-- 作業branchを`git branch -d <branch>`で削除できる。
-- 対応するremote作業branchが残っている場合は、`git push origin --delete <branch>`で削除できる。
-
-次の場合は自動実行せず、ユーザーに確認します。
-
-- 未コミット変更がある。
-- PRのmerge状態や削除対象branchを確認できない。
-- `git pull --ff-only`が失敗する。
-- branch削除に`git branch -D`が必要になる。
-- remote branchが保護対象、共有作業中、または削除可否を確認できない。
-- push、PR作成、CI確認、mergeなど、作業branch整理の範囲を超える操作が必要になる。
+PR merge後のdefault branch同期、ローカルbranch削除、remote branch削除の実行条件は、対象リポジトリの固有ルールに従います。固有ルールがない場合は自動実行せず、ユーザーに確認します。
 
 ## コミット本文
 
