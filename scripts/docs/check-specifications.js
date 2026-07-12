@@ -154,6 +154,19 @@ function collectLwcBundles() {
         .map((directory) => path.basename(directory));
 }
 
+function collectProductionApexClasses() {
+    return listFiles(path.join(metadataRoot, 'classes'), '.cls')
+        .filter((filePath) => !/@IsTest\b/i.test(read(filePath)))
+        .map((filePath) => withoutSuffix(filePath, '.cls'));
+}
+
+function collectLwcJavaScriptFiles() {
+    return listDirectories(path.join(metadataRoot, 'lwc'))
+        .filter((directory) => path.basename(directory) !== '__tests__')
+        .flatMap((directory) => listFiles(directory, '.js'))
+        .map((filePath) => path.basename(filePath));
+}
+
 function collectExpectedMetadata() {
     return new Map([
         [
@@ -242,6 +255,29 @@ function validateMetadataCoverage(indexRows, expectedMetadata) {
     });
 }
 
+function validateImplementationReferences(indexRows) {
+    const mainMetadataSections = indexRows
+        .filter((row) => exists(row.specPath))
+        .map((row) => collectSection(row.specPath, '対象メタデータ'))
+        .join('\n');
+
+    collectProductionApexClasses().forEach((className) => {
+        if (!mainMetadataSections.includes(`\`${className}\``)) {
+            issues.push(
+                `Apex Class ${className}: いずれかの主仕様書の「対象メタデータ」に完全なクラス名を記載してください。`
+            );
+        }
+    });
+
+    collectLwcJavaScriptFiles().forEach((fileName) => {
+        if (!mainMetadataSections.includes(`\`${fileName}\``)) {
+            issues.push(
+                `LWC JavaScript ${fileName}: いずれかの主仕様書の「対象メタデータ」に完全なファイル名を記載してください。`
+            );
+        }
+    });
+}
+
 function validateSpecificationFiles(indexRows) {
     const indexedMainSpecifications = new Set(
         indexRows.filter((row) => exists(row.specPath)).map((row) => row.specPath)
@@ -308,6 +344,7 @@ const expectedMetadata = collectExpectedMetadata();
 
 validateIndexRows(indexRows);
 validateMetadataCoverage(indexRows, expectedMetadata);
+validateImplementationReferences(indexRows);
 validateSpecificationFiles(indexRows);
 
 if (issues.length > 0) {
