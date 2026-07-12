@@ -48,6 +48,9 @@
 
 ## テスト・確認観点
 
+- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchServiceTest` で、検索条件と50件／51件のページ境界を確認すること
+- `ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、SOQL、ソート、null値、カーソル、不正ページトークンを確認すること
+- `objectRecordSearchPaging.test.js`、`objectRecordSearchState.test.js` で、検索実行、server-side sort、前後ページ移動と状態更新を確認すること
 - 検索語の前後空白を除去し、`Name` 相当項目へ部分一致を適用すること
 - 検索語が空の場合は検索条件なしで取得すること
 - 表示項目と項目レベル参照権限が一覧列へ反映されること
@@ -62,3 +65,15 @@
 - 検索対象は `Name` 相当項目だけです。
 - ソート対象は `Name` 相当項目と、権限確認済みの追加表示項目に限定されます。
 - ページ番号は表示用であり、レコード取得位置はページトークンで管理します。
+
+### 大量データとページング
+
+- 1回の検索では51件を取得し、表示する50件と次ページ有無を判定します。
+- OFFSETは使用せず、ソート値とIdを保持するカーソルページングで取得位置を管理します。
+- 検索条件またはソート条件を変更した場合はページ状態を先頭へ戻し、以前の条件で生成したページトークンを再利用しません。
+
+## 既知の差異・確認事項
+
+- 状態: 未確認
+- 現行実装は検索関連Apexクラスと `objectRecordSearch` のページング関連JavaScript、代表テストから確認しています。
+- 承認済み要求または検索要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。

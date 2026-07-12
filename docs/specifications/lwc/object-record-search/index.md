@@ -94,8 +94,9 @@
 
 ## テスト・確認観点
 
-- Apex テストで設定取得、検索、ページング、権限判定、削除、不正入力を確認します。
-- Jest テストで一覧表示、検索、ページ移動、レコード操作、権限メッセージ、エラー、親イベント通知を確認します。
+- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchSelectorTest`、`ObjectRecordSearchServiceTest` で、設定取得、検索、ページング、削除、不正入力を確認すること
+- `ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、SOQL組み立て、許可済みソート、カーソル条件、不正ページトークンを確認すること
+- `objectRecordSearch.test.js`、`objectRecordSearchPaging.test.js`、`objectRecordSearchFormFlow.test.js` で、一覧表示、検索、ページ移動、レコード操作、権限メッセージ、エラー、親イベント通知を確認すること
 - 対応する各オブジェクトで `Name` 相当項目と追加表示項目が正しく表示されることを確認します。
 - 権限の異なるユーザーでボタン状態、表示列、検索、各 DML を確認します。
 
@@ -104,3 +105,9 @@
 - 検索対象は `ObjectMetricCatalog` に定義されたオブジェクトだけです。
 - 検索とページングの制約は [検索・ソート・ページング](search-and-pagination.md) に記載します。
 - 作成、編集、削除、ファイルアップロードの制約は [レコード操作](record-operations.md) に記載します。
+
+## 既知の差異・確認事項
+
+- 状態: 未確認
+- 現行実装は `objectRecordSearch`、関連Apexクラス、Apexテスト、Jestテストから確認しています。
+- 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。

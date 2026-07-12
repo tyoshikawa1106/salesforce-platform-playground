@@ -29,7 +29,7 @@
 
 1. 選択されたレコード ID を、カードキーに対応するオブジェクトから `USER_MODE` で再取得します。
 2. `Database.delete` を `allOrNone=false`、`AccessLevel.USER_MODE` で実行します。
-3. 成功件数と失敗行の一般化メッセージを返し、成功レコードがある場合は一覧と親の件数を更新します。
+3. 成功件数と失敗行の一般化メッセージを返します。Apex呼び出しが完了した場合は、部分成功や0件成功を含めて一覧と親の件数を更新します。
 
 ## 出力・更新対象
 
@@ -53,6 +53,8 @@
 
 ## テスト・確認観点
 
+- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchSelectorTest`、`ObjectRecordSearchServiceTest` で、削除要求、USER_MODE削除、成功件数、空入力、不正IDを確認すること
+- `objectRecordSearch.test.js`、`objectRecordSearchFormFlow.test.js`、`objectRecordSearchForm.test.js` で、権限制御、フォーム構築、保存、ファイルアップロード、部分失敗、親イベント通知を確認すること
 - 作成、更新、削除権限に応じて各操作が有効または無効になること
 - 作成と編集で適切なレイアウトおよび必須項目を表示すること
 - レイアウト取得失敗時に定義済み項目へフォールバックすること
@@ -66,3 +68,15 @@
 - `ContentDocument` は標準ファイルアップロードだけを提供します。
 - フォールバック項目はAccount、Contact、Lead、Opportunityだけに定義されています。
 - オブジェクトが作成可能または更新可能でも、利用可能なフォーム項目がない場合は操作できません。
+
+### 権限とデータ更新
+
+- 作成と編集はLightning UI API、削除はApexの `AccessLevel.USER_MODE` を使用するため、操作ごとに適用経路が異なります。
+- 削除は `allOrNone=false` の部分成功を許容し、Apex呼び出し完了後に削除結果を表示して一覧と親の件数を更新します。
+- ファイルアップロードは標準 `lightning-file-upload` の実行権限とSalesforce標準動作に依存します。
+
+## 既知の差異・確認事項
+
+- 状態: 未確認
+- 現行実装はレコード操作関連Apexクラスと `objectRecordSearch` のフォーム・削除処理、代表テストから確認しています。
+- 承認済み要求またはレコード操作要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
