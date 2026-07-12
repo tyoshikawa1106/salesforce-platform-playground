@@ -17,7 +17,7 @@ docs を追加、移動、分割するときは、次の順に判定し、先に
 1. 作業前に一度だけ行う準備なら `docs/setup/` に置く。
 2. 作業中に毎回守る開発ルール、確認観点、チェックリストなら `docs/development/` に置く。
 3. Salesforce 組織に対する deploy / validate / retrieve / destructive changes / data import / Scratch Org 再現の手順なら `docs/deployment/` に置く。
-4. リポジトリで開発、管理している機能の現在の仕様と仕組みなら `docs/specifications/` に置く。
+4. リポジトリで開発、管理している機能の現行実装の仕様と仕組みなら `docs/specifications/` に置く。
 5. README には、プロジェクト概要、主要な docs への案内、セットアップの最短手順だけを書く。
 
 ## 配置の補足
@@ -25,7 +25,8 @@ docs を追加、移動、分割するときは、次の順に判定し、先に
 - README には個別 docs の一覧や長いチェックリストを置かず、`docs/index.md` へ案内する。
 - 決定済みの実務ルールになった内容は、要点だけ残して `docs/development/` または `docs/deployment/` の該当するルール文書へ移す。
 - 機能仕様の単位、命名、分割、記載内容は [機能仕様書ルール](specification-rules.md) に従う。
-- 実装予定や判断過程は機能仕様として固定せず、必要に応じて `docs/discussions/` に置く。
+- 承認済み要求や業務ルールはその管理元を正とし、現行実装仕様と混在させない。リポジトリ内に要求文書を追加する場合は、管理元、承認方法、現行実装仕様との対応を先に定める。
+- 実装予定、承認前の要求、判断過程は機能仕様として固定せず、Issue または `docs/discussions/` に置く。
 - Salesforce や開発技術に関する汎用的な説明は `docs/knowledge/` に置く。
 - ファイル名は日付ではなく、内容を表す slug にする。
 

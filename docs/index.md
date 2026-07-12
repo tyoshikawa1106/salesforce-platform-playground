@@ -9,7 +9,7 @@ Salesforce DX 開発のセットアップ、運用ルール、組織操作、機
 | [セットアップ](#セットアップ)               | 開発ツールとプロジェクトの準備                            |
 | [開発運用](#開発運用)                       | 開発時に守るルールと確認事項                              |
 | [Salesforce 組織操作](#salesforce-組織操作) | validate、deploy、retrieve、Scratch Org、テストデータ投入 |
-| [機能仕様](specifications/index.md)         | 開発した機能の現在の仕様と仕組み                          |
+| [機能仕様](specifications/index.md)         | 開発した機能の現行実装の仕様と仕組み                      |
 | [ナレッジ](knowledge/index.md)              | 再利用する解説、調査結果、設定ファイルの読み方            |
 | [ディスカッション](discussions/index.md)    | 設計や運用を決めるまでの比較と判断過程                    |
 
@@ -35,7 +35,7 @@ Salesforce DX 開発のセットアップ、運用ルール、組織操作、機
 | [GitHub 運用ルール](development/github-rules.md)                    | Issue、PR、CI、リリース               |
 | [メタデータ管理ルール](development/metadata-rules.md)               | metadata の取得、編集、反映、Git 管理 |
 | [ドキュメント配置ルール](development/documentation-rules.md)        | docs の配置、命名、案内更新           |
-| [機能仕様書ルール](development/specification-rules.md)              | 機能仕様の単位、命名、分割、更新      |
+| [機能仕様書ルール](development/specification-rules.md)              | 独自開発機能の仕様単位、記載、更新    |
 
 ## Salesforce 組織操作
 
