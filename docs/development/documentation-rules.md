@@ -17,13 +17,37 @@ docs を追加、移動、分割するときは、次の順に判定し、先に
 1. 作業前に一度だけ行う準備なら `docs/setup/` に置く。
 2. 作業中に毎回守る開発ルール、確認観点、チェックリストなら `docs/development/` に置く。
 3. Salesforce 組織に対する deploy / validate / retrieve / destructive changes / data import / Scratch Org 再現の手順なら `docs/deployment/` に置く。
-4. README には、プロジェクト概要、主要な docs への案内、セットアップの最短手順だけを書く。
+4. リポジトリで開発、管理している機能の現在の仕様と仕組みなら `docs/specifications/` に置く。
+5. README には、プロジェクト概要、主要な docs への案内、セットアップの最短手順だけを書く。
 
 ## 配置の補足
 
 - README には個別 docs の一覧や長いチェックリストを置かず、`docs/index.md` へ案内する。
 - 決定済みの実務ルールになった内容は、要点だけ残して `docs/development/` または `docs/deployment/` の該当するルール文書へ移す。
+- 機能仕様の主仕様書は、処理の入口となるメタデータを単位にする。
+- 主仕様書は対象ごとのディレクトリに `index.md` として配置し、その機能を支える Apex Controller、Service、Selector なども同じ主仕様書の対象に含める。
+- 主仕様書が大きくなる場合は、技術レイヤーやクラス単位ではなく、利用者から見て独立した処理単位で同じディレクトリに詳細仕様を分割する。
+- 実装予定や判断過程は機能仕様として固定せず、必要に応じて `docs/discussions/` に置く。
+- Salesforce や開発技術に関する汎用的な説明は `docs/knowledge/` に置く。
 - ファイル名は日付ではなく、内容を表す slug にする。
+
+## 機能仕様の単位
+
+| 種別           | 主仕様書の単位                  | 配置                                                       |
+| -------------- | ------------------------------- | ---------------------------------------------------------- |
+| Flow           | Flow ファイル                   | `docs/specifications/flows/<flow>/index.md`                |
+| LWC            | Lightning Web Component Bundle  | `docs/specifications/lwc/<bundle>/index.md`                |
+| Aura           | Aura Component Bundle           | `docs/specifications/aura/<bundle>/index.md`               |
+| Visualforce    | Visualforce Page                | `docs/specifications/visualforce/<page>/index.md`          |
+| Apex Trigger   | Trigger ファイル                | `docs/specifications/apex/triggers/<trigger>/index.md`     |
+| Apex Batch     | `Database.Batchable` 実装クラス | `docs/specifications/apex/batches/<batch>/index.md`        |
+| Apex Scheduler | `Schedulable` 実装クラス        | `docs/specifications/apex/schedulers/<scheduler>/index.md` |
+
+- Apex Trigger は一オブジェクト一Triggerを原則とし、Triggerファイルごとに主仕様書を作成する。
+- Triggerの処理が増えた場合も主仕様書は分割せず、処理一覧と実行順序を残し、ユースケース別の詳細仕様へリンクする。
+- LWC、Aura、Visualforceでは、画面を支えるApex処理を画面側の主仕様書に含める。
+- BatchとSchedulerは専用の組み合わせでも別々の主仕様書を作成し、相互にリンクする。
+- 未実装の種別では空ディレクトリを作らず、`docs/specifications/index.md` に対象がないことを記載する。
 
 ## 案内更新
 
