@@ -20,8 +20,6 @@
 
 - `before insert`: `Trigger.new` の取引先
 - `before update`: `Trigger.new` と `Trigger.oldMap` の取引先
-- 各Triggerコンテキストで渡されるAccountレコード
-- 現在の処理では `Account.Name` を参照します。
 
 ## 処理内容
 
@@ -32,18 +30,18 @@
 
 ## 出力・更新対象
 
-- 現在は `Account.Name` の正規化後の値
-- Trigger内で追加のDMLは実行しません。
+- before処理を反映した `Trigger.new` の取引先
+- 個別の更新項目は各詳細仕様に記載します。
 
 ## 権限・実行条件
 
 - Accountの `before insert` または `before update` で実行されます。
-- `with sharing` のHandlerとServiceを使用しますが、処理対象はTriggerから渡されたレコードのNameだけです。
+- `with sharing` のHandlerとServiceを使用します。
 - 取引先の作成または更新を実行できることが前提です。
 
 ## エラー処理
 
-独自の例外処理やエラーメッセージはありません。予期しない例外が発生した場合は取引先の保存処理全体が失敗します。
+Trigger全体の独自例外処理はありません。個別処理のエラーは各詳細仕様に記載します。未処理の例外が発生した場合は取引先の保存処理全体が失敗します。
 
 ## 関連コンポーネント
 
@@ -54,8 +52,8 @@
 ## テスト・確認観点
 
 - before insert、before updateで対応するHandlerメソッドだけが呼ばれること
-- 複数レコードを一括登録、更新しても同じ規則が適用されること
-- 各ユースケースの詳細仕様に記載された観点を確認すること
+- 複数レコードを一括登録、更新した場合も、各レコードを対応するHandlerへ渡すこと
+- 各詳細仕様に記載されたテスト観点を確認すること
 
 ## 制約・注意事項
 
