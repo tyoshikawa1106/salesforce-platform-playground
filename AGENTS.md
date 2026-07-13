@@ -17,11 +17,11 @@
 - 次タスクを提案・判断するときは、会話履歴や記憶より現在の repo / GitHub 状態を優先し、必要に応じて open Issue / PR も確認する。
 - GitHub Flowで進め、`main`へ直接コミットしない。共通手順は`docs/development/github-rules.md`、このリポジトリ固有のIssue、Project、Milestone、Release、CI運用は`docs/development/github-repository-rules.md`に従う。
 - Issue、PR、コミット本文では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
-- コミット時の hook は原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
-- ローカルコミット後に一度停止し、push、PR 作成、CI 確認、merge はユーザーが明示した場合のみ進める。
-- Salesforce メタデータ変更を含む PR は、merge 前に現在の default target org と組織種別を確認し、確認済みの alias で対象組織に応じた validate または dry-run を実行する。
-- Salesforce メタデータ変更を含む PR の merge を依頼された場合は、merge 後に同期した clean な `main` から、PR の deploy 可能な変更をすべて含む scope で確認済みの default target org へ実 deploy し、deploy 成功までタスクを完了扱いにしない。scope と例外は `docs/deployment/org-operation-rules.md` に従う。
-- PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、`docs/development/github-rules.md` の条件を満たす場合は自動実行してよい。
+- コミット時のフックは原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
+- ローカルコミット後に一度停止し、プッシュ、PR 作成、CI 確認、マージはユーザーが明示した場合のみ進める。
+- Salesforce メタデータ変更を含む PR は、マージ前に現在の default target org と組織種別を確認し、確認済みの alias で対象組織に応じた validate または dry-run を実行する。
+- Salesforce メタデータ変更を含む PR のマージを依頼された場合は、マージ後に同期した作業ツリーがクリーンな `main` から、PR の deploy 可能な変更をすべて含む scope で確認済みの default target org へ実 deploy し、deploy 成功までタスクを完了扱いにしない。scope と例外は `docs/deployment/org-operation-rules.md` に従う。
+- PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、共通手順を `docs/development/github-rules.md`、自動実行条件を `docs/development/github-repository-rules.md` に従う。
 
 ## 安全・秘密情報
 

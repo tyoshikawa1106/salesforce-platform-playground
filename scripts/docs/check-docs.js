@@ -4,6 +4,18 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '../..');
 const docsRoot = path.join(projectRoot, 'docs');
 const docsIndex = path.join(docsRoot, 'index.md');
+const additionalMarkdownFiles = [
+    path.join(projectRoot, 'README.md'),
+    path.join(projectRoot, 'AGENTS.md'),
+    path.join(projectRoot, 'CLAUDE.md'),
+    path.join(projectRoot, 'GEMINI.md'),
+    path.join(projectRoot, '.github/copilot-instructions.md'),
+    path.join(projectRoot, 'export-out/export-out-guide.md'),
+    path.join(projectRoot, 'logs/apex/apex-log-guide.md'),
+    path.join(projectRoot, 'logs/code-analyzer/code-analyzer-guide.md'),
+    path.join(projectRoot, 'logs/data-bulk-results/bulk-results-guide.md'),
+    path.join(projectRoot, 'scripts/scripts-guide.md')
+];
 const issues = [];
 
 function listMarkdownFiles(directory) {
@@ -106,13 +118,17 @@ function validateFileName(filePath) {
     }
 }
 
-const markdownFiles = listMarkdownFiles(docsRoot);
+const docsMarkdownFiles = listMarkdownFiles(docsRoot);
+const markdownFiles = [...docsMarkdownFiles, ...additionalMarkdownFiles];
 const markdownFileSet = new Set(markdownFiles);
 const parsedFiles = new Map();
 const linkGraph = new Map();
 
-markdownFiles.forEach((filePath) => {
+docsMarkdownFiles.forEach((filePath) => {
     validateFileName(filePath);
+});
+
+markdownFiles.forEach((filePath) => {
     parsedFiles.set(filePath, parseMarkdown(filePath));
 });
 
@@ -158,7 +174,7 @@ while (filesToVisit.length > 0) {
     filesToVisit.push(...(linkGraph.get(filePath) || []));
 }
 
-markdownFiles.forEach((filePath) => {
+docsMarkdownFiles.forEach((filePath) => {
     if (!reachableFiles.has(filePath)) {
         issues.push(`${path.relative(projectRoot, filePath)}: docs/index.md から辿れません。`);
     }
@@ -169,5 +185,7 @@ if (issues.length > 0) {
     issues.forEach((issue) => console.error(`- ${issue}`));
     process.exitCode = 1;
 } else {
-    console.log(`Docs check passed: ${markdownFiles.length} Markdown files.`);
+    console.log(
+        `Docs check passed: ${docsMarkdownFiles.length} docs files and ${additionalMarkdownFiles.length} additional files.`
+    );
 }

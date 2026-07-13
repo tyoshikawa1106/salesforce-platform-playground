@@ -258,7 +258,7 @@ docs/specifications/apex/triggers/account-trigger/
 
 ## 検証
 
-- `npm run docs:check` で、一般的なリンク、見出し、ファイル名、索引からの到達性を確認する。
+- `npm run docs:check` で、ローカルリンク、見出し、ファイル名、索引からの到達性を確認する。
 - `npm run prettier:verify` で整形を確認する。
 
 機能仕様書と実装の自動同期や、仕様書専用チェッカーは運用の前提にしません。`npm run docs:check` は、必須見出し、対象機能の網羅性、仕様の内容、実装との一致を判定しません。変更時の仕様影響判定と定期的な全体棚卸しを組み合わせて最新性を維持します。

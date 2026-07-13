@@ -9,7 +9,7 @@
     "scripts": {
         "lint": "eslint \"**/{aura,lwc}/**/*.js\" --no-error-on-unmatched-pattern",
         "test": "npm run test:scripts && npm run test:unit",
-        "test:scripts": "node --test scripts/deploy/scratch-org/test/*.node.js",
+        "test:scripts": "node --test scripts/deploy/scratch-org/test/*.node.js scripts/docs/test/*.node.js",
         "test:unit": "sfdx-lwc-jest",
         "test:unit:watch": "sfdx-lwc-jest --watch",
         "test:unit:debug": "sfdx-lwc-jest --debug",
@@ -17,6 +17,7 @@
         "code-analyzer": "sf code-analyzer run --rule-selector Recommended --target force-app --output-file logs/code-analyzer/local.json",
         "code-analyzer:ci": "sf code-analyzer run --rule-selector Recommended --target force-app --severity-threshold 3 --output-file logs/code-analyzer/ci.json",
         "docs:check": "node scripts/docs/check-docs.js",
+        "docs:check:external": "node scripts/docs/check-external-links.js",
         "data:bulk:results": "cd logs/data-bulk-results && sf data bulk results",
         "setup:data:standard": "node scripts/setup/import-test-data.js",
         "setup:data:standard:dry-run": "node scripts/setup/import-test-data.js --dry-run",
