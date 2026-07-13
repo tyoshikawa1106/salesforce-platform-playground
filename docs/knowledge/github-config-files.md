@@ -21,6 +21,7 @@ pull request と `main` push で実行する CI です。
 | `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                                 |
 | `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。 |
 | Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。       |
+| Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードを確認する。   |
 | Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。         |
 | LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。            |
 

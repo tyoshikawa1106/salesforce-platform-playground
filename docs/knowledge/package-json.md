@@ -33,17 +33,19 @@
 
 Aura / LWC の JavaScript を ESLint で確認します。対象ファイルがない場合も失敗しないように `--no-error-on-unmatched-pattern` を付けています。
 
-### LWC Jest
+### Test
 
 ```json
-"test": "npm run test:unit",
+"test": "npm run test:scripts && npm run test:unit",
+"test:scripts": "node --test scripts/deploy/scratch-org/test/*.node.js",
 "test:unit": "sfdx-lwc-jest",
 "test:unit:watch": "sfdx-lwc-jest --watch",
 "test:unit:debug": "sfdx-lwc-jest --debug",
 "test:unit:coverage": "sfdx-lwc-jest --coverage"
 ```
 
-LWC unit test 用です。`test` は `test:unit` への alias です。
+`test:scripts` は Scratch Org 操作スクリプトの引数ガードを Node.js test runner で確認します。
+`test:unit` は LWC unit test 用です。`test` は両方を順に実行します。
 
 ### Salesforce Code Analyzer
 

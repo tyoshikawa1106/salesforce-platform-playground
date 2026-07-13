@@ -3,24 +3,33 @@
 
 const { execFileSync } = require('node:child_process');
 const { repoRoot, scratchOrg } = require('./scratch-org-context');
+const { runNoArgumentCommand } = require('./scratch-org-command');
 
-process.chdir(repoRoot);
+const usage = 'Usage: node scripts/deploy/scratch-org/scratch-org-create.js';
 
-process.stdout.write(`Using Scratch Org alias: ${scratchOrg.alias}\n`);
+process.exitCode = runNoArgumentCommand({
+    argv: process.argv.slice(2),
+    usage,
+    execute() {
+        process.chdir(repoRoot);
 
-// Scratch Org を作成する。
-execFileSync(
-    'sf',
-    [
-        'org',
-        'create',
-        'scratch',
-        '--definition-file',
-        scratchOrg.definitionFile,
-        '--alias',
-        scratchOrg.alias,
-        '--duration-days',
-        String(scratchOrg.durationDays)
-    ],
-    { stdio: 'inherit' }
-);
+        process.stdout.write(`Using Scratch Org alias: ${scratchOrg.alias}\n`);
+
+        // Scratch Org を作成する。
+        execFileSync(
+            'sf',
+            [
+                'org',
+                'create',
+                'scratch',
+                '--definition-file',
+                scratchOrg.definitionFile,
+                '--alias',
+                scratchOrg.alias,
+                '--duration-days',
+                String(scratchOrg.durationDays)
+            ],
+            { stdio: 'inherit' }
+        );
+    }
+});
