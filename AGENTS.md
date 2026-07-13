@@ -1,6 +1,6 @@
 # リポジトリ運用ルール
 
-このリポジトリは、Apex と Salesforce メタデータを扱う Salesforce DX の playground です。
+このリポジトリは、Salesforce開発プロジェクトを管理するリポジトリです。
 
 ## 共通作業ルール
 
@@ -15,7 +15,7 @@
 ## GitHub 運用
 
 - 次タスクを提案・判断するときは、会話履歴や記憶より現在の repo / GitHub 状態を優先し、必要に応じて open Issue / PR も確認する。
-- GitHub Flowで進め、`main`へ直接コミットしない。共通手順は`docs/development/github-rules.md`、このリポジトリ固有のIssue、Project、Milestone、Release、CI運用は`docs/development/github-repository-rules.md`に従う。
+- `main`へ直接コミットしない。共通手順は`docs/development/github-rules.md`、このリポジトリ固有のIssue、Project、Milestone、Release、CI運用は`docs/development/github-repository-rules.md`に従う。
 - Issue、PR、コミット本文では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
 - コミット時のフックは原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、プッシュ、PR 作成、CI 確認、マージはユーザーが明示した場合のみ進める。
