@@ -160,8 +160,8 @@ IssueとPRには、作成時にassigneeを設定します。
 ### Dependabot
 
 - Dependabot alertsとsecurity updatesは既知脆弱性の継続監視と修正PR作成に使う。CIの`npm audit`は変更時の混入防止、Dependabotは継続的な検出と更新提案を担当する。
-- version updatesはnpm依存更新PRを週次で作成するために使う。
-- Dependabot PRには`enhancement`と`area:testing`を付ける。
+- version updatesはnpm依存とGitHub Actionsの更新PRを週次で作成するために使う。
+- npm依存更新PRには`enhancement`と`area:testing`、GitHub Actions更新PRには`enhancement`と`area:github`を付ける。
 - repository ownerを都度確認し、reviewerに設定する。
 - 取り込む場合はrepository ownerのreviewとしてapproveしてからmergeする。
 - 見送る場合は理由を書いたrequest changes reviewを残してからcloseする。
