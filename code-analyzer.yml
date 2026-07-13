@@ -3,32 +3,30 @@ engines:
         auto_discover_eslint_config: true
         disable_lwc_base_config: true
         disable_react_base_config: true
-suppressions:
-    disable_suppressions: false
-    force-app/main/default/classes/ObjectMetricsOverviewItemWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 6
-    force-app/main/default/classes/ObjectMetricsOverviewSummaryWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 1
-    force-app/main/default/classes/ObjectRecordSearchConfigWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 12
-    force-app/main/default/classes/ObjectRecordSearchDeleteWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 3
-    force-app/main/default/classes/ObjectRecordSearchFieldWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 3
-    force-app/main/default/classes/ObjectRecordSearchRequestWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 6
-    force-app/main/default/classes/ObjectRecordSearchResultWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 6
-    force-app/main/default/classes/ObjectRecordSearchRowWrapper.cls:
-        - rule_selector: pmd:ApexDoc
-          max_suppressed_violations: 4
-    force-app/main/default/triggers/AccountTrigger.trigger:
-        - rule_selector: pmd:AvoidLogicInTrigger
-          max_suppressed_violations: 1
+    pmd:
+        custom_rulesets:
+            - config/code-analyzer/pmd-ruleset.xml
+rules:
+    pmd:
+        ApexDoc:
+            tags:
+                - Apex
+                - Documentation
+                - Upstream
+        AvoidLogicInTrigger:
+            tags:
+                - Apex
+                - BestPractices
+                - Upstream
+        ApexDocWithoutProperties:
+            severity: 4
+            tags:
+                - Apex
+                - Documentation
+                - Recommended
+        TriggerDelegatesToHandler:
+            severity: 3
+            tags:
+                - Apex
+                - BestPractices
+                - Recommended

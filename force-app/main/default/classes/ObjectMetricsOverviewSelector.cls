@@ -49,7 +49,6 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
     }
 
     @TestVisible
-    @SuppressWarnings('PMD.ApexSOQLInjection')
     private ObjectMetricCount countVisibleRecords(String objectApiName) {
         // カタログ外または参照不可のオブジェクトはゼロ件として扱う
         if (
@@ -68,9 +67,10 @@ public virtual with sharing class ObjectMetricsOverviewSelector {
             whereClause +
             ' WITH USER_MODE LIMIT ' +
             MAX_DISPLAY_COUNT;
+        String safeQuery = String.escapeSingleQuotes(query);
 
         try {
-            Integer recordCount = Database.countQuery(query);
+            Integer recordCount = Database.countQuery(safeQuery);
             return toObjectMetricCount(recordCount);
         } catch (QueryException e) {
             // 件数取得できない標準オブジェクトは画面表示を止めずゼロ件にする

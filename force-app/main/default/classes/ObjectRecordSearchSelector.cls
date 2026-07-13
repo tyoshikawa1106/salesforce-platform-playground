@@ -79,7 +79,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 検索結果 SObject
      * @throws ObjectRecordSearchException 検索クエリ計画が不完全な場合
      */
-    @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual List<SObject> searchRecords(ObjectRecordSearchQueryPlan.SearchQuery searchQuery) {
         // SOQL と bind 値がそろったクエリ計画だけを許可
         Boolean hasSearchQuery = searchQuery != null &&
@@ -105,7 +104,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 削除対象 SObject
      * @throws ObjectRecordSearchException 対象オブジェクトがカタログ外の場合
      */
-    @SuppressWarnings('PMD.ApexSOQLInjection')
     public virtual List<SObject> getRecordsById(String objectApiName, Set<Id> recordIds) {
         // 削除対象 ID がない場合は SOQL を実行せず空結果へ短絡
         Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
