@@ -46,7 +46,7 @@ git diff
 
 ## 検証すること
 
-metadata version を上げた後は、対象 org alias、組織種別、利用する preflight を確認し、組織が受け付けるか確認します。
+metadata versionを上げた後は、対象org alias、組織種別、利用する事前検証を確認し、組織が受け付けるか確認します。
 
 Production 組織または実行確認済みの Developer Edition の Dev 組織では deploy validate を実行します。
 
@@ -69,7 +69,7 @@ sf project deploy validate \
     --target-org <alias>
 ```
 
-Sandbox と Scratch Org では、上のコマンドを `sf project deploy start --dry-run` に置き換えます。preflight が成功したら、同じ対象 org と scope で deploy します。
+SandboxとScratch Orgでは、上のコマンドを`sf project deploy start --dry-run`に置き換えます。事前検証が成功したら、同じ対象orgとscopeでdeployします。
 
 ```sh
 sf project deploy start \
@@ -78,15 +78,15 @@ sf project deploy start \
     --target-org <alias>
 ```
 
-Apex class や trigger を含む場合、preflight または PR 前に関連 Apex テストも確認します。
+Apex classやtriggerを含む場合、事前検証またはPR前に関連Apexテストも確認します。
 
 ## 注意点
 
 - `sourceApiVersion` だけを上げても、既存 metadata の `<apiVersion>` は自動では変わりません。
-- 新しい API version でコンパイルされるため、Apex や metadata の挙動差分がないか preflight / test で確認します。
+- 新しいAPI versionでコンパイルされるため、Apexやmetadataの挙動差分がないか事前検証／テストで確認します。
 - 接続先 org を切り替えて確認する場合は、意図した org か先に確認します。
 - deploy URL、access token、instance URL などの認証情報や組織固有値は、作業記録やコミットに残しません。
-- 広い scope の preflight が失敗した場合は、既存 metadata 由来か、今回の version 更新による失敗かを切り分けます。
+- 広いscopeの事前検証が失敗した場合は、既存metadata由来か、今回のversion更新による失敗かを切り分けます。
 
 ## 参考リンク
 

@@ -65,11 +65,11 @@ Salesforce Platform を調べるときは、まず Salesforce 公式ドキュメ
 
 ## Flow と自動化
 
-| 用途                    | 公式リンク                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| Flow の開発者向け情報   | [Salesforce Flow Developer Guide](https://developer.salesforce.com/docs/platform/salesforce-flow/guide) |
-| Flow の管理者向けヘルプ | [Salesforce Flow](https://help.salesforce.com/s/articleView?id=sf.flow.htm&type=5)                      |
-| Agentforce              | [Agentforce Developer Guide](https://developer.salesforce.com/docs/ai/agentforce/guide)                 |
+| 用途                 | 公式リンク                                                                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flow Builderと自動化 | [Automate Tasks with Flows](https://help.salesforce.com/s/articleView?id=flow.htm&language=en_US)                                                        |
+| LWCからのFlow実行    | [Create and Start a Flow in a Custom Lightning Web Component](https://developer.salesforce.com/docs/platform/lwc/guide/use-flow-embed-create-start.html) |
+| Agentforce           | [Agentforce Developer Guide](https://developer.salesforce.com/docs/ai/agentforce/guide)                                                                  |
 
 ## 品質とセキュリティ
 

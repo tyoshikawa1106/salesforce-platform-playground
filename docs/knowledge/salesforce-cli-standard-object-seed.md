@@ -12,10 +12,10 @@ sf apex run --file scripts/apex/test-data/seed-standard-objects.apex --target-or
 
 ## CSV import と Apex seed の使い分け
 
-| 方法                  | 向いている用途                                               | 注意点                                                  |
-| --------------------- | ------------------------------------------------------------ | ------------------------------------------------------- |
-| `sf data import bulk` | 単体オブジェクト、大量 CSV、外部 ID による upsert            | 親子関係の ID 解決を別途考える必要がある                |
-| `sf apex run`         | 関連レコードを同一処理で作る seed、cleanup、検証用データ作成 | 実行先 org の機能、権限、validation rule の影響を受ける |
+| 方法                  | 向いている用途                                                       | 注意点                                                  |
+| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
+| `sf data import bulk` | 単体オブジェクト、大量 CSV、外部 ID による upsert                    | 親子関係の ID 解決を別途考える必要がある                |
+| `sf apex run`         | 関連レコードを同一処理で作るシード、クリーンアップ、検証用データ作成 | 実行先 org の機能、権限、validation rule の影響を受ける |
 
 CSV import は「既に ID や外部 ID が揃っているデータ」を投入する用途に向いています。
 
@@ -113,11 +113,11 @@ if (globalDescribe.containsKey('WorkOrder')) {
 
 `Report` と `Dashboard` は metadata-backed なので、通常の DML seed では作成しません。追加 `User` はライセンス、プロファイル、ユーザー名の一意性、メール設定の判断が必要なため、標準オブジェクト seed からは分けます。
 
-## cleanup を先に考える
+## クリーンアップを先に考える
 
 org に seed データを作る場合は、作成より先に削除方法を決めておきます。
 
-実用的な cleanup では、seed 専用の接頭辞を `Name`、`Subject`、`Description` などに入れ、子オブジェクトから順に削除します。
+実用的なクリーンアップでは、シード専用の接頭辞を`Name`、`Subject`、`Description`などに入れ、子オブジェクトから順に削除します。
 
 ```apex
 String seedPrefix = '[TEST]%';

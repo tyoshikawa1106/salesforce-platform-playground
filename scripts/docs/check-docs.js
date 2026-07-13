@@ -1,37 +1,14 @@
 const fs = require('fs');
 const path = require('path');
-
-const projectRoot = path.resolve(__dirname, '../..');
-const docsRoot = path.join(projectRoot, 'docs');
-const docsIndex = path.join(docsRoot, 'index.md');
-const additionalMarkdownFiles = [
-    path.join(projectRoot, 'README.md'),
-    path.join(projectRoot, 'AGENTS.md'),
-    path.join(projectRoot, 'CLAUDE.md'),
-    path.join(projectRoot, 'GEMINI.md'),
-    path.join(projectRoot, '.github/copilot-instructions.md'),
-    path.join(projectRoot, 'export-out/export-out-guide.md'),
-    path.join(projectRoot, 'logs/apex/apex-log-guide.md'),
-    path.join(projectRoot, 'logs/code-analyzer/code-analyzer-guide.md'),
-    path.join(projectRoot, 'logs/data-bulk-results/bulk-results-guide.md'),
-    path.join(projectRoot, 'scripts/scripts-guide.md')
-];
+const {
+    docsIndex,
+    fragmentMarkdownFiles,
+    getAdditionalDocumentMarkdownFiles,
+    getDocsMarkdownFiles,
+    getManagedMarkdownFiles,
+    projectRoot
+} = require('./markdown-files');
 const issues = [];
-
-function listMarkdownFiles(directory) {
-    return fs
-        .readdirSync(directory, { withFileTypes: true })
-        .flatMap((entry) => {
-            const entryPath = path.join(directory, entry.name);
-
-            if (entry.isDirectory()) {
-                return listMarkdownFiles(entryPath);
-            }
-
-            return entry.isFile() && entry.name.endsWith('.md') ? [entryPath] : [];
-        })
-        .sort();
-}
 
 function createHeadingAnchor(heading, anchorCounts) {
     const baseAnchor = heading
@@ -47,7 +24,7 @@ function createHeadingAnchor(heading, anchorCounts) {
     return count === 0 ? baseAnchor : `${baseAnchor}-${count}`;
 }
 
-function parseMarkdown(filePath) {
+function parseMarkdown(filePath, requireH1) {
     const lines = fs.readFileSync(filePath, 'utf8').split('\n');
     const anchors = new Set();
     const anchorCounts = new Map();
@@ -103,7 +80,7 @@ function parseMarkdown(filePath) {
         }
     });
 
-    if (h1Count !== 1) {
+    if (requireH1 && h1Count !== 1) {
         issues.push(`${path.relative(projectRoot, filePath)}: H1 は1つ必要です。現在は ${h1Count} 個です。`);
     }
 
@@ -118,8 +95,10 @@ function validateFileName(filePath) {
     }
 }
 
-const docsMarkdownFiles = listMarkdownFiles(docsRoot);
-const markdownFiles = [...docsMarkdownFiles, ...additionalMarkdownFiles];
+const docsMarkdownFiles = getDocsMarkdownFiles();
+const additionalDocumentMarkdownFiles = getAdditionalDocumentMarkdownFiles();
+const markdownFiles = getManagedMarkdownFiles();
+const fragmentMarkdownFileSet = new Set(fragmentMarkdownFiles);
 const markdownFileSet = new Set(markdownFiles);
 const parsedFiles = new Map();
 const linkGraph = new Map();
@@ -129,7 +108,7 @@ docsMarkdownFiles.forEach((filePath) => {
 });
 
 markdownFiles.forEach((filePath) => {
-    parsedFiles.set(filePath, parseMarkdown(filePath));
+    parsedFiles.set(filePath, parseMarkdown(filePath, !fragmentMarkdownFileSet.has(filePath)));
 });
 
 markdownFiles.forEach((filePath) => {
@@ -186,6 +165,6 @@ if (issues.length > 0) {
     process.exitCode = 1;
 } else {
     console.log(
-        `Docs check passed: ${docsMarkdownFiles.length} docs files and ${additionalMarkdownFiles.length} additional files.`
+        `Docs check passed: ${docsMarkdownFiles.length} docs files, ${additionalDocumentMarkdownFiles.length} additional documents, and ${fragmentMarkdownFiles.length} fragment.`
     );
 }

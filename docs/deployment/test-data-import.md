@@ -10,7 +10,7 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点と plan を置く場所です。匿名 Apex の seed / cleanup / repair script は、ファイル種別に合わせて `scripts/apex/` に置きます。
+`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点とplanを置く場所です。匿名Apexのシード、クリーンアップ、修復用スクリプトは、ファイル種別に合わせて`scripts/apex/`に置きます。
 
 - `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画。
 - `scripts/apex/test-data/*.apex`: 関連レコードを作成・削除する anonymous Apex。
@@ -101,7 +101,7 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 
-## cleanup
+## クリーンアップ
 
 投入後は、必要に応じて対象を確認してから削除します。
 
@@ -117,7 +117,7 @@ sf data query \
 sf data delete record --sobject Account --record-id <record-id> --target-org <alias>
 ```
 
-主要標準オブジェクト seed は、接頭辞 `[TEST]` を使って cleanup します。
+主要標準オブジェクトのシードデータは、接頭辞`[TEST]`を使ってクリーンアップします。
 
 - governor limit を避けるため、各オブジェクト最大 100 件ずつ削除する。
 - 大量投入後は `Deleted records: none` になるまで複数回実行する。
@@ -130,9 +130,9 @@ sf apex run --file scripts/apex/test-data/cleanup-standard-objects.apex --target
 
 - 実在の個人情報、顧客情報、秘密情報を入れない。
 - org 固有の ID を固定しない。
-- 大量データや automation 検証用データは、投入前に cleanup 方針を決める。
+- 大量データや自動化検証用データは、投入前にクリーンアップ方針を決める。
 - validation rule、required field、picklist 値を describe で確認する。
 - 親子関係のあるデータは親から投入する。
 - Trigger / Flow の bulk 動作を見たい場合は、200 件境界を超える件数を用意する。
 - データ投入は metadata deploy ではないため、投入したレコードを Git 差分や manifest に含めない。
-- 失敗しても作成済みレコードが残る場合があるため、再実行前に確認 SOQL または cleanup 方針を確認する。
+- 失敗しても作成済みレコードが残る場合があるため、再実行前に確認SOQLまたはクリーンアップ方針を確認する。

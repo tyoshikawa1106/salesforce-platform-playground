@@ -24,7 +24,7 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 | タイトル                                                                                     | 概要                                        |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | [ESLint の unmatched glob](eslint-unmatched-globs.md)                                        | 対象ファイルがない glob の扱い              |
-| [npm と pre-commit hook](npm-and-precommit.md)                                               | Husky、lint-staged、Prettier の実行関係     |
+| [npmとpre-commitフック](npm-and-precommit.md)                                                | Husky、lint-staged、Prettierの実行関係      |
 | [npm audit 確認記録](npm-audit-review.md)                                                    | audit 結果の確認観点と判断基準              |
 | [package.json](package-json.md)                                                              | npm scripts、依存、実行環境の定義           |
 | [CI で Prettier を確認する意味](prettier-check-in-ci.md)                                     | formatter を CI で確認する目的              |
@@ -39,7 +39,7 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 | [GitHub 設定ファイル](github-config-files.md)                      | Actions、Dependabot、テンプレートの構成 |
 | [GitHub Issue テンプレート設定](github-issue-template-config.md)   | Issue 作成画面の設定                    |
 | [GitHub Projects と Milestones](github-projects-and-milestones.md) | 進捗管理と期限管理の使い分け            |
-| [GitHub Release Notes 設定](github-release-notes-config.md)        | 自動生成リリースノートの設定            |
+| [GitHubリリースノート設定](github-release-notes-config.md)         | 自動生成リリースノートの設定            |
 
 ## Salesforce DX とメタデータ
 
