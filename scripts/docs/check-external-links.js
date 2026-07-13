@@ -2,6 +2,8 @@ const path = require('path');
 const fs = require('fs');
 const { getManagedMarkdownFiles, projectRoot } = require('./markdown-files');
 const requestTimeoutMs = 15000;
+const requestAttempts = 3;
+const retryDelayMs = 250;
 const concurrency = 8;
 
 function normalizeUrl(rawUrl) {
@@ -69,12 +71,45 @@ async function request(url, method) {
     return response.status;
 }
 
-async function checkUrl(url) {
+function isRetryableStatus(status) {
+    return status === 429 || (status >= 500 && status < 600);
+}
+
+async function wait(delayMs) {
+    if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+}
+
+async function requestWithRetry(url, method, options = {}) {
+    const attempts = options.attempts || requestAttempts;
+    const delayMs = options.delayMs ?? retryDelayMs;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            const status = await request(url, method);
+
+            if (!isRetryableStatus(status) || attempt === attempts) {
+                return status;
+            }
+        } catch (error) {
+            if (attempt === attempts) {
+                throw error;
+            }
+        }
+
+        await wait(delayMs * attempt);
+    }
+
+    throw new Error(`Request failed without a response: ${method} ${url}`);
+}
+
+async function checkUrl(url, requestOptions = {}) {
     let headStatus;
     let headError;
 
     try {
-        headStatus = await request(url, 'HEAD');
+        headStatus = await requestWithRetry(url, 'HEAD', requestOptions);
 
         if (headStatus >= 200 && headStatus < 400) {
             return { kind: 'ok', status: headStatus };
@@ -84,7 +119,7 @@ async function checkUrl(url) {
     }
 
     try {
-        const getStatus = await request(url, 'GET');
+        const getStatus = await requestWithRetry(url, 'GET', requestOptions);
 
         if (getStatus >= 200 && getStatus < 400) {
             return { kind: 'ok', status: getStatus };
@@ -188,5 +223,6 @@ if (require.main === module) {
 module.exports = {
     checkUrl,
     formatSuccessSummary,
+    isRetryableStatus,
     normalizeUrl
 };
