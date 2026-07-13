@@ -14,7 +14,7 @@ pull request と `main` push で実行する CI です。
 | `concurrency`                                     | 同じ ref の古い CI をキャンセルする。                          |
 | Setup Node.js                                     | Node.js 24 と npm cache。                                      |
 | `npm ci --include=dev`                            | lockfile どおりに依存を入れる。                                |
-| `npm audit --omit=dev`                            | production dependency の脆弱性確認。                           |
+| `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。        |
 | `npm run prettier:verify`                         | formatter 確認。                                               |
 | `npm run docs:check`                              | docs のリンク、見出し、ファイル名、索引到達性を確認。          |
 | `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                           |

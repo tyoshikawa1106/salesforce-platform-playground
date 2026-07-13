@@ -5,18 +5,19 @@
 ## 実行コマンド
 
 ```sh
-npm audit --omit=dev
 npm audit --audit-level=high
 npm audit fix --dry-run --json
 npm explain @salesforce/sfdx-lwc-jest
 npm explain @salesforce/eslint-config-lwc
 ```
 
-`npm audit fix` は、依存更新範囲が広がりやすいため自動では実行しません。
+CIではproduction dependencyとdevDependencyを監査し、high / criticalを失敗条件にします。low / moderateも出力を確認しますが、自動的にCI失敗とはしません。
+
+`npm audit fix`は、依存更新範囲が広がりやすいため自動では実行しません。
 
 ## 確認観点
 
-- production dependency に high / critical がないか。
+- production dependencyとdevDependencyにhigh / criticalがないか。
 - devDependency の指摘が、LWC Jest / ESLint / Babel など開発ツールに閉じているか。
 - `npm audit fix --dry-run --json` が、意図しない major downgrade や広い依存更新を提案していないか。
 - Salesforce / LWC 関連パッケージの peer dependency と Node.js 前提が崩れないか。
@@ -26,6 +27,10 @@ npm explain @salesforce/eslint-config-lwc
 high / critical がなく、検出対象が開発用ツールチェーンに閉じている場合は、通常の feature / docs 変更に混ぜて `npm audit fix` を実行しません。
 
 対応が必要な場合は、別 Issue / PR で最小変更として扱います。
+
+high / criticalを一時的に許容する必要がある場合は、対象package、影響、許容理由、見直し期限、追跡Issueを記録します。CIの監査対象や失敗条件だけを理由なく弱めません。
+
+CIの`npm audit`は変更時の既知脆弱性混入を防ぎます。Dependabot alertsとsecurity updatesは継続的な検出と修正PR作成を担当します。
 
 候補:
 
