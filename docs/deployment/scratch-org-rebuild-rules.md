@@ -88,6 +88,8 @@ SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/scratch-or
 SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/scratch-org-import-test-data.js
 ```
 
+各スクリプトは引数なしで実行します。`--help` または `-h` は使用方法だけを表示し、未知の引数がある場合は Salesforce CLI を呼び出さずエラー終了します。
+
 alias、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json`、`SCRATCH_ORG_ALIAS`、または次の手順の個別 `sf` コマンドを確認します。
 
 ## 作成

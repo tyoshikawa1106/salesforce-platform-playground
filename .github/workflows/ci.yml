@@ -63,6 +63,9 @@ jobs:
             - name: Run Salesforce Code Analyzer
               run: npm run code-analyzer:ci
 
+            - name: Run script unit tests
+              run: npm run test:scripts
+
             - name: Check Salesforce validate secrets
               id: salesforce_validate
               env:
