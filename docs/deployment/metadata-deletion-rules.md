@@ -1,4 +1,4 @@
-# Salesforce メタデータ削除ルール
+# メタデータ削除ルール
 
 この文書は、AI エージェントが Salesforce メタデータを削除する destructive changes を扱うときの実行ルールを定義します。
 

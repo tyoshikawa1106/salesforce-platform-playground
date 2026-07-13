@@ -1,7 +1,7 @@
-# CI Salesforce validate ルール
+# CI メタデータ検証ルール
 
 この文書は、AI エージェントが GitHub Actions の Salesforce validate 設定を確認、追加、修正するときの運用ルールです。
-ローカルや接続中の Salesforce 組織への deploy / retrieve / test は [Salesforce 組織操作ルール](salesforce-org-operation-rules.md) を参照します。
+ローカルや接続中の Salesforce 組織への deploy / retrieve / test は [組織操作ルール](org-operation-rules.md) を参照します。
 
 ## 実行ルール
 
