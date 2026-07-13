@@ -19,6 +19,7 @@
 - Salesforceメタデータ変更を含む場合は、マージ前に対象組織に応じたvalidateまたはdry-runを確認する。
 - PR作成・更新後は、担当者、ラベル、Project紐づけを確認する。
 - マージ後に必要なSalesforce deployとProjectステータス更新を行う。
+- ユーザーからマージ方式の指定がない場合はマージコミットを使う。squashマージまたはrebaseマージは、ユーザーから明示指定がある場合だけ使う。
 
 Salesforceの対象org、scope、validate、deploy、retrieve、testの詳細は [組織操作ルール](../deployment/org-operation-rules.md) を正とします。
 
@@ -166,7 +167,7 @@ IssueとPRには、作成時に担当者を設定します。
 - 取り込む場合はリポジトリ所有者が承認レビューを行ってからマージする。
 - 見送る場合は理由を書いた変更要求レビューを残してからクローズする。
 - 設定ファイルには個人ユーザー名を担当者やレビュー担当者として固定しない。
-- Project紐づけや担当者設定は必要に応じて手動で確認する。
+- Dependabot PRも、作成後に担当者とProjectを手動で設定する。
 
 ## ProjectとMilestone
 

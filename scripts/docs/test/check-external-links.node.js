@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { checkUrl, normalizeUrl } = require('../check-external-links');
+const { checkUrl, formatSuccessSummary, normalizeUrl } = require('../check-external-links');
 
 test('Markdown の閉じ記号を URL から除外する', () => {
     assert.equal(normalizeUrl('https://example.com/guide).'), 'https://example.com/guide');
@@ -38,4 +38,9 @@ test('HEAD と GET の応答の組み合わせを判定する', async (context) 
         message: 'HEAD HTTP 403, GET HTTP 404'
     });
     assert.deepEqual(await checkUrl(`${baseUrl}/restricted`), { kind: 'warning', status: 403 });
+});
+
+test('警告の有無を完了メッセージに反映する', () => {
+    assert.equal(formatSuccessSummary(10, 0), 'External link check passed: 10 checked.');
+    assert.equal(formatSuccessSummary(10, 2), 'External link check completed with warnings: 10 checked, 2 warning.');
 });

@@ -14,10 +14,10 @@
 
 | ページ                                                      | 内容                                                    |
 | ----------------------------------------------------------- | ------------------------------------------------------- |
-| [package.json](package-json.md)                             | npm scripts、依存、hook 設定の読み方。                  |
+| [package.json](package-json.md)                             | npm scripts、依存、フック設定の読み方。                 |
 | [Salesforce DX 設定ファイル](salesforce-dx-config-files.md) | `sfdx-project.json`、Scratch Org 設定、`.forceignore`。 |
 | [品質チェック設定ファイル](quality-config-files.md)         | ESLint、Jest、Prettier、Code Analyzer、pre-commit。     |
-| [GitHub 設定ファイル](github-config-files.md)               | CI、Dependabot、Release、Issue / PR template。          |
+| [GitHub設定ファイル](github-config-files.md)                | CI、Dependabot、リリース、Issue／PRテンプレート。       |
 
 ## Salesforce / DX
 
@@ -31,7 +31,7 @@
 | `manifest/destructiveChanges.xml`             | Salesforce 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                            | 実行前に対象 org、削除 scope、復旧方針を確認する。                                                                  |
 | `manifest/package*.xml`                       | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                                    |
 | `.forceignore`                                | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                                         |
-| `scripts/setup/import-plan.json`              | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、seed / cleanup Apex と整合させる。                                                      |
+| `scripts/setup/import-plan.json`              | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、シード／クリーンアップ用Apexと整合させる。                                              |
 
 ## npm / 品質チェック
 
@@ -47,7 +47,7 @@
 | `jest-sa11y-setup.js`                  | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                                       | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。                |
 | `.prettierrc`                          | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。                     | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                                         |
 | `.prettierignore`                      | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                               | 整形対象に含めるべき source を除外していないか確認する。                                                 |
-| `.husky/pre-commit`                    | commit 前に `npm run precommit` を実行する。                                                                               | hook を変えた場合は staged files に対する挙動を確認する。                                                |
+| `.husky/pre-commit`                    | コミット前に`npm run precommit`を実行する。                                                                                | フックを変えた場合はステージ済みファイルに対する挙動を確認する。                                         |
 
 ## ローカル出力先
 
@@ -69,17 +69,17 @@
 
 ## GitHub
 
-| ファイル                                    | 概要                                                                                                                                           | 変更時の確認                                                                                                                     |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                                               | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。                                                 |
-| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール指示を示す。                                                                                  | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                            |
-| `.github/workflows/ci.yml`                  | pull request と `main` push で npm audit、format、docs、lint、Salesforce Code Analyzer、任意の Salesforce validate、LWC unit test を確認する。 | GitHub Actions は品質確認に寄せ、Issue / Project などの運用 metadata 自動化を混ぜない。                                          |
-| `.github/dependabot.yml`                    | npm 依存と GitHub Actions の weekly update、ラベル、commit message、grouping を定義する。                                                      | 特定の個人ユーザー名を assignee や reviewer として固定せず、`docs/development/github-repository-rules.md` の固有運用と合わせる。 |
-| `.github/release.yml`                       | GitHub Release の自動生成 changelog category をラベルごとに定義する。                                                                          | ラベル体系や日次 release notes 運用を変えた場合は category も合わせて見直す。                                                    |
-| `.github/ISSUE_TEMPLATE/config.yml`         | Issue template 全体の挙動を定義する。                                                                                                          | blank issue を許可するかどうかを運用方針に合わせる。                                                                             |
-| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                                        | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                                                           |
-| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                                        | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                                                         |
-| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                                        | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。                                                        |
+| ファイル                                    | 概要                                                                                                                                | 変更時の確認                                                                                                                    |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                                    | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。                                                |
+| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール指示を示す。                                                                       | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                           |
+| `.github/workflows/ci.yml`                  | PRと`main`へのプッシュでnpm audit、整形、文書、lint、Salesforce Code Analyzer、任意のSalesforce validate、LWC単体テストを確認する。 | GitHub Actionsは品質確認に寄せ、Issue／Projectなどの運用メタデータ自動化を混ぜない。                                            |
+| `.github/dependabot.yml`                    | npm依存とGitHub Actionsの週次更新、ラベル、コミットメッセージ、グループ化を定義する。                                               | 特定の個人ユーザー名を担当者やレビュー担当者として固定せず、`docs/development/github-repository-rules.md`の固有運用と合わせる。 |
+| `.github/release.yml`                       | GitHub Releaseの自動生成リリースノートカテゴリをラベルごとに定義する。                                                              | ラベル体系や日次リリースノート運用を変えた場合はカテゴリも合わせて見直す。                                                      |
+| `.github/ISSUE_TEMPLATE/config.yml`         | Issueテンプレート全体の挙動を定義する。                                                                                             | テンプレートなしのIssueを許可するかどうかを運用方針に合わせる。                                                                 |
+| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                             | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                                                          |
+| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                             | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                                                        |
+| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                             | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。                                                       |
 
 ## Agent
 

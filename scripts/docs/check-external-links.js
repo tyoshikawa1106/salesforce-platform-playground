@@ -1,37 +1,8 @@
-const fs = require('fs');
 const path = require('path');
-
-const projectRoot = path.resolve(__dirname, '../..');
-const docsRoot = path.join(projectRoot, 'docs');
-const additionalMarkdownFiles = [
-    path.join(projectRoot, 'README.md'),
-    path.join(projectRoot, 'AGENTS.md'),
-    path.join(projectRoot, 'CLAUDE.md'),
-    path.join(projectRoot, 'GEMINI.md'),
-    path.join(projectRoot, '.github/copilot-instructions.md'),
-    path.join(projectRoot, 'export-out/export-out-guide.md'),
-    path.join(projectRoot, 'logs/apex/apex-log-guide.md'),
-    path.join(projectRoot, 'logs/code-analyzer/code-analyzer-guide.md'),
-    path.join(projectRoot, 'logs/data-bulk-results/bulk-results-guide.md'),
-    path.join(projectRoot, 'scripts/scripts-guide.md')
-];
+const fs = require('fs');
+const { getManagedMarkdownFiles, projectRoot } = require('./markdown-files');
 const requestTimeoutMs = 15000;
 const concurrency = 8;
-
-function listMarkdownFiles(directory) {
-    return fs
-        .readdirSync(directory, { withFileTypes: true })
-        .flatMap((entry) => {
-            const entryPath = path.join(directory, entry.name);
-
-            if (entry.isDirectory()) {
-                return listMarkdownFiles(entryPath);
-            }
-
-            return entry.isFile() && entry.name.endsWith('.md') ? [entryPath] : [];
-        })
-        .sort();
-}
 
 function normalizeUrl(rawUrl) {
     let url = rawUrl.trim().replace(/[.,;:!?\]}>、。）」』】]+$/u, '');
@@ -135,7 +106,15 @@ async function checkUrl(url) {
     }
 }
 
-const markdownFiles = [...listMarkdownFiles(docsRoot), ...additionalMarkdownFiles];
+function formatSuccessSummary(urlCount, warningCount) {
+    if (warningCount > 0) {
+        return `External link check completed with warnings: ${urlCount} checked, ${warningCount} warning.`;
+    }
+
+    return `External link check passed: ${urlCount} checked.`;
+}
+
+const markdownFiles = getManagedMarkdownFiles();
 const linkReferences = new Map();
 
 markdownFiles.flatMap(extractExternalLinks).forEach((link) => {
@@ -196,7 +175,7 @@ async function main() {
         return;
     }
 
-    console.log(`External link check passed: ${urls.length} checked, ${warningCount} warning.`);
+    console.log(formatSuccessSummary(urls.length, warningCount));
 }
 
 if (require.main === module) {
@@ -208,5 +187,6 @@ if (require.main === module) {
 
 module.exports = {
     checkUrl,
+    formatSuccessSummary,
     normalizeUrl
 };

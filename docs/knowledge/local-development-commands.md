@@ -13,17 +13,18 @@
 
 ## npm / 品質確認
 
-| コマンド                                                | 役割                                                     | 補足                                                                         |
-| ------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `npm ci`                                                | `package-lock.json` に固定された依存を再現する。         | 依存導入系なので、作業ルールに従って実行判断する。                           |
-| `npm run prettier:verify`                               | Apex、metadata、docs、LWC などの整形を確認する。         | ファイルは書き換えない。                                                     |
-| `npm run docs:check`                                    | docs、入口文書、ガイドの構造とローカルリンクを確認する。 | docs ではファイル名と索引到達性も確認する。                                  |
-| `npm run docs:check:external`                           | docs、入口文書、ガイドの外部リンクを確認する。           | HEAD / GET の両方が 404 / 410 なら失敗、アクセス拒否や通信失敗は警告とする。 |
-| `npm run prettier`                                      | 対象ファイルを Prettier で整形する。                     | 実行後は `git diff` で意図しない差分を確認する。                             |
-| `npm run lint -- --no-error-on-unmatched-pattern`       | Aura / LWC JavaScript を ESLint で確認する。             | 対象ファイルがない場合も CI と同じく成功扱いにする。                         |
-| `npm run test:unit -- -- --runInBand --passWithNoTests` | LWC Jest を CI に近い形で実行する。                      | LWC 変更時は関連テストを優先してから全体確認する。                           |
-| `npm audit --audit-level=high`                          | production / dev dependencyを監査する。                  | CIと同じくhigh / criticalを失敗条件にする。                                  |
-| `npm run code-analyzer:ci`                              | Salesforce Code Analyzer を CI 相当で実行する。          | 結果は `logs/code-analyzer/ci.json` に出る。生成物は ignore 対象。           |
+| コマンド                                                | 役割                                                               | 補足                                                                      |
+| ------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `npm ci`                                                | `package-lock.json` に固定された依存を再現する。                   | 依存導入系なので、作業ルールに従って実行判断する。                        |
+| `npm run prettier:verify`                               | Apex、metadata、docs、LWC などの整形を確認する。                   | ファイルは書き換えない。                                                  |
+| `npm run docs:check`                                    | docs、入口文書、ガイド、文書断片の構造とローカルリンクを確認する。 | docsではファイル名と索引到達性も確認する。                                |
+| `npm run docs:check:external`                           | 同じ対象の外部リンクを確認する。                                   | HEAD / GETの両方が404 / 410なら失敗、アクセス拒否や通信失敗は警告とする。 |
+| `npm run test:scripts`                                  | リポジトリ管理スクリプトの単体テストを実行する。                   | 文書検査やScratch Org補助スクリプトを変更した場合に実行する。             |
+| `npm run prettier`                                      | 対象ファイルを Prettier で整形する。                               | 実行後は `git diff` で意図しない差分を確認する。                          |
+| `npm run lint -- --no-error-on-unmatched-pattern`       | Aura / LWC JavaScript を ESLint で確認する。                       | 対象ファイルがない場合も CI と同じく成功扱いにする。                      |
+| `npm run test:unit -- -- --runInBand --passWithNoTests` | LWC Jest を CI に近い形で実行する。                                | LWC 変更時は関連テストを優先してから全体確認する。                        |
+| `npm audit --audit-level=high`                          | production / dev dependencyを監査する。                            | CIと同じくhigh / criticalを失敗条件にする。                               |
+| `npm run code-analyzer:ci`                              | Salesforce Code Analyzer を CI 相当で実行する。                    | 結果は `logs/code-analyzer/ci.json` に出る。生成物は ignore 対象。        |
 
 ## Salesforce CLI
 
