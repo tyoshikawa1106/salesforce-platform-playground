@@ -49,18 +49,23 @@ const { setup } = require('@sa11y/jest');
 setup();
 ```
 
-## code-analyzer.yml
+## code-analyzer.yml / config/code-analyzer/pmd-ruleset.xml
 
-Salesforce Code Analyzer の engine 設定です。
+Salesforce Code Analyzer のengine設定と、リポジトリ専用のPMDルールを管理します。
 
-```yaml
-engines:
-    eslint:
-        auto_discover_eslint_config: true
-        disable_lwc_base_config: true
-```
+| ファイル                               | 役割                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `code-analyzer.yml`                    | ESLint / PMD engine、標準ルールと代替ルールのtag、カスタムルールのseverityを設定する。      |
+| `config/code-analyzer/pmd-ruleset.xml` | リポジトリ規約に合わせた`ApexDocWithoutProperties`と`TriggerDelegatesToHandler`を定義する。 |
 
-repo の `eslint.config.js` を Code Analyzer 側で自動検出し、Code Analyzer 側の LWC base config との重複適用を避けます。
+ESLint engineではrepoの`eslint.config.js`を自動検出し、Code Analyzer側のLWC / React base configとの重複適用を避けます。PMD engineは`config/code-analyzer/pmd-ruleset.xml`をカスタムrulesetとして読み込みます。
+
+標準PMDルールを単に抑止するのではなく、リポジトリ規約と衝突する標準ルールから`Recommended` tagを外し、次の代替ルールへ付け替えます。
+
+| 標準ルール            | 代替ルール                  | 検査内容                                                                                    |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| `ApexDoc`             | `ApexDocWithoutProperties`  | プロパティの`//`コメントを許容し、クラス、コンストラクタ、公開メソッドのApexDocを検査する。 |
+| `AvoidLogicInTrigger` | `TriggerDelegatesToHandler` | Trigger context分岐とhandler呼び出しを許容し、SOQL、DML、代入、ループ、業務処理を拒否する。 |
 
 確認:
 
