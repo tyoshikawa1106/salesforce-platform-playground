@@ -20,7 +20,7 @@
 - PR作成・更新後は、assignee、labels、Project紐づけを確認する。
 - merge後に必要なSalesforce deployとProject status更新を行う。
 
-Salesforceの対象org、scope、validate、deploy、retrieve、testの詳細は [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md) を正とします。
+Salesforceの対象org、scope、validate、deploy、retrieve、testの詳細は [組織操作ルール](../deployment/org-operation-rules.md) を正とします。
 
 ### PR merge後の作業branch整理
 
@@ -44,11 +44,11 @@ PR merge後は、次の条件をすべて満たす場合に限り、エージェ
 
 ### PR merge前のSalesforce preflight
 
-Salesforceメタデータ変更を含むPRは、merge前に [Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#pr-merge-前-preflight) に従って、対象組織に応じたvalidateまたはdry-runを実行します。対象org、組織種別、deploy可能な変更、scope、実行結果を確認できない場合はmergeしません。
+Salesforceメタデータ変更を含むPRは、merge前に [組織操作ルール](../deployment/org-operation-rules.md#pr-merge-前-preflight) に従って、対象組織に応じたvalidateまたはdry-runを実行します。対象org、組織種別、deploy可能な変更、scope、実行結果を確認できない場合はmergeしません。
 
 ### PR merge後のSalesforce deploy
 
-Salesforceメタデータ変更を含むPRのmerge依頼では、[Salesforce 組織操作ルール](../deployment/salesforce-org-operation-rules.md#deploy) に従って、merge後に同期したcleanな`main`から必要なdeployと確認まで実行します。PR branchからの実deployは標準フローにしません。
+Salesforceメタデータ変更を含むPRのmerge依頼では、[組織操作ルール](../deployment/org-operation-rules.md#deploy) に従って、merge後に同期したcleanな`main`から必要なdeployと確認まで実行します。PR branchからの実deployは標準フローにしません。
 
 ## リリースノート
 
@@ -155,7 +155,7 @@ IssueとPRには、作成時にassigneeを設定します。
 - 現行CIは`npm ci`、`npm audit --audit-level=high`、Prettier、docs check、lint、Code Analyzer、LWC unit testを実行する。
 - CIの`npm audit`はproduction dependencyとdevDependencyを対象にし、high / criticalの既知脆弱性が新たに混入することを防ぐ。
 - high / criticalを一時的に許容する必要がある場合は、対象package、影響、許容理由、見直し期限、追跡Issueを記録し、監査対象や失敗条件を理由なく弱めない。
-- Salesforce JWT認証用Secretsが揃っている場合はSalesforce validateも実行する。詳細は [CI Salesforce validateルール](../deployment/ci-salesforce-validate-rules.md) に従う。
+- Salesforce JWT認証用Secretsが揃っている場合はSalesforce validateも実行する。詳細は [CI メタデータ検証ルール](../deployment/ci-metadata-validation-rules.md) に従う。
 
 ### Dependabot
 
