@@ -205,13 +205,14 @@ pre-commit で Prettier が staged files を書き換える可能性がありま
 
 ## 変更時の確認
 
-| 変更内容                   | 確認コマンド例                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------- |
-| scripts / docs             | `npm run prettier:verify`、`npm run docs:check`、該当する場合は`npm run test:scripts` |
-| 外部リンク                 | `npm run docs:check:external`                                                         |
-| ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`                                     |
-| LWCテスト関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`                               |
-| Code Analyzer関連          | `npm run code-analyzer:ci`                                                            |
-| 依存関係 / override の変更 | `npm install` 後に `package-lock.json` 差分と関連テストを確認                         |
+| 変更内容                   | 確認コマンド例                                                  |
+| -------------------------- | --------------------------------------------------------------- |
+| Markdown                   | `npm run prettier:verify`、`npm run docs:check`                 |
+| scripts                    | `npm run prettier:verify`、該当する場合は`npm run test:scripts` |
+| 外部リンク                 | `npm run docs:check:external`                                   |
+| ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`               |
+| LWCテスト関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`         |
+| Code Analyzer関連          | `npm run code-analyzer:ci`                                      |
+| 依存関係 / override の変更 | `npm install` 後に `package-lock.json` 差分と関連テストを確認   |
 
 依存追加や lockfile 更新が必要な変更は、事前に明示確認してから実行します。
