@@ -6,24 +6,24 @@
 
 pull request と `main` push で実行する CI です。
 
-| 設定 / step                                       | 内容                                                                 |
-| ------------------------------------------------- | -------------------------------------------------------------------- |
-| `pull_request` / `push`                           | `main` 向け PR と `main` push で実行する。                           |
-| `permissions.contents: read`                      | CI は read-only に寄せる。                                           |
-| `HUSKY: 0`                                        | CI 上では Husky hook を無効化する。                                  |
-| `concurrency`                                     | 同じ ref の古い CI をキャンセルする。                                |
-| `actions/checkout@v7`                             | repository の source を checkout する。内部ランタイムは Node.js 24。 |
-| `actions/setup-node@v6`                           | Node.js 24 と npm cache を設定する。                                 |
-| `npm ci --include=dev`                            | lockfile どおりに依存を入れる。                                      |
-| `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。              |
-| `npm run prettier:verify`                         | formatter 確認。                                                     |
-| `npm run docs:check`                              | docs のリンク、見出し、ファイル名、索引到達性を確認。                |
-| `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                                 |
-| `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。 |
-| Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。       |
-| Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードを確認する。   |
-| Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。         |
-| LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。            |
+| 設定 / step                                       | 内容                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `pull_request` / `push`                           | `main` 向け PR と `main` push で実行する。                                            |
+| `permissions.contents: read`                      | CI は read-only に寄せる。                                                            |
+| `HUSKY: 0`                                        | CI 上では Husky hook を無効化する。                                                   |
+| `concurrency`                                     | 同じ ref の古い CI をキャンセルする。                                                 |
+| `actions/checkout@v7`                             | repository の source を checkout する。内部ランタイムは Node.js 24。                  |
+| `actions/setup-node@v6`                           | Node.js 24 と npm cache を設定する。                                                  |
+| `npm ci --include=dev`                            | lockfile どおりに依存を入れる。                                                       |
+| `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。                               |
+| `npm run prettier:verify`                         | formatter 確認。                                                                      |
+| `npm run docs:check`                              | docs、入口文書、ガイドのローカルリンクと見出し、docs のファイル名と索引到達性を確認。 |
+| `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                                                  |
+| `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。                  |
+| Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。                        |
+| Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードと外部リンク判定を確認する。    |
+| Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。                          |
+| LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。                             |
 
 Salesforce validate で使う secrets:
 

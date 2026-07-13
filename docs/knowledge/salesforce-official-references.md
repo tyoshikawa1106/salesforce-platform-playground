@@ -32,7 +32,7 @@ Salesforce Platform を調べるときは、まず Salesforce 公式ドキュメ
 | 用途                             | 公式リンク                                                                                                                       |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Salesforce DX の概念と開発フロー | [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev)                        |
-| Salesforce CLI の導入            | [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/platform/salesforce-cli/guide)                                |
+| Salesforce CLI の導入            | [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup)                       |
 | Salesforce CLI コマンド          | [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference) |
 | VS Code 向け拡張機能             | [Salesforce Extensions for Visual Studio Code](https://developer.salesforce.com/docs/platform/sfvscode-extensions/guide)         |
 

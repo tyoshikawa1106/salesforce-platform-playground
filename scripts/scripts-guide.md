@@ -3,7 +3,7 @@
 `scripts/` には、リポジトリで管理する補助スクリプトとクエリファイルを置きます。
 
 - `scripts/setup/`: 初期 org セットアップ用の Node 実行入口と plan。
-- `scripts/docs/`: docs のリンク、見出し、ファイル名、索引到達性を確認する Node スクリプト。
+- `scripts/docs/`: docs、入口文書、リポジトリ内ガイドのローカルリンク、外部リンク、見出し、ファイル名、索引到達性を確認する Node スクリプト。
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
 - `scripts/deploy/`: デプロイや org 再構築の補助スクリプト。

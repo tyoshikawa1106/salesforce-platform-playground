@@ -33,8 +33,8 @@ npm run sf:validate:dev -- --target-org ci-dev
 | `SF_LOGIN_URL`       | login URL。未設定時は `https://login.salesforce.com` | 任意                                           |
 
 GitHub の repository 画面で、`Settings` -> `Secrets and variables` -> `Actions` -> `Repository secrets` から登録します。
-`SF_LOGIN_URL` は認証先を指定する値であり、利用する preflight コマンドを決める情報として扱いません。
-Sandbox を検証先にする場合は、login URL の変更だけでは対応しません。workflow の preflight を `sf project deploy start --dry-run` に変更し、その変更を別タスクとしてレビューしてから `SF_LOGIN_URL` に `https://test.salesforce.com` を登録します。
+`SF_LOGIN_URL` は認証先を指定する値であり、利用する事前検証コマンドを決める情報として扱いません。
+Sandbox を検証先にする場合は、login URL の変更だけでは対応しません。ワークフローの事前検証を `sf project deploy start --dry-run` に変更し、その変更を別タスクとしてレビューしてから `SF_LOGIN_URL` に `https://test.salesforce.com` を登録します。
 Developer Edition など別の組織へ CI 接続先を変更する場合も、現在の Dev 組織での成功実績をそのまま流用せず、対象組織で `npm run sf:validate:dev` が成功することを事前確認します。
 
 `SF_JWT_PRIVATE_KEY` は `-----BEGIN ... KEY-----` から `-----END ... KEY-----` までを GitHub Secret に保存します。

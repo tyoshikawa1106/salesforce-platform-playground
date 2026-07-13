@@ -52,7 +52,7 @@ node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
 - 削除と無関係な metadata 更新を同じ変更に混ぜない。
 - 削除に伴う権限、レイアウト、Flow、Apex の修正は差分を明確に分けて確認する。
 - Apex クラスなど source から削除する metadata は、ローカルファイル削除と org 側 destructive deploy の両方が必要かを確認する。
-- destructive deploy 後は、必要に応じて Tooling API、retrieve、または deploy report で削除状態を確認する。
+- destructive deploy 後は、必要に応じて Tooling API、retrieve、または deploy 結果で削除状態を確認する。
 
 ## PR レビュー観点
 
