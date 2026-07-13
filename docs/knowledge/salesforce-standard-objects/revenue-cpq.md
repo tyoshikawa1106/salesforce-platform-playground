@@ -2,7 +2,7 @@
 
 Revenue Cloud / CPQ 領域では、商品、価格、見積、契約、注文を中心に扱います。
 
-製品ページ: [Revenue Cloud](https://www.salesforce.com/revenue-cloud/)
+製品ページ: [Revenue Cloud](https://www.salesforce.com/sales/revenue-lifecycle-management/revenue-cloud/)
 
 | ラベル         | API 名                | 役割                             |
 | -------------- | --------------------- | -------------------------------- |

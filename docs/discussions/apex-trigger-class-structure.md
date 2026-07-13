@@ -79,8 +79,6 @@ Salesforce Trailhead では、Apex Enterprise Patterns として Service Layer�
 
 - [Trailhead - Apex Enterprise Patterns: Service Layer](https://trailhead.salesforce.com/content/learn/modules/apex_patterns_sl)
 - [Trailhead - Apex Enterprise Patterns: Domain & Selector Layers](https://trailhead.salesforce.com/content/learn/modules/apex_patterns_dsl)
-- [Apex Enterprise Patterns - Service Layer](http://wiki.developerforce.com/page/Apex_Enterprise_Patterns_-_Service_Layer)
-- [Apex Enterprise Patterns - Domain Layer](http://wiki.developerforce.com/page/Apex_Enterprise_Patterns_-_Domain_Layer)
 - [Apex Enterprise Patterns - Selector Layer](https://github.com/financialforcedev/df12-apex-enterprise-patterns#data-mapper-selector)
 
 一方で、これは Apex 全体で必ず使う標準命名ではなく、クラス名を必ず `Service` / `Domain` / `Selector` にするという意味でもない。

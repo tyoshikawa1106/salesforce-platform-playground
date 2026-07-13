@@ -2,7 +2,7 @@
 
 Experience Cloud はサイト、ポータル、コミュニティの入口として使われ、業務データは Sales / Service / Commerce のオブジェクトを共有することが多いです。
 
-製品ページ: [Experience Cloud](https://www.salesforce.com/experience-cloud/)
+製品ページ: [Experience Cloud](https://www.salesforce.com/products/experience-cloud/overview/)
 
 | ラベル         | API 名                    | 役割                             |
 | -------------- | ------------------------- | -------------------------------- |
