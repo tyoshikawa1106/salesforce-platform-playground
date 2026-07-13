@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ruleset
+    name="Salesforce Platform Playground"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd"
+>
+    <description>Repository-specific Apex documentation and Trigger structure rules.</description>
+
+    <rule
+        name="ApexDocWithoutProperties"
+        ref="category/apex/documentation.xml/ApexDoc"
+        message="Class, constructor, and public or global method declarations must have ApexDoc."
+    >
+        <description>Requires ApexDoc for public contracts while allowing line comments on properties.</description>
+        <priority>4</priority>
+        <properties>
+            <property name="reportPrivate" value="false" />
+            <property name="reportProtected" value="false" />
+            <property name="reportMissingDescription" value="true" />
+            <property name="reportProperty" value="false" />
+        </properties>
+    </rule>
+
+    <rule
+        name="TriggerDelegatesToHandler"
+        language="apex"
+        class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+        message="Trigger bodies may only route Trigger contexts to handler methods."
+    >
+        <description
+        >Allows Trigger context routing and handler calls, but rejects queries, DML, assignments, loops, and non-handler calls.</description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    <![CDATA[
+//UserTrigger/Method/BlockStatement/FieldDeclarationStatements[not(ends-with(@TypeName, 'Handler'))]
+|
+//UserTrigger//StandardCondition[count(*) != 1 or not(TriggerVariableExpression)]
+|
+//UserTrigger//*[self::SoqlExpression or self::SoslExpression or starts-with(local-name(), 'Dml') or self::AssignmentExpression or self::ForLoopStatement or self::WhileLoopStatement or self::DoLoopStatement or self::TryCatchFinallyBlockStatement or self::SwitchStatement or self::ThrowStatement]
+|
+//UserTrigger//MethodCallExpression[not(starts-with(@FullMethodName, 'handler.'))]
+                    ]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

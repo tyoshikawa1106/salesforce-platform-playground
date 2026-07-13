@@ -115,7 +115,7 @@ Apex 変更を含む PR を作成する前に、関連する Apex テストを c
 PR の CI では Salesforce Code Analyzer を `npm run code-analyzer:ci` で実行します。
 
 - Code Analyzer、ESLint、その他の静的解析について、ユーザーの明示的な許可なしに suppression、除外設定、対象範囲の縮小、severity threshold の緩和を追加または拡大しない。
-- 解析結果は suppression 適用後の件数だけを報告せず、抑止された違反がある場合は、その件数、対象 rule、対象ファイルを明示する。
+- 解析結果は suppression 適用後の件数だけを報告せず、抑止された違反がある場合は、その件数、対象 rule、対象ファイルを明示する。無効化した rule がある場合も、rule 名と理由を明示する。
 - 違反は、まずコードまたは設計で解消する。解消できない場合も suppression を既定の対応にせず、理由と影響を提示してユーザーの判断を待つ。
 
 ローカルで事前確認する場合は次を実行します。

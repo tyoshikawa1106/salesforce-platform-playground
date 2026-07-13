@@ -118,6 +118,15 @@ npm run code-analyzer:ci
 
 Code Analyzer の設定ファイルは、通常 workspace root に `code-analyzer.yml` または `code-analyzer.yaml` として置きます。
 
+このリポジトリでは `config/code-analyzer/pmd-ruleset.xml` にカスタム PMD ruleset を置きます。標準ルールを suppression や `disabled` で隠さず、リポジトリ規約と衝突する標準ルールから `Recommended` タグを外し、次の置換ルールへ同タグを付けます。
+
+| 標準ルール            | 置換ルール                  | リポジトリ固有の判定                                                                 |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------ |
+| `ApexDoc`             | `ApexDocWithoutProperties`  | `reportProperty=false` とし、プロパティは `//`、公開契約は ApexDoc で検査する        |
+| `AvoidLogicInTrigger` | `TriggerDelegatesToHandler` | Trigger context 分岐と handler 呼び出しを許可し、SOQL、DML、代入、業務処理を拒否する |
+
+標準ルールは `Upstream` タグと rule 名を指定すれば実行できます。
+
 CLI コマンドは現在のフォルダにある設定ファイルを自動で読み込みます。別の場所に置く場合は `--config-file` を指定します。
 
 設定ファイルでは、次のようなことを調整できます。
