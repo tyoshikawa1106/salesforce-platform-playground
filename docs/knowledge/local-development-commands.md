@@ -21,7 +21,7 @@
 | `npm run prettier`                                      | 対象ファイルを Prettier で整形する。             | 実行後は `git diff` で意図しない差分を確認する。                   |
 | `npm run lint -- --no-error-on-unmatched-pattern`       | Aura / LWC JavaScript を ESLint で確認する。     | 対象ファイルがない場合も CI と同じく成功扱いにする。               |
 | `npm run test:unit -- -- --runInBand --passWithNoTests` | LWC Jest を CI に近い形で実行する。              | LWC 変更時は関連テストを優先してから全体確認する。                 |
-| `npm audit --omit=dev`                                  | production dependency の脆弱性を確認する。       | devDependency まで含める判断は作業内容に合わせる。                 |
+| `npm audit --audit-level=high`                          | production / dev dependencyを監査する。          | CIと同じくhigh / criticalを失敗条件にする。                        |
 | `npm run code-analyzer:ci`                              | Salesforce Code Analyzer を CI 相当で実行する。  | 結果は `logs/code-analyzer/ci.json` に出る。生成物は ignore 対象。 |
 
 ## Salesforce CLI

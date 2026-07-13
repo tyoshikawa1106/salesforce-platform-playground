@@ -152,12 +152,14 @@ IssueとPRには、作成時にassigneeを設定します。
 - GitHub ActionsはCI、静的解析、secret scanなどの品質確認に使う。
 - assignee、label、Milestone、Projectなどの運用metadataはActionsで自動化しない。
 - CI workflowは`permissions: contents: read`を基本にし、必要な権限だけを明示する。
-- 現行CIは`npm ci`、`npm audit --omit=dev`、Prettier、docs check、lint、Code Analyzer、LWC unit testを実行する。
+- 現行CIは`npm ci`、`npm audit --audit-level=high`、Prettier、docs check、lint、Code Analyzer、LWC unit testを実行する。
+- CIの`npm audit`はproduction dependencyとdevDependencyを対象にし、high / criticalの既知脆弱性が新たに混入することを防ぐ。
+- high / criticalを一時的に許容する必要がある場合は、対象package、影響、許容理由、見直し期限、追跡Issueを記録し、監査対象や失敗条件を理由なく弱めない。
 - Salesforce JWT認証用Secretsが揃っている場合はSalesforce validateも実行する。詳細は [CI Salesforce validateルール](../deployment/ci-salesforce-validate-rules.md) に従う。
 
 ### Dependabot
 
-- Dependabot alertsとsecurity updatesは既知脆弱性の検出と修正PR作成に使う。
+- Dependabot alertsとsecurity updatesは既知脆弱性の継続監視と修正PR作成に使う。CIの`npm audit`は変更時の混入防止、Dependabotは継続的な検出と更新提案を担当する。
 - version updatesはnpm依存更新PRを週次で作成するために使う。
 - Dependabot PRには`enhancement`と`area:testing`を付ける。
 - repository ownerを都度確認し、reviewerに設定する。

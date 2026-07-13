@@ -31,7 +31,7 @@
 | `manifest/destructiveChanges.xml`             | Salesforce 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                            | 実行前に対象 org、削除 scope、復旧方針を確認する。                                                                  |
 | `manifest/package*.xml`                       | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                                    |
 | `.forceignore`                                | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                                         |
-| `scripts/setup/import-plan.json`              | Salesforce CLI の data import plan。標準テストデータの import 順序と参照関係を定義する。                                                 | 実データや個人情報を入れず、seed / cleanup Apex と整合させる。                                                      |
+| `scripts/setup/import-plan.json`              | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、seed / cleanup Apex と整合させる。                                                      |
 
 ## npm / 品質チェック
 

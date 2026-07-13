@@ -139,7 +139,7 @@ npm run prettier:verify
 npm run docs:check
 npm run lint -- --no-error-on-unmatched-pattern
 npm run test:unit -- -- --runInBand --passWithNoTests
-npm audit --omit=dev
+npm audit --audit-level=high
 npm run code-analyzer:ci
 ```
 
