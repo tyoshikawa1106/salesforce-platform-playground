@@ -6,21 +6,23 @@
 
 pull request と `main` push で実行する CI です。
 
-| 設定 / step                                       | 内容                                                           |
-| ------------------------------------------------- | -------------------------------------------------------------- |
-| `pull_request` / `push`                           | `main` 向け PR と `main` push で実行する。                     |
-| `permissions.contents: read`                      | CI は read-only に寄せる。                                     |
-| `HUSKY: 0`                                        | CI 上では Husky hook を無効化する。                            |
-| `concurrency`                                     | 同じ ref の古い CI をキャンセルする。                          |
-| Setup Node.js                                     | Node.js 24 と npm cache。                                      |
-| `npm ci --include=dev`                            | lockfile どおりに依存を入れる。                                |
-| `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。        |
-| `npm run prettier:verify`                         | formatter 確認。                                               |
-| `npm run docs:check`                              | docs のリンク、見出し、ファイル名、索引到達性を確認。          |
-| `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                           |
-| Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。 |
-| Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。   |
-| LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。      |
+| 設定 / step                                       | 内容                                                                 |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| `pull_request` / `push`                           | `main` 向け PR と `main` push で実行する。                           |
+| `permissions.contents: read`                      | CI は read-only に寄せる。                                           |
+| `HUSKY: 0`                                        | CI 上では Husky hook を無効化する。                                  |
+| `concurrency`                                     | 同じ ref の古い CI をキャンセルする。                                |
+| `actions/checkout@v7`                             | repository の source を checkout する。内部ランタイムは Node.js 24。 |
+| `actions/setup-node@v6`                           | Node.js 24 と npm cache を設定する。                                 |
+| `npm ci --include=dev`                            | lockfile どおりに依存を入れる。                                      |
+| `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。              |
+| `npm run prettier:verify`                         | formatter 確認。                                                     |
+| `npm run docs:check`                              | docs のリンク、見出し、ファイル名、索引到達性を確認。                |
+| `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                                 |
+| `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。 |
+| Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。       |
+| Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。         |
+| LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。            |
 
 Salesforce validate で使う secrets:
 
@@ -35,18 +37,18 @@ CI に secret 実値は書きません。
 
 ## .github/dependabot.yml
 
-npm dependency update PR の設定です。
+npm dependency と GitHub Actions の version update PR を作成する設定です。
 
-| key                         | 内容                                             |
-| --------------------------- | ------------------------------------------------ |
-| `package-ecosystem: npm`    | npm dependency を対象にする。                    |
-| `directory: '/'`            | repository root の `package.json` を対象にする。 |
-| `schedule.interval: weekly` | 週次更新。                                       |
-| `timezone: Asia/Tokyo`      | JST。                                            |
-| `open-pull-requests-limit`  | 同時 open PR 上限。                              |
-| `labels`                    | 作成 PR に付ける labels。                        |
-| `commit-message.prefix`     | commit message prefix。                          |
-| `groups.npm-development`    | devDependency 更新を grouping。                  |
+| key                                 | 内容                                                           |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `package-ecosystem: npm`            | npm dependency を対象にする。                                  |
+| `package-ecosystem: github-actions` | workflow 内の GitHub Actions を対象にする。                    |
+| `directory: '/'`                    | repository root を対象にする。                                 |
+| `schedule.interval: weekly`         | 毎週月曜日の 09:00 JST に更新を確認する。                      |
+| `open-pull-requests-limit`          | ecosystem ごとの同時 open PR 上限。                            |
+| `labels`                            | npm は`area:testing`、GitHub Actions は`area:github`を付ける。 |
+| `commit-message.prefix`             | commit message prefix を`chore`にする。                        |
+| `groups.npm-development`            | devDependency 更新を grouping する。                           |
 
 特定個人の assignee / reviewer は固定しません。
 
