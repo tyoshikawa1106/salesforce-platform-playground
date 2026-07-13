@@ -2,7 +2,7 @@
 
 Field Service は、現地作業、作業予定、作業者、担当エリア、納入商品を中心に扱います。
 
-製品ページ: [Field Service](https://www.salesforce.com/service/field-service/)
+製品ページ: [Field Service](https://www.salesforce.com/service/field-service-management/)
 
 | ラベル           | API 名               | 役割                                     |
 | ---------------- | -------------------- | ---------------------------------------- |
