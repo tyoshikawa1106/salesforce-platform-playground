@@ -109,6 +109,21 @@ npm run setup:data:standard -- --target-org <alias>
 Salesforce 組織への初回デプロイ / 再構築用 manifest を使う validate / deploy entrypoint です。実行前に対象 org を確認します。
 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞ります。
 
+### Salesforce メタデータ一括取得
+
+```json
+"sf:retrieve:all": "bash scripts/retrieve/retrieve-all-metadata.sh"
+```
+
+VS Codeで現在接続している組織の`target-org`設定を使い、`retrieve-first.xml`、`retrieve-second.xml`、`retrieve-third.xml`の順にmetadataを取得します。`package.xml`は手動retrieve用のため、このコマンドでは使用しません。
+
+```sh
+npm run sf:retrieve:all -- --dry-run
+npm run sf:retrieve:all
+```
+
+`--dry-run`は対象組織と3つのretrieveコマンドを表示し、組織からは取得しません。`target-org`が未設定の場合は処理を中止します。
+
 ### Prettier
 
 ```json

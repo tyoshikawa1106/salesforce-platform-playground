@@ -5,10 +5,10 @@
 各 manifest は API 67.0 を前提にしています。
 
 - `manifest/retrieve-all.xml` は、取得対象とするメタデータ型 218 件の確認用 catalog。
-- `manifest/retrieve-first.xml` は、Profile と関連メタデータ14件を同時に取得する最初の retrieve scope。
-- `manifest/retrieve-second.xml` は、アプリケーション実装、自動化、権限、外部連携に関する96件の retrieve scope。
-- `manifest/retrieve-third.xml` は、組織設定、セキュリティ、コンテンツ、サイト、翻訳に関する108件の retrieve scope。
-- `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを取得する9件の作業用 manifest。
+- `manifest/retrieve-first.xml` は、スクリプトでProfileと関連メタデータ14件を同時に取得する最初の retrieve scope。
+- `manifest/retrieve-second.xml` は、スクリプトでアプリケーション実装、自動化、権限、外部連携に関する96件を取得する retrieve scope。
+- `manifest/retrieve-third.xml` は、スクリプトで組織設定、セキュリティ、コンテンツ、サイト、翻訳に関する108件を取得する retrieve scope。
+- `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する9件の作業用 manifest。
 - `CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残す。
 
 ## コード / UI コンポーネント
