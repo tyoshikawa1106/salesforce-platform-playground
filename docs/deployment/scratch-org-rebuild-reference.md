@@ -50,7 +50,7 @@ scratch-org
 確認した alias は `SCRATCH_ORG_ALIAS` で明示します。
 
 ```sh
-SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/run-constructive-scratch-org.js
+SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/scratch-org/setup.js
 ```
 
 作成後の deploy、retrieve、Permission Set assign、test data import、削除では、作成時に使った alias を `<scratch-org-alias>` として明示します。

@@ -33,7 +33,7 @@ Scratch Org 作成時の edition、features、作成時 settings を定義しま
 
 変更時は、Scratch Org 作成時にしか効かない feature と、metadata deploy で変更できる settings を混同しないようにします。
 
-## scripts/deploy/scratch-org/scratch-org.json
+## scripts/scratch-org/scratch-org.json
 
 Scratch Org 準備スクリプトの repo-local 設定です。
 

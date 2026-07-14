@@ -88,7 +88,7 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 ### 件数と表示名
 
 - 通常 org では、各オブジェクトを 50 件規模で作成する。
-- Scratch Org では、`scripts/deploy/scratch-org/scratch-org-import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張する。
+- Scratch Org では、`scripts/scratch-org/internal-import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張する。
 - 組織の機能や権限で作成できない optional object は、debug log に理由を出し、作成可能な範囲を続行する。
 - キャンペーンは、前年・今年・来年の各月 1 件ずつ作成する。
 - 商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成する。
