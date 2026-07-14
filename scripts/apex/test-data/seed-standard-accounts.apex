@@ -1,4 +1,3 @@
-// Run: npm run setup:data:standard -- --target-org <alias> --only standard-objects-accounts
 Integer countPerObject = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');

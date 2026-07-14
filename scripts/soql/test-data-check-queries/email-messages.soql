@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/email-messages.soql --target-org <alias>
 
 SELECT Id, ParentId, RelatedToId, Subject, FromAddress, ToAddress, MessageDate, CreatedDate
 FROM EmailMessage

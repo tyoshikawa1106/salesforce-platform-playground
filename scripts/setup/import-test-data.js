@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Run: npm run setup:data:standard:dry-run
-// Run: npm run setup:data:standard -- --target-org <alias>
-
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');

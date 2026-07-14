@@ -32,7 +32,7 @@ Salesforce 組織操作を依頼されたら、最初に対象を切り分けま
 
 - validate / deploy / test / retrieve は、確認済みの Salesforce 組織に対してのみ実行する。
 - 対象 org が個別指定されていない場合は、現在の default target org を確認して対象にする。
-- default target org の切り替え忘れによる誤実行を避けるため、Salesforce 組織操作では確認済みの alias を `--target-org <alias>` で明示する。
+- default target org の切り替え忘れによる誤実行を避けるため、Salesforce 組織操作では確認済みの alias を `--target-org <alias>` で明示する。リポジトリ管理のスクリプトがdefault target orgを表示し、実行者の承認後にだけ処理する場合は、表示されたdefault target orgを対象にできる。
 - 明示依頼なしに default target org を切り替えない。
 - `sf project deploy preview` 前提で進めず、差分確認と対象組織に応じた validate または dry-run を標準の確認手段にする。
 - Production 組織と、このリポジトリで実行確認済みの Developer Edition の Dev 組織では `sf project deploy validate` を使う。Sandbox と Scratch Org では `sf project deploy start --dry-run` を使う。
@@ -67,7 +67,7 @@ deploy、delete、retrieve、test の前に対象組織を確認します。
 sf config get target-org
 ```
 
-対象 org の個別指定がない場合は、この default target org を対象にします。後続の validate / deploy / retrieve / test コマンドでは、取得した alias を `--target-org <alias>` で明示します。
+対象 org の個別指定がない場合は、この default target org を対象にします。後続の validate / deploy / retrieve / test コマンドでは、取得した alias を `--target-org <alias>` で明示します。リポジトリ管理のスクリプトに対象組織の表示と実行確認が組み込まれている場合は、その確認を通過したdefault target orgを使います。
 
 alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
 

@@ -4,6 +4,13 @@ set -e
 
 sf config get target-org
 
+read -r -p "この組織からメタデータを取得しますか？ [y/N]: " answer
+
+if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+    echo "メタデータの取得を中止しました。"
+    exit 0
+fi
+
 sf project retrieve start --manifest manifest/retrieve-profile.xml
 sf project retrieve start --manifest manifest/retrieve-code.xml
 sf project retrieve start --manifest manifest/retrieve-shared-resources.xml

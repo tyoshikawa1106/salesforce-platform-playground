@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/campaign-members.soql --target-org <alias>
 
 SELECT Id, Campaign.Name, Contact.LastName, Lead.LastName, Status, CreatedDate
 FROM CampaignMember

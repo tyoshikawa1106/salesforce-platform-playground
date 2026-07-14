@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/entitlements.soql --target-org <alias>
 
 SELECT Id, Name, Account.Name, Contact.LastName, Asset.Name, ServiceContract.Name, StartDate, EndDate, CreatedDate
 FROM Entitlement

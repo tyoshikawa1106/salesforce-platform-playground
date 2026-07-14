@@ -7,7 +7,7 @@
 - destructive changes は、通常の追加・更新より影響が大きいため別タスクで扱う。
 - 削除対象、依存関係、復旧方法、対象 org alias を確認してから実行する。
 - 明示依頼なしに本番や別 target org へ削除を実行しない。
-- 削除前に対象 Salesforce 組織の alias を確認し、`--target-org <alias>` で明示して実行する。
+- 削除前にdefault target orgのaliasを確認する。リポジトリ管理の削除スクリプトは、表示された組織を実行者が承認した場合だけ処理を続行する。
 - destructive changes と通常 metadata 更新を同じ実行 scope に混ぜない。必要な場合も差分と検証結果を分けて報告する。
 - `manifest/destructiveChanges.xml` は作業中の削除対象だけを含め、作業後にプレースホルダーや不要な削除対象を残さない。
 
@@ -33,17 +33,13 @@ alias だけでは判断できない場合に限り、必要な範囲で `sf org
 削除対象の Apex クラスは `manifest/destructiveChanges.xml` の `ApexClass` に書きます。
 `REPLACE_WITH_APEX_CLASS_NAME` は実際の Apex クラス名に置き換えます。
 
-削除前に dry-run します。
+削除スクリプトを実行します。表示されたdefault target orgを承認するとdry-runを実行し、成功後に実削除するか再確認します。
 
 ```sh
-node scripts/metadata/destructive/destructive-changes.js --target-org <alias> --dry-run
+npm run sf:destructive
 ```
 
-問題なければ削除を実行します。
-
-```sh
-node scripts/metadata/destructive/destructive-changes.js --target-org <alias>
-```
+2回目の確認で`y`または`Y`を入力した場合だけ、実際の削除を実行します。それ以外の入力ではdry-runまでで終了します。
 
 ## destructive changes 実行手順
 

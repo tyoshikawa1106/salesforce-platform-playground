@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/object-queries/case/sla-risk-cases.soql --target-org <alias>
 
 SELECT Id, CaseNumber, Subject, Account.Name, Status, Priority, CreatedDate, LastModifiedDate, Owner.Name
 FROM Case
