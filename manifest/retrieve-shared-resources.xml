@@ -7,10 +7,6 @@
     </types>
     <types>
         <members>*</members>
-        <name>ContentAsset</name>
-    </types>
-    <types>
-        <members>*</members>
         <name>DataWeaveResource</name>
     </types>
     <version>67.0</version>

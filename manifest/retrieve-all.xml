@@ -47,11 +47,6 @@
         <members>*</members>
         <name>LightningMessageChannel</name>
     </types>
-    <!-- コンテンツアセット -->
-    <types>
-        <members>*</members>
-        <name>ContentAsset</name>
-    </types>
     <!-- DataWeave リソース -->
     <types>
         <members>*</members>
