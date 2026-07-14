@@ -19,12 +19,11 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 ## 取得対象
 
 - retrieve 対象の指定がない場合は、`npm run sf:retrieve:all`を使い、VS Codeで現在接続している組織から4つのretrieve用manifestを順に取得する。
-- 途中から再実行する場合は `--from <stage>`、1つのscopeだけを実行する場合は `--only <stage>` を指定する。stageは`profile`、`application`、`organization`、`translations`のいずれかとする。
 - `Translations` は関連メタデータと別に取得すると内容が欠落するため、`retrieve-translations.xml` を最後に実行して完全な翻訳ファイルで更新する。
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
 - retrieve 前に、対象 Salesforce 組織の alias、取得方法、既存ファイルへの上書き影響、権限系メタデータへの影響を確認する。
-- retrieve は確認済みの alias を `--target-org <alias>` で明示して実行する。
+- 一括取得は実行時に表示される default target org を確認してから続行する。個別に retrieve する場合は、確認済みの alias を `--target-org <alias>` で明示する。
 
 ## Git 管理対象
 

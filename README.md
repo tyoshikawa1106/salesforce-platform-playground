@@ -73,17 +73,8 @@ npm run sf:validate:dev -- --target-org <alias>
 # Salesforce 開発組織へ反映する
 npm run sf:deploy:dev -- --target-org <alias>
 
-# VS Codeで現在接続している組織への取得内容を確認する
-npm run sf:retrieve:all -- --dry-run
-
 # VS Codeで現在接続している組織から全metadataを取得する
 npm run sf:retrieve:all
-
-# application以降のmetadata取得を再実行する
-npm run sf:retrieve:all -- --from application
-
-# organizationのmetadataだけを取得する
-npm run sf:retrieve:all -- --only organization
 
 # Apex テストを実行する
 sf apex run test --result-format human --target-org <alias>
@@ -100,8 +91,6 @@ npm run test:unit -- -- --runInBand --passWithNoTests
 # Salesforce Code Analyzer を実行する
 npm run code-analyzer:ci
 ```
-
-`--from`と`--only`のstageには、`profile`、`application`、`organization`、`translations`を指定できます。
 
 Salesforce 開発組織を初期反映するときは `manifest/rebuild-developer-org.xml` を使います。
 
