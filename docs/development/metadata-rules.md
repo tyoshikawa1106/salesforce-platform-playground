@@ -6,8 +6,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 - `manifest/retrieve-all.xml` は、Salesforce 組織から取得対象とする全メタデータ型の確認用 catalog として扱う。
 - `manifest/retrieve-profile.xml` は、スクリプトでProfileと関連メタデータを同時に取得する最初の retrieve scope として扱う。
-- `manifest/retrieve-application.xml` は、スクリプトでアプリケーション実装、自動化、権限、外部連携を取得する2番目の retrieve scope として扱う。
-- `manifest/retrieve-organization.xml` は、スクリプトで組織設定、セキュリティ、コンテンツ、サイトを取得する3番目の retrieve scope として扱う。
+- applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。実行順は`scripts/retrieve/retrieve-all-metadata.sh`を基準にする。
 - `manifest/retrieve-translations.xml` は、`Translations` とその内容を構成する関連メタデータを同時に取得する最後の retrieve scope として扱う。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest として扱う。
 - retrieve / package manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
@@ -18,13 +17,12 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 取得対象
 
-- retrieve 対象の指定がない場合は、`npm run sf:retrieve:all`を使い、VS Codeで現在接続している組織から4つのretrieve用manifestを順に取得する。
-- 途中から再実行する場合は `--from <stage>`、1つのscopeだけを実行する場合は `--only <stage>` を指定する。stageは`profile`、`application`、`organization`、`translations`のいずれかとする。
+- retrieve 対象の指定がない場合は、`npm run sf:retrieve:all`を使い、VS Codeで現在接続している組織から27個のretrieve用manifestを順に取得する。
 - `Translations` は関連メタデータと別に取得すると内容が欠落するため、`retrieve-translations.xml` を最後に実行して完全な翻訳ファイルで更新する。
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
 - retrieve 前に、対象 Salesforce 組織の alias、取得方法、既存ファイルへの上書き影響、権限系メタデータへの影響を確認する。
-- retrieve は確認済みの alias を `--target-org <alias>` で明示して実行する。
+- 一括取得は実行時に表示される default target org を確認してから続行する。個別に retrieve する場合は、確認済みの alias を `--target-org <alias>` で明示する。
 
 ## Git 管理対象
 
