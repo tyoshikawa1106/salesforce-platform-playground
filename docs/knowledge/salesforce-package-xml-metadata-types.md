@@ -6,9 +6,8 @@
 
 - `manifest/retrieve-all.xml` は、取得対象とするメタデータ型 218 件の確認用 catalog。
 - `manifest/retrieve-profile.xml` は、スクリプトでProfileと関連メタデータ14件を同時に取得する最初の retrieve scope。
-- `manifest/retrieve-application.xml` は、スクリプトでアプリケーション実装、自動化、権限、外部連携に関する96件を取得する retrieve scope。
-- `manifest/retrieve-organization.xml` は、スクリプトで組織設定、セキュリティ、コンテンツ、サイトに関する107件を取得する retrieve scope。
-- `manifest/retrieve-translations.xml` は、`Translations`と内容を構成する関連メタデータ8件を同時に取得する最後の retrieve scope。
+- applicationとorganizationのメタデータ200件は、1回のretrieveが10,000ファイルを超えないよう、責務別の25個のretrieve scopeに分ける。
+- `manifest/retrieve-translations.xml` は、4種類の翻訳メタデータと内容を構成する関連メタデータ8件を同時に取得する最後の retrieve scope。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する9件の作業用 manifest。
 - `CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残す。
 
@@ -411,13 +410,13 @@
 
 ## 取得に注意が必要なもの
 
-| 対象                     | 扱い                                                                        |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `FlowDefinition`         | 本番 / Sandbox で差分が出やすいため `retrieve-application.xml` で取得する。 |
-| `Profile`                | 関連メタデータと同時に `retrieve-profile.xml` で取得する。                  |
-| `ExperienceContainer`    | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。       |
-| `PlatformEventMigration` | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。       |
-| `SurveyStyleSet`         | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。       |
-| `TagSet`                 | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。       |
-| `Report` / `Dashboard`   | `*` 指定では取得エラーになるため含めない。                                  |
-| `Bot` / `BotVersion`     | Playground 組織で利用できないため含めない。                                 |
+| 対象                     | 扱い                                                                       |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `FlowDefinition`         | 本番 / Sandbox で差分が出やすいため `retrieve-automation.xml` で取得する。 |
+| `Profile`                | 関連メタデータと同時に `retrieve-profile.xml` で取得する。                 |
+| `ExperienceContainer`    | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。      |
+| `PlatformEventMigration` | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。      |
+| `SurveyStyleSet`         | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。      |
+| `TagSet`                 | 対象 org には見えるが、今回の CLI registry では未対応のため含めない。      |
+| `Report` / `Dashboard`   | `*` 指定では取得エラーになるため含めない。                                 |
+| `Bot` / `BotVersion`     | Playground 組織で利用できないため含めない。                                |

@@ -1,53 +1,49 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- Translations の内容を構成する関連メタデータ -->
+    <!-- 外部接続 / API -->
     <types>
         <members>*</members>
-        <name>CustomApplication</name>
+        <name>ExternalServiceRegistration</name>
     </types>
     <types>
         <members>*</members>
-        <name>CustomLabels</name>
+        <name>ApiNamedQuery</name>
     </types>
     <types>
         <members>*</members>
-        <name>CustomPageWebLink</name>
+        <name>CanvasMetadata</name>
     </types>
     <types>
         <members>*</members>
-        <name>CustomTab</name>
+        <name>CatalogedApi</name>
     </types>
     <types>
         <members>*</members>
-        <name>Flow</name>
+        <name>CatalogedApiArtifactVersionInfo</name>
     </types>
     <types>
         <members>*</members>
-        <name>QuickAction</name>
+        <name>CatalogedApiVersion</name>
     </types>
     <types>
         <members>*</members>
-        <name>ReportType</name>
+        <name>InboundNetworkConnection</name>
     </types>
     <types>
         <members>*</members>
-        <name>Scontrol</name>
+        <name>OutboundNetworkConnection</name>
     </types>
     <types>
         <members>*</members>
-        <name>CustomObjectTranslation</name>
+        <name>InvocableActionExtension</name>
     </types>
     <types>
         <members>*</members>
-        <name>GlobalValueSetTranslation</name>
+        <name>McpServerDefinition</name>
     </types>
     <types>
         <members>*</members>
-        <name>StandardValueSetTranslation</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>Translations</name>
+        <name>ExternalDataTranObject</name>
     </types>
     <version>67.0</version>
 </Package>

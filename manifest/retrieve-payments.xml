@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- 決済 -->
+    <types>
+        <members>*</members>
+        <name>GatewayProviderPaymentMethodType</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>PaymentGatewayProvider</name>
+    </types>
+    <version>67.0</version>
+</Package>
