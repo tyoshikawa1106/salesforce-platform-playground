@@ -115,14 +115,14 @@ Salesforce 組織への初回デプロイ / 再構築用 manifest を使う vali
 "sf:retrieve:all": "bash scripts/retrieve/retrieve-all-metadata.sh"
 ```
 
-VS Codeで現在接続している組織の`target-org`設定を使い、`retrieve-first.xml`、`retrieve-second.xml`、`retrieve-third.xml`の順にmetadataを取得します。`package.xml`は手動retrieve用のため、このコマンドでは使用しません。
+VS Codeで現在接続している組織の`target-org`設定を使い、`retrieve-first.xml`、`retrieve-second.xml`、`retrieve-third.xml`、`retrieve-translations.xml`の順にmetadataを取得します。`retrieve-translations.xml`は`Translations`と関連メタデータを同時に取得し、翻訳ファイルの部分的な上書きを防ぐため最後に実行します。`package.xml`は手動retrieve用のため、このコマンドでは使用しません。
 
 ```sh
 npm run sf:retrieve:all -- --dry-run
 npm run sf:retrieve:all
 ```
 
-`--dry-run`は対象組織と3つのretrieveコマンドを表示し、組織からは取得しません。`target-org`が未設定の場合は処理を中止します。
+`--dry-run`は対象組織と4つのretrieveコマンドを表示し、組織からは取得しません。`target-org`が未設定の場合は処理を中止します。
 
 ### Prettier
 

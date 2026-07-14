@@ -33,6 +33,7 @@ manifests=(
     "manifest/retrieve-first.xml"
     "manifest/retrieve-second.xml"
     "manifest/retrieve-third.xml"
+    "manifest/retrieve-translations.xml"
 )
 
 for manifest in "${manifests[@]}"; do

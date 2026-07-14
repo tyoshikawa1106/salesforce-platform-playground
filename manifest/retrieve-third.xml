@@ -391,10 +391,6 @@
     <!-- 翻訳 -->
     <types>
             <members>*</members>
-            <name>Translations</name>
-        </types>
-    <types>
-            <members>*</members>
             <name>CustomObjectTranslation</name>
         </types>
     <types>
