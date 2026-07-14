@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Run: node scripts/deploy/scratch-org/run-destructive-scratch-org.js
+// Run: node scripts/scratch-org/delete.js
 
 const { execFileSync } = require('node:child_process');
-const { repoRoot, scratchOrg } = require('./scratch-org-context');
-const { runNoArgumentCommand } = require('./scratch-org-command');
+const { repoRoot, scratchOrg } = require('./internal-context');
+const { runNoArgumentCommand } = require('./internal-command');
 
-const usage = `Usage: SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/deploy/scratch-org/run-destructive-scratch-org.js`;
+const usage = `Usage: SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/scratch-org/delete.js`;
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),

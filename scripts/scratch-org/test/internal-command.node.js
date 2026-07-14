@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runNoArgumentCommand } = require('../scratch-org-command');
+const { runNoArgumentCommand } = require('../internal-command');
 
 function createOutput() {
     let value = '';

@@ -6,7 +6,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 - `manifest/retrieve-all.xml` は、Salesforce 組織から取得対象とする全メタデータ型の確認用 catalog として扱う。
 - `manifest/retrieve-profile.xml` は、スクリプトでProfileと関連メタデータを同時に取得する最初の retrieve scope として扱う。
-- applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。実行順は`scripts/retrieve/retrieve-all-metadata.sh`を基準にする。
+- applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。実行順は`scripts/metadata/retrieve/retrieve-all.sh`を基準にする。
 - `manifest/retrieve-translations.xml` は、`Translations` とその内容を構成する関連メタデータを同時に取得する最後の retrieve scope として扱う。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest として扱う。
 - retrieve / package manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。

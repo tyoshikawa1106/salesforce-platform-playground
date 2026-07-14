@@ -8,11 +8,11 @@
 
 ## 現在の標準 scope
 
-| 用途                         | コマンド                                                          | scope                                |
-| ---------------------------- | ----------------------------------------------------------------- | ------------------------------------ |
-| Salesforce 組織初回 validate | `npm run sf:validate:dev`                                         | `manifest/rebuild-developer-org.xml` |
-| Salesforce 組織初回 deploy   | `npm run sf:deploy:dev`                                           | `manifest/rebuild-developer-org.xml` |
-| Scratch Org 初期反映         | `node scripts/deploy/scratch-org/run-constructive-scratch-org.js` | `manifest/rebuild-scratch-org.xml`   |
+| 用途                         | コマンド                            | scope                                |
+| ---------------------------- | ----------------------------------- | ------------------------------------ |
+| Salesforce 組織初回 validate | `npm run sf:validate:dev`           | `manifest/rebuild-developer-org.xml` |
+| Salesforce 組織初回 deploy   | `npm run sf:deploy:dev`             | `manifest/rebuild-developer-org.xml` |
+| Scratch Org 初期反映         | `node scripts/scratch-org/setup.js` | `manifest/rebuild-scratch-org.xml`   |
 
 `sf project deploy validate --source-dir force-app` は、標準の成功条件ではなく、広く retrieve した metadata の分類調査として扱います。
 

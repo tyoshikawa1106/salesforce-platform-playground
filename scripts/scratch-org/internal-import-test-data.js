@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Run: node scripts/deploy/scratch-org/scratch-org-import-test-data.js
+// Internal: called by scripts/scratch-org/setup.js
 
 const { execFileSync } = require('node:child_process');
-const { repoRoot, scratchOrg } = require('./scratch-org-context');
-const { runNoArgumentCommand } = require('./scratch-org-command');
+const { repoRoot, scratchOrg } = require('./internal-context');
+const { runNoArgumentCommand } = require('./internal-command');
 
-const usage = 'Usage: node scripts/deploy/scratch-org/scratch-org-import-test-data.js';
+const usage = 'Usage: node scripts/scratch-org/internal-import-test-data.js';
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),

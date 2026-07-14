@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Run: node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias> --dry-run
-// Run: node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
+// Run: node scripts/metadata/destructive/destructive-changes.js --target-org <alias> --dry-run
+// Run: node scripts/metadata/destructive/destructive-changes.js --target-org <alias>
 
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
@@ -20,8 +20,8 @@ function hasFlag(name) {
 
 if (hasFlag('--help') || hasFlag('-h')) {
     process.stdout.write(`Usage:
-  node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias> --dry-run
-  node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
+  node scripts/metadata/destructive/destructive-changes.js --target-org <alias> --dry-run
+  node scripts/metadata/destructive/destructive-changes.js --target-org <alias>
 
 Options:
   --target-org, -o  Salesforce org alias or username.

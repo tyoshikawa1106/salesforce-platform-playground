@@ -36,13 +36,13 @@ alias だけでは判断できない場合に限り、必要な範囲で `sf org
 削除前に dry-run します。
 
 ```sh
-node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias> --dry-run
+node scripts/metadata/destructive/destructive-changes.js --target-org <alias> --dry-run
 ```
 
 問題なければ削除を実行します。
 
 ```sh
-node scripts/deploy/destructive/run-destructive-changes.js --target-org <alias>
+node scripts/metadata/destructive/destructive-changes.js --target-org <alias>
 ```
 
 ## destructive changes 実行手順
