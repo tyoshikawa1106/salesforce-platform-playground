@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- オブジェクト / データモデル -->
+    <!-- プロファイルと関連メタデータ -->
+    <types>
+        <members>*</members>
+        <name>Profile</name>
+    </types>
     <!-- オブジェクト -->
     <types>
         <members>Account</members>
@@ -57,70 +61,55 @@
         <members>*</members>
         <name>RecordType</name>
     </types>
-    <!-- ビジネスプロセス -->
+    <!-- ページレイアウト -->
     <types>
         <members>*</members>
-        <name>BusinessProcess</name>
+        <name>Layout</name>
     </types>
-    <!-- 項目セット -->
+    <!-- Lightning ページ -->
     <types>
         <members>*</members>
-        <name>FieldSet</name>
+        <name>FlexiPage</name>
     </types>
-    <!-- リストビュー -->
+    <!-- Apex クラス -->
     <types>
         <members>*</members>
-        <name>ListView</name>
+        <name>ApexClass</name>
     </types>
-    <!-- 入力規則 -->
+    <!-- Visualforce ページ -->
     <types>
         <members>*</members>
-        <name>ValidationRule</name>
+        <name>ApexPage</name>
     </types>
-    <!-- Web リンク -->
+    <!-- カスタムアプリケーション -->
     <types>
         <members>*</members>
-        <name>WebLink</name>
+        <name>CustomApplication</name>
     </types>
-    <!-- カスタムメタデータ -->
+    <!-- カスタムタブ -->
     <types>
         <members>*</members>
-        <name>CustomMetadata</name>
+        <name>CustomTab</name>
     </types>
-    <!-- カスタム表示ラベル -->
+    <!-- 外部データソース -->
     <types>
         <members>*</members>
-        <name>CustomLabels</name>
+        <name>ExternalDataSource</name>
+    </types>
+    <!-- フロー -->
+    <types>
+        <members>*</members>
+        <name>Flow</name>
     </types>
     <!-- カスタム権限 -->
     <types>
         <members>*</members>
         <name>CustomPermission</name>
     </types>
-    <!-- グローバル選択リスト値セット -->
+    <!-- データカテゴリグループ -->
     <types>
         <members>*</members>
-        <name>GlobalValueSet</name>
-    </types>
-    <!-- 標準項目の選択リスト値セット -->
-    <types>
-        <members>*</members>
-        <name>StandardValueSet</name>
-    </types>
-    <!-- ビジネスプロセスグループ -->
-    <types>
-        <members>*</members>
-        <name>BusinessProcessGroup</name>
-    </types>
-    <!-- インデックス -->
-    <types>
-        <members>*</members>
-        <name>Index</name>
-    </types>
-    <!-- カスタムインデックス -->
-    <types>
-        <members>*</members>
-        <name>CustomIndex</name>
+        <name>DataCategoryGroup</name>
     </types>
     <version>67.0</version>
 </Package>

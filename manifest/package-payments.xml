@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- 決済 -->
-    <!-- 決済ゲートウェイプロバイダーの支払方法種別 -->
-    <types><members>*</members><name>GatewayProviderPaymentMethodType</name></types>
-    <!-- 決済ゲートウェイプロバイダー -->
-    <types><members>*</members><name>PaymentGatewayProvider</name></types>
-    <version>67.0</version>
-</Package>
