@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// Run: node scripts/scratch-org/setup.js
-
 const { execFileSync } = require('node:child_process');
 const { repoRoot, scratchOrg } = require('./internal-context');
 const { runNoArgumentCommand } = require('./internal-command');

@@ -1,4 +1,3 @@
-// Run: npm run setup:data:standard -- --target-org <alias> --only standard-objects-leads
 Integer countPerObject = 50;
 Integer parentPoolSize = 2000;
 String seedPrefix = '[TEST]';

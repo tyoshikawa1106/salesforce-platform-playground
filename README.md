@@ -64,6 +64,25 @@ sf org login web --alias <alias>
 ## 開発コマンド
 
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
+
+### メタデータの取得
+
+VS Codeで現在接続している組織から、管理対象のメタデータを取得します。表示されたdefault target orgを確認し、`y`または`Y`を入力した場合だけ取得を開始します。詳細は[メタデータ開発ルール](docs/development/metadata-rules.md)を参照してください。
+
+```sh
+npm run sf:retrieve
+```
+
+### メタデータの削除
+
+`manifest/destructiveChanges.xml`に記載したメタデータをdefault target orgから削除します。対象組織の確認後にdry-runを実行し、成功後の再確認で`y`または`Y`を入力した場合だけ実削除します。詳細は[メタデータ削除ルール](docs/deployment/metadata-deletion-rules.md)を参照してください。
+
+```sh
+npm run sf:destructive
+```
+
+### 検証・反映・品質確認
+
 `<alias>` は実行前に確認した対象 org alias に置き換えます。
 
 ```sh
@@ -72,9 +91,6 @@ npm run sf:validate:dev -- --target-org <alias>
 
 # Salesforce 開発組織へ反映する
 npm run sf:deploy:dev -- --target-org <alias>
-
-# VS Codeで現在接続している組織から全metadataを取得する
-npm run sf:retrieve:all
 
 # Apex テストを実行する
 sf apex run test --result-format human --target-org <alias>

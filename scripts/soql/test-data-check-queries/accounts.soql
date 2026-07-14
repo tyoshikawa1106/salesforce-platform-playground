@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/accounts.soql --target-org <alias>
 
 SELECT Id, Name, AccountNumber, Industry, Type, CreatedDate
 FROM Account

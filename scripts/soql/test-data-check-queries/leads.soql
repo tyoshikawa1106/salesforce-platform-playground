@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/leads.soql --target-org <alias>
 
 SELECT Id, FirstName, LastName, Company, Status, Email, CreatedDate
 FROM Lead

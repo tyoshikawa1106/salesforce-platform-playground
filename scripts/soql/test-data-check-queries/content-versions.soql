@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/content-versions.soql --target-org <alias>
 
 SELECT Id, Title, PathOnClient, FileType, ContentDocumentId, FirstPublishLocationId, CreatedDate
 FROM ContentVersion

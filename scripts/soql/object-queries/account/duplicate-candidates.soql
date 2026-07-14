@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/object-queries/account/duplicate-candidates.soql --target-org <alias>
 
 SELECT Name, COUNT(Id)
 FROM Account

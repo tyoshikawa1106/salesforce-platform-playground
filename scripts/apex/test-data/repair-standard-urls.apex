@@ -1,4 +1,3 @@
-// Run: sf apex run --file scripts/apex/test-data/repair-standard-urls.apex --target-org <alias>
 String seedPrefix = '[TEST]';
 String seedLike = seedPrefix + '%';
 String testUrl = 'https://example.com';

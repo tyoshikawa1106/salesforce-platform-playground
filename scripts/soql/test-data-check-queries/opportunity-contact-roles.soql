@@ -1,4 +1,3 @@
-// Run: sf data query --file scripts/soql/test-data-check-queries/opportunity-contact-roles.soql --target-org <alias>
 
 SELECT Id, Opportunity.Name, Contact.LastName, Role, IsPrimary, CreatedDate
 FROM OpportunityContactRole
