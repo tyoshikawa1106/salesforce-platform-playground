@@ -4,9 +4,9 @@
 
 各 manifest は API 67.0 を前提にしています。
 
-- `manifest/retrieve-all.xml` は、取得対象とするメタデータ型 218 件の確認用 catalog。
+- `manifest/retrieve-all.xml` は、取得対象とするメタデータ型 217 件の確認用 catalog。
 - `manifest/retrieve-profile.xml` は、スクリプトでProfileと関連メタデータ14件を同時に取得する最初の retrieve scope。
-- applicationとorganizationのメタデータ200件は、1回のretrieveが10,000ファイルを超えないよう、責務別の25個のretrieve scopeに分ける。
+- applicationとorganizationのメタデータ199件は、1回のretrieveが10,000ファイルを超えないよう、責務別の25個のretrieve scopeに分ける。
 - `manifest/retrieve-translations.xml` は、4種類の翻訳メタデータと内容を構成する関連メタデータ8件を同時に取得する最後の retrieve scope。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する9件の作業用 manifest。
 - `CustomObject` は標準オブジェクトを個別指定し、最後にカスタムオブジェクト用の `*` を残す。
@@ -26,11 +26,10 @@
 
 ## 共有 / 補助リソース
 
-| メタデータ型              | 取得できる内容                                |
-| ------------------------- | --------------------------------------------- |
-| `LightningMessageChannel` | Lightning Message Service のチャネル          |
-| `ContentAsset`            | Experience Cloud などで使うコンテンツアセット |
-| `DataWeaveResource`       | Apex から使う DataWeave スクリプト            |
+| メタデータ型              | 取得できる内容                       |
+| ------------------------- | ------------------------------------ |
+| `LightningMessageChannel` | Lightning Message Service のチャネル |
+| `DataWeaveResource`       | Apex から使う DataWeave スクリプト   |
 
 ## アプリケーション / ナビゲーション
 

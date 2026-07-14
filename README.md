@@ -81,20 +81,9 @@ npm run sf:retrieve
 npm run sf:destructive
 ```
 
-### 検証・反映・品質確認
-
-`<alias>` は実行前に確認した対象 org alias に置き換えます。
+### 品質確認
 
 ```sh
-# Salesforce 開発組織への反映を検証する
-npm run sf:validate:dev -- --target-org <alias>
-
-# Salesforce 開発組織へ反映する
-npm run sf:deploy:dev -- --target-org <alias>
-
-# Apex テストを実行する
-sf apex run test --result-format human --target-org <alias>
-
 # 整形を確認する
 npm run prettier:verify
 
@@ -107,8 +96,6 @@ npm run test:unit -- -- --runInBand --passWithNoTests
 # Salesforce Code Analyzer を実行する
 npm run code-analyzer:ci
 ```
-
-Salesforce 開発組織を初期反映するときは `manifest/rebuild-developer-org.xml` を使います。
 
 ## AI エージェントスキル
 
