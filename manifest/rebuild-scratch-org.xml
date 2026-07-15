@@ -5,6 +5,10 @@
         <members>AccountTriggerHandlerTest</members>
         <members>AccountTriggerService</members>
         <members>AccountTriggerServiceTest</members>
+        <members>CaseEmailMessageController</members>
+        <members>CaseEmailMessageControllerTest</members>
+        <members>CaseEmailMessageSelector</members>
+        <members>CaseEmailMessageSelectorTest</members>
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricsOverviewController</members>
         <members>ObjectMetricsOverviewControllerTest</members>
@@ -739,6 +743,7 @@
         <name>Flow</name>
     </types>
     <types>
+        <members>caseEmailMessageList</members>
         <members>errorUtils</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordSearch</members>

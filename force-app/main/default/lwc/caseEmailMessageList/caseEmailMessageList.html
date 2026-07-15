@@ -1,0 +1,45 @@
+<template>
+    <lightning-card
+        title="メールメッセージ"
+        icon-name="standard:case_email"
+    >
+        <lightning-button-icon
+            slot="actions"
+            alternative-text="再読み込み"
+            disabled={isBusy}
+            icon-name="utility:refresh"
+            onclick={handleRefresh}
+            title="再読み込み"
+        ></lightning-button-icon>
+
+        <div class="slds-p-around_medium" aria-busy={isBusy}>
+            <template lwc:if={isBusy}>
+                <lightning-spinner
+                    alternative-text="メールメッセージを読み込んでいます"
+                    size="small"
+                ></lightning-spinner>
+            </template>
+
+            <template lwc:if={errorMessage}>
+                <p class="slds-text-color_error" role="alert">
+                    {errorMessage}
+                </p>
+            </template>
+
+            <template lwc:elseif={hasEmailMessages}>
+                <lightning-datatable
+                    key-field="id"
+                    columns={columns}
+                    data={emailMessages}
+                    hide-checkbox-column
+                ></lightning-datatable>
+            </template>
+
+            <template lwc:elseif={hasLoaded}>
+                <p class="slds-text-align_center">
+                    このケースに紐づくメールメッセージはありません。
+                </p>
+            </template>
+        </div>
+    </lightning-card>
+</template>
