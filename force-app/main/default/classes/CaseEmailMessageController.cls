@@ -3,10 +3,13 @@
  */
 public with sharing class CaseEmailMessageController {
 
-    private static final String INVALID_CASE_MESSAGE = 'ケースレコードを確認できませんでした。ページを再読み込みしてください。';
+    // 予期しない取得失敗時に LWC へ返す案内
     private static final String LOAD_ERROR_MESSAGE = 'メールメッセージを読み込めませんでした。時間をおいてもう一度お試しください。';
 
-    private CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
+    // 静的 Apex 入口から入力検証を委譲
+    private static final CaseEmailMessageService SERVICE = new CaseEmailMessageService();
+    // 静的 Apex 入口からデータ取得を委譲
+    private static final CaseEmailMessageSelector SELECTOR = new CaseEmailMessageSelector();
 
     /**
      * 指定ケースに紐づく最新のメールメッセージを返す
@@ -16,22 +19,16 @@ public with sharing class CaseEmailMessageController {
      */
     @AuraEnabled(cacheable=true)
     public static List<EmailMessage> getEmailMessages(Id caseId) {
-        if (caseId == null) {
-            return new List<EmailMessage>();
-        }
-        if (caseId.getSObjectType() != Case.SObjectType) {
-            throw createHandledException(INVALID_CASE_MESSAGE);
-        }
-
-        CaseEmailMessageController controller = new CaseEmailMessageController();
-        return controller.getEmailMessagesForCase(caseId);
-    }
-
-    private List<EmailMessage> getEmailMessagesForCase(Id caseId) {
         try {
-            return this.selector.getByCaseId(caseId);
-        } catch (QueryException e) {
-            throw createHandledException(LOAD_ERROR_MESSAGE);
+            // 画面からの ID を検証し、問い合わせ対象を確定
+            Id validatedCaseId = SERVICE.validateCaseId(caseId);
+            List<EmailMessage> emailMessages = SELECTOR.getByCaseId(
+                validatedCaseId
+            );
+            return emailMessages;
+        } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
+            String errorMessage = e.getMessage();
+            throw createHandledException(errorMessage);
         } catch (Exception e) {
             throw createHandledException(LOAD_ERROR_MESSAGE);
         }

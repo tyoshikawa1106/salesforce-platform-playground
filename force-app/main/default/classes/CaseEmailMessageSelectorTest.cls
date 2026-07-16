@@ -72,7 +72,7 @@ private with sharing class CaseEmailMessageSelectorTest {
         Assert.areEqual(
             0,
             results.size(),
-            'ケース ID がない場合は空のリストを返す必要あり'
+            'ケース ID が null の場合は空のリストを返す必要あり'
         );
     }
 

@@ -9,6 +9,8 @@
         <members>CaseEmailMessageControllerTest</members>
         <members>CaseEmailMessageSelector</members>
         <members>CaseEmailMessageSelectorTest</members>
+        <members>CaseEmailMessageService</members>
+        <members>CaseEmailMessageServiceTest</members>
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricsOverviewController</members>
         <members>ObjectMetricsOverviewControllerTest</members>

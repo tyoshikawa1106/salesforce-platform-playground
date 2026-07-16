@@ -14,6 +14,7 @@
 | -------------- | ----------------------------- | ---------------------------------------- |
 | LWC            | `caseEmailMessageList`        | メールメッセージ一覧と再読み込み UI      |
 | Apex Class     | `CaseEmailMessageController`  | LWC からの読み取り専用 Apex 入口         |
+| Apex Class     | `CaseEmailMessageService`     | Case ID の入力検証                       |
 | Apex Class     | `CaseEmailMessageSelector`    | USER_MODE による EmailMessage 問い合わせ |
 | Permission Set | `Salesforce_Application_User` | Apex Controller の実行権限               |
 
@@ -23,7 +24,7 @@
 
 ## 処理内容
 
-1. `recordId` が Case の ID であることを Apex 入口で確認します。
+1. `recordId` が Case の ID であることを Service で確認します。
 2. `EmailMessage.ParentId` が Case ID と一致するレコードを利用者権限で取得します。
 3. `MessageDate` の降順を基本に最新 50 件まで表示します。
 4. 再読み込み操作ではキャッシュ済み Apex wire を更新します。
@@ -51,6 +52,7 @@
 ## テスト・確認観点
 
 - `CaseEmailMessageControllerTest` で Case ID、null、Case 以外の ID を確認します。
+- `CaseEmailMessageServiceTest` で Case ID、null、Case 以外の ID を確認します。
 - `CaseEmailMessageSelectorTest` で取得上限と送信日時順を確認します。
 - `caseEmailMessageList.test.js` で一覧、空状態、エラー、再読み込み、アクセシビリティを確認します。
 

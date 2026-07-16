@@ -1,7 +1,7 @@
 /**
  * ケースに紐づくメールメッセージ問い合わせ
  */
-public virtual with sharing class CaseEmailMessageSelector {
+public with sharing class CaseEmailMessageSelector {
 
     // レコードページで一度に表示する上限
     private static final Integer MAX_EMAIL_MESSAGES = 50;
@@ -9,10 +9,10 @@ public virtual with sharing class CaseEmailMessageSelector {
     /**
      * 指定ケースに紐づく最新のメールメッセージを取得
      *
-     * @param caseId ケースレコード ID、null の場合は空のリスト
+     * @param caseId 問い合わせ対象のケースレコード ID
      * @return 送信日時の降順で最大 50 件のメールメッセージ
      */
-    public virtual List<EmailMessage> getByCaseId(Id caseId) {
+    public List<EmailMessage> getByCaseId(Id caseId) {
         if (caseId == null) {
             return new List<EmailMessage>();
         }

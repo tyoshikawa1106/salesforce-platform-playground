@@ -492,6 +492,8 @@ Apex を含む変更では、PR 作成前に関連 Apex テストをカバレッ
 
 - 変更した Apex の重要な振る舞いをテストで確認する。
 - coverage は PR 作成前の test 結果の判断材料として扱う。
+- coverage は、対象クラスだけでなく、同じ変更・検証 scope に含まれる Controller、Service、Selector、Wrapper、helper などの関連する本体 Apex クラスごとに確認する。
+- 作業報告では、関連する本体 Apex クラスのクラス名と coverage を個別に示す。テストクラス自体は coverage の評価対象に含めない。
 - 組織全体の coverage 改善や CI 導入は、別 Issue で扱う。
 - coverage が不足する場合は、不足している振る舞いと対象クラスを報告する。
 
@@ -505,5 +507,5 @@ Apex やメタデータを変更した後は、次を報告します。
 - 実行した Salesforce Code Analyzer と結果
 - 実行した `sf project deploy validate` と `sf project deploy start`
 - PR 作成前に実行した `sf apex run test --code-coverage`
-- Apex テストの成功件数と coverage、または PR 作成前にまとめる理由
+- Apex テストの成功件数と、検証 scope に含めた関連本体クラスごとの coverage、または PR 作成前にまとめる理由
 - 実行しなかった確認と、その理由
