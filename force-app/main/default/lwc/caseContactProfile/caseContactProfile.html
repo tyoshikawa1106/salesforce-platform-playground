@@ -1,0 +1,127 @@
+<template>
+    <article
+        class="c-customer-card slds-box"
+        aria-busy={isLoading}
+        aria-label="取引先責任者プロフィール"
+    >
+        <template lwc:if={isLoading}>
+            <lightning-spinner
+                alternative-text="取引先責任者のプロフィールを読み込んでいます"
+                size="small"
+            ></lightning-spinner>
+        </template>
+
+        <template lwc:elseif={errorMessage}>
+            <p class="slds-text-color_error" role="alert">
+                {errorMessage}
+            </p>
+        </template>
+
+        <template lwc:else>
+            <header class="slds-grid slds-grid_vertical-align-center">
+                <lightning-icon
+                    alternative-text="人物"
+                    icon-name="utility:profile_alt"
+                    size="medium"
+                ></lightning-icon>
+                <div class="c-customer-card__identity slds-m-left_medium">
+                    <h2
+                        class="slds-text-heading_medium slds-truncate"
+                        title={contactName}
+                    >
+                        <template lwc:if={contactRecordUrl}>
+                            <a href={contactRecordUrl}>{contactName}</a>
+                        </template>
+                        <template lwc:else>{contactName}</template>
+                    </h2>
+                </div>
+            </header>
+
+            <div
+                class="c-customer-card__divider slds-border_top"
+                aria-hidden="true"
+            ></div>
+
+            <dl class="c-customer-card__fields">
+                <div>
+                    <dt class="slds-text-title">電話</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        <template lwc:if={contactPhone}>
+                            <lightning-formatted-phone
+                                value={contactPhone}
+                            ></lightning-formatted-phone>
+                        </template>
+                        <template lwc:else>{contactPhoneText}</template>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="slds-text-title">メール</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        <template lwc:if={contactEmail}>
+                            <lightning-formatted-email
+                                value={contactEmail}
+                            ></lightning-formatted-email>
+                        </template>
+                        <template lwc:else>{contactEmailText}</template>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="slds-text-title">携帯電話</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        <template lwc:if={contactMobilePhone}>
+                            <lightning-formatted-phone
+                                value={contactMobilePhone}
+                            ></lightning-formatted-phone>
+                        </template>
+                        <template lwc:else>{contactMobilePhoneText}</template>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="slds-text-title">FAX</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        <template lwc:if={contactFax}>
+                            <lightning-formatted-phone
+                                value={contactFax}
+                            ></lightning-formatted-phone>
+                        </template>
+                        <template lwc:else>{contactFaxText}</template>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="slds-text-title">部署</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        {department}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="slds-text-title">役職</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        {title}
+                    </dd>
+                </div>
+                <div class="c-customer-card__field_full">
+                    <dt class="slds-text-title">会社名</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        <template lwc:if={accountRecordUrl}>
+                            <a href={accountRecordUrl}>{companyName}</a>
+                        </template>
+                        <template lwc:else>{companyName}</template>
+                    </dd>
+                </div>
+                <div class="c-customer-card__field_full">
+                    <dt class="slds-text-title">WebサイトURL</dt>
+                    <dd class="c-customer-card__value slds-m-top_x-small">
+                        <template lwc:if={website}>
+                            <lightning-formatted-url
+                                label={website}
+                                target="_blank"
+                                value={website}
+                            ></lightning-formatted-url>
+                        </template>
+                        <template lwc:else>{websiteText}</template>
+                    </dd>
+                </div>
+            </dl>
+        </template>
+    </article>
+</template>
