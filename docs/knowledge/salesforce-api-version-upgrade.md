@@ -48,19 +48,27 @@ git diff
 
 metadata versionを上げた後は、対象org alias、組織種別、利用する事前検証を確認し、組織が受け付けるか確認します。
 
-Production 組織または実行確認済みの Developer Edition の Dev 組織では deploy validate を実行します。
+Production 組織または実行確認済みの Developer Edition の Dev 組織では、今回versionを更新したmetadataだけをscopeにしてdeploy validateを実行します。
 
 ```sh
-npm run sf:validate:dev -- --target-org <alias>
+sf project deploy validate \
+    --metadata ApexClass:MyClass \
+    --metadata ApexTrigger:MyTrigger \
+    --target-org <alias>
 ```
 
 Sandbox と Scratch Org では、同じ scope で dry-run を実行します。
 
 ```sh
-sf project deploy start --dry-run --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests --target-org <alias> --wait 30
+sf project deploy start \
+    --dry-run \
+    --metadata ApexClass:MyClass \
+    --metadata ApexTrigger:MyTrigger \
+    --target-org <alias> \
+    --wait 30
 ```
 
-`manifest/rebuild-developer-org.xml` に含まれない metadata の version を更新した場合は、今回 version を更新した metadata に scope を絞って検証します。
+versionを更新していないmetadataや依頼範囲外のmetadataをscopeに含めません。
 
 ```sh
 sf project deploy validate \

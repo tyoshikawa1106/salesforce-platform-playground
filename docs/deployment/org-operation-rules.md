@@ -1,11 +1,8 @@
 # 組織操作ルール
 
-この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断の起点です。
-実行コマンドの暗記ではなく、対象 org、scope、検証結果、報告内容を取り違えないための運用ルールとして扱います。
+この文書は、AI エージェントが接続中の Salesforce 組織へ validate / deploy / test / retrieve を実行するときの判断基準です。
 
 ## この文書の責務
-
-この文書は、接続中の Salesforce 組織に対する次の事項を一元管理します。
 
 - 操作対象となる org と alias
 - deploy / retrieve scope
@@ -13,160 +10,146 @@
 - PR マージ前の事前検証とマージ後 deploy
 - 実行結果と未実行項目の報告
 
-GitHub Flow、PR 作成、マージの承認境界は [GitHub 運用ルール](../development/github-rules.md) に従います。GitHub 運用ルールから参照された場合も、Salesforce 組織操作の詳細はこの文書を正とします。
+Scratch Org の初期構築は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md)、metadata の削除は [メタデータ削除ルール](metadata-deletion-rules.md)、テストデータ投入は [テストデータ投入手順](test-data-import.md) に従います。
 
-## 操作種別と参照先
+## 絶対ルール
 
-Salesforce 組織操作を依頼されたら、最初に対象を切り分けます。
-
-| 対象                                                     | 参照先                                                                              |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 接続中の組織に対する validate / deploy / retrieve / test | このページ                                                                          |
-| Scratch Org の作成・再現                                 | [Scratch Org 再現ルール](scratch-org-rebuild-rules.md)                              |
-| Scratch Org からの変更取り込み                           | [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md)                    |
-| metadata の削除                                          | [メタデータ削除ルール](metadata-deletion-rules.md)。別タスクとして扱う              |
-| テストデータ投入                                         | [テストデータ投入手順](test-data-import.md)。dry-run とクリーンアップ方針を確認する |
-| GitHub Actions の Salesforce validate 設定               | [CI メタデータ検証ルール](ci-metadata-validation-rules.md)                          |
-
-## 共通実行ルール
-
-- validate / deploy / test / retrieve は、確認済みの Salesforce 組織に対してのみ実行する。
-- 対象 org が個別指定されていない場合は、現在の default target org を確認して対象にする。
-- default target org の切り替え忘れによる誤実行を避けるため、Salesforce 組織操作では確認済みの alias を `--target-org <alias>` で明示する。リポジトリ管理のスクリプトがdefault target orgを表示し、実行者の承認後にだけ処理する場合は、表示されたdefault target orgを対象にできる。
-- 明示依頼なしに default target org を切り替えない。
-- `sf project deploy preview` 前提で進めず、差分確認と対象組織に応じた validate または dry-run を標準の確認手段にする。
-- Production 組織と、このリポジトリで実行確認済みの Developer Edition の Dev 組織では `sf project deploy validate` を使う。Sandbox と Scratch Org では `sf project deploy start --dry-run` を使う。
-- login URL だけで組織種別や利用可能な事前検証を判断しない。対象 org または CI 接続先を変更する場合は、組織種別と利用するコマンドを確認してから運用へ組み込む。
-- deploy 前に validate、dry-run、または同等の事前検証を実行し、どれを使ったかを報告する。
-- `sf project deploy validate` は反映前チェックであり、ユーザーが動作確認できる状態とは扱わない。
-- Apex とその動作に必要な関連 metadata を変更する開発では、作業単位ごとに事前検証を通した後、確認済みの非本番組織へ実 deploy する。validate または dry-run だけで作業完了としない。
-- `force-app` 全体には Settings、Profile、ManagedContentType、使用中 EntitlementProcess など、全体 deploy に向かない metadata も含まれるため、標準検証の起点にはしない。
-- `manifest/rebuild-developer-org.xml` は接続中の Salesforce 組織への初回デプロイ / 再構築 scope として扱う。
-- `npm run sf:validate:dev` と `npm run sf:deploy:dev` は `manifest/rebuild-developer-org.xml` を使う標準コマンドとして扱う。
-- 変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞る。
-- 通常開発では、PR の deploy 可能な変更が選んだ scope にすべて含まれることを確認し、validate とマージ後 deploy に同じ scope を使う。標準 manifest に含まれない変更は、作業対象 manifest または `--metadata` で補う。
-- org 側の retrieve 結果が `Changed` でも、その表示だけで repo 反映を判断しない。Git 差分を確認して、対象外差分や空白差分を除外する。
-- `sf org display --json` など token を含み得る出力は、必要性が明確な場合だけ使う。報告や docs に token、実ユーザー名、org 固有 URL を残さない。
+- 通常開発の validate / deploy は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。
+- `force-app` 全体、retrieve 用 manifest、Scratch Org 再構築用 manifest、組織全体を表す manifest を通常開発や PR マージ後 deploy に使わない。
+- 接続組織向けの再利用可能な全体 validate / deploy script と manifest は管理しない。
+- PR の作成、マージ、または「デプロイして」という依頼は、依頼範囲外の metadata や組織全体を deploy する許可を意味しない。
+- 実 deploy前に対象org alias、metadataのfullName、件数を提示し、そのscopeの実deployが明示承認された場合だけ実行する。
+- validate と実 deploy は、確認済みの同一 scope を使う。マージ後も scope を追加しない。
+- FlexiPage は、そのファイルが依頼された Git 差分に含まれ、deploy 対象として明示されている場合だけ scope に含める。
+- 対象外 metadata が一件でも混ざる場合は実行を停止し、scope を修正する。広い scope のまま続行しない。
 - 本番環境への deploy は、ユーザーが本番リリースを明示した場合だけ実行する。
 
-## 判断順序
+## Scope の決定
 
-Salesforce 組織操作を行う前に、次の順で判断します。
+Salesforce 組織操作の前に、次の順で scope を決めます。
 
-1. 依頼範囲が validate / deploy / retrieve / test / data import / destructive changes のどれかを切り分ける。
-2. 対象 org alias を確認する。個別指定がない場合は、現在の default target org を確認して使う。
-3. PR または作業差分に含まれる deploy 可能な metadata を列挙し、すべてを含む deploy / retrieve scope を manifest、`--metadata`、または script の設定で決める。
-4. Git 差分と選んだ scope を照合し、deploy 対象の漏れ、対象外の metadata、org 固有値が混ざっていないことを確認する。
-5. 対象組織の種別に応じて、deploy 前に validate、dry-run、または script の dry-run を実行する。
-6. Apex 開発では、事前検証に成功した同じ scope を確認済みの非本番組織へ実 deploy する。
-7. 実行結果、対象 org alias、未実行の確認と理由を報告する。
+1. `git status --short` と比較対象ブランチからの差分を確認する。
+2. 差分から deploy 可能な metadata の type と fullName を列挙する。
+3. 依存 metadata を追加する場合は、差分外であることと追加理由を明示する。
+4. `--metadata`、`--source-dir`、または作業単位の一時 manifest で scope を表現する。
+5. validate / dry-run 前に、対象 org alias、metadata の fullName、件数、差分外依存を提示する。
+6. 実 deploy 前に、validate 済み scope と完全に一致することを再確認し、そのscopeの明示承認を得る。
+
+作業単位の一時 manifest は、その変更だけを列挙します。別タスクで再利用せず、汎用的な全体 deploy の入口として Git 管理しません。
 
 ## 対象組織
 
-deploy、delete、retrieve、test の前に対象組織を確認します。
+個別指定がない場合は、現在の default target org を確認します。
 
 ```sh
 sf config get target-org
 ```
 
-対象 org の個別指定がない場合は、この default target org を対象にします。後続の validate / deploy / retrieve / test コマンドでは、取得した alias を `--target-org <alias>` で明示します。リポジトリ管理のスクリプトに対象組織の表示と実行確認が組み込まれている場合は、その確認を通過したdefault target orgを使います。
+後続のコマンドでは、確認済みの alias を必ず `--target-org <alias>` で明示します。明示依頼なしに default target org を変更しません。`sf org display --json`などtokenを含み得る出力は、必要性が明確な場合だけ使います。
 
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。報告には対象組織の alias を含め、実ユーザー名や org 固有 URL は書きません。
+## Validate / dry-run
 
-## PR マージ前の事前検証
-
-Salesforce メタデータ変更を含む PR をマージする前に、現在の default target org を対象に、PR の deploy 可能な変更をすべて含む scope で validate または dry-run を実行します。
+Production 組織と、このリポジトリで実行確認済みの Developer Edition では、限定 scope で `deploy validate` を使います。
 
 ```sh
-sf config get target-org
-npm run sf:validate:dev -- --target-org <alias>
+sf project deploy validate \
+    --metadata ApexClass:MyService \
+    --metadata ApexClass:MyServiceTest \
+    --test-level RunLocalTests \
+    --target-org <alias>
 ```
 
-この標準コマンドは Production 組織と、このリポジトリで実行確認済みの Developer Edition の Dev 組織で使います。Sandbox と Scratch Org では、同じ scope を指定して次を実行します。
+Sandbox と Scratch Org では、同じ限定 scope で dry-run を使います。
 
 ```sh
-sf project deploy start --dry-run --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests --target-org <alias> --wait 30
+sf project deploy start \
+    --dry-run \
+    --metadata ApexClass:MyService \
+    --metadata ApexClass:MyServiceTest \
+    --test-level RunLocalTests \
+    --target-org <alias> \
+    --wait 30
 ```
 
-`<alias>` は `sf config get target-org` で確認した default target org alias に置き換えます。PR の変更がすべて標準 manifest に含まれる場合だけ、選んだコマンドをその PR 全体の事前検証として扱います。含まれない変更は、作業対象 manifest または `--metadata` を使って同じ対象 org で確認します。
-default target org が未設定、認証切れ、または対象として不適切と判断できる場合はマージせず、必要な対象 org / 確認方針をユーザーに報告します。
+複数 type を含む場合も、対象 fullName を省略しません。`--source-dir force-app`は通常開発の検証に使いません。
 
-## 実行手順
+## 開発中の deploy
 
-### Validate
-
-接続中の Production 組織または実行確認済みの Developer Edition の Dev 組織では、初回デプロイ / 再構築前にメタデータの整合性を確認します。
+Apex、LWC、または関連 metadata の振る舞いを変更した場合は、確認済みの非本番組織へ作業単位の scope で実 deploy します。
 
 ```sh
-npm run sf:validate:dev -- --target-org <alias>
+sf project deploy start \
+    --metadata ApexClass:MyService \
+    --metadata ApexClass:MyServiceTest \
+    --target-org <alias> \
+    --wait 30
 ```
 
-この script は次の manifest validate を実行します。
+依存する LWC、Permission Set、Custom Field などがある場合は、それぞれの type と fullName を明示して同じ scope に含めます。validate 成功だけで動作確認可能とは扱いません。
 
-```sh
-sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests --target-org <alias>
-```
+## PR マージ前とマージ後
 
-validate が失敗した場合は、失敗理由と対象ファイルを確認し、必要な修正だけを行います。
-`sf project deploy validate --source-dir force-app` の失敗は、広く retrieve した org 固有 metadata の混入確認として扱い、通常作業の失敗判定にはしません。
-変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞って validate します。
+PR 作成前またはマージ前に、PR の deploy 可能な差分と明示した依存 metadata だけを含む scope で最終 validate または dry-run を実行します。
 
-Sandbox と Scratch Org では `sf project deploy validate` の代わりに `sf project deploy start --dry-run` を使い、同じ scope と test level を指定します。
+マージ後は次をすべて満たした場合だけ、同じ scope で実 deploy します。
 
-PR 前の確認では、変更内容に応じて validate または dry-run に加えて LWC test、Code Analyzer、Apex test を実行します。
-Apex 開発では、PR ブランチから確認済みの非本番組織へ作業単位ごとに実 deploy し、利用者が動作確認できる状態にします。PR 作成前には、PR の deploy 可能な変更をすべて含む scope で最終 validate または dry-run を実行します。マージ後は、同期した作業ツリーがクリーンな `main` から、同じ対象 org へ同じ scope で最終 deploy します。
+- `main`が`origin/main`と一致している。
+- 作業ツリーがクリーンである。
+- マージ前に成功した scope の fullName 一覧と件数を確認できる。
+- マージ後の scope がその一覧と一致し、追加 metadata がない。
+- 対象 org alias が確認済みである。
 
-### CI validate
-
-GitHub Actions の `npm checks` は、Salesforce JWT 認証用の Secrets が揃っている場合だけ Salesforce 組織 validate を実行します。
-Secrets が未設定の場合は、Salesforce validate を skip して CI は成功扱いにします。
-
-CI の Secrets、Connected App、`ci-dev` alias の詳細は [CI メタデータ検証ルール](ci-metadata-validation-rules.md) に分けます。
-AI エージェントがローカル deploy / retrieve / test を実行するときは、CI 用の `ci-dev` alias ではなく、依頼範囲の対象 org alias を確認して `--target-org <alias>` で明示します。
-
-### Deploy
-
-初回デプロイ / 再構築で validate または dry-run が成功したら、同じ確認済みの組織へ反映します。
-Apex 開発では、作業ブランチ上の変更を作業単位ごとに事前検証し、同じ scope を確認済みの非本番組織へ実 deploy します。修正した場合は事前検証と実 deploy を繰り返し、validate または dry-run の成功だけで動作確認可能とは扱いません。
-
-通常開発で Salesforce メタデータ変更を含む PR をマージした場合は、ローカルの `main` を `origin/main` と同期し、作業ツリーがクリーンで `HEAD` と `origin/main` が一致することを確認してから、事前検証に成功した同じ対象 org へ同じ scope で実 deploy します。Salesforce メタデータ変更を含む PR のマージ依頼は、このマージ後 deploy まで含むものとして扱います。
-
-```sh
-npm run sf:deploy:dev -- --target-org <alias>
-```
-
-この script は次の manifest deploy を実行します。
-
-```sh
-sf project deploy start --manifest manifest/rebuild-developer-org.xml --target-org <alias>
-```
-
-PR の deploy 可能な変更がすべて標準 manifest に含まれる場合は、`npm run sf:deploy:dev` を使います。含まれない変更がある場合は、その変更をすべて含む作業対象 manifest または `--metadata` をvalidateとdeployの両方で使います。
-validate の job id を使って quick deploy する場合も、対象 org alias を明示し、元の validate 結果と deploy 結果を両方報告します。
-
-マージ後は deploy 結果で成功、対象件数、エラー、テスト結果を確認します。org と Git の一致確認が必要な変更では、同じ scope を retrieve し、実質差分がないことも確認します。deploy と必要な一致確認が成功するまで、その Salesforce 開発タスクは完了扱いにしません。deploy に失敗した場合は、原因を修正する後続 PR または取り消しの要否を判断し、未反映の状態を報告します。
+scope を再現できない場合、または新しい metadata が加わる場合は deploy せず、ユーザーに確認します。マージ後 deploy のために全体 manifestへ切り替えてはいけません。
 
 次の場合はマージ後 deploy の対象外です。
 
 - docs-only PR
-- 対象 org から retrieve した状態だけを Git へ同期し、org へ戻す変更を含まない retrieve-only PR
+- retrieve-only PR
 - ユーザーが本番リリースを明示していない本番環境
 
-### Apex test
+## 組織の初回構築・再構築
 
-Apex クラスやトリガーを含む PR を作成する前に、関連 Apex テストを coverage 付きで実行します。
+接続組織の初回構築または再構築は通常開発とは別タスクです。ユーザーが「初回構築」または「再構築」を明示し、次の情報を確認したうえで個別に承認した場合だけ実行します。
+
+- 対象 org alias と組織種別
+- 全 metadata の type、fullName、件数
+- 既存設定への上書き影響
+- バックアップまたは復旧方法
+- validate / dry-run 結果
+- 実 deploy コマンド
+
+初回構築用の scope はそのタスク内で一時的に作成し、通常開発から呼べる npm script や恒久的な接続組織向け全体 manifest として残しません。
+
+## CI
+
+GitHub Actions は、依存監査、整形、文書、lint、Code Analyzer、スクリプトテスト、LWC Jestなど、組織へ接続しない品質確認を実行します。
+
+CI から接続組織へログインして全体 manifest を validate しません。Salesforce 組織での validate / dry-run は、PR 作成前に限定 scope と対象 orgを確認して実行し、結果をPRへ記録します。
+
+## Apex test
+
+Apexを含む変更では、関連テストをカバレッジ付きで実行します。
 
 ```sh
-sf apex run test --class-names MyClassTest --code-coverage --result-format human --target-org <alias>
+sf apex run test \
+    --class-names MyServiceTest \
+    --code-coverage \
+    --result-format human \
+    --target-org <alias>
 ```
 
-コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
+関連するController、Service、Selector、Wrapperなどのクラス別coverageも確認します。
 
 ## 報告ルール
 
-メタデータ変更後は次を報告します。
+Salesforce組織操作後は次を報告します。
 
-- 対象 Salesforce 組織の alias
-- 実行した validate / deploy / test
-- Apex テストの成功件数と coverage
-- 実行しなかった確認と、その理由
+- 対象 org alias
+- validate / deploy / test の区分
+- 対象 metadata の type、fullName、件数
+- Git 差分外の依存 metadata と追加理由
+- 実行コマンドと結果
+- Apexテスト件数と関連クラスcoverage
+- 実行しなかった確認と理由
+
+実ユーザー名、メールアドレス、org ID、org 固有 URL、tokenは報告へ含めません。

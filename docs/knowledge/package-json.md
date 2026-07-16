@@ -99,16 +99,15 @@ npm run setup:data:standard:dry-run
 npm run setup:data:standard -- --target-org <alias>
 ```
 
-### Salesforce 組織初回デプロイ / 再構築
+### Salesforce destructive changes
 
 ```json
-"sf:validate:dev": "sf project deploy validate --manifest manifest/rebuild-developer-org.xml --test-level RunLocalTests",
-"sf:deploy:dev": "sf project deploy start --manifest manifest/rebuild-developer-org.xml",
 "sf:destructive": "bash scripts/metadata/destructive/destructive.sh"
 ```
 
-Salesforce 組織への初回デプロイ / 再構築用 manifest を使う validate / deploy entrypointと、destructive changesの実行入口です。destructive changesではdefault target orgを表示し、実行確認後にdry-runします。dry-run成功後の再確認で承認した場合だけ実削除します。
-変更範囲を狭く確認したい場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` で scope を絞ります。
+destructive changesの実行入口です。default target orgを表示し、実行確認後にdry-runします。dry-run成功後の再確認で承認した場合だけ実削除します。
+
+接続組織向けの全体validate / deployを実行するnpm scriptは管理しません。通常開発ではGit差分と明示した依存metadataだけを、`sf project deploy validate`または`sf project deploy start`へ明示します。
 
 ### Salesforce メタデータ一括取得
 

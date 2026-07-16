@@ -22,19 +22,9 @@ PRと`main`へのプッシュで実行するCIです。
 | `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。                           |
 | Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。                                 |
 | Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードと外部リンク判定を確認する。             |
-| Salesforce validate                               | JWT secrets が揃っている場合だけ `npm run sf:validate:dev`。                                   |
 | LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。                                      |
 
-Salesforce validate で使う secrets:
-
-| secret               | 内容                                        |
-| -------------------- | ------------------------------------------- |
-| `SF_JWT_CLIENT_ID`   | Connected App の client id。                |
-| `SF_JWT_USERNAME`    | JWT login user。                            |
-| `SF_JWT_PRIVATE_KEY` | JWT signing key。                           |
-| `SF_LOGIN_URL`       | optional。未設定時は login.salesforce.com。 |
-
-CI に secret 実値は書きません。
+CIはSalesforce組織へログインせず、metadata validate / deployを実行しません。組織での検証はPR作成前に限定scopeで実行します。
 
 ## .github/dependabot.yml
 

@@ -481,36 +481,32 @@ test は確認済みの Salesforce 組織に対してのみ実行し、`--target
 
 ### 開発中の validate / deploy
 
-デプロイ前の基本確認は、対象組織に応じた validate または dry-run です。Apex クラス、トリガー、または関連する Salesforce メタデータを変更したら、作業対象 manifest、対象 metadata type を絞った `--metadata`、または標準 manifest のうち、変更範囲に合う scope で確認します。確認に成功したら、同じ scope を同じ接続組織へ実 deploy します。`deploy validate` と dry-run だけでは、ユーザーが動作確認できる状態とは扱いません。
+デプロイ前の基本確認は、対象組織に応じた validate または dry-run です。Apex クラス、トリガー、または関連する Salesforce メタデータを変更したら、Git 差分と明示した依存 metadata だけを `--metadata`、`--source-dir`、または作業単位の一時 manifest で指定します。確認に成功したら、同じ scope を同じ接続組織へ実 deploy します。`deploy validate` と dry-run だけでは、ユーザーが動作確認できる状態とは扱いません。
 
 - Production 組織と、このリポジトリで実行確認済みの Developer Edition の Dev 組織では `sf project deploy validate` を使う。
 - Sandbox と Scratch Org では `sf project deploy start --dry-run` を使う。
 - login URL だけで判断せず、対象 org または CI 接続先を変更する場合は組織種別と利用するコマンドを確認する。
 
-Salesforce 組織の初回デプロイ / 再構築の標準検証は、全体 deploy に向かない metadata を含む `force-app` 全体ではなく、deploy 可能な scope を固定した manifest を使います。
-
-```sh
-npm run sf:validate:dev -- --target-org <alias>
-```
-
 通常の Apex 開発では、作業ブランチ上の変更を作業単位ごとに確認済みの非本番組織へ実 deploy します。修正後は再度 validate または dry-run を行い、同じ scope で実 deploy してから動作確認へ進みます。
 
 ```sh
-npm run sf:deploy:dev -- --target-org <alias>
+sf project deploy start \
+    --metadata ApexClass:MyService \
+    --metadata ApexClass:MyServiceTest \
+    --target-org <alias> \
+    --wait 30
 ```
 
-変更範囲を絞る場合は、Apex 本体、テストクラス、権限、LWC など、その作業単位の動作に必要な metadata をすべて deploy scope に含めます。Apex 本体だけを反映して依存 metadata を漏らさないようにします。
+対象 scope にはApex本体、テストクラス、権限、LWCなど、その作業単位の動作に必要なmetadataを含めます。差分外の依存metadataを追加する場合は、そのfullNameと理由を明示します。Apex本体だけを反映して依存metadataを漏らさず、関係ないmetadataへscopeを広げません。
 
 PR マージまで依頼されている場合は、開発中の実 deploy に加えて、マージ後に同期した `main` から同じ対象 org へ最終 deploy します。deploy 結果、必要な retrieve 一致確認、自動チェックの成功を確認し、PR の変更を deploy scope がすべて含むことと、実 deploy が成功するまでタスクを完了扱いにしません。
 
 Apex を含む変更では、PR 作成前に関連 Apex テストをカバレッジ付きで確認し、最終 validate または dry-run でもテスト成功を確認します。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。
 
 - 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
-- Production 組織または実行確認済みの Developer Edition の Dev 組織でメタデータの整合性確認: `npm run sf:validate:dev -- --target-org <alias>`
 - 同じ対象 org で変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
 - Sandbox / Scratch Org で変更範囲を絞った確認: `sf project deploy start --dry-run --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias> --wait 30`
 - 作業単位を確認済みの組織へ反映: `sf project deploy start --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias> --wait 30`
-- 標準 manifest 全体を確認済みの組織へ反映: `npm run sf:deploy:dev -- --target-org <alias>`
 - PR 作成前の Apex 振る舞いと coverage 確認: `sf apex run test --class-names ... --code-coverage --target-org <alias>`
 
 `sf project deploy preview` は標準の確認手段にしません。反映前は Git の差分確認と、対象組織に応じた validate または dry-run で確認します。
