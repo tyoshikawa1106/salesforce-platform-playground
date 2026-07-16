@@ -72,7 +72,7 @@
 ## 権限・実行条件
 
 - 親の `objectMetricsOverview` から有効な `metricKey` が渡されることを前提とします。
-- `ObjectRecordSearchController` と関連 Apex クラスの実行権限が必要です。
+- LWCから直接呼び出す `ObjectRecordSearchController` のApexクラス実行権限が必要です。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトが参照可能かつクエリ可能で、`Name` 相当項目を参照できる必要があります。
 - 一覧取得と削除は `with sharing`、`AccessLevel.USER_MODE` で利用者の権限を適用します。
 - 作成、編集、削除ボタンは Describe 結果と UI 対応状況に応じて無効化します。
@@ -108,6 +108,7 @@
 
 ## 既知の差異・確認事項
 
-- 状態: 未確認
+- 状態: 現行実装確認済み、承認済み要求との差異は未判定
 - 現行実装は `objectRecordSearch`、関連Apexクラス、Apexテスト、Jestテストから確認しています。
+- リポジトリ内の権限セットには `ObjectRecordSearchController` の有効なApexクラス実行権限がありません。利用者へ別途権限が付与されていない場合、設定取得、検索、削除は実行できません。
 - 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。

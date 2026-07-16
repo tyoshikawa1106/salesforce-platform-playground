@@ -10,9 +10,10 @@
 
 ## 対象実装・メタデータ
 
-| 種別 | API 名                                      | 役割                                                                             |
-| ---- | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| Flow | `sfdc_default_ReportExport_Protection_Flow` | レポート操作イベント（`ReportEvent`）を評価するトランザクションセキュリティ Flow |
+| 種別                        | API 名                                      | 役割                                                                             |
+| --------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
+| Flow                        | `sfdc_default_ReportExport_Protection_Flow` | レポート操作イベント（`ReportEvent`）を評価するトランザクションセキュリティ Flow |
+| Transaction Security Policy | `sfdc_default_ReportExport_Protection`      | Flowを参照し、Step-Up Authenticationを要求する非アクティブなポリシー             |
 
 ## 入力
 
@@ -35,7 +36,7 @@
 ## 権限・実行条件
 
 - トランザクションセキュリティポリシーから `ReportEvent` を入力して実行することを前提とします。
-- Flow の状態は下書き（`Draft`）であり、現状のままでは有効なポリシー判定として実行されません。
+- Flow の状態は下書き（`Draft`）、関連ポリシーの `active` は `false` であり、現状のままでは有効なポリシー判定として実行されません。
 
 ## エラー処理
 
@@ -44,6 +45,7 @@
 ## 関連コンポーネント
 
 - レポート操作イベント（`ReportEvent`）のトランザクションセキュリティポリシー
+- `sfdc_default_ReportExport_Protection` Transaction Security Policy
 - Salesforce Shieldのトランザクションセキュリティ機能
 
 ## テスト・確認観点
@@ -59,7 +61,7 @@
 
 - 判定境界は「10,000以上」ではなく「10,000より大きい」です。
 - Salesforceが提供するデフォルトFlowであり、変更時は関連するトランザクションセキュリティポリシーへの影響を確認する必要があります。
-- 現在は下書き（`Draft`）のため、有効化を仕様として確定していません。
+- Flowは下書き（`Draft`）、関連ポリシーは非アクティブのため、有効化を仕様として確定していません。
 
 ### セキュリティと運用
 
@@ -69,6 +71,6 @@
 
 ## 既知の差異・確認事項
 
-- 状態: 未確認
-- 現行実装は `sfdc_default_ReportExport_Protection_Flow.flow-meta.xml` から確認しています。
+- 状態: 現行メタデータ確認済み、承認済み要求との差異は未判定
+- 現行実装は `sfdc_default_ReportExport_Protection_Flow.flow-meta.xml` と `sfdc_default_ReportExport_Protection.transactionSecurityPolicy-meta.xml` から確認しています。
 - 承認済みのセキュリティ要求と関連ポリシーの管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
