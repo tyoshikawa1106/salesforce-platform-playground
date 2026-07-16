@@ -1,0 +1,16 @@
+.c-timeline-item::before {
+    left: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.c-email-body {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.c-page-separator {
+    list-style: none;
+}
+
+.c-page-separator__line {
+    flex: 1 1 auto;
+}

@@ -4,6 +4,10 @@
         <application>Salesforce</application>
         <visible>true</visible>
     </applicationVisibilities>
+    <classAccesses>
+        <apexClass>CaseEmailMessageController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Salesforce Application User</label>
     <tabSettings>

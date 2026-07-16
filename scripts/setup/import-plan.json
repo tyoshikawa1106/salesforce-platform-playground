@@ -122,6 +122,12 @@
             "file": "scripts/apex/test-data/seed-standard-email-messages.apex"
         },
         {
+            "label": "case-email-message-list",
+            "operation": "apex",
+            "repeat": 1,
+            "file": "scripts/apex/test-data/seed-case-email-message-list.apex"
+        },
+        {
             "label": "standard-objects-content-versions",
             "operation": "apex",
             "file": "scripts/apex/test-data/seed-standard-content-versions.apex"
