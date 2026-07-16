@@ -36,6 +36,10 @@
 
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
 - デプロイ対象のメタデータは `force-app/main/default` を基準にする。
+- 通常開発と PR マージ後の validate / deploy は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。`force-app` 全体や組織再構築用 scope を通常開発へ流用しない。
+- PR マージ依頼は全体 deploy の許可を意味しない。実 deploy 前に対象 org alias、metadata の fullName、件数を提示し、その scope の実 deploy が明示承認された場合だけ実行する。依頼範囲外の metadata が含まれる場合は実行せず scope を修正する。
+- FlexiPage は、対象ファイルが依頼された変更差分に含まれ、かつ deploy 対象として明示されている場合だけ validate / deploy できる。
+- 組織の初回構築または再構築は通常開発と分離し、ユーザーが明示した別タスクで、全対象を確認した個別承認がある場合だけ実行する。再利用可能な接続組織向け全体 deploy コマンドや manifest は管理しない。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - 振る舞いを変更した場合は `docs/development/specification-rules.md` に従って現行実装仕様への影響を判定し、影響がある仕様書を原則として同じ変更単位で更新する。一括更新は独自実装した開発機能を対象とし、Salesforce 設定全体の仕様書は作成しない。

@@ -21,17 +21,16 @@
 
 ## Salesforce / DX
 
-| ファイル                               | 概要                                                                                                                                     | 変更時の確認                                                                                                        |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `sfdx-project.json`                    | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を source directory の基準にする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。                 |
-| `config/project-scratch-def.json`      | Scratch org 作成時の edition、features、settings を定義する。Salesforce 組織への deploy 先設定ではない。                                 | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Salesforce 組織との差分を確認する。                   |
-| `scripts/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、Scratch Org 手順と一致しているか確認する。                                       |
-| `manifest/rebuild-developer-org.xml`   | Salesforce 組織への初回デプロイ / 再構築 scope を定義する。                                                                              | 変更範囲を狭く確認する場合は、作業対象 manifest、対象 metadata type を絞った manifest、または `--metadata` を使う。 |
-| `manifest/rebuild-scratch-org.xml`     | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                                     |
-| `manifest/destructiveChanges.xml`      | Salesforce 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                            | 実行前に対象 org、削除 scope、復旧方針を確認する。                                                                  |
-| `manifest/package*.xml`                | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                                    |
-| `.forceignore`                         | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                                         |
-| `scripts/setup/import-plan.json`       | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、シード／クリーンアップ用Apexと整合させる。                                              |
+| ファイル                               | 概要                                                                                                                                     | 変更時の確認                                                                                        |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `sfdx-project.json`                    | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を source directory の基準にする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。 |
+| `config/project-scratch-def.json`      | Scratch org 作成時の edition、features、settings を定義する。Salesforce 組織への deploy 先設定ではない。                                 | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Salesforce 組織との差分を確認する。   |
+| `scripts/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、Scratch Org 手順と一致しているか確認する。                       |
+| `manifest/rebuild-scratch-org.xml`     | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                     |
+| `manifest/destructiveChanges.xml`      | Salesforce 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                            | 実行前に対象 org、削除 scope、復旧方針を確認する。                                                  |
+| `manifest/package*.xml`                | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                    |
+| `.forceignore`                         | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                         |
+| `scripts/setup/import-plan.json`       | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、シード／クリーンアップ用Apexと整合させる。                              |
 
 ## npm / 品質チェック
 
@@ -69,17 +68,17 @@
 
 ## GitHub
 
-| ファイル                                    | 概要                                                                                                                                | 変更時の確認                                                                                                                    |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                                    | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。                                                |
-| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール指示を示す。                                                                       | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                           |
-| `.github/workflows/ci.yml`                  | PRと`main`へのプッシュでnpm audit、整形、文書、lint、Salesforce Code Analyzer、任意のSalesforce validate、LWC単体テストを確認する。 | GitHub Actionsは品質確認に寄せ、Issue／Projectなどの運用メタデータ自動化を混ぜない。                                            |
-| `.github/dependabot.yml`                    | npm依存とGitHub Actionsの週次更新、ラベル、コミットメッセージ、グループ化を定義する。                                               | 特定の個人ユーザー名を担当者やレビュー担当者として固定せず、`docs/development/github-repository-rules.md`の固有運用と合わせる。 |
-| `.github/release.yml`                       | GitHub Releaseの自動生成リリースノートカテゴリをラベルごとに定義する。                                                              | ラベル体系や日次リリースノート運用を変えた場合はカテゴリも合わせて見直す。                                                      |
-| `.github/ISSUE_TEMPLATE/config.yml`         | Issueテンプレート全体の挙動を定義する。                                                                                             | テンプレートなしのIssueを許可するかどうかを運用方針に合わせる。                                                                 |
-| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                             | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                                                          |
-| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                             | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                                                        |
-| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                             | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。                                                       |
+| ファイル                                    | 概要                                                                                                                       | 変更時の確認                                                                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                           | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。                                                |
+| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール指示を示す。                                                              | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                           |
+| `.github/workflows/ci.yml`                  | PRと`main`へのプッシュでnpm audit、整形、文書、lint、Salesforce Code Analyzer、スクリプトテスト、LWC単体テストを確認する。 | CIからSalesforce組織へログインせず、metadataのvalidate / deployを実行しない。                                                   |
+| `.github/dependabot.yml`                    | npm依存とGitHub Actionsの週次更新、ラベル、コミットメッセージ、グループ化を定義する。                                      | 特定の個人ユーザー名を担当者やレビュー担当者として固定せず、`docs/development/github-repository-rules.md`の固有運用と合わせる。 |
+| `.github/release.yml`                       | GitHub Releaseの自動生成リリースノートカテゴリをラベルごとに定義する。                                                     | ラベル体系や日次リリースノート運用を変えた場合はカテゴリも合わせて見直す。                                                      |
+| `.github/ISSUE_TEMPLATE/config.yml`         | Issueテンプレート全体の挙動を定義する。                                                                                    | テンプレートなしのIssueを許可するかどうかを運用方針に合わせる。                                                                 |
+| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                    | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                                                          |
+| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                    | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                                                        |
+| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                    | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。                                                       |
 
 ## Agent
 
