@@ -59,6 +59,25 @@ npm run setup:data:standard -- --target-org <alias>
 npm run setup:data:standard -- --target-org <alias> --only standard-objects-accounts
 ```
 
+### ケースメールログ表示用データ
+
+`caseEmailMessageList` の大量行表示とページングを確認する場合は、合成ケース「`[TEST] ノートPCの初期設定方法を確認したい`」へ240件の合成メールを作成します。各メールの本文は、改行と空行を含む27行のテキストです。
+
+再実行時は、件名が「`[TEST-LWC-BULK]`」で始まる専用データだけを削除し、同数を再作成します。それ以外の既存メールは残します。
+
+```sh
+npm run setup:data:standard:dry-run -- --target-org <alias> --only case-email-message-list
+npm run setup:data:standard -- --target-org <alias> --only case-email-message-list
+```
+
+追加分だけを削除する場合は、専用のクリーンアップを実行します。
+
+```sh
+sf apex run --file scripts/apex/test-data/cleanup-case-email-message-list.apex --target-org <alias>
+```
+
+画面では初回に最も古い 50 件を表示します。「次のメールを読み込む」を選択し、50 件ずつ追加されることと、新しいメールが末尾へ追加されて古い順を維持することを確認します。
+
 投入後の主要レコードは、確認用 SOQL で確認できます。
 
 ```sh

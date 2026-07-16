@@ -7,6 +7,8 @@
         <members>AccountTriggerServiceTest</members>
         <members>CaseEmailMessageController</members>
         <members>CaseEmailMessageControllerTest</members>
+        <members>CaseEmailMessagePageWrapper</members>
+        <members>CaseEmailMessagePageWrapperTest</members>
         <members>CaseEmailMessageSelector</members>
         <members>CaseEmailMessageSelectorTest</members>
         <members>CaseEmailMessageService</members>

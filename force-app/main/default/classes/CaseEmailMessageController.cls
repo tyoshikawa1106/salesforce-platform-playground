@@ -12,20 +12,47 @@ public with sharing class CaseEmailMessageController {
     private static final CaseEmailMessageSelector SELECTOR = new CaseEmailMessageSelector();
 
     /**
-     * 指定ケースに紐づく最新のメールメッセージを返す
+     * 指定ケースに紐づくメールメッセージ件数を返す
      *
-     * @param caseId ケースレコード ID、null の場合は空のリスト
-     * @return 送信日時の降順で最大 50 件のメールメッセージ
+     * @param caseId ケースレコード ID、null の場合は 0 件
+     * @return ケースに紐づくメールメッセージ件数
      */
     @AuraEnabled(cacheable=true)
-    public static List<EmailMessage> getEmailMessages(Id caseId) {
+    public static Integer getEmailMessageCount(Id caseId) {
+        try {
+            Id validatedCaseId = SERVICE.validateCaseId(caseId);
+            return SELECTOR.getCountByCaseId(validatedCaseId);
+        } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
+            String errorMessage = e.getMessage();
+            throw createHandledException(errorMessage);
+        } catch (Exception e) {
+            throw createHandledException(LOAD_ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * 指定ケースに紐づくメールメッセージを古い順に返す
+     *
+     * @param caseId ケースレコード ID、null の場合は空のページ
+     * @param pageToken 次のメールメッセージを取得するためのカーソルトークン
+     * @return 最大 50 件と次ページ情報を持つメールメッセージページ
+     */
+    @AuraEnabled(cacheable=true)
+    public static CaseEmailMessagePageWrapper getEmailMessages(
+        Id caseId,
+        String pageToken
+    ) {
         try {
             // 画面からの ID を検証し、問い合わせ対象を確定
             Id validatedCaseId = SERVICE.validateCaseId(caseId);
-            List<EmailMessage> emailMessages = SELECTOR.getByCaseId(
-                validatedCaseId
+            CaseEmailMessageService.PageQuery pageQuery = SERVICE.createPageQuery(
+                validatedCaseId,
+                pageToken
             );
-            return emailMessages;
+            List<EmailMessage> emailMessages = SELECTOR.getByCaseId(
+                pageQuery
+            );
+            return SERVICE.createPage(emailMessages);
         } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
             String errorMessage = e.getMessage();
             throw createHandledException(errorMessage);
