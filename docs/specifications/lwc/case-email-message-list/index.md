@@ -10,14 +10,15 @@
 
 ## 対象実装・メタデータ
 
-| 種別           | API 名・ファイル名            | 役割                                       |
-| -------------- | ----------------------------- | ------------------------------------------ |
-| LWC            | `caseEmailMessageList`        | メールメッセージ一覧と追加読み込み UI      |
-| Apex Class     | `CaseEmailMessageController`  | LWC からの読み取り専用 Apex 入口           |
-| Apex Class     | `CaseEmailMessageService`     | 入力検証、ページトークン、表示順の組み立て |
-| Apex Class     | `CaseEmailMessageSelector`    | USER_MODE による EmailMessage 問い合わせ   |
-| Apex Class     | `CaseEmailMessagePageWrapper` | 取得結果と次ページ情報を保持する応答 DTO   |
-| Permission Set | `Salesforce_Application_User` | Apex Controller の実行権限                 |
+| 種別           | API 名・ファイル名            | 役割                                        |
+| -------------- | ----------------------------- | ------------------------------------------- |
+| LWC            | `caseEmailMessageList`        | メールメッセージ一覧と追加読み込み UI       |
+| Apex Class     | `CaseEmailMessageController`  | LWC からの読み取り専用 Apex 入口            |
+| Apex Class     | `CaseEmailMessageService`     | 入力検証、ページトークン、表示順の組み立て  |
+| Apex Class     | `CaseEmailMessageSelector`    | USER_MODE による EmailMessage 問い合わせ    |
+| Apex Class     | `CaseEmailMessagePageWrapper` | 取得結果と次ページ情報を保持する応答 DTO    |
+| Permission Set | `Salesforce_Application_User` | Apex Controller の実行権限                  |
+| FlexiPage      | `CaseFlexiPage`               | Case レコードページのメールログタブへの配置 |
 
 ## 入力
 
@@ -84,5 +85,6 @@
 
 - 状態: 現行実装確認済み、承認済み要求との差異は未判定
 - `caseEmailMessageList.js-meta.xml` の説明は「最新のメールメッセージ」としていますが、実際の取得順は古いメールからの昇順です。
-- LWCはCaseレコードページへ配置可能ですが、リポジトリ内の現行FlexiPageメタデータには配置されていません。
+- 現行の `CaseFlexiPage` では、メールログタブ内に `caseEmailMessageList` が2インスタンス配置されています。意図した配置数か確認できないため、FlexiPage の現行値を保持しています。
+- 現行の `CaseFlexiPage` では、フィードタブ内にもChatterフィードが2インスタンス配置されています。メールログ機能の対象外ですが、同じFlexiPageの確認事項として残します。
 - 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
