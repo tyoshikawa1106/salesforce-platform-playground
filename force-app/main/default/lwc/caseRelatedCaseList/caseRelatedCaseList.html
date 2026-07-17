@@ -1,0 +1,157 @@
+<template>
+    <lightning-card title="最近の問い合わせ" icon-name="standard:case">
+        <template lwc:if={isLoadingCase}>
+            <div class="slds-is-relative slds-p-around_medium">
+                <lightning-spinner
+                    alternative-text="関連する問い合わせを読み込み中"
+                    size="small"
+                ></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:elseif={caseErrorMessage}>
+            <div
+                class="slds-p-around_small slds-text-color_error"
+                role="alert"
+            >
+                {caseErrorMessage}
+            </div>
+        </template>
+
+        <template lwc:else>
+            <lightning-tabset
+                variant="scoped"
+                heading-label="関連する問い合わせケース"
+                heading-level="3"
+            >
+                <lightning-tab label="顧客" value="contact">
+                    <template lwc:if={isLoadingContactCases}>
+                        <div class="slds-is-relative slds-p-around_medium">
+                            <lightning-spinner
+                                alternative-text="顧客の問い合わせを読み込み中"
+                                size="small"
+                            ></lightning-spinner>
+                        </div>
+                    </template>
+                    <template lwc:elseif={contactCasesHaveError}>
+                        <div
+                            class="slds-p-around_small slds-text-color_error"
+                            role="alert"
+                        >
+                            顧客の問い合わせを読み込めませんでした。
+                        </div>
+                    </template>
+                    <template lwc:elseif={hasContactCases}>
+                        <ul class="slds-p-around_small">
+                            <template
+                                for:each={contactCases}
+                                for:item="relatedCase"
+                            >
+                                <li
+                                    key={relatedCase.id}
+                                    class="slds-box slds-box_x-small slds-m-bottom_x-small"
+                                >
+                                    <lightning-tile
+                                        label={relatedCase.caseNumber}
+                                        href={relatedCase.url}
+                                    >
+                                        <lightning-badge
+                                            label={relatedCase.status}
+                                        ></lightning-badge>
+                                        <p class="slds-m-top_x-small">
+                                            {relatedCase.subject}
+                                        </p>
+                                        <p
+                                            class="slds-m-top_x-small slds-text-body_small slds-text-color_weak"
+                                        >
+                                            <span>最終更新 </span>
+                                            <lightning-formatted-date-time
+                                                value={relatedCase.lastModifiedDate}
+                                                year="numeric"
+                                                month="2-digit"
+                                                day="2-digit"
+                                                hour="2-digit"
+                                                minute="2-digit"
+                                            ></lightning-formatted-date-time>
+                                        </p>
+                                    </lightning-tile>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <p
+                            class="slds-p-around_small slds-text-color_weak"
+                        >
+                            {contactEmptyMessage}
+                        </p>
+                    </template>
+                </lightning-tab>
+
+                <lightning-tab label="会社" value="account">
+                    <template lwc:if={isLoadingAccountCases}>
+                        <div class="slds-is-relative slds-p-around_medium">
+                            <lightning-spinner
+                                alternative-text="会社の問い合わせを読み込み中"
+                                size="small"
+                            ></lightning-spinner>
+                        </div>
+                    </template>
+                    <template lwc:elseif={accountCasesHaveError}>
+                        <div
+                            class="slds-p-around_small slds-text-color_error"
+                            role="alert"
+                        >
+                            会社の問い合わせを読み込めませんでした。
+                        </div>
+                    </template>
+                    <template lwc:elseif={hasAccountCases}>
+                        <ul class="slds-p-around_small">
+                            <template
+                                for:each={accountCases}
+                                for:item="relatedCase"
+                            >
+                                <li
+                                    key={relatedCase.id}
+                                    class="slds-box slds-box_x-small slds-m-bottom_x-small"
+                                >
+                                    <lightning-tile
+                                        label={relatedCase.caseNumber}
+                                        href={relatedCase.url}
+                                    >
+                                        <lightning-badge
+                                            label={relatedCase.status}
+                                        ></lightning-badge>
+                                        <p class="slds-m-top_x-small">
+                                            {relatedCase.subject}
+                                        </p>
+                                        <p
+                                            class="slds-m-top_x-small slds-text-body_small slds-text-color_weak"
+                                        >
+                                            <span>最終更新 </span>
+                                            <lightning-formatted-date-time
+                                                value={relatedCase.lastModifiedDate}
+                                                year="numeric"
+                                                month="2-digit"
+                                                day="2-digit"
+                                                hour="2-digit"
+                                                minute="2-digit"
+                                            ></lightning-formatted-date-time>
+                                        </p>
+                                    </lightning-tile>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <p
+                            class="slds-p-around_small slds-text-color_weak"
+                        >
+                            {accountEmptyMessage}
+                        </p>
+                    </template>
+                </lightning-tab>
+            </lightning-tabset>
+        </template>
+    </lightning-card>
+</template>

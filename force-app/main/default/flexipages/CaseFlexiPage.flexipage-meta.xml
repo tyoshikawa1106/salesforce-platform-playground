@@ -65,6 +65,12 @@
                 <identifier>c_caseContactProfile</identifier>
             </componentInstance>
         </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>caseRelatedCaseList</componentName>
+                <identifier>c_caseRelatedCaseList</identifier>
+            </componentInstance>
+        </itemInstances>
         <name>leftsidebar</name>
         <type>Region</type>
     </flexiPageRegions>
