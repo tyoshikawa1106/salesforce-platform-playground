@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { getFieldValue, getRecord } from 'lightning/uiRecordApi';
+import { getRelatedListCount } from 'lightning/uiRelatedListApi';
 import CASE_ACCOUNT_ID_FIELD from '@salesforce/schema/Case.AccountId';
 import CASE_ACCOUNT_NAME_FIELD from '@salesforce/schema/Case.Account.Name';
 import CASE_ACCOUNT_WEBSITE_FIELD from '@salesforce/schema/Case.Account.Website';
@@ -43,6 +44,8 @@ const OPTIONAL_FIELDS = [
 const UNAVAILABLE_VALUE = '-';
 const CONTACT_OBJECT_API_NAME = 'Contact';
 const ACCOUNT_OBJECT_API_NAME = 'Account';
+const CASES_RELATED_LIST_ID = 'Cases';
+const RELATED_LIST_MAX_COUNT = 1999;
 
 export default class CaseContactProfile extends NavigationMixin(
     LightningElement
@@ -54,6 +57,10 @@ export default class CaseContactProfile extends NavigationMixin(
     hasLoaded = false;
     contactRecordUrl;
     accountRecordUrl;
+    contactCaseCount;
+    contactCaseCountHasMore = false;
+    accountCaseCount;
+    accountCaseCountHasMore = false;
 
     @wire(getRecord, {
         recordId: '$recordId',
@@ -62,17 +69,55 @@ export default class CaseContactProfile extends NavigationMixin(
     })
     wiredCase({ data, error }) {
         if (data) {
+            const previousContactId = this.contactId;
+            const previousAccountId = this.accountId;
+
             this.hasLoaded = true;
             this.caseRecord = data;
             this.errorMessage = undefined;
+            this.resetCaseCountsWhenParentChanges(
+                previousContactId,
+                previousAccountId
+            );
             this.updateRecordUrls();
         } else if (error) {
             this.hasLoaded = true;
             this.caseRecord = undefined;
             this.contactRecordUrl = undefined;
             this.accountRecordUrl = undefined;
+            this.resetCaseCounts();
             this.errorMessage =
                 '取引先責任者のプロフィールを読み込めませんでした。時間をおいてもう一度お試しください。';
+        }
+    }
+
+    @wire(getRelatedListCount, {
+        parentRecordId: '$contactId',
+        relatedListId: CASES_RELATED_LIST_ID,
+        maxCount: RELATED_LIST_MAX_COUNT
+    })
+    wiredContactCaseCount({ data, error }) {
+        if (data) {
+            this.contactCaseCount = data.count;
+            this.contactCaseCountHasMore = data.hasMore === true;
+        } else if (error) {
+            this.contactCaseCount = undefined;
+            this.contactCaseCountHasMore = false;
+        }
+    }
+
+    @wire(getRelatedListCount, {
+        parentRecordId: '$accountId',
+        relatedListId: CASES_RELATED_LIST_ID,
+        maxCount: RELATED_LIST_MAX_COUNT
+    })
+    wiredAccountCaseCount({ data, error }) {
+        if (data) {
+            this.accountCaseCount = data.count;
+            this.accountCaseCountHasMore = data.hasMore === true;
+        } else if (error) {
+            this.accountCaseCount = undefined;
+            this.accountCaseCountHasMore = false;
         }
     }
 
@@ -181,6 +226,26 @@ export default class CaseContactProfile extends NavigationMixin(
         );
     }
 
+    get hasContactCaseCount() {
+        return Number.isInteger(this.contactCaseCount);
+    }
+
+    get contactCaseCountText() {
+        return this.hasContactCaseCount
+            ? this.contactCaseCount
+            : UNAVAILABLE_VALUE;
+    }
+
+    get hasAccountCaseCount() {
+        return Number.isInteger(this.accountCaseCount);
+    }
+
+    get accountCaseCountText() {
+        return this.hasAccountCaseCount
+            ? this.accountCaseCount
+            : UNAVAILABLE_VALUE;
+    }
+
     getValue(field) {
         return getFieldValue(this.caseRecord, field);
     }
@@ -198,6 +263,27 @@ export default class CaseContactProfile extends NavigationMixin(
             return this.getValue(contactField);
         }
         return suppliedField ? this.getValue(suppliedField) : undefined;
+    }
+
+    resetCaseCountsWhenParentChanges(
+        previousContactId,
+        previousAccountId
+    ) {
+        if (previousContactId !== this.contactId) {
+            this.contactCaseCount = undefined;
+            this.contactCaseCountHasMore = false;
+        }
+        if (previousAccountId !== this.accountId) {
+            this.accountCaseCount = undefined;
+            this.accountCaseCountHasMore = false;
+        }
+    }
+
+    resetCaseCounts() {
+        this.contactCaseCount = undefined;
+        this.contactCaseCountHasMore = false;
+        this.accountCaseCount = undefined;
+        this.accountCaseCountHasMore = false;
     }
 
     async updateRecordUrls() {

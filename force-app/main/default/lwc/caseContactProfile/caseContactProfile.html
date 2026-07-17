@@ -122,6 +122,44 @@
                     </dd>
                 </div>
             </dl>
+
+            <div
+                class="c-customer-card__divider slds-border_top"
+                aria-hidden="true"
+            ></div>
+
+            <dl class="c-customer-card__fields">
+                <div>
+                    <dt class="slds-text-title">顧客の問い合わせ件数</dt>
+                    <dd
+                        class="c-customer-card__case-count c-customer-card__value slds-m-top_x-small"
+                    >
+                        <template lwc:if={hasContactCaseCount}>
+                            <lightning-formatted-number
+                                value={contactCaseCount}
+                            ></lightning-formatted-number><template
+                                lwc:if={contactCaseCountHasMore}
+                            >+</template>
+                        </template>
+                        <template lwc:else>{contactCaseCountText}</template>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="slds-text-title">会社の問い合わせ件数</dt>
+                    <dd
+                        class="c-customer-card__case-count c-customer-card__value slds-m-top_x-small"
+                    >
+                        <template lwc:if={hasAccountCaseCount}>
+                            <lightning-formatted-number
+                                value={accountCaseCount}
+                            ></lightning-formatted-number><template
+                                lwc:if={accountCaseCountHasMore}
+                            >+</template>
+                        </template>
+                        <template lwc:else>{accountCaseCountText}</template>
+                    </dd>
+                </div>
+            </dl>
         </template>
     </article>
 </template>
