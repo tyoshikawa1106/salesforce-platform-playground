@@ -12,12 +12,13 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 
 ## Apex と LWC
 
-| タイトル                                                               | 概要                                            |
-| ---------------------------------------------------------------------- | ----------------------------------------------- |
-| [Apex アノテーション](apex-annotations.md)                             | 実行方式や公開範囲に影響するアノテーション      |
-| [Apex API version 50.0-67.0 の主要追加点](apex-features.md)            | API version ごとの主要な Apex 機能差分          |
-| [LWC Jest とアクセシビリティテスト](lwc-jest-accessibility-testing.md) | Jest と `@sa11y/jest` による確認方法            |
-| [LWC の画面遷移](lwc-navigation.md)                                    | コンポーネント内遷移と URL を伴う遷移の使い分け |
+| タイトル                                                                         | 概要                                                   |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [Apex アノテーション](apex-annotations.md)                                       | 実行方式や公開範囲に影響するアノテーション             |
+| [Apex API version 50.0-67.0 の主要追加点](apex-features.md)                      | API version ごとの主要な Apex 機能差分                 |
+| [LWC Jest とアクセシビリティテスト](lwc-jest-accessibility-testing.md)           | Jest と `@sa11y/jest` による確認方法                   |
+| [LWC の画面遷移](lwc-navigation.md)                                              | コンポーネント内遷移と URL を伴う遷移の使い分け        |
+| [Salesforce VS Code の LWC 補完設定と診断](salesforce-vscode-lwc-diagnostics.md) | `jsconfig.json`、TypeScript 警告、`LWC1702` の切り分け |
 
 ## 品質チェックと npm
 
