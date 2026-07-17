@@ -71,6 +71,9 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous -
 
 ## LWC / UI 変更
 
+- LWC の JavaScript 実装では、宣言、代入、分岐、返却、呼び出し、データ変換など、意味を持つコード行ごとに、目的または成立させる状態を示す短い日本語コメントを直前へ 1 行ずつ記載する。
+- import、デコレータ、空行、括弧や閉じ記号だけの行、複数行式の継続行は、1 行ごとの日本語コメントの対象外とする。
+- LWC の Jest test、インストール済みファイル、生成済みファイルは、1 行ごとの日本語コメントの対象外とする。
 - LWC を追加・変更する場合は、DOM、イベント、Apex / wire mock、空状態、エラー状態のうち変更に関係する振る舞いを Jest で確認する。
 - 画面上の操作要素を追加・変更する場合は、識別できるラベル、キーボード操作、aria 属性の必要性を確認する。
 - 重要な LWC test では、automatic checks に頼らず、対象 DOM に明示的な `toBeAccessible()` assertion を追加する。
