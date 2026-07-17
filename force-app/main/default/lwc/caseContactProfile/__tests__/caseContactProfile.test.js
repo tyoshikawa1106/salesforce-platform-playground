@@ -1,8 +1,11 @@
 import { createElement } from 'lwc';
 import { getRecord } from 'lightning/uiRecordApi';
+import { getRelatedListCount } from 'lightning/uiRelatedListApi';
 import CaseContactProfile from 'c/caseContactProfile';
 
 const CASE_RECORD_ID = '500000000000001AAA';
+const CONTACT_RECORD_ID = '003000000000001AAA';
+const CASE_ACCOUNT_RECORD_ID = '001000000000001AAA';
 
 const flushPromises = async () => {
     await Promise.resolve();
@@ -20,14 +23,24 @@ const createComponent = () => {
     return element;
 };
 
+const emitCaseCount = (parentRecordId, count, hasMore = false) => {
+    getRelatedListCount.emit(
+        { count, hasMore },
+        (config) =>
+            config.parentRecordId === parentRecordId &&
+            config.relatedListId === 'Cases' &&
+            config.maxCount === 1999
+    );
+};
+
 const createCaseRecord = ({
-    contactId = '003000000000001AAA',
+    contactId = CONTACT_RECORD_ID,
     contactName = '山田 太郎',
     contactEmail = 'taro@example.com',
     contactPhone = '03-1234-5678',
     contactMobilePhone = '090-1234-5678',
     contactFax = '03-1234-5679',
-    caseAccountId = '001000000000001AAA',
+    caseAccountId = CASE_ACCOUNT_RECORD_ID,
     caseCompanyName = 'ケース取引先株式会社',
     caseWebsite = 'https://case-account.example.com',
     contactAccountId = caseAccountId,
@@ -174,6 +187,87 @@ describe('c-case-contact-profile', () => {
             element.shadowRoot.querySelector('lightning-formatted-phone').value
         ).toBe('06-1234-5678');
         expect(element.shadowRoot.querySelectorAll('a')).toHaveLength(0);
+        expect(
+            [
+                ...element.shadowRoot.querySelectorAll(
+                    '.c-customer-card__case-count'
+                )
+            ].map((caseCount) => caseCount.textContent.trim())
+        ).toEqual(['-', '-']);
+        await expect(element).toBeAccessible();
+    });
+
+    it('renders contact and account case counts', async () => {
+        const element = createComponent();
+
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        emitCaseCount(CONTACT_RECORD_ID, 2);
+        emitCaseCount(CASE_ACCOUNT_RECORD_ID, 5);
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain(
+            '顧客の問い合わせ件数'
+        );
+        expect(element.shadowRoot.textContent).toContain(
+            '会社の問い合わせ件数'
+        );
+        expect(
+            [
+                ...element.shadowRoot.querySelectorAll(
+                    'lightning-formatted-number'
+                )
+            ].map((caseCount) => caseCount.value)
+        ).toEqual([2, 5]);
+        await expect(element).toBeAccessible();
+    });
+
+    it('renders zero and an upper-bound indicator for case counts', async () => {
+        const element = createComponent();
+
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        emitCaseCount(CONTACT_RECORD_ID, 1999, true);
+        emitCaseCount(CASE_ACCOUNT_RECORD_ID, 0);
+        await flushPromises();
+
+        const caseCounts = [
+            ...element.shadowRoot.querySelectorAll(
+                '.c-customer-card__case-count'
+            )
+        ];
+        expect(caseCounts[0].textContent.trim()).toBe('+');
+        expect(caseCounts[0].querySelector('lightning-formatted-number').value).toBe(
+            1999
+        );
+        expect(caseCounts[1].querySelector('lightning-formatted-number').value).toBe(
+            0
+        );
+        await expect(element).toBeAccessible();
+    });
+
+    it('renders hyphens when related list counts cannot be loaded', async () => {
+        const element = createComponent();
+
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        getRelatedListCount.emitError(
+            { body: { message: 'Count failed' }, status: 500 },
+            (config) => config.parentRecordId === CONTACT_RECORD_ID
+        );
+        getRelatedListCount.emitError(
+            { body: { message: 'Count failed' }, status: 500 },
+            (config) => config.parentRecordId === CASE_ACCOUNT_RECORD_ID
+        );
+        await flushPromises();
+
+        expect(
+            [
+                ...element.shadowRoot.querySelectorAll(
+                    '.c-customer-card__case-count'
+                )
+            ].map((caseCount) => caseCount.textContent.trim())
+        ).toEqual(['-', '-']);
         await expect(element).toBeAccessible();
     });
 
@@ -238,7 +332,7 @@ describe('c-case-contact-profile', () => {
         );
         await flushPromises();
 
-        expect(element.shadowRoot.textContent.match(/-/g)).toHaveLength(8);
+        expect(element.shadowRoot.textContent.match(/-/g)).toHaveLength(10);
         await expect(element).toBeAccessible();
     });
 
