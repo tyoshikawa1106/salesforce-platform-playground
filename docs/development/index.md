@@ -4,7 +4,7 @@
 
 | タイトル                                                       | 概要                                     |
 | -------------------------------------------------------------- | ---------------------------------------- |
-| [AI エージェント開発ルール](agent-development-rules.md)        | 作業開始から報告までの共通ルール         |
+| [AI エージェント開発ルール](agent-development-rules.md)        | 共通作業、コードコメント、検証           |
 | [Apex 開発ルール](apex-rules.md)                               | Apex の実装、テスト、検証                |
 | [GitHub 運用ルール](github-rules.md)                           | ブランチ、コミット、PR、マージの共通手順 |
 | [リポジトリ固有 GitHub 運用ルール](github-repository-rules.md) | Issue、Project、Milestone、Release、CI   |
