@@ -6,19 +6,19 @@ const lwcConfig = require('@salesforce/eslint-config-lwc/recommended');
 const globals = require('globals');
 
 module.exports = defineConfig([
-    // Aura configuration
+    // Auraコンポーネント向けの標準設定
     {
         files: ['**/aura/**/*.js'],
         extends: [...auraConfig.configs.recommended, ...auraConfig.configs.locker]
     },
 
-    // LWC configuration
+    // LWC実装向けの標準設定
     {
         files: ['**/lwc/**/*.js'],
         extends: [lwcConfig]
     },
 
-    // LWC configuration with override for LWC test files
+    // LWC Jestテスト向けの上書き設定
     {
         files: ['**/lwc/**/*.test.js'],
         extends: [lwcConfig],
@@ -32,7 +32,7 @@ module.exports = defineConfig([
         }
     },
 
-    // Jest mocks configuration
+    // Jest共通モック向けの設定
     {
         files: ['**/jest-mocks/**/*.js'],
         languageOptions: {
