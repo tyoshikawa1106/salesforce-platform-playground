@@ -9,6 +9,15 @@ import CASE_NUMBER_FIELD from '@salesforce/schema/Case.CaseNumber';
 import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
 import CASE_STATUS_FIELD from '@salesforce/schema/Case.Status';
 import CASE_LAST_MODIFIED_DATE_FIELD from '@salesforce/schema/Case.LastModifiedDate';
+import {
+    createAllRelatedListsResetState,
+    createCaseCard,
+    createEmptyMessage,
+    createRelatedListResetState,
+    isRelatedListLoading,
+    selectRelatedCaseRecords,
+    shouldResetRelatedList
+} from './caseRelatedCaseListLogic';
 
 // Case本体の取得は必須項目を最小限にし、関連先の参照権限不足で全体を取得失敗させない
 const CASE_FIELDS = [CASE_ID_FIELD];
@@ -26,14 +35,8 @@ const RELATED_CASE_OPTIONAL_FIELDS = [
 const CASES_RELATED_LIST_ID = 'Cases';
 // 表示中のケースを除外しても最大5件を表示できるように1件多く取得
 const RELATED_CASE_PAGE_SIZE = 6;
-// 狭いサイドバーで一覧が長くなりすぎないよう表示数を制限
-const DISPLAY_LIMIT = 5;
 // 問い合わせの直近順を最終更新日時の降順で統一
 const RELATED_CASE_SORT = ['-Case.LastModifiedDate'];
-// 参照できない表示値を空欄にせず代替表示
-const UNAVAILABLE_VALUE = '-';
-// 件名が空のケースを識別できるよう代替表示
-const MISSING_SUBJECT = '（件名なし）';
 
 // Caseレコードページに関連問い合わせ一覧を提供
 export default class CaseRelatedCaseList extends NavigationMixin(
@@ -178,14 +181,20 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // Contact設定済みかつ初回取得前の場合だけ顧客タブをローディング表示
     get isLoadingContactCases() {
-        // Contact未設定時はローディングせず空状態を表示
-        return Boolean(this.contactId) && !this.contactCasesHaveLoaded;
+        // Contact設定と取得状態からLogicでローディングを判定
+        return isRelatedListLoading(
+            this.contactId,
+            this.contactCasesHaveLoaded
+        );
     }
 
     // Account設定済みかつ初回取得前の場合だけ会社タブをローディング表示
     get isLoadingAccountCases() {
-        // Account未設定時はローディングせず空状態を表示
-        return Boolean(this.accountId) && !this.accountCasesHaveLoaded;
+        // Account設定と取得状態からLogicでローディングを判定
+        return isRelatedListLoading(
+            this.accountId,
+            this.accountCasesHaveLoaded
+        );
     }
 
     // 顧客タブにカード一覧を描画できるか判定
@@ -202,18 +211,28 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // Contact設定有無に応じた顧客タブの空状態メッセージを返却
     get contactEmptyMessage() {
-        // Contact設定済みの場合は関連ケース0件として案内
-        return this.contactId
-            ? 'この顧客の別の問い合わせはありません。'
-            : 'このケースには顧客が設定されていません。';
+        // Contact設定有無に応じた案内生成をLogicへ委譲
+        return createEmptyMessage({
+            // 現在のContact IDを渡す
+            parentRecordId: this.contactId,
+            // Contact設定済みで0件の場合の案内を指定
+            emptyMessage: 'この顧客の別の問い合わせはありません。',
+            // Contact未設定の場合の案内を指定
+            missingParentMessage: 'このケースには顧客が設定されていません。'
+        });
     }
 
     // Account設定有無に応じた会社タブの空状態メッセージを返却
     get accountEmptyMessage() {
-        // Account設定済みの場合は関連ケース0件として案内
-        return this.accountId
-            ? 'この会社の別の問い合わせはありません。'
-            : 'このケースには会社が設定されていません。';
+        // Account設定有無に応じた案内生成をLogicへ委譲
+        return createEmptyMessage({
+            // 現在のAccount IDを渡す
+            parentRecordId: this.accountId,
+            // Account設定済みで0件の場合の案内を指定
+            emptyMessage: 'この会社の別の問い合わせはありません。',
+            // Account未設定の場合の案内を指定
+            missingParentMessage: 'このケースには会社が設定されていません。'
+        });
     }
 
     // Case取得前の項目参照を避けてUI APIの値を返却
@@ -225,36 +244,31 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     // UI APIレコードをテンプレートで扱うカード形式へ変換
     async createCaseCards(records = []) {
         // 表示中Case自身を除外し、狭いサイドバー向けの表示件数に制限
-        const relatedCases = records
-            .filter((record) => record.id !== this.recordId)
-            .slice(0, DISPLAY_LIMIT);
+        const relatedCases = selectRelatedCaseRecords(records, this.recordId);
 
         // 全ケースのURL生成完了後に同じ表示順でカード一覧を返却
         return Promise.all(
             // 各UI APIレコードを表示専用の値へ正規化
-            relatedCases.map(async (record) => ({
-                // 繰り返し描画のキーにCase IDを使用
-                id: record.id,
-                // ケース番号をカードのリンクラベルとして表示
-                caseNumber:
-                    getFieldValue(record, CASE_NUMBER_FIELD) ||
-                    UNAVAILABLE_VALUE,
-                // 件名未入力時もカードの内容を識別可能にする
-                subject:
-                    getFieldValue(record, CASE_SUBJECT_FIELD) ||
-                    MISSING_SUBJECT,
-                // 状況を参照できない場合は代替値を表示
-                status:
-                    getFieldValue(record, CASE_STATUS_FIELD) ||
-                    UNAVAILABLE_VALUE,
-                // 最終更新日時を日付表示コンポーネントへ渡す
-                lastModifiedDate: getFieldValue(
-                    record,
-                    CASE_LAST_MODIFIED_DATE_FIELD
-                ),
-                // ケース番号から対象レコードへ遷移するURLを生成
-                url: await this.generateCaseUrl(record.id)
-            }))
+            relatedCases.map(async (record) =>
+                // UI API値とNavigation結果の表示正規化をLogicへ委譲
+                createCaseCard({
+                    // 繰り返し描画へ使うCase IDを渡す
+                    id: record.id,
+                    // UI APIから参照可能なケース番号を渡す
+                    caseNumber: getFieldValue(record, CASE_NUMBER_FIELD),
+                    // UI APIから参照可能な件名を渡す
+                    subject: getFieldValue(record, CASE_SUBJECT_FIELD),
+                    // UI APIから参照可能な状況を渡す
+                    status: getFieldValue(record, CASE_STATUS_FIELD),
+                    // UI APIから参照可能な最終更新日時を渡す
+                    lastModifiedDate: getFieldValue(
+                        record,
+                        CASE_LAST_MODIFIED_DATE_FIELD
+                    ),
+                    // NavigationMixinで生成したCase URLを渡す
+                    url: await this.generateCaseUrl(record.id)
+                })
+            )
         );
     }
 
@@ -282,39 +296,33 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         previousAccountId
     ) {
         // レコードページ内の画面遷移で古い関連ケースを残さないよう取得状態を初期化
-        if (previousContactId !== this.contactId) {
+        if (shouldResetRelatedList(previousContactId, this.contactId)) {
+            // Contact設定に応じた汎用リセット状態を生成
+            const contactState = createRelatedListResetState(this.contactId);
             // 以前のContactに紐づくカードを即時に破棄
-            this.contactCases = [];
+            this.contactCases = contactState.cases;
             // Contact未設定ならwire待ちをせず取得完了扱いに変更
-            this.contactCasesHaveLoaded = !this.contactId;
+            this.contactCasesHaveLoaded = contactState.hasLoaded;
             // 新しいContactの取得開始時に以前のエラーを解除
-            this.contactCasesHaveError = false;
+            this.contactCasesHaveError = contactState.hasError;
         }
 
         // Accountが変わった場合だけ会社タブの状態を更新
-        if (previousAccountId !== this.accountId) {
+        if (shouldResetRelatedList(previousAccountId, this.accountId)) {
+            // Account設定に応じた汎用リセット状態を生成
+            const accountState = createRelatedListResetState(this.accountId);
             // 以前のAccountに紐づくカードを即時に破棄
-            this.accountCases = [];
+            this.accountCases = accountState.cases;
             // Account未設定ならwire待ちをせず取得完了扱いに変更
-            this.accountCasesHaveLoaded = !this.accountId;
+            this.accountCasesHaveLoaded = accountState.hasLoaded;
             // 新しいAccountの取得開始時に以前のエラーを解除
-            this.accountCasesHaveError = false;
+            this.accountCasesHaveError = accountState.hasError;
         }
     }
 
     // 親Case取得失敗時に両タブを表示可能な初期状態へ戻す
     resetRelatedCases() {
-        // 顧客側のカードをすべて破棄
-        this.contactCases = [];
-        // 会社側のカードをすべて破棄
-        this.accountCases = [];
-        // 顧客側をwire待ちにせずエラーのない空状態へ移行
-        this.contactCasesHaveLoaded = true;
-        // 会社側をwire待ちにせずエラーのない空状態へ移行
-        this.accountCasesHaveLoaded = true;
-        // 親Caseエラーを優先するため顧客側の個別エラーを解除
-        this.contactCasesHaveError = false;
-        // 親Caseエラーを優先するため会社側の個別エラーを解除
-        this.accountCasesHaveError = false;
+        // Logicが生成した両タブの空状態をまとめて反映
+        Object.assign(this, createAllRelatedListsResetState());
     }
 }

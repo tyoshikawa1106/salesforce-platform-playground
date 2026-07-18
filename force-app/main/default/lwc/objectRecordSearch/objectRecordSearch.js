@@ -7,29 +7,25 @@ import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchR
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 import { createToastMessage, reduceErrors } from 'c/errorUtils';
 import {
-    createColumns,
-    createDisplayRow,
-    getSortFieldApiName
-} from './objectRecordSearchDisplay';
-import {
     DEFAULT_SORT_DIRECTION,
     DEFAULT_SORTED_BY,
-    createAccessMessages,
-    createInitialPaginationState,
-    createNextPageState,
-    createPaginationStateFromResponse,
-    createPreviousPageState,
-    normalizeSortDirection
-} from './objectRecordSearchState';
-import {
     FORM_MODE_FILE_UPLOAD,
     FORM_MODE_RECORD,
     applyFormFieldOverrides,
+    createAccessMessages,
+    createColumns,
     createFallbackFormSections,
+    createInitialPaginationState,
     createLayoutFormSections,
+    createNextPageState,
+    createPreviousPageState,
+    createSearchFailureState,
+    createSearchRequest,
+    createSearchSuccessState,
     getCurrentLayout,
-    getObjectUiCapability
-} from './objectRecordSearchForm';
+    getObjectUiCapability,
+    normalizeSortDirection
+} from './objectRecordSearchLogic';
 
 // 新しい検索条件に使うページング初期値を共有
 const INITIAL_PAGINATION_STATE = createInitialPaginationState();
@@ -96,41 +92,15 @@ export default class ObjectRecordSearch extends LightningElement {
 
         // 取得成功時は設定、行、ページング状態をまとめて更新
         if (data) {
-            // 対象オブジェクトの権限と表示設定を保存
-            this.config = data.config;
-            // Apex Wrapperをdatatable用の平坦な行へ変換
-            this.rows = (data.records ?? []).map((record) =>
-                createDisplayRow(record, this.config?.displayFields)
+            // 検索応答からLogicが生成した画面状態をまとめて反映
+            Object.assign(
+                this,
+                createSearchSuccessState(data, this.pageSize)
             );
-            // Apex応答のページ情報を現在状態へ反映
-            this.applyPaginationState(
-                createPaginationStateFromResponse(data, this.pageSize)
-            );
-            // ページ切り替え後に以前の選択を解除
-            this.selectedRowIds = [];
-            // 再取得成功時は以前のエラー見出しを解除
-            this.errorTitle = undefined;
-            // 再取得成功時は以前のエラー本文を解除
-            this.errorMessage = undefined;
         // 取得失敗時は古い一覧を残さずエラー状態へ移行
         } else if (error) {
-            // 以前取得した表示行を破棄
-            this.rows = [];
-            // 古い次ページトークンを破棄
-            this.nextPageToken = undefined;
-            // 追加ページ操作を無効化
-            this.hasNextPage = false;
-            // 古い選択状態を破棄
-            this.selectedRowIds = [];
-            // 権限エラーと一般エラーで利用者の次操作を分ける
-            this.errorTitle = this.isAccessError(error)
-                ? 'アクセス権限を確認してください'
-                : 'レコード一覧を読み込めませんでした';
-            // Salesforceエラーを利用者向け文言へ変換
-            this.errorMessage = reduceErrors(
-                error,
-                'レコード一覧を読み込めませんでした。'
-            );
+            // 検索エラーからLogicが生成した画面状態をまとめて反映
+            Object.assign(this, createSearchFailureState(error));
         }
     }
 
@@ -163,31 +133,22 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // reactive wireへ渡す現在の検索要求を生成
     get searchRequest() {
-        // Apex Wrapperの入力項目に現在状態を対応付ける
-        return {
-            // 許可リスト解決に使うカタログキーを指定
+        // 現在の画面状態からApex検索要求をLogicで生成
+        return createSearchRequest({
+            // 許可リスト解決に使うカタログキーを渡す
             metricKey: this.metricKey,
-            // 確定済み検索語だけを送信
+            // 確定済み検索語を渡す
             searchTerm: this.searchTerm,
-            // 現在ページのカーソル境界を指定
-            pageToken: this.currentPageToken,
-            // datatable列キーを変換した項目API名を指定
-            sortBy: this.sortFieldApiName,
-            // 許可値へ正規化済みのソート方向を指定
-            sortDirection: this.sortedDirection,
-            // 応答表示と整合する現在ページ番号を指定
-            pageNumber: this.pageNumber
-        };
-    }
-
-    // datatable列キーからApex検索用の項目API名を取得
-    get sortFieldApiName() {
-        // Name列と追加表示列の変換を表示ヘルパーへ委譲
-        return getSortFieldApiName({
+            // 現在ページのカーソル境界を渡す
+            currentPageToken: this.currentPageToken,
             // 現在選択中のdatatable列キーを渡す
             sortedBy: this.sortedBy,
-            // 設定取得前は標準Name項目へフォールバック
-            nameFieldApiName: this.config?.nameFieldApiName ?? 'Name'
+            // Apexへ送るソート方向を渡す
+            sortedDirection: this.sortedDirection,
+            // 画面上の現在ページ番号を渡す
+            pageNumber: this.pageNumber,
+            // Name相当項目を含む検索設定を渡す
+            config: this.config
         });
     }
 
@@ -784,22 +745,6 @@ export default class ObjectRecordSearch extends LightningElement {
                 variant
             })
         );
-    }
-
-    // Salesforceエラーがアクセス権限不足を示すか判定
-    isAccessError(error) {
-        // fetch形式とApex形式のHTTP状態コードを共通取得
-        const status = error?.status ?? error?.body?.statusCode;
-        // 認証または権限不足の状態コードを直接判定
-        if (status === 401 || status === 403) {
-            // 権限確認を促すエラー分類として返却
-            return true;
-        }
-
-        // 状態コードがないエラーは一般化メッセージ内の標準語句で判定
-        return reduceErrors(error, '')
-            .toLowerCase()
-            .includes('insufficient access');
     }
 
     // 新しい検索条件に合わせてページング状態を初期化
