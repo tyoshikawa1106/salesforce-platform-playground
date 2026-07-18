@@ -79,6 +79,24 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous -
 
 ## LWC / UI 変更
 
+### JavaScript 構成
+
+- 新規に独自実装する画面 LWC は、`componentName.js` と `componentNameLogic.js` の 2 層構成を必須とする。
+- 既存の画面 LWC の振る舞いを変更する場合は、変更行だけでなく bundle 全体を 2 層構成へ合わせる。構成だけを合わせる一括変更は、機能変更と分離した明示タスクで行う。
+- `componentName.js` は Controller として、`@api`、`@wire`、ライフサイクル、イベント受付、LWC 固有 API、処理順序、成功・失敗時の分岐、画面状態への反映を担当する。このファイルを読めば、利用者の操作から結果表示までの主要な流れを追える状態にする。
+- `componentNameLogic.js` は、データ変換、判定、正規化、リクエスト生成、状態遷移、表示値生成など、LWC インスタンスに依存しない UI ロジックを担当し、原則として入力から結果を返す純粋関数で構成する。
+- Logic へ `this`、コンポーネントインスタンス、DOM 要素を渡さない。wire adapter、imperative Apex、Toast、Navigation、`refreshApex`、DOM 操作などの LWC 固有処理は `componentName.js` に残す。
+- メイン処理の大枠を Logic へ隠さず、単純な代入や呼び出しを移しただけの多段ラッパーを作らない。
+- Logic は `componentNameLogic.js` にまとめることを基本とする。複数の独立した責務があり、1 ファイルでは処理を追いにくい場合だけ、責務別 JavaScript へ追加分割する。
+- 既存・新規を問わず、責務と依存関係から統合または分割を判断する。既存ファイルを残すことや、命名を揃えること自体を判断理由にしない。
+- 追加分割する場合も、`componentNameLogic.js` をメイン JavaScript から参照する画面単位のロジック入口とし、単なる再 export、多段ラッパー、循環 import を作らない。
+- 複数の LWC で共有する処理は、コンポーネント固有の Logic に重複させず、再利用範囲を確認して API module への昇格を検討する。
+- 権限、データ整合性、業務上必須の制約など、LWC を経由しない更新でも守る必要があるルールは Apex または Salesforce メタデータ側で担保する。
+- Logic の分岐、変換、状態遷移は Logic を直接 import する Jest test で確認し、メイン JavaScript とテンプレートの接続はコンポーネントの Jest test で確認する。
+- API module、CSS module、テスト用 mock、インストール済み・生成済みコンポーネントは、この 2 層構成の対象外とする。
+
+構成を決めた背景と懸念への対策は、[LWC JavaScript 構成](../discussions/lwc-javascript-structure.md)に記録します。
+
 ### JavaScript 実装コメント
 
 - `force-app/main/default/lwc` 配下で独自実装する本体 JavaScript は、新規行や変更行だけでなくファイル全体を対象にコメント規約へ合わせる。
