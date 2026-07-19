@@ -20,6 +20,10 @@ import CASE_SUPPLIED_NAME_FIELD from '@salesforce/schema/Case.SuppliedName';
 import CASE_SUPPLIED_EMAIL_FIELD from '@salesforce/schema/Case.SuppliedEmail';
 import CASE_SUPPLIED_PHONE_FIELD from '@salesforce/schema/Case.SuppliedPhone';
 import CASE_SUPPLIED_COMPANY_FIELD from '@salesforce/schema/Case.SuppliedCompany';
+import {
+    createProfile,
+    formatCaseCount
+} from './caseContactProfileLogic';
 
 // Case取得に必須なContact参照だけを指定
 const REQUIRED_FIELDS = [CASE_CONTACT_ID_FIELD];
@@ -43,8 +47,6 @@ const OPTIONAL_FIELDS = [
     CASE_SUPPLIED_PHONE_FIELD,
     CASE_SUPPLIED_COMPANY_FIELD
 ];
-// 未設定または参照不可の値に使う代替表示
-const UNAVAILABLE_VALUE = '-';
 // ContactレコードURL生成時のオブジェクトAPI名
 const CONTACT_OBJECT_API_NAME = 'Contact';
 // AccountレコードURL生成時のオブジェクトAPI名
@@ -61,8 +63,8 @@ export default class CaseContactProfile extends NavigationMixin(
     // レコードページから表示中CaseのIDを受け取る
     @api recordId;
 
-    // UI APIから取得したCaseレコードを保持
-    caseRecord;
+    // UI API項目から生成したプロフィール表示状態を保持
+    profile = createProfile();
     // Case取得失敗時の利用者向けメッセージを保持
     errorMessage;
     // Caseの初回レスポンス受信状態を保持
@@ -96,8 +98,8 @@ export default class CaseContactProfile extends NavigationMixin(
 
             // 初回ローディングを終了
             this.hasLoaded = true;
-            // 最新Caseをプロフィール値の参照元として保存
-            this.caseRecord = data;
+            // 最新CaseのUI API項目をプロフィール表示状態へ変換
+            this.profile = this.createProfileFromRecord(data);
             // 再取得成功時は以前のエラー表示を解除
             this.errorMessage = undefined;
             // 親レコードが変わった件数だけを未取得状態へ戻す
@@ -111,8 +113,8 @@ export default class CaseContactProfile extends NavigationMixin(
         } else if (error) {
             // エラー表示へ切り替えるため初回取得を完了扱いにする
             this.hasLoaded = true;
-            // 以前取得したCaseの値を表示しないよう破棄
-            this.caseRecord = undefined;
+            // 以前取得したプロフィール値を空状態へ戻す
+            this.profile = createProfile();
             // 古いContactへのリンクを破棄
             this.contactRecordUrl = undefined;
             // 古いAccountへのリンクを破棄
@@ -173,148 +175,110 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // 表示中Caseに設定されたContact IDを取得
     get contactId() {
-        // Case未取得時と参照不可時はundefinedを返却
-        return this.getValue(CASE_CONTACT_ID_FIELD);
+        // Logicが解決したContact IDをwireとURL生成へ使用
+        return this.profile.contactId;
     }
 
     // Caseへ直接設定されたAccount IDを取得
     get caseAccountId() {
-        // Case未取得時と参照不可時はundefinedを返却
-        return this.getValue(CASE_ACCOUNT_ID_FIELD);
+        // Logicが保持するCase直接設定のAccount IDを返却
+        return this.profile.caseAccountId;
     }
 
     // Contactが所属するAccount IDを取得
     get contactAccountId() {
-        // Contact未設定または参照不可時はundefinedを返却
-        return this.getValue(CASE_CONTACT_ACCOUNT_ID_FIELD);
+        // Logicが保持するContact所属先のAccount IDを返却
+        return this.profile.contactAccountId;
     }
 
     // 会社表示に使う優先Account IDを取得
     get accountId() {
-        // Case直接設定を優先し、なければContact所属先を使用
-        return this.caseAccountId || this.contactAccountId;
+        // Logicが優先順位に従って解決したAccount IDを返却
+        return this.profile.accountId;
     }
 
     // ContactまたはWeb-to-Case入力の顧客名を表示
     get contactName() {
-        // 取得できない値を代替表示へ変換
-        return this.getDisplayValue(
-            // Contact設定有無に応じて参照元を切り替え
-            this.getContactValue(
-                CASE_CONTACT_NAME_FIELD,
-                CASE_SUPPLIED_NAME_FIELD
-            )
-        );
+        // LogicがContactまたはWeb入力から解決した顧客名を返却
+        return this.profile.contactName;
     }
 
     // ContactまたはWeb-to-Case入力のメールアドレスを取得
     get contactEmail() {
-        // Contact設定有無に応じて参照元を切り替え
-        return this.getContactValue(
-            CASE_CONTACT_EMAIL_FIELD,
-            CASE_SUPPLIED_EMAIL_FIELD
-        );
+        // LogicがContactまたはWeb入力から解決したメールを返却
+        return this.profile.contactEmail;
     }
 
     // メールアドレスを空欄なしの表示値へ変換
     get contactEmailText() {
-        // 未設定時は共通の代替値を返却
-        return this.contactEmail || UNAVAILABLE_VALUE;
+        // Logicが空欄なしに整形したメール表示値を返却
+        return this.profile.contactEmailText;
     }
 
     // ContactまたはWeb-to-Case入力の電話番号を取得
     get contactPhone() {
-        // Contact設定有無に応じて参照元を切り替え
-        return this.getContactValue(
-            CASE_CONTACT_PHONE_FIELD,
-            CASE_SUPPLIED_PHONE_FIELD
-        );
+        // LogicがContactまたはWeb入力から解決した電話番号を返却
+        return this.profile.contactPhone;
     }
 
     // 電話番号を空欄なしの表示値へ変換
     get contactPhoneText() {
-        // 未設定時は共通の代替値を返却
-        return this.contactPhone || UNAVAILABLE_VALUE;
+        // Logicが空欄なしに整形した電話表示値を返却
+        return this.profile.contactPhoneText;
     }
 
     // Contactに登録された携帯電話番号を取得
     get contactMobilePhone() {
-        // Contact未設定時はWeb入力へフォールバックしない
-        return this.getContactValue(CASE_CONTACT_MOBILE_PHONE_FIELD);
+        // LogicがContact設定時だけ採用した携帯電話番号を返却
+        return this.profile.contactMobilePhone;
     }
 
     // 携帯電話番号を空欄なしの表示値へ変換
     get contactMobilePhoneText() {
-        // 未設定時は共通の代替値を返却
-        return this.contactMobilePhone || UNAVAILABLE_VALUE;
+        // Logicが空欄なしに整形した携帯電話表示値を返却
+        return this.profile.contactMobilePhoneText;
     }
 
     // Contactに登録されたFAX番号を取得
     get contactFax() {
-        // Contact未設定時はWeb入力へフォールバックしない
-        return this.getContactValue(CASE_CONTACT_FAX_FIELD);
+        // LogicがContact設定時だけ採用したFAX番号を返却
+        return this.profile.contactFax;
     }
 
     // FAX番号を空欄なしの表示値へ変換
     get contactFaxText() {
-        // 未設定時は共通の代替値を返却
-        return this.contactFax || UNAVAILABLE_VALUE;
+        // Logicが空欄なしに整形したFAX表示値を返却
+        return this.profile.contactFaxText;
     }
 
     // Case、Contact、Web入力の順で会社名を取得
     get companyName() {
-        // Caseへ直接設定されたAccount名を最優先
-        if (this.caseAccountId) {
-            // Account参照名を空欄なしの表示値へ変換
-            return this.getDisplayValue(CASE_ACCOUNT_NAME_FIELD);
-        }
-        // Case直接設定がない場合はContact所属先を使用
-        if (this.contactAccountId) {
-            // Contact経由のAccount名を表示値へ変換
-            return this.getDisplayValue(
-                CASE_CONTACT_ACCOUNT_NAME_FIELD
-            );
-        }
-        // Account参照がない場合はWeb-to-Case入力会社名を使用
-        return this.getDisplayValue(CASE_SUPPLIED_COMPANY_FIELD);
+        // Logicが会社優先順位に従って解決した表示名を返却
+        return this.profile.companyName;
     }
 
     // CaseまたはContact経由の会社Webサイトを取得
     get website() {
-        // Caseへ直接設定されたAccountのWebサイトを優先
-        if (this.caseAccountId) {
-            // Case経由のAccount Webサイトを返却
-            return this.getValue(CASE_ACCOUNT_WEBSITE_FIELD);
-        }
-        // Case直接設定がない場合はContact所属先を使用
-        if (this.contactAccountId) {
-            // Contact経由のAccount Webサイトを返却
-            return this.getValue(CASE_CONTACT_ACCOUNT_WEBSITE_FIELD);
-        }
-        // Account参照がない場合はリンクを表示しない
-        return undefined;
+        // Logicが会社優先順位に従って解決したWebサイトを返却
+        return this.profile.website;
     }
 
     // 会社Webサイトを空欄なしの表示値へ変換
     get websiteText() {
-        // 未設定時は共通の代替値を返却
-        return this.website || UNAVAILABLE_VALUE;
+        // Logicが空欄なしに整形したWebサイト表示値を返却
+        return this.profile.websiteText;
     }
 
     // Contactに登録された部署を表示
     get department() {
-        // Contact未設定時も代替表示を返却
-        return this.getDisplayValue(
-            this.getContactValue(CASE_CONTACT_DEPARTMENT_FIELD)
-        );
+        // LogicがContact設定有無を反映した部署表示値を返却
+        return this.profile.department;
     }
 
     // Contactに登録された役職を表示
     get title() {
-        // Contact未設定時も代替表示を返却
-        return this.getDisplayValue(
-            this.getContactValue(CASE_CONTACT_TITLE_FIELD)
-        );
+        // LogicがContact設定有無を反映した役職表示値を返却
+        return this.profile.title;
     }
 
     // Contact問い合わせ件数を正常取得できたか判定
@@ -325,10 +289,8 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // Contact問い合わせ件数を表示用の値へ変換
     get contactCaseCountText() {
-        // 未取得時だけ代替値を表示
-        return this.hasContactCaseCount
-            ? this.contactCaseCount
-            : UNAVAILABLE_VALUE;
+        // Contact件数の表示値生成をLogicへ委譲
+        return formatCaseCount(this.contactCaseCount);
     }
 
     // Account問い合わせ件数を正常取得できたか判定
@@ -339,38 +301,72 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // Account問い合わせ件数を表示用の値へ変換
     get accountCaseCountText() {
-        // 未取得時だけ代替値を表示
-        return this.hasAccountCaseCount
-            ? this.accountCaseCount
-            : UNAVAILABLE_VALUE;
+        // Account件数の表示値生成をLogicへ委譲
+        return formatCaseCount(this.accountCaseCount);
     }
 
-    // 保存済みCaseから指定項目の値を安全に取得
-    getValue(field) {
-        // UI APIヘルパーへ未取得レコードもそのまま渡す
-        return getFieldValue(this.caseRecord, field);
-    }
-
-    // 項目参照または実値を空欄なしの表示値へ変換
-    getDisplayValue(valueOrField) {
-        // Schema項目参照の場合だけCaseから値を取得
-        const value =
-            valueOrField && typeof valueOrField === 'object'
-                ? this.getValue(valueOrField)
-                : valueOrField;
-        // 空の値には共通の代替表示を使用
-        return value || UNAVAILABLE_VALUE;
-    }
-
-    // Contact設定有無に応じてContact項目とWeb入力項目を切り替え
-    getContactValue(contactField, suppliedField) {
-        // Contact設定済みならContact項目だけを参照
-        if (this.contactId) {
-            // Contactレコード上の指定項目値を返却
-            return this.getValue(contactField);
-        }
-        // Contact未設定時は指定されたWeb入力項目へフォールバック
-        return suppliedField ? this.getValue(suppliedField) : undefined;
+    // UI APIレコードからLogicへ渡すプロフィール入力を抽出
+    createProfileFromRecord(record) {
+        // Schema参照を実値へ変換してLogicへまとめて渡す
+        return createProfile({
+            // Contact設定有無と関連リスト取得に使うIDを取得
+            contactId: getFieldValue(record, CASE_CONTACT_ID_FIELD),
+            // Caseへ直接設定されたAccount IDを取得
+            caseAccountId: getFieldValue(record, CASE_ACCOUNT_ID_FIELD),
+            // Contact所属先のAccount IDを取得
+            contactAccountId: getFieldValue(
+                record,
+                CASE_CONTACT_ACCOUNT_ID_FIELD
+            ),
+            // Contactの氏名を取得
+            contactName: getFieldValue(record, CASE_CONTACT_NAME_FIELD),
+            // Web入力の氏名を取得
+            suppliedName: getFieldValue(record, CASE_SUPPLIED_NAME_FIELD),
+            // Contactのメールアドレスを取得
+            contactEmail: getFieldValue(record, CASE_CONTACT_EMAIL_FIELD),
+            // Web入力のメールアドレスを取得
+            suppliedEmail: getFieldValue(record, CASE_SUPPLIED_EMAIL_FIELD),
+            // Contactの電話番号を取得
+            contactPhone: getFieldValue(record, CASE_CONTACT_PHONE_FIELD),
+            // Web入力の電話番号を取得
+            suppliedPhone: getFieldValue(record, CASE_SUPPLIED_PHONE_FIELD),
+            // Contactの携帯電話番号を取得
+            contactMobilePhone: getFieldValue(
+                record,
+                CASE_CONTACT_MOBILE_PHONE_FIELD
+            ),
+            // ContactのFAX番号を取得
+            contactFax: getFieldValue(record, CASE_CONTACT_FAX_FIELD),
+            // Case経由のAccount名を取得
+            caseAccountName: getFieldValue(record, CASE_ACCOUNT_NAME_FIELD),
+            // Contact経由のAccount名を取得
+            contactAccountName: getFieldValue(
+                record,
+                CASE_CONTACT_ACCOUNT_NAME_FIELD
+            ),
+            // Web入力の会社名を取得
+            suppliedCompany: getFieldValue(
+                record,
+                CASE_SUPPLIED_COMPANY_FIELD
+            ),
+            // Case経由のAccount Webサイトを取得
+            caseAccountWebsite: getFieldValue(
+                record,
+                CASE_ACCOUNT_WEBSITE_FIELD
+            ),
+            // Contact経由のAccount Webサイトを取得
+            contactAccountWebsite: getFieldValue(
+                record,
+                CASE_CONTACT_ACCOUNT_WEBSITE_FIELD
+            ),
+            // Contactの部署を取得
+            contactDepartment: getFieldValue(
+                record,
+                CASE_CONTACT_DEPARTMENT_FIELD
+            ),
+            // Contactの役職を取得
+            contactTitle: getFieldValue(record, CASE_CONTACT_TITLE_FIELD)
+        });
     }
 
     // ContactまたはAccount変更時に対応する件数状態だけを初期化

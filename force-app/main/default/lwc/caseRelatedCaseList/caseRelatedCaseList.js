@@ -9,6 +9,10 @@ import CASE_NUMBER_FIELD from '@salesforce/schema/Case.CaseNumber';
 import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
 import CASE_STATUS_FIELD from '@salesforce/schema/Case.Status';
 import CASE_LAST_MODIFIED_DATE_FIELD from '@salesforce/schema/Case.LastModifiedDate';
+import {
+    createCaseCard,
+    selectRelatedCaseRecords
+} from './caseRelatedCaseListLogic';
 
 // Case本体の取得は必須項目を最小限にし、関連先の参照権限不足で全体を取得失敗させない
 const CASE_FIELDS = [CASE_ID_FIELD];
@@ -26,14 +30,8 @@ const RELATED_CASE_OPTIONAL_FIELDS = [
 const CASES_RELATED_LIST_ID = 'Cases';
 // 表示中のケースを除外しても最大5件を表示できるように1件多く取得
 const RELATED_CASE_PAGE_SIZE = 6;
-// 狭いサイドバーで一覧が長くなりすぎないよう表示数を制限
-const DISPLAY_LIMIT = 5;
 // 問い合わせの直近順を最終更新日時の降順で統一
 const RELATED_CASE_SORT = ['-Case.LastModifiedDate'];
-// 参照できない表示値を空欄にせず代替表示
-const UNAVAILABLE_VALUE = '-';
-// 件名が空のケースを識別できるよう代替表示
-const MISSING_SUBJECT = '（件名なし）';
 
 // Caseレコードページに関連問い合わせ一覧を提供
 export default class CaseRelatedCaseList extends NavigationMixin(
@@ -225,36 +223,31 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     // UI APIレコードをテンプレートで扱うカード形式へ変換
     async createCaseCards(records = []) {
         // 表示中Case自身を除外し、狭いサイドバー向けの表示件数に制限
-        const relatedCases = records
-            .filter((record) => record.id !== this.recordId)
-            .slice(0, DISPLAY_LIMIT);
+        const relatedCases = selectRelatedCaseRecords(records, this.recordId);
 
         // 全ケースのURL生成完了後に同じ表示順でカード一覧を返却
         return Promise.all(
             // 各UI APIレコードを表示専用の値へ正規化
-            relatedCases.map(async (record) => ({
-                // 繰り返し描画のキーにCase IDを使用
-                id: record.id,
-                // ケース番号をカードのリンクラベルとして表示
-                caseNumber:
-                    getFieldValue(record, CASE_NUMBER_FIELD) ||
-                    UNAVAILABLE_VALUE,
-                // 件名未入力時もカードの内容を識別可能にする
-                subject:
-                    getFieldValue(record, CASE_SUBJECT_FIELD) ||
-                    MISSING_SUBJECT,
-                // 状況を参照できない場合は代替値を表示
-                status:
-                    getFieldValue(record, CASE_STATUS_FIELD) ||
-                    UNAVAILABLE_VALUE,
-                // 最終更新日時を日付表示コンポーネントへ渡す
-                lastModifiedDate: getFieldValue(
-                    record,
-                    CASE_LAST_MODIFIED_DATE_FIELD
-                ),
-                // ケース番号から対象レコードへ遷移するURLを生成
-                url: await this.generateCaseUrl(record.id)
-            }))
+            relatedCases.map(async (record) =>
+                // UI API値とNavigation結果の表示正規化をLogicへ委譲
+                createCaseCard({
+                    // 繰り返し描画へ使うCase IDを渡す
+                    id: record.id,
+                    // UI APIから参照可能なケース番号を渡す
+                    caseNumber: getFieldValue(record, CASE_NUMBER_FIELD),
+                    // UI APIから参照可能な件名を渡す
+                    subject: getFieldValue(record, CASE_SUBJECT_FIELD),
+                    // UI APIから参照可能な状況を渡す
+                    status: getFieldValue(record, CASE_STATUS_FIELD),
+                    // UI APIから参照可能な最終更新日時を渡す
+                    lastModifiedDate: getFieldValue(
+                        record,
+                        CASE_LAST_MODIFIED_DATE_FIELD
+                    ),
+                    // NavigationMixinで生成したCase URLを渡す
+                    url: await this.generateCaseUrl(record.id)
+                })
+            )
         );
     }
 

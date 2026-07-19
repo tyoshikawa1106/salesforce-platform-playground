@@ -3,10 +3,13 @@ import { refreshApex } from '@salesforce/apex';
 import getEmailMessageCount from '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount';
 import getEmailMessages from '@salesforce/apex/CaseEmailMessageController.getEmailMessages';
 import { reduceErrors } from 'c/errorUtils';
-
-// 初期取得と追加取得で共通する利用者向けエラー文言
-const LOAD_ERROR_MESSAGE =
-    'メールメッセージを読み込めませんでした。時間をおいてもう一度お試しください。';
+import {
+    LOAD_ERROR_MESSAGE,
+    createCardTitle,
+    createEmptyPaginationState,
+    createInitialPageState,
+    createNextPageState
+} from './caseEmailMessageListLogic';
 
 // Caseレコードページにメールログをカーソルページングで表示
 export default class CaseEmailMessageList extends LightningElement {
@@ -59,7 +62,7 @@ export default class CaseEmailMessageList extends LightningElement {
             // 初期ページwireを無効化
             this.initialPageToken = undefined;
             // 以前の一覧とページング状態を共通処理で破棄
-            this.resetPagination();
+            Object.assign(this, createEmptyPaginationState());
             // Salesforceエラーを利用者向け文言へ変換
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
         }
@@ -85,7 +88,7 @@ export default class CaseEmailMessageList extends LightningElement {
         // 取得失敗時は古い一覧を残さず全体エラーへ移行
         } else if (error) {
             // 以前の一覧とページング状態を共通処理で破棄
-            this.resetPagination();
+            Object.assign(this, createEmptyPaginationState());
             // Salesforceエラーを利用者向け文言へ変換
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
         }
@@ -99,13 +102,15 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // 取得状態と総件数を反映したカードタイトルを返却
     get cardTitle() {
-        // 初期取得前とエラー時は不確かな件数を表示しない
-        if (!this.hasLoaded || this.errorMessage) {
-            // 件数を含まない固定タイトルを返却
-            return 'メールログ';
-        }
-        // 取得成功後はCase全体のメール件数を表示
-        return `メールログ (${this.totalEmailMessageCount})`;
+        // 取得状態と総件数に応じたタイトル生成をLogicへ委譲
+        return createCardTitle({
+            // 初期ページ取得済みかどうかを渡す
+            hasLoaded: this.hasLoaded,
+            // 全体エラーの有無を渡す
+            errorMessage: this.errorMessage,
+            // COUNTで取得した総件数を渡す
+            totalCount: this.totalEmailMessageCount
+        });
     }
 
     // 初期ページwireが最初のレスポンスを受信したか判定
@@ -186,17 +191,18 @@ export default class CaseEmailMessageList extends LightningElement {
                 // 前回応答のカーソルを次ページ境界に指定
                 pageToken: this.nextPageToken
             });
-            // 追加ページを表示行とページ区切りへ変換
-            const nextEmailMessages = this.createNextPageDisplayRows(page);
-            // 既存順を保って新しい表示行を末尾へ追加
-            this.emailMessages = [
-                ...this.emailMessages,
-                ...nextEmailMessages
-            ];
-            // 続く追加取得へ使うトークンを更新
-            this.nextPageToken = page.nextPageToken;
-            // 総件数とトークンから追加取得可否を再判定
-            this.updateHasNextPage();
+            // 追加ページを既存一覧へ連結した次状態をまとめて反映
+            Object.assign(
+                this,
+                createNextPageState({
+                    // Apexが返した追加ページを渡す
+                    page,
+                    // 現在表示中の一覧を渡す
+                    emailMessages: this.emailMessages,
+                    // COUNTで取得した総件数を渡す
+                    totalCount: this.totalEmailMessageCount
+                })
+            );
         // 追加取得失敗時は現在一覧を維持してエラーだけを表示
         } catch (error) {
             // 初期一覧を残したまま追加取得エラーだけを表示
@@ -213,112 +219,10 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // Apex初期ページ応答を一覧とページング状態へ反映
     applyInitialPage(page) {
-        // 各EmailMessageをテンプレート表示行へ変換
-        this.emailMessages = (page.emailMessages || []).map((emailMessage) =>
-            this.createDisplayRow(emailMessage)
+        // 初期ページから生成した一覧とページング状態をまとめて反映
+        Object.assign(
+            this,
+            createInitialPageState(page, this.totalEmailMessageCount)
         );
-        // 次回取得に使うApexページトークンを保存
-        this.nextPageToken = page.nextPageToken;
-        // 総件数と取得済み件数から次ページ有無を判定
-        this.updateHasNextPage();
-        // 初期ページ成功時は以前の追加取得エラーを解除
-        this.loadMoreErrorMessage = undefined;
-    }
-
-    // 次ページトークンと未取得件数から追加取得可否を更新
-    updateHasNextPage() {
-        // トークンがあり取得済み件数が総件数未満の場合だけ有効化
-        this.hasNextPage = Boolean(
-            this.nextPageToken &&
-                this.emailMessages.length < this.totalEmailMessageCount
-        );
-    }
-
-    // 追加ページを表示行へ変換して先頭行へ区切り情報を付加
-    createNextPageDisplayRows(page) {
-        // 追加前の件数から新しいページの開始位置を計算
-        const rangeStart = this.emailMessages.length + 1;
-        // Apex応答を既存行と同じ表示構造へ変換
-        const nextEmailMessages = (page.emailMessages || []).map(
-            (emailMessage) => this.createDisplayRow(emailMessage)
-        );
-        // 空ページでは区切り行を作らずそのまま返却
-        if (nextEmailMessages.length === 0) {
-            // 空の表示行一覧を呼び出し側へ返却
-            return nextEmailMessages;
-        }
-
-        // 新しいページの最終表示位置を計算
-        const rangeEnd = rangeStart + nextEmailMessages.length - 1;
-        // 追加ページ先頭行へスクリーンリーダー用区切りを追加
-        nextEmailMessages[0] = {
-            ...nextEmailMessages[0],
-            // テンプレートへページ区切り表示を通知
-            hasPageSeparator: true,
-            // aria参照に使う一意な区切りIDを生成
-            pageSeparatorId: `email-page-separator-${rangeStart}-${rangeEnd}`,
-            // 読み込んだ表示範囲を支援技術へ通知
-            pageSeparatorMessage: `${rangeStart}件目から${rangeEnd}件目を読み込みました`
-        };
-        // 区切り情報を含む追加表示行を返却
-        return nextEmailMessages;
-    }
-
-    // EmailMessageレコードをテンプレート表示用の行へ変換
-    createDisplayRow(emailMessage) {
-        // Incomingフラグを日本語の送受信区分へ変換
-        const direction = emailMessage.Incoming ? '受信' : '送信';
-        // 送受信区分に対応するLightningアイコンを選択
-        const directionIconName = emailMessage.Incoming
-            ? 'utility:email_open'
-            : 'utility:sender_email';
-        // 差出人未設定時もリンクラベルを空にしない
-        const fromAddress = emailMessage.FromAddress || '(差出人なし)';
-        // 宛先未設定時も表示内容を空にしない
-        const toAddress = emailMessage.ToAddress || '(宛先なし)';
-
-        // 表示、リンク、アクセシビリティ用の値をまとめて返却
-        return {
-            // 繰り返し描画のキーにEmailMessage IDを使用
-            id: emailMessage.Id,
-            // テキスト本文がない場合は代替表示を使用
-            body: emailMessage.TextBody || '(本文なし)',
-            // 日本語の送受信区分を表示
-            direction,
-            // 送受信区分に対応するアイコン名を設定
-            directionIconName,
-            // 詳細領域のaria参照IDを生成
-            detailsId: `email-message-details-${emailMessage.Id}`,
-            // 整形済み差出人を表示
-            fromAddress,
-            // 差出人を宛先にしたメールリンクを生成
-            fromAddressUrl: `mailto:${encodeURIComponent(fromAddress)}`,
-            // メッセージ見出しのaria参照IDを生成
-            headingId: `email-message-${emailMessage.Id}`,
-            // Salesforceの送受信日時を保持
-            messageDate: emailMessage.MessageDate,
-            // EmailMessage標準詳細ページの相対URLを生成
-            recordUrl: `/lightning/r/EmailMessage/${emailMessage.Id}/view`,
-            // 件名未設定時もカードを識別できる代替表示を使用
-            subject: emailMessage.Subject || '(件名なし)',
-            // 差出人、宛先、送受信区分を要約文へ統合
-            summary: `${fromAddress} から ${toAddress} への${direction}メール`,
-            // 要約領域のaria参照IDを生成
-            summaryId: `email-message-summary-${emailMessage.Id}`,
-            // 整形済み宛先を表示
-            toAddress,
-            // 宛先を宛先にしたメールリンクを生成
-            toAddressUrl: `mailto:${encodeURIComponent(toAddress)}`
-        };
-    }
-
-    // 一覧と次ページ情報を未取得状態へ初期化
-    resetPagination() {
-        // 以前取得したメール一覧を破棄
-        this.emailMessages = [];
-        // 追加取得ボタンを無効化
-        this.hasNextPage = false;
-        // 古いページトークンを破棄
-        this.nextPageToken = undefined;
     }
 }

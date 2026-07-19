@@ -11,6 +11,12 @@
 | [Apex テストデータ作成クラスの命名](apex-test-data-class-naming.md) | テストデータ作成クラスの命名候補比較       |
 | [Apex Trigger クラス構成](apex-trigger-class-structure.md)          | Trigger、Handler、Service の責務分担の検討 |
 
+### LWC 設計
+
+| タイトル                                           | 概要                                        |
+| -------------------------------------------------- | ------------------------------------------- |
+| [LWC JavaScript 構成](lwc-javascript-structure.md) | メイン JavaScript と Logic の責務分担の検討 |
+
 ### Salesforce メタデータ管理
 
 | タイトル                                                                                 | 概要                                    |
