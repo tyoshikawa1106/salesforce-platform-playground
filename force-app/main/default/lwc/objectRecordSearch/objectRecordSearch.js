@@ -7,28 +7,21 @@ import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchR
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 import { createToastMessage, reduceErrors } from 'c/errorUtils';
 import {
-    DEFAULT_SORT_DIRECTION,
-    DEFAULT_SORTED_BY,
-    FORM_MODE_FILE_UPLOAD,
-    FORM_MODE_RECORD,
-    applyFormFieldOverrides,
-    createAccessMessages,
-    createColumns,
-    createFallbackFormSections,
-    createInitialPaginationState,
-    createLayoutFormSections,
-    createNextPageState,
-    createPreviousPageState,
+    createFormViewState,
+    createFormWireState,
+    createInitialSearchState,
+    createNextSearchState,
+    createPreviousSearchState,
+    createSearchCriteriaState,
     createSearchFailureState,
     createSearchRequest,
     createSearchSuccessState,
-    getCurrentLayout,
-    getObjectUiCapability,
-    normalizeSortDirection
+    createSortSearchState,
+    createTableColumns
 } from './objectRecordSearchLogic';
 
-// 新しい検索条件に使うページング初期値を共有
-const INITIAL_PAGINATION_STATE = createInitialPaginationState();
+// コンポーネント生成時に使う検索画面の初期値を共有
+const INITIAL_SEARCH_STATE = createInitialSearchState();
 
 // 権限に応じた汎用レコード検索と標準レコード操作を管理
 export default class ObjectRecordSearch extends LightningElement {
@@ -46,21 +39,21 @@ export default class ObjectRecordSearch extends LightningElement {
     // Apexが返すオブジェクト、項目、権限設定を保持
     config;
     // 現在表示中のページ番号を保持
-    pageNumber = INITIAL_PAGINATION_STATE.pageNumber;
+    pageNumber = INITIAL_SEARCH_STATE.pageNumber;
     // Apexが返した現在の取得件数を保持
-    pageSize = INITIAL_PAGINATION_STATE.pageSize;
+    pageSize = INITIAL_SEARCH_STATE.pageSize;
     // 現在ページの検索境界トークンを保持
-    currentPageToken = INITIAL_PAGINATION_STATE.currentPageToken;
+    currentPageToken = INITIAL_SEARCH_STATE.currentPageToken;
     // 次ページの検索境界トークンを保持
-    nextPageToken = INITIAL_PAGINATION_STATE.nextPageToken;
+    nextPageToken = INITIAL_SEARCH_STATE.nextPageToken;
     // 前ページへ戻るための使用済みトークン履歴を保持
-    pageTokenHistory = INITIAL_PAGINATION_STATE.pageTokenHistory;
+    pageTokenHistory = INITIAL_SEARCH_STATE.pageTokenHistory;
     // datatableで選択中の列キーを保持
-    sortedBy = DEFAULT_SORTED_BY;
+    sortedBy = INITIAL_SEARCH_STATE.sortedBy;
     // Apex検索へ送るソート方向を保持
-    sortedDirection = DEFAULT_SORT_DIRECTION;
+    sortedDirection = INITIAL_SEARCH_STATE.sortedDirection;
     // 次ページを取得できる状態を保持
-    hasNextPage = INITIAL_PAGINATION_STATE.hasNextPage;
+    hasNextPage = INITIAL_SEARCH_STATE.hasNextPage;
     // 検索失敗時のエラー見出しを保持
     errorTitle;
     // 検索失敗時の利用者向けメッセージを保持
@@ -79,6 +72,12 @@ export default class ObjectRecordSearch extends LightningElement {
     objectInfoResult;
     // フォーム構築に使うページレイアウト応答を保持
     formLayoutResult;
+    // UI API wireへ渡す軽量なフォーム条件を保持
+    formWireState = createFormWireState({});
+    // UI API応答変更時に生成したフォーム表示状態を保持
+    formViewState = createFormViewState({
+        formWireState: this.formWireState
+    });
 
     // 検索条件、ソート、ページ境界に応じてApex検索を実行
     @wire(searchRecords, {
@@ -97,6 +96,8 @@ export default class ObjectRecordSearch extends LightningElement {
                 this,
                 createSearchSuccessState(data, this.pageSize)
             );
+            // 対象オブジェクト変更をフォーム状態へ反映
+            this.updateFormState();
         // 取得失敗時は古い一覧を残さずエラー状態へ移行
         } else if (error) {
             // 検索エラーからLogicが生成した画面状態をまとめて反映
@@ -109,6 +110,8 @@ export default class ObjectRecordSearch extends LightningElement {
     wiredObjectInfo(result) {
         // フォーム構築と権限判定に応答全体を保存
         this.objectInfoResult = result;
+        // 既定レコードタイプと項目権限をフォーム状態へ反映
+        this.updateFormState();
     }
 
     // 作成または編集モードのFullページレイアウトを取得
@@ -121,6 +124,8 @@ export default class ObjectRecordSearch extends LightningElement {
     wiredFormLayout(result) {
         // フォームセクション構築に応答全体を保存
         this.formLayoutResult = result;
+        // 最新ページレイアウトからフォーム表示状態を再生成
+        this.updateFormState();
     }
 
     // 検索対象オブジェクトを含む画面タイトルを返却
@@ -162,13 +167,11 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 検索設定と編集権限からdatatable列を生成
     get columns() {
-        // 表示列の構築を副作用のないヘルパーへ委譲
-        return createColumns({
-            // Name相当項目の見出しを設定
-            nameFieldLabel: this.config?.nameFieldLabel ?? 'Name',
-            // 参照可能な追加表示項目だけを設定
-            displayFields: this.config?.displayFields,
-            // 編集不可時は行アクションを除外
+        // 検索設定と編集可否から画面用の列をLogicで生成
+        return createTableColumns({
+            // Apexが返した表示設定を渡す
+            config: this.config,
+            // 現在のフォーム状態を反映した編集可否を渡す
             editDisabled: this.editDisabled
         });
     }
@@ -229,238 +232,74 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 新規作成またはアップロード操作の無効状態を判定
     get createDisabled() {
-        // ファイルはレイアウトではなく処理中状態だけで判定
-        if (this.isFileUploadObject) {
-            // アップロード画面の操作中状態をそのまま返却
-            return this.isBusy;
-        }
-
-        // 標準フォームは対応状況、レイアウト、権限、項目を確認
-        return (
-            this.isBusy ||
-            !this.isRecordFormObject ||
-            this.isFormLayoutLoading ||
-            !this.config?.createable ||
-            this.formFields.length === 0
-        );
+        // 処理中またはフォーム構造上の作成不可状態で無効化
+        return this.isBusy || this.formViewState.createUnavailable;
     }
 
     // 行編集操作を無効化する状態を判定
     get editDisabled() {
-        // 対応状況、レイアウト、権限、項目の不足時に無効化
-        return (
-            this.isBusy ||
-            !this.isRecordFormObject ||
-            this.isFormLayoutLoading ||
-            !this.config?.updateable ||
-            this.formFields.length === 0
-        );
-    }
-
-    // 対象オブジェクト固有のフォーム操作方式を取得
-    get objectUiCapability() {
-        // API名に対応する定義または既定値を返却
-        return getObjectUiCapability(this.config?.objectApiName);
-    }
-
-    // 対象がファイルアップロード方式か判定
-    get isFileUploadObject() {
-        // オブジェクト固有の画面モードを比較
-        return this.objectUiCapability.formMode === FORM_MODE_FILE_UPLOAD;
-    }
-
-    // 対象が標準レコードフォーム方式か判定
-    get isRecordFormObject() {
-        // API名取得済みかつレコードフォーム対応の場合だけ有効化
-        return (
-            Boolean(this.config?.objectApiName) &&
-            this.objectUiCapability.formMode === FORM_MODE_RECORD
-        );
+        // 処理中またはフォーム構造上の編集不可状態で無効化
+        return this.isBusy || this.formViewState.editUnavailable;
     }
 
     // 現在ファイルアップロード画面を表示するか判定
     get isFileUploadForm() {
-        // フォーム表示中かつ対象モードがファイルの場合だけ表示
-        return this.showRecordForm && this.isFileUploadObject;
+        // モーダル表示中かつファイル方式の場合だけ表示
+        return this.showRecordForm && this.formViewState.isFileUploadObject;
     }
 
     // 現在標準レコードフォームを表示するか判定
     get showLightningRecordForm() {
-        // フォーム表示中かつ対象モードがレコードの場合だけ表示
-        return this.showRecordForm && this.isRecordFormObject;
+        // モーダル表示中かつ標準レコード方式の場合だけ表示
+        return this.showRecordForm && this.formViewState.isRecordFormObject;
     }
 
     // UI APIへ渡すフォーム対象オブジェクトAPI名を返却
     get layoutObjectApiName() {
-        // 標準フォーム非対応オブジェクトではwireを無効化
-        return this.isRecordFormObject ? this.config.objectApiName : undefined;
+        // レイアウト解析を伴わない軽量状態からwire条件を返却
+        return this.formWireState.layoutObjectApiName;
     }
 
     // レコードIDの有無からレイアウト取得モードを返却
     get layoutMode() {
-        // 編集対象がある場合はEdit、それ以外はCreateを使用
-        return this.formRecordId ? 'Edit' : 'Create';
+        // レイアウト解析を伴わない軽量状態からwire条件を返却
+        return this.formWireState.layoutMode;
     }
 
     // 対象オブジェクトの既定レコードタイプIDを返却
     get defaultRecordTypeId() {
-        // getObjectInfo取得前または失敗時はundefinedを返却
-        return this.objectInfoResult?.data?.defaultRecordTypeId;
-    }
-
-    // 標準フォーム用ページレイアウトの取得中状態を判定
-    get isFormLayoutLoading() {
-        // 対応オブジェクトでデータとエラーの両方がない間だけ有効化
-        return (
-            this.isRecordFormObject &&
-            !this.formLayoutResult?.data &&
-            !this.formLayoutResult?.error
-        );
+        // レイアウト解析を伴わない軽量状態からwire条件を返却
+        return this.formWireState.defaultRecordTypeId;
     }
 
     // オブジェクト固有の新規操作ボタンラベルを返却
     get newButtonLabel() {
-        // 画面モード定義のラベルをそのまま使用
-        return this.objectUiCapability.newButtonLabel;
-    }
-
-    // オブジェクト固有のフォーム対応メッセージを返却
-    get formCapabilityMessage() {
-        // 検索設定取得前は案内を表示しない
-        return this.config?.objectApiName
-            ? this.objectUiCapability.message
-            : undefined;
+        // Logicが生成したオブジェクト別の操作ラベルを返却
+        return this.formViewState.newButtonLabel;
     }
 
     // 権限またはフォーム対応に関する案内があるか判定
     get hasAccessMessages() {
-        // 生成済み案内の要素数を真偽値へ変換
-        return this.accessMessages.length > 0;
+        // Logicが生成した案内有無をテンプレートへ返却
+        return this.formViewState.hasAccessMessages;
     }
 
     // 現在の権限とフォーム状態から利用者向け案内を生成
     get accessMessages() {
-        // 表示条件と文言生成を状態ヘルパーへ委譲
-        return createAccessMessages({
-            // Apexが返した権限設定を渡す
-            config: this.config,
-            // オブジェクト固有の操作方式案内を渡す
-            formCapabilityMessage: this.formCapabilityMessage,
-            // ファイルアップロード方式かどうかを渡す
-            isFileUploadObject: this.isFileUploadObject,
-            // 標準レコードフォーム方式かどうかを渡す
-            isRecordFormObject: this.isRecordFormObject,
-            // 入力可能項目不足の表示条件を渡す
-            shouldShowFormFieldMessage: this.shouldShowFormFieldMessage,
-            // ページレイアウト取得失敗を真偽値へ変換して渡す
-            hasFormLayoutError: Boolean(this.formLayoutResult?.error)
-        });
-    }
-
-    // 作成と編集権限はあるが表示項目がない状態を判定
-    get shouldShowFormFieldMessage() {
-        // レイアウト取得完了後の標準フォームだけを対象に判定
-        return (
-            this.isRecordFormObject &&
-            !this.isFormLayoutLoading &&
-            this.config?.createable &&
-            this.config?.updateable &&
-            this.formFields.length === 0
-        );
-    }
-
-    // 全フォームセクションの項目を1つの配列へ平坦化
-    get formFields() {
-        // ボタン無効化とバリデーション対象判定に使用
-        return this.formSections.flatMap((section) => section.fields);
+        // Logicが生成した権限と対応状況の案内一覧を返却
+        return this.formViewState.accessMessages;
     }
 
     // ページレイアウトまたは代替定義からフォームセクションを生成
     get formSections() {
-        // 標準フォーム非対応オブジェクトでは項目を返さない
-        if (!this.isRecordFormObject) {
-            // フォームなしの状態を空配列で返却
-            return [];
-        }
-
-        // ページレイアウトから利用可能な標準項目を抽出
-        const layoutSections = this.layoutFormSections;
-        // 1項目以上ある場合はオブジェクト別必須項目を補完
-        if (layoutSections.length > 0) {
-            // 呼び出し元を変更せず補完済みセクションを生成
-            return applyFormFieldOverrides({
-                // レイアウト由来セクションを基礎に使用
-                sections: layoutSections,
-                // 対象オブジェクトの補完定義を解決
-                objectApiName: this.config?.objectApiName,
-                // 項目の作成更新権限を再確認
-                fieldInfoByApiName: this.objectInfoResult?.data?.fields,
-                // 作成または編集モードを判定
-                formRecordId: this.formRecordId
-            });
-        }
-
-        // レイアウト取得失敗時は許可済み標準項目へフォールバック
-        if (this.formLayoutResult?.error) {
-            // オブジェクト別の代替フォームセクションを返却
-            return this.fallbackFormSections;
-        }
-
-        // 取得中または利用可能項目なしの場合は空配列を返却
-        return [];
-    }
-
-    // 現在レイアウトをテンプレート用フォームセクションへ変換
-    get layoutFormSections() {
-        // 変換と重複排除をフォームヘルパーへ委譲
-        return createLayoutFormSections({
-            // 現在の対象オブジェクトとモードに対応するレイアウトを渡す
-            layout: this.currentLayout,
-            // 項目属性と権限情報を渡す
-            fieldInfoByApiName: this.objectInfoResult?.data?.fields,
-            // 作成または編集モードを判定するレコードIDを渡す
-            formRecordId: this.formRecordId
-        });
-    }
-
-    // UI API応答から現在モードのFullレイアウトを取得
-    get currentLayout() {
-        // 応答構造の差異吸収をフォームヘルパーへ委譲
-        return getCurrentLayout({
-            // getLayoutの成功データを渡す
-            formLayoutData: this.formLayoutResult?.data,
-            // 対象オブジェクトAPI名を指定
-            objectApiName: this.config.objectApiName,
-            // CreateまたはEditモードを指定
-            layoutMode: this.layoutMode
-        });
-    }
-
-    // レイアウト取得失敗時の最小フォームセクションを生成
-    get fallbackFormSections() {
-        // オブジェクト別定義またはName相当項目から構築
-        return createFallbackFormSections({
-            // オブジェクト別補完定義の解決に使用
-            objectApiName: this.config?.objectApiName,
-            // 個別定義がない場合の最小項目に使用
-            nameFieldApiName: this.config?.nameFieldApiName
-        });
+        // LogicがUI API応答から生成したセクションを返却
+        return this.formViewState.formSections;
     }
 
     // 現在の画面モードに対応するフォームタイトルを返却
     get formTitle() {
-        // 設定取得前は汎用レコードラベルへフォールバック
-        const objectLabel = this.config?.objectLabel ?? 'レコード';
-        // ファイルは作成ではなくアップロードとして案内
-        if (this.isFileUploadObject) {
-            // ファイル専用の操作タイトルを返却
-            return 'ファイルをアップロード';
-        }
-
-        // レコードIDの有無で編集と作成を切り替え
-        return this.formRecordId
-            ? `${objectLabel}を編集`
-            : `${objectLabel}を作成`;
+        // Logicが作成、編集、アップロード別に生成したタイトルを返却
+        return this.formViewState.formTitle;
     }
 
     // 検索条件の有無に応じた空状態メッセージを返却
@@ -509,10 +348,11 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 入力中の検索語を確定して1ページ目から検索
     handleSearch() {
-        // 前後の空白を除いた値だけをApex検索へ反映
-        this.searchTerm = this.draftSearchTerm.trim();
-        // 新しい検索条件ではカーソル履歴を初期化
-        this.resetPagination();
+        // 検索語確定とページング初期化を1つの画面状態として反映
+        Object.assign(
+            this,
+            createSearchCriteriaState(this.draftSearchTerm)
+        );
     }
 
     // トークン履歴を使って1つ前のページへ戻る
@@ -523,9 +363,10 @@ export default class ObjectRecordSearch extends LightningElement {
             return;
         }
 
-        // 現在状態から前ページの検索境界を生成して反映
-        this.applyPaginationState(
-            createPreviousPageState({
+        // 現在状態からLogicが生成した前ページ検索状態を反映
+        Object.assign(
+            this,
+            createPreviousSearchState({
                 // 現在ページ番号から1つ戻す基準を渡す
                 pageNumber: this.pageNumber,
                 // 前ページ境界を解決する履歴を渡す
@@ -542,9 +383,10 @@ export default class ObjectRecordSearch extends LightningElement {
             return;
         }
 
-        // 現在状態から次ページの検索境界を生成して反映
-        this.applyPaginationState(
-            createNextPageState({
+        // 現在状態からLogicが生成した次ページ検索状態を反映
+        Object.assign(
+            this,
+            createNextSearchState({
                 // 現在ページ番号から1つ進める基準を渡す
                 pageNumber: this.pageNumber,
                 // 現在境界を履歴へ追加するため既存履歴を渡す
@@ -559,12 +401,11 @@ export default class ObjectRecordSearch extends LightningElement {
     handleSort(event) {
         // 選択列とソート方向をイベントから取得
         const { fieldName, sortDirection } = event.detail;
-        // datatableへ返す現在列キーを保存
-        this.sortedBy = fieldName;
-        // Apex許可値へ正規化した方向を保存
-        this.sortedDirection = normalizeSortDirection(sortDirection);
-        // 新しいソート条件ではカーソル履歴を初期化
-        this.resetPagination();
+        // ソート条件とページング初期化を1つの画面状態として反映
+        Object.assign(
+            this,
+            createSortSearchState({ fieldName, sortDirection })
+        );
     }
 
     // datatableの現在選択行を一括削除対象へ反映
@@ -603,6 +444,8 @@ export default class ObjectRecordSearch extends LightningElement {
         this.showRecordForm = false;
         // 以前の編集対象レコードIDを破棄
         this.formRecordId = undefined;
+        // 作成モードへ戻したwire条件と表示状態を再生成
+        this.updateFormState();
         // エラーやキャンセル時も保存中状態を解除
         this.isSaving = false;
     }
@@ -747,23 +590,39 @@ export default class ObjectRecordSearch extends LightningElement {
         );
     }
 
-    // 新しい検索条件に合わせてページング状態を初期化
-    resetPagination() {
-        // 副作用のない初期状態生成結果を現在コンポーネントへ反映
-        this.applyPaginationState(createInitialPaginationState());
-    }
-
-    // ページングヘルパーの部分状態を現在コンポーネントへ反映
-    applyPaginationState(paginationState) {
-        // 応答や画面遷移で変更する項目だけをまとめて更新
-        Object.assign(this, paginationState);
-    }
-
     // 作成または編集対象を設定してレコードフォームを表示
     openRecordForm(recordId) {
         // レコードIDがある場合は編集、ない場合は新規作成として保持
         this.formRecordId = recordId;
+        // 作成または編集モードに対応するフォーム状態を生成
+        this.updateFormState();
         // 対象オブジェクトに対応するフォーム画面へ切り替え
         this.showRecordForm = true;
+    }
+
+    // フォーム入力元が変わった時だけwire条件と表示状態を再生成
+    updateFormState() {
+        // レイアウト取得を伴わないwire条件を先に更新
+        this.formWireState = createFormWireState({
+            // Apexが返した対象オブジェクト設定を渡す
+            config: this.config,
+            // 既定レコードタイプを含むUI API応答を渡す
+            objectInfoResult: this.objectInfoResult,
+            // CreateまたはEditを判定するレコードIDを渡す
+            formRecordId: this.formRecordId
+        });
+        // 最新のwire応答から高コストなフォーム構造を1度だけ生成
+        this.formViewState = createFormViewState({
+            // Apexが返した対象オブジェクト設定を渡す
+            config: this.config,
+            // 項目属性と権限情報を含むUI API応答を渡す
+            objectInfoResult: this.objectInfoResult,
+            // 現在モードのページレイアウト応答を渡す
+            formLayoutResult: this.formLayoutResult,
+            // 作成または編集モードを判定するレコードIDを渡す
+            formRecordId: this.formRecordId,
+            // 先に生成したフォーム方式とwire条件を渡す
+            formWireState: this.formWireState
+        });
     }
 }

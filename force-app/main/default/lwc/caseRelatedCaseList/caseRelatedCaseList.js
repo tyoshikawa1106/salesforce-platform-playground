@@ -10,13 +10,8 @@ import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
 import CASE_STATUS_FIELD from '@salesforce/schema/Case.Status';
 import CASE_LAST_MODIFIED_DATE_FIELD from '@salesforce/schema/Case.LastModifiedDate';
 import {
-    createAllRelatedListsResetState,
     createCaseCard,
-    createEmptyMessage,
-    createRelatedListResetState,
-    isRelatedListLoading,
-    selectRelatedCaseRecords,
-    shouldResetRelatedList
+    selectRelatedCaseRecords
 } from './caseRelatedCaseListLogic';
 
 // Case本体の取得は必須項目を最小限にし、関連先の参照権限不足で全体を取得失敗させない
@@ -181,20 +176,14 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // Contact設定済みかつ初回取得前の場合だけ顧客タブをローディング表示
     get isLoadingContactCases() {
-        // Contact設定と取得状態からLogicでローディングを判定
-        return isRelatedListLoading(
-            this.contactId,
-            this.contactCasesHaveLoaded
-        );
+        // Contact未設定時はローディングせず空状態を表示
+        return Boolean(this.contactId) && !this.contactCasesHaveLoaded;
     }
 
     // Account設定済みかつ初回取得前の場合だけ会社タブをローディング表示
     get isLoadingAccountCases() {
-        // Account設定と取得状態からLogicでローディングを判定
-        return isRelatedListLoading(
-            this.accountId,
-            this.accountCasesHaveLoaded
-        );
+        // Account未設定時はローディングせず空状態を表示
+        return Boolean(this.accountId) && !this.accountCasesHaveLoaded;
     }
 
     // 顧客タブにカード一覧を描画できるか判定
@@ -211,28 +200,18 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // Contact設定有無に応じた顧客タブの空状態メッセージを返却
     get contactEmptyMessage() {
-        // Contact設定有無に応じた案内生成をLogicへ委譲
-        return createEmptyMessage({
-            // 現在のContact IDを渡す
-            parentRecordId: this.contactId,
-            // Contact設定済みで0件の場合の案内を指定
-            emptyMessage: 'この顧客の別の問い合わせはありません。',
-            // Contact未設定の場合の案内を指定
-            missingParentMessage: 'このケースには顧客が設定されていません。'
-        });
+        // Contact設定済みの場合は関連ケース0件として案内
+        return this.contactId
+            ? 'この顧客の別の問い合わせはありません。'
+            : 'このケースには顧客が設定されていません。';
     }
 
     // Account設定有無に応じた会社タブの空状態メッセージを返却
     get accountEmptyMessage() {
-        // Account設定有無に応じた案内生成をLogicへ委譲
-        return createEmptyMessage({
-            // 現在のAccount IDを渡す
-            parentRecordId: this.accountId,
-            // Account設定済みで0件の場合の案内を指定
-            emptyMessage: 'この会社の別の問い合わせはありません。',
-            // Account未設定の場合の案内を指定
-            missingParentMessage: 'このケースには会社が設定されていません。'
-        });
+        // Account設定済みの場合は関連ケース0件として案内
+        return this.accountId
+            ? 'この会社の別の問い合わせはありません。'
+            : 'このケースには会社が設定されていません。';
     }
 
     // Case取得前の項目参照を避けてUI APIの値を返却
@@ -296,33 +275,39 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         previousAccountId
     ) {
         // レコードページ内の画面遷移で古い関連ケースを残さないよう取得状態を初期化
-        if (shouldResetRelatedList(previousContactId, this.contactId)) {
-            // Contact設定に応じた汎用リセット状態を生成
-            const contactState = createRelatedListResetState(this.contactId);
+        if (previousContactId !== this.contactId) {
             // 以前のContactに紐づくカードを即時に破棄
-            this.contactCases = contactState.cases;
+            this.contactCases = [];
             // Contact未設定ならwire待ちをせず取得完了扱いに変更
-            this.contactCasesHaveLoaded = contactState.hasLoaded;
+            this.contactCasesHaveLoaded = !this.contactId;
             // 新しいContactの取得開始時に以前のエラーを解除
-            this.contactCasesHaveError = contactState.hasError;
+            this.contactCasesHaveError = false;
         }
 
         // Accountが変わった場合だけ会社タブの状態を更新
-        if (shouldResetRelatedList(previousAccountId, this.accountId)) {
-            // Account設定に応じた汎用リセット状態を生成
-            const accountState = createRelatedListResetState(this.accountId);
+        if (previousAccountId !== this.accountId) {
             // 以前のAccountに紐づくカードを即時に破棄
-            this.accountCases = accountState.cases;
+            this.accountCases = [];
             // Account未設定ならwire待ちをせず取得完了扱いに変更
-            this.accountCasesHaveLoaded = accountState.hasLoaded;
+            this.accountCasesHaveLoaded = !this.accountId;
             // 新しいAccountの取得開始時に以前のエラーを解除
-            this.accountCasesHaveError = accountState.hasError;
+            this.accountCasesHaveError = false;
         }
     }
 
     // 親Case取得失敗時に両タブを表示可能な初期状態へ戻す
     resetRelatedCases() {
-        // Logicが生成した両タブの空状態をまとめて反映
-        Object.assign(this, createAllRelatedListsResetState());
+        // 顧客側のカードをすべて破棄
+        this.contactCases = [];
+        // 会社側のカードをすべて破棄
+        this.accountCases = [];
+        // 顧客側をwire待ちにせずエラーのない空状態へ移行
+        this.contactCasesHaveLoaded = true;
+        // 会社側をwire待ちにせずエラーのない空状態へ移行
+        this.accountCasesHaveLoaded = true;
+        // 親Caseエラーを優先するため顧客側の個別エラーを解除
+        this.contactCasesHaveError = false;
+        // 親Caseエラーを優先するため会社側の個別エラーを解除
+        this.accountCasesHaveError = false;
     }
 }

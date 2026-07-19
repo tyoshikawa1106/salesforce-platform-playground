@@ -49,11 +49,3 @@ export function createCountCards(metricItems = [], loading = false) {
         };
     });
 }
-
-// wire応答と明示エラーから初回ローディング状態を判定
-export function isInitialLoading({ errorMessage, wiredResult }) {
-    // データ、エラー、明示エラーのいずれもない間だけ読込中とする
-    return Boolean(
-        !errorMessage && !wiredResult?.data && !wiredResult?.error
-    );
-}

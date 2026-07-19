@@ -2,10 +2,7 @@ import {
     createCardTitle,
     createEmptyPaginationState,
     createInitialPageState,
-    createNextPageState,
-    hasEmailMessages,
-    hasInitialPageLoaded,
-    isInitialLoading
+    createNextPageState
 } from '../caseEmailMessageListLogic';
 
 const EMAIL_MESSAGE = {
@@ -71,9 +68,7 @@ describe('caseEmailMessageListLogic', () => {
         expect(state.hasNextPage).toBe(false);
     });
 
-    it('表示状態と未取得状態を判定する', () => {
-        expect(hasEmailMessages([EMAIL_MESSAGE])).toBe(true);
-        expect(hasEmailMessages([])).toBe(false);
+    it('カードタイトルと未取得ページング状態を生成する', () => {
         expect(createCardTitle({ hasLoaded: true, totalCount: 3 })).toBe(
             'メールログ (3)'
         );
@@ -84,15 +79,6 @@ describe('caseEmailMessageListLogic', () => {
                 totalCount: 3
             })
         ).toBe('メールログ');
-        expect(hasInitialPageLoaded({ data: { emailMessages: [] } })).toBe(
-            true
-        );
-        expect(
-            isInitialLoading({
-                errorMessage: undefined,
-                wiredResult: undefined
-            })
-        ).toBe(true);
         expect(createEmptyPaginationState()).toEqual({
             emailMessages: [],
             hasNextPage: false,

@@ -2,12 +2,6 @@
 export const LOAD_ERROR_MESSAGE =
     'メールメッセージを読み込めませんでした。時間をおいてもう一度お試しください。';
 
-// 1件以上のメールを表示できるか判定
-export function hasEmailMessages(emailMessages = []) {
-    // 一覧の要素数をテンプレート用真偽値へ変換
-    return emailMessages.length > 0;
-}
-
 // 初期取得状態と総件数からカードタイトルを生成
 export function createCardTitle({ hasLoaded, errorMessage, totalCount }) {
     // 初期取得前とエラー時は不確かな件数を表示しない
@@ -17,20 +11,6 @@ export function createCardTitle({ hasLoaded, errorMessage, totalCount }) {
     }
     // 取得成功後はCase全体のメール件数を表示
     return `メールログ (${totalCount})`;
-}
-
-// wire応答から初期ページの取得完了状態を判定
-export function hasInitialPageLoaded(wiredResult) {
-    // 成功または失敗のどちらかを受信済みなら完了扱い
-    return Boolean(wiredResult?.data || wiredResult?.error);
-}
-
-// wire応答と明示エラーから初期ローディング状態を判定
-export function isInitialLoading({ errorMessage, wiredResult }) {
-    // データ、エラー、明示エラーのいずれもない間だけ読込中とする
-    return Boolean(
-        !errorMessage && !wiredResult?.data && !wiredResult?.error
-    );
 }
 
 // EmailMessageレコードをテンプレート表示用の行へ変換

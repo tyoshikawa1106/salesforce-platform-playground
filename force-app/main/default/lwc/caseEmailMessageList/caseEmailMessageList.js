@@ -8,10 +8,7 @@ import {
     createCardTitle,
     createEmptyPaginationState,
     createInitialPageState,
-    createNextPageState,
-    hasEmailMessages,
-    hasInitialPageLoaded,
-    isInitialLoading
+    createNextPageState
 } from './caseEmailMessageListLogic';
 
 // Caseレコードページにメールログをカーソルページングで表示
@@ -99,8 +96,8 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // 1件以上のメールを表示できるか判定
     get hasEmailMessages() {
-        // 一覧の要素数判定をLogicへ委譲
-        return hasEmailMessages(this.emailMessages);
+        // 一覧の要素数をテンプレート用真偽値へ変換
+        return this.emailMessages.length > 0;
     }
 
     // 取得状態と総件数を反映したカードタイトルを返却
@@ -118,8 +115,11 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // 初期ページwireが最初のレスポンスを受信したか判定
     get hasLoaded() {
-        // 初期ページwireの応答状態判定をLogicへ委譲
-        return hasInitialPageLoaded(this.wiredEmailMessagesResult);
+        // 成功または失敗のどちらかを受信済みなら完了扱い
+        return Boolean(
+            this.wiredEmailMessagesResult?.data ||
+                this.wiredEmailMessagesResult?.error
+        );
     }
 
     // 初期取得、再取得、追加取得をまとめた操作中状態を返却
@@ -130,13 +130,12 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // 初期ページwireのレスポンス待ち状態を判定
     get isLoading() {
-        // wire応答と明示エラーからLogicで読込状態を判定
-        return isInitialLoading({
-            // 画面へ反映済みのエラーを渡す
-            errorMessage: this.errorMessage,
-            // 初期ページのwire応答全体を渡す
-            wiredResult: this.wiredEmailMessagesResult
-        });
+        // データ、エラー、明示エラーのいずれもない間だけ読込中とする
+        return (
+            !this.errorMessage &&
+            !this.wiredEmailMessagesResult?.data &&
+            !this.wiredEmailMessagesResult?.error
+        );
     }
 
     // 利用者操作で総件数と初期ページを再取得

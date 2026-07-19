@@ -1,11 +1,6 @@
 import {
-    createAllRelatedListsResetState,
     createCaseCard,
-    createEmptyMessage,
-    createRelatedListResetState,
-    isRelatedListLoading,
-    selectRelatedCaseRecords,
-    shouldResetRelatedList
+    selectRelatedCaseRecords
 } from '../caseRelatedCaseListLogic';
 
 describe('caseRelatedCaseListLogic', () => {
@@ -39,55 +34,4 @@ describe('caseRelatedCaseListLogic', () => {
         });
     });
 
-    it('親レコード変更時の取得状態を生成する', () => {
-        expect(createRelatedListResetState('003000000000001')).toEqual({
-            cases: [],
-            hasLoaded: false,
-            hasError: false
-        });
-        expect(createRelatedListResetState(undefined)).toEqual({
-            cases: [],
-            hasLoaded: true,
-            hasError: false
-        });
-        expect(
-            shouldResetRelatedList(
-                '003000000000001',
-                '003000000000002'
-            )
-        ).toBe(true);
-        expect(
-            shouldResetRelatedList(
-                '003000000000001',
-                '003000000000001'
-            )
-        ).toBe(false);
-    });
-
-    it('ローディング、空状態、全体リセットを生成する', () => {
-        expect(isRelatedListLoading('003000000000001', false)).toBe(true);
-        expect(isRelatedListLoading(undefined, false)).toBe(false);
-        expect(
-            createEmptyMessage({
-                parentRecordId: '003000000000001',
-                emptyMessage: '0件です',
-                missingParentMessage: '未設定です'
-            })
-        ).toBe('0件です');
-        expect(
-            createEmptyMessage({
-                parentRecordId: undefined,
-                emptyMessage: '0件です',
-                missingParentMessage: '未設定です'
-            })
-        ).toBe('未設定です');
-        expect(createAllRelatedListsResetState()).toEqual({
-            contactCases: [],
-            accountCases: [],
-            contactCasesHaveLoaded: true,
-            accountCasesHaveLoaded: true,
-            contactCasesHaveError: false,
-            accountCasesHaveError: false
-        });
-    });
 });

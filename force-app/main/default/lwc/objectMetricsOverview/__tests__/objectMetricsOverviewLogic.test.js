@@ -1,6 +1,5 @@
 import {
     createCountCards,
-    isInitialLoading,
     normalizeMetricItems
 } from '../objectMetricsOverviewLogic';
 
@@ -52,24 +51,4 @@ describe('objectMetricsOverviewLogic', () => {
         ]);
     });
 
-    it('wire応答前だけ初回ローディングとして扱う', () => {
-        expect(
-            isInitialLoading({
-                errorMessage: undefined,
-                wiredResult: undefined
-            })
-        ).toBe(true);
-        expect(
-            isInitialLoading({
-                errorMessage: undefined,
-                wiredResult: { data: { metrics: [] } }
-            })
-        ).toBe(false);
-        expect(
-            isInitialLoading({
-                errorMessage: '読み込みエラー',
-                wiredResult: undefined
-            })
-        ).toBe(false);
-    });
 });

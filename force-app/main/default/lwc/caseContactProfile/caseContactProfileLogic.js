@@ -88,31 +88,8 @@ export function createProfile({
     };
 }
 
-// 問い合わせ件数を正常取得できたか判定
-export function hasCaseCount(caseCount) {
-    // 0件を有効値として扱える整数判定を使用
-    return Number.isInteger(caseCount);
-}
-
 // 問い合わせ件数を空欄なしの表示値へ変換
 export function formatCaseCount(caseCount) {
     // 未取得時だけ共通の代替値を表示
-    return hasCaseCount(caseCount) ? caseCount : UNAVAILABLE_VALUE;
-}
-
-// 親レコード変更時に件数状態を初期化するか判定
-export function shouldResetCaseCount(previousParentId, currentParentId) {
-    // 同じ親を再取得した場合は現在の件数状態を維持
-    return previousParentId !== currentParentId;
-}
-
-// 問い合わせ件数を未取得状態へ戻す値を生成
-export function createEmptyCaseCountState() {
-    // 件数と上限超過表示を初期化する状態を返却
-    return {
-        // 未取得状態として件数を破棄
-        count: undefined,
-        // 上限超過表示を解除
-        hasMore: false
-    };
+    return Number.isInteger(caseCount) ? caseCount : UNAVAILABLE_VALUE;
 }

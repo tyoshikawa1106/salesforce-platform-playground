@@ -4,7 +4,6 @@ import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.g
 import { reduceErrors } from 'c/errorUtils';
 import {
     createCountCards,
-    isInitialLoading,
     normalizeMetricItems
 } from './objectMetricsOverviewLogic';
 
@@ -61,13 +60,12 @@ export default class ObjectMetricsOverview extends LightningElement {
 
     // wireの初回レスポンス待ち状態を判定
     get isLoading() {
-        // wire応答と明示エラーからLogicで読込状態を判定
-        return isInitialLoading({
-            // 画面へ反映済みのエラーを渡す
-            errorMessage: this.errorMessage,
-            // 現在のwire応答全体を渡す
-            wiredResult: this.wiredObjectMetricsResult
-        });
+        // データ、エラー、明示エラーのいずれもない間だけ読込中とする
+        return (
+            !this.errorMessage &&
+            !this.wiredObjectMetricsResult?.data &&
+            !this.wiredObjectMetricsResult?.error
+        );
     }
 
     // 利用者操作で件数一覧を再取得

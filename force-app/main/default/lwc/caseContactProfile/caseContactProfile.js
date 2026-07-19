@@ -21,11 +21,8 @@ import CASE_SUPPLIED_EMAIL_FIELD from '@salesforce/schema/Case.SuppliedEmail';
 import CASE_SUPPLIED_PHONE_FIELD from '@salesforce/schema/Case.SuppliedPhone';
 import CASE_SUPPLIED_COMPANY_FIELD from '@salesforce/schema/Case.SuppliedCompany';
 import {
-    createEmptyCaseCountState,
     createProfile,
-    formatCaseCount,
-    hasCaseCount,
-    shouldResetCaseCount
+    formatCaseCount
 } from './caseContactProfileLogic';
 
 // Case取得に必須なContact参照だけを指定
@@ -286,8 +283,8 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // Contact問い合わせ件数を正常取得できたか判定
     get hasContactCaseCount() {
-        // Contact件数の有効値判定をLogicへ委譲
-        return hasCaseCount(this.contactCaseCount);
+        // 0件を有効値として扱える整数判定を使用
+        return Number.isInteger(this.contactCaseCount);
     }
 
     // Contact問い合わせ件数を表示用の値へ変換
@@ -298,8 +295,8 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // Account問い合わせ件数を正常取得できたか判定
     get hasAccountCaseCount() {
-        // Account件数の有効値判定をLogicへ委譲
-        return hasCaseCount(this.accountCaseCount);
+        // 0件を有効値として扱える整数判定を使用
+        return Number.isInteger(this.accountCaseCount);
     }
 
     // Account問い合わせ件数を表示用の値へ変換
@@ -378,12 +375,12 @@ export default class CaseContactProfile extends NavigationMixin(
         previousAccountId
     ) {
         // Contactが変わった場合は以前の問い合わせ件数を破棄
-        if (shouldResetCaseCount(previousContactId, this.contactId)) {
+        if (previousContactId !== this.contactId) {
             // Contact件数を新しいwire応答待ちへ戻す
             this.resetContactCaseCount();
         }
         // Accountが変わった場合は以前の問い合わせ件数を破棄
-        if (shouldResetCaseCount(previousAccountId, this.accountId)) {
+        if (previousAccountId !== this.accountId) {
             // Account件数を新しいwire応答待ちへ戻す
             this.resetAccountCaseCount();
         }
@@ -399,22 +396,18 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // Contact問い合わせ件数の表示状態を初期化
     resetContactCaseCount() {
-        // Logicから共通の未取得状態を生成
-        const state = createEmptyCaseCountState();
         // 未取得状態として件数を破棄
-        this.contactCaseCount = state.count;
+        this.contactCaseCount = undefined;
         // 上限超過表示を解除
-        this.contactCaseCountHasMore = state.hasMore;
+        this.contactCaseCountHasMore = false;
     }
 
     // Account問い合わせ件数の表示状態を初期化
     resetAccountCaseCount() {
-        // Logicから共通の未取得状態を生成
-        const state = createEmptyCaseCountState();
         // 未取得状態として件数を破棄
-        this.accountCaseCount = state.count;
+        this.accountCaseCount = undefined;
         // 上限超過表示を解除
-        this.accountCaseCountHasMore = state.hasMore;
+        this.accountCaseCountHasMore = false;
     }
 
     // 最新のContactとAccountに対応するレコードURLを更新

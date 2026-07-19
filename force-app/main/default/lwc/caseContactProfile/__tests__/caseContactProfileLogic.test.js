@@ -1,9 +1,6 @@
 import {
-    createEmptyCaseCountState,
     createProfile,
-    formatCaseCount,
-    hasCaseCount,
-    shouldResetCaseCount
+    formatCaseCount
 } from '../caseContactProfileLogic';
 
 describe('caseContactProfileLogic', () => {
@@ -75,20 +72,9 @@ describe('caseContactProfileLogic', () => {
         );
     });
 
-    it('問い合わせ件数の表示と親変更時のリセットを判定する', () => {
-        expect(hasCaseCount(0)).toBe(true);
-        expect(hasCaseCount(undefined)).toBe(false);
+    it('問い合わせ件数を未取得時の代替値を含む表示へ変換する', () => {
+        expect(formatCaseCount(0)).toBe(0);
         expect(formatCaseCount(12)).toBe(12);
         expect(formatCaseCount(undefined)).toBe('-');
-        expect(
-            shouldResetCaseCount('003000000000001', '003000000000002')
-        ).toBe(true);
-        expect(
-            shouldResetCaseCount('003000000000001', '003000000000001')
-        ).toBe(false);
-        expect(createEmptyCaseCountState()).toEqual({
-            count: undefined,
-            hasMore: false
-        });
     });
 });
