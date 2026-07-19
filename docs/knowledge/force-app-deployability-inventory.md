@@ -5,7 +5,7 @@
 ## 基本方針
 
 - 通常開発では、Git差分に含まれるdeploy可能なmetadataと、動作に必要なことを明示した依存metadataだけをscopeにする。
-- `--source-dir force-app`や全metadataを列挙したmanifestを通常開発、PR前validate、PRマージ後deployに使わない。
+- `--source-dir force-app`や全metadataを列挙したmanifestを通常開発、PR前validate、明示依頼を受けた実deployに使わない。
 - retrieveしたorg固有metadataが混在するため、Git管理対象であることだけを理由にdeployしない。
 - metadata type単位の安全性を、別typeや別タスクへ一般化しない。
 - FlexiPage、Layout、権限、通知、共有、認証、組織設定は、差分と依頼範囲に含まれる場合だけ個別に扱う。

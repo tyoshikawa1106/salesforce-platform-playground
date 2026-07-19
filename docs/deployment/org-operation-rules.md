@@ -7,17 +7,17 @@
 - 操作対象となる org と alias
 - deploy / retrieve scope
 - validate、deploy、retrieve、Apex test の実行条件
-- PR マージ前の事前検証とマージ後 deploy
+- PR マージ前の事前検証と、明示依頼を受けた実 deploy
 - 実行結果と未実行項目の報告
 
 Scratch Org の初期構築は [Scratch Org 再現ルール](scratch-org-rebuild-rules.md)、metadata の削除は [メタデータ削除ルール](metadata-deletion-rules.md)、テストデータ投入は [テストデータ投入手順](test-data-import.md) に従います。
 
 ## 絶対ルール
 
-- 通常開発の validate / deploy は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。
-- `force-app` 全体、retrieve 用 manifest、Scratch Org 再構築用 manifest、組織全体を表す manifest を通常開発や PR マージ後 deploy に使わない。
+- 通常開発の validate / dry-run と、明示依頼を受けた実 deploy は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。
+- `force-app` 全体、retrieve 用 manifest、Scratch Org 再構築用 manifest、組織全体を表す manifest を通常開発や実 deploy に使わない。
 - 接続組織向けの再利用可能な全体 validate / deploy script と manifest は管理しない。
-- PR の作成、マージ、または「デプロイして」という依頼は、依頼範囲外の metadata や組織全体を deploy する許可を意味しない。
+- PR の作成・マージ依頼は実 deploy の依頼を意味しない。「デプロイして」など組織反映が明示された場合も、依頼範囲外の metadata や組織全体を deploy する許可を意味しない。
 - 実 deploy前に対象org alias、metadataのfullName、件数を提示し、そのscopeの実deployが明示承認された場合だけ実行する。
 - validate と実 deploy は、確認済みの同一 scope を使う。マージ後も scope を追加しない。
 - FlexiPage は、そのファイルが依頼された Git 差分に含まれ、deploy 対象として明示されている場合だけ scope に含める。
@@ -73,35 +73,34 @@ sf project deploy start \
 
 複数 type を含む場合も、対象 fullName を省略しません。`--source-dir force-app`は通常開発の検証に使いません。
 
-## 開発中の deploy
+## PR 前の確認
 
-Apex、LWC、または関連 metadata の振る舞いを変更した場合は、確認済みの非本番組織へ作業単位の scope で実 deploy します。
+PR 前は実 deploy を標準手順にしません。開発中の各変更、途中の動作確認、途中コミットに、テスト、関連文書更新、全体検証を必須化しません。push する直前に必要なテストと関連文書を更新してコミットし、最終確認としてローカルテスト、静的解析、対象組織に応じた限定 scope の validate または dry-run を1回実行します。
 
-```sh
-sf project deploy start \
-    --metadata ApexClass:MyService \
-    --metadata ApexClass:MyServiceTest \
-    --target-org <alias> \
-    --wait 30
-```
+validate または dry-run の成功は deploy 可否の確認であり、接続組織へ変更を反映した状態や、組織上の動作確認完了とは扱いません。PR の開発・マージフローでは実 deploy と組織上の動作確認を行いません。
 
-依存する LWC、Permission Set、Custom Field などがある場合は、それぞれの type と fullName を明示して同じ scope に含めます。validate 成功だけで動作確認可能とは扱いません。
+PR 前の組織反映をユーザーが明示的に依頼した場合だけ、対象 org、metadata の fullName、件数を提示して承認を得た限定 scope を作業ブランチから実 deploy できます。この例外を通常の開発フローに含めません。
 
-## PR マージ前とマージ後
+## push 前の検証
 
-PR 作成前またはマージ前に、PR の deploy 可能な差分と明示した依存 metadata だけを含む scope で最終 validate または dry-run を実行します。
+コミット後・push 前に、PR の deploy 可能な差分と明示した依存 metadata だけを含む scope で最終 validate または dry-run を実行します。確認後に deploy 対象 metadata を修正した場合だけ、変更をコミットして該当確認と validate または dry-run を再実行します。
 
-マージ後は次をすべて満たした場合だけ、同じ scope で実 deploy します。
+PR のマージ依頼では、PR マージ、`main` 同期、作業ブランチ整理までを行い、実 deploy は行いません。マージ後に実 deploy する場合も、ユーザーから別途組織反映の明示依頼を受け、実行直前に対象 org と scope の承認を得ます。
+
+## 明示依頼を受けた実 deploy
+
+実 deploy は、ユーザーが組織反映を明示した場合だけ行います。マージ済み変更を `main` から deploy する場合は、次をすべて満たす必要があります。
 
 - `main`が`origin/main`と一致している。
 - 作業ツリーがクリーンである。
-- マージ前に成功した scope の fullName 一覧と件数を確認できる。
-- マージ後の scope がその一覧と一致し、追加 metadata がない。
+- deploy 対象の fullName、件数、内容を確認できる。
+- 対象内容に対する validate または dry-run が成功している。内容が変わっている場合は再実行する。
 - 対象 org alias が確認済みである。
+- 対象 org と scope の実 deploy が明示承認されている。
 
-scope を再現できない場合、または新しい metadata が加わる場合は deploy せず、ユーザーに確認します。マージ後 deploy のために全体 manifestへ切り替えてはいけません。
+scope を再現できない場合、または validate 後に対象内容が変わっている場合は deploy せず、scope の修正または再検証を行います。実 deploy のために全体 manifestへ切り替えてはいけません。
 
-次の場合はマージ後 deploy の対象外です。
+次は通常、実 deploy の対象外です。
 
 - docs-only PR
 - retrieve-only PR

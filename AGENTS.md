@@ -20,7 +20,7 @@
 - コミット時のフックは原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、プッシュ、PR 作成、CI 確認、マージはユーザーが明示した場合のみ進める。
 - Salesforce メタデータ変更を含む PR は、マージ前に現在の default target org と組織種別を確認し、確認済みの alias で対象組織に応じた validate または dry-run を実行する。
-- Salesforce メタデータ変更を含む PR のマージを依頼された場合は、マージ後に同期した作業ツリーがクリーンな `main` から、PR の deploy 可能な変更をすべて含む scope で確認済みの default target org へ実 deploy し、deploy 成功までタスクを完了扱いにしない。scope と例外は `docs/deployment/org-operation-rules.md` に従う。
+- Salesforce メタデータ変更を含む PR のマージ依頼は実 deploy の依頼を意味しない。PR マージ、`main` 同期、作業ブランチ整理までを GitHub 作業の完了範囲とし、実 deploy はユーザーが別途明示した場合だけ `docs/deployment/org-operation-rules.md` に従って行う。
 - PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、共通手順を `docs/development/github-rules.md`、自動実行条件を `docs/development/github-repository-rules.md` に従う。
 
 ## 安全・秘密情報
@@ -36,8 +36,8 @@
 
 - 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
 - デプロイ対象のメタデータは `force-app/main/default` を基準にする。
-- 通常開発と PR マージ後の validate / deploy は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。`force-app` 全体や組織再構築用 scope を通常開発へ流用しない。
-- PR マージ依頼は全体 deploy の許可を意味しない。実 deploy 前に対象 org alias、metadata の fullName、件数を提示し、その scope の実 deploy が明示承認された場合だけ実行する。依頼範囲外の metadata が含まれる場合は実行せず scope を修正する。
+- 通常開発の validate / dry-run と、明示依頼を受けた実 deploy は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。`force-app` 全体や組織再構築用 scope を通常開発へ流用しない。
+- 実 deploy はユーザーが「デプロイして」など組織反映を明示した場合だけ行う。実行前に対象 org alias、metadata の fullName、件数を提示し、その scope の実 deploy が明示承認された場合だけ実行する。PR の作成・マージ依頼を deploy 依頼として扱わず、依頼範囲外の metadata が含まれる場合は実行せず scope を修正する。
 - FlexiPage は、対象ファイルが依頼された変更差分に含まれ、かつ deploy 対象として明示されている場合だけ validate / deploy できる。
 - 組織の初回構築または再構築は通常開発と分離し、ユーザーが明示した別タスクで、全対象を確認した個別承認がある場合だけ実行する。再利用可能な接続組織向け全体 deploy コマンドや manifest は管理しない。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
