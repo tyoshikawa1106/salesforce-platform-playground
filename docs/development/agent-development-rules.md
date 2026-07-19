@@ -149,8 +149,8 @@ Salesforce 組織に対する操作では、対象 org、scope、事前検証、
 | data import                                                   | [テストデータ投入手順](../deployment/test-data-import.md)            |
 | Scratch Org の作成・再現                                      | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md) |
 
-Apex 変更を含む PR を作成する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。
-コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは PR 作成前の確認にまとめます。
+Apex 変更を push する前に、関連する Apex テストを coverage 付きで実行し、作業報告に結果を含めます。
+コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認し、Apex テストは push 前の確認にまとめます。
 
 ## 静的解析
 
@@ -184,7 +184,7 @@ npm run code-analyzer:ci
 - 外部リンクを追加・更新した場合は、`npm run docs:check:external` でリンク先を確認する。アクセス拒否、レート制限、通信失敗の警告は、自動的にリンク切れと扱わず、必要に応じてブラウザまたは別の方法で再確認する。
 - 振る舞いを変更した場合は [機能仕様書ルール](specification-rules.md) に従って仕様影響を判定し、影響がある現行実装仕様を原則として同じ変更単位で更新する。
 - ユーザーから機能仕様書の一括更新を依頼された場合は、独自実装した開発機能を対象に、実装、仕様、既知の差異を棚卸しする。Salesforce 設定全体の仕様書は作成しない。
-- Apex、メタデータ、LWC、Aura など振る舞いに関わる変更では、関連する validate / deploy / test / 静的解析を実行する。
+- Apex、metadata、LWC、Aura などの振る舞いを変更した場合は、[組織操作ルール](../deployment/org-operation-rules.md#開発中の動作確認-deploy) に従って限定 scope を開発 org へ deploy し、org 上で動作確認する。最終的な validate / dry-run、test、静的解析は、[push 前の検証](../deployment/org-operation-rules.md#push-前の検証)にまとめて実行する。
 - 実行しない検証がある場合は、理由を作業報告に残す。
 
 ## 作業報告

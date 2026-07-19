@@ -7,7 +7,7 @@
 - CIはSalesforce組織へログインしない。
 - CIは接続組織向けの全体manifestをvalidate / deployしない。
 - CIは依存監査、整形、文書、lint、Salesforce Code Analyzer、スクリプトテスト、LWC Jestを実行する。
-- Salesforce組織でのvalidateまたはdry-runは、PR作成前に対象orgと限定scopeを確認してローカルで実行する。
+- Salesforce orgでのvalidateまたはdry-runは、push前に対象orgと限定scopeを確認してローカルで実行する。
 - validate結果はPRへ記録するが、CI成功や組織へのdeploy完了と混同しない。
 - CI用のSalesforce JWT秘密情報は管理しない。
 
@@ -25,7 +25,7 @@
 
 Code AnalyzerのためにSalesforce CLIとCode Analyzer pluginを導入しますが、Salesforce組織へのログインやmetadata validateには使いません。
 
-## PR前のSalesforce検証
+## push前のSalesforce検証
 
 Salesforce metadataを変更した場合は、Git差分と明示した依存metadataだけをscopeに含め、対象orgを指定してvalidateまたはdry-runします。
 
