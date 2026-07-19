@@ -10,15 +10,17 @@
 
 ## 対象実装・メタデータ
 
-| 種別           | API 名・ファイル名            | 役割                                        |
-| -------------- | ----------------------------- | ------------------------------------------- |
-| LWC            | `caseEmailMessageList`        | メールメッセージ一覧と追加読み込み UI       |
-| Apex Class     | `CaseEmailMessageController`  | LWC からの読み取り専用 Apex 入口            |
-| Apex Class     | `CaseEmailMessageService`     | 入力検証、ページトークン、表示順の組み立て  |
-| Apex Class     | `CaseEmailMessageSelector`    | USER_MODE による EmailMessage 問い合わせ    |
-| Apex Class     | `CaseEmailMessagePageWrapper` | 取得結果と次ページ情報を保持する応答 DTO    |
-| Permission Set | `Salesforce_Application_User` | Apex Controller の実行権限                  |
-| FlexiPage      | `CaseFlexiPage`               | Case レコードページのメールログタブへの配置 |
+| 種別           | API 名・ファイル名             | 役割                                        |
+| -------------- | ------------------------------ | ------------------------------------------- |
+| LWC            | `caseEmailMessageList`         | メールメッセージ一覧と追加読み込み UI       |
+| LWC JavaScript | `caseEmailMessageList.js`      | Apex取得、追加読み込み、画面状態の統括      |
+| LWC JavaScript | `caseEmailMessageListLogic.js` | 表示行、タイトル、ページ状態の生成          |
+| Apex Class     | `CaseEmailMessageController`   | LWC からの読み取り専用 Apex 入口            |
+| Apex Class     | `CaseEmailMessageService`      | 入力検証、ページトークン、表示順の組み立て  |
+| Apex Class     | `CaseEmailMessageSelector`     | USER_MODE による EmailMessage 問い合わせ    |
+| Apex Class     | `CaseEmailMessagePageWrapper`  | 取得結果と次ページ情報を保持する応答 DTO    |
+| Permission Set | `Salesforce_Application_User`  | Apex Controller の実行権限                  |
+| FlexiPage      | `CaseFlexiPage`                | Case レコードページのメールログタブへの配置 |
 
 ## 入力
 

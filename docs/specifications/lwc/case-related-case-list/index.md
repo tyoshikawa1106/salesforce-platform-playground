@@ -10,10 +10,12 @@ Caseレコードの顧客または会社に紐づく直近の別ケースを、C
 
 ## 対象実装・メタデータ
 
-| 種別      | API名・ファイル名     | 役割                                           |
-| --------- | --------------------- | ---------------------------------------------- |
-| LWC       | `caseRelatedCaseList` | 関連ケースの取得、タブ表示、レコードリンク生成 |
-| FlexiPage | `CaseFlexiPage`       | `caseContactProfile`直下の左サイドバー配置     |
+| 種別           | API名・ファイル名             | 役割                                           |
+| -------------- | ----------------------------- | ---------------------------------------------- |
+| LWC            | `caseRelatedCaseList`         | 関連ケースの取得、タブ表示、レコードリンク生成 |
+| LWC JavaScript | `caseRelatedCaseList.js`      | UI API取得、タブ状態、Navigationの統括         |
+| LWC JavaScript | `caseRelatedCaseListLogic.js` | 関連ケース選択とカード表示モデルの生成         |
+| FlexiPage      | `CaseFlexiPage`               | `caseContactProfile`直下の左サイドバー配置     |
 
 ## 入力
 

@@ -6,10 +6,12 @@
 
 ## 対象実装・メタデータ
 
-| 種別      | API 名・ファイル名   | 役割                                   |
-| --------- | -------------------- | -------------------------------------- |
-| LWC       | `caseContactProfile` | 問い合わせ元のプロフィールを取得・表示 |
-| FlexiPage | `CaseFlexiPage`      | Case レコードページ左領域への配置      |
+| 種別           | API 名・ファイル名           | 役割                                     |
+| -------------- | ---------------------------- | ---------------------------------------- |
+| LWC            | `caseContactProfile`         | 問い合わせ元のプロフィールを取得・表示   |
+| LWC JavaScript | `caseContactProfile.js`      | UI API取得、画面状態、Navigationの統括   |
+| LWC JavaScript | `caseContactProfileLogic.js` | プロフィール表示モデルと件数表示値の生成 |
+| FlexiPage      | `CaseFlexiPage`              | Case レコードページ左領域への配置        |
 
 ## 入力
 

@@ -17,6 +17,7 @@
 | LWC            | `objectRecordSearch`              | 検索条件、一覧、ページング、作成、編集、削除 UI |
 | LWC            | `errorUtils`                      | Apex と UI API エラーのメッセージ変換           |
 | LWC JavaScript | `objectRecordSearch.js`           | 画面操作と Apex、UI API 呼び出しの統括          |
+| LWC JavaScript | `objectRecordSearchLogic.js`      | 画面単位の検索、一覧、フォーム状態生成          |
 | LWC JavaScript | `errorUtils.js`                   | Apex と UI API エラーのメッセージ変換           |
 | LWC JavaScript | `objectRecordSearchDisplay.js`    | 一覧列と表示行の組み立て                        |
 | LWC JavaScript | `objectRecordSearchForm.js`       | レコードフォームとレイアウトの組み立て          |
