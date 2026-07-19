@@ -81,7 +81,9 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous -
 
 ### JavaScript 構成
 
+- 本節の画面 LWC は、Lightning ページなどへ公開する LWC、またはデータ取得、利用者操作から結果表示までの処理順序、複数の画面状態、子コンポーネント間の連携を制御する Controller 相当の LWC を指す。
 - 新規に独自実装する画面 LWC は、`componentName.js` と `componentNameLogic.js` の 2 層構成を必須とする。
+- 親から受け取った値の表示、または利用者操作の親への通知だけを担当し、画面単位の処理を制御しない内部子 LWC は表示部品として扱い、この 2 層構成の対象外とする。処理量が少ないことだけを理由に、画面 LWC を対象外にしない。
 - 既存の画面 LWC の振る舞いを変更する場合は、変更行だけでなく bundle 全体を 2 層構成へ合わせる。構成だけを合わせる一括変更は、機能変更と分離した明示タスクで行う。
 - `componentName.js` は Controller として、`@api`、`@wire`、ライフサイクル、イベント受付、LWC 固有 API、処理順序、成功・失敗時の分岐、画面状態への反映を担当する。このファイルを読めば、利用者の操作から結果表示までの主要な流れを追える状態にする。
 - `componentNameLogic.js` は、データ変換、判定、正規化、リクエスト生成、状態遷移、表示値生成など、LWC インスタンスに依存しない UI ロジックを担当し、原則として入力から結果を返す純粋関数で構成する。
@@ -96,7 +98,7 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous -
 - 複数の LWC で共有する処理は、コンポーネント固有の Logic に重複させず、再利用範囲を確認して API module への昇格を検討する。
 - 権限、データ整合性、業務上必須の制約など、LWC を経由しない更新でも守る必要があるルールは Apex または Salesforce メタデータ側で担保する。
 - Logic の分岐、変換、状態遷移は Logic を直接 import する Jest test で確認する。派生状態を保持する場合は、元の状態と wire 応答の変更後に再生成されることも確認する。メイン JavaScript とテンプレートの接続はコンポーネントの Jest test で確認する。
-- API module、CSS module、テスト用 mock、インストール済み・生成済みコンポーネントは、この 2 層構成の対象外とする。
+- 表示部品、API module、CSS module、テスト用 mock、インストール済み・生成済みコンポーネントは、この 2 層構成の対象外とする。
 
 構成を決めた背景と懸念への対策は、[LWC JavaScript 構成](../discussions/lwc-javascript-structure.md)に記録します。
 
