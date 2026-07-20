@@ -43,7 +43,8 @@
 | `scripts/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、Scratch Org 手順と一致しているか確認する。                       |
 | `manifest/rebuild-scratch-org.xml`     | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                     |
 | `manifest/destructiveChanges.xml`      | Salesforce 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                            | 実行前に対象 org、削除 scope、復旧方針を確認する。                                                  |
-| `manifest/package*.xml`                | metadata retrieve / 分類 / 作業単位の補助 manifest を管理する。                                                                          | 一時作業用 manifest を恒久的な設定として残していないか確認する。                                    |
+| `manifest/package.xml`                 | Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest を定義する。                                                          | retrieve対象を作業範囲に絞り、Git管理対象やdeploy scopeの基準として流用しない。                     |
+| `manifest/retrieve-*.xml`              | 全取得対象のcatalogと、責務別に分割した一括retrieveのscopeを定義する。                                                                   | 取得順序と対象orgを確認し、retrieve結果をそのままGit管理やdeployの基準にしない。                    |
 | `.forceignore`                         | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                         |
 | `scripts/setup/import-plan.json`       | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、シード／クリーンアップ用Apexと整合させる。                              |
 
@@ -76,6 +77,7 @@
 
 | ファイル                  | 概要                                                                                                      | 変更時の確認                                                          |
 | ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `.gitattributes`          | Gitで共有するテキストファイルの改行コードを定義する。                                                     | 通常のテキストはLF、Windows用の`.bat`と`.cmd`はCRLFを維持する。       |
 | `.gitignore`              | Git 管理対象外にする Salesforce cache、依存、coverage、OS / editor 生成物、秘密情報系ファイルを定義する。 | source、metadata、docs、GitHub 設定を誤って除外していないか確認する。 |
 | `.vscode/extensions.json` | このリポジトリで推奨する VS Code 拡張機能を定義する。                                                     | 個人環境専用の拡張や設定を固定しない。                                |
 | `.vscode/launch.json`     | Apex Replay Debugger など、このリポジトリで共有する VS Code debug configuration を定義する。              | 個人環境専用のパスやログファイル名を固定しない。                      |
