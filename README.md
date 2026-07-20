@@ -67,7 +67,7 @@ Salesforce 開発組織に対する操作は、対象と目的を確認してか
 
 ### メタデータの取得
 
-VS Codeで現在接続している組織から、管理対象のメタデータを取得します。表示されたdefault target orgを確認し、`y`または`Y`を入力した場合だけ取得を開始します。詳細は[メタデータ開発ルール](docs/development/metadata-rules.md)を参照してください。
+VS Codeで現在接続している組織から、管理対象のメタデータを取得します。表示されたdefault target orgを確認し、`y`または`Y`を入力した場合だけ取得を開始します。
 
 ```sh
 npm run sf:retrieve
