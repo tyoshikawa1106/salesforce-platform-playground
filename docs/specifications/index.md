@@ -10,7 +10,7 @@
 
 | カテゴリ                                        | 内容                                        |
 | ----------------------------------------------- | ------------------------------------------- |
-| [Repository Structure](repository-structure.md) | リポジトリの主要ディレクトリと設定ファイル  |
+| [Repository Structure](repository-structure.md) | リポジトリのフォルダとファイルの用途        |
 | [Lightning Web Components](lwc/index.md)        | Lightning Web Components で実装した画面機能 |
 | [Apex](apex/index.md)                           | Apex で実装したトリガーや非同期処理         |
 | [Flow](flows/index.md)                          | Flow で実装した自動化機能                   |

@@ -1,120 +1,217 @@
 # Repository Structure
 
-このページは、個別機能の仕様ではなく、リポジトリ全体の構成を理解するための入口です。主要ディレクトリと設定ファイルの場所、役割、編集時の注意点を一覧にし、詳しい手順やルールは関連ドキュメントへ案内します。
+## ルート
 
-秘密情報を含み得る `.env`、`.env.*`、認証ファイル、token、password、client secret、証明書、秘密鍵は管理対象の一覧に含めません。
+| パス                  | 種別     | 用途                                                                    |
+| --------------------- | -------- | ----------------------------------------------------------------------- |
+| `.cline/`             | フォルダ | Cline向けのSalesforce skill routerを管理する。                          |
+| `.clinerules/`        | フォルダ | Cline固有のリポジトリ指示を管理する。                                   |
+| `.gemini/`            | フォルダ | Gemini CLIの設定を管理する。                                            |
+| `.github/`            | フォルダ | GitHub Actions、Issue、PR、Dependabot、Releaseの設定を管理する。        |
+| `.husky/`             | フォルダ | Git hookを管理する。                                                    |
+| `.vscode/`            | フォルダ | VS Codeの推奨拡張機能、debug、workspace設定を管理する。                 |
+| `config/`             | フォルダ | Scratch OrgとCode Analyzerの補助設定を管理する。                        |
+| `docs/`               | フォルダ | セットアップ、開発ルール、組織操作、仕様、ナレッジを管理する。          |
+| `export-out/`         | フォルダ | Salesforce CLIのexport結果をローカルに出力する。                        |
+| `force-app/`          | フォルダ | Salesforce metadataとLWCテスト支援コードを管理する。                    |
+| `logs/`               | フォルダ | Apex、Code Analyzer、Bulk APIのローカル出力先を管理する。               |
+| `manifest/`           | フォルダ | metadataのretrieve、Scratch Org再現、削除scopeを管理する。              |
+| `scripts/`            | フォルダ | 文書検証、metadata操作、Scratch Org、テストデータを支援する。           |
+| `.clineignore`        | ファイル | Clineの自動contextからローカル状態、credential、生成物を除外する。      |
+| `.forceignore`        | ファイル | Salesforce source操作で無視するファイルを定義する。                     |
+| `.gitattributes`      | ファイル | Gitで共有するテキストファイルの改行コードを定義する。                   |
+| `.gitignore`          | ファイル | Git管理から除外するローカル状態、生成物、秘密情報系ファイルを定義する。 |
+| `.node-version`       | ファイル | ローカル開発とCIで使用するNode.jsのmajor versionを固定する。            |
+| `.prettierignore`     | ファイル | Prettierの整形対象から生成物やretrieve後のmetadataを除外する。          |
+| `.prettierrc`         | ファイル | Prettierの整形ルールとpluginを定義する。                                |
+| `AGENTS.md`           | ファイル | AIエージェントが常に守るリポジトリ運用ルールを定義する。                |
+| `CLAUDE.md`           | ファイル | Claude Codeに`AGENTS.md`と関連ルールを案内する。                        |
+| `GEMINI.md`           | ファイル | Gemini CLIに`AGENTS.md`と関連ルールを案内する。                         |
+| `README.md`           | ファイル | プロジェクト概要、セットアップ、主要コマンドへの入口を示す。            |
+| `code-analyzer.yml`   | ファイル | Salesforce Code Analyzerのengineとruleを定義する。                      |
+| `eslint.config.js`    | ファイル | Aura、LWC、Jest向けのESLint設定を定義する。                             |
+| `jest-sa11y-setup.js` | ファイル | LWC Jestにアクセシビリティmatcherを登録する。                           |
+| `jest.config.js`      | ファイル | LWC Jestのmock、coverage、setup fileを定義する。                        |
+| `package-lock.json`   | ファイル | npm依存関係の解決結果を固定する。                                       |
+| `package.json`        | ファイル | npm script、依存関係、lint-stagedを定義する。                           |
+| `sfdx-project.json`   | ファイル | Salesforce DXのpackage directory、API version、login URLを定義する。    |
 
-## 読み方
+## AIエージェント・エディタ
 
-- リポジトリ全体の構成や、設定ファイルの場所と変更時の確認事項を探す場合は、このページを使う。
-- 設定値や挙動を確認する場合は、次の詳細ページを使う。
-- セットアップ手順や運用ルールは、`docs/setup/`、`docs/development/`、`docs/deployment/` の該当ページを使う。
+| パス                                       | 種別     | 用途                                                                   |
+| ------------------------------------------ | -------- | ---------------------------------------------------------------------- |
+| `.cline/skills/`                           | フォルダ | Clineから利用するskill routerを格納する。                              |
+| `.cline/skills/salesforce-skills/SKILL.md` | ファイル | 必要に応じてローカルの`.agents/skills/`を参照するようClineへ案内する。 |
+| `.clinerules/repository.md`                | ファイル | Clineにリポジトリルールの参照順を示す。                                |
+| `.gemini/settings.json`                    | ファイル | Gemini CLIが読み込むcontext fileを定義する。                           |
+| `.husky/pre-commit`                        | ファイル | commit前に`npm run precommit`を実行する。                              |
+| `.vscode/extensions.json`                  | ファイル | VS Codeの推奨拡張機能を定義する。                                      |
+| `.vscode/launch.json`                      | ファイル | Apex Replay Debuggerなどのdebug設定を定義する。                        |
+| `.vscode/settings.json`                    | ファイル | VS Codeのworkspace設定を定義する。                                     |
 
-## 主要ディレクトリ
+## GitHub
 
-| ディレクトリパス | 用途                                                                              | 主な内容                                                                                  | 編集時の注意点                                                                                                       | 関連ドキュメント                                                                                                                                                                                             |
-| ---------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `force-app/`     | Salesforce source と、その単体テスト支援コードを管理する。                        | `main/default/` の metadata、`test/` の Jest mock と test utility。                       | 組織反映は変更差分と明示した依存 metadata に限定し、`force-app/` 全体を通常開発の deploy scope にしない。            | [メタデータ管理ルール](../development/metadata-rules.md)、[force-app の deploy 対象棚卸し](../knowledge/force-app-deployability-inventory.md)                                                                |
-| `manifest/`      | metadata の retrieve、Scratch Org 再現、削除対象の scope を定義する。             | `package.xml`、用途別 retrieve manifest、Scratch Org 再現 manifest、destructive changes。 | manifest ごとの目的と対象 org を確認し、広い retrieve や組織再構築用 scope を通常開発の deploy に流用しない。        | [メタデータ管理ルール](../development/metadata-rules.md)、[Scratch Org manifest 運用ルール](../deployment/scratch-org-manifest-rules.md)                                                                     |
-| `scripts/`       | ローカル開発、文書検証、metadata 操作、Scratch Org、テストデータを支援する。      | JavaScript、shell script、anonymous Apex、SOQL、JSON plan。                               | 個人環境の値や秘密情報を固定せず、組織操作を伴う場合は対象 org と実行 scope を確認する。                             | [スクリプトガイド](../../scripts/scripts-guide.md)、[ローカル開発コマンド](../knowledge/local-development-commands.md)、[テストデータ投入手順](../deployment/test-data-import.md)                            |
-| `docs/`          | GitHub Pages で公開する、セットアップ、運用、組織操作、仕様、ナレッジを管理する。 | カテゴリ別 Markdown、各カテゴリの `index.md`、Jekyll 設定。                               | 文書の責任に合うカテゴリへ配置し、追加、移動、削除時は索引と相対リンクを更新する。                                   | [ドキュメント配置ルール](../development/documentation-rules.md)、[ドキュメント索引](../index.md)                                                                                                             |
-| `config/`        | Salesforce CLI と品質チェックが参照する補助設定を管理する。                       | Scratch Org definition、Code Analyzer のカスタム PMD ruleset。                            | Scratch Org 作成設定と接続組織への deploy 設定を混同せず、品質基準を変更する場合は関連設定と検証コマンドを確認する。 | [Salesforce DX 設定ファイル](../knowledge/salesforce-dx-config-files.md)、[品質チェック設定ファイル](../knowledge/quality-config-files.md)                                                                   |
-| `.github/`       | GitHub 上の Issue、PR、CI、依存更新、Release の設定を管理する。                   | GitHub Actions、Dependabot、Issue／PRテンプレート、Release 設定、Copilot 指示。           | GitHub の現在設定と固有運用を確認し、CI の権限を必要最小限に保ち、個人ユーザー名や秘密情報を固定しない。             | [GitHub 運用ルール](../development/github-rules.md)、[リポジトリ固有 GitHub 運用ルール](../development/github-repository-rules.md)、[GitHub 設定ファイル](../knowledge/github-config-files.md)               |
-| `export-out/`    | Salesforce CLI の export 結果をローカルに保存する。                               | 出力先の利用方法を示す guide。                                                            | export 結果の CSV、JSON、実データを Git 管理対象にしない。                                                           | [export-out ガイド](../../export-out/export-out-guide.md)                                                                                                                                                    |
-| `logs/`          | Apex、Code Analyzer、Bulk API のローカル実行結果を用途別に保存する。              | 出力先ごとの guide。                                                                      | debug log、解析結果、Bulk API 結果などの生成物や組織固有情報を Git 管理対象にしない。                                | [Apex log ガイド](../../logs/apex/apex-log-guide.md)、[Code Analyzer log ガイド](../../logs/code-analyzer/code-analyzer-guide.md)、[Bulk API 結果ガイド](../../logs/data-bulk-results/bulk-results-guide.md) |
+| パス                                        | 種別     | 用途                                                        |
+| ------------------------------------------- | -------- | ----------------------------------------------------------- |
+| `.github/ISSUE_TEMPLATE/`                   | フォルダ | IssueフォームとIssue作成画面の設定を格納する。              |
+| `.github/ISSUE_TEMPLATE/01_improvement.yml` | ファイル | 改善Issueの入力項目と初期ラベルを定義する。                 |
+| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | ファイル | 不具合Issueの入力項目と初期ラベルを定義する。               |
+| `.github/ISSUE_TEMPLATE/config.yml`         | ファイル | Issueテンプレート全体の挙動を定義する。                     |
+| `.github/workflows/`                        | フォルダ | GitHub Actions workflowを格納する。                         |
+| `.github/workflows/ci.yml`                  | ファイル | PRと`main`へのpushで実行するCIを定義する。                  |
+| `.github/copilot-instructions.md`           | ファイル | GitHub Copilotにリポジトリルールの参照順を示す。            |
+| `.github/dependabot.yml`                    | ファイル | npm依存とGitHub Actionsの定期更新を定義する。               |
+| `.github/pull_request_template.md`          | ファイル | PR本文のIssue、変更内容、確認結果、レビュー観点を定義する。 |
+| `.github/release.yml`                       | ファイル | GitHub Releaseの自動生成カテゴリを定義する。                |
 
-## 主要な設定ファイル
+## config
 
-### 詳細ページ
+| パス                                   | 種別     | 用途                                                       |
+| -------------------------------------- | -------- | ---------------------------------------------------------- |
+| `config/code-analyzer/`                | フォルダ | Code Analyzerの追加設定を格納する。                        |
+| `config/code-analyzer/pmd-ruleset.xml` | ファイル | ApexDocとTrigger構造を検査するカスタムPMD ruleを定義する。 |
+| `config/project-scratch-def.json`      | ファイル | Scratch Orgのedition、feature、settingを定義する。         |
 
-| ページ                                                                   | 内容                                                    |
-| ------------------------------------------------------------------------ | ------------------------------------------------------- |
-| [package.json](../knowledge/package-json.md)                             | npm scripts、依存、フック設定の読み方。                 |
-| [Salesforce DX 設定ファイル](../knowledge/salesforce-dx-config-files.md) | `sfdx-project.json`、Scratch Org 設定、`.forceignore`。 |
-| [品質チェック設定ファイル](../knowledge/quality-config-files.md)         | ESLint、Jest、Prettier、Code Analyzer、pre-commit。     |
-| [GitHub設定ファイル](../knowledge/github-config-files.md)                | CI、Dependabot、リリース、Issue／PRテンプレート。       |
+## docs
 
-### Salesforce / DX
+| パス                   | 種別       | 用途                                                                          |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------- |
+| `docs/deployment/`     | フォルダ   | Salesforce組織のvalidate、deploy、retrieve、削除、Scratch Org手順を管理する。 |
+| `docs/development/`    | フォルダ   | 開発、GitHub、metadata、Apex、文書の運用ルールを管理する。                    |
+| `docs/discussions/`    | フォルダ   | 設計や運用を決めるまでの比較と判断過程を管理する。                            |
+| `docs/knowledge/`      | フォルダ   | Salesforce DX開発で再利用する解説と調査結果を管理する。                       |
+| `docs/setup/`          | フォルダ   | 開発環境を初めて準備するときの手順を管理する。                                |
+| `docs/specifications/` | フォルダ   | リポジトリ構成と独自開発機能の現行仕様を管理する。                            |
+| `docs/_config.yml`     | ファイル   | GitHub PagesのJekyll設定を定義する。                                          |
+| `docs/index.md`        | ファイル   | docs全体のカテゴリ索引を提供する。                                            |
+| `docs/*/index.md`      | ファイル群 | 各docsカテゴリの索引を提供する。                                              |
 
-| ファイル                               | 概要                                                                                                                                     | 変更時の確認                                                                                        |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `sfdx-project.json`                    | Salesforce DX の package directory、プロジェクト名、ログイン URL、API version を定義する。`force-app` を source directory の基準にする。 | API version や package directory を変える場合は、metadata の deploy / retrieve への影響を確認する。 |
-| `config/project-scratch-def.json`      | Scratch org 作成時の edition、features、settings を定義する。Salesforce 組織への deploy 先設定ではない。                                 | 組織機能や設定を変える場合は、新規 Scratch org の再現性と既存 Salesforce 組織との差分を確認する。   |
-| `scripts/scratch-org/scratch-org.json` | Scratch Org 準備・削除スクリプトで使う alias、duration、manifest、Permission Set、import plan、wait を定義する。                         | 個人専用 alias や秘密情報を入れず、Scratch Org 手順と一致しているか確認する。                       |
-| `manifest/rebuild-scratch-org.xml`     | Scratch Org 作成後の初期反映 scope を定義する。                                                                                          | Scratch Org の再現手順と `config/project-scratch-def.json` への影響を確認する。                     |
-| `manifest/destructiveChanges.xml`      | Salesforce 組織や Scratch Org から削除する metadata を Salesforce 標準の destructive changes 形式で定義する。                            | 実行前に対象 org、削除 scope、復旧方針を確認する。                                                  |
-| `manifest/package.xml`                 | Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest を定義する。                                                          | retrieve対象を作業範囲に絞り、Git管理対象やdeploy scopeの基準として流用しない。                     |
-| `manifest/retrieve-*.xml`              | 全取得対象のcatalogと、責務別に分割した一括retrieveのscopeを定義する。                                                                   | 取得順序と対象orgを確認し、retrieve結果をそのままGit管理やdeployの基準にしない。                    |
-| `.forceignore`                         | Salesforce source push / pull / status などで無視するファイルを定義する。                                                                | metadata として送るべきファイルを除外していないか確認する。                                         |
-| `scripts/setup/import-plan.json`       | 標準テストデータ用anonymous Apexの実行順序と反復回数を定義する、このリポジトリ独自のplan。                                               | 実データや個人情報を入れず、シード／クリーンアップ用Apexと整合させる。                              |
+## ローカル出力先
 
-### npm / 品質チェック
+| パス                                           | 種別     | 用途                                      |
+| ---------------------------------------------- | -------- | ----------------------------------------- |
+| `export-out/export-out-guide.md`               | ファイル | `export-out/`の利用方法を示す。           |
+| `logs/apex/`                                   | フォルダ | Apex debug logのローカル出力先。          |
+| `logs/apex/apex-log-guide.md`                  | ファイル | Apex debug logの出力方法を示す。          |
+| `logs/code-analyzer/`                          | フォルダ | Code Analyzer結果のローカル出力先。       |
+| `logs/code-analyzer/code-analyzer-guide.md`    | ファイル | Code Analyzer結果の出力方法を示す。       |
+| `logs/data-bulk-results/`                      | フォルダ | Bulk API 2.0 ingest結果のローカル出力先。 |
+| `logs/data-bulk-results/bulk-results-guide.md` | ファイル | Bulk API結果の出力方法を示す。            |
 
-| ファイル                               | 概要                                                                                                                                    | 変更時の確認                                                                                             |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `package.json`                         | npm scripts、devDependencies、overrides、lint-staged の設定を管理する。詳細は [package.json](../knowledge/package-json.md) を参照する。 | 依存や scripts を変えた場合は `package-lock.json` との整合性を確認する。                                 |
-| `package-lock.json`                    | npm 依存の解決結果を固定する。                                                                                                          | 手編集しない。`package.json` 変更後に npm で更新された差分を確認する。                                   |
-| `.node-version`                        | ローカル実行、CI、docs で前提にする Node.js major version を固定する。                                                                  | `package.json` の `engines.node`、CI の Node version、setup docs と一致しているか確認する。              |
-| `eslint.config.js`                     | Aura、LWC、LWC test、Jest mocks 向けの ESLint flat config を定義する。                                                                  | Salesforce / LWC ESLint パッケージの peer dependency と対象パスを確認する。                              |
-| `code-analyzer.yml`                    | Salesforce Code Analyzer の engine、rule tag、severity を管理する。ESLint engine は repo の `eslint.config.js` を使う。                 | Code Analyzer と ESLint の設定が重複適用されず、カスタムPMDルールが`Recommended`で選択されるか確認する。 |
-| `config/code-analyzer/pmd-ruleset.xml` | ApexDocとTrigger構造をリポジトリ規約に合わせて検査するカスタムPMDルールを定義する。                                                     | 標準ルールとの置換理由、XPath、priorityが`code-analyzer.yml`と整合しているか確認する。                   |
-| `jest.config.js`                       | `@salesforce/sfdx-lwc-jest` の標準設定を拡張し、local dev server のパス除外と LWC coverage 対象を定義する。                             | LWC test / coverage の探索対象や除外対象が変わらないか確認する。                                         |
-| `jest-sa11y-setup.js`                  | LWC Jest で `@sa11y/jest` の `toBeAccessible()` matcher を登録する。                                                                    | automatic checks を有効化していないか、setup file が Jest config から読まれるか確認する。                |
-| `.prettierrc`                          | Apex、XML、LWC HTML などの Prettier 整形ルールを定義する。Apex / LWC / Aura は 4 spaces を前提にする。                                  | 整形対象が広いため、変更後は差分が意図せず広がらないか確認する。                                         |
-| `.prettierignore`                      | Prettier の対象外にする生成物、接続情報、local tool ディレクトリを定義する。                                                            | 整形対象に含めるべき source を除外していないか確認する。                                                 |
-| `.husky/pre-commit`                    | コミット前に`npm run precommit`を実行する。                                                                                             | フックを変えた場合はステージ済みファイルに対する挙動を確認する。                                         |
+## force-app
 
-### ローカル出力先
+### パッケージ構成
 
-| ファイル                                       | 概要                                                                                                    | 変更時の確認                                                             |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `export-out/export-out-guide.md`               | Salesforce CLI の export 結果の出力先として `export-out/` を固定する。                                  | CSV / JSON などの export 結果を Git 管理対象にしていないか確認する。     |
-| `logs/apex/apex-log-guide.md`                  | Salesforce CLI で取得した Apex debug log の出力先として `logs/apex/` を固定する。                       | Apex debug log の実ファイルを Git 管理対象にしていないか確認する。       |
-| `logs/code-analyzer/code-analyzer-guide.md`    | Salesforce Code Analyzer のローカル解析結果の出力先として `logs/code-analyzer/` を固定する。            | `package.json` の Code Analyzer 出力先と `.gitignore` の例外を確認する。 |
-| `logs/data-bulk-results/bulk-results-guide.md` | Salesforce CLI で取得した Bulk API 2.0 ingest 結果の出力先として `logs/data-bulk-results/` を固定する。 | Bulk 結果 CSV や実行ログを Git 管理対象にしていないか確認する。          |
+| パス                      | 種別     | 用途                                             |
+| ------------------------- | -------- | ------------------------------------------------ |
+| `force-app/main/`         | フォルダ | Salesforceへ反映するsource packageを格納する。   |
+| `force-app/main/default/` | フォルダ | metadata typeごとのSalesforce sourceを格納する。 |
+| `force-app/test/`         | フォルダ | LWC Jestで共有するmockとtest utilityを格納する。 |
 
-### Git / エディタ
+### main/defaultのmetadataフォルダ
 
-| ファイル                  | 概要                                                                                                      | 変更時の確認                                                          |
-| ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `.gitattributes`          | Gitで共有するテキストファイルの改行コードを定義する。                                                     | 通常のテキストはLF、Windows用の`.bat`と`.cmd`はCRLFを維持する。       |
-| `.gitignore`              | Git 管理対象外にする Salesforce cache、依存、coverage、OS / editor 生成物、秘密情報系ファイルを定義する。 | source、metadata、docs、GitHub 設定を誤って除外していないか確認する。 |
-| `.vscode/extensions.json` | このリポジトリで推奨する VS Code 拡張機能を定義する。                                                     | 個人環境専用の拡張や設定を固定しない。                                |
-| `.vscode/launch.json`     | Apex Replay Debugger など、このリポジトリで共有する VS Code debug configuration を定義する。              | 個人環境専用のパスやログファイル名を固定しない。                      |
-| `.vscode/settings.json`   | このリポジトリで共有する VS Code workspace settings を定義する。                                          | 個人環境専用の設定や秘密情報を含めない。                              |
+`force-app/main/default/`配下はGit管理対象外を含むmetadataフォルダだけを掲載し、各フォルダ内のファイルは掲載しません。
 
-### GitHub
+| パス                                                       | 用途                                                   |
+| ---------------------------------------------------------- | ------------------------------------------------------ |
+| `force-app/main/default/apexEmailNotifications/`           | Apex例外メールの通知設定を管理する。                   |
+| `force-app/main/default/appMenus/`                         | App Launcherとモバイルのアプリメニューを管理する。     |
+| `force-app/main/default/applications/`                     | Lightningアプリと標準アプリの定義を管理する。          |
+| `force-app/main/default/assignmentRules/`                  | LeadとCaseの割り当てルールを管理する。                 |
+| `force-app/main/default/autoResponseRules/`                | LeadとCaseの自動返信ルールを管理する。                 |
+| `force-app/main/default/classes/`                          | Apex classを管理する。                                 |
+| `force-app/main/default/cleanDataServices/`                | データクレンジングサービスの設定を管理する。           |
+| `force-app/main/default/communities/`                      | Experience CloudのCommunity設定を管理する。            |
+| `force-app/main/default/duplicateRules/`                   | 重複ルールを管理する。                                 |
+| `force-app/main/default/entitlementProcesses/`             | Entitlement Processを管理する。                        |
+| `force-app/main/default/escalationRules/`                  | Caseのエスカレーションルールを管理する。               |
+| `force-app/main/default/externalClientApps/`               | External Client Appの定義を管理する。                  |
+| `force-app/main/default/extlClntAppGlobalOauthSets/`       | External Client Appのglobal OAuth設定を管理する。      |
+| `force-app/main/default/extlClntAppOauthPolicies/`         | External Client AppのOAuth policyを管理する。          |
+| `force-app/main/default/extlClntAppOauthSecuritySettings/` | External Client AppのOAuth security設定を管理する。    |
+| `force-app/main/default/extlClntAppOauthSettings/`         | External Client AppのOAuth設定を管理する。             |
+| `force-app/main/default/extlClntAppPolicies/`              | External Client Appのpolicyを管理する。                |
+| `force-app/main/default/flexipages/`                       | Lightning Record Page、Home Page、App Pageを管理する。 |
+| `force-app/main/default/flowDefinitions/`                  | Flowの有効version情報を管理する。                      |
+| `force-app/main/default/flows/`                            | Flowの処理定義を管理する。                             |
+| `force-app/main/default/homePageLayouts/`                  | Salesforce ClassicのHome Page Layoutを管理する。       |
+| `force-app/main/default/iframeWhiteListUrlSettings/`       | iframeで許可するURL設定を管理する。                    |
+| `force-app/main/default/layouts/`                          | ObjectのPage Layoutを管理する。                        |
+| `force-app/main/default/lwc/`                              | Lightning Web Componentsを管理する。                   |
+| `force-app/main/default/managedContentTypes/`              | Salesforce CMSのcontent typeを管理する。               |
+| `force-app/main/default/matchingRules/`                    | 重複判定に使用するmatching ruleを管理する。            |
+| `force-app/main/default/milestoneTypes/`                   | Entitlement Managementのmilestone typeを管理する。     |
+| `force-app/main/default/notificationTypeConfig/`           | Salesforce通知typeの有効化設定を管理する。             |
+| `force-app/main/default/objects/`                          | Object、Field、Record Typeなどのmetadataを管理する。   |
+| `force-app/main/default/permissionsetgroups/`              | Permission Set Groupを管理する。                       |
+| `force-app/main/default/permissionsets/`                   | Permission Setを管理する。                             |
+| `force-app/main/default/profilePasswordPolicies/`          | Profileごとのpassword policyを管理する。               |
+| `force-app/main/default/profileSessionSettings/`           | Profileごとのsession設定を管理する。                   |
+| `force-app/main/default/profiles/`                         | Profileと権限設定を管理する。                          |
+| `force-app/main/default/quickActions/`                     | Global ActionとObject Actionを管理する。               |
+| `force-app/main/default/remoteSiteSettings/`               | Apex calloutで許可するRemote Siteを管理する。          |
+| `force-app/main/default/reportTypes/`                      | Custom Report Typeを管理する。                         |
+| `force-app/main/default/roles/`                            | Role hierarchyを管理する。                             |
+| `force-app/main/default/samlssoconfigs/`                   | SAML Single Sign-On設定を管理する。                    |
+| `force-app/main/default/settings/`                         | Salesforce組織機能の有効化設定を管理する。             |
+| `force-app/main/default/sharingRules/`                     | Owner-basedとcriteria-basedのsharing ruleを管理する。  |
+| `force-app/main/default/topicsForObjects/`                 | Objectで利用できるTopic設定を管理する。                |
+| `force-app/main/default/transactionSecurityPolicies/`      | Transaction Security Policyを管理する。                |
+| `force-app/main/default/translations/`                     | Custom Labelやmetadataの翻訳を管理する。               |
+| `force-app/main/default/triggers/`                         | Apex Triggerを管理する。                               |
+| `force-app/main/default/workflows/`                        | Workflow Rule、Field Updateなどを管理する。            |
 
-| ファイル                                    | 概要                                                                                                                       | 変更時の確認                                                                                                                    |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/_config.yml`                          | GitHub Pages で公開する docs site の Jekyll title、description、theme、URL、baseurl を定義する。                           | GitHub Pages の公開元と repository name / owner の変更に追従しているか確認する。                                                |
-| `.github/copilot-instructions.md`           | GitHub Copilot 向けに、このリポジトリの共通ルール指示を示す。                                                              | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                           |
-| `.github/workflows/ci.yml`                  | PRと`main`へのプッシュでnpm audit、整形、文書、lint、Salesforce Code Analyzer、スクリプトテスト、LWC単体テストを確認する。 | CIからSalesforce組織へログインせず、metadataのvalidate / deployを実行しない。                                                   |
-| `.github/dependabot.yml`                    | npm依存とGitHub Actionsの週次更新、ラベル、コミットメッセージ、グループ化を定義する。                                      | 特定の個人ユーザー名を担当者やレビュー担当者として固定せず、`docs/development/github-repository-rules.md`の固有運用と合わせる。 |
-| `.github/release.yml`                       | GitHub Releaseの自動生成リリースノートカテゴリをラベルごとに定義する。                                                     | ラベル体系や日次リリースノート運用を変えた場合はカテゴリも合わせて見直す。                                                      |
-| `.github/ISSUE_TEMPLATE/config.yml`         | Issueテンプレート全体の挙動を定義する。                                                                                    | テンプレートなしのIssueを許可するかどうかを運用方針に合わせる。                                                                 |
-| `.github/ISSUE_TEMPLATE/01_improvement.yml` | 機能・改善 Issue のフォームを定義する。                                                                                    | 必須項目、初期ラベル、秘密情報への注意書きを確認する。                                                                          |
-| `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | 不具合報告 Issue のフォームを定義する。                                                                                    | 再現手順、期待動作、ログ記載時の秘密情報除外を確認する。                                                                        |
-| `.github/pull_request_template.md`          | PR 作成時の Issue、変更内容、確認結果、レビュー観点の記入欄を定義する。                                                    | Issue 連携、検証結果、Salesforce 組織操作の記録欄が残っているか確認する。                                                       |
+### テスト支援
 
-### Agent
+| パス                                                | 種別       | 用途                                                    |
+| --------------------------------------------------- | ---------- | ------------------------------------------------------- |
+| `force-app/test/jest-mocks/`                        | フォルダ   | LWC Jestで共有するmodule mockを格納する。               |
+| `force-app/test/jest-mocks/lightning/`              | フォルダ   | `lightning/*` moduleのmockを格納する。                  |
+| `force-app/test/jest-mocks/lightning/*.js`          | ファイル群 | Lightning Data Service関連のJest mockを提供する。       |
+| `force-app/test/jest-utils/`                        | フォルダ   | LWC Jestで共有するtest utilityを格納する。              |
+| `force-app/test/jest-utils/objectRecordSearch/`     | フォルダ   | `objectRecordSearch`向けのmockとtest helperを格納する。 |
+| `force-app/test/jest-utils/objectRecordSearch/*.js` | ファイル群 | Apex mockとtest helperを提供する。                      |
 
-| ファイル                    | 概要                                                                                              | 変更時の確認                                                                                                                |
-| --------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md`                 | Codex などのエージェントが常に守る短い共通ルールを定義する。                                      | 詳細手順を詰め込みすぎず、実務手順はルール文書側で管理する。                                                                |
-| `CLAUDE.md`                 | Claude Code 向けに、このリポジトリの共通ルール指示を示す。                                        | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                       |
-| `GEMINI.md`                 | Gemini CLI 向けに、このリポジトリの共通ルール指示を示す。                                         | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                       |
-| `.gemini/settings.json`     | Gemini CLI が読み込む context file を定義する。                                                   | `GEMINI.md` と `AGENTS.md` を context file として読み込む設定が残っているか確認する。                                       |
-| `.cline/skills/`            | Cline 向けに `.agents/skills/` への skill router を置く。                                         | router に共通ルールを重複させず、参照先の `.agents/skills/` と `AGENTS.md` / `docs/` の優先関係が明記されているか確認する。 |
-| `.clineignore`              | Cline の自動 context / search から外すローカル生成物、接続情報、credential 系ファイルを定義する。 | source、docs、設定ファイル、テスト、skill 関連ファイルなど作業に必要な文脈を誤って除外していないか確認する。                |
-| `.clinerules/repository.md` | Cline 向けに、このリポジトリの共通ルール指示を示す。                                              | 共通ルールを重複させず、`AGENTS.md` と `docs/` を優先する案内が残っているか確認する。                                       |
+## manifest
 
-`.clineignore` は Git 管理対象外を決める `.gitignore` とは役割が異なります。
-Cline の自動 context / search に入れると危険またはノイズになりやすいローカル状態、credential、生成物を外すために使い、Salesforce metadata、source、docs、tests、manifest は原則として AI が確認できる状態にします。
+| パス                               | 種別       | 用途                                                                             |
+| ---------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| `manifest/destructiveChanges.xml`  | ファイル   | Salesforce組織から削除するmetadataを定義する。                                   |
+| `manifest/package.xml`             | ファイル   | Apex、Aura、LWC、静的リソース、Flowを手動取得するscopeを定義する。               |
+| `manifest/rebuild-scratch-org.xml` | ファイル   | Scratch Org作成後に初期反映するmetadataを定義する。                              |
+| `manifest/retrieve-*.xml`          | ファイル群 | 取得対象metadata typeの全体catalogと、責務別に分割したretrieve scopeを定義する。 |
 
-## 更新ルール
+## scripts
 
-- 主要ディレクトリまたは設定ファイルを追加、削除、役割変更した場合は、このページも更新する。
-- セットアップ手順そのものや GitHub 運用ルールは、このページではなく該当するルール文書側で管理する。
-- このページには実値の秘密情報、個人環境の値、接続済み組織の認証情報を書かない。
-- メタデータの deploy や Apex test が必要な設定変更では、実行したコマンドと対象組織を作業報告に残す。
+| パス                                          | 種別       | 用途                                                                        |
+| --------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| `scripts/apex/`                               | フォルダ   | ローカルから実行するanonymous Apexを格納する。                              |
+| `scripts/apex/test-data/`                     | フォルダ   | 合成テストデータの作成、削除、補正処理を格納する。                          |
+| `scripts/apex/test-data/*.apex`               | ファイル群 | 標準Objectと対象機能の合成テストデータを操作する。                          |
+| `scripts/docs/`                               | フォルダ   | Markdownと外部リンクの検証scriptを格納する。                                |
+| `scripts/docs/check-docs.js`                  | ファイル   | Markdown構造、索引、内部リンクを検証する。                                  |
+| `scripts/docs/check-external-links.js`        | ファイル   | Markdown内の外部リンクを検証する。                                          |
+| `scripts/docs/markdown-files.js`              | ファイル   | 検証対象のMarkdownファイルを列挙する。                                      |
+| `scripts/docs/test/`                          | フォルダ   | docs検証scriptのNode.js testを格納する。                                    |
+| `scripts/docs/test/*.node.js`                 | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
+| `scripts/metadata/`                           | フォルダ   | Salesforce metadata操作scriptを格納する。                                   |
+| `scripts/metadata/destructive/`               | フォルダ   | metadata削除scriptを格納する。                                              |
+| `scripts/metadata/destructive/destructive.sh` | ファイル   | destructive changesのdry-runと実削除を実行する。                            |
+| `scripts/metadata/retrieve/`                  | フォルダ   | metadata retrieve scriptを格納する。                                        |
+| `scripts/metadata/retrieve/retrieve.sh`       | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
+| `scripts/scratch-org/`                        | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
+| `scripts/scratch-org/setup.js`                | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
+| `scripts/scratch-org/delete.js`               | ファイル   | 設定されたScratch Orgを削除する。                                           |
+| `scripts/scratch-org/scratch-org.json`        | ファイル   | Scratch Org scriptのalias、期間、manifest、Permission Set、waitを定義する。 |
+| `scripts/scratch-org/internal-*.js`           | ファイル群 | Scratch Org処理の各手順と共通処理を実装する。                               |
+| `scripts/scratch-org/test/`                   | フォルダ   | Scratch Org scriptのNode.js testを格納する。                                |
+| `scripts/scratch-org/test/*.node.js`          | ファイル群 | Scratch Org scriptのcommand生成と実行制御を確認する。                       |
+| `scripts/setup/`                              | フォルダ   | テストデータ投入のplanと実行scriptを格納する。                              |
+| `scripts/setup/import-plan.json`              | ファイル   | anonymous Apexの実行順序と反復回数を定義する。                              |
+| `scripts/setup/import-test-data.js`           | ファイル   | import planに従って合成テストデータを投入する。                             |
+| `scripts/soql/`                               | フォルダ   | 調査とテストデータ確認に使用するSOQLを格納する。                            |
+| `scripts/soql/object-queries/`                | フォルダ   | Object別の調査用SOQLを格納する。                                            |
+| `scripts/soql/object-queries/**/*.soql`       | ファイル群 | Account、Case、Opportunityの調査queryを提供する。                           |
+| `scripts/soql/test-data-check-queries/`       | フォルダ   | 合成テストデータの確認用SOQLを格納する。                                    |
+| `scripts/soql/test-data-check-queries/*.soql` | ファイル群 | Objectごとの投入結果を確認する。                                            |
+| `scripts/scripts-guide.md`                    | ファイル   | scripts配下の用途と実行方法を案内する。                                     |
