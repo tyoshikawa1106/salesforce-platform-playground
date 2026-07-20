@@ -17,7 +17,7 @@ docs を追加、移動、分割するときは、次の順に判定し、先に
 1. 作業前に一度だけ行う準備なら `docs/setup/` に置く。
 2. 作業中に毎回守る開発ルール、確認観点、チェックリストなら `docs/development/` に置く。
 3. Salesforce 組織に対する deploy / validate / retrieve / destructive changes / data import / Scratch Org 再現の手順なら `docs/deployment/` に置く。
-4. リポジトリで開発、管理している機能の現行実装の仕様と仕組みなら `docs/specifications/` に置く。
+4. リポジトリ全体の構成、またはリポジトリで開発、管理している機能の現行実装の仕様と仕組みなら `docs/specifications/` に置く。
 5. README には、プロジェクト概要、主要な docs への案内、セットアップの最短手順だけを書く。
 
 ## 配置の補足
