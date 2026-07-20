@@ -1,6 +1,5 @@
 // 初期取得と追加取得で共通する利用者向けエラー文言
-export const LOAD_ERROR_MESSAGE =
-    'メールメッセージを読み込めませんでした。時間をおいてもう一度お試しください。';
+export const LOAD_ERROR_MESSAGE = 'メールメッセージを読み込めませんでした。時間をおいてもう一度お試しください。';
 
 // 初期取得状態と総件数からカードタイトルを生成
 export function createCardTitle({ hasLoaded, errorMessage, totalCount }) {
@@ -18,9 +17,7 @@ export function createDisplayRow(emailMessage) {
     // Incomingフラグを日本語の送受信区分へ変換
     const direction = emailMessage.Incoming ? '受信' : '送信';
     // 送受信区分に対応するLightningアイコンを選択
-    const directionIconName = emailMessage.Incoming
-        ? 'utility:email_open'
-        : 'utility:sender_email';
+    const directionIconName = emailMessage.Incoming ? 'utility:email_open' : 'utility:sender_email';
     // 差出人未設定時もリンクラベルを空にしない
     const fromAddress = emailMessage.FromAddress || '(差出人なし)';
     // 宛先未設定時も表示内容を空にしない
@@ -62,53 +59,40 @@ export function createDisplayRow(emailMessage) {
 }
 
 // 初期ページ応答から一覧とページング状態を生成
-export function createInitialPageState(page, totalCount) {
+export function createInitialPageState(page) {
     // 各EmailMessageをテンプレート表示行へ変換
     const emailMessages = (page.emailMessages || []).map(createDisplayRow);
     // 次ページ情報を含む初期表示状態を返却
     return {
         // 初期ページの表示行を保持
         emailMessages,
-        // 次回取得に使うApexページトークンを保持
-        nextPageToken: page.nextPageToken,
-        // 総件数と取得済み件数から次ページ有無を判定
-        hasNextPage: canLoadNextPage({
-            // Apexが返した次ページ境界を渡す
-            nextPageToken: page.nextPageToken,
-            // 初期ページの取得済み件数を渡す
-            loadedCount: emailMessages.length,
-            // COUNTで取得した総件数を渡す
-            totalCount
-        }),
+        // 次回取得に使うSalesforce標準PaginationCursorを保持
+        paginationCursor: page.paginationCursor,
+        // 次回取得を開始する0始まりの位置を保持
+        nextIndex: page.nextIndex,
+        // Apexが判定した結果セット内の次ページ有無を保持
+        hasNextPage: Boolean(page.hasNextPage),
         // 初期ページ成功時は以前の追加取得エラーを解除
         loadMoreErrorMessage: undefined
     };
 }
 
 // 追加ページ応答から既存一覧へ連結する次状態を生成
-export function createNextPageState({ page, emailMessages, totalCount }) {
+export function createNextPageState({ page, emailMessages }) {
     // 追加ページを表示行へ変換して先頭行へ区切り情報を付加
-    const nextEmailMessages = createNextPageDisplayRows(
-        page,
-        emailMessages.length
-    );
+    const nextEmailMessages = createNextPageDisplayRows(page, emailMessages.length);
     // 既存順を保って新しい表示行を末尾へ追加
     const combinedEmailMessages = [...emailMessages, ...nextEmailMessages];
     // 追加後の一覧とページング状態を返却
     return {
         // 結合済みの表示行を保持
         emailMessages: combinedEmailMessages,
-        // 続く追加取得へ使うトークンを保持
-        nextPageToken: page.nextPageToken,
-        // 総件数と取得済み件数から追加取得可否を再判定
-        hasNextPage: canLoadNextPage({
-            // Apexが返した次ページ境界を渡す
-            nextPageToken: page.nextPageToken,
-            // 追加後の取得済み件数を渡す
-            loadedCount: combinedEmailMessages.length,
-            // COUNTで取得した総件数を渡す
-            totalCount
-        })
+        // 続く追加取得へ引き継ぐPaginationCursorを保持
+        paginationCursor: page.paginationCursor,
+        // 続く追加取得を開始する位置を保持
+        nextIndex: page.nextIndex,
+        // Apexが判定した結果セット内の次ページ有無を保持
+        hasNextPage: Boolean(page.hasNextPage)
     };
 }
 
@@ -120,15 +104,11 @@ export function createEmptyPaginationState() {
         emailMessages: [],
         // 追加取得ボタンを無効化
         hasNextPage: false,
-        // 古いページトークンを破棄
-        nextPageToken: undefined
+        // 古いPaginationCursorを破棄
+        paginationCursor: undefined,
+        // 古い次ページ位置を破棄
+        nextIndex: undefined
     };
-}
-
-// 次ページトークンと未取得件数から追加取得可否を判定
-function canLoadNextPage({ nextPageToken, loadedCount, totalCount }) {
-    // トークンがあり取得済み件数が総件数未満の場合だけ有効化
-    return Boolean(nextPageToken && loadedCount < totalCount);
 }
 
 // 追加ページを表示行へ変換して先頭行へ区切り情報を付加

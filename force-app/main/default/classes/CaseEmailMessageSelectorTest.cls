@@ -1,9 +1,8 @@
 /**
- * ケースメールメッセージ問い合わせテスト
+ * ケースメールメッセージ PaginationCursor 問い合わせテスト
  */
 @IsTest
 private with sharing class CaseEmailMessageSelectorTest {
-
     private static User testUser = TestDataFactory.getTestUser();
 
     /**
@@ -15,106 +14,119 @@ private with sharing class CaseEmailMessageSelectorTest {
             'メール件数 Selector テスト',
             TestDataFactory.SaveMode.INSERT_RECORD
         );
-        insert new List<EmailMessage>{
-            createEmailMessage(caseRecord.Id, 1, System.now()),
-            createEmailMessage(caseRecord.Id, 2, System.now())
-        };
+        insert createEmailMessages(caseRecord.Id, 2, System.now());
         Integer result;
-        Integer nullResult;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
-            result = selector.getCountByCaseId(caseRecord.Id);
-            nullResult = selector.getCountByCaseId(null);
+            result = new CaseEmailMessageSelector().getCountByCaseId(caseRecord.Id);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            2,
-            result,
-            'ケースに紐づくメールメッセージ件数を返す必要あり'
-        );
-        Assert.areEqual(
-            0,
-            nullResult,
-            'ケース ID が null の場合は 0 件を返す必要あり'
-        );
+        Assert.areEqual(2, result, 'ケースに紐づくメールメッセージ件数を返す必要あり');
     }
 
     /**
-     * カーソルより後のメールメッセージを昇順で返却
+     * nullのケースIDは0件として返却
      */
     @IsTest
-    static void shouldReturnEmailMessagesAfterCursor() {
-        Case caseRecord = TestDataFactory.createCase(
-            'メール一覧 Selector テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        Datetime latestMessageDate = Datetime.newInstance(2026, 7, 16, 12, 0, 0);
-        List<EmailMessage> emailMessages = new List<EmailMessage>();
-        for (Integer index = 0; index < 51; index++) {
-            emailMessages.add(
-                createEmailMessage(
-                    caseRecord.Id,
-                    index,
-                    latestMessageDate
-                )
-            );
-        }
-        insert emailMessages;
-        List<EmailMessage> firstPage;
-        List<EmailMessage> nextPage;
+    static void shouldReturnZeroCountWhenCaseIdIsNull() {
+        Integer result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
-            firstPage = selector.getByCaseId(
-                createPageQuery(caseRecord.Id, null, 50)
-            );
-            EmailMessage cursorEmailMessage = firstPage[49];
-            nextPage = selector.getByCaseId(
-                createPageQuery(caseRecord.Id, cursorEmailMessage, 50)
-            );
+            result = new CaseEmailMessageSelector().getCountByCaseId(null);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            50,
-            firstPage.size(),
-            '1 回の問い合わせを 50 件に制限する必要あり'
+        Assert.areEqual(0, result, 'ケース ID が null の場合は 0 件を返す必要あり');
+    }
+
+    /**
+     * 49件では次ページなしとして返却
+     */
+    @IsTest
+    static void shouldReturnNoNextPageWhenFortyNineRecordsExist() {
+        Case caseRecord = createCaseWithEmailMessages(49);
+        CaseEmailMessagePageWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = getInitialPage(caseRecord.Id, 50);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(49, result.emailMessages.size(), '49 件を 1 ページで返す必要あり');
+        Assert.isFalse(result.hasNextPage, '49 件では次ページなしにする必要あり');
+    }
+
+    /**
+     * 50件ちょうどでは次ページなしとして返却
+     */
+    @IsTest
+    static void shouldReturnNoNextPageWhenFiftyRecordsExist() {
+        Case caseRecord = createCaseWithEmailMessages(50);
+        CaseEmailMessagePageWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = getInitialPage(caseRecord.Id, 50);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(50, result.emailMessages.size(), '50 件を 1 ページで返す必要あり');
+        Assert.isFalse(result.hasNextPage, '50 件ちょうどでは次ページなしにする必要あり');
+        Assert.areEqual(50, result.nextIndex, '次の取得位置は取得済み 50 件の後にする必要あり');
+    }
+
+    /**
+     * 51件を重複なく2ページへ分割
+     */
+    @IsTest
+    static void shouldReturnTwoPagesWithoutDuplicatesWhenFiftyOneRecordsExist() {
+        Case caseRecord = createCaseWithEmailMessages(51);
+        CaseEmailMessagePageWrapper firstPage;
+        CaseEmailMessagePageWrapper nextPage;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            firstPage = getInitialPage(caseRecord.Id, 50);
+            nextPage = getNextPage(caseRecord.Id, firstPage, 50);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(50, firstPage.emailMessages.size(), '初回ページは最大 50 件にする必要あり');
+        Assert.isTrue(firstPage.hasNextPage, '51 件では初回ページに次ページを返す必要あり');
+        Assert.areEqual(1, nextPage.emailMessages.size(), '2 ページ目に残り 1 件を返す必要あり');
+        Assert.isFalse(nextPage.hasNextPage, '2 ページ目を最終ページにする必要あり');
+        Assert.areNotEqual(
+            firstPage.emailMessages[49].Id,
+            nextPage.emailMessages[0].Id,
+            'ページ境界で同じメールを重複して返さない必要あり'
         );
         Assert.areEqual(
             'メール 50',
-            firstPage[0].Subject,
-            '先頭は送信日時が最も古いメールにする必要あり'
+            firstPage.emailMessages[0].Subject,
+            '最も古いメールを初回ページの先頭にする必要あり'
         );
-        Assert.areEqual(
-            1,
-            nextPage.size(),
-            '50 件目のカーソル以降を次ページに返す必要あり'
-        );
-        Assert.areEqual(
-            'メール 0',
-            nextPage[0].Subject,
-            '次ページに最も新しいメールを返す必要あり'
-        );
-        Assert.areEqual(
-            'テスト用メール本文',
-            firstPage[0].TextBody,
-            '取得結果にメール本文を含む必要あり'
-        );
+        Assert.areEqual('メール 0', nextPage.emailMessages[0].Subject, '最も新しいメールを最終ページにする必要あり');
     }
 
     /**
-     * 送信日時のないメールを作成日時のカーソルで取得
+     * 送信日時のないメールを作成日時の順にページ取得
      */
     @IsTest
-    static void shouldReturnUndatedEmailMessagesAfterCursor() {
+    static void shouldPageUndatedEmailMessagesByCreatedDate() {
         Case caseRecord = TestDataFactory.createCase(
             '送信日時なし Selector テスト',
             TestDataFactory.SaveMode.INSERT_RECORD
@@ -124,65 +136,99 @@ private with sharing class CaseEmailMessageSelectorTest {
             createUndatedEmailMessage(caseRecord.Id, '新しい日時なしメール')
         };
         insert emailMessages;
-        Test.setCreatedDate(
-            emailMessages[0].Id,
-            Datetime.newInstance(2026, 7, 15, 9, 0, 0)
-        );
-        Test.setCreatedDate(
-            emailMessages[1].Id,
-            Datetime.newInstance(2026, 7, 16, 9, 0, 0)
-        );
-        List<EmailMessage> firstPage;
-        List<EmailMessage> nextPage;
+        Test.setCreatedDate(emailMessages[0].Id, Datetime.newInstance(2026, 7, 15, 9, 0, 0));
+        Test.setCreatedDate(emailMessages[1].Id, Datetime.newInstance(2026, 7, 16, 9, 0, 0));
+        CaseEmailMessagePageWrapper firstPage;
+        CaseEmailMessagePageWrapper nextPage;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
-            firstPage = selector.getByCaseId(
-                createPageQuery(caseRecord.Id, null, 1)
-            );
-            nextPage = selector.getByCaseId(
-                createPageQuery(caseRecord.Id, firstPage[0], 1)
-            );
+            firstPage = getInitialPage(caseRecord.Id, 1);
+            nextPage = getNextPage(caseRecord.Id, firstPage, 1);
 
             Test.stopTest();
         }
 
         Assert.areEqual(
             '古い日時なしメール',
-            firstPage[0].Subject,
+            firstPage.emailMessages[0].Subject,
             '送信日時なしの先頭は作成日時の古いメールにする必要あり'
         );
         Assert.areEqual(
             '新しい日時なしメール',
-            nextPage[0].Subject,
+            nextPage.emailMessages[0].Subject,
             '日時なしの次ページは作成日時の新しいメールにする必要あり'
         );
     }
 
     /**
-     * ケース ID が null の場合は問い合わせを行わず空結果を返却
+     * Cursor作成後の削除行を飛ばして次ページを取得
      */
     @IsTest
-    static void shouldReturnEmptyListWhenCaseIdIsNull() {
-        List<EmailMessage> results;
+    static void shouldSkipDeletedRecordsWhenFetchingNextPage() {
+        Case caseRecord = TestDataFactory.createCase('削除行 Selector テスト', TestDataFactory.SaveMode.INSERT_RECORD);
+        List<EmailMessage> emailMessages = createEmailMessages(
+            caseRecord.Id,
+            3,
+            Datetime.newInstance(2026, 7, 16, 12, 0, 0)
+        );
+        insert emailMessages;
+        CaseEmailMessagePageWrapper firstPage;
+        CaseEmailMessagePageWrapper nextPage;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            results = new CaseEmailMessageSelector().getByCaseId(
-                createPageQuery(null, null, 50)
-            );
+            firstPage = getInitialPage(caseRecord.Id, 1);
+            delete emailMessages[1];
+            nextPage = getNextPage(caseRecord.Id, firstPage, 2);
 
             Test.stopTest();
         }
 
+        Assert.areEqual(1, nextPage.emailMessages.size(), '削除済み行を除いた残りのメールだけを返す必要あり');
         Assert.areEqual(
-            0,
-            results.size(),
-            'ケース ID が null の場合は空のリストを返す必要あり'
+            emailMessages[0].Id,
+            nextPage.emailMessages[0].Id,
+            '削除行の後にある新しいメールを返す必要あり'
         );
+        Assert.isFalse(nextPage.hasNextPage, '削除行を飛ばした後は最終ページにする必要あり');
+    }
+
+    /**
+     * ケースIDがない場合は空ページを返却
+     */
+    @IsTest
+    static void shouldReturnEmptyPageWhenCaseIdIsNull() {
+        CaseEmailMessagePageWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = getInitialPage(null, 50);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(0, result.emailMessages.size(), 'ケース ID が null の場合は空のページを返す必要あり');
+    }
+
+    private static Case createCaseWithEmailMessages(Integer count) {
+        Case caseRecord = TestDataFactory.createCase(
+            'ページ境界 Selector テスト ' + count,
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        insert createEmailMessages(caseRecord.Id, count, Datetime.newInstance(2026, 7, 16, 12, 0, 0));
+        return caseRecord;
+    }
+
+    private static List<EmailMessage> createEmailMessages(Id caseId, Integer count, Datetime latestMessageDate) {
+        List<EmailMessage> emailMessages = new List<EmailMessage>();
+        for (Integer index = 0; index < count; index++) {
+            emailMessages.add(createEmailMessage(caseId, index, latestMessageDate));
+        }
+        return emailMessages;
     }
 
     private static EmailMessage createEmailMessage(Id caseId, Integer index, Datetime latestMessageDate) {
@@ -199,10 +245,7 @@ private with sharing class CaseEmailMessageSelectorTest {
         );
     }
 
-    private static EmailMessage createUndatedEmailMessage(
-        Id caseId,
-        String subject
-    ) {
+    private static EmailMessage createUndatedEmailMessage(Id caseId, String subject) {
         return new EmailMessage(
             ParentId = caseId,
             RelatedToId = caseId,
@@ -215,17 +258,29 @@ private with sharing class CaseEmailMessageSelectorTest {
         );
     }
 
-    private static CaseEmailMessageService.PageQuery createPageQuery(
+    private static CaseEmailMessagePageWrapper getInitialPage(Id caseId, Integer fetchSize) {
+        CaseEmailMessageService.PageQuery pageQuery = new CaseEmailMessageService.PageQuery();
+        pageQuery.caseId = caseId;
+        pageQuery.startIndex = 0;
+        pageQuery.fetchSize = fetchSize;
+        return getPage(pageQuery);
+    }
+
+    private static CaseEmailMessagePageWrapper getNextPage(
         Id caseId,
-        EmailMessage cursorEmailMessage,
+        CaseEmailMessagePageWrapper currentPage,
         Integer fetchSize
     ) {
         CaseEmailMessageService.PageQuery pageQuery = new CaseEmailMessageService.PageQuery();
         pageQuery.caseId = caseId;
-        pageQuery.cursorMessageDate = cursorEmailMessage?.MessageDate;
-        pageQuery.cursorCreatedDate = cursorEmailMessage?.CreatedDate;
-        pageQuery.cursorRecordId = cursorEmailMessage?.Id;
+        pageQuery.paginationCursor = currentPage.paginationCursor;
+        pageQuery.startIndex = currentPage.nextIndex;
         pageQuery.fetchSize = fetchSize;
-        return pageQuery;
+        return getPage(pageQuery);
+    }
+
+    private static CaseEmailMessagePageWrapper getPage(CaseEmailMessageService.PageQuery pageQuery) {
+        Database.CursorFetchResult cursorFetchResult = new CaseEmailMessageSelector().getByCaseId(pageQuery);
+        return new CaseEmailMessageService().createPage(pageQuery.paginationCursor, cursorFetchResult);
     }
 }

@@ -3,7 +3,6 @@
  */
 @IsTest
 private with sharing class CaseEmailMessageControllerTest {
-
     private static User testUser = TestDataFactory.getTestUser();
 
     /**
@@ -24,18 +23,12 @@ private with sharing class CaseEmailMessageControllerTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = CaseEmailMessageController.getEmailMessageCount(
-                caseRecord.Id
-            );
+            result = CaseEmailMessageController.getEmailMessageCount(caseRecord.Id);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            2,
-            result,
-            'ケースに紐づくメールメッセージ件数を返す必要あり'
-        );
+        Assert.areEqual(2, result, 'ケースに紐づくメールメッセージ件数を返す必要あり');
     }
 
     /**
@@ -53,11 +46,7 @@ private with sharing class CaseEmailMessageControllerTest {
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            0,
-            result,
-            'ケース ID が null の場合は 0 件を返す必要あり'
-        );
+        Assert.areEqual(0, result, 'ケース ID が null の場合は 0 件を返す必要あり');
     }
 
     /**
@@ -73,15 +62,10 @@ private with sharing class CaseEmailMessageControllerTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                CaseEmailMessageController.getEmailMessageCount(
-                    accountRecord.Id
-                );
+                CaseEmailMessageController.getEmailMessageCount(accountRecord.Id);
                 Assert.fail('Case 以外の ID は AuraHandledException にする必要あり');
             } catch (AuraHandledException e) {
-                Assert.isNotNull(
-                    e,
-                    'Case 以外の ID は利用者向け例外に変換する必要あり'
-                );
+                Assert.isNotNull(e, 'Case 以外の ID は利用者向け例外に変換する必要あり');
             }
             Test.stopTest();
         }
@@ -98,35 +82,20 @@ private with sharing class CaseEmailMessageControllerTest {
         );
         Datetime earlierMessageDate = Datetime.newInstance(2026, 7, 16, 9, 0, 0);
         insert new List<EmailMessage>{
-            createEmailMessage(
-                caseRecord.Id,
-                '古い Controller 取得対象',
-                earlierMessageDate
-            ),
-            createEmailMessage(
-                caseRecord.Id,
-                '新しい Controller 取得対象',
-                earlierMessageDate.addHours(1)
-            )
+            createEmailMessage(caseRecord.Id, '古い Controller 取得対象', earlierMessageDate),
+            createEmailMessage(caseRecord.Id, '新しい Controller 取得対象', earlierMessageDate.addHours(1))
         };
         CaseEmailMessagePageWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = CaseEmailMessageController.getEmailMessages(
-                caseRecord.Id,
-                null
-            );
+            result = CaseEmailMessageController.getEmailMessages(caseRecord.Id, null, 0);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            2,
-            result.emailMessages.size(),
-            'ケースに紐づくメールメッセージを 2 件返す必要あり'
-        );
+        Assert.areEqual(2, result.emailMessages.size(), 'ケースに紐づくメールメッセージを 2 件返す必要あり');
         Assert.areEqual(
             '古い Controller 取得対象',
             result.emailMessages[0].Subject,
@@ -137,19 +106,11 @@ private with sharing class CaseEmailMessageControllerTest {
             result.emailMessages[1].Subject,
             '新しいメールを古いメールの後に返す必要あり'
         );
-        Assert.isTrue(
-            result.emailMessages[0].Incoming,
-            '取得結果に受信方向を含む必要あり'
-        );
-        Assert.areEqual(
-            'テスト用メール本文',
-            result.emailMessages[0].TextBody,
-            '取得結果にメール本文を含む必要あり'
-        );
-        Assert.isFalse(
-            result.hasNextPage,
-            '2 件の取得結果では次ページを返さない必要あり'
-        );
+        Assert.isTrue(result.emailMessages[0].Incoming, '取得結果に受信方向を含む必要あり');
+        Assert.areEqual('テスト用メール本文', result.emailMessages[0].TextBody, '取得結果にメール本文を含む必要あり');
+        Assert.isFalse(result.hasNextPage, '2 件の取得結果では次ページを返さない必要あり');
+        Assert.isNotNull(result.paginationCursor, 'LWCへPaginationCursorを返す必要あり');
+        Assert.areEqual(2, result.nextIndex, '取得済み2件の後を次の取得位置として返す必要あり');
     }
 
     /**
@@ -162,16 +123,12 @@ private with sharing class CaseEmailMessageControllerTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = CaseEmailMessageController.getEmailMessages(null, null);
+            result = CaseEmailMessageController.getEmailMessages(null, null, 0);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            0,
-            result.emailMessages.size(),
-            'ケース ID がない場合は空のページを返す必要あり'
-        );
+        Assert.areEqual(0, result.emailMessages.size(), 'ケース ID がない場合は空のページを返す必要あり');
     }
 
     /**
@@ -187,16 +144,10 @@ private with sharing class CaseEmailMessageControllerTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                CaseEmailMessageController.getEmailMessages(
-                    accountRecord.Id,
-                    null
-                );
+                CaseEmailMessageController.getEmailMessages(accountRecord.Id, null, 0);
                 Assert.fail('ケース以外の ID は AuraHandledException にする必要あり');
             } catch (AuraHandledException e) {
-                Assert.isNotNull(
-                    e,
-                    'ケース以外の ID は利用者向け例外に変換する必要あり'
-                );
+                Assert.isNotNull(e, 'ケース以外の ID は利用者向け例外に変換する必要あり');
             }
             Test.stopTest();
         }

@@ -26,10 +26,14 @@ export default class CaseEmailMessageList extends LightningElement {
     totalEmailMessageCount = 0;
     // 次ページを取得できる状態を保持
     hasNextPage = false;
-    // 追加取得に使うApexページトークンを保持
-    nextPageToken;
-    // 件数取得後に初期ページwireを開始する制御値
-    initialPageToken;
+    // 追加取得へ引き継ぐSalesforce標準PaginationCursorを保持
+    paginationCursor;
+    // 次ページ取得を開始する0始まりの位置を保持
+    nextIndex;
+    // 件数取得後に初期ページwireを開始するカーソル制御値
+    initialPaginationCursor;
+    // 件数取得後に初期ページwireを開始する位置制御値
+    initialStartIndex;
     // 手動再読み込み中の操作抑止状態を保持
     isRefreshing = false;
     // 追加ページ取得中の操作抑止状態を保持
@@ -51,16 +55,20 @@ export default class CaseEmailMessageList extends LightningElement {
         if (data !== undefined) {
             // Apexの整数値をJavaScript数値へ統一
             this.totalEmailMessageCount = Number(data);
-            // nullを渡して初期ページ取得を開始
-            this.initialPageToken = null;
+            // nullカーソルを渡して新しい結果セットを作成
+            this.initialPaginationCursor = null;
+            // 先頭位置を渡して初期ページ取得を開始
+            this.initialStartIndex = 0;
             // 再取得成功時は以前の全体エラーを解除
             this.errorMessage = undefined;
-        // 件数取得失敗時は一覧を表示せず全体エラーへ移行
+            // 件数取得失敗時は一覧を表示せず全体エラーへ移行
         } else if (error) {
             // 件数を安全な0件へ戻す
             this.totalEmailMessageCount = 0;
-            // 初期ページwireを無効化
-            this.initialPageToken = undefined;
+            // 初期ページwireのカーソル引数を無効化
+            this.initialPaginationCursor = undefined;
+            // 初期ページwireの取得位置を無効化
+            this.initialStartIndex = undefined;
             // 以前の一覧とページング状態を共通処理で破棄
             Object.assign(this, createEmptyPaginationState());
             // Salesforceエラーを利用者向け文言へ変換
@@ -71,7 +79,8 @@ export default class CaseEmailMessageList extends LightningElement {
     // 件数取得後にメール一覧の初期ページを取得
     @wire(getEmailMessages, {
         caseId: '$recordId',
-        pageToken: '$initialPageToken'
+        paginationCursor: '$initialPaginationCursor',
+        startIndex: '$initialStartIndex'
     })
     wiredEmailMessages(result) {
         // 手動再読み込みに使えるwireレスポンスを保存
@@ -85,7 +94,7 @@ export default class CaseEmailMessageList extends LightningElement {
             this.applyInitialPage(data);
             // 再取得成功時は以前の全体エラーを解除
             this.errorMessage = undefined;
-        // 取得失敗時は古い一覧を残さず全体エラーへ移行
+            // 取得失敗時は古い一覧を残さず全体エラーへ移行
         } else if (error) {
             // 以前の一覧とページング状態を共通処理で破棄
             Object.assign(this, createEmptyPaginationState());
@@ -116,10 +125,7 @@ export default class CaseEmailMessageList extends LightningElement {
     // 初期ページwireが最初のレスポンスを受信したか判定
     get hasLoaded() {
         // 成功または失敗のどちらかを受信済みなら完了扱い
-        return Boolean(
-            this.wiredEmailMessagesResult?.data ||
-                this.wiredEmailMessagesResult?.error
-        );
+        return Boolean(this.wiredEmailMessagesResult?.data || this.wiredEmailMessagesResult?.error);
     }
 
     // 初期取得、再取得、追加取得をまとめた操作中状態を返却
@@ -131,20 +137,13 @@ export default class CaseEmailMessageList extends LightningElement {
     // 初期ページwireのレスポンス待ち状態を判定
     get isLoading() {
         // データ、エラー、明示エラーのいずれもない間だけ読込中とする
-        return (
-            !this.errorMessage &&
-            !this.wiredEmailMessagesResult?.data &&
-            !this.wiredEmailMessagesResult?.error
-        );
+        return !this.errorMessage && !this.wiredEmailMessagesResult?.data && !this.wiredEmailMessagesResult?.error;
     }
 
     // 利用者操作で総件数と初期ページを再取得
     async handleRefresh() {
         // 両wireの初期化前は整合した再取得を開始しない
-        if (
-            !this.wiredEmailMessageCountResult ||
-            !this.wiredEmailMessagesResult
-        ) {
+        if (!this.wiredEmailMessageCountResult || !this.wiredEmailMessagesResult) {
             // wire応答がそろうまで再読み込みを終了
             return;
         }
@@ -159,21 +158,27 @@ export default class CaseEmailMessageList extends LightningElement {
             await refreshApex(this.wiredEmailMessageCountResult);
             // 続けて初期ページを最新化
             await refreshApex(this.wiredEmailMessagesResult);
-        // 再取得失敗時はカード全体をエラー状態へ移行
+            // 再取得失敗時はカード全体をエラー状態へ移行
         } catch (error) {
             // どちらかの失敗をカード全体のエラーへ反映
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
-        // 成否にかかわらず操作抑止を解除
+            // 成否にかかわらず操作抑止を解除
         } finally {
             // 成否にかかわらず再読み込み状態を解除
             this.isRefreshing = false;
         }
     }
 
-    // 次ページトークンを使ってメール一覧を追加取得
+    // PaginationCursorと次indexを使ってメール一覧を追加取得
     async handleLoadMore() {
-        // 次ページなし、トークンなし、処理中の場合は重複取得しない
-        if (!this.hasNextPage || !this.nextPageToken || this.isBusy) {
+        // 次ページなし、カーソルなし、位置なし、処理中の場合は重複取得しない
+        if (
+            !this.hasNextPage ||
+            !this.paginationCursor ||
+            this.nextIndex === undefined ||
+            this.nextIndex === null ||
+            this.isBusy
+        ) {
             // 現在一覧を維持して追加取得を終了
             return;
         }
@@ -184,12 +189,14 @@ export default class CaseEmailMessageList extends LightningElement {
         this.loadMoreErrorMessage = undefined;
         // 次ページ取得と一覧追加を1つの処理単位で実行
         try {
-            // 現在の次ページトークンでApexを命令的に呼び出す
+            // 現在のPaginationCursorと次indexでApexを命令的に呼び出す
             const page = await getEmailMessages({
                 // 表示中Caseだけを検索対象に指定
                 caseId: this.recordId,
-                // 前回応答のカーソルを次ページ境界に指定
-                pageToken: this.nextPageToken
+                // 前回応答のPaginationCursorを引き継ぐ
+                paginationCursor: this.paginationCursor,
+                // 前回応答の次indexから取得を再開
+                startIndex: this.nextIndex
             });
             // 追加ページを既存一覧へ連結した次状態をまとめて反映
             Object.assign(
@@ -198,19 +205,14 @@ export default class CaseEmailMessageList extends LightningElement {
                     // Apexが返した追加ページを渡す
                     page,
                     // 現在表示中の一覧を渡す
-                    emailMessages: this.emailMessages,
-                    // COUNTで取得した総件数を渡す
-                    totalCount: this.totalEmailMessageCount
+                    emailMessages: this.emailMessages
                 })
             );
-        // 追加取得失敗時は現在一覧を維持してエラーだけを表示
+            // 追加取得失敗時は現在一覧を維持してエラーだけを表示
         } catch (error) {
             // 初期一覧を残したまま追加取得エラーだけを表示
-            this.loadMoreErrorMessage = reduceErrors(
-                error,
-                LOAD_ERROR_MESSAGE
-            );
-        // 成否にかかわらず追加取得の操作抑止を解除
+            this.loadMoreErrorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
+            // 成否にかかわらず追加取得の操作抑止を解除
         } finally {
             // 成否にかかわらず追加取得状態を解除
             this.isLoadingMore = false;
@@ -220,9 +222,6 @@ export default class CaseEmailMessageList extends LightningElement {
     // Apex初期ページ応答を一覧とページング状態へ反映
     applyInitialPage(page) {
         // 初期ページから生成した一覧とページング状態をまとめて反映
-        Object.assign(
-            this,
-            createInitialPageState(page, this.totalEmailMessageCount)
-        );
+        Object.assign(this, createInitialPageState(page));
     }
 }

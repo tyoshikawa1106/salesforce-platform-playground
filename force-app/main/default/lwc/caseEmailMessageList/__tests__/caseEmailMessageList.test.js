@@ -7,9 +7,7 @@ import getEmailMessages from '@salesforce/apex/CaseEmailMessageController.getEma
 jest.mock(
     '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount',
     () => {
-        const {
-            createApexTestWireAdapter
-        } = require('@salesforce/sfdx-lwc-jest');
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
         return {
             default: createApexTestWireAdapter(jest.fn())
         };
@@ -28,9 +26,7 @@ jest.mock(
 jest.mock(
     '@salesforce/apex/CaseEmailMessageController.getEmailMessages',
     () => {
-        const {
-            createApexTestWireAdapter
-        } = require('@salesforce/sfdx-lwc-jest');
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
         return {
             default: createApexTestWireAdapter(jest.fn())
         };
@@ -61,16 +57,16 @@ const emailMessages = [
 
 const initialPage = {
     emailMessages,
-    pageSize: 50,
     hasNextPage: true,
-    nextPageToken: 'next-page-token'
+    paginationCursor: { cursorId: 'pagination-cursor' },
+    nextIndex: 50
 };
 
 const emptyPage = {
     emailMessages: [],
-    pageSize: 50,
     hasNextPage: false,
-    nextPageToken: null
+    paginationCursor: null,
+    nextIndex: 0
 };
 
 const nextPage = {
@@ -85,9 +81,9 @@ const nextPage = {
             TextBody: '次のメール本文'
         }
     ],
-    pageSize: 50,
     hasNextPage: false,
-    nextPageToken: null
+    paginationCursor: { cursorId: 'pagination-cursor' },
+    nextIndex: 51
 };
 
 function createComponent() {
@@ -127,48 +123,28 @@ describe('c-case-email-message-list', () => {
         const timelineItems = timeline.querySelectorAll('[role="listitem"]');
         const recordLinks = timeline.querySelectorAll('h3 a');
         const emailLinks = timeline.querySelectorAll('a[href^="mailto:"]');
-        const emailIconContainers = timeline.querySelectorAll(
-            '.slds-icon-standard-email.slds-timeline__icon'
-        );
-        const emailIcons = timeline.querySelectorAll(
-            '.slds-icon-standard-email.slds-timeline__icon lightning-icon'
-        );
-        const timelineItemContainers = timeline.querySelectorAll(
-            '.slds-timeline__item_expandable.slds-is-open'
-        );
-        const details = timeline.querySelectorAll(
-            '.slds-timeline__item_details'
-        );
-        const formattedDates = timeline.querySelectorAll(
-            'lightning-formatted-date-time'
-        );
+        const emailIconContainers = timeline.querySelectorAll('.slds-icon-standard-email.slds-timeline__icon');
+        const emailIcons = timeline.querySelectorAll('.slds-icon-standard-email.slds-timeline__icon lightning-icon');
+        const timelineItemContainers = timeline.querySelectorAll('.slds-timeline__item_expandable.slds-is-open');
+        const details = timeline.querySelectorAll('.slds-timeline__item_details');
+        const formattedDates = timeline.querySelectorAll('lightning-formatted-date-time');
 
         expect(timeline).not.toBeNull();
-        expect(timeline.getAttribute('aria-label')).toBe(
-            'メールメッセージの活動履歴'
-        );
+        expect(timeline.getAttribute('aria-label')).toBe('メールメッセージの活動履歴');
         expect(timelineItems).toHaveLength(2);
         expect(timeline.querySelector('[role="separator"]')).toBeNull();
         expect(recordLinks[0].textContent).toBe('受信メール');
-        expect(recordLinks[0].getAttribute('href')).toBe(
-            '/lightning/r/EmailMessage/02s000000000001AAA/view'
-        );
+        expect(recordLinks[0].getAttribute('href')).toBe('/lightning/r/EmailMessage/02s000000000001AAA/view');
         expect(recordLinks[1].textContent).toBe('(件名なし)');
         expect(emailLinks).toHaveLength(4);
         expect(emailLinks[0].textContent).toBe('sender@example.com');
-        expect(emailLinks[0].getAttribute('href')).toBe(
-            'mailto:sender%40example.com'
-        );
+        expect(emailLinks[0].getAttribute('href')).toBe('mailto:sender%40example.com');
         expect(emailLinks[1].textContent).toBe('support@example.com');
-        expect(emailLinks[1].getAttribute('href')).toBe(
-            'mailto:support%40example.com'
-        );
+        expect(emailLinks[1].getAttribute('href')).toBe('mailto:support%40example.com');
         expect(timeline.querySelector('lightning-badge')).toBeNull();
         expect(timelineItemContainers).toHaveLength(2);
         expect(emailIconContainers).toHaveLength(2);
-        expect(emailIconContainers[0].classList).toContain(
-            'slds-p-around_xxx-small'
-        );
+        expect(emailIconContainers[0].classList).toContain('slds-p-around_xxx-small');
         expect(emailIcons).toHaveLength(2);
         expect(emailIcons[0].iconName).toBe('utility:email_open');
         expect(emailIcons[1].iconName).toBe('utility:sender_email');
@@ -176,9 +152,7 @@ describe('c-case-email-message-list', () => {
         expect(emailIcons[0].alternativeText).toBe('受信');
         expect(emailIcons[1].alternativeText).toBe('送信');
         expect(formattedDates[0].weekday).toBe('short');
-        expect(
-            timeline.querySelector('button[aria-controls]')
-        ).toBeNull();
+        expect(timeline.querySelector('button[aria-controls]')).toBeNull();
         expect(details[0].hidden).toBe(false);
         expect(details[0].querySelector('dl')).toBeNull();
         expect(details[0].querySelector('h4')).toBeNull();
@@ -186,19 +160,11 @@ describe('c-case-email-message-list', () => {
         expect(details[0].textContent).not.toContain('宛先:');
         expect(timeline.textContent).toContain('への受信メール');
         expect(timeline.textContent).toContain('への送信メール');
-        expect(timeline.textContent).toContain(
-            'お問い合わせありがとうございます。\n確認します。'
-        );
+        expect(timeline.textContent).toContain('お問い合わせありがとうございます。\n確認します。');
         expect(timeline.textContent).toContain('(本文なし)');
-        expect(element.shadowRoot.querySelector('lightning-card').title).toBe(
-            'メールログ (3)'
-        );
-        expect(
-            element.shadowRoot.querySelector('lightning-button').label
-        ).toBe('次のメールを読み込む');
-        expect(
-            timeline.nextElementSibling.querySelector('lightning-button')
-        ).not.toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
+        expect(element.shadowRoot.querySelector('lightning-button').label).toBe('次のメールを読み込む');
+        expect(timeline.nextElementSibling.querySelector('lightning-button')).not.toBeNull();
         await expect(element).toBeAccessible();
     });
 
@@ -208,12 +174,8 @@ describe('c-case-email-message-list', () => {
         await emitCountAndPage(0, emptyPage);
 
         expect(element.shadowRoot.querySelector('ul.slds-timeline')).toBeNull();
-        expect(element.shadowRoot.textContent).toContain(
-            'このケースに紐づくメールメッセージはありません。'
-        );
-        expect(element.shadowRoot.querySelector('lightning-card').title).toBe(
-            'メールログ (0)'
-        );
+        expect(element.shadowRoot.textContent).toContain('このケースに紐づくメールメッセージはありません。');
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (0)');
         await expect(element).toBeAccessible();
     });
 
@@ -221,12 +183,8 @@ describe('c-case-email-message-list', () => {
         const element = createComponent();
         await flushPromises();
 
-        expect(
-            element.shadowRoot.querySelector('lightning-spinner')
-        ).not.toBeNull();
-        expect(element.shadowRoot.textContent).not.toContain(
-            'このケースに紐づくメールメッセージはありません。'
-        );
+        expect(element.shadowRoot.querySelector('lightning-spinner')).not.toBeNull();
+        expect(element.shadowRoot.textContent).not.toContain('このケースに紐づくメールメッセージはありません。');
     });
 
     it('renders an accessible error when Apex loading fails', async () => {
@@ -252,9 +210,9 @@ describe('c-case-email-message-list', () => {
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
 
-        const refreshButton = [
-            ...element.shadowRoot.querySelectorAll('lightning-button-icon')
-        ].find((button) => button.alternativeText === '再読み込み');
+        const refreshButton = [...element.shadowRoot.querySelectorAll('lightning-button-icon')].find(
+            (button) => button.alternativeText === '再読み込み'
+        );
 
         refreshButton.dispatchEvent(new CustomEvent('click'));
         await flushPromises();
@@ -267,42 +225,27 @@ describe('c-case-email-message-list', () => {
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
 
-        const loadMoreButton = element.shadowRoot.querySelector(
-            'lightning-button'
-        );
+        const loadMoreButton = element.shadowRoot.querySelector('lightning-button');
         loadMoreButton.dispatchEvent(new CustomEvent('click'));
         await flushPromises();
         await flushPromises();
 
-        const timelineItems = element.shadowRoot.querySelectorAll(
-            'ul.slds-timeline li[aria-labelledby]'
-        );
-        const recordLinks = element.shadowRoot.querySelectorAll(
-            'ul.slds-timeline h3 a'
-        );
-        const pageSeparator = element.shadowRoot.querySelector(
-            'ul.slds-timeline [role="separator"]'
-        );
+        const timelineItems = element.shadowRoot.querySelectorAll('ul.slds-timeline li[aria-labelledby]');
+        const recordLinks = element.shadowRoot.querySelectorAll('ul.slds-timeline h3 a');
+        const pageSeparator = element.shadowRoot.querySelector('ul.slds-timeline [role="separator"]');
 
         expect(getEmailMessages).toHaveBeenLastCalledWith({
             caseId: '500000000000001AAA',
-            pageToken: 'next-page-token'
+            paginationCursor: { cursorId: 'pagination-cursor' },
+            startIndex: 50
         });
         expect(timelineItems).toHaveLength(3);
         expect(recordLinks[2].textContent).toBe('次のメール');
         expect(pageSeparator).not.toBeNull();
-        expect(pageSeparator.textContent).toContain(
-            '3件目から3件目を読み込みました'
-        );
-        expect(pageSeparator.getAttribute('aria-label')).toBe(
-            '3件目から3件目を読み込みました'
-        );
-        expect(element.shadowRoot.querySelector('lightning-card').title).toBe(
-            'メールログ (3)'
-        );
-        expect(
-            element.shadowRoot.querySelector('lightning-button')
-        ).toBeNull();
+        expect(pageSeparator.textContent).toContain('3件目から3件目を読み込みました');
+        expect(pageSeparator.getAttribute('aria-label')).toBe('3件目から3件目を読み込みました');
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
+        expect(element.shadowRoot.querySelector('lightning-button')).toBeNull();
     });
 
     it('keeps loaded email messages when loading the next page fails', async () => {
@@ -310,17 +253,13 @@ describe('c-case-email-message-list', () => {
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
 
-        const loadMoreButton = element.shadowRoot.querySelector(
-            'lightning-button'
-        );
+        const loadMoreButton = element.shadowRoot.querySelector('lightning-button');
         loadMoreButton.dispatchEvent(new CustomEvent('click'));
         await flushPromises();
         await flushPromises();
 
         const alert = element.shadowRoot.querySelector('[role="alert"]');
-        const timelineItems = element.shadowRoot.querySelectorAll(
-            'ul.slds-timeline [role="listitem"]'
-        );
+        const timelineItems = element.shadowRoot.querySelectorAll('ul.slds-timeline [role="listitem"]');
 
         expect(alert.textContent).toContain('取得失敗');
         expect(timelineItems).toHaveLength(2);

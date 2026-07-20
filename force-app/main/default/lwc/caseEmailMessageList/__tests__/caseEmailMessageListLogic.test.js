@@ -17,13 +17,12 @@ const EMAIL_MESSAGE = {
 
 describe('caseEmailMessageListLogic', () => {
     it('メールを表示行へ変換して初期ページ状態を生成する', () => {
-        const state = createInitialPageState(
-            {
-                emailMessages: [EMAIL_MESSAGE],
-                nextPageToken: 'next-token'
-            },
-            2
-        );
+        const state = createInitialPageState({
+            emailMessages: [EMAIL_MESSAGE],
+            paginationCursor: { cursorId: 'pagination-cursor' },
+            nextIndex: 1,
+            hasNextPage: true
+        });
 
         expect(state.emailMessages[0]).toEqual(
             expect.objectContaining({
@@ -35,7 +34,10 @@ describe('caseEmailMessageListLogic', () => {
                 toAddressUrl: 'mailto:support%40example.com'
             })
         );
-        expect(state.nextPageToken).toBe('next-token');
+        expect(state.paginationCursor).toEqual({
+            cursorId: 'pagination-cursor'
+        });
+        expect(state.nextIndex).toBe(1);
         expect(state.hasNextPage).toBe(true);
         expect(state.loadMoreErrorMessage).toBeUndefined();
     });
@@ -50,10 +52,11 @@ describe('caseEmailMessageListLogic', () => {
                         Incoming: false
                     }
                 ],
-                nextPageToken: undefined
+                paginationCursor: { cursorId: 'pagination-cursor' },
+                nextIndex: 2,
+                hasNextPage: false
             },
-            emailMessages: [{ id: EMAIL_MESSAGE.Id }],
-            totalCount: 2
+            emailMessages: [{ id: EMAIL_MESSAGE.Id }]
         });
 
         expect(state.emailMessages).toHaveLength(2);
@@ -69,9 +72,7 @@ describe('caseEmailMessageListLogic', () => {
     });
 
     it('カードタイトルと未取得ページング状態を生成する', () => {
-        expect(createCardTitle({ hasLoaded: true, totalCount: 3 })).toBe(
-            'メールログ (3)'
-        );
+        expect(createCardTitle({ hasLoaded: true, totalCount: 3 })).toBe('メールログ (3)');
         expect(
             createCardTitle({
                 hasLoaded: true,
@@ -82,7 +83,8 @@ describe('caseEmailMessageListLogic', () => {
         expect(createEmptyPaginationState()).toEqual({
             emailMessages: [],
             hasNextPage: false,
-            nextPageToken: undefined
+            paginationCursor: undefined,
+            nextIndex: undefined
         });
     });
 });
