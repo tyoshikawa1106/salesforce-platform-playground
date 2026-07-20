@@ -15,7 +15,7 @@
 | LWC            | `caseEmailMessageList`         | メールメッセージ一覧と追加読み込み UI       |
 | LWC JavaScript | `caseEmailMessageList.js`      | Apex取得、追加読み込み、画面状態の統括      |
 | LWC JavaScript | `caseEmailMessageListLogic.js` | 表示行、タイトル、ページ状態の生成          |
-| Apex Class     | `CaseEmailMessageController`   | LWC からの読み取り専用 Apex 入口            |
+| Apex Class     | `CaseEmailMessageController`   | COUNT wire と命令的ページ取得の Apex 入口   |
 | Apex Class     | `CaseEmailMessageService`      | 入力検証、取得位置、次ページ状態の組み立て  |
 | Apex Class     | `CaseEmailMessageSelector`     | USER_MODE の PaginationCursor 問い合わせ    |
 | Apex Class     | `CaseEmailMessagePageWrapper`  | 取得結果と次ページ情報を保持する応答 DTO    |
@@ -29,13 +29,13 @@
 ## 処理内容
 
 1. `recordId` が Case の ID であることを Service で確認します。
-2. LWC は最初にCOUNT用 Apexを呼び出し、`EmailMessage.ParentId` が Case ID と一致する総件数を利用者権限で取得します。
-3. 総件数の取得後、`MessageDate`、`CreatedDate`、`Id` の昇順と `LIMIT 100000` を指定し、`Database.getPaginationCursorWithBinds()` で利用者権限の `Database.PaginationCursor` を作成します。送信日時がないメールは末尾に表示します。
-4. `fetchPage(startIndex, 50)` で最も古いメールから最大 50 件を取得します。`CursorFetchResult.getNextIndex()` が `PaginationCursor.getNumRecords()` より小さい場合だけ次ページありと判定します。`CursorFetchResult.isDone()` 単独では判定しません。
+2. LWC は最初にキャッシュ可能なCOUNT用 Apexをwireで呼び出し、`EmailMessage.ParentId` が Case ID と一致する総件数を利用者権限で取得します。
+3. 総件数の取得後、LWC はページ取得用 Apex を命令的に呼び出します。Apex は `MessageDate`、`CreatedDate`、`Id` の昇順と `LIMIT 100000` を指定し、`Database.getPaginationCursorWithBinds()` で利用者権限の `Database.PaginationCursor` を作成します。送信日時がないメールは末尾に表示します。初回応答に含まれる `PaginationCursor` は次ページ取得用に LWC で保持し、表示対象の Case が取得中に変わった場合は古い Case の応答を反映しません。
+4. `fetchPage(startIndex, Math.min(50, remainingRecords))` で最も古いメールから最大 50 件を取得します。`CursorFetchResult.getNextIndex()` が 0 より大きく、かつ `PaginationCursor.getNumRecords()` より小さい場合だけ次ページありと判定します。`CursorFetchResult.isDone()` 単独では判定しません。
 5. 次ページがある場合、活動タイムラインの一番下に「次のメールを読み込む」を表示します。選択すると LWC から同じ `PaginationCursor` と次の `startIndex` を Apex へ渡し、既存のタイムラインの末尾へ最大 50 件を追加します。追加ページの直前には区切り線と「51件目から100件目を読み込みました」のような取得範囲を表示し、ページ境界をタイムライン内に残します。
 6. カードタイトルを「メールログ」とし、COUNTで取得した総件数を併記します。各メールを SLDS の活動タイムラインとして古い順に表示します。受信と送信でSLDSアイコンを切り替え、補足行にも送受信の方向を表示します。差出人と宛先はメール作成用リンクとして表示します。
 7. 各メールの詳細は常時展開し、ラベルを付けずにプレーンテキスト本文だけを表示します。本文領域は約20行分を上限とし、超過分は領域内の縦スクロールで表示します。開閉操作は提供しません。
-8. 再読み込み操作ではCOUNTと初回ページのキャッシュ済み Apex wire を順に更新します。
+8. 再読み込み操作ではCOUNT用 Apex wire を `refreshApex()` で更新した後、ページ取得用 Apex を命令的に呼び出し、新しい `PaginationCursor` で先頭ページを取得します。
 
 ## 出力・更新対象
 
@@ -75,7 +75,7 @@
 - `CaseEmailMessageServiceTest` で入力検証、初回取得位置、不正な取得位置、空ページを確認します。
 - `CaseEmailMessageSelectorTest` で件数、49件・50件・51件のページ境界、複数ページの重複防止、送信日時がないメール、Cursor作成後の削除行を確認します。
 - `CaseEmailMessagePageWrapperTest` で空ページと次ページ情報を確認します。
-- `caseEmailMessageList.test.js` でCOUNT後の初回取得、活動タイムライン構造、曜日表示、送受信別のアイコンと補足文、本文の常時表示、空状態、エラー、再読み込み、下部ボタンからの追加読み込み、追加ページ境界の区切りを確認します。
+- `caseEmailMessageList.test.js` でCOUNT後の命令的な初回取得、活動タイムライン構造、曜日表示、送受信別のアイコンと補足文、本文の常時表示、空状態、エラー、再読み込み時の新しいCursor取得、下部ボタンからの追加読み込み、追加ページ境界の区切りを確認します。
 
 ## 制約・注意事項
 
