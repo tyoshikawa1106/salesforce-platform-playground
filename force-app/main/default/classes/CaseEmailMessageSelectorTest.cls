@@ -84,7 +84,7 @@ private with sharing class CaseEmailMessageSelectorTest {
 
         Assert.areEqual(50, result.emailMessages.size(), '50 件を 1 ページで返す必要あり');
         Assert.isFalse(result.hasNextPage, '50 件ちょうどでは次ページなしにする必要あり');
-        Assert.areEqual(50, result.nextIndex, '次の取得位置は取得済み 50 件の後にする必要あり');
+        Assert.areEqual(0, result.nextIndex, '最終ページの次の取得位置は 0 にする必要あり');
     }
 
     /**

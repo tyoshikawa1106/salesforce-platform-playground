@@ -45,7 +45,13 @@ public with sharing class CaseEmailMessageSelector {
             pageQuery.paginationCursor = createPaginationCursor(pageQuery.caseId);
         }
 
-        return pageQuery.paginationCursor.fetchPage(pageQuery.startIndex, pageQuery.fetchSize);
+        Integer remainingRecords = pageQuery.paginationCursor.getNumRecords() - pageQuery.startIndex;
+        if (remainingRecords <= 0) {
+            return null;
+        }
+
+        Integer fetchSize = Math.min(pageQuery.fetchSize, remainingRecords);
+        return pageQuery.paginationCursor.fetchPage(pageQuery.startIndex, fetchSize);
     }
 
     private Database.PaginationCursor createPaginationCursor(Id caseId) {

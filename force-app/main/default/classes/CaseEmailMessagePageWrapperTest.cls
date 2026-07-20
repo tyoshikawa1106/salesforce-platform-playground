@@ -31,7 +31,12 @@ private with sharing class CaseEmailMessagePageWrapperTest {
      */
     @IsTest
     static void shouldExposePageState() {
-        Case caseRecord = TestDataFactory.createCase('ページ Wrapper テスト', TestDataFactory.SaveMode.INSERT_RECORD);
+        List<Case> caseRecords = new List<Case>{
+            TestDataFactory.createCase('ページ Wrapper テスト 1', TestDataFactory.SaveMode.DO_NOT_INSERT),
+            TestDataFactory.createCase('ページ Wrapper テスト 2', TestDataFactory.SaveMode.DO_NOT_INSERT)
+        };
+        insert caseRecords;
+        Set<Id> caseIds = new Map<Id, Case>(caseRecords).keySet();
         List<EmailMessage> emailMessages = new List<EmailMessage>{
             new EmailMessage(Subject = 'ページ Wrapper テスト')
         };
@@ -42,11 +47,11 @@ private with sharing class CaseEmailMessagePageWrapperTest {
             Test.startTest();
 
             paginationCursor = Database.getPaginationCursorWithBinds(
-                'SELECT Id FROM Case WHERE Id = :caseId',
-                new Map<String, Object>{ 'caseId' => caseRecord.Id },
+                'SELECT Id FROM Case WHERE Id IN :caseIds ORDER BY Id',
+                new Map<String, Object>{ 'caseIds' => caseIds },
                 AccessLevel.USER_MODE
             );
-            result = new CaseEmailMessagePageWrapper(emailMessages, paginationCursor, 0);
+            result = new CaseEmailMessagePageWrapper(emailMessages, paginationCursor, 1);
 
             Test.stopTest();
         }
@@ -58,6 +63,6 @@ private with sharing class CaseEmailMessagePageWrapperTest {
             result.paginationCursor.getNumRecords(),
             'コンストラクターで受け取ったPaginationCursorを保持する必要あり'
         );
-        Assert.areEqual(0, result.nextIndex, 'コンストラクターで受け取った次ページ位置を保持する必要あり');
+        Assert.areEqual(1, result.nextIndex, 'コンストラクターで受け取った次ページ位置を保持する必要あり');
     }
 }

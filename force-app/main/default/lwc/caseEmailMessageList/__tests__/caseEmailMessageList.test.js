@@ -25,12 +25,7 @@ jest.mock(
 
 jest.mock(
     '@salesforce/apex/CaseEmailMessageController.getEmailMessages',
-    () => {
-        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
-        return {
-            default: createApexTestWireAdapter(jest.fn())
-        };
-    },
+    () => ({ default: jest.fn() }),
     { virtual: true }
 );
 
@@ -100,9 +95,9 @@ async function flushPromises() {
 }
 
 async function emitCountAndPage(count, page) {
+    getEmailMessages.mockResolvedValueOnce(page);
     getEmailMessageCount.emit(count);
     await flushPromises();
-    getEmailMessages.emit(page);
     await flushPromises();
 }
 
@@ -118,6 +113,12 @@ describe('c-case-email-message-list', () => {
         const element = createComponent();
 
         await emitCountAndPage(3, initialPage);
+
+        expect(getEmailMessages).toHaveBeenCalledWith({
+            caseId: '500000000000001AAA',
+            paginationCursor: null,
+            startIndex: 0
+        });
 
         const timeline = element.shadowRoot.querySelector('ul.slds-timeline');
         const timelineItems = timeline.querySelectorAll('[role="listitem"]');
@@ -190,18 +191,16 @@ describe('c-case-email-message-list', () => {
     it('renders an accessible error when Apex loading fails', async () => {
         const element = createComponent();
 
-        getEmailMessageCount.emit(2);
-        await flushPromises();
-        getEmailMessages.error({
+        getEmailMessages.mockRejectedValueOnce({
             body: { message: 'メールメッセージを取得できません。' }
         });
+        getEmailMessageCount.emit(2);
+        await flushPromises();
         await flushPromises();
 
         const alert = element.shadowRoot.querySelector('[role="alert"]');
         expect(alert).not.toBeNull();
-        expect(alert.textContent).toContain(
-            'メールメッセージを読み込めませんでした。時間をおいてもう一度お試しください。'
-        );
+        expect(alert.textContent).toContain('メールメッセージを取得できません。');
         await expect(element).toBeAccessible();
     });
 
@@ -209,6 +208,7 @@ describe('c-case-email-message-list', () => {
         refreshApex.mockResolvedValue();
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
+        getEmailMessages.mockResolvedValueOnce(initialPage);
 
         const refreshButton = [...element.shadowRoot.querySelectorAll('lightning-button-icon')].find(
             (button) => button.alternativeText === '再読み込み'
@@ -217,13 +217,14 @@ describe('c-case-email-message-list', () => {
         refreshButton.dispatchEvent(new CustomEvent('click'));
         await flushPromises();
 
-        expect(refreshApex).toHaveBeenCalledTimes(2);
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+        expect(getEmailMessages).toHaveBeenCalledTimes(2);
     });
 
     it('appends newer email messages when loading the next page', async () => {
-        getEmailMessages.mockResolvedValue(nextPage);
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
+        getEmailMessages.mockResolvedValueOnce(nextPage);
 
         const loadMoreButton = element.shadowRoot.querySelector('lightning-button');
         loadMoreButton.dispatchEvent(new CustomEvent('click'));
@@ -249,9 +250,9 @@ describe('c-case-email-message-list', () => {
     });
 
     it('keeps loaded email messages when loading the next page fails', async () => {
-        getEmailMessages.mockRejectedValue(new Error('取得失敗'));
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
+        getEmailMessages.mockRejectedValueOnce(new Error('取得失敗'));
 
         const loadMoreButton = element.shadowRoot.querySelector('lightning-button');
         loadMoreButton.dispatchEvent(new CustomEvent('click'));

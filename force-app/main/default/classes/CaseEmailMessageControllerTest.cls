@@ -110,7 +110,7 @@ private with sharing class CaseEmailMessageControllerTest {
         Assert.areEqual('テスト用メール本文', result.emailMessages[0].TextBody, '取得結果にメール本文を含む必要あり');
         Assert.isFalse(result.hasNextPage, '2 件の取得結果では次ページを返さない必要あり');
         Assert.isNotNull(result.paginationCursor, 'LWCへPaginationCursorを返す必要あり');
-        Assert.areEqual(2, result.nextIndex, '取得済み2件の後を次の取得位置として返す必要あり');
+        Assert.areEqual(0, result.nextIndex, '最終ページの次の取得位置は 0 にする必要あり');
     }
 
     /**

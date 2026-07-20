@@ -47,6 +47,7 @@ public with sharing class CaseEmailMessagePageWrapper {
         this.hasNextPage =
             paginationCursor != null &&
             nextIndex != null &&
+            nextIndex > 0 &&
             nextIndex < paginationCursor.getNumRecords();
     }
 }

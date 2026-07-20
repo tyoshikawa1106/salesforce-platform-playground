@@ -37,7 +37,7 @@ public with sharing class CaseEmailMessageController {
      * @param startIndex ページ取得を開始する 0 始まりの位置
      * @return 最大 50 件と次ページ情報を持つメールメッセージページ
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static CaseEmailMessagePageWrapper getEmailMessages(
         Id caseId,
         Database.PaginationCursor paginationCursor,
