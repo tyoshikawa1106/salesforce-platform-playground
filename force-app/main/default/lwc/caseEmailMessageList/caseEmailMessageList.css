@@ -1,5 +1,5 @@
 .c-timeline-item {
-    --c-timeline-icon-size: var(--slds-g-sizing-6, 1.25rem);
+    --c-timeline-icon-size: var(--slds-g-sizing-7, 1.5rem);
     --c-timeline-line-width: var(--slds-g-sizing-border-2, 2px);
 }
 
