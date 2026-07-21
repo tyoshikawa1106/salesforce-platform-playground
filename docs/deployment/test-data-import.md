@@ -78,6 +78,25 @@ sf apex run --file scripts/apex/test-data/cleanup-case-email-message-list.apex -
 
 画面では初回に最も古い 50 件を表示します。「次のメールを読み込む」を選択し、50 件ずつ追加されることと、新しいメールが末尾へ追加されて古い順を維持することを確認します。
 
+### 最近の問い合わせ表示用データ
+
+`caseRelatedCaseList`の顧客タブと会社タブを確認する場合は、合成ケース「`[TEST] ノートPCの初期設定方法を確認したい`」と同じContact、Accountへ5件の合成ケースを作成します。
+
+再実行時は、件名が「`[TEST-LWC-RELATED]`」で始まる専用データだけを削除し、同数を再作成します。それ以外の既存ケースは残します。
+
+```sh
+npm run setup:data:standard:dry-run -- --target-org <alias> --only case-related-case-list
+npm run setup:data:standard -- --target-org <alias> --only case-related-case-list
+```
+
+追加分だけを削除する場合は、専用のクリーンアップを実行します。
+
+```sh
+sf apex run --file scripts/apex/test-data/cleanup-case-related-case-list.apex --target-org <alias>
+```
+
+画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで先頭表示され、その後へ別Caseが直近順で4件表示されることを確認します。5件目の別Caseは最大5件の表示制限により表示されません。
+
 投入後の主要レコードは、確認用 SOQL で確認できます。
 
 ```sh

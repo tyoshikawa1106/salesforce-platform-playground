@@ -29,13 +29,21 @@ const createComponent = () => {
 
 const createCaseRecord = ({
     contactId = CONTACT_RECORD_ID,
-    accountId = ACCOUNT_RECORD_ID
+    accountId = ACCOUNT_RECORD_ID,
+    caseNumber = '00001000',
+    subject = '現在の問い合わせ',
+    status = '新規',
+    lastModifiedDate = '2026-07-18T01:30:00.000Z'
 } = {}) => ({
     apiName: 'Case',
     fields: {
         Id: { value: CASE_RECORD_ID },
         ContactId: { value: contactId },
-        AccountId: { value: accountId }
+        AccountId: { value: accountId },
+        CaseNumber: { value: caseNumber },
+        Subject: { value: subject },
+        Status: { value: status },
+        LastModifiedDate: { value: lastModifiedDate }
     },
     id: CASE_RECORD_ID
 });
@@ -76,9 +84,13 @@ const getTabElements = (tab) =>
 
 const getTabTiles = (tab) =>
     getTabElements(tab).flatMap((element) => [
-        ...(element.matches('lightning-tile') ? [element] : []),
-        ...element.querySelectorAll('lightning-tile')
+        ...(element.matches('.c-case-tile') ? [element] : []),
+        ...element.querySelectorAll('.c-case-tile')
     ]);
+
+const getTileCaseNumber = (tile) => tile.querySelector('h3').textContent.trim();
+
+const getTileLink = (tile) => tile.querySelector('a');
 
 const getTabText = (tab) =>
     getTabElements(tab)
@@ -110,9 +122,15 @@ describe('c-case-related-case-list', () => {
         await flushPromises();
         expect(getRelatedListRecords.getLastConfig()).toEqual(
             expect.objectContaining({
-                pageSize: 6,
+                pageSize: 5,
                 parentRecordId: ACCOUNT_RECORD_ID,
                 relatedListId: 'Cases',
+                fields: ['Case.CaseNumber'],
+                optionalFields: [
+                    'Case.Subject',
+                    'Case.Status',
+                    'Case.LastModifiedDate'
+                ],
                 sortBy: ['-Case.LastModifiedDate']
             })
         );
@@ -141,24 +159,66 @@ describe('c-case-related-case-list', () => {
         await flushPromises();
 
         const tabs = element.shadowRoot.querySelectorAll('lightning-tab');
-        const tiles = [...getTabTiles(tabs[0]), ...getTabTiles(tabs[1])];
+        const tabset = element.shadowRoot.querySelector('lightning-tabset');
+        const tabContainer = element.shadowRoot.querySelector(
+            '.c-related-case-tabs'
+        );
+        const contactTiles = getTabTiles(tabs[0]);
+        const accountTiles = getTabTiles(tabs[1]);
+        const tiles = [...contactTiles, ...accountTiles];
 
+        expect(tabset.variant).toBe('standard');
+        expect(tabContainer.classList).toContain('slds-p-horizontal_medium');
+        expect(tabContainer.classList).toContain('slds-p-bottom_medium');
         expect([...tabs].map((tab) => tab.label)).toEqual(['顧客', '会社']);
-        expect([...tiles].map((tile) => tile.label)).toEqual([
+        expect([...tiles].map(getTileCaseNumber)).toEqual([
+            '00001000',
             '00001001',
             '00001002',
+            '00001000',
             '00002001'
         ]);
-        expect([...tiles].every((tile) => tile.href === 'https://www.example.com')).toBe(
-            true
-        );
-        expect(getTabText(tabs[0])).not.toContain('00001000');
+        expect(getTileLink(contactTiles[0])).toBeNull();
+        expect(getTileLink(accountTiles[0])).toBeNull();
+        expect(
+            [...contactTiles.slice(1), ...accountTiles.slice(1)].every(
+                (tile) =>
+                    getTileLink(tile)?.getAttribute('href') ===
+                    'https://www.example.com'
+            )
+        ).toBe(true);
         expect(getTabText(tabs[1])).toContain('契約内容を確認したい');
         expect(
             tiles.flatMap((tile) => [
                 ...tile.querySelectorAll('lightning-formatted-date-time')
             ])
-        ).toHaveLength(3);
+        ).toHaveLength(5);
+        await expect(element).toBeAccessible();
+    });
+
+    it('renders the current case without a link when it is the only related case', async () => {
+        const element = createComponent();
+
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        emitRelatedCases(CONTACT_RECORD_ID, [
+            createRelatedCase({
+                id: CASE_RECORD_ID,
+                caseNumber: '00001000'
+            })
+        ]);
+        await flushPromises();
+
+        const contactTab = element.shadowRoot.querySelectorAll('lightning-tab')[0];
+
+        const tiles = getTabTiles(contactTab);
+
+        expect(tiles).toHaveLength(1);
+        expect(getTileCaseNumber(tiles[0])).toBe('00001000');
+        expect(getTileLink(tiles[0])).toBeNull();
+        expect(getTabText(contactTab)).not.toContain(
+            'この顧客の問い合わせはありません。'
+        );
         await expect(element).toBeAccessible();
     });
 
@@ -179,7 +239,13 @@ describe('c-case-related-case-list', () => {
         const contactTab = element.shadowRoot.querySelectorAll('lightning-tab')[0];
 
         expect(getTabTiles(contactTab)).toHaveLength(5);
-        expect(getTabText(contactTab)).not.toContain('00003005');
+        expect([...getTabTiles(contactTab)].map(getTileCaseNumber)).toEqual([
+            '00001000',
+            '00003000',
+            '00003001',
+            '00003002',
+            '00003003'
+        ]);
     });
 
     it('renders missing-parent messages without requesting related records', async () => {
@@ -200,7 +266,7 @@ describe('c-case-related-case-list', () => {
         await expect(element).toBeAccessible();
     });
 
-    it('renders empty and error states independently for each tab', async () => {
+    it('renders the current case and an account error independently', async () => {
         const element = createComponent();
 
         getRecord.emit(createCaseRecord());
@@ -212,9 +278,10 @@ describe('c-case-related-case-list', () => {
         );
         await flushPromises();
 
-        expect(element.shadowRoot.textContent).toContain(
-            'この顧客の別の問い合わせはありません。'
-        );
+        const contactTab = element.shadowRoot.querySelectorAll('lightning-tab')[0];
+
+        expect(getTabTiles(contactTab)).toHaveLength(1);
+        expect(getTileLink(getTabTiles(contactTab)[0])).toBeNull();
         expect(element.shadowRoot.textContent).toContain(
             '会社の問い合わせを読み込めませんでした。'
         );

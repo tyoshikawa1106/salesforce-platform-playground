@@ -131,6 +131,12 @@
             "label": "standard-objects-content-versions",
             "operation": "apex",
             "file": "scripts/apex/test-data/seed-standard-content-versions.apex"
+        },
+        {
+            "label": "case-related-case-list",
+            "operation": "apex",
+            "repeat": 1,
+            "file": "scripts/apex/test-data/seed-case-related-case-list.apex"
         }
     ]
 }

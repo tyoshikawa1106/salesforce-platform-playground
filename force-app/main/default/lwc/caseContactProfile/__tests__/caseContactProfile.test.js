@@ -160,6 +160,12 @@ describe('c-case-contact-profile', () => {
             'utility:profile_alt'
         );
         expect(element.shadowRoot.querySelector('lightning-card')).toBeNull();
+        expect(element.shadowRoot.querySelector('article').classList).toContain(
+            'slds-p-around_medium'
+        );
+        expect(
+            element.shadowRoot.querySelector('article').classList
+        ).not.toContain('slds-box');
         expect(element.shadowRoot.querySelectorAll('a')).toHaveLength(2);
         await expect(element).toBeAccessible();
     });

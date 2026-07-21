@@ -7,10 +7,6 @@
     min-block-size: var(--slds-g-spacing-10, 4rem);
     color: var(--slds-g-color-on-surface-2, #2e2e2e);
     background-color: var(--slds-g-color-surface-1, #fff);
-    box-shadow: var(
-        --slds-g-shadow-1,
-        0 0 2px rgb(0 0 0 / 18%), 0 2px 2px rgb(0 0 0 / 18%)
-    );
 }
 
 .c-customer-card__identity {
