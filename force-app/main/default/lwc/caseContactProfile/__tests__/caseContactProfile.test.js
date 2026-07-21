@@ -122,7 +122,7 @@ describe('c-case-contact-profile', () => {
         expect(element.shadowRoot.querySelector('dl')).toBeNull();
     });
 
-    it('renders the contact profile fields and person icon', async () => {
+    it('renders the contact profile fields in a standard card', async () => {
         const element = createComponent();
 
         getRecord.emit(createCaseRecord());
@@ -156,16 +156,17 @@ describe('c-case-contact-profile', () => {
             '090-1234-5678',
             '03-1234-5679'
         ]);
-        expect(element.shadowRoot.querySelector('lightning-icon').iconName).toBe(
+        expect(element.shadowRoot.querySelector('lightning-card').iconName).toBe(
             'utility:profile_alt'
         );
-        expect(element.shadowRoot.querySelector('lightning-card')).toBeNull();
-        expect(element.shadowRoot.querySelector('article').classList).toContain(
-            'slds-p-around_medium'
-        );
+        expect(element.shadowRoot.querySelector('article')).toBeNull();
+        const fieldLists = [...element.shadowRoot.querySelectorAll('dl')];
         expect(
-            element.shadowRoot.querySelector('article').classList
-        ).not.toContain('slds-box');
+            fieldLists[0].classList
+        ).toContain('slds-p-horizontal_medium');
+        expect(
+            fieldLists[1].classList
+        ).toContain('slds-p-bottom_medium');
         expect(element.shadowRoot.querySelectorAll('a')).toHaveLength(2);
         await expect(element).toBeAccessible();
     });
