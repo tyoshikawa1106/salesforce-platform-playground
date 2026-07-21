@@ -42,7 +42,7 @@
 - 組織の初回構築または再構築は通常開発と分離し、ユーザーが明示した別タスクで、全対象を確認した個別承認がある場合だけ実行する。再利用可能な接続組織向け全体 deploy コマンドや manifest は管理しない。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
-- 振る舞いを変更した場合は `docs/development/specification-rules.md` に従って現行実装仕様への影響を判定し、影響がある仕様書を原則として同じ変更単位で更新する。一括更新は独自実装した開発機能を対象とし、Salesforce 設定全体の仕様書は作成しない。
+- 振る舞いを変更した場合は `docs/development/specification-rules.md` に従って現行実装仕様への影響を判定し、影響がある仕様書を更新する。更新時期は対象実装の開発手順に従う。一括更新は独自実装した開発機能を対象とし、Salesforce 設定全体の仕様書は作成しない。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
 - メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
 
