@@ -1,48 +1,44 @@
 <template>
-    <article
-        class="c-customer-card slds-box"
+    <lightning-card
+        icon-name="utility:profile_alt"
         aria-busy={isLoading}
         aria-label="取引先責任者プロフィール"
     >
+        <h2 slot="title" class="slds-truncate" title={contactName}>
+            <template lwc:if={contactRecordUrl}>
+                <a href={contactRecordUrl}>{contactName}</a>
+            </template>
+            <template lwc:else>{contactName}</template>
+        </h2>
         <template lwc:if={isLoading}>
-            <lightning-spinner
-                alternative-text="取引先責任者のプロフィールを読み込んでいます"
-                size="small"
-            ></lightning-spinner>
+            <div
+                class="c-customer-card slds-p-horizontal_medium slds-p-bottom_medium"
+            >
+                <lightning-spinner
+                    alternative-text="取引先責任者のプロフィールを読み込んでいます"
+                    size="small"
+                ></lightning-spinner>
+            </div>
         </template>
 
         <template lwc:elseif={errorMessage}>
-            <p class="slds-text-color_error" role="alert">
+            <p
+                class="slds-p-horizontal_medium slds-p-bottom_medium slds-text-color_error"
+                role="alert"
+            >
                 {errorMessage}
             </p>
         </template>
 
         <template lwc:else>
-            <header class="slds-grid slds-grid_vertical-align-center">
-                <lightning-icon
-                    alternative-text="人物"
-                    icon-name="utility:profile_alt"
-                    size="medium"
-                ></lightning-icon>
-                <div class="c-customer-card__identity slds-m-left_medium">
-                    <h2
-                        class="slds-text-heading_medium slds-truncate"
-                        title={contactName}
-                    >
-                        <template lwc:if={contactRecordUrl}>
-                            <a href={contactRecordUrl}>{contactName}</a>
-                        </template>
-                        <template lwc:else>{contactName}</template>
-                    </h2>
-                </div>
-            </header>
-
             <div
-                class="c-customer-card__divider slds-border_top"
+                class="c-customer-card__divider slds-border_top slds-m-horizontal_medium"
                 aria-hidden="true"
             ></div>
 
-            <dl class="c-customer-card__fields">
+            <dl
+                class="c-customer-card__fields slds-p-horizontal_medium"
+            >
                 <div>
                     <dt class="slds-text-title">電話</dt>
                     <dd class="c-customer-card__value slds-m-top_x-small">
@@ -124,11 +120,13 @@
             </dl>
 
             <div
-                class="c-customer-card__divider slds-border_top"
+                class="c-customer-card__divider slds-border_top slds-m-horizontal_medium"
                 aria-hidden="true"
             ></div>
 
-            <dl class="c-customer-card__fields">
+            <dl
+                class="c-customer-card__fields slds-p-horizontal_medium slds-p-bottom_medium"
+            >
                 <div>
                     <dt class="slds-text-title">顧客の問い合わせ件数</dt>
                     <dd
@@ -161,5 +159,5 @@
                 </div>
             </dl>
         </template>
-    </article>
+    </lightning-card>
 </template>
