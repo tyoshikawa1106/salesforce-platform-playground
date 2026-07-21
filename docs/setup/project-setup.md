@@ -29,7 +29,7 @@ npm ci
 ```
 
 `npm ci` は、`package-lock.json` に固定された npm 依存を再現します。
-Husky、lint-staged、Prettier、ESLint、LWC Jest など、コミット前チェックや LWC 開発に必要な依存もここで入ります。
+Husky、lint-staged、Prettier、ESLint、SLDS Linter、LWC Jest など、コミット前チェックや LWC 開発に必要な依存もここで入ります。
 
 `package-lock.json` は npm 依存の再現性を保つために管理対象とします。
 
@@ -150,9 +150,12 @@ sf org login web --set-default --alias <alias>
 npm run prettier:verify
 npm run docs:check
 npm run lint -- --no-error-on-unmatched-pattern
+npm run lint:slds
 npm run test:unit -- -- --runInBand --passWithNoTests
 npm audit --audit-level=high
 npm run code-analyzer:ci
 ```
+
+`npm run lint:slds` が SLDS 違反0件または実際の違反一覧を出力すれば、lockfile に固定された SLDS Linter をローカルで実行できています。
 
 `npm run code-analyzer:ci` が `Found 0 violations.` または実際の violation 一覧を出せば、Salesforce Code Analyzer は実行できています。

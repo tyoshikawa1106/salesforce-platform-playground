@@ -9,15 +9,15 @@ Node.js / npm はプロジェクトごとに要求バージョンが変わりや
 
 このリポジトリで使う主なツールは次のとおりです。
 
-| ツール           | 役割                                                       | 管理方法 |
-| ---------------- | ---------------------------------------------------------- | -------- |
-| Git              | ソースコードのバージョン管理                               | winget   |
-| GitHub CLI       | GitHub 認証、Issue、Pull Request、CI 状態確認              | winget   |
-| Salesforce CLI   | Salesforce 開発、組織操作、メタデータ操作                  | winget   |
-| Node.js / npm    | npm scripts、ESLint、Prettier、LWC Jest、開発依存の実行    | Volta    |
-| Java JDK         | Salesforce Code Analyzer の PMD / CPD / SFGE engine で利用 | winget   |
-| Python 3.10 以降 | Salesforce Code Analyzer の Flow engine で利用             | winget   |
-| Heroku CLI       | Heroku アプリケーション管理                                | 任意     |
+| ツール           | 役割                                                                 | 管理方法 |
+| ---------------- | -------------------------------------------------------------------- | -------- |
+| Git              | ソースコードのバージョン管理                                         | winget   |
+| GitHub CLI       | GitHub 認証、Issue、Pull Request、CI 状態確認                        | winget   |
+| Salesforce CLI   | Salesforce 開発、組織操作、メタデータ操作                            | winget   |
+| Node.js / npm    | npm scripts、ESLint、SLDS Linter、Prettier、LWC Jest、開発依存の実行 | Volta    |
+| Java JDK         | Salesforce Code Analyzer の PMD / CPD / SFGE engine で利用           | winget   |
+| Python 3.10 以降 | Salesforce Code Analyzer の Flow engine で利用                       | winget   |
+| Heroku CLI       | Heroku アプリケーション管理                                          | 任意     |
 
 ## 1. winget の確認
 
