@@ -31,6 +31,24 @@ public with sharing class CaseEmailMessageSelector {
     }
 
     /**
+     * 指定ケースに紐づくメールメッセージの PaginationCursor を作成
+     *
+     * @param caseId ケースレコード ID、null の場合は null
+     * @return 利用者権限で作成した PaginationCursor
+     */
+    public Database.PaginationCursor getPaginationCursorByCaseId(Id caseId) {
+        if (caseId == null) {
+            return null;
+        }
+
+        return Database.getPaginationCursorWithBinds(
+            EMAIL_MESSAGE_QUERY,
+            new Map<String, Object>{ 'caseId' => caseId },
+            AccessLevel.USER_MODE
+        );
+    }
+
+    /**
      * 指定ケースに紐づくメールメッセージを PaginationCursor で取得
      *
      * @param pageQuery ケース ID、PaginationCursor、取得位置、取得件数を持つ問い合わせ条件
@@ -42,7 +60,7 @@ public with sharing class CaseEmailMessageSelector {
         }
 
         if (pageQuery.paginationCursor == null) {
-            pageQuery.paginationCursor = createPaginationCursor(pageQuery.caseId);
+            pageQuery.paginationCursor = getPaginationCursorByCaseId(pageQuery.caseId);
         }
 
         Integer remainingRecords = pageQuery.paginationCursor.getNumRecords() - pageQuery.startIndex;
@@ -54,11 +72,4 @@ public with sharing class CaseEmailMessageSelector {
         return pageQuery.paginationCursor.fetchPage(pageQuery.startIndex, fetchSize);
     }
 
-    private Database.PaginationCursor createPaginationCursor(Id caseId) {
-        return Database.getPaginationCursorWithBinds(
-            EMAIL_MESSAGE_QUERY,
-            new Map<String, Object>{ 'caseId' => caseId },
-            AccessLevel.USER_MODE
-        );
-    }
 }

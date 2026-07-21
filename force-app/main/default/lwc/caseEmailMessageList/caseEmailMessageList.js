@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getEmailMessageCount from '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount';
+import getEmailMessagePaginationCursor from '@salesforce/apex/CaseEmailMessageController.getEmailMessagePaginationCursor';
 import getEmailMessages from '@salesforce/apex/CaseEmailMessageController.getEmailMessages';
 import { reduceErrors } from 'c/errorUtils';
 import {
@@ -95,10 +96,14 @@ export default class CaseEmailMessageList extends LightningElement {
         this.isLoadingInitialPage = true;
 
         try {
-            // nullカーソルと先頭位置で新しい結果セットを作成
+            // AuraEnabled応答として新しいPaginationCursorを直接取得
+            const paginationCursor = await getEmailMessagePaginationCursor({
+                caseId: targetRecordId
+            });
+            // 取得したカーソルと先頭位置で初期ページを取得
             const page = await getEmailMessages({
                 caseId: targetRecordId,
-                paginationCursor: null,
+                paginationCursor,
                 startIndex: 0
             });
             // 表示対象が変わった場合は古いCaseの応答を反映しない
@@ -107,7 +112,7 @@ export default class CaseEmailMessageList extends LightningElement {
                 return;
             }
             // 行変換と次ページ状態更新をまとめて実行
-            this.applyInitialPage(page);
+            this.applyInitialPage(page, paginationCursor);
             // 初期ページを反映したCase IDを記録
             this.loadedRecordId = targetRecordId;
             // 再取得成功時は以前の全体エラーを解除
@@ -209,14 +214,8 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // PaginationCursorと次indexを使ってメール一覧を追加取得
     async handleLoadMore() {
-        // 次ページなし、カーソルなし、位置なし、処理中の場合は重複取得しない
-        if (
-            !this.hasNextPage ||
-            !this.paginationCursor ||
-            this.nextIndex === undefined ||
-            this.nextIndex === null ||
-            this.isBusy
-        ) {
+        // 次ページなしまたは処理中の場合は重複取得しない
+        if (!this.hasNextPage || this.isBusy) {
             // 現在一覧を維持して追加取得を終了
             return;
         }
@@ -243,7 +242,9 @@ export default class CaseEmailMessageList extends LightningElement {
                     // Apexが返した追加ページを渡す
                     page,
                     // 現在表示中の一覧を渡す
-                    emailMessages: this.emailMessages
+                    emailMessages: this.emailMessages,
+                    // 初回に直接取得したPaginationCursorを維持
+                    paginationCursor: this.paginationCursor
                 })
             );
             // 追加取得失敗時は現在一覧を維持してエラーだけを表示
@@ -258,8 +259,8 @@ export default class CaseEmailMessageList extends LightningElement {
     }
 
     // Apex初期ページ応答を一覧とページング状態へ反映
-    applyInitialPage(page) {
+    applyInitialPage(page, paginationCursor) {
         // 初期ページから生成した一覧とページング状態をまとめて反映
-        Object.assign(this, createInitialPageState(page));
+        Object.assign(this, createInitialPageState(page, paginationCursor));
     }
 }

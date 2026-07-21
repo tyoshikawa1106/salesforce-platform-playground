@@ -59,7 +59,7 @@ export function createDisplayRow(emailMessage) {
 }
 
 // 初期ページ応答から一覧とページング状態を生成
-export function createInitialPageState(page) {
+export function createInitialPageState(page, paginationCursor) {
     // 各EmailMessageをテンプレート表示行へ変換
     const emailMessages = (page.emailMessages || []).map(createDisplayRow);
     // 次ページ情報を含む初期表示状態を返却
@@ -67,7 +67,7 @@ export function createInitialPageState(page) {
         // 初期ページの表示行を保持
         emailMessages,
         // 次回取得に使うSalesforce標準PaginationCursorを保持
-        paginationCursor: page.paginationCursor,
+        paginationCursor,
         // 次回取得を開始する0始まりの位置を保持
         nextIndex: page.nextIndex,
         // Apexが判定した結果セット内の次ページ有無を保持
@@ -78,7 +78,7 @@ export function createInitialPageState(page) {
 }
 
 // 追加ページ応答から既存一覧へ連結する次状態を生成
-export function createNextPageState({ page, emailMessages }) {
+export function createNextPageState({ page, emailMessages, paginationCursor }) {
     // 追加ページを表示行へ変換して先頭行へ区切り情報を付加
     const nextEmailMessages = createNextPageDisplayRows(page, emailMessages.length);
     // 既存順を保って新しい表示行を末尾へ追加
@@ -88,7 +88,7 @@ export function createNextPageState({ page, emailMessages }) {
         // 結合済みの表示行を保持
         emailMessages: combinedEmailMessages,
         // 続く追加取得へ引き継ぐPaginationCursorを保持
-        paginationCursor: page.paginationCursor,
+        paginationCursor,
         // 続く追加取得を開始する位置を保持
         nextIndex: page.nextIndex,
         // Apexが判定した結果セット内の次ページ有無を保持

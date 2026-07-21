@@ -17,12 +17,14 @@ const EMAIL_MESSAGE = {
 
 describe('caseEmailMessageListLogic', () => {
     it('メールを表示行へ変換して初期ページ状態を生成する', () => {
-        const state = createInitialPageState({
-            emailMessages: [EMAIL_MESSAGE],
-            paginationCursor: { cursorId: 'pagination-cursor' },
-            nextIndex: 1,
-            hasNextPage: true
-        });
+        const state = createInitialPageState(
+            {
+                emailMessages: [EMAIL_MESSAGE],
+                nextIndex: 1,
+                hasNextPage: true
+            },
+            { cursorId: 'pagination-cursor' }
+        );
 
         expect(state.emailMessages[0]).toEqual(
             expect.objectContaining({
@@ -52,11 +54,11 @@ describe('caseEmailMessageListLogic', () => {
                         Incoming: false
                     }
                 ],
-                paginationCursor: { cursorId: 'pagination-cursor' },
                 nextIndex: 2,
                 hasNextPage: false
             },
-            emailMessages: [{ id: EMAIL_MESSAGE.Id }]
+            emailMessages: [{ id: EMAIL_MESSAGE.Id }],
+            paginationCursor: { cursorId: 'pagination-cursor' }
         });
 
         expect(state.emailMessages).toHaveLength(2);
@@ -68,6 +70,9 @@ describe('caseEmailMessageListLogic', () => {
                 pageSeparatorMessage: '2件目から2件目を読み込みました'
             })
         );
+        expect(state.paginationCursor).toEqual({
+            cursorId: 'pagination-cursor'
+        });
         expect(state.hasNextPage).toBe(false);
     });
 

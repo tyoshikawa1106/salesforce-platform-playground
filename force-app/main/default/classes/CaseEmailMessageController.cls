@@ -30,6 +30,25 @@ public with sharing class CaseEmailMessageController {
     }
 
     /**
+     * 指定ケースに紐づくメールメッセージの PaginationCursor を返す
+     *
+     * @param caseId ケースレコード ID、null の場合は null
+     * @return LWC がページ取得間で保持する PaginationCursor
+     */
+    @AuraEnabled
+    public static Database.PaginationCursor getEmailMessagePaginationCursor(Id caseId) {
+        try {
+            Id validatedCaseId = SERVICE.validateCaseId(caseId);
+            return SELECTOR.getPaginationCursorByCaseId(validatedCaseId);
+        } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
+            String errorMessage = e.getMessage();
+            throw createHandledException(errorMessage);
+        } catch (Exception e) {
+            throw createHandledException(LOAD_ERROR_MESSAGE);
+        }
+    }
+
+    /**
      * 指定ケースに紐づくメールメッセージを古い順に返す
      *
      * @param caseId ケースレコード ID、null の場合は空のページ
