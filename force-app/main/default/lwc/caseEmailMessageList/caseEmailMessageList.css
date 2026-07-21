@@ -1,5 +1,24 @@
+.c-timeline-item {
+    --c-timeline-icon-size: var(--slds-g-sizing-6, 1.25rem);
+    --c-timeline-line-width: var(--slds-g-sizing-border-2, 2px);
+}
+
 .c-timeline-item::before {
-    left: var(--slds-g-spacing-3, 0.75rem);
+    left: calc(
+        (
+                var(--c-timeline-icon-size) -
+                    var(--c-timeline-line-width)
+            ) / 2
+    );
+    width: var(--c-timeline-line-width);
+}
+
+.c-timeline-icon {
+    align-items: center;
+    display: inline-flex;
+    height: var(--c-timeline-icon-size);
+    justify-content: center;
+    width: var(--c-timeline-icon-size);
 }
 
 .c-email-body {

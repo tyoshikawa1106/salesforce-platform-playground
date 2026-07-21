@@ -155,7 +155,7 @@ describe('c-case-email-message-list', () => {
         expect(timeline.querySelector('lightning-badge')).toBeNull();
         expect(timelineItemContainers).toHaveLength(2);
         expect(emailIconContainers).toHaveLength(2);
-        expect(emailIconContainers[0].classList).toContain('slds-p-around_xxx-small');
+        expect(emailIconContainers[0].classList).toContain('c-timeline-icon');
         expect(emailIcons).toHaveLength(2);
         expect(emailIcons[0].iconName).toBe('utility:email_open');
         expect(emailIcons[1].iconName).toBe('utility:sender_email');
