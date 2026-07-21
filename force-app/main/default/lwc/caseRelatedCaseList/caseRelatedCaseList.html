@@ -76,6 +76,14 @@
                                                 </template>
                                             </h3>
                                             <div class="slds-tile__detail">
+                                                <template
+                                                    lwc:if={relatedCase.isCurrentCase}
+                                                >
+                                                    <lightning-badge
+                                                        class="slds-m-top_x-small"
+                                                        label="現在のケース"
+                                                    ></lightning-badge>
+                                                </template>
                                                 <p>
                                                     {relatedCase.subject}
                                                 </p>
@@ -107,14 +115,70 @@
                                                 <p
                                                     class="slds-text-body_small slds-text-color_weak"
                                                 >
+                                                    <span>クローズ日 </span>
+                                                    <template
+                                                        lwc:if={relatedCase.hasClosedDate}
+                                                    >
+                                                        <lightning-formatted-date-time
+                                                            value={relatedCase.closedDate}
+                                                            year="numeric"
+                                                            month="2-digit"
+                                                            day="2-digit"
+                                                            hour="2-digit"
+                                                            minute="2-digit"
+                                                        ></lightning-formatted-date-time>
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.closedDateText}
+                                                    </template>
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>ケース日数 </span>
+                                                    {relatedCase.caseDays}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
                                                     <span>取引先 </span>
-                                                    {relatedCase.accountName}
+                                                    <template
+                                                        lwc:if={relatedCase.hasAccountUrl}
+                                                    >
+                                                        <a
+                                                            href={relatedCase.accountUrl}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >{relatedCase.accountName}</a
+                                                        >
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.accountName}
+                                                    </template>
                                                 </p>
                                                 <p
                                                     class="slds-text-body_small slds-text-color_weak"
                                                 >
                                                     <span>取引先責任者 </span>
-                                                    {relatedCase.contactName}
+                                                    <template
+                                                        lwc:if={relatedCase.hasContactUrl}
+                                                    >
+                                                        <a
+                                                            href={relatedCase.contactUrl}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >{relatedCase.contactName}</a
+                                                        >
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.contactName}
+                                                    </template>
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>所有者 </span>
+                                                    {relatedCase.ownerName}
                                                 </p>
                                             </div>
                                         </div>
@@ -180,6 +244,14 @@
                                                 </template>
                                             </h3>
                                             <div class="slds-tile__detail">
+                                                <template
+                                                    lwc:if={relatedCase.isCurrentCase}
+                                                >
+                                                    <lightning-badge
+                                                        class="slds-m-top_x-small"
+                                                        label="現在のケース"
+                                                    ></lightning-badge>
+                                                </template>
                                                 <p>
                                                     {relatedCase.subject}
                                                 </p>
@@ -211,14 +283,70 @@
                                                 <p
                                                     class="slds-text-body_small slds-text-color_weak"
                                                 >
+                                                    <span>クローズ日 </span>
+                                                    <template
+                                                        lwc:if={relatedCase.hasClosedDate}
+                                                    >
+                                                        <lightning-formatted-date-time
+                                                            value={relatedCase.closedDate}
+                                                            year="numeric"
+                                                            month="2-digit"
+                                                            day="2-digit"
+                                                            hour="2-digit"
+                                                            minute="2-digit"
+                                                        ></lightning-formatted-date-time>
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.closedDateText}
+                                                    </template>
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>ケース日数 </span>
+                                                    {relatedCase.caseDays}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
                                                     <span>取引先 </span>
-                                                    {relatedCase.accountName}
+                                                    <template
+                                                        lwc:if={relatedCase.hasAccountUrl}
+                                                    >
+                                                        <a
+                                                            href={relatedCase.accountUrl}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >{relatedCase.accountName}</a
+                                                        >
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.accountName}
+                                                    </template>
                                                 </p>
                                                 <p
                                                     class="slds-text-body_small slds-text-color_weak"
                                                 >
                                                     <span>取引先責任者 </span>
-                                                    {relatedCase.contactName}
+                                                    <template
+                                                        lwc:if={relatedCase.hasContactUrl}
+                                                    >
+                                                        <a
+                                                            href={relatedCase.contactUrl}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >{relatedCase.contactName}</a
+                                                        >
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.contactName}
+                                                    </template>
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>所有者 </span>
+                                                    {relatedCase.ownerName}
                                                 </p>
                                             </div>
                                         </div>

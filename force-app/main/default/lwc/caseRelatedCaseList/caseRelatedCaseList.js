@@ -7,6 +7,7 @@ import CASE_ACCOUNT_ID_FIELD from '@salesforce/schema/Case.AccountId';
 import CASE_CONTACT_ID_FIELD from '@salesforce/schema/Case.ContactId';
 import CASE_NUMBER_FIELD from '@salesforce/schema/Case.CaseNumber';
 import CASE_CREATED_DATE_FIELD from '@salesforce/schema/Case.CreatedDate';
+import CASE_CLOSED_DATE_FIELD from '@salesforce/schema/Case.ClosedDate';
 import CASE_STATUS_FIELD from '@salesforce/schema/Case.Status';
 import CASE_REASON_FIELD from '@salesforce/schema/Case.Reason';
 import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
@@ -26,8 +27,10 @@ const CASE_OPTIONAL_FIELDS = [
     CASE_SUBJECT_FIELD,
     CASE_STATUS_FIELD,
     CASE_REASON_FIELD,
+    CASE_CLOSED_DATE_FIELD,
     CASE_ACCOUNT_NAME_FIELD,
-    CASE_CONTACT_NAME_FIELD
+    CASE_CONTACT_NAME_FIELD,
+    'Case.Owner.Name'
 ];
 // 一覧の識別と並び順に必要なケース番号、作成日時を取得
 const RELATED_CASE_FIELDS = ['Case.CaseNumber', 'Case.CreatedDate'];
@@ -36,8 +39,12 @@ const RELATED_CASE_OPTIONAL_FIELDS = [
     'Case.Subject',
     'Case.Status',
     'Case.Reason',
+    'Case.ClosedDate',
+    'Case.AccountId',
     'Case.Account.Name',
-    'Case.Contact.Name'
+    'Case.ContactId',
+    'Case.Contact.Name',
+    'Case.Owner.Name'
 ];
 // ContactとAccountで共通するケース関連リストを指定
 const CASES_RELATED_LIST_ID = 'Cases';
@@ -247,6 +254,24 @@ export default class CaseRelatedCaseList extends NavigationMixin(
             relatedCases.map(async (record) => {
                 // 現在Caseは同じ画面への不要なリンクを表示しない
                 const isCurrentCase = record.id === this.recordId;
+                // 取引先リンク生成に使うAccount IDを取得
+                const accountId = getFieldValue(
+                    record,
+                    CASE_ACCOUNT_ID_FIELD
+                );
+                // 取引先責任者リンク生成に使うContact IDを取得
+                const contactId = getFieldValue(
+                    record,
+                    CASE_CONTACT_ID_FIELD
+                );
+                // Case、Account、ContactのURLを並行生成
+                const [url, accountUrl, contactUrl] = await Promise.all([
+                    isCurrentCase
+                        ? Promise.resolve(undefined)
+                        : this.generateRecordUrl(record.id, 'Case'),
+                    this.generateRecordUrl(accountId, 'Account'),
+                    this.generateRecordUrl(contactId, 'Contact')
+                ]);
 
                 // UI API値とNavigation結果の表示正規化をLogicへ委譲
                 return createCaseCard({
@@ -260,6 +285,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                     status: getFieldValue(record, CASE_STATUS_FIELD),
                     // UI APIから参照可能な原因を渡す
                     reason: getFieldValue(record, CASE_REASON_FIELD),
+                    // UI APIから取得したクローズ日時を渡す
+                    closedDate: getFieldValue(record, CASE_CLOSED_DATE_FIELD),
                     // UI APIから取得した作成日時を渡す
                     createdDate: getFieldValue(
                         record,
@@ -275,28 +302,50 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                         record,
                         CASE_CONTACT_NAME_FIELD
                     ),
-                    // 現在Case以外だけNavigationMixinでURLを生成
-                    url: isCurrentCase
-                        ? undefined
-                        : await this.generateCaseUrl(record.id)
+                    // UI APIから参照可能な所有者名を渡す
+                    ownerName: this.getRelationshipFieldValue(
+                        record,
+                        'Owner',
+                        'Name'
+                    ),
+                    // 現在Caseの識別表示へ使う状態を渡す
+                    isCurrentCase,
+                    // 現在Case以外だけ生成したCase URLを渡す
+                    url,
+                    // 取引先レコードURLを渡す
+                    accountUrl,
+                    // 取引先責任者レコードURLを渡す
+                    contactUrl
                 });
             })
         );
     }
 
-    // Lightning Experienceに適したCaseレコードURLを生成
-    generateCaseUrl(recordId) {
-        // URL生成に失敗してもケース情報はリンクなしで表示を継続
+    // 多態参照を含むUI APIの関連レコード項目を安全に取得
+    getRelationshipFieldValue(record, relationshipName, fieldName) {
+        // 関連レコードまたは項目を参照できない場合は未取得として返却
+        return record?.fields?.[relationshipName]?.value?.fields?.[fieldName]
+            ?.value;
+    }
+
+    // Lightning Experienceに適したレコードURLを生成
+    generateRecordUrl(recordId, objectApiName) {
+        // 参照先がない場合はリンクを生成しない
+        if (!recordId) {
+            return Promise.resolve(undefined);
+        }
+
+        // URL生成に失敗しても項目情報はリンクなしで表示を継続
         return this[NavigationMixin.GenerateUrl]({
             // Salesforceレコードページへの遷移種別を指定
             type: 'standard__recordPage',
             // 対象Caseと表示アクションを遷移属性へ設定
             attributes: {
-                // 呼び出し元のCase IDを遷移先へ指定
+                // 参照先レコードIDを遷移先へ指定
                 recordId,
-                // ID解決をCaseオブジェクトとして明示
-                objectApiName: 'Case',
-                // 対象Caseの参照画面を開く
+                // ID解決に使うオブジェクトAPI名を指定
+                objectApiName,
+                // 対象レコードの参照画面を開く
                 actionName: 'view'
             }
         }).catch(() => undefined);

@@ -6,7 +6,12 @@
     >
         <h2 slot="title" class="slds-truncate" title={contactName}>
             <template lwc:if={contactRecordUrl}>
-                <a href={contactRecordUrl}>{contactName}</a>
+                <a
+                    href={contactRecordUrl}
+                    target="_blank"
+                    rel="noopener"
+                    >{contactName}</a
+                >
             </template>
             <template lwc:else>{contactName}</template>
         </h2>
@@ -95,11 +100,18 @@
                         {title}
                     </dd>
                 </div>
-                <div class="c-customer-card__field_full">
+                <div
+                    class="c-customer-card__field_full slds-border_top slds-p-top_medium"
+                >
                     <dt class="slds-text-title">会社名</dt>
                     <dd class="c-customer-card__value slds-m-top_x-small">
                         <template lwc:if={accountRecordUrl}>
-                            <a href={accountRecordUrl}>{companyName}</a>
+                            <a
+                                href={accountRecordUrl}
+                                target="_blank"
+                                rel="noopener"
+                                >{companyName}</a
+                            >
                         </template>
                         <template lwc:else>{companyName}</template>
                     </dd>
