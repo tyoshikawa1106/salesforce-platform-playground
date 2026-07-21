@@ -14,22 +14,28 @@ import {
     selectRelatedCaseRecords
 } from './caseRelatedCaseListLogic';
 
-// Case本体の取得は必須項目を最小限にし、関連先の参照権限不足で全体を取得失敗させない
-const CASE_FIELDS = [CASE_ID_FIELD];
-// 顧客と会社は参照権限がない場合もコンポーネント全体を表示可能にする
-const CASE_OPTIONAL_FIELDS = [CASE_CONTACT_ID_FIELD, CASE_ACCOUNT_ID_FIELD];
-// 一覧の識別に必要なケース番号だけを必須とし、表示補助項目は権限に応じて取得
-const RELATED_CASE_FIELDS = [CASE_NUMBER_FIELD];
-// 件名、状況、更新日時は参照可能な項目だけをカードへ反映
-const RELATED_CASE_OPTIONAL_FIELDS = [
+// Case本体と現在Caseカードの識別に必要な項目を指定
+const CASE_FIELDS = [CASE_ID_FIELD, CASE_NUMBER_FIELD];
+// 顧客、会社、カード補助項目は参照権限がない場合も全体を表示可能にする
+const CASE_OPTIONAL_FIELDS = [
+    CASE_CONTACT_ID_FIELD,
+    CASE_ACCOUNT_ID_FIELD,
     CASE_SUBJECT_FIELD,
     CASE_STATUS_FIELD,
     CASE_LAST_MODIFIED_DATE_FIELD
 ];
+// 一覧の識別に必要なケース番号だけを必須とし、表示補助項目は権限に応じて取得
+const RELATED_CASE_FIELDS = ['Case.CaseNumber'];
+// 件名、状況、更新日時は参照可能な項目だけをカードへ反映
+const RELATED_CASE_OPTIONAL_FIELDS = [
+    'Case.Subject',
+    'Case.Status',
+    'Case.LastModifiedDate'
+];
 // ContactとAccountで共通するケース関連リストを指定
 const CASES_RELATED_LIST_ID = 'Cases';
-// 表示中のケースを除外しても最大5件を表示できるように1件多く取得
-const RELATED_CASE_PAGE_SIZE = 6;
+// 表示中Caseと組み合わせる直近ケースの候補を最大表示件数まで取得
+const RELATED_CASE_PAGE_SIZE = 5;
 // 問い合わせの直近順を最終更新日時の降順で統一
 const RELATED_CASE_SORT = ['-Case.LastModifiedDate'];
 
@@ -200,17 +206,17 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // Contact設定有無に応じた顧客タブの空状態メッセージを返却
     get contactEmptyMessage() {
-        // Contact設定済みの場合は関連ケース0件として案内
+        // Contact設定済みの場合は参照可能な問い合わせ0件として案内
         return this.contactId
-            ? 'この顧客の別の問い合わせはありません。'
+            ? 'この顧客の問い合わせはありません。'
             : 'このケースには顧客が設定されていません。';
     }
 
     // Account設定有無に応じた会社タブの空状態メッセージを返却
     get accountEmptyMessage() {
-        // Account設定済みの場合は関連ケース0件として案内
+        // Account設定済みの場合は参照可能な問い合わせ0件として案内
         return this.accountId
-            ? 'この会社の別の問い合わせはありません。'
+            ? 'この会社の問い合わせはありません。'
             : 'このケースには会社が設定されていません。';
     }
 
@@ -222,15 +228,21 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // UI APIレコードをテンプレートで扱うカード形式へ変換
     async createCaseCards(records = []) {
-        // 表示中Case自身を除外し、狭いサイドバー向けの表示件数に制限
-        const relatedCases = selectRelatedCaseRecords(records, this.recordId);
+        // 表示中Caseを先頭に含め、狭いサイドバー向けの表示件数に制限
+        const relatedCases = selectRelatedCaseRecords(
+            records,
+            this.caseRecord
+        );
 
         // 全ケースのURL生成完了後に同じ表示順でカード一覧を返却
         return Promise.all(
             // 各UI APIレコードを表示専用の値へ正規化
-            relatedCases.map(async (record) =>
+            relatedCases.map(async (record) => {
+                // 現在Caseは同じ画面への不要なリンクを表示しない
+                const isCurrentCase = record.id === this.recordId;
+
                 // UI API値とNavigation結果の表示正規化をLogicへ委譲
-                createCaseCard({
+                return createCaseCard({
                     // 繰り返し描画へ使うCase IDを渡す
                     id: record.id,
                     // UI APIから参照可能なケース番号を渡す
@@ -244,10 +256,12 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                         record,
                         CASE_LAST_MODIFIED_DATE_FIELD
                     ),
-                    // NavigationMixinで生成したCase URLを渡す
-                    url: await this.generateCaseUrl(record.id)
-                })
-            )
+                    // 現在Case以外だけNavigationMixinでURLを生成
+                    url: isCurrentCase
+                        ? undefined
+                        : await this.generateCaseUrl(record.id)
+                });
+            })
         );
     }
 

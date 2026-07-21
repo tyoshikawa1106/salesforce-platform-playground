@@ -3,7 +3,7 @@
     <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>最近の問い合わせ</masterLabel>
-    <description>ケースの顧客または会社に紐づく直近の別ケースを表示します。</description>
+    <description>ケースの顧客または会社に紐づく最近のケースを表示します。</description>
     <targets>
         <target>lightning__RecordPage</target>
     </targets>

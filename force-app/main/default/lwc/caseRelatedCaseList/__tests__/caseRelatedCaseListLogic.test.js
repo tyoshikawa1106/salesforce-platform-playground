@@ -4,14 +4,15 @@ import {
 } from '../caseRelatedCaseListLogic';
 
 describe('caseRelatedCaseListLogic', () => {
-    it('表示中Caseを除外して最大5件を選別する', () => {
+    it('表示中Caseを先頭に含めて最大5件を選別する', () => {
         const records = Array.from({ length: 7 }, (_, index) => ({
             id: `50000000000000${index}`
         }));
 
-        expect(
-            selectRelatedCaseRecords(records, '500000000000000')
-        ).toEqual(records.slice(1, 6));
+        expect(selectRelatedCaseRecords(records, records[5])).toEqual([
+            records[5],
+            ...records.slice(0, 4)
+        ]);
     });
 
     it('参照できない値を代替表示へ変換してカードを生成する', () => {
@@ -30,6 +31,7 @@ describe('caseRelatedCaseListLogic', () => {
             subject: '（件名なし）',
             status: '-',
             lastModifiedDate: '2026-07-19T00:00:00.000Z',
+            hasUrl: false,
             url: undefined
         });
     });
