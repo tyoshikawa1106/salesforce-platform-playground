@@ -3,7 +3,6 @@
  */
 @IsTest
 private with sharing class CaseEmailMessagePageWrapperTest {
-
     private static User testUser = TestDataFactory.getTestUser();
 
     /**
@@ -21,15 +20,10 @@ private with sharing class CaseEmailMessagePageWrapperTest {
             Test.stopTest();
         }
 
-        Assert.areEqual(
-            0,
-            result.emailMessages.size(),
-            '引数なしで空のメールリストを初期化する必要あり'
-        );
-        Assert.isFalse(
-            result.hasNextPage,
-            '引数なしで次ページなしと初期化する必要あり'
-        );
+        Assert.areEqual(0, result.emailMessages.size(), '引数なしで空のメールリストを初期化する必要あり');
+        Assert.isFalse(result.hasNextPage, '引数なしで次ページなしと初期化する必要あり');
+        Assert.isNull(result.paginationCursor, '引数なしでPaginationCursorをnullにする必要あり');
+        Assert.isNull(result.nextIndex, '引数なしで次ページ位置をnullにする必要あり');
     }
 
     /**
@@ -37,36 +31,38 @@ private with sharing class CaseEmailMessagePageWrapperTest {
      */
     @IsTest
     static void shouldExposePageState() {
+        List<Case> caseRecords = new List<Case>{
+            TestDataFactory.createCase('ページ Wrapper テスト 1', TestDataFactory.SaveMode.DO_NOT_INSERT),
+            TestDataFactory.createCase('ページ Wrapper テスト 2', TestDataFactory.SaveMode.DO_NOT_INSERT)
+        };
+        insert caseRecords;
+        Set<Id> caseIds = new Map<Id, Case>(caseRecords).keySet();
         List<EmailMessage> emailMessages = new List<EmailMessage>{
             new EmailMessage(Subject = 'ページ Wrapper テスト')
         };
+        Database.PaginationCursor paginationCursor;
         CaseEmailMessagePageWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessagePageWrapper(
-                emailMessages,
-                50,
-                'next-token'
+            paginationCursor = Database.getPaginationCursorWithBinds(
+                'SELECT Id FROM Case WHERE Id IN :caseIds ORDER BY Id',
+                new Map<String, Object>{ 'caseIds' => caseIds },
+                AccessLevel.USER_MODE
             );
+            result = new CaseEmailMessagePageWrapper(emailMessages, paginationCursor, 1);
 
             Test.stopTest();
         }
 
+        Assert.areEqual(1, result.emailMessages.size(), 'コンストラクターで受け取ったメールを保持する必要あり');
+        Assert.isTrue(result.hasNextPage, '次の取得位置と総件数から次ページありと判定する必要あり');
         Assert.areEqual(
-            1,
-            result.emailMessages.size(),
-            'コンストラクターで受け取ったメールを保持する必要あり'
+            paginationCursor.getNumRecords(),
+            result.paginationCursor.getNumRecords(),
+            'コンストラクターで受け取ったPaginationCursorを保持する必要あり'
         );
-        Assert.areEqual(
-            50,
-            result.pageSize,
-            'コンストラクターで受け取ったページサイズを保持する必要あり'
-        );
-        Assert.isTrue(
-            result.hasNextPage,
-            '次ページトークンがある場合は次ページありと判定する必要あり'
-        );
+        Assert.areEqual(1, result.nextIndex, 'コンストラクターで受け取った次ページ位置を保持する必要あり');
     }
 }

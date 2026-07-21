@@ -3,7 +3,7 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>ケースメールメッセージ一覧</masterLabel>
-    <description>ケースレコードに紐づく最新のメールメッセージを一覧表示します。</description>
+    <description>ケースレコードに紐づくメールメッセージを古い順に一覧表示します。</description>
     <targets>
         <target>lightning__RecordPage</target>
     </targets>

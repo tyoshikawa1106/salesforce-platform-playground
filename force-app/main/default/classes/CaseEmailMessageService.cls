@@ -2,13 +2,12 @@
  * ケースメールメッセージ一覧の入力値検証
  */
 public with sharing class CaseEmailMessageService {
-
     // 画面が 1 回に追加表示するメール件数
     private static final Integer PAGE_SIZE = 50;
     // Case 以外のレコードページからの呼び出しを LWC へ通知
     private static final String INVALID_CASE_MESSAGE = 'ケースレコードを確認できませんでした。ページを再読み込みしてください。';
-    // 改ざんまたは破損したページトークンを LWC へ通知
-    private static final String INVALID_PAGE_TOKEN_MESSAGE = '次のメールを読み込めませんでした。再読み込みしてください。';
+    // 不正なページ取得位置を LWC へ通知
+    private static final String INVALID_START_INDEX_MESSAGE = '次のメールを読み込めませんでした。再読み込みしてください。';
 
     /**
      * 画面から受け取った ID が Case ID かを検証
@@ -30,126 +29,65 @@ public with sharing class CaseEmailMessageService {
     }
 
     /**
-     * ケース ID とページトークンから問い合わせ条件を作成
+     * ケース ID と PaginationCursor から問い合わせ条件を作成
      *
      * @param caseId 検証済みケースレコード ID
-     * @param pageToken 次ページ取得用トークン
-     * @return カーソルと取得件数を持つページ問い合わせ条件
-     * @throws CaseEmailMessageServiceException ページトークンが不正な場合
+     * @param paginationCursor 前回ページから引き継いだ PaginationCursor
+     * @param startIndex ページ取得を開始する 0 始まりの位置
+     * @return PaginationCursor、取得位置、取得件数を持つページ問い合わせ条件
+     * @throws CaseEmailMessageServiceException 取得位置が不正な場合
      */
-    public PageQuery createPageQuery(Id caseId, String pageToken) {
-        PageCursor pageCursor = parsePageToken(pageToken);
+    public PageQuery createPageQuery(Id caseId, Database.PaginationCursor paginationCursor, Integer startIndex) {
+        Integer validatedStartIndex = startIndex ?? 0;
+        if (validatedStartIndex < 0 || (paginationCursor == null && validatedStartIndex != 0)) {
+            throw new CaseEmailMessageServiceException(INVALID_START_INDEX_MESSAGE);
+        }
+
         PageQuery pageQuery = new PageQuery();
         pageQuery.caseId = caseId;
-        pageQuery.cursorMessageDate = pageCursor.messageDate;
-        pageQuery.cursorCreatedDate = pageCursor.createdDate;
-        pageQuery.cursorRecordId = pageCursor.recordId;
+        pageQuery.paginationCursor = paginationCursor;
+        pageQuery.startIndex = validatedStartIndex;
         pageQuery.fetchSize = PAGE_SIZE;
         return pageQuery;
     }
 
     /**
-     * LWC から受け取ったページトークンをカーソルに変換
+     * PaginationCursor の取得結果から LWC 返却用ページを作成
      *
-     * @param pageToken 次ページ取得用トークン、空白の場合は初回ページ
-     * @return 問い合わせ境界となるページカーソル
-     * @throws CaseEmailMessageServiceException ページトークンが不正な場合
-     */
-    public PageCursor parsePageToken(String pageToken) {
-        if (String.isBlank(pageToken)) {
-            return new PageCursor();
-        }
-
-        PageCursor pageCursor;
-        try {
-            pageCursor = (PageCursor) JSON.deserialize(
-                pageToken,
-                PageCursor.class
-            );
-        } catch (Exception e) {
-            throw new CaseEmailMessageServiceException(
-                INVALID_PAGE_TOKEN_MESSAGE,
-                e
-            );
-        }
-
-        if (!isValidPageCursor(pageCursor)) {
-            throw new CaseEmailMessageServiceException(
-                INVALID_PAGE_TOKEN_MESSAGE
-            );
-        }
-        return pageCursor;
-    }
-
-    /**
-     * 昇順で取得したメールから LWC 返却用ページを作成
-     *
-     * @param emailMessages 最大表示件数まで取得したメールメッセージ
+     * @param paginationCursor ページ取得に使用した PaginationCursor
+     * @param cursorFetchResult PaginationCursor が返したページ取得結果
      * @return 送信日時の昇順で並ぶメールと次ページ情報
      */
     public CaseEmailMessagePageWrapper createPage(
-        List<EmailMessage> emailMessages
+        Database.PaginationCursor paginationCursor,
+        Database.CursorFetchResult cursorFetchResult
     ) {
-        List<EmailMessage> pageEmailMessages = new List<EmailMessage>();
-        if (emailMessages != null) {
-            pageEmailMessages.addAll(emailMessages);
+        if (paginationCursor == null || cursorFetchResult == null) {
+            return new CaseEmailMessagePageWrapper();
         }
 
-        Boolean hasNextPage = pageEmailMessages.size() == PAGE_SIZE;
-        String nextPageToken = hasNextPage
-            ? createNextPageToken(pageEmailMessages)
-            : null;
-        return new CaseEmailMessagePageWrapper(
-            pageEmailMessages,
-            PAGE_SIZE,
-            nextPageToken
-        );
-    }
+        List<EmailMessage> emailMessages = new List<EmailMessage>();
+        for (SObject record : cursorFetchResult.getRecords()) {
+            emailMessages.add((EmailMessage) record);
+        }
 
-    private String createNextPageToken(
-        List<EmailMessage> emailMessages
-    ) {
-        EmailMessage cursorEmailMessage = emailMessages[
-            emailMessages.size() - 1
-        ];
-        PageCursor pageCursor = new PageCursor();
-        pageCursor.messageDate = cursorEmailMessage.MessageDate;
-        pageCursor.createdDate = cursorEmailMessage.CreatedDate;
-        pageCursor.recordId = cursorEmailMessage.Id;
-        return JSON.serialize(pageCursor);
-    }
-
-    private Boolean isValidPageCursor(PageCursor pageCursor) {
-        return pageCursor != null &&
-            pageCursor.createdDate != null &&
-            pageCursor.recordId != null &&
-            pageCursor.recordId.getSObjectType() == EmailMessage.SObjectType;
-    }
-
-    /**
-     * メールメッセージ取得位置を表すページカーソル
-     */
-    public class PageCursor {
-
-        public Datetime messageDate;
-        public Datetime createdDate;
-        public Id recordId;
+        Integer nextIndex = cursorFetchResult.getNextIndex();
+        return new CaseEmailMessagePageWrapper(emailMessages, paginationCursor, nextIndex);
     }
 
     /**
      * Selector へ渡すメールメッセージページ問い合わせ条件
      */
     public class PageQuery {
-
         public Id caseId;
-        public Datetime cursorMessageDate;
-        public Datetime cursorCreatedDate;
-        public Id cursorRecordId;
+        public Database.PaginationCursor paginationCursor;
+        public Integer startIndex;
         public Integer fetchSize;
     }
 
     /**
      * ケースメールメッセージの入力値例外
      */
-    public class CaseEmailMessageServiceException extends Exception {}
+    public class CaseEmailMessageServiceException extends Exception {
+    }
 }
