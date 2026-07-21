@@ -32,8 +32,11 @@ const createCaseRecord = ({
     accountId = ACCOUNT_RECORD_ID,
     caseNumber = '00001000',
     subject = '現在の問い合わせ',
-    status = '新規',
-    lastModifiedDate = '2026-07-18T01:30:00.000Z'
+    status = '対応中',
+    reason = '操作方法',
+    createdDate = '2026-07-18T01:30:00.000Z',
+    accountName = 'サンプル取引先',
+    contactName = '山田 太郎'
 } = {}) => ({
     apiName: 'Case',
     fields: {
@@ -43,7 +46,24 @@ const createCaseRecord = ({
         CaseNumber: { value: caseNumber },
         Subject: { value: subject },
         Status: { value: status },
-        LastModifiedDate: { value: lastModifiedDate }
+        Reason: { value: reason },
+        CreatedDate: { value: createdDate },
+        Account: {
+            value: accountId
+                ? {
+                      apiName: 'Account',
+                      fields: { Name: { value: accountName } }
+                  }
+                : null
+        },
+        Contact: {
+            value: contactId
+                ? {
+                      apiName: 'Contact',
+                      fields: { Name: { value: contactName } }
+                  }
+                : null
+        }
     },
     id: CASE_RECORD_ID
 });
@@ -53,14 +73,30 @@ const createRelatedCase = ({
     caseNumber,
     subject = 'ログイン方法を確認したい',
     status = '新規',
-    lastModifiedDate = '2026-07-17T01:30:00.000Z'
+    reason = '機能不備',
+    accountName = '関連取引先',
+    contactName = '佐藤 花子',
+    createdDate = '2026-07-17T01:30:00.000Z'
 }) => ({
     apiName: 'Case',
     fields: {
         CaseNumber: { value: caseNumber },
         Subject: { value: subject },
         Status: { value: status },
-        LastModifiedDate: { value: lastModifiedDate }
+        Reason: { value: reason },
+        Account: {
+            value: {
+                apiName: 'Account',
+                fields: { Name: { value: accountName } }
+            }
+        },
+        Contact: {
+            value: {
+                apiName: 'Contact',
+                fields: { Name: { value: contactName } }
+            }
+        },
+        CreatedDate: { value: createdDate }
     },
     id
 });
@@ -122,16 +158,18 @@ describe('c-case-related-case-list', () => {
         await flushPromises();
         expect(getRelatedListRecords.getLastConfig()).toEqual(
             expect.objectContaining({
-                pageSize: 5,
+                pageSize: 20,
                 parentRecordId: ACCOUNT_RECORD_ID,
                 relatedListId: 'Cases',
-                fields: ['Case.CaseNumber'],
+                fields: ['Case.CaseNumber', 'Case.CreatedDate'],
                 optionalFields: [
                     'Case.Subject',
                     'Case.Status',
-                    'Case.LastModifiedDate'
+                    'Case.Reason',
+                    'Case.Account.Name',
+                    'Case.Contact.Name'
                 ],
-                sortBy: ['-Case.LastModifiedDate']
+                sortBy: ['-Case.CreatedDate']
             })
         );
         emitRelatedCases(CONTACT_RECORD_ID, [
@@ -152,8 +190,7 @@ describe('c-case-related-case-list', () => {
             createRelatedCase({
                 id: '500000000000004AAA',
                 caseNumber: '00002001',
-                subject: '契約内容を確認したい',
-                status: '対応中'
+                subject: '契約内容を確認したい'
             })
         ]);
         await flushPromises();
@@ -163,6 +200,7 @@ describe('c-case-related-case-list', () => {
         const tabContainer = element.shadowRoot.querySelector(
             '.c-related-case-tabs'
         );
+        const tabLists = element.shadowRoot.querySelectorAll('ul');
         const contactTiles = getTabTiles(tabs[0]);
         const accountTiles = getTabTiles(tabs[1]);
         const tiles = [...contactTiles, ...accountTiles];
@@ -170,6 +208,13 @@ describe('c-case-related-case-list', () => {
         expect(tabset.variant).toBe('standard');
         expect(tabContainer.classList).toContain('slds-p-horizontal_medium');
         expect(tabContainer.classList).toContain('slds-p-bottom_medium');
+        expect(
+            [...tabLists].every(
+                (list) =>
+                    list.classList.contains('slds-p-vertical_small') &&
+                    !list.classList.contains('slds-p-around_small')
+            )
+        ).toBe(true);
         expect([...tabs].map((tab) => tab.label)).toEqual(['顧客', '会社']);
         expect([...tiles].map(getTileCaseNumber)).toEqual([
             '00001000',
@@ -182,12 +227,25 @@ describe('c-case-related-case-list', () => {
         expect(getTileLink(accountTiles[0])).toBeNull();
         expect(
             [...contactTiles.slice(1), ...accountTiles.slice(1)].every(
-                (tile) =>
-                    getTileLink(tile)?.getAttribute('href') ===
-                    'https://www.example.com'
+                (tile) => {
+                    const link = getTileLink(tile);
+
+                    return (
+                        link?.getAttribute('href') ===
+                            'https://www.example.com' &&
+                        link.target === '_blank' &&
+                        link.rel === 'noopener'
+                    );
+                }
             )
         ).toBe(true);
         expect(getTabText(tabs[1])).toContain('契約内容を確認したい');
+        expect(getTabText(tabs[1])).toContain('状況 新規');
+        expect(getTabText(tabs[1])).toContain('原因 機能不備');
+        expect(getTabText(tabs[1])).toContain('オープン日');
+        expect(getTabText(tabs[1])).toContain('取引先 関連取引先');
+        expect(getTabText(tabs[1])).toContain('取引先責任者 佐藤 花子');
+        expect(element.shadowRoot.querySelector('lightning-badge')).toBeNull();
         expect(
             tiles.flatMap((tile) => [
                 ...tile.querySelectorAll('lightning-formatted-date-time')
@@ -222,29 +280,47 @@ describe('c-case-related-case-list', () => {
         await expect(element).toBeAccessible();
     });
 
-    it('limits each tab to five related cases', async () => {
+    it('includes the current case and limits each tab to twenty cases by created date', async () => {
         const element = createComponent();
-        const relatedCases = Array.from({ length: 6 }, (_, index) =>
+        const relatedCases = Array.from({ length: 21 }, (_, index) =>
             createRelatedCase({
                 id: `50000000000001${index}AAA`,
-                caseNumber: `0000300${index}`
+                caseNumber: `000030${String(index).padStart(2, '0')}`,
+                createdDate: `2026-07-${String(31 - index).padStart(2, '0')}T01:30:00.000Z`
             })
         );
 
-        getRecord.emit(createCaseRecord());
+        getRecord.emit(
+            createCaseRecord({ createdDate: '2026-06-01T01:30:00.000Z' })
+        );
         await flushPromises();
         emitRelatedCases(CONTACT_RECORD_ID, relatedCases);
         await flushPromises();
 
         const contactTab = element.shadowRoot.querySelectorAll('lightning-tab')[0];
 
-        expect(getTabTiles(contactTab)).toHaveLength(5);
+        expect(getTabTiles(contactTab)).toHaveLength(20);
         expect([...getTabTiles(contactTab)].map(getTileCaseNumber)).toEqual([
-            '00001000',
             '00003000',
             '00003001',
             '00003002',
-            '00003003'
+            '00003003',
+            '00003004',
+            '00003005',
+            '00003006',
+            '00003007',
+            '00003008',
+            '00003009',
+            '00003010',
+            '00003011',
+            '00003012',
+            '00003013',
+            '00003014',
+            '00003015',
+            '00003016',
+            '00003017',
+            '00003018',
+            '00001000'
         ]);
     });
 
@@ -255,10 +331,10 @@ describe('c-case-related-case-list', () => {
         await flushPromises();
 
         expect(element.shadowRoot.textContent).toContain(
-            'このケースには顧客が設定されていません。'
+            'このケースには取引先責任者が設定されていません。'
         );
         expect(element.shadowRoot.textContent).toContain(
-            'このケースには会社が設定されていません。'
+            'このケースには取引先が設定されていません。'
         );
         expect(element.shadowRoot.querySelectorAll('lightning-spinner')).toHaveLength(
             0

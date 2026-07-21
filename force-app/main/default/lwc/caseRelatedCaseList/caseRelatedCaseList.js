@@ -6,38 +6,45 @@ import CASE_ID_FIELD from '@salesforce/schema/Case.Id';
 import CASE_ACCOUNT_ID_FIELD from '@salesforce/schema/Case.AccountId';
 import CASE_CONTACT_ID_FIELD from '@salesforce/schema/Case.ContactId';
 import CASE_NUMBER_FIELD from '@salesforce/schema/Case.CaseNumber';
-import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
+import CASE_CREATED_DATE_FIELD from '@salesforce/schema/Case.CreatedDate';
 import CASE_STATUS_FIELD from '@salesforce/schema/Case.Status';
-import CASE_LAST_MODIFIED_DATE_FIELD from '@salesforce/schema/Case.LastModifiedDate';
+import CASE_REASON_FIELD from '@salesforce/schema/Case.Reason';
+import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
+import CASE_ACCOUNT_NAME_FIELD from '@salesforce/schema/Case.Account.Name';
+import CASE_CONTACT_NAME_FIELD from '@salesforce/schema/Case.Contact.Name';
 import {
     createCaseCard,
     selectRelatedCaseRecords
 } from './caseRelatedCaseListLogic';
 
 // Case本体と現在Caseカードの識別に必要な項目を指定
-const CASE_FIELDS = [CASE_ID_FIELD, CASE_NUMBER_FIELD];
+const CASE_FIELDS = [CASE_ID_FIELD, CASE_NUMBER_FIELD, CASE_CREATED_DATE_FIELD];
 // 顧客、会社、カード補助項目は参照権限がない場合も全体を表示可能にする
 const CASE_OPTIONAL_FIELDS = [
     CASE_CONTACT_ID_FIELD,
     CASE_ACCOUNT_ID_FIELD,
     CASE_SUBJECT_FIELD,
     CASE_STATUS_FIELD,
-    CASE_LAST_MODIFIED_DATE_FIELD
+    CASE_REASON_FIELD,
+    CASE_ACCOUNT_NAME_FIELD,
+    CASE_CONTACT_NAME_FIELD
 ];
-// 一覧の識別に必要なケース番号だけを必須とし、表示補助項目は権限に応じて取得
-const RELATED_CASE_FIELDS = ['Case.CaseNumber'];
-// 件名、状況、更新日時は参照可能な項目だけをカードへ反映
+// 一覧の識別と並び順に必要なケース番号、作成日時を取得
+const RELATED_CASE_FIELDS = ['Case.CaseNumber', 'Case.CreatedDate'];
+// 詳細表示項目は参照可能な場合だけカードへ反映
 const RELATED_CASE_OPTIONAL_FIELDS = [
     'Case.Subject',
     'Case.Status',
-    'Case.LastModifiedDate'
+    'Case.Reason',
+    'Case.Account.Name',
+    'Case.Contact.Name'
 ];
 // ContactとAccountで共通するケース関連リストを指定
 const CASES_RELATED_LIST_ID = 'Cases';
-// 表示中Caseと組み合わせる直近ケースの候補を最大表示件数まで取得
-const RELATED_CASE_PAGE_SIZE = 5;
-// 問い合わせの直近順を最終更新日時の降順で統一
-const RELATED_CASE_SORT = ['-Case.LastModifiedDate'];
+// 表示中Caseと組み合わせる作成日の新しいケースを最大表示件数まで取得
+const RELATED_CASE_PAGE_SIZE = 20;
+// 問い合わせの表示順を作成日時の降順で統一
+const RELATED_CASE_SORT = ['-Case.CreatedDate'];
 
 // Caseレコードページに関連問い合わせ一覧を提供
 export default class CaseRelatedCaseList extends NavigationMixin(
@@ -209,7 +216,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         // Contact設定済みの場合は参照可能な問い合わせ0件として案内
         return this.contactId
             ? 'この顧客の問い合わせはありません。'
-            : 'このケースには顧客が設定されていません。';
+            : 'このケースには取引先責任者が設定されていません。';
     }
 
     // Account設定有無に応じた会社タブの空状態メッセージを返却
@@ -217,7 +224,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         // Account設定済みの場合は参照可能な問い合わせ0件として案内
         return this.accountId
             ? 'この会社の問い合わせはありません。'
-            : 'このケースには会社が設定されていません。';
+            : 'このケースには取引先が設定されていません。';
     }
 
     // Case取得前の項目参照を避けてUI APIの値を返却
@@ -228,7 +235,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // UI APIレコードをテンプレートで扱うカード形式へ変換
     async createCaseCards(records = []) {
-        // 表示中Caseを先頭に含め、狭いサイドバー向けの表示件数に制限
+        // 表示中Caseを含め、作成日時の降順で表示件数を制限
         const relatedCases = selectRelatedCaseRecords(
             records,
             this.caseRecord
@@ -251,10 +258,22 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                     subject: getFieldValue(record, CASE_SUBJECT_FIELD),
                     // UI APIから参照可能な状況を渡す
                     status: getFieldValue(record, CASE_STATUS_FIELD),
-                    // UI APIから参照可能な最終更新日時を渡す
-                    lastModifiedDate: getFieldValue(
+                    // UI APIから参照可能な原因を渡す
+                    reason: getFieldValue(record, CASE_REASON_FIELD),
+                    // UI APIから取得した作成日時を渡す
+                    createdDate: getFieldValue(
                         record,
-                        CASE_LAST_MODIFIED_DATE_FIELD
+                        CASE_CREATED_DATE_FIELD
+                    ),
+                    // UI APIから参照可能な取引先名を渡す
+                    accountName: getFieldValue(
+                        record,
+                        CASE_ACCOUNT_NAME_FIELD
+                    ),
+                    // UI APIから参照可能な取引先責任者名を渡す
+                    contactName: getFieldValue(
+                        record,
+                        CASE_CONTACT_NAME_FIELD
                     ),
                     // 現在Case以外だけNavigationMixinでURLを生成
                     url: isCurrentCase
