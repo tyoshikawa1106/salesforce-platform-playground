@@ -30,7 +30,7 @@
                     <lightning-tab label="顧客" value="contact">
                         <template lwc:if={isLoadingContactCases}>
                             <div
-                                class="slds-is-relative slds-p-around_medium"
+                                class="slds-is-relative slds-p-vertical_medium"
                             >
                                 <lightning-spinner
                                     alternative-text="顧客の問い合わせを読み込み中"
@@ -40,14 +40,14 @@
                         </template>
                         <template lwc:elseif={contactCasesHaveError}>
                             <div
-                                class="slds-p-around_small slds-text-color_error"
+                                class="slds-p-vertical_small slds-text-color_error"
                                 role="alert"
                             >
                                 顧客の問い合わせを読み込めませんでした。
                             </div>
                         </template>
                         <template lwc:elseif={hasContactCases}>
-                            <ul class="slds-p-around_small">
+                            <ul class="slds-p-vertical_small">
                                 <template
                                     for:each={contactCases}
                                     for:item="relatedCase"
@@ -64,7 +64,10 @@
                                                 <template
                                                     lwc:if={relatedCase.hasUrl}
                                                 >
-                                                    <a href={relatedCase.url}
+                                                    <a
+                                                        href={relatedCase.url}
+                                                        target="_blank"
+                                                        rel="noopener"
                                                         >{relatedCase.caseNumber}</a
                                                     >
                                                 </template>
@@ -73,24 +76,45 @@
                                                 </template>
                                             </h3>
                                             <div class="slds-tile__detail">
-                                                <lightning-badge
-                                                    label={relatedCase.status}
-                                                ></lightning-badge>
-                                                <p class="slds-m-top_x-small">
+                                                <p>
                                                     {relatedCase.subject}
                                                 </p>
                                                 <p
                                                     class="slds-m-top_x-small slds-text-body_small slds-text-color_weak"
                                                 >
-                                                    <span>最終更新 </span>
+                                                    <span>状況 </span>
+                                                    {relatedCase.status}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>原因 </span>
+                                                    {relatedCase.reason}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>オープン日 </span>
                                                     <lightning-formatted-date-time
-                                                        value={relatedCase.lastModifiedDate}
+                                                        value={relatedCase.createdDate}
                                                         year="numeric"
                                                         month="2-digit"
                                                         day="2-digit"
                                                         hour="2-digit"
                                                         minute="2-digit"
                                                     ></lightning-formatted-date-time>
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>取引先 </span>
+                                                    {relatedCase.accountName}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>取引先責任者 </span>
+                                                    {relatedCase.contactName}
                                                 </p>
                                             </div>
                                         </div>
@@ -100,7 +124,7 @@
                         </template>
                         <template lwc:else>
                             <p
-                                class="slds-p-around_small slds-text-color_weak"
+                                class="slds-p-vertical_small slds-text-color_weak"
                             >
                                 {contactEmptyMessage}
                             </p>
@@ -110,7 +134,7 @@
                     <lightning-tab label="会社" value="account">
                         <template lwc:if={isLoadingAccountCases}>
                             <div
-                                class="slds-is-relative slds-p-around_medium"
+                                class="slds-is-relative slds-p-vertical_medium"
                             >
                                 <lightning-spinner
                                     alternative-text="会社の問い合わせを読み込み中"
@@ -120,14 +144,14 @@
                         </template>
                         <template lwc:elseif={accountCasesHaveError}>
                             <div
-                                class="slds-p-around_small slds-text-color_error"
+                                class="slds-p-vertical_small slds-text-color_error"
                                 role="alert"
                             >
                                 会社の問い合わせを読み込めませんでした。
                             </div>
                         </template>
                         <template lwc:elseif={hasAccountCases}>
-                            <ul class="slds-p-around_small">
+                            <ul class="slds-p-vertical_small">
                                 <template
                                     for:each={accountCases}
                                     for:item="relatedCase"
@@ -144,7 +168,10 @@
                                                 <template
                                                     lwc:if={relatedCase.hasUrl}
                                                 >
-                                                    <a href={relatedCase.url}
+                                                    <a
+                                                        href={relatedCase.url}
+                                                        target="_blank"
+                                                        rel="noopener"
                                                         >{relatedCase.caseNumber}</a
                                                     >
                                                 </template>
@@ -153,24 +180,45 @@
                                                 </template>
                                             </h3>
                                             <div class="slds-tile__detail">
-                                                <lightning-badge
-                                                    label={relatedCase.status}
-                                                ></lightning-badge>
-                                                <p class="slds-m-top_x-small">
+                                                <p>
                                                     {relatedCase.subject}
                                                 </p>
                                                 <p
                                                     class="slds-m-top_x-small slds-text-body_small slds-text-color_weak"
                                                 >
-                                                    <span>最終更新 </span>
+                                                    <span>状況 </span>
+                                                    {relatedCase.status}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>原因 </span>
+                                                    {relatedCase.reason}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>オープン日 </span>
                                                     <lightning-formatted-date-time
-                                                        value={relatedCase.lastModifiedDate}
+                                                        value={relatedCase.createdDate}
                                                         year="numeric"
                                                         month="2-digit"
                                                         day="2-digit"
                                                         hour="2-digit"
                                                         minute="2-digit"
                                                     ></lightning-formatted-date-time>
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>取引先 </span>
+                                                    {relatedCase.accountName}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-text-color_weak"
+                                                >
+                                                    <span>取引先責任者 </span>
+                                                    {relatedCase.contactName}
                                                 </p>
                                             </div>
                                         </div>
@@ -180,7 +228,7 @@
                         </template>
                         <template lwc:else>
                             <p
-                                class="slds-p-around_small slds-text-color_weak"
+                                class="slds-p-vertical_small slds-text-color_weak"
                             >
                                 {accountEmptyMessage}
                             </p>
