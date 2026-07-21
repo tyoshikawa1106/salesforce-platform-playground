@@ -28,10 +28,13 @@
 ### Lint
 
 ```json
-"lint": "eslint \"**/{aura,lwc}/**/*.js\" --no-error-on-unmatched-pattern"
+"lint": "eslint \"**/{aura,lwc}/**/*.js\" --no-error-on-unmatched-pattern",
+"lint:slds": "slds-linter lint force-app/main/default/lwc"
 ```
 
 Aura / LWC の JavaScript を ESLint で確認します。対象ファイルがない場合も失敗しないように `--no-error-on-unmatched-pattern` を付けています。
+
+`lint:slds`は`force-app/main/default/lwc`配下のHTMLとCSSをSLDS Linterで確認します。ローカルとCIは同じnpm scriptを使うため、`npm ci`後は外部からパッケージを取得せずに同じ条件を再現できます。
 
 ### Test
 
@@ -148,13 +151,14 @@ Apex、metadata、LWC、docs などを Prettier 対象にします。
 
 ### Salesforce / LWC
 
-| package                               | 用途                           |
-| ------------------------------------- | ------------------------------ |
-| `@salesforce/sfdx-lwc-jest`           | LWC unit test runner。         |
-| `@salesforce/eslint-config-lwc`       | LWC 向け ESLint config。       |
-| `@salesforce/eslint-plugin-aura`      | Aura 向け ESLint plugin。      |
-| `@salesforce/eslint-plugin-lightning` | Lightning 向け ESLint plugin。 |
-| `@lwc/eslint-plugin-lwc`              | LWC 固有 rule。                |
+| package                               | 用途                            |
+| ------------------------------------- | ------------------------------- |
+| `@salesforce/sfdx-lwc-jest`           | LWC unit test runner。          |
+| `@salesforce/eslint-config-lwc`       | LWC 向け ESLint config。        |
+| `@salesforce/eslint-plugin-aura`      | Aura 向け ESLint plugin。       |
+| `@salesforce/eslint-plugin-lightning` | Lightning 向け ESLint plugin。  |
+| `@salesforce-ux/slds-linter`          | LWC の SLDS 準拠を検査するCLI。 |
+| `@lwc/eslint-plugin-lwc`              | LWC 固有 rule。                 |
 
 ### Testing / accessibility
 
@@ -225,6 +229,7 @@ pre-commit で Prettier が staged files を書き換える可能性がありま
 | scripts                    | `npm run prettier:verify`、該当する場合は`npm run test:scripts` |
 | 外部リンク                 | `npm run docs:check:external`                                   |
 | ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`               |
+| LWC の HTML / CSS          | `npm run lint:slds`                                             |
 | LWCテスト関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`         |
 | Code Analyzer関連          | `npm run code-analyzer:ci`                                      |
 | 依存関係 / override の変更 | `npm install` 後に `package-lock.json` 差分と関連テストを確認   |

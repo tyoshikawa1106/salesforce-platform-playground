@@ -6,7 +6,7 @@
 
 - CIはSalesforce組織へログインしない。
 - CIは接続組織向けの全体manifestをvalidate / deployしない。
-- CIは依存監査、整形、文書、lint、Salesforce Code Analyzer、スクリプトテスト、LWC Jestを実行する。
+- CIは依存監査、整形、文書、ESLint、SLDS Linter、Salesforce Code Analyzer、スクリプトテスト、LWC Jestを実行する。
 - Salesforce orgでのvalidateまたはdry-runは、push前に対象orgと限定scopeを確認してローカルで実行する。
 - validate結果はPRへ記録するが、CI成功や組織へのdeploy完了と混同しない。
 - CI用のSalesforce JWT秘密情報は管理しない。
@@ -19,6 +19,7 @@
 - `npm run prettier:verify`
 - `npm run docs:check`
 - `npm run lint -- --no-error-on-unmatched-pattern`
+- `npm run lint:slds`
 - `npm run code-analyzer:ci`
 - `npm run test:scripts`
 - `npm run test:unit -- -- --runInBand --passWithNoTests`
@@ -44,7 +45,7 @@ sf project deploy validate \
 - workflowにSalesforce組織へのログイン処理がないこと。
 - workflowにmetadata validate / deploy処理がないこと。
 - Salesforce JWT用Secretを参照していないこと。
-- Code Analyzer、スクリプトテスト、LWC Jestが維持されていること。
+- SLDS Linter、Code Analyzer、スクリプトテスト、LWC Jestが維持されていること。
 - Salesforce組織での限定scope検証がPRの確認結果へ記録されていること。
 
 ## 報告ルール

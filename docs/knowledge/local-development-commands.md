@@ -22,6 +22,7 @@
 | `npm run test:scripts`                                  | リポジトリ管理スクリプトの単体テストを実行する。                   | 文書検査やScratch Org補助スクリプトを変更した場合に実行する。             |
 | `npm run prettier`                                      | 対象ファイルを Prettier で整形する。                               | 実行後は `git diff` で意図しない差分を確認する。                          |
 | `npm run lint -- --no-error-on-unmatched-pattern`       | Aura / LWC JavaScript を ESLint で確認する。                       | 対象ファイルがない場合も CI と同じく成功扱いにする。                      |
+| `npm run lint:slds`                                     | LWC の HTML / CSS を SLDS Linter で確認する。                      | `force-app/main/default/lwc` を対象に CI と同じ条件で実行する。           |
 | `npm run test:unit -- -- --runInBand --passWithNoTests` | LWC Jest を CI に近い形で実行する。                                | LWC 変更時は関連テストを優先してから全体確認する。                        |
 | `npm audit --audit-level=high`                          | production / dev dependencyを監査する。                            | CIと同じくhigh / criticalを失敗条件にする。                               |
 | `npm run code-analyzer:ci`                              | Salesforce Code Analyzer を CI 相当で実行する。                    | 結果は `logs/code-analyzer/ci.json` に出る。生成物は ignore 対象。        |
@@ -51,6 +52,6 @@
 ## 使い分け
 
 - docs / config だけの変更では、まず `npm run prettier:verify` と差分確認を行う。
-- LWC を含む変更では、Prettier、lint、LWC Jest を実行する。
+- LWC を含む変更では、Prettier、ESLint、SLDS Linter、LWC Jest を実行する。
 - Apex / metadata を含む変更では、Code Analyzer、関連 Apex test、必要な validate を実行する。
 - retrieve 後は CLI の表示だけで判断せず、Git 差分を基準にして意図しない更新を確認する。
