@@ -35,8 +35,10 @@ const createCaseRecord = ({
     status = '対応中',
     reason = '操作方法',
     createdDate = '2026-07-18T01:30:00.000Z',
+    closedDate = null,
     accountName = 'サンプル取引先',
-    contactName = '山田 太郎'
+    contactName = '山田 太郎',
+    ownerName = 'サポート担当'
 } = {}) => ({
     apiName: 'Case',
     fields: {
@@ -48,6 +50,7 @@ const createCaseRecord = ({
         Status: { value: status },
         Reason: { value: reason },
         CreatedDate: { value: createdDate },
+        ClosedDate: { value: closedDate },
         Account: {
             value: accountId
                 ? {
@@ -63,6 +66,12 @@ const createCaseRecord = ({
                       fields: { Name: { value: contactName } }
                   }
                 : null
+        },
+        Owner: {
+            value: {
+                apiName: 'User',
+                fields: { Name: { value: ownerName } }
+            }
         }
     },
     id: CASE_RECORD_ID
@@ -74,9 +83,13 @@ const createRelatedCase = ({
     subject = 'ログイン方法を確認したい',
     status = '新規',
     reason = '機能不備',
+    accountId = ACCOUNT_RECORD_ID,
     accountName = '関連取引先',
+    contactId = CONTACT_RECORD_ID,
     contactName = '佐藤 花子',
-    createdDate = '2026-07-17T01:30:00.000Z'
+    createdDate = '2026-07-17T01:30:00.000Z',
+    closedDate = '2026-07-19T01:30:00.000Z',
+    ownerName = '関連ケース担当'
 }) => ({
     apiName: 'Case',
     fields: {
@@ -84,19 +97,28 @@ const createRelatedCase = ({
         Subject: { value: subject },
         Status: { value: status },
         Reason: { value: reason },
+        AccountId: { value: accountId },
         Account: {
             value: {
                 apiName: 'Account',
                 fields: { Name: { value: accountName } }
             }
         },
+        ContactId: { value: contactId },
         Contact: {
             value: {
                 apiName: 'Contact',
                 fields: { Name: { value: contactName } }
             }
         },
-        CreatedDate: { value: createdDate }
+        CreatedDate: { value: createdDate },
+        ClosedDate: { value: closedDate },
+        Owner: {
+            value: {
+                apiName: 'User',
+                fields: { Name: { value: ownerName } }
+            }
+        }
     },
     id
 });
@@ -126,7 +148,12 @@ const getTabTiles = (tab) =>
 
 const getTileCaseNumber = (tile) => tile.querySelector('h3').textContent.trim();
 
-const getTileLink = (tile) => tile.querySelector('a');
+const getTileCaseLink = (tile) => tile.querySelector('h3 a');
+
+const getTileDetailLink = (tile, label) =>
+    [...tile.querySelectorAll('.slds-tile__detail a')].find(
+        (link) => link.textContent.trim() === label
+    );
 
 const getTabText = (tab) =>
     getTabElements(tab)
@@ -166,8 +193,12 @@ describe('c-case-related-case-list', () => {
                     'Case.Subject',
                     'Case.Status',
                     'Case.Reason',
+                    'Case.ClosedDate',
+                    'Case.AccountId',
                     'Case.Account.Name',
-                    'Case.Contact.Name'
+                    'Case.ContactId',
+                    'Case.Contact.Name',
+                    'Case.Owner.Name'
                 ],
                 sortBy: ['-Case.CreatedDate']
             })
@@ -223,12 +254,12 @@ describe('c-case-related-case-list', () => {
             '00001000',
             '00002001'
         ]);
-        expect(getTileLink(contactTiles[0])).toBeNull();
-        expect(getTileLink(accountTiles[0])).toBeNull();
+        expect(getTileCaseLink(contactTiles[0])).toBeNull();
+        expect(getTileCaseLink(accountTiles[0])).toBeNull();
         expect(
             [...contactTiles.slice(1), ...accountTiles.slice(1)].every(
                 (tile) => {
-                    const link = getTileLink(tile);
+                    const link = getTileCaseLink(tile);
 
                     return (
                         link?.getAttribute('href') ===
@@ -243,14 +274,31 @@ describe('c-case-related-case-list', () => {
         expect(getTabText(tabs[1])).toContain('状況 新規');
         expect(getTabText(tabs[1])).toContain('原因 機能不備');
         expect(getTabText(tabs[1])).toContain('オープン日');
+        expect(getTabText(tabs[1])).toContain('クローズ日');
+        expect(getTabText(tabs[1])).toContain('ケース日数 2日');
         expect(getTabText(tabs[1])).toContain('取引先 関連取引先');
         expect(getTabText(tabs[1])).toContain('取引先責任者 佐藤 花子');
-        expect(element.shadowRoot.querySelector('lightning-badge')).toBeNull();
+        expect(getTabText(tabs[1])).toContain('所有者 関連ケース担当');
+        expect(
+            getTileDetailLink(accountTiles[1], '関連取引先')
+        ).toEqual(
+            expect.objectContaining({ target: '_blank', rel: 'noopener' })
+        );
+        expect(
+            getTileDetailLink(accountTiles[1], '佐藤 花子')
+        ).toEqual(
+            expect.objectContaining({ target: '_blank', rel: 'noopener' })
+        );
+        expect(
+            [...element.shadowRoot.querySelectorAll('lightning-badge')].map(
+                (badge) => badge.label
+            )
+        ).toEqual(['現在のケース', '現在のケース']);
         expect(
             tiles.flatMap((tile) => [
                 ...tile.querySelectorAll('lightning-formatted-date-time')
             ])
-        ).toHaveLength(5);
+        ).toHaveLength(8);
         await expect(element).toBeAccessible();
     });
 
@@ -273,7 +321,10 @@ describe('c-case-related-case-list', () => {
 
         expect(tiles).toHaveLength(1);
         expect(getTileCaseNumber(tiles[0])).toBe('00001000');
-        expect(getTileLink(tiles[0])).toBeNull();
+        expect(getTileCaseLink(tiles[0])).toBeNull();
+        expect(tiles[0].querySelector('lightning-badge').label).toBe(
+            '現在のケース'
+        );
         expect(getTabText(contactTab)).not.toContain(
             'この顧客の問い合わせはありません。'
         );
@@ -357,7 +408,7 @@ describe('c-case-related-case-list', () => {
         const contactTab = element.shadowRoot.querySelectorAll('lightning-tab')[0];
 
         expect(getTabTiles(contactTab)).toHaveLength(1);
-        expect(getTileLink(getTabTiles(contactTab)[0])).toBeNull();
+        expect(getTileCaseLink(getTabTiles(contactTab)[0])).toBeNull();
         expect(element.shadowRoot.textContent).toContain(
             '会社の問い合わせを読み込めませんでした。'
         );

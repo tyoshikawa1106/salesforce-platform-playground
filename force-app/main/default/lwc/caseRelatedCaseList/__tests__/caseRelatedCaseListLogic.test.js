@@ -1,5 +1,6 @@
 import {
     createCaseCard,
+    formatCaseDays,
     selectRelatedCaseRecords
 } from '../caseRelatedCaseListLogic';
 
@@ -26,6 +27,22 @@ describe('caseRelatedCaseListLogic', () => {
         ]);
     });
 
+    it('クローズ済みとオープン中のケース日数を算出する', () => {
+        const openedAt = '2026-07-01T00:00:00.000Z';
+
+        expect(
+            formatCaseDays(openedAt, '2026-07-04T12:00:00.000Z')
+        ).toBe('3日');
+        expect(
+            formatCaseDays(
+                openedAt,
+                undefined,
+                Date.parse('2026-07-06T23:59:59.000Z')
+            )
+        ).toBe('5日');
+        expect(formatCaseDays(undefined, undefined)).toBe('-');
+    });
+
     it('参照できない値を代替表示へ変換してカードを生成する', () => {
         expect(
             createCaseCard({
@@ -35,9 +52,15 @@ describe('caseRelatedCaseListLogic', () => {
                 status: undefined,
                 reason: undefined,
                 createdDate: '2026-07-19T00:00:00.000Z',
+                closedDate: undefined,
                 accountName: undefined,
                 contactName: undefined,
-                url: undefined
+                ownerName: undefined,
+                isCurrentCase: true,
+                url: undefined,
+                accountUrl: undefined,
+                contactUrl: undefined,
+                now: Date.parse('2026-07-20T00:00:00.000Z')
             })
         ).toEqual({
             id: '500000000000001',
@@ -46,8 +69,18 @@ describe('caseRelatedCaseListLogic', () => {
             status: '-',
             reason: '-',
             createdDate: '2026-07-19T00:00:00.000Z',
+            hasClosedDate: false,
+            closedDate: undefined,
+            closedDateText: '-',
+            caseDays: '1日',
             accountName: '-',
+            hasAccountUrl: false,
+            accountUrl: undefined,
             contactName: '-',
+            hasContactUrl: false,
+            contactUrl: undefined,
+            ownerName: '-',
+            isCurrentCase: true,
             hasUrl: false,
             url: undefined
         });

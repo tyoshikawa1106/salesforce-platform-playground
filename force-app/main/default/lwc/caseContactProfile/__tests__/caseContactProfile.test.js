@@ -167,7 +167,20 @@ describe('c-case-contact-profile', () => {
         expect(
             fieldLists[1].classList
         ).toContain('slds-p-bottom_medium');
-        expect(element.shadowRoot.querySelectorAll('a')).toHaveLength(2);
+        const recordLinks = [...element.shadowRoot.querySelectorAll('a')];
+        const companyField = element.shadowRoot.querySelector(
+            '.c-customer-card__field_full'
+        );
+        expect(recordLinks).toHaveLength(2);
+        expect(
+            recordLinks.every(
+                (link) =>
+                    link.target === '_blank' && link.rel === 'noopener'
+            )
+        ).toBe(true);
+        expect(companyField.querySelector('dt').textContent).toBe('会社名');
+        expect(companyField.classList).toContain('slds-border_top');
+        expect(companyField.classList).toContain('slds-p-top_medium');
         await expect(element).toBeAccessible();
     });
 
