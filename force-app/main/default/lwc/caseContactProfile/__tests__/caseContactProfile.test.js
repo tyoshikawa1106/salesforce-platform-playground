@@ -161,11 +161,11 @@ describe('c-case-contact-profile', () => {
         );
         expect(element.shadowRoot.querySelector('lightning-card')).toBeNull();
         expect(element.shadowRoot.querySelector('article').classList).toContain(
-            'slds-p-around_medium'
+            'slds-box'
         );
         expect(
             element.shadowRoot.querySelector('article').classList
-        ).not.toContain('slds-box');
+        ).not.toContain('slds-p-around_medium');
         expect(element.shadowRoot.querySelectorAll('a')).toHaveLength(2);
         await expect(element).toBeAccessible();
     });
