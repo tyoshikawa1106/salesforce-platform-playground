@@ -34,7 +34,7 @@
 
 Aura / LWC の JavaScript を ESLint で確認します。対象ファイルがない場合も失敗しないように `--no-error-on-unmatched-pattern` を付けています。
 
-`lint:slds`は`force-app/main/default/lwc`配下のHTMLとCSSをSLDS Linterで確認します。ローカルとCIは同じnpm scriptを使うため、`npm ci`後は外部からパッケージを取得せずに同じ条件を再現できます。
+`lint:slds`は`force-app/main/default/lwc`配下のHTMLとCSSをSLDS Linterで確認します。ローカルとCIは同じnpm scriptを使うため、`npm ci`後は外部からパッケージを取得せずに同じ条件を再現できます。検査内容と他の品質チェックとの役割分担は[SLDS Linter](slds-linter.md)を参照します。
 
 ### Test
 
