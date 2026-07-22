@@ -75,5 +75,6 @@ Salesforce Platform を調べるときは、まず Salesforce 公式ドキュメ
 
 | 用途                 | 公式リンク                                                                                                                  |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| SLDS準拠確認         | [SLDS Linter](https://developer.salesforce.com/docs/platform/slds-linter/overview)                                          |
 | 静的解析             | [Salesforce Code Analyzer](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide)                   |
 | セキュリティレビュー | [Security Review](https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/security_review.htm) |
