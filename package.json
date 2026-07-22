@@ -8,6 +8,7 @@
     },
     "scripts": {
         "lint": "eslint \"**/{aura,lwc}/**/*.js\" --no-error-on-unmatched-pattern",
+        "lint:slds": "slds-linter lint force-app/main/default/lwc",
         "test": "npm run test:scripts && npm run test:unit",
         "test:scripts": "node --test scripts/scratch-org/test/*.node.js scripts/docs/test/*.node.js",
         "test:unit": "sfdx-lwc-jest",
@@ -32,6 +33,7 @@
         "@lwc/eslint-plugin-lwc": "^3.1.0",
         "@prettier/plugin-xml": "^3.4.1",
         "@sa11y/jest": "^8.0.27",
+        "@salesforce-ux/slds-linter": "^1.2.1",
         "@salesforce/eslint-config-lwc": "^4.0.0",
         "@salesforce/eslint-plugin-aura": "^3.0.0",
         "@salesforce/eslint-plugin-lightning": "^2.0.0",

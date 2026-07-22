@@ -34,6 +34,7 @@
 - Node.js 24
 - Prettier
 - ESLint
+- SLDS Linter
 - LWC Jest
 - Salesforce Code Analyzer
 
@@ -89,6 +90,9 @@ npm run prettier:verify
 
 # Aura / LWC JavaScript を lint する
 npm run lint -- --no-error-on-unmatched-pattern
+
+# LWC の HTML / CSS を SLDS Linter で確認する
+npm run lint:slds
 
 # LWC unit test を実行する
 npm run test:unit -- -- --runInBand --passWithNoTests
