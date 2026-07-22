@@ -1,0 +1,188 @@
+<apex:page
+    controller="AccountPdfController"
+    renderAs="pdf"
+    showHeader="false"
+    sidebar="false"
+    standardStylesheets="false"
+    applyBodyTag="false"
+    applyHtmlTag="false"
+    contentType="application/pdf"
+>
+    <html lang="ja">
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            <style type="text/css" media="print">
+                @page {
+                    size: A4 portrait;
+                    margin: 18mm 15mm 20mm;
+
+                    @bottom-center {
+                        content: 'ページ ' counter(page) ' / ' counter(pages);
+                        font-family: 'Arial Unicode MS';
+                        font-size: 8pt;
+                        color: #5c5c5c;
+                    }
+                }
+
+                * {
+                    box-sizing: border-box;
+                    font-family: 'Arial Unicode MS';
+                }
+
+                body {
+                    margin: 0;
+                    color: #181818;
+                    font-size: 10pt;
+                    line-height: 1.55;
+                }
+
+                h1 {
+                    margin: 0 0 4mm;
+                    padding-bottom: 3mm;
+                    border-bottom: 2px solid #1b5297;
+                    color: #032d60;
+                    font-size: 20pt;
+                    font-weight: bold;
+                }
+
+                h2 {
+                    margin: 6mm 0 2mm;
+                    padding: 1.5mm 2mm;
+                    border-left: 4px solid #1b5297;
+                    background: #eef4ff;
+                    color: #032d60;
+                    font-size: 12pt;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+
+                tr {
+                    page-break-inside: avoid;
+                }
+
+                th,
+                td {
+                    padding: 2.5mm 3mm;
+                    border: 1px solid #c9c9c9;
+                    vertical-align: top;
+                    text-align: left;
+                }
+
+                th {
+                    width: 28%;
+                    background: #f3f3f3;
+                    color: #444444;
+                    font-weight: bold;
+                }
+
+                .section {
+                    page-break-inside: avoid;
+                }
+
+                .long-text-section {
+                    margin-top: 6mm;
+                }
+
+                .long-text {
+                    min-height: 20mm;
+                    padding: 3mm;
+                    border: 1px solid #c9c9c9;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                }
+
+                .preserve-lines {
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                }
+
+                .error-panel {
+                    margin-top: 30mm;
+                    padding: 8mm;
+                    border: 1px solid #ba0517;
+                    background: #fef1ee;
+                    color: #5f0e15;
+                    text-align: center;
+                }
+
+                .error-title {
+                    margin: 0 0 3mm;
+                    font-size: 16pt;
+                    font-weight: bold;
+                }
+            </style>
+        </head>
+        <body>
+            <apex:outputPanel rendered="{!hasError}" layout="block" styleClass="error-panel">
+                <div class="error-title">PDFを表示できません</div>
+                <apex:outputText value="{!errorMessage}" escape="true" />
+            </apex:outputPanel>
+
+            <apex:outputPanel rendered="{!NOT(hasError)}" layout="block">
+                <h1>取引先情報</h1>
+
+                <div class="section">
+                    <h2>基本情報</h2>
+                    <table>
+                        <tr>
+                            <th>取引先名</th>
+                            <td><apex:outputText value="{!accountData.accountName}" escape="true" /></td>
+                        </tr>
+                        <tr>
+                            <th>取引先番号</th>
+                            <td><apex:outputText value="{!accountData.accountNumber}" escape="true" /></td>
+                        </tr>
+                        <tr>
+                            <th>種別</th>
+                            <td><apex:outputText value="{!accountData.accountType}" escape="true" /></td>
+                        </tr>
+                        <tr>
+                            <th>業種</th>
+                            <td><apex:outputText value="{!accountData.industry}" escape="true" /></td>
+                        </tr>
+                        <tr>
+                            <th>電話</th>
+                            <td><apex:outputText value="{!accountData.phone}" escape="true" /></td>
+                        </tr>
+                        <tr>
+                            <th>Webサイト</th>
+                            <td class="preserve-lines">
+                                <apex:outputText value="{!accountData.website}" escape="true" />
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h2>住所</h2>
+                    <table>
+                        <tr>
+                            <th>請求先住所</th>
+                            <td class="preserve-lines">
+                                <apex:outputText value="{!accountData.billingAddress}" escape="true" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>納入先住所</th>
+                            <td class="preserve-lines">
+                                <apex:outputText value="{!accountData.shippingAddress}" escape="true" />
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="long-text-section">
+                    <h2>詳細</h2>
+                    <div class="long-text">
+                        <apex:outputText value="{!accountData.description}" escape="true" />
+                    </div>
+                </div>
+            </apex:outputPanel>
+        </body>
+    </html>
+</apex:page>
