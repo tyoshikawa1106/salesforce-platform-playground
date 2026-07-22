@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Missing_Address_Count__c</fullName>
+    <description>請求先住所の必須構成項目に空がある取引先を累積した件数。</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Street、City、State、PostalCode、Countryのいずれかが空の件数です。</inlineHelpText>
+    <label>請求先住所不足件数</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

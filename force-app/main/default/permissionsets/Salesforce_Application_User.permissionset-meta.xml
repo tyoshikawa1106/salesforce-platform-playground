@@ -8,8 +8,16 @@
         <apexClass>CaseEmailMessageController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>AccountPdfController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Salesforce Application User</label>
+    <pageAccesses>
+        <apexPage>AccountPdf</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
     <tabSettings>
         <tab>standard-Account</tab>
         <visibility>Visible</visibility>

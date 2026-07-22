@@ -12,7 +12,8 @@
 | ----------------------------------------------- | ------------------------------------------- |
 | [Repository Structure](repository-structure.md) | リポジトリのフォルダとファイルの用途        |
 | [Lightning Web Components](lwc/index.md)        | Lightning Web Components で実装した画面機能 |
+| [Visualforce](visualforce/index.md)             | Visualforce で実装した帳票機能              |
 | [Apex](apex/index.md)                           | Apex で実装したトリガーや非同期処理         |
 | [Flow](flows/index.md)                          | Flow で実装した自動化機能                   |
 
-現在、Aura、Visualforce、独立した API / 連携、イベント処理の対象実装はありません。
+現在、Aura、独立した API / 連携、イベント処理の対象実装はありません。

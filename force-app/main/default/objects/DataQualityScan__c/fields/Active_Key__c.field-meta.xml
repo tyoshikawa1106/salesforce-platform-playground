@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Key__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>同じ対象のスキャンが同時に複数開始されることを防ぐための実行中キー。</description>
+    <externalId>false</externalId>
+    <inlineHelpText>実行中だけ対象オブジェクト名を保持し、完了または失敗時に空になります。</inlineHelpText>
+    <label>実行中キー</label>
+    <length>80</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

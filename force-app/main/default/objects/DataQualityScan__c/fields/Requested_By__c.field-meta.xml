@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Requested_By__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>スキャン開始操作を行った利用者。</description>
+    <inlineHelpText>スキャンを開始した利用者を確認します。</inlineHelpText>
+    <label>実行要求者</label>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>データ品質スキャン</relationshipLabel>
+    <relationshipName>DataQualityScans</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>
