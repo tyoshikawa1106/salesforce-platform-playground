@@ -33,6 +33,7 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 | [品質チェック設定ファイル](quality-config-files.md)                                          | formatter、lint、test、Code Analyzer の設定 |
 | [Salesforce Code Analyzer](salesforce-code-analyzer.md)                                      | 静的解析の役割と導入方法                    |
 | [Salesforce Code Analyzer のローカル実行環境](salesforce-code-analyzer-local-environment.md) | Node.js、Java、Python の前提                |
+| [SLDS Linter](slds-linter.md)                                                                | LightningコンポーネントのSLDS準拠確認       |
 
 ## GitHub
 
