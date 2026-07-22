@@ -8,6 +8,7 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [エージェントルールと GitHub Actions の使い分け](agent-rules-or-github-actions.md) | 判断を伴う運用と自動化の分担                              |
 | [AI エージェントスキルでできること](agent-skills-capabilities.md)                  | Salesforce 関連スキルの役割と適用範囲                     |
+| [Codex の認証操作と実行制御](codex-execution-control.md)                           | 既存認証と新規認証の境界、実行制御設定の使い分け          |
 | [ローカル開発コマンド](local-development-commands.md)                              | 状態確認、整形、lint、test、Salesforce CLI の主要コマンド |
 
 ## Apex と LWC
