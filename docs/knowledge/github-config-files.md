@@ -13,7 +13,7 @@ PRと`main`へのプッシュで実行するCIです。
 | `HUSKY: 0`                                        | CI上ではHuskyフックを無効化する。                                                              |
 | `concurrency`                                     | 同じ ref の古い CI をキャンセルする。                                                          |
 | `actions/checkout@v7`                             | repository の source を checkout する。内部ランタイムは Node.js 24。                           |
-| `actions/setup-node@v6`                           | Node.js 24 と npm cache を設定する。                                                           |
+| `actions/setup-node@v7`                           | Node.js 24 と npm cache を設定する。                                                           |
 | `npm ci --include=dev`                            | lockfile どおりに依存を入れる。                                                                |
 | `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。                                        |
 | `npm run prettier:verify`                         | formatter 確認。                                                                               |
@@ -39,6 +39,7 @@ npm dependency と GitHub Actions の version update PR を作成する設定で
 | `open-pull-requests-limit`          | ecosystem ごとの同時 open PR 上限。                            |
 | `labels`                            | npm は`area:testing`、GitHub Actions は`area:github`を付ける。 |
 | `commit-message.prefix`             | commit message prefix を`chore`にする。                        |
+| `ignore`                            | `eslint`のmajor更新を互換性確認まで保留する。                  |
 | `groups.npm-development`            | devDependency 更新を grouping する。                           |
 
 特定個人の担当者／レビュー担当者は固定しません。
