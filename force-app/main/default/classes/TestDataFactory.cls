@@ -4,6 +4,12 @@
 @IsTest
 public with sharing class TestDataFactory {
 
+    // 取引先データ品質スキャンの権限セットAPI名
+    private static final String ACCOUNT_DATA_QUALITY_SCAN_PERMISSION_SET = 'Account_Data_Quality_Scan';
+
+    // 取引先データ品質スキャン用テストユーザーのAlias
+    private static final String ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS = 'dqscan';
+
     /**
      * TestDataFactory のレコード保存方法
      */
@@ -22,6 +28,47 @@ public with sharing class TestDataFactory {
         User userRecord = new User();
         userRecord.Id = UserInfo.getUserId();
         return userRecord;
+    }
+
+    /**
+     * データ品質スキャン権限を持つテストユーザーを作成
+     * @param userMarker テストクラスごとに識別する姓
+     */
+    public static void createAccountDataQualityScanTestUser(String userMarker) {
+        User userRecord = new User();
+        userRecord.Alias = ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS;
+        userRecord.Email = 'data-quality-scan@example.invalid';
+        userRecord.EmailEncodingKey = 'UTF-8';
+        userRecord.LanguageLocaleKey = 'ja';
+        userRecord.LastName = userMarker;
+        userRecord.LocaleSidKey = 'ja_JP';
+        userRecord.ProfileId = UserInfo.getProfileId();
+        userRecord.TimeZoneSidKey = 'Asia/Tokyo';
+        userRecord.Username =
+            'data-quality-scan.' + userMarker.toLowerCase() + '.' + String.valueOf(System.now().getTime()) + '@example.invalid';
+        insert userRecord;
+
+        PermissionSet permissionSet = [
+            SELECT Id
+            FROM PermissionSet
+            WHERE Name = :ACCOUNT_DATA_QUALITY_SCAN_PERMISSION_SET
+            LIMIT 1
+        ];
+        insert new PermissionSetAssignment(AssigneeId = userRecord.Id, PermissionSetId = permissionSet.Id);
+    }
+
+    /**
+     * データ品質スキャン権限を持つテストユーザーを取得
+     * @param userMarker テストクラスごとに識別する姓
+     * @return 指定したテストユーザー
+     */
+    public static User getAccountDataQualityScanTestUser(String userMarker) {
+        return [
+            SELECT Id
+            FROM User
+            WHERE Alias = :ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS AND LastName = :userMarker
+            LIMIT 1
+        ];
     }
 
     /**
@@ -158,5 +205,33 @@ public with sharing class TestDataFactory {
             insert caseRecord;
         }
         return caseRecord;
+    }
+
+    /**
+     * 指定した状態と対象件数のデータ品質スキャンを1件作成
+     * @param status スキャンの状態値
+     * @param totalCount 対象取引先の総件数
+     * @param saveOption 作成したスキャンの保存方法
+     * @return 作成したデータ品質スキャンレコード
+     */
+    public static DataQualityScan__c createDataQualityScan(String status, Integer totalCount, SaveMode saveOption) {
+        DataQualityScan__c scanRecord = new DataQualityScan__c();
+        scanRecord.Status__c = status;
+        scanRecord.Target_Object__c = 'Account';
+        scanRecord.Total_Count__c = totalCount;
+        scanRecord.Processed_Count__c = 0;
+        scanRecord.Missing_Phone_Count__c = 0;
+        scanRecord.Missing_Industry_Count__c = 0;
+        scanRecord.Missing_Address_Count__c = 0;
+        scanRecord.Missing_Website_Count__c = 0;
+        scanRecord.Missing_Account_Number_Count__c = 0;
+        scanRecord.Started_At__c = System.now();
+        scanRecord.Requested_By__c = UserInfo.getUserId();
+        Boolean isActive = status == AccountDataQualityScanService.STATUS_PENDING || status == AccountDataQualityScanService.STATUS_RUNNING;
+        scanRecord.Active_Key__c = isActive ? AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY : null;
+        if (saveOption == SaveMode.INSERT_RECORD) {
+            insert scanRecord;
+        }
+        return scanRecord;
     }
 }

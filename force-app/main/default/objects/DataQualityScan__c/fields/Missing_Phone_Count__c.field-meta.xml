@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Missing_Phone_Count__c</fullName>
+    <description>電話番号が空の取引先を累積した件数。</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Phoneが空の取引先件数を確認します。</inlineHelpText>
+    <label>電話番号なし件数</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>
