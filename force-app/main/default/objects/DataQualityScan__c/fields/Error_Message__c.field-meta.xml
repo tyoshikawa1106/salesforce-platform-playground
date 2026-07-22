@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Error_Message__c</fullName>
+    <description>スキャン失敗時に利用者へ表示できる安全な最終エラー。</description>
+    <inlineHelpText>再実行や管理者確認の判断に使うエラー内容です。</inlineHelpText>
+    <label>最終エラー</label>
+    <length>32768</length>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

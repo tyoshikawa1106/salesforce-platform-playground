@@ -4,7 +4,16 @@
 @IsTest
 private with sharing class TestDataFactoryTest {
 
+    private static final String DATA_QUALITY_SCAN_TEST_USER_MARKER = 'DQScanFactory';
     private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * データ品質スキャン用テストデータの作成権限を割り当て
+     */
+    @TestSetup
+    static void setupPermission() {
+        TestDataFactory.createAccountDataQualityScanTestUser(DATA_QUALITY_SCAN_TEST_USER_MARKER);
+    }
 
     /**
      * テスト実行ユーザーとして現在ログインユーザーを参照
@@ -214,5 +223,43 @@ private with sharing class TestDataFactoryTest {
             );
         }
 
+    }
+
+    /**
+     * 状態と対象件数からデータ品質スキャンの保存有無を切り替え
+     */
+    @IsTest
+    static void createDataQualityScanWhenSaveModeProvidedControlsDml() {
+        User dataQualityScanTestUser = TestDataFactory.getAccountDataQualityScanTestUser(
+            DATA_QUALITY_SCAN_TEST_USER_MARKER
+        );
+        DataQualityScan__c unsavedScan;
+        DataQualityScan__c savedScan;
+
+        System.runAs(dataQualityScanTestUser) {
+            Test.startTest();
+
+            unsavedScan = TestDataFactory.createDataQualityScan(
+                AccountDataQualityScanService.STATUS_COMPLETED,
+                10,
+                TestDataFactory.SaveMode.DO_NOT_INSERT
+            );
+            savedScan = TestDataFactory.createDataQualityScan(
+                AccountDataQualityScanService.STATUS_PENDING,
+                20,
+                TestDataFactory.SaveMode.INSERT_RECORD
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.isNull(unsavedScan.Id, '未保存指定のスキャンはIDを持たない必要あり');
+        Assert.isNotNull(savedScan.Id, '保存指定のスキャンはIDを持つ必要あり');
+        Assert.areEqual(20, savedScan.Total_Count__c, '指定した対象総件数を保持する必要あり');
+        Assert.areEqual(
+            AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY,
+            savedScan.Active_Key__c,
+            '待機中スキャンは重複防止キーを保持する必要あり'
+        );
     }
 }

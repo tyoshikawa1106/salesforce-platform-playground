@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Completed_At__c</fullName>
+    <description>スキャンが完了または失敗した日時。</description>
+    <inlineHelpText>スキャンの終了日時を確認します。</inlineHelpText>
+    <label>終了日時</label>
+    <required>false</required>
+    <type>DateTime</type>
+</CustomField>
