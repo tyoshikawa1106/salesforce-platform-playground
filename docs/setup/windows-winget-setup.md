@@ -265,6 +265,7 @@ sf plugins
 ## 9. プロジェクト依存のセットアップ
 
 [プロジェクトのセットアップ](project-setup.md)に従って、npm 依存の再現とローカルチェックを実行します。
+`npm ci` は、監査済みの互換依存を含む `package-lock.json` の解決結果をそのまま再現します。
 
 Python の初期化エラーが出る場合は、`python --version`、`python3 --version`、`py -3.13 --version`、`where.exe python` を再確認します。
 

@@ -2,39 +2,50 @@
 
 ## ルート
 
-| パス                  | 種別     | 用途                                                                    |
-| --------------------- | -------- | ----------------------------------------------------------------------- |
-| `.cline/`             | フォルダ | Cline向けのSalesforce skill routerを管理する。                          |
-| `.clinerules/`        | フォルダ | Cline固有のリポジトリ指示を管理する。                                   |
-| `.gemini/`            | フォルダ | Gemini CLIの設定を管理する。                                            |
-| `.github/`            | フォルダ | GitHub Actions、Issue、PR、Dependabot、Releaseの設定を管理する。        |
-| `.husky/`             | フォルダ | Git hookを管理する。                                                    |
-| `.vscode/`            | フォルダ | VS Codeの推奨拡張機能、debug、workspace設定を管理する。                 |
-| `config/`             | フォルダ | Scratch OrgとCode Analyzerの補助設定を管理する。                        |
-| `docs/`               | フォルダ | セットアップ、開発ルール、組織操作、仕様、ナレッジを管理する。          |
-| `export-out/`         | フォルダ | Salesforce CLIのexport結果をローカルに出力する。                        |
-| `force-app/`          | フォルダ | Salesforce metadataとLWCテスト支援コードを管理する。                    |
-| `logs/`               | フォルダ | Apex、Code Analyzer、Bulk APIのローカル出力先を管理する。               |
-| `manifest/`           | フォルダ | metadataのretrieve、Scratch Org再現、削除scopeを管理する。              |
-| `scripts/`            | フォルダ | 文書検証、metadata操作、Scratch Org、テストデータを支援する。           |
-| `.clineignore`        | ファイル | Clineの自動contextからローカル状態、credential、生成物を除外する。      |
-| `.forceignore`        | ファイル | Salesforce source操作で無視するファイルを定義する。                     |
-| `.gitattributes`      | ファイル | Gitで共有するテキストファイルの改行コードを定義する。                   |
-| `.gitignore`          | ファイル | Git管理から除外するローカル状態、生成物、秘密情報系ファイルを定義する。 |
-| `.node-version`       | ファイル | ローカル開発とCIで使用するNode.jsのmajor versionを固定する。            |
-| `.prettierignore`     | ファイル | Prettierの整形対象から生成物やretrieve後のmetadataを除外する。          |
-| `.prettierrc`         | ファイル | Prettierの整形ルールとpluginを定義する。                                |
-| `AGENTS.md`           | ファイル | AIエージェントが常に守るリポジトリ運用ルールを定義する。                |
-| `CLAUDE.md`           | ファイル | Claude Codeに`AGENTS.md`と関連ルールを案内する。                        |
-| `GEMINI.md`           | ファイル | Gemini CLIに`AGENTS.md`と関連ルールを案内する。                         |
-| `README.md`           | ファイル | プロジェクト概要、セットアップ、主要コマンドへの入口を示す。            |
-| `code-analyzer.yml`   | ファイル | Salesforce Code Analyzerのengineとruleを定義する。                      |
-| `eslint.config.js`    | ファイル | Aura、LWC、Jest向けのESLint設定を定義する。                             |
-| `jest-sa11y-setup.js` | ファイル | LWC Jestにアクセシビリティmatcherを登録する。                           |
-| `jest.config.js`      | ファイル | LWC Jestのmock、coverage、setup fileを定義する。                        |
-| `package-lock.json`   | ファイル | npm依存関係の解決結果を固定する。                                       |
-| `package.json`        | ファイル | npm script、依存関係、lint-stagedを定義する。                           |
-| `sfdx-project.json`   | ファイル | Salesforce DXのpackage directory、API version、login URLを定義する。    |
+| パス                  | 種別     | 用途                                                                         |
+| --------------------- | -------- | ---------------------------------------------------------------------------- |
+| `.cline/`             | フォルダ | Cline向けのSalesforce skill routerを管理する。                               |
+| `.clinerules/`        | フォルダ | Cline固有のリポジトリ指示を管理する。                                        |
+| `.gemini/`            | フォルダ | Gemini CLIの設定を管理する。                                                 |
+| `.github/`            | フォルダ | GitHub Actions、Issue、PR、Dependabot、Releaseの設定を管理する。             |
+| `.husky/`             | フォルダ | Git hookを管理する。                                                         |
+| `.vscode/`            | フォルダ | VS Codeの推奨拡張機能、debug、workspace設定を管理する。                      |
+| `config/`             | フォルダ | Scratch OrgとCode Analyzerの補助設定を管理する。                             |
+| `docs/`               | フォルダ | セットアップ、開発ルール、組織操作、仕様、ナレッジを管理する。               |
+| `export-out/`         | フォルダ | Salesforce CLIのexport結果をローカルに出力する。                             |
+| `force-app/`          | フォルダ | Salesforce metadataとLWCテスト支援コードを管理する。                         |
+| `logs/`               | フォルダ | Apex、Code Analyzer、Bulk APIのローカル出力先を管理する。                    |
+| `manifest/`           | フォルダ | metadataのretrieve、Scratch Org再現、削除scopeを管理する。                   |
+| `scripts/`            | フォルダ | 文書検証、metadata操作、Scratch Org、テストデータを支援する。                |
+| `vendor/`             | フォルダ | 上流依存の安全版と既存ツールの互換性を両立するローカルパッケージを管理する。 |
+| `.clineignore`        | ファイル | Clineの自動contextからローカル状態、credential、生成物を除外する。           |
+| `.forceignore`        | ファイル | Salesforce source操作で無視するファイルを定義する。                          |
+| `.gitattributes`      | ファイル | Gitで共有するテキストファイルの改行コードを定義する。                        |
+| `.gitignore`          | ファイル | Git管理から除外するローカル状態、生成物、秘密情報系ファイルを定義する。      |
+| `.node-version`       | ファイル | ローカル開発とCIで使用するNode.jsのmajor versionを固定する。                 |
+| `.prettierignore`     | ファイル | Prettierの整形対象から生成物やretrieve後のmetadataを除外する。               |
+| `.prettierrc`         | ファイル | Prettierの整形ルールとpluginを定義する。                                     |
+| `AGENTS.md`           | ファイル | AIエージェントが常に守るリポジトリ運用ルールを定義する。                     |
+| `CLAUDE.md`           | ファイル | Claude Codeに`AGENTS.md`と関連ルールを案内する。                             |
+| `GEMINI.md`           | ファイル | Gemini CLIに`AGENTS.md`と関連ルールを案内する。                              |
+| `README.md`           | ファイル | プロジェクト概要、セットアップ、主要コマンドへの入口を示す。                 |
+| `code-analyzer.yml`   | ファイル | Salesforce Code Analyzerのengineとruleを定義する。                           |
+| `eslint.config.js`    | ファイル | Aura、LWC、Jest向けのESLint設定を定義する。                                  |
+| `jest-sa11y-setup.js` | ファイル | LWC Jestにアクセシビリティmatcherを登録する。                                |
+| `jest.config.js`      | ファイル | LWC Jestのmock、coverage、setup fileを定義する。                             |
+| `package-lock.json`   | ファイル | npm依存関係の解決結果を固定する。                                            |
+| `package.json`        | ファイル | npm script、依存関係、lint-stagedを定義する。                                |
+| `sfdx-project.json`   | ファイル | Salesforce DXのpackage directory、API version、login URLを定義する。         |
+
+## vendor
+
+| パス                                            | 種別       | 用途                                                                   |
+| ----------------------------------------------- | ---------- | ---------------------------------------------------------------------- |
+| `vendor/brace-expansion-compat/`                | フォルダ   | `brace-expansion 5.0.8` の安全性と旧 CommonJS API の互換性を提供する。 |
+| `vendor/brace-expansion-compat/index.cjs`       | ファイル   | CommonJS関数API、名前付きAPI、展開数・合計長の上限を実装する。         |
+| `vendor/brace-expansion-compat/index.mjs`       | ファイル   | ES Modules向けの名前付きAPIとdefault APIを公開する。                   |
+| `vendor/brace-expansion-compat/README.md`       | ファイル   | 互換パッケージの目的、確認方法、削除条件を説明する。                   |
+| `vendor/brace-expansion-compat/test/*.node.cjs` | ファイル群 | API互換性と展開結果の合計長上限を検証する。                            |
 
 ## AIエージェント・エディタ
 
