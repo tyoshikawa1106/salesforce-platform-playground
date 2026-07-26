@@ -17,7 +17,8 @@ import {
     createSearchRequest,
     createSearchSuccessState,
     createSortSearchState,
-    createTableColumns
+    createTableColumns,
+    hasFormWireInputChanged
 } from './objectRecordSearchLogic';
 
 // コンポーネント生成時に使う検索画面の初期値を共有
@@ -602,8 +603,8 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // フォーム入力元が変わった時だけwire条件と表示状態を再生成
     updateFormState() {
-        // レイアウト取得を伴わないwire条件を先に更新
-        this.formWireState = createFormWireState({
+        // 最新入力からUI API wireへ渡す軽量状態を生成
+        const nextFormWireState = createFormWireState({
             // Apexが返した対象オブジェクト設定を渡す
             config: this.config,
             // 既定レコードタイプを含むUI API応答を渡す
@@ -611,6 +612,16 @@ export default class ObjectRecordSearch extends LightningElement {
             // CreateまたはEditを判定するレコードIDを渡す
             formRecordId: this.formRecordId
         });
+        // wire入力が変わった場合だけリアクティブ状態を差し替え
+        if (
+            hasFormWireInputChanged(
+                this.formWireState,
+                nextFormWireState
+            )
+        ) {
+            // 同値の再代入によるUI API wireの再実行循環を防止
+            this.formWireState = nextFormWireState;
+        }
         // 最新のwire応答から高コストなフォーム構造を1度だけ生成
         this.formViewState = createFormViewState({
             // Apexが返した対象オブジェクト設定を渡す
@@ -621,8 +632,8 @@ export default class ObjectRecordSearch extends LightningElement {
             formLayoutResult: this.formLayoutResult,
             // 作成または編集モードを判定するレコードIDを渡す
             formRecordId: this.formRecordId,
-            // 先に生成したフォーム方式とwire条件を渡す
-            formWireState: this.formWireState
+            // 最新入力から生成したフォーム方式とwire条件を渡す
+            formWireState: nextFormWireState
         });
     }
 }

@@ -9,7 +9,8 @@ import {
     createSearchRequest,
     createSearchSuccessState,
     createSortSearchState,
-    createTableColumns
+    createTableColumns,
+    hasFormWireInputChanged
 } from '../objectRecordSearchLogic';
 
 describe('objectRecordSearchLogic', () => {
@@ -148,6 +149,32 @@ describe('objectRecordSearchLogic', () => {
                 pageTokenHistory: []
             })
         );
+    });
+
+    it('同じUI API wire入力ではリアクティブ状態を差し替えない', () => {
+        const currentState = {
+            layoutObjectApiName: 'Account',
+            layoutMode: 'Create',
+            defaultRecordTypeId: '012000000000001'
+        };
+
+        expect(
+            hasFormWireInputChanged(currentState, {
+                ...currentState
+            })
+        ).toBe(false);
+        expect(
+            hasFormWireInputChanged(currentState, {
+                ...currentState,
+                layoutMode: 'Edit'
+            })
+        ).toBe(true);
+        expect(
+            hasFormWireInputChanged(currentState, {
+                ...currentState,
+                defaultRecordTypeId: '012000000000002'
+            })
+        ).toBe(true);
     });
 
     it('検索設定からテーブル列とフォーム画面全体の状態を生成する', () => {

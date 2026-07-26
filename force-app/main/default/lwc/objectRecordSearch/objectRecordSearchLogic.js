@@ -230,6 +230,16 @@ export function createFormWireState({
     };
 }
 
+// UI API wireの再実行に影響する入力値が変わったか判定
+export function hasFormWireInputChanged(currentState = {}, nextState = {}) {
+    // オブジェクト、モード、レコードタイプのいずれかが変わった場合だけ再実行
+    return (
+        currentState.layoutObjectApiName !== nextState.layoutObjectApiName ||
+        currentState.layoutMode !== nextState.layoutMode ||
+        currentState.defaultRecordTypeId !== nextState.defaultRecordTypeId
+    );
+}
+
 // UI API応答から再利用可能なフォーム表示状態を生成
 export function createFormViewState({
     config,
