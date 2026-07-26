@@ -1,0 +1,18 @@
+{
+    "name": "brace-expansion",
+    "version": "5.0.8",
+    "private": true,
+    "description": "Compatibility wrapper for the patched brace-expansion implementation",
+    "main": "./index.cjs",
+    "exports": {
+        ".": {
+            "import": "./index.mjs",
+            "require": "./index.cjs"
+        },
+        "./package.json": "./package.json"
+    },
+    "engines": {
+        "node": "20 || >=22"
+    },
+    "license": "MIT"
+}
