@@ -5,6 +5,7 @@
     <inlineHelpText>スキャン開始後の現在状態を確認します。</inlineHelpText>
     <label>ステータス</label>
     <required>false</required>
+    <trackTrending>false</trackTrending>
     <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>

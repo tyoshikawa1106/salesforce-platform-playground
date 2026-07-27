@@ -104,12 +104,6 @@
         <itemInstances>
             <componentInstance>
                 <componentName>caseEmailMessageList</componentName>
-                <identifier>c_caseEmailMessageList</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentName>caseEmailMessageList</componentName>
                 <identifier>c_caseEmailMessageList2</identifier>
             </componentInstance>
         </itemInstances>

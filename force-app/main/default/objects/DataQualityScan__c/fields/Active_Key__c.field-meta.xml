@@ -8,6 +8,7 @@
     <label>実行中キー</label>
     <length>80</length>
     <required>false</required>
+    <trackTrending>false</trackTrending>
     <type>Text</type>
     <unique>true</unique>
 </CustomField>

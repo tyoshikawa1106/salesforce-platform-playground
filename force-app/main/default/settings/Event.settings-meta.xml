@@ -7,6 +7,6 @@
     <enableLightningLoggerEvents>false</enableLightningLoggerEvents>
     <enableLoginForensics>false</enableLoginForensics>
     <enableStreamingApi>true</enableStreamingApi>
-    <enableTransactionSecurityPolicies>false</enableTransactionSecurityPolicies>
+    <enableTransactionSecurityPolicies>true</enableTransactionSecurityPolicies>
     <eventLogRetentionDuration>0</eventLogRetentionDuration>
 </EventSettings>

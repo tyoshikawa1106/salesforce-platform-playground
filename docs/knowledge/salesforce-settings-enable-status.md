@@ -16,6 +16,6 @@
 | -------------------------------------------------------------------------------------------- | ---: | ------------------------------------------------- |
 | [有効化候補](salesforce-settings-enable-status/enable-candidates.md)                         |  139 | 低リスクで、まず dry-run / 実 deploy を検討できる |
 | [要依存確認](salesforce-settings-enable-status/dependency-review.md)                         |  365 | 関連機能、データモデル、権限、運用前提を確認する  |
-| [ライセンス/製品依存注意](salesforce-settings-enable-status/license-product-dependencies.md) |  184 | Edition、追加ライセンス、製品契約を確認する       |
+| [ライセンス/製品依存注意](salesforce-settings-enable-status/license-product-dependencies.md) |  186 | Edition、追加ライセンス、製品契約を確認する       |
 | [高リスク/個別判断](salesforce-settings-enable-status/high-risk-settings.md)                 |  806 | 不可逆性や組織全体への影響を個別に判断する        |
 | [有効化対象外](salesforce-settings-enable-status/excluded-settings.md)                       |   12 | 有効化したい機能として扱わない                    |

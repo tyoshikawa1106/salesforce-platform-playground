@@ -2,7 +2,7 @@
 
 [高リスク/個別判断](high-risk-settings.md)に戻る。
 
-対象: 175 件（有効 51 件 / 無効 124 件）
+対象: 175 件（有効 53 件 / 無効 122 件）
 
 | 設定種別             | 機能名                                                               | 機能概要                                                                               | 状態 |
 | -------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---- |
@@ -40,7 +40,7 @@
 | `Event`              | `enableLightningLoggerEvents`                                        | Event の Lightning Logger Events を有効化/無効化する                                   | 無効 |
 | `Event`              | `enableLoginForensics`                                               | Event の Login Forensics を有効化/無効化する                                           | 無効 |
 | `Event`              | `enableStreamingApi`                                                 | Event の Streaming Api を有効化/無効化する                                             | 有効 |
-| `Event`              | `enableTransactionSecurityPolicies`                                  | Event の Transaction Security Policies を有効化/無効化する                             | 無効 |
+| `Event`              | `enableTransactionSecurityPolicies`                                  | Event の Transaction Security Policies を有効化/無効化する                             | 有効 |
 | `ExternalClientApp`  | `enableClientSecretInRestApiAccess`                                  | ExternalClientApp の Client Secret In Rest Api Access を有効化/無効化する              | 無効 |
 | `ExternalClientApp`  | `enablePackageEcaOauthFromDevOrg`                                    | ExternalClientApp の Package Eca Oauth From Dev Org を有効化/無効化する                | 無効 |
 | `HerokuAppLink`      | `enableHerokuAppLink`                                                | HerokuAppLink の Heroku App Link を有効化/無効化する                                   | 無効 |
@@ -140,7 +140,7 @@
 | `Security`           | `sessionSettings.enableCoopHeader`                                   | Security の Coop Header を有効化/無効化する                                            | 無効 |
 | `Security`           | `sessionSettings.enableLightningLogin`                               | Security の Lightning Login を有効化/無効化する                                        | 有効 |
 | `Security`           | `sessionSettings.enableLightningLoginOnlyWithUserPerm`               | Security の Lightning Login Only With User Perm を有効化/無効化する                    | 無効 |
-| `Security`           | `sessionSettings.enableMFADirectUILoginOptIn`                        | Security の MFA Direct UI Login Opt In を有効化/無効化する                             | 無効 |
+| `Security`           | `sessionSettings.enableMFADirectUILoginOptIn`                        | Security の MFA Direct UI Login Opt In を有効化/無効化する                             | 有効 |
 | `Security`           | `sessionSettings.enableOauthCorsPolicy`                              | Security の Oauth Cors Policy を有効化/無効化する                                      | 無効 |
 | `Security`           | `sessionSettings.enablePermissionsPolicy`                            | Security の Permissions Policy を有効化/無効化する                                     | 無効 |
 | `Security`           | `sessionSettings.enablePostForSessions`                              | Security の Post For Sessions を有効化/無効化する                                      | 無効 |

@@ -5,5 +5,6 @@
     <inlineHelpText>スキャン要求を受け付けた日時を確認します。</inlineHelpText>
     <label>開始日時</label>
     <required>false</required>
+    <trackTrending>false</trackTrending>
     <type>DateTime</type>
 </CustomField>
