@@ -13,7 +13,7 @@
 | 種別                        | API 名                                      | 役割                                                                             |
 | --------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
 | Flow                        | `sfdc_default_ReportExport_Protection_Flow` | レポート操作イベント（`ReportEvent`）を評価するトランザクションセキュリティ Flow |
-| Transaction Security Policy | `sfdc_default_ReportExport_Protection`      | Flowを参照し、Step-Up Authenticationを要求する非アクティブなポリシー             |
+| Transaction Security Policy | `sfdc_default_ReportExport_Protection`      | Flowを参照し、Step-Up Authenticationを要求するアクティブなポリシー               |
 
 ## 入力
 
@@ -36,7 +36,8 @@
 ## 権限・実行条件
 
 - トランザクションセキュリティポリシーから `ReportEvent` を入力して実行することを前提とします。
-- Flow の状態は下書き（`Draft`）、関連ポリシーの `active` は `false` であり、現状のままでは有効なポリシー判定として実行されません。
+- Flow の状態は下書き（`Draft`）です。
+- `EventSettings.enableTransactionSecurityPolicies` と関連ポリシーの `active` は `true` です。
 
 ## エラー処理
 
@@ -55,22 +56,23 @@
 - 10,000行の場合は `false` になること
 - 対象外Operationでは行数にかかわらず `false` になること
 - 入力値が不足する場合のトランザクションセキュリティ標準動作を確認すること
-- 有効化する場合は、関連ポリシーとの紐付けと実際のレポートエクスポートで判定を確認すること
+- 関連ポリシーとの紐付けと実際のレポートエクスポートで判定を確認すること
 
 ## 制約・注意事項
 
 - 判定境界は「10,000以上」ではなく「10,000より大きい」です。
 - Salesforceが提供するデフォルトFlowであり、変更時は関連するトランザクションセキュリティポリシーへの影響を確認する必要があります。
-- Flowは下書き（`Draft`）、関連ポリシーは非アクティブのため、有効化を仕様として確定していません。
+- Flowは下書き（`Draft`）ですが、関連ポリシーとTransaction Security Policies設定は有効です。
 
 ### セキュリティと運用
 
 - 判定結果だけを返し、Flow自体はエクスポートの遮断、通知、監査記録を実行しません。
 - 実際の制御内容は、このFlowを参照するトランザクションセキュリティポリシーの設定に依存します。
-- 有効化、ポリシーへの紐付け、閾値変更はデータ持ち出し制御へ影響するため、セキュリティ判断として人間の確認が必要です。
+- ポリシーの無効化、紐付け変更、閾値変更はデータ持ち出し制御へ影響するため、セキュリティ判断として人間の確認が必要です。
 
 ## 既知の差異・確認事項
 
 - 状態: 現行メタデータ確認済み、承認済み要求との差異は未判定
 - 現行実装は `sfdc_default_ReportExport_Protection_Flow.flow-meta.xml` と `sfdc_default_ReportExport_Protection.transactionSecurityPolicy-meta.xml` から確認しています。
+- 有効なポリシーによる実際のレポートエクスポート制御は未確認です。
 - 承認済みのセキュリティ要求と関連ポリシーの管理元をリポジトリ内で確認できないため、要求との差異は判定していません。

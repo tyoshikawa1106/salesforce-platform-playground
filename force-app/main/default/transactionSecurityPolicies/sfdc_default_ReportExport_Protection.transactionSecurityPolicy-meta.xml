@@ -7,7 +7,7 @@
         <twoFactorAuthentication>true</twoFactorAuthentication>
         <useStepUp>true</useStepUp>
     </action>
-    <active>false</active>
+    <active>true</active>
     <description>The default policy to restrict large report exports by enforcing Step-Up Auth.</description>
     <developerName>sfdc_default_ReportExport_Protection</developerName>
     <eventName>ReportEvent</eventName>

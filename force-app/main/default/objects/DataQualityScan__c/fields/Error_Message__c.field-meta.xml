@@ -5,6 +5,7 @@
     <inlineHelpText>再実行や管理者確認の判断に使うエラー内容です。</inlineHelpText>
     <label>最終エラー</label>
     <length>32768</length>
+    <trackTrending>false</trackTrending>
     <type>LongTextArea</type>
     <visibleLines>3</visibleLines>
 </CustomField>

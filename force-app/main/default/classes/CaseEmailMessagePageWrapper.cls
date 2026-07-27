@@ -12,7 +12,7 @@ public with sharing class CaseEmailMessagePageWrapper {
 
     // 次ページ取得へ引き継ぐ Salesforce 標準 PaginationCursor
     @AuraEnabled
-    public Database.PaginationCursor paginationCursor { get; private set; }
+    public Database.PaginationCursor paginationCursor { get; set; }
 
     // 次ページ取得を開始する 0 始まりの位置
     @AuraEnabled

@@ -42,6 +42,10 @@
 - `DataQualityScan__c.Completed_At__c`
 - `DataQualityScan__c.Error_Message__c`
 - `DataQualityScan__c.Requested_By__c`
+- `DataQualityScan__c-データ品質スキャンレイアウト`: Name、Owner、監査項目を表示する標準レイアウト
+- `DataQualityScan__c-en_US`: 英語ロケールでオブジェクト名を表示する翻訳
+- `DataQualityScan__c` Sharing Rules: 共有ルールなし
+- `DataQualityScan__c` Topics for Objects: トピック無効
 - `Account_Data_Quality_Scan`: Account参照、スキャン管理、Apex実行に必要なPermission Set
 
 ## 入力
@@ -100,6 +104,8 @@ LWCは次を表示します。
 - 対象Apexクラスの実行権限
 
 AccountのCursorは`AccessLevel.USER_MODE`で作成し、スキャン管理レコードは`as user`で保存します。共有、CRUD、FLSを超えて処理しません。
+
+`DataQualityScan__c`の内部共有モデルは`ReadWrite`、外部共有モデルは`Private`です。検索とトピックは無効です。
 
 ## エラー処理
 
