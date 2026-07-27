@@ -2,3 +2,6 @@
 
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Metadata API keeps a terminal blank line for this empty SharingRules file.
+force-app/main/default/sharingRules/DataQualityScan__c.sharingRules-meta.xml whitespace=-blank-at-eof
