@@ -112,4 +112,8 @@
         <name>DEVHUB_drz7am5fceeinwhfzpj6</name>
         <type>ConnectedApp</type>
     </appMenuItems>
+    <appMenuItems>
+        <name>Postman_MCP_Client</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
 </AppMenu>

@@ -53,6 +53,10 @@ Metadata API は、deploy した XML を常に同じ表現で返すとは限り�
 
 往復差分を確認するときは、要素の順序だけでなく、識別子と値の組み合わせを比較します。既定値の補完や順序変更だけであれば正規化差分として扱い、設定値、参照先、対象 metadata が変わっている場合は実際の組織差分として扱います。
 
+retrieve 後の表現を安定して保持する Salesforce ソースは `.prettierignore` の対象にします。Visualforce ページを含め、formatter で整形すると次回の retrieve で同じ差分が再発するファイルは、取得結果を優先します。
+
+空の SharingRules で Metadata API が末尾空行を保持する既知のファイルは、対象ファイルを限定した `.gitattributes` の whitespace 例外で許容します。広いパターンで末尾空行の検査を無効にしません。
+
 ## 作業報告
 
 作業報告には次を含めます。
