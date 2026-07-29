@@ -21,7 +21,7 @@ PRと`main`へのプッシュで実行するCIです。
 | `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                                                           |
 | `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。                           |
 | Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。                                 |
-| Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードと外部リンク判定を確認する。             |
+| Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードと文書検査スクリプトを確認する。         |
 | LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。                                      |
 
 CIはSalesforce組織へログインせず、metadata validate / deployを実行しません。組織での検証はPR作成前に限定scopeで実行します。
@@ -86,4 +86,4 @@ PR 作成時の記入テンプレートです。
 | レビュー観点 | 見てほしい Apex、metadata、権限、運用上の注意点。 |
 
 Salesforce 組織操作を記録できる確認結果欄を残します。
-文書断片として`npm run docs:check`と`npm run docs:check:external`の対象に含め、H1は必須にしません。
+文書断片として`npm run docs:check`の対象に含め、H1は必須にしません。

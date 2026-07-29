@@ -47,7 +47,7 @@ Aura / LWC の JavaScript を ESLint で確認します。対象ファイルが�
 "test:unit:coverage": "sfdx-lwc-jest --coverage"
 ```
 
-`test:scripts` は Scratch Org 操作スクリプトの引数ガードと、外部リンクの HTTP 応答判定を Node.js test runner で確認します。
+`test:scripts` は Scratch Org 操作スクリプトの引数ガードと、文書検査スクリプトの振る舞いを Node.js test runner で確認します。
 `test:unit` は LWC unit test 用です。`test` は両方を順に実行します。
 
 ### Salesforce Code Analyzer
@@ -64,13 +64,10 @@ Aura / LWC の JavaScript を ESLint で確認します。対象ファイルが�
 ### Docs
 
 ```json
-"docs:check": "node scripts/docs/check-docs.js",
-"docs:check:external": "node scripts/docs/check-external-links.js"
+"docs:check": "node scripts/docs/check-docs.js"
 ```
 
 `docs:check`はGit管理対象と未追跡・非除外のMarkdownを自動検出し、ローカルリンク、アンカー、見出し階層を確認します。docsではファイル名と`docs/index.md`からの到達性も確認し、PRテンプレートなどの文書断片にはH1を要求しません。
-
-`docs:check:external`は同じ対象の外部リンクをオンラインで確認します。HEADとGETの両方が404 / 410の場合をエラーとし、アクセス拒否、レート制限、通信失敗は警告として報告します。警告がある場合は「警告付き完了」と表示します。外部リンクを追加・更新したときに手動実行し、通常CIには含めません。
 
 ### Bulk results
 
@@ -227,7 +224,6 @@ pre-commit で Prettier が staged files を書き換える可能性がありま
 | -------------------------- | --------------------------------------------------------------- |
 | Markdown                   | `npm run prettier:verify`、`npm run docs:check`                 |
 | scripts                    | `npm run prettier:verify`、該当する場合は`npm run test:scripts` |
-| 外部リンク                 | `npm run docs:check:external`                                   |
 | ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`               |
 | LWC の HTML / CSS          | `npm run lint:slds`                                             |
 | LWCテスト関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`         |

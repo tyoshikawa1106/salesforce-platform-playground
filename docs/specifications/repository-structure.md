@@ -198,9 +198,8 @@
 | `scripts/apex/`                               | フォルダ   | ローカルから実行するanonymous Apexを格納する。                              |
 | `scripts/apex/test-data/`                     | フォルダ   | 合成テストデータの作成、削除、補正処理を格納する。                          |
 | `scripts/apex/test-data/*.apex`               | ファイル群 | 標準Objectと対象機能の合成テストデータを操作する。                          |
-| `scripts/docs/`                               | フォルダ   | Markdownと外部リンクの検証scriptを格納する。                                |
+| `scripts/docs/`                               | フォルダ   | Markdownの検証scriptを格納する。                                            |
 | `scripts/docs/check-docs.js`                  | ファイル   | Markdown構造、索引、内部リンクを検証する。                                  |
-| `scripts/docs/check-external-links.js`        | ファイル   | Markdown内の外部リンクを検証する。                                          |
 | `scripts/docs/markdown-files.js`              | ファイル   | 検証対象のMarkdownファイルを列挙する。                                      |
 | `scripts/docs/test/`                          | フォルダ   | docs検証scriptのNode.js testを格納する。                                    |
 | `scripts/docs/test/*.node.js`                 | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
