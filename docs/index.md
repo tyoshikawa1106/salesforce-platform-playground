@@ -13,4 +13,4 @@ Salesforce DX 開発のセットアップ、運用ルール、組織操作、機
 | [ナレッジ](knowledge/index.md)           | 再利用する解説、調査結果、設定ファイルの読み方            |
 | [ディスカッション](discussions/index.md) | 設計や運用を決めるまでの比較と判断過程                    |
 
-ドキュメントの配置方針は [ドキュメント配置ルール](development/documentation-rules.md) に従います。
+リポジトリ: [GitHub へアクセス](https://github.com/tyoshikawa1106/salesforce-platform-playground)
