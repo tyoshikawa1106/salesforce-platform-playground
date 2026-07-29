@@ -1,0 +1,18 @@
+
+List<Account> accounts = [SELECT Id FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+if (accounts.isEmpty()) {
+    System.assert(false, 'Run accounts before content versions.');
+}
+
+Integer existingCount = [SELECT COUNT() FROM ContentVersion WHERE Title LIKE :seedLike];
+List<ContentVersion> records = new List<ContentVersion>();
+for (Integer i = 1; i <= countPerObject; i += 1) {
+    Integer sequence = existingCount + i;
+    records.add(new ContentVersion(Title = seedPrefix + ' 提案メモ', PathOnClient = 'proposal-note-' + String.valueOf(sequence).leftPad(4, '0') + '.txt', VersionData = Blob.valueOf('提案メモ\n\n顧客課題と次回確認事項。\n'), FirstPublishLocationId = accounts[Math.mod(sequence - 1, accounts.size())].Id, ContentLocation = 'S', Description = '提案メモの表示確認に使うテストファイル。'));
+}
+System.debug('Seed run key: ' + seedRunKey);
+logResults('ContentVersion', Database.insert(records, false));
+System.debug('Skipped records: Knowledge: Knowledge article sObject is not inserted by this DML seed script');
+System.debug('Skipped records: Report: Report is metadata-backed and not inserted by this DML seed script');
+System.debug('Skipped records: Dashboard: Dashboard is metadata-backed and not inserted by this DML seed script');
+System.debug('Skipped records: User: extra users require license/profile decisions and are not inserted by this seed script');
