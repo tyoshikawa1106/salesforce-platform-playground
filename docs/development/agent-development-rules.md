@@ -184,7 +184,6 @@ npm run code-analyzer:ci
 - `git ls-files --others --exclude-standard` で、ignore されていない生成物や一時ファイルが混ざっていないか確認する。
 - docs、Markdown、設定ファイルを変更した場合は、対象ファイルに対して Prettier を実行または確認する。
 - Markdown を変更した場合は、`npm run docs:check` でローカルリンク、見出し、ファイル名、索引からの到達性を確認する。
-- 外部リンクを追加・更新した場合は、変更したリンク先をブラウザまたは別の方法で確認する。
 - 振る舞いを変更した場合は [機能仕様書ルール](specification-rules.md) に従って仕様影響を判定し、影響がある現行実装仕様を原則として同じ変更単位で更新する。
 - ユーザーから機能仕様書の一括更新を依頼された場合は、独自実装した開発機能を対象に、実装、仕様、既知の差異を棚卸しする。Salesforce 設定全体の仕様書は作成しない。
 - Apex、metadata、LWC、Aura などの振る舞いを変更した場合は、[組織操作ルール](../deployment/org-operation-rules.md#開発中の動作確認-deploy) に従って限定 scope を開発 org へ deploy し、org 上で動作確認する。最終的な validate / dry-run、test、静的解析は、[push 前の検証](../deployment/org-operation-rules.md#push-前の検証)にまとめて実行する。
