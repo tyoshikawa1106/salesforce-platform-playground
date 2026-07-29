@@ -1,141 +1,145 @@
 {
     "description": "Synthetic standard object seed plan. Each entry runs one anonymous Apex file for one primary Salesforce object, while import order preserves object dependencies.",
     "repeat": 1,
+    "preamble": "scripts/apex/test-data/seed-standard-preamble.apexpart",
     "imports": [
         {
             "label": "standard-objects-accounts",
             "operation": "apex",
+            "standalone": true,
             "file": "scripts/apex/test-data/seed-standard-accounts.apex"
         },
         {
             "label": "standard-objects-contacts",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-contacts.apex"
+            "file": "scripts/apex/test-data/seed-standard-contacts.apexpart"
         },
         {
             "label": "standard-objects-leads",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-leads.apex"
+            "file": "scripts/apex/test-data/seed-standard-leads.apexpart"
         },
         {
             "label": "standard-objects-campaigns",
             "operation": "apex",
             "repeat": 1,
-            "file": "scripts/apex/test-data/seed-standard-campaigns.apex"
+            "file": "scripts/apex/test-data/seed-standard-campaigns.apexpart"
         },
         {
             "label": "standard-objects-products",
             "operation": "apex",
             "repeat": 1,
-            "file": "scripts/apex/test-data/seed-standard-products.apex"
+            "file": "scripts/apex/test-data/seed-standard-products.apexpart"
         },
         {
             "label": "standard-objects-pricebook-entries",
             "operation": "apex",
             "repeat": 1,
-            "file": "scripts/apex/test-data/seed-standard-pricebook-entries.apex"
+            "file": "scripts/apex/test-data/seed-standard-pricebook-entries.apexpart"
         },
         {
             "label": "standard-objects-campaign-members",
             "operation": "apex",
             "repeat": 1,
-            "file": "scripts/apex/test-data/seed-standard-campaign-members.apex"
+            "file": "scripts/apex/test-data/seed-standard-campaign-members.apexpart"
         },
         {
             "label": "standard-objects-opportunities",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-opportunities.apex"
+            "file": "scripts/apex/test-data/seed-standard-opportunities.apexpart"
         },
         {
             "label": "standard-objects-opportunity-contact-roles",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-opportunity-contact-roles.apex"
+            "file": "scripts/apex/test-data/seed-standard-opportunity-contact-roles.apexpart"
         },
         {
             "label": "standard-objects-opportunity-line-items",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-opportunity-line-items.apex"
+            "file": "scripts/apex/test-data/seed-standard-opportunity-line-items.apexpart"
         },
         {
             "label": "standard-objects-contracts",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-contracts.apex"
+            "file": "scripts/apex/test-data/seed-standard-contracts.apexpart"
         },
         {
             "label": "standard-objects-orders",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-orders.apex"
+            "file": "scripts/apex/test-data/seed-standard-orders.apexpart"
         },
         {
             "label": "standard-objects-order-items",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-order-items.apex"
+            "file": "scripts/apex/test-data/seed-standard-order-items.apexpart"
         },
         {
             "label": "standard-objects-assets",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-assets.apex"
+            "file": "scripts/apex/test-data/seed-standard-assets.apexpart"
         },
         {
             "label": "standard-objects-cases",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-cases.apex"
+            "file": "scripts/apex/test-data/seed-standard-cases.apexpart"
         },
         {
             "label": "standard-objects-service-contracts",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-service-contracts.apex"
+            "file": "scripts/apex/test-data/seed-standard-service-contracts.apexpart"
         },
         {
             "label": "standard-objects-contract-line-items",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-contract-line-items.apex"
+            "file": "scripts/apex/test-data/seed-standard-contract-line-items.apexpart"
         },
         {
             "label": "standard-objects-entitlements",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-entitlements.apex"
+            "file": "scripts/apex/test-data/seed-standard-entitlements.apexpart"
         },
         {
             "label": "standard-objects-work-orders",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-work-orders.apex"
+            "file": "scripts/apex/test-data/seed-standard-work-orders.apexpart"
         },
         {
             "label": "standard-objects-work-order-line-items",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-work-order-line-items.apex"
+            "file": "scripts/apex/test-data/seed-standard-work-order-line-items.apexpart"
         },
         {
             "label": "standard-objects-tasks",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-tasks.apex"
+            "file": "scripts/apex/test-data/seed-standard-tasks.apexpart"
         },
         {
             "label": "standard-objects-events",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-events.apex"
+            "file": "scripts/apex/test-data/seed-standard-events.apexpart"
         },
         {
             "label": "standard-objects-email-messages",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-email-messages.apex"
+            "file": "scripts/apex/test-data/seed-standard-email-messages.apexpart"
         },
         {
             "label": "case-email-message-list",
             "operation": "apex",
             "repeat": 1,
+            "standalone": true,
             "file": "scripts/apex/test-data/seed-case-email-message-list.apex"
         },
         {
             "label": "standard-objects-content-versions",
             "operation": "apex",
-            "file": "scripts/apex/test-data/seed-standard-content-versions.apex"
+            "file": "scripts/apex/test-data/seed-standard-content-versions.apexpart"
         },
         {
             "label": "case-related-case-list",
             "operation": "apex",
             "repeat": 1,
+            "standalone": true,
             "file": "scripts/apex/test-data/seed-case-related-case-list.apex"
         }
     ]

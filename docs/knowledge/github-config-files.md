@@ -18,10 +18,10 @@ PRと`main`へのプッシュで実行するCIです。
 | `npm audit --audit-level=high`                    | 全依存を監査し、high / criticalの既知脆弱性を検出する。                                        |
 | `npm run prettier:verify`                         | formatter 確認。                                                                               |
 | `npm run docs:check`                              | docs、入口文書、ガイド、文書断片のローカルリンクと見出し、docsのファイル名と索引到達性を確認。 |
-| `npm run lint -- --no-error-on-unmatched-pattern` | Aura / LWC JS lint。                                                                           |
+| `npm run lint -- --no-error-on-unmatched-pattern` | Aura／LWCとリポジトリ運用スクリプトのJS lint。                                                 |
 | `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。                           |
 | Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。                                 |
-| Script unit tests                                 | `npm run test:scripts` で Scratch Org 操作の引数ガードと文書検査スクリプトを確認する。         |
+| Script unit tests                                 | `npm run test:scripts`でScratch Org、文書検査、データ投入、retrieve planを確認する。           |
 | LWC unit tests                                    | `npm run test:unit -- -- --runInBand --passWithNoTests`。                                      |
 
 CIはSalesforce組織へログインせず、metadata validate / deployを実行しません。組織での検証はPR作成前に限定scopeで実行します。

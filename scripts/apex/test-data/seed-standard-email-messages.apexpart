@@ -1,0 +1,27 @@
+
+Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+List<Case> cases = [SELECT Id FROM Case WHERE Subject LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+if (cases.isEmpty()) {
+    System.assert(false, 'Run cases before email messages.');
+}
+
+System.debug('Seed run key: ' + seedRunKey);
+if (gd.containsKey('EmailMessage') && gd.get('EmailMessage').getDescribe().isCreateable()) {
+    List<SObject> records = new List<SObject>();
+    for (Integer i = 1; i <= countPerObject; i += 1) {
+        SObject email = gd.get('EmailMessage').newSObject();
+        putIfCreateable(email, 'ParentId', cases[Math.mod(i - 1, cases.size())].Id);
+        putIfCreateable(email, 'RelatedToId', cases[Math.mod(i - 1, cases.size())].Id);
+        putIfCreateable(email, 'Subject', seedPrefix + ' お問い合わせ内容の確認');
+        putIfCreateable(email, 'FromAddress', testEmail(i));
+        putIfCreateable(email, 'ToAddress', testEmail(i));
+        putIfCreateable(email, 'MessageDate', Datetime.now().addDays(-Math.mod(i, 180)));
+        putIfCreateable(email, 'Incoming', false);
+        putIfCreateable(email, 'Status', '3');
+        putIfCreateable(email, 'TextBody', 'お問い合わせありがとうございます。状況を確認します。');
+        records.add(email);
+    }
+    logResults('EmailMessage', Database.insert(records, false));
+} else {
+    System.debug('Skipped records: EmailMessage: object is not createable or not available');
+}

@@ -12,11 +12,13 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 `scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点とplanを置く場所です。匿名Apexのシード、クリーンアップ、修復用スクリプトは、ファイル種別に合わせて`scripts/apex/`に置きます。
 
-- `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画。
-- `scripts/apex/test-data/*.apex`: 関連レコードを作成・削除する anonymous Apex。
+- `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画と共通preamble。
+- `scripts/apex/test-data/seed-standard-preamble.apexpart`: 標準オブジェクトseedで共有する変数と関数の断片。
+- `scripts/apex/test-data/seed-standard-*.apexpart`: 標準オブジェクトseedのobject固有処理の断片。
+- `scripts/apex/test-data/*.apex`: 単独で実行するanonymous Apex。
 - `scripts/soql/test-data-check-queries/*.soql`: 初期データ投入後の横断確認用 SOQL。
 - `scripts/soql/object-queries/<object>/*.soql`: オブジェクトごとの調査・運用確認用 SOQL。
-- `scripts/setup/import-test-data.js`: import plan を読み、`sf apex run` を順番に実行する。
+- `scripts/setup/import-test-data.js`: import planを読み、共通preambleとobject固有処理を一時ファイルへ合成して`sf apex run`を順番に実行する。
 
 ## 事前確認
 
@@ -44,7 +46,7 @@ npm run setup:data:standard:dry-run -- --target-org <alias>
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
-execute anonymous の CPU / サイズ制限を避けるため、1 つの primary object につき 1 つの anonymous Apex ファイルに分け、`scripts/setup/import-plan.json` の順序で実行します。
+execute anonymousのCPU／サイズ制限を避けるため、1つのprimary objectにつき1つのobject固有ファイルへ分け、`scripts/setup/import-plan.json`の順序で実行します。各実行では`seed-standard-preamble.apexpart`とobject固有の`.apexpart`を一時的な`.apex`ファイルへ合成し、終了後に一時ファイルを削除します。`standalone: true`のentryは共通preambleを使わず、単独実行可能な`.apex`を使用します。
 
 件数や固定マスタの扱いは、このセクションの作成対象一覧の後にまとめます。
 

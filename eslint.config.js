@@ -48,5 +48,20 @@ module.exports = defineConfig([
             eslintJs
         },
         extends: ['eslintJs/recommended']
+    },
+
+    // リポジトリ運用Node.jsスクリプト向けの標準設定
+    {
+        files: ['scripts/**/*.js'],
+        languageOptions: {
+            ecmaVersion: 'latest',
+            globals: {
+                ...globals.node
+            },
+            sourceType: 'commonjs'
+        },
+        rules: {
+            ...eslintJs.configs.recommended.rules
+        }
     }
 ]);

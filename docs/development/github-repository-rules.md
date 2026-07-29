@@ -194,6 +194,5 @@ IssueとPRは、このリポジトリ用のProjectに紐づけます。
 ```sh
 git switch -c codex/setup-dev-docs
 git commit -m "docs: Salesforce DX開発運用ルールを追加" \
-    -m "開発環境の構築手順と検証コマンドを整理する。" \
-    -m "検証: npm run docs:check と npm run prettier:verify が成功。"
+    -m "開発環境の構築手順と検証コマンドを整理し、実行時に参照する判断基準を明確にする。"
 ```
