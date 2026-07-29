@@ -1,6 +1,6 @@
 const path = require('node:path');
 
-const repoRoot = path.resolve(__dirname, '../../..');
+const repoRoot = path.resolve(__dirname, '../..');
 const scratchOrgConfig = require('./scratch-org.json');
 
 function resolveScratchOrgAlias() {
