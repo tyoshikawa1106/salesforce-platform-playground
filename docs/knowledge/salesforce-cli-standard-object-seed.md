@@ -7,7 +7,8 @@ Salesforce CLI でテストデータを作る場合、単体オブジェクト�
 このような標準オブジェクト一式の seed では、Salesforce CLI から anonymous Apex を実行する形が実用的です。
 
 ```sh
-sf apex run --file scripts/apex/test-data/seed-standard-objects.apex --target-org <alias>
+npm run setup:data:standard:dry-run -- --target-org <alias>
+npm run setup:data:standard -- --target-org <alias>
 ```
 
 ## CSV import と Apex seed の使い分け
@@ -152,6 +153,10 @@ sf sobject describe --sobject Account --target-org <alias> --json
 
 主要標準オブジェクト seed の実体は次です。
 
-- `scripts/apex/test-data/seed-standard-objects.apex`
+- `scripts/apex/test-data/seed-standard-preamble.apexpart`
+- `scripts/apex/test-data/seed-standard-*.apexpart`
 - `scripts/apex/test-data/cleanup-standard-objects.apex`
 - `scripts/setup/import-plan.json`
+- `scripts/setup/import-test-data.js`
+
+`.apexpart`は単独実行用ではありません。共通preambleとobject固有ファイルはrunnerが一時的な`.apex`へ実行時合成します。個別のobject固有ファイルだけを`sf apex run --file`へ渡さず、import planのlabelを`--only`で指定します。

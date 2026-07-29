@@ -12,6 +12,7 @@ ESLint flat config です。対象ごとに設定を分けます。
 | `**/lwc/**/*.js`        | Salesforce LWC recommended config。                   |
 | `**/lwc/**/*.test.js`   | LWC config に test 用 override を追加。               |
 | `**/jest-mocks/**/*.js` | Jest mocks 用に Node / ES2021 / Jest globals を設定。 |
+| `scripts/**/*.js`       | Node.js／CommonJS globalsとESLint recommended rules。 |
 
 LWC test では wire adapter mock の扱いが runtime 実装と異なるため、test file だけ `@lwc/lwc/no-unexpected-wire-adapter-usages` を無効化しています。
 

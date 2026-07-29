@@ -73,7 +73,7 @@ autofixはLWCのHTMLやCSSを書き換えるため、実行する場合は対象
 
 | 確認手段                     | 主な役割                                                  |
 | ---------------------------- | --------------------------------------------------------- |
-| ESLint                       | Aura / LWC JavaScriptの構文とコード品質                   |
+| ESLint                       | Aura／LWCとNode.jsスクリプトの構文とコード品質            |
 | SLDS Linter                  | LightningコンポーネントのHTML / CMP / CSSとSLDS準拠       |
 | Salesforce Code Analyzer     | ApexやFlowを含むSalesforce sourceの静的解析               |
 | LWC Jest                     | LWCの状態変化、イベント、表示内容などの動作確認           |

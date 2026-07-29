@@ -28,11 +28,11 @@
 ### Lint
 
 ```json
-"lint": "eslint \"**/{aura,lwc}/**/*.js\" --no-error-on-unmatched-pattern",
+"lint": "eslint \"**/{aura,lwc}/**/*.js\" \"scripts/**/*.js\" --no-error-on-unmatched-pattern",
 "lint:slds": "slds-linter lint force-app/main/default/lwc"
 ```
 
-Aura / LWC の JavaScript を ESLint で確認します。対象ファイルがない場合も失敗しないように `--no-error-on-unmatched-pattern` を付けています。
+Aura／LWCと`scripts/**/*.js`のJavaScriptをESLintで確認します。対象ファイルがない場合も失敗しないように`--no-error-on-unmatched-pattern`を付けています。
 
 `lint:slds`は`force-app/main/default/lwc`配下のHTMLとCSSをSLDS Linterで確認します。ローカルとCIは同じnpm scriptを使うため、`npm ci`後は外部からパッケージを取得せずに同じ条件を再現できます。検査内容と他の品質チェックとの役割分担は[SLDS Linter](slds-linter.md)を参照します。
 
@@ -40,14 +40,14 @@ Aura / LWC の JavaScript を ESLint で確認します。対象ファイルが�
 
 ```json
 "test": "npm run test:scripts && npm run test:unit",
-"test:scripts": "node --test scripts/scratch-org/test/*.node.js scripts/docs/test/*.node.js",
+"test:scripts": "node --test scripts/scratch-org/test/*.node.js scripts/docs/test/*.node.js scripts/setup/test/*.node.js scripts/metadata/retrieve/test/*.node.js vendor/brace-expansion-compat/test/*.node.cjs",
 "test:unit": "sfdx-lwc-jest",
 "test:unit:watch": "sfdx-lwc-jest --watch",
 "test:unit:debug": "sfdx-lwc-jest --debug",
 "test:unit:coverage": "sfdx-lwc-jest --coverage"
 ```
 
-`test:scripts` は Scratch Org 操作スクリプトの引数ガードと、文書検査スクリプトの振る舞いを Node.js test runner で確認します。
+`test:scripts`はScratch Org、文書検査、データ投入、retrieve plan、依存互換コードをNode.js test runnerで確認します。
 `test:unit` は LWC unit test 用です。`test` は両方を順に実行します。
 
 ### Salesforce Code Analyzer
@@ -115,13 +115,13 @@ destructive changesの実行入口です。default target orgを表示し、実�
 "sf:retrieve": "bash scripts/metadata/retrieve/retrieve.sh"
 ```
 
-VS Codeで現在接続している組織の`target-org`設定を使い、`retrieve-profile.xml`、applicationとorganizationを責務別に分けた25個のmanifest、`retrieve-translations.xml`の順にmetadataを取得します。`retrieve-translations.xml`は`Translations`と関連メタデータを同時に取得し、翻訳ファイルの部分的な上書きを防ぐため最後に実行します。`package.xml`は手動retrieve用のため、このコマンドでは使用しません。
+VS Codeで現在接続している組織の`target-org`設定を使い、`scripts/metadata/retrieve/retrieve-plan.txt`に列挙した順でmetadataを取得します。`retrieve-profile.xml`を最初、`retrieve-translations.xml`を最後に置き、`Translations`と関連メタデータを同時に取得して翻訳ファイルの部分的な上書きを防ぎます。`package.xml`は手動retrieve用のため、このコマンドでは使用しません。
 
 ```sh
 npm run sf:retrieve
 ```
 
-実行時にdefault target orgを表示し、確認に`y`または`Y`を入力した場合だけ、27個のmanifestを順番に取得します。それ以外の入力では取得を中止します。いずれかのretrieveが失敗した場合は、その時点で処理を終了します。
+実行時にdefault target orgを表示し、確認に`y`または`Y`を入力した場合だけ、planのmanifestを順番に取得します。進捗の総数はplanから計算します。それ以外の入力では取得を中止し、いずれかのretrieveが失敗した場合はその時点で処理を終了します。
 
 ### Prettier
 
@@ -214,20 +214,21 @@ commit 時に staged files だけを対象にします。
 | -------------------------------- | ---------------------------------------------- |
 | Apex / metadata / docs / JS など | Prettier で自動整形。                          |
 | Aura / LWC JS                    | ESLint。                                       |
+| `scripts/**/*.js`                | ESLint。                                       |
 | LWC 配下                         | 関連 LWC Jest を `--findRelatedTests` で実行。 |
 
 pre-commit で Prettier が staged files を書き換える可能性があります。commit 後は `git show` や `git diff HEAD^ HEAD` で実際の差分を確認します。
 
 ## 変更時の確認
 
-| 変更内容                   | 確認コマンド例                                                  |
-| -------------------------- | --------------------------------------------------------------- |
-| Markdown                   | `npm run prettier:verify`、`npm run docs:check`                 |
-| scripts                    | `npm run prettier:verify`、該当する場合は`npm run test:scripts` |
-| ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`               |
-| LWC の HTML / CSS          | `npm run lint:slds`                                             |
-| LWCテスト関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`         |
-| Code Analyzer関連          | `npm run code-analyzer:ci`                                      |
-| 依存関係 / override の変更 | `npm install` 後に `package-lock.json` 差分と関連テストを確認   |
+| 変更内容                   | 確認コマンド例                                                    |
+| -------------------------- | ----------------------------------------------------------------- |
+| Markdown                   | `npm run prettier:verify`、`npm run docs:check`                   |
+| scripts                    | `npm run prettier:verify`、`npm run lint`、`npm run test:scripts` |
+| ESLint 設定や LWC JS       | `npm run lint -- --no-error-on-unmatched-pattern`                 |
+| LWC の HTML / CSS          | `npm run lint:slds`                                               |
+| LWCテスト関連              | `npm run test:unit -- -- --runInBand --passWithNoTests`           |
+| Code Analyzer関連          | `npm run code-analyzer:ci`                                        |
+| 依存関係 / override の変更 | `npm install` 後に `package-lock.json` 差分と関連テストを確認     |
 
 依存追加や lockfile 更新が必要な変更は、事前に明示確認してから実行します。

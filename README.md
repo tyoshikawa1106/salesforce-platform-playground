@@ -88,7 +88,7 @@ npm run sf:destructive
 # 整形を確認する
 npm run prettier:verify
 
-# Aura / LWC JavaScript を lint する
+# Aura / LWCとリポジトリ運用スクリプトのJavaScriptをlintする
 npm run lint -- --no-error-on-unmatched-pattern
 
 # LWC の HTML / CSS を SLDS Linter で確認する

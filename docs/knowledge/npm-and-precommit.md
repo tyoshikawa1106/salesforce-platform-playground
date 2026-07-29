@@ -6,7 +6,7 @@ Salesforce DX プロジェクトには、Apex やメタデータ開発だけで�
 
 ## 有効な場合のメリット
 
-- Aura / LWC の JavaScript に ESLint を実行できる。
+- Aura／LWCとリポジトリ運用スクリプトのJavaScriptにESLintを実行できる。
 - LWC 関連ファイルの変更時に関連 Jest テストを実行できる。
 - PR 前に機械的な差分や簡単なミスを減らせる。
 - 複数人で開発する場合にコードスタイルを揃えやすい。
