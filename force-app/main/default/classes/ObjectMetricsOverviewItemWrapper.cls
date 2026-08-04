@@ -28,12 +28,12 @@ public with sharing class ObjectMetricsOverviewItemWrapper {
     public Boolean capped { get; private set; }
 
     /**
-     * Selector の件数結果から LWC 用の件数項目を作成
+     * Service の件数結果から LWC 用の件数項目を作成
      *
      * @param definition LWC 側のカード設定と対応するオブジェクト定義
      * @param metricCount 表示上限情報を含む件数結果
      */
-    public ObjectMetricsOverviewItemWrapper(ObjectMetricCatalog.MetricDefinition definition, ObjectMetricsOverviewSelector.ObjectMetricCount metricCount) {
+    public ObjectMetricsOverviewItemWrapper(ObjectMetricCatalog.MetricDefinition definition, ObjectMetricsOverviewService.ObjectMetricCount metricCount) {
         // LWC 側のカード設定と突き合わせるキーを返す
         this.key = definition.key;
         // レコード一覧への遷移対象を特定できるようにする

@@ -26,6 +26,8 @@
         <members>ObjectMetricsOverviewControllerTest</members>
         <members>ObjectMetricsOverviewItemWrapper</members>
         <members>ObjectMetricsOverviewItemWrapperTest</members>
+        <members>ObjectMetricsOverviewQueryCoordinator</members>
+        <members>ObjectMetricsOverviewQueryCoordinatorTest</members>
         <members>ObjectMetricsOverviewSelector</members>
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
