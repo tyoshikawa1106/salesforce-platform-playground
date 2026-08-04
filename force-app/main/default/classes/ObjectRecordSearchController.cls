@@ -39,6 +39,8 @@ public with sharing class ObjectRecordSearchController {
     /**
      * 表示キーに対応するオブジェクトのレコードを検索
      *
+     * 読み取り専用であり、レコード変更後は LWC から refreshApex による再取得が必要
+     *
      * @param request 検索条件とページ指定
      * @return 1 ページ最大 50 件の検索結果
      */
