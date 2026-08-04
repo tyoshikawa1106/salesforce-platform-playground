@@ -37,22 +37,33 @@ public with sharing class AccountPdfService {
     /**
      * 取引先から PDF 表示モデルを作成
      *
-     * @param accountRecord 利用者権限で取得した取引先
+     * @param accounts 利用者権限で取得した取引先一覧
      * @return 空値表現と住所改行を統一した表示モデル
      * @throws AccountPdfServiceException 取引先を取得できなかった場合
      */
-    public AccountPdfViewModel createViewModel(Account accountRecord) {
-        if (accountRecord == null) {
+    public AccountPdfViewModel createViewModel(List<Account> accounts) {
+        // 取得結果が空の場合は不存在と権限外を区別せず拒否
+        if (accounts == null || accounts.isEmpty()) {
             throw new AccountPdfServiceException(UNAVAILABLE_ACCOUNT_MESSAGE);
         }
 
+        // 単一レコード用 SOQL の先頭結果を表示対象として確定
+        Account accountRecord = accounts[0];
+        // PDF へ返す表示値を非 null の ViewModel へ集約
         AccountPdfViewModel viewModel = new AccountPdfViewModel();
+        // 取引先名の空値を PDF 共通表現へ統一
         viewModel.accountName = normalizeValue(accountRecord.Name);
+        // 取引先番号の空値を PDF 共通表現へ統一
         viewModel.accountNumber = normalizeValue(accountRecord.AccountNumber);
+        // 種別の空値を PDF 共通表現へ統一
         viewModel.accountType = normalizeValue(accountRecord.Type);
+        // 業種の空値を PDF 共通表現へ統一
         viewModel.industry = normalizeValue(accountRecord.Industry);
+        // 電話の空値を PDF 共通表現へ統一
         viewModel.phone = normalizeValue(accountRecord.Phone);
+        // Web サイトの空値を PDF 共通表現へ統一
         viewModel.website = normalizeValue(accountRecord.Website);
+        // 請求先住所を改行済みの表示値へ変換
         viewModel.billingAddress = formatAddress(
             new List<String>{
                 accountRecord.BillingPostalCode,
@@ -61,6 +72,7 @@ public with sharing class AccountPdfService {
                 accountRecord.BillingCountry
             }
         );
+        // 納入先住所を改行済みの表示値へ変換
         viewModel.shippingAddress = formatAddress(
             new List<String>{
                 accountRecord.ShippingPostalCode,
@@ -69,7 +81,9 @@ public with sharing class AccountPdfService {
                 accountRecord.ShippingCountry
             }
         );
+        // 説明の空値を PDF 共通表現へ統一
         viewModel.description = normalizeValue(accountRecord.Description);
+        // 完成した PDF 表示モデルを呼び出し元へ返却
         return viewModel;
     }
 

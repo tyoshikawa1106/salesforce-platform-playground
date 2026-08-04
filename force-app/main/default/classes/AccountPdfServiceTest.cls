@@ -127,7 +127,7 @@ private with sharing class AccountPdfServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SERVICE.createViewModel(accountRecord);
+            result = SERVICE.createViewModel(new List<Account>{ accountRecord });
 
             Test.stopTest();
         }
@@ -162,7 +162,7 @@ private with sharing class AccountPdfServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SERVICE.createViewModel(accountRecord);
+            result = SERVICE.createViewModel(new List<Account>{ accountRecord });
 
             Test.stopTest();
         }
@@ -177,12 +177,29 @@ private with sharing class AccountPdfServiceTest {
      * 取得できない取引先を安全なエラーへ変換
      */
     @IsTest
-    static void shouldRejectNullAccountRecord() {
+    static void shouldRejectEmptyAccountList() {
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                SERVICE.createViewModel(new List<Account>());
+                Assert.fail('取得できない取引先は拒否する必要あり');
+            } catch (AccountPdfService.AccountPdfServiceException e) {
+                Assert.isTrue(e.getMessage().contains('参照権限'), '権限と不存在を区別しない案内を返す必要あり');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /**
+     * null の取得結果を安全なエラーへ変換
+     */
+    @IsTest
+    static void shouldRejectNullAccountList() {
         System.runAs(testUser) {
             Test.startTest();
             try {
                 SERVICE.createViewModel(null);
-                Assert.fail('取得できない取引先は拒否する必要あり');
+                Assert.fail('null の取引先一覧は拒否する必要あり');
             } catch (AccountPdfService.AccountPdfServiceException e) {
                 Assert.isTrue(e.getMessage().contains('参照権限'), '権限と不存在を区別しない案内を返す必要あり');
             }
