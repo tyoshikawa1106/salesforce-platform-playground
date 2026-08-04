@@ -198,6 +198,43 @@ private with sharing class CaseEmailMessageControllerTest {
     }
 
     /**
+     * ケース ID が null の場合は既存 Cursor があっても空結果を返却
+     */
+    @IsTest
+    static void shouldReturnEmptyListWhenCaseIdIsNullAndCursorExists() {
+        Case caseRecord = TestDataFactory.createCase(
+            'null ケース ID と既存 Cursor テスト',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        insert createEmailMessage(caseRecord.Id, '取得してはいけないメール', System.now());
+        Database.PaginationCursor paginationCursor;
+        CaseEmailMessagePageWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            paginationCursor = CaseEmailMessageController.getEmailMessagePaginationCursor(
+                caseRecord.Id
+            );
+            result = CaseEmailMessageController.getEmailMessages(null, paginationCursor, 0);
+
+            Test.stopTest();
+        }
+
+        // 既存 Cursor からメールを取得していないことを件数で確認
+        Integer emailMessageCount = result.emailMessages.size();
+        Assert.areEqual(
+            0,
+            emailMessageCount,
+            'ケース ID が null の場合は既存 Cursor のレコードを取得しない必要あり'
+        );
+        Assert.isNull(
+            result.paginationCursor,
+            'ケース ID が null の空ページでは既存 Cursor を返さない必要あり'
+        );
+    }
+
+    /**
      * ケース以外の ID を拒否
      */
     @IsTest

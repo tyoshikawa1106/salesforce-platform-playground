@@ -149,4 +149,39 @@ private with sharing class CaseEmailMessageServiceTest {
         Assert.areEqual(0, result.emailMessages.size(), 'Cursor結果がない場合は空のメール一覧を返す必要あり');
         Assert.isFalse(result.hasNextPage, 'Cursor結果がない場合は次ページなしにする必要あり');
     }
+
+    /**
+     * Cursor の残件数に合わせて取得件数を縮小
+     */
+    @IsTest
+    static void shouldLimitPageFetchToRemainingRecords() {
+        Case caseRecord = TestDataFactory.createCase(
+            'Service 残件数テスト',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        insert new EmailMessage(
+            ParentId = caseRecord.Id,
+            RelatedToId = caseRecord.Id,
+            Subject = '残件数テスト',
+            FromAddress = 'sender@example.com',
+            ToAddress = 'recipient@example.com',
+            Incoming = true,
+            Status = '0'
+        );
+        CaseEmailMessageService service = new CaseEmailMessageService();
+        CaseEmailMessageService.PageQuery pageQuery = service.createPageQuery(caseRecord.Id, null, 0);
+        Database.PaginationCursor paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(caseRecord.Id);
+        CaseEmailMessageService.PageQuery result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = service.preparePageFetch(pageQuery, paginationCursor);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(1, result.fetchSize, '残り1件では取得件数を1件へ縮小する必要あり');
+        Assert.areEqual(paginationCursor, result.paginationCursor, '取得に使う Cursor を保持する必要あり');
+    }
 }

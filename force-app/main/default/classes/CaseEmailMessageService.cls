@@ -38,16 +38,56 @@ public with sharing class CaseEmailMessageService {
      * @throws CaseEmailMessageServiceException 取得位置が不正な場合
      */
     public PageQuery createPageQuery(Id caseId, Database.PaginationCursor paginationCursor, Integer startIndex) {
+        // 未指定の開始位置を初回ページの 0 へ正規化
         Integer validatedStartIndex = startIndex ?? 0;
+        // 負の位置または Cursor なしの途中位置を拒否
         if (validatedStartIndex < 0 || (paginationCursor == null && validatedStartIndex != 0)) {
             throw new CaseEmailMessageServiceException(INVALID_START_INDEX_MESSAGE);
         }
 
+        // Selector へ渡す問い合わせ条件を非 null の DTO として作成
         PageQuery pageQuery = new PageQuery();
+        // 検証済み Case ID を問い合わせ対象として保持
         pageQuery.caseId = caseId;
+        // 継続ページで受け取った Cursor を保持
         pageQuery.paginationCursor = paginationCursor;
+        // 検証済みの取得開始位置を保持
         pageQuery.startIndex = validatedStartIndex;
+        // 画面が一度に取得する既定件数を保持
         pageQuery.fetchSize = PAGE_SIZE;
+        // 検証済みの問い合わせ条件を返却
+        return pageQuery;
+    }
+
+    /**
+     * PaginationCursor の残件数に合わせてページ取得条件を確定
+     *
+     * @param pageQuery 検証済みのページ問い合わせ条件
+     * @param paginationCursor Selector が作成した PaginationCursor
+     * @return Cursor と残件数以内の取得件数を持つ問い合わせ条件
+     */
+    public PageQuery preparePageFetch(PageQuery pageQuery, Database.PaginationCursor paginationCursor) {
+        // 問い合わせ条件がない場合も非 null の空条件を返却
+        if (pageQuery == null) {
+            return new PageQuery();
+        }
+        // 初回または継続ページで使用する Cursor を問い合わせ条件へ設定
+        pageQuery.paginationCursor = paginationCursor;
+        // Cursor がない場合は Selector のページ取得を短絡する件数へ設定
+        if (paginationCursor == null) {
+            pageQuery.fetchSize = 0;
+            return pageQuery;
+        }
+        // 現在位置以降に残るレコード件数を算出
+        Integer remainingRecords = paginationCursor.getNumRecords() - pageQuery.startIndex;
+        // 残件数がない場合は Selector のページ取得を短絡する件数へ設定
+        if (remainingRecords <= 0) {
+            pageQuery.fetchSize = 0;
+            return pageQuery;
+        }
+        // 既定ページサイズと残件数の小さい方を取得件数へ確定
+        pageQuery.fetchSize = Math.min(pageQuery.fetchSize, remainingRecords);
+        // Selector がそのまま実行できる問い合わせ条件を返却
         return pageQuery;
     }
 

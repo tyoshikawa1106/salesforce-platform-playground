@@ -70,7 +70,16 @@ public with sharing class CaseEmailMessageController {
                 paginationCursor,
                 startIndex
             );
+            // 初回ページだけ利用者権限で PaginationCursor を作成
+            Database.PaginationCursor pageCursor = paginationCursor;
+            if (pageCursor == null) {
+                pageCursor = SELECTOR.getPaginationCursorByCaseId(validatedCaseId);
+            }
+            // Cursor の残件数に合わせた取得範囲を Service で確定
+            pageQuery = SERVICE.preparePageFetch(pageQuery, pageCursor);
+            // 確定済みの位置と件数で未加工の Cursor ページを取得
             Database.CursorFetchResult cursorFetchResult = SELECTOR.getByCaseId(pageQuery);
+            // Cursor 取得結果を LWC 返却用ページへ変換
             return SERVICE.createPage(pageQuery.paginationCursor, cursorFetchResult);
         } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
             String errorMessage = e.getMessage();
