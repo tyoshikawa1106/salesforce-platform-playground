@@ -25,8 +25,10 @@ public with sharing class AccountPdfController {
             String accountIdParameter = ApexPages.currentPage().getParameters().get('accountId');
             String sanitizedAccountIdParameter = accountIdParameter?.escapeHtml4();
             Id accountId = this.service.validateAccountId(sanitizedAccountIdParameter);
-            Account accountRecord = this.selector.getById(accountId);
-            this.accountData = this.service.createViewModel(accountRecord);
+            // 利用者権限で PDF 出力対象の取引先一覧を取得
+            List<Account> accounts = this.selector.getById(accountId);
+            // 単一取引先の取得確認と表示値作成を Service へ委譲
+            this.accountData = this.service.createViewModel(accounts);
         } catch (AccountPdfService.AccountPdfServiceException e) {
             setError(e.getMessage());
         } catch (Exception e) {

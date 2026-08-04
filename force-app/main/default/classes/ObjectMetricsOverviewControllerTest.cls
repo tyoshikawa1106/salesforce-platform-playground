@@ -11,8 +11,9 @@ private with sharing class ObjectMetricsOverviewControllerTest {
      */
     @IsTest
     static void shouldReturnObjectMetricSummary() {
+        createObjectMetricRecords();
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
-        ObjectMetricsOverviewController.selector = new ObjectMetricsOverviewSelector();
+        ObjectMetricsOverviewController.queryCoordinator = new ObjectMetricsOverviewQueryCoordinator();
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
@@ -37,15 +38,34 @@ private with sharing class ObjectMetricsOverviewControllerTest {
             summary.metrics[0].key,
             'Controller は Service の並び順を保って返す必要あり'
         );
+        ObjectMetricsOverviewItemWrapper accountMetric = getMetric(summary, 'accounts');
+        ObjectMetricsOverviewItemWrapper contactMetric = getMetric(summary, 'contacts');
+        ObjectMetricsOverviewItemWrapper leadMetric = getMetric(summary, 'leads');
+        ObjectMetricsOverviewItemWrapper opportunityMetric = getMetric(
+            summary,
+            'opportunities'
+        );
+        ObjectMetricsOverviewItemWrapper productMetric = getMetric(summary, 'products');
+        ObjectMetricsOverviewItemWrapper caseMetric = getMetric(summary, 'cases');
+        Assert.areEqual(1, accountMetric.value, '作成済み Account を数える必要あり');
+        Assert.areEqual(1, contactMetric.value, '作成済み Contact を数える必要あり');
+        Assert.areEqual(1, leadMetric.value, '作成済み Lead を数える必要あり');
+        Assert.areEqual(
+            1,
+            opportunityMetric.value,
+            '作成済み Opportunity を数える必要あり'
+        );
+        Assert.areEqual(1, productMetric.value, '作成済み Product を数える必要あり');
+        Assert.areEqual(1, caseMetric.value, '作成済み Case を数える必要あり');
     }
 
     /**
      * 集計取得に失敗した場合は画面向けエラーを返却
      */
     @IsTest
-    static void shouldReturnUserFacingErrorWhenSelectorFails() {
+    static void shouldReturnUserFacingErrorWhenCoordinatorFails() {
         ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
-        ObjectMetricsOverviewController.selector = new FailingObjectMetricsOverviewSelector();
+        ObjectMetricsOverviewController.queryCoordinator = new FailingObjectMetricsOverviewQueryCoordinator();
 
         System.runAs(testUser) {
             Test.startTest();
@@ -53,7 +73,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
             try {
                 // 件数取得例外を画面向け例外へ変換
                 ObjectMetricsOverviewController.getObjectMetrics();
-                Assert.fail('Selector の失敗は AuraHandledException に変換する必要あり');
+                Assert.fail('Coordinator の失敗は AuraHandledException に変換する必要あり');
             } catch (AuraHandledException e) {
                 Assert.isNotNull(
                     e.getMessage(),
@@ -67,12 +87,62 @@ private with sharing class ObjectMetricsOverviewControllerTest {
     }
 
     /**
-     * 失敗用 Selector
+     * サマリから指定キーのメトリクスを取得
      */
-    private class FailingObjectMetricsOverviewSelector extends ObjectMetricsOverviewSelector {
+    private static ObjectMetricsOverviewItemWrapper getMetric(
+        ObjectMetricsOverviewSummaryWrapper summary,
+        String metricKey
+    ) {
+        for (ObjectMetricsOverviewItemWrapper metric : summary.metrics) {
+            if (metric.key == metricKey) {
+                return metric;
+            }
+        }
+        return null;
+    }
 
-        public override Map<String, ObjectMetricCount> getObjectMetricValues() {
-            throw new FailingObjectMetricsOverviewException('想定外の Selector エラー');
+    /**
+     * 主要オブジェクトの実件数確認用レコードを作成
+     */
+    private static void createObjectMetricRecords() {
+        Account accountRecord = TestDataFactory.createAccount(
+            'Controller 件数取引先',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        TestDataFactory.createContact(
+            accountRecord,
+            'Controller 件数責任者',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        TestDataFactory.createLead(
+            'Controller 件数リード',
+            'Controller 件数会社',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        TestDataFactory.createOpportunity(
+            accountRecord,
+            'Controller 件数商談',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        TestDataFactory.createProduct(
+            'Controller 件数商品',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        TestDataFactory.createCase(
+            'Controller 件数ケース',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+    }
+
+    /**
+     * 失敗用 Coordinator
+     */
+    private class FailingObjectMetricsOverviewQueryCoordinator extends ObjectMetricsOverviewQueryCoordinator {
+
+        public override List<Integer> execute(
+            List<ObjectMetricsOverviewService.CountQuery> countQueries
+        ) {
+            throw new FailingObjectMetricsOverviewException('想定外の Coordinator エラー');
         }
     }
 

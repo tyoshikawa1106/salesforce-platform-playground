@@ -71,6 +71,9 @@ public with sharing class ObjectRecordSearchController {
             ObjectRecordSearchQueryPlan.SearchQuery searchQuery = ObjectRecordSearchQueryPlan.createSearchQuery(
                 searchQueryRequest
             );
+            // Selector 実行前に SOQL と bind 値の必須条件を検証
+            this.service.validateSearchQuery(searchQuery);
+            // 検証済みの動的 SOQL を利用者権限で実行
             List<SObject> records = this.selector.searchRecords(searchQuery);
             // 検索結果を LWC 返却用の行とページ状態へ変換
             ObjectRecordSearchResultWrapper result = this.service.createSearchResult(
@@ -122,7 +125,7 @@ public with sharing class ObjectRecordSearchController {
                 recordIdsToDelete
             );
             // 部分成功を許容した DML 結果を画面向け結果へ変換
-            List<Database.DeleteResult> deleteResults = this.selector.deleteRecords(
+            List<Database.DeleteResult> deleteResults = this.service.deleteRecords(
                 recordsToDelete
             );
             ObjectRecordSearchDeleteWrapper result = this.service.createDeleteResult(
@@ -144,11 +147,11 @@ public with sharing class ObjectRecordSearchController {
             metricKey
         );
         // オブジェクト参照権限とクエリ可能性を検証
-        Schema.DescribeSObjectResult objectDescribe = this.selector.getObjectDescribe(
+        Schema.DescribeSObjectResult objectDescribe = this.service.getObjectDescribe(
             definition.objectApiName
         );
         // 一覧の主表示項目として使う Name 相当項目を解決
-        Schema.DescribeFieldResult nameFieldDescribe = this.selector.getNameFieldDescribe(
+        Schema.DescribeFieldResult nameFieldDescribe = this.service.getNameFieldDescribe(
             objectDescribe
         );
         // 画面に返す固定表示項目を権限で絞り込み

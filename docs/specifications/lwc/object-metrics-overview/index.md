@@ -26,8 +26,9 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 | 種別         | API 名                                                                    | 役割                                                 |
 | ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------- |
 | Apex Class   | `ObjectMetricsOverviewController`                                         | LWC からの件数取得要求の入口                         |
+| Apex Class   | `ObjectMetricsOverviewQueryCoordinator`                                   | 固定カタログ内の複数件数クエリの実行調整             |
 | Apex Class   | `ObjectMetricsOverviewSelector`                                           | 利用者が参照できるレコードの件数取得                 |
-| Apex Class   | `ObjectMetricsOverviewService`                                            | カタログ順の件数サマリ組み立て                       |
+| Apex Class   | `ObjectMetricsOverviewService`                                            | 件数取得計画とカタログ順サマリの組み立て             |
 | Apex Class   | `ObjectMetricCatalog`                                                     | カードキー、対象オブジェクト、ラベル、アイコンの定義 |
 | Apex Wrapper | `ObjectMetricsOverviewSummaryWrapper`、`ObjectMetricsOverviewItemWrapper` | LWC へ返す件数情報                                   |
 
@@ -47,9 +48,9 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 ## 処理内容
 
 1. `getObjectMetrics` をWireで呼び出します。
-2. カタログに定義された各オブジェクトについて、利用者の参照権限を確認します。
-3. `WITH USER_MODE` のCOUNTクエリで件数を取得します。ユーザーは有効ユーザーだけを数えます。
-4. カタログの定義順にラベル、アイコン、件数を返します。
+2. Serviceがカタログに定義された各オブジェクトの参照権限を確認し、最大50件の件数取得計画を作成します。
+3. 専用Coordinatorが現在トランザクションの残りSOQL数を確認し、`WITH USER_MODE` のCOUNTクエリを順次実行します。ユーザーは有効ユーザーだけを数えます。
+4. Serviceが未加工件数を表示上限付きの値へ集計し、カタログの定義順にラベル、アイコン、件数を返します。
 5. LWCは件数カードを表示し、カード選択時に同じ画面内で `objectRecordSearch` へ切り替えます。
 6. 検索画面から戻る、またはレコード変更通知を受けると、ダッシュボード表示または件数を更新します。
 
@@ -80,7 +81,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ## テスト・確認観点
 
-- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、実件数、0件、不明なAPI名、例外、50,000件上限を確認すること
+- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsOverviewQueryCoordinatorTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、50,000件上限を確認すること
 - `objectMetricsOverview.test.js` で、初期表示、読込中、件数表示、上限表示、エラー、再読み込み、カード選択、検索画面からの復帰を確認すること
 - ホームページ上でカードの表示順、ラベル、アイコン、レスポンシブ表示を確認します。
 - 利用権限の異なるユーザーで件数とエラー表示を確認します。
@@ -88,6 +89,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 ## 制約・注意事項
 
 - 対象オブジェクトと表示順は `ObjectMetricCatalog` の固定定義です。
+- 件数取得計画は最大50件です。固定カタログの対象数または現在トランザクションの残りSOQL数が上限を満たさない場合は、個別取得を始める前に全体をエラーとして返します。
 - 件数は最大50,000件で打ち切るため、50,000件以上の正確な総数は表示しません。
 - 参照できないオブジェクトと実際に0件のオブジェクトは、どちらも0件表示になります。
 - 対象オブジェクト数に応じてCOUNTクエリを個別に実行します。

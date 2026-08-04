@@ -14,7 +14,7 @@ private with sharing class ObjectMetricsOverviewSummaryWrapperTest {
         List<ObjectMetricsOverviewItemWrapper> items = new List<ObjectMetricsOverviewItemWrapper>{
             new ObjectMetricsOverviewItemWrapper(
                 ObjectMetricCatalog.getDefinition('accounts'),
-                ObjectMetricsOverviewSelector.createCount(1)
+                ObjectMetricsOverviewService.createCount(1)
             )
         };
         ObjectMetricsOverviewSummaryWrapper wrapper;

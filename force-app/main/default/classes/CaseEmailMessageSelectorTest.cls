@@ -280,7 +280,14 @@ private with sharing class CaseEmailMessageSelectorTest {
     }
 
     private static CaseEmailMessagePageWrapper getPage(CaseEmailMessageService.PageQuery pageQuery) {
-        Database.CursorFetchResult cursorFetchResult = new CaseEmailMessageSelector().getByCaseId(pageQuery);
-        return new CaseEmailMessageService().createPage(pageQuery.paginationCursor, cursorFetchResult);
+        CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
+        CaseEmailMessageService service = new CaseEmailMessageService();
+        Database.PaginationCursor paginationCursor = pageQuery.paginationCursor;
+        if (paginationCursor == null) {
+            paginationCursor = selector.getPaginationCursorByCaseId(pageQuery.caseId);
+        }
+        pageQuery = service.preparePageFetch(pageQuery, paginationCursor);
+        Database.CursorFetchResult cursorFetchResult = selector.getByCaseId(pageQuery);
+        return service.createPage(pageQuery.paginationCursor, cursorFetchResult);
     }
 }

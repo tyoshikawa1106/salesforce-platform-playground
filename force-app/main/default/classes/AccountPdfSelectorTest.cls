@@ -21,16 +21,18 @@ private with sharing class AccountPdfSelectorTest {
         accountRecord.BillingStreet = '千代田1-1';
         accountRecord.Description = 'Selector 説明';
         insert accountRecord;
-        Account result;
+        List<Account> results;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SELECTOR.getById(accountRecord.Id);
+            results = SELECTOR.getById(accountRecord.Id);
 
             Test.stopTest();
         }
 
+        Assert.areEqual(1, results.size(), '指定した取引先だけを返す必要あり');
+        Account result = results[0];
         Assert.areEqual(accountRecord.Id, result.Id, '指定した取引先を返す必要あり');
         Assert.areEqual('PDF Selector テスト', result.Name, '取引先名を取得する必要あり');
         Assert.areEqual('SELECTOR-001', result.AccountNumber, '取引先番号を取得する必要あり');
@@ -44,41 +46,41 @@ private with sharing class AccountPdfSelectorTest {
      * null ID は問い合わせない
      */
     @IsTest
-    static void shouldReturnNullWhenAccountIdIsNull() {
-        Account result;
+    static void shouldReturnEmptyListWhenAccountIdIsNull() {
+        List<Account> results;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SELECTOR.getById(null);
+            results = SELECTOR.getById(null);
 
             Test.stopTest();
         }
 
-        Assert.isNull(result, '取引先 ID が null の場合は null を返す必要あり');
+        Assert.isTrue(results.isEmpty(), '取引先 ID が null の場合は空の List を返す必要あり');
     }
 
     /**
      * 存在しない取引先は null を返却
      */
     @IsTest
-    static void shouldReturnNullWhenAccountDoesNotExist() {
+    static void shouldReturnEmptyListWhenAccountDoesNotExist() {
         Account deletedAccount = TestDataFactory.createAccount(
             'PDF Selector 削除済みテスト',
             TestDataFactory.SaveMode.INSERT_RECORD
         );
         Id deletedAccountId = deletedAccount.Id;
         delete deletedAccount;
-        Account result;
+        List<Account> results;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SELECTOR.getById(deletedAccountId);
+            results = SELECTOR.getById(deletedAccountId);
 
             Test.stopTest();
         }
 
-        Assert.isNull(result, '存在しない取引先は null を返す必要あり');
+        Assert.isTrue(results.isEmpty(), '存在しない取引先は空の List を返す必要あり');
     }
 }

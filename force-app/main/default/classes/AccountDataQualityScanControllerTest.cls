@@ -135,7 +135,7 @@ private with sharing class AccountDataQualityScanControllerTest {
     }
 
     private class FailingSelector extends AccountDataQualityScanSelector {
-        public override DataQualityScan__c getLatestScan() {
+        public override List<DataQualityScan__c> getLatestScans() {
             throw new AccountDataQualityScanService.ScanException('テスト用取得失敗');
         }
     }

@@ -6,14 +6,16 @@ public with sharing class AccountPdfSelector {
      * 指定された取引先を利用者権限で取得
      *
      * @param accountId 取引先 ID
-     * @return PDF 出力項目を持つ取引先、不存在または null の場合は null
+     * @return PDF 出力項目を持つ取引先一覧、不存在または null の場合は空の List
      */
-    public Account getById(Id accountId) {
+    public List<Account> getById(Id accountId) {
+        // 取引先 ID 未指定時は SOQL を実行せず空結果へ短絡
         if (accountId == null) {
-            return null;
+            return new List<Account>();
         }
 
-        List<Account> accounts = [
+        // 利用者が参照できる PDF 出力対象項目だけを取得
+        return [
             SELECT
                 Id,
                 Name,
@@ -38,6 +40,5 @@ public with sharing class AccountPdfSelector {
             WITH USER_MODE
             LIMIT 1
         ];
-        return accounts.isEmpty() ? null : accounts[0];
     }
 }

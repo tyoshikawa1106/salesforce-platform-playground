@@ -41,11 +41,13 @@ public with sharing class CaseEmailMessageSelector {
             return null;
         }
 
-        return Database.getPaginationCursorWithBinds(
+        Database.PaginationCursor paginationCursor = Database.getPaginationCursorWithBinds(
             EMAIL_MESSAGE_QUERY,
             new Map<String, Object>{ 'caseId' => caseId },
             AccessLevel.USER_MODE
         );
+        // LWC のページ取得間で引き継ぐ Cursor を返却
+        return paginationCursor;
     }
 
     /**
@@ -55,21 +57,24 @@ public with sharing class CaseEmailMessageSelector {
      * @return 送信日時、作成日時、ID の昇順で取得したページ結果
      */
     public Database.CursorFetchResult getByCaseId(CaseEmailMessageService.PageQuery pageQuery) {
-        if (pageQuery == null || pageQuery.caseId == null || pageQuery.fetchSize == null || pageQuery.fetchSize <= 0) {
+        // Cursor と取得範囲が不足する場合はページ取得を実行せず短絡
+        if (
+            pageQuery == null ||
+            pageQuery.caseId == null ||
+            pageQuery.paginationCursor == null ||
+            pageQuery.startIndex == null ||
+            pageQuery.fetchSize == null ||
+            pageQuery.fetchSize <= 0
+        ) {
             return null;
         }
-
-        if (pageQuery.paginationCursor == null) {
-            pageQuery.paginationCursor = getPaginationCursorByCaseId(pageQuery.caseId);
-        }
-
-        Integer remainingRecords = pageQuery.paginationCursor.getNumRecords() - pageQuery.startIndex;
-        if (remainingRecords <= 0) {
-            return null;
-        }
-
-        Integer fetchSize = Math.min(pageQuery.fetchSize, remainingRecords);
-        return pageQuery.paginationCursor.fetchPage(pageQuery.startIndex, fetchSize);
+        // Service が確定した位置と件数で未加工の Cursor ページを取得
+        Database.CursorFetchResult cursorFetchResult = pageQuery.paginationCursor.fetchPage(
+            pageQuery.startIndex,
+            pageQuery.fetchSize
+        );
+        // 取得した未加工の Cursor ページを Controller へ返却
+        return cursorFetchResult;
     }
 
 }

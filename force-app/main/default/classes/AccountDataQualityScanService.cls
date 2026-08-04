@@ -43,13 +43,64 @@ public with sharing class AccountDataQualityScanService {
     }
 
     /**
+     * 単一取得用の検索結果からスキャン管理レコードを確定
+     *
+     * @param scans Selector が返したスキャン一覧
+     * @return 先頭のスキャン、存在しない場合は空のスキャン管理レコード
+     */
+    public DataQualityScan__c getFirstScan(List<DataQualityScan__c> scans) {
+        // null の検索結果を空の List として扱えるよう正規化
+        List<DataQualityScan__c> safeScans = scans ?? new List<DataQualityScan__c>();
+        // 取得結果がない場合も非 null のスキャン管理レコードを返却
+        if (safeScans.isEmpty()) {
+            return new DataQualityScan__c();
+        }
+        // 単一レコード用 SOQL の先頭結果を呼び出し元へ返却
+        return safeScans[0];
+    }
+
+    /**
+     * 新しいスキャン管理レコードを利用者権限で保存
+     *
+     * @param scanRecord 保存するスキャン管理レコード
+     * @return ID が設定されたスキャン管理レコード
+     * @throws ScanException 保存対象がない場合
+     */
+    public DataQualityScan__c insertScan(DataQualityScan__c scanRecord) {
+        // 保存対象がない DML を明示的に拒否
+        if (scanRecord == null) {
+            throw new ScanException('保存するスキャン管理レコードがありません。');
+        }
+        // 画面利用者の権限で新しいスキャン管理レコードを保存
+        insert as user scanRecord;
+        // 採番された ID を持つスキャン管理レコードを返却
+        return scanRecord;
+    }
+
+    /**
+     * スキャン進捗と集計結果を利用者権限で保存
+     *
+     * @param scanRecord 更新するスキャン管理レコード
+     * @throws ScanException 更新対象がない場合
+     */
+    public void updateScan(DataQualityScan__c scanRecord) {
+        // 更新対象がない DML を明示的に拒否
+        if (scanRecord?.Id == null) {
+            throw new ScanException('更新するスキャン管理レコードがありません。');
+        }
+        // 画面利用者の権限で進捗と集計結果を保存
+        update as user scanRecord;
+    }
+
+    /**
      * 実行中スキャンがないことを検証
      *
-     * @param activeScan 現在の実行中スキャン、存在しない場合はnull
+     * @param activeScan 現在の実行中スキャン、存在しない場合は空のスキャン管理レコード
      * @throws ScanException 実行中スキャンが存在する場合
      */
     public void validateStart(DataQualityScan__c activeScan) {
-        if (activeScan != null) {
+        // 保存済みの実行中スキャンがある場合だけ新規開始を拒否
+        if (activeScan?.Id != null) {
             throw new ScanException('実行中のスキャンがあります。完了後にもう一度お試しください。');
         }
     }
@@ -92,13 +143,19 @@ public with sharing class AccountDataQualityScanService {
      * @return 失敗状態を反映したスキャン管理レコード
      */
     public DataQualityScan__c markFailed(DataQualityScan__c scanRecord, String errorMessage) {
+        // 更新対象がない場合も非 null のスキャン管理レコードを返却
         if (scanRecord == null) {
-            return null;
+            return new DataQualityScan__c();
         }
+        // 再実行可能な失敗状態へ遷移
         scanRecord.Status__c = STATUS_FAILED;
+        // 失敗を確定した時刻を記録
         scanRecord.Completed_At__c = System.now();
+        // 内部情報を含まない利用者向け文言へ統一
         scanRecord.Error_Message__c = String.isBlank(errorMessage) ? SAFE_FAILURE_MESSAGE : errorMessage;
+        // 後続の再実行を許可するため重複防止キーを解放
         scanRecord.Active_Key__c = null;
+        // 失敗状態を反映したスキャン管理レコードを返却
         return scanRecord;
     }
 
@@ -109,7 +166,8 @@ public with sharing class AccountDataQualityScanService {
      * @return 進捗率を含む表示値、対象がない場合はnull
      */
     public AccountDataQualityScanWrapper createViewModel(DataQualityScan__c scanRecord) {
-        if (scanRecord == null) {
+        // 保存済みスキャンがない場合は画面へ履歴なしを返却
+        if (scanRecord?.Id == null) {
             return null;
         }
         Decimal progressPercent = calculateProgress(scanRecord);
