@@ -265,6 +265,96 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
     }
 
+    /**
+     * 参照可能なオブジェクトと Name 項目の describe を返却
+     */
+    @IsTest
+    static void shouldReturnAccessibleObjectAndNameFieldDescribe() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        Schema.DescribeSObjectResult objectDescribe;
+        Schema.DescribeFieldResult nameFieldDescribe;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            objectDescribe = service.getObjectDescribe('Account');
+            nameFieldDescribe = service.getNameFieldDescribe(objectDescribe);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual('Account', objectDescribe.getName(), 'Account の describe を返す必要あり');
+        Assert.isTrue(objectDescribe.isAccessible(), '参照可能なオブジェクトだけを返す必要あり');
+        Assert.areEqual('Name', nameFieldDescribe.getName(), 'Name 相当項目を返す必要あり');
+    }
+
+    /**
+     * 未対応オブジェクトを describe 前に拒否
+     */
+    @IsTest
+    static void shouldRejectUnsupportedObjectDescribe() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                service.getObjectDescribe('UnknownObject__c');
+                Assert.fail('未対応オブジェクトは拒否する必要あり');
+            } catch (ObjectRecordSearchException e) {
+                Assert.isTrue(e.getMessage().contains('利用できません'), '利用不可を説明する必要あり');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /**
+     * 検索クエリ計画の必須値不足を拒否
+     */
+    @IsTest
+    static void shouldRejectMissingSearchQueryPlan() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                service.validateSearchQuery(null);
+                Assert.fail('クエリプラン未指定は拒否する必要あり');
+            } catch (ObjectRecordSearchException e) {
+                Assert.isTrue(e.getMessage().contains('検索条件'), '検索条件の不正を説明する必要あり');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /**
+     * 指定レコードを利用者権限で削除
+     */
+    @IsTest
+    static void shouldDeleteSuppliedRows() {
+        List<Account> deleteTargets = [
+            SELECT Id
+            FROM Account
+            WHERE Name LIKE 'Service%'
+            ORDER BY Name
+        ];
+        List<SObject> recordsToDelete = new List<SObject>();
+        recordsToDelete.addAll(deleteTargets);
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        List<Database.DeleteResult> deleteResults;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            deleteResults = service.deleteRecords(recordsToDelete);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(2, deleteResults.size(), '指定行ごとの DML 結果を返す必要あり');
+        Assert.isTrue(deleteResults[0].isSuccess(), '1件目を削除する必要あり');
+        Assert.isTrue(deleteResults[1].isSuccess(), '2件目を削除する必要あり');
+    }
+
     private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
         ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
             'accounts'

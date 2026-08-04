@@ -1,5 +1,5 @@
 /**
- * 汎用レコード検索 Selector の describe、検索、削除 DML テスト
+ * 汎用レコード検索 Selector の SOQL 実行テスト
  */
 @IsTest
 private with sharing class ObjectRecordSearchSelectorTest {
@@ -26,60 +26,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
         deleteTwoAccount.Industry = 'Retail';
         accounts.add(deleteTwoAccount);
         insert accounts;
-    }
-
-    /**
-     * 参照可能なオブジェクトの describe を返却
-     */
-    @IsTest
-    static void getObjectDescribeShouldReturnAccessibleObject() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        Schema.DescribeSObjectResult objectDescribe;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            objectDescribe = selector.getObjectDescribe('Account');
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            'Account',
-            objectDescribe.getName(),
-            'Selector は指定されたオブジェクト describe を返す必要あり'
-        );
-        Assert.isTrue(
-            objectDescribe.isAccessible(),
-            'Selector はアクセス可能なオブジェクト describe だけを返す必要あり'
-        );
-    }
-
-    /**
-     * Name 項目の describe を返却
-     */
-    @IsTest
-    static void getNameFieldDescribeShouldReturnNameField() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        Schema.DescribeFieldResult nameFieldDescribe;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            nameFieldDescribe = selector.getNameFieldDescribe(
-                Account.SObjectType.getDescribe(
-                    SObjectDescribeOptions.DEFERRED
-                )
-            );
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            'Name',
-            nameFieldDescribe.getName(),
-            'Selector は Name 相当項目の describe を返す必要あり'
-        );
     }
 
     /**
@@ -111,31 +57,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             (String) records[0].get('Name'),
             'Selector はバインド値に一致するレコードを返す必要あり'
         );
-    }
-
-    /**
-     * 検索条件未指定時は例外を送出
-     */
-    @IsTest
-    static void searchRecordsShouldThrowWhenQueryPlanIsMissing() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            try {
-                selector.searchRecords(null);
-                Assert.fail('クエリプラン未指定は例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('検索条件'),
-                    'クエリプラン未指定は検索条件の不正を説明する必要あり'
-                );
-            }
-
-            Test.stopTest();
-        }
-
     }
 
     /**
@@ -206,98 +127,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             emptyIdRecords.size(),
             '空 ID はレコード検索を実行しない必要あり'
         );
-    }
-
-    /**
-     * 未対応オブジェクトの ID 取得は例外を送出
-     */
-    @IsTest
-    static void getRecordsByIdShouldThrowWhenObjectIsUnsupported() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            try {
-                selector.getRecordsById(
-                    'UnknownObject__c',
-                    new Set<Id>{ UserInfo.getUserId() }
-                );
-                Assert.fail('未対応のオブジェクト API 名は例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('表示できません'),
-                    '未対応のオブジェクト API 名は SOQL 実行前に拒否する必要あり'
-                );
-            }
-
-            Test.stopTest();
-        }
-
-    }
-
-    /**
-     * 指定されたレコードを削除
-     */
-    @IsTest
-    static void deleteRecordsShouldDeleteSuppliedRows() {
-        List<Account> deleteTargets = [
-            SELECT Id
-            FROM Account
-            WHERE Name LIKE 'Selector Delete%'
-            ORDER BY Name
-        ];
-        List<SObject> recordsToDelete = new List<SObject>();
-        recordsToDelete.addAll(deleteTargets);
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        List<Database.DeleteResult> deleteResults;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            deleteResults = selector.deleteRecords(recordsToDelete);
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            2,
-            deleteResults.size(),
-            'Selector は指定行ごとに DML 結果を返す必要あり'
-        );
-        Assert.isTrue(
-            deleteResults[0].isSuccess(),
-            'Selector は指定された 1 件目の行を削除する必要あり'
-        );
-        Assert.isTrue(
-            deleteResults[1].isSuccess(),
-            'Selector は指定された 2 件目の行を削除する必要あり'
-        );
-    }
-
-    /**
-     * 未知のオブジェクト API 名は例外を送出
-     */
-    @IsTest
-    static void getObjectDescribeShouldThrowWhenObjectIsUnknown() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            try {
-                selector.getObjectDescribe('UnknownObject__c');
-                Assert.fail('未知のオブジェクト API 名は例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('利用できません'),
-                    '未知のオブジェクト API 名はオブジェクト未検出を説明する必要あり'
-                );
-            }
-
-            Test.stopTest();
-        }
-
     }
 
     private static ObjectRecordSearchQueryPlan.SearchQuery createSearchQuery(String searchTerm) {
