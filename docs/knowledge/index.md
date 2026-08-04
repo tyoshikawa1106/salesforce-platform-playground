@@ -18,6 +18,7 @@ Salesforce DX 開発で再利用する解説、調査結果、設定ファイル
 | [Apex アノテーション](apex-annotations.md)                                       | 実行方式や公開範囲に影響するアノテーション             |
 | [Apex Cursors の設計と使い分け](apex-cursors.md)                                 | Cursor 2 種類と Queueable、Batch Apex の選択基準       |
 | [Apex API version 50.0-67.0 の主要追加点](apex-features.md)                      | API version ごとの主要な Apex 機能差分                 |
+| [Apex SOQL for ループと List 取得の使い分け](apex-soql-for-loops.md)             | 分割取得、heap 使用量、通常ループとの違い              |
 | [LWC Jest とアクセシビリティテスト](lwc-jest-accessibility-testing.md)           | Jest と `@sa11y/jest` による確認方法                   |
 | [LWC の画面遷移](lwc-navigation.md)                                              | コンポーネント内遷移と URL を伴う遷移の使い分け        |
 | [LWC State Managers](lwc-state-managers.md)                                      | 共有状態、従来方式との使い分け、導入判断               |
