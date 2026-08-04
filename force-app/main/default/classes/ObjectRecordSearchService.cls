@@ -4,7 +4,7 @@
 public with sharing class ObjectRecordSearchService {
 
     private static final Integer PAGE_SIZE = 50;
-    private static final Integer PAGE_FETCH_SIZE = PAGE_SIZE + 1;
+    private static final Integer PAGE_FETCH_SIZE = ObjectRecordSearchQueryPlan.SEARCH_FETCH_SIZE;
     private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。権限や関連データを確認してください。';
 
     /**
@@ -100,21 +100,6 @@ public with sharing class ObjectRecordSearchService {
     }
 
     /**
-     * Selector へ渡す検索クエリ計画の必須値を検証
-     *
-     * @param searchQuery 実行予定の SOQL と bind 値
-     * @throws ObjectRecordSearchException 検索クエリ計画が不完全な場合
-     */
-    public void validateSearchQuery(ObjectRecordSearchQueryPlan.SearchQuery searchQuery) {
-        // SOQL と bind 値がそろったクエリ計画だけを許可
-        Boolean hasSearchQuery = String.isNotBlank(searchQuery?.soql) &&
-            searchQuery?.bindValues != null;
-        if (!hasSearchQuery) {
-            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
-        }
-    }
-
-    /**
      * 指定レコードを利用者権限で削除
      *
      * @param recordsToDelete 削除対象レコード
@@ -186,6 +171,8 @@ public with sharing class ObjectRecordSearchService {
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
+        // 任意の名称フィルターを問い合わせ処理で共有する値へ正規化
+        searchQueryRequest.normalizedSearchTerm = request?.searchTerm?.trim();
         searchQueryRequest.sortSpec = sortSpec;
         String pageToken = request?.pageToken;
         ObjectRecordSearchSortSupport.PageCursor cursor = ObjectRecordSearchSortSupport.parsePageToken(

@@ -61,20 +61,14 @@ public with sharing class ObjectRecordSearchController {
                 context,
                 request
             );
-            // SOQL 作成と結果整形で共有する検索条件を作成
+            // Selector の検索と Service の結果整形で共有する検索条件を作成
             ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = this.service.createSearchQueryRequest(
                 context,
                 request,
                 sortSpec
             );
-            // bind 値付き SOQL に変換して USER_MODE 実行へ渡す
-            ObjectRecordSearchQueryPlan.SearchQuery searchQuery = ObjectRecordSearchQueryPlan.createSearchQuery(
-                searchQueryRequest
-            );
-            // Selector 実行前に SOQL と bind 値の必須条件を検証
-            this.service.validateSearchQuery(searchQuery);
-            // 検証済みの動的 SOQL を利用者権限で実行
-            List<SObject> records = this.selector.searchRecords(searchQuery);
+            // Selector 内で動的 SOQL と bind 値を組み立てて利用者権限で実行
+            List<SObject> records = this.selector.searchRecords(searchQueryRequest);
             // 検索結果を LWC 返却用の行とページ状態へ変換
             ObjectRecordSearchResultWrapper result = this.service.createSearchResult(
                 searchQueryRequest,
@@ -115,11 +109,19 @@ public with sharing class ObjectRecordSearchController {
                 config,
                 recordIds
             );
+            // DML 不要なリクエストは空の削除結果へ変換
             if (!canDeleteRecords) {
-                return this.service.createDeleteResult(recordIds, null);
+                // 未実行件数を保持した空の削除結果を作成
+                ObjectRecordSearchDeleteWrapper emptyResult = this.service.createDeleteResult(
+                    recordIds,
+                    new List<Database.DeleteResult>()
+                );
+                // DML 未実行の結果を画面へ返却
+                return emptyResult;
             }
-            // 指定 ID だけを USER_MODE で取得して削除対象を確定
+            // 削除要求された ID を重複のない検索条件へ変換
             Set<Id> recordIdsToDelete = new Set<Id>(recordIds);
+            // Selector 内で ID 条件の動的 SOQL と bind 値を組み立てて実行
             List<SObject> recordsToDelete = this.selector.getRecordsById(
                 config.objectApiName,
                 recordIdsToDelete
@@ -128,10 +130,12 @@ public with sharing class ObjectRecordSearchController {
             List<Database.DeleteResult> deleteResults = this.service.deleteRecords(
                 recordsToDelete
             );
+            // DML の行別結果を LWC 返却用の件数とエラーへ変換
             ObjectRecordSearchDeleteWrapper result = this.service.createDeleteResult(
                 recordIds,
                 deleteResults
             );
+            // 削除件数とエラーを画面へ返却
             return result;
         } catch (ObjectRecordSearchException e) {
             String errorMessage = e.getMessage();

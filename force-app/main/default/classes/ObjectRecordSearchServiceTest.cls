@@ -77,6 +77,47 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
+     * 検索語を問い合わせ条件へ設定する前に正規化
+     */
+    @IsTest
+    static void shouldNormalizeSearchTermWhenCreatingSearchQueryRequest() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
+            'accounts',
+            '  Service Alpha  '
+        );
+        ObjectRecordSearchContext context = createAccountContext(service);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
+            context,
+            request
+        );
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            searchQueryRequest = service.createSearchQueryRequest(
+                context,
+                request,
+                sortSpec
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'Service Alpha',
+            searchQueryRequest.normalizedSearchTerm,
+            'Service は検索語の前後空白を除去する必要あり'
+        );
+        Assert.areEqual(
+            '  Service Alpha  ',
+            searchQueryRequest.searchRequest.searchTerm,
+            '画面から受け取ったリクエスト値は変更しない必要あり'
+        );
+    }
+
+    /**
      * ページサイズ超過時に次ページ情報を作成
      */
     @IsTest
@@ -302,25 +343,6 @@ private with sharing class ObjectRecordSearchServiceTest {
                 Assert.fail('未対応オブジェクトは拒否する必要あり');
             } catch (ObjectRecordSearchException e) {
                 Assert.isTrue(e.getMessage().contains('利用できません'), '利用不可を説明する必要あり');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /**
-     * 検索クエリ計画の必須値不足を拒否
-     */
-    @IsTest
-    static void shouldRejectMissingSearchQueryPlan() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
-
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                service.validateSearchQuery(null);
-                Assert.fail('クエリプラン未指定は拒否する必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(e.getMessage().contains('検索条件'), '検索条件の不正を説明する必要あり');
             }
             Test.stopTest();
         }

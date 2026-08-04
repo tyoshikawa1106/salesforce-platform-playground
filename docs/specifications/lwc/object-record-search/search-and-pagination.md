@@ -17,10 +17,10 @@
 
 1. カードキーから許可済みの対象オブジェクトを解決します。
 2. Describe 結果から `Name` 相当項目と、参照可能な追加表示項目を決定します。
-3. 検索語があり、`Name` 相当項目が filterable な場合は部分一致条件を追加します。
+3. Service が検索語の前後空白を除去し、検索語があり、`Name` 相当項目が filterable な場合は部分一致条件を追加します。検索語は任意フィルターとして扱い、空の場合も初期一覧を取得します。
 4. ソート項目を `Name` 相当項目または参照可能な追加表示項目に限定します。
-5. 検索条件とページ境界値をSOQLのbind値として設定します。
-6. `AccessLevel.USER_MODE` で検索し、1ページ分の50件を返します。
+5. Selector が許可済み識別子から動的 SOQL を組み立て、検索条件とページ境界値を bind 値として設定します。
+6. Selector が `AccessLevel.USER_MODE` で検索し、1ページ分の50件を返します。
 7. 51件目の有無で次ページを判定し、最後の表示行から次ページトークンを作成します。
 
 ソートは指定項目を第1キー、Idの昇順を第2キーとします。null値は第1キーの末尾に配置します。
@@ -39,6 +39,7 @@
 - 対象オブジェクトが参照可能かつクエリ可能で、`Name` 相当項目を参照できる必要があります。
 - 表示項目は項目レベル参照権限で絞り込みます。
 - 一覧取得は `with sharing`、`AccessLevel.USER_MODE` で利用者の共有設定と権限を適用します。
+- 検索語なしの初期一覧は、許可済みオブジェクトと項目、決定的なソート、51件の取得上限を適用します。
 
 ## エラー処理
 
@@ -48,8 +49,8 @@
 
 ## テスト・確認観点
 
-- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchServiceTest` で、検索条件と50件／51件のページ境界を確認すること
-- `ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、SOQL、ソート、null値、カーソル、不正ページトークンを確認すること
+- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchServiceTest` で、検索語の正規化、任意フィルターなしの初期一覧、50件／51件のページ境界を確認すること
+- `ObjectRecordSearchSelectorTest`、`ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、動的 SOQL と bind、固定取得件数、昇順・降順ソート、null値、カーソル、不正ページトークンを確認すること
 - `objectRecordSearchPaging.test.js`、`objectRecordSearchState.test.js` で、検索実行、server-side sort、前後ページ移動と状態更新を確認すること
 - 検索語の前後空白を除去し、`Name` 相当項目へ部分一致を適用すること
 - 検索語が空の場合は検索条件なしで取得すること
