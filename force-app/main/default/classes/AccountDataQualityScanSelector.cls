@@ -40,26 +40,27 @@ public virtual with sharing class AccountDataQualityScanSelector {
     /**
      * Accountを対象に実行中のスキャンを取得
      *
-     * @return 実行中スキャン、存在しない場合はnull
+     * @return 実行中スキャン一覧、存在しない場合は空の List
      */
-    public virtual DataQualityScan__c getActiveScan() {
-        List<DataQualityScan__c> scans = [
+    public virtual List<DataQualityScan__c> getActiveScans() {
+        // Account を対象にした実行中スキャンだけを取得
+        return [
             SELECT Id, Status__c
             FROM DataQualityScan__c
             WHERE Active_Key__c = :AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY
             WITH USER_MODE
             LIMIT 1
         ];
-        return scans.isEmpty() ? null : scans[0];
     }
 
     /**
      * 利用者が参照できる直近スキャンを取得
      *
-     * @return 作成日時が最新のスキャン、存在しない場合はnull
+     * @return 作成日時が最新のスキャン一覧、存在しない場合は空の List
      */
-    public virtual DataQualityScan__c getLatestScan() {
-        List<DataQualityScan__c> scans = [
+    public virtual List<DataQualityScan__c> getLatestScans() {
+        // 利用者が参照できる直近スキャンだけを取得
+        return [
             SELECT Id, Status__c, Total_Count__c, Processed_Count__c,
                 Missing_Phone_Count__c, Missing_Industry_Count__c,
                 Missing_Address_Count__c, Missing_Website_Count__c,
@@ -70,20 +71,21 @@ public virtual with sharing class AccountDataQualityScanSelector {
             ORDER BY CreatedDate DESC
             LIMIT 1
         ];
-        return scans.isEmpty() ? null : scans[0];
     }
 
     /**
      * IDでスキャン管理レコードを取得
      *
      * @param scanId 取得対象のスキャン管理レコードID
-     * @return 指定スキャン、存在しない場合はnull
+     * @return 指定スキャン一覧、存在しない場合は空の List
      */
-    public virtual DataQualityScan__c getScanById(Id scanId) {
+    public virtual List<DataQualityScan__c> getScansById(Id scanId) {
+        // スキャン ID 未指定時は SOQL を実行せず空結果へ短絡
         if (scanId == null) {
-            return null;
+            return new List<DataQualityScan__c>();
         }
-        List<DataQualityScan__c> scans = [
+        // 指定 ID のスキャン管理レコードだけを取得
+        return [
             SELECT Id, Status__c, Active_Key__c, Total_Count__c, Processed_Count__c,
                 Missing_Phone_Count__c, Missing_Industry_Count__c,
                 Missing_Address_Count__c, Missing_Website_Count__c,
@@ -94,26 +96,5 @@ public virtual with sharing class AccountDataQualityScanSelector {
             WITH USER_MODE
             LIMIT 1
         ];
-        return scans.isEmpty() ? null : scans[0];
-    }
-
-    /**
-     * 新しいスキャン管理レコードを利用者権限で保存
-     *
-     * @param scanRecord 保存するスキャン管理レコード
-     * @return IDが設定されたスキャン管理レコード
-     */
-    public virtual DataQualityScan__c insertScan(DataQualityScan__c scanRecord) {
-        insert as user scanRecord;
-        return scanRecord;
-    }
-
-    /**
-     * スキャン進捗と集計結果を利用者権限で保存
-     *
-     * @param scanRecord 更新するスキャン管理レコード
-     */
-    public virtual void updateScan(DataQualityScan__c scanRecord) {
-        update as user scanRecord;
     }
 }

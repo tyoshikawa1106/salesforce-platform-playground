@@ -3,7 +3,16 @@
  */
 @IsTest
 private with sharing class AccountDataQualityScanServiceTest {
+    private static final String TEST_USER_MARKER = 'DQScanService';
     private static User testUser = TestDataFactory.getTestUser();
+
+    /**
+     * USER_MODE DML に必要な権限をテストユーザーへ割り当て
+     */
+    @TestSetup
+    static void setupPermission() {
+        TestDataFactory.createAccountDataQualityScanTestUser(TEST_USER_MARKER);
+    }
 
     /**
      * 不足項目を累積して最終区間で完了へ遷移
@@ -136,6 +145,88 @@ private with sharing class AccountDataQualityScanServiceTest {
             }
             Test.stopTest();
         }
+    }
+
+    /**
+     * スキャン管理レコードを利用者権限で保存して更新
+     */
+    @IsTest
+    static void shouldInsertAndUpdateScanAsUser() {
+        User dataQualityUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
+            AccountDataQualityScanService.STATUS_PENDING,
+            10,
+            TestDataFactory.SaveMode.DO_NOT_INSERT
+        );
+        AccountDataQualityScanService service = new AccountDataQualityScanService();
+
+        System.runAs(dataQualityUser) {
+            Test.startTest();
+
+            service.insertScan(scanRecord);
+            scanRecord.Processed_Count__c = 4;
+            service.updateScan(scanRecord);
+
+            Test.stopTest();
+        }
+
+        DataQualityScan__c savedScan = [
+            SELECT Processed_Count__c
+            FROM DataQualityScan__c
+            WHERE Id = :scanRecord.Id
+        ];
+        Assert.areEqual(4, savedScan.Processed_Count__c, '利用者権限で更新した進捗を保存する必要あり');
+    }
+
+    /**
+     * 同じ対象の実行中スキャンを一意制約で拒否
+     */
+    @IsTest
+    static void shouldRejectDuplicateActiveScanKey() {
+        User dataQualityUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        DataQualityScan__c firstScan;
+
+        System.runAs(dataQualityUser) {
+            firstScan = TestDataFactory.createDataQualityScan(
+                AccountDataQualityScanService.STATUS_PENDING,
+                1,
+                TestDataFactory.SaveMode.INSERT_RECORD
+            );
+            DataQualityScan__c duplicateScan = TestDataFactory.createDataQualityScan(
+                AccountDataQualityScanService.STATUS_RUNNING,
+                1,
+                TestDataFactory.SaveMode.DO_NOT_INSERT
+            );
+            Test.startTest();
+            try {
+                new AccountDataQualityScanService().insertScan(duplicateScan);
+                Assert.fail('同じ対象の実行中スキャンは一意制約で拒否する必要あり');
+            } catch (DmlException e) {
+                Assert.areEqual('DUPLICATE_VALUE', e.getDmlStatusCode(0), '重複キーによる DML エラーにする必要あり');
+            }
+            Test.stopTest();
+        }
+
+        Assert.isNotNull(firstScan.Id, '先行する実行中スキャンは保存済みである必要あり');
+    }
+
+    /**
+     * 空の検索結果を非 null のスキャン管理レコードへ変換
+     */
+    @IsTest
+    static void shouldReturnEmptyScanWhenQueryResultIsEmpty() {
+        DataQualityScan__c result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = new AccountDataQualityScanService().getFirstScan(new List<DataQualityScan__c>());
+
+            Test.stopTest();
+        }
+
+        Assert.isNotNull(result, '空結果でも非 null のスキャン管理レコードを返す必要あり');
+        Assert.isNull(result.Id, '空結果のスキャン管理レコードは未保存である必要あり');
     }
 
     private static Account createCompleteAccount(String accountName) {

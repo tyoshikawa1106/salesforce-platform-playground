@@ -54,15 +54,20 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
      */
     public void execute(QueueableContext context) {
         System.attachFinalizer(this);
-        DataQualityScan__c scanRecord = this.selector.getScanById(this.scanId);
-        if (scanRecord == null || this.accountCursor == null) {
+        // 更新対象スキャンの未加工検索結果を取得
+        List<DataQualityScan__c> scans = this.selector.getScansById(this.scanId);
+        // 単一スキャンへの変換を Service へ委譲
+        DataQualityScan__c scanRecord = this.service.getFirstScan(scans);
+        // 継続処理に必要な保存済みスキャンと Cursor の欠落を拒否
+        if (scanRecord.Id == null || this.accountCursor == null) {
             throw new AccountDataQualityScanService.ScanException('スキャンを継続するための状態がありません。');
         }
 
         List<Account> accounts = this.selector.fetchAccounts(this.accountCursor, this.position, this.fetchSize);
         Integer nextPosition = Math.min(this.position + this.fetchSize, this.accountCursor.getNumRecords());
         DataQualityScan__c updatedScan = this.service.applyChunk(scanRecord, accounts, nextPosition);
-        this.selector.updateScan(updatedScan);
+        // 区間処理後の進捗と集計値を利用者権限で保存
+        this.service.updateScan(updatedScan);
 
         Boolean completed = this.service.isCompleted(updatedScan);
         if (!completed) {
@@ -88,10 +93,15 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
         if (context.getResult() == ParentJobResult.SUCCESS) {
             return;
         }
-        DataQualityScan__c scanRecord = this.selector.getScanById(this.scanId);
+        // 失敗記録対象スキャンの未加工検索結果を取得
+        List<DataQualityScan__c> scans = this.selector.getScansById(this.scanId);
+        // 単一スキャンへの変換を Service へ委譲
+        DataQualityScan__c scanRecord = this.service.getFirstScan(scans);
+        // 利用者へ公開できる文言で失敗状態を作成
         DataQualityScan__c failedScan = this.service.markFailed(scanRecord, AccountDataQualityScanService.SAFE_FAILURE_MESSAGE);
-        if (failedScan != null) {
-            this.selector.updateScan(failedScan);
+        // 保存済みスキャンがある場合だけ失敗状態を永続化
+        if (failedScan.Id != null) {
+            this.service.updateScan(failedScan);
         }
     }
 }

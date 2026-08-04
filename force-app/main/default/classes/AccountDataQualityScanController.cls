@@ -18,7 +18,11 @@ public with sharing class AccountDataQualityScanController {
     @AuraEnabled(cacheable=true)
     public static AccountDataQualityScanWrapper getLatestScan() {
         try {
-            DataQualityScan__c latestScan = selector.getLatestScan();
+            // 直近スキャンの未加工検索結果を取得
+            List<DataQualityScan__c> latestScans = selector.getLatestScans();
+            // 単一スキャンへの変換を Service へ委譲
+            DataQualityScan__c latestScan = service.getFirstScan(latestScans);
+            // 取得したスキャンを画面表示値へ変換
             return service.createViewModel(latestScan);
         } catch (Exception e) {
             throw createAuraHandledException('スキャン状態を取得できませんでした。時間をおいてもう一度お試しください。');
@@ -34,19 +38,29 @@ public with sharing class AccountDataQualityScanController {
     public static AccountDataQualityScanWrapper startScan() {
         DataQualityScan__c scanRecord;
         try {
-            DataQualityScan__c activeScan = selector.getActiveScan();
+            // 実行中スキャンの未加工検索結果を取得
+            List<DataQualityScan__c> activeScans = selector.getActiveScans();
+            // 単一スキャンへの変換を Service へ委譲
+            DataQualityScan__c activeScan = service.getFirstScan(activeScans);
+            // 保存済みの実行中スキャンがないことを確認
             service.validateStart(activeScan);
+            // 利用者が参照できる取引先を固定する Cursor を作成
             Database.Cursor accountCursor = selector.createAccountCursor();
+            // Cursor 件数を初期値にした待機中スキャンを作成
             scanRecord = service.createPendingScan(accountCursor.getNumRecords(), UserInfo.getUserId());
-            selector.insertScan(scanRecord);
+            // 待機中スキャンを利用者権限で保存
+            service.insertScan(scanRecord);
+            // Cursor 分割処理を非同期キューへ登録
             System.enqueueJob(new AccountDataQualityScanQueueable(accountCursor, 0, scanRecord.Id));
+            // 非同期登録直後の待機状態を画面へ返却
             return service.createViewModel(scanRecord);
         } catch (AccountDataQualityScanService.ScanException e) {
             throw createAuraHandledException(e.getMessage());
         } catch (Exception e) {
             if (scanRecord != null && scanRecord.Id != null) {
                 DataQualityScan__c failedScan = service.markFailed(scanRecord, AccountDataQualityScanService.SAFE_FAILURE_MESSAGE);
-                selector.updateScan(failedScan);
+                // 開始途中の失敗状態を利用者権限で保存
+                service.updateScan(failedScan);
             }
             throw createAuraHandledException('スキャンを開始できませんでした。権限を確認してもう一度お試しください。');
         }

@@ -58,66 +58,32 @@ private with sharing class AccountDataQualityScanSelectorTest {
     }
 
     /**
-     * スキャンの保存、更新、最新結果取得を利用者権限で実行
+     * 実行中と最新のスキャンを未加工の List で取得
      */
     @IsTest
-    static void shouldInsertUpdateAndSelectLatestScan() {
+    static void shouldSelectActiveAndLatestScans() {
         User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
         DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
             AccountDataQualityScanService.STATUS_PENDING,
             10,
-            TestDataFactory.SaveMode.DO_NOT_INSERT
+            TestDataFactory.SaveMode.INSERT_RECORD
         );
-        DataQualityScan__c activeScan;
-        DataQualityScan__c latestScan;
+        List<DataQualityScan__c> activeScans;
+        List<DataQualityScan__c> latestScans;
 
         System.runAs(testUser) {
             Test.startTest();
 
             AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();
-            selector.insertScan(scanRecord);
-            activeScan = selector.getActiveScan();
-            scanRecord.Processed_Count__c = 4;
-            selector.updateScan(scanRecord);
-            latestScan = selector.getLatestScan();
+            activeScans = selector.getActiveScans();
+            latestScans = selector.getLatestScans();
 
             Test.stopTest();
         }
 
-        Assert.areEqual(scanRecord.Id, activeScan.Id, 'Accountの実行中スキャンを取得する必要あり');
-        Assert.areEqual(4, latestScan.Processed_Count__c, '更新済みの最新進捗を取得する必要あり');
-    }
-
-    /**
-     * 同じ対象の実行中スキャンを一意制約で拒否
-     */
-    @IsTest
-    static void shouldRejectDuplicateActiveScanKey() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
-        DataQualityScan__c firstScan;
-        DataQualityScan__c duplicateScan;
-
-        System.runAs(testUser) {
-            firstScan = TestDataFactory.createDataQualityScan(
-                AccountDataQualityScanService.STATUS_PENDING,
-                1,
-                TestDataFactory.SaveMode.INSERT_RECORD
-            );
-            duplicateScan = TestDataFactory.createDataQualityScan(
-                AccountDataQualityScanService.STATUS_RUNNING,
-                1,
-                TestDataFactory.SaveMode.DO_NOT_INSERT
-            );
-            Test.startTest();
-            try {
-                new AccountDataQualityScanSelector().insertScan(duplicateScan);
-                Assert.fail('同じ対象の実行中スキャンは一意制約で拒否する必要あり');
-            } catch (DmlException e) {
-                Assert.areEqual('DUPLICATE_VALUE', e.getDmlStatusCode(0), '重複キーによるDMLエラーにする必要あり');
-            }
-            Test.stopTest();
-        }
-
-        Assert.isNotNull(firstScan.Id, '先行する実行中スキャンは保存済みである必要あり');
+        Assert.areEqual(1, activeScans.size(), 'Account の実行中スキャンを1件取得する必要あり');
+        Assert.areEqual(scanRecord.Id, activeScans[0].Id, 'Account の実行中スキャンを返す必要あり');
+        Assert.areEqual(1, latestScans.size(), '最新スキャンを1件取得する必要あり');
+        Assert.areEqual(scanRecord.Id, latestScans[0].Id, '作成日時が最新のスキャンを返す必要あり');
     }
 }
