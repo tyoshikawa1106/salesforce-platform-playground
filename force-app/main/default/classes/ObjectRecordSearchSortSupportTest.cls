@@ -204,10 +204,10 @@ private with sharing class ObjectRecordSearchSortSupportTest {
     }
 
     /**
-     * 旧形式の Name ページトークンを復元
+     * ソート方向がない旧形式ページトークンは例外を送出
      */
     @IsTest
-    static void shouldParseLegacyNamePageToken() {
+    static void shouldThrowWhenLegacyPageTokenLacksSortDirection() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
@@ -220,24 +220,24 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 'name' => 'Cursor Account'
             }
         );
-        ObjectRecordSearchSortSupport.PageCursor cursor;
-
         System.runAs(testUser) {
             Test.startTest();
 
-            cursor = ObjectRecordSearchSortSupport.parsePageToken(
-                pageToken,
-                sortSpec
-            );
+            try {
+                ObjectRecordSearchSortSupport.parsePageToken(
+                    pageToken,
+                    sortSpec
+                );
+                Assert.fail('ソート方向がないページトークンは例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
+                Assert.isTrue(
+                    e.getMessage().contains('ページ情報'),
+                    'ソート方向がないページトークンは読み取り不可を説明する必要あり'
+                );
+            }
 
             Test.stopTest();
         }
-
-        Assert.areEqual(
-            'Cursor Account',
-            cursor.sortValue,
-            '旧形式の名前トークンは名前カーソル値を読み取る必要あり'
-        );
     }
 
     /**
@@ -254,6 +254,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         String pageToken = JSON.serialize(
             new Map<String, String>{
                 'fieldApiName' => 'Industry',
+                'sortDirection' => 'asc',
                 'recordId' => String.valueOf(testAccountId),
                 'sortValue' => 'Technology'
             }
@@ -278,6 +279,46 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             Test.stopTest();
         }
 
+    }
+
+    /**
+     * ソート方向と異なるページトークンは例外を送出
+     */
+    @IsTest
+    static void shouldThrowWhenPageTokenDoesNotMatchSortDirection() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            context,
+            new ObjectRecordSearchRequestWrapper()
+        );
+        Id testAccountId = getTestAccountId();
+        String pageToken = JSON.serialize(
+            new Map<String, String>{
+                'fieldApiName' => 'Name',
+                'sortDirection' => 'desc',
+                'recordId' => String.valueOf(testAccountId),
+                'sortValue' => 'Cursor Account'
+            }
+        );
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            try {
+                ObjectRecordSearchSortSupport.parsePageToken(
+                    pageToken,
+                    sortSpec
+                );
+                Assert.fail('ソート方向と合わないページトークンは例外にする必要あり');
+            } catch (ObjectRecordSearchException e) {
+                Assert.isTrue(
+                    e.getMessage().contains('ページ情報'),
+                    'ソート方向と合わないページトークンは読み取り不可を説明する必要あり'
+                );
+            }
+
+            Test.stopTest();
+        }
     }
 
     /**

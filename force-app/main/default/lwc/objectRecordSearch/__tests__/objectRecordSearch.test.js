@@ -136,6 +136,38 @@ describe('c-object-record-search', () => {
         );
     });
 
+    it('does not show a success toast when no requested row was deleted', async () => {
+        const element = createComponent();
+        const toastHandler = jest.fn();
+        element.addEventListener('lightning__showtoast', toastHandler);
+        deleteRecords.mockResolvedValue({
+            requestedCount: 1,
+            deletedCount: 0,
+            errors: ['選択したレコードを削除できませんでした。']
+        });
+
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(
+            new CustomEvent('rowselection', {
+                detail: { selectedRows: [searchResponse.records[0]] }
+            })
+        );
+        findButton(element, '選択したレコードを削除').click();
+        await flushPromises();
+
+        expect(toastHandler).toHaveBeenCalledTimes(1);
+        expect(toastHandler).toHaveBeenCalledWith(
+            expect.objectContaining({
+                detail: expect.objectContaining({
+                    title: '削除できませんでした',
+                    variant: 'warning'
+                })
+            })
+        );
+    });
+
     it('shows an error when delete fails', async () => {
         const element = createComponent();
         const toastHandler = jest.fn();

@@ -231,6 +231,48 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
+     * DMLへ到達しなかった削除要求を失敗結果へ変換
+     */
+    @IsTest
+    static void shouldCreateDeleteErrorWhenRequestedRecordWasNotProcessed() {
+        Account target = [
+            SELECT Id
+            FROM Account
+            WHERE Name = 'Service Beta'
+            LIMIT 1
+        ];
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectRecordSearchDeleteWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = service.createDeleteResult(
+                new List<Id>{ target.Id },
+                new List<Database.DeleteResult>()
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            1,
+            result.requestedCount,
+            '未処理の削除要求も依頼件数に含める必要あり'
+        );
+        Assert.areEqual(
+            0,
+            result.deletedCount,
+            'DMLへ到達しなかった要求を削除成功にしない必要あり'
+        );
+        Assert.areEqual(
+            1,
+            result.errors.size(),
+            'DMLへ到達しなかった要求ごとにエラーを返す必要あり'
+        );
+    }
+
+    /**
      * 未対応メトリクスキーは例外を送出
      */
     @IsTest

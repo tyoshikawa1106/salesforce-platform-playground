@@ -30,6 +30,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         String rowSortValue = getRowSortValue(lastRow, sortSpec);
         Map<String, String> tokenParts = new Map<String, String>{
             'fieldApiName' => sortSpec.fieldApiName,
+            'sortDirection' => sortSpec.direction,
             'recordId' => recordIdValue,
             'sortValue' => rowSortValue
         };
@@ -77,33 +78,24 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
 
     private static ObjectRecordSearchSortSupport.PageCursor createPageCursor(Map<String, Object> tokenParts, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         // token の field と現在の sortSpec がずれた場合は読み込み不可
-        String cursorFieldApiName = getCursorFieldApiName(tokenParts, sortSpec);
+        String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
+        // token 発行時と現在のソート方向を比較できる値を取得
+        String cursorSortDirection = (String) tokenParts.get('sortDirection');
         String cursorRecordId = (String) tokenParts.get('recordId');
         Boolean isCursorFieldExpected = cursorFieldApiName == sortSpec.fieldApiName;
+        // ソート方向が欠落または変更された token を別の問い合わせで再利用させない
+        Boolean isCursorDirectionExpected = cursorSortDirection == sortSpec.direction;
         Boolean hasCursorRecordId = String.isNotBlank(cursorRecordId);
-        if (!isCursorFieldExpected || !hasCursorRecordId) {
+        if (!isCursorFieldExpected || !isCursorDirectionExpected || !hasCursorRecordId) {
             throw createUnreadablePageTokenException(null);
         }
         // SOQL bind に渡せる型へ sort 値を復元
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
-        Object rawCursorSortValue = getCursorSortValue(tokenParts);
+        // 検証済み形式から第1ソートキーの境界値を取得
+        Object rawCursorSortValue = tokenParts.get('sortValue');
         cursor.sortValue = parseCursorSortValue(rawCursorSortValue, sortSpec);
         cursor.recordId = (Id) cursorRecordId;
         return cursor;
-    }
-
-    private static String getCursorFieldApiName(Map<String, Object> tokenParts, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
-        // 旧形式 token は現在の sortSpec の項目として扱う
-        String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
-        Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
-        return hasCursorFieldApiName ? cursorFieldApiName : sortSpec.fieldApiName;
-    }
-
-    private static Object getCursorSortValue(Map<String, Object> tokenParts) {
-        // 旧形式 token の name 値も sort 値として読み替える
-        String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
-        Boolean hasCursorFieldApiName = String.isNotBlank(cursorFieldApiName);
-        return hasCursorFieldApiName ? tokenParts.get('sortValue') : tokenParts.get('name');
     }
 
     private static String getRowSortValue(ObjectRecordSearchRowWrapper row, ObjectRecordSearchSortSupport.SortSpec sortSpec) {

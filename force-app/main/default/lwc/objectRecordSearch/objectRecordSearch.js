@@ -532,17 +532,25 @@ export default class ObjectRecordSearch extends LightningElement {
                 // 現在選択中のレコードID一覧を指定
                 recordIds: this.selectedRowIds
             });
-            // 成功件数と要求件数を利用者へ通知
-            this.showToast(
-                '削除しました',
-                `${result.deletedCount} / ${result.requestedCount} 件を削除しました。`,
-                'success'
-            );
-            // 部分失敗がある場合は成功通知に続けて警告
+            // 1件以上削除できた場合だけ成功件数を利用者へ通知
+            if (result.deletedCount > 0) {
+                // 成功件数と要求件数を利用者へ通知
+                this.showToast(
+                    '削除しました',
+                    `${result.deletedCount} / ${result.requestedCount} 件を削除しました。`,
+                    'success'
+                );
+            }
+            // 削除失敗がある場合は成功件数に応じた見出しで警告
             if (result.errors?.length) {
+                // 全件失敗を部分失敗と誤認させない警告見出しを選択
+                const warningTitle =
+                    result.deletedCount > 0
+                        ? '一部削除できませんでした'
+                        : '削除できませんでした';
                 // 行単位エラーを改行区切りのトーストへ変換
                 this.showToast(
-                    '一部削除できませんでした',
+                    warningTitle,
                     createToastMessage(
                         result.errors,
                         '一部のレコードを削除できませんでした。'

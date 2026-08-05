@@ -307,6 +307,43 @@ private with sharing class ObjectRecordSearchSelectorTest {
     }
 
     /**
+     * 対象外オブジェクトのIDは検索結果へ含めない
+     */
+    @IsTest
+    static void getRecordsByIdShouldExcludeIdsFromAnotherObject() {
+        Account parentAccount = [
+            SELECT Id
+            FROM Account
+            WHERE Name = 'Selector Alpha'
+            LIMIT 1
+        ];
+        Contact contactRecord = TestDataFactory.createContact(
+            parentAccount,
+            'Selector Contact',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        List<SObject> records;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            records = selector.getRecordsById(
+                'Account',
+                new Set<Id>{ contactRecord.Id }
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            0,
+            records.size(),
+            'Account検索ではContact IDを取得対象にしない必要あり'
+        );
+    }
+
+    /**
      * 未対応オブジェクトは ID 未指定でも拒否
      */
     @IsTest

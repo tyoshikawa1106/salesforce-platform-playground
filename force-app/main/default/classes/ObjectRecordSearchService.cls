@@ -263,6 +263,16 @@ public with sharing class ObjectRecordSearchService {
 
         // DML 未実行時の null を空の結果として扱えるよう正規化
         List<Database.DeleteResult> safeDeleteResults = deleteResults ?? new List<Database.DeleteResult>();
+        // 重複、対象外、取得不能により DML へ到達しなかった要求件数を算出
+        Integer unprocessedCount = Math.max(
+            requestedCount - safeDeleteResults.size(),
+            0
+        );
+        // 未処理の要求も削除失敗として利用者へ通知
+        for (Integer index = 0; index < unprocessedCount; index++) {
+            // DML結果がない要求ごとに画面表示用エラーを追加
+            errors.add(DELETE_ROW_ERROR_MESSAGE);
+        }
         for (Database.DeleteResult deleteResult : safeDeleteResults) {
             // 成功件数とユーザー向けエラーを DML 結果から集計
             Boolean isDeleteSuccessful = deleteResult.isSuccess();
