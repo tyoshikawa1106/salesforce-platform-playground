@@ -386,6 +386,47 @@ private with sharing class ObjectRecordSearchControllerTest {
         );
     }
 
+    /**
+     * 重複した削除IDを未処理エラーとして返却
+     */
+    @IsTest
+    static void shouldReturnDeleteErrorWhenRecordIdIsDuplicated() {
+        Account target = [
+            SELECT Id
+            FROM Account
+            WHERE Name = '削除対象 Gamma'
+            LIMIT 1
+        ];
+        ObjectRecordSearchDeleteWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = ObjectRecordSearchController.deleteRecords(
+                'accounts',
+                new List<Id>{ target.Id, target.Id }
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            2,
+            result.requestedCount,
+            '重複したIDも受信した削除要求件数に含める必要あり'
+        );
+        Assert.areEqual(
+            1,
+            result.deletedCount,
+            '同じレコードは1回だけ削除する必要あり'
+        );
+        Assert.areEqual(
+            1,
+            result.errors.size(),
+            'DMLへ到達しなかった重複要求をエラーにする必要あり'
+        );
+    }
+
     private static ObjectRecordSearchRequestWrapper createSearchRequest(String metricKey, String searchTerm) {
         ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
         request.metricKey = metricKey;
