@@ -38,33 +38,6 @@ public with sharing class ObjectRecordSearchSortSupport {
     }
 
     /**
-     * 次ページ取得用の WHERE 条件を作成
-     *
-     * @param sortSpec ソート条件
-     * @param cursor 現在ページ末尾のカーソル
-     * @return SOQL の WHERE 句へ追加するカーソル条件
-     */
-    public static String createCursorWhereClause(SortSpec sortSpec, PageCursor cursor) {
-        if (cursor.sortValue == null) {
-            // null 値ソートでは Id だけで次ページ境界を進める
-            return '(' +
-                sortSpec.fieldApiName +
-                ' = NULL AND Id > :cursorRecordId)';
-        }
-        // 昇順と降順でカーソル境界の比較演算子を切り替え
-        String sortOperator = sortSpec.direction == SORT_DESCENDING ? '<' : '>';
-        return '(' +
-            sortSpec.fieldApiName +
-            ' ' +
-            sortOperator +
-            ' :cursorSortValue OR (' +
-            sortSpec.fieldApiName +
-            ' = :cursorSortValue AND Id > :cursorRecordId) OR ' +
-            sortSpec.fieldApiName +
-            ' = NULL)';
-    }
-
-    /**
      * 次ページ取得用のカーソルトークンを作成
      * @param rows 現在ページの表示行
      * @param sortSpec ソート条件

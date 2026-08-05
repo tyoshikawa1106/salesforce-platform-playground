@@ -39,8 +39,11 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
             ObjectMetricsOverviewService.MAX_COUNT_QUERY_COUNT,
             remainingQueryCount
         );
+        // 実行予定の件数 SOQL 数を上限判定用に確定
         Integer plannedQueryCount = safeCountQueries.size();
+        // 計画数が現在実行できる SOQL 数を超える場合は処理を拒否
         if (plannedQueryCount > executableQueryCount) {
+            // ガバナ制限到達前に利用者向け例外へ変換
             throw new ObjectMetricsOverviewQueryCoordinatorException(
                 'オブジェクト件数の取得に必要な SOQL 枠が不足しています。'
             );

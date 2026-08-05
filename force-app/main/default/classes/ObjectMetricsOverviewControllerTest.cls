@@ -88,6 +88,10 @@ private with sharing class ObjectMetricsOverviewControllerTest {
 
     /**
      * サマリから指定キーのメトリクスを取得
+     *
+     * @param summary 検索対象のオブジェクト件数サマリ
+     * @param metricKey 取得するメトリクスキー
+     * @return 指定キーのメトリクス、存在しない場合は null
      */
     private static ObjectMetricsOverviewItemWrapper getMetric(
         ObjectMetricsOverviewSummaryWrapper summary,

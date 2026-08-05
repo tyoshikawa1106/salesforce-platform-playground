@@ -26,24 +26,24 @@
 
 ### Apex
 
-| 種別       | API 名                                  | 役割                                     |
-| ---------- | --------------------------------------- | ---------------------------------------- |
-| Apex Class | `ObjectRecordSearchController`          | 検索と削除の Apex 入口                   |
-| Apex Class | `ObjectRecordSearchSelector`            | Describe、USER_MODE 検索、USER_MODE 削除 |
-| Apex Class | `ObjectRecordSearchService`             | 設定、検索結果、削除結果の組み立て       |
-| Apex Class | `ObjectRecordSearchQueryPlan`           | 許可済み条件による動的 SOQL 生成         |
-| Apex Class | `ObjectRecordSearchSortSupport`         | ソート条件の検証                         |
-| Apex Class | `ObjectRecordSearchPageTokenCodec`      | カーソルページング用トークンの変換       |
-| Apex Class | `ObjectRecordSearchDisplayFieldCatalog` | オブジェクト別の追加表示項目定義         |
-| Apex Class | `ObjectMetricCatalog`                   | カードキーと対象オブジェクトの許可リスト |
-| Apex Class | `ObjectRecordSearchConfigWrapper`       | 検索画面の設定情報                       |
-| Apex Class | `ObjectRecordSearchContext`             | 内部検索状態                             |
-| Apex Class | `ObjectRecordSearchDeleteWrapper`       | 削除要求と削除結果                       |
-| Apex Class | `ObjectRecordSearchException`           | 検索機能固有の例外                       |
-| Apex Class | `ObjectRecordSearchFieldWrapper`        | 表示項目情報                             |
-| Apex Class | `ObjectRecordSearchRequestWrapper`      | 検索要求                                 |
-| Apex Class | `ObjectRecordSearchResultWrapper`       | 検索結果                                 |
-| Apex Class | `ObjectRecordSearchRowWrapper`          | 一覧の行情報                             |
+| 種別       | API 名                                  | 役割                                           |
+| ---------- | --------------------------------------- | ---------------------------------------------- |
+| Apex Class | `ObjectRecordSearchController`          | 検索と削除の Apex 入口                         |
+| Apex Class | `ObjectRecordSearchSelector`            | 動的 SOQL・bind 組み立てと USER_MODE 検索      |
+| Apex Class | `ObjectRecordSearchService`             | 設定、検索結果、削除結果の組み立て             |
+| Apex Class | `ObjectRecordSearchQueryPlan`           | Selector と Service で共有する検証済み検索条件 |
+| Apex Class | `ObjectRecordSearchSortSupport`         | ソート条件の検証                               |
+| Apex Class | `ObjectRecordSearchPageTokenCodec`      | カーソルページング用トークンの変換             |
+| Apex Class | `ObjectRecordSearchDisplayFieldCatalog` | オブジェクト別の追加表示項目定義               |
+| Apex Class | `ObjectMetricCatalog`                   | カードキーと対象オブジェクトの許可リスト       |
+| Apex Class | `ObjectRecordSearchConfigWrapper`       | 検索画面の設定情報                             |
+| Apex Class | `ObjectRecordSearchContext`             | 内部検索状態                                   |
+| Apex Class | `ObjectRecordSearchDeleteWrapper`       | 削除要求と削除結果                             |
+| Apex Class | `ObjectRecordSearchException`           | 検索機能固有の例外                             |
+| Apex Class | `ObjectRecordSearchFieldWrapper`        | 表示項目情報                                   |
+| Apex Class | `ObjectRecordSearchRequestWrapper`      | 検索要求                                       |
+| Apex Class | `ObjectRecordSearchResultWrapper`       | 検索結果                                       |
+| Apex Class | `ObjectRecordSearchRowWrapper`          | 一覧の行情報                                   |
 
 ### 設定・権限
 
@@ -80,6 +80,7 @@
 - `Salesforce_Application_User` Permission Setで、LWCから直接呼び出す`ObjectRecordSearchController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトが参照可能かつクエリ可能で、`Name` 相当項目を参照できる必要があります。
 - 一覧取得と削除は `with sharing`、`AccessLevel.USER_MODE` で利用者の権限を適用します。
+- 検索語は任意フィルターとして扱い、空の場合も許可済みオブジェクトと項目、決定的なソート、51件の取得上限で初期一覧を取得します。
 - 作成、編集、削除ボタンは Describe 結果と UI 対応状況に応じて無効化します。
 - 表示項目は項目レベル参照権限で絞り込みます。
 
@@ -99,8 +100,8 @@
 
 ## テスト・確認観点
 
-- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchSelectorTest`、`ObjectRecordSearchServiceTest` で、設定取得、検索、ページング、削除、不正入力を確認すること
-- `ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、SOQL組み立て、許可済みソート、カーソル条件、不正ページトークンを確認すること
+- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchSelectorTest`、`ObjectRecordSearchServiceTest` で、設定取得、検索語の正規化、任意フィルターなしの初期一覧、ページング、削除、不正入力を確認すること
+- `ObjectRecordSearchSelectorTest`、`ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、動的 SOQL と bind、許可済み検索条件、固定取得件数、昇順・降順ソート、カーソル、不正ページトークンを確認すること
 - `objectRecordSearch.test.js`、`objectRecordSearchPaging.test.js`、`objectRecordSearchFormFlow.test.js` で、一覧表示、検索、ページ移動、レコード操作、権限メッセージ、エラー、親イベント通知を確認すること
 - 対応する各オブジェクトで `Name` 相当項目と追加表示項目が正しく表示されることを確認します。
 - 権限の異なるユーザーでボタン状態、表示列、検索、各 DML を確認します。

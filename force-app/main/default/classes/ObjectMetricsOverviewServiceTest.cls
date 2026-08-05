@@ -240,6 +240,8 @@ private with sharing class ObjectMetricsOverviewServiceTest {
 
     /**
      * サマリ組み立て用の上限到達件数と通常件数を作成
+     *
+     * @return メトリクスキーごとの件数と上限到達状態
      */
     private static Map<String, ObjectMetricsOverviewService.ObjectMetricCount> createMetricValues() {
         ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();

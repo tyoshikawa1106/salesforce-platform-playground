@@ -37,10 +37,13 @@ public with sharing class CaseEmailMessageSelector {
      * @return 利用者権限で作成した PaginationCursor
      */
     public Database.PaginationCursor getPaginationCursorByCaseId(Id caseId) {
+        // ケース ID 未指定時は Cursor を作成せず短絡
         if (caseId == null) {
+            // Cursor が存在しないことを呼び出し元へ通知
             return null;
         }
 
+        // 利用者権限でケースメールの固定順 Cursor を作成
         Database.PaginationCursor paginationCursor = Database.getPaginationCursorWithBinds(
             EMAIL_MESSAGE_QUERY,
             new Map<String, Object>{ 'caseId' => caseId },
