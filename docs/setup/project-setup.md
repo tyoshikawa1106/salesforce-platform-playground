@@ -49,7 +49,7 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 | ファイル                         | 目的                                                                                        |
 | -------------------------------- | ------------------------------------------------------------------------------------------- |
 | `.prettierrc`                    | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
-| `.prettierignore`                | static resources、ローカル生成物、接続情報などを整形対象から外す設定                        |
+| `.prettierignore`                | static resources、外部取得物、ローカル生成物、接続情報などを整形対象から外す設定            |
 | `package.json`                   | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
 | `package-lock.json`              | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
 | `vendor/brace-expansion-compat/` | 安全版 `brace-expansion` を旧 CommonJS / 現行 ES Modules の両APIへ提供する互換パッケージ    |

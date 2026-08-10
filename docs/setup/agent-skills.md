@@ -1,28 +1,27 @@
 # AI エージェントスキル
 
-この手順では、Salesforce 関連の参考情報として参照する AI エージェントスキルの導入と扱いを定義します。
+この手順では、Salesforce 関連の参考情報として参照する AI エージェントスキルの配置と扱いを定義します。
 プロジェクト固有の判断や運用ルールは `AGENTS.md` と `docs/` を優先します。
 
 ## forcedotcom/sf-skills
 
 `forcedotcom/sf-skills` は、Apex、Flow、メタデータ、SOQL、Apex テストなどを扱う Salesforce 関連の AI エージェントスキル集です。
 
-### 導入
+### 配置
 
-各ユーザーのローカル環境で必要に応じて導入します。
+`.agents/skills/` と `skills-lock.json` は Git 管理されているため、リポジトリを取得した環境で追加導入せずに参照できます。
 
-```sh
-npx skills add forcedotcom/sf-skills
-```
+Skills 本体と lock file は外部取得物として扱い、リポジトリのフォーマット処理や文書検証では変更しません。
 
-導入すると `.agents/skills/` と `skills-lock.json` が生成されます。
-これらはローカル生成物として扱い、Git 管理しません。
+### 更新
 
-## 実行環境ごとの扱い
+Skills を更新する場合は、`.agents/skills/` と `skills-lock.json` の対応を揃え、両方の差分を Pull Request でレビューしてから取り込みます。Skills の個別ファイルをリポジトリ側で独自に整形・修正しません。
 
-- ローカル作業では、`.agents/skills/` が存在する場合に限り、Salesforce 関連の参考情報として参照する。
-- `.agents/skills/` が存在しない場合も、作業を止めず、`AGENTS.md` と `docs/` を優先して進める。
-- sf-skills が必要な場合だけ、この手順に従ってローカル環境へ導入する。
+## 参照時の扱い
+
+- Salesforce 関連作業では、`.agents/skills/` から作業に対応する `SKILL.md` を参照する。
+- プロジェクト固有の判断、承認境界、検証条件は `AGENTS.md` と `docs/` を優先する。
+- Skills に deploy、retrieve、データ変更、認証操作などの手順が含まれていても、それ自体を実行承認として扱わない。
 
 ## 参照できる作業
 
