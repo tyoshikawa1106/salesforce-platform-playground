@@ -412,6 +412,17 @@ catch 句の例外変数名は `e` にします。
 - テストメソッドの `@IsTest` の上には、確認できる振る舞いを短い ApexDoc コメントで書く。
 - テストデータはテスト内で作成し、組織内の既存データに依存しない。
 
+### テスト対象インスタンス
+
+- `Service`、`Selector`、`DAO` など、複数のテストメソッドで共通利用するステートレスなテスト対象は、各テストメソッド内で生成せず、テストクラス先頭で `private static` フィールドとして一度生成する。
+- クラス先頭の共通フィールドは、テスト対象、テスト実行ユーザー、その他の共通テストデータの順に宣言する。
+- テスト対象が状態を保持する場合や、テストメソッドごとに異なるコンストラクタ引数が必要な場合は、各テストメソッド内で生成する。
+
+```apex
+private static ObjectRecordSearchService service = new ObjectRecordSearchService();
+private static User testUser = TestDataFactory.getTestUser();
+```
+
 ### TestDataFactory
 
 - 既存の `TestDataFactory` が使える場合は優先する。
