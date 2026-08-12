@@ -96,7 +96,8 @@ Prettier 対象外を定義します。
 | ------------------------------------ | --------------------------------------------------------- |
 | `**/staticresources/**`              | static resource の中身を勝手に整形しない。                |
 | `.localdevserver`, `.sfdx`, `.sf`    | local tool / Salesforce cache。                           |
-| `.agents`                            | local agent skill cache。                                 |
+| `.agents`                            | Git 管理する外部 agent skills。                           |
+| `skills-lock.json`                   | 外部 agent skills の取得情報を保持する lock file。        |
 | `coverage/`                          | LWC Jest coverage。                                       |
 | `export-out/*`                       | Salesforce CLI export 生成物。                            |
 | `logs/**`                            | ローカルログ / 解析結果。                                 |

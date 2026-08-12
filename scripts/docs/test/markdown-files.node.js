@@ -12,5 +12,6 @@ test('Git 管理する入口文書とテンプレートを検査対象に含め�
     assert.ok(relativePaths.includes('.github/pull_request_template.md'));
     assert.ok(relativePaths.includes('.clinerules/repository.md'));
     assert.ok(relativePaths.includes('.cline/skills/salesforce-skills/SKILL.md'));
+    assert.ok(relativePaths.every((filePath) => !filePath.startsWith('.agents/skills/')));
     assert.ok(markdownFiles.every((filePath) => fs.existsSync(filePath)));
 });

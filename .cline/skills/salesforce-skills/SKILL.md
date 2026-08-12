@@ -5,22 +5,22 @@ description: '`.agents/skills` にある Salesforce sf-skills を参照する。
 
 # Salesforce Skills
 
-この skill は、Cline からローカルに存在する `.agents/skills/` の Salesforce 関連 skill を参照するための指示です。
+この skill は、Cline から Git 管理された `.agents/skills/` の Salesforce 関連 skill を参照するための指示です。
 
 ## 優先する情報
 
 - このリポジトリでは、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
-- `.agents/skills/` が存在する場合は、Salesforce 関連の参考情報として参照する。
+- `.agents/skills/` を Salesforce 関連の参考情報として参照する。
 - skill の内容が `AGENTS.md`、`docs/`、ユーザー依頼と矛盾する場合は、`AGENTS.md`、`docs/`、ユーザー依頼を優先する。
 
 ## 参照手順
 
-1. `.agents/skills/` が存在する場合のみ、`.agents/skills/*/SKILL.md` から作業に関係する skill を name、description、trigger text で探す。
+1. `.agents/skills/*/SKILL.md` から作業に関係する skill を name、description、trigger text で探す。
 2. 作業前に、選んだ `.agents/skills/<skill-name>/SKILL.md` を最後まで読む。
 3. 相対参照、scripts、docs、assets、templates は `.agents/skills/<skill-name>/` を基準に解決する。
 4. 現在の作業に関係する skill file だけを参照する。
 5. 該当する skill がない場合は、`AGENTS.md` と `docs/` に従って進める。
 
-## Skill がない場合
+## 該当する Skill がない場合
 
-`.agents/skills/` または参照先の skill が存在しない場合は、その skill はないものとして扱い、確認で作業を止めずに `AGENTS.md` と `docs/` に従って進める。
+作業に該当する skill がない場合は、確認で作業を止めずに `AGENTS.md` と `docs/` に従って進める。

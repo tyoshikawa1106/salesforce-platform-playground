@@ -105,11 +105,7 @@ npm run code-analyzer:ci
 
 `forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の参考情報として利用します。
 
-```sh
-npx skills add forcedotcom/sf-skills
-```
-
-このコマンドを実行すると `.agents/skills/` と `skills-lock.json` が生成されます。
+Skills 本体は `.agents/skills/`、取得元と内容の識別情報は `skills-lock.json` で Git 管理しているため、追加の導入作業は不要です。プロジェクト固有の判断と実行条件は `AGENTS.md` と `docs/` を優先します。
 
 ## 参考サイト
 
