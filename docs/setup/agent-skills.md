@@ -15,7 +15,7 @@ Skills 本体と lock file は外部取得物として扱い、リポジトリ�
 
 ### 更新
 
-Skills を更新する場合は、`.agents/skills/` と `skills-lock.json` の対応を揃え、両方の差分を Pull Request でレビューしてから取り込みます。Skills の個別ファイルをリポジトリ側で独自に整形・修正しません。
+Skills を更新する場合は、`.agents/skills/` と `skills-lock.json` の対応を揃え、両方の差分を Pull Request でレビューしてから取り込みます。Skills の個別ファイルや `skills-lock.json` のハッシュを手編集しません。不具合や競合マーカーを見つけた場合もリポジトリ側では修正せず、取得元の内容として報告します。
 
 ## 参照時の扱い
 

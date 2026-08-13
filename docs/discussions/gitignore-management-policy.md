@@ -109,7 +109,7 @@
 
 当初は `.agents/` と `skills-lock.json` を環境ごとに導入するローカル生成物とみなし、Git 管理から除外していました。この方法では、リポジトリの容量や更新差分を抑えられる一方、環境ごとに Skills の有無や内容が異なり、AI エージェントが参照する情報をプロジェクト内で揃えられません。
 
-プロジェクトメンバーが追加の導入作業を行わず共通の Skills を利用できることと、Skills の変更内容を Git 上で確認できることを優先し、次の公開リポジトリを調査しました。
+リポジトリを取得した環境で追加の導入作業を行わず共通の Skills を利用できることと、Skills の変更内容を Git 上で確認できることを優先し、次の公開リポジトリを調査しました。
 
 - Salesforce の [cloudsplaining](https://github.com/salesforce/cloudsplaining) は、外部 Skills の実ファイルを [.claude/skills/](https://github.com/salesforce/cloudsplaining/tree/master/.claude/skills) に配置し、[skills-lock.json](https://github.com/salesforce/cloudsplaining/blob/master/skills-lock.json) とともに Git 管理しています。
 - Salesforce の配布元 [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills) は、Skills のソースとルートの [Apache-2.0 LICENSE.txt](https://github.com/forcedotcom/sf-skills/blob/main/LICENSE.txt) を管理しています。利用側ではなく配布元のため、`skills-lock.json` はありません。
@@ -125,7 +125,6 @@
 - Skills を更新する場合は、Pull Request で Skills 本体と lock file の差分を確認して取り込む。
 - Skills の内容より、このリポジトリの `AGENTS.md` と `docs/` に定めたルールを優先する。
 - `npx skills add` が取得した内容を管理対象とし、インストール処理に含まれない上流のライセンス文書を別経路で取得・同梱する運用は設けない。
-- リポジトリ公開、Skills の再配布、または組織の OSS 管理要件が生じた場合は、第三者ライセンスの扱いを再検討する。
 
 `.gitignore` から除外設定を外し、Skills 本体と lock file を追加する作業は [Issue #587](https://github.com/tyoshikawa1106/salesforce-platform-playground/issues/587) で管理します。
 
