@@ -103,14 +103,25 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
 
         if (fenceMatch) {
             if (fenceMarker === null) {
-                fenceMarker = fenceMatch[1][0];
-            } else if (fenceMarker === fenceMatch[1][0]) {
+                fenceMarker = fenceMatch[1];
+            } else if (fenceMarker[0] === fenceMatch[1][0] && fenceMatch[1].length >= fenceMarker.length) {
                 fenceMarker = null;
             }
             return;
         }
 
-        if (fenceMarker !== null && /^\s*setx(?:\.exe)?\s+"?path"?(?:\s|$)/i.test(line)) {
+        const isIndentedCode = /^(?: {4}|\t)/.test(line);
+
+        if (fenceMarker === null && !isIndentedCode) {
+            return;
+        }
+
+        const command = line
+            .replace(/^(?: {4}|\t)/, '')
+            .trimStart()
+            .replace(/^(?:PS(?:\s+[^>]*)?>|[A-Z]:\\[^>]*>|\$)\s*/i, '');
+
+        if (/^setx(?:\.exe)?\s+"?path"?(?:\s|$)/i.test(command)) {
             issues.push(
                 `${path.relative(projectRoot, filePath)}:${index + 1}: setx PATH を実行例に使用しないでください。`
             );

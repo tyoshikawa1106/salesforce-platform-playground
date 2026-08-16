@@ -18,6 +18,8 @@ Salesforce Code Analyzer は、Salesforce CLI plugin として動作する静的
 
 ## macOS のセットアップ例
 
+この例は、Apple Silicon Macと、標準の `/opt/homebrew` にインストールしたHomebrewを対象にします。
+
 Homebrew で基本ツールを入れる例:
 
 ```sh
@@ -35,21 +37,21 @@ Homebrew の Java を優先する必要がある場合:
 
 ```sh
 javaPathLine='export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"'
-grep -Fqx "$javaPathLine" ~/.zshrc || printf '\n%s\n' "$javaPathLine" >> ~/.zshrc
-source ~/.zshrc
+grep -Fqx "$javaPathLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$javaPathLine" >> ~/.zprofile
+export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"
 ```
 
-同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除します。
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `export PATH` 行だけを削除します。
 
 Homebrew の Python 3.13 を `python3` として使うため、`libexec/bin` を PATH に追加します。
 
 ```sh
 pythonPathLine='export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"'
-grep -Fqx "$pythonPathLine" ~/.zshrc || printf '\n%s\n' "$pythonPathLine" >> ~/.zshrc
-source ~/.zshrc
+grep -Fqx "$pythonPathLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$pythonPathLine" >> ~/.zprofile
+export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 ```
 
-同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除します。
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `export PATH` 行だけを削除します。
 
 ## Windows のセットアップ例
 
@@ -191,11 +193,11 @@ zsh で Homebrew Python を優先する例:
 
 ```sh
 pythonPathLine='export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"'
-grep -Fqx "$pythonPathLine" ~/.zshrc || printf '\n%s\n' "$pythonPathLine" >> ~/.zshrc
-source ~/.zshrc
+grep -Fqx "$pythonPathLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$pythonPathLine" >> ~/.zprofile
+export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 ```
 
-同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除します。
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `export PATH` 行だけを削除します。
 
 確認:
 

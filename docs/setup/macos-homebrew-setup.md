@@ -1,6 +1,6 @@
 # macOS 開発環境のセットアップ
 
-この手順では、macOS で Salesforce DX 開発に必要なツール一式を Homebrew ベースで導入します。
+この手順では、Apple Silicon Macで Salesforce DX 開発に必要なツール一式を、標準の `/opt/homebrew` にインストールしたHomebrewを使って導入します。
 Node.js / npm はプロジェクトごとに要求バージョンが変わりやすいため、Volta で管理します。
 
 ## 管理対象ツール
@@ -25,11 +25,17 @@ Homebrew が未インストールの場合は、公式インストールスク�
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-インストール確認:
+Homebrewを現在のshellと以後のzsh login shellで使えるようにします。
 
 ```sh
+eval "$(/opt/homebrew/bin/brew shellenv)"
 brew --version
+
+homebrewShellenvLine='eval "$(/opt/homebrew/bin/brew shellenv)"'
+grep -Fqx "$homebrewShellenvLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$homebrewShellenvLine" >> ~/.zprofile
 ```
+
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `eval` 行だけを削除し、新しいshellを開きます。
 
 ## 2. 基本ツールのインストール
 
@@ -69,12 +75,12 @@ brew install openjdk@25
 
 macOS の Java ランチャーから使えるように登録します。
 
-`/opt/homebrew` を直接書くと Apple Silicon Mac 固定になるため、`brew --prefix` を使います。
+この手順の対象であるApple Silicon MacのHomebrew標準配置を使用します。
 
 既存の登録先を強制置換せず、未登録の場合だけsymlinkを作成します。
 
 ```sh
-javaTarget="$(brew --prefix openjdk@25)/libexec/openjdk.jdk"
+javaTarget="/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk"
 javaLink="/Library/Java/JavaVirtualMachines/openjdk-25.jdk"
 
 if [ -e "$javaLink" ] || [ -L "$javaLink" ]; then
@@ -89,12 +95,12 @@ fi
 必要に応じて、Homebrew の Java を PATH の前方に追加します。
 
 ```sh
-javaPathLine='export PATH="$(brew --prefix openjdk@25)/bin:$PATH"'
-grep -Fqx "$javaPathLine" ~/.zshrc || printf '\n%s\n' "$javaPathLine" >> ~/.zshrc
-source ~/.zshrc
+javaPathLine='export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"'
+grep -Fqx "$javaPathLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$javaPathLine" >> ~/.zprofile
+export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"
 ```
 
-同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
 
 確認:
 
@@ -119,12 +125,13 @@ brew install volta
 Volta の shim を PATH の前方に追加します。
 
 ```sh
-grep -Fqx 'export VOLTA_HOME="$HOME/.volta"' ~/.zshrc || printf '\nexport VOLTA_HOME="$HOME/.volta"\n' >> ~/.zshrc
-grep -Fqx 'export PATH="$VOLTA_HOME/bin:$PATH"' ~/.zshrc || printf 'export PATH="$VOLTA_HOME/bin:$PATH"\n' >> ~/.zshrc
-source ~/.zshrc
+grep -Fqx 'export VOLTA_HOME="$HOME/.volta"' ~/.zprofile 2>/dev/null || printf '\nexport VOLTA_HOME="$HOME/.volta"\n' >> ~/.zprofile
+grep -Fqx 'export PATH="$VOLTA_HOME/bin:$PATH"' ~/.zprofile 2>/dev/null || printf 'export PATH="$VOLTA_HOME/bin:$PATH"\n' >> ~/.zprofile
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
 ```
 
-同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`から上記2行だけを削除し、新しいshellを開きます。
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`から上記2行だけを削除し、新しいshellを開きます。
 
 Node.js 24 をインストールします。
 
@@ -193,12 +200,14 @@ Homebrew Python 3.13 の `python3` / `python` は `libexec/bin` にあります�
 zsh で Homebrew Python 3.13 を優先します。
 
 ```sh
-pythonPathLine='export PATH="$(brew --prefix python@3.13)/libexec/bin:$PATH"'
-grep -Fqx "$pythonPathLine" ~/.zshrc || printf '\n%s\n' "$pythonPathLine" >> ~/.zshrc
-source ~/.zshrc
+pythonPathLine='export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"'
+grep -Fqx "$pythonPathLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$pythonPathLine" >> ~/.zprofile
+export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"
 ```
 
-同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
+同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
+
+以前の手順で同じ `export` 行を `.zshrc` に追加している場合は、新しいlogin shellで各ツールの確認が完了してから、該当する行だけを `.zshrc` から削除します。
 
 ### 確認
 
