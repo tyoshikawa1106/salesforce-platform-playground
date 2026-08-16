@@ -4,7 +4,12 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '../..');
 const docsRoot = path.join(projectRoot, 'docs');
 const docsIndex = path.join(docsRoot, 'index.md');
+const externalSkillsRoot = path.join(projectRoot, '.agents', 'skills');
 const fragmentMarkdownFiles = [path.join(projectRoot, '.github/pull_request_template.md')];
+
+function isExternalSkillFile(filePath) {
+    return filePath.startsWith(`${externalSkillsRoot}${path.sep}`);
+}
 
 function getManagedMarkdownFiles() {
     return execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md'], {
@@ -14,6 +19,7 @@ function getManagedMarkdownFiles() {
         .split('\n')
         .filter(Boolean)
         .map((filePath) => path.join(projectRoot, filePath))
+        .filter((filePath) => !isExternalSkillFile(filePath))
         .sort();
 }
 

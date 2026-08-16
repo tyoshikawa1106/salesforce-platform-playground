@@ -4,6 +4,7 @@
 
 | パス                  | 種別     | 用途                                                                         |
 | --------------------- | -------- | ---------------------------------------------------------------------------- |
+| `.agents/`            | フォルダ | Git管理する外部AIエージェントSkillsを格納する。                              |
 | `.cline/`             | フォルダ | Cline向けのSalesforce skill routerを管理する。                               |
 | `.clinerules/`        | フォルダ | Cline固有のリポジトリ指示を管理する。                                        |
 | `.gemini/`            | フォルダ | Gemini CLIの設定を管理する。                                                 |
@@ -36,6 +37,7 @@
 | `package-lock.json`   | ファイル | npm依存関係の解決結果を固定する。                                            |
 | `package.json`        | ファイル | npm script、依存関係、lint-stagedを定義する。                                |
 | `sfdx-project.json`   | ファイル | Salesforce DXのpackage directory、API version、login URLを定義する。         |
+| `skills-lock.json`    | ファイル | 外部AIエージェントSkillsの取得元と内容の識別情報を管理する。                 |
 
 ## vendor
 
@@ -49,16 +51,17 @@
 
 ## AIエージェント・エディタ
 
-| パス                                       | 種別     | 用途                                                                   |
-| ------------------------------------------ | -------- | ---------------------------------------------------------------------- |
-| `.cline/skills/`                           | フォルダ | Clineから利用するskill routerを格納する。                              |
-| `.cline/skills/salesforce-skills/SKILL.md` | ファイル | 必要に応じてローカルの`.agents/skills/`を参照するようClineへ案内する。 |
-| `.clinerules/repository.md`                | ファイル | Clineにリポジトリルールの参照順を示す。                                |
-| `.gemini/settings.json`                    | ファイル | Gemini CLIが読み込むcontext fileを定義する。                           |
-| `.husky/pre-commit`                        | ファイル | commit前に`npm run precommit`を実行する。                              |
-| `.vscode/extensions.json`                  | ファイル | VS Codeの推奨拡張機能を定義する。                                      |
-| `.vscode/launch.json`                      | ファイル | Apex Replay Debuggerなどのdebug設定を定義する。                        |
-| `.vscode/settings.json`                    | ファイル | VS Codeのworkspace設定を定義する。                                     |
+| パス                                       | 種別     | 用途                                                          |
+| ------------------------------------------ | -------- | ------------------------------------------------------------- |
+| `.cline/skills/`                           | フォルダ | Clineから利用するskill routerを格納する。                     |
+| `.agents/skills/`                          | フォルダ | `forcedotcom/sf-skills`由来のSkills本体を管理する。           |
+| `.cline/skills/salesforce-skills/SKILL.md` | ファイル | Git管理された`.agents/skills/`を参照するようClineへ案内する。 |
+| `.clinerules/repository.md`                | ファイル | Clineにリポジトリルールの参照順を示す。                       |
+| `.gemini/settings.json`                    | ファイル | Gemini CLIが読み込むcontext fileを定義する。                  |
+| `.husky/pre-commit`                        | ファイル | commit前に`npm run precommit`を実行する。                     |
+| `.vscode/extensions.json`                  | ファイル | VS Codeの推奨拡張機能を定義する。                             |
+| `.vscode/launch.json`                      | ファイル | Apex Replay Debuggerなどのdebug設定を定義する。               |
+| `.vscode/settings.json`                    | ファイル | VS Codeのworkspace設定を定義する。                            |
 
 ## GitHub
 

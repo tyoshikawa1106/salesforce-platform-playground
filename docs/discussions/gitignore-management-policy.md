@@ -105,12 +105,28 @@
 | --------------- | ----------------------------------------------- |
 | `node_modules/` | `package-lock.json` で再現する npm 依存の実体。 |
 
-### Agent skills installed locally
+### Agent skills
 
-| パターン           | 理由                                         |
-| ------------------ | -------------------------------------------- |
-| `.agents/`         | `sf-skills` / agent skill のローカル生成物。 |
-| `skills-lock.json` | skill 導入時のローカル生成物。               |
+当初は `.agents/` と `skills-lock.json` を環境ごとに導入するローカル生成物とみなし、Git 管理から除外していました。この方法では、リポジトリの容量や更新差分を抑えられる一方、環境ごとに Skills の有無や内容が異なり、AI エージェントが参照する情報をプロジェクト内で揃えられません。
+
+リポジトリを取得した環境で追加の導入作業を行わず共通の Skills を利用できることと、Skills の変更内容を Git 上で確認できることを優先し、次の公開リポジトリを調査しました。
+
+- Salesforce の [cloudsplaining](https://github.com/salesforce/cloudsplaining) は、外部 Skills の実ファイルを [.claude/skills/](https://github.com/salesforce/cloudsplaining/tree/master/.claude/skills) に配置し、[skills-lock.json](https://github.com/salesforce/cloudsplaining/blob/master/skills-lock.json) とともに Git 管理しています。
+- Salesforce の配布元 [forcedotcom/sf-skills](https://github.com/forcedotcom/sf-skills) は、Skills のソースとルートの [Apache-2.0 LICENSE.txt](https://github.com/forcedotcom/sf-skills/blob/main/LICENSE.txt) を管理しています。利用側ではなく配布元のため、`skills-lock.json` はありません。
+- Vercel の [next.js](https://github.com/vercel/next.js) は、[.agents/skills/](https://github.com/vercel/next.js/tree/canary/.agents/skills) と [skills-lock.json](https://github.com/vercel/next.js/blob/canary/skills-lock.json) を Git 管理しています。
+- Sentry の [sentry-docs](https://github.com/getsentry/sentry-docs) は、[skills-lock.json](https://github.com/getsentry/sentry-docs/blob/master/skills-lock.json) とエージェント向け symlink を管理し、参照先の Skills 本体は Git 管理していません。
+- Prisma の [studio](https://github.com/prisma/studio) は、[.agents/skills/](https://github.com/prisma/studio/tree/main/.agents/skills) と [skills-lock.json](https://github.com/prisma/studio/blob/main/skills-lock.json) を Git 管理しています。
+- Sanity の [sanity](https://github.com/sanity-io/sanity) は、[.agents/skills/](https://github.com/sanity-io/sanity/tree/main/.agents/skills) と [skills-lock.json](https://github.com/sanity-io/sanity/blob/main/skills-lock.json) を Git 管理しています。一部の Skill には、取得物として [LICENSE.md](https://github.com/sanity-io/sanity/blob/main/.agents/skills/playwright-best-practices/LICENSE.md) も含まれています。
+
+公開リポジトリの運用は統一されていませんが、Salesforce 公式を含む複数のリポジトリで Skills 本体と lock file をともに管理していることを確認しました。このプロジェクトでは、次の方針へ変更します。
+
+- `.agents/skills/` の `forcedotcom/sf-skills` を選別せず Git 管理する。
+- `skills-lock.json` も Git 管理し、Skills 本体との対応を確認できるようにする。
+- Skills を更新する場合は、Pull Request で Skills 本体と lock file の差分を確認して取り込む。
+- Skills の内容より、このリポジトリの `AGENTS.md` と `docs/` に定めたルールを優先する。
+- `npx skills add` が取得した内容を管理対象とし、インストール処理に含まれない上流のライセンス文書を別経路で取得・同梱する運用は設けない。
+
+`.gitignore` から除外設定を外し、Skills 本体と lock file を追加する作業は [Issue #587](https://github.com/tyoshikawa1106/salesforce-platform-playground/issues/587) で管理します。
 
 ### Tool caches
 
