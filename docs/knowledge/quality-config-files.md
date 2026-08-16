@@ -101,10 +101,12 @@ Prettier 対象外を定義します。
 | `coverage/`                          | LWC Jest coverage。                                       |
 | `export-out/*`                       | Salesforce CLI export 生成物。                            |
 | `logs/**`                            | ローカルログ / 解析結果。                                 |
+| `!logs/**/`                          | guideを探索できるよう、配下directoryを対象へ戻す。        |
 | `!logs/**/*.md`                      | guide だけ整形対象に戻す。                                |
 | `force-app/main/default/classes/**`  | retrieve 済み Apex class の整形差分を不用意に広げない。   |
 | `force-app/main/default/triggers/**` | retrieve 済み Apex trigger の整形差分を不用意に広げない。 |
 | `force-app/main/default/lwc/**`      | retrieve 済み LWC の整形差分を不用意に広げない。          |
+| `force-app/main/default/pages/**`    | retrieve 済み Visualforce の整形差分を不用意に広げない。  |
 | `force-app/main/default/**/*.xml`    | retrieve 済み metadata XML の整形差分を不用意に広げない。 |
 
 確認:
