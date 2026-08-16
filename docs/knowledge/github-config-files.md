@@ -19,6 +19,7 @@ PRと`main`へのプッシュで実行するCIです。
 | `npm run prettier:verify`                         | formatter 確認。                                                                               |
 | `npm run docs:check`                              | docs、入口文書、ガイド、文書断片のローカルリンクと見出し、docsのファイル名と索引到達性を確認。 |
 | `npm run lint -- --no-error-on-unmatched-pattern` | Aura／LWCとリポジトリ運用スクリプトのJS lint。                                                 |
+| `npm run lint:slds`                               | LWCのSLDS準拠を確認する。                                                                      |
 | `actions/setup-java@v5`                           | Code Analyzer 用の Java 17 を設定する。内部ランタイムは Node.js 24。                           |
 | Salesforce Code Analyzer                          | Salesforce CLI と plugin を入れて `npm run code-analyzer:ci`。                                 |
 | Script unit tests                                 | `npm run test:scripts`でScratch Org、文書検査、データ投入、retrieve planを確認する。           |
