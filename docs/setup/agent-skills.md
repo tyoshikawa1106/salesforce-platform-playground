@@ -11,11 +11,11 @@
 
 `.agents/skills/` と `skills-lock.json` は Git 管理されているため、リポジトリを取得した環境で追加導入せずに参照できます。
 
-Skills 本体と lock file は外部取得物として扱い、リポジトリのフォーマット処理や文書検証では変更しません。
+Skills 本体は `forcedotcom/sf-skills` の取得元にあるオリジナル状態を正とし、lock file は取得操作が生成した状態を正とします。いずれも外部取得物として扱い、リポジトリのフォーマット処理や文書検証では変更しません。
 
 ### 更新
 
-Skills を更新する場合は、`.agents/skills/` と `skills-lock.json` の対応を揃え、両方の差分を Pull Request でレビューしてから取り込みます。Skills の個別ファイルや `skills-lock.json` のハッシュを手編集しません。不具合や競合マーカーを見つけた場合もリポジトリ側では修正せず、取得元の内容として報告します。
+Skills を更新する場合は、`.agents/skills/` と `skills-lock.json` の対応を揃え、両方の差分を Pull Request でレビューしてから取り込みます。Skills の個別ファイルや `skills-lock.json` のハッシュを手編集しません。不具合や競合マーカーを見つけた場合もリポジトリ側では修正せず、取得元で修正された内容を取得・更新操作で取り込みます。
 
 ## 参照時の扱い
 
