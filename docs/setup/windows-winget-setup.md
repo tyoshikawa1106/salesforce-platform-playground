@@ -151,6 +151,8 @@ Could not locate a Python v3.10.0+ install using any of the following:
 
 `setx PATH` は使用しません。既存の PATH が長い場合に値を切り詰め、その状態で永続化する可能性があるためです。詳細は [setx の公式ドキュメント](https://learn.microsoft.com/windows-server/administration/windows-commands/setx) を参照してください。
 
+過去の手順で `setx PATH` を実行した後にコマンドが見つからなくなった場合は、PATHを追加変更せず、[Windows PATHの確認と復旧](windows-path-recovery.md)を先に確認します。
+
 1. スタートメニューで「環境変数を編集」を開きます。
 2. ユーザー環境変数の `Path` を選択して「編集」を開きます。
 3. 次の2項目を追加し、Pythonの他の項目より上へ移動します。

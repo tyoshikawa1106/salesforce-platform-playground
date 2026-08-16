@@ -34,16 +34,22 @@ volta install node@24
 Homebrew の Java を優先する必要がある場合:
 
 ```sh
-echo 'export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"' >> ~/.zshrc
+javaPathLine='export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"'
+grep -Fqx "$javaPathLine" ~/.zshrc || printf '\n%s\n' "$javaPathLine" >> ~/.zshrc
 source ~/.zshrc
 ```
+
+同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除します。
 
 Homebrew の Python 3.13 を `python3` として使うため、`libexec/bin` を PATH に追加します。
 
 ```sh
-printf '\n# Homebrew Python 3.13 for Salesforce Code Analyzer Flow engine\nexport PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"\n' >> ~/.zshrc
+pythonPathLine='export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"'
+grep -Fqx "$pythonPathLine" ~/.zshrc || printf '\n%s\n' "$pythonPathLine" >> ~/.zshrc
 source ~/.zshrc
 ```
+
+同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除します。
 
 ## Windows のセットアップ例
 
@@ -79,6 +85,8 @@ python3 --version
 `python3` または `python` が Python 3.10 以降を指していない場合は、Windows の「環境変数」で、Python 3.13 のインストール先をユーザー PATH の前方に追加します。
 
 `setx PATH` は使用しません。既存の PATH が長い場合に値を切り詰め、その状態で永続化する可能性があるためです。詳細は [setx の公式ドキュメント](https://learn.microsoft.com/windows-server/administration/windows-commands/setx) を参照してください。
+
+過去の手順で `setx PATH` を実行した後にコマンドが見つからなくなった場合は、PATHを追加変更せず、[Windows PATHの確認と復旧](../setup/windows-path-recovery.md)を先に確認します。
 
 1. スタートメニューで「環境変数を編集」を開きます。
 2. ユーザー環境変数の `Path` を選択して「編集」を開きます。
@@ -182,9 +190,12 @@ Homebrew の versioned Python には、バージョンなしの `python3` / `pyt
 zsh で Homebrew Python を優先する例:
 
 ```sh
-printf '\n# Homebrew Python 3.13 for Salesforce Code Analyzer Flow engine\nexport PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"\n' >> ~/.zshrc
+pythonPathLine='export PATH="/opt/homebrew/opt/python@3.13/libexec/bin:$PATH"'
+grep -Fqx "$pythonPathLine" ~/.zshrc || printf '\n%s\n' "$pythonPathLine" >> ~/.zshrc
 source ~/.zshrc
 ```
+
+同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除します。
 
 確認:
 

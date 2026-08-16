@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { parseMarkdown, validateDocumentation } = require('../check-docs-core');
+const { parseMarkdown, validateDocumentation, validateUnsafeCommandExamples } = require('../check-docs-core');
 
 const projectRoot = path.resolve('/repository');
 
@@ -30,6 +30,17 @@ test('コードフェンス内の見出しを無視し、見出しレベルの�
 
     assert.deepEqual([...parsed.anchors], ['見出し', '飛んだ見出し']);
     assert.match(parsed.issues[0], /H1 から H3/);
+});
+
+test('コードブロック内のsetx PATHを拒否し、注意書きでの言及は許可する', () => {
+    const filePath = path.join(projectRoot, 'docs/example.md');
+    const issues = validateUnsafeCommandExamples({
+        content: '# Example\n\n`setx PATH` は使用しません。\n\n```powershell\nsetx PATH "$env:PATH;C:\\Tools"\n```',
+        filePath,
+        projectRoot
+    });
+
+    assert.deepEqual(issues, ['docs/example.md:6: setx PATH を実行例に使用しないでください。']);
 });
 
 test('リンク、アンカー、docs indexからの到達性をまとめて検証する', () => {
