@@ -149,11 +149,26 @@ Could not locate a Python v3.10.0+ install using any of the following:
 
 ユーザーインストールの Python 3.13 を PATH の前方に追加する例:
 
+`setx PATH` は使用しません。既存の PATH が長い場合に値を切り詰め、その状態で永続化する可能性があるためです。詳細は [setx の公式ドキュメント](https://learn.microsoft.com/windows-server/administration/windows-commands/setx) を参照してください。
+
+1. スタートメニューで「環境変数を編集」を開きます。
+2. ユーザー環境変数の `Path` を選択して「編集」を開きます。
+3. 次の2項目を追加し、Pythonの他の項目より上へ移動します。
+    - `%LOCALAPPDATA%\Programs\Python\Python313`
+    - `%LOCALAPPDATA%\Programs\Python\Python313\Scripts`
+4. PowerShellを開き直して、設定を反映します。
+
+永続設定を変更する前に、現在のPowerShellだけで動作確認する場合:
+
 ```powershell
 $pythonDir = "$env:LOCALAPPDATA\Programs\Python\Python313"
 $pythonScripts = "$pythonDir\Scripts"
-setx PATH "$pythonDir;$pythonScripts;$env:PATH"
+$env:Path = "$pythonDir;$pythonScripts;$env:Path"
+python --version
+python3 --version
 ```
+
+このPowerShell例は現在のプロセスだけに適用され、ユーザーPATHやMachine PATHを永続的に変更しません。
 
 ### 確認
 

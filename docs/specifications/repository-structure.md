@@ -155,6 +155,7 @@
 | `force-app/main/default/milestoneTypes/`                   | Entitlement Managementのmilestone typeを管理する。     |
 | `force-app/main/default/notificationTypeConfig/`           | Salesforce通知typeの有効化設定を管理する。             |
 | `force-app/main/default/objects/`                          | Object、Field、Record Typeなどのmetadataを管理する。   |
+| `force-app/main/default/objectTranslations/`               | ObjectとFieldの翻訳metadataを管理する。                |
 | `force-app/main/default/pages/`                            | Visualforce Pageを管理する。                           |
 | `force-app/main/default/permissionsetgroups/`              | Permission Set Groupを管理する。                       |
 | `force-app/main/default/permissionsets/`                   | Permission Setを管理する。                             |
