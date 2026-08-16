@@ -196,10 +196,10 @@ python3 --version
 このリポジトリでは Heroku CLI は不要です。Heroku アプリケーションを扱う場合だけインストールします。
 
 ```sh
-brew tap heroku/brew
-brew install heroku
-brew trust heroku/brew
+brew install heroku/brew/heroku
 ```
+
+formulaを完全修飾名で指定し、`heroku/brew` tap全体への信頼は追加しません。
 
 Heroku にログインする場合:
 
