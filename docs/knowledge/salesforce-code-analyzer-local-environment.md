@@ -76,15 +76,28 @@ python --version
 python3 --version
 ```
 
-`python3` または `python` が Python 3.10 以降を指していない場合は、Windows の「環境変数」または `setx PATH` で Python 3.13 のインストール先を PATH の前方に追加します。
+`python3` または `python` が Python 3.10 以降を指していない場合は、Windows の「環境変数」で、Python 3.13 のインストール先をユーザー PATH の前方に追加します。
 
-ユーザーごとの代表例:
+`setx PATH` は使用しません。既存の PATH が長い場合に値を切り詰め、その状態で永続化する可能性があるためです。詳細は [setx の公式ドキュメント](https://learn.microsoft.com/windows-server/administration/windows-commands/setx) を参照してください。
+
+1. スタートメニューで「環境変数を編集」を開きます。
+2. ユーザー環境変数の `Path` を選択して「編集」を開きます。
+3. 次の2項目を追加し、Pythonの他の項目より上へ移動します。
+    - `%LOCALAPPDATA%\Programs\Python\Python313`
+    - `%LOCALAPPDATA%\Programs\Python\Python313\Scripts`
+4. PowerShellを開き直して、設定を反映します。
+
+永続設定を変更する前に、現在のPowerShellだけで動作確認する場合:
 
 ```powershell
 $pythonDir = "$env:LOCALAPPDATA\Programs\Python\Python313"
 $pythonScripts = "$pythonDir\Scripts"
-setx PATH "$pythonDir;$pythonScripts;$env:PATH"
+$env:Path = "$pythonDir;$pythonScripts;$env:Path"
+python --version
+python3 --version
 ```
+
+このPowerShell例は現在のプロセスだけに適用され、ユーザーPATHやMachine PATHを永続的に変更しません。
 
 設定後は PowerShell を開き直して確認します。
 
