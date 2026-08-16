@@ -12,7 +12,7 @@
 | `.husky/`             | フォルダ | Git hookを管理する。                                                         |
 | `.vscode/`            | フォルダ | VS Codeの推奨拡張機能、debug、workspace設定を管理する。                      |
 | `config/`             | フォルダ | Scratch OrgとCode Analyzerの補助設定を管理する。                             |
-| `docs/`               | フォルダ | セットアップ、開発ルール、組織操作、仕様、ナレッジを管理する。               |
+| `docs/`               | フォルダ | セットアップ、開発ルール、組織操作、仕様、調査・検討記録を管理する。         |
 | `export-out/`         | フォルダ | Salesforce CLIのexport結果をローカルに出力する。                             |
 | `force-app/`          | フォルダ | Salesforce metadataとLWCテスト支援コードを管理する。                         |
 | `logs/`               | フォルダ | Apex、Code Analyzer、Bulk APIのローカル出力先を管理する。                    |
@@ -92,8 +92,8 @@
 | ---------------------- | ---------- | ----------------------------------------------------------------------------- |
 | `docs/deployment/`     | フォルダ   | Salesforce組織のvalidate、deploy、retrieve、削除、Scratch Org手順を管理する。 |
 | `docs/development/`    | フォルダ   | 開発、GitHub、metadata、Apex、文書の運用ルールを管理する。                    |
-| `docs/discussions/`    | フォルダ   | 設計や運用を決めるまでの比較と判断過程を管理する。                            |
-| `docs/knowledge/`      | フォルダ   | Salesforce DX開発で再利用する解説と調査結果を管理する。                       |
+| `docs/discussions/`    | フォルダ   | 作成時点の設計、運用の比較と判断過程を記録する。                              |
+| `docs/knowledge/`      | フォルダ   | 作成時点のSalesforce DX開発に関する解説と調査結果を記録する。                 |
 | `docs/setup/`          | フォルダ   | 開発環境を初めて準備するときの手順を管理する。                                |
 | `docs/specifications/` | フォルダ   | リポジトリ構成と独自開発機能の現行仕様を管理する。                            |
 | `docs/_config.yml`     | ファイル   | GitHub PagesのJekyll設定を定義する。                                          |

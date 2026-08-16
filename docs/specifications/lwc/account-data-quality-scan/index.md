@@ -115,7 +115,6 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 
 ## 関連コンポーネント
 
-- [Apex Cursorsの設計と使い分け](../../../knowledge/apex-cursors.md)
 - Salesforce標準のAccount
 - Salesforce標準のQueueable ApexとFinalizer
 
