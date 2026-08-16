@@ -38,6 +38,21 @@ logs/code-analyzer/ci.json
 
 `ci.json` は severity threshold 付きの CI 相当確認で使います。
 
+## 対象を限定した確認
+
+変更ファイルだけを解析するなど、`sf code-analyzer run` を直接実行する場合も、解析結果と実行ログの両方を `logs/code-analyzer/` 配下へ保存します。
+
+```sh
+sf code-analyzer run \
+  --rule-selector Recommended \
+  --target force-app/main/default/classes/Example.cls \
+  --output-file logs/code-analyzer/scoped.json \
+  --include-fixes \
+  2>&1 | tee logs/code-analyzer/scoped.log
+```
+
+外部取得物のコマンド例が `./code-analyzer-results-*` を指定していても、このリポジトリでは使用しません。出力先だけを `logs/code-analyzer/` 配下へ置き換えます。
+
 `--output-file` の拡張子を変えると、HTML、CSV、XML、SARIF などの形式でも出力できます。
 
 ## ローカル解析結果の削除
