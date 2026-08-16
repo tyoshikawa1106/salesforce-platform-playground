@@ -74,9 +74,10 @@ $recoveryCandidates
 
 System Restoreはレジストリ設定とインストール済みプログラムにも影響します。実行前に重要データをバックアップし、Microsoftの [System Restore](https://support.microsoft.com/en-us/windows/experience/backup-recovery/system-restore) と [Windowsの回復オプション](https://support.microsoft.com/en-us/windows/experience/backup-recovery/recovery-options-in-windows) で影響を確認します。
 
-## Python PATHだけを追加する場合
+## Pythonだけが見つからない場合
 
-既存PATHの復旧後、Code Analyzer用Pythonだけが不足している場合は、[Windows開発環境のセットアップ](windows-winget-setup.md#path-設定)に従って、環境変数画面からPythonの2項目だけを追加します。
+既存PATHの復旧後、Code Analyzer用Pythonだけが不足している場合は、固定パスを手動追加しません。
+[Windows開発環境のセットアップ](windows-winget-setup.md#5-python-313)に従い、`py -3.13 --version`と`python --version`を確認してからインストール済みPythonの修復またはwingetでの再インストールを行います。
 
 ## 復旧後の確認
 
@@ -88,7 +89,6 @@ where.exe node
 where.exe npm
 where.exe sf
 where.exe python
-where.exe python3
 ```
 
 インストールしていないツールが見つからないことは異常ではありません。各コマンドが意図したディレクトリを指し、必要な開発コマンドが再び動作することを確認します。

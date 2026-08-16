@@ -140,8 +140,10 @@ sf --version
 Salesforce 開発組織へログインする場合:
 
 ```sh
-sf org login web --set-default --alias <alias>
+sf org login web --alias <alias> --set-default --browser chrome
 ```
+
+`--set-default`と`--browser`の動作は、Salesforce CLIの[plugin-auth公式リファレンス](https://github.com/salesforcecli/plugin-auth)を参照します。
 
 接続済みの Salesforce 組織に対する deploy、delete、retrieve、test などの操作は、実行前に対象と目的を確認します。
 開発タスクで deploy や Apex test を行う場合は、現在接続されている組織だけを対象にし、明示依頼なしに target org を切り替えません。

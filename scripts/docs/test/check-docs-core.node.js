@@ -60,6 +60,40 @@ test('インデント形式とshell prompt付きのsetx PATHを拒否する', ()
     ]);
 });
 
+test('廃止したWindowsセットアップコマンドと固定Python PATHを拒否する', () => {
+    const filePath = path.join(projectRoot, 'docs/setup/windows-winget-setup.md');
+    const issues = validateUnsafeCommandExamples({
+        content:
+            '# Example\n\n- `%LOCALAPPDATA%\\Programs\\Python\\Python313`\n\n```text\nwinget install --id Salesforce.CLI -e\nwinget install --id Heroku.HerokuCLI -e\nsf plugins install @salesforce/plugin-code-analyzer\n```',
+        filePath,
+        projectRoot
+    });
+
+    assert.deepEqual(issues, [
+        'docs/setup/windows-winget-setup.md:3: WindowsのPythonインストール先を固定したPATH例にしないでください。',
+        'docs/setup/windows-winget-setup.md:6: Salesforce CLIは公式Windowsインストーラーを案内してください。',
+        'docs/setup/windows-winget-setup.md:7: Heroku CLIは公式Windowsインストーラーを案内してください。',
+        'docs/setup/windows-winget-setup.md:8: Code Analyzerは公式のplugin名code-analyzerで導入してください。'
+    ]);
+});
+
+test('対象を限定しないパッケージ更新と削除を拒否する', () => {
+    const filePath = path.join(projectRoot, 'docs/setup/example.md');
+    const issues = validateUnsafeCommandExamples({
+        content:
+            '# Example\n\n```sh\nwinget upgrade --all\nbrew upgrade\nbrew autoremove\nbrew cleanup\nbrew cleanup --dry-run\nbrew upgrade git gh\n```',
+        filePath,
+        projectRoot
+    });
+
+    assert.deepEqual(issues, [
+        'docs/setup/example.md:4: winget管理対象全体ではなく更新対象を個別に指定してください。',
+        'docs/setup/example.md:5: Homebrew管理対象全体を確認なしで変更しないでください。',
+        'docs/setup/example.md:6: Homebrew管理対象全体を確認なしで変更しないでください。',
+        'docs/setup/example.md:7: Homebrew管理対象全体を確認なしで変更しないでください。'
+    ]);
+});
+
 test('リンク、アンカー、docs indexからの到達性をまとめて検証する', () => {
     const docsIndex = path.join(projectRoot, 'docs/index.md');
     const linkedFile = path.join(projectRoot, 'docs/linked.md');
