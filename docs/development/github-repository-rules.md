@@ -156,7 +156,7 @@ IssueとPRには、作成時に担当者を設定します。
 - 現行CIは`npm ci`、`npm audit --audit-level=high`、Prettier、ドキュメント検証、ESLint、SLDS Linter、Code Analyzer、LWC単体テストを実行する。
 - CIの`npm audit`は`dependencies`と`devDependencies`を対象にし、`high` / `critical`の既知脆弱性が新たに混入することを防ぐ。
 - `high` / `critical`を一時的に許容する必要がある場合は、対象パッケージ、影響、許容理由、見直し期限、追跡Issueを記録し、監査対象や失敗条件を理由なく弱めない。
-- Salesforce JWT認証用シークレットが揃っている場合はSalesforce validateも実行する。詳細は [CI メタデータ検証ルール](../deployment/ci-metadata-validation-rules.md) に従う。
+- CIではSalesforce組織へログインせず、Salesforce JWT認証用シークレットも管理しない。metadataのvalidateまたはdry-runは、push前に対象orgと限定scopeを確認してローカルで実行する。詳細は [CI メタデータ検証ルール](../deployment/ci-metadata-validation-rules.md) に従う。
 
 ### Dependabot
 
