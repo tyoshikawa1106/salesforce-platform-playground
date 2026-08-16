@@ -71,16 +71,30 @@ macOS の Java ランチャーから使えるように登録します。
 
 `/opt/homebrew` を直接書くと Apple Silicon Mac 固定になるため、`brew --prefix` を使います。
 
+既存の登録先を強制置換せず、未登録の場合だけsymlinkを作成します。
+
 ```sh
-sudo ln -sfn "$(brew --prefix openjdk@25)/libexec/openjdk.jdk" /Library/Java/JavaVirtualMachines/openjdk-25.jdk
+javaTarget="$(brew --prefix openjdk@25)/libexec/openjdk.jdk"
+javaLink="/Library/Java/JavaVirtualMachines/openjdk-25.jdk"
+
+if [ -e "$javaLink" ] || [ -L "$javaLink" ]; then
+    ls -ld "$javaLink"
+else
+    sudo ln -s "$javaTarget" "$javaLink"
+fi
 ```
+
+既存の登録先が表示された場合は、自動で置き換えず、期待するJDKを指しているか確認します。新しく作成した登録を戻す場合も、対象がこの手順で作成したsymlinkであることを確認してから、そのsymlinkだけを削除します。
 
 必要に応じて、Homebrew の Java を PATH の前方に追加します。
 
 ```sh
-echo 'export PATH="$(brew --prefix openjdk@25)/bin:$PATH"' >> ~/.zshrc
+javaPathLine='export PATH="$(brew --prefix openjdk@25)/bin:$PATH"'
+grep -Fqx "$javaPathLine" ~/.zshrc || printf '\n%s\n' "$javaPathLine" >> ~/.zshrc
 source ~/.zshrc
 ```
+
+同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
 
 確認:
 
@@ -105,9 +119,12 @@ brew install volta
 Volta の shim を PATH の前方に追加します。
 
 ```sh
-printf '\n# Volta for project-specific Node.js versions\nexport VOLTA_HOME="$HOME/.volta"\nexport PATH="$VOLTA_HOME/bin:$PATH"\n' >> ~/.zshrc
+grep -Fqx 'export VOLTA_HOME="$HOME/.volta"' ~/.zshrc || printf '\nexport VOLTA_HOME="$HOME/.volta"\n' >> ~/.zshrc
+grep -Fqx 'export PATH="$VOLTA_HOME/bin:$PATH"' ~/.zshrc || printf 'export PATH="$VOLTA_HOME/bin:$PATH"\n' >> ~/.zshrc
 source ~/.zshrc
 ```
+
+同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`から上記2行だけを削除し、新しいshellを開きます。
 
 Node.js 24 をインストールします。
 
@@ -176,9 +193,12 @@ Homebrew Python 3.13 の `python3` / `python` は `libexec/bin` にあります�
 zsh で Homebrew Python 3.13 を優先します。
 
 ```sh
-printf '\n# Homebrew Python 3.13 for Salesforce Code Analyzer Flow engine\nexport PATH="$(brew --prefix python@3.13)/libexec/bin:$PATH"\n' >> ~/.zshrc
+pythonPathLine='export PATH="$(brew --prefix python@3.13)/libexec/bin:$PATH"'
+grep -Fqx "$pythonPathLine" ~/.zshrc || printf '\n%s\n' "$pythonPathLine" >> ~/.zshrc
 source ~/.zshrc
 ```
+
+同じ行がある場合は追記しません。設定を戻す場合は、`.zshrc`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
 
 ### 確認
 
