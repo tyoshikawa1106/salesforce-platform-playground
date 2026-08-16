@@ -99,6 +99,12 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
     let fenceMarker = null;
 
     content.split('\n').forEach((line, index) => {
+        if (/(?:%LOCALAPPDATA%|\$env:LOCALAPPDATA)\\Programs\\Python\\Python313/i.test(line)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: WindowsのPythonインストール先を固定したPATH例にしないでください。`
+            );
+        }
+
         const fenceMatch = line.trimStart().match(/^(```+|~~~+)/);
 
         if (fenceMatch) {
@@ -124,6 +130,36 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
         if (/^setx(?:\.exe)?\s+"?path"?(?:\s|$)/i.test(command)) {
             issues.push(
                 `${path.relative(projectRoot, filePath)}:${index + 1}: setx PATH を実行例に使用しないでください。`
+            );
+        }
+
+        if (/^winget\s+install\b.*\bSalesforce\.CLI\b/i.test(command)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: Salesforce CLIは公式Windowsインストーラーを案内してください。`
+            );
+        }
+
+        if (/^winget\s+install\b.*\bHeroku\.HerokuCLI\b/i.test(command)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: Heroku CLIは公式Windowsインストーラーを案内してください。`
+            );
+        }
+
+        if (/^sf\s+plugins\s+install\s+@salesforce\/plugin-code-analyzer(?:\s|$)/i.test(command)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: Code Analyzerは公式のplugin名code-analyzerで導入してください。`
+            );
+        }
+
+        if (/^winget\s+upgrade\s+--all(?:\s|$)/i.test(command)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: winget管理対象全体ではなく更新対象を個別に指定してください。`
+            );
+        }
+
+        if (/^brew\s+(?:upgrade|autoremove|cleanup)\s*$/i.test(command)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: Homebrew管理対象全体を確認なしで変更しないでください。`
             );
         }
     });
