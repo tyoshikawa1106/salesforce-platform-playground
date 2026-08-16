@@ -43,6 +43,23 @@ test('コードブロック内のsetx PATHを拒否し、注意書きでの言�
     assert.deepEqual(issues, ['docs/example.md:6: setx PATH を実行例に使用しないでください。']);
 });
 
+test('インデント形式とshell prompt付きのsetx PATHを拒否する', () => {
+    const filePath = path.join(projectRoot, 'docs/example.md');
+    const issues = validateUnsafeCommandExamples({
+        content:
+            '# Example\n\n    setx PATH "C:\\Tools"\n\n```powershell\nPS> setx.exe "PATH" "C:\\Tools"\nPS C:\\Users\\Example> setx PATH "C:\\Tools"\n```\n\n```bat\nC:\\>setx PATH "C:\\Tools"\n```',
+        filePath,
+        projectRoot
+    });
+
+    assert.deepEqual(issues, [
+        'docs/example.md:3: setx PATH を実行例に使用しないでください。',
+        'docs/example.md:6: setx PATH を実行例に使用しないでください。',
+        'docs/example.md:7: setx PATH を実行例に使用しないでください。',
+        'docs/example.md:11: setx PATH を実行例に使用しないでください。'
+    ]);
+});
+
 test('リンク、アンカー、docs indexからの到達性をまとめて検証する', () => {
     const docsIndex = path.join(projectRoot, 'docs/index.md');
     const linkedFile = path.join(projectRoot, 'docs/linked.md');
