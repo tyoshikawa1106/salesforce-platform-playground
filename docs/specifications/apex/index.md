@@ -8,4 +8,4 @@ Apex で実装した機能の仕様書一覧です。
 | ---------------------------- | ------------------------------ |
 | [Trigger](triggers/index.md) | データ変更を起点に実行する処理 |
 
-現在、Apex Batch、Apex Scheduler、Apex 非同期処理の対象実装はありません。
+現在、Apex Batch、Apex Scheduler、および独立した主仕様書を持つApex非同期処理はありません。LWC機能の内部で使用する `AccountDataQualityScanQueueable` は、[取引先データ品質スキャン](../lwc/account-data-quality-scan/index.md)で扱います。
