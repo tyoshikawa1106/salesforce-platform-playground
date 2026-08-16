@@ -186,7 +186,9 @@ Apex、metadata、LWC、docs などを Prettier 対象にします。
 ```json
 "overrides": {
     "@babel/core": "^7.29.7",
-    "js-yaml": "^4.2.0"
+    "brace-expansion": "file:vendor/brace-expansion-compat",
+    "js-yaml": "^4.2.0",
+    "postcss": "^8.5.23"
 }
 ```
 
@@ -201,6 +203,9 @@ Apex、metadata、LWC、docs などを Prettier 対象にします。
     "prettier --write"
 ],
 "**/{aura,lwc}/**/*.js": [
+    "eslint"
+],
+"scripts/**/*.js": [
     "eslint"
 ],
 "**/lwc/**": [
