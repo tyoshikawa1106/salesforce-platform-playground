@@ -154,6 +154,9 @@ Apex 変更を push する前に、関連する Apex テストを coverage 付�
 
 PR の CI では SLDS Linter を `npm run lint:slds`、Salesforce Code Analyzer を `npm run code-analyzer:ci` で実行します。
 
+- Code Analyzer は、原則としてこのリポジトリの `npm run code-analyzer` または `npm run code-analyzer:ci` で実行する。
+- 変更ファイルだけを対象にするなど、`sf code-analyzer run` を直接実行する必要がある場合も、`--output-file` の解析結果と `tee` の実行ログをどちらも `logs/code-analyzer/` 配下へ保存する。リポジトリ直下へ `code-analyzer-results-*` を出力しない。
+- `forcedotcom/sf-skills` など外部取得物のコマンド例がリポジトリ直下を出力先にしている場合は、その出力先だけを `logs/code-analyzer/` 配下へ置き換える。
 - Code Analyzer、ESLint、その他の静的解析について、ユーザーの明示的な許可なしに suppression、除外設定、対象範囲の縮小、severity threshold の緩和を追加または拡大しない。
 - 解析結果は suppression 適用後の件数だけを報告せず、抑止された違反がある場合は、その件数、対象 rule、対象ファイルを明示する。無効化した rule がある場合も、rule 名と理由を明示する。
 - 違反は、まずコードまたは設計で解消する。解消できない場合も suppression を既定の対応にせず、理由と影響を提示してユーザーの判断を待つ。
