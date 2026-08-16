@@ -59,7 +59,7 @@
 npm ci
 
 # Salesforce 開発組織へログインする
-sf org login web --alias <alias>
+sf org login web --alias <alias> --set-default --browser chrome
 ```
 
 ## 開発コマンド

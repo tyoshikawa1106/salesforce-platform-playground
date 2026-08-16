@@ -19,7 +19,7 @@ Node.js / npm はプロジェクトごとに要求バージョンが変わりや
 
 ## 1. Homebrew のインストール
 
-Homebrew が未インストールの場合は、公式インストールスクリプトを実行します。
+Homebrew が未インストールの場合は、[Homebrew公式サイト](https://brew.sh/)のインストールスクリプトを実行します。
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -41,11 +41,15 @@ grep -Fqx "$homebrewShellenvLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$h
 
 Git:
 
+[Homebrewのgit formula](https://formulae.brew.sh/formula/git)を使用します。
+
 ```sh
 brew install git
 ```
 
 GitHub CLI:
+
+[Homebrewのgh formula](https://formulae.brew.sh/formula/gh)を使用します。
 
 ```sh
 brew install gh
@@ -59,6 +63,8 @@ gh auth login
 
 Salesforce CLI:
 
+[Homebrewのsf formula](https://formulae.brew.sh/formula/sf)を使用します。
+
 ```sh
 brew install sf
 ```
@@ -68,6 +74,7 @@ brew install sf
 Salesforce Code Analyzer の PMD / CPD / SFGE engine では Java が必要です。
 
 この手順では Homebrew の OpenJDK 25 を使います。
+[Homebrewのopenjdk@25 formula](https://formulae.brew.sh/formula/openjdk@25)を使用します。
 
 ```sh
 brew install openjdk@25
@@ -117,6 +124,7 @@ Node.js は Salesforce CLI の付属物ではなく、開発環境の前提と�
 Homebrew の `node` には統一せず、Node.js / npm は Volta で管理します。
 
 Volta を Homebrew でインストールします。
+[Homebrewのvolta formula](https://formulae.brew.sh/formula/volta)と[Volta公式手順](https://docs.volta.sh/guide/getting-started)を参照します。
 
 ```sh
 brew install volta
@@ -158,6 +166,7 @@ Salesforce Code Analyzer の Flow engine は Python 3.10 以降を必要とし�
 ### インストール
 
 Homebrew で Python 3.13 を入れます。
+[Homebrewのpython@3.13 formula](https://formulae.brew.sh/formula/python@3.13)を使用します。
 
 ```sh
 brew install python@3.13
@@ -223,6 +232,7 @@ python3 --version
 ## 6. Heroku CLI（任意）
 
 このリポジトリでは Heroku CLI は不要です。Heroku アプリケーションを扱う場合だけインストールします。
+[Heroku CLI公式手順](https://devcenter.heroku.com/articles/heroku-cli)で案内されているHomebrew formulaを使用します。
 
 ```sh
 brew install heroku/brew/heroku
@@ -241,7 +251,7 @@ heroku login
 Salesforce CLI に Code Analyzer plugin が入っていることを確認します。
 
 ```sh
-sf plugins
+sf plugins --core
 ```
 
 `code-analyzer` が表示されれば OK です。
@@ -249,8 +259,11 @@ sf plugins
 入っていない場合:
 
 ```sh
-sf plugins install @salesforce/plugin-code-analyzer
+sf plugins install code-analyzer
+sf code-analyzer rules
 ```
+
+Code AnalyzerはJIT pluginのため、最初の`sf code-analyzer`コマンドで自動導入することもできます。前提と手動導入方法はSalesforceの[Code Analyzer公式手順](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/analyze.html)を参照します。
 
 ## 8. インストール確認
 
@@ -316,7 +329,7 @@ which volta
 Salesforce CLI の plugin を確認します。
 
 ```sh
-sf plugins
+sf plugins --core
 ```
 
 ## 9. プロジェクト依存のセットアップ
@@ -328,37 +341,46 @@ Python の初期化エラーが出る場合は、`python3 --version` と `which 
 
 ## 10. 定期メンテナンス
 
-Homebrew で管理しているツールは、定期的に更新と不要ファイルの削除を行います。
+Homebrew で管理しているツールは、更新対象と削除対象を確認してから変更します。
+各コマンドの影響と`--dry-run`は、Homebrewの[公式マニュアル](https://docs.brew.sh/Manpage)を参照します。
 
-| コマンド          | 役割                                             |
-| ----------------- | ------------------------------------------------ |
-| `brew update`     | Homebrew とパッケージ情報を最新化する            |
-| `brew upgrade`    | インストール済みパッケージを最新バージョンにする |
-| `brew autoremove` | 不要になった依存パッケージを削除する             |
-| `brew cleanup`    | 古いバージョンやキャッシュを削除する             |
-| `brew outdated`   | 更新可能なパッケージを一覧表示する               |
-| `brew leaves`     | トップレベルパッケージを表示する                 |
-| `brew tap`        | 追加されている Tap を表示する                    |
+| コマンド                    | 役割                                       |
+| --------------------------- | ------------------------------------------ |
+| `brew update`               | Homebrew とパッケージ情報を最新化する      |
+| `brew upgrade <formula>`    | 指定したパッケージを最新バージョンにする   |
+| `brew autoremove --dry-run` | 削除対象になる依存パッケージを確認する     |
+| `brew cleanup --dry-run`    | 削除対象になる古いバージョンなどを確認する |
+| `brew outdated`             | 更新可能なパッケージを一覧表示する         |
+| `brew leaves`               | トップレベルパッケージを表示する           |
+| `brew tap`                  | 追加されている Tap を表示する              |
 
-更新:
+更新対象の確認:
 
 ```sh
 brew update
-brew upgrade
-```
-
-不要なファイルと依存関係の削除:
-
-```sh
-brew autoremove
-brew cleanup
-```
-
-更新可能なパッケージ確認:
-
-```sh
 brew outdated
 ```
+
+このリポジトリで使用するパッケージだけを更新する例:
+
+```sh
+brew upgrade git gh sf openjdk@25 python@3.13 volta
+```
+
+Heroku CLIを導入している場合は、必要に応じて個別に更新します。
+
+```sh
+brew upgrade heroku/brew/heroku
+```
+
+削除対象の確認:
+
+```sh
+brew autoremove --dry-run
+brew cleanup --dry-run
+```
+
+表示された対象を確認した場合だけ、`--dry-run`を外して実行します。引数なしの`brew upgrade`はHomebrew管理対象全体を更新するため、標準手順にはしません。
 
 Homebrew 管理対象の確認:
 

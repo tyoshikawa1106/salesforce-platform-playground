@@ -51,13 +51,13 @@ Code Analyzer v5 では JIT plugin として動作するため、`sf code-analyz
 手動で入れる場合:
 
 ```sh
-sf plugins install @salesforce/plugin-code-analyzer
+sf plugins install code-analyzer
 ```
 
 確認:
 
 ```sh
-sf plugins
+sf plugins --core
 sf code-analyzer --help
 sf code-analyzer rules
 ```
