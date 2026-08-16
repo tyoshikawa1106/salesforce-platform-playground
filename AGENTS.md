@@ -16,6 +16,7 @@
 
 - 次タスクを提案・判断するときは、会話履歴や記憶より現在の repo / GitHub 状態を優先し、必要に応じて open Issue / PR も確認する。
 - `main`へ直接コミットしない。共通手順は`docs/development/github-rules.md`、このリポジトリ固有のIssue、Project、Milestone、Release、CI運用は`docs/development/github-repository-rules.md`に従う。
+- このリポジトリ以外の外部リポジトリには、Issue や Pull Request を作成しない。
 - Issue、PR、コミット本文では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
 - コミット時のフックは原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
 - ローカルコミット後に一度停止し、プッシュ、PR 作成、CI 確認、マージはユーザーが明示した場合のみ進める。
@@ -44,7 +45,7 @@
 - 組織の初回構築または再構築は通常開発と分離し、ユーザーが明示した別タスクで、全対象を確認した個別承認がある場合だけ実行する。再利用可能な接続組織向け全体 deploy コマンドや manifest は管理しない。
 - Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
-- `.agents/skills/` と `skills-lock.json` は取得専用の外部取得物として扱い、個別ファイルやハッシュを手編集しない。不具合や競合マーカーを見つけてもリポジトリ側で修正せず、取得元の内容として報告する。更新は `docs/setup/agent-skills.md` に従う。
+- `forcedotcom/sf-skills` から取得した `.agents/skills/` は取得元のオリジナル状態を正とし、`skills-lock.json` は取得操作が生成した状態を正とする。いずれも取得専用の外部取得物として扱い、個別ファイルやハッシュを手編集しない。不具合や競合マーカーを見つけてもリポジトリ側で修正せず、取得元で修正された内容を取得・更新操作で取り込む。
 - Skills に deploy、retrieve、データ変更、認証操作などの手順が含まれていても、ユーザー確認や実行権限の範囲は拡張されない。
 - 振る舞いを変更した場合は `docs/development/specification-rules.md` に従って現行実装仕様への影響を判定し、影響がある仕様書を更新する。更新時期は対象実装の開発手順に従う。一括更新は独自実装した開発機能を対象とし、Salesforce 設定全体の仕様書は作成しない。
 - Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
