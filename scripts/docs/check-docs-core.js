@@ -94,6 +94,32 @@ function validateFileName(filePath, projectRoot) {
     return [`${path.relative(projectRoot, filePath)}: ファイル名を kebab-case にしてください。`];
 }
 
+function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
+    const issues = [];
+    let fenceMarker = null;
+
+    content.split('\n').forEach((line, index) => {
+        const fenceMatch = line.trimStart().match(/^(```+|~~~+)/);
+
+        if (fenceMatch) {
+            if (fenceMarker === null) {
+                fenceMarker = fenceMatch[1][0];
+            } else if (fenceMarker === fenceMatch[1][0]) {
+                fenceMarker = null;
+            }
+            return;
+        }
+
+        if (fenceMarker !== null && /^\s*setx(?:\.exe)?\s+"?path"?(?:\s|$)/i.test(line)) {
+            issues.push(
+                `${path.relative(projectRoot, filePath)}:${index + 1}: setx PATH を実行例に使用しないでください。`
+            );
+        }
+    });
+
+    return issues;
+}
+
 function validateDocumentation({
     docsIndex,
     docsMarkdownFiles,
@@ -114,8 +140,9 @@ function validateDocumentation({
     }
 
     for (const filePath of markdownFiles) {
+        const content = readFile(filePath);
         const parsed = parseMarkdown({
-            content: readFile(filePath),
+            content,
             filePath,
             projectRoot,
             requireH1: !fragmentMarkdownFileSet.has(filePath)
@@ -123,6 +150,7 @@ function validateDocumentation({
 
         parsedFiles.set(filePath, parsed);
         issues.push(...parsed.issues);
+        issues.push(...validateUnsafeCommandExamples({ content, filePath, projectRoot }));
     }
 
     for (const filePath of markdownFiles) {
@@ -180,5 +208,6 @@ module.exports = {
     createHeadingAnchor,
     parseMarkdown,
     validateDocumentation,
-    validateFileName
+    validateFileName,
+    validateUnsafeCommandExamples
 };
