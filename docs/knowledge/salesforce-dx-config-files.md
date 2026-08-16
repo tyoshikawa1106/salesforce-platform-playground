@@ -29,7 +29,7 @@ Scratch Org 作成時の edition、features、作成時 settings を定義しま
 | `features` | 作成時に有効化する Scratch Org feature。                            |
 | `settings` | 作成時に適用できる org settings。metadata deploy の全設定とは別物。 |
 
-現在は `EnableSetPasswordInApi`、Lightning desktop、mobile encrypted storage pref を定義しています。
+現在は `EnableSetPasswordInApi`、`FieldService:5`、Lightning desktop、mobile encrypted storage pref を定義しています。
 
 変更時は、Scratch Org 作成時にしか効かない feature と、metadata deploy で変更できる settings を混同しないようにします。
 
