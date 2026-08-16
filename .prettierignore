@@ -11,6 +11,10 @@ skills-lock.json
 
 coverage/
 
+# Keep historical research and discussion records unchanged.
+docs/knowledge/**
+docs/discussions/**
+
 export-out/*
 !export-out/export-out-guide.md
 

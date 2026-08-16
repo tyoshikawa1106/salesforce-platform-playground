@@ -100,8 +100,6 @@ sf apex run test --class-names MyClassTest --result-format human --synchronous -
 - Logic の分岐、変換、状態遷移は Logic を直接 import する Jest test で確認する。派生状態を保持する場合は、元の状態と wire 応答の変更後に再生成されることも確認する。メイン JavaScript とテンプレートの接続はコンポーネントの Jest test で確認する。
 - 表示部品、API module、CSS module、テスト用 mock、インストール済み・生成済みコンポーネントは、この 2 層構成の対象外とする。
 
-構成を決めた背景と懸念への対策は、[LWC JavaScript 構成](../discussions/lwc-javascript-structure.md)に記録します。
-
 ### JavaScript 実装コメント
 
 - `force-app/main/default/lwc` 配下で独自実装する本体 JavaScript は、新規行や変更行だけでなくファイル全体を対象にコメント規約へ合わせる。

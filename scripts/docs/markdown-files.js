@@ -5,10 +5,15 @@ const projectRoot = path.resolve(__dirname, '../..');
 const docsRoot = path.join(projectRoot, 'docs');
 const docsIndex = path.join(docsRoot, 'index.md');
 const externalSkillsRoot = path.join(projectRoot, '.agents', 'skills');
+const historicalDocumentRoots = [path.join(docsRoot, 'knowledge'), path.join(docsRoot, 'discussions')];
 const fragmentMarkdownFiles = [path.join(projectRoot, '.github/pull_request_template.md')];
 
 function isExternalSkillFile(filePath) {
     return filePath.startsWith(`${externalSkillsRoot}${path.sep}`);
+}
+
+function isHistoricalDocument(filePath) {
+    return historicalDocumentRoots.some((rootPath) => filePath.startsWith(`${rootPath}${path.sep}`));
 }
 
 function getManagedMarkdownFiles() {
@@ -19,7 +24,7 @@ function getManagedMarkdownFiles() {
         .split('\n')
         .filter(Boolean)
         .map((filePath) => path.join(projectRoot, filePath))
-        .filter((filePath) => !isExternalSkillFile(filePath))
+        .filter((filePath) => !isExternalSkillFile(filePath) && !isHistoricalDocument(filePath))
         .sort();
 }
 

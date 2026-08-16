@@ -56,6 +56,15 @@
 - ドキュメント配置は `docs/development/documentation-rules.md` に従う。
 - このファイルは短く保つ。実務手順は `docs/development/` または `docs/deployment/` に置く。
 
+## ナレッジ・ディスカッションの運用
+
+- このセクションは、このリポジトリ固有のドキュメント運用ルールとする。
+- `docs/knowledge/` と `docs/discussions/` は、作成時点の調査、検討、判断を残す記録として扱い、現行仕様、現行手順、最新情報の正本として扱わない。
+- AI エージェントは、通常の開発、レビュー、最新性確認、docs 全体監査では `docs/knowledge/` と `docs/discussions/` を参照または更新しない。
+- ユーザーが対象文書の参照または変更を明示した場合だけ、`docs/knowledge/` または `docs/discussions/` を扱う。
+- 現行情報は、実装、`docs/specifications/`、`docs/development/`、`docs/deployment/`、`docs/setup/` を確認する。
+- 後から判明した変更や最新情報に合わせる目的では、既存のナレッジやディスカッションを更新しない。
+
 ## 検証
 
 - Salesforce メタデータ変更後は、該当するルール文書に従い、実行した validate / deploy / test と対象組織を報告する。
