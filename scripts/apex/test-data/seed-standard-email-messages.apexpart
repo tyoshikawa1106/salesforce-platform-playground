@@ -1,10 +1,12 @@
-
+// 組織でEmailMessageを利用できるか実行時に確認
 Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+// 合成ケースへ関連付ける送信済みメールを作成
 List<Case> cases = [SELECT Id FROM Case WHERE Subject LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 if (cases.isEmpty()) {
     System.assert(false, 'Run cases before email messages.');
 }
 
+// EmailMessageが作成可能な組織だけ、存在して作成可能な項目へ値を設定
 System.debug('Seed run key: ' + seedRunKey);
 if (gd.containsKey('EmailMessage') && gd.get('EmailMessage').getDescribe().isCreateable()) {
     List<SObject> records = new List<SObject>();
@@ -23,5 +25,6 @@ if (gd.containsKey('EmailMessage') && gd.get('EmailMessage').getDescribe().isCre
     }
     logResults('EmailMessage', Database.insert(records, false));
 } else {
+    // 機能または権限がない組織では、処理対象外として理由を記録
     System.debug('Skipped records: EmailMessage: object is not createable or not available');
 }

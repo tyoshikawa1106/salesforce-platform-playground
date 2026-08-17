@@ -1,23 +1,20 @@
 #!/usr/bin/env node
-const { execFileSync } = require('node:child_process');
+const { runCommand } = require('../run-command');
 const { repoRoot, scratchOrg } = require('./internal-context');
 const { runNoArgumentCommand } = require('./internal-command');
 
+// setup.jsから呼び出すPermission Set割り当てステップ。
 const usage = 'Usage: node scripts/scratch-org/internal-assign-permset.js';
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),
     usage,
     execute() {
-        process.chdir(repoRoot);
-
-        // Scratch Org の実行ユーザーに playground 用 Permission Set を付与する。
-        execFileSync(
+        // 設定ファイルで指定したPermission SetをScratch Orgの実行ユーザーへ割り当てる。
+        return runCommand(
             'sf',
             ['org', 'assign', 'permset', '--name', scratchOrg.permissionSet, '--target-org', scratchOrg.alias],
-            {
-                stdio: 'inherit'
-            }
+            repoRoot
         );
     }
 });

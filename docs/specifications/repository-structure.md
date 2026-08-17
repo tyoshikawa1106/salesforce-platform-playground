@@ -201,10 +201,13 @@
 | `scripts/docs/test/`                                     | フォルダ   | docs検証scriptのNode.js testを格納する。                                    |
 | `scripts/docs/test/*.node.js`                            | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
 | `scripts/metadata/`                                      | フォルダ   | Salesforce metadata操作scriptを格納する。                                   |
+| `scripts/run-command.js`                                 | ファイル   | macOSとWindowsから外部CLIを実行する共通処理を提供する。                     |
+| `scripts/test/`                                          | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
+| `scripts/test/*.node.js`                                 | ファイル群 | 外部CLIの終了コードと出力の受け渡しを確認する。                             |
 | `scripts/metadata/destructive/`                          | フォルダ   | metadata削除scriptを格納する。                                              |
-| `scripts/metadata/destructive/destructive.sh`            | ファイル   | destructive changesのdry-runと実削除を実行する。                            |
+| `scripts/metadata/destructive/destructive.js`            | ファイル   | destructive changesのdry-runと実削除を実行する。                            |
 | `scripts/metadata/retrieve/`                             | フォルダ   | metadata retrieve scriptを格納する。                                        |
-| `scripts/metadata/retrieve/retrieve.sh`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
+| `scripts/metadata/retrieve/retrieve.js`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
 | `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
 | `scripts/scratch-org/setup.js`                           | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
 | `scripts/scratch-org/delete.js`                          | ファイル   | 設定されたScratch Orgを削除する。                                           |

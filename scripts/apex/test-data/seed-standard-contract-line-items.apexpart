@@ -1,11 +1,8 @@
-
+// 組織で利用可能なサービス系オブジェクトを実行時に確認
 Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
-List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+// 契約品目に必要な標準価格表、サービス契約、資産を取得
 List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode
+    SELECT Id, UnitPrice
     FROM PricebookEntry
     WHERE Product2.Name LIKE :seedLike AND Pricebook2.IsStandard = TRUE AND IsActive = TRUE AND Pricebook2.IsActive = TRUE
     ORDER BY CreatedDate ASC
@@ -18,6 +15,7 @@ if (pricebookEntries.isEmpty() || assets.isEmpty()) {
     System.assert(false, 'Run pricebook entries and assets before contract line items.');
 }
 
+// ContractLineItemが利用でき、サービス契約もある場合だけ明細を追加
 System.debug('Seed run key: ' + seedRunKey);
 if (gd.containsKey('ContractLineItem') && gd.get('ContractLineItem').getDescribe().isCreateable() && !serviceContracts.isEmpty()) {
     List<SObject> records = new List<SObject>();
@@ -37,5 +35,6 @@ if (gd.containsKey('ContractLineItem') && gd.get('ContractLineItem').getDescribe
     }
     logResults('ContractLineItem', Database.insert(records, false));
 } else {
+    // 機能、権限、親レコードのいずれかがない場合は理由を記録
     System.debug('Skipped records: ContractLineItem: object is not createable, unavailable, or no service contracts were available');
 }

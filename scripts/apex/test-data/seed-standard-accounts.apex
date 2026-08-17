@@ -1,13 +1,11 @@
+// 取引先seed単体で使用する件数、識別用接頭辞、実行キーを定義
 Integer countPerObject = 50;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
-String pick(
-    Schema.DescribeFieldResult fieldDescribe,
-    List<String> preferred,
-    Integer sequence
-) {
+// 優先候補が利用可能なら順番に選び、なければ有効値から選択
+String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred, Integer sequence) {
     List<String> fallbackValues = new List<String>();
     List<String> preferredValues = new List<String>();
     for (Schema.PicklistEntry entry : fieldDescribe.getPicklistValues()) {
@@ -28,6 +26,7 @@ String pick(
     return null;
 }
 
+// 会社名、事業テーマ、所在地を組み合わせる合成データ部品
 List<String> companyNames = new List<String>{
     'さくら',
     'みらい',
@@ -121,10 +120,12 @@ List<String> prefectureCodes = new List<String>{
     '福岡県'
 };
 
+// 重複ルールによる一部失敗を許可し、作成可能な取引先を保存
 Database.DMLOptions duplicateRuleOptions = new Database.DMLOptions();
 duplicateRuleOptions.DuplicateRuleHeader.allowSave = true;
 duplicateRuleOptions.optAllOrNone = false;
 
+// 既存件数から連番を継続し、繰り返し実行でも異なる取引先を生成
 Integer existingAccountCount = [
     SELECT COUNT()
     FROM Account
@@ -132,41 +133,21 @@ Integer existingAccountCount = [
 ];
 List<Account> accounts = new List<Account>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
+    // 配列の組み合わせを段階的に切り替え、会社名と所在地へばらつきを作る
     Integer sequence = existingAccountCount + i;
     String paddedSequence = String.valueOf(sequence).leftPad(4, '0');
     String companyName =
         companyNames[Math.mod(sequence - 1, companyNames.size())] +
-        businessThemes[
-            Math.mod(
-                (sequence - 1) / companyNames.size(),
-                businessThemes.size()
-            )
-        ] +
-        businessTypes[
-            Math.mod(
-                (sequence - 1) / (companyNames.size() * businessThemes.size()),
-                businessTypes.size()
-            )
-        ] +
+        businessThemes[Math.mod((sequence - 1) / companyNames.size(), businessThemes.size())] +
+        businessTypes[Math.mod((sequence - 1) / (companyNames.size() * businessThemes.size()), businessTypes.size())] +
         '株式会社';
     String city = cities[Math.mod(sequence - 1, cities.size())];
     String street = streets[Math.mod(sequence - 1, streets.size())];
-    String prefecture = prefectureCodes[
-        Math.mod(sequence - 1, prefectureCodes.size())
-    ];
-    String accountRating = pick(
-        Account.Rating.getDescribe(),
-        new List<String>{ 'Hot', 'Warm', 'Cold' },
-        sequence
-    );
+    String prefecture = prefectureCodes[Math.mod(sequence - 1, prefectureCodes.size())];
+    String accountRating = pick(Account.Rating.getDescribe(), new List<String>{ 'Hot', 'Warm', 'Cold' }, sequence);
     String accountType = pick(
         Account.Type.getDescribe(),
-        new List<String>{
-            'Prospect',
-            'Customer - Direct',
-            'Customer - Channel',
-            'Partner'
-        },
+        new List<String>{ 'Prospect', 'Customer - Direct', 'Customer - Channel', 'Partner' },
         sequence
     );
     String accountIndustry = pick(
@@ -183,14 +164,11 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         new Account(
             Name = seedPrefix + ' ' + companyName,
             AccountNumber = 'ACCT-' + paddedSequence,
-            Phone = '03-5555-' +
-                String.valueOf(1000 + Math.mod(sequence, 9000)).leftPad(4, '0'),
-            Fax = '03-5555-' +
-                String.valueOf(2000 + Math.mod(sequence, 8000)).leftPad(4, '0'),
+            Phone = '03-5555-' + String.valueOf(1000 + Math.mod(sequence, 9000)).leftPad(4, '0'),
+            Fax = '03-5555-' + String.valueOf(2000 + Math.mod(sequence, 8000)).leftPad(4, '0'),
             Website = 'https://example.com',
             Site = city + ' 第' + paddedSequence + '拠点',
-            TickerSymbol = 'SD' +
-                String.valueOf(Math.mod(sequence, 100)).leftPad(2, '0'),
+            TickerSymbol = 'SD' + String.valueOf(Math.mod(sequence, 100)).leftPad(2, '0'),
             Rating = accountRating,
             Type = accountType,
             Industry = accountIndustry,
@@ -198,36 +176,22 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
             AnnualRevenue = 420000000 + (i * 18000000),
             NumberOfEmployees = 120 + (i * 8),
             Sic = '737' + Math.mod(i, 10),
-            BillingStreet = street +
-                ' ' +
-                sequence +
-                '-12-' +
-                Math.mod(sequence + 2, 9),
+            BillingStreet = street + ' ' + sequence + '-12-' + Math.mod(sequence + 2, 9),
             BillingCity = city,
             BillingState = prefecture,
             BillingCountry = 'Japan',
-            BillingPostalCode = '10' +
-                Math.mod(sequence, 9) +
-                '-' +
-                String.valueOf(1000 + Math.mod(sequence, 9000)),
-            ShippingStreet = street +
-                ' 配送センター ' +
-                (sequence + 2) +
-                '-5-' +
-                Math.mod(sequence + 4, 9),
+            BillingPostalCode = '10' + Math.mod(sequence, 9) + '-' + String.valueOf(1000 + Math.mod(sequence, 9000)),
+            ShippingStreet = street + ' 配送センター ' + (sequence + 2) + '-5-' + Math.mod(sequence + 4, 9),
             ShippingCity = city,
             ShippingState = prefecture,
             ShippingCountry = 'Japan',
-            ShippingPostalCode = '11' +
-                Math.mod(sequence, 9) +
-                '-' +
-                String.valueOf(2000 + Math.mod(sequence, 8000)),
-            Description = companyName +
-                ' は、営業・サポート・契約管理の検証に使う合成取引先です。'
+            ShippingPostalCode = '11' + Math.mod(sequence, 9) + '-' + String.valueOf(2000 + Math.mod(sequence, 8000)),
+            Description = companyName + ' は、営業・サポート・契約管理の検証に使う合成取引先です。'
         )
     );
 }
 
+// DML結果を集計し、成功件数と失敗理由をデータ投入スクリプトへ返す
 Database.SaveResult[] results = Database.insert(accounts, duplicateRuleOptions);
 Integer successCount = 0;
 List<String> errors = new List<String>();
@@ -241,6 +205,7 @@ for (Database.SaveResult result : results) {
     }
 }
 
+// Node.js側が抽出できる共通ラベルで実行結果を記録
 System.debug('Seed run key: ' + seedRunKey);
 System.debug('Created records: Account: ' + successCount);
 if (!errors.isEmpty()) {

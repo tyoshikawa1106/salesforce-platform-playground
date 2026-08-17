@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { runCommandWithOutput } = require('../run-command');
 const {
     buildSfArgs,
     defaultPlan,
@@ -12,8 +12,10 @@ const {
     readPlan
 } = require('./import-test-data-core');
 
+// planとApexファイルを常にリポジトリ基準で解決する。
 const repoRoot = path.resolve(__dirname, '../..');
 
+// npm scriptから利用できるオプションと、安全な実行方法を表示する。
 function printHelp() {
     process.stdout.write(`Usage:
   npm run setup:data:standard:dry-run
@@ -29,10 +31,12 @@ Options:
 `);
 }
 
+// 進捗表示の改行方法を1か所へ揃える。
 function writeLine(message = '') {
     process.stdout.write(`${message}\n`);
 }
 
+// dry-runと実投入で同じ形式の実行内容を表示する。
 function printStep({ cycle, dryRun, entry, repeatCount, sfArgs, sourcePaths }) {
     const cycleSuffix = repeatCount > 1 ? ` (${cycle}/${repeatCount})` : '';
 
@@ -41,28 +45,35 @@ function printStep({ cycle, dryRun, entry, repeatCount, sfArgs, sourcePaths }) {
     writeLine(`sf ${sfArgs.join(' ')}`);
 }
 
+// Salesforce CLIを実行し、seed処理の要約だけを見やすく表示する。
 function runSfCommand(entry, sfArgs) {
-    const result = spawnSync('sf', sfArgs, {
-        cwd: repoRoot,
-        encoding: 'utf8'
-    });
+    const result = runCommandWithOutput('sf', sfArgs, repoRoot);
 
+    // CLIを起動できない場合も、対象entryを示して後続処理を止める。
+    if (result.error) {
+        throw new Error(`sf command could not start for ${entry.label}: ${result.error.message}`);
+    }
+
+    // CLIが失敗した場合は元の出力を残し、次のplan entryへ進まない。
     if (result.status !== 0) {
         process.stdout.write(result.stdout || '');
         process.stderr.write(result.stderr || '');
         throw new Error(`sf command failed for ${entry.label}`);
     }
 
+    // anonymous Apexのデバッグログから、投入結果として必要な行だけを取り出す。
     for (const line of extractSfSummary(`${result.stdout || ''}\n${result.stderr || ''}`)) {
         writeLine(line);
     }
 }
 
+// planのlabelを、一時Apexファイルに使用できる名前へ変換する。
 function getGeneratedFileName(label) {
     return `${label.replace(/[^a-z0-9-]/gi, '-')}.apex`;
 }
 
 function run() {
+    // 組織操作やファイル読込より前に、CLI引数を確定する。
     const args = parseArgs(process.argv.slice(2));
 
     if (args.help) {
@@ -70,10 +81,12 @@ function run() {
         return;
     }
 
+    // 実投入では対象組織の明示を必須とし、default target orgへの誤投入を防ぐ。
     if (!args.dryRun && !args.targetOrg) {
         throw new Error('Real import requires --target-org <alias>. Use --dry-run to validate locally.');
     }
 
+    // planと参照するApexファイルを先に検証し、実行途中の構成エラーを避ける。
     const plan = readPlan({
         fileSystem: fs,
         planPath: args.plan,
@@ -89,6 +102,7 @@ function run() {
     let temporaryDirectory = null;
 
     try {
+        // planの順序を維持し、entryごとに実行可能なanonymous Apexを準備する。
         for (const prepared of preparedEntries) {
             const generatedFileName = getGeneratedFileName(prepared.entry.label);
             const generatedFilePath = args.dryRun
@@ -98,12 +112,14 @@ function run() {
                       generatedFileName
                   );
 
+            // dry-runでは一時ファイルを作らず、生成予定のファイル名だけを表示する。
             if (!args.dryRun) {
                 fs.writeFileSync(generatedFilePath, prepared.source, 'utf8');
             }
 
             const sfArgs = buildSfArgs(generatedFilePath, targetOrg);
 
+            // entryごとのrepeat回数だけ、同じApexを順番に実行する。
             for (let cycle = 1; cycle <= prepared.repeatCount; cycle += 1) {
                 printStep({
                     cycle,
@@ -114,18 +130,21 @@ function run() {
                     sourcePaths: prepared.sourcePaths
                 });
 
+                // dry-runでは実行予定を表示するだけで、Salesforce CLIを呼び出さない。
                 if (!args.dryRun) {
                     runSfCommand(prepared.entry, sfArgs);
                 }
             }
         }
     } finally {
+        // 成功・失敗にかかわらず、合成したanonymous Apexをローカルに残さない。
         if (temporaryDirectory) {
             fs.rmSync(temporaryDirectory, { force: true, recursive: true });
         }
     }
 }
 
+// 利用者が修正すべき内容だけを簡潔に表示し、CLIへ失敗を返す。
 try {
     run();
 } catch (error) {

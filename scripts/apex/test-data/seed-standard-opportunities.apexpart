@@ -1,20 +1,20 @@
-
+// 取引先、キャンペーン、標準価格表を関連付けた商談を作成
 List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode
+    SELECT Pricebook2Id
     FROM PricebookEntry
     WHERE Product2.Name LIKE :seedLike AND Pricebook2.IsStandard = TRUE AND IsActive = TRUE AND Pricebook2.IsActive = TRUE
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
 
+// 商談に必要な参照先が不足している場合は、先行seedの実行を促す
 if (accounts.isEmpty() || campaigns.isEmpty() || pricebookEntries.isEmpty()) {
     System.assert(false, 'Run accounts, campaigns, and pricebook entries before opportunities.');
 }
 
+// 組織で利用可能な選択リスト値を使い、既存件数に続く商談を追加
 String stageName = pick(Opportunity.StageName.getDescribe(), new List<String>{ 'Prospecting', 'Qualification', 'Value Proposition' });
 String typeValue = pick(Opportunity.Type.getDescribe(), new List<String>{ 'New Customer', 'Existing Customer - Upgrade' });
 String leadSource = pick(Opportunity.LeadSource.getDescribe(), new List<String>{ 'Web', 'Phone Inquiry', 'Purchased List' });
@@ -40,5 +40,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         Description = '標準オブジェクト seed 用商談。'
     ));
 }
+// 部分成功を許可し、作成件数と失敗理由を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Opportunity', Database.insert(records, false));

@@ -1,7 +1,9 @@
 const path = require('node:path');
 
+// 標準データセットアップで使用する既定plan。
 const defaultPlan = 'scripts/setup/import-plan.json';
 
+// 値を必要とするオプションの次の引数を読み取る。
 function readOptionValue(argv, index, option) {
     const value = argv[index + 1];
 
@@ -12,6 +14,7 @@ function readOptionValue(argv, index, option) {
     return value;
 }
 
+// CLI引数を後続処理で扱いやすい設定へ変換する。
 function parseArgs(argv) {
     const args = {
         defaultRepeat: null,
@@ -23,6 +26,7 @@ function parseArgs(argv) {
         targetOrg: null
     };
 
+    // オプション値を読み飛ばしながら、指定された順に引数を解釈する。
     for (let index = 0; index < argv.length; index += 1) {
         const arg = argv[index];
 
@@ -72,12 +76,14 @@ function parseArgs(argv) {
     return args;
 }
 
+// repeat回数として使用する値が正の整数であることを確認する。
 function assertPositiveInteger(value, label) {
     if (!Number.isInteger(value) || value < 1) {
         throw new Error(`${label} must be a positive integer.`);
     }
 }
 
+// planから指定された相対パスを、リポジトリ外へ出ない絶対パスに変換する。
 function resolveInsideRepo(repoRoot, relativePath) {
     if (typeof relativePath !== 'string' || relativePath.length === 0) {
         throw new Error('Repository-relative path must be a non-empty string.');
@@ -93,6 +99,7 @@ function resolveInsideRepo(repoRoot, relativePath) {
     return absolutePath;
 }
 
+// import planを読み込み、処理に必要な最小構造を確認する。
 function readPlan({ fileSystem, planPath, repoRoot }) {
     const absolutePlanPath = resolveInsideRepo(repoRoot, planPath);
     const plan = JSON.parse(fileSystem.readFileSync(absolutePlanPath, 'utf8'));
@@ -101,6 +108,7 @@ function readPlan({ fileSystem, planPath, repoRoot }) {
         throw new Error('Import plan must contain a non-empty imports array.');
     }
 
+    // --onlyでentryを特定できるよう、labelの重複を許可しない。
     const labels = plan.imports.map((entry) => entry.label).filter(Boolean);
     if (new Set(labels).size !== labels.length) {
         throw new Error('Import plan entry labels must be unique.');
@@ -109,6 +117,7 @@ function readPlan({ fileSystem, planPath, repoRoot }) {
     return plan;
 }
 
+// --onlyが指定された場合は、該当するplan entryだけを実行対象にする。
 function getSelectedEntries(plan, only) {
     const entries = only ? plan.imports.filter((entry) => entry.label === only) : plan.imports;
 
@@ -119,6 +128,7 @@ function getSelectedEntries(plan, only) {
     return entries;
 }
 
+// entryが単独実行か、共通preambleとの合成対象かを判定する。
 function getSourcePaths(plan, entry) {
     const requiredKeys = ['label', 'operation', 'file'];
     const missingKeys = requiredKeys.filter((key) => !entry[key]);
@@ -131,6 +141,7 @@ function getSourcePaths(plan, entry) {
         throw new Error(`Unsupported operation for ${entry.label}: ${entry.operation}`);
     }
 
+    // standaloneはファイル単体、それ以外はpreambleを先頭に結合する。
     if (entry.standalone) {
         return [entry.file];
     }
@@ -142,6 +153,7 @@ function getSourcePaths(plan, entry) {
     return [plan.preamble, entry.file];
 }
 
+// plan entryが参照するApexを読み込み、実行用の1つのソースへ合成する。
 function readApexSource({ entry, fileSystem, plan, repoRoot }) {
     const sourcePaths = getSourcePaths(plan, entry);
     const sourceParts = sourcePaths.map((sourcePath) => {
@@ -151,6 +163,7 @@ function readApexSource({ entry, fileSystem, plan, repoRoot }) {
             throw new Error(`Apex file does not exist for ${entry.label}: ${sourcePath}`);
         }
 
+        // 空ファイルを実行対象に含めず、planまたはファイルの修正を促す。
         const content = fileSystem.readFileSync(absolutePath, 'utf8').trim();
 
         if (content.length === 0) {
@@ -166,10 +179,12 @@ function readApexSource({ entry, fileSystem, plan, repoRoot }) {
     };
 }
 
+// 合成したanonymous Apexを指定組織で実行するSalesforce CLI引数を作る。
 function buildSfArgs(absoluteFilePath, targetOrg) {
     return ['apex', 'run', '--file', absoluteFilePath, '--target-org', targetOrg];
 }
 
+// Salesforce CLIの出力から、seed処理が明示的に出力した集計行だけを抽出する。
 function extractSfSummary(output) {
     return output
         .split(/\r?\n/)
@@ -177,12 +192,15 @@ function extractSfSummary(output) {
         .map((line) => line.replace(/^.*\|DEBUG\|/, ''));
 }
 
+// 選択されたentryを検証し、ソースとrepeat回数を実行可能な形へ揃える。
 function prepareEntries({ args, fileSystem, plan, repoRoot }) {
+    // CLI指定、plan指定、既定値の順で共通repeat回数を決定する。
     const defaultRepeat = args.defaultRepeat ?? plan.repeat ?? 1;
 
     assertPositiveInteger(defaultRepeat, 'Default repeat count');
 
     return getSelectedEntries(plan, args.only).map((entry) => {
+        // --repeatは個別entryやplanのrepeat指定より優先する。
         const repeatCount = args.repeat ?? entry.repeat ?? defaultRepeat;
 
         assertPositiveInteger(repeatCount, `Repeat count for ${entry.label}`);
@@ -195,15 +213,12 @@ function prepareEntries({ args, fileSystem, plan, repoRoot }) {
 }
 
 module.exports = {
-    assertPositiveInteger,
     buildSfArgs,
     defaultPlan,
     extractSfSummary,
-    getSelectedEntries,
     getSourcePaths,
     parseArgs,
     prepareEntries,
-    readApexSource,
     readPlan,
     resolveInsideRepo
 };

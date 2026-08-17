@@ -1,10 +1,11 @@
-
+// 合成キャンペーンと取引先責任者を1件ずつ対応させてキャンペーンメンバーを作成
 List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY StartDate ASC LIMIT 2000];
 List<Contact> contacts = [SELECT Id FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT 2000];
 if (campaigns.isEmpty() || contacts.isEmpty()) {
     System.assert(false, 'Run campaigns and contacts before campaign members.');
 }
 
+// 既存の組み合わせをキーで保持し、重複するキャンペーンメンバーを作らない
 String memberStatus = pick(CampaignMember.Status.getDescribe(), new List<String>{ 'Sent', 'Responded' });
 Set<Id> campaignIds = new Set<Id>();
 Set<Id> contactIds = new Set<Id>();
@@ -14,6 +15,7 @@ Set<String> existingKeys = new Set<String>();
 for (CampaignMember member : [SELECT CampaignId, ContactId FROM CampaignMember WHERE CampaignId IN :campaignIds AND ContactId IN :contactIds]) {
     existingKeys.add(member.CampaignId + '-' + member.ContactId);
 }
+// 未登録の組み合わせだけを追加対象へまとめる
 List<CampaignMember> records = new List<CampaignMember>();
 for (Integer i = 0; i < campaigns.size(); i += 1) {
     Contact contact = contacts[Math.mod(i, contacts.size())];
@@ -22,5 +24,6 @@ for (Integer i = 0; i < campaigns.size(); i += 1) {
         records.add(new CampaignMember(CampaignId = campaigns[i].Id, ContactId = contact.Id, Status = memberStatus));
     }
 }
+// 部分成功を許可し、作成件数と失敗理由を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('CampaignMember', Database.insert(records, false));
