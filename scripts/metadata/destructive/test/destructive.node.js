@@ -65,6 +65,63 @@ test('dry-runが失敗した場合は実削除を実行しない', async () => {
     assert.equal(prompt.isClosed(), true);
 });
 
+test('Default Target Orgを確認できない場合は入力確認を開始しない', async () => {
+    // 組織設定の確認を失敗させ、入力処理の作成回数を記録する。
+    let promptCount = 0;
+    const status = await main({
+        argv: [],
+        createPrompt() {
+            promptCount += 1;
+        },
+        runSfCommand() {
+            return 1;
+        }
+    });
+
+    // 組織が確定していない状態ではdry-runの確認を表示しない。
+    assert.equal(status, 1);
+    assert.equal(promptCount, 0);
+});
+
+test('dry-runが承認されない場合は削除処理を実行しない', async () => {
+    // dry-runを承認せず、Salesforce CLIの実行内容を記録する。
+    const commandArgs = [];
+    const prompt = createPrompt(['n']);
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return 0;
+        }
+    });
+
+    // Default Target Orgの表示だけで正常終了することを確認する。
+    assert.equal(status, 0);
+    assert.deepEqual(commandArgs, [['config', 'get', 'target-org']]);
+    assert.equal(prompt.isClosed(), true);
+});
+
+test('dry-run成功後に削除が承認されない場合は実削除しない', async () => {
+    // dry-runだけを承認し、Salesforce CLIの実行内容を記録する。
+    const commandArgs = [];
+    const prompt = createPrompt(['y', 'n']);
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return 0;
+        }
+    });
+
+    // 設定確認とdry-runだけで正常終了することを確認する。
+    assert.equal(status, 0);
+    assert.equal(commandArgs.length, 2);
+    assert.equal(commandArgs[1].at(-1), '--dry-run');
+    assert.equal(prompt.isClosed(), true);
+});
+
 test('dry-run成功後に再承認された場合だけ同じmanifestで実削除する', async () => {
     // dry-runと実削除の両方を承認し、実行された引数を記録する。
     const commandArgs = [];

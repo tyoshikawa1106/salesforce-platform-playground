@@ -7,12 +7,24 @@ const { runAliasCommand } = require('../internal/command');
 
 const usage = '実行コマンド: node scripts/scratch-org/steps/assign-permission-set.js [--alias <alias>]';
 
-process.exitCode = runAliasCommand({
-    argv: process.argv.slice(2),
-    defaultAlias: scratchOrg.alias,
-    usage,
-    execute(alias) {
-        // 設定ファイルで指定したPermission SetをScratch Orgの実行ユーザーへ割り当てる。
-        return runSf(['org', 'assign', 'permset', '--name', scratchOrg.permissionSet, '--target-org', alias], repoRoot);
-    }
-});
+// 設定ファイルで指定したPermission SetをScratch Orgの実行ユーザーへ割り当てる。
+function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
+    return runAliasCommand({
+        argv,
+        defaultAlias: scratchOrg.alias,
+        usage,
+        execute(alias) {
+            return runSfCommand(
+                ['org', 'assign', 'permset', '--name', scratchOrg.permissionSet, '--target-org', alias],
+                repoRoot
+            );
+        }
+    });
+}
+
+// コマンドとして実行された場合だけPermission Setを割り当てる。
+if (require.main === module) {
+    process.exitCode = main();
+}
+
+module.exports = { main };

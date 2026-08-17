@@ -7,16 +7,25 @@ const { runAliasCommand } = require('../internal/command');
 
 const usage = '実行コマンド: node scripts/scratch-org/steps/import-test-data.js [--alias <alias>]';
 
-process.exitCode = runAliasCommand({
-    argv: process.argv.slice(2),
-    defaultAlias: scratchOrg.alias,
-    usage,
-    execute(alias) {
-        // 共通のデータ投入スクリプトを、Scratch Org用planと件数設定で実行する。
-        return runNodeScript(
-            'scripts/setup/import-test-data.js',
-            ['--plan', scratchOrg.importPlan, '--target-org', alias, '--default-repeat', '40'],
-            repoRoot
-        );
-    }
-});
+// 共通のデータ投入スクリプトをScratch Org用の設定で実行する。
+function main({ argv = process.argv.slice(2), runNodeScriptCommand = runNodeScript } = {}) {
+    return runAliasCommand({
+        argv,
+        defaultAlias: scratchOrg.alias,
+        usage,
+        execute(alias) {
+            return runNodeScriptCommand(
+                'scripts/setup/import-test-data.js',
+                ['--plan', scratchOrg.importPlan, '--target-org', alias, '--default-repeat', '40'],
+                repoRoot
+            );
+        }
+    });
+}
+
+// コマンドとして実行された場合だけテストデータを投入する。
+if (require.main === module) {
+    process.exitCode = main();
+}
+
+module.exports = { main };

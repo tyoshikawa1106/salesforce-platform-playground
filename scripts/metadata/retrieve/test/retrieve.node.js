@@ -90,6 +90,46 @@ test('取得が承認されない場合はSalesforce CLIの設定確認だけを
     assert.equal(prompt.isClosed(), true);
 });
 
+test('Default Target Orgを確認できない場合は入力確認を開始しない', async () => {
+    // 組織設定の確認を失敗させ、入力処理の作成回数を記録する。
+    let promptCount = 0;
+    const status = await main({
+        argv: [],
+        createPrompt() {
+            promptCount += 1;
+        },
+        runSfCommand() {
+            return 1;
+        }
+    });
+
+    // 組織が確定していない状態ではretrieveの確認を表示しない。
+    assert.equal(status, 1);
+    assert.equal(promptCount, 0);
+});
+
+test('承認された場合はすべてのmanifestを定義順に取得する', async () => {
+    // retrieveを承認し、実行されたSalesforce CLI引数を記録する。
+    const commandArgs = [];
+    const prompt = createPrompt('y');
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return 0;
+        }
+    });
+
+    // 設定確認後、すべてのmanifestが定義順に取得されることを確認する。
+    assert.equal(status, 0);
+    assert.deepEqual(
+        commandArgs.slice(1),
+        manifests.map((manifest) => ['project', 'retrieve', 'start', '--manifest', manifest])
+    );
+    assert.equal(prompt.isClosed(), true);
+});
+
 test('manifestの定義順に取得し、失敗した時点で後続を実行しない', async () => {
     // retrieveを承認し、2つ目のmanifest取得を失敗させる。
     const commandArgs = [];

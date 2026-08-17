@@ -36,10 +36,10 @@ function getExitCode(result, command) {
 }
 
 // Salesforce CLIの出力をそのまま表示し、終了コードを返す。
-function runSf(args, workingDirectory) {
+function runSf(args, workingDirectory, spawnCommand = spawnSync) {
     try {
         const sfCommand = buildSfCommand(args);
-        const result = spawnSync(sfCommand.command, sfCommand.args, {
+        const result = spawnCommand(sfCommand.command, sfCommand.args, {
             cwd: workingDirectory,
             stdio: 'inherit'
         });
@@ -52,10 +52,10 @@ function runSf(args, workingDirectory) {
 }
 
 // Salesforce CLIの出力を呼び出し元で解析できる文字列として返す。
-function runSfWithOutput(args, workingDirectory) {
+function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync) {
     try {
         const sfCommand = buildSfCommand(args);
-        return spawnSync(sfCommand.command, sfCommand.args, {
+        return spawnCommand(sfCommand.command, sfCommand.args, {
             cwd: workingDirectory,
             encoding: 'utf8'
         });

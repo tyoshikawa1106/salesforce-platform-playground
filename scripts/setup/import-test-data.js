@@ -48,8 +48,8 @@ function printStep({ cycle, dryRun, entry, repeatCount, sfArgs, sourcePaths }) {
 }
 
 // Salesforce CLIを実行し、seed処理の要約だけを見やすく表示する。
-function runSfCommand(entry, sfArgs) {
-    const result = runSfWithOutput(sfArgs, repoRoot);
+function executeSfCommand(entry, sfArgs, runSfCommand) {
+    const result = runSfCommand(sfArgs, repoRoot);
 
     // CLIを起動できない場合も、対象entryを示して後続処理を止める。
     if (result.error) {
@@ -74,9 +74,14 @@ function getGeneratedFileName(label) {
     return `${label.replace(/[^a-z0-9-]/gi, '-')}.apex`;
 }
 
-function run() {
+function run({
+    argv = process.argv.slice(2),
+    fileSystem = fs,
+    operatingSystem = os,
+    runSfCommand = runSfWithOutput
+} = {}) {
     // 組織操作やファイル読込より前に、CLI引数を確定する。
-    const args = parseArgs(process.argv.slice(2));
+    const args = parseArgs(argv);
 
     if (args.help) {
         printHelp();
@@ -92,13 +97,13 @@ function run() {
 
     // planと参照するApexファイルを先に検証し、実行途中の構成エラーを避ける。
     const plan = readPlan({
-        fileSystem: fs,
+        fileSystem,
         planPath: args.plan,
         repoRoot
     });
     const preparedEntries = prepareEntries({
         args,
-        fileSystem: fs,
+        fileSystem,
         plan,
         repoRoot
     });
@@ -112,13 +117,15 @@ function run() {
             const generatedFilePath = args.dryRun
                 ? `<generated:${generatedFileName}>`
                 : path.join(
-                      (temporaryDirectory ??= fs.mkdtempSync(path.join(os.tmpdir(), 'salesforce-seed-'))),
+                      (temporaryDirectory ??= fileSystem.mkdtempSync(
+                          path.join(operatingSystem.tmpdir(), 'salesforce-seed-')
+                      )),
                       generatedFileName
                   );
 
             // dry-runでは一時ファイルを作らず、生成予定のファイル名だけを表示する。
             if (!args.dryRun) {
-                fs.writeFileSync(generatedFilePath, prepared.source, 'utf8');
+                fileSystem.writeFileSync(generatedFilePath, prepared.source, 'utf8');
             }
 
             const sfArgs = buildSfArgs(generatedFilePath, targetOrg);
@@ -136,22 +143,26 @@ function run() {
 
                 // dry-runでは実行予定を表示するだけで、Salesforce CLIを呼び出さない。
                 if (!args.dryRun) {
-                    runSfCommand(prepared.entry, sfArgs);
+                    executeSfCommand(prepared.entry, sfArgs, runSfCommand);
                 }
             }
         }
     } finally {
         // 成功・失敗にかかわらず、合成したanonymous Apexをローカルに残さない。
         if (temporaryDirectory) {
-            fs.rmSync(temporaryDirectory, { force: true, recursive: true });
+            fileSystem.rmSync(temporaryDirectory, { force: true, recursive: true });
         }
     }
 }
 
 // 利用者が修正すべき内容だけを簡潔に表示し、CLIへ失敗を返す。
-try {
-    run();
-} catch (error) {
-    process.stderr.write(`エラー: ${error.message}\n`);
-    process.exitCode = 1;
+if (require.main === module) {
+    try {
+        run();
+    } catch (error) {
+        process.stderr.write(`エラー: ${error.message}\n`);
+        process.exitCode = 1;
+    }
 }
+
+module.exports = { run };
