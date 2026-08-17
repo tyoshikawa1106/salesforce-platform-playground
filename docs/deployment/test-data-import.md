@@ -10,7 +10,7 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## ファイル構成
 
-`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点とplanを置く場所です。匿名Apexのシード、クリーンアップ、修復用スクリプトは、ファイル種別に合わせて`scripts/apex/`に置きます。
+`scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点とplanを置く場所です。匿名Apexのシード用スクリプトは、ファイル種別に合わせて`scripts/apex/`に置きます。
 
 - `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画と共通preamble。
 - `scripts/apex/test-data/seed-standard-preamble.apexpart`: 標準オブジェクトseedで共有する変数と関数の断片。
@@ -72,12 +72,6 @@ npm run setup:data:standard:dry-run -- --target-org <alias> --only case-email-me
 npm run setup:data:standard -- --target-org <alias> --only case-email-message-list
 ```
 
-追加分だけを削除する場合は、専用のクリーンアップを実行します。
-
-```sh
-sf apex run --file scripts/apex/test-data/cleanup-case-email-message-list.apex --target-org <alias>
-```
-
 画面では初回に最も古い 50 件を表示します。「次のメールを読み込む」を選択し、50 件ずつ追加されることと、新しいメールが末尾へ追加されて古い順を維持することを確認します。
 
 ### 最近の問い合わせ表示用データ
@@ -89,12 +83,6 @@ sf apex run --file scripts/apex/test-data/cleanup-case-email-message-list.apex -
 ```sh
 npm run setup:data:standard:dry-run -- --target-org <alias> --only case-related-case-list
 npm run setup:data:standard -- --target-org <alias> --only case-related-case-list
-```
-
-追加分だけを削除する場合は、専用のクリーンアップを実行します。
-
-```sh
-sf apex run --file scripts/apex/test-data/cleanup-case-related-case-list.apex --target-org <alias>
 ```
 
 画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで先頭表示され、その後へ別Caseが直近順で4件表示されることを確認します。5件目の別Caseは最大5件の表示制限により表示されません。
@@ -141,38 +129,11 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 
-## クリーンアップ
-
-投入後は、必要に応じて対象を確認してから削除します。
-
-```sh
-sf data query \
-  --query "SELECT Id, Name FROM Account WHERE Name LIKE '[TEST]%'" \
-  --target-org <alias>
-```
-
-少量であれば ID を確認して削除します。
-
-```sh
-sf data delete record --sobject Account --record-id <record-id> --target-org <alias>
-```
-
-主要標準オブジェクトのシードデータは、接頭辞`[TEST]`を使ってクリーンアップします。
-
-- governor limit を避けるため、各オブジェクト最大 100 件ずつ削除する。
-- 大量投入後は `Deleted records: none` になるまで複数回実行する。
-
-```sh
-sf apex run --file scripts/apex/test-data/cleanup-standard-objects.apex --target-org <alias>
-```
-
 ## データ追加時の注意
 
 - 実在の個人情報、顧客情報、秘密情報を入れない。
 - org 固有の ID を固定しない。
-- 大量データや自動化検証用データは、投入前にクリーンアップ方針を決める。
 - validation rule、required field、picklist 値を describe で確認する。
 - 親子関係のあるデータは親から投入する。
 - Trigger / Flow の bulk 動作を見たい場合は、200 件境界を超える件数を用意する。
 - データ投入は metadata deploy ではないため、投入したレコードを Git 差分や manifest に含めない。
-- 失敗しても作成済みレコードが残る場合があるため、再実行前に確認SOQLまたはクリーンアップ方針を確認する。

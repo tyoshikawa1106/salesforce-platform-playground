@@ -5,18 +5,18 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const repoRoot = path.resolve(__dirname, '../../../..');
-const planPath = path.join(repoRoot, 'scripts/metadata/retrieve/retrieve-plan.txt');
+const retrieveScriptPath = path.join(repoRoot, 'scripts/metadata/retrieve/retrieve.sh');
 
-function readPlan() {
-    return fs
-        .readFileSync(planPath, 'utf8')
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith('#'));
+function readManifestOrder() {
+    const source = fs.readFileSync(retrieveScriptPath, 'utf8');
+    const manifestArray = source.match(/manifests=\(\n(?<entries>(?: {4}"manifest\/retrieve-[^"]+\.xml"\n)+)\)/);
+
+    assert.ok(manifestArray?.groups?.entries, 'retrieve scriptにmanifest配列がありません');
+    return [...manifestArray.groups.entries.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
 }
 
-test('retrieve planが分割manifestを重複なくすべて含む', () => {
-    const planEntries = readPlan();
+test('retrieve scriptが分割manifestを重複なくすべて含む', () => {
+    const planEntries = readManifestOrder();
     const splitManifests = fs
         .readdirSync(path.join(repoRoot, 'manifest'))
         .filter((fileName) => fileName.startsWith('retrieve-') && fileName !== 'retrieve-all.xml')
@@ -29,7 +29,7 @@ test('retrieve planが分割manifestを重複なくすべて含む', () => {
 });
 
 test('Profileを最初、Translationsを最後に取得する', () => {
-    const planEntries = readPlan();
+    const planEntries = readManifestOrder();
 
     assert.equal(planEntries[0], 'manifest/retrieve-profile.xml');
     assert.equal(planEntries.at(-1), 'manifest/retrieve-translations.xml');

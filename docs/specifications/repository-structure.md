@@ -190,7 +190,7 @@
 | パス                                                     | 種別       | 用途                                                                        |
 | -------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
 | `scripts/apex/`                                          | フォルダ   | ローカルから実行するanonymous Apexを格納する。                              |
-| `scripts/apex/test-data/`                                | フォルダ   | 合成テストデータの作成、削除、補正処理を格納する。                          |
+| `scripts/apex/test-data/`                                | フォルダ   | 合成テストデータの作成処理を格納する。                                      |
 | `scripts/apex/test-data/seed-standard-preamble.apexpart` | ファイル   | 標準Object seedに実行時合成する共通変数と関数の断片を定義する。             |
 | `scripts/apex/test-data/seed-standard-*.apexpart`        | ファイル群 | 標準Object seedに実行時合成するobject固有処理の断片を定義する。             |
 | `scripts/apex/test-data/*.apex`                          | ファイル群 | 標準Objectと対象機能の合成テストデータを操作する。                          |
@@ -205,7 +205,6 @@
 | `scripts/metadata/destructive/destructive.sh`            | ファイル   | destructive changesのdry-runと実削除を実行する。                            |
 | `scripts/metadata/retrieve/`                             | フォルダ   | metadata retrieve scriptを格納する。                                        |
 | `scripts/metadata/retrieve/retrieve.sh`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
-| `scripts/metadata/retrieve/retrieve-plan.txt`            | ファイル   | 責務別manifestの実行順を定義する。                                          |
 | `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
 | `scripts/scratch-org/setup.js`                           | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
 | `scripts/scratch-org/delete.js`                          | ファイル   | 設定されたScratch Orgを削除する。                                           |

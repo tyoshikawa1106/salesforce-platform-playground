@@ -8,26 +8,43 @@ if [[ $# -ne 0 ]]; then
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-plan_path="$repo_root/scripts/metadata/retrieve/retrieve-plan.txt"
-manifests=()
+# 責務別manifestの実行順
+manifests=(
+    "manifest/retrieve-profile.xml"
+    "manifest/retrieve-code.xml"
+    "manifest/retrieve-shared-resources.xml"
+    "manifest/retrieve-application-ui.xml"
+    "manifest/retrieve-object-configuration.xml"
+    "manifest/retrieve-custom-configuration.xml"
+    "manifest/retrieve-automation.xml"
+    "manifest/retrieve-access-sharing.xml"
+    "manifest/retrieve-integration-api.xml"
+    "manifest/retrieve-events-messaging.xml"
+    "manifest/retrieve-ui-extensions.xml"
+    "manifest/retrieve-auth-security.xml"
+    "manifest/retrieve-analytics.xml"
+    "manifest/retrieve-email-notification.xml"
+    "manifest/retrieve-digital-experience.xml"
+    "manifest/retrieve-experience-sites.xml"
+    "manifest/retrieve-service.xml"
+    "manifest/retrieve-mobile-offline.xml"
+    "manifest/retrieve-ai-ml.xml"
+    "manifest/retrieve-content-cms.xml"
+    "manifest/retrieve-search-knowledge.xml"
+    "manifest/retrieve-org-settings.xml"
+    "manifest/retrieve-classic-ui.xml"
+    "manifest/retrieve-conversation-intelligence.xml"
+    "manifest/retrieve-payments.xml"
+    "manifest/retrieve-platform-features.xml"
+    "manifest/retrieve-translations.xml"
+)
 
-while IFS= read -r manifest; do
-    if [[ -z "$manifest" || "$manifest" == \#* ]]; then
-        continue
-    fi
-
+for manifest in "${manifests[@]}"; do
     if [[ ! -f "$repo_root/$manifest" ]]; then
-        echo "retrieve planのmanifestがありません: $manifest" >&2
+        echo "retrieve対象のmanifestがありません: $manifest" >&2
         exit 1
     fi
-
-    manifests+=("$manifest")
-done < "$plan_path"
-
-if [[ ${#manifests[@]} -eq 0 ]]; then
-    echo "retrieve planにmanifestがありません。" >&2
-    exit 1
-fi
+done
 
 cd "$repo_root"
 sf config get target-org
