@@ -56,6 +56,16 @@ Apex、メタデータ、GitHub、デプロイなどの詳細は該当するル�
 - npm 依存の major update は、peer dependency が成立する組み合わせで確認する。`--force` や `--legacy-peer-deps` で未対応の組み合わせを通さない。
 - Node.js version、npm 依存、品質チェック設定、CI workflow を変更する場合は、`.node-version`、`package.json`、CI、setup docs の不整合を残さない。
 
+### npm 依存の脆弱性対応
+
+- `npm audit` の指摘は、公式 advisory、実際の依存経路、解決済み version、production / development の到達範囲を確認してから対応する。
+- 公式の互換修正版への更新、直接依存または上位依存の更新、互換性を保つ version 範囲の override を優先する。複数の major version が混在する場合は、各依存元が要求する範囲を維持する。
+- 監査結果を 0 件にする目的で、外部ライブラリを `vendor/` などへ複製、fork、再実装したり、独自の互換 wrapper を作成したりしない。`file:` dependency、別 package 名、監査除外によって advisory の検出を回避しない。
+- 互換性のある公式修正版が存在しない場合は、利用箇所、入力の信頼境界、影響範囲、上流の対応状況、待機または依存更新の選択肢を報告し、独自実装を開始せずユーザーの判断を待つ。
+- override を追加する場合は、対象となる全依存経路について semver、CommonJS / ES Modules API、Node.js version、peer dependency を確認し、解除条件を明示する。
+- `npm audit` が 0 件でも、local、Git、fork 由来の dependency がある場合は安全と断定せず、実装の基準 version と公式 advisory の影響範囲を直接照合する。
+- 外部ライブラリの一時的な fork または互換実装が避けられない場合は、ユーザーの明示承認、取得元と license の記録、上流修正版を追跡する方法、削除条件、監査で検出できないリスクを変更前に提示する。
+
 ## コードコメント
 
 - リポジトリで独自実装する開発コードのコメントは日本語で書く。API 名、クラス名、項目名、コマンド、ディレクティブなどの識別子は元の表記を維持する。
