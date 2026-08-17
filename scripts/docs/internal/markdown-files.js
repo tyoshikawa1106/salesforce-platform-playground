@@ -5,7 +5,7 @@ const { execFileSync } = require('child_process');
 const path = require('path');
 
 // 文書の検出と除外判定に使用するリポジトリ内の基準パス。
-const projectRoot = path.resolve(__dirname, '../..');
+const projectRoot = path.resolve(__dirname, '../../..');
 const docsRoot = path.join(projectRoot, 'docs');
 const docsIndex = path.join(docsRoot, 'index.md');
 const externalSkillsRoot = path.join(projectRoot, '.agents', 'skills');

@@ -1,11 +1,9 @@
-#!/usr/bin/env node
-
 // 実行コマンド: node scripts/scratch-org/setup.js
 // 用途: Scratch Orgの作成、メタデータ反映、権限割り当て、テストデータ投入を順番に行う。
 
 const { execFileSync } = require('node:child_process');
-const { repoRoot, scratchOrg } = require('./internal-context');
-const { runNoArgumentCommand } = require('./internal-command');
+const { repoRoot, scratchOrg } = require('./internal/context');
+const { runNoArgumentCommand } = require('./internal/command');
 
 const usage = '実行コマンド: node scripts/scratch-org/setup.js';
 
@@ -23,28 +21,28 @@ process.exitCode = runNoArgumentCommand({
         process.stdout.write(`使用するScratch Org alias: ${scratchOrg.alias}\n`);
 
         // 1. 設定ファイルからScratch Orgを作成する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-create.js'], {
+        execFileSync(process.execPath, ['scripts/scratch-org/steps/create.js'], {
             cwd: repoRoot,
             env: childEnv,
             stdio: 'inherit'
         });
 
         // 2. 再現用manifestに限定してmetadataを反映する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-deploy.js'], {
+        execFileSync(process.execPath, ['scripts/scratch-org/steps/deploy.js'], {
             cwd: repoRoot,
             env: childEnv,
             stdio: 'inherit'
         });
 
         // 3. playground機能の利用に必要なPermission Setを割り当てる。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-assign-permset.js'], {
+        execFileSync(process.execPath, ['scripts/scratch-org/steps/assign-permission-set.js'], {
             cwd: repoRoot,
             env: childEnv,
             stdio: 'inherit'
         });
 
         // 4. 画面確認に使用する標準オブジェクトのテストデータを投入する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-import-test-data.js'], {
+        execFileSync(process.execPath, ['scripts/scratch-org/steps/import-test-data.js'], {
             cwd: repoRoot,
             env: childEnv,
             stdio: 'inherit'

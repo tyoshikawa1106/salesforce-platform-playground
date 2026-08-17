@@ -1,10 +1,10 @@
-// 実行コマンド: node --test scripts/docs/test/check-docs-core.node.js
+// 実行コマンド: node --test scripts/docs/test/validate-docs.node.js
 // 用途: Markdownの解析、危険なコマンド例、文書の索引到達性を検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { parseMarkdown, validateDocumentation, validateUnsafeCommandExamples } = require('../check-docs-core');
+const { parseMarkdown, validateDocumentation, validateUnsafeCommandExamples } = require('../internal/validate-docs');
 
 // テスト用Markdownの絶対パスを組み立てる基準にする。
 const projectRoot = path.resolve('/repository');

@@ -1,13 +1,11 @@
-#!/usr/bin/env node
-
-// 実行コマンド: node scripts/scratch-org/internal-create.js
+// 実行コマンド: node scripts/scratch-org/steps/create.js
 // 用途: setup.jsから呼び出し、設定ファイルに従ってScratch Orgを作成する。
 
-const { runCommand } = require('../run-command');
-const { repoRoot, scratchOrg } = require('./internal-context');
-const { runNoArgumentCommand } = require('./internal-command');
+const { runCommand } = require('../../internal/run-command');
+const { repoRoot, scratchOrg } = require('../internal/context');
+const { runNoArgumentCommand } = require('../internal/command');
 
-const usage = '実行コマンド: node scripts/scratch-org/internal-create.js';
+const usage = '実行コマンド: node scripts/scratch-org/steps/create.js';
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),

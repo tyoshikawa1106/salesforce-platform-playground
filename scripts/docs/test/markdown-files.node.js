@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { getManagedMarkdownFiles, projectRoot } = require('../markdown-files');
+const { getManagedMarkdownFiles, projectRoot } = require('../internal/markdown-files');
 
 test('Git 管理する現行文書を検査対象に含め、履歴文書を除外する', () => {
     // 管理対象のMarkdownをリポジトリルートからの相対パスへ変換する。

@@ -94,7 +94,7 @@ sf org create scratch --definition-file config/project-scratch-def.json --alias 
 
 alias は通常 `scratch-org` を使います。
 同じ日に複数作成する場合は、作成前にユーザーへ alias を確認します。
-スクリプト実行時の alias 生成ルールは `scripts/scratch-org/scratch-org.json` と `scripts/scratch-org/internal-context.js` で扱います。
+スクリプト実行時の alias 生成ルールは `scripts/scratch-org/scratch-org.json` と `scripts/scratch-org/internal/context.js` で扱います。
 Dev Hub を明示する必要がある場合は、確認済みの Dev Hub を `--target-dev-hub` で指定します。
 
 ```sh

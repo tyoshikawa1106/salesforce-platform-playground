@@ -4,7 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { runCommand, runCommandWithOutput } = require('../run-command');
+const { runCommand, runCommandWithOutput } = require('../internal/run-command');
 
 // 外部CLIをリポジトリルートで実行する。
 const repoRoot = path.resolve(__dirname, '../..');

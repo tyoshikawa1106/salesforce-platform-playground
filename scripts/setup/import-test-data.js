@@ -1,12 +1,10 @@
-#!/usr/bin/env node
-
 // 実行コマンド: npm run setup:data:standard -- --target-org <alias>
 // 用途: import planに従って、指定したTarget Orgへ標準テストデータを投入する。
 
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { runCommandWithOutput } = require('../run-command');
+const { runCommandWithOutput } = require('../internal/run-command');
 const {
     buildSfArgs,
     defaultPlan,
@@ -14,7 +12,7 @@ const {
     parseArgs,
     prepareEntries,
     readPlan
-} = require('./import-test-data-core');
+} = require('./internal/import-test-data-core');
 
 // planとApexファイルを常にリポジトリ基準で解決する。
 const repoRoot = path.resolve(__dirname, '../..');

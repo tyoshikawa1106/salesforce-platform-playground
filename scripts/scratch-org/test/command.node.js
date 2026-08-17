@@ -1,9 +1,9 @@
-// 実行コマンド: node --test scripts/scratch-org/test/internal-command.node.js
+// 実行コマンド: node --test scripts/scratch-org/test/command.node.js
 // 用途: 引数なしコマンドのhelp、未知の引数、終了コードを検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runNoArgumentCommand } = require('../internal-command');
+const { runNoArgumentCommand } = require('../internal/command');
 
 // 標準出力とエラー出力をテスト内で確認できる簡易ストリームを作る。
 function createOutput() {

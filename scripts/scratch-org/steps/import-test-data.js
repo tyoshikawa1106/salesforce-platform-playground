@@ -1,13 +1,11 @@
-#!/usr/bin/env node
-
-// 実行コマンド: node scripts/scratch-org/internal-import-test-data.js
+// 実行コマンド: node scripts/scratch-org/steps/import-test-data.js
 // 用途: setup.jsから呼び出し、Scratch Orgへ標準テストデータを投入する。
 
 const { execFileSync } = require('node:child_process');
-const { repoRoot, scratchOrg } = require('./internal-context');
-const { runNoArgumentCommand } = require('./internal-command');
+const { repoRoot, scratchOrg } = require('../internal/context');
+const { runNoArgumentCommand } = require('../internal/command');
 
-const usage = '実行コマンド: node scripts/scratch-org/internal-import-test-data.js';
+const usage = '実行コマンド: node scripts/scratch-org/steps/import-test-data.js';
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),

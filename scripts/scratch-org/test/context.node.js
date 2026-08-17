@@ -1,11 +1,11 @@
-// 実行コマンド: node --test scripts/scratch-org/test/internal-context.node.js
+// 実行コマンド: node --test scripts/scratch-org/test/context.node.js
 // 用途: Scratch Orgの共通設定と参照ファイルを検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { repoRoot, scratchOrg } = require('../internal-context');
+const { repoRoot, scratchOrg } = require('../internal/context');
 
 test('リポジトリルートとScratch Org設定の参照先を解決できる', () => {
     // 共通処理が正しいリポジトリルートを返すことを確認する。

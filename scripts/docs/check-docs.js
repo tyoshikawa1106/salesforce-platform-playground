@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // 実行コマンド: npm run docs:check
 // 用途: Git管理対象のMarkdownを検査し、見つかった問題をまとめて表示する。
 
@@ -11,8 +9,8 @@ const {
     getDocsMarkdownFiles,
     getManagedMarkdownFiles,
     projectRoot
-} = require('./markdown-files');
-const { validateDocumentation } = require('./check-docs-core');
+} = require('./internal/markdown-files');
+const { validateDocumentation } = require('./internal/validate-docs');
 
 // 文書の配置区分ごとに対象を列挙し、同じ一覧を検証と件数表示に使用する。
 const docsMarkdownFiles = getDocsMarkdownFiles();

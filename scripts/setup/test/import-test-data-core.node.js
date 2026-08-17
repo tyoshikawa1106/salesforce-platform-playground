@@ -5,7 +5,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { getSourcePaths, parseArgs, prepareEntries, readPlan, resolveInsideRepo } = require('../import-test-data-core');
+const {
+    getSourcePaths,
+    parseArgs,
+    prepareEntries,
+    readPlan,
+    resolveInsideRepo
+} = require('../internal/import-test-data-core');
 
 // 実際のimport planとApexファイルをリポジトリルート基準で参照する。
 const repoRoot = path.resolve(__dirname, '../../..');

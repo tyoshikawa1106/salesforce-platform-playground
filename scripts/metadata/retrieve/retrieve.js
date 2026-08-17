@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createInterface } = require('node:readline/promises');
-const { runCommand } = require('../../run-command');
+const { runCommand } = require('../../internal/run-command');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
