@@ -39,16 +39,6 @@
 | `sfdx-project.json`   | ファイル | Salesforce DXのpackage directory、API version、login URLを定義する。         |
 | `skills-lock.json`    | ファイル | 外部AIエージェントSkillsの取得元と内容の識別情報を管理する。                 |
 
-## vendor
-
-| パス                                            | 種別       | 用途                                                                   |
-| ----------------------------------------------- | ---------- | ---------------------------------------------------------------------- |
-| `vendor/brace-expansion-compat/`                | フォルダ   | `brace-expansion 5.0.8` の安全性と旧 CommonJS API の互換性を提供する。 |
-| `vendor/brace-expansion-compat/index.cjs`       | ファイル   | CommonJS関数API、名前付きAPI、展開数・合計長の上限を実装する。         |
-| `vendor/brace-expansion-compat/index.mjs`       | ファイル   | ES Modules向けの名前付きAPIとdefault APIを公開する。                   |
-| `vendor/brace-expansion-compat/README.md`       | ファイル   | 互換パッケージの目的、確認方法、削除条件を説明する。                   |
-| `vendor/brace-expansion-compat/test/*.node.cjs` | ファイル群 | API互換性と展開結果の合計長上限を検証する。                            |
-
 ## AIエージェント・エディタ
 
 | パス                                       | 種別     | 用途                                                          |

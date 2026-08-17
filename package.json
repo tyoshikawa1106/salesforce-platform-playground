@@ -10,7 +10,7 @@
         "lint": "eslint \"**/{aura,lwc}/**/*.js\" \"scripts/**/*.js\" --no-error-on-unmatched-pattern",
         "lint:slds": "slds-linter lint force-app/main/default/lwc",
         "test": "npm run test:scripts && npm run test:unit",
-        "test:scripts": "node --test scripts/scratch-org/test/*.node.js scripts/docs/test/*.node.js scripts/setup/test/*.node.js scripts/metadata/retrieve/test/*.node.js vendor/brace-expansion-compat/test/*.node.cjs",
+        "test:scripts": "node --test scripts/scratch-org/test/*.node.js scripts/docs/test/*.node.js scripts/setup/test/*.node.js scripts/metadata/retrieve/test/*.node.js",
         "test:unit": "sfdx-lwc-jest",
         "test:unit:watch": "sfdx-lwc-jest --watch",
         "test:unit:debug": "sfdx-lwc-jest --debug",
@@ -47,7 +47,6 @@
     },
     "overrides": {
         "@babel/core": "^7.29.7",
-        "brace-expansion": "file:vendor/brace-expansion-compat",
         "js-yaml": "^4.2.0",
         "postcss": "^8.5.23"
     },
