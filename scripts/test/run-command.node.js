@@ -46,10 +46,13 @@ test('Windowsでcmd.exeが解釈する文字をSalesforce CLIへ渡さない', (
 });
 
 test('Salesforce CLIの終了コードを返す', () => {
+    // 現在のOSで使用するSalesforce CLIコマンドを準備する。
+    const sfCommand = buildSfCommand(['--version']);
+
     // Salesforce CLIの起動結果として終了コード7を返す。
     const status = runSf(['--version'], repoRoot, (command, args, options) => {
-        assert.equal(command, 'sf');
-        assert.deepEqual(args, ['--version']);
+        assert.equal(command, sfCommand.command);
+        assert.deepEqual(args, sfCommand.args);
         assert.deepEqual(options, { cwd: repoRoot, stdio: 'inherit' });
         return { status: 7 };
     });
@@ -99,10 +102,13 @@ test('Salesforce CLIの起動結果にエラーがある場合は異常終了す
 });
 
 test('Salesforce CLIの出力を文字列として返す', () => {
+    // 現在のOSで使用するSalesforce CLIコマンドを準備する。
+    const sfCommand = buildSfCommand(['config', 'get', 'target-org']);
+
     // 呼び出し元で解析する標準出力と標準エラーを返す。
     const result = runSfWithOutput(['config', 'get', 'target-org'], repoRoot, (command, args, options) => {
-        assert.equal(command, 'sf');
-        assert.deepEqual(args, ['config', 'get', 'target-org']);
+        assert.equal(command, sfCommand.command);
+        assert.deepEqual(args, sfCommand.args);
         assert.deepEqual(options, { cwd: repoRoot, encoding: 'utf8' });
         return { status: 0, stdout: 'target-org', stderr: '' };
     });

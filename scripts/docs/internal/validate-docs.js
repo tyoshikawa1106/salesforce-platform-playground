@@ -3,6 +3,11 @@
 
 const path = require('node:path');
 
+// 検証結果のパス区切りをOSにかかわらずリポジトリ表記へ揃える。
+function getRelativePath(projectRoot, filePath) {
+    return path.relative(projectRoot, filePath).split(path.sep).join('/');
+}
+
 // GitHub Markdownと同じ形式で見出しアンカーを作り、同名見出しには連番を付ける。
 function createHeadingAnchor(heading, anchorCounts) {
     const baseAnchor = heading
@@ -58,7 +63,7 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
             // 見出しレベルが飛ぶと文書構造を追いにくいため問題として報告する。
             if (previousHeadingLevel > 0 && headingLevel > previousHeadingLevel + 1) {
                 issues.push(
-                    `${path.relative(projectRoot, filePath)}:${index + 1}: 見出しが H${previousHeadingLevel} から H${headingLevel} へ飛んでいます。`
+                    `${getRelativePath(projectRoot, filePath)}:${index + 1}: 見出しが H${previousHeadingLevel} から H${headingLevel} へ飛んでいます。`
                 );
             }
 
@@ -86,7 +91,7 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
     });
 
     if (requireH1 && h1Count !== 1) {
-        issues.push(`${path.relative(projectRoot, filePath)}: H1 は1つ必要です。現在は ${h1Count} 個です。`);
+        issues.push(`${getRelativePath(projectRoot, filePath)}: H1 は1つ必要です。現在は ${h1Count} 個です。`);
     }
 
     return { anchors, issues, localLinks };
@@ -100,7 +105,7 @@ function validateFileName(filePath, projectRoot) {
         return [];
     }
 
-    return [`${path.relative(projectRoot, filePath)}: ファイル名を kebab-case にしてください。`];
+    return [`${getRelativePath(projectRoot, filePath)}: ファイル名を kebab-case にしてください。`];
 }
 
 // 端末環境や他ツールまで広く変更する危険なコマンド例が文書にないか確認する。
@@ -112,7 +117,7 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
         // Pythonのインストール先をversion込みで固定する例は、環境差で壊れるため拒否する。
         if (/(?:%LOCALAPPDATA%|\$env:LOCALAPPDATA)\\Programs\\Python\\Python313/i.test(line)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: WindowsのPythonインストール先を固定したPATH例にしないでください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: WindowsのPythonインストール先を固定したPATH例にしないでください。`
             );
         }
 
@@ -142,41 +147,41 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
         // PATH全体の永続上書きにつながるsetxの実行例を拒否する。
         if (/^setx(?:\.exe)?\s+"?path"?(?:\s|$)/i.test(command)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: setx PATH を実行例に使用しないでください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: setx PATH を実行例に使用しないでください。`
             );
         }
 
         // Salesforce CLIはSalesforceが案内する公式Windowsインストーラーを使用する。
         if (/^winget\s+install\b.*\bSalesforce\.CLI\b/i.test(command)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: Salesforce CLIは公式Windowsインストーラーを案内してください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Salesforce CLIは公式Windowsインストーラーを案内してください。`
             );
         }
 
         // Heroku CLIも公式インストーラーを使用し、非公式な導入経路を標準化しない。
         if (/^winget\s+install\b.*\bHeroku\.HerokuCLI\b/i.test(command)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: Heroku CLIは公式Windowsインストーラーを案内してください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Heroku CLIは公式Windowsインストーラーを案内してください。`
             );
         }
 
         // Code Analyzerは現在の公式plugin名を使用する。
         if (/^sf\s+plugins\s+install\s+@salesforce\/plugin-code-analyzer(?:\s|$)/i.test(command)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: Code Analyzerは公式のplugin名code-analyzerで導入してください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Code Analyzerは公式のplugin名code-analyzerで導入してください。`
             );
         }
 
         // パッケージ管理対象全体を一括更新する例をリポジトリ手順へ含めない。
         if (/^winget\s+upgrade\s+--all(?:\s|$)/i.test(command)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: winget管理対象全体ではなく更新対象を個別に指定してください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: winget管理対象全体ではなく更新対象を個別に指定してください。`
             );
         }
 
         if (/^brew\s+(?:upgrade|autoremove|cleanup)\s*$/i.test(command)) {
             issues.push(
-                `${path.relative(projectRoot, filePath)}:${index + 1}: Homebrew管理対象全体を確認なしで変更しないでください。`
+                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Homebrew管理対象全体を確認なしで変更しないでください。`
             );
         }
     });
@@ -229,7 +234,7 @@ function validateDocumentation({
             const targetPath = rawPath ? path.resolve(path.dirname(filePath), decodeURIComponent(rawPath)) : filePath;
 
             if (!fileExists(targetPath)) {
-                issues.push(`${path.relative(projectRoot, filePath)}:${line}: リンク先がありません: ${target}`);
+                issues.push(`${getRelativePath(projectRoot, filePath)}:${line}: リンク先がありません: ${target}`);
                 continue;
             }
 
@@ -237,7 +242,7 @@ function validateDocumentation({
                 const anchor = decodeURIComponent(rawAnchor);
 
                 if (!parsedFiles.get(targetPath).anchors.has(anchor)) {
-                    issues.push(`${path.relative(projectRoot, filePath)}:${line}: アンカーがありません: ${target}`);
+                    issues.push(`${getRelativePath(projectRoot, filePath)}:${line}: アンカーがありません: ${target}`);
                 }
             }
 
@@ -267,7 +272,7 @@ function validateDocumentation({
     // docs配下の現行文書は、すべて索引から辿れる状態を必須とする。
     for (const filePath of docsMarkdownFiles) {
         if (!reachableFiles.has(filePath)) {
-            issues.push(`${path.relative(projectRoot, filePath)}: docs/index.md から辿れません。`);
+            issues.push(`${getRelativePath(projectRoot, filePath)}: docs/index.md から辿れません。`);
         }
     }
 

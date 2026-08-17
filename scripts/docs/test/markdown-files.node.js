@@ -10,7 +10,9 @@ const { getManagedMarkdownFiles, projectRoot } = require('../internal/markdown-f
 test('Git 管理する現行文書を検査対象に含め、履歴文書を除外する', () => {
     // 管理対象のMarkdownをリポジトリルートからの相対パスへ変換する。
     const markdownFiles = getManagedMarkdownFiles();
-    const relativePaths = markdownFiles.map((filePath) => path.relative(projectRoot, filePath));
+    const relativePaths = markdownFiles.map((filePath) =>
+        path.relative(projectRoot, filePath).split(path.sep).join('/')
+    );
 
     // 対象一覧に重複がないことを確認する。
     assert.equal(new Set(markdownFiles).size, markdownFiles.length);
