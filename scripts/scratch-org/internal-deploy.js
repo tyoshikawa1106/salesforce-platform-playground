@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+
+// 実行コマンド: node scripts/scratch-org/internal-deploy.js
+// 用途: setup.jsから呼び出し、Scratch Orgへ初期メタデータを反映する。
+
 const { runCommand } = require('../run-command');
 const { repoRoot, scratchOrg } = require('./internal-context');
 const { runNoArgumentCommand } = require('./internal-command');
 
-// setup.jsから呼び出す初期metadata反映ステップ。
-const usage = 'Usage: node scripts/scratch-org/internal-deploy.js';
+const usage = '実行コマンド: node scripts/scratch-org/internal-deploy.js';
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),

@@ -1,3 +1,6 @@
+// 実行方法: check-docs.jsとテストスクリプトから読み込む。
+// 用途: 文書検証の対象となるMarkdownをリポジトリから抽出する。
+
 const { execFileSync } = require('child_process');
 const path = require('path');
 

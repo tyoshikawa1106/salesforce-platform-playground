@@ -1,4 +1,6 @@
-// 引数を取らないScratch Orgスクリプトで、helpと未知の引数を同じ方法で扱う。
+// 実行方法: Scratch Org関連スクリプトから共通モジュールとして読み込む。
+// 用途: 引数なしコマンドのhelp、未知の引数、終了コードを共通処理する。
+
 function runNoArgumentCommand({ argv, usage, execute, stdout = process.stdout, stderr = process.stderr }) {
     // helpは組織操作を行わず、使用方法だけを表示する。
     if (argv.length === 1 && (argv[0] === '--help' || argv[0] === '-h')) {
@@ -8,7 +10,7 @@ function runNoArgumentCommand({ argv, usage, execute, stdout = process.stdout, s
 
     // 未知の引数がある場合は、実処理を開始する前に拒否する。
     if (argv.length > 0) {
-        stderr.write(`Error: Unknown argument(s): ${argv.join(', ')}\n`);
+        stderr.write(`エラー: 未対応の引数が指定されました: ${argv.join(', ')}\n`);
         stderr.write(`${usage.trimEnd()}\n`);
         return 1;
     }

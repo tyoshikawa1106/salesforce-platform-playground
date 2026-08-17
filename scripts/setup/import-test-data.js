@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+
+// 実行コマンド: npm run setup:data:standard -- --target-org <alias>
+// 用途: import planに従って、指定したTarget Orgへ標準テストデータを投入する。
+
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -17,17 +21,17 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 // npm scriptから利用できるオプションと、安全な実行方法を表示する。
 function printHelp() {
-    process.stdout.write(`Usage:
+    process.stdout.write(`実行コマンド:
   npm run setup:data:standard:dry-run
   npm run setup:data:standard -- --target-org <alias>
 
-Options:
-  --plan <path>           Import plan JSON. Default: ${defaultPlan}
-  --only <label>          Run a single plan entry.
-  --default-repeat <n>    Repeat entries that do not define their own repeat.
-  --repeat <n>            Force the same repeat count for selected entries.
-  --target-org, -o        Salesforce org alias for real import.
-  --dry-run               Validate local files and print the sf commands.
+オプション:
+  --plan <path>           import plan JSONのパス。既定値: ${defaultPlan}
+  --only <label>          指定したplan entryだけを実行する。
+  --default-repeat <n>    repeat未指定のentryに適用する繰り返し回数。
+  --repeat <n>            選択したentryへ適用する繰り返し回数。
+  --target-org, -o        実投入先のSalesforce組織alias。
+  --dry-run               ローカルファイルを検証し、実行予定のsfコマンドを表示する。
 `);
 }
 
@@ -51,14 +55,14 @@ function runSfCommand(entry, sfArgs) {
 
     // CLIを起動できない場合も、対象entryを示して後続処理を止める。
     if (result.error) {
-        throw new Error(`sf command could not start for ${entry.label}: ${result.error.message}`);
+        throw new Error(`sfコマンドを開始できませんでした（${entry.label}）: ${result.error.message}`);
     }
 
     // CLIが失敗した場合は元の出力を残し、次のplan entryへ進まない。
     if (result.status !== 0) {
         process.stdout.write(result.stdout || '');
         process.stderr.write(result.stderr || '');
-        throw new Error(`sf command failed for ${entry.label}`);
+        throw new Error(`sfコマンドが失敗しました（${entry.label}）。`);
     }
 
     // anonymous Apexのデバッグログから、投入結果として必要な行だけを取り出す。
@@ -83,7 +87,9 @@ function run() {
 
     // 実投入では対象組織の明示を必須とし、default target orgへの誤投入を防ぐ。
     if (!args.dryRun && !args.targetOrg) {
-        throw new Error('Real import requires --target-org <alias>. Use --dry-run to validate locally.');
+        throw new Error(
+            '実投入には--target-org <alias>の指定が必要です。ローカル確認には--dry-runを使用してください。'
+        );
     }
 
     // planと参照するApexファイルを先に検証し、実行途中の構成エラーを避ける。
@@ -148,6 +154,6 @@ function run() {
 try {
     run();
 } catch (error) {
-    process.stderr.write(`Error: ${error.message}\n`);
+    process.stderr.write(`エラー: ${error.message}\n`);
     process.exitCode = 1;
 }

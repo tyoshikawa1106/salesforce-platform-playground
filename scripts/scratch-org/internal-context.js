@@ -1,3 +1,6 @@
+// 実行方法: Scratch Org関連スクリプトとテストスクリプトから読み込む。
+// 用途: Scratch Orgのalias、設定値、リポジトリルートを共有する。
+
 const path = require('node:path');
 
 // Scratch Org関連スクリプトで共有するリポジトリルートと設定を読み込む。

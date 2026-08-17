@@ -1,3 +1,6 @@
+// 実行方法: import-test-data.jsとテストスクリプトから読み込む。
+// 用途: テストデータ投入の引数、plan、Apexソース、Salesforce CLI引数を組み立てる。
+
 const path = require('node:path');
 
 // 標準データセットアップで使用する既定plan。
@@ -8,7 +11,7 @@ function readOptionValue(argv, index, option) {
     const value = argv[index + 1];
 
     if (value === undefined || value.startsWith('-')) {
-        throw new Error(`${option} requires a value.`);
+        throw new Error(`${option}には値が必要です。`);
     }
 
     return value;
@@ -70,7 +73,7 @@ function parseArgs(argv) {
             continue;
         }
 
-        throw new Error(`Unknown argument: ${arg}`);
+        throw new Error(`未対応の引数が指定されました: ${arg}`);
     }
 
     return args;
@@ -79,21 +82,21 @@ function parseArgs(argv) {
 // repeat回数として使用する値が正の整数であることを確認する。
 function assertPositiveInteger(value, label) {
     if (!Number.isInteger(value) || value < 1) {
-        throw new Error(`${label} must be a positive integer.`);
+        throw new Error(`${label}には正の整数を指定してください。`);
     }
 }
 
 // planから指定された相対パスを、リポジトリ外へ出ない絶対パスに変換する。
 function resolveInsideRepo(repoRoot, relativePath) {
     if (typeof relativePath !== 'string' || relativePath.length === 0) {
-        throw new Error('Repository-relative path must be a non-empty string.');
+        throw new Error('リポジトリからの相対パスを空でない文字列として指定してください。');
     }
 
     const absolutePath = path.resolve(repoRoot, relativePath);
     const relative = path.relative(repoRoot, absolutePath);
 
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
-        throw new Error(`Path must stay inside the repository: ${relativePath}`);
+        throw new Error(`リポジトリ内のパスを指定してください: ${relativePath}`);
     }
 
     return absolutePath;
@@ -105,13 +108,13 @@ function readPlan({ fileSystem, planPath, repoRoot }) {
     const plan = JSON.parse(fileSystem.readFileSync(absolutePlanPath, 'utf8'));
 
     if (!Array.isArray(plan.imports) || plan.imports.length === 0) {
-        throw new Error('Import plan must contain a non-empty imports array.');
+        throw new Error('import planのimportsには1件以上のentryが必要です。');
     }
 
     // --onlyでentryを特定できるよう、labelの重複を許可しない。
     const labels = plan.imports.map((entry) => entry.label).filter(Boolean);
     if (new Set(labels).size !== labels.length) {
-        throw new Error('Import plan entry labels must be unique.');
+        throw new Error('import planのentry labelは重複できません。');
     }
 
     return plan;
@@ -122,7 +125,7 @@ function getSelectedEntries(plan, only) {
     const entries = only ? plan.imports.filter((entry) => entry.label === only) : plan.imports;
 
     if (entries.length === 0) {
-        throw new Error(`No import plan entries matched --only ${only}`);
+        throw new Error(`--only ${only}に一致するimport plan entryがありません。`);
     }
 
     return entries;
@@ -134,11 +137,11 @@ function getSourcePaths(plan, entry) {
     const missingKeys = requiredKeys.filter((key) => !entry[key]);
 
     if (missingKeys.length > 0) {
-        throw new Error(`Plan entry is missing required keys: ${missingKeys.join(', ')}`);
+        throw new Error(`plan entryに必須項目がありません: ${missingKeys.join(', ')}`);
     }
 
     if (entry.operation !== 'apex') {
-        throw new Error(`Unsupported operation for ${entry.label}: ${entry.operation}`);
+        throw new Error(`${entry.label}に未対応のoperationが指定されています: ${entry.operation}`);
     }
 
     // standaloneはファイル単体、それ以外はpreambleを先頭に結合する。
@@ -147,7 +150,7 @@ function getSourcePaths(plan, entry) {
     }
 
     if (!plan.preamble) {
-        throw new Error(`Import plan must define a preamble for ${entry.label}.`);
+        throw new Error(`import planに${entry.label}用のpreambleを指定してください。`);
     }
 
     return [plan.preamble, entry.file];
@@ -160,14 +163,14 @@ function readApexSource({ entry, fileSystem, plan, repoRoot }) {
         const absolutePath = resolveInsideRepo(repoRoot, sourcePath);
 
         if (!fileSystem.existsSync(absolutePath)) {
-            throw new Error(`Apex file does not exist for ${entry.label}: ${sourcePath}`);
+            throw new Error(`${entry.label}が参照するApexファイルが見つかりません: ${sourcePath}`);
         }
 
         // 空ファイルを実行対象に含めず、planまたはファイルの修正を促す。
         const content = fileSystem.readFileSync(absolutePath, 'utf8').trim();
 
         if (content.length === 0) {
-            throw new Error(`Apex file must not be empty: ${sourcePath}`);
+            throw new Error(`Apexファイルを空にはできません: ${sourcePath}`);
         }
 
         return content;
@@ -197,13 +200,13 @@ function prepareEntries({ args, fileSystem, plan, repoRoot }) {
     // CLI指定、plan指定、既定値の順で共通repeat回数を決定する。
     const defaultRepeat = args.defaultRepeat ?? plan.repeat ?? 1;
 
-    assertPositiveInteger(defaultRepeat, 'Default repeat count');
+    assertPositiveInteger(defaultRepeat, '既定の繰り返し回数');
 
     return getSelectedEntries(plan, args.only).map((entry) => {
         // --repeatは個別entryやplanのrepeat指定より優先する。
         const repeatCount = args.repeat ?? entry.repeat ?? defaultRepeat;
 
-        assertPositiveInteger(repeatCount, `Repeat count for ${entry.label}`);
+        assertPositiveInteger(repeatCount, `${entry.label}の繰り返し回数`);
         return {
             entry,
             repeatCount,

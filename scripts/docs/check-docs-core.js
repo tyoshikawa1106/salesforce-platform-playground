@@ -1,3 +1,6 @@
+// 実行方法: check-docs.jsとテストスクリプトから読み込む。
+// 用途: Markdownの構造、リンク、安全でないコマンド例、索引到達性を検証する。
+
 const path = require('node:path');
 
 // GitHub Markdownと同じ形式で見出しアンカーを作り、同名見出しには連番を付ける。

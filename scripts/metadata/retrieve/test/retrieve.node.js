@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/metadata/retrieve/test/retrieve-plan.node.js
+// 実行コマンド: node --test scripts/metadata/retrieve/test/retrieve.node.js
 // 用途: retrieve対象のmanifest、取得順、未知の引数を指定した場合の動作を検証する。
 
 const test = require('node:test');
@@ -47,6 +47,7 @@ test('retrieve scriptは未知の引数をSalesforce CLI実行前に拒否する
     // 組織へ接続せず、異常終了することを確認する。
     assert.equal(result.status, 1);
 
-    // 正しい実行方法がエラー出力に表示されることを確認する。
-    assert.match(result.stderr, /Usage: node scripts\/metadata\/retrieve\/retrieve\.js/);
+    // エラー理由と正しい実行コマンドが表示されることを確認する。
+    assert.match(result.stderr, /エラー: このスクリプトは引数を受け付けません。/);
+    assert.match(result.stderr, /実行コマンド: npm run sf:retrieve/);
 });

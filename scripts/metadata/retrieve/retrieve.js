@@ -49,7 +49,8 @@ function runSf(args) {
 async function main() {
     // このスクリプトは引数を受け付けない。
     if (process.argv.length !== 2) {
-        console.error('Usage: node scripts/metadata/retrieve/retrieve.js');
+        console.error('エラー: このスクリプトは引数を受け付けません。');
+        console.error('実行コマンド: npm run sf:retrieve');
         return 1;
     }
 
@@ -57,7 +58,7 @@ async function main() {
     for (const manifest of manifests) {
         // manifestがなければ、組織へ接続せず終了する。
         if (!fs.existsSync(path.join(repoRoot, manifest))) {
-            console.error(`retrieve対象のmanifestがありません: ${manifest}`);
+            console.error(`エラー: retrieve対象のmanifestが見つかりません: ${manifest}`);
             return 1;
         }
     }

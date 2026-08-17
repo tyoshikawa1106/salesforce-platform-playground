@@ -1,3 +1,6 @@
+// 実行方法: 各Node.jsスクリプトから共通モジュールとして読み込む。
+// 用途: macOSとWindowsで外部CLIを実行し、終了コードまたは出力を返す。
+
 const { spawnSync } = require('node:child_process');
 
 // Windowsではnpmなどが提供する`.cmd`形式のCLIも実行できるようにcmd.exeを経由する。
@@ -24,7 +27,7 @@ function runCommand(command, args, workingDirectory) {
 
     // CLI自体を起動できなかった場合だけ、このスクリプト側で原因を補足する。
     if (result.error) {
-        console.error(`${command}を実行できませんでした: ${result.error.message}`);
+        console.error(`エラー: ${command}を実行できませんでした: ${result.error.message}`);
         return 1;
     }
 

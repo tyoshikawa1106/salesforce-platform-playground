@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+
+// 実行コマンド: node scripts/scratch-org/setup.js
+// 用途: Scratch Orgの作成、メタデータ反映、権限割り当て、テストデータ投入を順番に行う。
+
 const { execFileSync } = require('node:child_process');
 const { repoRoot, scratchOrg } = require('./internal-context');
 const { runNoArgumentCommand } = require('./internal-command');
 
-// Scratch Org作成からテストデータ投入までを順番に実行する入口。
-const usage = 'Usage: node scripts/scratch-org/setup.js';
+const usage = '実行コマンド: node scripts/scratch-org/setup.js';
 
 process.exitCode = runNoArgumentCommand({
     argv: process.argv.slice(2),
@@ -17,7 +20,7 @@ process.exitCode = runNoArgumentCommand({
         };
 
         // 実行開始時に、全ステップが使用するaliasを明示する。
-        process.stdout.write(`Using Scratch Org alias: ${scratchOrg.alias}\n`);
+        process.stdout.write(`使用するScratch Org alias: ${scratchOrg.alias}\n`);
 
         // 1. 設定ファイルからScratch Orgを作成する。
         execFileSync(process.execPath, ['scripts/scratch-org/internal-create.js'], {
