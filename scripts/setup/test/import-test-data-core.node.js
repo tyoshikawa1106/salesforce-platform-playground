@@ -23,7 +23,7 @@ test('CLI引数を型付きの設定へ変換する', () => {
         dryRun: true,
         help: false,
         only: 'contacts',
-        plan: 'scripts/setup/import-plan.json',
+        plan: 'scripts/setup/plans/import-test-data-plan.json',
         repeat: 2,
         targetOrg: 'target'
     });
@@ -68,7 +68,7 @@ test('実際のimport planから共通preambleとobject固有処理を合成す�
     // 実際のplanからCase用entryだけを準備する。
     const plan = readPlan({
         fileSystem: fs,
-        planPath: 'scripts/setup/import-plan.json',
+        planPath: 'scripts/setup/plans/import-test-data-plan.json',
         repoRoot
     });
     const [prepared] = prepareEntries({
@@ -96,7 +96,7 @@ test('import planの全entryを検証し、共通preambleを重複定義しな�
     // 実際のplanに含まれるすべてのentryを準備する。
     const plan = readPlan({
         fileSystem: fs,
-        planPath: 'scripts/setup/import-plan.json',
+        planPath: 'scripts/setup/plans/import-test-data-plan.json',
         repoRoot
     });
     const preparedEntries = prepareEntries({

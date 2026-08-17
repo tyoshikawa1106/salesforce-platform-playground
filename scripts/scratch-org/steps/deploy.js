@@ -1,16 +1,17 @@
-// 実行コマンド: node scripts/scratch-org/steps/deploy.js
+// 実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>]
 // 用途: setup.jsから呼び出し、Scratch Orgへ初期メタデータを反映する。
 
 const { runCommand } = require('../../internal/run-command');
 const { repoRoot, scratchOrg } = require('../internal/context');
-const { runNoArgumentCommand } = require('../internal/command');
+const { runAliasCommand } = require('../internal/command');
 
-const usage = '実行コマンド: node scripts/scratch-org/steps/deploy.js';
+const usage = '実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>]';
 
-process.exitCode = runNoArgumentCommand({
+process.exitCode = runAliasCommand({
     argv: process.argv.slice(2),
+    defaultAlias: scratchOrg.alias,
     usage,
-    execute() {
+    execute(alias) {
         // Scratch Org再現用に限定したmanifestを、作成済みのaliasへ反映する。
         return runCommand(
             'sf',
@@ -21,7 +22,7 @@ process.exitCode = runNoArgumentCommand({
                 '--manifest',
                 scratchOrg.manifest,
                 '--target-org',
-                scratchOrg.alias,
+                alias,
                 '--wait',
                 String(scratchOrg.waitMinutes)
             ],

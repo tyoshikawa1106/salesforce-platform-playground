@@ -1,51 +1,39 @@
-// 実行コマンド: node scripts/scratch-org/setup.js
+// 実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]
 // 用途: Scratch Orgの作成、メタデータ反映、権限割り当て、テストデータ投入を順番に行う。
 
-const { execFileSync } = require('node:child_process');
+const { runCommand } = require('../internal/run-command');
 const { repoRoot, scratchOrg } = require('./internal/context');
-const { runNoArgumentCommand } = require('./internal/command');
+const { runAliasCommand } = require('./internal/command');
 
-const usage = '実行コマンド: node scripts/scratch-org/setup.js';
+const usage = '実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]';
 
-process.exitCode = runNoArgumentCommand({
+process.exitCode = runAliasCommand({
     argv: process.argv.slice(2),
+    defaultAlias: scratchOrg.alias,
     usage,
-    execute() {
-        // すべての子スクリプトへ同じaliasを渡し、処理対象が途中で変わらないようにする。
-        const childEnv = {
-            ...process.env,
-            SCRATCH_ORG_ALIAS: scratchOrg.alias
-        };
-
+    execute(alias) {
         // 実行開始時に、全ステップが使用するaliasを明示する。
-        process.stdout.write(`使用するScratch Org alias: ${scratchOrg.alias}\n`);
+        process.stdout.write(`使用するScratch Org alias: ${alias}\n`);
 
-        // 1. 設定ファイルからScratch Orgを作成する。
-        execFileSync(process.execPath, ['scripts/scratch-org/steps/create.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+        // 作成、metadata反映、権限割り当て、テストデータ投入を順番に実行する。
+        const steps = [
+            ['Scratch Orgの作成', 'scripts/scratch-org/steps/create.js'],
+            ['メタデータの反映', 'scripts/scratch-org/steps/deploy.js'],
+            ['Permission Setの割り当て', 'scripts/scratch-org/steps/assign-permission-set.js'],
+            ['テストデータの投入', 'scripts/scratch-org/steps/import-test-data.js']
+        ];
 
-        // 2. 再現用manifestに限定してmetadataを反映する。
-        execFileSync(process.execPath, ['scripts/scratch-org/steps/deploy.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+        for (const [label, scriptPath] of steps) {
+            // すべての子スクリプトへ同じaliasをNode.js引数として渡す。
+            const status = runCommand(process.execPath, [scriptPath, '--alias', alias], repoRoot);
 
-        // 3. playground機能の利用に必要なPermission Setを割り当てる。
-        execFileSync(process.execPath, ['scripts/scratch-org/steps/assign-permission-set.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+            // 失敗したステップを表示し、後続処理を実行しない。
+            if (status !== 0) {
+                process.stderr.write(`エラー: ${label}に失敗したため、Scratch Orgの準備を停止しました。\n`);
+                return status;
+            }
+        }
 
-        // 4. 画面確認に使用する標準オブジェクトのテストデータを投入する。
-        execFileSync(process.execPath, ['scripts/scratch-org/steps/import-test-data.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+        return 0;
     }
 });

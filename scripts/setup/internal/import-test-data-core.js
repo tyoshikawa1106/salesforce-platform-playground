@@ -4,7 +4,7 @@
 const path = require('node:path');
 
 // 標準データセットアップで使用する既定plan。
-const defaultPlan = 'scripts/setup/import-plan.json';
+const defaultPlan = 'scripts/setup/plans/import-test-data-plan.json';
 
 // 値を必要とするオプションの次の引数を読み取る。
 function readOptionValue(argv, index, option) {

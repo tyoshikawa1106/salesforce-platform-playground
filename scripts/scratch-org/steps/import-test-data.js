@@ -1,29 +1,30 @@
-// 実行コマンド: node scripts/scratch-org/steps/import-test-data.js
+// 実行コマンド: node scripts/scratch-org/steps/import-test-data.js [--alias <alias>]
 // 用途: setup.jsから呼び出し、Scratch Orgへ標準テストデータを投入する。
 
-const { execFileSync } = require('node:child_process');
+const { runCommand } = require('../../internal/run-command');
 const { repoRoot, scratchOrg } = require('../internal/context');
-const { runNoArgumentCommand } = require('../internal/command');
+const { runAliasCommand } = require('../internal/command');
 
-const usage = '実行コマンド: node scripts/scratch-org/steps/import-test-data.js';
+const usage = '実行コマンド: node scripts/scratch-org/steps/import-test-data.js [--alias <alias>]';
 
-process.exitCode = runNoArgumentCommand({
+process.exitCode = runAliasCommand({
     argv: process.argv.slice(2),
+    defaultAlias: scratchOrg.alias,
     usage,
-    execute() {
+    execute(alias) {
         // 共通のデータ投入スクリプトを、Scratch Org用planと件数設定で実行する。
-        execFileSync(
+        return runCommand(
             process.execPath,
             [
                 'scripts/setup/import-test-data.js',
                 '--plan',
                 scratchOrg.importPlan,
                 '--target-org',
-                scratchOrg.alias,
+                alias,
                 '--default-repeat',
                 '40'
             ],
-            { cwd: repoRoot, stdio: 'inherit' }
+            repoRoot
         );
     }
 });

@@ -212,14 +212,15 @@
 | `scripts/metadata/retrieve/retrieve.js`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
 | `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
 | `scripts/scratch-org/setup.js`                           | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
-| `scripts/scratch-org/delete.js`                          | ファイル   | 設定されたScratch Orgを削除する。                                           |
+| `scripts/scratch-org/delete.js`                          | ファイル   | `--alias`で指定されたScratch Orgを削除する。                                |
 | `scripts/scratch-org/scratch-org.json`                   | ファイル   | Scratch Org scriptのalias、期間、manifest、Permission Set、waitを定義する。 |
 | `scripts/scratch-org/internal/`                          | フォルダ   | Scratch Org scriptから読み込む共通処理を格納する。                          |
 | `scripts/scratch-org/steps/`                             | フォルダ   | setupから子プロセスとして実行する各手順を格納する。                         |
 | `scripts/scratch-org/test/`                              | フォルダ   | Scratch Org scriptのNode.js testを格納する。                                |
 | `scripts/scratch-org/test/*.node.js`                     | ファイル群 | Scratch Org scriptのcommand生成と実行制御を確認する。                       |
 | `scripts/setup/`                                         | フォルダ   | テストデータ投入のplanと実行scriptを格納する。                              |
-| `scripts/setup/import-plan.json`                         | ファイル   | anonymous Apexの実行順序と反復回数を定義する。                              |
+| `scripts/setup/plans/`                                   | フォルダ   | テストデータ投入の実行計画を格納する。                                      |
+| `scripts/setup/plans/import-test-data-plan.json`         | ファイル   | anonymous Apexの実行順序と反復回数を定義する。                              |
 | `scripts/setup/import-test-data.js`                      | ファイル   | import planに従って合成テストデータを投入する。                             |
 | `scripts/setup/internal/`                                | フォルダ   | テストデータ投入scriptから読み込む内部処理を格納する。                      |
 | `scripts/setup/internal/import-test-data-core.js`        | ファイル   | import plan、CLI引数、Apex合成の検証可能なcoreを提供する。                  |
