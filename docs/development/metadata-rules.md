@@ -17,7 +17,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 取得対象
 
-- retrieve 対象の指定がない場合は、`npm run sf:retrieve`を使い、VS Codeで現在接続している組織から`scripts/metadata/retrieve/retrieve.js`に定義したretrieve用manifestを順に取得する。
+- retrieve 対象の指定がない場合は、`npm run sf:retrieve`を使い、Salesforce CLIに設定されているDefault Target Orgから`scripts/metadata/retrieve/retrieve.js`に定義したretrieve用manifestを順に取得する。
 - `Translations` は関連メタデータと別に取得すると内容が欠落するため、`retrieve-translations.xml` を最後に実行して完全な翻訳ファイルで更新する。
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
