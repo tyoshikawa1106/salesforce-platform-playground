@@ -6,10 +6,29 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { manifests } = require('../retrieve');
+const { main, manifests } = require('../retrieve');
 
 // manifestとretrieveスクリプトをリポジトリルート基準で参照する。
 const repoRoot = path.resolve(__dirname, '../../../..');
+
+// retrieve開始確認へ指定した回答を返す。
+function createPrompt(answer) {
+    let closed = false;
+
+    return {
+        prompt: {
+            async question() {
+                return answer;
+            },
+            close() {
+                closed = true;
+            }
+        },
+        isClosed() {
+            return closed;
+        }
+    };
+}
 
 test('retrieve scriptが分割manifestを重複なくすべて含む', () => {
     // retrieve用manifestをディレクトリから取得する。
@@ -50,4 +69,44 @@ test('retrieve scriptは未知の引数をSalesforce CLI実行前に拒否する
     // エラー理由と正しい実行コマンドが表示されることを確認する。
     assert.match(result.stderr, /エラー: このスクリプトは引数を受け付けません。/);
     assert.match(result.stderr, /実行コマンド: npm run sf:retrieve/);
+});
+
+test('取得が承認されない場合はSalesforce CLIの設定確認だけを実行する', async () => {
+    // retrieveを承認せず、実行されたSalesforce CLI引数を記録する。
+    const commandArgs = [];
+    const prompt = createPrompt('n');
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return 0;
+        }
+    });
+
+    // Default Target Orgの表示後に終了し、確認入力が閉じられることを確認する。
+    assert.equal(status, 0);
+    assert.deepEqual(commandArgs, [['config', 'get', 'target-org']]);
+    assert.equal(prompt.isClosed(), true);
+});
+
+test('manifestの定義順に取得し、失敗した時点で後続を実行しない', async () => {
+    // retrieveを承認し、2つ目のmanifest取得を失敗させる。
+    const commandArgs = [];
+    const prompt = createPrompt('y');
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return commandArgs.length === 3 ? 1 : 0;
+        }
+    });
+
+    // 定義順に2件だけ取得し、後続を実行せず確認入力を閉じることを確認する。
+    assert.equal(status, 1);
+    assert.deepEqual(commandArgs[1], ['project', 'retrieve', 'start', '--manifest', manifests[0]]);
+    assert.deepEqual(commandArgs[2], ['project', 'retrieve', 'start', '--manifest', manifests[1]]);
+    assert.equal(commandArgs.length, 3);
+    assert.equal(prompt.isClosed(), true);
 });

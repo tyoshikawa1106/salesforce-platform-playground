@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { runCommandWithOutput } = require('../internal/run-command');
+const { runSfWithOutput } = require('../internal/run-command');
 const {
     buildSfArgs,
     defaultPlan,
@@ -49,7 +49,7 @@ function printStep({ cycle, dryRun, entry, repeatCount, sfArgs, sourcePaths }) {
 
 // Salesforce CLIを実行し、seed処理の要約だけを見やすく表示する。
 function runSfCommand(entry, sfArgs) {
-    const result = runCommandWithOutput('sf', sfArgs, repoRoot);
+    const result = runSfWithOutput(sfArgs, repoRoot);
 
     // CLIを起動できない場合も、対象entryを示して後続処理を止める。
     if (result.error) {

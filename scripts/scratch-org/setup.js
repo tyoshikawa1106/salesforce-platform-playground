@@ -1,7 +1,7 @@
 // 実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]
 // 用途: Scratch Orgの作成、メタデータ反映、権限割り当て、テストデータ投入を順番に行う。
 
-const { runCommand } = require('../internal/run-command');
+const { runNodeScript } = require('../internal/run-command');
 const { repoRoot, scratchOrg } = require('./internal/context');
 const { runAliasCommand } = require('./internal/command');
 
@@ -25,7 +25,7 @@ process.exitCode = runAliasCommand({
 
         for (const [label, scriptPath] of steps) {
             // すべての子スクリプトへ同じaliasをNode.js引数として渡す。
-            const status = runCommand(process.execPath, [scriptPath, '--alias', alias], repoRoot);
+            const status = runNodeScript(scriptPath, ['--alias', alias], repoRoot);
 
             // 失敗したステップを表示し、後続処理を実行しない。
             if (status !== 0) {

@@ -1,7 +1,7 @@
 // 実行コマンド: node scripts/scratch-org/delete.js --alias <alias>
 // 用途: --aliasで指定したScratch Orgを削除する。
 
-const { runCommand } = require('../internal/run-command');
+const { runSf } = require('../internal/run-command');
 const { repoRoot } = require('./internal/context');
 const { runAliasCommand } = require('./internal/command');
 
@@ -14,6 +14,6 @@ process.exitCode = runAliasCommand({
     usage,
     execute(alias) {
         // 明示されたaliasのScratch Orgだけを削除する。
-        return runCommand('sf', ['org', 'delete', 'scratch', '--target-org', alias], repoRoot);
+        return runSf(['org', 'delete', 'scratch', '--target-org', alias], repoRoot);
     }
 });

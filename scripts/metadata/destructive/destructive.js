@@ -3,7 +3,7 @@
 
 const path = require('node:path');
 const { createInterface } = require('node:readline/promises');
-const { runCommand } = require('../../internal/run-command');
+const { runSf } = require('../../internal/run-command');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -11,27 +11,22 @@ const repoRoot = path.resolve(__dirname, '../../..');
 // dry-runと実削除で同じdestructive manifestを使用する。
 const destructiveManifest = 'manifest/destructiveChanges.xml';
 
-// Salesforce CLIをリポジトリルートで実行する。
-function runSf(args) {
-    return runCommand('sf', args, repoRoot);
-}
-
 // dry-runの成功後、再承認された場合だけメタデータを削除する。
-async function main() {
+async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand = runSf } = {}) {
     // このスクリプトは引数を受け付けない。
-    if (process.argv.length !== 2) {
+    if (argv.length !== 0) {
         console.error('エラー: このスクリプトは引数を受け付けません。');
         console.error('実行コマンド: npm run sf:destructive');
         return 1;
     }
 
     // 削除対象のDefault Target Orgを表示する。
-    if (runSf(['config', 'get', 'target-org']) !== 0) {
+    if (runSfCommand(['config', 'get', 'target-org'], repoRoot) !== 0) {
         return 1;
     }
 
     // dry-runと実削除の確認入力を受け付ける。
-    const prompt = createInterface({ input: process.stdin, output: process.stdout });
+    const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
 
     try {
         // dry-runを開始するか確認する。
@@ -55,7 +50,7 @@ async function main() {
         ];
 
         // dry-runが失敗した場合は、実削除の確認を出さずに終了する。
-        if (runSf([...deployArgs, '--dry-run']) !== 0) {
+        if (runSfCommand([...deployArgs, '--dry-run'], repoRoot) !== 0) {
             return 1;
         }
 
@@ -69,7 +64,7 @@ async function main() {
         }
 
         // 承認されたmanifestの削除を実行する。
-        return runSf(deployArgs);
+        return runSfCommand(deployArgs, repoRoot);
     } finally {
         // 中止やCLI失敗の場合も確認入力を終了する。
         prompt.close();
@@ -78,8 +73,16 @@ async function main() {
 
 // destructive deployを開始 (テストスクリプトからの実行の場合はSkip)
 if (require.main === module) {
-    main().then((status) => {
-        // mainの結果を終了コードに設定する。
-        process.exitCode = status;
-    });
+    main()
+        .then((status) => {
+            // mainの結果を終了コードに設定する。
+            process.exitCode = status;
+        })
+        .catch((error) => {
+            // 確認入力を処理できない場合も、原因だけを簡潔に表示する。
+            console.error(`エラー: destructive deployを開始できませんでした: ${error.message}`);
+            process.exitCode = 1;
+        });
 }
+
+module.exports = { main };

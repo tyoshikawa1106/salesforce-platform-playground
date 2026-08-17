@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createInterface } = require('node:readline/promises');
-const { runCommand } = require('../../internal/run-command');
+const { runSf } = require('../../internal/run-command');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -40,15 +40,10 @@ const manifests = [
     'manifest/retrieve-translations.xml'
 ];
 
-// Salesforce CLIをリポジトリルートで実行する。
-function runSf(args) {
-    return runCommand('sf', args, repoRoot);
-}
-
 // manifestの確認後、承認された組織からメタデータを取得する。
-async function main() {
+async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand = runSf } = {}) {
     // このスクリプトは引数を受け付けない。
-    if (process.argv.length !== 2) {
+    if (argv.length !== 0) {
         console.error('エラー: このスクリプトは引数を受け付けません。');
         console.error('実行コマンド: npm run sf:retrieve');
         return 1;
@@ -64,14 +59,19 @@ async function main() {
     }
 
     // retrieve対象のDefault Target Orgを表示する。
-    if (runSf(['config', 'get', 'target-org']) !== 0) {
+    if (runSfCommand(['config', 'get', 'target-org'], repoRoot) !== 0) {
         return 1;
     }
 
     // retrieveを開始するかターミナルで確認する。
-    const prompt = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await prompt.question('この組織からメタデータを取得しますか？ [y/N]: ');
-    prompt.close();
+    const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
+    let answer;
+
+    try {
+        answer = await prompt.question('この組織からメタデータを取得しますか？ [y/N]: ');
+    } finally {
+        prompt.close();
+    }
 
     // yまたはY以外の場合はretrieveを中止する。
     if (answer !== 'y' && answer !== 'Y') {
@@ -84,7 +84,7 @@ async function main() {
         console.log(`[${index + 1}/${manifests.length}] ${path.basename(manifest)} を取得します。`);
 
         // 失敗した場合は後続のretrieveを実行しない。
-        if (runSf(['project', 'retrieve', 'start', '--manifest', manifest]) !== 0) {
+        if (runSfCommand(['project', 'retrieve', 'start', '--manifest', manifest], repoRoot) !== 0) {
             return 1;
         }
     }
@@ -96,11 +96,17 @@ async function main() {
 
 // retrieveを開始 (テストスクリプトからの実行の場合はSkip)
 if (require.main === module) {
-    main().then((status) => {
-        // mainの結果を終了コードに設定する。
-        process.exitCode = status;
-    });
+    main()
+        .then((status) => {
+            // mainの結果を終了コードに設定する。
+            process.exitCode = status;
+        })
+        .catch((error) => {
+            // 確認入力を処理できない場合も、原因だけを簡潔に表示する。
+            console.error(`エラー: retrieveを開始できませんでした: ${error.message}`);
+            process.exitCode = 1;
+        });
 }
 
 // テストスクリプトからmanifest一覧を参照できるようにする。
-module.exports = { manifests };
+module.exports = { main, manifests };
