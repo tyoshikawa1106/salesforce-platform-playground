@@ -71,3 +71,29 @@ jobs:
 
             - name: Run LWC unit tests
               run: npm run test:unit -- -- --runInBand --passWithNoTests
+
+    windows-scripts:
+        name: Windows script checks
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci --include=dev
+
+            - name: Install Salesforce CLI
+              run: npm install --global @salesforce/cli
+
+            - name: Run script unit tests
+              run: npm run test:scripts
+
+            - name: Run Salesforce CLI through Node.js
+              run: node -e "const { runSf } = require('./scripts/internal/run-command'); process.exitCode = runSf(['--version'], process.cwd());"

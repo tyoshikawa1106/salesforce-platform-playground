@@ -1,9 +1,10 @@
-
+// 直近に作成した合成取引先へ、表示確認用の取引先責任者を追加
 List<Account> accounts = [SELECT Id FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate DESC LIMIT :countPerObject];
 if (accounts.isEmpty()) {
     System.assert(false, 'Run standard-objects-accounts before contacts.');
 }
 
+// 組織で利用可能な選択リスト値と合成プロフィールを準備
 String leadSource = pick(Contact.LeadSource.getDescribe(), new List<String>{ 'Web', 'Phone Inquiry', 'Purchased List' });
 List<String> familyNames = new List<String>{ '佐藤', '鈴木', '高橋', '田中', '伊藤', '渡辺', '山本', '中村', '小林', '加藤' };
 List<String> givenNames = new List<String>{ '葵', '蓮', '陽菜', '悠真', '結衣', '湊', '美咲', '大翔', '莉子', '颯太' };
@@ -12,6 +13,7 @@ List<String> titles = new List<String>{ '部長', '課長', 'マネージャー'
 Database.DMLOptions options = new Database.DMLOptions();
 options.DuplicateRuleHeader.allowSave = true;
 options.optAllOrNone = false;
+// 既存件数から連番を継続し、重複しないメールアドレスを持つ担当者を作成
 Integer existingCount = [SELECT COUNT() FROM Contact WHERE LastName LIKE :seedLike];
 List<Contact> records = new List<Contact>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
@@ -34,5 +36,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         Description = '四半期レビューと導入拡大の相談窓口。'
     ));
 }
+// 重複ルールによる一部失敗を許可し、結果を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Contact', Database.insert(records, options));

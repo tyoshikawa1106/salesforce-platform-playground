@@ -1,9 +1,11 @@
+// 各標準オブジェクトseedで共有する件数、親レコード上限、識別用接頭辞を定義
 Integer countPerObject = 50;
 Integer parentPoolSize = 2000;
 String seedPrefix = '[TEST]';
 String seedRunKey = Datetime.now().formatGmt('yyyyMMddHHmmss');
 String seedLike = seedPrefix + '%';
 
+// 優先候補、default値、最初の有効値の順で利用可能な選択リスト値を返却
 String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
     List<Schema.PicklistEntry> entries = fieldDescribe.getPicklistValues();
     for (String value : preferred) {
@@ -26,6 +28,7 @@ String pick(Schema.DescribeFieldResult fieldDescribe, List<String> preferred) {
     return null;
 }
 
+// 利用可能な候補を順番に切り替え、一覧確認用データへ値のばらつきを作る
 String pickAt(Schema.DescribeFieldResult fieldDescribe, List<String> preferred, Integer index) {
     List<String> candidates = new List<String>();
     for (String value : preferred) {
@@ -44,10 +47,12 @@ String pickAt(Schema.DescribeFieldResult fieldDescribe, List<String> preferred, 
     return candidates.isEmpty() ? null : candidates[Math.mod(index, candidates.size())];
 }
 
+// 実在しないexample.comドメインで連番付きの合成メールアドレスを生成
 String testEmail(Integer sequence) {
     return 'test+' + String.valueOf(sequence).leftPad(4, '0') + '@example.com';
 }
 
+// allOrNone=falseのDML結果を集計し、作成件数と失敗理由を共通形式で記録
 void logResults(String objectName, Database.SaveResult[] results) {
     Integer successCount = 0;
     List<String> errors = new List<String>();
@@ -66,6 +71,7 @@ void logResults(String objectName, Database.SaveResult[] results) {
     }
 }
 
+// 組織やライセンスによって項目が異なるオブジェクトへ、作成可能な項目だけを設定
 void putIfCreateable(SObject record, String fieldName, Object value) {
     Map<String, Schema.SObjectField> fields = record.getSObjectType().getDescribe().fields.getMap();
     if (value != null && fields.containsKey(fieldName) && fields.get(fieldName).getDescribe().isCreateable()) {

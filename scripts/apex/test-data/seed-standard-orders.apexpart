@@ -1,10 +1,7 @@
-
-List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, AccountId, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+// 契約、請求先担当者、標準価格表を関連付けたドラフト注文を作成
+List<Contact> contacts = [SELECT Id, AccountId FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode
+    SELECT Pricebook2Id
     FROM PricebookEntry
     WHERE Product2.Name LIKE :seedLike AND Pricebook2.IsStandard = TRUE AND IsActive = TRUE AND Pricebook2.IsActive = TRUE
     ORDER BY CreatedDate ASC
@@ -12,10 +9,12 @@ List<PricebookEntry> pricebookEntries = [
 ];
 
 List<Contract> contracts = [SELECT Id, AccountId, StartDate FROM Contract WHERE Account.Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-if (accounts.isEmpty() || contacts.isEmpty() || contracts.isEmpty() || pricebookEntries.isEmpty()) {
+// 注文に必要な参照先が不足している場合は、先行seedの実行を促す
+if (contacts.isEmpty() || contracts.isEmpty() || pricebookEntries.isEmpty()) {
     System.assert(false, 'Run contracts before orders.');
 }
 
+// 契約と同じ取引先の担当者を優先して請求先・納品先へ設定
 Map<Id, List<Contact>> contactsByAccountId = new Map<Id, List<Contact>>();
 for (Contact contact : contacts) {
     if (contact.AccountId == null) {
@@ -27,6 +26,7 @@ for (Contact contact : contacts) {
     contactsByAccountId.get(contact.AccountId).add(contact);
 }
 
+// 組織で利用可能な状態を使い、既存件数に続く注文を追加
 String status = pick(Order.Status.getDescribe(), new List<String>{ 'Draft' });
 List<String> types = new List<String>{ 'New', 'Renewal', 'Add-On' };
 Integer existingCount = [SELECT COUNT() FROM Order WHERE Account.Name LIKE :seedLike];
@@ -41,5 +41,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Date effectiveDate = contract.StartDate.addDays(Math.mod(sequence, 30));
     records.add(new Order(AccountId = contract.AccountId, ContractId = contract.Id, BillToContactId = contact.Id, ShipToContactId = contact.Id, Pricebook2Id = pricebookEntries[Math.mod(sequence - 1, pricebookEntries.size())].Pricebook2Id, Type = types[Math.mod(sequence - 1, types.size())], EffectiveDate = effectiveDate, Status = status, Description = '初回導入分の注文。'));
 }
+// 部分成功を許可し、作成件数と失敗理由を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Order', Database.insert(records, false));

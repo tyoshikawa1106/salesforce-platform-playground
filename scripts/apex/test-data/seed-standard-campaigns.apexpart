@@ -1,4 +1,4 @@
-
+// 前年・今年・翌年の月次キャンペーン名と期間を生成
 String pad2(Integer value) { return String.valueOf(value).leftPad(2, '0'); }
 Integer currentYear = Date.today().year();
 List<Integer> years = new List<Integer>{ currentYear - 1, currentYear, currentYear + 1 };
@@ -13,12 +13,14 @@ for (Integer year : years) {
         names.add(seedPrefix + ' ' + year + '年' + pad2(month) + '月 ' + themes[month - 1]);
     }
 }
+// 同名キャンペーンを再利用し、繰り返し実行時は最新の内容へ更新
 Map<String, Campaign> existingByName = new Map<String, Campaign>();
 for (Campaign campaign : [SELECT Id, Name FROM Campaign WHERE Name IN :names]) {
     existingByName.put(campaign.Name, campaign);
 }
 List<Campaign> inserts = new List<Campaign>();
 List<Campaign> updates = new List<Campaign>();
+// 年月に応じた状態、期間、予算を設定してinsertとupdateへ振り分ける
 for (Integer index = 0; index < names.size(); index += 1) {
     Integer year = years[index / 12];
     Integer month = 1 + Math.mod(index, 12);
@@ -40,6 +42,7 @@ for (Integer index = 0; index < names.size(); index += 1) {
     campaign.BudgetedCost = 250000 + (month * 15000);
     campaign.Description = year + '年' + month + '月の ' + themes[month - 1] + '。';
 }
+// 新規分と既存分を分けて保存し、それぞれの結果を記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Campaign insert', Database.insert(inserts, false));
 logResults('Campaign update', Database.update(updates, false));

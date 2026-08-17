@@ -1,4 +1,4 @@
-
+// 商品コードごとの標準価格を定義し、対象の商品を取得
 Map<String, Decimal> pricesByCode = new Map<String, Decimal>{ 'NB-001' => 168000, 'DT-001' => 108000, 'MN-001' => 32000, 'KB-001' => 7800, 'DK-001' => 24000, 'PR-001' => 48000, 'NW-001' => 28000, 'VC-001' => 22000, 'OF-001' => 42000, 'SW-001' => 12000 };
 Set<String> productCodes = pricesByCode.keySet();
 List<Product2> products = [SELECT Id, ProductCode FROM Product2 WHERE ProductCode IN :productCodes ORDER BY ProductCode ASC];
@@ -6,6 +6,7 @@ if (products.isEmpty()) {
     System.assert(false, 'Run standard-objects-products before pricebook entries.');
 }
 
+// 標準価格表を有効化し、既存の商品価格を商品IDで参照できる形にする
 Pricebook2 standardPricebook = [SELECT Id, IsActive FROM Pricebook2 WHERE IsStandard = TRUE LIMIT 1];
 if (!standardPricebook.IsActive) { standardPricebook.IsActive = true; update standardPricebook; }
 Map<Id, PricebookEntry> existingByProductId = new Map<Id, PricebookEntry>();
@@ -18,6 +19,7 @@ for (PricebookEntry entry : [SELECT Id, Product2Id, UnitPrice, IsActive FROM Pri
 }
 List<PricebookEntry> inserts = new List<PricebookEntry>();
 List<PricebookEntry> updates = new List<PricebookEntry>();
+// 未登録の商品は追加し、登録済みの商品は価格と有効状態を更新
 for (Product2 product : products) {
     PricebookEntry entry = existingByProductId.get(product.Id);
     if (entry == null) {
@@ -28,6 +30,7 @@ for (Product2 product : products) {
         updates.add(entry);
     }
 }
+// 新規分と既存分を分けて保存し、それぞれの結果を記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('PricebookEntry insert', Database.insert(inserts, false));
 logResults('PricebookEntry update', Database.update(updates, false));

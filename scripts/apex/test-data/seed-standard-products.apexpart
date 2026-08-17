@@ -1,4 +1,4 @@
-
+// 表示確認に使用する商品分類、商品名、価格、説明を定義
 String pad3(Integer value) { return String.valueOf(value).leftPad(3, '0'); }
 String quantityUnit = pick(Product2.QuantityUnitOfMeasure.getDescribe(), new List<String>{ 'Each', 'Hours' });
 List<String> definitions = new List<String>{
@@ -16,6 +16,7 @@ List<String> definitions = new List<String>{
 List<String> codes = new List<String>();
 Map<String, List<String>> partsByCode = new Map<String, List<String>>();
 Map<String, Integer> familyCounts = new Map<String, Integer>();
+// 定義文字列を分解し、商品分類ごとに一意な商品コードを生成
 for (String definition : definitions) {
     List<String> parts = definition.split('\\|');
     Integer nextNumber = familyCounts.containsKey(parts[0]) ? familyCounts.get(parts[0]) + 1 : 1;
@@ -24,12 +25,14 @@ for (String definition : definitions) {
     codes.add(code);
     partsByCode.put(code, parts);
 }
+// 同じ商品コードの既存商品を取得し、繰り返し実行時に再利用
 Map<String, Product2> existingByCode = new Map<String, Product2>();
 for (Product2 product : [SELECT Id, ProductCode FROM Product2 WHERE ProductCode IN :codes]) {
     existingByCode.put(product.ProductCode, product);
 }
 List<Product2> inserts = new List<Product2>();
 List<Product2> updates = new List<Product2>();
+// 商品コードごとにinsertとupdateを振り分け、表示項目を最新化
 for (String code : codes) {
     List<String> parts = partsByCode.get(code);
     Product2 product = existingByCode.get(code);
@@ -45,6 +48,7 @@ for (String code : codes) {
     product.IsActive = true;
     product.Description = parts[4];
 }
+// 新規分と既存分を分けて保存し、それぞれの結果を記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Product2 insert', Database.insert(inserts, false));
 logResults('Product2 update', Database.update(updates, false));

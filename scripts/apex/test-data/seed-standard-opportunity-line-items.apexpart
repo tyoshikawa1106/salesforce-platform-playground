@@ -1,24 +1,24 @@
-
-List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+// 商談と同じ標準価格表の商品を商談商品として追加
+List<Opportunity> opportunities = [SELECT Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode
+    SELECT Id, UnitPrice, Product2.Name
     FROM PricebookEntry
     WHERE Product2.Name LIKE :seedLike AND Pricebook2.IsStandard = TRUE AND IsActive = TRUE AND Pricebook2.IsActive = TRUE
     ORDER BY CreatedDate ASC
     LIMIT :parentPoolSize
 ];
 
+// 商談または商品がない場合は、先行seedの実行を促す
 if (opportunities.isEmpty() || pricebookEntries.isEmpty()) {
     System.assert(false, 'Run opportunities and pricebook entries before opportunity line items.');
 }
 
+// 商談と商品を取得順に組み合わせ、数量と利用開始日を分散
 List<OpportunityLineItem> records = new List<OpportunityLineItem>();
 for (Integer i = 0; i < Math.min(countPerObject, opportunities.size()); i += 1) {
     PricebookEntry entry = pricebookEntries[Math.mod(i, pricebookEntries.size())];
     records.add(new OpportunityLineItem(OpportunityId = opportunities[i].Id, PricebookEntryId = entry.Id, Quantity = 1 + Math.mod(i + 1, 4), UnitPrice = entry.UnitPrice, ServiceDate = Date.today().addDays(10 + Math.mod(i + 1, 180)), Description = entry.Product2.Name.replace(seedPrefix, '').trim() + ' の検証用商談商品。'));
 }
+// 部分成功を許可し、作成件数と失敗理由を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('OpportunityLineItem', Database.insert(records, false));

@@ -1,11 +1,13 @@
-
+// 組織で利用可能なサービス系オブジェクトを実行時に確認
 Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+// 作業指示明細に必要な作業指示と資産を取得
 List<SObject> workOrders = gd.containsKey('WorkOrder') ? Database.query('SELECT Id, AccountId FROM WorkOrder WHERE Subject LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize') : new List<SObject>();
 List<Asset> assets = [SELECT Id FROM Asset WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 if (workOrders.isEmpty() || assets.isEmpty()) {
     System.assert(false, 'Run work orders and assets before work order line items.');
 }
 
+// WorkOrderLineItemが利用可能な組織だけ、作成可能な項目へ値を設定して追加
 System.debug('Seed run key: ' + seedRunKey);
 if (gd.containsKey('WorkOrderLineItem') && gd.get('WorkOrderLineItem').getDescribe().isCreateable()) {
     Map<String, Schema.SObjectField> fields = gd.get('WorkOrderLineItem').getDescribe().fields.getMap();
@@ -22,5 +24,6 @@ if (gd.containsKey('WorkOrderLineItem') && gd.get('WorkOrderLineItem').getDescri
     }
     logResults('WorkOrderLineItem', Database.insert(records, false));
 } else {
+    // 機能または権限がない組織では、処理対象外として理由を記録
     System.debug('Skipped records: WorkOrderLineItem: object is not createable or not available');
 }

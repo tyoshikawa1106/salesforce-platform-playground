@@ -1,25 +1,28 @@
-#!/usr/bin/env node
-const { execFileSync } = require('node:child_process');
-const { repoRoot, scratchOrg } = require('./internal-context');
-const { runNoArgumentCommand } = require('./internal-command');
+// 実行コマンド: node scripts/scratch-org/delete.js --alias <alias>
+// 用途: --aliasで指定したScratch Orgを削除する。
 
-const usage = `Usage: SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/scratch-org/delete.js`;
+const { runSf } = require('../internal/run-command');
+const { repoRoot } = require('./internal/context');
+const { runAliasCommand } = require('./internal/command');
 
-process.exitCode = runNoArgumentCommand({
-    argv: process.argv.slice(2),
-    usage,
-    execute() {
-        process.chdir(repoRoot);
+// 削除操作では、対象aliasを引数で明示した実行だけを受け付ける。
+const usage = '実行コマンド: node scripts/scratch-org/delete.js --alias <alias>';
 
-        if (!process.env.SCRATCH_ORG_ALIAS) {
-            process.stderr.write(
-                'Error: SCRATCH_ORG_ALIAS=<scratch-org-alias> is required for destructive scratch org deletion.\n'
-            );
-            return 1;
+// 明示されたaliasのScratch Orgだけを削除する。
+function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
+    return runAliasCommand({
+        aliasRequired: true,
+        argv,
+        usage,
+        execute(alias) {
+            return runSfCommand(['org', 'delete', 'scratch', '--target-org', alias], repoRoot);
         }
+    });
+}
 
-        // 定義ファイルで指定した alias の Scratch Org を削除する。
-        execFileSync('sf', ['org', 'delete', 'scratch', '--target-org', scratchOrg.alias], { stdio: 'inherit' });
-        return 0;
-    }
-});
+// コマンドとして実行された場合だけScratch Orgを削除する。
+if (require.main === module) {
+    process.exitCode = main();
+}
+
+module.exports = { main };

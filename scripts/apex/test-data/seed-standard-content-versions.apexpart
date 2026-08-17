@@ -1,17 +1,20 @@
-
+// 合成取引先へ公開するテキストファイルをContentVersionとして作成
 List<Account> accounts = [SELECT Id FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 if (accounts.isEmpty()) {
     System.assert(false, 'Run accounts before content versions.');
 }
 
+// 既存件数からファイル名の連番を継続し、取引先へ順番に関連付ける
 Integer existingCount = [SELECT COUNT() FROM ContentVersion WHERE Title LIKE :seedLike];
 List<ContentVersion> records = new List<ContentVersion>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer sequence = existingCount + i;
     records.add(new ContentVersion(Title = seedPrefix + ' 提案メモ', PathOnClient = 'proposal-note-' + String.valueOf(sequence).leftPad(4, '0') + '.txt', VersionData = Blob.valueOf('提案メモ\n\n顧客課題と次回確認事項。\n'), FirstPublishLocationId = accounts[Math.mod(sequence - 1, accounts.size())].Id, ContentLocation = 'S', Description = '提案メモの表示確認に使うテストファイル。'));
 }
+// 部分成功を許可し、作成件数と失敗理由を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('ContentVersion', Database.insert(records, false));
+// DML seedの対象外となるmetadataやライセンス依存オブジェクトを明示
 System.debug('Skipped records: Knowledge: Knowledge article sObject is not inserted by this DML seed script');
 System.debug('Skipped records: Report: Report is metadata-backed and not inserted by this DML seed script');
 System.debug('Skipped records: Dashboard: Dashboard is metadata-backed and not inserted by this DML seed script');

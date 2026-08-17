@@ -1,4 +1,4 @@
-
+// 組織で利用可能な選択リスト値と合成リードプロフィールを準備
 String leadStatus = pick(Lead.Status.getDescribe(), new List<String>{ 'Open - Not Contacted', 'Working - Contacted', 'New' });
 String leadSource = pick(Lead.LeadSource.getDescribe(), new List<String>{ 'Web', 'Phone Inquiry', 'Purchased List' });
 String leadRating = pick(Lead.Rating.getDescribe(), new List<String>{ 'Warm', 'Hot', 'Cold' });
@@ -9,6 +9,7 @@ List<String> companies = new List<String>{ '晴海データサービス', '赤�
 Database.DMLOptions options = new Database.DMLOptions();
 options.DuplicateRuleHeader.allowSave = true;
 options.optAllOrNone = false;
+// 既存件数から連番を継続し、重複しない連絡先を持つリードを作成
 Integer existingCount = [SELECT COUNT() FROM Lead WHERE LastName LIKE :seedLike];
 List<Lead> records = new List<Lead>();
 for (Integer i = 1; i <= countPerObject; i += 1) {
@@ -33,5 +34,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
         Description = '部門横断の商談管理とサポート履歴の一元化について情報収集中。'
     ));
 }
+// 重複ルールによる一部失敗を許可し、結果を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Lead', Database.insert(records, options));

@@ -1,47 +1,56 @@
-#!/usr/bin/env node
-const { execFileSync } = require('node:child_process');
-const { repoRoot, scratchOrg } = require('./internal-context');
-const { runNoArgumentCommand } = require('./internal-command');
+// 実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]
+// 用途: Scratch Orgの作成、メタデータ反映、権限割り当て、テストデータ投入を順番に行う。
 
-const usage = 'Usage: node scripts/scratch-org/setup.js';
+const { runNodeScript } = require('../internal/run-command');
+const { repoRoot, scratchOrg } = require('./internal/context');
+const { runAliasCommand } = require('./internal/command');
 
-process.exitCode = runNoArgumentCommand({
-    argv: process.argv.slice(2),
-    usage,
-    execute() {
-        const childEnv = {
-            ...process.env,
-            SCRATCH_ORG_ALIAS: scratchOrg.alias
-        };
+const usage = '実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]';
 
-        process.stdout.write(`Using Scratch Org alias: ${scratchOrg.alias}\n`);
+// 指定されたaliasでScratch Orgの準備手順を順番に実行する。
+function main({
+    argv = process.argv.slice(2),
+    runNodeScriptCommand = runNodeScript,
+    stderr = process.stderr,
+    stdout = process.stdout
+} = {}) {
+    return runAliasCommand({
+        argv,
+        defaultAlias: scratchOrg.alias,
+        stderr,
+        stdout,
+        usage,
+        execute(alias) {
+            // 実行開始時に、全ステップが使用するaliasを明示する。
+            stdout.write(`使用するScratch Org alias: ${alias}\n`);
 
-        // Scratch Org を作成する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-create.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+            // 作成、metadata反映、権限割り当て、テストデータ投入を順番に実行する。
+            const steps = [
+                ['Scratch Orgの作成', 'scripts/scratch-org/steps/create.js'],
+                ['メタデータの反映', 'scripts/scratch-org/steps/deploy.js'],
+                ['Permission Setの割り当て', 'scripts/scratch-org/steps/assign-permission-set.js'],
+                ['テストデータの投入', 'scripts/scratch-org/steps/import-test-data.js']
+            ];
 
-        // Scratch Org 初期反映用 manifest を反映する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-deploy.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+            for (const [label, scriptPath] of steps) {
+                // すべての子スクリプトへ同じaliasをNode.js引数として渡す。
+                const status = runNodeScriptCommand(scriptPath, ['--alias', alias], repoRoot);
 
-        // Scratch Org の実行ユーザーに playground 用 Permission Set を付与する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-assign-permset.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
+                // 失敗したステップを表示し、後続処理を実行しない。
+                if (status !== 0) {
+                    stderr.write(`エラー: ${label}に失敗したため、Scratch Orgの準備を停止しました。\n`);
+                    return status;
+                }
+            }
 
-        // Scratch Org に標準オブジェクトのテストデータを投入する。
-        execFileSync(process.execPath, ['scripts/scratch-org/internal-import-test-data.js'], {
-            cwd: repoRoot,
-            env: childEnv,
-            stdio: 'inherit'
-        });
-    }
-});
+            return 0;
+        }
+    });
+}
+
+// コマンドとして実行された場合だけScratch Orgの準備を開始する。
+if (require.main === module) {
+    process.exitCode = main();
+}
+
+module.exports = { main };

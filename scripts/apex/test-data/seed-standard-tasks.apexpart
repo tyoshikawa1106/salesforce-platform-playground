@@ -1,20 +1,13 @@
+// 取引先責任者と商談へ関連付けた次回アクションを作成
+List<Contact> contacts = [SELECT Id FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+List<Opportunity> opportunities = [SELECT Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 
-List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode
-    FROM PricebookEntry
-    WHERE Product2.Name LIKE :seedLike AND Pricebook2.IsStandard = TRUE AND IsActive = TRUE AND Pricebook2.IsActive = TRUE
-    ORDER BY CreatedDate ASC
-    LIMIT :parentPoolSize
-];
-
+// 活動の参照先が不足している場合は、先行seedの実行を促す
 if (contacts.isEmpty() || opportunities.isEmpty()) {
     System.assert(false, 'Run contacts and opportunities before tasks.');
 }
 
+// 組織で利用可能な状態と優先度を使い、期限を分散したToDoを追加
 String status = pick(Task.Status.getDescribe(), new List<String>{ 'Not Started', 'Open' });
 String priority = pick(Task.Priority.getDescribe(), new List<String>{ 'Normal', 'Medium', 'High' });
 List<String> subjects = new List<String>{ 'Call', 'Email', 'Send Letter', 'Send Quote', 'Other' };
@@ -24,5 +17,6 @@ for (Integer i = 1; i <= countPerObject; i += 1) {
     Integer sequence = existingCount + i;
     records.add(new Task(Subject = seedPrefix + ' ' + subjects[Math.mod(sequence - 1, subjects.size())], WhoId = contacts[Math.mod(sequence - 1, contacts.size())].Id, WhatId = opportunities[Math.mod(sequence - 1, opportunities.size())].Id, Status = status, Priority = priority, ActivityDate = Date.today().addDays(Math.mod(sequence, 180)), Description = '顧客との次回アクションを追跡する検証用ToDo。'));
 }
+// 部分成功を許可し、作成件数と失敗理由を共通形式で記録
 System.debug('Seed run key: ' + seedRunKey);
 logResults('Task', Database.insert(records, false));

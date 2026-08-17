@@ -12,7 +12,7 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 `scripts/` 全体の配置方針は `scripts/scripts-guide.md` を参照します。`scripts/setup/` は初期セットアップの実行起点とplanを置く場所です。匿名Apexのシード用スクリプトは、ファイル種別に合わせて`scripts/apex/`に置きます。
 
-- `scripts/setup/import-plan.json`: 主要標準オブジェクト seed の実行計画と共通preamble。
+- `scripts/setup/plans/import-test-data-plan.json`: 主要標準オブジェクト seed の実行計画と共通preamble。
 - `scripts/apex/test-data/seed-standard-preamble.apexpart`: 標準オブジェクトseedで共有する変数と関数の断片。
 - `scripts/apex/test-data/seed-standard-*.apexpart`: 標準オブジェクトseedのobject固有処理の断片。
 - `scripts/apex/test-data/*.apex`: 単独で実行するanonymous Apex。
@@ -46,7 +46,7 @@ npm run setup:data:standard:dry-run -- --target-org <alias>
 
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
-execute anonymousのCPU／サイズ制限を避けるため、1つのprimary objectにつき1つのobject固有ファイルへ分け、`scripts/setup/import-plan.json`の順序で実行します。各実行では`seed-standard-preamble.apexpart`とobject固有の`.apexpart`を一時的な`.apex`ファイルへ合成し、終了後に一時ファイルを削除します。`standalone: true`のentryは共通preambleを使わず、単独実行可能な`.apex`を使用します。
+execute anonymousのCPU／サイズ制限を避けるため、1つのprimary objectにつき1つのobject固有ファイルへ分け、`scripts/setup/plans/import-test-data-plan.json`の順序で実行します。各実行では`seed-standard-preamble.apexpart`とobject固有の`.apexpart`を一時的な`.apex`ファイルへ合成し、終了後に一時ファイルを削除します。`standalone: true`のentryは共通preambleを使わず、単独実行可能な`.apex`を使用します。
 
 件数や固定マスタの扱いは、このセクションの作成対象一覧の後にまとめます。
 
@@ -55,7 +55,7 @@ npm run setup:data:standard:dry-run -- --target-org <alias>
 npm run setup:data:standard -- --target-org <alias>
 ```
 
-一部だけ投入する場合は、`import-plan.json` の `label` を指定します。
+一部だけ投入する場合は、`import-test-data-plan.json`の`label`を指定します。
 
 ```sh
 npm run setup:data:standard -- --target-org <alias> --only standard-objects-accounts
@@ -116,7 +116,7 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 ### 件数と表示名
 
 - 通常 org では、各オブジェクトを 50 件規模で作成する。
-- Scratch Org では、`scripts/scratch-org/internal-import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張する。
+- Scratch Org では、`scripts/scratch-org/steps/import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張する。
 - 組織の機能や権限で作成できない optional object は、debug log に理由を出し、作成可能な範囲を続行する。
 - キャンペーンは、前年・今年・来年の各月 1 件ずつ作成する。
 - 商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成する。

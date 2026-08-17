@@ -1,23 +1,15 @@
-
+// 組織で利用可能なサービス系オブジェクトを実行時に確認
 Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
-List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Contact> contacts = [SELECT Id, FirstName, LastName FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Opportunity> opportunities = [SELECT Id, AccountId, Pricebook2Id FROM Opportunity WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<Campaign> campaigns = [SELECT Id FROM Campaign WHERE Name LIKE '[TEST] 20%' ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
-List<PricebookEntry> pricebookEntries = [
-    SELECT Id, Pricebook2Id, Product2Id, UnitPrice, Product2.Name, Product2.ProductCode
-    FROM PricebookEntry
-    WHERE Product2.Name LIKE :seedLike AND Pricebook2.IsStandard = TRUE AND IsActive = TRUE AND Pricebook2.IsActive = TRUE
-    ORDER BY CreatedDate ASC
-    LIMIT :parentPoolSize
-];
-
+// 権利に必要な取引先、取引先責任者、資産、任意のサービス契約を取得
+List<Account> accounts = [SELECT Id FROM Account WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
+List<Contact> contacts = [SELECT Id FROM Contact WHERE LastName LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<Asset> assets = [SELECT Id FROM Asset WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize];
 List<SObject> serviceContracts = gd.containsKey('ServiceContract') ? Database.query('SELECT Id FROM ServiceContract WHERE Name LIKE :seedLike ORDER BY CreatedDate ASC LIMIT :parentPoolSize') : new List<SObject>();
 if (accounts.isEmpty() || contacts.isEmpty() || assets.isEmpty()) {
     System.assert(false, 'Run accounts, contacts, and assets before entitlements.');
 }
 
+// Entitlementが利用可能な組織だけ、作成可能な項目へ値を設定して追加
 System.debug('Seed run key: ' + seedRunKey);
 if (gd.containsKey('Entitlement') && gd.get('Entitlement').getDescribe().isCreateable()) {
     List<BusinessHours> hours = [SELECT Id FROM BusinessHours WHERE IsDefault = TRUE LIMIT 1];
@@ -37,5 +29,6 @@ if (gd.containsKey('Entitlement') && gd.get('Entitlement').getDescribe().isCreat
     }
     logResults('Entitlement', Database.insert(records, false));
 } else {
+    // 機能または権限がない組織では、処理対象外として理由を記録
     System.debug('Skipped records: Entitlement: object is not createable or not available');
 }

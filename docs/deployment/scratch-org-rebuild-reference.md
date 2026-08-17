@@ -47,10 +47,10 @@ scratch-org
 ```
 
 同じ日に複数の Scratch Org を作成する場合は、作成前にユーザーへ alias を確認します。
-確認した alias は `SCRATCH_ORG_ALIAS` で明示します。
+確認した alias は `--alias` で明示します。
 
 ```sh
-SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/scratch-org/setup.js
+node scripts/scratch-org/setup.js --alias <scratch-org-alias>
 ```
 
 作成後の deploy、retrieve、Permission Set assign、test data import、削除では、作成時に使った alias を `<scratch-org-alias>` として明示します。

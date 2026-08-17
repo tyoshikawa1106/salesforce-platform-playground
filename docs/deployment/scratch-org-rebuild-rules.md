@@ -27,7 +27,7 @@
 - Scratch Org 作成、package install、metadata deploy、Permission Set assign、test data import のどこで失敗したかを分けて報告する。
 - Scratch Org の成功を接続中の Salesforce 組織への deploy 成功として扱わない。
 - Scratch Org の alias は通常 `scratch-org` とする。
-- 同じ日に複数の Scratch Org を作成する場合は、作成前にユーザーへ alias を確認し、`SCRATCH_ORG_ALIAS` で明示する。
+- 同じ日に複数の Scratch Org を作成する場合は、作成前にユーザーへ alias を確認し、`--alias` で明示する。
 
 manifest の使い分けは [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md) を参照します。
 
@@ -76,13 +76,13 @@ node scripts/scratch-org/setup.js
 ```
 
 一括実行では、通常 `scratch-org` alias を使います。
-`SCRATCH_ORG_ALIAS` を指定した場合は、その alias を作成と後続ステップで使います。
+`--alias` を指定した場合は、その alias を作成と後続ステップで使います。
 
-途中で失敗した場合は、作成時に表示された alias を確認し、後続の該当手順にある個別 `sf` コマンドから再開します。一括実行の内部ステップは `scripts/scratch-org/internal-*.js` で管理し、直接実行する運用には使いません。
+途中で失敗した場合は、作成時に表示された alias を確認し、後続の該当手順にある個別 `sf` コマンドから再開します。一括実行の各ステップは `scripts/scratch-org/steps/` で管理し、`setup.js`から同じ`--alias`を渡して実行します。
 
-`setup.js` は引数なしで実行します。`--help` または `-h` は使用方法だけを表示し、未知の引数がある場合は Salesforce CLI を呼び出さずエラー終了します。
+`setup.js` は引数なし、または`--alias <alias>`を指定して実行します。`--help`または`-h`は使用方法だけを表示し、未知の引数がある場合はSalesforce CLIを呼び出さずエラー終了します。
 
-alias、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json`、`SCRATCH_ORG_ALIAS`、または次の手順の個別 `sf` コマンドを確認します。
+alias、Dev Hub、package install、途中確認などを変える場合は、`scratch-org.json`、`--alias`、または次の手順の個別 `sf` コマンドを確認します。
 
 ## 作成
 
@@ -94,7 +94,7 @@ sf org create scratch --definition-file config/project-scratch-def.json --alias 
 
 alias は通常 `scratch-org` を使います。
 同じ日に複数作成する場合は、作成前にユーザーへ alias を確認します。
-スクリプト実行時の alias 生成ルールは `scripts/scratch-org/scratch-org.json` と `scripts/scratch-org/internal-context.js` で扱います。
+スクリプト実行時の alias 生成ルールは `scripts/scratch-org/scratch-org.json` と `scripts/scratch-org/internal/context.js` で扱います。
 Dev Hub を明示する必要がある場合は、確認済みの Dev Hub を `--target-dev-hub` で指定します。
 
 ```sh
@@ -294,10 +294,10 @@ sf org delete scratch --target-org <scratch-org-alias>
 ```
 
 同じ確認付き削除はスクリプトでも実行できます。
-削除対象の取り違えを避けるため、削除スクリプトでは `SCRATCH_ORG_ALIAS` を必ず指定します。
+削除対象の取り違えを避けるため、削除スクリプトでは `--alias` を必ず指定します。
 
 ```sh
-SCRATCH_ORG_ALIAS=<scratch-org-alias> node scripts/scratch-org/delete.js
+node scripts/scratch-org/delete.js --alias <scratch-org-alias>
 ```
 
 自動化や明示的に削除対象を確認済みの場合は、確認プロンプトを省略できます。
