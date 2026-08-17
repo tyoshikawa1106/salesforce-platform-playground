@@ -1,12 +1,15 @@
+// 実行コマンド: npm run sf:retrieve
+// 用途: Default Target Orgから、責務別のmanifestに定義したメタデータを順番に取得する。
+
 const fs = require('node:fs');
 const path = require('node:path');
 const { createInterface } = require('node:readline/promises');
 const { runCommand } = require('../../run-command');
 
-// どのディレクトリから起動しても、manifestとCLIの作業場所をリポジトリルートに揃える。
+// manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
 
-// Profileを先頭、Translationsを末尾にして、責務別manifestを安全な順序で取得する。
+// Profileを最初、Translationsを最後に取得する。
 const manifests = [
     'manifest/retrieve-profile.xml',
     'manifest/retrieve-code.xml',
@@ -37,59 +40,66 @@ const manifests = [
     'manifest/retrieve-translations.xml'
 ];
 
-// すべてのSalesforce CLI操作を同じリポジトリルートから実行する。
+// Salesforce CLIをリポジトリルートで実行する。
 function runSf(args) {
     return runCommand('sf', args, repoRoot);
 }
 
+// manifestの確認後、承認された組織からメタデータを取得する。
 async function main() {
-    // 誤ったオプションを指定した状態で組織へ接続しない。
+    // このスクリプトは引数を受け付けない。
     if (process.argv.length !== 2) {
         console.error('Usage: node scripts/metadata/retrieve/retrieve.js');
         return 1;
     }
 
-    // 途中まで取得してからmanifest不足に気づくことがないよう、実行前に全件を確認する。
+    // retrieveを始める前に、すべてのmanifestが存在することを確認する。
     for (const manifest of manifests) {
+        // manifestがなければ、組織へ接続せず終了する。
         if (!fs.existsSync(path.join(repoRoot, manifest))) {
             console.error(`retrieve対象のmanifestがありません: ${manifest}`);
             return 1;
         }
     }
 
-    // 取得を始める前にdefault target orgを表示し、実行者が対象組織を確認できるようにする。
+    // retrieve対象のDefault Target Orgを表示する。
     if (runSf(['config', 'get', 'target-org']) !== 0) {
         return 1;
     }
 
-    // 明示的に承認された場合だけ、組織からのretrieveへ進む。
+    // retrieveを開始するかターミナルで確認する。
     const prompt = createInterface({ input: process.stdin, output: process.stdout });
     const answer = await prompt.question('この組織からメタデータを取得しますか？ [y/N]: ');
     prompt.close();
 
+    // yまたはY以外の場合はretrieveを中止する。
     if (answer !== 'y' && answer !== 'Y') {
         console.log('メタデータの取得を中止しました。');
         return 0;
     }
 
-    // 定義順に1件ずつ取得し、失敗した時点で後続manifestの処理を止める。
+    // manifestの定義順にメタデータを取得する。
     for (const [index, manifest] of manifests.entries()) {
         console.log(`[${index + 1}/${manifests.length}] ${path.basename(manifest)} を取得します。`);
 
+        // 失敗した場合は後続のretrieveを実行しない。
         if (runSf(['project', 'retrieve', 'start', '--manifest', manifest]) !== 0) {
             return 1;
         }
     }
 
+    // 全manifestのretrieve完了を表示する。
     console.log('すべてのメタデータ取得が完了しました。');
     return 0;
 }
 
-// テストから読み込まれた場合は処理を開始せず、manifest一覧だけを公開する。
+// retrieveを開始 (テストスクリプトからの実行の場合はSkip)
 if (require.main === module) {
     main().then((status) => {
+        // mainの結果を終了コードに設定する。
         process.exitCode = status;
     });
 }
 
+// テストスクリプトからmanifest一覧を参照できるようにする。
 module.exports = { manifests };
