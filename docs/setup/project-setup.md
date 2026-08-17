@@ -33,7 +33,6 @@ Husky、lint-staged、Prettier、ESLint、SLDS Linter、LWC Jest など、コミ
 
 `package-lock.json` は npm 依存の再現性を保つために管理対象とします。
 `package.json` の `overrides` は、上位ツールが安全版を採用するまでの間、既知脆弱性を修正した互換依存を全経路へ固定します。
-`vendor/brace-expansion-compat/` は `brace-expansion 5.0.8` のメモリ上限を保ちつつ、Jest と ESLint が使う旧 CommonJS API も提供します。
 監査対象や失敗条件は変更せず、`npm audit --audit-level=high` で high / critical が0件になることを確認します。
 
 このリポジトリの npm scripts と CI は、上記の Node.js version を前提にします。
@@ -46,14 +45,13 @@ Salesforce 開発では Apex、metadata、LWC を 4 spaces で扱います。
 
 ### Prettier 関連ファイル
 
-| ファイル                         | 目的                                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------------------- |
-| `.prettierrc`                    | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
-| `.prettierignore`                | static resources、外部取得物、ローカル生成物、接続情報などを整形対象から外す設定            |
-| `package.json`                   | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
-| `package-lock.json`              | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
-| `vendor/brace-expansion-compat/` | 安全版 `brace-expansion` を旧 CommonJS / 現行 ES Modules の両APIへ提供する互換パッケージ    |
-| `docs/setup/project-setup.md`    | そのプロジェクトで採用した準備手順                                                          |
+| ファイル                      | 目的                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| `.prettierrc`                 | Salesforce 開発を 4 spaces で整形するための Prettier 設定                                   |
+| `.prettierignore`             | static resources、外部取得物、ローカル生成物、接続情報などを整形対象から外す設定            |
+| `package.json`                | `prettier` / `prettier:verify` / `precommit` scripts、`lint-staged`、devDependencies の設定 |
+| `package-lock.json`           | npm 依存の固定。`package.json` を変えた場合に更新される                                     |
+| `docs/setup/project-setup.md` | そのプロジェクトで採用した準備手順                                                          |
 
 ### 導入手順
 
