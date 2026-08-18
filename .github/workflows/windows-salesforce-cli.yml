@@ -1,0 +1,40 @@
+name: Windows Salesforce CLI check
+
+on:
+    pull_request:
+        branches:
+            - main
+        paths:
+            - '.github/workflows/windows-salesforce-cli.yml'
+            - 'scripts/internal/run-command.js'
+            - 'scripts/test/run-command.node.js'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: windows-salesforce-cli-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    windows-salesforce-cli:
+        name: Windows Salesforce CLI check
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - name: Install Salesforce CLI
+              run: npm install --global @salesforce/cli
+
+            - name: Run Salesforce CLI integration test
+              run: node --test scripts/test/run-command.node.js
+              env:
+                  RUN_SF_INTEGRATION_TEST: 'true'

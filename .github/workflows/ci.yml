@@ -89,11 +89,5 @@ jobs:
             - name: Install dependencies
               run: npm ci --include=dev
 
-            - name: Install Salesforce CLI
-              run: npm install --global @salesforce/cli
-
             - name: Run script unit tests
               run: npm run test:scripts
-
-            - name: Run Salesforce CLI through Node.js
-              run: node -e "const { runSf } = require('./scripts/internal/run-command'); process.exitCode = runSf(['--version'], process.cwd());"
