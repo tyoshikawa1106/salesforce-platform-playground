@@ -99,17 +99,7 @@ fi
 
 既存の登録先が表示された場合は、自動で置き換えず、期待するJDKを指しているか確認します。新しく作成した登録を戻す場合も、対象がこの手順で作成したsymlinkであることを確認してから、そのsymlinkだけを削除します。
 
-必要に応じて、Homebrew の Java を PATH の前方に追加します。
-
-```sh
-javaPathLine='export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"'
-grep -Fqx "$javaPathLine" ~/.zprofile 2>/dev/null || printf '\n%s\n' "$javaPathLine" >> ~/.zprofile
-export PATH="/opt/homebrew/opt/openjdk@25/bin:$PATH"
-```
-
-同じ行がある場合は追記しません。この設定は現在のユーザーのzsh login shellへ永続的に適用されます。設定を戻す場合は、`.zprofile`からこの `export PATH` 行だけを削除し、新しいshellを開きます。
-
-確認:
+登録後に新しいターミナルを開き、Homebrew OpenJDK 25がmacOSのJavaランチャーから認識されることを確認します。
 
 ```sh
 java --version

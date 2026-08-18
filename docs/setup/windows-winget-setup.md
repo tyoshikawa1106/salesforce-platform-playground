@@ -71,7 +71,6 @@ Salesforceの[Salesforce CLIダウンロードページ](https://developer.sales
 
 ```text
 sf --version
-sf commands
 ```
 
 ## 3. Java JDK
@@ -276,17 +275,16 @@ winget で管理しているツールは、更新対象を確認してから個�
 | `winget list`                        | インストール済みパッケージを一覧表示する |
 | `winget source update`               | winget のソース情報を更新する            |
 
-更新可能なパッケージ確認:
-
-```text
-winget upgrade
-```
-
-このリポジトリで使用するパッケージだけを更新する例:
+ソース情報を更新し、更新可能なパッケージを確認します。
 
 ```text
 winget source update
 winget upgrade
+```
+
+確認後、このリポジトリで使用するパッケージだけを個別に更新します。
+
+```text
 winget upgrade --id Git.Git -e --source winget
 winget upgrade --id GitHub.cli -e --source winget
 winget upgrade --id Volta.Volta -e --source winget
