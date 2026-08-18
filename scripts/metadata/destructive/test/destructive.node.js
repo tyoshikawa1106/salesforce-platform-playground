@@ -122,7 +122,7 @@ test('dry-run成功後に削除が承認されない場合は実削除しない'
     assert.equal(prompt.isClosed(), true);
 });
 
-test('dry-run成功後に再承認された場合だけ同じmanifestで実削除する', async () => {
+test('dry-run成功後に再承認された場合だけ同じmanifest構成で実削除する', async () => {
     // dry-runと実削除の両方を承認し、実行された引数を記録する。
     const commandArgs = [];
     const prompt = createPrompt(['y', 'y']);
@@ -135,11 +135,23 @@ test('dry-run成功後に再承認された場合だけ同じmanifestで実削�
         }
     });
 
+    // Salesforce CLIへ渡すdestructive deployの共通引数を定義する。
+    const deployArgs = [
+        'project',
+        'deploy',
+        'start',
+        '--manifest',
+        'manifest/destructiveChanges.xml',
+        '--post-destructive-changes',
+        'manifest/destructiveChanges.xml',
+        '--wait',
+        '30'
+    ];
+
     // dry-runを外した同じ引数で実削除し、確認入力が閉じられることを確認する。
     assert.equal(status, 0);
     assert.equal(commandArgs.length, 3);
-    assert.deepEqual(commandArgs[1].slice(0, -1), commandArgs[2]);
-    assert.equal(commandArgs[1].at(-1), '--dry-run');
-    assert.ok(commandArgs[2].includes('manifest/destructiveChanges.xml'));
+    assert.deepEqual(commandArgs[1], [...deployArgs, '--dry-run']);
+    assert.deepEqual(commandArgs[2], deployArgs);
     assert.equal(prompt.isClosed(), true);
 });
