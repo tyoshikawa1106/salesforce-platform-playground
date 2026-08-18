@@ -76,7 +76,7 @@ npm run sf:retrieve
 
 ### メタデータの削除
 
-`manifest/destructiveChanges.xml`に記載したメタデータをdefault target orgから削除します。対象組織の確認後にdry-runを実行し、成功後の再確認で`y`または`Y`を入力した場合だけ実削除します。詳細は[メタデータ削除ルール](docs/deployment/metadata-deletion-rules.md)を参照してください。
+`manifest/destructiveChanges.xml`に記載したメタデータをdefault target orgから削除します。対象組織の情報と種別を確認し、本番環境とDeveloper Editionでは追加確認を行った後にdry-runへ進みます。dry-run成功後の再確認で`y`または`Y`を入力した場合だけ実削除します。詳細は[メタデータ削除ルール](docs/deployment/metadata-deletion-rules.md)を参照してください。
 
 ```sh
 npm run sf:destructive

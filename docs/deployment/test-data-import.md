@@ -22,19 +22,17 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## 事前確認
 
-対象 org を確認します。
+実投入では、確認済みの alias を `--target-org <alias>` で明示します。スクリプトはSalesforce CLIの認証済み組織情報から、指定された組織のalias、ユーザー名、URL、種別を表示します。表示された接続組織を`y`または`Y`で承認した場合だけ、安全判定と実投入へ進みます。
 
-```sh
-sf config get target-org
-```
+Sandbox、Scratch Org、Developer Editionには投入できます。本番環境へのテストデータ投入は禁止し、接続組織が承認されても実投入前にエラー終了します。対象組織を一意に特定できない場合や、組織種別を判定できない場合も実投入しません。
 
-default target org と異なる組織へ投入する場合は、確認済みの alias を `--target-org <alias>` で明示します。
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。
 報告には対象 org alias を書き、実ユーザー名や org 固有 URL は書きません。
 
 ## dry-run
 
 実行前に、ローカルファイルと実行予定コマンドを確認します。
+
+dry-runは組織へ接続せず、接続組織の表示と入力確認も行いません。
 
 ```sh
 npm run setup:data:standard:dry-run -- --target-org <alias>
