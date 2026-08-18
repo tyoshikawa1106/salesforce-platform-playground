@@ -38,11 +38,13 @@ async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand =
             return 0;
         }
 
-        // dry-runと実削除で同じmanifestを使用する。
+        // 同じmanifestを通常manifestとdestructive changesの両方に指定する。
         const deployArgs = [
             'project',
             'deploy',
             'start',
+            '--manifest',
+            destructiveManifest,
             '--post-destructive-changes',
             destructiveManifest,
             '--wait',
