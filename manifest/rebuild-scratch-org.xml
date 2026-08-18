@@ -11,12 +11,22 @@
         <members>AccountDataQualityScanServiceTest</members>
         <members>AccountDataQualityScanWrapper</members>
         <members>AccountDataQualityScanWrapperTest</members>
+        <members>AccountPdfController</members>
+        <members>AccountPdfControllerTest</members>
+        <members>AccountPdfSelector</members>
+        <members>AccountPdfSelectorTest</members>
+        <members>AccountPdfService</members>
+        <members>AccountPdfServiceTest</members>
+        <members>AccountPdfViewModel</members>
+        <members>AccountPdfViewModelTest</members>
         <members>AccountTriggerHandler</members>
         <members>AccountTriggerHandlerTest</members>
         <members>AccountTriggerService</members>
         <members>AccountTriggerServiceTest</members>
         <members>CaseEmailMessageController</members>
         <members>CaseEmailMessageControllerTest</members>
+        <members>CaseEmailMessagePageWrapper</members>
+        <members>CaseEmailMessagePageWrapperTest</members>
         <members>CaseEmailMessageSelector</members>
         <members>CaseEmailMessageSelectorTest</members>
         <members>CaseEmailMessageService</members>
@@ -27,7 +37,7 @@
         <members>ObjectMetricsOverviewItemWrapper</members>
         <members>ObjectMetricsOverviewItemWrapperTest</members>
         <members>ObjectMetricsOverviewQueryCoordinator</members>
-        <members>ObjectMetricsOverviewQueryCoordinatorTest</members>
+        <members>ObjectMetricsQueryCoordinatorTest</members>
         <members>ObjectMetricsOverviewSelector</members>
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
@@ -65,6 +75,10 @@
         <members>TestDataFactory</members>
         <members>TestDataFactoryTest</members>
         <name>ApexClass</name>
+    </types>
+    <types>
+        <members>AccountPdf</members>
+        <name>ApexPage</name>
     </types>
     <types>
         <members>AccountTrigger</members>
@@ -773,7 +787,10 @@
     </types>
     <types>
         <members>accountDataQualityScan</members>
+        <members>accountPdfExport</members>
+        <members>caseContactProfile</members>
         <members>caseEmailMessageList</members>
+        <members>caseRelatedCaseList</members>
         <members>errorUtils</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordSearch</members>
@@ -1025,6 +1042,7 @@
         <name>MilestoneType</name>
     </types>
     <types>
+        <members>Account.PdfExport</members>
         <members>Case.CloseCaseLightning</members>
         <members>Case.LogACall</members>
         <members>Case.NewChildCase</members>
