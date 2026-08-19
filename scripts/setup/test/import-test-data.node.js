@@ -52,9 +52,25 @@ function createOrgListResult(type = 'sandbox') {
     };
 }
 
-// 組織一覧取得だけを共通化し、Apex実行をテストごとに差し替える。
+// Default Target Orgの取得結果を作成する。
+function createDefaultTargetOrgResult() {
+    return {
+        status: 0,
+        stderr: '',
+        stdout: JSON.stringify({
+            status: 0,
+            result: [{ name: 'target-org', success: true, value: 'test-org' }]
+        })
+    };
+}
+
+// Default Target Orgと組織一覧の取得を共通化し、Apex実行をテストごとに差し替える。
 function createRunSfCommand(executeApex, type = 'sandbox') {
     return (args) => {
+        if (args[0] === 'config' && args[1] === 'get') {
+            return createDefaultTargetOrgResult();
+        }
+
         if (args[0] === 'org' && args[1] === 'list') {
             return createOrgListResult(type);
         }
@@ -81,11 +97,38 @@ test('dry-runではSalesforce CLIと入力確認を実行しない', async () =>
     assert.equal(promptCount, 0);
 });
 
-test('実投入にはTarget Orgの指定を必須とする', async () => {
+test('実投入ではTarget OrgのCLI指定を拒否する', async () => {
     await assert.rejects(
-        () => run({ argv: ['--only', 'standard-objects-accounts'] }),
-        /実投入には--target-org <alias>の指定が必要です/
+        () => run({ argv: ['--target-org', 'test-org', '--only', 'standard-objects-accounts'] }),
+        /未対応の引数が指定されました: --target-org/
     );
+});
+
+test('Default Target Orgが未設定の場合は入力確認を開始しない', async () => {
+    let promptCount = 0;
+
+    await assert.rejects(
+        () =>
+            run({
+                argv: ['--only', 'standard-objects-accounts'],
+                createPrompt() {
+                    promptCount += 1;
+                },
+                runSfCommand() {
+                    return {
+                        status: 0,
+                        stderr: '',
+                        stdout: JSON.stringify({
+                            status: 0,
+                            result: [{ name: 'target-org', success: false }]
+                        })
+                    };
+                }
+            }),
+        /Default Target Orgが設定されていません/
+    );
+
+    assert.equal(promptCount, 0);
 });
 
 test('接続組織が承認されない場合は実投入しない', async () => {
@@ -93,7 +136,7 @@ test('接続組織が承認されない場合は実投入しない', async () =>
     const prompt = createPrompt(['n']);
 
     await run({
-        argv: ['--only', 'standard-objects-accounts', '--target-org', 'test-org'],
+        argv: ['--only', 'standard-objects-accounts'],
         createPrompt: () => prompt.prompt,
         runSfCommand: createRunSfCommand(() => {
             apexExecutionCount += 1;
@@ -111,7 +154,7 @@ test('本番環境は接続組織が承認されても実投入しない', async
     await assert.rejects(
         () =>
             run({
-                argv: ['--only', 'standard-objects-accounts', '--target-org', 'test-org'],
+                argv: ['--only', 'standard-objects-accounts'],
                 createPrompt: () => prompt.prompt,
                 runSfCommand: createRunSfCommand(() => {
                     apexExecutionCount += 1;
@@ -130,7 +173,7 @@ for (const type of ['sandbox', 'scratch', 'developer']) {
         const prompt = createPrompt(['y']);
 
         await run({
-            argv: ['--only', 'standard-objects-accounts', '--target-org', 'test-org'],
+            argv: ['--only', 'standard-objects-accounts'],
             createPrompt: () => prompt.prompt,
             runSfCommand: createRunSfCommand(() => {
                 apexExecutionCount += 1;
@@ -143,6 +186,32 @@ for (const type of ['sandbox', 'scratch', 'developer']) {
     });
 }
 
+test('Scratch Orgセットアップでは内部指定されたaliasを使用する', async () => {
+    let configGetCount = 0;
+    let apexArgs;
+    const prompt = createPrompt(['y']);
+
+    await run({
+        argv: ['--only', 'standard-objects-accounts'],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            if (args[0] === 'config') {
+                configGetCount += 1;
+            }
+            if (args[0] === 'org' && args[1] === 'list') {
+                return createOrgListResult('scratch');
+            }
+
+            apexArgs = args;
+            return { status: 0, stdout: '', stderr: '' };
+        },
+        targetOrg: 'test-org'
+    });
+
+    assert.equal(configGetCount, 0);
+    assert.equal(apexArgs[apexArgs.indexOf('--target-org') + 1], 'test-org');
+});
+
 test('Salesforce CLI失敗時は一時Apexファイルを削除して終了する', async () => {
     let generatedFilePath;
     const prompt = createPrompt(['y']);
@@ -150,7 +219,7 @@ test('Salesforce CLI失敗時は一時Apexファイルを削除して終了す�
     await assert.rejects(
         () =>
             run({
-                argv: ['--only', 'standard-objects-accounts', '--target-org', 'test-org'],
+                argv: ['--only', 'standard-objects-accounts'],
                 createPrompt: () => prompt.prompt,
                 runSfCommand: createRunSfCommand((args) => {
                     generatedFilePath = args[args.indexOf('--file') + 1];
@@ -171,7 +240,7 @@ test('Salesforce CLIを開始できない場合も一時Apexファイルを削�
     await assert.rejects(
         () =>
             run({
-                argv: ['--only', 'standard-objects-accounts', '--target-org', 'test-org'],
+                argv: ['--only', 'standard-objects-accounts'],
                 createPrompt: () => prompt.prompt,
                 runSfCommand: createRunSfCommand((args) => {
                     generatedFilePath = args[args.indexOf('--file') + 1];
@@ -189,7 +258,7 @@ test('Salesforce CLI成功時も一時Apexファイルを削除する', async ()
     const prompt = createPrompt(['y']);
 
     await run({
-        argv: ['--only', 'standard-objects-accounts', '--target-org', 'test-org'],
+        argv: ['--only', 'standard-objects-accounts'],
         createPrompt: () => prompt.prompt,
         runSfCommand: createRunSfCommand((args) => {
             generatedFilePath = args[args.indexOf('--file') + 1];

@@ -25,8 +25,7 @@ function parseArgs(argv) {
         help: false,
         only: null,
         plan: defaultPlan,
-        repeat: null,
-        targetOrg: null
+        repeat: null
     };
 
     // オプション値を読み飛ばしながら、指定された順に引数を解釈する。
@@ -63,12 +62,6 @@ function parseArgs(argv) {
 
         if (arg === '--repeat') {
             args.repeat = Number(readOptionValue(argv, index, arg));
-            index += 1;
-            continue;
-        }
-
-        if (arg === '--target-org' || arg === '-o') {
-            args.targetOrg = readOptionValue(argv, index, arg);
             index += 1;
             continue;
         }

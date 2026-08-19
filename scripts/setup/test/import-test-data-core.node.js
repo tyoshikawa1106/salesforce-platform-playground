@@ -18,14 +18,13 @@ const repoRoot = path.resolve(__dirname, '../../..');
 
 test('CLI引数を型付きの設定へ変換する', () => {
     // すべての主要オプションを指定した解析結果を確認する。
-    assert.deepEqual(parseArgs(['--dry-run', '--only', 'contacts', '--repeat', '2', '-o', 'target']), {
+    assert.deepEqual(parseArgs(['--dry-run', '--only', 'contacts', '--repeat', '2']), {
         defaultRepeat: null,
         dryRun: true,
         help: false,
         only: 'contacts',
         plan: 'scripts/setup/plans/import-test-data-plan.json',
-        repeat: 2,
-        targetOrg: 'target'
+        repeat: 2
     });
 });
 
@@ -33,7 +32,11 @@ test('値が必要なCLIオプションを値なしで指定できない', () =>
     // 値なし、または次のオプションを値として扱わないことを確認する。
     assert.throws(() => parseArgs(['--plan']), /--planには値が必要です/);
     assert.throws(() => parseArgs(['--plan', '--dry-run']), /--planには値が必要です/);
-    assert.throws(() => parseArgs(['--target-org']), /--target-orgには値が必要です/);
+});
+
+test('Target OrgのCLI指定を拒否する', () => {
+    assert.throws(() => parseArgs(['--target-org', 'test-org']), /未対応の引数が指定されました: --target-org/);
+    assert.throws(() => parseArgs(['-o', 'test-org']), /未対応の引数が指定されました: -o/);
 });
 
 test('未知のCLIオプションを日本語のエラーで拒否する', () => {
