@@ -4,7 +4,9 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { createInterface } = require('node:readline/promises');
 const { runSfWithOutput } = require('../internal/run-command');
+const { getTargetOrgInfo, isApproved, orgTypes, printTargetOrgInfo } = require('../internal/target-org');
 const {
     buildSfArgs,
     defaultPlan,
@@ -30,6 +32,9 @@ function printHelp() {
   --repeat <n>            選択したentryへ適用する繰り返し回数。
   --target-org, -o        実投入先のSalesforce組織alias。
   --dry-run               ローカルファイルを検証し、実行予定のsfコマンドを表示する。
+
+実投入では接続組織の情報と種別を表示し、承認されたSandbox、Scratch Org、Developer Editionだけへ投入します。
+本番環境へのテストデータ投入は実行できません。
 `);
 }
 
@@ -74,8 +79,9 @@ function getGeneratedFileName(label) {
     return `${label.replace(/[^a-z0-9-]/gi, '-')}.apex`;
 }
 
-function run({
+async function run({
     argv = process.argv.slice(2),
+    createPrompt,
     fileSystem = fs,
     operatingSystem = os,
     runSfCommand = runSfWithOutput
@@ -93,6 +99,34 @@ function run({
         throw new Error(
             '実投入には--target-org <alias>の指定が必要です。ローカル確認には--dry-runを使用してください。'
         );
+    }
+
+    if (!args.dryRun) {
+        // 実投入前に、指定された1組織の表示情報と種別を確認する。
+        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg: args.targetOrg });
+
+        // Salesforce CLIの認証情報から必要な接続先情報だけを表示する。
+        printTargetOrgInfo(orgInfo, writeLine);
+
+        // 表示された接続組織を実行者が承認した場合だけ安全判定へ進む。
+        const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
+        let targetAnswer;
+
+        try {
+            targetAnswer = await prompt.question('この接続組織で続行しますか？ [y/N]: ');
+        } finally {
+            prompt.close();
+        }
+
+        if (!isApproved(targetAnswer)) {
+            writeLine('テストデータ投入を中止しました。');
+            return;
+        }
+
+        // 本番相当の組織には、確認済みでもテストデータを投入しない。
+        if (orgInfo.type === orgTypes.PRODUCTION) {
+            throw new Error('本番環境へのテストデータ投入は許可されていません。');
+        }
     }
 
     // planと参照するApexファイルを先に検証し、実行途中の構成エラーを避ける。
@@ -157,12 +191,10 @@ function run({
 
 // 利用者が修正すべき内容だけを簡潔に表示し、CLIへ失敗を返す。
 if (require.main === module) {
-    try {
-        run();
-    } catch (error) {
+    run().catch((error) => {
         process.stderr.write(`エラー: ${error.message}\n`);
         process.exitCode = 1;
-    }
+    });
 }
 
 module.exports = { run };

@@ -1,5 +1,5 @@
 // 実行コマンド: node --test scripts/metadata/destructive/test/destructive.node.js
-// 用途: destructiveスクリプトが未知の引数を組織接続前に拒否することを検証する。
+// 用途: destructiveスクリプトの接続先確認、組織制御、dry-run、実削除を検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,18 +10,23 @@ const { main } = require('../destructive');
 // destructiveスクリプトをリポジトリルート基準で実行する。
 const repoRoot = path.resolve(__dirname, '../../../..');
 
-// 確認への回答を順番に返し、最後にcloseされたことを記録する。
+// 確認への回答と質問を順番に記録し、最後にcloseされたことを確認できるようにする。
 function createPrompt(answers) {
     let closed = false;
+    const questions = [];
 
     return {
         prompt: {
-            async question() {
+            async question(message) {
+                questions.push(message);
                 return answers.shift();
             },
             close() {
                 closed = true;
             }
+        },
+        getQuestions() {
+            return questions;
         },
         isClosed() {
             return closed;
@@ -29,62 +34,73 @@ function createPrompt(answers) {
     };
 }
 
+// Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
+function createSfResult(result) {
+    return {
+        status: 0,
+        stderr: '',
+        stdout: JSON.stringify({ status: 0, result })
+    };
+}
+
+// Default Target Orgと指定種別の認証済み組織一覧を返す処理を作成する。
+function createOrgInfoCommand(type = 'sandbox') {
+    return (args) => {
+        if (args[0] === 'config') {
+            return createSfResult([{ name: 'target-org', success: true, value: 'test-org' }]);
+        }
+
+        const baseOrg = {
+            alias: 'test-org',
+            instanceUrl: 'https://example.my.salesforce.com',
+            orgId: '00D000000000001',
+            username: 'user@example.com'
+        };
+        const scratchOrgs = type === 'scratch' ? [{ ...baseOrg, expirationDate: '2099-01-01' }] : [];
+        const nonScratchOrg = {
+            ...baseOrg,
+            isSandbox: type === 'sandbox',
+            orgEdition: type === 'developer' ? 'Developer Edition' : 'Enterprise Edition'
+        };
+        const nonScratchOrgs = type === 'scratch' ? [] : [nonScratchOrg];
+        const sandboxes = type === 'sandbox' ? [nonScratchOrg] : [];
+
+        return createSfResult({ nonScratchOrgs, sandboxes, scratchOrgs });
+    };
+}
+
 test('destructive scriptは未知の引数をSalesforce CLI実行前に拒否する', () => {
-    // 未知の引数を指定してdestructiveスクリプトを実行する。
     const result = spawnSync(process.execPath, ['scripts/metadata/destructive/destructive.js', '--unknown'], {
         cwd: repoRoot,
         encoding: 'utf8'
     });
 
-    // 組織へ接続せず、異常終了することを確認する。
     assert.equal(result.status, 1);
-
-    // エラー理由と正しい実行コマンドが表示されることを確認する。
     assert.match(result.stderr, /エラー: このスクリプトは引数を受け付けません。/);
     assert.match(result.stderr, /実行コマンド: npm run sf:destructive/);
 });
 
-test('dry-runが失敗した場合は実削除を実行しない', async () => {
-    // dry-runだけを承認し、2回目のSalesforce CLI実行を失敗させる。
-    const commandArgs = [];
-    const prompt = createPrompt(['y']);
-    const status = await main({
-        argv: [],
-        createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
-            return commandArgs.length === 2 ? 1 : 0;
-        }
-    });
-
-    // dry-run以降の実削除が呼ばれず、確認入力が閉じられることを確認する。
-    assert.equal(status, 1);
-    assert.deepEqual(commandArgs[0], ['config', 'get', 'target-org']);
-    assert.deepEqual(commandArgs[1].slice(-1), ['--dry-run']);
-    assert.equal(commandArgs.length, 2);
-    assert.equal(prompt.isClosed(), true);
-});
-
 test('Default Target Orgを確認できない場合は入力確認を開始しない', async () => {
-    // 組織設定の確認を失敗させ、入力処理の作成回数を記録する。
     let promptCount = 0;
-    const status = await main({
-        argv: [],
-        createPrompt() {
-            promptCount += 1;
-        },
-        runSfCommand() {
-            return 1;
-        }
-    });
 
-    // 組織が確定していない状態ではdry-runの確認を表示しない。
-    assert.equal(status, 1);
+    await assert.rejects(
+        () =>
+            main({
+                argv: [],
+                createPrompt() {
+                    promptCount += 1;
+                },
+                runSfWithOutputCommand() {
+                    return createSfResult([{ name: 'target-org', success: true }]);
+                }
+            }),
+        /Default Target Orgが設定されていません/
+    );
+
     assert.equal(promptCount, 0);
 });
 
-test('dry-runが承認されない場合は削除処理を実行しない', async () => {
-    // dry-runを承認せず、Salesforce CLIの実行内容を記録する。
+test('接続組織が承認されない場合はdry-runを実行しない', async () => {
     const commandArgs = [];
     const prompt = createPrompt(['n']);
     const status = await main({
@@ -93,17 +109,44 @@ test('dry-runが承認されない場合は削除処理を実行しない', asyn
         runSfCommand(args) {
             commandArgs.push(args);
             return 0;
-        }
+        },
+        runSfWithOutputCommand: createOrgInfoCommand()
     });
 
-    // Default Target Orgの表示だけで正常終了することを確認する。
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, [['config', 'get', 'target-org']]);
+    assert.equal(commandArgs.length, 0);
+    assert.deepEqual(prompt.getQuestions(), ['この接続組織で続行しますか？ [y/N]: ']);
     assert.equal(prompt.isClosed(), true);
 });
 
-test('dry-run成功後に削除が承認されない場合は実削除しない', async () => {
-    // dry-runだけを承認し、Salesforce CLIの実行内容を記録する。
+for (const [type, label] of [
+    ['production', '本番環境'],
+    ['developer', 'Developer Edition']
+]) {
+    test(`${label}の追加確認が承認されない場合はdry-runを実行しない`, async () => {
+        const commandArgs = [];
+        const prompt = createPrompt(['y', 'n']);
+        const status = await main({
+            argv: [],
+            createPrompt: () => prompt.prompt,
+            runSfCommand(args) {
+                commandArgs.push(args);
+                return 0;
+            },
+            runSfWithOutputCommand: createOrgInfoCommand(type)
+        });
+
+        assert.equal(status, 0);
+        assert.equal(commandArgs.length, 0);
+        assert.deepEqual(prompt.getQuestions(), [
+            'この接続組織で続行しますか？ [y/N]: ',
+            `${label}です。メタデータ削除を実行してよろしいですか？ [y/N]: `
+        ]);
+        assert.equal(prompt.isClosed(), true);
+    });
+}
+
+test('Sandboxでは環境別の追加確認なしでdry-runを実行する', async () => {
     const commandArgs = [];
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
@@ -112,30 +155,69 @@ test('dry-run成功後に削除が承認されない場合は実削除しない'
         runSfCommand(args) {
             commandArgs.push(args);
             return 0;
-        }
+        },
+        runSfWithOutputCommand: createOrgInfoCommand('sandbox')
     });
 
-    // 設定確認とdry-runだけで正常終了することを確認する。
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 2);
-    assert.equal(commandArgs[1].at(-1), '--dry-run');
+    assert.equal(commandArgs.length, 1);
+    assert.equal(commandArgs[0].at(-1), '--dry-run');
+    assert.deepEqual(prompt.getQuestions(), [
+        'この接続組織で続行しますか？ [y/N]: ',
+        'dry-runが成功しました。実際にメタデータを削除しますか？ [y/N]: '
+    ]);
+});
+
+test('dry-runが失敗した場合は実削除を実行しない', async () => {
+    const commandArgs = [];
+    const prompt = createPrompt(['y']);
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return 1;
+        },
+        runSfWithOutputCommand: createOrgInfoCommand('sandbox')
+    });
+
+    assert.equal(status, 1);
+    assert.equal(commandArgs.length, 1);
+    assert.equal(commandArgs[0].at(-1), '--dry-run');
     assert.equal(prompt.isClosed(), true);
 });
 
-test('dry-run成功後に再承認された場合だけ同じmanifest構成で実削除する', async () => {
-    // dry-runと実削除の両方を承認し、実行された引数を記録する。
+test('dry-run成功後に削除が承認されない場合は実削除しない', async () => {
     const commandArgs = [];
-    const prompt = createPrompt(['y', 'y']);
+    const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
             commandArgs.push(args);
             return 0;
-        }
+        },
+        runSfWithOutputCommand: createOrgInfoCommand('scratch')
     });
 
-    // Salesforce CLIへ渡すdestructive deployの共通引数を定義する。
+    assert.equal(status, 0);
+    assert.equal(commandArgs.length, 1);
+    assert.equal(commandArgs[0].at(-1), '--dry-run');
+    assert.equal(prompt.isClosed(), true);
+});
+
+test('本番環境の全確認が承認された場合だけ同じ対象へ実削除する', async () => {
+    const commandArgs = [];
+    const prompt = createPrompt(['y', 'y', 'y']);
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfCommand(args) {
+            commandArgs.push(args);
+            return 0;
+        },
+        runSfWithOutputCommand: createOrgInfoCommand('production')
+    });
     const deployArgs = [
         'project',
         'deploy',
@@ -144,14 +226,13 @@ test('dry-run成功後に再承認された場合だけ同じmanifest構成で�
         'manifest/destructiveChanges.xml',
         '--post-destructive-changes',
         'manifest/destructiveChanges.xml',
+        '--target-org',
+        'test-org',
         '--wait',
         '30'
     ];
 
-    // dry-runを外した同じ引数で実削除し、確認入力が閉じられることを確認する。
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 3);
-    assert.deepEqual(commandArgs[1], [...deployArgs, '--dry-run']);
-    assert.deepEqual(commandArgs[2], deployArgs);
+    assert.deepEqual(commandArgs, [[...deployArgs, '--dry-run'], deployArgs]);
     assert.equal(prompt.isClosed(), true);
 });

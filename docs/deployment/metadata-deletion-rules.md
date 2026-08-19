@@ -7,7 +7,9 @@
 - destructive changes は、通常の追加・更新より影響が大きいため別タスクで扱う。
 - 削除対象、依存関係、復旧方法、対象 org alias を確認してから実行する。
 - 明示依頼なしに本番や別 target org へ削除を実行しない。
-- 削除前にdefault target orgのaliasを確認する。リポジトリ管理の削除スクリプトは、表示された組織を実行者が承認した場合だけ処理を続行する。
+- 削除前にdefault target orgのaliasを確認する。リポジトリ管理の削除スクリプトは、alias、ユーザー名、URL、種別を表示し、実行者が接続組織を承認した場合だけ処理を続行する。
+- 本番環境とDeveloper Editionでは、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけdry-runへ進む。
+- 対象組織を一意に特定できない場合や、組織種別を判定できない場合はdry-runを開始しない。
 - destructive changes と通常 metadata 更新を同じ実行 scope に混ぜない。必要な場合も差分と検証結果を分けて報告する。
 - `manifest/destructiveChanges.xml` は作業中の削除対象だけを含め、作業後にプレースホルダーや不要な削除対象を残さない。
 
@@ -20,26 +22,24 @@
 - 削除後に必要なテストや画面確認
 - 復旧する場合に戻せる source があるか
 
-対象組織を確認します。
+対象組織を確認します。削除スクリプトは、この設定値とSalesforce CLIの認証済み組織情報を照合します。
 
 ```sh
 sf config get target-org
 ```
-
-alias だけでは判断できない場合に限り、必要な範囲で `sf org display --target-org <alias>` を使います。
 
 ## Apex クラス削除
 
 削除対象の Apex クラスは `manifest/destructiveChanges.xml` の `ApexClass` に書きます。
 `REPLACE_WITH_APEX_CLASS_NAME` は実際の Apex クラス名に置き換えます。
 
-削除スクリプトを実行します。表示されたdefault target orgを承認するとdry-runを実行し、成功後に実削除するか再確認します。
+削除スクリプトを実行します。最初にdefault target orgのalias、ユーザー名、URL、種別が表示されます。接続組織を承認すると、本番環境とDeveloper Editionでは環境別の最終確認が表示されます。必要な確認が承認された後にdry-runを実行し、成功後に実削除するか再確認します。
 
 ```sh
 npm run sf:destructive
 ```
 
-2回目の確認で`y`または`Y`を入力した場合だけ、実際の削除を実行します。それ以外の入力ではdry-runまでで終了します。
+すべての確認では`y`または`Y`だけを承認として扱います。接続組織または環境別確認が承認されない場合はdry-runへ進まず、実削除が承認されない場合はdry-runまでで終了します。SandboxとScratch Orgでは環境別確認を省略します。
 
 ## destructive changes 実行手順
 
