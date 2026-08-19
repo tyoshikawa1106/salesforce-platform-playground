@@ -82,22 +82,20 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
     ]);
 });
 
-test('Scratch Org用の設定でテストデータを投入する', () => {
-    // 共通スクリプトへplan、alias、繰り返し回数が渡ることを確認する。
-    let call;
-    const status = importTestData({
+test('Scratch Org用の設定でテストデータを投入する', async () => {
+    // 共通処理へplan、内部alias、繰り返し回数が渡ることを確認する。
+    let options;
+    const status = await importTestData({
         argv: ['--alias', 'test-scratch-org'],
-        runNodeScriptCommand(scriptPath, args, workingDirectory) {
-            call = { scriptPath, args, workingDirectory };
-            return 0;
+        async runImportTestDataCommand(runOptions) {
+            options = runOptions;
         }
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(call, {
-        scriptPath: 'scripts/setup/import-test-data.js',
-        args: ['--plan', scratchOrg.importPlan, '--target-org', 'test-scratch-org', '--default-repeat', '40'],
-        workingDirectory: repoRoot
+    assert.deepEqual(options, {
+        argv: ['--plan', scratchOrg.importPlan, '--default-repeat', '40'],
+        targetOrg: 'test-scratch-org'
     });
 });
 

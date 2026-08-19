@@ -1,12 +1,18 @@
-// 実行コマンド: npm run setup:data:standard -- --target-org <alias>
-// 用途: import planに従って、指定したTarget Orgへ標準テストデータを投入する。
+// 実行コマンド: npm run setup:data
+// 用途: import planに従って、Default Target Orgへ標準テストデータを投入する。
 
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { createInterface } = require('node:readline/promises');
 const { runSfWithOutput } = require('../internal/run-command');
-const { getTargetOrgInfo, isApproved, orgTypes, printTargetOrgInfo } = require('../internal/target-org');
+const {
+    getDefaultTargetOrg,
+    getTargetOrgInfo,
+    isApproved,
+    orgTypes,
+    printTargetOrgInfo
+} = require('../internal/target-org');
 const {
     buildSfArgs,
     defaultPlan,
@@ -22,18 +28,17 @@ const repoRoot = path.resolve(__dirname, '../..');
 // npm scriptから利用できるオプションと、安全な実行方法を表示する。
 function printHelp() {
     process.stdout.write(`実行コマンド:
-  npm run setup:data:standard:dry-run
-  npm run setup:data:standard -- --target-org <alias>
+  npm run setup:data:dry-run
+  npm run setup:data
 
 オプション:
   --plan <path>           import plan JSONのパス。既定値: ${defaultPlan}
   --only <label>          指定したplan entryだけを実行する。
   --default-repeat <n>    repeat未指定のentryに適用する繰り返し回数。
   --repeat <n>            選択したentryへ適用する繰り返し回数。
-  --target-org, -o        実投入先のSalesforce組織alias。
   --dry-run               ローカルファイルを検証し、実行予定のsfコマンドを表示する。
 
-実投入では接続組織の情報と種別を表示し、承認されたSandbox、Scratch Org、Developer Editionだけへ投入します。
+実投入ではDefault Target Orgの情報と種別を表示し、承認されたSandbox、Scratch Org、Developer Editionだけへ投入します。
 本番環境へのテストデータ投入は実行できません。
 `);
 }
@@ -84,7 +89,8 @@ async function run({
     createPrompt,
     fileSystem = fs,
     operatingSystem = os,
-    runSfCommand = runSfWithOutput
+    runSfCommand = runSfWithOutput,
+    targetOrg: internalTargetOrg
 } = {}) {
     // 組織操作やファイル読込より前に、CLI引数を確定する。
     const args = parseArgs(argv);
@@ -94,16 +100,14 @@ async function run({
         return;
     }
 
-    // 実投入では対象組織の明示を必須とし、default target orgへの誤投入を防ぐ。
-    if (!args.dryRun && !args.targetOrg) {
-        throw new Error(
-            '実投入には--target-org <alias>の指定が必要です。ローカル確認には--dry-runを使用してください。'
-        );
-    }
+    let targetOrg = '<default-target-org>';
 
     if (!args.dryRun) {
-        // 実投入前に、指定された1組織の表示情報と種別を確認する。
-        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg: args.targetOrg });
+        // 通常実行はDefault Target Org、Scratch Orgセットアップは作成済みaliasだけを内部的に使用する。
+        targetOrg = internalTargetOrg ?? getDefaultTargetOrg({ repoRoot, runSfCommand });
+
+        // 実投入前に、確定した1組織の表示情報と種別を確認する。
+        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg });
 
         // Salesforce CLIの認証情報から必要な接続先情報だけを表示する。
         printTargetOrgInfo(orgInfo, writeLine);
@@ -141,7 +145,6 @@ async function run({
         plan,
         repoRoot
     });
-    const targetOrg = args.targetOrg || '<target-org>';
     let temporaryDirectory = null;
 
     try {

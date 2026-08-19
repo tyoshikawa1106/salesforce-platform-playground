@@ -22,7 +22,9 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## 事前確認
 
-実投入では、確認済みの alias を `--target-org <alias>` で明示します。スクリプトはSalesforce CLIの認証済み組織情報から、指定された組織のalias、ユーザー名、URL、種別を表示します。表示された接続組織を`y`または`Y`で承認した場合だけ、安全判定と実投入へ進みます。
+実投入では、現在の default target org だけを対象にします。スクリプトはSalesforce CLIの認証済み組織情報から、default target orgのalias、ユーザー名、URL、種別を表示します。表示された接続組織を`y`または`Y`で承認した場合だけ、安全判定と実投入へ進みます。利用者が別のTarget Orgを引数で指定することはできません。
+
+Scratch Orgセットアップでは、作成処理が確定したaliasを内部的に引き継ぎます。default target orgを変更せず、通常の投入コマンドとも混在させません。
 
 Sandbox、Scratch Org、Developer Editionには投入できます。本番環境へのテストデータ投入は禁止し、接続組織が承認されても実投入前にエラー終了します。対象組織を一意に特定できない場合や、組織種別を判定できない場合も実投入しません。
 
@@ -35,7 +37,7 @@ Sandbox、Scratch Org、Developer Editionには投入できます。本番環境
 dry-runは組織へ接続せず、接続組織の表示と入力確認も行いません。
 
 ```sh
-npm run setup:data:standard:dry-run -- --target-org <alias>
+npm run setup:data:dry-run
 ```
 
 ## 主要標準オブジェクト seed
@@ -49,14 +51,14 @@ execute anonymousのCPU／サイズ制限を避けるため、1つのprimary obj
 件数や固定マスタの扱いは、このセクションの作成対象一覧の後にまとめます。
 
 ```sh
-npm run setup:data:standard:dry-run -- --target-org <alias>
-npm run setup:data:standard -- --target-org <alias>
+npm run setup:data:dry-run
+npm run setup:data
 ```
 
 一部だけ投入する場合は、`import-test-data-plan.json`の`label`を指定します。
 
 ```sh
-npm run setup:data:standard -- --target-org <alias> --only standard-objects-accounts
+npm run setup:data -- --only standard-objects-accounts
 ```
 
 ### ケースメールログ表示用データ
@@ -66,8 +68,8 @@ npm run setup:data:standard -- --target-org <alias> --only standard-objects-acco
 再実行時は、件名が「`[TEST-LWC-BULK]`」で始まる専用データだけを削除し、同数を再作成します。それ以外の既存メールは残します。
 
 ```sh
-npm run setup:data:standard:dry-run -- --target-org <alias> --only case-email-message-list
-npm run setup:data:standard -- --target-org <alias> --only case-email-message-list
+npm run setup:data:dry-run -- --only case-email-message-list
+npm run setup:data -- --only case-email-message-list
 ```
 
 画面では初回に最も古い 50 件を表示します。「次のメールを読み込む」を選択し、50 件ずつ追加されることと、新しいメールが末尾へ追加されて古い順を維持することを確認します。
@@ -79,8 +81,8 @@ npm run setup:data:standard -- --target-org <alias> --only case-email-message-li
 再実行時は、件名が「`[TEST-LWC-RELATED]`」で始まる専用データだけを削除し、同数を再作成します。それ以外の既存ケースは残します。
 
 ```sh
-npm run setup:data:standard:dry-run -- --target-org <alias> --only case-related-case-list
-npm run setup:data:standard -- --target-org <alias> --only case-related-case-list
+npm run setup:data:dry-run -- --only case-related-case-list
+npm run setup:data -- --only case-related-case-list
 ```
 
 画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで先頭表示され、その後へ別Caseが直近順で4件表示されることを確認します。5件目の別Caseは最大5件の表示制限により表示されません。
