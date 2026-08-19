@@ -146,7 +146,7 @@ for (const [type, label] of [
     });
 }
 
-test('Sandboxでは環境別の追加確認を表示しない', async () => {
+test('Sandboxでは環境別の追加確認なしでdry-runを実行する', async () => {
     const commandArgs = [];
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
@@ -160,16 +160,17 @@ test('Sandboxでは環境別の追加確認を表示しない', async () => {
     });
 
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 0);
+    assert.equal(commandArgs.length, 1);
+    assert.equal(commandArgs[0].at(-1), '--dry-run');
     assert.deepEqual(prompt.getQuestions(), [
         'この接続組織で続行しますか？ [y/N]: ',
-        'この組織のメタデータ削除をdry-runしますか？ [y/N]: '
+        'dry-runが成功しました。実際にメタデータを削除しますか？ [y/N]: '
     ]);
 });
 
 test('dry-runが失敗した場合は実削除を実行しない', async () => {
     const commandArgs = [];
-    const prompt = createPrompt(['y', 'y']);
+    const prompt = createPrompt(['y']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
@@ -188,7 +189,7 @@ test('dry-runが失敗した場合は実削除を実行しない', async () => {
 
 test('dry-run成功後に削除が承認されない場合は実削除しない', async () => {
     const commandArgs = [];
-    const prompt = createPrompt(['y', 'y', 'n']);
+    const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
@@ -207,7 +208,7 @@ test('dry-run成功後に削除が承認されない場合は実削除しない'
 
 test('本番環境の全確認が承認された場合だけ同じ対象へ実削除する', async () => {
     const commandArgs = [];
-    const prompt = createPrompt(['y', 'y', 'y', 'y']);
+    const prompt = createPrompt(['y', 'y', 'y']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,

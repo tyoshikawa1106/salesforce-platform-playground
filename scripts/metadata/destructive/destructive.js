@@ -39,7 +39,7 @@ async function main({
     // 実行者が接続先を確認できるよう、必要な組織情報だけを表示する。
     printTargetOrgInfo(orgInfo);
 
-    // 接続先、組織種別、dry-run、実削除の確認入力を受け付ける。
+    // 接続先、組織種別、実削除の確認入力を受け付ける。
     const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
 
     try {
@@ -61,15 +61,6 @@ async function main({
                 console.log('メタデータ削除を中止しました。');
                 return 0;
             }
-        }
-
-        // dry-runを開始するか確認する。
-        const dryRunAnswer = await prompt.question('この組織のメタデータ削除をdry-runしますか？ [y/N]: ');
-
-        // yまたはY以外の場合はdry-runを中止する。
-        if (!isApproved(dryRunAnswer)) {
-            console.log('メタデータ削除のdry-runを中止しました。');
-            return 0;
         }
 
         // 同じmanifestを通常manifestとdestructive changesの両方に指定する。

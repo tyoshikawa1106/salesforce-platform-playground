@@ -39,7 +39,7 @@ sf config get target-org
 npm run sf:destructive
 ```
 
-すべての確認では`y`または`Y`だけを承認として扱います。接続組織、環境別確認、dry-run、実削除のいずれかが承認されない場合は、未実行の後続処理へ進みません。SandboxとScratch Orgでは環境別確認を省略します。
+すべての確認では`y`または`Y`だけを承認として扱います。接続組織または環境別確認が承認されない場合はdry-runへ進まず、実削除が承認されない場合はdry-runまでで終了します。SandboxとScratch Orgでは環境別確認を省略します。
 
 ## destructive changes 実行手順
 
