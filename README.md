@@ -82,6 +82,20 @@ npm run sf:retrieve
 npm run sf:destructive
 ```
 
+### 組織テストの実行
+
+default target orgの情報を確認し、`y`または`Y`を入力した場合だけ、インストール済みパッケージを除く組織テストを実行します。本番環境では、テスト開始前に追加確認を行います。
+
+```sh
+npm run sf:test:apex
+```
+
+Flowテストは非同期で開始し、Salesforce CLIがテストランIDを表示します。
+
+```sh
+npm run sf:test:flow
+```
+
 ### 品質確認
 
 ```sh

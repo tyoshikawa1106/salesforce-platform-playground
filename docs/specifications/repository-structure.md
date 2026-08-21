@@ -210,6 +210,10 @@
 | `scripts/metadata/destructive/destructive.js`            | ファイル   | destructive changesのdry-runと実削除を実行する。                            |
 | `scripts/metadata/retrieve/`                             | フォルダ   | metadata retrieve scriptを格納する。                                        |
 | `scripts/metadata/retrieve/retrieve.js`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
+| `scripts/org-tests/`                                     | フォルダ   | 接続組織のApexテストとFlowテストを実行するscriptを格納する。                |
+| `scripts/org-tests/run-apex-tests.js`                    | ファイル   | 接続先を確認してローカルApexテストを全件実行する。                          |
+| `scripts/org-tests/run-flow-tests.js`                    | ファイル   | 接続先を確認してローカルFlowテストを全件開始する。                          |
+| `scripts/org-tests/test/`                                | フォルダ   | 組織テスト実行scriptのNode.js testを格納する。                              |
 | `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
 | `scripts/scratch-org/setup.js`                           | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
 | `scripts/scratch-org/delete.js`                          | ファイル   | `--alias`で指定されたScratch Orgを削除する。                                |

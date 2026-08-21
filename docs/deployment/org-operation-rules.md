@@ -141,6 +141,28 @@ sf apex run test \
 
 関連するController、Service、Selector、Wrapperなどのクラス別coverageも確認します。
 
+組織内のローカルApexテストを全件実行する場合は、次のスクリプトを使用します。
+
+```sh
+npm run sf:test:apex
+```
+
+スクリプトはdefault target orgのalias、ユーザー名、URL、種別を表示し、`y`または`Y`で承認された場合だけ、`RunLocalTests`をカバレッジ付きで実行します。本番環境では、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけ実行します。インストール済み管理パッケージとnamespaced unlocked packageのApexテストは対象外です。Apexテストの直列実行は、対象組織の`Settings:Apex`で`enableDisableParallelApexTesting`を`true`にして管理します。
+
+「Disable Parallel Apex Testing」は組織全体のApexテスト実行に影響し、テスト時間が長くなる可能性があります。元へ戻す場合は`enableDisableParallelApexTesting`を`false`へ戻し、`Settings:Apex`だけを対象組織へ反映します。
+
+## Flow test
+
+組織内のローカルFlowテストを全件開始する場合は、次のスクリプトを使用します。
+
+```sh
+npm run sf:test:flow
+```
+
+スクリプトはdefault target orgの情報を表示し、`y`または`Y`で承認された場合だけ、`sf flow run test --test-level RunLocalTests`を実行します。本番環境では、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけ実行します。インストール済みの管理パッケージとunlocked packageのFlowテストは対象外です。全件実行は非同期で開始されるため、完了結果が必要な場合は表示されたテストランIDを使用して`sf flow get test --test-run-id <id> --target-org <alias>`を実行します。
+
+「Disable Parallel Apex Testing」がFlowテストを直列化する前提にはしません。Flowテストの直列実行が必要な場合は、対象Flowを1件に限定した別の実行scopeとして扱います。
+
 ## 報告ルール
 
 Salesforce組織操作後は次を報告します。
