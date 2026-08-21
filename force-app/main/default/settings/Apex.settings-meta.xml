@@ -11,7 +11,7 @@
     <enableBlockPackagedApexExecAnon>false</enableBlockPackagedApexExecAnon>
     <enableCompileOnDeploy>false</enableCompileOnDeploy>
     <enableDebugLogsDuringDeployment>false</enableDebugLogsDuringDeployment>
-    <enableDisableParallelApexTesting>false</enableDisableParallelApexTesting>
+    <enableDisableParallelApexTesting>true</enableDisableParallelApexTesting>
     <enableGaplessTestAutoNum>true</enableGaplessTestAutoNum>
     <enableMngdCtrlActionAccessPref>false</enableMngdCtrlActionAccessPref>
     <enableNonCertifiedApexMdCrud>false</enableNonCertifiedApexMdCrud>
