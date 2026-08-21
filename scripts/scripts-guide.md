@@ -7,7 +7,7 @@
 - `scripts/docs/`: Git管理対象と未追跡・非除外のMarkdownを自動検出し、ローカルリンク、見出し、ファイル名、索引到達性を確認するNodeスクリプト。
 - `scripts/test/`: macOSとWindowsで共有する外部CLI実行処理のNode.js test。
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。標準オブジェクトseedは共通preambleとobject固有処理を実行時に合成する。
-- `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを実行するNodeスクリプト。
+- `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを開始し、進捗と結果を取得するNodeスクリプト。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
 - `scripts/metadata/destructive/`: Salesforce組織からメタデータを削除するNodeスクリプト。
 - `scripts/metadata/retrieve/`: Salesforce CLIに設定されているDefault Target Orgから、スクリプトに定義した順序で分割manifestをretrieveするNodeスクリプト。

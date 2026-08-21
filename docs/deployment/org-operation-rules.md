@@ -147,7 +147,7 @@ sf apex run test \
 npm run sf:test:apex
 ```
 
-スクリプトはdefault target orgのalias、ユーザー名、URL、種別を表示し、`y`または`Y`で承認された場合だけ、`RunLocalTests`をカバレッジ付きで実行します。本番環境では、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけ実行します。インストール済み管理パッケージとnamespaced unlocked packageのApexテストは対象外です。Apexテストの直列実行は、対象組織の`Settings:Apex`で`enableDisableParallelApexTesting`を`true`にして管理します。
+スクリプトはdefault target orgのalias、ユーザー名、URL、種別を表示し、`y`または`Y`で承認された場合だけ、`RunLocalTests`をカバレッジ付きで開始します。本番環境では、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけ開始します。インストール済み管理パッケージとnamespaced unlocked packageのApexテストは対象外です。全件実行は非同期で開始し、テストランIDとクラス単位の完了件数を表示します。全件完了後は`sf apex get test`相当の処理で結果とカバレッジを自動取得します。Apexテストの直列実行は、対象組織の`Settings:Apex`で`enableDisableParallelApexTesting`を`true`にして管理します。
 
 「Disable Parallel Apex Testing」は組織全体のApexテスト実行に影響し、テスト時間が長くなる可能性があります。元へ戻す場合は`enableDisableParallelApexTesting`を`false`へ戻し、`Settings:Apex`だけを対象組織へ反映します。
 
@@ -159,7 +159,9 @@ npm run sf:test:apex
 npm run sf:test:flow
 ```
 
-スクリプトはdefault target orgの情報を表示し、`y`または`Y`で承認された場合だけ、`sf flow run test --test-level RunLocalTests`を実行します。本番環境では、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけ実行します。インストール済みの管理パッケージとunlocked packageのFlowテストは対象外です。全件実行は非同期で開始されるため、完了結果が必要な場合は表示されたテストランIDを使用して`sf flow get test --test-run-id <id> --target-org <alias>`を実行します。
+スクリプトはdefault target orgの情報を表示し、`y`または`Y`で承認された場合だけ、`sf flow run test --test-level RunLocalTests`を実行します。本番環境では、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけ実行します。インストール済みの管理パッケージとunlocked packageのFlowテストは対象外です。全件実行は非同期で開始し、テストランIDと完了件数を表示します。全件完了後は`sf flow get test`相当の処理で結果とカバレッジを自動取得します。
+
+進捗監視中に`Ctrl+C`を入力した場合はローカルの監視だけを終了し、組織上のテストは継続します。スクリプトが表示する`sf apex get test`または`sf flow get test`コマンドで、後から結果を取得できます。
 
 「Disable Parallel Apex Testing」がFlowテストを直列化する前提にはしません。Flowテストの直列実行が必要な場合は、対象Flowを1件に限定した別の実行scopeとして扱います。
 

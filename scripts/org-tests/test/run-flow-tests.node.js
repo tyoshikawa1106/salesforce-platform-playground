@@ -43,52 +43,39 @@ test('Default Target Orgを確認できない場合は入力確認を開始し�
 });
 
 test('接続組織が承認されない場合はFlowテストを実行しない', async () => {
-    const commandArgs = [];
+    const testRuns = [];
     const prompt = createPrompt(['n']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push(options);
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand()
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, []);
+    assert.deepEqual(testRuns, []);
     assert.deepEqual(prompt.getQuestions(), ['この接続組織でFlowテストを実行しますか？ [y/N]: ']);
     assert.equal(prompt.isClosed(), true);
 });
 
-test('接続組織が承認された場合だけRunLocalTestsを実行する', async () => {
-    const commandArgs = [];
+test('接続組織が承認された場合だけRunLocalTestsを非同期で開始する', async () => {
+    const testRuns = [];
     const prompt = createPrompt(['y']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand()
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, [
-        [
-            'flow',
-            'run',
-            'test',
-            '--test-level',
-            'RunLocalTests',
-            '--code-coverage',
-            '--result-format',
-            'human',
-            '--target-org',
-            'test-org'
-        ]
-    ]);
+    assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType: 'flow' }]);
     assert.equal(prompt.isClosed(), true);
 });
 
@@ -97,7 +84,7 @@ test('Salesforce CLIが失敗した場合はFlowテストの終了コードを�
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand() {
+        runTestCommand() {
             return 1;
         },
         runSfWithOutputCommand: createOrgInfoCommand()
@@ -108,20 +95,20 @@ test('Salesforce CLIが失敗した場合はFlowテストの終了コードを�
 });
 
 test('本番環境の追加確認が承認されない場合はFlowテストを実行しない', async () => {
-    const commandArgs = [];
+    const testRuns = [];
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push(options);
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand('production')
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, []);
+    assert.deepEqual(testRuns, []);
     assert.deepEqual(prompt.getQuestions(), [
         'この接続組織でFlowテストを実行しますか？ [y/N]: ',
         '本番環境です。Flowテストを実行してよろしいですか？ [y/N]: '
@@ -129,21 +116,20 @@ test('本番環境の追加確認が承認されない場合はFlowテストを�
     assert.equal(prompt.isClosed(), true);
 });
 
-test('本番環境の全確認が承認された場合だけRunLocalTestsを実行する', async () => {
-    const commandArgs = [];
+test('本番環境の全確認が承認された場合だけRunLocalTestsを非同期で開始する', async () => {
+    const testRuns = [];
     const prompt = createPrompt(['y', 'Y']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand('production')
     });
 
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 1);
-    assert.equal(commandArgs[0][0], 'flow');
+    assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType: 'flow' }]);
     assert.equal(prompt.isClosed(), true);
 });

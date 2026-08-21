@@ -43,72 +43,57 @@ test('Default Target Orgを確認できない場合は入力確認を開始し�
 });
 
 test('接続組織が承認されない場合はApexテストを実行しない', async () => {
-    const commandArgs = [];
+    const testRuns = [];
     const prompt = createPrompt(['n']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push(options);
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand()
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, []);
+    assert.deepEqual(testRuns, []);
     assert.deepEqual(prompt.getQuestions(), ['この接続組織でApexテストを実行しますか？ [y/N]: ']);
     assert.equal(prompt.isClosed(), true);
 });
 
-test('接続組織が承認された場合だけRunLocalTestsを実行する', async () => {
-    const commandArgs = [];
+test('接続組織が承認された場合だけRunLocalTestsを非同期で開始する', async () => {
+    const testRuns = [];
     const prompt = createPrompt(['y']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand()
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, [
-        [
-            'apex',
-            'run',
-            'test',
-            '--test-level',
-            'RunLocalTests',
-            '--code-coverage',
-            '--result-format',
-            'human',
-            '--target-org',
-            'test-org',
-            '--wait',
-            '120'
-        ]
-    ]);
+    assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType: 'apex' }]);
     assert.equal(prompt.isClosed(), true);
 });
 
 test('本番環境の追加確認が承認されない場合はApexテストを実行しない', async () => {
-    const commandArgs = [];
+    const testRuns = [];
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push(options);
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand('production')
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, []);
+    assert.deepEqual(testRuns, []);
     assert.deepEqual(prompt.getQuestions(), [
         'この接続組織でApexテストを実行しますか？ [y/N]: ',
         '本番環境です。Apexテストを実行してよろしいですか？ [y/N]: '
@@ -116,21 +101,20 @@ test('本番環境の追加確認が承認されない場合はApexテストを�
     assert.equal(prompt.isClosed(), true);
 });
 
-test('本番環境の全確認が承認された場合だけRunLocalTestsを実行する', async () => {
-    const commandArgs = [];
+test('本番環境の全確認が承認された場合だけRunLocalTestsを非同期で開始する', async () => {
+    const testRuns = [];
     const prompt = createPrompt(['y', 'Y']);
     const status = await main({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
+        runTestCommand(options) {
+            testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
             return 0;
         },
         runSfWithOutputCommand: createOrgInfoCommand('production')
     });
 
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 1);
-    assert.equal(commandArgs[0][0], 'apex');
+    assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType: 'apex' }]);
     assert.equal(prompt.isClosed(), true);
 });

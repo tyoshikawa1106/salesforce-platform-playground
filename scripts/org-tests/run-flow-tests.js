@@ -4,6 +4,7 @@
 const path = require('node:path');
 const { createInterface } = require('node:readline/promises');
 const { runSf, runSfWithOutput } = require('../internal/run-command');
+const { runAndMonitorTests } = require('./internal/test-runner');
 const {
     getDefaultTargetOrg,
     getTargetOrgInfo,
@@ -20,7 +21,8 @@ async function main({
     argv = process.argv.slice(2),
     createPrompt,
     runSfCommand = runSf,
-    runSfWithOutputCommand = runSfWithOutput
+    runSfWithOutputCommand = runSfWithOutput,
+    runTestCommand = runAndMonitorTests
 } = {}) {
     // このスクリプトは引数を受け付けない。
     if (argv.length !== 0) {
@@ -63,22 +65,14 @@ async function main({
         prompt.close();
     }
 
-    // 管理パッケージを除くローカルFlowテストをカバレッジ付きで開始する。
-    return runSfCommand(
-        [
-            'flow',
-            'run',
-            'test',
-            '--test-level',
-            'RunLocalTests',
-            '--code-coverage',
-            '--result-format',
-            'human',
-            '--target-org',
-            targetOrg
-        ],
-        repoRoot
-    );
+    // ローカルFlowテストを開始し、完了まで進捗と結果を表示する。
+    return runTestCommand({
+        repoRoot,
+        runSfCommand,
+        runSfWithOutputCommand,
+        targetOrg,
+        testType: 'flow'
+    });
 }
 
 // Flowテストを開始 (テストスクリプトからの実行の場合はSkip)
