@@ -13,7 +13,7 @@
 - `scripts/metadata/retrieve/`: Salesforce CLIに設定されているDefault Target Orgから、スクリプトに定義した順序で分割manifestをretrieveするNodeスクリプト。
 - `scripts/scratch-org/`: Scratch Orgの準備・削除を行う実行スクリプト。読み込み専用処理は`internal/`、setupから実行する各手順は`steps/`に分ける。
 
-各領域の直下には、npm scriptや利用者が直接実行する入口を置きます。ほかのスクリプトから読み込むだけの処理は`internal/`、親スクリプトから子プロセスとして実行する処理は`steps/`、入口スクリプト自体のNode.js testは`test/`に置きます。
+各領域の直下には、npm scriptや利用者が直接実行する入口を置きます。複数のトップレベル領域から読み込む共通処理は`scripts/common/`、特定領域内だけで読み込む処理はその領域の`internal/`、親スクリプトから子プロセスとして実行する処理は`steps/`、Node.js testは`test/`に置きます。
 
 生成された export ファイルや bulk 結果ファイルは `scripts/` に置きません。Salesforce CLI のローカル export 出力は `export-out/`、bulk results の出力は `logs/data-bulk-results/` に書き出します。
 
