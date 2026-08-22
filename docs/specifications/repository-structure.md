@@ -194,6 +194,8 @@
 | `scripts/apex/test-data/seed-standard-preamble.apexpart` | ファイル   | 標準Object seedに実行時合成する共通変数と関数の断片を定義する。             |
 | `scripts/apex/test-data/seed-standard-*.apexpart`        | ファイル群 | 標準Object seedに実行時合成するobject固有処理の断片を定義する。             |
 | `scripts/apex/test-data/*.apex`                          | ファイル群 | 標準Objectと対象機能の合成テストデータを操作する。                          |
+| `scripts/ci/`                                            | フォルダ   | 定期品質チェックの障害検知Issue管理scriptとNode.js testを格納する。         |
+| `scripts/ci/report-quality-check.js`                     | ファイル   | チェック失敗時のIssue作成・更新と復旧時のクローズを実行する。               |
 | `scripts/docs/`                                          | フォルダ   | Markdownの検証scriptを格納する。                                            |
 | `scripts/docs/check-docs.js`                             | ファイル   | Markdown構造、索引、内部リンクを検証する。                                  |
 | `scripts/docs/internal/`                                 | フォルダ   | docs検証scriptから読み込む内部処理を格納する。                              |

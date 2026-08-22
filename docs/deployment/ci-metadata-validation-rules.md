@@ -28,7 +28,7 @@ Ubuntu上のnpmチェックは次を実行します。
 
 Code AnalyzerのためにSalesforce CLIとCode Analyzer pluginを導入しますが、Salesforce組織へのログインやmetadata validateには使いません。
 
-定期品質チェックが失敗した場合は、チェック名ごとに障害検知Issueを作成します。同じチェックの未解決Issueがある場合は新規作成せず、最新の実行結果をコメントします。後続の実行で成功した場合は、復旧コメントを追加してIssueをクローズします。
+定期品質チェックが失敗した場合は、`scripts/ci/report-quality-check.js`がチェック名ごとに障害検知Issueを作成します。同じチェックの未解決Issueがある場合は新規作成せず、最新の実行結果をコメントします。後続の実行で成功した場合は、復旧コメントを追加してIssueをクローズします。
 
 ## push前のSalesforce検証
 
@@ -52,6 +52,7 @@ sf project deploy validate \
 - SLDS Linter、Code Analyzer、スクリプトテスト、LWC Jestが維持されていること。
 - 定期実行と手動実行の対象ジョブが意図どおり分離されていること。
 - 障害検知Issueがチェック名ごとに重複せず、復旧時にクローズされること。
+- 障害検知Issueの作成、更新、復旧、対象外結果をNode.js testで確認できること。
 - Salesforce組織での限定scope検証がPRの確認結果へ記録されていること。
 
 ## 報告ルール
