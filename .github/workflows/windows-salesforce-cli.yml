@@ -7,7 +7,7 @@ on:
         paths:
             - '.github/workflows/windows-salesforce-cli.yml'
             - 'scripts/internal/run-command.js'
-            - 'scripts/test/run-command.node.js'
+            - 'scripts/internal/test/run-command.node.js'
     workflow_dispatch:
 
 permissions:
@@ -35,6 +35,6 @@ jobs:
               run: npm install --global @salesforce/cli
 
             - name: Run Salesforce CLI integration test
-              run: node --test scripts/test/run-command.node.js
+              run: node --test scripts/internal/test/run-command.node.js
               env:
                   RUN_SF_INTEGRATION_TEST: 'true'

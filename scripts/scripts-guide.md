@@ -2,10 +2,9 @@
 
 `scripts/` には、リポジトリで管理する補助スクリプトとクエリファイルを置きます。
 
-- `scripts/internal/`: 複数の実行スクリプトから読み込む共通処理。
+- `scripts/internal/`: 複数の実行スクリプトから読み込む共通処理。Node.js testは`test/`に格納する。
 - `scripts/setup/`: 初期 org セットアップ用のNode実行入口と内部処理。実行計画は`plans/`に格納する。
 - `scripts/docs/`: Git管理対象と未追跡・非除外のMarkdownを自動検出し、ローカルリンク、見出し、ファイル名、索引到達性を確認するNodeスクリプト。
-- `scripts/test/`: macOSとWindowsで共有する外部CLI実行処理のNode.js test。
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。標準オブジェクトseedは共通preambleとobject固有処理を実行時に合成する。
 - `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを開始し、進捗と結果を取得するNodeスクリプト。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
