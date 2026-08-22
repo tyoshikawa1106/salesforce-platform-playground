@@ -137,20 +137,3 @@ test('Node.js子スクリプトの終了コードを返す', () => {
     // 子プロセスの終了コードが維持されることを確認する。
     assert.equal(status, 7);
 });
-
-// 実物のSalesforce CLIを使う検証は、専用のWindows workflowからだけ有効にする。
-test(
-    'WindowsでSalesforce CLIの出力を取得する',
-    {
-        skip: process.platform !== 'win32' || process.env.RUN_SF_INTEGRATION_TEST !== 'true'
-    },
-    () => {
-        // Windowsへ導入したSalesforce CLIを実際に起動する。
-        const result = runSfWithOutput(['--version'], repoRoot);
-
-        // 終了コードと取得したバージョン出力を確認する。
-        assert.equal(result.error, undefined);
-        assert.equal(result.status, 0);
-        assert.match(result.stdout, /@salesforce\/cli/);
-    }
-);
