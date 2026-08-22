@@ -199,7 +199,8 @@
 | `scripts/docs/`                                          | フォルダ   | Markdownの検証scriptを格納する。                                            |
 | `scripts/docs/check-docs.js`                             | ファイル   | Markdown構造、索引、内部リンクを検証する。                                  |
 | `scripts/docs/internal/`                                 | フォルダ   | docs検証scriptから読み込む内部処理を格納する。                              |
-| `scripts/docs/internal/validate-docs.js`                 | ファイル   | Markdown解析と文書検証の副作用を持たない処理を提供する。                    |
+| `scripts/docs/internal/validate-markdown.js`             | ファイル   | 単一Markdownの構造、ファイル名、危険なコマンド例を検証する。                |
+| `scripts/docs/internal/validate-docs.js`                 | ファイル   | 文書間リンクとdocs索引からの到達性を検証する。                              |
 | `scripts/docs/internal/markdown-files.js`                | ファイル   | 検証対象のMarkdownファイルを列挙する。                                      |
 | `scripts/docs/test/`                                     | フォルダ   | docs検証scriptのNode.js testを格納する。                                    |
 | `scripts/docs/test/*.node.js`                            | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
