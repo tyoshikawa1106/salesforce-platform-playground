@@ -265,7 +265,7 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
 
         // 説明文でコマンド名に言及しただけの場合は実行例として扱わない。
         if (command === null) {
-            // コマンドルールを適用せず次の文書行へ進む。
+            // 説明文中のコマンド名を危険な実行例として誤検出しない。
             return;
         }
 
