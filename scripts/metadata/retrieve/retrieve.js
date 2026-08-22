@@ -3,14 +3,14 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { createApprovalPrompt, isApproved } = require('../../internal/approval');
-const { runSf, runSfWithOutput } = require('../../internal/run-command');
-const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo } = require('../../internal/target-org');
+const { createApprovalPrompt, isApproved } = require('../../common/approval');
+const { runSf, runSfWithOutput } = require('../../common/run-command');
+const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo } = require('../../common/target-org');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
 
-// Profileを最初、Translationsを最後に取得する。
+// 依存関係を保つためProfileを最初、Translationsを最後に取得する。
 const manifests = [
     'manifest/retrieve-profile.xml',
     'manifest/retrieve-code.xml',
@@ -50,8 +50,11 @@ async function main({
 } = {}) {
     // このスクリプトは引数を受け付けない。
     if (argv.length !== 0) {
+        // 引数指定が安全契約外であることを表示する。
         console.error('エラー: このスクリプトは引数を受け付けません。');
+        // 正しいnpm scriptを利用者へ案内する。
         console.error('実行コマンド: npm run sf:retrieve');
+        // Salesforce CLIを呼び出さず失敗終了を返す。
         return 1;
     }
 
@@ -59,34 +62,45 @@ async function main({
     for (const manifest of manifests) {
         // manifestがなければ、組織へ接続せず終了する。
         if (!fs.existsSync(path.join(repoRoot, manifest))) {
+            // 不足しているmanifestを利用者へ表示する。
             console.error(`エラー: retrieve対象のmanifestが見つかりません: ${manifest}`);
+            // retrieve開始前の構成エラーとして1を返す。
             return 1;
         }
     }
 
     // retrieve対象のDefault Target Orgを確定し、認証済み組織情報を表示する。
     const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
+    // aliasまたはusernameに一致する1組織の表示情報と種別を確定する。
     const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfWithOutputCommand, targetOrg });
+    // 利用者が接続先を確認できる最小項目を表示する。
     printTargetOrgInfo(orgInfo);
 
     // retrieveを開始するかターミナルで確認する。
     const prompt = createApprovalPrompt(createPrompt);
+    // prompt終了後にも承認結果を参照できるよう回答を保持する。
     let answer;
 
+    // 入力成功または例外のどちらでもpromptを閉じる。
     try {
+        // 表示済みの組織から取得してよいか明示回答を受け取る。
         answer = await prompt.question('この組織からメタデータを取得しますか？ [y/N]: ');
     } finally {
+        // readlineがプロセス終了を妨げないよう入力を閉じる。
         prompt.close();
     }
 
     // yまたはY以外の場合はretrieveを中止する。
     if (!isApproved(answer)) {
+        // 承認されなかったことを操作結果として明示する。
         console.log('メタデータの取得を中止しました。');
+        // 正常な利用者中止として0を返す。
         return 0;
     }
 
     // manifestの定義順にメタデータを取得する。
     for (const [index, manifest] of manifests.entries()) {
+        // 失敗時に停止位置を特定できるよう、処理前に対象manifestを明示する。
         console.log(`[${index + 1}/${manifests.length}] ${path.basename(manifest)} を取得します。`);
 
         // 失敗した場合は後続のretrieveを実行しない。
@@ -96,25 +110,29 @@ async function main({
                 repoRoot
             ) !== 0
         ) {
+            // 最初のretrieve失敗を呼び出し元へ伝える。
             return 1;
         }
     }
 
-    // 全manifestのretrieve完了を表示する。
+    // 途中で失敗せず全manifestを処理できたことを明示する。
     console.log('すべてのメタデータ取得が完了しました。');
+    // 全取得成功を呼び出し元へ返す。
     return 0;
 }
 
 // retrieveを開始 (テストスクリプトからの実行の場合はSkip)
 if (require.main === module) {
+    // Promiseの完了を待ち、mainが決定した成否をプロセスへ反映する。
     main()
         .then((status) => {
-            // mainの結果を終了コードに設定する。
+            // npmが中止・成功・失敗を区別できるようmainの結果を反映する。
             process.exitCode = status;
         })
         .catch((error) => {
             // 確認入力を処理できない場合も、原因だけを簡潔に表示する。
             console.error(`エラー: retrieveを開始できませんでした: ${error.message}`);
+            // npmへ実行失敗を通知する。
             process.exitCode = 1;
         });
 }

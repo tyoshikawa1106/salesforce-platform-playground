@@ -5,8 +5,10 @@ const path = require('node:path');
 
 // Scratch Org関連スクリプトで共有するリポジトリルートと設定を読み込む。
 const repoRoot = path.resolve(__dirname, '../../..');
+// aliasやmanifestなどScratch Org再現用の設定を1か所から読み込む。
 const scratchOrgConfig = require('../scratch-org.json');
 
+// 各stepが同じルートと設定を使えるよう共通contextとして公開する。
 module.exports = {
     repoRoot,
     scratchOrg: scratchOrgConfig
