@@ -141,7 +141,7 @@ IssueとPRには、作成時に担当者を設定します。
 ### ブランチ保護
 
 - `main`はPull Request経由の変更を前提にする。
-- 必須ステータスチェックは`npm checks`とし、最新の`main`を基準に実行する。
+- 必須ステータスチェックは設定せず、push前のローカル確認と定期品質チェックを使い分ける。
 - リポジトリ管理者にもブランチ保護を適用する。
 - マージ前に未解決のレビュー指摘がないことを必須にする。
 - CODEOWNERSによる必須レビューは現在の要件にしない。
@@ -151,9 +151,11 @@ IssueとPRには、作成時に担当者を設定します。
 ### GitHub Actions
 
 - GitHub ActionsはCI、静的解析、シークレットスキャンなどの品質確認に使う。
-- 担当者、ラベル、Milestone、Projectなどの運用メタデータはGitHub Actionsで自動化しない。
+- 担当者、ラベル、Milestone、Projectなどの運用メタデータはGitHub Actionsで自動化しない。ただし、定期品質チェックが作成する障害検知Issueは、実行者への割り当てと既存ラベルの付与だけを自動化する。
 - CIワークフローは`permissions: contents: read`を基本にし、必要な権限だけを明示する。
-- 現行CIは`npm ci`、`npm audit --audit-level=high`、Prettier、ドキュメント検証、ESLint、SLDS Linter、Code Analyzer、LWC単体テストを実行する。
+- 定期品質チェックは、Ubuntu上のnpmチェックを毎日2時30分、Windows上のスクリプトテストを毎週日曜3時30分にJSTで実行する。手動実行では両方を実行する。
+- Ubuntu上のnpmチェックは`npm ci`、`npm audit --audit-level=high`、Prettier、ドキュメント検証、ESLint、SLDS Linter、Code Analyzer、スクリプトテスト、LWC単体テストを実行する。
+- 定期品質チェックで失敗した場合は、チェック名ごとのIssueを作成または更新する。後続の実行で成功した場合は、復旧コメントを追加してIssueをクローズする。
 - CIの`npm audit`は`dependencies`と`devDependencies`を対象にし、`high` / `critical`の既知脆弱性が新たに混入することを防ぐ。
 - `high` / `critical`を一時的に許容する必要がある場合は、対象パッケージ、影響、許容理由、見直し期限、追跡Issueを記録し、監査対象や失敗条件を理由なく弱めない。
 - CIではSalesforce組織へログインせず、Salesforce JWT認証用シークレットも管理しない。metadataのvalidateまたはdry-runは、push前に対象orgと限定scopeを確認してローカルで実行する。詳細は [CI メタデータ検証ルール](../deployment/ci-metadata-validation-rules.md) に従う。
@@ -178,6 +180,7 @@ IssueとPRは、このリポジトリ用のProjectに紐づけます。
 - Projectは`Salesforce Platform Playground`を使う。
 - 新規Issue / PRのProjectは手動で設定する。
 - Project追加は`gh project item-add ...`などで明示的に実行する。
+- 定期品質チェックが自動作成する障害検知IssueはProject追加の対象外とし、対応を開始するときに手動で追加する。
 - Project番号や所有者を固定値にせず、Project名から対象を解決する。
 - Project紐づけの確認は対象Issue / PRの項目だけを見る。
 - Project設定用の個人アクセストークンをGitHub Actionsのシークレットに保存しない。

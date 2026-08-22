@@ -479,17 +479,18 @@ private class MyServiceTest {
 
 ## push 前チェック
 
-Apex を追加・更新したら、push 前に Code Analyzer、関連 Apex テストと coverage、CI と同等のローカルチェック、対象 org に応じた最終 validate または dry-run を確認します。接続済み org を使うコマンドは、対象 org alias を明示します。
+Apex を追加・更新したら、push 前に Code Analyzer、関連 Apex テストと coverage、定期品質チェックと同等のローカルチェック、対象 org に応じた最終 validate または dry-run を確認します。接続済み org を使うコマンドは、対象 org alias を明示します。
 
-### CI と同等のローカルチェック
+### 定期品質チェックと同等のローカルチェック
 
-現行 CI の `npm checks` で実行される品質確認は、push 前にローカルでも実行します。変更内容に関係なく CI で実行される項目を省略せず、失敗を解消してから push します。
+定期品質チェックで実行される品質確認は、push 前にローカルでも実行します。変更内容に関係なく項目を省略せず、失敗を解消してからpushします。
 
 ```sh
 npm audit --audit-level=high
 npm run prettier:verify
 npm run docs:check
 npm run lint -- --no-error-on-unmatched-pattern
+npm run lint:slds
 npm run code-analyzer:ci
 npm run test:scripts
 npm run test:unit -- -- --runInBand --passWithNoTests
