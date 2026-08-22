@@ -234,6 +234,7 @@
 | `scripts/setup/import-test-data.js`                      | ファイル   | import planに従って合成テストデータを投入する。                             |
 | `scripts/setup/internal/`                                | フォルダ   | テストデータ投入scriptから読み込む内部処理を格納する。                      |
 | `scripts/setup/internal/import-test-data-core.js`        | ファイル   | import plan、CLI引数、Apex合成の検証可能なcoreを提供する。                  |
+| `scripts/setup/internal/import-test-data-runner.js`      | ファイル   | 準備済みentryのCLI実行、表示、一時ファイルの後始末を提供する。              |
 | `scripts/soql/`                                          | フォルダ   | 調査とテストデータ確認に使用するSOQLを格納する。                            |
 | `scripts/soql/object-queries/`                           | フォルダ   | Object別の調査用SOQLを格納する。                                            |
 | `scripts/soql/object-queries/**/*.soql`                  | ファイル群 | Account、Case、Opportunityの調査queryを提供する。                           |

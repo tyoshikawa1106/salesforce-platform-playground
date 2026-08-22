@@ -3,8 +3,13 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const { run } = require('../import-test-data');
+
+// 組織情報や実行予定をテストログへ出さず、入口処理だけを検証する。
+function runTest(options) {
+    const silentOutput = { write() {} };
+    return run({ stderr: silentOutput, stdout: silentOutput, ...options });
+}
 
 // 確認への回答を順番に返し、最後にcloseされたことを記録する。
 function createPrompt(answers) {
@@ -83,7 +88,7 @@ test('dry-runではSalesforce CLIと入力確認を実行しない', async () =>
     let executionCount = 0;
     let promptCount = 0;
 
-    await run({
+    await runTest({
         argv: ['--dry-run', '--only', 'standard-objects-accounts'],
         createPrompt() {
             promptCount += 1;
@@ -99,7 +104,7 @@ test('dry-runではSalesforce CLIと入力確認を実行しない', async () =>
 
 test('実投入ではTarget OrgのCLI指定を拒否する', async () => {
     await assert.rejects(
-        () => run({ argv: ['--target-org', 'test-org', '--only', 'standard-objects-accounts'] }),
+        () => runTest({ argv: ['--target-org', 'test-org', '--only', 'standard-objects-accounts'] }),
         /未対応の引数が指定されました: --target-org/
     );
 });
@@ -109,7 +114,7 @@ test('Default Target Orgが未設定の場合は入力確認を開始しない',
 
     await assert.rejects(
         () =>
-            run({
+            runTest({
                 argv: ['--only', 'standard-objects-accounts'],
                 createPrompt() {
                     promptCount += 1;
@@ -135,7 +140,7 @@ test('接続組織が承認されない場合は実投入しない', async () =>
     let apexExecutionCount = 0;
     const prompt = createPrompt(['n']);
 
-    await run({
+    await runTest({
         argv: ['--only', 'standard-objects-accounts'],
         createPrompt: () => prompt.prompt,
         runSfCommand: createRunSfCommand(() => {
@@ -153,7 +158,7 @@ test('本番環境は接続組織が承認されても実投入しない', async
 
     await assert.rejects(
         () =>
-            run({
+            runTest({
                 argv: ['--only', 'standard-objects-accounts'],
                 createPrompt: () => prompt.prompt,
                 runSfCommand: createRunSfCommand(() => {
@@ -172,7 +177,7 @@ for (const type of ['sandbox', 'scratch', 'developer']) {
         let apexExecutionCount = 0;
         const prompt = createPrompt(['y']);
 
-        await run({
+        await runTest({
             argv: ['--only', 'standard-objects-accounts'],
             createPrompt: () => prompt.prompt,
             runSfCommand: createRunSfCommand(() => {
@@ -191,7 +196,7 @@ test('Scratch Orgセットアップでは内部指定されたaliasを使用す�
     let apexArgs;
     const prompt = createPrompt(['y']);
 
-    await run({
+    await runTest({
         argv: ['--only', 'standard-objects-accounts'],
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
@@ -210,62 +215,4 @@ test('Scratch Orgセットアップでは内部指定されたaliasを使用す�
 
     assert.equal(configGetCount, 0);
     assert.equal(apexArgs[apexArgs.indexOf('--target-org') + 1], 'test-org');
-});
-
-test('Salesforce CLI失敗時は一時Apexファイルを削除して終了する', async () => {
-    let generatedFilePath;
-    const prompt = createPrompt(['y']);
-
-    await assert.rejects(
-        () =>
-            run({
-                argv: ['--only', 'standard-objects-accounts'],
-                createPrompt: () => prompt.prompt,
-                runSfCommand: createRunSfCommand((args) => {
-                    generatedFilePath = args[args.indexOf('--file') + 1];
-                    assert.equal(fs.existsSync(generatedFilePath), true);
-                    return { status: 1, stdout: '', stderr: '' };
-                })
-            }),
-        /sfコマンドが失敗しました（standard-objects-accounts）/
-    );
-
-    assert.equal(fs.existsSync(generatedFilePath), false);
-});
-
-test('Salesforce CLIを開始できない場合も一時Apexファイルを削除する', async () => {
-    let generatedFilePath;
-    const prompt = createPrompt(['y']);
-
-    await assert.rejects(
-        () =>
-            run({
-                argv: ['--only', 'standard-objects-accounts'],
-                createPrompt: () => prompt.prompt,
-                runSfCommand: createRunSfCommand((args) => {
-                    generatedFilePath = args[args.indexOf('--file') + 1];
-                    return { error: new Error('起動失敗'), status: null, stdout: '', stderr: '' };
-                })
-            }),
-        /sfコマンドを開始できませんでした（standard-objects-accounts）: 起動失敗/
-    );
-
-    assert.equal(fs.existsSync(generatedFilePath), false);
-});
-
-test('Salesforce CLI成功時も一時Apexファイルを削除する', async () => {
-    let generatedFilePath;
-    const prompt = createPrompt(['y']);
-
-    await run({
-        argv: ['--only', 'standard-objects-accounts'],
-        createPrompt: () => prompt.prompt,
-        runSfCommand: createRunSfCommand((args) => {
-            generatedFilePath = args[args.indexOf('--file') + 1];
-            assert.equal(fs.existsSync(generatedFilePath), true);
-            return { status: 0, stdout: '', stderr: '' };
-        })
-    });
-
-    assert.equal(fs.existsSync(generatedFilePath), false);
 });
