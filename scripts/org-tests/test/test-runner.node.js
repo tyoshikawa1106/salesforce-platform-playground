@@ -3,7 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getResultCommand, getTestRunProgress, runAndMonitorTests } = require('../internal/test-runner');
+const { getResultCommand, runAndMonitorTests } = require('../internal/test-runner');
 const { createSfResult } = require('./test-helper');
 
 // SalesforceのテストランIDとして扱える固定値を使用する。
@@ -104,19 +104,6 @@ for (const testType of ['apex', 'flow']) {
     });
 }
 
-test('進捗レコードがまだない場合はキュー登録中として再取得する', () => {
-    const progress = getTestRunProgress({
-        repoRoot: '/repo',
-        targetOrg: 'test-org',
-        testRunId,
-        runSfWithOutputCommand() {
-            return createSfResult({ records: [] });
-        }
-    });
-
-    assert.equal(progress, null);
-});
-
 test('Ctrl+Cでは監視だけを終了して手動の結果取得コマンドを表示する', async () => {
     const lines = [];
     const resultCalls = [];
@@ -178,4 +165,40 @@ test('開始結果から安全なテストランIDを取得できない場合は
             }),
         /テストランIDを取得できませんでした/
     );
+});
+
+test('進捗取得に失敗した場合は監視を終了し、手動の結果取得方法を表示する', async () => {
+    const errors = [];
+    const lines = [];
+    const progress = createProgressReporter();
+
+    const status = await runAndMonitorTests({
+        testType: 'apex',
+        targetOrg: 'test-org',
+        repoRoot: '/repo',
+        runSfWithOutputCommand(args) {
+            if (args[0] === 'apex') {
+                return createSfResult({ testRunId });
+            }
+
+            return { status: 0, stderr: '', stdout: 'not-json' };
+        },
+        registerInterrupt: () => () => {},
+        progressReporter: progress.reporter,
+        writeError(message) {
+            errors.push(message);
+        },
+        writeLine(message) {
+            lines.push(message);
+        }
+    });
+
+    assert.equal(status, 1);
+    assert.deepEqual(progress.messages, [{ message: '組織テストの進捗監視を終了しました。', type: 'finish' }]);
+    assert.match(errors[0], /組織テスト進捗の取得のJSONを解析できませんでした/);
+    assert.deepEqual(lines, [
+        `テストランID: ${testRunId}`,
+        '組織上のテストは継続している可能性があります。',
+        `結果確認: ${getResultCommand('apex', testRunId, 'test-org')}`
+    ]);
 });
