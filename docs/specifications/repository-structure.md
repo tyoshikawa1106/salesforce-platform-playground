@@ -203,6 +203,7 @@
 | `scripts/docs/test/*.node.js`                            | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
 | `scripts/metadata/`                                      | フォルダ   | Salesforce metadata操作scriptを格納する。                                   |
 | `scripts/internal/`                                      | フォルダ   | 複数領域のscriptから読み込む共通処理を格納する。                            |
+| `scripts/internal/approval.js`                           | ファイル   | ターミナルの確認入力作成と承認判定を共通化する。                            |
 | `scripts/internal/run-command.js`                        | ファイル   | macOSとWindowsから外部CLIを実行する共通処理を提供する。                     |
 | `scripts/internal/test/`                                 | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
 | `scripts/internal/test/*.node.js`                        | ファイル群 | 外部CLIの終了コードと出力の受け渡しを確認する。                             |
@@ -214,6 +215,7 @@
 | `scripts/org-tests/run-apex-tests.js`                    | ファイル   | 接続先を確認してローカルApexテストを全件開始する。                          |
 | `scripts/org-tests/run-flow-tests.js`                    | ファイル   | 接続先を確認してローカルFlowテストを全件開始する。                          |
 | `scripts/org-tests/internal/`                            | フォルダ   | 組織テストの非同期開始、進捗監視、結果取得処理を格納する。                  |
+| `scripts/org-tests/internal/run-org-test.js`             | ファイル   | ApexとFlowに共通する接続先確認とテスト開始処理を提供する。                  |
 | `scripts/org-tests/internal/test-runner.js`              | ファイル   | ApexテストとFlowテストの進捗監視と結果取得を共通化する。                    |
 | `scripts/org-tests/test/`                                | フォルダ   | 組織テスト実行scriptのNode.js testを格納する。                              |
 | `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
