@@ -204,8 +204,8 @@
 | `scripts/metadata/`                                      | フォルダ   | Salesforce metadata操作scriptを格納する。                                   |
 | `scripts/internal/`                                      | フォルダ   | 複数領域のscriptから読み込む共通処理を格納する。                            |
 | `scripts/internal/run-command.js`                        | ファイル   | macOSとWindowsから外部CLIを実行する共通処理を提供する。                     |
-| `scripts/test/`                                          | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
-| `scripts/test/*.node.js`                                 | ファイル群 | 外部CLIの終了コードと出力の受け渡しを確認する。                             |
+| `scripts/internal/test/`                                 | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
+| `scripts/internal/test/*.node.js`                        | ファイル群 | 外部CLIの終了コードと出力の受け渡しを確認する。                             |
 | `scripts/metadata/destructive/`                          | フォルダ   | metadata削除scriptを格納する。                                              |
 | `scripts/metadata/destructive/destructive.js`            | ファイル   | destructive changesのdry-runと実削除を実行する。                            |
 | `scripts/metadata/retrieve/`                             | フォルダ   | metadata retrieve scriptを格納する。                                        |

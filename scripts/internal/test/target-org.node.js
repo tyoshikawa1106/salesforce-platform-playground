@@ -1,9 +1,9 @@
-// 実行コマンド: node --test scripts/test/target-org.node.js
+// 実行コマンド: node --test scripts/internal/test/target-org.node.js
 // 用途: Salesforce CLIの組織一覧から対象組織を安全に分類できることを検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../internal/target-org');
+const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../target-org');
 
 // Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
 function createSfResult(result) {

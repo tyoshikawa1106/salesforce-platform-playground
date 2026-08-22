@@ -1,13 +1,13 @@
-// 実行コマンド: node --test scripts/test/run-command.node.js
+// 実行コマンド: node --test scripts/internal/test/run-command.node.js
 // 用途: Salesforce CLIとNode.js子スクリプトのOS別実行方法を検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { buildSfCommand, runNodeScript, runSf, runSfWithOutput } = require('../internal/run-command');
+const { buildSfCommand, runNodeScript, runSf, runSfWithOutput } = require('../run-command');
 
 // 外部処理をリポジトリルートで実行する。
-const repoRoot = path.resolve(__dirname, '../..');
+const repoRoot = path.resolve(__dirname, '../../..');
 
 test('macOSではSalesforce CLIを直接実行する', () => {
     // macOS向けのSalesforce CLI引数を準備する。
