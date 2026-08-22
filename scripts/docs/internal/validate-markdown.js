@@ -76,7 +76,7 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
     const issues = [];
     // 全ファイル解析後に存在確認するローカルリンクを保持する。
     const localLinks = [];
-    // コード例を文書構造から除外するため、開いているフェンス種別を追跡する。
+    // コード例を文書構造から除外するため、開いているフェンスの記号と長さを追跡する。
     let fenceMarker = null;
     // H1件数と直前の見出しレベルを、文書全体を通した構造判定に使用する。
     let h1Count = 0;
@@ -85,19 +85,13 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
 
     // 各行の元のindexを行番号へ利用しながら文書構造を収集する。
     lines.forEach((line, index) => {
-        // コードフェンス内の見出しやリンク例を文書構造として扱わない。
-        const fenceMatch = line.trimStart().match(/^(```+|~~~+)/);
+        // 文書構造とコマンド例で同じ境界条件を使い、コードフェンスの状態を更新する。
+        const fence = getNextFenceMarker(line, fenceMarker);
+        // 短い同種markerでは閉じない状態を次の行へ引き継ぐ。
+        fenceMarker = fence.marker;
 
         // フェンス行では構造解析をせず、コードブロック状態だけを更新する。
-        if (fenceMatch) {
-            // 開始と同種のmarkerを終了として扱い、フェンス内外を切り替える。
-            if (fenceMarker === null) {
-                // 開始markerの文字種を後続行の終了判定へ保持する。
-                fenceMarker = fenceMatch[1][0];
-            } else if (fenceMarker === fenceMatch[1][0]) {
-                // 同じ文字種の終了markerでコードブロック外へ戻す。
-                fenceMarker = null;
-            }
+        if (fence.isFenceLine) {
             // フェンス行自体を見出しやリンクとして解析しない。
             return;
         }

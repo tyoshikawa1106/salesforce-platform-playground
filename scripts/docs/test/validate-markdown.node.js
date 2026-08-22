@@ -49,6 +49,40 @@ test('コードフェンス内の見出しを無視し、見出しレベルの�
     assert.match(parsed.issues[0], /H1 から H3/);
 });
 
+const longFenceCases = [
+    { close: '````', name: 'backtick', open: '````md', shorterMarker: '```' },
+    { close: '~~~~', name: 'tilde', open: '~~~~md', shorterMarker: '~~~' }
+];
+
+for (const { close, name, open, shorterMarker } of longFenceCases) {
+    test(`長い${name}フェンス内の短いmarker、見出し、リンクを無視する`, () => {
+        // 外側より短い同種markerを含むコードブロックと、通常の文書見出しを解析する。
+        const filePath = path.join(projectRoot, 'docs/example.md');
+        const parsed = parseMarkdown({
+            content: [
+                '# 見出し',
+                '',
+                open,
+                '## 対象外',
+                shorterMarker,
+                '### まだ対象外',
+                '[対象外リンク](missing.md)',
+                close,
+                '',
+                '## 対象'
+            ].join('\n'),
+            filePath,
+            projectRoot,
+            requireH1: true
+        });
+
+        // 長いフェンスの外側にある文書構造だけを収集することを確認する。
+        assert.deepEqual([...parsed.anchors], ['見出し', '対象']);
+        assert.deepEqual(parsed.localLinks, []);
+        assert.deepEqual(parsed.issues, []);
+    });
+}
+
 test('コードブロック内のsetx PATHを拒否し、注意書きでの言及は許可する', () => {
     // 注意書きと実行例の両方にsetx PATHを含むMarkdownを検証する。
     const issues = validateUnsafeContent(
