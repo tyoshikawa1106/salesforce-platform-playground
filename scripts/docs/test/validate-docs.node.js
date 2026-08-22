@@ -9,6 +9,15 @@ const { parseMarkdown, validateDocumentation, validateUnsafeCommandExamples } = 
 // テスト用Markdownの絶対パスを組み立てる基準にする。
 const projectRoot = path.resolve('/repository');
 
+// 1つのMarkdownを共通のテストファイルとして危険コマンド検査へ渡す。
+function validateUnsafeContent(content, relativePath = 'docs/example.md') {
+    return validateUnsafeCommandExamples({
+        content,
+        filePath: path.join(projectRoot, relativePath),
+        projectRoot
+    });
+}
+
 test('Markdownの見出し、重複アンカー、ローカルリンクを解析する', () => {
     // 重複見出しとローカルリンクを含むMarkdownを解析する。
     const filePath = path.join(projectRoot, 'docs/example.md');
@@ -42,12 +51,9 @@ test('コードフェンス内の見出しを無視し、見出しレベルの�
 
 test('コードブロック内のsetx PATHを拒否し、注意書きでの言及は許可する', () => {
     // 注意書きと実行例の両方にsetx PATHを含むMarkdownを検証する。
-    const filePath = path.join(projectRoot, 'docs/example.md');
-    const issues = validateUnsafeCommandExamples({
-        content: '# Example\n\n`setx PATH` は使用しません。\n\n```powershell\nsetx PATH "$env:PATH;C:\\Tools"\n```',
-        filePath,
-        projectRoot
-    });
+    const issues = validateUnsafeContent(
+        '# Example\n\n`setx PATH` は使用しません。\n\n```powershell\nsetx PATH "$env:PATH;C:\\Tools"\n```'
+    );
 
     // 実行例だけが問題として報告されることを確認する。
     assert.deepEqual(issues, ['docs/example.md:6: setx PATH を実行例に使用しないでください。']);
@@ -55,13 +61,9 @@ test('コードブロック内のsetx PATHを拒否し、注意書きでの言�
 
 test('インデント形式とshell prompt付きのsetx PATHを拒否する', () => {
     // 複数形式のsetx PATH実行例を含むMarkdownを検証する。
-    const filePath = path.join(projectRoot, 'docs/example.md');
-    const issues = validateUnsafeCommandExamples({
-        content:
-            '# Example\n\n    setx PATH "C:\\Tools"\n\n```powershell\nPS> setx.exe "PATH" "C:\\Tools"\nPS C:\\Users\\Example> setx PATH "C:\\Tools"\n```\n\n```bat\nC:\\>setx PATH "C:\\Tools"\n```',
-        filePath,
-        projectRoot
-    });
+    const issues = validateUnsafeContent(
+        '# Example\n\n    setx PATH "C:\\Tools"\n\n```powershell\nPS> setx.exe "PATH" "C:\\Tools"\nPS C:\\Users\\Example> setx PATH "C:\\Tools"\n```\n\n```bat\nC:\\>setx PATH "C:\\Tools"\n```'
+    );
 
     // すべての実行例が行番号付きで報告されることを確認する。
     assert.deepEqual(issues, [
@@ -72,43 +74,69 @@ test('インデント形式とshell prompt付きのsetx PATHを拒否する', ()
     ]);
 });
 
-test('廃止したWindowsセットアップコマンドと固定Python PATHを拒否する', () => {
-    // 使用を禁止したWindowsセットアップ例を含むMarkdownを検証する。
-    const filePath = path.join(projectRoot, 'docs/setup/windows-winget-setup.md');
-    const issues = validateUnsafeCommandExamples({
-        content:
-            '# Example\n\n- `%LOCALAPPDATA%\\Programs\\Python\\Python313`\n\n```text\nwinget install --id Salesforce.CLI -e\nwinget install --id Heroku.HerokuCLI -e\nsf plugins install @salesforce/plugin-code-analyzer\n```',
-        filePath,
-        projectRoot
+const unsafeCommandCases = [
+    {
+        command: 'winget install --id Salesforce.CLI -e',
+        message: 'Salesforce CLIは公式Windowsインストーラーを案内してください。',
+        name: 'Salesforce CLIのwinget導入'
+    },
+    {
+        command: 'winget install --id Heroku.HerokuCLI -e',
+        message: 'Heroku CLIは公式Windowsインストーラーを案内してください。',
+        name: 'Heroku CLIのwinget導入'
+    },
+    {
+        command: 'sf plugins install @salesforce/plugin-code-analyzer',
+        message: 'Code Analyzerは公式のplugin名code-analyzerで導入してください。',
+        name: '廃止したCode Analyzer plugin名'
+    },
+    {
+        command: 'winget upgrade --all',
+        message: 'winget管理対象全体ではなく更新対象を個別に指定してください。',
+        name: 'wingetの全体更新'
+    },
+    {
+        command: 'brew upgrade',
+        message: 'Homebrew管理対象全体を確認なしで変更しないでください。',
+        name: 'Homebrewの全体更新'
+    },
+    {
+        command: 'brew autoremove',
+        message: 'Homebrew管理対象全体を確認なしで変更しないでください。',
+        name: 'Homebrewの一括削除'
+    },
+    {
+        command: 'brew cleanup',
+        message: 'Homebrew管理対象全体を確認なしで変更しないでください。',
+        name: 'Homebrewの一括cleanup'
+    }
+];
+
+for (const { command, message, name } of unsafeCommandCases) {
+    test(`${name}をコード例では拒否する`, () => {
+        const issues = validateUnsafeContent(`# Example\n\n\`\`\`sh\n${command}\n\`\`\``);
+
+        assert.deepEqual(issues, [`docs/example.md:4: ${message}`]);
     });
 
-    // 禁止対象ごとの案内が行番号付きで報告されることを確認する。
-    assert.deepEqual(issues, [
-        'docs/setup/windows-winget-setup.md:3: WindowsのPythonインストール先を固定したPATH例にしないでください。',
-        'docs/setup/windows-winget-setup.md:6: Salesforce CLIは公式Windowsインストーラーを案内してください。',
-        'docs/setup/windows-winget-setup.md:7: Heroku CLIは公式Windowsインストーラーを案内してください。',
-        'docs/setup/windows-winget-setup.md:8: Code Analyzerは公式のplugin名code-analyzerで導入してください。'
-    ]);
-});
-
-test('対象を限定しないパッケージ更新と削除を拒否する', () => {
-    // 管理対象全体へ影響するパッケージ操作例を含むMarkdownを検証する。
-    const filePath = path.join(projectRoot, 'docs/setup/example.md');
-    const issues = validateUnsafeCommandExamples({
-        content:
-            '# Example\n\n```sh\nwinget upgrade --all\nbrew upgrade\nbrew autoremove\nbrew cleanup\nbrew cleanup --dry-run\nbrew upgrade git gh\n```',
-        filePath,
-        projectRoot
+    test(`${name}への説明文での言及は許可する`, () => {
+        assert.deepEqual(validateUnsafeContent(`# Example\n\n\`${command}\` は実行しません。`), []);
     });
+}
 
-    // 対象を限定しない操作だけが報告されることを確認する。
-    assert.deepEqual(issues, [
-        'docs/setup/example.md:4: winget管理対象全体ではなく更新対象を個別に指定してください。',
-        'docs/setup/example.md:5: Homebrew管理対象全体を確認なしで変更しないでください。',
-        'docs/setup/example.md:6: Homebrew管理対象全体を確認なしで変更しないでください。',
-        'docs/setup/example.md:7: Homebrew管理対象全体を確認なしで変更しないでください。'
-    ]);
+test('固定したWindows Python PATHはコード例以外でも拒否する', () => {
+    const issues = validateUnsafeContent('# Example\n\n- `%LOCALAPPDATA%\\Programs\\Python\\Python313`');
+
+    assert.deepEqual(issues, ['docs/example.md:3: WindowsのPythonインストール先を固定したPATH例にしないでください。']);
 });
+
+const allowedCommandCases = ['brew cleanup --dry-run', 'brew upgrade git gh', 'winget upgrade Git.Git'];
+
+for (const command of allowedCommandCases) {
+    test(`対象を限定したコマンドを許可する: ${command}`, () => {
+        assert.deepEqual(validateUnsafeContent(`# Example\n\n\`\`\`sh\n${command}\n\`\`\``), []);
+    });
+}
 
 test('リンク、アンカー、docs indexからの到達性をまとめて検証する', () => {
     // 索引から辿れる文書と辿れない文書をメモリ上に用意する。
