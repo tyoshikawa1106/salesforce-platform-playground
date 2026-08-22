@@ -8,6 +8,7 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '../../..');
 // docs配下の判定と索引の起点に使用する絶対パスを保持する。
 const docsRoot = path.join(projectRoot, 'docs');
+// 到達性検証を開始するdocs索引の絶対パスを保持する。
 const docsIndex = path.join(docsRoot, 'index.md');
 // 外部取得物はリポジトリ独自文書と分離して検証対象外にする。
 const externalSkillsRoot = path.join(projectRoot, '.agents', 'skills');
@@ -18,16 +19,19 @@ const fragmentMarkdownFiles = [path.join(projectRoot, '.github/pull_request_temp
 
 // 外部取得したSkills文書は取得元を正とし、このリポジトリのdocs検証対象から外す。
 function isExternalSkillFile(filePath) {
+    // 外部Skillsのルート配下にあるファイルだけを除外対象として返す。
     return filePath.startsWith(`${externalSkillsRoot}${path.sep}`);
 }
 
 // knowledgeとdiscussionsは作成時点の記録であり、現行文書の検証対象から外す。
 function isHistoricalDocument(filePath) {
+    // いずれかの履歴文書ルート配下なら現行文書ではないと判定する。
     return historicalDocumentRoots.some((rootPath) => filePath.startsWith(`${rootPath}${path.sep}`));
 }
 
 // Git管理対象と未追跡・非除外のMarkdownを列挙し、新規文書も検証対象に含める。
 function getManagedMarkdownFiles() {
+    // Gitが管理または新規追加候補として認識するMarkdownだけを取得する。
     return execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md'], {
         cwd: projectRoot,
         encoding: 'utf8'
@@ -44,6 +48,7 @@ function getDocsMarkdownFiles() {
     // 文字列の前方一致で隣接名を誤検出しないよう区切り文字まで含める。
     const docsPrefix = `${docsRoot}${path.sep}`;
 
+    // 管理対象のうちdocsルート配下にあるファイルだけを返す。
     return getManagedMarkdownFiles().filter((filePath) => filePath.startsWith(docsPrefix));
 }
 
@@ -51,8 +56,10 @@ function getDocsMarkdownFiles() {
 function getAdditionalDocumentMarkdownFiles() {
     // docs配下と文書断片を除いた残りを単独文書として扱う。
     const docsPrefix = `${docsRoot}${path.sep}`;
+    // 文書断片の包含判定を一定時間で行えるSetへ変換する。
     const fragmentMarkdownFileSet = new Set(fragmentMarkdownFiles);
 
+    // docs外かつ文書断片でもないMarkdownだけを返す。
     return getManagedMarkdownFiles().filter(
         (filePath) => !filePath.startsWith(docsPrefix) && !fragmentMarkdownFileSet.has(filePath)
     );

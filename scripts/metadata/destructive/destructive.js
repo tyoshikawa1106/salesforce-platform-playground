@@ -21,13 +21,17 @@ async function main({
 } = {}) {
     // このスクリプトは引数を受け付けない。
     if (argv.length !== 0) {
+        // 引数指定が安全契約外であることを表示する。
         console.error('エラー: このスクリプトは引数を受け付けません。');
+        // 正しいnpm scriptを利用者へ案内する。
         console.error('実行コマンド: npm run sf:destructive');
+        // Salesforce CLIを呼び出さず失敗終了を返す。
         return 1;
     }
 
     // 削除対象のDefault Target Orgと、認証済み組織情報を取得する。
     const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
+    // aliasまたはusernameに一致する1組織の表示情報と種別を確定する。
     const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfWithOutputCommand, targetOrg });
 
     // 実行者が接続先を確認できるよう、必要な組織情報だけを表示する。
@@ -36,23 +40,31 @@ async function main({
     // 接続先、組織種別、実削除の確認入力を受け付ける。
     const prompt = createApprovalPrompt(createPrompt);
 
+    // 承認入力中の例外でもpromptを閉じられるようfinallyで管理する。
     try {
         // 表示された接続組織を実行者が承認した場合だけ組織種別の確認へ進む。
         const targetAnswer = await prompt.question('この接続組織で続行しますか？ [y/N]: ');
 
+        // 明示承認以外では組織へ変更を加えない。
         if (!isApproved(targetAnswer)) {
+            // 利用者へ中止結果を表示する。
             console.log('メタデータ削除を中止しました。');
+            // 正常な利用者中止として0を返す。
             return 0;
         }
 
         // 本番環境とDeveloper Editionでは、dry-runより前に環境別の最終確認を行う。
         if (orgInfo.type === orgTypes.PRODUCTION || orgInfo.type === orgTypes.DEVELOPER_EDITION) {
+            // 高リスク環境であることを含む別質問への回答を取得する。
             const environmentAnswer = await prompt.question(
                 `${orgInfo.typeLabel}です。メタデータ削除を実行してよろしいですか？ [y/N]: `
             );
 
+            // 環境別の明示承認がない場合はdry-runも開始しない。
             if (!isApproved(environmentAnswer)) {
+                // 利用者へ中止結果を表示する。
                 console.log('メタデータ削除を中止しました。');
+                // 正常な利用者中止として0を返す。
                 return 0;
             }
         }
@@ -74,6 +86,7 @@ async function main({
 
         // dry-runが失敗した場合は、実削除の確認を出さずに終了する。
         if (runSfCommand([...deployArgs, '--dry-run'], repoRoot) !== 0) {
+            // dry-run失敗を呼び出し元へ伝える。
             return 1;
         }
 
@@ -82,7 +95,9 @@ async function main({
 
         // yまたはY以外の場合は実削除を中止する。
         if (!isApproved(deleteAnswer)) {
+            // 利用者へ最終確認での中止結果を表示する。
             console.log('メタデータの削除を中止しました。');
+            // 正常な利用者中止として0を返す。
             return 0;
         }
 
@@ -105,6 +120,7 @@ if (require.main === module) {
         .catch((error) => {
             // 確認入力を処理できない場合も、原因だけを簡潔に表示する。
             console.error(`エラー: destructive deployを開始できませんでした: ${error.message}`);
+            // npmへ実行失敗を通知する。
             process.exitCode = 1;
         });
 }

@@ -17,7 +17,9 @@ function printStep({ cycle, dryRun, entry, repeatCount, sfArgs, sourcePaths, wri
 
     // 実行種別、入力source、実行予定コマンドを同じ順序で表示する。
     writeLine(`[${dryRun ? 'dry-run' : 'import'}] ${entry.label}${cycleSuffix}`);
+    // 合成元Apexファイルを実行順に表示する。
     writeLine(`sources: ${sourcePaths.join(' + ')}`);
+    // 実行またはdry-run対象のSalesforce CLIコマンドを表示する。
     writeLine(`sf ${sfArgs.join(' ')}`);
 }
 
@@ -28,18 +30,23 @@ function executeSfCommand({ entry, repoRoot, runSfCommand, sfArgs, stderr, stdou
 
     // CLIを起動できない場合も、対象entryを示して後続処理を止める。
     if (result.error) {
+        // spawnエラーとentry labelを保持した例外へ変換する。
         throw new Error(`sfコマンドを開始できませんでした（${entry.label}）: ${result.error.message}`);
     }
 
     // CLIが失敗した場合は元の出力を残し、次のplan entryへ進まない。
     if (result.status !== 0) {
+        // Salesforce CLIの標準出力を欠落させず利用者へ表示する。
         stdout.write(result.stdout || '');
+        // Salesforce CLIの標準エラー出力を欠落させず利用者へ表示する。
         stderr.write(result.stderr || '');
+        // 対象entryを含む例外で後続処理を停止する。
         throw new Error(`sfコマンドが失敗しました（${entry.label}）。`);
     }
 
     // anonymous Apexのデバッグログから、投入結果として必要な行だけを取り出す。
     for (const line of extractSfSummary(`${result.stdout || ''}\n${result.stderr || ''}`)) {
+        // seed処理が出力した集計行を利用者へ表示する。
         writeLine(line);
     }
 }
@@ -61,7 +68,9 @@ function runPreparedEntries({
     // 実投入で初めて作成した一時ディレクトリをfinallyから参照できるよう保持する。
     let temporaryDirectory = null;
 
+    // 成功または失敗のどちらでも一時Apexを削除できる範囲を開始する。
     try {
+        // plan順を維持して準備済みentryを1件ずつ処理する。
         for (const prepared of preparedEntries) {
             // entryごとに衝突しにくいApexファイル名を生成する。
             const generatedFileName = getGeneratedFileName(prepared.entry.label);
@@ -77,6 +86,7 @@ function runPreparedEntries({
 
             // dry-runでは一時ファイルを作らず、生成予定のファイル名だけを表示する。
             if (!dryRun) {
+                // 合成済みApexをSalesforce CLIへ渡す一時ファイルとして保存する。
                 fileSystem.writeFileSync(generatedFilePath, prepared.source, 'utf8');
             }
 
@@ -85,6 +95,7 @@ function runPreparedEntries({
 
             // entryごとのrepeat回数だけ、同じApexを順番に実行する。
             for (let cycle = 1; cycle <= prepared.repeatCount; cycle += 1) {
+                // 現在のentry、cycle、実行内容をSalesforce CLI呼び出し前に表示する。
                 printStep({
                     cycle,
                     dryRun,
@@ -95,6 +106,7 @@ function runPreparedEntries({
                     writeLine
                 });
 
+                // 実投入時だけSalesforce CLIを呼び出す。
                 if (!dryRun) {
                     // 実投入時だけSalesforce CLIを呼び出し、dry-runは表示で止める。
                     executeSfCommand({
@@ -112,6 +124,7 @@ function runPreparedEntries({
     } finally {
         // 成功・失敗にかかわらず、合成したanonymous Apexをローカルに残さない。
         if (temporaryDirectory) {
+            // この実行で作成した一時ディレクトリだけを再帰削除する。
             fileSystem.rmSync(temporaryDirectory, { force: true, recursive: true });
         }
     }

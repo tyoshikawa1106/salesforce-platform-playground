@@ -15,6 +15,7 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 // npm scriptから利用できるオプションと、安全な実行方法を表示する。
 function printHelp(stdout = process.stdout) {
+    // 利用可能なコマンド、安全制約、各オプションを1つの案内として表示する。
     stdout.write(`実行コマンド:
   npm run setup:data:dry-run
   npm run setup:data
@@ -31,6 +32,7 @@ function printHelp(stdout = process.stdout) {
 `);
 }
 
+// 引数、組織安全判定、plan準備、entry実行を順番に制御する。
 async function run({
     argv = process.argv.slice(2),
     createPrompt,
@@ -44,9 +46,11 @@ async function run({
     // 組織操作やファイル読込より前に、CLI引数を確定する。
     const args = parseArgs(argv);
 
+    // help要求では後続の組織確認やplan読込を行わない。
     if (args.help) {
         // helpでは組織情報やplanを読み込まず、使用方法だけを表示する。
         printHelp(stdout);
+        // 正常な案内表示として処理を終了する。
         return;
     }
 
@@ -56,6 +60,7 @@ async function run({
     // dry-runでは組織設定を読まないため、表示専用のtarget org名を使用する。
     let targetOrg = '<default-target-org>';
 
+    // 実投入時だけ接続先の確定と利用者承認を行う。
     if (!args.dryRun) {
         // 通常実行はDefault Target Org、Scratch Orgセットアップは作成済みaliasだけを内部的に使用する。
         targetOrg = internalTargetOrg ?? getDefaultTargetOrg({ repoRoot, runSfCommand });
@@ -71,19 +76,26 @@ async function run({
         // finallyで確実にpromptを閉じられるよう回答を外側で保持する。
         let targetAnswer;
 
+        // 回答取得中の例外でもpromptを閉じられるようfinallyで管理する。
         try {
+            // 表示済みの組織へ投入してよいか明示回答を受け取る。
             targetAnswer = await prompt.question('この接続組織で続行しますか？ [y/N]: ');
         } finally {
+            // readlineがプロセス終了を妨げないよう入力を閉じる。
             prompt.close();
         }
 
+        // 明示承認以外では組織へデータを投入しない。
         if (!isApproved(targetAnswer)) {
+            // 利用者へ中止結果を表示する。
             writeLine('テストデータ投入を中止しました。');
+            // 正常な利用者中止として処理を終了する。
             return;
         }
 
         // 本番相当の組織には、確認済みでもテストデータを投入しない。
         if (orgInfo.type === orgTypes.PRODUCTION) {
+            // 承認操作では解除できない禁止条件として実行を停止する。
             throw new Error('本番環境へのテストデータ投入は許可されていません。');
         }
     }
@@ -94,6 +106,7 @@ async function run({
         planPath: args.plan,
         repoRoot
     });
+    // 選択entryのApexソースと繰り返し回数を実行前に検証する。
     const preparedEntries = prepareEntries({
         args,
         fileSystem,
@@ -118,7 +131,9 @@ async function run({
 if (require.main === module) {
     // Promise rejectionを利用者向けメッセージと失敗終了へ変換する。
     run().catch((error) => {
+        // 利用者が修正すべき原因をスタックトレースなしで表示する。
         process.stderr.write(`エラー: ${error.message}\n`);
+        // npmへデータ投入処理の失敗を通知する。
         process.exitCode = 1;
     });
 }

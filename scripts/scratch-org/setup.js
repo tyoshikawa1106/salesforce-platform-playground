@@ -34,13 +34,16 @@ function main({
                 ['テストデータの投入', 'scripts/scratch-org/steps/import-test-data.js']
             ];
 
+            // 定義順を維持して各準備stepを実行する。
             for (const [label, scriptPath] of steps) {
                 // すべての子スクリプトへ同じaliasをNode.js引数として渡す。
                 const status = runNodeScriptCommand(scriptPath, ['--alias', alias], repoRoot);
 
                 // 失敗したステップを表示し、後続処理を実行しない。
                 if (status !== 0) {
+                    // 停止したstep名を利用者へ表示する。
                     stderr.write(`エラー: ${label}に失敗したため、Scratch Orgの準備を停止しました。\n`);
+                    // 子スクリプトの失敗コードをそのまま呼び出し元へ返す。
                     return status;
                 }
             }
@@ -53,6 +56,7 @@ function main({
 
 // コマンドとして実行された場合だけScratch Orgの準備を開始する。
 if (require.main === module) {
+    // 引数検証と全stepの結果をshellへ終了コードとして返す。
     process.exitCode = main();
 }
 

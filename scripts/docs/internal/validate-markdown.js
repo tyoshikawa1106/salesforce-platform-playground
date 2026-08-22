@@ -41,6 +41,7 @@ const unsafeCommandRules = Object.freeze([
 
 // 検証結果のパス区切りをOSにかかわらずリポジトリ表記へ揃える。
 function getRelativePath(projectRoot, filePath) {
+    // OS固有区切りをslashへ変換し、検証メッセージを同じ表記に揃える。
     return path.relative(projectRoot, filePath).split(path.sep).join('/');
 }
 
@@ -69,47 +70,61 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
     const lines = content.split('\n');
     // 同名見出しの連番と、リンク検証用のアンカー一覧を別々に保持する。
     const anchors = new Set();
+    // アンカーごとの出現回数を保持し、重複suffixを決定する。
     const anchorCounts = new Map();
     // 構造問題とローカルリンクを呼び出し元でまとめて検証できる形にする。
     const issues = [];
+    // 全ファイル解析後に存在確認するローカルリンクを保持する。
     const localLinks = [];
     // コード例を文書構造から除外するため、開いているフェンス種別を追跡する。
     let fenceMarker = null;
     // H1件数と直前の見出しレベルを、文書全体を通した構造判定に使用する。
     let h1Count = 0;
+    // 次の見出しが複数段飛んでいないか確認するため直前レベルを保持する。
     let previousHeadingLevel = 0;
 
+    // 各行の元のindexを行番号へ利用しながら文書構造を収集する。
     lines.forEach((line, index) => {
         // コードフェンス内の見出しやリンク例を文書構造として扱わない。
         const fenceMatch = line.trimStart().match(/^(```+|~~~+)/);
 
+        // フェンス行では構造解析をせず、コードブロック状態だけを更新する。
         if (fenceMatch) {
             // 開始と同種のmarkerを終了として扱い、フェンス内外を切り替える。
             if (fenceMarker === null) {
+                // 開始markerの文字種を後続行の終了判定へ保持する。
                 fenceMarker = fenceMatch[1][0];
             } else if (fenceMarker === fenceMatch[1][0]) {
+                // 同じ文字種の終了markerでコードブロック外へ戻す。
                 fenceMarker = null;
             }
+            // フェンス行自体を見出しやリンクとして解析しない。
             return;
         }
 
+        // コードブロック内の例示は文書構造として解析しない。
         if (fenceMarker !== null) {
+            // 次の行までフェンス状態を維持して処理を終了する。
             return;
         }
 
+        // 現在行がMarkdown見出しかを先頭の#で判定する。
         const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
 
+        // 見出しの場合だけレベル、H1件数、アンカーを更新する。
         if (headingMatch) {
             // #の数を見出しレベルとして構造判定へ使用する。
             const headingLevel = headingMatch[1].length;
 
             // 文書内でH1がちょうど1件かを最後に確認できるよう数える。
             if (headingLevel === 1) {
+                // H1を1件検出した状態へ件数を更新する。
                 h1Count += 1;
             }
 
             // 見出しレベルが飛ぶと文書構造を追いにくいため問題として報告する。
             if (previousHeadingLevel > 0 && headingLevel > previousHeadingLevel + 1) {
+                // 遷移元と遷移先のレベルを行番号付きで問題一覧へ追加する。
                 issues.push(
                     `${getRelativePath(projectRoot, filePath)}:${index + 1}: 見出しが H${previousHeadingLevel} から H${headingLevel} へ飛んでいます。`
                 );
@@ -123,18 +138,23 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
 
         // Markdownのインラインリンクからリンク先部分だけを順番に抽出する。
         const linkPattern = /\[[^\]]*\]\(([^)]+)\)/g;
+        // 同じ行に複数あるリンクを順番に保持する変数を用意する。
         let linkMatch;
 
+        // 現在行から未処理のリンクが見つかる間は抽出を続ける。
         while ((linkMatch = linkPattern.exec(line)) !== null) {
+            // 前後空白を除いたリンク先を検証用の値として保持する。
             let target = linkMatch[1].trim();
 
             // 山括弧で囲まれた空白入りリンク先は、囲みを外して正規化する。
             if (target.startsWith('<') && target.endsWith('>')) {
+                // Markdownの囲みだけを除き内部のパスを維持する。
                 target = target.slice(1, -1);
             }
 
             // 外部URLとメールリンクはローカルファイル検証の対象外にする。
             if (/^(https?:|mailto:)/.test(target)) {
+                // 次のリンク候補へ進み、外部URLの存在確認は行わない。
                 continue;
             }
 
@@ -145,9 +165,11 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
 
     // 通常文書では文書タイトルとなるH1を1件だけ必須にする。
     if (requireH1 && h1Count !== 1) {
+        // 実際のH1件数を含め、追加または削除が必要なことを記録する。
         issues.push(`${getRelativePath(projectRoot, filePath)}: H1 は1つ必要です。現在は ${h1Count} 個です。`);
     }
 
+    // ファイル間検証に必要なアンカー、問題、リンクをまとめて返す。
     return { anchors, issues, localLinks };
 }
 
@@ -156,10 +178,13 @@ function validateFileName(filePath, projectRoot) {
     // 拡張子を除いた名前だけを命名規則と照合する。
     const fileName = path.basename(filePath, '.md');
 
+    // indexまたはkebab-caseなら命名上の問題なしと判定する。
     if (fileName === 'index' || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fileName)) {
+        // 問題一覧を空のまま返す。
         return [];
     }
 
+    // 命名規則に合わないファイルの相対パスを問題として返す。
     return [`${getRelativePath(projectRoot, filePath)}: ファイル名を kebab-case にしてください。`];
 }
 
@@ -170,16 +195,19 @@ function getNextFenceMarker(line, currentMarker) {
 
     // フェンス行でなければ現在の状態をそのまま次行へ渡す。
     if (!marker) {
+        // 呼び出し元が現在行を通常内容として解析できる状態を返す。
         return { isFenceLine: false, marker: currentMarker };
     }
 
     // フェンス外でmarkerを検出した場合は新しいコードブロックを開始する。
     if (currentMarker === null) {
+        // 開始markerを次行以降の終了判定へ引き渡す。
         return { isFenceLine: true, marker };
     }
 
     // 開始marker以上の長さを持つ同種markerだけを終了フェンスとして扱う。
     const closesFence = currentMarker[0] === marker[0] && marker.length >= currentMarker.length;
+    // 終了時はmarkerを解除し、それ以外は現在のフェンスを維持する。
     return { isFenceLine: true, marker: closesFence ? null : currentMarker };
 }
 
@@ -190,6 +218,7 @@ function getCodeExampleCommand(line, fenceMarker) {
 
     // 通常の説明行はコマンドルールへ渡さない。
     if (fenceMarker === null && !isIndentedCode) {
+        // コマンド例ではないことをnullで呼び出し元へ伝える。
         return null;
     }
 
@@ -215,16 +244,19 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
     // コマンド限定ルールの適用範囲を判定するためフェンス状態を保持する。
     let fenceMarker = null;
 
+    // 元の行番号を維持したまま全行の安全性を確認する。
     content.split('\n').forEach((line, index) => {
         // 記述場所に依存しない危険な文字列は全行で確認する。
         issues.push(...collectRuleIssues({ filePath, index, projectRoot, rules: unsafeLineRules, value: line }));
 
         // 現在行を反映したフェンス状態を次行へ引き渡す。
         const fence = getNextFenceMarker(line, fenceMarker);
+        // 次の行のコマンド判定に使用する現在のmarkerへ更新する。
         fenceMarker = fence.marker;
 
         // フェンス自体はコマンドとして評価しない。
         if (fence.isFenceLine) {
+            // 次の文書行へ進む。
             return;
         }
 
@@ -233,6 +265,7 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
 
         // 説明文でコマンド名に言及しただけの場合は実行例として扱わない。
         if (command === null) {
+            // コマンドルールを適用せず次の文書行へ進む。
             return;
         }
 
@@ -240,6 +273,7 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
         issues.push(...collectRuleIssues({ filePath, index, projectRoot, rules: unsafeCommandRules, value: command }));
     });
 
+    // 全行から収集した安全性の問題を呼び出し元へ返す。
     return issues;
 }
 

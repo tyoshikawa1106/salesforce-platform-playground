@@ -37,6 +37,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
 
 // コマンドとして実行された場合だけメタデータを反映する。
 if (require.main === module) {
+    // 引数検証とdeploy結果をshellへ終了コードとして返す。
     process.exitCode = main();
 }
 

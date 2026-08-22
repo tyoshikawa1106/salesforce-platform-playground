@@ -11,10 +11,13 @@ function readOptionValue(argv, index, option) {
     // 値を取るオプションの直後だけを対応する値として読む。
     const value = argv[index + 1];
 
+    // 値の欠落や次のオプション名を値として受け付けない。
     if (value === undefined || value.startsWith('-')) {
+        // 不足しているオプション名を含めて利用者へ通知する。
         throw new Error(`${option}には値が必要です。`);
     }
 
+    // 検証済みの文字列を呼び出し元へ返す。
     return value;
 }
 
@@ -32,48 +35,66 @@ function parseArgs(argv) {
 
     // オプション値を読み飛ばしながら、指定された順に引数を解釈する。
     for (let index = 0; index < argv.length; index += 1) {
+        // 現在位置の引数を各オプション判定へ使用する。
         const arg = argv[index];
 
+        // dry-run flagを組織操作なしの検証モードへ変換する。
         if (arg === '--dry-run') {
             // dry-runは値を取らないflagとして有効化する。
             args.dryRun = true;
+            // 次の引数へ進む。
             continue;
         }
 
+        // 長短どちらのhelp flagも同じ案内表示へ変換する。
         if (arg === '--help' || arg === '-h') {
             // 長短どちらのhelp指定も同じ状態へ変換する。
             args.help = true;
+            // 次の引数へ進む。
             continue;
         }
 
+        // plan指定では直後のパス文字列を取得する。
         if (arg === '--plan') {
             // plan指定を保存し、値の位置を次のloopで再解釈しない。
             args.plan = readOptionValue(argv, index, arg);
+            // 消費した値の位置までindexを進める。
             index += 1;
+            // 次の未処理引数へ進む。
             continue;
         }
 
+        // plan全体へ適用する既定回数を取得する。
         if (arg === '--default-repeat') {
             // 数値変換後の妥当性はentry準備時に共通検証する。
             args.defaultRepeat = Number(readOptionValue(argv, index, arg));
+            // 消費した値の位置までindexを進める。
             index += 1;
+            // 次の未処理引数へ進む。
             continue;
         }
 
+        // 実行対象を1つのlabelへ絞る値を取得する。
         if (arg === '--only') {
             // labelはplan読込後に実在するentryと照合する。
             args.only = readOptionValue(argv, index, arg);
+            // 消費した値の位置までindexを進める。
             index += 1;
+            // 次の未処理引数へ進む。
             continue;
         }
 
+        // 選択したentryへ優先適用する回数を取得する。
         if (arg === '--repeat') {
             // 選択entryへ優先適用する回数として数値化する。
             args.repeat = Number(readOptionValue(argv, index, arg));
+            // 消費した値の位置までindexを進める。
             index += 1;
+            // 次の未処理引数へ進む。
             continue;
         }
 
+        // 対応していない引数を無視せず実行前に拒否する。
         throw new Error(`未対応の引数が指定されました: ${arg}`);
     }
 
@@ -83,7 +104,9 @@ function parseArgs(argv) {
 
 // repeat回数として使用する値が正の整数であることを確認する。
 function assertPositiveInteger(value, label) {
+    // 0、負数、小数、NaNを繰り返し回数として受け付けない。
     if (!Number.isInteger(value) || value < 1) {
+        // 対象設定名を含めて修正すべき値の条件を通知する。
         throw new Error(`${label}には正の整数を指定してください。`);
     }
 }
@@ -92,18 +115,22 @@ function assertPositiveInteger(value, label) {
 function resolveInsideRepo(repoRoot, relativePath) {
     // path.resolveへ渡す前に、plan由来の値を空でない文字列へ限定する。
     if (typeof relativePath !== 'string' || relativePath.length === 0) {
+        // 空値や文字列以外をリポジトリルートとして誤解釈しない。
         throw new Error('リポジトリからの相対パスを空でない文字列として指定してください。');
     }
 
     // 正規化した絶対パスとリポジトリからの相対位置を求める。
     const absolutePath = path.resolve(repoRoot, relativePath);
+    // 正規化後の位置がrepoRoot配下かを判定する相対パスを求める。
     const relative = path.relative(repoRoot, absolutePath);
 
     // ../や絶対パスによってリポジトリ外を参照するplanを拒否する。
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        // リポジトリ外のファイルを読み込む前に安全側で停止する。
         throw new Error(`リポジトリ内のパスを指定してください: ${relativePath}`);
     }
 
+    // リポジトリ内と確認できた絶対パスだけを返す。
     return absolutePath;
 }
 
@@ -111,18 +138,24 @@ function resolveInsideRepo(repoRoot, relativePath) {
 function readPlan({ fileSystem, planPath, repoRoot }) {
     // plan自体もリポジトリ内に限定してからJSONとして読み込む。
     const absolutePlanPath = resolveInsideRepo(repoRoot, planPath);
+    // UTF-8のplanを実行定義オブジェクトへ変換する。
     const plan = JSON.parse(fileSystem.readFileSync(absolutePlanPath, 'utf8'));
 
+    // 実行対象が1件以上あるimports配列だけを受け付ける。
     if (!Array.isArray(plan.imports) || plan.imports.length === 0) {
+        // 空または不正なplanで組織操作を開始しない。
         throw new Error('import planのimportsには1件以上のentryが必要です。');
     }
 
     // --onlyでentryを特定できるよう、labelの重複を許可しない。
     const labels = plan.imports.map((entry) => entry.label).filter(Boolean);
+    // Set化後に件数が減る場合は同じlabelが複数存在すると判定する。
     if (new Set(labels).size !== labels.length) {
+        // --onlyの対象が曖昧になるplanを拒否する。
         throw new Error('import planのentry labelは重複できません。');
     }
 
+    // 最小構造を検証したplanをentry準備へ返す。
     return plan;
 }
 
@@ -131,10 +164,13 @@ function getSelectedEntries(plan, only) {
     // --only未指定時はplan順を保ち、指定時は完全一致するlabelへ絞る。
     const entries = only ? plan.imports.filter((entry) => entry.label === only) : plan.imports;
 
+    // --only指定時に一致するentryがあることを確認する。
     if (entries.length === 0) {
+        // 指定labelを含めてplan修正または引数修正を促す。
         throw new Error(`--only ${only}に一致するimport plan entryがありません。`);
     }
 
+    // plan順を維持した選択entryを返す。
     return entries;
 }
 
@@ -142,25 +178,34 @@ function getSelectedEntries(plan, only) {
 function getSourcePaths(plan, entry) {
     // 実行内容を特定する3項目が揃っているかをまとめて確認する。
     const requiredKeys = ['label', 'operation', 'file'];
+    // 値がない必須keyだけをエラー表示用に収集する。
     const missingKeys = requiredKeys.filter((key) => !entry[key]);
 
+    // 必須keyが1件でも欠けるentryを実行対象にしない。
     if (missingKeys.length > 0) {
+        // 不足keyをまとめて表示しplan修正を促す。
         throw new Error(`plan entryに必須項目がありません: ${missingKeys.join(', ')}`);
     }
 
+    // 現在対応するanonymous Apex以外のoperationを拒否する。
     if (entry.operation !== 'apex') {
+        // entry labelと未対応値を含めて設定誤りを明示する。
         throw new Error(`${entry.label}に未対応のoperationが指定されています: ${entry.operation}`);
     }
 
     // standaloneはファイル単体、それ以外はpreambleを先頭に結合する。
     if (entry.standalone) {
+        // 単独実行entryでは固有Apexファイルだけを返す。
         return [entry.file];
     }
 
+    // 合成対象entryには共通preamble指定を必須にする。
     if (!plan.preamble) {
+        // 対象entryを含めて不足しているplan設定を通知する。
         throw new Error(`import planに${entry.label}用のpreambleを指定してください。`);
     }
 
+    // 共通preamble、entry固有Apexの実行順でパスを返す。
     return [plan.preamble, entry.file];
 }
 
@@ -170,19 +215,25 @@ function readApexSource({ entry, fileSystem, plan, repoRoot }) {
     const sourcePaths = getSourcePaths(plan, entry);
     // 各ファイルを検証してから、末尾空白を除いたソースだけを保持する。
     const sourceParts = sourcePaths.map((sourcePath) => {
+        // plan記載のパスをリポジトリ内の絶対パスへ変換する。
         const absolutePath = resolveInsideRepo(repoRoot, sourcePath);
 
+        // planが参照するすべてのApexファイルの存在を確認する。
         if (!fileSystem.existsSync(absolutePath)) {
+            // 不足ファイルと対象entryを含めてplan修正を促す。
             throw new Error(`${entry.label}が参照するApexファイルが見つかりません: ${sourcePath}`);
         }
 
         // 空ファイルを実行対象に含めず、planまたはファイルの修正を促す。
         const content = fileSystem.readFileSync(absolutePath, 'utf8').trim();
 
+        // 空白を除いたApex本文が1文字以上あることを確認する。
         if (content.length === 0) {
+            // 空ファイルのパスを含めて実行前に停止する。
             throw new Error(`Apexファイルを空にはできません: ${sourcePath}`);
         }
 
+        // 検証済みのApex本文を合成対象として返す。
         return content;
     });
 
@@ -201,6 +252,7 @@ function buildSfArgs(absoluteFilePath, targetOrg) {
 
 // Salesforce CLIの出力から、seed処理が明示的に出力した集計行だけを抽出する。
 function extractSfSummary(output) {
+    // Salesforce CLI出力を行へ分割し、seed処理のDEBUG集計だけを返す。
     return output
         .split(/\r?\n/)
         .filter((line) => /USER_DEBUG\|.*\|(DEBUG)\|(Seed run key|Created records|Skipped records):/.test(line))
@@ -212,12 +264,15 @@ function prepareEntries({ args, fileSystem, plan, repoRoot }) {
     // CLI指定、plan指定、既定値の順で共通repeat回数を決定する。
     const defaultRepeat = args.defaultRepeat ?? plan.repeat ?? 1;
 
+    // 共通既定回数を各entryへ適用する前に検証する。
     assertPositiveInteger(defaultRepeat, '既定の繰り返し回数');
 
+    // 選択した各entryを実行順のまま準備済みオブジェクトへ変換する。
     return getSelectedEntries(plan, args.only).map((entry) => {
         // --repeatは個別entryやplanのrepeat指定より優先する。
         const repeatCount = args.repeat ?? entry.repeat ?? defaultRepeat;
 
+        // entryへ適用する最終的な繰り返し回数を検証する。
         assertPositiveInteger(repeatCount, `${entry.label}の繰り返し回数`);
         // 各entryへ検証済み回数と合成済みApexを対応付ける。
         return {

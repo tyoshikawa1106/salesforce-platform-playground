@@ -12,6 +12,7 @@ const main = createOrgTestMain({
 
 // コマンドとして実行された場合だけFlowテストを開始する。
 if (require.main === module) {
+    // Flow用mainを共通の終了コード処理で開始する。
     startOrgTest(main, 'Flow');
 }
 

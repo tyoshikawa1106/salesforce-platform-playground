@@ -12,6 +12,7 @@ const main = createOrgTestMain({
 
 // コマンドとして実行された場合だけApexテストを開始する。
 if (require.main === module) {
+    // Apex用mainを共通の終了コード処理で開始する。
     startOrgTest(main, 'Apex');
 }
 

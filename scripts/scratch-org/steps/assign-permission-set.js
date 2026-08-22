@@ -27,6 +27,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
 
 // コマンドとして実行された場合だけPermission Setを割り当てる。
 if (require.main === module) {
+    // 引数検証と割り当て結果をshellへ終了コードとして返す。
     process.exitCode = main();
 }
 

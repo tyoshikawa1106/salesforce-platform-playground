@@ -17,10 +17,13 @@ async function main({
 } = {}) {
     // help要求ではalias解析やデータ投入を行わない。
     if (argv.length === 1 && (argv[0] === '--help' || argv[0] === '-h')) {
+        // 注入された標準出力へ実行方法を表示する。
         stdout.write(`${usage}\n`);
+        // 組織操作を行わない正常終了として0を返す。
         return 0;
     }
 
+    // 引数または共通データ投入の例外を利用者向け表示へ変換する。
     try {
         // 未指定時は再現設定のaliasを使い、指定時は検証済みaliasへ限定する。
         const alias = parseAlias(argv, scratchOrg.alias, false);
@@ -35,7 +38,9 @@ async function main({
     } catch (error) {
         // setup.jsが失敗stepを識別できるよう、利用者向け表示後に1を返す。
         stderr.write(`エラー: ${error.message}\n`);
+        // エラー後に正しい実行方法も表示する。
         stderr.write(`${usage}\n`);
+        // setup.jsへテストデータ投入失敗を返す。
         return 1;
     }
 }
@@ -44,6 +49,7 @@ async function main({
 if (require.main === module) {
     // 非同期処理の終了コードを親のsetup.jsまたはshellへ反映する。
     main().then((exitCode) => {
+        // 成功、中止、失敗の終了コードをshellへ設定する。
         process.exitCode = exitCode;
     });
 }

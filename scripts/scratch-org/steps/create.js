@@ -41,6 +41,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, stdout = pro
 
 // コマンドとして実行された場合だけScratch Orgを作成する。
 if (require.main === module) {
+    // 引数検証と作成結果をshellへ終了コードとして返す。
     process.exitCode = main();
 }
 
