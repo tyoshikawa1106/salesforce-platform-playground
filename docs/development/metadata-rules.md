@@ -22,7 +22,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
 - retrieve 前に、対象 Salesforce 組織の alias、取得方法、既存ファイルへの上書き影響、権限系メタデータへの影響を確認する。
-- 一括取得は実行時に表示される default target org を確認してから続行する。個別に retrieve する場合は、確認済みの alias を `--target-org <alias>` で明示する。
+- 一括取得はdefault target orgのalias、ユーザー名、URL、種別を確認してから続行し、すべてのretrieveに確認済みのaliasを`--target-org <alias>`で明示する。個別にretrieveする場合も、確認済みのaliasを明示する。
 
 ## Git 管理対象
 
