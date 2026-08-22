@@ -15,4 +15,5 @@ if (require.main === module) {
     startOrgTest(main, 'Flow');
 }
 
+// 承認分岐を組織接続なしでテストできるようmainを公開する。
 module.exports = { main };

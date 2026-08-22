@@ -8,6 +8,7 @@ const defaultPlan = 'scripts/setup/plans/import-test-data-plan.json';
 
 // 値を必要とするオプションの次の引数を読み取る。
 function readOptionValue(argv, index, option) {
+    // 値を取るオプションの直後だけを対応する値として読む。
     const value = argv[index + 1];
 
     if (value === undefined || value.startsWith('-')) {
@@ -19,6 +20,7 @@ function readOptionValue(argv, index, option) {
 
 // CLI引数を後続処理で扱いやすい設定へ変換する。
 function parseArgs(argv) {
+    // 未指定オプションを後続処理で判定しやすい既定状態へ揃える。
     const args = {
         defaultRepeat: null,
         dryRun: false,
@@ -33,34 +35,40 @@ function parseArgs(argv) {
         const arg = argv[index];
 
         if (arg === '--dry-run') {
+            // dry-runは値を取らないflagとして有効化する。
             args.dryRun = true;
             continue;
         }
 
         if (arg === '--help' || arg === '-h') {
+            // 長短どちらのhelp指定も同じ状態へ変換する。
             args.help = true;
             continue;
         }
 
         if (arg === '--plan') {
+            // plan指定を保存し、値の位置を次のloopで再解釈しない。
             args.plan = readOptionValue(argv, index, arg);
             index += 1;
             continue;
         }
 
         if (arg === '--default-repeat') {
+            // 数値変換後の妥当性はentry準備時に共通検証する。
             args.defaultRepeat = Number(readOptionValue(argv, index, arg));
             index += 1;
             continue;
         }
 
         if (arg === '--only') {
+            // labelはplan読込後に実在するentryと照合する。
             args.only = readOptionValue(argv, index, arg);
             index += 1;
             continue;
         }
 
         if (arg === '--repeat') {
+            // 選択entryへ優先適用する回数として数値化する。
             args.repeat = Number(readOptionValue(argv, index, arg));
             index += 1;
             continue;
@@ -69,6 +77,7 @@ function parseArgs(argv) {
         throw new Error(`未対応の引数が指定されました: ${arg}`);
     }
 
+    // すべての引数を解釈した設定だけを後続処理へ返す。
     return args;
 }
 
@@ -81,13 +90,16 @@ function assertPositiveInteger(value, label) {
 
 // planから指定された相対パスを、リポジトリ外へ出ない絶対パスに変換する。
 function resolveInsideRepo(repoRoot, relativePath) {
+    // path.resolveへ渡す前に、plan由来の値を空でない文字列へ限定する。
     if (typeof relativePath !== 'string' || relativePath.length === 0) {
         throw new Error('リポジトリからの相対パスを空でない文字列として指定してください。');
     }
 
+    // 正規化した絶対パスとリポジトリからの相対位置を求める。
     const absolutePath = path.resolve(repoRoot, relativePath);
     const relative = path.relative(repoRoot, absolutePath);
 
+    // ../や絶対パスによってリポジトリ外を参照するplanを拒否する。
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
         throw new Error(`リポジトリ内のパスを指定してください: ${relativePath}`);
     }
@@ -97,6 +109,7 @@ function resolveInsideRepo(repoRoot, relativePath) {
 
 // import planを読み込み、処理に必要な最小構造を確認する。
 function readPlan({ fileSystem, planPath, repoRoot }) {
+    // plan自体もリポジトリ内に限定してからJSONとして読み込む。
     const absolutePlanPath = resolveInsideRepo(repoRoot, planPath);
     const plan = JSON.parse(fileSystem.readFileSync(absolutePlanPath, 'utf8'));
 
@@ -115,6 +128,7 @@ function readPlan({ fileSystem, planPath, repoRoot }) {
 
 // --onlyが指定された場合は、該当するplan entryだけを実行対象にする。
 function getSelectedEntries(plan, only) {
+    // --only未指定時はplan順を保ち、指定時は完全一致するlabelへ絞る。
     const entries = only ? plan.imports.filter((entry) => entry.label === only) : plan.imports;
 
     if (entries.length === 0) {
@@ -126,6 +140,7 @@ function getSelectedEntries(plan, only) {
 
 // entryが単独実行か、共通preambleとの合成対象かを判定する。
 function getSourcePaths(plan, entry) {
+    // 実行内容を特定する3項目が揃っているかをまとめて確認する。
     const requiredKeys = ['label', 'operation', 'file'];
     const missingKeys = requiredKeys.filter((key) => !entry[key]);
 
@@ -151,7 +166,9 @@ function getSourcePaths(plan, entry) {
 
 // plan entryが参照するApexを読み込み、実行用の1つのソースへ合成する。
 function readApexSource({ entry, fileSystem, plan, repoRoot }) {
+    // standalone指定に応じて、合成するApexファイルの順序を確定する。
     const sourcePaths = getSourcePaths(plan, entry);
+    // 各ファイルを検証してから、末尾空白を除いたソースだけを保持する。
     const sourceParts = sourcePaths.map((sourcePath) => {
         const absolutePath = resolveInsideRepo(repoRoot, sourcePath);
 
@@ -169,6 +186,7 @@ function readApexSource({ entry, fileSystem, plan, repoRoot }) {
         return content;
     });
 
+    // ファイル間に空行を入れ、anonymous Apexとして1つのソースへ合成する。
     return {
         source: `${sourceParts.join('\n\n')}\n`,
         sourcePaths
@@ -177,6 +195,7 @@ function readApexSource({ entry, fileSystem, plan, repoRoot }) {
 
 // 合成したanonymous Apexを指定組織で実行するSalesforce CLI引数を作る。
 function buildSfArgs(absoluteFilePath, targetOrg) {
+    // anonymous Apexファイルと対象組織を明示した引数配列を返す。
     return ['apex', 'run', '--file', absoluteFilePath, '--target-org', targetOrg];
 }
 
@@ -200,6 +219,7 @@ function prepareEntries({ args, fileSystem, plan, repoRoot }) {
         const repeatCount = args.repeat ?? entry.repeat ?? defaultRepeat;
 
         assertPositiveInteger(repeatCount, `${entry.label}の繰り返し回数`);
+        // 各entryへ検証済み回数と合成済みApexを対応付ける。
         return {
             entry,
             repeatCount,

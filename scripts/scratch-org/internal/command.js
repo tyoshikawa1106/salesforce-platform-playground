@@ -3,11 +3,13 @@
 
 // --aliasが指定されていればその値を使い、未指定なら既定aliasを使用する。
 function parseAlias(argv, defaultAlias, aliasRequired) {
+    // 引数なしの場合だけ、必須指定または既定値の規則を適用する。
     if (argv.length === 0) {
         if (aliasRequired) {
             throw new Error('Scratch Orgのaliasを--alias <alias>で指定してください。');
         }
 
+        // 任意指定のコマンドでは設定ファイルのaliasを使用する。
         return defaultAlias;
     }
 
@@ -21,6 +23,7 @@ function parseAlias(argv, defaultAlias, aliasRequired) {
             throw new Error(`未対応の引数が指定されました: ${argv.slice(2).join(', ')}`);
         }
 
+        // 検証済みのalias値だけを組織操作へ返す。
         return argv[1];
     }
 
@@ -46,6 +49,7 @@ function runAliasCommand({
         // aliasを確定してから、組織を操作する実処理へ渡す。
         const alias = parseAlias(argv, defaultAlias, aliasRequired);
         const executeExitCode = execute(alias);
+        // 実処理が終了コードを返さない場合は成功としてCLI規約へ揃える。
         return executeExitCode ?? 0;
     } catch (error) {
         // 利用者が修正すべき内容だけを表示し、生のスタックトレースを出さない。
