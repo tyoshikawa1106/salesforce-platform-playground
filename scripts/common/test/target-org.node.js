@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/internal/test/target-org.node.js
+// 実行コマンド: node --test scripts/common/test/target-org.node.js
 // 用途: Salesforce CLIの組織一覧から対象組織を安全に分類できることを検証する。
 
 const test = require('node:test');

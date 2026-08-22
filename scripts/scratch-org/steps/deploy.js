@@ -1,19 +1,22 @@
 // 実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>]
 // 用途: setup.jsから呼び出し、Scratch Orgへ初期メタデータを反映する。
 
-const { runSf } = require('../../internal/run-command');
+const { runSf } = require('../../common/run-command');
 const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
 
+// helpと引数エラーで同じ実行例を表示する。
 const usage = '実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>]';
 
 // Scratch Org再現用に限定したmanifestを、作成済みのaliasへ反映する。
 function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
+    // 未指定時は再現設定のaliasを使い、指定時は検証済みaliasへ限定する。
     return runAliasCommand({
         argv,
         defaultAlias: scratchOrg.alias,
         usage,
         execute(alias) {
+            // 再構築専用manifestを指定Scratch Orgへ待機時間付きで反映する。
             return runSfCommand(
                 [
                     'project',
@@ -37,4 +40,5 @@ if (require.main === module) {
     process.exitCode = main();
 }
 
+// CLI引数の組み立てを組織接続なしでテストできるようmainを公開する。
 module.exports = { main };

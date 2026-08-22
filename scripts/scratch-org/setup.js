@@ -1,10 +1,11 @@
 // 実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]
 // 用途: Scratch Orgの作成、メタデータ反映、権限割り当て、テストデータ投入を順番に行う。
 
-const { runNodeScript } = require('../internal/run-command');
+const { runNodeScript } = require('../common/run-command');
 const { repoRoot, scratchOrg } = require('./internal/context');
 const { runAliasCommand } = require('./internal/command');
 
+// helpと引数エラーで同じ実行例を表示する。
 const usage = '実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]';
 
 // 指定されたaliasでScratch Orgの準備手順を順番に実行する。
@@ -14,6 +15,7 @@ function main({
     stderr = process.stderr,
     stdout = process.stdout
 } = {}) {
+    // aliasの決定、help、例外表示は全Scratch Orgコマンドと同じ規則を使用する。
     return runAliasCommand({
         argv,
         defaultAlias: scratchOrg.alias,
@@ -43,6 +45,7 @@ function main({
                 }
             }
 
+            // 全stepが成功した場合だけ準備完了として0を返す。
             return 0;
         }
     });
@@ -53,4 +56,5 @@ if (require.main === module) {
     process.exitCode = main();
 }
 
+// step順序と失敗時の停止を組織接続なしでテストできるようmainを公開する。
 module.exports = { main };

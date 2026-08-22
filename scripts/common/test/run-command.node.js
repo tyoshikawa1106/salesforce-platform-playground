@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/internal/test/run-command.node.js
+// 実行コマンド: node --test scripts/common/test/run-command.node.js
 // 用途: Salesforce CLIとNode.js子スクリプトのOS別実行方法を検証する。
 
 const test = require('node:test');

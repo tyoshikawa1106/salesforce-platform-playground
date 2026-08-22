@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/internal/test/approval.node.js
+// 実行コマンド: node --test scripts/common/test/approval.node.js
 // 用途: 確認入力の生成と承認判定を検証する。
 
 const test = require('node:test');

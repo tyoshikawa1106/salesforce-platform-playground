@@ -4,9 +4,9 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createApprovalPrompt, isApproved } = require('../internal/approval');
-const { runSfWithOutput } = require('../internal/run-command');
-const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../internal/target-org');
+const { createApprovalPrompt, isApproved } = require('../common/approval');
+const { runSfWithOutput } = require('../common/run-command');
+const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../common/target-org');
 const { defaultPlan, parseArgs, prepareEntries, readPlan } = require('./internal/import-test-data-core');
 const { runPreparedEntries } = require('./internal/import-test-data-runner');
 
@@ -45,12 +45,15 @@ async function run({
     const args = parseArgs(argv);
 
     if (args.help) {
+        // helpでは組織情報やplanを読み込まず、使用方法だけを表示する。
         printHelp(stdout);
         return;
     }
 
+    // 注入されたstdoutへ常に改行付きで表示する共通関数を用意する。
     const writeLine = (message = '') => stdout.write(`${message}\n`);
 
+    // dry-runでは組織設定を読まないため、表示専用のtarget org名を使用する。
     let targetOrg = '<default-target-org>';
 
     if (!args.dryRun) {
@@ -65,6 +68,7 @@ async function run({
 
         // 表示された接続組織を実行者が承認した場合だけ安全判定へ進む。
         const prompt = createApprovalPrompt(createPrompt);
+        // finallyで確実にpromptを閉じられるよう回答を外側で保持する。
         let targetAnswer;
 
         try {
@@ -96,6 +100,7 @@ async function run({
         plan,
         repoRoot
     });
+    // 検証済みentryだけをdry-runまたは実投入処理へ渡す。
     runPreparedEntries({
         dryRun: args.dryRun,
         fileSystem,
@@ -111,10 +116,12 @@ async function run({
 
 // 利用者が修正すべき内容だけを簡潔に表示し、CLIへ失敗を返す。
 if (require.main === module) {
+    // Promise rejectionを利用者向けメッセージと失敗終了へ変換する。
     run().catch((error) => {
         process.stderr.write(`エラー: ${error.message}\n`);
         process.exitCode = 1;
     });
 }
 
+// dry-runと安全判定を依存差し替えでテストできるようrunを公開する。
 module.exports = { run };

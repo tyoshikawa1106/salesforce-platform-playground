@@ -2,9 +2,9 @@
 // 用途: Default Target Orgのメタデータ削除をdry-runし、承認後に実行する。
 
 const path = require('node:path');
-const { createApprovalPrompt, isApproved } = require('../../internal/approval');
-const { runSf, runSfWithOutput } = require('../../internal/run-command');
-const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../../internal/target-org');
+const { createApprovalPrompt, isApproved } = require('../../common/approval');
+const { runSf, runSfWithOutput } = require('../../common/run-command');
+const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../../common/target-org');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -96,6 +96,7 @@ async function main({
 
 // destructive deployを開始 (テストスクリプトからの実行の場合はSkip)
 if (require.main === module) {
+    // Promiseの完了を待ち、mainが決定した成否をプロセスへ反映する。
     main()
         .then((status) => {
             // mainの結果を終了コードに設定する。
@@ -108,4 +109,5 @@ if (require.main === module) {
         });
 }
 
+// 確認分岐を組織接続なしでテストできるようmainを公開する。
 module.exports = { main };
