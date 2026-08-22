@@ -172,8 +172,14 @@ Apex 変更を push する前に、関連する Apex テストを coverage 付�
 
 PR の CI では SLDS Linter を `npm run lint:slds`、Salesforce Code Analyzer を `npm run code-analyzer:ci` で実行します。
 
+静的解析は、対象とするソースに応じて次のように使い分けます。
+
+- `npm run lint` は、Aura、LWC、`scripts/**/*.js` の JavaScript を ESLint で解析する。
+- `npm run code-analyzer` と `npm run code-analyzer:ci` は、npm script に設定した `--target force-app` により Salesforce ソースを解析する。
+- Node.js スクリプトは ESLint の対象とし、同じ解析を重複させる目的で Code Analyzer の対象へ追加しない。Code Analyzer の対象を変更する場合は、使用する engine と parser の互換性、適用される rule、既存の ESLint との役割分担を確認する。
+
 - Code Analyzer は、原則としてこのリポジトリの `npm run code-analyzer` または `npm run code-analyzer:ci` で実行する。
-- 変更ファイルだけを対象にするなど、`sf code-analyzer run` を直接実行する必要がある場合も、`--output-file` の解析結果と `tee` の実行ログをどちらも `logs/code-analyzer/` 配下へ保存する。リポジトリ直下へ `code-analyzer-results-*` を出力しない。
+- 変更ファイルだけを対象にするなど、`sf code-analyzer run` を直接実行する必要がある場合は、解析対象を `--target` で明示する。また、`--output-file` の解析結果と `tee` の実行ログをどちらも `logs/code-analyzer/` 配下へ保存する。リポジトリ直下へ `code-analyzer-results-*` を出力しない。
 - `forcedotcom/sf-skills` など外部取得物のコマンド例がリポジトリ直下を出力先にしている場合は、その出力先だけを `logs/code-analyzer/` 配下へ置き換える。
 - Code Analyzer、ESLint、その他の静的解析について、ユーザーの明示的な許可なしに suppression、除外設定、対象範囲の縮小、severity threshold の緩和を追加または拡大しない。
 - 解析結果は suppression 適用後の件数だけを報告せず、抑止された違反がある場合は、その件数、対象 rule、対象ファイルを明示する。無効化した rule がある場合も、rule 名と理由を明示する。

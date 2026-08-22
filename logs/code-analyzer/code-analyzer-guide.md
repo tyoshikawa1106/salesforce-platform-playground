@@ -4,7 +4,7 @@
 
 `sf code-analyzer run --output-file` で生成した解析結果ファイルは Git 管理しません。このガイドだけを Git 管理し、Code Analyzer の出力先フォルダ名を固定します。
 
-このリポジトリの npm scripts は `--output-file` で `logs/code-analyzer/` 配下を指定しているため、以下のコマンドを実行すると同ディレクトリに結果ファイルが生成されます。
+このリポジトリの npm scripts は `--target force-app` で解析対象を Salesforce ソースに限定し、`--output-file` で `logs/code-analyzer/` 配下を指定しています。そのため、以下のコマンドを実行すると `force-app` の解析結果が同ディレクトリに生成されます。Aura、LWC、`scripts/**/*.js` の JavaScript は `npm run lint` で解析します。
 
 ## 使いどころ
 
@@ -40,7 +40,7 @@ logs/code-analyzer/ci.json
 
 ## 対象を限定した確認
 
-変更ファイルだけを解析するなど、`sf code-analyzer run` を直接実行する場合も、解析結果と実行ログの両方を `logs/code-analyzer/` 配下へ保存します。
+変更ファイルだけを解析するなど、`sf code-analyzer run` を直接実行する場合は、解析対象を `--target` で明示し、解析結果と実行ログの両方を `logs/code-analyzer/` 配下へ保存します。
 
 ```sh
 sf code-analyzer run \

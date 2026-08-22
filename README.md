@@ -70,21 +70,21 @@ Salesforce 開発組織に対する操作は、対象と目的を確認してか
 
 #### 検証・解析
 
-| コマンド                     | 用途                                                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `npm test`                   | スクリプトテストとLWC unit testを順番に実行する。                                                                               |
-| `npm run test:scripts`       | リポジトリ運用スクリプトのNode.js testを実行する。                                                                              |
-| `npm run test:unit`          | LWC unit testを実行する。                                                                                                       |
-| `npm run test:unit:watch`    | LWC unit testを監視モードで実行する。                                                                                           |
-| `npm run test:unit:debug`    | LWC unit testをデバッグモードで実行する。                                                                                       |
-| `npm run test:unit:coverage` | LWC unit testを実行してカバレッジを出力する。                                                                                   |
-| `npm run lint`               | Aura、LWC、リポジトリ運用スクリプトをESLintで検査する。                                                                         |
-| `npm run lint:slds`          | LWCをSLDS Linterで検査する。                                                                                                    |
-| `npm run docs:check`         | Markdownの構造、リンク、索引、安全でないコマンド例を検査する。                                                                  |
-| `npm run prettier:verify`    | 対象ファイルを書き換えず、フォーマットを確認する。                                                                              |
-| `npm run prettier`           | リポジトリ全体の対象ファイルを自動整形する。通常は`npm run prettier:verify`を使用し、全体を整形する必要がある場合だけ実行する。 |
-| `npm run code-analyzer`      | `force-app`をSalesforce Code Analyzerで解析する。                                                                               |
-| `npm run code-analyzer:ci`   | `force-app`をCI基準で解析し、重要度3以上の検出で失敗する。                                                                      |
+| コマンド                     | 用途                                                           |
+| ---------------------------- | -------------------------------------------------------------- |
+| `npm test`                   | スクリプトテストとLWC unit testを順番に実行する。              |
+| `npm run test:scripts`       | リポジトリ運用スクリプトのNode.js testを実行する。             |
+| `npm run test:unit`          | LWC unit testを実行する。                                      |
+| `npm run test:unit:watch`    | LWC unit testを監視モードで実行する。                          |
+| `npm run test:unit:debug`    | LWC unit testをデバッグモードで実行する。                      |
+| `npm run test:unit:coverage` | LWC unit testを実行してカバレッジを出力する。                  |
+| `npm run lint`               | Aura、LWC、リポジトリ運用スクリプトをESLintで検査する。        |
+| `npm run lint:slds`          | LWCをSLDS Linterで検査する。                                   |
+| `npm run docs:check`         | Markdownの構造、リンク、索引、安全でないコマンド例を検査する。 |
+| `npm run prettier:verify`    | 対象ファイルを書き換えず、フォーマットを確認する。             |
+| `npm run prettier`           | リポジトリ全体の対象ファイルを自動整形する。                   |
+| `npm run code-analyzer`      | `force-app`をSalesforce Code Analyzerで解析する。              |
+| `npm run code-analyzer:ci`   | `force-app`をCI基準で解析し、重要度3以上の検出で失敗する。     |
 
 #### Salesforce 組織操作
 
