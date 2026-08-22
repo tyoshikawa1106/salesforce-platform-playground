@@ -19,7 +19,7 @@ function printStep({ cycle, dryRun, entry, repeatCount, sfArgs, sourcePaths, wri
     writeLine(`[${dryRun ? 'dry-run' : 'import'}] ${entry.label}${cycleSuffix}`);
     // 合成元Apexファイルを実行順に表示する。
     writeLine(`sources: ${sourcePaths.join(' + ')}`);
-    // 実行またはdry-run対象のSalesforce CLIコマンドを表示する。
+    // dry-run結果と実投入ログを同じコマンド表記で照合できるようにする。
     writeLine(`sf ${sfArgs.join(' ')}`);
 }
 
@@ -106,9 +106,9 @@ function runPreparedEntries({
                     writeLine
                 });
 
-                // 実投入時だけSalesforce CLIを呼び出す。
+                // dry-runの安全境界として、外部プロセスの起動を実投入だけに限定する。
                 if (!dryRun) {
-                    // 実投入時だけSalesforce CLIを呼び出し、dry-runは表示で止める。
+                    // CLI失敗時に残りのrepeatへ進まない実行経路を使用する。
                     executeSfCommand({
                         entry: prepared.entry,
                         repoRoot,

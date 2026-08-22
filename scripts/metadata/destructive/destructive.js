@@ -47,7 +47,7 @@ async function main({
 
         // 明示承認以外では組織へ変更を加えない。
         if (!isApproved(targetAnswer)) {
-            // 利用者へ中止結果を表示する。
+            // 承認されなかったことを操作結果として明示する。
             console.log('メタデータ削除を中止しました。');
             // 正常な利用者中止として0を返す。
             return 0;
@@ -55,14 +55,14 @@ async function main({
 
         // 本番環境とDeveloper Editionでは、dry-runより前に環境別の最終確認を行う。
         if (orgInfo.type === orgTypes.PRODUCTION || orgInfo.type === orgTypes.DEVELOPER_EDITION) {
-            // 高リスク環境であることを含む別質問への回答を取得する。
+            // 接続先の承認だけで高リスク環境の削除を許可しない。
             const environmentAnswer = await prompt.question(
                 `${orgInfo.typeLabel}です。メタデータ削除を実行してよろしいですか？ [y/N]: `
             );
 
             // 環境別の明示承認がない場合はdry-runも開始しない。
             if (!isApproved(environmentAnswer)) {
-                // 利用者へ中止結果を表示する。
+                // 環境別の承認がなかったことを操作結果として明示する。
                 console.log('メタデータ削除を中止しました。');
                 // 正常な利用者中止として0を返す。
                 return 0;
@@ -95,13 +95,13 @@ async function main({
 
         // yまたはY以外の場合は実削除を中止する。
         if (!isApproved(deleteAnswer)) {
-            // 利用者へ最終確認での中止結果を表示する。
+            // dry-run後の最終承認がなかったことを操作結果として明示する。
             console.log('メタデータの削除を中止しました。');
             // 正常な利用者中止として0を返す。
             return 0;
         }
 
-        // 承認されたmanifestの削除を実行する。
+        // dry-runと同じ対象組織・manifestだけを実削除へ引き渡す。
         return runSfCommand(deployArgs, repoRoot);
     } finally {
         // 中止やCLI失敗の場合も確認入力を終了する。
@@ -114,7 +114,7 @@ if (require.main === module) {
     // Promiseの完了を待ち、mainが決定した成否をプロセスへ反映する。
     main()
         .then((status) => {
-            // mainの結果を終了コードに設定する。
+            // npmが中止・成功・失敗を区別できるようmainの結果を反映する。
             process.exitCode = status;
         })
         .catch((error) => {

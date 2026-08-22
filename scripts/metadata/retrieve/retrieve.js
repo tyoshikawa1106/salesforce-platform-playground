@@ -92,7 +92,7 @@ async function main({
 
     // yまたはY以外の場合はretrieveを中止する。
     if (!isApproved(answer)) {
-        // 利用者へ中止結果を表示する。
+        // 承認されなかったことを操作結果として明示する。
         console.log('メタデータの取得を中止しました。');
         // 正常な利用者中止として0を返す。
         return 0;
@@ -100,7 +100,7 @@ async function main({
 
     // manifestの定義順にメタデータを取得する。
     for (const [index, manifest] of manifests.entries()) {
-        // 全体に対する現在位置とmanifest名を表示する。
+        // 失敗時に停止位置を特定できるよう、処理前に対象manifestを明示する。
         console.log(`[${index + 1}/${manifests.length}] ${path.basename(manifest)} を取得します。`);
 
         // 失敗した場合は後続のretrieveを実行しない。
@@ -115,7 +115,7 @@ async function main({
         }
     }
 
-    // 全manifestのretrieve完了を表示する。
+    // 途中で失敗せず全manifestを処理できたことを明示する。
     console.log('すべてのメタデータ取得が完了しました。');
     // 全取得成功を呼び出し元へ返す。
     return 0;
@@ -126,7 +126,7 @@ if (require.main === module) {
     // Promiseの完了を待ち、mainが決定した成否をプロセスへ反映する。
     main()
         .then((status) => {
-            // mainの結果を終了コードに設定する。
+            // npmが中止・成功・失敗を区別できるようmainの結果を反映する。
             process.exitCode = status;
         })
         .catch((error) => {

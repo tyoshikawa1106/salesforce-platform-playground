@@ -17,7 +17,7 @@ async function main({
 } = {}) {
     // help要求ではalias解析やデータ投入を行わない。
     if (argv.length === 1 && (argv[0] === '--help' || argv[0] === '-h')) {
-        // 注入された標準出力へ実行方法を表示する。
+        // テスト時も出力先を差し替えられる経路で使用方法を案内する。
         stdout.write(`${usage}\n`);
         // 組織操作を行わない正常終了として0を返す。
         return 0;
@@ -49,7 +49,7 @@ async function main({
 if (require.main === module) {
     // 非同期処理の終了コードを親のsetup.jsまたはshellへ反映する。
     main().then((exitCode) => {
-        // 成功、中止、失敗の終了コードをshellへ設定する。
+        // setup.jsがテストデータ投入の成否を検知できる終了状態にする。
         process.exitCode = exitCode;
     });
 }

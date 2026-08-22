@@ -80,7 +80,7 @@ async function runAndMonitorTests({
     let notifyInterrupted;
     // poll待機と競合させる中断通知Promiseを作成する。
     const interruptedPromise = new Promise((resolve) => {
-        // SIGINT受信時に呼び出すresolveを外側へ保存する。
+        // poll待機中でもSIGINTからPromise.raceを完了できる状態にする。
         notifyInterrupted = resolve;
     });
     // SIGINT受信時は組織上のテストを停止せず、ローカル監視だけを終了させる。
@@ -100,7 +100,7 @@ async function runAndMonitorTests({
 
             // 進捗取得失敗を組織テスト自体の失敗と区別する。
             try {
-                // 現在のテストランに対応する最新進捗を取得する。
+                // 開始時に確定したrun IDだけを終了判定の対象にする。
                 progress = getTestRunProgress({ repoRoot, runSfWithOutputCommand, targetOrg, testRunId });
             } catch (error) {
                 // 監視不能でも組織上のテスト状態を断定せず、手動確認方法を残す。

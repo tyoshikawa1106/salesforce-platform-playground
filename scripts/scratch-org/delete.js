@@ -24,7 +24,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
 
 // コマンドとして実行された場合だけScratch Orgを削除する。
 if (require.main === module) {
-    // 引数検証と削除処理の結果をshellへ終了コードとして返す。
+    // 呼び出し元が引数エラーと削除失敗を検知できる終了状態にする。
     process.exitCode = main();
 }
 

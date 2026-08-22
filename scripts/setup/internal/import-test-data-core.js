@@ -42,7 +42,7 @@ function parseArgs(argv) {
         if (arg === '--dry-run') {
             // dry-runは値を取らないflagとして有効化する。
             args.dryRun = true;
-            // 次の引数へ進む。
+            // 値なしflagとして確定したため、他のオプション判定を重ねない。
             continue;
         }
 
@@ -50,47 +50,47 @@ function parseArgs(argv) {
         if (arg === '--help' || arg === '-h') {
             // 長短どちらのhelp指定も同じ状態へ変換する。
             args.help = true;
-            // 次の引数へ進む。
+            // help要求を通常のオプション値として再解釈しない。
             continue;
         }
 
-        // plan指定では直後のパス文字列を取得する。
+        // --planだけが既定planの参照先を置き換えられるよう分岐する。
         if (arg === '--plan') {
             // plan指定を保存し、値の位置を次のloopで再解釈しない。
             args.plan = readOptionValue(argv, index, arg);
-            // 消費した値の位置までindexを進める。
+            // planのパスを独立した引数として再解釈しない。
             index += 1;
-            // 次の未処理引数へ進む。
+            // 確定済みのplan指定に他のオプション判定を重ねない。
             continue;
         }
 
-        // plan全体へ適用する既定回数を取得する。
+        // entry固有値がない場合の回数だけを上書きできるよう分岐する。
         if (arg === '--default-repeat') {
             // 数値変換後の妥当性はentry準備時に共通検証する。
             args.defaultRepeat = Number(readOptionValue(argv, index, arg));
-            // 消費した値の位置までindexを進める。
+            // 回数の値を未対応引数として誤検出しない。
             index += 1;
-            // 次の未処理引数へ進む。
+            // 確定済みの既定回数に他のオプション判定を重ねない。
             continue;
         }
 
-        // 実行対象を1つのlabelへ絞る値を取得する。
+        // plan全体ではなく指定labelだけを選べるよう分岐する。
         if (arg === '--only') {
             // labelはplan読込後に実在するentryと照合する。
             args.only = readOptionValue(argv, index, arg);
-            // 消費した値の位置までindexを進める。
+            // labelの値を独立した引数として再解釈しない。
             index += 1;
-            // 次の未処理引数へ進む。
+            // 確定済みの対象指定に他のオプション判定を重ねない。
             continue;
         }
 
-        // 選択したentryへ優先適用する回数を取得する。
+        // 選択entryの回数を最優先で上書きできるよう分岐する。
         if (arg === '--repeat') {
             // 選択entryへ優先適用する回数として数値化する。
             args.repeat = Number(readOptionValue(argv, index, arg));
-            // 消費した値の位置までindexを進める。
+            // 回数の値を未対応引数として誤検出しない。
             index += 1;
-            // 次の未処理引数へ進む。
+            // 確定済みの個別回数に他のオプション判定を重ねない。
             continue;
         }
 

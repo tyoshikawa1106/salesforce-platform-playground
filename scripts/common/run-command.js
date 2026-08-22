@@ -10,7 +10,7 @@ const unsafeWindowsArgument = /[\r\n&|<>^%!"()]/;
 function buildSfCommand(args, platform = process.platform) {
     // macOSなどではshellを介さずsf実行ファイルへ引数配列を直接渡す。
     if (platform !== 'win32') {
-        // 受け取った引数配列を変更せず直接実行用の設定として返す。
+        // 非Windowsではshell解釈を介さない起動方法を維持する。
         return { command: 'sf', args };
     }
 
@@ -23,7 +23,7 @@ function buildSfCommand(args, platform = process.platform) {
         throw new Error('Windowsで使用できない文字が引数に含まれています。');
     }
 
-    // Windowsではsf.cmdを解決できるcmd.exeの固定形式へ変換する。
+    // AutoRun設定を無効化したcmd.exeから、安全確認済みの引数だけをsfへ渡す。
     return {
         command: 'cmd.exe',
         args: ['/d', '/c', 'sf', ...args]
@@ -72,7 +72,7 @@ function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync) {
     try {
         // JSON応答を解析する呼び出し元向けに、出力を文字列として保持する。
         const sfCommand = buildSfCommand(args);
-        // 標準出力と標準エラー出力を解析可能なspawn結果として返す。
+        // JSON解析や診断で両方の出力を参照できる起動設定を使用する。
         return spawnCommand(sfCommand.command, sfCommand.args, {
             cwd: workingDirectory,
             encoding: 'utf8'

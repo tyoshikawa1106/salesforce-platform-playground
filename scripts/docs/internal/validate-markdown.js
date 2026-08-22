@@ -104,7 +104,7 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
 
         // コードブロック内の例示は文書構造として解析しない。
         if (fenceMarker !== null) {
-            // 次の行までフェンス状態を維持して処理を終了する。
+            // フェンス内の例示を見出しやローカルリンクへ誤登録しない。
             return;
         }
 
@@ -118,7 +118,7 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
 
             // 文書内でH1がちょうど1件かを最後に確認できるよう数える。
             if (headingLevel === 1) {
-                // H1を1件検出した状態へ件数を更新する。
+                // 文書末尾でH1が1件だけか判定できるよう検出数を残す。
                 h1Count += 1;
             }
 
@@ -154,7 +154,7 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
 
             // 外部URLとメールリンクはローカルファイル検証の対象外にする。
             if (/^(https?:|mailto:)/.test(target)) {
-                // 次のリンク候補へ進み、外部URLの存在確認は行わない。
+                // 外部URLをローカル文書のリンクグラフへ登録しない。
                 continue;
             }
 
@@ -180,7 +180,7 @@ function validateFileName(filePath, projectRoot) {
 
     // indexまたはkebab-caseなら命名上の問題なしと判定する。
     if (fileName === 'index' || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fileName)) {
-        // 問題一覧を空のまま返す。
+        // 呼び出し元へ追加すべき命名問題がないことを示す。
         return [];
     }
 
@@ -256,7 +256,7 @@ function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
 
         // フェンス自体はコマンドとして評価しない。
         if (fence.isFenceLine) {
-            // 次の文書行へ進む。
+            // フェンス記号自体を危険なコマンドとして誤検出しない。
             return;
         }
 

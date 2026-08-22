@@ -48,7 +48,7 @@ function createOrgTestMain({ testLabel, testType, usage }) {
 
             // yまたはY以外の場合は組織へ接続せず終了する。
             if (!isApproved(targetAnswer)) {
-                // 対象テスト種別を含む中止結果を表示する。
+                // 接続先が承認されなかったことをテスト種別付きで明示する。
                 console.log(`${testLabel}テストの実行を中止しました。`);
                 // 正常な利用者中止として0を返す。
                 return 0;
@@ -63,7 +63,7 @@ function createOrgTestMain({ testLabel, testType, usage }) {
 
                 // 本番環境での明示承認がない場合はテストを開始しない。
                 if (!isApproved(environmentAnswer)) {
-                    // 対象テスト種別を含む中止結果を表示する。
+                    // 本番環境の承認がなかったことをテスト種別付きで明示する。
                     console.log(`${testLabel}テストの実行を中止しました。`);
                     // 正常な利用者中止として0を返す。
                     return 0;

@@ -37,7 +37,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
 
 // コマンドとして実行された場合だけメタデータを反映する。
 if (require.main === module) {
-    // 引数検証とdeploy結果をshellへ終了コードとして返す。
+    // setup.jsが引数エラーとdeploy失敗を検知できる終了状態にする。
     process.exitCode = main();
 }
 

@@ -25,7 +25,7 @@ function runGh(args, spawnCommand = spawnSync) {
         throw new Error(`GitHub CLIが失敗しました${detail ? `: ${detail}` : '。'}`);
     }
 
-    // 成功時の標準出力を常に文字列として返す。
+    // 出力なしでも呼び出し元が文字列操作できるよう空文字へ揃える。
     return result.stdout || '';
 }
 
@@ -63,7 +63,7 @@ function findOpenIssue(issueTitle, runGhCommand) {
 
     // GitHub CLIの応答形式が崩れた場合は更新処理を中断する。
     try {
-        // GitHub CLIから受け取った文字列をIssue配列へ変換する。
+        // 後続の型検証で不正な応答を見分けられるようJSONをそのまま解析する。
         issues = JSON.parse(output);
     } catch (error) {
         // 不正な応答を空一覧として扱わず、監視Issueの誤作成を防ぐ。
@@ -86,7 +86,7 @@ function findOpenIssue(issueTitle, runGhCommand) {
 function reportCheck({ actor, checkName, now = () => new Date(), result, runGhCommand = runGh, runUrl, sha }) {
     // cancelledやskippedなど、障害または復旧を表さない結果は処理しない。
     if (!supportedResults.has(result)) {
-        // Issue状態を変えずに今回の結果処理を終了する。
+        // 障害・復旧以外の結果では既存Issueへ触れない。
         return;
     }
 
@@ -104,7 +104,7 @@ function reportCheck({ actor, checkName, now = () => new Date(), result, runGhCo
         if (issueNumber !== null) {
             // 最新の失敗情報を既存Issueの時系列へ追加する。
             runGhCommand(['issue', 'comment', String(issueNumber), '--body', failureMessage]);
-            // 新規Issueを作成せず失敗時の処理を終了する。
+            // 既存Issueへの追記だけで継続障害の報告を完結させる。
             return;
         }
 
@@ -123,7 +123,7 @@ function reportCheck({ actor, checkName, now = () => new Date(), result, runGhCo
             '--assignee',
             actor
         ]);
-        // 初回障害のIssue作成後は復旧処理へ進まない。
+        // 作成直後のIssueを同じ実行内で復旧扱いしない。
         return;
     }
 
@@ -157,9 +157,9 @@ function main({ env = process.env, now = () => new Date(), runGhCommand = runGh 
 
 // workflowから直接実行された場合だけGitHubのIssueを更新する。
 if (require.main === module) {
-    // 予期しない失敗をworkflowの失敗終了へ変換する。
+    // 未捕捉例外もworkflowが検知できる失敗終了へ揃える。
     try {
-        // workflow環境変数に基づくIssue更新を開始する。
+        // 1回のjobでNightlyとWindowsの結果を同じ基準で報告する。
         main();
     } catch (error) {
         // 失敗原因をGitHub Actionsログへ簡潔に表示する。

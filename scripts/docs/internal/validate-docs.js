@@ -65,7 +65,7 @@ function validateDocumentation({
         for (const { line, target } of parsedFiles.get(filePath).localLinks) {
             // URL片をファイルパスとアンカーに分け、相対パスを実ファイルへ解決する。
             const [rawPath, rawAnchor] = target.split('#', 2);
-            // パス省略時は同じ文書、指定時はリンク元基準の絶対パスへ変換する。
+            // すべてのローカルリンクを同じ絶対パス基準で比較できるよう正規化する。
             const targetPath = rawPath ? path.resolve(path.dirname(filePath), decodeURIComponent(rawPath)) : filePath;
 
             // 存在しないリンク先はアンカー確認へ進まず、元の記述位置を報告する。
@@ -90,7 +90,7 @@ function validateDocumentation({
 
             // Markdown間のリンクだけを索引到達性の辺として保持する。
             if (markdownFileSet.has(targetPath)) {
-                // 現在の文書から直接辿れるリンク先として追加する。
+                // 後続の到達性探索でMarkdownを再解析しないよう辺を保存する。
                 linkedMarkdownFiles.push(targetPath);
             }
         }
@@ -111,7 +111,7 @@ function validateDocumentation({
 
         // すでに探索済みの文書は循環リンクから再処理しない。
         if (reachableFiles.has(filePath)) {
-            // 次の未処理文書へ進む。
+            // 探索済み文書のリンクを再展開せず、循環をここで打ち切る。
             continue;
         }
 

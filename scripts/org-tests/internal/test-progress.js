@@ -58,7 +58,7 @@ function createProgressReporter({ stdout = process.stdout, writeLine = console.l
         if (!stdout.isTTY) {
             // 注入された行出力関数へ現在の進捗を渡す。
             writeLine(message);
-            // TTY向けの上書き処理へ進まず終了する。
+            // 非TTYで同じ進捗を重複出力しないよう、この分岐で完結させる。
             return;
         }
 
@@ -73,11 +73,11 @@ function createProgressReporter({ stdout = process.stdout, writeLine = console.l
     // 呼び出し元へ更新中と完了時の2つの表示操作を提供する。
     return {
         finish(message) {
-            // 最終メッセージを改行付きで確定する。
+            // 後続ログが進捗表示と同じ行へ重ならないよう改行を確定する。
             write(message, true);
         },
         update(message) {
-            // 進捗メッセージを同じ行で更新する。
+            // TTYでpollごとの履歴を増やさない更新方法を使用する。
             write(message, false);
         }
     };

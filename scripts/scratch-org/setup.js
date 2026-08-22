@@ -56,7 +56,7 @@ function main({
 
 // コマンドとして実行された場合だけScratch Orgの準備を開始する。
 if (require.main === module) {
-    // 引数検証と全stepの結果をshellへ終了コードとして返す。
+    // 呼び出し元が準備途中の失敗を検知できる終了状態にする。
     process.exitCode = main();
 }
 

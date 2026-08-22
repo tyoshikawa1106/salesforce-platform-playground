@@ -21,7 +21,7 @@ const orgTypeLabels = Object.freeze({
 function parseSfJson(result, operation) {
     // プロセス開始エラーはSalesforce CLIが返したエラーと区別する。
     if (result.error) {
-        // 対象操作名とspawnエラーを保持して呼び出し元へ返す。
+        // 起動失敗の原因を失わず、組織判定を開始前に中断する。
         throw new Error(`${operation}を開始できませんでした: ${result.error.message}`);
     }
 
@@ -188,7 +188,7 @@ function getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg }) {
 function printTargetOrgInfo(orgInfo, writeLine = console.log) {
     // これから接続する組織の確認開始を利用者へ示す。
     writeLine('接続組織を確認してください。');
-    // CLI操作で指定されるaliasを表示する。
+    // CLI操作で指定される対象名を実行前に照合できるようにする。
     writeLine(`・エイリアス: ${orgInfo.alias}`);
     // 実行ユーザーを取り違えないようusernameを表示する。
     writeLine(`・ユーザー名: ${orgInfo.username}`);
