@@ -3,6 +3,42 @@
 
 const path = require('node:path');
 
+// Markdown内の記述場所にかかわらず拒否する文字列ルール。
+const unsafeLineRules = Object.freeze([
+    {
+        message: 'WindowsのPythonインストール先を固定したPATH例にしないでください。',
+        pattern: /(?:%LOCALAPPDATA%|\$env:LOCALAPPDATA)\\Programs\\Python\\Python313/i
+    }
+]);
+
+// コードフェンスまたはインデントコード内だけで拒否するコマンドルール。
+const unsafeCommandRules = Object.freeze([
+    {
+        message: 'setx PATH を実行例に使用しないでください。',
+        pattern: /^setx(?:\.exe)?\s+"?path"?(?:\s|$)/i
+    },
+    {
+        message: 'Salesforce CLIは公式Windowsインストーラーを案内してください。',
+        pattern: /^winget\s+install\b.*\bSalesforce\.CLI\b/i
+    },
+    {
+        message: 'Heroku CLIは公式Windowsインストーラーを案内してください。',
+        pattern: /^winget\s+install\b.*\bHeroku\.HerokuCLI\b/i
+    },
+    {
+        message: 'Code Analyzerは公式のplugin名code-analyzerで導入してください。',
+        pattern: /^sf\s+plugins\s+install\s+@salesforce\/plugin-code-analyzer(?:\s|$)/i
+    },
+    {
+        message: 'winget管理対象全体ではなく更新対象を個別に指定してください。',
+        pattern: /^winget\s+upgrade\s+--all(?:\s|$)/i
+    },
+    {
+        message: 'Homebrew管理対象全体を確認なしで変更しないでください。',
+        pattern: /^brew\s+(?:upgrade|autoremove|cleanup)\s*$/i
+    }
+]);
+
 // 検証結果のパス区切りをOSにかかわらずリポジトリ表記へ揃える。
 function getRelativePath(projectRoot, filePath) {
     return path.relative(projectRoot, filePath).split(path.sep).join('/');
@@ -108,82 +144,66 @@ function validateFileName(filePath, projectRoot) {
     return [`${getRelativePath(projectRoot, filePath)}: ファイル名を kebab-case にしてください。`];
 }
 
+// コードフェンスの開始・終了を判定し、次の行で使用するmarkerを返す。
+function getNextFenceMarker(line, currentMarker) {
+    const marker = line.trimStart().match(/^(```+|~~~+)/)?.[1];
+
+    if (!marker) {
+        return { isFenceLine: false, marker: currentMarker };
+    }
+
+    if (currentMarker === null) {
+        return { isFenceLine: true, marker };
+    }
+
+    const closesFence = currentMarker[0] === marker[0] && marker.length >= currentMarker.length;
+    return { isFenceLine: true, marker: closesFence ? null : currentMarker };
+}
+
+// コード例の行からshell promptとインデントを除いたコマンドを取得する。
+function getCodeExampleCommand(line, fenceMarker) {
+    const isIndentedCode = /^(?: {4}|\t)/.test(line);
+
+    if (fenceMarker === null && !isIndentedCode) {
+        return null;
+    }
+
+    return line
+        .replace(/^(?: {4}|\t)/, '')
+        .trimStart()
+        .replace(/^(?:PS(?:\s+[^>]*)?>|[A-Z]:\\[^>]*>|\$)\s*/i, '');
+}
+
+// 1行の内容に一致するルールを、行番号付きの問題へ変換する。
+function collectRuleIssues({ filePath, index, projectRoot, rules, value }) {
+    return rules
+        .filter(({ pattern }) => pattern.test(value))
+        .map(({ message }) => `${getRelativePath(projectRoot, filePath)}:${index + 1}: ${message}`);
+}
+
 // 端末環境や他ツールまで広く変更する危険なコマンド例が文書にないか確認する。
 function validateUnsafeCommandExamples({ content, filePath, projectRoot }) {
     const issues = [];
     let fenceMarker = null;
 
     content.split('\n').forEach((line, index) => {
-        // Pythonのインストール先をversion込みで固定する例は、環境差で壊れるため拒否する。
-        if (/(?:%LOCALAPPDATA%|\$env:LOCALAPPDATA)\\Programs\\Python\\Python313/i.test(line)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: WindowsのPythonインストール先を固定したPATH例にしないでください。`
-            );
-        }
+        issues.push(...collectRuleIssues({ filePath, index, projectRoot, rules: unsafeLineRules, value: line }));
 
-        const fenceMatch = line.trimStart().match(/^(```+|~~~+)/);
+        const fence = getNextFenceMarker(line, fenceMarker);
+        fenceMarker = fence.marker;
 
-        if (fenceMatch) {
-            if (fenceMarker === null) {
-                fenceMarker = fenceMatch[1];
-            } else if (fenceMarker[0] === fenceMatch[1][0] && fenceMatch[1].length >= fenceMarker.length) {
-                fenceMarker = null;
-            }
+        if (fence.isFenceLine) {
             return;
         }
 
-        const isIndentedCode = /^(?: {4}|\t)/.test(line);
+        const command = getCodeExampleCommand(line, fenceMarker);
 
         // 説明文でコマンド名に言及しただけの場合は実行例として扱わない。
-        if (fenceMarker === null && !isIndentedCode) {
+        if (command === null) {
             return;
         }
 
-        const command = line
-            .replace(/^(?: {4}|\t)/, '')
-            .trimStart()
-            .replace(/^(?:PS(?:\s+[^>]*)?>|[A-Z]:\\[^>]*>|\$)\s*/i, '');
-
-        // PATH全体の永続上書きにつながるsetxの実行例を拒否する。
-        if (/^setx(?:\.exe)?\s+"?path"?(?:\s|$)/i.test(command)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: setx PATH を実行例に使用しないでください。`
-            );
-        }
-
-        // Salesforce CLIはSalesforceが案内する公式Windowsインストーラーを使用する。
-        if (/^winget\s+install\b.*\bSalesforce\.CLI\b/i.test(command)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Salesforce CLIは公式Windowsインストーラーを案内してください。`
-            );
-        }
-
-        // Heroku CLIも公式インストーラーを使用し、非公式な導入経路を標準化しない。
-        if (/^winget\s+install\b.*\bHeroku\.HerokuCLI\b/i.test(command)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Heroku CLIは公式Windowsインストーラーを案内してください。`
-            );
-        }
-
-        // Code Analyzerは現在の公式plugin名を使用する。
-        if (/^sf\s+plugins\s+install\s+@salesforce\/plugin-code-analyzer(?:\s|$)/i.test(command)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Code Analyzerは公式のplugin名code-analyzerで導入してください。`
-            );
-        }
-
-        // パッケージ管理対象全体を一括更新する例をリポジトリ手順へ含めない。
-        if (/^winget\s+upgrade\s+--all(?:\s|$)/i.test(command)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: winget管理対象全体ではなく更新対象を個別に指定してください。`
-            );
-        }
-
-        if (/^brew\s+(?:upgrade|autoremove|cleanup)\s*$/i.test(command)) {
-            issues.push(
-                `${getRelativePath(projectRoot, filePath)}:${index + 1}: Homebrew管理対象全体を確認なしで変更しないでください。`
-            );
-        }
+        issues.push(...collectRuleIssues({ filePath, index, projectRoot, rules: unsafeCommandRules, value: command }));
     });
 
     return issues;
