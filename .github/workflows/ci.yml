@@ -106,68 +106,19 @@ jobs:
             issues: write
 
         steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
             - name: Create, update, or close failure issues
-              shell: bash
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   GH_REPO: ${{ github.repository }}
                   NPM_RESULT: ${{ needs.npm.result }}
                   WINDOWS_RESULT: ${{ needs.windows-scripts.result }}
                   RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-              run: |
-                  set -euo pipefail
-
-                  report_check() {
-                      local check_name="$1"
-                      local result="$2"
-                      local issue_title="CI: ${check_name}が失敗しています"
-                      local issue_number
-                      local checked_at
-
-                      if [[ "$result" != "success" && "$result" != "failure" ]]; then
-                          return
-                      fi
-
-                      issue_number="$(
-                          gh issue list --state open --limit 100 --json number,title \
-                              | jq -r --arg title "$issue_title" \
-                                  'first(.[] | select(.title == $title) | .number) // empty'
-                      )"
-                      checked_at="$(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S %Z')"
-
-                      if [[ "$result" == "failure" ]]; then
-                          local failure_message
-                          failure_message="$(printf '%s\n\n- 検知日時: %s\n- 対象コミット: `%s`\n- 実行結果: %s\n- 実行ログ: %s' \
-                              "${check_name}で失敗を検知しました。" \
-                              "$checked_at" \
-                              "$GITHUB_SHA" \
-                              "$result" \
-                              "$RUN_URL")"
-
-                          if [[ -n "$issue_number" ]]; then
-                              gh issue comment "$issue_number" --body "$failure_message"
-                          else
-                              gh issue create \
-                                  --title "$issue_title" \
-                                  --body "$failure_message" \
-                                  --label bug \
-                                  --label area:testing \
-                                  --assignee "$GITHUB_ACTOR"
-                          fi
-                          return
-                      fi
-
-                      if [[ -n "$issue_number" ]]; then
-                          local recovery_message
-                          recovery_message="$(printf '%s\n\n- 復旧確認日時: %s\n- 対象コミット: `%s`\n- 実行ログ: %s' \
-                              "${check_name}の成功を確認したため、このIssueをクローズします。" \
-                              "$checked_at" \
-                              "$GITHUB_SHA" \
-                              "$RUN_URL")"
-                          gh issue comment "$issue_number" --body "$recovery_message"
-                          gh issue close "$issue_number" --reason completed
-                      fi
-                  }
-
-                  report_check "Nightly npm checks" "$NPM_RESULT"
-                  report_check "Weekly Windows script checks" "$WINDOWS_RESULT"
+              run: node scripts/ci/report-quality-check.js
