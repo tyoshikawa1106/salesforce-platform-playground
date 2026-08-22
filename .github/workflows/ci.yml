@@ -1,12 +1,12 @@
-name: CI
+name: Scheduled Quality Checks
 
 on:
-    pull_request:
-        branches:
-            - main
-    push:
-        branches:
-            - main
+    schedule:
+        - cron: '30 2 * * *'
+          timezone: Asia/Tokyo
+        - cron: '30 3 * * 0'
+          timezone: Asia/Tokyo
+    workflow_dispatch:
 
 permissions:
     contents: read
@@ -15,12 +15,13 @@ env:
     HUSKY: 0
 
 concurrency:
-    group: ci-${{ github.workflow }}-${{ github.ref }}
+    group: quality-${{ github.workflow }}-${{ github.event.schedule || github.run_id }}
     cancel-in-progress: true
 
 jobs:
     npm:
-        name: npm checks
+        name: Nightly npm checks
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 2 * * *'
         runs-on: ubuntu-latest
 
         steps:
@@ -73,7 +74,8 @@ jobs:
               run: npm run test:unit -- -- --runInBand --passWithNoTests
 
     windows-scripts:
-        name: Windows script checks
+        name: Weekly Windows script checks
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 3 * * 0'
         runs-on: windows-latest
 
         steps:
@@ -91,3 +93,81 @@ jobs:
 
             - name: Run script unit tests
               run: npm run test:scripts
+
+    report:
+        name: Report scheduled check results
+        needs:
+            - npm
+            - windows-scripts
+        if: always()
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write
+
+        steps:
+            - name: Create, update, or close failure issues
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_REPO: ${{ github.repository }}
+                  NPM_RESULT: ${{ needs.npm.result }}
+                  WINDOWS_RESULT: ${{ needs.windows-scripts.result }}
+                  RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              run: |
+                  set -euo pipefail
+
+                  report_check() {
+                      local check_name="$1"
+                      local result="$2"
+                      local issue_title="CI: ${check_name}が失敗しています"
+                      local issue_number
+                      local checked_at
+
+                      if [[ "$result" != "success" && "$result" != "failure" ]]; then
+                          return
+                      fi
+
+                      issue_number="$(
+                          gh issue list --state open --limit 100 --json number,title \
+                              | jq -r --arg title "$issue_title" \
+                                  'first(.[] | select(.title == $title) | .number) // empty'
+                      )"
+                      checked_at="$(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S %Z')"
+
+                      if [[ "$result" == "failure" ]]; then
+                          local failure_message
+                          failure_message="$(printf '%s\n\n- 検知日時: %s\n- 対象コミット: `%s`\n- 実行結果: %s\n- 実行ログ: %s' \
+                              "${check_name}で失敗を検知しました。" \
+                              "$checked_at" \
+                              "$GITHUB_SHA" \
+                              "$result" \
+                              "$RUN_URL")"
+
+                          if [[ -n "$issue_number" ]]; then
+                              gh issue comment "$issue_number" --body "$failure_message"
+                          else
+                              gh issue create \
+                                  --title "$issue_title" \
+                                  --body "$failure_message" \
+                                  --label bug \
+                                  --label area:testing \
+                                  --assignee "$GITHUB_ACTOR"
+                          fi
+                          return
+                      fi
+
+                      if [[ -n "$issue_number" ]]; then
+                          local recovery_message
+                          recovery_message="$(printf '%s\n\n- 復旧確認日時: %s\n- 対象コミット: `%s`\n- 実行ログ: %s' \
+                              "${check_name}の成功を確認したため、このIssueをクローズします。" \
+                              "$checked_at" \
+                              "$GITHUB_SHA" \
+                              "$RUN_URL")"
+                          gh issue comment "$issue_number" --body "$recovery_message"
+                          gh issue close "$issue_number" --reason completed
+                      fi
+                  }
+
+                  report_check "Nightly npm checks" "$NPM_RESULT"
+                  report_check "Weekly Windows script checks" "$WINDOWS_RESULT"

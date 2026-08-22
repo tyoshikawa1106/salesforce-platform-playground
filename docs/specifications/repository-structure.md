@@ -62,7 +62,7 @@
 | `.github/ISSUE_TEMPLATE/02_bug_report.yml`  | ファイル | 不具合Issueの入力項目と初期ラベルを定義する。               |
 | `.github/ISSUE_TEMPLATE/config.yml`         | ファイル | Issueテンプレート全体の挙動を定義する。                     |
 | `.github/workflows/`                        | フォルダ | GitHub Actions workflowを格納する。                         |
-| `.github/workflows/ci.yml`                  | ファイル | PRと`main`へのpushで実行するCIを定義する。                  |
+| `.github/workflows/ci.yml`                  | ファイル | 定期・手動品質チェックと障害検知Issue管理を定義する。       |
 | `.github/copilot-instructions.md`           | ファイル | GitHub Copilotにリポジトリルールの参照順を示す。            |
 | `.github/dependabot.yml`                    | ファイル | npm依存とGitHub Actionsの定期更新を定義する。               |
 | `.github/pull_request_template.md`          | ファイル | PR本文のIssue、変更内容、確認結果、レビュー観点を定義する。 |

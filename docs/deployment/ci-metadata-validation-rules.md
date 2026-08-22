@@ -13,7 +13,9 @@
 
 ## workflow の動作
 
-`.github/workflows/ci.yml`はPRと`main`へのpushで次を実行します。
+`.github/workflows/ci.yml`は、Ubuntu上のnpmチェックを毎日2時30分、Windows上のスクリプトテストを毎週日曜3時30分にJSTで実行します。手動実行では両方を実行します。
+
+Ubuntu上のnpmチェックは次を実行します。
 
 - `npm audit --audit-level=high`
 - `npm run prettier:verify`
@@ -25,6 +27,8 @@
 - `npm run test:unit -- -- --runInBand --passWithNoTests`
 
 Code AnalyzerのためにSalesforce CLIとCode Analyzer pluginを導入しますが、Salesforce組織へのログインやmetadata validateには使いません。
+
+定期品質チェックが失敗した場合は、チェック名ごとに障害検知Issueを作成します。同じチェックの未解決Issueがある場合は新規作成せず、最新の実行結果をコメントします。後続の実行で成功した場合は、復旧コメントを追加してIssueをクローズします。
 
 ## push前のSalesforce検証
 
@@ -46,6 +50,8 @@ sf project deploy validate \
 - workflowにmetadata validate / deploy処理がないこと。
 - Salesforce JWT用Secretを参照していないこと。
 - SLDS Linter、Code Analyzer、スクリプトテスト、LWC Jestが維持されていること。
+- 定期実行と手動実行の対象ジョブが意図どおり分離されていること。
+- 障害検知Issueがチェック名ごとに重複せず、復旧時にクローズされること。
 - Salesforce組織での限定scope検証がPRの確認結果へ記録されていること。
 
 ## 報告ルール
