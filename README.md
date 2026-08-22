@@ -66,56 +66,37 @@ sf org login web --alias <alias> --set-default --browser chrome
 
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
 
-### メタデータの取得
+### 利用者向け npm スクリプト一覧
 
-VS Codeで現在接続している組織から、管理対象のメタデータを取得します。表示されたdefault target orgを確認し、`y`または`Y`を入力した場合だけ取得を開始します。
+#### 検証・解析
 
-```sh
-npm run sf:retrieve
-```
+| コマンド                     | 用途                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`                   | スクリプトテストとLWC unit testを順番に実行する。                                                                               |
+| `npm run test:scripts`       | リポジトリ運用スクリプトのNode.js testを実行する。                                                                              |
+| `npm run test:unit`          | LWC unit testを実行する。                                                                                                       |
+| `npm run test:unit:watch`    | LWC unit testを監視モードで実行する。                                                                                           |
+| `npm run test:unit:debug`    | LWC unit testをデバッグモードで実行する。                                                                                       |
+| `npm run test:unit:coverage` | LWC unit testを実行してカバレッジを出力する。                                                                                   |
+| `npm run lint`               | Aura、LWC、リポジトリ運用スクリプトをESLintで検査する。                                                                         |
+| `npm run lint:slds`          | LWCをSLDS Linterで検査する。                                                                                                    |
+| `npm run docs:check`         | Markdownの構造、リンク、索引、安全でないコマンド例を検査する。                                                                  |
+| `npm run prettier:verify`    | 対象ファイルを書き換えず、フォーマットを確認する。                                                                              |
+| `npm run prettier`           | リポジトリ全体の対象ファイルを自動整形する。通常は`npm run prettier:verify`を使用し、全体を整形する必要がある場合だけ実行する。 |
+| `npm run code-analyzer`      | `force-app`をSalesforce Code Analyzerで解析する。                                                                               |
+| `npm run code-analyzer:ci`   | `force-app`をCI基準で解析し、重要度3以上の検出で失敗する。                                                                      |
 
-### メタデータの削除
+#### Salesforce 組織操作
 
-`manifest/destructiveChanges.xml`に記載したメタデータをdefault target orgから削除します。対象組織の情報と種別を確認し、本番環境とDeveloper Editionでは追加確認を行った後にdry-runへ進みます。dry-run成功後の再確認で`y`または`Y`を入力した場合だけ実削除します。詳細は[メタデータ削除ルール](docs/deployment/metadata-deletion-rules.md)を参照してください。
-
-```sh
-npm run sf:destructive
-```
-
-### 組織テストの実行
-
-default target orgの情報を確認し、`y`または`Y`を入力した場合だけ、インストール済みパッケージを除く組織テストを実行します。本番環境では、テスト開始前に追加確認を行います。
-
-Apexテストは非同期で開始します。テストランIDとクラス単位の完了件数を表示し、全件完了後に結果とカバレッジを自動取得します。
-
-```sh
-npm run sf:test:apex
-```
-
-Flowテストも非同期で開始します。テストランIDと完了件数を表示し、全件完了後に結果とカバレッジを自動取得します。
-
-```sh
-npm run sf:test:flow
-```
-
-### 品質確認
-
-```sh
-# 整形を確認する
-npm run prettier:verify
-
-# Aura / LWCとリポジトリ運用スクリプトのJavaScriptをlintする
-npm run lint -- --no-error-on-unmatched-pattern
-
-# LWC の HTML / CSS を SLDS Linter で確認する
-npm run lint:slds
-
-# LWC unit test を実行する
-npm run test:unit -- -- --runInBand --passWithNoTests
-
-# Salesforce Code Analyzer を実行する
-npm run code-analyzer:ci
-```
+| コマンド                     | 用途                                                              |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `npm run sf:retrieve`        | Default Target Orgを確認してメタデータを取得する。                |
+| `npm run sf:destructive`     | Default Target Orgを確認し、dry-run成功後にメタデータを削除する。 |
+| `npm run sf:test:apex`       | Default Target OrgのApexテストを開始し、完了まで監視する。        |
+| `npm run sf:test:flow`       | Default Target OrgのFlowテストを開始し、完了まで監視する。        |
+| `npm run setup:data`         | Default Target Orgを確認してテストデータを投入する。              |
+| `npm run setup:data:dry-run` | 組織を操作せず、テストデータ投入の実行計画を表示する。            |
+| `npm run data:bulk:results`  | `logs/data-bulk-results/`でBulk API処理結果を取得する。           |
 
 ## AI エージェントスキル
 
