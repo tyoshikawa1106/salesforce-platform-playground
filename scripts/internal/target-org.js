@@ -147,15 +147,9 @@ function printTargetOrgInfo(orgInfo, writeLine = console.log) {
     writeLine(`・種別: ${orgInfo.typeLabel}`);
 }
 
-// yまたはYだけを明示的な承認として扱う。
-function isApproved(answer) {
-    return answer === 'y' || answer === 'Y';
-}
-
 module.exports = {
     getDefaultTargetOrg,
     getTargetOrgInfo,
-    isApproved,
     orgTypes,
     printTargetOrgInfo
 };

@@ -4,15 +4,9 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createInterface } = require('node:readline/promises');
+const { createApprovalPrompt, isApproved } = require('../internal/approval');
 const { runSfWithOutput } = require('../internal/run-command');
-const {
-    getDefaultTargetOrg,
-    getTargetOrgInfo,
-    isApproved,
-    orgTypes,
-    printTargetOrgInfo
-} = require('../internal/target-org');
+const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../internal/target-org');
 const {
     buildSfArgs,
     defaultPlan,
@@ -113,7 +107,7 @@ async function run({
         printTargetOrgInfo(orgInfo, writeLine);
 
         // 表示された接続組織を実行者が承認した場合だけ安全判定へ進む。
-        const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
+        const prompt = createApprovalPrompt(createPrompt);
         let targetAnswer;
 
         try {

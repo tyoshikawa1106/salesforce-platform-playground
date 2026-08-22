@@ -2,15 +2,9 @@
 // 用途: Default Target Orgのメタデータ削除をdry-runし、承認後に実行する。
 
 const path = require('node:path');
-const { createInterface } = require('node:readline/promises');
+const { createApprovalPrompt, isApproved } = require('../../internal/approval');
 const { runSf, runSfWithOutput } = require('../../internal/run-command');
-const {
-    getDefaultTargetOrg,
-    getTargetOrgInfo,
-    isApproved,
-    orgTypes,
-    printTargetOrgInfo
-} = require('../../internal/target-org');
+const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../../internal/target-org');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -40,7 +34,7 @@ async function main({
     printTargetOrgInfo(orgInfo);
 
     // 接続先、組織種別、実削除の確認入力を受け付ける。
-    const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
+    const prompt = createApprovalPrompt(createPrompt);
 
     try {
         // 表示された接続組織を実行者が承認した場合だけ組織種別の確認へ進む。

@@ -3,7 +3,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { createInterface } = require('node:readline/promises');
+const { createApprovalPrompt, isApproved } = require('../../internal/approval');
 const { runSf } = require('../../internal/run-command');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
@@ -64,7 +64,7 @@ async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand =
     }
 
     // retrieveを開始するかターミナルで確認する。
-    const prompt = createPrompt?.() ?? createInterface({ input: process.stdin, output: process.stdout });
+    const prompt = createApprovalPrompt(createPrompt);
     let answer;
 
     try {
@@ -74,7 +74,7 @@ async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand =
     }
 
     // yまたはY以外の場合はretrieveを中止する。
-    if (answer !== 'y' && answer !== 'Y') {
+    if (!isApproved(answer)) {
         console.log('メタデータの取得を中止しました。');
         return 0;
     }
