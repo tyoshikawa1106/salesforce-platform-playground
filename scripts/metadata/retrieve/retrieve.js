@@ -4,7 +4,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createApprovalPrompt, isApproved } = require('../../internal/approval');
-const { runSf } = require('../../internal/run-command');
+const { runSf, runSfWithOutput } = require('../../internal/run-command');
+const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo } = require('../../internal/target-org');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -41,7 +42,12 @@ const manifests = [
 ];
 
 // manifestの確認後、承認された組織からメタデータを取得する。
-async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand = runSf } = {}) {
+async function main({
+    argv = process.argv.slice(2),
+    createPrompt,
+    runSfCommand = runSf,
+    runSfWithOutputCommand = runSfWithOutput
+} = {}) {
     // このスクリプトは引数を受け付けない。
     if (argv.length !== 0) {
         console.error('エラー: このスクリプトは引数を受け付けません。');
@@ -58,10 +64,10 @@ async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand =
         }
     }
 
-    // retrieve対象のDefault Target Orgを表示する。
-    if (runSfCommand(['config', 'get', 'target-org'], repoRoot) !== 0) {
-        return 1;
-    }
+    // retrieve対象のDefault Target Orgを確定し、認証済み組織情報を表示する。
+    const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
+    const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfWithOutputCommand, targetOrg });
+    printTargetOrgInfo(orgInfo);
 
     // retrieveを開始するかターミナルで確認する。
     const prompt = createApprovalPrompt(createPrompt);
@@ -84,7 +90,12 @@ async function main({ argv = process.argv.slice(2), createPrompt, runSfCommand =
         console.log(`[${index + 1}/${manifests.length}] ${path.basename(manifest)} を取得します。`);
 
         // 失敗した場合は後続のretrieveを実行しない。
-        if (runSfCommand(['project', 'retrieve', 'start', '--manifest', manifest], repoRoot) !== 0) {
+        if (
+            runSfCommand(
+                ['project', 'retrieve', 'start', '--manifest', manifest, '--target-org', targetOrg],
+                repoRoot
+            ) !== 0
+        ) {
             return 1;
         }
     }
