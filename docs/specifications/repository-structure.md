@@ -218,7 +218,8 @@
 | `scripts/org-tests/run-flow-tests.js`                    | ファイル   | 接続先を確認してローカルFlowテストを全件開始する。                          |
 | `scripts/org-tests/internal/`                            | フォルダ   | 組織テストの非同期開始、進捗監視、結果取得処理を格納する。                  |
 | `scripts/org-tests/internal/run-org-test.js`             | ファイル   | ApexとFlowに共通する接続先確認とテスト開始処理を提供する。                  |
-| `scripts/org-tests/internal/test-runner.js`              | ファイル   | ApexテストとFlowテストの進捗監視と結果取得を共通化する。                    |
+| `scripts/org-tests/internal/test-progress.js`            | ファイル   | 組織テストの進捗取得、終了判定、表示処理を提供する。                        |
+| `scripts/org-tests/internal/test-runner.js`              | ファイル   | ApexテストとFlowテストの開始、監視、結果取得を共通化する。                  |
 | `scripts/org-tests/test/`                                | フォルダ   | 組織テスト実行scriptのNode.js testを格納する。                              |
 | `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
 | `scripts/scratch-org/setup.js`                           | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
