@@ -57,6 +57,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @param pageToken LWC から受け取ったページトークン
      * @param sortSpec 現在のソート条件
      * @return token の有効性と次ページ取得用カーソル
+     * @throws IllegalArgumentException 内部のソート条件が解析契約を満たさない場合
      */
     public static ObjectRecordSearchPageTokenCodec.ParseResult parsePageToken(String pageToken, SortSpec sortSpec) {
         // LWC から戻った token を現在のソート条件に対応するカーソルへ復元

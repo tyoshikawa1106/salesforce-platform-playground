@@ -3,7 +3,6 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchSortSupportTest {
-
     private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
@@ -336,6 +335,63 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.isNull(result.cursor, '壊れたページトークンからカーソルを返さない必要あり');
     }
 
+    /**
+     * 内部ソート条件がない場合は契約違反として通知
+     */
+    @IsTest
+    static void shouldThrowWhenSortSpecIsMissing() {
+        String errorMessage;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            errorMessage = getInvalidSortSpecErrorMessage(null);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'ページトークンの解析には検証済みのソート条件が必要です。',
+            errorMessage,
+            '内部ソート条件の欠落を契約違反にする必要あり'
+        );
+    }
+
+    /**
+     * Salesforce IDへ変換できないページトークンは無効と判定
+     */
+    @IsTest
+    static void shouldReturnInvalidResultWhenPageTokenRecordIdIsMalformed() {
+        ObjectRecordSearchContext context = createAccountContext();
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
+            context,
+            new ObjectRecordSearchRequestWrapper()
+        );
+        String pageToken = JSON.serialize(
+            new Map<String, String>{
+                'fieldApiName' => 'Name',
+                'sortDirection' => 'asc',
+                'recordId' => 'not-an-id',
+                'sortValue' => 'Cursor Account'
+            }
+        );
+        ObjectRecordSearchPageTokenCodec.ParseResult result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = ObjectRecordSearchSortSupport.parsePageToken(
+                pageToken,
+                sortSpec
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.isFalse(result.isValid, '不正なIDを含むページトークンは無効にする必要あり');
+        Assert.isNull(result.cursor, '不正なIDからカーソルを返さない必要あり');
+    }
+
     private static ObjectRecordSearchContext createAccountContext() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -361,6 +417,15 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             objectDescribe.fields.getMap().get('Name').getDescribe(),
             objectDescribe
         );
+    }
+
+    private static String getInvalidSortSpecErrorMessage(ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        try {
+            ObjectRecordSearchSortSupport.parsePageToken(null, sortSpec);
+            return null;
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
+        }
     }
 
     private static ObjectRecordSearchContext createAccountContextWithDescription() {

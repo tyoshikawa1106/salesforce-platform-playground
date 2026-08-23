@@ -45,8 +45,11 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
      * @param pageToken LWC から受け取ったページ token
      * @param sortSpec 現在のソート条件
      * @return token の有効性と次ページ取得用カーソル
+     * @throws IllegalArgumentException 内部のソート条件が解析契約を満たさない場合
      */
     public static ParseResult parsePageToken(String pageToken, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        // 内部で確定済みのソート条件が欠けた場合は利用者入力の不正として扱わない
+        requireValidSortSpec(sortSpec);
         ParseResult result = new ParseResult();
         // 空白 token は先頭ページとして扱う
         Boolean hasPageToken = String.isNotBlank(pageToken);
@@ -63,11 +66,27 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
                 sortSpec
             );
             result.isValid = result.cursor != null;
-        } catch (Exception e) {
-            // 外部入力の形式不正を業務判定で扱える検証結果へ正規化
+        } catch (JSONException e) {
+            // JSONとして読み取れない外部入力を無効なtokenへ正規化
+            result.isValid = false;
+        } catch (TypeException e) {
+            // token値の型や書式が現在のソート項目と合わない場合は再利用しない
+            result.isValid = false;
+        } catch (StringException e) {
+            // Salesforce IDへ変換できない外部入力を無効なtokenへ正規化
             result.isValid = false;
         }
         return result;
+    }
+
+    private static void requireValidSortSpec(ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        Boolean hasRequiredSortSpec = sortSpec != null &&
+            String.isNotBlank(sortSpec.fieldApiName) &&
+            String.isNotBlank(sortSpec.direction) &&
+            sortSpec.fieldDescribe != null;
+        if (!hasRequiredSortSpec) {
+            throw new IllegalArgumentException('ページトークンの解析には検証済みのソート条件が必要です。');
+        }
     }
 
     private static Map<String, Object> parseTokenParts(String pageToken) {
@@ -78,6 +97,10 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     }
 
     private static ObjectRecordSearchSortSupport.PageCursor createPageCursor(Map<String, Object> tokenParts, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        // JSON object以外はページ境界を構成できない外部入力として拒否
+        if (tokenParts == null) {
+            return null;
+        }
         // token の field と現在の sortSpec がずれた場合は読み込み不可
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         // token 発行時と現在のソート方向を比較できる値を取得
