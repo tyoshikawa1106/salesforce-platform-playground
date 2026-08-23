@@ -215,8 +215,10 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Id testAccountId = getTestAccountId();
         String pageToken = JSON.serialize(
             new Map<String, String>{
+                'objectApiName' => 'Account',
+                'fieldApiName' => 'Name',
                 'recordId' => String.valueOf(testAccountId),
-                'name' => 'Cursor Account'
+                'sortValue' => 'Cursor Account'
             }
         );
         ObjectRecordSearchPageTokenCodec.ParseResult result;
@@ -249,6 +251,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Id testAccountId = getTestAccountId();
         String pageToken = JSON.serialize(
             new Map<String, String>{
+                'objectApiName' => 'Account',
                 'fieldApiName' => 'Industry',
                 'sortDirection' => 'asc',
                 'recordId' => String.valueOf(testAccountId),
@@ -285,6 +288,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Id testAccountId = getTestAccountId();
         String pageToken = JSON.serialize(
             new Map<String, String>{
+                'objectApiName' => 'Account',
                 'fieldApiName' => 'Name',
                 'sortDirection' => 'desc',
                 'recordId' => String.valueOf(testAccountId),
@@ -369,6 +373,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
         String pageToken = JSON.serialize(
             new Map<String, String>{
+                'objectApiName' => 'Account',
                 'fieldApiName' => 'Name',
                 'sortDirection' => 'asc',
                 'recordId' => 'not-an-id',
