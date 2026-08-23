@@ -18,12 +18,9 @@ public with sharing class CaseEmailMessageController {
      */
     @AuraEnabled(cacheable=true)
     public static Integer getEmailMessageCount(Id caseId) {
+        Id validatedCaseId = getValidatedCaseId(caseId);
         try {
-            Id validatedCaseId = SERVICE.validateCaseId(caseId);
             return SELECTOR.getCountByCaseId(validatedCaseId);
-        } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
-            String errorMessage = e.getMessage();
-            throw createHandledException(errorMessage);
         } catch (Exception e) {
             throw createHandledException(LOAD_ERROR_MESSAGE);
         }
@@ -37,12 +34,9 @@ public with sharing class CaseEmailMessageController {
      */
     @AuraEnabled
     public static Database.PaginationCursor getEmailMessagePaginationCursor(Id caseId) {
+        Id validatedCaseId = getValidatedCaseId(caseId);
         try {
-            Id validatedCaseId = SERVICE.validateCaseId(caseId);
             return SELECTOR.getPaginationCursorByCaseId(validatedCaseId);
-        } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
-            String errorMessage = e.getMessage();
-            throw createHandledException(errorMessage);
         } catch (Exception e) {
             throw createHandledException(LOAD_ERROR_MESSAGE);
         }
@@ -62,14 +56,13 @@ public with sharing class CaseEmailMessageController {
         Database.PaginationCursor paginationCursor,
         Integer startIndex
     ) {
+        Id validatedCaseId = getValidatedCaseId(caseId);
+        CaseEmailMessageService.PageQuery pageQuery = getPageQuery(
+            validatedCaseId,
+            paginationCursor,
+            startIndex
+        );
         try {
-            // 画面からの ID を検証し、問い合わせ対象を確定
-            Id validatedCaseId = SERVICE.validateCaseId(caseId);
-            CaseEmailMessageService.PageQuery pageQuery = SERVICE.createPageQuery(
-                validatedCaseId,
-                paginationCursor,
-                startIndex
-            );
             // 初回ページだけ利用者権限で PaginationCursor を作成
             Database.PaginationCursor pageCursor = paginationCursor;
             if (pageCursor == null) {
@@ -81,12 +74,33 @@ public with sharing class CaseEmailMessageController {
             Database.CursorFetchResult cursorFetchResult = SELECTOR.getByCaseId(pageQuery);
             // Cursor 取得結果を LWC 返却用ページへ変換
             return SERVICE.createPage(pageQuery.paginationCursor, cursorFetchResult);
-        } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
-            String errorMessage = e.getMessage();
-            throw createHandledException(errorMessage);
         } catch (Exception e) {
             throw createHandledException(LOAD_ERROR_MESSAGE);
         }
+    }
+
+    private static Id getValidatedCaseId(Id caseId) {
+        CaseEmailMessageService.CaseIdValidationResult validationResult = SERVICE.validateCaseId(caseId);
+        if (!validationResult.isValid) {
+            throw createHandledException(validationResult.errorMessage);
+        }
+        return validationResult.caseId;
+    }
+
+    private static CaseEmailMessageService.PageQuery getPageQuery(
+        Id caseId,
+        Database.PaginationCursor paginationCursor,
+        Integer startIndex
+    ) {
+        CaseEmailMessageService.PageQueryResult pageQueryResult = SERVICE.createPageQuery(
+            caseId,
+            paginationCursor,
+            startIndex
+        );
+        if (!pageQueryResult.isValid) {
+            throw createHandledException(pageQueryResult.errorMessage);
+        }
+        return pageQueryResult.pageQuery;
     }
 
     private static AuraHandledException createHandledException(String message) {
