@@ -44,28 +44,48 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
      *
      * @param pageToken LWC から受け取ったページ token
      * @param sortSpec 現在のソート条件
-     * @return 次ページ取得用カーソル、pageToken が空白の場合は null
-     * @throws ObjectRecordSearchException token を読み込めない場合
+     * @return token の有効性と次ページ取得用カーソル
+     * @throws IllegalArgumentException 内部のソート条件が解析契約を満たさない場合
      */
-    public static ObjectRecordSearchSortSupport.PageCursor parsePageToken(String pageToken, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+    public static ParseResult parsePageToken(String pageToken, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        // 内部で確定済みのソート条件が欠けた場合は利用者入力の不正として扱わない
+        requireValidSortSpec(sortSpec);
+        ParseResult result = new ParseResult();
         // 空白 token は先頭ページとして扱う
         Boolean hasPageToken = String.isNotBlank(pageToken);
         if (!hasPageToken) {
-            return null;
+            result.isValid = true;
+            return result;
         }
 
         try {
             // JSON token を現在の sortSpec で使えるカーソルへ変換
             Map<String, Object> tokenParts = parseTokenParts(pageToken);
-            ObjectRecordSearchSortSupport.PageCursor cursor = createPageCursor(
+            result.cursor = createPageCursor(
                 tokenParts,
                 sortSpec
             );
-            return cursor;
-        } catch (ObjectRecordSearchException e) {
-            throw e;
-        } catch (Exception e) {
-            throw createUnreadablePageTokenException(e);
+            result.isValid = result.cursor != null;
+        } catch (JSONException e) {
+            // JSONとして読み取れない外部入力を無効なtokenへ正規化
+            result.isValid = false;
+        } catch (TypeException e) {
+            // token値の型や書式が現在のソート項目と合わない場合は再利用しない
+            result.isValid = false;
+        } catch (StringException e) {
+            // Salesforce IDへ変換できない外部入力を無効なtokenへ正規化
+            result.isValid = false;
+        }
+        return result;
+    }
+
+    private static void requireValidSortSpec(ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        Boolean hasRequiredSortSpec = sortSpec != null &&
+            String.isNotBlank(sortSpec.fieldApiName) &&
+            String.isNotBlank(sortSpec.direction) &&
+            sortSpec.fieldDescribe != null;
+        if (!hasRequiredSortSpec) {
+            throw new IllegalArgumentException('ページトークンの解析には検証済みのソート条件が必要です。');
         }
     }
 
@@ -77,6 +97,10 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     }
 
     private static ObjectRecordSearchSortSupport.PageCursor createPageCursor(Map<String, Object> tokenParts, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        // JSON object以外はページ境界を構成できない外部入力として拒否
+        if (tokenParts == null) {
+            return null;
+        }
         // token の field と現在の sortSpec がずれた場合は読み込み不可
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         // token 発行時と現在のソート方向を比較できる値を取得
@@ -87,7 +111,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         Boolean isCursorDirectionExpected = cursorSortDirection == sortSpec.direction;
         Boolean hasCursorRecordId = String.isNotBlank(cursorRecordId);
         if (!isCursorFieldExpected || !isCursorDirectionExpected || !hasCursorRecordId) {
-            throw createUnreadablePageTokenException(null);
+            return null;
         }
         // SOQL bind に渡せる型へ sort 値を復元
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
@@ -131,12 +155,14 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return stringValue;
     }
 
-    private static ObjectRecordSearchException createUnreadablePageTokenException(Exception cause) {
-        return cause == null
-            ? new ObjectRecordSearchException('ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。')
-            : new ObjectRecordSearchException(
-                  'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。',
-                  cause
-              );
+    /**
+     * ページトークンの解析結果
+     */
+    public class ParseResult {
+
+        // 現在の検索条件でトークンを利用できるかどうか
+        public Boolean isValid;
+        // 有効なトークンから復元した次ページ境界
+        public ObjectRecordSearchSortSupport.PageCursor cursor;
     }
 }

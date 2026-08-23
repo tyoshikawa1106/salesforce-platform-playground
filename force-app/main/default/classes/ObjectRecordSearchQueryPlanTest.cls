@@ -50,7 +50,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
             try {
                 ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(null);
                 Assert.fail('問い合わせ条件未指定は例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
+            } catch (IllegalArgumentException e) {
                 Assert.isTrue(
                     e.getMessage().contains('検索条件'),
                     '問い合わせ条件未指定は検索条件の不正を説明する必要あり'
@@ -80,7 +80,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
                     request
                 );
                 Assert.fail('許可されていないソート項目は例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
+            } catch (IllegalArgumentException e) {
                 Assert.isTrue(
                     e.getMessage().contains('検索条件'),
                     '許可されていないソート項目は検索条件の不正を説明する必要あり'
@@ -110,7 +110,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
                     request
                 );
                 Assert.fail('許可されていないソート方向は例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
+            } catch (IllegalArgumentException e) {
                 Assert.isTrue(
                     e.getMessage().contains('検索条件'),
                     '許可されていないソート方向は検索条件の不正を説明する必要あり'
@@ -140,7 +140,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
                     request
                 );
                 Assert.fail('固定取得件数と異なる問い合わせ条件は拒否する必要あり');
-            } catch (ObjectRecordSearchException e) {
+            } catch (IllegalArgumentException e) {
                 Assert.isTrue(
                     e.getMessage().contains('検索条件'),
                     '不正な取得件数は検索条件の不正を説明する必要あり'
@@ -165,7 +165,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
 
     private static ObjectRecordSearchContext createAccountContext() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
+        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(

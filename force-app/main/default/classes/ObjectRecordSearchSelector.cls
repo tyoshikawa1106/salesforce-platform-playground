@@ -11,7 +11,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      *
      * @param searchQueryRequest 検索対象、検索語、ソート、ページングを持つ問い合わせ条件
      * @return 検索結果 SObject
-     * @throws ObjectRecordSearchException 必須条件が不足する、または許可外の識別子が指定された場合
+     * @throws IllegalArgumentException 内部で組み立てた問い合わせ条件が契約を満たさない場合
      */
     public virtual List<SObject> searchRecords(ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest) {
         // 動的 SOQL に使うオブジェクトと項目を許可済み条件に限定
@@ -38,14 +38,14 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param objectApiName 対象オブジェクト API 参照名
      * @param recordIds 取得するレコード ID
      * @return 削除対象 SObject
-     * @throws ObjectRecordSearchException 許可されていないオブジェクトが指定された場合
+     * @throws IllegalArgumentException 許可されていないオブジェクトが指定された場合
      */
     public virtual List<SObject> getRecordsById(String objectApiName, Set<Id> recordIds) {
         // FROM 句に使うオブジェクトを固定カタログに限定
         Boolean isSupportedObject = ObjectMetricCatalog.hasObjectApiName(objectApiName);
         // 許可リスト外の識別子は ID の有無に関わらず拒否
         if (!isSupportedObject) {
-            throw new ObjectRecordSearchException('このカードのレコード一覧は表示できません。別のカードを選択してください。');
+            throw new IllegalArgumentException('削除対象に許可されていないオブジェクトが指定されています。');
         }
         // 削除対象 ID がない場合は SOQL を実行せず空結果へ短絡
         Boolean hasRecordIds = recordIds != null && !recordIds.isEmpty();
