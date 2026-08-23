@@ -229,6 +229,33 @@ private with sharing class AccountDataQualityScanServiceTest {
         Assert.isNull(result.Id, '空結果のスキャン管理レコードは未保存である必要あり');
     }
 
+    /**
+     * 保存済みの実行中スキャンがない場合だけ開始を許可
+     */
+    @IsTest
+    static void shouldAllowStartOnlyWithoutActiveScan() {
+        AccountDataQualityScanService service = new AccountDataQualityScanService();
+        Id savedScanId = Id.valueOf(
+            DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() +
+            '000000000000'
+        );
+        DataQualityScan__c savedScan = new DataQualityScan__c(Id = savedScanId);
+        Boolean canStartWithoutActiveScan;
+        Boolean canStartWithActiveScan;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            canStartWithoutActiveScan = service.canStartScan(new DataQualityScan__c());
+            canStartWithActiveScan = service.canStartScan(savedScan);
+
+            Test.stopTest();
+        }
+
+        Assert.isTrue(canStartWithoutActiveScan, '保存済みの実行中スキャンがなければ開始を許可する必要あり');
+        Assert.isFalse(canStartWithActiveScan, '保存済みの実行中スキャンがあれば開始を拒否する必要あり');
+    }
+
     private static Account createCompleteAccount(String accountName) {
         Account accountRecord = new Account();
         accountRecord.Name = accountName;

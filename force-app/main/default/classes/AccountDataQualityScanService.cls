@@ -93,16 +93,14 @@ public with sharing class AccountDataQualityScanService {
     }
 
     /**
-     * 実行中スキャンがないことを検証
+     * 新しいスキャンを開始できるかを判定
      *
      * @param activeScan 現在の実行中スキャン、存在しない場合は空のスキャン管理レコード
-     * @throws ScanException 実行中スキャンが存在する場合
+     * @return 保存済みの実行中スキャンがない場合は true
      */
-    public void validateStart(DataQualityScan__c activeScan) {
-        // 保存済みの実行中スキャンがある場合だけ新規開始を拒否
-        if (activeScan?.Id != null) {
-            throw new ScanException('実行中のスキャンがあります。完了後にもう一度お試しください。');
-        }
+    public Boolean canStartScan(DataQualityScan__c activeScan) {
+        // 保存済みの実行中スキャンがない場合だけ新規開始を許可
+        return activeScan?.Id == null;
     }
 
     /**

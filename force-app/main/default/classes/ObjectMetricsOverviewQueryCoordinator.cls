@@ -23,7 +23,7 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
      *
      * @param countQueries Service が許可リストから作成した最大 50 件の取得計画
      * @return 取得計画と同じ順序の未加工件数
-     * @throws ObjectMetricsOverviewQueryCoordinatorException SOQL の残り枠を超える場合
+     * @throws IllegalArgumentException SOQL の残り枠を超える場合
      */
     public virtual List<Integer> execute(
         List<ObjectMetricsOverviewService.CountQuery> countQueries
@@ -44,7 +44,7 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
         // 計画数が現在実行できる SOQL 数を超える場合は処理を拒否
         if (plannedQueryCount > executableQueryCount) {
             // ガバナ制限到達前に利用者向け例外へ変換
-            throw new ObjectMetricsOverviewQueryCoordinatorException(
+            throw new IllegalArgumentException(
                 'オブジェクト件数の取得に必要な SOQL 枠が不足しています。'
             );
         }
@@ -63,9 +63,4 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
         return visibleRecordCounts;
     }
 
-    /**
-     * 複数件数問い合わせを安全な上限内で実行できない場合の例外
-     */
-    public class ObjectMetricsOverviewQueryCoordinatorException extends Exception {
-    }
 }

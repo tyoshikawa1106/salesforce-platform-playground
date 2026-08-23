@@ -13,7 +13,7 @@ public with sharing class ObjectMetricsOverviewService {
      *
      * @param definitions カタログ定義済みのオブジェクトメトリクス
      * @return カタログ順の件数取得計画
-     * @throws ObjectMetricsOverviewServiceException 計画数が明示上限を超える場合
+     * @throws IllegalArgumentException 計画数が明示上限を超える場合
      */
     public List<CountQuery> createCountQueries(
         List<ObjectMetricCatalog.MetricDefinition> definitions
@@ -25,7 +25,7 @@ public with sharing class ObjectMetricsOverviewService {
         // 固定カタログの肥大化による同期 SOQL 上限超過を実行前に拒否
         Integer definitionCount = safeDefinitions.size();
         if (definitionCount > MAX_COUNT_QUERY_COUNT) {
-            throw new ObjectMetricsOverviewServiceException(
+            throw new IllegalArgumentException(
                 'オブジェクト件数の取得対象が上限を超えています。'
             );
         }
@@ -239,9 +239,4 @@ public with sharing class ObjectMetricsOverviewService {
         }
     }
 
-    /**
-     * 件数取得計画を安全な上限内で作成できない場合の例外
-     */
-    public class ObjectMetricsOverviewServiceException extends Exception {
-    }
 }

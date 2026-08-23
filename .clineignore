@@ -16,8 +16,7 @@ deploy-options.json
 
 # Local environment values and credentials
 .env
-.env.local
-.env.*.local
+.env.*
 *.key
 *.pem
 *.crt

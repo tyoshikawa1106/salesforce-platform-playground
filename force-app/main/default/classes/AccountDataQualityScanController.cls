@@ -3,6 +3,9 @@
  */
 public with sharing class AccountDataQualityScanController {
 
+    private static final String ACTIVE_SCAN_MESSAGE =
+        '実行中のスキャンがあります。完了後にもう一度お試しください。';
+
     @TestVisible
     private static AccountDataQualityScanService service = new AccountDataQualityScanService();
     @TestVisible
@@ -36,14 +39,9 @@ public with sharing class AccountDataQualityScanController {
      */
     @AuraEnabled
     public static AccountDataQualityScanWrapper startScan() {
+        assertCanStartScan();
         DataQualityScan__c scanRecord;
         try {
-            // 実行中スキャンの未加工検索結果を取得
-            List<DataQualityScan__c> activeScans = selector.getActiveScans();
-            // 単一スキャンへの変換を Service へ委譲
-            DataQualityScan__c activeScan = service.getFirstScan(activeScans);
-            // 保存済みの実行中スキャンがないことを確認
-            service.validateStart(activeScan);
             // 利用者が参照できる取引先を固定する Cursor を作成
             Database.Cursor accountCursor = selector.createAccountCursor();
             // Cursor 件数を初期値にした待機中スキャンを作成
@@ -63,6 +61,22 @@ public with sharing class AccountDataQualityScanController {
                 service.updateScan(failedScan);
             }
             throw createAuraHandledException('スキャンを開始できませんでした。権限を確認してもう一度お試しください。');
+        }
+    }
+
+    private static void assertCanStartScan() {
+        DataQualityScan__c activeScan;
+        try {
+            // 実行中スキャンの未加工検索結果を取得
+            List<DataQualityScan__c> activeScans = selector.getActiveScans();
+            // 単一スキャンへの変換を Service へ委譲
+            activeScan = service.getFirstScan(activeScans);
+        } catch (Exception e) {
+            throw createAuraHandledException('スキャンを開始できませんでした。権限を確認してもう一度お試しください。');
+        }
+        // 保存済みの実行中スキャンがある場合は利用者向けエラーへ変換
+        if (!service.canStartScan(activeScan)) {
+            throw createAuraHandledException(ACTIVE_SCAN_MESSAGE);
         }
     }
 

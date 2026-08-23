@@ -230,7 +230,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
             try {
                 service.createCountQueries(definitions);
                 Assert.fail('明示上限を超える件数取得計画は拒否する必要あり');
-            } catch (ObjectMetricsOverviewService.ObjectMetricsOverviewServiceException e) {
+            } catch (IllegalArgumentException e) {
                 String errorMessage = e.getMessage();
                 Assert.isNotNull(errorMessage, '計画数超過の理由を返す必要あり');
             }

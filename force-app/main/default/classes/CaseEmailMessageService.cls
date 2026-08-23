@@ -13,19 +13,18 @@ public with sharing class CaseEmailMessageService {
      * 画面から受け取った ID が Case ID かを検証
      *
      * @param caseId Case レコード ID
-     * @return 検証済み Case ID、入力が null の場合は null
-     * @throws CaseEmailMessageServiceException Case 以外の ID の場合
+     * @return 検証結果、入力が null の場合も有効な結果
      */
-    public Id validateCaseId(Id caseId) {
+    public CaseIdValidationResult validateCaseId(Id caseId) {
         if (caseId == null) {
-            return null;
+            return new CaseIdValidationResult(true, null, null);
         }
         Schema.SObjectType objectType = caseId.getSObjectType();
         Boolean isCaseId = objectType == Case.SObjectType;
         if (!isCaseId) {
-            throw new CaseEmailMessageServiceException(INVALID_CASE_MESSAGE);
+            return new CaseIdValidationResult(false, null, INVALID_CASE_MESSAGE);
         }
-        return caseId;
+        return new CaseIdValidationResult(true, caseId, null);
     }
 
     /**
@@ -34,15 +33,14 @@ public with sharing class CaseEmailMessageService {
      * @param caseId 検証済みケースレコード ID
      * @param paginationCursor 前回ページから引き継いだ PaginationCursor
      * @param startIndex ページ取得を開始する 0 始まりの位置
-     * @return PaginationCursor、取得位置、取得件数を持つページ問い合わせ条件
-     * @throws CaseEmailMessageServiceException 取得位置が不正な場合
+     * @return ページ問い合わせ条件の作成結果
      */
-    public PageQuery createPageQuery(Id caseId, Database.PaginationCursor paginationCursor, Integer startIndex) {
+    public PageQueryResult createPageQuery(Id caseId, Database.PaginationCursor paginationCursor, Integer startIndex) {
         // 未指定の開始位置を初回ページの 0 へ正規化
         Integer validatedStartIndex = startIndex ?? 0;
         // 負の位置または Cursor なしの途中位置を拒否
         if (validatedStartIndex < 0 || (paginationCursor == null && validatedStartIndex != 0)) {
-            throw new CaseEmailMessageServiceException(INVALID_START_INDEX_MESSAGE);
+            return new PageQueryResult(false, null, INVALID_START_INDEX_MESSAGE);
         }
 
         // Selector へ渡す問い合わせ条件を非 null の DTO として作成
@@ -56,7 +54,7 @@ public with sharing class CaseEmailMessageService {
         // 画面が一度に取得する既定件数を保持
         pageQuery.fetchSize = PAGE_SIZE;
         // 検証済みの問い合わせ条件を返却
-        return pageQuery;
+        return new PageQueryResult(true, pageQuery, null);
     }
 
     /**
@@ -126,8 +124,32 @@ public with sharing class CaseEmailMessageService {
     }
 
     /**
-     * ケースメールメッセージの入力値例外
+     * Case ID の検証結果
      */
-    public class CaseEmailMessageServiceException extends Exception {
+    public class CaseIdValidationResult {
+        public Boolean isValid;
+        public Id caseId;
+        public String errorMessage;
+
+        private CaseIdValidationResult(Boolean isValid, Id caseId, String errorMessage) {
+            this.isValid = isValid;
+            this.caseId = caseId;
+            this.errorMessage = errorMessage;
+        }
+    }
+
+    /**
+     * ページ問い合わせ条件の作成結果
+     */
+    public class PageQueryResult {
+        public Boolean isValid;
+        public PageQuery pageQuery;
+        public String errorMessage;
+
+        private PageQueryResult(Boolean isValid, PageQuery pageQuery, String errorMessage) {
+            this.isValid = isValid;
+            this.pageQuery = pageQuery;
+            this.errorMessage = errorMessage;
+        }
     }
 }

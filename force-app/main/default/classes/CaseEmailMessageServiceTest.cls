@@ -11,17 +11,19 @@ private with sharing class CaseEmailMessageServiceTest {
     @IsTest
     static void shouldReturnValidatedCaseId() {
         Case caseRecord = TestDataFactory.createCase('Service Case ID テスト', TestDataFactory.SaveMode.INSERT_RECORD);
-        Id validatedCaseId;
+        CaseEmailMessageService.CaseIdValidationResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            validatedCaseId = new CaseEmailMessageService().validateCaseId(caseRecord.Id);
+            result = new CaseEmailMessageService().validateCaseId(caseRecord.Id);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(caseRecord.Id, validatedCaseId, '検証済み Case ID は入力 ID と一致する必要あり');
+        Assert.isTrue(result.isValid, 'Case ID は有効な入力として判定する必要あり');
+        Assert.areEqual(caseRecord.Id, result.caseId, '検証済み Case ID は入力 ID と一致する必要あり');
+        Assert.isNull(result.errorMessage, '有効な入力にはエラー文言を設定しない必要あり');
     }
 
     /**
@@ -29,17 +31,18 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldReturnNullWhenCaseIdIsNull() {
-        Id validatedCaseId;
+        CaseEmailMessageService.CaseIdValidationResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            validatedCaseId = new CaseEmailMessageService().validateCaseId(null);
+            result = new CaseEmailMessageService().validateCaseId(null);
 
             Test.stopTest();
         }
 
-        Assert.isNull(validatedCaseId, 'null の Case ID は問い合わせなしの入力として返す必要あり');
+        Assert.isTrue(result.isValid, 'null は問い合わせなしの有効な入力として判定する必要あり');
+        Assert.isNull(result.caseId, 'null の Case ID は問い合わせなしの入力として返す必要あり');
     }
 
     /**
@@ -52,20 +55,22 @@ private with sharing class CaseEmailMessageServiceTest {
             TestDataFactory.SaveMode.INSERT_RECORD
         );
 
+        CaseEmailMessageService.CaseIdValidationResult result;
+
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                new CaseEmailMessageService().validateCaseId(accountRecord.Id);
-                Assert.fail('Case 以外の ID は Service 例外にする必要あり');
-            } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
-                String errorMessage = e.getMessage();
-                Boolean describesInvalidCase = errorMessage.contains('ケースレコード');
-                Assert.isTrue(describesInvalidCase, '例外はケースレコードを確認できないことを説明する必要あり');
-            }
+            result = new CaseEmailMessageService().validateCaseId(accountRecord.Id);
 
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, 'Case 以外の ID は無効な入力として判定する必要あり');
+        Assert.isNull(result.caseId, '無効な入力には Case ID を返さない必要あり');
+        Assert.isTrue(
+            result.errorMessage.contains('ケースレコード'),
+            '結果はケースレコードを確認できないことを説明する必要あり'
+        );
     }
 
     /**
@@ -77,7 +82,7 @@ private with sharing class CaseEmailMessageServiceTest {
             'Service 初回ページテスト',
             TestDataFactory.SaveMode.INSERT_RECORD
         );
-        CaseEmailMessageService.PageQuery result;
+        CaseEmailMessageService.PageQueryResult result;
 
         System.runAs(testUser) {
             Test.startTest();
@@ -87,10 +92,11 @@ private with sharing class CaseEmailMessageServiceTest {
             Test.stopTest();
         }
 
-        Assert.areEqual(caseRecord.Id, result.caseId, '問い合わせ条件に検証済み Case ID を保持する必要あり');
-        Assert.isNull(result.paginationCursor, '初回ページでは Selector が新しい PaginationCursor を作成する必要あり');
-        Assert.areEqual(0, result.startIndex, '初回ページは 0 番目から取得する必要あり');
-        Assert.areEqual(50, result.fetchSize, '1 ページの取得件数を 50 件にする必要あり');
+        Assert.isTrue(result.isValid, '初回ページは有効な問い合わせ条件として判定する必要あり');
+        Assert.areEqual(caseRecord.Id, result.pageQuery.caseId, '問い合わせ条件に検証済み Case ID を保持する必要あり');
+        Assert.isNull(result.pageQuery.paginationCursor, '初回ページでは Selector が新しい PaginationCursor を作成する必要あり');
+        Assert.areEqual(0, result.pageQuery.startIndex, '初回ページは 0 番目から取得する必要あり');
+        Assert.areEqual(50, result.pageQuery.fetchSize, '1 ページの取得件数を 50 件にする必要あり');
     }
 
     /**
@@ -98,18 +104,19 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldRejectNegativeStartIndex() {
+        CaseEmailMessageService.PageQueryResult result;
+
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                new CaseEmailMessageService().createPageQuery(null, null, -1);
-                Assert.fail('負の取得位置は Service 例外にする必要あり');
-            } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
-                Assert.isTrue(e.getMessage().contains('次のメール'), '例外は次ページの読み込み失敗を説明する必要あり');
-            }
+            result = new CaseEmailMessageService().createPageQuery(null, null, -1);
 
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, '負の取得位置は無効な結果にする必要あり');
+        Assert.isNull(result.pageQuery, '無効な結果には問い合わせ条件を返さない必要あり');
+        Assert.isTrue(result.errorMessage.contains('次のメール'), '結果は次ページの読み込み失敗を説明する必要あり');
     }
 
     /**
@@ -117,18 +124,19 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldRejectNonzeroStartIndexWithoutCursor() {
+        CaseEmailMessageService.PageQueryResult result;
+
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                new CaseEmailMessageService().createPageQuery(null, null, 50);
-                Assert.fail('PaginationCursorなしの途中位置は Service 例外にする必要あり');
-            } catch (CaseEmailMessageService.CaseEmailMessageServiceException e) {
-                Assert.isTrue(e.getMessage().contains('再読み込み'), '例外は先頭からの再読み込みを案内する必要あり');
-            }
+            result = new CaseEmailMessageService().createPageQuery(null, null, 50);
 
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, 'Cursor なしの途中位置は無効な結果にする必要あり');
+        Assert.isNull(result.pageQuery, '無効な結果には問い合わせ条件を返さない必要あり');
+        Assert.isTrue(result.errorMessage.contains('再読み込み'), '結果は先頭からの再読み込みを案内する必要あり');
     }
 
     /**
@@ -169,7 +177,8 @@ private with sharing class CaseEmailMessageServiceTest {
             Status = '0'
         );
         CaseEmailMessageService service = new CaseEmailMessageService();
-        CaseEmailMessageService.PageQuery pageQuery = service.createPageQuery(caseRecord.Id, null, 0);
+        CaseEmailMessageService.PageQueryResult pageQueryResult = service.createPageQuery(caseRecord.Id, null, 0);
+        CaseEmailMessageService.PageQuery pageQuery = pageQueryResult.pageQuery;
         Database.PaginationCursor paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(caseRecord.Id);
         CaseEmailMessageService.PageQuery result;
 
