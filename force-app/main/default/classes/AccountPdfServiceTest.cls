@@ -15,7 +15,7 @@ private with sharing class AccountPdfServiceTest {
             'PDF ID 検証テスト',
             TestDataFactory.SaveMode.INSERT_RECORD
         );
-        Id result;
+        AccountPdfService.AccountIdValidationResult result;
 
         System.runAs(testUser) {
             Test.startTest();
@@ -25,7 +25,9 @@ private with sharing class AccountPdfServiceTest {
             Test.stopTest();
         }
 
-        Assert.areEqual(accountRecord.Id, result, '検証済みの取引先 ID を返す必要あり');
+        Assert.isTrue(result.isValid, '取引先 ID は有効な入力として判定する必要あり');
+        Assert.areEqual(accountRecord.Id, result.accountId, '検証済みの取引先 ID を返す必要あり');
+        Assert.isNull(result.errorMessage, '有効な入力にはエラー文言を設定しない必要あり');
     }
 
     /**
@@ -33,19 +35,19 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldRejectBlankAccountId() {
+        AccountPdfService.AccountIdValidationResult result;
+
         System.runAs(testUser) {
             Test.startTest();
-            try {
-                SERVICE.validateAccountId('  ');
-                Assert.fail('空白だけの取引先 ID は拒否する必要あり');
-            } catch (AccountPdfService.AccountPdfServiceException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('取引先を確認できませんでした'),
-                    '安全な入力エラーを返す必要あり'
-                );
-            }
+            result = SERVICE.validateAccountId('  ');
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, '空白だけの取引先 ID は無効な入力として判定する必要あり');
+        Assert.isTrue(
+            result.errorMessage.contains('取引先を確認できませんでした'),
+            '安全な入力エラーを返す必要あり'
+        );
     }
 
     /**
@@ -53,19 +55,19 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldRejectMalformedAccountId() {
+        AccountPdfService.AccountIdValidationResult result;
+
         System.runAs(testUser) {
             Test.startTest();
-            try {
-                SERVICE.validateAccountId('not-an-id');
-                Assert.fail('ID 形式ではない値は拒否する必要あり');
-            } catch (AccountPdfService.AccountPdfServiceException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('取引先を確認できませんでした'),
-                    '安全な入力エラーを返す必要あり'
-                );
-            }
+            result = SERVICE.validateAccountId('not-an-id');
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, 'ID 形式ではない値は無効な入力として判定する必要あり');
+        Assert.isTrue(
+            result.errorMessage.contains('取引先を確認できませんでした'),
+            '安全な入力エラーを返す必要あり'
+        );
     }
 
     /**
@@ -83,19 +85,19 @@ private with sharing class AccountPdfServiceTest {
             TestDataFactory.SaveMode.INSERT_RECORD
         );
 
+        AccountPdfService.AccountIdValidationResult result;
+
         System.runAs(testUser) {
             Test.startTest();
-            try {
-                SERVICE.validateAccountId(String.valueOf(contactRecord.Id));
-                Assert.fail('取引先以外の ID は拒否する必要あり');
-            } catch (AccountPdfService.AccountPdfServiceException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('取引先を確認できませんでした'),
-                    '安全な入力エラーを返す必要あり'
-                );
-            }
+            result = SERVICE.validateAccountId(String.valueOf(contactRecord.Id));
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, '取引先以外の ID は無効な入力として判定する必要あり');
+        Assert.isTrue(
+            result.errorMessage.contains('取引先を確認できませんでした'),
+            '安全な入力エラーを返す必要あり'
+        );
     }
 
     /**
@@ -127,7 +129,7 @@ private with sharing class AccountPdfServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SERVICE.createViewModel(new List<Account>{ accountRecord });
+            result = SERVICE.createViewModel(new List<Account>{ accountRecord }).viewModel;
 
             Test.stopTest();
         }
@@ -162,7 +164,7 @@ private with sharing class AccountPdfServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SERVICE.createViewModel(new List<Account>{ accountRecord });
+            result = SERVICE.createViewModel(new List<Account>{ accountRecord }).viewModel;
 
             Test.stopTest();
         }
@@ -178,16 +180,17 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldRejectEmptyAccountList() {
+        AccountPdfService.ViewModelResult result;
+
         System.runAs(testUser) {
             Test.startTest();
-            try {
-                SERVICE.createViewModel(new List<Account>());
-                Assert.fail('取得できない取引先は拒否する必要あり');
-            } catch (AccountPdfService.AccountPdfServiceException e) {
-                Assert.isTrue(e.getMessage().contains('参照権限'), '権限と不存在を区別しない案内を返す必要あり');
-            }
+            result = SERVICE.createViewModel(new List<Account>());
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, '取得できない取引先は無効な結果にする必要あり');
+        Assert.isNull(result.viewModel, '無効な結果には表示モデルを返さない必要あり');
+        Assert.isTrue(result.errorMessage.contains('参照権限'), '権限と不存在を区別しない案内を返す必要あり');
     }
 
     /**
@@ -195,15 +198,16 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldRejectNullAccountList() {
+        AccountPdfService.ViewModelResult result;
+
         System.runAs(testUser) {
             Test.startTest();
-            try {
-                SERVICE.createViewModel(null);
-                Assert.fail('null の取引先一覧は拒否する必要あり');
-            } catch (AccountPdfService.AccountPdfServiceException e) {
-                Assert.isTrue(e.getMessage().contains('参照権限'), '権限と不存在を区別しない案内を返す必要あり');
-            }
+            result = SERVICE.createViewModel(null);
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, 'null の取引先一覧は無効な結果にする必要あり');
+        Assert.isNull(result.viewModel, '無効な結果には表示モデルを返さない必要あり');
+        Assert.isTrue(result.errorMessage.contains('参照権限'), '権限と不存在を区別しない案内を返す必要あり');
     }
 }

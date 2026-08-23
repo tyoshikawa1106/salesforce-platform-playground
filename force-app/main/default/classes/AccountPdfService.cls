@@ -15,22 +15,21 @@ public with sharing class AccountPdfService {
      * URL パラメーターが取引先 ID かを検証
      *
      * @param accountIdParameter URL から受け取った取引先 ID
-     * @return 検証済み取引先 ID
-     * @throws AccountPdfServiceException パラメーターが未指定、不正、または取引先以外の場合
+     * @return 取引先 ID の検証結果
      */
-    public Id validateAccountId(String accountIdParameter) {
+    public AccountIdValidationResult validateAccountId(String accountIdParameter) {
         if (String.isBlank(accountIdParameter)) {
-            throw new AccountPdfServiceException(INVALID_ACCOUNT_MESSAGE);
+            return new AccountIdValidationResult(false, null, INVALID_ACCOUNT_MESSAGE);
         }
 
         try {
             Id accountId = Id.valueOf(accountIdParameter.trim());
             if (accountId.getSObjectType() != Account.SObjectType) {
-                throw new AccountPdfServiceException(INVALID_ACCOUNT_MESSAGE);
+                return new AccountIdValidationResult(false, null, INVALID_ACCOUNT_MESSAGE);
             }
-            return accountId;
+            return new AccountIdValidationResult(true, accountId, null);
         } catch (StringException e) {
-            throw new AccountPdfServiceException(INVALID_ACCOUNT_MESSAGE, e);
+            return new AccountIdValidationResult(false, null, INVALID_ACCOUNT_MESSAGE);
         }
     }
 
@@ -38,13 +37,12 @@ public with sharing class AccountPdfService {
      * 取引先から PDF 表示モデルを作成
      *
      * @param accounts 利用者権限で取得した取引先一覧
-     * @return 空値表現と住所改行を統一した表示モデル
-     * @throws AccountPdfServiceException 取引先を取得できなかった場合
+     * @return 空値表現と住所改行を統一した表示モデルの作成結果
      */
-    public AccountPdfViewModel createViewModel(List<Account> accounts) {
+    public ViewModelResult createViewModel(List<Account> accounts) {
         // 取得結果が空の場合は不存在と権限外を区別せず拒否
         if (accounts == null || accounts.isEmpty()) {
-            throw new AccountPdfServiceException(UNAVAILABLE_ACCOUNT_MESSAGE);
+            return new ViewModelResult(false, null, UNAVAILABLE_ACCOUNT_MESSAGE);
         }
 
         // 単一レコード用 SOQL の先頭結果を表示対象として確定
@@ -84,7 +82,7 @@ public with sharing class AccountPdfService {
         // 説明の空値を PDF 共通表現へ統一
         viewModel.description = normalizeValue(accountRecord.Description);
         // 完成した PDF 表示モデルを呼び出し元へ返却
-        return viewModel;
+        return new ViewModelResult(true, viewModel, null);
     }
 
     private String formatAddress(List<String> addressParts) {
@@ -112,8 +110,32 @@ public with sharing class AccountPdfService {
     }
 
     /**
-     * 取引先 PDF の入力または表示対象に関する例外
+     * 取引先 ID の検証結果
      */
-    public class AccountPdfServiceException extends Exception {
+    public class AccountIdValidationResult {
+        public Boolean isValid;
+        public Id accountId;
+        public String errorMessage;
+
+        private AccountIdValidationResult(Boolean isValid, Id accountId, String errorMessage) {
+            this.isValid = isValid;
+            this.accountId = accountId;
+            this.errorMessage = errorMessage;
+        }
+    }
+
+    /**
+     * PDF 表示モデルの作成結果
+     */
+    public class ViewModelResult {
+        public Boolean isValid;
+        public AccountPdfViewModel viewModel;
+        public String errorMessage;
+
+        private ViewModelResult(Boolean isValid, AccountPdfViewModel viewModel, String errorMessage) {
+            this.isValid = isValid;
+            this.viewModel = viewModel;
+            this.errorMessage = errorMessage;
+        }
     }
 }

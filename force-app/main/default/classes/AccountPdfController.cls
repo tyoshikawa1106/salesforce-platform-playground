@@ -24,13 +24,22 @@ public with sharing class AccountPdfController {
         try {
             String accountIdParameter = ApexPages.currentPage().getParameters().get('accountId');
             String sanitizedAccountIdParameter = accountIdParameter?.escapeHtml4();
-            Id accountId = this.service.validateAccountId(sanitizedAccountIdParameter);
+            AccountPdfService.AccountIdValidationResult validationResult = this.service.validateAccountId(
+                sanitizedAccountIdParameter
+            );
+            if (!validationResult.isValid) {
+                setError(validationResult.errorMessage);
+                return;
+            }
             // 利用者権限で PDF 出力対象の取引先一覧を取得
-            List<Account> accounts = this.selector.getById(accountId);
+            List<Account> accounts = this.selector.getById(validationResult.accountId);
             // 単一取引先の取得確認と表示値作成を Service へ委譲
-            this.accountData = this.service.createViewModel(accounts);
-        } catch (AccountPdfService.AccountPdfServiceException e) {
-            setError(e.getMessage());
+            AccountPdfService.ViewModelResult viewModelResult = this.service.createViewModel(accounts);
+            if (!viewModelResult.isValid) {
+                setError(viewModelResult.errorMessage);
+                return;
+            }
+            this.accountData = viewModelResult.viewModel;
         } catch (Exception e) {
             setError(LOAD_ERROR_MESSAGE);
         }
