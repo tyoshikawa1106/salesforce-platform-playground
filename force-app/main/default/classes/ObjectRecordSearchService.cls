@@ -1,7 +1,7 @@
 /**
  * 汎用レコード検索画面の判定と Wrapper 組み立て提供
  */
-public with sharing class ObjectRecordSearchService {
+public virtual with sharing class ObjectRecordSearchService {
 
     private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = ObjectRecordSearchQueryPlan.SEARCH_FETCH_SIZE;
@@ -68,7 +68,7 @@ public with sharing class ObjectRecordSearchService {
      * @param metricKey データボードカードの表示キー
      * @return 検索状態または利用できない理由
      */
-    public SearchContextResult resolveSearchContext(String metricKey) {
+    public virtual SearchContextResult resolveSearchContext(String metricKey) {
         SearchContextResult result = new SearchContextResult();
         // 表示キーを固定カタログの検索対象へ変換
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(

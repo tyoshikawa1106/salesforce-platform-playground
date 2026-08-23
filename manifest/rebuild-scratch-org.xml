@@ -49,6 +49,7 @@
         <members>ObjectRecordSearchContext</members>
         <members>ObjectRecordSearchContextTest</members>
         <members>ObjectRecordSearchController</members>
+        <members>ObjectRecordSearchControllerErrorTest</members>
         <members>ObjectRecordSearchControllerTest</members>
         <members>ObjectRecordSearchDeleteWrapper</members>
         <members>ObjectRecordSearchDeleteWrapperTest</members>
@@ -56,6 +57,7 @@
         <members>ObjectRecordSearchFieldWrapper</members>
         <members>ObjectRecordSearchFieldWrapperTest</members>
         <members>ObjectRecordSearchPageTokenCodec</members>
+        <members>ObjectRecordSearchPageTokenCodecTest</members>
         <members>ObjectRecordSearchQueryPlan</members>
         <members>ObjectRecordSearchQueryPlanTest</members>
         <members>ObjectRecordSearchRequestWrapper</members>

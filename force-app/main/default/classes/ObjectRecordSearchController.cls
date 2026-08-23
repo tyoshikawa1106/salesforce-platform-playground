@@ -31,7 +31,11 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchService.ErrorCode.INVALID_PAGE_TOKEN => INVALID_PAGE_TOKEN_MESSAGE
     };
 
-    private ObjectRecordSearchService service = new ObjectRecordSearchService();
+    // 公開APIを通した例外境界テストで Service の失敗を再現
+    @TestVisible
+    private static ObjectRecordSearchService testService;
+
+    private ObjectRecordSearchService service = testService ?? new ObjectRecordSearchService();
     private ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
     /**

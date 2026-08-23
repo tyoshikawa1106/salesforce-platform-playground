@@ -29,6 +29,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         String recordIdValue = String.valueOf(lastRow.id);
         String rowSortValue = getRowSortValue(lastRow, sortSpec);
         Map<String, String> tokenParts = new Map<String, String>{
+            'objectApiName' => sortSpec.objectApiName,
             'fieldApiName' => sortSpec.fieldApiName,
             'sortDirection' => sortSpec.direction,
             'recordId' => recordIdValue,
@@ -81,6 +82,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
 
     private static void requireValidSortSpec(ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         Boolean hasRequiredSortSpec = sortSpec != null &&
+            String.isNotBlank(sortSpec.objectApiName) &&
             String.isNotBlank(sortSpec.fieldApiName) &&
             String.isNotBlank(sortSpec.direction) &&
             sortSpec.fieldDescribe != null;
@@ -101,16 +103,26 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         if (tokenParts == null) {
             return null;
         }
+        // token の対象オブジェクトを現在の検索条件と照合
+        String cursorObjectApiName = (String) tokenParts.get('objectApiName');
         // token の field と現在の sortSpec がずれた場合は読み込み不可
         String cursorFieldApiName = (String) tokenParts.get('fieldApiName');
         // token 発行時と現在のソート方向を比較できる値を取得
         String cursorSortDirection = (String) tokenParts.get('sortDirection');
         String cursorRecordId = (String) tokenParts.get('recordId');
+        Boolean isCursorObjectExpected = cursorObjectApiName == sortSpec.objectApiName;
         Boolean isCursorFieldExpected = cursorFieldApiName == sortSpec.fieldApiName;
         // ソート方向が欠落または変更された token を別の問い合わせで再利用させない
         Boolean isCursorDirectionExpected = cursorSortDirection == sortSpec.direction;
         Boolean hasCursorRecordId = String.isNotBlank(cursorRecordId);
-        if (!isCursorFieldExpected || !isCursorDirectionExpected || !hasCursorRecordId) {
+        if (!isCursorObjectExpected || !isCursorFieldExpected || !isCursorDirectionExpected || !hasCursorRecordId) {
+            return null;
+        }
+        // 構文上有効な ID も現在の検索対象オブジェクトに限定
+        Id cursorRecordIdValue = (Id) cursorRecordId;
+        String cursorRecordObjectApiName = cursorRecordIdValue.getSObjectType().getDescribe().getName();
+        Boolean isCursorRecordObjectExpected = cursorRecordObjectApiName == sortSpec.objectApiName;
+        if (!isCursorRecordObjectExpected) {
             return null;
         }
         // SOQL bind に渡せる型へ sort 値を復元
@@ -118,7 +130,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         // 検証済み形式から第1ソートキーの境界値を取得
         Object rawCursorSortValue = tokenParts.get('sortValue');
         cursor.sortValue = parseCursorSortValue(rawCursorSortValue, sortSpec);
-        cursor.recordId = (Id) cursorRecordId;
+        cursor.recordId = cursorRecordIdValue;
         return cursor;
     }
 

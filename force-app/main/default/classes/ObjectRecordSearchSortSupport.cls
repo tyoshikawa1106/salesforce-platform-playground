@@ -30,6 +30,8 @@ public with sharing class ObjectRecordSearchSortSupport {
             fieldDescribe = context.getAllowedFieldDescribe(fieldApiName);
         }
         SortSpec sortSpec = new SortSpec();
+        // ページトークンを現在の検索対象オブジェクトへ束縛
+        sortSpec.objectApiName = context.config.objectApiName;
         sortSpec.fieldApiName = fieldApiName;
         sortSpec.direction = getSortDirection(request);
         sortSpec.fieldDescribe = fieldDescribe;
@@ -88,6 +90,8 @@ public with sharing class ObjectRecordSearchSortSupport {
      */
     public class SortSpec {
 
+        // ページトークンと照合する検索対象オブジェクト
+        public String objectApiName;
         public String fieldApiName;
         public String direction;
         public Schema.DescribeFieldResult fieldDescribe;
