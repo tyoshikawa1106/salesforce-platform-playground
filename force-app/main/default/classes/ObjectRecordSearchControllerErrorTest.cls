@@ -18,7 +18,7 @@ private with sharing class ObjectRecordSearchControllerErrorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            errorMessage = getConfigErrorMessage();
+            errorMessage = getConfigErrorMessage('accounts');
 
             Test.stopTest();
         }
@@ -29,6 +29,28 @@ private with sharing class ObjectRecordSearchControllerErrorTest {
             '設定取得の内部例外は設定用の案内へ変換する必要あり'
         );
         Assert.isFalse(errorMessage.contains(INTERNAL_ERROR_MESSAGE), '設定取得で内部詳細を公開しない必要あり');
+    }
+
+    /**
+     * 設定取得の未対応メトリクスはカード選択用メッセージへ変換
+     */
+    @IsTest
+    static void shouldReturnUnsupportedMetricMessageForConfig() {
+        String errorMessage;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            errorMessage = getConfigErrorMessage('unknown');
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'このカードのレコード一覧は表示できません。別のカードを選択してください。',
+            errorMessage,
+            '設定取得の未対応メトリクスは別カードの選択を案内する必要あり'
+        );
     }
 
     /**
@@ -68,7 +90,7 @@ private with sharing class ObjectRecordSearchControllerErrorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            errorMessage = getDeleteErrorMessage();
+            errorMessage = getDeleteErrorMessage('accounts');
 
             Test.stopTest();
         }
@@ -81,9 +103,31 @@ private with sharing class ObjectRecordSearchControllerErrorTest {
         Assert.isFalse(errorMessage.contains(INTERNAL_ERROR_MESSAGE), '削除で内部詳細を公開しない必要あり');
     }
 
-    private static String getConfigErrorMessage() {
+    /**
+     * 削除の未対応メトリクスはカード選択用メッセージへ変換
+     */
+    @IsTest
+    static void shouldReturnUnsupportedMetricMessageForDelete() {
+        String errorMessage;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            errorMessage = getDeleteErrorMessage('unknown');
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'このカードのレコード一覧は表示できません。別のカードを選択してください。',
+            errorMessage,
+            '削除の未対応メトリクスは別カードの選択を案内する必要あり'
+        );
+    }
+
+    private static String getConfigErrorMessage(String metricKey) {
         try {
-            ObjectRecordSearchController.getObjectConfig('accounts');
+            ObjectRecordSearchController.getObjectConfig(metricKey);
             return null;
         } catch (AuraHandledException e) {
             return e.getMessage();
@@ -99,10 +143,10 @@ private with sharing class ObjectRecordSearchControllerErrorTest {
         }
     }
 
-    private static String getDeleteErrorMessage() {
+    private static String getDeleteErrorMessage(String metricKey) {
         try {
             ObjectRecordSearchController.deleteRecords(
-                'accounts',
+                metricKey,
                 new List<Id>{ UserInfo.getUserId() }
             );
             return null;
