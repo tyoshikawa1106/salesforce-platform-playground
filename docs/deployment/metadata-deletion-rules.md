@@ -11,6 +11,7 @@
 - 本番環境とDeveloper Editionでは、接続組織の承認後に環境別の最終確認を行い、再承認された場合だけdry-runへ進む。
 - 対象組織を一意に特定できない場合や、組織種別を判定できない場合はdry-runを開始しない。
 - destructive changes と通常 metadata 更新を同じ実行 scope に混ぜない。必要な場合も差分と検証結果を分けて報告する。
+- `manifest/destructivePackage.xml` は削除deployに必要な通常manifestとして扱い、削除専用の実行では追加・更新対象を含めない。
 - `manifest/destructiveChanges.xml` は作業中の削除対象だけを含め、作業後にプレースホルダーや不要な削除対象を残さない。
 
 ## 削除前確認
@@ -43,6 +44,7 @@ npm run sf:destructive
 
 ## destructive changes 実行手順
 
+- 削除スクリプトは、通常manifestに`manifest/destructivePackage.xml`、削除対象manifestに`manifest/destructiveChanges.xml`を使用する。
 - destructive manifest は作業単位ごとに最小化する。
 - deploy validate が使える場合は、削除前に検証する。
 - 削除と無関係な metadata 更新を同じ変更に混ぜない。

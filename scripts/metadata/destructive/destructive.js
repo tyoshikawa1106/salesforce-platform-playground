@@ -9,7 +9,8 @@ const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
 
-// dry-runと実削除で同じdestructive manifestを使用する。
+// 削除deployに必要な通常manifestと、実際の削除対象を定義するmanifestを分ける。
+const packageManifest = 'manifest/destructivePackage.xml';
 const destructiveManifest = 'manifest/destructiveChanges.xml';
 
 // 接続先と組織種別を確認し、dry-runの成功後に再承認された場合だけメタデータを削除する。
@@ -69,13 +70,13 @@ async function main({
             }
         }
 
-        // 同じmanifestを通常manifestとdestructive changesの両方に指定する。
+        // 通常manifestと削除対象manifestを明示してdestructive deployを組み立てる。
         const deployArgs = [
             'project',
             'deploy',
             'start',
             '--manifest',
-            destructiveManifest,
+            packageManifest,
             '--post-destructive-changes',
             destructiveManifest,
             '--target-org',
