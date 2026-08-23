@@ -1,6 +1,7 @@
 // 実行コマンド: npm run sf:destructive
 // 用途: Default Target Orgのメタデータ削除をdry-runし、承認後に実行する。
 
+const fs = require('node:fs');
 const path = require('node:path');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
 const { runSf, runSfWithOutput } = require('../../common/run-command');
@@ -13,12 +14,31 @@ const repoRoot = path.resolve(__dirname, '../../..');
 const packageManifest = 'manifest/destructivePackage.xml';
 const destructiveManifest = 'manifest/destructiveChanges.xml';
 
+// 削除対象manifestに実在する対象だけが設定されていることを組織照合前に確認する。
+function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
+    // 実行場所に依存せずリポジトリ管理の削除対象manifestを読み込む。
+    const manifestPath = path.join(repoRoot, destructiveManifest);
+    // XMLの内容を文字列として検証する。
+    const manifest = readFileSync(manifestPath, 'utf8');
+
+    // 作業用プレースホルダーを実在するmetadata名として扱わない。
+    if (manifest.includes('REPLACE_WITH_')) {
+        throw new Error('manifest/destructiveChanges.xmlにプレースホルダーが残っています。');
+    }
+
+    // 削除対象が空の状態では組織確認やSalesforce CLIを開始しない。
+    if (!/<types>[\s\S]*?<members>[^<]+<\/members>[\s\S]*?<\/types>/.test(manifest)) {
+        throw new Error('manifest/destructiveChanges.xmlに削除対象が設定されていません。');
+    }
+}
+
 // 接続先と組織種別を確認し、dry-runの成功後に再承認された場合だけメタデータを削除する。
 async function main({
     argv = process.argv.slice(2),
     createPrompt,
     runSfCommand = runSf,
-    runSfWithOutputCommand = runSfWithOutput
+    runSfWithOutputCommand = runSfWithOutput,
+    validateManifest = validateDestructiveManifest
 } = {}) {
     // このスクリプトは引数を受け付けない。
     if (argv.length !== 0) {
@@ -29,6 +49,9 @@ async function main({
         // Salesforce CLIを呼び出さず失敗終了を返す。
         return 1;
     }
+
+    // 削除対象が未設定またはプレースホルダーの場合は組織へ接続しない。
+    validateManifest();
 
     // 削除対象のDefault Target Orgと、認証済み組織情報を取得する。
     const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
@@ -126,5 +149,5 @@ if (require.main === module) {
         });
 }
 
-// 確認分岐を組織接続なしでテストできるようmainを公開する。
-module.exports = { main };
+// manifest検証と確認分岐を組織接続なしでテストできるよう公開する。
+module.exports = { main, validateDestructiveManifest };

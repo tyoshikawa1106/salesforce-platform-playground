@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { main } = require('../destructive');
+const { main, validateDestructiveManifest } = require('../destructive');
 
 // destructiveスクリプトをリポジトリルート基準で実行する。
 const repoRoot = path.resolve(__dirname, '../../../..');
@@ -18,6 +18,67 @@ test('destructive deploy用の通常manifestは追加・更新対象を持たず
 
     assert.doesNotMatch(manifest, /<types>/);
     assert.equal(apiVersion, project.sourceApiVersion);
+});
+
+test('削除対象manifestは通常時にプレースホルダーと削除対象を残さずAPIバージョンを揃える', () => {
+    const manifest = fs.readFileSync(path.join(repoRoot, 'manifest/destructiveChanges.xml'), 'utf8');
+    const project = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sfdx-project.json'), 'utf8'));
+    const apiVersion = manifest.match(/<version>([^<]+)<\/version>/)?.[1];
+
+    assert.doesNotMatch(manifest, /REPLACE_WITH_/);
+    assert.doesNotMatch(manifest, /<types>/);
+    assert.equal(apiVersion, project.sourceApiVersion);
+});
+
+test('削除対象manifestにプレースホルダーが残る場合は拒否する', () => {
+    assert.throws(
+        () =>
+            validateDestructiveManifest({
+                readFileSync() {
+                    return '<Package><types><members>REPLACE_WITH_APEX_CLASS_NAME</members></types></Package>';
+                }
+            }),
+        /プレースホルダーが残っています/
+    );
+});
+
+test('削除対象manifestに削除対象がない場合は拒否する', () => {
+    assert.throws(
+        () =>
+            validateDestructiveManifest({
+                readFileSync() {
+                    return '<Package><version>67.0</version></Package>';
+                }
+            }),
+        /削除対象が設定されていません/
+    );
+});
+
+test('削除対象manifestに実在するmetadata名がある場合は許可する', () => {
+    assert.doesNotThrow(() =>
+        validateDestructiveManifest({
+            readFileSync() {
+                return '<Package><types><members>UnusedClass</members><name>ApexClass</name></types></Package>';
+            }
+        })
+    );
+});
+
+test('削除対象が未設定の場合はSalesforce CLI実行前に停止する', async () => {
+    let commandCount = 0;
+
+    await assert.rejects(
+        () =>
+            main({
+                argv: [],
+                runSfWithOutputCommand() {
+                    commandCount += 1;
+                }
+            }),
+        /削除対象が設定されていません/
+    );
+
+    assert.equal(commandCount, 0);
 });
 
 // 確認への回答と質問を順番に記録し、最後にcloseされたことを確認できるようにする。
@@ -97,6 +158,7 @@ test('Default Target Orgを確認できない場合は入力確認を開始し�
         () =>
             main({
                 argv: [],
+                validateManifest() {},
                 createPrompt() {
                     promptCount += 1;
                 },
@@ -115,6 +177,7 @@ test('接続組織が承認されない場合はdry-runを実行しない', asyn
     const prompt = createPrompt(['n']);
     const status = await main({
         argv: [],
+        validateManifest() {},
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
             commandArgs.push(args);
@@ -138,6 +201,7 @@ for (const [type, label] of [
         const prompt = createPrompt(['y', 'n']);
         const status = await main({
             argv: [],
+            validateManifest() {},
             createPrompt: () => prompt.prompt,
             runSfCommand(args) {
                 commandArgs.push(args);
@@ -161,6 +225,7 @@ test('Sandboxでは環境別の追加確認なしでdry-runを実行する', asy
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
+        validateManifest() {},
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
             commandArgs.push(args);
@@ -183,6 +248,7 @@ test('dry-runが失敗した場合は実削除を実行しない', async () => {
     const prompt = createPrompt(['y']);
     const status = await main({
         argv: [],
+        validateManifest() {},
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
             commandArgs.push(args);
@@ -202,6 +268,7 @@ test('dry-run成功後に削除が承認されない場合は実削除しない'
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
+        validateManifest() {},
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
             commandArgs.push(args);
@@ -221,6 +288,7 @@ test('本番環境の全確認が承認された場合だけ通常manifestと削
     const prompt = createPrompt(['y', 'y', 'y']);
     const status = await main({
         argv: [],
+        validateManifest() {},
         createPrompt: () => prompt.prompt,
         runSfCommand(args) {
             commandArgs.push(args);

@@ -12,7 +12,7 @@
 - 対象組織を一意に特定できない場合や、組織種別を判定できない場合はdry-runを開始しない。
 - destructive changes と通常 metadata 更新を同じ実行 scope に混ぜない。必要な場合も差分と検証結果を分けて報告する。
 - `manifest/destructivePackage.xml` は削除deployに必要な通常manifestとして扱い、削除専用の実行では追加・更新対象を含めない。
-- `manifest/destructiveChanges.xml` は作業中の削除対象だけを含め、作業後にプレースホルダーや不要な削除対象を残さない。
+- `manifest/destructiveChanges.xml` は通常時に削除対象を持たない状態で管理し、作業中だけ実在する削除対象を追加する。作業後にプレースホルダーや不要な削除対象を残さない。
 
 ## 削除前確認
 
@@ -31,10 +31,9 @@ sf config get target-org
 
 ## Apex クラス削除
 
-削除対象の Apex クラスは `manifest/destructiveChanges.xml` の `ApexClass` に書きます。
-`REPLACE_WITH_APEX_CLASS_NAME` は実際の Apex クラス名に置き換えます。
+削除対象の Apex クラスは `manifest/destructiveChanges.xml` の `ApexClass` に実際のクラス名で書きます。
 
-削除スクリプトを実行します。最初にdefault target orgのalias、ユーザー名、URL、種別が表示されます。接続組織を承認すると、本番環境とDeveloper Editionでは環境別の最終確認が表示されます。必要な確認が承認された後にdry-runを実行し、成功後に実削除するか再確認します。
+削除スクリプトを実行します。削除対象が未設定、またはプレースホルダーが残っている場合は、組織情報を取得せず停止します。対象が有効な場合はdefault target orgのalias、ユーザー名、URL、種別が表示されます。接続組織を承認すると、本番環境とDeveloper Editionでは環境別の最終確認が表示されます。必要な確認が承認された後にdry-runを実行し、成功後に実削除するか再確認します。
 
 ```sh
 npm run sf:destructive
