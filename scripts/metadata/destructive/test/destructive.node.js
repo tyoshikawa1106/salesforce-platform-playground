@@ -3,12 +3,22 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { main } = require('../destructive');
 
 // destructiveスクリプトをリポジトリルート基準で実行する。
 const repoRoot = path.resolve(__dirname, '../../../..');
+
+test('destructive deploy用の通常manifestは追加・更新対象を持たずAPIバージョンを揃える', () => {
+    const manifest = fs.readFileSync(path.join(repoRoot, 'manifest/destructivePackage.xml'), 'utf8');
+    const project = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sfdx-project.json'), 'utf8'));
+    const apiVersion = manifest.match(/<version>([^<]+)<\/version>/)?.[1];
+
+    assert.doesNotMatch(manifest, /<types>/);
+    assert.equal(apiVersion, project.sourceApiVersion);
+});
 
 // 確認への回答と質問を順番に記録し、最後にcloseされたことを確認できるようにする。
 function createPrompt(answers) {
@@ -206,7 +216,7 @@ test('dry-run成功後に削除が承認されない場合は実削除しない'
     assert.equal(prompt.isClosed(), true);
 });
 
-test('本番環境の全確認が承認された場合だけ同じ対象へ実削除する', async () => {
+test('本番環境の全確認が承認された場合だけ通常manifestと削除対象manifestを使って実削除する', async () => {
     const commandArgs = [];
     const prompt = createPrompt(['y', 'y', 'y']);
     const status = await main({
@@ -223,7 +233,7 @@ test('本番環境の全確認が承認された場合だけ同じ対象へ実�
         'deploy',
         'start',
         '--manifest',
-        'manifest/destructiveChanges.xml',
+        'manifest/destructivePackage.xml',
         '--post-destructive-changes',
         'manifest/destructiveChanges.xml',
         '--target-org',

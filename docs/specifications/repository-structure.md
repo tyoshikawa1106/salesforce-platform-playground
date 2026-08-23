@@ -181,6 +181,7 @@
 | パス                               | 種別       | 用途                                                                             |
 | ---------------------------------- | ---------- | -------------------------------------------------------------------------------- |
 | `manifest/destructiveChanges.xml`  | ファイル   | Salesforce組織から削除するmetadataを定義する。                                   |
+| `manifest/destructivePackage.xml`  | ファイル   | destructive deployに必要な通常manifestを定義する。                               |
 | `manifest/package.xml`             | ファイル   | Apex、Aura、LWC、静的リソース、Flowを手動取得するscopeを定義する。               |
 | `manifest/rebuild-scratch-org.xml` | ファイル   | Scratch Org作成後に初期反映するmetadataを定義する。                              |
 | `manifest/retrieve-*.xml`          | ファイル群 | 取得対象metadata typeの全体catalogと、責務別に分割したretrieve scopeを定義する。 |
