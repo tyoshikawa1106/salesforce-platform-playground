@@ -39,7 +39,6 @@
 | Apex Class | `ObjectRecordSearchConfigWrapper`       | 検索画面の設定情報                             |
 | Apex Class | `ObjectRecordSearchContext`             | 内部検索状態                                   |
 | Apex Class | `ObjectRecordSearchDeleteWrapper`       | 削除要求と削除結果                             |
-| Apex Class | `ObjectRecordSearchException`           | 検索機能固有の例外                             |
 | Apex Class | `ObjectRecordSearchFieldWrapper`        | 表示項目情報                                   |
 | Apex Class | `ObjectRecordSearchRequestWrapper`      | 検索要求                                       |
 | Apex Class | `ObjectRecordSearchResultWrapper`       | 検索結果                                       |
@@ -86,7 +85,10 @@
 
 ## エラー処理
 
-- 未定義のカードキー、参照不可のオブジェクト、参照不可の `Name` 相当項目、不正な検索条件やページトークンは、利用者向けの `AuraHandledException` に変換します。
+- 想定内の状態を例外型で識別せず、下位層の判定結果と Controller の固定メッセージを境界にします。空の独自例外では公開可能なメッセージを保証できないため、`ObjectRecordSearchException` は使用しません。
+- 未定義のカードキー、利用できないオブジェクト、参照不可の `Name` 相当項目、不正なページトークンは、Service が判定結果と原因コードで Controller へ返します。
+- Controller は原因コードを利用者が次の操作を選べるメッセージへ対応付け、LWC の境界で `AuraHandledException` として返します。
+- 内部の検索状態や検索条件が成立しない場合は処理を継続せず、Controller が内部エラーの詳細を公開しない一般化メッセージへ変換します。
 - 予期しない検索、設定、削除エラーは操作別の一般化メッセージに変換します。
 - 削除は部分成功を許容し、失敗した行ごとに一般化したエラーを返します。
 - UI API の作成、編集エラーとファイルアップロードエラーはトーストまたはフォームメッセージで表示します。

@@ -53,8 +53,6 @@
         <members>ObjectRecordSearchDeleteWrapper</members>
         <members>ObjectRecordSearchDeleteWrapperTest</members>
         <members>ObjectRecordSearchDisplayFieldCatalog</members>
-        <members>ObjectRecordSearchException</members>
-        <members>ObjectRecordSearchExceptionTest</members>
         <members>ObjectRecordSearchFieldWrapper</members>
         <members>ObjectRecordSearchFieldWrapperTest</members>
         <members>ObjectRecordSearchPageTokenCodec</members>

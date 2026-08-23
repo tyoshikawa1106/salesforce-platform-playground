@@ -35,11 +35,12 @@ private with sharing class ObjectRecordSearchServiceTest {
             context,
             request
         );
-        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
+        ObjectRecordSearchService.SearchQueryRequestResult requestResult = service.createSearchQueryRequest(
             context,
             request,
             sortSpec
         );
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
         List<SObject> records = [
             SELECT Id, Name, Industry
             FROM Account
@@ -91,12 +92,12 @@ private with sharing class ObjectRecordSearchServiceTest {
             context,
             request
         );
-        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest;
+        ObjectRecordSearchService.SearchQueryRequestResult requestResult;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            searchQueryRequest = service.createSearchQueryRequest(
+            requestResult = service.createSearchQueryRequest(
                 context,
                 request,
                 sortSpec
@@ -107,13 +108,59 @@ private with sharing class ObjectRecordSearchServiceTest {
 
         Assert.areEqual(
             'Service Alpha',
-            searchQueryRequest.normalizedSearchTerm,
+            requestResult.searchQueryRequest.normalizedSearchTerm,
             'Service は検索語の前後空白を除去する必要あり'
         );
         Assert.areEqual(
             '  Service Alpha  ',
-            searchQueryRequest.searchRequest.searchTerm,
+            requestResult.searchQueryRequest.searchRequest.searchTerm,
             '画面から受け取ったリクエスト値は変更しない必要あり'
+        );
+        Assert.isTrue(
+            requestResult.isSuccess(),
+            '有効な検索条件は成功結果として返す必要あり'
+        );
+    }
+
+    /**
+     * 不正なページトークンは原因コードで通知
+     */
+    @IsTest
+    static void shouldReturnFailureWhenPageTokenIsInvalid() {
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectRecordSearchRequestWrapper request = createSearchRequest(
+            'accounts',
+            null
+        );
+        request.pageToken = 'not-json';
+        ObjectRecordSearchContext context = createAccountContext(service);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
+            context,
+            request
+        );
+        ObjectRecordSearchService.SearchQueryRequestResult result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = service.createSearchQueryRequest(
+                context,
+                request,
+                sortSpec
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.isFalse(result.isSuccess(), '不正なページトークンは検索条件を返さない必要あり');
+        Assert.areEqual(
+            ObjectRecordSearchService.ErrorCode.INVALID_PAGE_TOKEN,
+            result.errorCode,
+            '不正なページトークンを原因コードで通知する必要あり'
+        );
+        Assert.isNull(
+            result.searchQueryRequest,
+            '不正なページトークンから問い合わせ条件を作成しない必要あり'
         );
     }
 
@@ -140,11 +187,12 @@ private with sharing class ObjectRecordSearchServiceTest {
             context,
             request
         );
-        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = service.createSearchQueryRequest(
+        ObjectRecordSearchService.SearchQueryRequestResult requestResult = service.createSearchQueryRequest(
             context,
             request,
             sortSpec
         );
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
         List<SObject> records = [
             SELECT Id, Name, Industry
             FROM Account
@@ -273,28 +321,30 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
-     * 未対応メトリクスキーは例外を送出
+     * 未対応メトリクスキーは判定結果で通知
      */
     @IsTest
-    static void shouldThrowWhenMetricKeyIsUnsupported() {
+    static void shouldReturnFailureWhenMetricKeyIsUnsupported() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectRecordSearchService.SearchContextResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                service.requireDefinition('unknown');
-                Assert.fail('未対応のメトリクスキーは例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('表示できません'),
-                    '未対応のメトリクスキーはオブジェクト未対応を説明する必要あり'
-                );
-            }
+            result = service.resolveSearchContext('unknown');
 
             Test.stopTest();
         }
 
+        Assert.isFalse(
+            result.isSuccess(),
+            '未対応のメトリクスキーは検索状態を返さない必要あり'
+        );
+        Assert.areEqual(
+            ObjectRecordSearchService.ErrorCode.UNSUPPORTED_METRIC_KEY,
+            result.errorCode,
+            '未対応のメトリクスキーを原因コードで通知する必要あり'
+        );
     }
 
     /**
@@ -349,45 +399,32 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
-     * 参照可能なオブジェクトと Name 項目の describe を返却
+     * 参照可能なオブジェクトと Name 項目から検索状態を返却
      */
     @IsTest
-    static void shouldReturnAccessibleObjectAndNameFieldDescribe() {
+    static void shouldReturnSearchContextWhenObjectAndNameFieldAreAccessible() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-        Schema.DescribeSObjectResult objectDescribe;
-        Schema.DescribeFieldResult nameFieldDescribe;
+        ObjectRecordSearchService.SearchContextResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            objectDescribe = service.getObjectDescribe('Account');
-            nameFieldDescribe = service.getNameFieldDescribe(objectDescribe);
+            result = service.resolveSearchContext('accounts');
 
             Test.stopTest();
         }
 
-        Assert.areEqual('Account', objectDescribe.getName(), 'Account の describe を返す必要あり');
-        Assert.isTrue(objectDescribe.isAccessible(), '参照可能なオブジェクトだけを返す必要あり');
-        Assert.areEqual('Name', nameFieldDescribe.getName(), 'Name 相当項目を返す必要あり');
-    }
-
-    /**
-     * 未対応オブジェクトを describe 前に拒否
-     */
-    @IsTest
-    static void shouldRejectUnsupportedObjectDescribe() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
-
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                service.getObjectDescribe('UnknownObject__c');
-                Assert.fail('未対応オブジェクトは拒否する必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(e.getMessage().contains('利用できません'), '利用不可を説明する必要あり');
-            }
-            Test.stopTest();
-        }
+        Assert.isTrue(result.isSuccess(), '参照可能な検索状態を返す必要あり');
+        Assert.areEqual(
+            'Account',
+            result.context.config.objectApiName,
+            'Account の検索設定を内部状態に含める必要あり'
+        );
+        Assert.areEqual(
+            'Name',
+            result.context.config.nameFieldApiName,
+            'Name 相当項目を検索設定に含める必要あり'
+        );
     }
 
     /**
@@ -420,7 +457,7 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
-        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
+        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(

@@ -15,14 +15,14 @@ public with sharing class ObjectRecordSearchQueryPlan {
      *
      * @param request 検索対象、ソート、ページングを持つ問い合わせ条件
      * @return 検証済みの問い合わせ条件
-     * @throws ObjectRecordSearchException 必須条件が不足する、または許可外のオブジェクト・項目が指定された場合
+     * @throws IllegalArgumentException 内部で組み立てた問い合わせ条件が契約を満たさない場合
      */
     public static SearchQueryRequest requireValidSearchQueryRequest(SearchQueryRequest request) {
         // クエリ計画に必要な context、sort、fetchSize の欠落を検出
         Boolean hasRequiredParts = hasRequiredSearchQueryParts(request);
         // 必須条件が欠けた問い合わせは Selector へ渡さない
         if (!hasRequiredParts) {
-            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
+            throw new IllegalArgumentException('検索条件の必須値が不足しています。');
         }
         // 動的 SOQL の FROM 句に使える固定カタログのオブジェクトかを判定
         Boolean isSupportedObject = isSupportedObject(
@@ -39,7 +39,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
         );
         // 許可リスト外の識別子を含む問い合わせを拒否
         if (!isSupportedObject || !isAllowedSortField || !isAllowedSortDirection) {
-            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
+            throw new IllegalArgumentException('検索条件に許可されていない値が含まれています。');
         }
         // Selector が SOQL 組み立てに使える検証済み条件を返却
         return request;

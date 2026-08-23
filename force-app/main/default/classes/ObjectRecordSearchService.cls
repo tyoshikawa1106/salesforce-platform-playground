@@ -8,95 +8,141 @@ public with sharing class ObjectRecordSearchService {
     private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。権限や関連データを確認してください。';
 
     /**
-     * 表示キーに対応するデータボード定義を返す
+     * 検索画面の準備または検索条件の判定結果
+     */
+    public enum ErrorCode {
+        NONE,
+        UNSUPPORTED_METRIC_KEY,
+        OBJECT_UNAVAILABLE,
+        OBJECT_ACCESS_DENIED,
+        NAME_FIELD_UNAVAILABLE,
+        NAME_FIELD_ACCESS_DENIED,
+        INVALID_PAGE_TOKEN
+    }
+
+    /**
+     * 検索画面の内部状態解決結果
+     */
+    public class SearchContextResult {
+
+        // 正常時に後続処理へ渡す検索状態
+        public ObjectRecordSearchContext context;
+        // 画面側で案内を選ぶための失敗理由
+        public ErrorCode errorCode;
+
+        /**
+         * 検索画面の内部状態を利用できるかを返す
+         *
+         * @return 正常な検索状態を保持する場合 true
+         */
+        public Boolean isSuccess() {
+            return this.errorCode == ObjectRecordSearchService.ErrorCode.NONE &&
+                this.context != null;
+        }
+    }
+
+    /**
+     * 検索問い合わせ条件の準備結果
+     */
+    public class SearchQueryRequestResult {
+
+        // 正常時に Selector と結果変換で共有する検索条件
+        public ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest;
+        // 画面側で案内を選ぶための失敗理由
+        public ErrorCode errorCode;
+
+        /**
+         * 検索問い合わせ条件を利用できるかを返す
+         *
+         * @return 正常な検索条件を保持する場合 true
+         */
+        public Boolean isSuccess() {
+            return this.errorCode == ObjectRecordSearchService.ErrorCode.NONE &&
+                this.searchQueryRequest != null;
+        }
+    }
+
+    /**
+     * 表示キーから検索画面の内部状態を解決
      *
      * @param metricKey データボードカードの表示キー
-     * @return データボードカードと対象オブジェクトの定義
-     * @throws ObjectRecordSearchException 表示キーに対応する定義がない場合
+     * @return 検索状態または利用できない理由
      */
-    public ObjectMetricCatalog.MetricDefinition requireDefinition(String metricKey) {
-        // 表示キーを検索対象オブジェクトのカタログ定義へ変換
+    public SearchContextResult resolveSearchContext(String metricKey) {
+        SearchContextResult result = new SearchContextResult();
+        // 表示キーを固定カタログの検索対象へ変換
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             metricKey
         );
         if (definition == null) {
-            throw new ObjectRecordSearchException('このカードのレコード一覧は表示できません。別のカードを選択してください。');
+            result.errorCode = ErrorCode.UNSUPPORTED_METRIC_KEY;
+            return result;
         }
-        return definition;
-    }
 
-    /**
-     * 対象オブジェクトの describe 結果を検証して返却
-     *
-     * @param objectApiName 対象オブジェクト API 参照名
-     * @return 参照可能でクエリ可能なオブジェクトの describe 結果
-     * @throws ObjectRecordSearchException 対象オブジェクトを検索できない場合
-     */
-    public Schema.DescribeSObjectResult getObjectDescribe(String objectApiName) {
-        // カタログ定義済みオブジェクトだけを describe 対象に許可
-        Boolean isSupportedObject = ObjectMetricCatalog.hasObjectApiName(objectApiName);
-        if (!isSupportedObject) {
-            throw new ObjectRecordSearchException('このカードの対象オブジェクトを利用できません。別のカードを選択してください。');
-        }
-        // API 参照名を describe 対象の SObjectType へ解決
+        // 動的処理へ渡すオブジェクトを固定カタログに限定
+        Boolean isSupportedObject = ObjectMetricCatalog.hasObjectApiName(
+            definition.objectApiName
+        );
+        // 組織内のメタデータから対象 SObjectType を解決
         Map<String, Schema.SObjectType> sObjectTypesByApiName = Schema.getGlobalDescribe();
-        // カタログと組織の双方に存在する SObjectType を取得
-        Schema.SObjectType sObjectType = sObjectTypesByApiName.get(objectApiName);
-        if (sObjectType == null) {
-            throw new ObjectRecordSearchException('このカードの対象オブジェクトを利用できません。別のカードを選択してください。');
+        Schema.SObjectType sObjectType = sObjectTypesByApiName.get(
+            definition.objectApiName
+        );
+        if (!isSupportedObject || sObjectType == null) {
+            result.errorCode = ErrorCode.OBJECT_UNAVAILABLE;
+            return result;
         }
-        // 権限とクエリ可否を評価する describe 結果を取得
+
+        // 現在ユーザーが検索へ利用できるオブジェクトかを判定
         Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED
         );
-        // 参照権限とクエリ可能性を必須条件としてまとめる
-        List<Boolean> objectAccessConditions = new List<Boolean>{
-            objectDescribe.isAccessible(),
-            objectDescribe.isQueryable()
-        };
-        // いずれかの必須条件を満たさないオブジェクトは検索対象から除外
-        if (objectAccessConditions.contains(false)) {
-            throw new ObjectRecordSearchException('このレコード一覧を表示する権限がありません。管理者にアクセス権限を確認してください。');
+        Boolean canSearchObject = objectDescribe.isAccessible() &&
+            objectDescribe.isQueryable();
+        if (!canSearchObject) {
+            result.errorCode = ErrorCode.OBJECT_ACCESS_DENIED;
+            return result;
         }
-        // 検索画面の後続処理へ検証済み describe 結果を返却
-        return objectDescribe;
-    }
 
-    /**
-     * 対象オブジェクトの Name 相当項目の describe 結果を返却
-     *
-     * @param objectDescribe 対象オブジェクトの describe 結果
-     * @return Name 相当項目の describe 結果
-     * @throws ObjectRecordSearchException Name 相当項目を参照できない場合
-     */
-    public Schema.DescribeFieldResult getNameFieldDescribe(Schema.DescribeSObjectResult objectDescribe) {
-        // オブジェクト describe 未指定時は項目走査前に拒否
-        if (objectDescribe == null) {
-            throw new ObjectRecordSearchException('検索に必要な項目を利用できません。管理者に項目設定を確認してください。');
-        }
-        // isNameField を優先して主表示項目を検出
-        // 項目 API 名から項目 token を引ける Map を取得
+        // 一覧の主表示項目として使える Name 相当項目を解決
         Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
-        // 主表示項目の走査対象を List として確定
         List<Schema.SObjectField> fieldTokens = fieldsByApiName.values();
-        // isNameField が付いた項目を主表示項目として採用
         Schema.DescribeFieldResult nameFieldDescribe = findNameFieldDescribe(fieldTokens);
-        // isNameField が取れない場合に使う標準 Name 項目を取得
         Schema.SObjectField fallbackNameField = fieldsByApiName.get('Name');
         if (nameFieldDescribe == null) {
-            // 標準 Name 項目を主表示項目としてフォールバック
             nameFieldDescribe = fallbackNameField?.getDescribe();
         }
         if (nameFieldDescribe == null) {
-            throw new ObjectRecordSearchException('検索に必要な項目を利用できません。管理者に項目設定を確認してください。');
+            result.errorCode = ErrorCode.NAME_FIELD_UNAVAILABLE;
+            return result;
         }
-        // 主表示項目の参照権限がある場合だけ一覧表示を許可
+
+        // 主表示項目を参照できる利用者だけに検索状態を提供
         Boolean isNameFieldAccessible = nameFieldDescribe.isAccessible();
         if (!isNameFieldAccessible) {
-            throw new ObjectRecordSearchException('検索に必要な項目を参照する権限がありません。管理者に項目権限を確認してください。');
+            result.errorCode = ErrorCode.NAME_FIELD_ACCESS_DENIED;
+            return result;
         }
-        // 検索と表示に利用できる Name 相当項目を返却
-        return nameFieldDescribe;
+
+        // 画面へ返す固定表示項目を参照権限で絞り込み
+        List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
+            definition.objectApiName,
+            objectDescribe
+        );
+        // 同じ describe 情報から画面設定と内部検索状態を構築
+        ObjectRecordSearchConfigWrapper config = createObjectConfig(
+            definition,
+            nameFieldDescribe,
+            objectDescribe
+        );
+        config = config.withDisplayFields(displayFields);
+        result.context = createSearchContext(
+            config,
+            nameFieldDescribe,
+            objectDescribe
+        );
+        result.errorCode = ErrorCode.NONE;
+        return result;
     }
 
     /**
@@ -166,22 +212,31 @@ public with sharing class ObjectRecordSearchService {
      * @param sortSpec 正規化済みソート条件
      * @return 検索クエリと結果整形で共有する検索条件
      */
-    public ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
-        // ページトークンを現在のソート条件に対応するカーソルへ復元
+    public SearchQueryRequestResult createSearchQueryRequest(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        SearchQueryRequestResult result = new SearchQueryRequestResult();
+        // ページトークンを現在のソート条件に対応するカーソルへ変換
+        String pageToken = request?.pageToken;
+        ObjectRecordSearchPageTokenCodec.ParseResult pageTokenResult = ObjectRecordSearchSortSupport.parsePageToken(
+            pageToken,
+            sortSpec
+        );
+        if (!pageTokenResult.isValid) {
+            result.errorCode = ErrorCode.INVALID_PAGE_TOKEN;
+            return result;
+        }
+
+        // Selector と結果整形で共有する検索条件を作成
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = new ObjectRecordSearchQueryPlan.SearchQueryRequest();
         searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
         // 任意の名称フィルターを問い合わせ処理で共有する値へ正規化
         searchQueryRequest.normalizedSearchTerm = request?.searchTerm?.trim();
         searchQueryRequest.sortSpec = sortSpec;
-        String pageToken = request?.pageToken;
-        ObjectRecordSearchSortSupport.PageCursor cursor = ObjectRecordSearchSortSupport.parsePageToken(
-            pageToken,
-            sortSpec
-        );
-        searchQueryRequest.cursor = cursor;
+        searchQueryRequest.cursor = pageTokenResult.cursor;
         searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
-        return searchQueryRequest;
+        result.searchQueryRequest = searchQueryRequest;
+        result.errorCode = ErrorCode.NONE;
+        return result;
     }
 
     /**

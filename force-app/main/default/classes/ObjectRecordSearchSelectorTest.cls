@@ -212,7 +212,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
             try {
                 selector.searchRecords(null);
                 Assert.fail('null の問い合わせ条件は拒否する必要あり');
-            } catch (ObjectRecordSearchException e) {
+            } catch (IllegalArgumentException e) {
                 Assert.isTrue(
                     e.getMessage().contains('検索条件'),
                     'null の問い合わせ条件は利用者が見直す内容を返す必要あり'
@@ -359,10 +359,10 @@ private with sharing class ObjectRecordSearchSelectorTest {
                     new Set<Id>()
                 );
                 Assert.fail('未対応オブジェクトは ID 未指定でも拒否する必要あり');
-            } catch (ObjectRecordSearchException e) {
+            } catch (IllegalArgumentException e) {
                 Assert.isTrue(
-                    e.getMessage().contains('表示できません'),
-                    '未対応オブジェクトは利用不可を説明する必要あり'
+                    e.getMessage().contains('許可されていない'),
+                    '未対応オブジェクトは内部契約違反として拒否する必要あり'
                 );
             }
 
@@ -386,15 +386,16 @@ private with sharing class ObjectRecordSearchSelectorTest {
             context,
             request
         );
-        return service.createSearchQueryRequest(
+        ObjectRecordSearchService.SearchQueryRequestResult result = service.createSearchQueryRequest(
             context,
             request,
             sortSpec
         );
+        return result.searchQueryRequest;
     }
 
     private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
-        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
+        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(

@@ -12,11 +12,11 @@ public with sharing class ObjectRecordSearchSortSupport {
      * @param context 検索画面の内部処理状態
      * @param request 検索リクエスト
      * @return 許可済み項目と方向だけを持つソート条件
-     * @throws ObjectRecordSearchException context または config が不足している場合
+     * @throws IllegalArgumentException 内部の検索状態が不足している場合
      */
     public static SortSpec createSortSpec(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request) {
         if (context == null || context.config == null) {
-            throw new ObjectRecordSearchException('検索条件を処理できませんでした。条件を見直して、もう一度お試しください。');
+            throw new IllegalArgumentException('ソート条件の作成には検索状態が必要です。');
         }
         // 許可済み項目だけをソート対象に採用
         String fieldApiName = getSortFieldApiName(context, request);
@@ -56,15 +56,15 @@ public with sharing class ObjectRecordSearchSortSupport {
      * カーソルトークン読み込み
      * @param pageToken LWC から受け取ったページトークン
      * @param sortSpec 現在のソート条件
-     * @return 次ページ取得用カーソル、pageToken が空白の場合は null
+     * @return token の有効性と次ページ取得用カーソル
      */
-    public static PageCursor parsePageToken(String pageToken, SortSpec sortSpec) {
+    public static ObjectRecordSearchPageTokenCodec.ParseResult parsePageToken(String pageToken, SortSpec sortSpec) {
         // LWC から戻った token を現在のソート条件に対応するカーソルへ復元
-        PageCursor cursor = ObjectRecordSearchPageTokenCodec.parsePageToken(
+        ObjectRecordSearchPageTokenCodec.ParseResult result = ObjectRecordSearchPageTokenCodec.parsePageToken(
             pageToken,
             sortSpec
         );
-        return cursor;
+        return result;
     }
 
     private static String getSortFieldApiName(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request) {

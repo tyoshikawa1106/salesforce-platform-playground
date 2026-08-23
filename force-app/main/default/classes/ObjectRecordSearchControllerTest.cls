@@ -295,9 +295,9 @@ private with sharing class ObjectRecordSearchControllerTest {
                 ObjectRecordSearchController.searchRecords(request);
                 Assert.fail('未対応のメトリクスキーは例外にする必要あり');
             } catch (AuraHandledException e) {
-                Assert.isNotNull(
-                    e,
-                    '未対応のメトリクスキーは LWC 向け例外に変換する必要あり'
+                Assert.isTrue(
+                    e.getMessage().contains('別のカードを選択'),
+                    '未対応のメトリクスキーは次の操作を選べる案内にする必要あり'
                 );
             }
 
@@ -324,9 +324,9 @@ private with sharing class ObjectRecordSearchControllerTest {
                 ObjectRecordSearchController.searchRecords(request);
                 Assert.fail('不正なページトークンは例外にする必要あり');
             } catch (AuraHandledException e) {
-                Assert.isNotNull(
-                    e,
-                    '不正なページトークンは LWC 向け例外に変換する必要あり'
+                Assert.isTrue(
+                    e.getMessage().contains('一覧を更新'),
+                    '不正なページトークンは再読み込みを案内する必要あり'
                 );
             }
 

@@ -44,29 +44,30 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
      *
      * @param pageToken LWC から受け取ったページ token
      * @param sortSpec 現在のソート条件
-     * @return 次ページ取得用カーソル、pageToken が空白の場合は null
-     * @throws ObjectRecordSearchException token を読み込めない場合
+     * @return token の有効性と次ページ取得用カーソル
      */
-    public static ObjectRecordSearchSortSupport.PageCursor parsePageToken(String pageToken, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+    public static ParseResult parsePageToken(String pageToken, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        ParseResult result = new ParseResult();
         // 空白 token は先頭ページとして扱う
         Boolean hasPageToken = String.isNotBlank(pageToken);
         if (!hasPageToken) {
-            return null;
+            result.isValid = true;
+            return result;
         }
 
         try {
             // JSON token を現在の sortSpec で使えるカーソルへ変換
             Map<String, Object> tokenParts = parseTokenParts(pageToken);
-            ObjectRecordSearchSortSupport.PageCursor cursor = createPageCursor(
+            result.cursor = createPageCursor(
                 tokenParts,
                 sortSpec
             );
-            return cursor;
-        } catch (ObjectRecordSearchException e) {
-            throw e;
+            result.isValid = result.cursor != null;
         } catch (Exception e) {
-            throw createUnreadablePageTokenException(e);
+            // 外部入力の形式不正を業務判定で扱える検証結果へ正規化
+            result.isValid = false;
         }
+        return result;
     }
 
     private static Map<String, Object> parseTokenParts(String pageToken) {
@@ -87,7 +88,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         Boolean isCursorDirectionExpected = cursorSortDirection == sortSpec.direction;
         Boolean hasCursorRecordId = String.isNotBlank(cursorRecordId);
         if (!isCursorFieldExpected || !isCursorDirectionExpected || !hasCursorRecordId) {
-            throw createUnreadablePageTokenException(null);
+            return null;
         }
         // SOQL bind に渡せる型へ sort 値を復元
         ObjectRecordSearchSortSupport.PageCursor cursor = new ObjectRecordSearchSortSupport.PageCursor();
@@ -131,12 +132,14 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return stringValue;
     }
 
-    private static ObjectRecordSearchException createUnreadablePageTokenException(Exception cause) {
-        return cause == null
-            ? new ObjectRecordSearchException('ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。')
-            : new ObjectRecordSearchException(
-                  'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。',
-                  cause
-              );
+    /**
+     * ページトークンの解析結果
+     */
+    public class ParseResult {
+
+        // 現在の検索条件でトークンを利用できるかどうか
+        public Boolean isValid;
+        // 有効なトークンから復元した次ページ境界
+        public ObjectRecordSearchSortSupport.PageCursor cursor;
     }
 }

@@ -204,10 +204,10 @@ private with sharing class ObjectRecordSearchSortSupportTest {
     }
 
     /**
-     * ソート方向がない旧形式ページトークンは例外を送出
+     * ソート方向がない旧形式ページトークンは無効と判定
      */
     @IsTest
-    static void shouldThrowWhenLegacyPageTokenLacksSortDirection() {
+    static void shouldReturnInvalidResultWhenLegacyPageTokenLacksSortDirection() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
@@ -220,31 +220,28 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 'name' => 'Cursor Account'
             }
         );
+        ObjectRecordSearchPageTokenCodec.ParseResult result;
+
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                ObjectRecordSearchSortSupport.parsePageToken(
-                    pageToken,
-                    sortSpec
-                );
-                Assert.fail('ソート方向がないページトークンは例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('ページ情報'),
-                    'ソート方向がないページトークンは読み取り不可を説明する必要あり'
-                );
-            }
+            result = ObjectRecordSearchSortSupport.parsePageToken(
+                pageToken,
+                sortSpec
+            );
 
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, 'ソート方向がないページトークンは無効にする必要あり');
+        Assert.isNull(result.cursor, '無効なページトークンからカーソルを返さない必要あり');
     }
 
     /**
-     * ソート項目と異なるページトークンは例外を送出
+     * ソート項目と異なるページトークンは無効と判定
      */
     @IsTest
-    static void shouldThrowWhenPageTokenDoesNotMatchSortField() {
+    static void shouldReturnInvalidResultWhenPageTokenDoesNotMatchSortField() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
@@ -259,33 +256,28 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 'sortValue' => 'Technology'
             }
         );
+        ObjectRecordSearchPageTokenCodec.ParseResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                ObjectRecordSearchSortSupport.parsePageToken(
-                    pageToken,
-                    sortSpec
-                );
-                Assert.fail('ソート条件と合わないページトークンは例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('ページ情報'),
-                    'ソート条件と合わないページトークンは読み取り不可を説明する必要あり'
-                );
-            }
+            result = ObjectRecordSearchSortSupport.parsePageToken(
+                pageToken,
+                sortSpec
+            );
 
             Test.stopTest();
         }
 
+        Assert.isFalse(result.isValid, 'ソート項目が一致しないページトークンは無効にする必要あり');
+        Assert.isNull(result.cursor, '無効なページトークンからカーソルを返さない必要あり');
     }
 
     /**
-     * ソート方向と異なるページトークンは例外を送出
+     * ソート方向と異なるページトークンは無効と判定
      */
     @IsTest
-    static void shouldThrowWhenPageTokenDoesNotMatchSortDirection() {
+    static void shouldReturnInvalidResultWhenPageTokenDoesNotMatchSortDirection() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
@@ -300,61 +292,53 @@ private with sharing class ObjectRecordSearchSortSupportTest {
                 'sortValue' => 'Cursor Account'
             }
         );
+        ObjectRecordSearchPageTokenCodec.ParseResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                ObjectRecordSearchSortSupport.parsePageToken(
-                    pageToken,
-                    sortSpec
-                );
-                Assert.fail('ソート方向と合わないページトークンは例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('ページ情報'),
-                    'ソート方向と合わないページトークンは読み取り不可を説明する必要あり'
-                );
-            }
+            result = ObjectRecordSearchSortSupport.parsePageToken(
+                pageToken,
+                sortSpec
+            );
 
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, 'ソート方向が一致しないページトークンは無効にする必要あり');
+        Assert.isNull(result.cursor, '無効なページトークンからカーソルを返さない必要あり');
     }
 
     /**
-     * 壊れたページトークンはドメイン例外へ変換
+     * 壊れたページトークンは無効と判定
      */
     @IsTest
-    static void shouldThrowDomainExceptionWhenPageTokenIsMalformed() {
+    static void shouldReturnInvalidResultWhenPageTokenIsMalformed() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
             new ObjectRecordSearchRequestWrapper()
         );
+        ObjectRecordSearchPageTokenCodec.ParseResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            try {
-                ObjectRecordSearchSortSupport.parsePageToken(
-                    '{malformed',
-                    sortSpec
-                );
-                Assert.fail('壊れたページトークンは例外にする必要あり');
-            } catch (ObjectRecordSearchException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('ページ情報'),
-                    '壊れたページトークンは検索例外に変換する必要あり'
-                );
-            }
+            result = ObjectRecordSearchSortSupport.parsePageToken(
+                '{malformed',
+                sortSpec
+            );
 
             Test.stopTest();
         }
+
+        Assert.isFalse(result.isValid, '壊れたページトークンは無効にする必要あり');
+        Assert.isNull(result.cursor, '壊れたページトークンからカーソルを返さない必要あり');
     }
 
     private static ObjectRecordSearchContext createAccountContext() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
+        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
@@ -381,7 +365,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
 
     private static ObjectRecordSearchContext createAccountContextWithDescription() {
         ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectMetricCatalog.MetricDefinition definition = service.requireDefinition(
+        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
@@ -436,9 +420,10 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             rows,
             sortSpec
         );
-        return ObjectRecordSearchSortSupport.parsePageToken(
+        ObjectRecordSearchPageTokenCodec.ParseResult result = ObjectRecordSearchSortSupport.parsePageToken(
             pageToken,
             sortSpec
         );
+        return result.cursor;
     }
 }
