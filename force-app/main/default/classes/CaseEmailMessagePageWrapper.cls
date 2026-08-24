@@ -25,7 +25,7 @@ public with sharing class CaseEmailMessagePageWrapper {
         this.emailMessages = new List<EmailMessage>();
         this.hasNextPage = false;
         this.paginationCursor = null;
-        this.nextIndex = null;
+        this.nextIndex = 0;
     }
 
     /**
@@ -43,11 +43,10 @@ public with sharing class CaseEmailMessagePageWrapper {
         this();
         this.emailMessages = emailMessages ?? new List<EmailMessage>();
         this.paginationCursor = paginationCursor;
-        this.nextIndex = nextIndex;
+        this.nextIndex = nextIndex ?? 0;
         this.hasNextPage =
             paginationCursor != null &&
-            nextIndex != null &&
-            nextIndex > 0 &&
-            nextIndex < paginationCursor.getNumRecords();
+            this.nextIndex > 0 &&
+            this.nextIndex < paginationCursor.getNumRecords();
     }
 }
