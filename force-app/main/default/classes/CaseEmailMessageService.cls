@@ -17,14 +17,14 @@ public with sharing class CaseEmailMessageService {
      */
     public CaseIdValidationResult validateCaseId(Id caseId) {
         if (caseId == null) {
-            return new CaseIdValidationResult(true, null, null);
+            return new CaseIdValidationResult(true, null, '');
         }
         Schema.SObjectType objectType = caseId.getSObjectType();
         Boolean isCaseId = objectType == Case.SObjectType;
         if (!isCaseId) {
             return new CaseIdValidationResult(false, null, INVALID_CASE_MESSAGE);
         }
-        return new CaseIdValidationResult(true, caseId, null);
+        return new CaseIdValidationResult(true, caseId, '');
     }
 
     /**
@@ -54,7 +54,7 @@ public with sharing class CaseEmailMessageService {
         // 画面が一度に取得する既定件数を保持
         pageQuery.fetchSize = PAGE_SIZE;
         // 検証済みの問い合わせ条件を返却
-        return new PageQueryResult(true, pageQuery, null);
+        return new PageQueryResult(true, pageQuery, '');
     }
 
     /**
@@ -119,8 +119,8 @@ public with sharing class CaseEmailMessageService {
     public class PageQuery {
         public Id caseId;
         public Database.PaginationCursor paginationCursor;
-        public Integer startIndex;
-        public Integer fetchSize;
+        public Integer startIndex = 0;
+        public Integer fetchSize = 0;
     }
 
     /**
@@ -132,9 +132,9 @@ public with sharing class CaseEmailMessageService {
         public String errorMessage;
 
         private CaseIdValidationResult(Boolean isValid, Id caseId, String errorMessage) {
-            this.isValid = isValid;
+            this.isValid = isValid == true;
             this.caseId = caseId;
-            this.errorMessage = errorMessage;
+            this.errorMessage = errorMessage ?? '';
         }
     }
 
@@ -147,9 +147,9 @@ public with sharing class CaseEmailMessageService {
         public String errorMessage;
 
         private PageQueryResult(Boolean isValid, PageQuery pageQuery, String errorMessage) {
-            this.isValid = isValid;
+            this.isValid = isValid == true;
             this.pageQuery = pageQuery;
-            this.errorMessage = errorMessage;
+            this.errorMessage = errorMessage ?? '';
         }
     }
 }

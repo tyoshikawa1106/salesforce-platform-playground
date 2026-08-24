@@ -40,7 +40,10 @@ public with sharing class ObjectRecordSearchRowWrapper {
             String.valueOf(this.id) +
             '/view';
         // 固定表示項目の値を datatable で扱える文字列に変換
-        this.fieldValues = createFieldValues(record, displayFields);
+        this.fieldValues = createFieldValues(
+            record,
+            displayFields ?? new List<ObjectRecordSearchFieldWrapper>()
+        );
     }
 
     private Map<String, String> createFieldValues(SObject record, List<ObjectRecordSearchFieldWrapper> displayFields) {

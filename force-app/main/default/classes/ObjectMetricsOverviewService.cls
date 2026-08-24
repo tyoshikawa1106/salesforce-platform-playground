@@ -36,7 +36,7 @@ public with sharing class ObjectMetricsOverviewService {
             // 定義に対応する利用者権限の件数 SOQL を作成
             String query = createCountQuery(definition);
             // 不正な定義はキーなしの空クエリとして安全に保持
-            String metricKey = definition == null ? null : definition.key;
+            String metricKey = definition == null ? '' : definition.key;
             // 未加工結果との対応を保つ件数取得計画を追加
             CountQuery countQuery = new CountQuery(metricKey, query);
             countQueries.add(countQuery);
@@ -204,9 +204,9 @@ public with sharing class ObjectMetricsOverviewService {
 
         private CountQuery(String metricKey, String query) {
             // 未加工結果を集計先へ対応付けるキーを保持
-            this.metricKey = metricKey;
+            this.metricKey = metricKey ?? '';
             // 許可リストと権限を検証済みの件数 SOQL を保持
-            this.query = query;
+            this.query = query ?? '';
         }
     }
 
@@ -233,9 +233,9 @@ public with sharing class ObjectMetricsOverviewService {
          */
         private ObjectMetricCount(Integer value, Boolean capped) {
             // 画面へ返す上限処理済み件数を保持
-            this.value = value;
+            this.value = value ?? 0;
             // 表示上限への到達状態を保持
-            this.capped = capped;
+            this.capped = capped == true;
         }
     }
 

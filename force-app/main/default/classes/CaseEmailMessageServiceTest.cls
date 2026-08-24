@@ -23,7 +23,7 @@ private with sharing class CaseEmailMessageServiceTest {
 
         Assert.isTrue(result.isValid, 'Case ID は有効な入力として判定する必要あり');
         Assert.areEqual(caseRecord.Id, result.caseId, '検証済み Case ID は入力 ID と一致する必要あり');
-        Assert.isNull(result.errorMessage, '有効な入力にはエラー文言を設定しない必要あり');
+        Assert.areEqual('', result.errorMessage, '有効な入力には空のエラー文言を返す必要あり');
     }
 
     /**
@@ -43,6 +43,7 @@ private with sharing class CaseEmailMessageServiceTest {
 
         Assert.isTrue(result.isValid, 'null は問い合わせなしの有効な入力として判定する必要あり');
         Assert.isNull(result.caseId, 'null の Case ID は問い合わせなしの入力として返す必要あり');
+        Assert.areEqual('', result.errorMessage, '問い合わせなしの有効な入力には空のエラー文言を返す必要あり');
     }
 
     /**
@@ -97,6 +98,7 @@ private with sharing class CaseEmailMessageServiceTest {
         Assert.isNull(result.pageQuery.paginationCursor, '初回ページでは Selector が新しい PaginationCursor を作成する必要あり');
         Assert.areEqual(0, result.pageQuery.startIndex, '初回ページは 0 番目から取得する必要あり');
         Assert.areEqual(50, result.pageQuery.fetchSize, '1 ページの取得件数を 50 件にする必要あり');
+        Assert.areEqual('', result.errorMessage, '有効な問い合わせ条件には空のエラー文言を返す必要あり');
     }
 
     /**
@@ -192,5 +194,66 @@ private with sharing class CaseEmailMessageServiceTest {
 
         Assert.areEqual(1, result.fetchSize, '残り1件では取得件数を1件へ縮小する必要あり');
         Assert.areEqual(paginationCursor, result.paginationCursor, '取得に使う Cursor を保持する必要あり');
+    }
+
+    /**
+     * null の問い合わせ条件を空の問い合わせ条件へ変換
+     */
+    @IsTest
+    static void shouldPrepareEmptyPageQueryWhenPageQueryIsNull() {
+        CaseEmailMessageService.PageQuery result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = new CaseEmailMessageService().preparePageFetch(null, null);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(0, result.startIndex, '空の問い合わせ条件は先頭位置で初期化する必要あり');
+        Assert.areEqual(0, result.fetchSize, '空の問い合わせ条件は取得なしで初期化する必要あり');
+    }
+
+    /**
+     * Cursor の終端では取得件数をゼロへ変換
+     */
+    @IsTest
+    static void shouldPrepareZeroFetchSizeAtCursorEnd() {
+        Case caseRecord = TestDataFactory.createCase(
+            'Service Cursor 終端テスト',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        insert new EmailMessage(
+            ParentId = caseRecord.Id,
+            RelatedToId = caseRecord.Id,
+            Subject = 'Cursor 終端テスト',
+            FromAddress = 'sender@example.com',
+            ToAddress = 'recipient@example.com',
+            Incoming = true,
+            Status = '0'
+        );
+        CaseEmailMessageService service = new CaseEmailMessageService();
+        CaseEmailMessageService.PageQuery pageQuery = service.createPageQuery(
+                caseRecord.Id,
+                null,
+                0
+            )
+            .pageQuery;
+        Database.PaginationCursor paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(
+            caseRecord.Id
+        );
+        pageQuery.startIndex = paginationCursor.getNumRecords();
+        CaseEmailMessageService.PageQuery result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            result = service.preparePageFetch(pageQuery, paginationCursor);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(0, result.fetchSize, 'Cursor の終端では追加取得しない必要あり');
     }
 }

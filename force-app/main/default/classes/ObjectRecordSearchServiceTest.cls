@@ -456,6 +456,54 @@ private with sharing class ObjectRecordSearchServiceTest {
         Assert.isTrue(deleteResults[1].isSuccess(), '2件目を削除する必要あり');
     }
 
+    /**
+     * null の削除対象を空の DML 結果へ変換
+     */
+    @IsTest
+    static void shouldReturnEmptyDeleteResultsWhenRowsAreNull() {
+        List<Database.DeleteResult> deleteResults;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            deleteResults = new ObjectRecordSearchService().deleteRecords(null);
+
+            Test.stopTest();
+        }
+
+        Assert.isTrue(deleteResults.isEmpty(), 'null の削除対象では DML を実行しない必要あり');
+    }
+
+    /**
+     * DML 失敗結果を利用者向けエラーへ変換
+     */
+    @IsTest
+    static void shouldCreateDeleteErrorFromFailedDmlResult() {
+        Account target = TestDataFactory.createAccount(
+            'Service 削除失敗テスト',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        delete target;
+        ObjectRecordSearchDeleteWrapper result;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            List<Database.DeleteResult> deleteResults = new ObjectRecordSearchService().deleteRecords(
+                new List<SObject>{ target }
+            );
+            result = new ObjectRecordSearchService().createDeleteResult(
+                new List<Id>{ target.Id },
+                deleteResults
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(0, result.deletedCount, 'DML 失敗行を削除成功として数えない必要あり');
+        Assert.areEqual(1, result.errors.size(), 'DML 失敗行ごとに利用者向けエラーを返す必要あり');
+    }
+
     private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
             'accounts'

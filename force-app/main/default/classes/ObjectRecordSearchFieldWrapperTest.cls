@@ -41,4 +41,24 @@ private with sharing class ObjectRecordSearchFieldWrapperTest {
             'Field wrapper はデータテーブル型を公開する必要あり'
         );
     }
+
+    /**
+     * null の表示項目値を空文字列へ変換
+     */
+    @IsTest
+    static void shouldNormalizeNullConstructorValues() {
+        ObjectRecordSearchFieldWrapper wrapper;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            wrapper = new ObjectRecordSearchFieldWrapper(null, null, null);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual('', wrapper.apiName, 'null の API 名は空文字列へ変換する必要あり');
+        Assert.areEqual('', wrapper.label, 'null のラベルは空文字列へ変換する必要あり');
+        Assert.areEqual('', wrapper.dataType, 'null の表示型は空文字列へ変換する必要あり');
+    }
 }

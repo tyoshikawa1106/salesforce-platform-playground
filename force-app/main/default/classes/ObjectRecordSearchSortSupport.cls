@@ -43,7 +43,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      * 次ページ取得用のカーソルトークンを作成
      * @param rows 現在ページの表示行
      * @param sortSpec ソート条件
-     * @return 次ページ取得用トークン、行またはソート条件がない場合は null
+     * @return 次ページ取得用トークン、行またはソート条件がない場合は空文字列
      */
     public static String createNextPageToken(List<ObjectRecordSearchRowWrapper> rows, SortSpec sortSpec) {
         // 最終行のソート値と Id を次ページ token に変換
@@ -91,11 +91,11 @@ public with sharing class ObjectRecordSearchSortSupport {
     public class SortSpec {
 
         // ページトークンと照合する検索対象オブジェクト
-        public String objectApiName;
-        public String fieldApiName;
-        public String direction;
+        public String objectApiName = '';
+        public String fieldApiName = '';
+        public String direction = '';
         public Schema.DescribeFieldResult fieldDescribe;
-        public String nameFieldApiName;
+        public String nameFieldApiName = '';
     }
 
     /**

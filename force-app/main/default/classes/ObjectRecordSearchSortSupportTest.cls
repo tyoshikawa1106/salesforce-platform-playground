@@ -177,7 +177,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
      * 行がない場合はページトークンを返さない
      */
     @IsTest
-    static void shouldReturnNullTokenWhenRowsAreMissing() {
+    static void shouldReturnEmptyTokenWhenRowsAreMissing() {
         ObjectRecordSearchContext context = createAccountContext();
         ObjectRecordSearchSortSupport.SortSpec sortSpec = ObjectRecordSearchSortSupport.createSortSpec(
             context,
@@ -196,9 +196,10 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             Test.stopTest();
         }
 
-        Assert.isNull(
+        Assert.areEqual(
+            '',
             pageToken,
-            '空の行リストはページトークンを作成しない必要あり'
+            '空の行リストは空のページトークンを返す必要あり'
         );
     }
 

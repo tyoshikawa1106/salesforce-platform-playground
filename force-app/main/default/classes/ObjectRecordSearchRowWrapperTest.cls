@@ -61,4 +61,30 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
             'Row wrapper は設定済み項目値を公開する必要あり'
         );
     }
+
+    /**
+     * null の表示項目一覧を空の表示値 Map へ変換
+     */
+    @IsTest
+    static void shouldNormalizeNullDisplayFields() {
+        Account accountRecord = TestDataFactory.createAccount(
+            'Wrapper Empty Field Account',
+            TestDataFactory.SaveMode.INSERT_RECORD
+        );
+        ObjectRecordSearchRowWrapper wrapper;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            wrapper = new ObjectRecordSearchRowWrapper(
+                accountRecord,
+                'Name',
+                null
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.isTrue(wrapper.fieldValues.isEmpty(), 'null の表示項目一覧は空の Map へ変換する必要あり');
+    }
 }

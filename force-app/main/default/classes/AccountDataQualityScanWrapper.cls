@@ -51,10 +51,10 @@ public with sharing class AccountDataQualityScanWrapper {
      */
     public AccountDataQualityScanWrapper(DataQualityScan__c scanRecord, Decimal progressPercent) {
         this.scanId = scanRecord.Id;
-        this.status = scanRecord.Status__c;
+        this.status = scanRecord.Status__c ?? '';
         this.totalCount = toInteger(scanRecord.Total_Count__c);
         this.processedCount = toInteger(scanRecord.Processed_Count__c);
-        this.progressPercent = progressPercent;
+        this.progressPercent = progressPercent ?? 0;
         this.missingPhoneCount = toInteger(scanRecord.Missing_Phone_Count__c);
         this.missingIndustryCount = toInteger(scanRecord.Missing_Industry_Count__c);
         this.missingAddressCount = toInteger(scanRecord.Missing_Address_Count__c);
@@ -62,7 +62,7 @@ public with sharing class AccountDataQualityScanWrapper {
         this.missingAccountNumberCount = toInteger(scanRecord.Missing_Account_Number_Count__c);
         this.startedAt = scanRecord.Started_At__c;
         this.completedAt = scanRecord.Completed_At__c;
-        this.errorMessage = scanRecord.Error_Message__c;
+        this.errorMessage = scanRecord.Error_Message__c ?? '';
     }
 
     private static Integer toInteger(Decimal value) {

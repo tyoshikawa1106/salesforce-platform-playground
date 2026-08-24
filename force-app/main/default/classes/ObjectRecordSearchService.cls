@@ -215,7 +215,7 @@ public virtual with sharing class ObjectRecordSearchService {
     public SearchQueryRequestResult createSearchQueryRequest(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         SearchQueryRequestResult result = new SearchQueryRequestResult();
         // ページトークンを現在のソート条件に対応するカーソルへ変換
-        String pageToken = request?.pageToken;
+        String pageToken = request?.pageToken ?? '';
         ObjectRecordSearchPageTokenCodec.ParseResult pageTokenResult = ObjectRecordSearchSortSupport.parsePageToken(
             pageToken,
             sortSpec
@@ -230,7 +230,7 @@ public virtual with sharing class ObjectRecordSearchService {
         searchQueryRequest.context = context;
         searchQueryRequest.searchRequest = request;
         // 任意の名称フィルターを問い合わせ処理で共有する値へ正規化
-        searchQueryRequest.normalizedSearchTerm = request?.searchTerm?.trim();
+        searchQueryRequest.normalizedSearchTerm = request?.searchTerm?.trim() ?? '';
         searchQueryRequest.sortSpec = sortSpec;
         searchQueryRequest.cursor = pageTokenResult.cursor;
         searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
@@ -262,7 +262,7 @@ public virtual with sharing class ObjectRecordSearchService {
         if (hasNextPage) {
             rows.remove(PAGE_SIZE);
         }
-        String nextPageToken;
+        String nextPageToken = '';
         if (hasNextPage) {
             // 最終表示行から次ページ取得用カーソルを作成
             nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(

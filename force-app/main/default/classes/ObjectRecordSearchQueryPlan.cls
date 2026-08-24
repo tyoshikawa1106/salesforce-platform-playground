@@ -85,12 +85,12 @@ public with sharing class ObjectRecordSearchQueryPlan {
         // 検索語と画面表示用ページ番号を持つリクエスト
         public ObjectRecordSearchRequestWrapper searchRequest;
         // Service が前後空白を除去した任意の名称検索語
-        public String normalizedSearchTerm;
+        public String normalizedSearchTerm = '';
         // 許可済み項目と方向を持つソート条件
         public ObjectRecordSearchSortSupport.SortSpec sortSpec;
         // 次ページの開始位置を持つカーソル
         public ObjectRecordSearchSortSupport.PageCursor cursor;
         // 次ページ判定用の追加 1 件を含む取得件数
-        public Integer fetchSize;
+        public Integer fetchSize = 0;
     }
 }

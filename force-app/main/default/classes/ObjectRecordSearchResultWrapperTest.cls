@@ -57,6 +57,32 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
         );
     }
 
+    /**
+     * null のレコード一覧とページトークンを空値へ変換
+     */
+    @IsTest
+    static void shouldNormalizeNullResultValues() {
+        ObjectRecordSearchResultWrapper wrapper;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            wrapper = new ObjectRecordSearchResultWrapper(
+                createConfigWrapper(),
+                null
+            )
+                .withPageState(null, null, null);
+
+            Test.stopTest();
+        }
+
+        Assert.isTrue(wrapper.records.isEmpty(), 'null のレコード一覧は空の一覧へ変換する必要あり');
+        Assert.areEqual(0, wrapper.pageSize, 'null のページサイズは 0 へ変換する必要あり');
+        Assert.areEqual(1, wrapper.pageNumber, 'null のページ番号は 1 へ変換する必要あり');
+        Assert.areEqual('', wrapper.nextPageToken, 'null のページトークンは空文字列へ変換する必要あり');
+        Assert.isFalse(wrapper.hasNextPage, '空のページトークンは次ページなしとして扱う必要あり');
+    }
+
     private static ObjectRecordSearchConfigWrapper createConfigWrapper() {
         Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
             SObjectDescribeOptions.DEFERRED

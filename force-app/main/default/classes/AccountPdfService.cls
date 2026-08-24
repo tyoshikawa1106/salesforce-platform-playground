@@ -27,7 +27,7 @@ public with sharing class AccountPdfService {
             if (accountId.getSObjectType() != Account.SObjectType) {
                 return new AccountIdValidationResult(false, null, INVALID_ACCOUNT_MESSAGE);
             }
-            return new AccountIdValidationResult(true, accountId, null);
+            return new AccountIdValidationResult(true, accountId, '');
         } catch (StringException e) {
             return new AccountIdValidationResult(false, null, INVALID_ACCOUNT_MESSAGE);
         }
@@ -82,7 +82,7 @@ public with sharing class AccountPdfService {
         // 説明の空値を PDF 共通表現へ統一
         viewModel.description = normalizeValue(accountRecord.Description);
         // 完成した PDF 表示モデルを呼び出し元へ返却
-        return new ViewModelResult(true, viewModel, null);
+        return new ViewModelResult(true, viewModel, '');
     }
 
     private String formatAddress(List<String> addressParts) {
@@ -118,9 +118,9 @@ public with sharing class AccountPdfService {
         public String errorMessage;
 
         private AccountIdValidationResult(Boolean isValid, Id accountId, String errorMessage) {
-            this.isValid = isValid;
+            this.isValid = isValid == true;
             this.accountId = accountId;
-            this.errorMessage = errorMessage;
+            this.errorMessage = errorMessage ?? '';
         }
     }
 
@@ -133,9 +133,9 @@ public with sharing class AccountPdfService {
         public String errorMessage;
 
         private ViewModelResult(Boolean isValid, AccountPdfViewModel viewModel, String errorMessage) {
-            this.isValid = isValid;
+            this.isValid = isValid == true;
             this.viewModel = viewModel;
-            this.errorMessage = errorMessage;
+            this.errorMessage = errorMessage ?? '';
         }
     }
 }

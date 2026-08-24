@@ -23,7 +23,7 @@ private with sharing class CaseEmailMessagePageWrapperTest {
         Assert.areEqual(0, result.emailMessages.size(), '引数なしで空のメールリストを初期化する必要あり');
         Assert.isFalse(result.hasNextPage, '引数なしで次ページなしと初期化する必要あり');
         Assert.isNull(result.paginationCursor, '引数なしでPaginationCursorをnullにする必要あり');
-        Assert.isNull(result.nextIndex, '引数なしで次ページ位置をnullにする必要あり');
+        Assert.areEqual(0, result.nextIndex, '引数なしで次ページ位置を0にする必要あり');
     }
 
     /**
