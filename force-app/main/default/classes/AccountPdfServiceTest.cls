@@ -27,7 +27,7 @@ private with sharing class AccountPdfServiceTest {
 
         Assert.isTrue(result.isValid, '取引先 ID は有効な入力として判定する必要あり');
         Assert.areEqual(accountRecord.Id, result.accountId, '検証済みの取引先 ID を返す必要あり');
-        Assert.isNull(result.errorMessage, '有効な入力にはエラー文言を設定しない必要あり');
+        Assert.areEqual('', result.errorMessage, '有効な入力には空のエラー文言を返す必要あり');
     }
 
     /**
@@ -124,33 +124,35 @@ private with sharing class AccountPdfServiceTest {
             ShippingCountry = '日本',
             Description = '1行目\n\n2行目 <script>'
         );
-        AccountPdfViewModel result;
+        AccountPdfService.ViewModelResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = SERVICE.createViewModel(new List<Account>{ accountRecord }).viewModel;
+            result = SERVICE.createViewModel(new List<Account>{ accountRecord });
 
             Test.stopTest();
         }
 
-        Assert.areEqual('株式会社サンプル', result.accountName, '取引先名を表示する必要あり');
-        Assert.areEqual('A-001', result.accountNumber, '取引先番号を表示する必要あり');
-        Assert.areEqual('Customer - Direct', result.accountType, '種別を表示する必要あり');
-        Assert.areEqual('Technology', result.industry, '業種を表示する必要あり');
-        Assert.areEqual('03-0000-0000', result.phone, '電話を表示する必要あり');
-        Assert.areEqual('https://example.com', result.website, 'Web サイトを表示する必要あり');
+        Assert.isTrue(result.isValid, '取得できた取引先は有効な表示結果にする必要あり');
+        Assert.areEqual('', result.errorMessage, '有効な表示結果には空のエラー文言を返す必要あり');
+        Assert.areEqual('株式会社サンプル', result.viewModel.accountName, '取引先名を表示する必要あり');
+        Assert.areEqual('A-001', result.viewModel.accountNumber, '取引先番号を表示する必要あり');
+        Assert.areEqual('Customer - Direct', result.viewModel.accountType, '種別を表示する必要あり');
+        Assert.areEqual('Technology', result.viewModel.industry, '業種を表示する必要あり');
+        Assert.areEqual('03-0000-0000', result.viewModel.phone, '電話を表示する必要あり');
+        Assert.areEqual('https://example.com', result.viewModel.website, 'Web サイトを表示する必要あり');
         Assert.areEqual(
             '100-0001\n東京都千代田区\n千代田1-1\n日本',
-            result.billingAddress,
+            result.viewModel.billingAddress,
             '請求先住所を複数行で表示する必要あり'
         );
         Assert.areEqual(
             '530-0001\n大阪府大阪市\n梅田1-1\n日本',
-            result.shippingAddress,
+            result.viewModel.shippingAddress,
             '納入先住所を複数行で表示する必要あり'
         );
-        Assert.areEqual('1行目\n\n2行目 <script>', result.description, '説明の改行と特殊文字を保持する必要あり');
+        Assert.areEqual('1行目\n\n2行目 <script>', result.viewModel.description, '説明の改行と特殊文字を保持する必要あり');
     }
 
     /**
