@@ -53,7 +53,7 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
         // 異なる SObject の COUNT は統合できないため専用境界で順次実行
         for (ObjectMetricsOverviewService.CountQuery countQuery : safeCountQueries) {
             // null の取得計画は SOQL を実行せずゼロ件として扱う
-            String query = countQuery == null ? null : countQuery.query;
+            String query = countQuery == null ? '' : countQuery.query;
             // Selector で検証済みの単一件数 SOQL を実行
             Integer visibleRecordCount = selector.countVisibleRecords(query);
             // Service が集計できるよう取得順に未加工件数を追加

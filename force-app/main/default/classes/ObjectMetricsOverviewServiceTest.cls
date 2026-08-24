@@ -183,6 +183,76 @@ private with sharing class ObjectMetricsOverviewServiceTest {
     }
 
     /**
+     * null の定義を空の件数取得計画へ変換
+     */
+    @IsTest
+    static void shouldCreateEmptyCountQueryForNullDefinition() {
+        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
+        List<ObjectMetricsOverviewService.CountQuery> countQueries;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            countQueries = service.createCountQueries(
+                new List<ObjectMetricCatalog.MetricDefinition>{ null }
+            );
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual('', countQueries[0].metricKey, 'null の定義は空のメトリクスキーへ変換する必要あり');
+        Assert.areEqual('', countQueries[0].query, 'null の定義は空の SOQL へ変換する必要あり');
+    }
+
+    /**
+     * null の定義一覧を空の件数取得計画へ変換
+     */
+    @IsTest
+    static void shouldCreateEmptyCountQueriesWhenDefinitionsAreNull() {
+        List<ObjectMetricsOverviewService.CountQuery> countQueries;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            countQueries = new ObjectMetricsOverviewService().createCountQueries(null);
+
+            Test.stopTest();
+        }
+
+        Assert.isTrue(countQueries.isEmpty(), 'null の定義一覧は空の取得計画へ変換する必要あり');
+    }
+
+    /**
+     * null と不足した件数結果を安全なゼロ件へ変換
+     */
+    @IsTest
+    static void shouldNormalizeMissingMetricInputs() {
+        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
+        ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
+            'accounts'
+        );
+        List<ObjectMetricsOverviewService.CountQuery> countQueries = service.createCountQueries(
+            new List<ObjectMetricCatalog.MetricDefinition>{ null, accountDefinition }
+        );
+        Map<String, ObjectMetricsOverviewService.ObjectMetricCount> emptyValues;
+        Map<String, ObjectMetricsOverviewService.ObjectMetricCount> metricValues;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            emptyValues = service.createMetricValues(null, null);
+            metricValues = service.createMetricValues(countQueries, null);
+
+            Test.stopTest();
+        }
+
+        Assert.isTrue(emptyValues.isEmpty(), 'null の取得計画は空の集計結果へ変換する必要あり');
+        Assert.areEqual(1, metricValues.size(), '空のメトリクスキーは集計対象から除外する必要あり');
+        Assert.areEqual(0, metricValues.get('accounts').value, '不足した件数結果はゼロへ変換する必要あり');
+        Assert.isFalse(metricValues.get('accounts').capped, '不足した件数結果は上限到達扱いにしない必要あり');
+    }
+
+    /**
      * 表示上限以上の件数を capped 状態へ変換
      */
     @IsTest

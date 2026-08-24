@@ -76,4 +76,29 @@ private with sharing class ObjectMetricsQueryCoordinatorTest {
         Integer resultCount = visibleRecordCounts.size();
         Assert.areEqual(0, resultCount, 'null の取得計画は空結果にする必要あり');
     }
+
+    /**
+     * null の取得計画要素は SOQL を実行せずゼロ件を返却
+     */
+    @IsTest
+    static void shouldReturnZeroForNullCountQuery() {
+        List<Integer> visibleRecordCounts;
+        Integer executedQueryCount;
+        ObjectMetricsOverviewQueryCoordinator queryCoordinator = new ObjectMetricsOverviewQueryCoordinator();
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Integer queryCountBeforeExecution = Limits.getQueries();
+
+            visibleRecordCounts = queryCoordinator.execute(
+                new List<ObjectMetricsOverviewService.CountQuery>{ null }
+            );
+            executedQueryCount = Limits.getQueries() - queryCountBeforeExecution;
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(new List<Integer>{ 0 }, visibleRecordCounts, 'null の取得計画要素はゼロ件へ変換する必要あり');
+        Assert.areEqual(0, executedQueryCount, 'null の取得計画要素では SOQL を実行しない必要あり');
+    }
 }
