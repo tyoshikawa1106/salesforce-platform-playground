@@ -11,13 +11,12 @@ private with sharing class AccountDataQualityScanWrapperTest {
     @IsTest
     static void shouldNormalizeNullCountsWhenCreatingWrapper() {
         DataQualityScan__c scanRecord = new DataQualityScan__c();
-        scanRecord.Status__c = AccountDataQualityScanService.STATUS_PENDING;
         AccountDataQualityScanWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new AccountDataQualityScanWrapper(scanRecord, 0);
+            result = new AccountDataQualityScanWrapper(scanRecord, null);
 
             Test.stopTest();
         }
@@ -25,6 +24,8 @@ private with sharing class AccountDataQualityScanWrapperTest {
         Assert.areEqual(0, result.totalCount, 'nullの対象総件数はゼロへ変換する必要あり');
         Assert.areEqual(0, result.processedCount, 'nullの処理済み件数はゼロへ変換する必要あり');
         Assert.areEqual(0, result.missingPhoneCount, 'nullの不足件数はゼロへ変換する必要あり');
-        Assert.areEqual(AccountDataQualityScanService.STATUS_PENDING, result.status, '状態値をそのまま返す必要あり');
+        Assert.areEqual('', result.status, 'nullの状態値は空文字列へ変換する必要あり');
+        Assert.areEqual(0, result.progressPercent, 'nullの進捗率はゼロへ変換する必要あり');
+        Assert.areEqual('', result.errorMessage, 'nullのエラー文言は空文字列へ変換する必要あり');
     }
 }
