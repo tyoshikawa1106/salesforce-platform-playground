@@ -8,3 +8,6 @@
 
 # Metadata API keeps a terminal blank line for this empty SharingRules file.
 force-app/main/default/sharingRules/DataQualityScan__c.sharingRules-meta.xml whitespace=-blank-at-eof
+
+# Metadata API keeps a terminal blank line for this empty Settings file.
+force-app/main/default/settings/GenerativeCampaigns.settings-meta.xml whitespace=-blank-at-eof
