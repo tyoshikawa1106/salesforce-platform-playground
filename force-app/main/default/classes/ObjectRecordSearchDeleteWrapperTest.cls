@@ -43,4 +43,24 @@ private with sharing class ObjectRecordSearchDeleteWrapperTest {
             'Delete wrapper はユーザー向けエラーを公開する必要あり'
         );
     }
+
+    /**
+     * null の件数とエラー一覧を空値へ変換
+     */
+    @IsTest
+    static void shouldNormalizeNullConstructorValues() {
+        ObjectRecordSearchDeleteWrapper wrapper;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            wrapper = new ObjectRecordSearchDeleteWrapper(null, null, null);
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(0, wrapper.requestedCount, 'null の依頼件数は 0 へ変換する必要あり');
+        Assert.areEqual(0, wrapper.deletedCount, 'null の削除件数は 0 へ変換する必要あり');
+        Assert.isTrue(wrapper.errors.isEmpty(), 'null のエラー一覧は空の一覧へ変換する必要あり');
+    }
 }

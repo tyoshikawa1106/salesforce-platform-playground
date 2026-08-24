@@ -21,7 +21,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         // 行またはソート条件がない場合は次ページなしとして扱う
         Boolean hasRows = rows != null && !rows.isEmpty();
         if (!hasRows || sortSpec == null) {
-            return null;
+            return '';
         }
         // 現在ページ末尾の行を次ページ取得境界にする
         Integer lastRowIndex = rows.size() - 1;
@@ -173,7 +173,7 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     public class ParseResult {
 
         // 現在の検索条件でトークンを利用できるかどうか
-        public Boolean isValid;
+        public Boolean isValid = false;
         // 有効なトークンから復元した次ページ境界
         public ObjectRecordSearchSortSupport.PageCursor cursor;
     }

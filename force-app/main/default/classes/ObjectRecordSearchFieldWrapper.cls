@@ -24,10 +24,10 @@ public with sharing class ObjectRecordSearchFieldWrapper {
      */
     public ObjectRecordSearchFieldWrapper(String apiName, String label, String dataType) {
         // datatable の列キーとして使えるようにする
-        this.apiName = apiName;
+        this.apiName = apiName ?? '';
         // datatable の列見出しへ表示する
-        this.label = label;
+        this.label = label ?? '';
         // datatable の表示形式を指定できるようにする
-        this.dataType = dataType;
+        this.dataType = dataType ?? '';
     }
 }

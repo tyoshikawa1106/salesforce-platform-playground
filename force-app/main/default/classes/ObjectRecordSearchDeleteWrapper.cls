@@ -24,10 +24,10 @@ public with sharing class ObjectRecordSearchDeleteWrapper {
      */
     public ObjectRecordSearchDeleteWrapper(Integer requestedCount, Integer deletedCount, List<String> errors) {
         // 削除対象として受け取った件数を画面へ返す
-        this.requestedCount = requestedCount;
+        this.requestedCount = requestedCount ?? 0;
         // 削除済み件数を完了メッセージに使えるようにする
-        this.deletedCount = deletedCount;
+        this.deletedCount = deletedCount ?? 0;
         // 削除できなかった理由を画面へ返す
-        this.errors = errors;
+        this.errors = errors ?? new List<String>();
     }
 }

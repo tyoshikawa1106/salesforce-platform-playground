@@ -37,7 +37,12 @@ public with sharing class ObjectRecordSearchResultWrapper {
         // 検索画面設定と検索結果を同じレスポンスで返す
         this.config = config;
         // datatable に表示する行を返す
-        this.records = records;
+        this.records = records ?? new List<ObjectRecordSearchRowWrapper>();
+        // ページ状態を後から設定しない呼び出しでも安定した既定値を返す
+        this.pageSize = 0;
+        this.pageNumber = 1;
+        this.hasNextPage = false;
+        this.nextPageToken = '';
     }
 
     /**
@@ -50,13 +55,13 @@ public with sharing class ObjectRecordSearchResultWrapper {
      */
     public ObjectRecordSearchResultWrapper withPageState(Integer pageSize, Integer pageNumber, String nextPageToken) {
         // 画面側の件数表示と次ページ判定に使う
-        this.pageSize = pageSize;
+        this.pageSize = pageSize ?? 0;
         // 画面側の現在ページ表示に使う
-        this.pageNumber = pageNumber;
+        this.pageNumber = pageNumber ?? 1;
         // 次ページ取得ボタンのリクエストに使う
-        this.nextPageToken = nextPageToken;
+        this.nextPageToken = nextPageToken ?? '';
         // token の有無から次ページ表示状態を確定
-        this.hasNextPage = String.isNotBlank(nextPageToken);
+        this.hasNextPage = String.isNotBlank(this.nextPageToken);
         return this;
     }
 }
