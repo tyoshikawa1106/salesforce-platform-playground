@@ -31,6 +31,8 @@
         <members>CaseEmailMessageSelectorTest</members>
         <members>CaseEmailMessageService</members>
         <members>CaseEmailMessageServiceTest</members>
+        <members>DateTimeUtil</members>
+        <members>DateTimeUtilTest</members>
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricsOverviewController</members>
         <members>ObjectMetricsOverviewControllerTest</members>
@@ -72,6 +74,10 @@
         <members>ObjectRecordSearchServiceTest</members>
         <members>ObjectRecordSearchSortSupport</members>
         <members>ObjectRecordSearchSortSupportTest</members>
+        <members>OrgEnvironment</members>
+        <members>OrgEnvironmentTest</members>
+        <members>StringUtil</members>
+        <members>StringUtilTest</members>
         <members>TestDataFactory</members>
         <members>TestDataFactoryTest</members>
         <name>ApexClass</name>

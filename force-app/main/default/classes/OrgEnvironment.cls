@@ -3,8 +3,10 @@
  */
 public with sharing class OrgEnvironment {
 
+    // 同一トランザクション内で Sandbox 判定を取得済みかどうか
+    private static Boolean hasCachedIsSandbox = false;
     // 同一トランザクション内の重複問い合わせを避ける Sandbox 判定結果
-    private static Boolean cachedIsSandbox;
+    private static Boolean cachedIsSandbox = false;
 
     /**
      * 現在の組織が Sandbox か判定
@@ -15,7 +17,7 @@ public with sharing class OrgEnvironment {
      */
     public static Boolean isSandbox() {
         // 未取得の場合だけ現在組織の Sandbox 区分を問い合わせ
-        if (cachedIsSandbox == null) {
+        if (!hasCachedIsSandbox) {
             // 判定に必要な組織情報を 1 件取得
             List<Organization> organizations = [
                 SELECT IsSandbox
@@ -25,6 +27,7 @@ public with sharing class OrgEnvironment {
             ];
             // 後続呼び出しで再利用する判定結果を保持
             cachedIsSandbox = organizations[0].IsSandbox;
+            hasCachedIsSandbox = true;
         }
         // 現在組織の Sandbox 判定結果を返却
         return cachedIsSandbox;

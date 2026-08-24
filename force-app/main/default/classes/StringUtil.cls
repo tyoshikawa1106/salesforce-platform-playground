@@ -17,12 +17,15 @@ public with sharing class StringUtil {
      *
      * @param value 対象文字列
      * @param maxLength 最大文字数、0 以上が必要
-     * @return 最大文字数以内の文字列、value が null の場合は null
+     * @return 最大文字数以内の文字列、value が null の場合は空文字列
      * @throws IllegalArgumentException maxLength が null または負の場合
      */
     public static String truncate(String value, Integer maxLength) {
         requireNonNegative(maxLength, 'maxLength');
-        if (value == null || value.length() <= maxLength) {
+        if (value == null) {
+            return '';
+        }
+        if (value.length() <= maxLength) {
             return value;
         }
         return value.substring(0, maxLength);
@@ -34,13 +37,13 @@ public with sharing class StringUtil {
      * @param value 対象文字列
      * @param separator 挿入する区切り文字列、null は空文字列として扱う
      * @param interval 区切る文字数、1 以上が必要
-     * @return 区切り文字列を挿入した文字列、value が null の場合は null
+     * @return 区切り文字列を挿入した文字列、value が null の場合は空文字列
      * @throws IllegalArgumentException interval が null または 1 未満の場合
      */
     public static String insertEvery(String value, String separator, Integer interval) {
         requirePositive(interval, 'interval');
         if (value == null || value == '') {
-            return value;
+            return '';
         }
 
         String actualSeparator = separator == null ? '' : separator;
@@ -57,11 +60,11 @@ public with sharing class StringUtil {
      * 先頭の 0 を除去
      *
      * @param value 対象文字列
-     * @return 先頭の 0 を除去した文字列、0 だけの場合は 0、value が null の場合は null
+     * @return 先頭の 0 を除去した文字列、0 だけの場合は 0、value が null の場合は空文字列
      */
     public static String removeLeadingZeros(String value) {
         if (value == null || value == '') {
-            return value;
+            return '';
         }
 
         Integer firstNonZeroIndex = 0;
@@ -76,7 +79,7 @@ public with sharing class StringUtil {
      *
      * @param value 対象文字列
      * @param replacement 置換後の文字列
-     * @return スペースを置換した文字列、value が null の場合は null
+     * @return スペースを置換した文字列、value が null の場合は空文字列
      * @throws IllegalArgumentException replacement が null の場合
      */
     public static String replaceSpaces(String value, String replacement) {
@@ -84,7 +87,7 @@ public with sharing class StringUtil {
             throw new IllegalArgumentException('replacement は null にできません。');
         }
         if (value == null) {
-            return null;
+            return '';
         }
         return value.replace('　', ' ').replace(' ', replacement);
     }

@@ -62,10 +62,10 @@ private with sharing class StringUtilTest {
     }
 
     /**
-     * null の文字列は null のまま維持
+     * null の文字列を空文字列へ変換
      */
     @IsTest
-    static void shouldReturnNullWhenTruncateValueIsNull() {
+    static void shouldReturnEmptyWhenTruncateValueIsNull() {
         String actualValue;
 
         System.runAs(testUser) {
@@ -76,7 +76,7 @@ private with sharing class StringUtilTest {
             Test.stopTest();
         }
 
-        Assert.isNull(actualValue, 'null の文字列を維持する必要あり');
+        Assert.areEqual('', actualValue, 'null の文字列を空文字列へ変換する必要あり');
     }
 
     /**
@@ -153,10 +153,10 @@ private with sharing class StringUtilTest {
     }
 
     /**
-     * null の対象文字列は null のまま維持
+     * null の対象文字列を空文字列へ変換
      */
     @IsTest
-    static void shouldReturnNullWhenInsertValueIsNull() {
+    static void shouldReturnEmptyWhenInsertValueIsNull() {
         String actualValue;
 
         System.runAs(testUser) {
@@ -167,7 +167,7 @@ private with sharing class StringUtilTest {
             Test.stopTest();
         }
 
-        Assert.isNull(actualValue, 'null の文字列を維持する必要あり');
+        Assert.areEqual('', actualValue, 'null の文字列を空文字列へ変換する必要あり');
     }
 
     /**
@@ -208,10 +208,10 @@ private with sharing class StringUtilTest {
     }
 
     /**
-     * null の文字列は先頭の 0 を除去せず維持
+     * null の文字列を空文字列へ変換
      */
     @IsTest
-    static void shouldReturnNullWhenRemovingLeadingZerosFromNull() {
+    static void shouldReturnEmptyWhenRemovingLeadingZerosFromNull() {
         String actualValue;
 
         System.runAs(testUser) {
@@ -222,7 +222,7 @@ private with sharing class StringUtilTest {
             Test.stopTest();
         }
 
-        Assert.isNull(actualValue, 'null の文字列を維持する必要あり');
+        Assert.areEqual('', actualValue, 'null の文字列を空文字列へ変換する必要あり');
     }
 
     /**
@@ -280,10 +280,10 @@ private with sharing class StringUtilTest {
     }
 
     /**
-     * null の対象文字列は null のまま維持
+     * null の対象文字列を空文字列へ変換
      */
     @IsTest
-    static void shouldReturnNullWhenReplacingSpacesInNull() {
+    static void shouldReturnEmptyWhenReplacingSpacesInNull() {
         String actualValue;
 
         System.runAs(testUser) {
@@ -294,7 +294,7 @@ private with sharing class StringUtilTest {
             Test.stopTest();
         }
 
-        Assert.isNull(actualValue, 'null の文字列を維持する必要あり');
+        Assert.areEqual('', actualValue, 'null の文字列を空文字列へ変換する必要あり');
     }
 
     /**
