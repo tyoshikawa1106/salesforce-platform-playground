@@ -66,37 +66,139 @@ sf org login web --alias <alias> --set-default --browser chrome
 
 Salesforce 開発組織に対する操作は、対象と目的を確認してから実行します。
 
-### 利用者向け npm スクリプト一覧
+### Salesforce 組織操作
 
-#### 検証・解析
+#### メタデータ操作
 
-| コマンド                     | 用途                                                           |
-| ---------------------------- | -------------------------------------------------------------- |
-| `npm test`                   | スクリプトテストとLWC unit testを順番に実行する。              |
-| `npm run test:scripts`       | リポジトリ運用スクリプトのNode.js testを実行する。             |
-| `npm run test:unit`          | LWC unit testを実行する。                                      |
-| `npm run test:unit:watch`    | LWC unit testを監視モードで実行する。                          |
-| `npm run test:unit:debug`    | LWC unit testをデバッグモードで実行する。                      |
-| `npm run test:unit:coverage` | LWC unit testを実行してカバレッジを出力する。                  |
-| `npm run lint`               | Aura、LWC、リポジトリ運用スクリプトをESLintで検査する。        |
-| `npm run lint:slds`          | LWCをSLDS Linterで検査する。                                   |
-| `npm run docs:check`         | Markdownの構造、リンク、索引、安全でないコマンド例を検査する。 |
-| `npm run prettier:verify`    | 対象ファイルを書き換えず、フォーマットを確認する。             |
-| `npm run prettier`           | リポジトリ全体の対象ファイルを自動整形する。                   |
-| `npm run code-analyzer`      | `force-app`をSalesforce Code Analyzerで解析する。              |
-| `npm run code-analyzer:ci`   | `force-app`をCI基準で解析し、重要度3以上の検出で失敗する。     |
+Default Target Org の情報と組織種別を確認してから、メタデータを取得します。
 
-#### Salesforce 組織操作
+```sh
+npm run sf:retrieve
+```
 
-| コマンド                     | 用途                                                              |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `npm run sf:retrieve`        | Default Target Orgを確認してメタデータを取得する。                |
-| `npm run sf:destructive`     | Default Target Orgを確認し、dry-run成功後にメタデータを削除する。 |
-| `npm run sf:test:apex`       | Default Target OrgのApexテストを開始し、完了まで監視する。        |
-| `npm run sf:test:flow`       | Default Target OrgのFlowテストを開始し、完了まで監視する。        |
-| `npm run setup:data`         | Default Target Orgを確認してテストデータを投入する。              |
-| `npm run setup:data:dry-run` | 組織を操作せず、テストデータ投入の実行計画を表示する。            |
-| `npm run data:bulk:results`  | `logs/data-bulk-results/`でBulk API処理結果を取得する。           |
+Default Target Org の情報と組織種別を確認し、dry-run の成功後に実行確認を行ってからメタデータを削除します。
+
+```sh
+npm run sf:destructive
+```
+
+#### Salesforce 組織テスト
+
+Default Target Org の Apex テストを開始し、完了まで監視して結果とカバレッジを取得します。
+
+```sh
+npm run sf:test:apex
+```
+
+Default Target Org の Flow テストを開始し、完了まで監視して結果とカバレッジを取得します。
+
+```sh
+npm run sf:test:flow
+```
+
+#### テストデータ操作
+
+組織を操作せず、テストデータ投入の実行計画を表示します。
+
+```sh
+npm run setup:data:dry-run
+```
+
+Default Target Org の情報と組織種別を確認してから、テストデータを投入します。
+
+```sh
+npm run setup:data
+```
+
+完了した Bulk API 2.0 のジョブ ID を指定し、Default Target Org の処理結果を `logs/data-bulk-results/` で取得します。`--` より後ろの引数が Salesforce CLI へ渡されます。
+
+```sh
+npm run data:bulk:results -- --job-id <job-id>
+```
+
+### ローカルテスト
+
+リポジトリ運用スクリプトと LWC unit test を順番に実行します。
+
+```sh
+npm test
+```
+
+リポジトリ運用スクリプトの Node.js test を実行します。
+
+```sh
+npm run test:scripts
+```
+
+LWC unit test を実行します。
+
+```sh
+npm run test:unit
+```
+
+ファイル変更を監視し、関連する LWC unit test を自動再実行します。
+
+```sh
+npm run test:unit:watch
+```
+
+Node.js デバッガを接続できる状態で、LWC unit test を直列実行します。
+
+```sh
+npm run test:unit:debug
+```
+
+LWC unit test を実行してカバレッジを出力します。
+
+```sh
+npm run test:unit:coverage
+```
+
+### コードとドキュメントの検査
+
+Aura、LWC、リポジトリ運用スクリプトを ESLint で検査します。
+
+```sh
+npm run lint
+```
+
+LWC を SLDS Linter で検査します。
+
+```sh
+npm run lint:slds
+```
+
+Markdown の構造、リンク、索引、安全でないコマンド例を検査します。
+
+```sh
+npm run docs:check
+```
+
+対象ファイルを書き換えず、フォーマットを確認します。
+
+```sh
+npm run prettier:verify
+```
+
+リポジトリ全体の対象ファイルを自動整形します。全体を整形する必要がある場合だけ実行します。
+
+```sh
+npm run prettier
+```
+
+### Salesforce Code Analyzer
+
+`force-app` を推奨ルールで解析し、結果をローカル確認用のファイルへ出力します。
+
+```sh
+npm run code-analyzer
+```
+
+`force-app` を CI 基準で解析し、重要度 3 以上の検出で失敗します。
+
+```sh
+npm run code-analyzer:ci
+```
 
 ## AI エージェントスキル
 
