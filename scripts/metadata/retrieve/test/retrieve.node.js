@@ -9,8 +9,11 @@ const { spawnSync } = require('node:child_process');
 const {
     main,
     manifests,
+    metadataApiFileLimit,
     parseRetrieveCommandResult,
+    retrieveProgressIntervalMilliseconds,
     retrieveOutputMaxBuffer,
+    runRetrieveWithOutput,
     validateManifestDefinitions,
     validateRetrieveManifestPlan
 } = require('../retrieve');
@@ -67,9 +70,17 @@ function createSfResult(result) {
 }
 
 // Salesforce CLIの標準的なretrieve成功結果を子プロセスの戻り値形式で作成する。
-function createRetrieveResult({ inboundFiles = [], messages, status, success, warnings = [] } = {}) {
+function createRetrieveResult({
+    fileProperties = [],
+    inboundFiles = [],
+    messages,
+    status,
+    success,
+    topLevelWarnings = [],
+    warnings = []
+} = {}) {
     // 標準応答にある取得ファイル、package、warningを設定する。
-    const result = { inboundFiles, packages: [], warnings };
+    const result = { fileProperties, inboundFiles, packages: [], warnings };
 
     // Metadata API messageを指定した異常系だけ応答へ追加する。
     if (messages !== undefined) {
@@ -93,7 +104,7 @@ function createRetrieveResult({ inboundFiles = [], messages, status, success, wa
         stdout: JSON.stringify({
             status: 0,
             result,
-            warnings: []
+            warnings: topLevelWarnings
         })
     };
 }
@@ -174,6 +185,10 @@ test('retrieve成功結果からcomponent数とfile数を集計する', () => {
     // 同じApex componentのsourceとmeta XMLを含む成功応答を作る。
     const result = parseRetrieveCommandResult(
         createRetrieveResult({
+            fileProperties: [
+                { fullName: 'AccountService', type: 'ApexClass' },
+                { fullName: 'AccountTrigger', type: 'ApexTrigger' }
+            ],
             inboundFiles: [
                 { state: 'Changed', fullName: 'AccountService', type: 'ApexClass', filePath: 'AccountService.cls' },
                 {
@@ -194,15 +209,21 @@ test('retrieve成功結果からcomponent数とfile数を集計する', () => {
 
     // fileは3件、componentは重複をまとめた2件として成功集計する。
     assert.deepEqual(result, {
-        success: true,
+        outcome: 'success',
         warnings: [],
+        attentionReasons: [],
         componentCount: 2,
         fileCount: 3,
+        apiFileCount: 2,
+        metadataTypeCounts: [
+            { type: 'ApexClass', count: 1 },
+            { type: 'ApexTrigger', count: 1 }
+        ],
         status: 'Succeeded'
     });
 });
 
-test('retrieve warningを完全性未確認として失敗させる', () => {
+test('Metadata APIの取得warningを要確認として保持する', () => {
     // Metadata APIがcomponent不足warningを返す成功statusの応答を作る。
     const result = parseRetrieveCommandResult(
         createRetrieveResult({
@@ -210,10 +231,42 @@ test('retrieve warningを完全性未確認として失敗させる', () => {
         })
     );
 
-    // 終了コード0でもwarningを保持して成功扱いしない。
-    assert.equal(result.success, false);
-    assert.match(result.error, /取得の完全性を確認できません/);
+    // 終了コード0でも取得warningを保持し、後続を継続できる要確認結果にする。
+    assert.equal(result.outcome, 'partial');
+    assert.deepEqual(result.attentionReasons, ['取得warning 1件を記録しました。']);
     assert.deepEqual(result.warnings, ["package.xml: Entity of type 'Report' named '*' cannot be found"]);
+});
+
+test('Salesforce CLI自体の案内warningは成功結果のまま表示対象にする', () => {
+    // CLIの更新案内などretrieve componentと無関係な最上位warningを作る。
+    const result = parseRetrieveCommandResult(
+        createRetrieveResult({ topLevelWarnings: ['Salesforce CLIの新しいversionを利用できます。'] })
+    );
+
+    // 案内warningだけでは取得の完全性を要確認にしない。
+    assert.equal(result.outcome, 'success');
+    assert.deepEqual(result.attentionReasons, []);
+    assert.deepEqual(result.warnings, ['Salesforce CLIの新しいversionを利用できます。']);
+});
+
+test('Metadata APIファイル数とmetadata type別件数から10,000件上限を検出する', () => {
+    // 上限ちょうどのfilePropertiesを、原因を確認できる2つのmetadata typeで作る。
+    const fileProperties = Array.from({ length: metadataApiFileLimit }, (_, index) => ({
+        fullName: `Component${index}`,
+        type: index < 6000 ? 'CustomField' : 'Layout'
+    }));
+    const result = parseRetrieveCommandResult(createRetrieveResult({ fileProperties }));
+
+    // source形式のfile数と独立してAPI上限到達を要確認にする。
+    assert.equal(result.outcome, 'partial');
+    assert.equal(result.apiFileCount, metadataApiFileLimit);
+    assert.deepEqual(result.metadataTypeCounts, [
+        { type: 'CustomField', count: 6000 },
+        { type: 'Layout', count: 4000 }
+    ]);
+    assert.deepEqual(result.attentionReasons, [
+        `Metadata APIの取得ファイル数が上限${metadataApiFileLimit.toLocaleString('ja-JP')}件に達しました。`
+    ]);
 });
 
 test('未完了のretrieve jobを失敗させる', () => {
@@ -221,7 +274,7 @@ test('未完了のretrieve jobを失敗させる', () => {
     const result = parseRetrieveCommandResult(createRetrieveResult({ status: 'InProgress', success: true }));
 
     // 自動retryせず未完了statusを呼び出し元へ返す。
-    assert.equal(result.success, false);
+    assert.equal(result.outcome, 'failure');
     assert.match(result.error, /Metadata API retrieveが完了していません: InProgress/);
 });
 
@@ -234,7 +287,7 @@ test('Salesforce CLIの非0終了を失敗させる', () => {
     });
 
     // CLIの失敗理由を保持し、後続manifestを実行できない結果にする。
-    assert.equal(result.success, false);
+    assert.equal(result.outcome, 'failure');
     assert.equal(result.error, 'Retrieve request failed.');
     assert.deepEqual(result.warnings, []);
 });
@@ -244,7 +297,7 @@ test('解析できないretrieve応答を失敗させる', () => {
     const result = parseRetrieveCommandResult({ status: 0, stderr: '', stdout: 'not-json' });
 
     // 出力から成功を推測せず、解析エラーとして停止する。
-    assert.equal(result.success, false);
+    assert.equal(result.outcome, 'failure');
     assert.match(result.error, /Salesforce CLIのJSONを解析できませんでした/);
     assert.deepEqual(result.warnings, []);
 });
@@ -258,7 +311,7 @@ test('取得ファイル一覧がない未知の成功応答を失敗させる',
     });
 
     // 0件取得と推測せず、未知の応答形式として停止する。
-    assert.equal(result.success, false);
+    assert.equal(result.outcome, 'failure');
     assert.match(result.error, /retrieveファイル結果を確認できませんでした/);
     assert.deepEqual(result.warnings, []);
 });
@@ -270,8 +323,27 @@ test('retrieve JSONの出力上限超過を失敗させる', () => {
     });
 
     // 上限値を示して大量出力を成功扱いしない。
-    assert.equal(result.success, false);
+    assert.equal(result.outcome, 'failure');
     assert.match(result.error, new RegExp(`${retrieveOutputMaxBuffer / 1024 / 1024}MB上限`));
+});
+
+test('retrieveを非同期実行しJSON出力上限を指定する', async () => {
+    // execFileへ渡す安全なコマンドと実行設定を記録する。
+    let execution;
+    const result = await runRetrieveWithOutput(
+        ['project', 'retrieve', 'start', '--json'],
+        repoRoot,
+        (command, args, options, callback) => {
+            execution = { command, args, options };
+            callback(null, '{"status":0}', '');
+        }
+    );
+
+    // shellを介さず64MB上限を持つ非同期実行結果をspawnSync互換形式で返す。
+    assert.equal(execution.command, process.platform === 'win32' ? 'cmd.exe' : 'sf');
+    assert.equal(execution.options.cwd, repoRoot);
+    assert.equal(execution.options.maxBuffer, retrieveOutputMaxBuffer);
+    assert.deepEqual(result, { error: undefined, status: 0, stdout: '{"status":0}', stderr: '' });
 });
 
 test('retrieve scriptは未知の引数をSalesforce CLI実行前に拒否する', () => {
@@ -350,7 +422,7 @@ test('承認された場合はすべてのmanifestを同じTarget Orgから定�
     assert.equal(prompt.isClosed(), true);
 });
 
-test('manifestの定義順に取得し、warningが出た時点で後続を実行しない', async () => {
+test('manifestの定義順に取得し、warningがあっても後続をすべて実行する', async () => {
     // retrieveを承認し、2つ目のmanifest取得にwarningを返す。
     const commandArgs = [];
     const prompt = createPrompt('y');
@@ -366,10 +438,86 @@ test('manifestの定義順に取得し、warningが出た時点で後続を実�
         runSfWithOutputCommand: createOrgInfoCommand()
     });
 
-    // 定義順に2件だけ取得し、後続を実行せず確認入力を閉じることを確認する。
+    // warningを最終的な要確認結果にしつつ、全manifestを定義順に実行する。
     assert.equal(status, 1);
-    assert.deepEqual(commandArgs[0], createRetrieveArgs(manifests[0]));
-    assert.deepEqual(commandArgs[1], createRetrieveArgs(manifests[1]));
-    assert.equal(commandArgs.length, 2);
+    assert.deepEqual(commandArgs, manifests.map(createRetrieveArgs));
     assert.equal(prompt.isClosed(), true);
+});
+
+test('Salesforce CLIのhard failureでは後続manifestを実行しない', async () => {
+    // 2つ目のmanifestだけ非0終了にして実行範囲を記録する。
+    const commandArgs = [];
+    const prompt = createPrompt('y');
+    const status = await main({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runRetrieveCommand(args) {
+            commandArgs.push(args);
+            return commandArgs.length === 2
+                ? {
+                      status: 1,
+                      stderr: '',
+                      stdout: JSON.stringify({ status: 1, message: 'Retrieve request failed.', warnings: [] })
+                  }
+                : createRetrieveResult();
+        },
+        runSfWithOutputCommand: createOrgInfoCommand()
+    });
+
+    // CLI失敗はwarningと区別し、発生したmanifestで停止する。
+    assert.equal(status, 1);
+    assert.equal(commandArgs.length, 2);
+    assert.deepEqual(commandArgs[1], createRetrieveArgs(manifests[1]));
+    assert.equal(prompt.isClosed(), true);
+});
+
+test('長時間retrieve中は30秒ごとに経過時間を表示する', async () => {
+    // 実タイマーを待たずに最初のmanifestだけ30秒経過を再現する。
+    const prompt = createPrompt('y');
+    const logs = [];
+    const originalConsoleLog = console.log;
+    let currentTime = 0;
+    let progressCallback;
+    let retrieveCount = 0;
+    let clearedTimerCount = 0;
+
+    // テスト中の進捗表示と完了表示を記録する。
+    console.log = (message) => logs.push(message);
+
+    try {
+        const status = await main({
+            argv: [],
+            clearIntervalCommand() {
+                clearedTimerCount += 1;
+            },
+            createPrompt: () => prompt.prompt,
+            now: () => currentTime,
+            runRetrieveCommand() {
+                retrieveCount += 1;
+
+                if (retrieveCount === 1) {
+                    currentTime = retrieveProgressIntervalMilliseconds;
+                    progressCallback();
+                    currentTime = 332500;
+                }
+
+                return createRetrieveResult();
+            },
+            runSfWithOutputCommand: createOrgInfoCommand(),
+            setIntervalCommand(callback, intervalMilliseconds) {
+                assert.equal(intervalMilliseconds, retrieveProgressIntervalMilliseconds);
+                progressCallback = callback;
+                return { unref() {} };
+            }
+        });
+
+        // 332.5秒の処理中にも30秒時点の生存表示があり、全タイマーを解除する。
+        assert.equal(status, 0);
+        assert.ok(logs.includes('・実行中: 30.0秒経過'));
+        assert.ok(logs.includes('・所要時間: 332.5秒'));
+        assert.equal(clearedTimerCount, manifests.length);
+    } finally {
+        // 他テストの出力へ影響を残さない。
+        console.log = originalConsoleLog;
+    }
 });
