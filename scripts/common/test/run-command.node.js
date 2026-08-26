@@ -117,6 +117,22 @@ test('Salesforce CLIの出力を文字列として返す', () => {
     assert.deepEqual(result, { status: 0, stdout: 'target-org', stderr: '' });
 });
 
+test('Salesforce CLIの出力上限を呼び出し側から指定する', () => {
+    // retrieveなど大きいJSON応答用の上限を準備する。
+    const maxBuffer = 64 * 1024 * 1024;
+
+    // 指定した上限だけをspawnSyncの実行設定へ追加する。
+    runSfWithOutput(
+        ['project', 'retrieve', 'start'],
+        repoRoot,
+        (_command, _args, options) => {
+            assert.deepEqual(options, { cwd: repoRoot, encoding: 'utf8', maxBuffer });
+            return { status: 0, stdout: '{}', stderr: '' };
+        },
+        maxBuffer
+    );
+});
+
 test('出力取得用のSalesforce CLIを開始できない場合はエラー情報を返す', () => {
     // 子プロセス開始時の例外を再現する。
     const result = runSfWithOutput([], repoRoot, () => {

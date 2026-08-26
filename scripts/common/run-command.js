@@ -67,16 +67,25 @@ function runSf(args, workingDirectory, spawnCommand = spawnSync) {
 }
 
 // Salesforce CLIの出力を呼び出し元で解析できる文字列として返す。
-function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync) {
+function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync, maxBuffer) {
     // OS別コマンド組み立てに失敗してもspawn結果と同じ形で返す。
     try {
         // JSON応答を解析する呼び出し元向けに、出力を文字列として保持する。
         const sfCommand = buildSfCommand(args);
         // JSON解析や診断で両方の出力を参照できる起動設定を使用する。
-        return spawnCommand(sfCommand.command, sfCommand.args, {
+        const options = {
             cwd: workingDirectory,
             encoding: 'utf8'
-        });
+        };
+
+        // 大きいJSON応答を扱う呼び出しだけ、明示された出力上限を適用する。
+        if (maxBuffer !== undefined) {
+            // spawnSyncが無制限に出力を保持しないよう、呼び出し側の上限を渡す。
+            options.maxBuffer = maxBuffer;
+        }
+
+        // 呼び出し元が解析できる標準出力と標準エラーを返す。
+        return spawnCommand(sfCommand.command, sfCommand.args, options);
     } catch (error) {
         // spawn結果と同じ形を返し、呼び出し元のエラー処理を一本化する。
         return { error, status: null, stdout: '', stderr: '' };
