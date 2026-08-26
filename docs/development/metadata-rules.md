@@ -4,9 +4,9 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 基本方針
 
-- `manifest/retrieve-all.xml` は、Salesforce 組織から取得対象とする全メタデータ型の確認用 catalog として扱う。
 - `manifest/retrieve-profile.xml` は、スクリプトでProfileと関連メタデータを同時に取得する最初の retrieve scope として扱う。
-- applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。実行順は`scripts/metadata/retrieve/retrieve.js`を基準にする。
+- applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。分割manifestを取得定義の正本とし、実行順は`scripts/metadata/retrieve/retrieve.js`を基準にする。
+- `npm run sf:retrieve` は、orgへ接続する前に、すべての分割manifestが存在して取得対象を持ち、API versionが`sfdx-project.json`と一致することをローカルで確認する。
 - `manifest/retrieve-translations.xml` は、`Translations` とその内容を構成する関連メタデータを同時に取得する最後の retrieve scope として扱う。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest として扱う。
 - retrieve / package manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
@@ -18,6 +18,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 ## 取得対象
 
 - retrieve 対象の指定がない場合は、`npm run sf:retrieve`を使い、Salesforce CLIに設定されているDefault Target Orgから`scripts/metadata/retrieve/retrieve.js`に定義したretrieve用manifestを順に取得する。
+- 通常の一括retrieveではorg API呼び出しを追加せず、既存の責務別manifestを1回ずつ取得する。org全体のmetadata typeやcomponent一覧との棚卸しは、必要性と負荷を確認した別タスクとして扱う。
 - `Translations` は関連メタデータと別に取得すると内容が欠落するため、`retrieve-translations.xml` を最後に実行して完全な翻訳ファイルで更新する。
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
@@ -37,6 +38,8 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 1. `git status --short` と `git diff --stat` で差分の範囲を確認する。
 2. 必要に応じて `git diff` で内容を確認する。
 3. ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認する。
+
+`npm run sf:retrieve` は各manifestを`--json`で実行し、取得component数、取得ファイル数、所要時間をmanifest単位で表示します。Salesforce CLIがwarning、未完了status、非0の終了状態、解析できない応答を返した場合は、そのmanifestで停止し、後続を取得しません。自動retryや確認目的の再retrieveは行いません。
 
 広い manifest で retrieve すると、Salesforce CLI の結果表では `Changed` が多数表示されることがあります。コミット判断では、CLI の表示だけでなく Git の差分を基準にします。
 

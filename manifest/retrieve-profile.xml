@@ -15,6 +15,7 @@
         <members>Campaign</members>
         <members>CampaignMember</members>
         <members>Case</members>
+        <members>CollaborationGroup</members>
         <members>Contact</members>
         <members>ContentDocument</members>
         <members>ContentVersion</members>
