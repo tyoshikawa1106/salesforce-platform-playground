@@ -39,7 +39,9 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 2. 必要に応じて `git diff` で内容を確認する。
 3. ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認する。
 
-`npm run sf:retrieve` は各manifestを`--json`で実行し、取得component数、取得ファイル数、所要時間をmanifest単位で表示します。Salesforce CLIがwarning、未完了status、非0の終了状態、解析できない応答を返した場合は、そのmanifestで停止し、後続を取得しません。自動retryや確認目的の再retrieveは行いません。
+`npm run sf:retrieve` は各manifestを`--json`で実行し、取得component数、source形式の取得ファイル数、Metadata APIの取得ファイル数、metadata type別のAPIファイル数、所要時間をmanifest単位で表示します。長時間のretrieveでは30秒ごとに経過時間を表示します。
+
+Salesforce CLIのwarningとMetadata APIの取得warningは表示して後続manifestを取得します。取得warningがあるmanifestと、Metadata APIの取得ファイル数が1回の上限10,000件に達したmanifestは要確認として最後にまとめ、全manifest実行後に非0で終了します。未完了status、非0の終了状態、解析できない応答など、retrieveを継続できない失敗はそのmanifestで停止します。自動retryや確認目的の再retrieveは行いません。
 
 広い manifest で retrieve すると、Salesforce CLI の結果表では `Changed` が多数表示されることがあります。コミット判断では、CLI の表示だけでなく Git の差分を基準にします。
 

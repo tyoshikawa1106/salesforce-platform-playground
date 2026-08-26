@@ -170,9 +170,9 @@ test('接続組織の確認項目だけを指定順で表示する', () => {
 
     assert.deepEqual(lines, [
         '接続組織を確認してください。',
-        '・エイリアス: target-org',
-        '・ユーザー名: user@example.com',
+        '・Alias: target-org',
+        '・Username: user@example.com',
         '・URL: https://example.my.salesforce.com',
-        '・種別: Sandbox'
+        '・Org Type: Sandbox'
     ]);
 });

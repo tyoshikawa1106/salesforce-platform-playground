@@ -189,13 +189,13 @@ function printTargetOrgInfo(orgInfo, writeLine = console.log) {
     // これから接続する組織の確認開始を利用者へ示す。
     writeLine('接続組織を確認してください。');
     // CLI操作で指定される対象名を実行前に照合できるようにする。
-    writeLine(`・エイリアス: ${orgInfo.alias}`);
+    writeLine(`・Alias: ${orgInfo.alias}`);
     // 実行ユーザーを取り違えないようusernameを表示する。
-    writeLine(`・ユーザー名: ${orgInfo.username}`);
+    writeLine(`・Username: ${orgInfo.username}`);
     // 接続先instanceを識別できるURLを表示する。
     writeLine(`・URL: ${orgInfo.instanceUrl}`);
     // 追加確認や禁止判定に用いる組織種別を表示する。
-    writeLine(`・種別: ${orgInfo.typeLabel}`);
+    writeLine(`・Org Type: ${orgInfo.typeLabel}`);
 }
 
 module.exports = {
