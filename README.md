@@ -200,6 +200,16 @@ npm run code-analyzer
 npm run code-analyzer:ci
 ```
 
+### ローカル生成ログの削除
+
+`logs/` 配下に生成された Git の ignore 対象ファイルを一括削除します。必要なログを別の場所へ退避してから実行します。削除したファイルは復元できません。
+
+```sh
+git clean -fdX logs
+```
+
+`-X` によって ignore 対象だけを削除するため、Git 管理している各ログガイドは残ります。
+
 ## AI エージェントスキル
 
 `forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の参考情報として利用します。
