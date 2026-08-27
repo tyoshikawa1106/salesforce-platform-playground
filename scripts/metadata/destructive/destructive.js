@@ -1,11 +1,12 @@
 // 実行コマンド: npm run sf:destructive
-// 用途: Default Target Orgのメタデータ削除をdry-runし、承認後に実行する。
+// 用途: Default Target Orgのメタデータ削除をApexテスト付きでdry-runし、承認後に実行する。
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
 const { runSf, runSfWithOutput } = require('../../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../../common/target-org');
+const { runAndMonitorDeploy } = require('./internal/deploy-runner');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -26,10 +27,44 @@ function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
         throw new Error('manifest/destructiveChanges.xmlにプレースホルダーが残っています。');
     }
 
-    // 削除対象が空の状態では組織確認やSalesforce CLIを開始しない。
-    if (!/<types>[\s\S]*?<members>[^<]+<\/members>[\s\S]*?<\/types>/.test(manifest)) {
+    // types要素の開始と終了が一致しないmanifestを部分的に解釈しない。
+    const openingTypeCount = manifest.match(/<types>/g)?.length ?? 0;
+    const closingTypeCount = manifest.match(/<\/types>/g)?.length ?? 0;
+
+    // 削除対象が空または不完全な状態では組織確認やSalesforce CLIを開始しない。
+    if (openingTypeCount === 0 || openingTypeCount !== closingTypeCount) {
         throw new Error('manifest/destructiveChanges.xmlに削除対象が設定されていません。');
     }
+
+    // 完了結果と照合するため、typeとfullNameの組をmanifestから構造化する。
+    const components = [];
+
+    for (const match of manifest.matchAll(/<types>([\s\S]*?)<\/types>/g)) {
+        const typeBody = match[1];
+        const names = [...typeBody.matchAll(/<name>\s*([^<]+?)\s*<\/name>/g)].map((nameMatch) => nameMatch[1].trim());
+        const members = [...typeBody.matchAll(/<members>\s*([^<]+?)\s*<\/members>/g)].map((memberMatch) =>
+            memberMatch[1].trim()
+        );
+
+        // type名を推測せず、1つのnameと1件以上のmembersがある場合だけ許可する。
+        if (names.length !== 1 || names[0] === '' || members.length === 0 || members.some((member) => member === '')) {
+            throw new Error('manifest/destructiveChanges.xmlの削除対象形式が不正です。');
+        }
+
+        // ワイルドカードは個別の削除完了結果と一対一で照合できないため許可しない。
+        if (members.includes('*')) {
+            throw new Error('manifest/destructiveChanges.xmlの削除対象にワイルドカードは使用できません。');
+        }
+
+        for (const fullName of members) {
+            components.push({ type: names[0], fullName });
+        }
+    }
+
+    // 重複指定を件数検証へ混ぜず、同じ削除対象は1件として扱う。
+    return [
+        ...new Map(components.map((component) => [`${component.type}\u0000${component.fullName}`, component])).values()
+    ];
 }
 
 // 接続先と組織種別を確認し、dry-runの成功後に再承認された場合だけメタデータを削除する。
@@ -38,7 +73,8 @@ async function main({
     createPrompt,
     runSfCommand = runSf,
     runSfWithOutputCommand = runSfWithOutput,
-    validateManifest = validateDestructiveManifest
+    validateManifest = validateDestructiveManifest,
+    runDeployCommand = runAndMonitorDeploy
 } = {}) {
     // このスクリプトは引数を受け付けない。
     if (argv.length !== 0) {
@@ -51,7 +87,7 @@ async function main({
     }
 
     // 削除対象が未設定またはプレースホルダーの場合は組織へ接続しない。
-    validateManifest();
+    const expectedComponents = validateManifest();
 
     // 削除対象のDefault Target Orgと、認証済み組織情報を取得する。
     const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
@@ -93,7 +129,7 @@ async function main({
             }
         }
 
-        // 通常manifestと削除対象manifestを明示してdestructive deployを組み立てる。
+        // 通常manifest、削除対象manifest、Apexテストを明示してdestructive deployを組み立てる。
         const deployArgs = [
             'project',
             'deploy',
@@ -104,12 +140,22 @@ async function main({
             destructiveManifest,
             '--target-org',
             targetOrg,
-            '--wait',
-            '30'
+            '--test-level',
+            'RunLocalTests'
         ];
 
         // dry-runが失敗した場合は、実削除の確認を出さずに終了する。
-        if (runSfCommand([...deployArgs, '--dry-run'], repoRoot) !== 0) {
+        if (
+            (await runDeployCommand({
+                deployArgs,
+                dryRun: true,
+                expectedComponents,
+                targetOrg,
+                repoRoot,
+                runSfCommand,
+                runSfWithOutputCommand
+            })) !== 0
+        ) {
             // dry-run失敗を呼び出し元へ伝える。
             return 1;
         }
@@ -126,7 +172,15 @@ async function main({
         }
 
         // dry-runと同じ対象組織・manifestだけを実削除へ引き渡す。
-        return runSfCommand(deployArgs, repoRoot);
+        return runDeployCommand({
+            deployArgs,
+            dryRun: false,
+            expectedComponents,
+            targetOrg,
+            repoRoot,
+            runSfCommand,
+            runSfWithOutputCommand
+        });
     } finally {
         // 中止やCLI失敗の場合も確認入力を終了する。
         prompt.close();

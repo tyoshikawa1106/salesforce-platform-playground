@@ -55,12 +55,42 @@ test('削除対象manifestに削除対象がない場合は拒否する', () => 
 });
 
 test('削除対象manifestに実在するmetadata名がある場合は許可する', () => {
-    assert.doesNotThrow(() =>
-        validateDestructiveManifest({
-            readFileSync() {
-                return '<Package><types><members>UnusedClass</members><name>ApexClass</name></types></Package>';
-            }
-        })
+    const components = validateDestructiveManifest({
+        readFileSync() {
+            return '<Package><types><members>UnusedClass</members><name>ApexClass</name></types></Package>';
+        }
+    });
+
+    assert.deepEqual(components, [{ type: 'ApexClass', fullName: 'UnusedClass' }]);
+});
+
+test('削除対象manifestの複数typeとmembersを構造化して返す', () => {
+    const components = validateDestructiveManifest({
+        readFileSync() {
+            return (
+                '<Package><types><members>OldClass</members><name>ApexClass</name></types>' +
+                '<types><members>Account.OldField__c</members><members>Contact.OldField__c</members>' +
+                '<name>CustomField</name></types></Package>'
+            );
+        }
+    });
+
+    assert.deepEqual(components, [
+        { type: 'ApexClass', fullName: 'OldClass' },
+        { type: 'CustomField', fullName: 'Account.OldField__c' },
+        { type: 'CustomField', fullName: 'Contact.OldField__c' }
+    ]);
+});
+
+test('削除完了を個別照合できないワイルドカードは拒否する', () => {
+    assert.throws(
+        () =>
+            validateDestructiveManifest({
+                readFileSync() {
+                    return '<Package><types><members>*</members><name>ApexClass</name></types></Package>';
+                }
+            }),
+        /ワイルドカードは使用できません/
     );
 });
 
@@ -137,6 +167,19 @@ function createOrgInfoCommand(type = 'sandbox') {
         const sandboxes = type === 'sandbox' ? [nonScratchOrg] : [];
 
         return createSfResult({ nonScratchOrgs, sandboxes, scratchOrgs });
+    };
+}
+
+// dry-runと実削除の監視呼び出しを記録し、指定した終了コードを順番に返す。
+function createDeployCommand(statuses = [0]) {
+    const calls = [];
+
+    return {
+        calls,
+        async command(options) {
+            calls.push(options);
+            return statuses.shift() ?? 0;
+        }
     };
 }
 
@@ -221,22 +264,21 @@ for (const [type, label] of [
 }
 
 test('Sandboxでは環境別の追加確認なしでdry-runを実行する', async () => {
-    const commandArgs = [];
+    const deploy = createDeployCommand();
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
-        validateManifest() {},
-        createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
-            return 0;
+        validateManifest() {
+            return [{ type: 'ApexClass', fullName: 'OldClass' }];
         },
+        createPrompt: () => prompt.prompt,
+        runDeployCommand: deploy.command,
         runSfWithOutputCommand: createOrgInfoCommand('sandbox')
     });
 
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 1);
-    assert.equal(commandArgs[0].at(-1), '--dry-run');
+    assert.equal(deploy.calls.length, 1);
+    assert.equal(deploy.calls[0].dryRun, true);
     assert.deepEqual(prompt.getQuestions(), [
         'この接続組織で続行しますか？ [y/N]: ',
         'dry-runが成功しました。実際にメタデータを削除しますか？ [y/N]: '
@@ -244,56 +286,53 @@ test('Sandboxでは環境別の追加確認なしでdry-runを実行する', asy
 });
 
 test('dry-runが失敗した場合は実削除を実行しない', async () => {
-    const commandArgs = [];
+    const deploy = createDeployCommand([1]);
     const prompt = createPrompt(['y']);
     const status = await main({
         argv: [],
-        validateManifest() {},
-        createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
-            return 1;
+        validateManifest() {
+            return [{ type: 'ApexClass', fullName: 'OldClass' }];
         },
+        createPrompt: () => prompt.prompt,
+        runDeployCommand: deploy.command,
         runSfWithOutputCommand: createOrgInfoCommand('sandbox')
     });
 
     assert.equal(status, 1);
-    assert.equal(commandArgs.length, 1);
-    assert.equal(commandArgs[0].at(-1), '--dry-run');
+    assert.equal(deploy.calls.length, 1);
+    assert.equal(deploy.calls[0].dryRun, true);
     assert.equal(prompt.isClosed(), true);
 });
 
 test('dry-run成功後に削除が承認されない場合は実削除しない', async () => {
-    const commandArgs = [];
+    const deploy = createDeployCommand();
     const prompt = createPrompt(['y', 'n']);
     const status = await main({
         argv: [],
-        validateManifest() {},
-        createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
-            return 0;
+        validateManifest() {
+            return [{ type: 'ApexClass', fullName: 'OldClass' }];
         },
+        createPrompt: () => prompt.prompt,
+        runDeployCommand: deploy.command,
         runSfWithOutputCommand: createOrgInfoCommand('scratch')
     });
 
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 1);
-    assert.equal(commandArgs[0].at(-1), '--dry-run');
+    assert.equal(deploy.calls.length, 1);
+    assert.equal(deploy.calls[0].dryRun, true);
     assert.equal(prompt.isClosed(), true);
 });
 
-test('本番環境の全確認が承認された場合だけ通常manifestと削除対象manifestを使って実削除する', async () => {
-    const commandArgs = [];
+test('本番環境の全確認が承認された場合だけRunLocalTests付きで実削除する', async () => {
+    const deploy = createDeployCommand([0, 0]);
     const prompt = createPrompt(['y', 'y', 'y']);
     const status = await main({
         argv: [],
-        validateManifest() {},
-        createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
-            return 0;
+        validateManifest() {
+            return [{ type: 'ApexClass', fullName: 'OldClass' }];
         },
+        createPrompt: () => prompt.prompt,
+        runDeployCommand: deploy.command,
         runSfWithOutputCommand: createOrgInfoCommand('production')
     });
     const deployArgs = [
@@ -306,11 +345,53 @@ test('本番環境の全確認が承認された場合だけ通常manifestと削
         'manifest/destructiveChanges.xml',
         '--target-org',
         'test-org',
-        '--wait',
-        '30'
+        '--test-level',
+        'RunLocalTests'
     ];
 
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, [[...deployArgs, '--dry-run'], deployArgs]);
+    assert.deepEqual(
+        deploy.calls.map(({ deployArgs: args, dryRun, expectedComponents, targetOrg }) => ({
+            deployArgs: args,
+            dryRun,
+            expectedComponents,
+            targetOrg
+        })),
+        [
+            {
+                deployArgs,
+                dryRun: true,
+                expectedComponents: [{ type: 'ApexClass', fullName: 'OldClass' }],
+                targetOrg: 'test-org'
+            },
+            {
+                deployArgs,
+                dryRun: false,
+                expectedComponents: [{ type: 'ApexClass', fullName: 'OldClass' }],
+                targetOrg: 'test-org'
+            }
+        ]
+    );
+    assert.equal(prompt.isClosed(), true);
+});
+
+test('実削除のApexテストが失敗した場合は失敗終了を返す', async () => {
+    const deploy = createDeployCommand([0, 1]);
+    const prompt = createPrompt(['y', 'y']);
+    const status = await main({
+        argv: [],
+        validateManifest() {
+            return [{ type: 'ApexClass', fullName: 'OldClass' }];
+        },
+        createPrompt: () => prompt.prompt,
+        runDeployCommand: deploy.command,
+        runSfWithOutputCommand: createOrgInfoCommand('sandbox')
+    });
+
+    assert.equal(status, 1);
+    assert.equal(deploy.calls.length, 2);
+    assert.equal(deploy.calls[0].dryRun, true);
+    assert.equal(deploy.calls[1].dryRun, false);
+    assert.deepEqual(deploy.calls[1].deployArgs.slice(-2), ['--test-level', 'RunLocalTests']);
     assert.equal(prompt.isClosed(), true);
 });
