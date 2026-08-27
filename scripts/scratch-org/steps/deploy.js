@@ -16,7 +16,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
         defaultAlias: scratchOrg.alias,
         usage,
         execute(alias) {
-            // 再構築専用manifestを指定Scratch Orgへ待機時間付きで反映する。
+            // 再構築専用manifestを指定Scratch OrgへRunLocalTests付きで反映する。
             return runSfCommand(
                 [
                     'project',
@@ -26,6 +26,8 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
                     scratchOrg.manifest,
                     '--target-org',
                     alias,
+                    '--test-level',
+                    'RunLocalTests',
                     '--wait',
                     String(scratchOrg.waitMinutes)
                 ],
