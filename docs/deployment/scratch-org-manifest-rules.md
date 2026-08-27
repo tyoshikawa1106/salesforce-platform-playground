@@ -59,9 +59,11 @@ Scratch Org は開発とテストの場所、Salesforce 組織はリリース先
 この初期反映には Scratch Org 初期反映用 manifest を使います。
 
 ```sh
-sf project deploy start --dry-run --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --wait 30
-sf project deploy start --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --wait 30
+sf project deploy start --dry-run --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --test-level RunLocalTests --wait 30
+sf project deploy start --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --test-level RunLocalTests --wait 30
 ```
+
+初期反映のdry-runとdeployは`RunLocalTests`を必須とし、metadata反映とApexテストが同じdeployで成功した場合だけ初期反映成功として扱います。
 
 ### Scratch Org での変更
 

@@ -46,8 +46,8 @@ test('Scratch Orgを設定ファイルの内容で作成する', () => {
     ]);
 });
 
-test('Scratch Orgへ設定ファイルのmanifestを反映する', () => {
-    // manifest、alias、待機時間がSalesforce CLIへ渡ることを確認する。
+test('Scratch Orgへ設定ファイルのmanifestをRunLocalTests付きで反映する', () => {
+    // manifest、alias、Apexテストレベル、待機時間がSalesforce CLIへ渡ることを確認する。
     const args = captureSfCall((runSfCommand) =>
         deployMetadata({ argv: ['--alias', 'test-scratch-org'], runSfCommand })
     );
@@ -60,6 +60,8 @@ test('Scratch Orgへ設定ファイルのmanifestを反映する', () => {
         scratchOrg.manifest,
         '--target-org',
         'test-scratch-org',
+        '--test-level',
+        'RunLocalTests',
         '--wait',
         String(scratchOrg.waitMinutes)
     ]);

@@ -231,6 +231,7 @@
 | `scripts/scratch-org/scratch-org.json`                   | ファイル   | Scratch Org scriptのalias、期間、manifest、Permission Set、waitを定義する。 |
 | `scripts/scratch-org/internal/`                          | フォルダ   | Scratch Org scriptから読み込む共通処理を格納する。                          |
 | `scripts/scratch-org/steps/`                             | フォルダ   | setupから子プロセスとして実行する各手順を格納する。                         |
+| `scripts/scratch-org/steps/deploy.js`                    | ファイル   | Scratch Org初期metadataをRunLocalTests付きで反映する。                      |
 | `scripts/scratch-org/test/`                              | フォルダ   | Scratch Org scriptのNode.js testを格納する。                                |
 | `scripts/scratch-org/test/*.node.js`                     | ファイル群 | Scratch Org scriptのcommand生成と実行制御を確認する。                       |
 | `scripts/setup/`                                         | フォルダ   | テストデータ投入のplanと実行scriptを格納する。                              |
