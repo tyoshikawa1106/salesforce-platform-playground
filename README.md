@@ -76,7 +76,7 @@ Default Target Org の情報と組織種別を確認してから、メタデー�
 npm run sf:retrieve
 ```
 
-Default Target Org の情報と組織種別を確認し、削除を保存しない`RunLocalTests`付きdry-runで事前検証します。dry-runと実削除はjob IDを表示して最終状態まで監視し、manifestの削除対象、全体ロールバック設定、Apexテストの全件完了と0失敗をdeploy結果から検証します。実削除ではmetadataを削除した後に同じdeploy内で`RunLocalTests`を実行し、テストに成功した場合だけ削除を確定します。
+Default Target Org の情報と組織種別を確認し、削除を保存しない`RunLocalTests`付きdry-runで事前検証します。dry-runと実削除はjob IDを表示して最長30分監視し、manifestの削除対象、全体ロールバック設定、Apexテストの全件完了と0失敗をdeploy結果から検証します。実削除ではmetadataを削除した後に同じdeploy内で`RunLocalTests`を実行し、テストに成功した場合だけ削除を確定します。
 
 ```sh
 npm run sf:destructive

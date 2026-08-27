@@ -48,7 +48,7 @@ npm run sf:destructive
 - destructive manifest は作業単位ごとに最小化する。
 - deploy validate が使える場合は、削除前に検証する。
 - dry-runと実削除の両方で`--test-level RunLocalTests`を指定する。実削除ではmetadata削除後の同一deploy内でテストし、成功時だけ削除を確定する。テスト失敗時にdeploy全体をロールバックするため、`--ignore-errors`は使用しない。
-- dry-runと実削除は非同期で開始し、job IDを表示して`done`になるまで監視する。`Succeeded`以外、dry-run種別の不一致、全体ロールバック無効、削除対象の不足、Apexテスト0件・未完了・失敗は成功扱いにしない。
+- dry-runと実削除は非同期で開始し、job IDを表示して`done`になるまで最長30分監視する。個々のSalesforce CLI呼び出しは2分でタイムアウトする。`Succeeded`以外、dry-run種別の不一致、全体ロールバック無効、削除対象の不足、Apexテスト0件・未完了・失敗は成功扱いにしない。
 - 監視中にCtrl+Cを受けた場合や結果を取得できない場合は、組織上のdeployが継続している可能性を表示し、job IDを指定した`sf project deploy report`コマンドを案内する。
 - 削除と無関係な metadata 更新を同じ変更に混ぜない。
 - 削除に伴う権限、レイアウト、Flow、Apex の修正は差分を明確に分けて確認する。

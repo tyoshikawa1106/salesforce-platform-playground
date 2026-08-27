@@ -2,11 +2,16 @@
 // 用途: destructive deployを非同期で開始し、完了監視後に削除対象とApexテスト結果を検証する。
 
 const { setTimeout: wait } = require('node:timers/promises');
+const { performance } = require('node:perf_hooks');
 const { runSf, runSfWithOutput } = require('../../../common/run-command');
 const { createProgressReporter } = require('../../../org-tests/internal/test-progress');
 
 // Salesforce CLIへ問い合わせる間隔を5秒に揃える。
 const pollIntervalMs = 5_000;
+// 従来の--wait 30と同じ30分をローカル監視の上限にする。
+const monitorTimeoutMs = 30 * 60 * 1_000;
+// 1回のSalesforce CLI呼び出しが停止した場合は2分で終了する。
+const sfCommandTimeoutMs = 2 * 60 * 1_000;
 // 大きいdeploy結果でもJSONが途中で切れないよう、明示的な上限を設定する。
 const maxJsonBuffer = 50 * 1024 * 1024;
 // Metadata API deployで返り得る状態だけを監視対象として許可する。
@@ -218,6 +223,7 @@ async function runAndMonitorDeploy({
     runSfCommand = runSf,
     runSfWithOutputCommand = runSfWithOutput,
     waitForNextPoll = wait,
+    getCurrentTime = () => performance.now(),
     registerInterrupt = registerInterruptHandler,
     progressReporter,
     writeLine = console.log,
@@ -230,11 +236,12 @@ async function runAndMonitorDeploy({
     const reporter = progressReporter ?? createProgressReporter({ writeLine });
     const startArgs = [...deployArgs, ...(dryRun ? ['--dry-run'] : []), '--async', '--json'];
     const startResult = parseSfJson(
-        runSfWithOutputCommand(startArgs, repoRoot, undefined, maxJsonBuffer),
+        runSfWithOutputCommand(startArgs, repoRoot, undefined, maxJsonBuffer, sfCommandTimeoutMs),
         `${dryRun ? 'dry-run' : 'destructive deploy'}の開始`
     );
     const deployId = validateDeployId(startResult.id);
     writeLine(`deploy job ID: ${deployId}`);
+    const monitorStartedAt = getCurrentTime();
 
     let interrupted = false;
     let notifyInterrupted;
@@ -249,6 +256,14 @@ async function runAndMonitorDeploy({
 
     try {
         while (!interrupted) {
+            if (getCurrentTime() - monitorStartedAt >= monitorTimeoutMs) {
+                reporter.finish('destructive deployの進捗監視がタイムアウトしました。');
+                writeError('エラー: deployの進捗監視が30分でタイムアウトしました。');
+                writeLine('組織上のdeployは継続している可能性があります。');
+                writeLine(`結果確認: ${getReportCommand(deployId, targetOrg)}`);
+                return 124;
+            }
+
             try {
                 finalResult = validateProgressResult(
                     parseSfJson(
@@ -256,7 +271,8 @@ async function runAndMonitorDeploy({
                             ['project', 'deploy', 'report', '--job-id', deployId, '--target-org', targetOrg, '--json'],
                             repoRoot,
                             undefined,
-                            maxJsonBuffer
+                            maxJsonBuffer,
+                            sfCommandTimeoutMs
                         ),
                         'deploy進捗の取得',
                         { allowNonZero: true }
@@ -293,7 +309,9 @@ async function runAndMonitorDeploy({
 
     const reportStatus = runSfCommand(
         ['project', 'deploy', 'report', '--job-id', deployId, '--target-org', targetOrg],
-        repoRoot
+        repoRoot,
+        undefined,
+        sfCommandTimeoutMs
     );
 
     if (reportStatus !== 0) {

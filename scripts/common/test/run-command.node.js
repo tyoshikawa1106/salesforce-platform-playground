@@ -61,6 +61,20 @@ test('Salesforce CLIの終了コードを返す', () => {
     assert.equal(status, 7);
 });
 
+test('Salesforce CLIの実行時間上限を呼び出し側から指定する', () => {
+    const timeout = 120_000;
+
+    runSf(
+        ['--version'],
+        repoRoot,
+        (_command, _args, options) => {
+            assert.deepEqual(options, { cwd: repoRoot, stdio: 'inherit', timeout });
+            return { status: 0 };
+        },
+        timeout
+    );
+});
+
 test('Salesforce CLIを開始できない場合は異常終了する', () => {
     // エラー表示を記録し、子プロセス開始時の例外を再現する。
     const originalConsoleError = console.error;
@@ -130,6 +144,21 @@ test('Salesforce CLIの出力上限を呼び出し側から指定する', () => 
             return { status: 0, stdout: '{}', stderr: '' };
         },
         maxBuffer
+    );
+});
+
+test('出力取得用Salesforce CLIの実行時間上限を呼び出し側から指定する', () => {
+    const timeout = 120_000;
+
+    runSfWithOutput(
+        ['project', 'deploy', 'report'],
+        repoRoot,
+        (_command, _args, options) => {
+            assert.deepEqual(options, { cwd: repoRoot, encoding: 'utf8', timeout });
+            return { status: 0, stdout: '{}', stderr: '' };
+        },
+        undefined,
+        timeout
     );
 });
 
