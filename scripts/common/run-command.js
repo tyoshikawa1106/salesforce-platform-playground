@@ -45,16 +45,23 @@ function getExitCode(result, command) {
 }
 
 // Salesforce CLIの出力をそのまま表示し、終了コードを返す。
-function runSf(args, workingDirectory, spawnCommand = spawnSync) {
+function runSf(args, workingDirectory, spawnCommand = spawnSync, timeout) {
     // OS別コマンド組み立ての例外も同じ終了コード規約へ揃える。
     try {
         // OS別の安全な起動方法へ変換してからSalesforce CLIを実行する。
         const sfCommand = buildSfCommand(args);
         // 対話中の表示を保つため、標準入出力を親プロセスへ接続する。
-        const result = spawnCommand(sfCommand.command, sfCommand.args, {
+        const options = {
             cwd: workingDirectory,
             stdio: 'inherit'
-        });
+        };
+
+        // 長時間応答がない呼び出しだけ、指定時間で子プロセスを終了できるようにする。
+        if (timeout !== undefined) {
+            options.timeout = timeout;
+        }
+
+        const result = spawnCommand(sfCommand.command, sfCommand.args, options);
 
         // 呼び出し元が後続処理を止められるよう終了コードだけを返す。
         return getExitCode(result, 'sf');
@@ -67,7 +74,7 @@ function runSf(args, workingDirectory, spawnCommand = spawnSync) {
 }
 
 // Salesforce CLIの出力を呼び出し元で解析できる文字列として返す。
-function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync, maxBuffer) {
+function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync, maxBuffer, timeout) {
     // OS別コマンド組み立てに失敗してもspawn結果と同じ形で返す。
     try {
         // JSON応答を解析する呼び出し元向けに、出力を文字列として保持する。
@@ -82,6 +89,11 @@ function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync, maxBu
         if (maxBuffer !== undefined) {
             // spawnSyncが無制限に出力を保持しないよう、呼び出し側の上限を渡す。
             options.maxBuffer = maxBuffer;
+        }
+
+        // JSON応答待ちが停止した場合に備え、呼び出し側が指定した実行上限を適用する。
+        if (timeout !== undefined) {
+            options.timeout = timeout;
         }
 
         // 呼び出し元が解析できる標準出力と標準エラーを返す。

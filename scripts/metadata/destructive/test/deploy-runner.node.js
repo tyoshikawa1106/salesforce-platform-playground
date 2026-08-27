@@ -98,12 +98,12 @@ test('destructive deployを非同期で開始し、完了まで監視して削�
         expectedComponents,
         targetOrg: 'test-org',
         repoRoot: '/repo',
-        runSfWithOutputCommand(args, workingDirectory, spawnCommand, maxBuffer) {
-            jsonCommands.push({ args, workingDirectory, spawnCommand, maxBuffer });
+        runSfWithOutputCommand(args, workingDirectory, spawnCommand, maxBuffer, timeout) {
+            jsonCommands.push({ args, workingDirectory, spawnCommand, maxBuffer, timeout });
             return results.shift();
         },
-        runSfCommand(args, workingDirectory) {
-            humanCommands.push({ args, workingDirectory });
+        runSfCommand(args, workingDirectory, spawnCommand, timeout) {
+            humanCommands.push({ args, workingDirectory, spawnCommand, timeout });
             return 0;
         },
         async waitForNextPoll(milliseconds) {
@@ -137,12 +137,18 @@ test('destructive deployを非同期で開始し、完了まで監視して削�
     assert.deepEqual(humanCommands, [
         {
             args: ['project', 'deploy', 'report', '--job-id', deployId, '--target-org', 'test-org'],
-            workingDirectory: '/repo'
+            workingDirectory: '/repo',
+            spawnCommand: undefined,
+            timeout: 120_000
         }
     ]);
     assert.deepEqual(lines, [`deploy job ID: ${deployId}`, '検証結果: 削除対象 2件、Apexテスト 4 / 4件、失敗 0件']);
     assert.equal(
         jsonCommands.every(({ maxBuffer }) => maxBuffer === 50 * 1024 * 1024),
+        true
+    );
+    assert.equal(
+        jsonCommands.every(({ timeout }) => timeout === 120_000),
         true
     );
 });
@@ -257,6 +263,45 @@ test('Ctrl+Cではローカル監視だけを停止し、結果確認コマン�
     assert.equal(status, 130);
     assert.match(reporter.finishes[0], /組織上のdeployは継続/);
     assert.equal(lines.at(-1), `結果確認: ${getReportCommand(deployId, 'test-org')}`);
+});
+
+test('30分で進捗監視を終了し、組織側の結果確認コマンドを表示する', async () => {
+    const lines = [];
+    const errors = [];
+    const reporter = createReporter();
+    const times = [0, 30 * 60 * 1_000];
+
+    const status = await runAndMonitorDeploy({
+        deployArgs: ['project', 'deploy', 'start'],
+        dryRun: false,
+        expectedComponents,
+        targetOrg: 'test-org',
+        repoRoot: '/repo',
+        runSfWithOutputCommand() {
+            return createSfResult({ id: deployId });
+        },
+        getCurrentTime() {
+            return times.shift();
+        },
+        registerInterrupt() {
+            return () => {};
+        },
+        progressReporter: reporter.reporter,
+        writeLine(message) {
+            lines.push(message);
+        },
+        writeError(message) {
+            errors.push(message);
+        }
+    });
+
+    assert.equal(status, 124);
+    assert.match(reporter.finishes[0], /タイムアウト/);
+    assert.match(errors[0], /30分でタイムアウト/);
+    assert.deepEqual(lines.slice(-2), [
+        '組織上のdeployは継続している可能性があります。',
+        `結果確認: ${getReportCommand(deployId, 'test-org')}`
+    ]);
 });
 
 test('完了報告コマンドが失敗した場合は構造検証を成功扱いしない', async () => {
