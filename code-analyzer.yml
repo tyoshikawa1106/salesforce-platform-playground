@@ -1,6 +1,6 @@
 engines:
     eslint:
-        auto_discover_eslint_config: true
+        eslint_config_file: eslint.config.js
         disable_lwc_base_config: true
         disable_react_base_config: true
     pmd:
