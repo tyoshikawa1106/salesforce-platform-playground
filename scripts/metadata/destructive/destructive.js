@@ -1,12 +1,12 @@
 // 実行コマンド: npm run sf:destructive
-// 用途: Default Target Orgのメタデータ削除をApexテスト付きでdry-runし、承認後に実行する。
+// 用途: Default Target Orgを確認・承認し、dry-run成功後に同じ対象のメタデータを削除する。
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
-const { runSf, runSfWithOutput } = require('../../common/run-command');
+const { runSfWithOutput } = require('../../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../../common/target-org');
-const { runAndMonitorDeploy } = require('./internal/deploy-runner');
+const { deployOperations, runAndMonitorDeploy } = require('./internal/deploy-runner');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -15,7 +15,7 @@ const repoRoot = path.resolve(__dirname, '../../..');
 const packageManifest = 'manifest/destructivePackage.xml';
 const destructiveManifest = 'manifest/destructiveChanges.xml';
 
-// 削除対象manifestに実在する対象だけが設定されていることを組織照合前に確認する。
+// 削除対象manifestに明示的な対象が設定されていることを組織照合前に確認する。
 function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
     // 実行場所に依存せずリポジトリ管理の削除対象manifestを読み込む。
     const manifestPath = path.join(repoRoot, destructiveManifest);
@@ -36,9 +36,6 @@ function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
         throw new Error('manifest/destructiveChanges.xmlに削除対象が設定されていません。');
     }
 
-    // 完了結果と照合するため、typeとfullNameの組をmanifestから構造化する。
-    const components = [];
-
     for (const match of manifest.matchAll(/<types>([\s\S]*?)<\/types>/g)) {
         const typeBody = match[1];
         const names = [...typeBody.matchAll(/<name>\s*([^<]+?)\s*<\/name>/g)].map((nameMatch) => nameMatch[1].trim());
@@ -51,43 +48,31 @@ function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
             throw new Error('manifest/destructiveChanges.xmlの削除対象形式が不正です。');
         }
 
-        // ワイルドカードは個別の削除完了結果と一対一で照合できないため許可しない。
+        // ワイルドカードでは削除範囲を個別指定できないため許可しない。
         if (members.includes('*')) {
             throw new Error('manifest/destructiveChanges.xmlの削除対象にワイルドカードは使用できません。');
         }
-
-        for (const fullName of members) {
-            components.push({ type: names[0], fullName });
-        }
     }
-
-    // 重複指定を件数検証へ混ぜず、同じ削除対象は1件として扱う。
-    return [
-        ...new Map(components.map((component) => [`${component.type}\u0000${component.fullName}`, component])).values()
-    ];
 }
 
-// 接続先と組織種別を確認し、dry-runの成功後に再承認された場合だけメタデータを削除する。
+// 接続先と組織種別を確認し、必要な承認後にdry-runと実削除を順に実行する。
 async function main({
     argv = process.argv.slice(2),
     createPrompt,
-    runSfCommand = runSf,
     runSfWithOutputCommand = runSfWithOutput,
     validateManifest = validateDestructiveManifest,
-    runDeployCommand = runAndMonitorDeploy
+    runDeployCommand = runAndMonitorDeploy,
+    writeLine = console.log
 } = {}) {
-    // このスクリプトは引数を受け付けない。
+    // Target Orgや実行方法を外部引数で差し替えない。
     if (argv.length !== 0) {
-        // 引数指定が安全契約外であることを表示する。
         console.error('エラー: このスクリプトは引数を受け付けません。');
-        // 正しいnpm scriptを利用者へ案内する。
         console.error('実行コマンド: npm run sf:destructive');
-        // Salesforce CLIを呼び出さず失敗終了を返す。
         return 1;
     }
 
     // 削除対象が未設定またはプレースホルダーの場合は組織へ接続しない。
-    const expectedComponents = validateManifest();
+    validateManifest();
 
     // 削除対象のDefault Target Orgと、認証済み組織情報を取得する。
     const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
@@ -97,7 +82,9 @@ async function main({
     // 実行者が接続先を確認できるよう、必要な組織情報だけを表示する。
     printTargetOrgInfo(orgInfo);
 
-    // 接続先、組織種別、実削除の確認入力を受け付ける。
+    const isProductionLike = orgInfo.type === orgTypes.PRODUCTION || orgInfo.type === orgTypes.DEVELOPER_EDITION;
+
+    // 接続先と組織種別の確認入力を受け付ける。
     const prompt = createApprovalPrompt(createPrompt);
 
     // 承認入力中の例外でもpromptを閉じられるようfinallyで管理する。
@@ -113,8 +100,8 @@ async function main({
             return 0;
         }
 
-        // 本番環境とDeveloper Editionでは、dry-runより前に環境別の最終確認を行う。
-        if (orgInfo.type === orgTypes.PRODUCTION || orgInfo.type === orgTypes.DEVELOPER_EDITION) {
+        // 本番環境とDeveloper Editionでは、dry-runより前に環境別の追加確認を行う。
+        if (isProductionLike) {
             // 接続先の承認だけで高リスク環境の削除を許可しない。
             const environmentAnswer = await prompt.question(
                 `${orgInfo.typeLabel}です。メタデータ削除を実行してよろしいですか？ [y/N]: `
@@ -129,7 +116,7 @@ async function main({
             }
         }
 
-        // 通常manifest、削除対象manifest、Apexテストを明示してdestructive deployを組み立てる。
+        // 通常manifestと削除対象manifestを明示し、テストレベルはSalesforce標準の判定に任せる。
         const deployArgs = [
             'project',
             'deploy',
@@ -139,20 +126,18 @@ async function main({
             '--post-destructive-changes',
             destructiveManifest,
             '--target-org',
-            targetOrg,
-            '--test-level',
-            'RunLocalTests'
+            targetOrg
         ];
 
-        // dry-runが失敗した場合は、実削除の確認を出さずに終了する。
+        writeLine('dry-runによるメタデータ削除の検証を開始します。');
+
+        // dry-runが失敗した場合は実削除せずに終了する。
         if (
             (await runDeployCommand({
                 deployArgs,
-                dryRun: true,
-                expectedComponents,
+                operation: deployOperations.DRY_RUN,
                 targetOrg,
                 repoRoot,
-                runSfCommand,
                 runSfWithOutputCommand
             })) !== 0
         ) {
@@ -160,27 +145,24 @@ async function main({
             return 1;
         }
 
-        // dry-run成功後、実際に削除するか確認する。
-        const deleteAnswer = await prompt.question('dry-runが成功しました。実際にメタデータを削除しますか？ [y/N]: ');
+        writeLine('dry-runによるメタデータ削除の検証が成功しました。');
+        writeLine('メタデータの実削除を開始します。');
 
-        // yまたはY以外の場合は実削除を中止する。
-        if (!isApproved(deleteAnswer)) {
-            // dry-run後の最終承認がなかったことを操作結果として明示する。
-            console.log('メタデータの削除を中止しました。');
-            // 正常な利用者中止として0を返す。
-            return 0;
-        }
-
-        // dry-runと同じ対象組織・manifestだけを実削除へ引き渡す。
-        return runDeployCommand({
+        // dry-run成功後は、同じ対象組織・manifestをそのまま実削除へ引き渡す。
+        const deployStatus = await runDeployCommand({
             deployArgs,
-            dryRun: false,
-            expectedComponents,
+            operation: deployOperations.DEPLOY,
             targetOrg,
             repoRoot,
-            runSfCommand,
             runSfWithOutputCommand
         });
+
+        if (deployStatus === 0) {
+            writeLine('メタデータの削除が完了しました。');
+            writeLine('削除後の確認としてApexテストの実行を推奨します: npm run sf:test:apex');
+        }
+
+        return deployStatus;
     } finally {
         // 中止やCLI失敗の場合も確認入力を終了する。
         prompt.close();
