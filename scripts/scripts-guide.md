@@ -9,7 +9,7 @@
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。標準オブジェクトseedは共通preambleとobject固有処理を実行時に合成する。
 - `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを開始し、進捗と結果を取得するNodeスクリプト。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
-- `scripts/metadata/destructive/`: Salesforce組織からメタデータを削除するNodeスクリプト。
+- `scripts/metadata/destructive/`: Salesforce組織からメタデータを削除するNodeスクリプト。処理フローと表示は[メタデータ削除スクリプト仕様](../docs/specifications/scripts/metadata-deletion/index.md)を参照する。
 - `scripts/metadata/retrieve/`: Salesforce CLIに設定されているDefault Target Orgから、スクリプトに定義した順序で分割manifestをretrieveするNodeスクリプト。
 - `scripts/scratch-org/`: Scratch Orgの準備・削除を行う実行スクリプト。読み込み専用処理は`internal/`、setupから実行する各手順は`steps/`に分ける。
 

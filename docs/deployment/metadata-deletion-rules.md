@@ -2,6 +2,8 @@
 
 この文書は、AI エージェントが Salesforce メタデータを削除する destructive changes を扱うときの実行ルールを定義します。
 
+削除スクリプトの現在の処理フロー、表示、成功判定、エラー処理は[メタデータ削除スクリプト仕様](../specifications/scripts/metadata-deletion/index.md)を参照してください。
+
 ## 実行ルール
 
 - destructive changes は、通常の追加・更新より影響が大きいため別タスクで扱う。
@@ -31,13 +33,13 @@
 sf config get target-org
 ```
 
-## Apex クラス削除
+## 削除スクリプトの実行
 
-削除対象の Apex クラスは `manifest/destructiveChanges.xml` の `ApexClass` に実際のクラス名で書きます。
+削除対象は`manifest/destructiveChanges.xml`にmetadata typeとfullNameを明示します。例えばApexクラスは`ApexClass`に実際のクラス名を書きます。
 
 削除対象が未設定、またはプレースホルダーやワイルドカードが残っている場合は、組織情報を取得せず停止します。対象が有効な場合はdefault target orgのalias、ユーザー名、URL、種別が表示されます。
 
-接続組織を承認するとdry-runを実行し、成功後は同じ対象組織とmanifestで実削除します。dry-runと実削除ではテストレベルを明示せず、Salesforce標準の判定に従います。本番環境とDeveloper Editionではdry-run前に環境別の追加確認を行います。
+接続組織を承認するとdry-runを実行し、成功後は同じ対象組織とmanifestで実削除します。接続組織と環境別の承認はdry-runとその成功後の実削除までを対象とし、dry-run成功後に再確認は行いません。dry-runと実削除ではテストレベルを明示せず、Salesforce標準の判定に従います。本番環境とDeveloper Editionではdry-run前に環境別の追加確認を行います。
 
 ```sh
 npm run sf:destructive
@@ -50,8 +52,8 @@ npm run sf:destructive
 - 削除スクリプトは、通常manifestに`manifest/destructivePackage.xml`、削除対象manifestに`manifest/destructiveChanges.xml`を使用する。
 - destructive manifest は作業単位ごとに最小化する。
 - dry-runと実削除ではテストレベルを明示せず、対象組織とmetadataに応じたSalesforce標準の判定に従う。部分成功を許可しないため、`--ignore-errors`は使用しない。
-- dry-runと実削除は非同期で開始し、job IDを表示して`done`になるまで監視する。個々のSalesforce CLI呼び出しは2分でタイムアウトする。Salesforce CLIが返す`Succeeded`以外または実行種別の不一致は成功扱いにしない。
-- 開始結果を取得できない場合は開始状況不明として自動再実行を禁止し、SalesforceのDeployment Statusを案内する。監視中にCtrl+Cを受けた場合や完了結果を検証できない場合は、job IDを指定した`sf project deploy report`コマンドを案内する。
+- dry-runと実削除は非同期で開始し、監視全体には時間上限を設けず、job IDを表示して`done`になるまで監視する。個々のSalesforce CLI呼び出しは2分でタイムアウトする。Salesforce CLIが返す`Succeeded`以外または実行種別の不一致は成功扱いにしない。
+- 開始結果を取得できない場合は開始状況不明として自動再実行を禁止し、SalesforceのDeployment Statusを案内する。監視中にCtrl+Cを受けた場合はローカル監視だけを終了し、組織上のdeployはキャンセルしない。Ctrl+Cで中断した場合や完了結果を検証できない場合は、job IDを指定した`sf project deploy report`コマンドを案内する。
 - 削除と無関係な metadata 更新を同じ変更に混ぜない。
 - 削除に伴う権限、レイアウト、Flow、Apex の修正は差分を明確に分けて確認する。
 - Apex クラスなど source から削除する metadata は、ローカルファイル削除と org 側 destructive deploy の両方が必要かを確認する。

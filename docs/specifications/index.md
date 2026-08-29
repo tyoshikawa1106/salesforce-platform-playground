@@ -15,5 +15,6 @@
 | [Visualforce](visualforce/index.md)             | Visualforce で実装した帳票機能              |
 | [Apex](apex/index.md)                           | Apex で実装したトリガーや非同期処理         |
 | [Flow](flows/index.md)                          | Flow で実装した自動化機能                   |
+| [Scripts](scripts/index.md)                     | Node.jsで実装したリポジトリ運用自動化       |
 
 現在、Aura、独立した API / 連携、イベント処理の対象実装はありません。
