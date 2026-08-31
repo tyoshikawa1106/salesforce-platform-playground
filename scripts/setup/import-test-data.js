@@ -32,7 +32,7 @@ function printHelp(stdout = process.stdout) {
 `);
 }
 
-// 引数、組織安全判定、plan準備、entry実行を順番に制御する。
+// 引数とplanをローカル検証し、組織安全判定後にentry実行を制御する。
 async function run({
     argv = process.argv.slice(2),
     createPrompt,
@@ -57,6 +57,20 @@ async function run({
     // 注入されたstdoutへ常に改行付きで表示する共通関数を用意する。
     const writeLine = (message = '') => stdout.write(`${message}\n`);
 
+    // planと参照するApexファイルを組織接続前に検証し、ローカル構成エラーを先に報告する。
+    const plan = readPlan({
+        fileSystem,
+        planPath: args.plan,
+        repoRoot
+    });
+    // 選択entryのApexソースと繰り返し回数も、実行承認を求める前に確定する。
+    const preparedEntries = prepareEntries({
+        args,
+        fileSystem,
+        plan,
+        repoRoot
+    });
+
     // dry-runでは組織設定を読まないため、表示専用のtarget org名を使用する。
     let targetOrg = '<default-target-org>';
 
@@ -71,7 +85,12 @@ async function run({
         // Salesforce CLIの認証情報から必要な接続先情報だけを表示する。
         printTargetOrgInfo(orgInfo, writeLine);
 
-        // 表示された接続組織を実行者が承認した場合だけ安全判定へ進む。
+        // 本番相当の組織には承認を求めず、禁止条件として直ちに停止する。
+        if (orgInfo.type === orgTypes.PRODUCTION) {
+            throw new Error('本番環境へのテストデータ投入は許可されていません。');
+        }
+
+        // 表示された接続組織を実行者が承認した場合だけ実投入へ進む。
         const prompt = createApprovalPrompt(createPrompt);
         // finallyで確実にpromptを閉じられるよう回答を外側で保持する。
         let targetAnswer;
@@ -92,27 +111,7 @@ async function run({
             // 中止を失敗扱いせず、組織操作を行わない状態を維持する。
             return;
         }
-
-        // 本番相当の組織には、確認済みでもテストデータを投入しない。
-        if (orgInfo.type === orgTypes.PRODUCTION) {
-            // 承認操作では解除できない禁止条件として実行を停止する。
-            throw new Error('本番環境へのテストデータ投入は許可されていません。');
-        }
     }
-
-    // planと参照するApexファイルを先に検証し、実行途中の構成エラーを避ける。
-    const plan = readPlan({
-        fileSystem,
-        planPath: args.plan,
-        repoRoot
-    });
-    // 選択entryのApexソースと繰り返し回数を実行前に検証する。
-    const preparedEntries = prepareEntries({
-        args,
-        fileSystem,
-        plan,
-        repoRoot
-    });
     // 検証済みentryだけをdry-runまたは実投入処理へ渡す。
     runPreparedEntries({
         dryRun: args.dryRun,

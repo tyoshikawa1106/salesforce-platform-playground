@@ -109,6 +109,28 @@ test('実投入ではTarget OrgのCLI指定を拒否する', async () => {
     );
 });
 
+test('ローカルのplan検証に失敗した場合は組織確認と入力確認を開始しない', async () => {
+    let promptCount = 0;
+    let sfExecutionCount = 0;
+
+    await assert.rejects(
+        () =>
+            runTest({
+                argv: ['--plan', 'scripts/setup/plans/missing-plan.json'],
+                createPrompt() {
+                    promptCount += 1;
+                },
+                runSfCommand() {
+                    sfExecutionCount += 1;
+                }
+            }),
+        /missing-plan\.json/
+    );
+
+    assert.equal(promptCount, 0);
+    assert.equal(sfExecutionCount, 0);
+});
+
 test('Default Target Orgが未設定の場合は入力確認を開始しない', async () => {
     let promptCount = 0;
 
@@ -152,15 +174,17 @@ test('接続組織が承認されない場合は実投入しない', async () =>
     assert.equal(prompt.isClosed(), true);
 });
 
-test('本番環境は接続組織が承認されても実投入しない', async () => {
+test('本番環境は入力確認を開始せず実投入しない', async () => {
     let apexExecutionCount = 0;
-    const prompt = createPrompt(['y']);
+    let promptCount = 0;
 
     await assert.rejects(
         () =>
             runTest({
                 argv: ['--only', 'standard-objects-accounts'],
-                createPrompt: () => prompt.prompt,
+                createPrompt() {
+                    promptCount += 1;
+                },
                 runSfCommand: createRunSfCommand(() => {
                     apexExecutionCount += 1;
                 }, 'production')
@@ -169,7 +193,7 @@ test('本番環境は接続組織が承認されても実投入しない', async
     );
 
     assert.equal(apexExecutionCount, 0);
-    assert.equal(prompt.isClosed(), true);
+    assert.equal(promptCount, 0);
 });
 
 for (const type of ['sandbox', 'scratch', 'developer']) {

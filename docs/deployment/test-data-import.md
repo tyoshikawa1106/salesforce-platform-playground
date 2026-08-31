@@ -22,11 +22,13 @@ Apex テストでは、組織内データに依存せず、テスト内で `Test
 
 ## 事前確認
 
-実投入では、現在の default target org だけを対象にします。スクリプトはSalesforce CLIの認証済み組織情報から、default target orgのalias、ユーザー名、URL、種別を表示します。表示された接続組織を`y`または`Y`で承認した場合だけ、安全判定と実投入へ進みます。利用者が別のTarget Orgを引数で指定することはできません。
+実投入では、最初にimport planと参照するApexファイルをローカルで検証します。構成に問題がある場合は、Salesforce組織を確認せずに停止します。
+
+ローカル検証後は、現在のdefault target orgだけを対象にします。スクリプトはSalesforce CLIの認証済み組織情報から、default target orgのalias、ユーザー名、URL、種別を表示します。利用者が別のTarget Orgを引数で指定することはできません。
 
 Scratch Orgセットアップでは、作成処理が確定したaliasを内部的に引き継ぎます。default target orgを変更せず、通常の投入コマンドとも混在させません。
 
-Sandbox、Scratch Org、Developer Editionには投入できます。本番環境へのテストデータ投入は禁止し、接続組織が承認されても実投入前にエラー終了します。対象組織を一意に特定できない場合や、組織種別を判定できない場合も実投入しません。
+Sandbox、Scratch Org、Developer Editionでは、表示された接続組織を`y`または`Y`で承認した場合だけ実投入へ進みます。本番環境へのテストデータ投入は禁止し、接続組織の情報を表示した後、承認を求めずにエラー終了します。対象組織を一意に特定できない場合や、組織種別を判定できない場合も実投入しません。
 
 報告には対象 org alias を書き、実ユーザー名や org 固有 URL は書きません。
 
@@ -47,6 +49,8 @@ npm run setup:data:dry-run
 主要標準オブジェクトは親子関係や価格表 ID を必要とするため、CSV の一括投入ではなく、Salesforce CLI から anonymous Apex を実行します。
 
 execute anonymousのCPU／サイズ制限を避けるため、1つのprimary objectにつき1つのobject固有ファイルへ分け、`scripts/setup/plans/import-test-data-plan.json`の順序で実行します。各実行では`seed-standard-preamble.apexpart`とobject固有の`.apexpart`を一時的な`.apex`ファイルへ合成し、終了後に一時ファイルを削除します。`standalone: true`のentryは共通preambleを使わず、単独実行可能な`.apex`を使用します。
+
+実投入が成功すると、anonymous Apexのdebug logから実行キー、作成件数、削除件数、スキップ件数の集計行を表示します。Salesforce CLIが失敗した場合は元の標準出力と標準エラーを表示し、残りのplan entryを実行せずに停止します。
 
 件数や固定マスタの扱いは、このセクションの作成対象一覧の後にまとめます。
 

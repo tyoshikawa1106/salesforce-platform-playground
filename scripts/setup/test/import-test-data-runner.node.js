@@ -81,7 +81,9 @@ test('実投入ではCLIの要約を表示し、成功後に一時ファイル�
             return {
                 status: 0,
                 stderr: '',
-                stdout: 'USER_DEBUG|[1]|DEBUG|Created records: Account=1\n'
+                stdout:
+                    'USER_DEBUG|[1]|DEBUG|Deleted records: Account=1\n' +
+                    'USER_DEBUG|[2]|DEBUG|Created records: Account=1\n'
             };
         },
         stderr: createOutput().stream,
@@ -91,6 +93,7 @@ test('実投入ではCLIの要約を表示し、成功後に一時ファイル�
 
     assert.equal(fs.existsSync(generatedFilePath), false);
     assert.match(stdout.value(), /\[import\] standard-objects-accounts/);
+    assert.match(stdout.value(), /Deleted records: Account=1/);
     assert.match(stdout.value(), /Created records: Account=1/);
 });
 

@@ -255,7 +255,9 @@ function extractSfSummary(output) {
     // Salesforce CLI出力を行へ分割し、seed処理のDEBUG集計だけを返す。
     return output
         .split(/\r?\n/)
-        .filter((line) => /USER_DEBUG\|.*\|(DEBUG)\|(Seed run key|Created records|Skipped records):/.test(line))
+        .filter((line) =>
+            /USER_DEBUG\|.*\|(DEBUG)\|(Seed run key|Created records|Deleted records|Skipped records):/.test(line)
+        )
         .map((line) => line.replace(/^.*\|DEBUG\|/, ''));
 }
 
