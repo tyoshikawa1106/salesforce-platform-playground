@@ -7,6 +7,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { main: runApexTests } = require('../run-apex-tests');
 const { main: runFlowTests } = require('../run-flow-tests');
+const { sfCommandTimeoutMs } = require('../internal/test-runner');
 const { createOrgInfoCommand, createPrompt, createSfResult } = require('./test-helper');
 
 // 組織テスト実行スクリプトをリポジトリルート基準で実行する。
@@ -82,7 +83,9 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
 
     test(`${label} test scriptは接続組織が承認された場合だけ非同期テストを開始する`, async () => {
         const testRuns = [];
+        const orgInfoTimeouts = [];
         const prompt = createPrompt(['y']);
+        const orgInfoCommand = createOrgInfoCommand();
         const status = await main({
             argv: [],
             createPrompt: () => prompt.prompt,
@@ -90,11 +93,15 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
                 testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
                 return 0;
             },
-            runSfWithOutputCommand: createOrgInfoCommand()
+            runSfWithOutputCommand(args, cwd, spawnCommand, maxBuffer, timeout) {
+                orgInfoTimeouts.push(timeout);
+                return orgInfoCommand(args);
+            }
         });
 
         assert.equal(status, 0);
         assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType }]);
+        assert.deepEqual(orgInfoTimeouts, Array(testType === 'apex' ? 3 : 2).fill(sfCommandTimeoutMs));
         assert.equal(prompt.isClosed(), true);
     });
 
@@ -153,3 +160,83 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
         assert.equal(prompt.isClosed(), true);
     });
 }
+
+test('Apexの並列実行オプションが有効な場合は承認前に注意を表示する', async () => {
+    const lines = [];
+    const prompt = createPrompt(['n']);
+    const orgInfoCommand = createOrgInfoCommand();
+
+    const status = await runApexTests({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfWithOutputCommand(args) {
+            if (args[0] === 'data') {
+                return createSfResult({ records: [{ IsDisableParallelApexTestingEnabled: false }] });
+            }
+
+            return orgInfoCommand(args);
+        },
+        writeLine(message) {
+            lines.push(message);
+        }
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(lines, ['注意: 対象組織ではApexテストの並列実行オプションが有効です。']);
+    assert.deepEqual(prompt.getQuestions(), ['この接続組織でApexテストを実行しますか？ [y/N]: ']);
+});
+
+test('Apexの並列実行が無効な場合は並列実行オプションの注意を表示しない', async () => {
+    const lines = [];
+    const prompt = createPrompt(['n']);
+    const orgInfoCommand = createOrgInfoCommand();
+
+    const status = await runApexTests({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfWithOutputCommand(args) {
+            if (args[0] === 'data') {
+                return createSfResult({ records: [{ IsDisableParallelApexTestingEnabled: true }] });
+            }
+
+            return orgInfoCommand(args);
+        },
+        writeLine(message) {
+            lines.push(message);
+        }
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(lines, []);
+    assert.deepEqual(prompt.getQuestions(), ['この接続組織でApexテストを実行しますか？ [y/N]: ']);
+});
+
+test('Apexの並列実行設定を確認できない場合も注意を表示して実行へ進める', async () => {
+    const errors = [];
+    const testRuns = [];
+    const prompt = createPrompt(['y']);
+    const orgInfoCommand = createOrgInfoCommand();
+
+    const status = await runApexTests({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runSfWithOutputCommand(args) {
+            if (args[0] === 'data') {
+                return { status: 0, stderr: '', stdout: 'not-json' };
+            }
+
+            return orgInfoCommand(args);
+        },
+        runTestCommand(options) {
+            testRuns.push(options.testType);
+            return 0;
+        },
+        writeError(message) {
+            errors.push(message);
+        }
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(testRuns, ['apex']);
+    assert.match(errors[0], /並列実行設定を確認できませんでした。テストは続行できます/);
+});

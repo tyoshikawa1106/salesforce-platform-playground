@@ -29,6 +29,20 @@ const retrieveProgressIntervalMilliseconds = 30 * 1000;
 // 1 manifestのretrieve完了をSalesforce CLIが待機する時間を分単位で指定する。
 const retrieveWaitMinutes = 120;
 
+// ローカル日時を進捗表示用の固定形式へ変換する。
+function formatLocalDateTime(timestamp) {
+    // タイムスタンプを実行環境のローカル日時として扱う。
+    const date = new Date(timestamp);
+    // 月日と時分秒を2桁で揃える。
+    const pad = (value) => String(value).padStart(2, '0');
+
+    // 実行日と表示更新時刻を一目で確認できる形式で返す。
+    return (
+        `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ` +
+        `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    );
+}
+
 // 責務別に分割したmanifestを、この定義順に取得する。
 const manifests = [
     'manifest/retrieve-profile.xml',
@@ -588,9 +602,12 @@ async function main({
         const startedAt = now();
         // 長時間処理中もフリーズではないことが分かる定期表示を開始する。
         const progressTimer = setIntervalCommand(() => {
+            // 経過時間と表示日時で同じ時点を使用する。
+            const checkedAt = now();
             // 現在のmanifest開始からの経過時間を小数1桁で表示する。
-            const elapsedSeconds = (Math.max(0, now() - startedAt) / 1000).toFixed(1);
-            console.log(`・実行中: ${elapsedSeconds}秒経過`);
+            const elapsedSeconds = (Math.max(0, checkedAt - startedAt) / 1000).toFixed(1);
+            // ローカルスクリプトが動作中と確認できた日時を併記する。
+            console.log(`・実行中: ${elapsedSeconds}秒経過｜${formatLocalDateTime(checkedAt)}`);
         }, retrieveProgressIntervalMilliseconds);
         // 定期表示だけがNode.jsの終了を妨げないよう、実タイマーでは参照を外す。
         progressTimer?.unref?.();

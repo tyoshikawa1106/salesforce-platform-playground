@@ -1,7 +1,7 @@
 // 実行方法: Salesforce CLIとNode.js子スクリプトの実行元から読み込む。
 // 用途: macOSとWindowsで外部処理を実行し、終了コードまたは出力を返す。
 
-const { spawnSync } = require('node:child_process');
+const { execFile, spawnSync } = require('node:child_process');
 
 // cmd.exeが別のコマンドとして解釈する文字をWindows向け引数では許可しない。
 const unsafeWindowsArgument = /[\r\n&|<>^%!"()]/;
@@ -104,6 +104,66 @@ function runSfWithOutput(args, workingDirectory, spawnCommand = spawnSync, maxBu
     }
 }
 
+// Salesforce CLIを非同期で実行し、監視中のCtrl+Cで中断できる出力を返す。
+function runSfWithOutputAsync(args, workingDirectory, execCommand = execFile, maxBuffer, timeout, signal) {
+    // callback形式のexecFile結果を呼び出し元がawaitできる形へ変換する。
+    return new Promise((resolve) => {
+        // OS別コマンド組み立てに失敗しても同期版と同じ結果形式で返す。
+        try {
+            // shellを介さないOS別のSalesforce CLIコマンドを組み立てる。
+            const sfCommand = buildSfCommand(args);
+            // JSON応答を文字列で取得する基本設定を使用する。
+            const options = {
+                cwd: workingDirectory,
+                encoding: 'utf8'
+            };
+
+            // 呼び出し元が指定した場合だけ出力上限を変更する。
+            if (maxBuffer !== undefined) {
+                // 非同期CLIが保持する出力量を指定値に制限する。
+                options.maxBuffer = maxBuffer;
+            }
+
+            // 呼び出し元が指定した場合だけ1回のCLI応答待ちに上限を設ける。
+            if (timeout !== undefined) {
+                // 組織上の処理全体ではなく子プロセスの応答待ちだけを制限する。
+                options.timeout = timeout;
+            }
+
+            // Ctrl+Cなどのローカル中断を実行中の子プロセスへ伝える。
+            if (signal !== undefined) {
+                // 呼び出し元が管理するAbortSignalをexecFileへ渡す。
+                options.signal = signal;
+            }
+
+            // 完了時の出力とエラーを同期版と同じ結果形式へ変換する。
+            execCommand(sfCommand.command, sfCommand.args, options, (error, stdout = '', stderr = '') => {
+                // CLIが返した非0終了はJSONを解析できるよう、終了コードとして保持する。
+                if (error && typeof error.code === 'number') {
+                    // 標準出力を残し、呼び出し元がCLIのJSONエラーを判定できる形で返す。
+                    resolve({ signal: error.signal ?? null, status: error.code, stderr, stdout });
+                    // 同じエラーを起動失敗として重複処理しない。
+                    return;
+                }
+
+                // 起動失敗、timeout、AbortSignalによる中断は原因を呼び出し元へ返す。
+                if (error) {
+                    // 終了状態を確定できないエラーはerrorオブジェクト付きで返す。
+                    resolve({ error, signal: error.signal ?? null, status: null, stderr, stdout });
+                    // 成功結果へ後続しない。
+                    return;
+                }
+
+                // 子プロセスの正常終了と出力を返す。
+                resolve({ signal: null, status: 0, stderr, stdout });
+            });
+        } catch (error) {
+            // コマンド組み立て中の例外も非同期呼び出しの失敗結果へ揃える。
+            resolve({ error, signal: null, status: null, stdout: '', stderr: '' });
+        }
+    });
+}
+
 // 現在使用中のNode.jsで子スクリプトを直接実行する。
 function runNodeScript(scriptPath, args, workingDirectory) {
     // npmで選択されたNode.jsと同じ実行ファイルを子スクリプトにも使用する。
@@ -116,4 +176,4 @@ function runNodeScript(scriptPath, args, workingDirectory) {
     return getExitCode(result, 'Node.jsスクリプト');
 }
 
-module.exports = { buildSfCommand, runNodeScript, runSf, runSfWithOutput };
+module.exports = { buildSfCommand, runNodeScript, runSf, runSfWithOutput, runSfWithOutputAsync };

@@ -484,12 +484,13 @@ test('Salesforce CLIのhard failureでは後続manifestを実行しない', asyn
     assert.equal(prompt.isClosed(), true);
 });
 
-test('長時間retrieve中は30秒ごとに経過時間を表示する', async () => {
+test('長時間retrieve中は30秒ごとに経過時間とローカル日時を表示する', async () => {
     // 実タイマーを待たずに最初のmanifestだけ30秒経過を再現する。
     const prompt = createPrompt('y');
     const logs = [];
     const originalConsoleLog = console.log;
-    let currentTime = 0;
+    const startedAt = new Date(2026, 7, 31, 17, 25, 50).getTime();
+    let currentTime = startedAt;
     let progressCallback;
     let retrieveCount = 0;
     let clearedTimerCount = 0;
@@ -509,9 +510,9 @@ test('長時間retrieve中は30秒ごとに経過時間を表示する', async (
                 retrieveCount += 1;
 
                 if (retrieveCount === 1) {
-                    currentTime = retrieveProgressIntervalMilliseconds;
+                    currentTime = startedAt + retrieveProgressIntervalMilliseconds;
                     progressCallback();
-                    currentTime = 332500;
+                    currentTime = startedAt + 332500;
                 }
 
                 return createRetrieveResult();
@@ -526,7 +527,7 @@ test('長時間retrieve中は30秒ごとに経過時間を表示する', async (
 
         // 332.5秒の処理中にも30秒時点の生存表示があり、全タイマーを解除する。
         assert.equal(status, 0);
-        assert.ok(logs.includes('・実行中: 30.0秒経過'));
+        assert.ok(logs.includes('・実行中: 30.0秒経過｜2026/08/31 17:26:20'));
         assert.ok(logs.includes('・所要時間: 332.5秒'));
         assert.equal(clearedTimerCount, manifests.length);
     } finally {
