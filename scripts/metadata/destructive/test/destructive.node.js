@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { main, validateDestructiveManifest } = require('../destructive');
+const { deployOperations } = require('../internal/deploy-runner');
 
 // destructiveスクリプトをリポジトリルート基準で実行する。
 const repoRoot = path.resolve(__dirname, '../../../..');
@@ -54,35 +55,31 @@ test('削除対象manifestに削除対象がない場合は拒否する', () => 
     );
 });
 
-test('削除対象manifestに実在するmetadata名がある場合は許可する', () => {
-    const components = validateDestructiveManifest({
-        readFileSync() {
-            return '<Package><types><members>UnusedClass</members><name>ApexClass</name></types></Package>';
-        }
-    });
-
-    assert.deepEqual(components, [{ type: 'ApexClass', fullName: 'UnusedClass' }]);
+test('削除対象manifestにmetadata名がある場合は許可する', () => {
+    assert.doesNotThrow(() =>
+        validateDestructiveManifest({
+            readFileSync() {
+                return '<Package><types><members>UnusedClass</members><name>ApexClass</name></types></Package>';
+            }
+        })
+    );
 });
 
-test('削除対象manifestの複数typeとmembersを構造化して返す', () => {
-    const components = validateDestructiveManifest({
-        readFileSync() {
-            return (
-                '<Package><types><members>OldClass</members><name>ApexClass</name></types>' +
-                '<types><members>Account.OldField__c</members><members>Contact.OldField__c</members>' +
-                '<name>CustomField</name></types></Package>'
-            );
-        }
-    });
-
-    assert.deepEqual(components, [
-        { type: 'ApexClass', fullName: 'OldClass' },
-        { type: 'CustomField', fullName: 'Account.OldField__c' },
-        { type: 'CustomField', fullName: 'Contact.OldField__c' }
-    ]);
+test('削除対象manifestの複数typeとmembersを許可する', () => {
+    assert.doesNotThrow(() =>
+        validateDestructiveManifest({
+            readFileSync() {
+                return (
+                    '<Package><types><members>OldClass</members><name>ApexClass</name></types>' +
+                    '<types><members>Account.OldField__c</members><members>Contact.OldField__c</members>' +
+                    '<name>CustomField</name></types></Package>'
+                );
+            }
+        })
+    );
 });
 
-test('削除完了を個別照合できないワイルドカードは拒否する', () => {
+test('削除範囲を個別指定できないワイルドカードは拒否する', () => {
     assert.throws(
         () =>
             validateDestructiveManifest({
@@ -183,7 +180,7 @@ function createDeployCommand(statuses = [0]) {
     };
 }
 
-test('destructive scriptは未知の引数をSalesforce CLI実行前に拒否する', () => {
+test('destructive scriptは引数をSalesforce CLI実行前に拒否する', () => {
     const result = spawnSync(process.execPath, ['scripts/metadata/destructive/destructive.js', '--unknown'], {
         cwd: repoRoot,
         encoding: 'utf8'
@@ -216,45 +213,39 @@ test('Default Target Orgを確認できない場合は入力確認を開始し�
 });
 
 test('接続組織が承認されない場合はdry-runを実行しない', async () => {
-    const commandArgs = [];
+    const deploy = createDeployCommand();
     const prompt = createPrompt(['n']);
     const status = await main({
         argv: [],
         validateManifest() {},
         createPrompt: () => prompt.prompt,
-        runSfCommand(args) {
-            commandArgs.push(args);
-            return 0;
-        },
+        runDeployCommand: deploy.command,
         runSfWithOutputCommand: createOrgInfoCommand()
     });
 
     assert.equal(status, 0);
-    assert.equal(commandArgs.length, 0);
+    assert.equal(deploy.calls.length, 0);
     assert.deepEqual(prompt.getQuestions(), ['この接続組織で続行しますか？ [y/N]: ']);
     assert.equal(prompt.isClosed(), true);
 });
 
 for (const [type, label] of [
-    ['production', '本番環境'],
-    ['developer', 'Developer Edition']
+    ['developer', 'Developer Edition'],
+    ['production', '本番環境']
 ]) {
     test(`${label}の追加確認が承認されない場合はdry-runを実行しない`, async () => {
-        const commandArgs = [];
+        const deploy = createDeployCommand();
         const prompt = createPrompt(['y', 'n']);
         const status = await main({
             argv: [],
             validateManifest() {},
             createPrompt: () => prompt.prompt,
-            runSfCommand(args) {
-                commandArgs.push(args);
-                return 0;
-            },
+            runDeployCommand: deploy.command,
             runSfWithOutputCommand: createOrgInfoCommand(type)
         });
 
         assert.equal(status, 0);
-        assert.equal(commandArgs.length, 0);
+        assert.equal(deploy.calls.length, 0);
         assert.deepEqual(prompt.getQuestions(), [
             'この接続組織で続行しますか？ [y/N]: ',
             `${label}です。メタデータ削除を実行してよろしいですか？ [y/N]: `
@@ -263,30 +254,8 @@ for (const [type, label] of [
     });
 }
 
-test('Sandboxでは環境別の追加確認なしでdry-runを実行する', async () => {
-    const deploy = createDeployCommand();
-    const prompt = createPrompt(['y', 'n']);
-    const status = await main({
-        argv: [],
-        validateManifest() {
-            return [{ type: 'ApexClass', fullName: 'OldClass' }];
-        },
-        createPrompt: () => prompt.prompt,
-        runDeployCommand: deploy.command,
-        runSfWithOutputCommand: createOrgInfoCommand('sandbox')
-    });
-
-    assert.equal(status, 0);
-    assert.equal(deploy.calls.length, 1);
-    assert.equal(deploy.calls[0].dryRun, true);
-    assert.deepEqual(prompt.getQuestions(), [
-        'この接続組織で続行しますか？ [y/N]: ',
-        'dry-runが成功しました。実際にメタデータを削除しますか？ [y/N]: '
-    ]);
-});
-
-test('dry-runが失敗した場合は実削除を実行しない', async () => {
-    const deploy = createDeployCommand([1]);
+test('Sandboxでは環境別の追加確認なしでdry-run後に実削除する', async () => {
+    const deploy = createDeployCommand([0, 0]);
     const prompt = createPrompt(['y']);
     const status = await main({
         argv: [],
@@ -298,15 +267,17 @@ test('dry-runが失敗した場合は実削除を実行しない', async () => {
         runSfWithOutputCommand: createOrgInfoCommand('sandbox')
     });
 
-    assert.equal(status, 1);
-    assert.equal(deploy.calls.length, 1);
-    assert.equal(deploy.calls[0].dryRun, true);
-    assert.equal(prompt.isClosed(), true);
+    assert.equal(status, 0);
+    assert.equal(deploy.calls.length, 2);
+    assert.equal(deploy.calls[0].operation, deployOperations.DRY_RUN);
+    assert.equal(deploy.calls[1].operation, deployOperations.DEPLOY);
+    assert.deepEqual(prompt.getQuestions(), ['この接続組織で続行しますか？ [y/N]: ']);
 });
 
-test('dry-run成功後に削除が承認されない場合は実削除しない', async () => {
-    const deploy = createDeployCommand();
-    const prompt = createPrompt(['y', 'n']);
+test('dry-runが失敗した場合は実削除を実行しない', async () => {
+    const deploy = createDeployCommand([1]);
+    const prompt = createPrompt(['y']);
+    const lines = [];
     const status = await main({
         argv: [],
         validateManifest() {
@@ -314,18 +285,23 @@ test('dry-run成功後に削除が承認されない場合は実削除しない'
         },
         createPrompt: () => prompt.prompt,
         runDeployCommand: deploy.command,
-        runSfWithOutputCommand: createOrgInfoCommand('scratch')
+        runSfWithOutputCommand: createOrgInfoCommand('sandbox'),
+        writeLine(message) {
+            lines.push(message);
+        }
     });
 
-    assert.equal(status, 0);
+    assert.equal(status, 1);
     assert.equal(deploy.calls.length, 1);
-    assert.equal(deploy.calls[0].dryRun, true);
+    assert.equal(deploy.calls[0].operation, deployOperations.DRY_RUN);
+    assert.deepEqual(lines, ['dry-runによるメタデータ削除の検証を開始します。']);
     assert.equal(prompt.isClosed(), true);
 });
 
-test('本番環境の全確認が承認された場合だけRunLocalTests付きで実削除する', async () => {
+test('本番環境では1回の実行でdry-run後に実削除し、Apexテストを案内する', async () => {
     const deploy = createDeployCommand([0, 0]);
-    const prompt = createPrompt(['y', 'y', 'y']);
+    const prompt = createPrompt(['y', 'y']);
+    const lines = [];
     const status = await main({
         argv: [],
         validateManifest() {
@@ -333,7 +309,10 @@ test('本番環境の全確認が承認された場合だけRunLocalTests付き�
         },
         createPrompt: () => prompt.prompt,
         runDeployCommand: deploy.command,
-        runSfWithOutputCommand: createOrgInfoCommand('production')
+        runSfWithOutputCommand: createOrgInfoCommand('production'),
+        writeLine(message) {
+            lines.push(message);
+        }
     });
     const deployArgs = [
         'project',
@@ -344,40 +323,34 @@ test('本番環境の全確認が承認された場合だけRunLocalTests付き�
         '--post-destructive-changes',
         'manifest/destructiveChanges.xml',
         '--target-org',
-        'test-org',
-        '--test-level',
-        'RunLocalTests'
+        'test-org'
     ];
 
     assert.equal(status, 0);
-    assert.deepEqual(
-        deploy.calls.map(({ deployArgs: args, dryRun, expectedComponents, targetOrg }) => ({
-            deployArgs: args,
-            dryRun,
-            expectedComponents,
-            targetOrg
-        })),
-        [
-            {
-                deployArgs,
-                dryRun: true,
-                expectedComponents: [{ type: 'ApexClass', fullName: 'OldClass' }],
-                targetOrg: 'test-org'
-            },
-            {
-                deployArgs,
-                dryRun: false,
-                expectedComponents: [{ type: 'ApexClass', fullName: 'OldClass' }],
-                targetOrg: 'test-org'
-            }
-        ]
-    );
+    assert.equal(deploy.calls.length, 2);
+    assert.deepEqual(deploy.calls[0].deployArgs, deployArgs);
+    assert.deepEqual(deploy.calls[1].deployArgs, deployArgs);
+    assert.equal(deploy.calls[0].operation, deployOperations.DRY_RUN);
+    assert.equal(deploy.calls[1].operation, deployOperations.DEPLOY);
+    assert.equal(deployArgs.includes('--test-level'), false);
+    assert.deepEqual(prompt.getQuestions(), [
+        'この接続組織で続行しますか？ [y/N]: ',
+        '本番環境です。メタデータ削除を実行してよろしいですか？ [y/N]: '
+    ]);
+    assert.deepEqual(lines, [
+        'dry-runによるメタデータ削除の検証を開始します。',
+        'dry-runによるメタデータ削除の検証が成功しました。',
+        'メタデータの実削除を開始します。',
+        'メタデータの削除が完了しました。',
+        '削除後の確認としてApexテストの実行を推奨します: npm run sf:test:apex'
+    ]);
     assert.equal(prompt.isClosed(), true);
 });
 
-test('実削除のApexテストが失敗した場合は失敗終了を返す', async () => {
+test('実削除が失敗した場合はApexテストを案内しない', async () => {
     const deploy = createDeployCommand([0, 1]);
-    const prompt = createPrompt(['y', 'y']);
+    const prompt = createPrompt(['y']);
+    const lines = [];
     const status = await main({
         argv: [],
         validateManifest() {
@@ -385,13 +358,21 @@ test('実削除のApexテストが失敗した場合は失敗終了を返す', a
         },
         createPrompt: () => prompt.prompt,
         runDeployCommand: deploy.command,
-        runSfWithOutputCommand: createOrgInfoCommand('sandbox')
+        runSfWithOutputCommand: createOrgInfoCommand('sandbox'),
+        writeLine(message) {
+            lines.push(message);
+        }
     });
 
     assert.equal(status, 1);
     assert.equal(deploy.calls.length, 2);
-    assert.equal(deploy.calls[0].dryRun, true);
-    assert.equal(deploy.calls[1].dryRun, false);
-    assert.deepEqual(deploy.calls[1].deployArgs.slice(-2), ['--test-level', 'RunLocalTests']);
+    assert.equal(deploy.calls[0].operation, deployOperations.DRY_RUN);
+    assert.equal(deploy.calls[1].operation, deployOperations.DEPLOY);
+    assert.equal(deploy.calls[1].deployArgs.includes('--test-level'), false);
+    assert.deepEqual(lines, [
+        'dry-runによるメタデータ削除の検証を開始します。',
+        'dry-runによるメタデータ削除の検証が成功しました。',
+        'メタデータの実削除を開始します。'
+    ]);
     assert.equal(prompt.isClosed(), true);
 });

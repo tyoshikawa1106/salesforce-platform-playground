@@ -1,15 +1,16 @@
 // 実行コマンド: node --test scripts/metadata/destructive/test/deploy-runner.node.js
-// 用途: destructive deployの開始、完了監視、削除対象とApexテスト結果の構造検証を確認する。
+// 用途: destructive deployの開始、完了監視、job完了結果の検証を確認する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getReportCommand, runAndMonitorDeploy, validateSuccessfulDeployResult } = require('../internal/deploy-runner');
+const {
+    deployOperations,
+    getReportCommand,
+    runAndMonitorDeploy,
+    validateSuccessfulDeployResult
+} = require('../internal/deploy-runner');
 
 const deployId = '0Af000000000001AAA';
-const expectedComponents = [
-    { type: 'ApexClass', fullName: 'OldClass' },
-    { type: 'CustomField', fullName: 'Account.OldField__c' }
-];
 
 // Salesforce CLIのJSON応答を子プロセスの戻り値形式で作成する。
 function createSfResult(result, status = 0) {
@@ -20,7 +21,7 @@ function createSfResult(result, status = 0) {
     };
 }
 
-// 安全契約をすべて満たす完了済みdeploy結果を作成する。
+// Salesforce CLIが返す完了済みdeploy結果を作成する。
 function createSuccessfulDeployResult(overrides = {}) {
     return {
         id: deployId,
@@ -28,28 +29,8 @@ function createSuccessfulDeployResult(overrides = {}) {
         success: true,
         done: true,
         checkOnly: false,
-        ignoreWarnings: false,
-        rollbackOnError: true,
-        numberComponentErrors: 0,
         numberComponentsDeployed: 2,
         numberComponentsTotal: 2,
-        numberTestErrors: 0,
-        numberTestsCompleted: 4,
-        numberTestsTotal: 4,
-        runTestsEnabled: true,
-        files: [{ state: 'Deleted', type: 'ApexClass', fullName: 'OldClass' }],
-        details: {
-            componentSuccesses: {
-                deleted: 'true',
-                componentType: 'CustomField',
-                fullName: 'Account.OldField__c'
-            },
-            runTestResult: {
-                numFailures: '0',
-                numTestsRun: '4',
-                totalTime: '100'
-            }
-        },
         ...overrides
     };
 }
@@ -73,9 +54,8 @@ function createReporter() {
     };
 }
 
-test('destructive deployを非同期で開始し、完了まで監視して削除とApexテストを検証する', async () => {
+test('destructive deployを非同期で開始し、完了まで監視してjob結果を検証する', async () => {
     const jsonCommands = [];
-    const humanCommands = [];
     const waits = [];
     const lines = [];
     const reporter = createReporter();
@@ -83,8 +63,7 @@ test('destructive deployを非同期で開始し、完了まで監視して削�
         status: 'InProgress',
         success: false,
         done: false,
-        numberComponentsDeployed: 1,
-        numberTestsCompleted: 2
+        numberComponentsDeployed: 1
     });
     const results = [
         createSfResult({ id: deployId, status: 'Queued', done: false }),
@@ -93,18 +72,13 @@ test('destructive deployを非同期で開始し、完了まで監視して削�
     ];
 
     const status = await runAndMonitorDeploy({
-        deployArgs: ['project', 'deploy', 'start', '--test-level', 'RunLocalTests'],
-        dryRun: false,
-        expectedComponents,
+        deployArgs: ['project', 'deploy', 'start'],
+        operation: deployOperations.DEPLOY,
         targetOrg: 'test-org',
         repoRoot: '/repo',
         runSfWithOutputCommand(args, workingDirectory, spawnCommand, maxBuffer, timeout) {
             jsonCommands.push({ args, workingDirectory, spawnCommand, maxBuffer, timeout });
             return results.shift();
-        },
-        runSfCommand(args, workingDirectory, spawnCommand, timeout) {
-            humanCommands.push({ args, workingDirectory, spawnCommand, timeout });
-            return 0;
         },
         async waitForNextPoll(milliseconds) {
             waits.push(milliseconds);
@@ -132,17 +106,9 @@ test('destructive deployを非同期で開始し、完了まで監視して削�
         '--json'
     ]);
     assert.deepEqual(waits, [5_000]);
-    assert.match(reporter.updates[0], /metadata 1 \/ 2件、Apex 2 \/ 4件（InProgress）/);
+    assert.match(reporter.updates[0], /metadata 1 \/ 2件（InProgress）/);
     assert.match(reporter.finishes[0], /Succeeded/);
-    assert.deepEqual(humanCommands, [
-        {
-            args: ['project', 'deploy', 'report', '--job-id', deployId, '--target-org', 'test-org'],
-            workingDirectory: '/repo',
-            spawnCommand: undefined,
-            timeout: 120_000
-        }
-    ]);
-    assert.deepEqual(lines, [`deploy job ID: ${deployId}`, '検証結果: 削除対象 2件、Apexテスト 4 / 4件、失敗 0件']);
+    assert.deepEqual(lines, [`deploy job ID: ${deployId}`]);
     assert.equal(
         jsonCommands.every(({ maxBuffer }) => maxBuffer === 50 * 1024 * 1024),
         true
@@ -162,16 +128,12 @@ test('dry-run開始時だけdry-runフラグを追加し、checkOnly成功結果
 
     const status = await runAndMonitorDeploy({
         deployArgs: ['project', 'deploy', 'start'],
-        dryRun: true,
-        expectedComponents,
+        operation: deployOperations.DRY_RUN,
         targetOrg: 'test-org',
         repoRoot: '/repo',
         runSfWithOutputCommand(args) {
             commands.push(args);
             return results.shift();
-        },
-        runSfCommand() {
-            return 0;
         },
         registerInterrupt() {
             return () => {};
@@ -184,21 +146,62 @@ test('dry-run開始時だけdry-runフラグを追加し、checkOnly成功結果
     assert.deepEqual(commands[0].slice(-3), ['--dry-run', '--async', '--json']);
 });
 
-test('開始結果から有効なdeploy job IDを取得できない場合は監視を開始しない', async () => {
-    await assert.rejects(
-        () =>
-            runAndMonitorDeploy({
-                deployArgs: ['project', 'deploy', 'start'],
-                dryRun: false,
-                expectedComponents,
-                targetOrg: 'test-org',
-                repoRoot: '/repo',
-                runSfWithOutputCommand() {
-                    return createSfResult({ id: 'invalid' });
-                }
-            }),
-        /deploy job IDを取得できません/
-    );
+test('開始コマンドがタイムアウトした場合は開始状況不明として自動再実行を禁止する', async () => {
+    const lines = [];
+    const errors = [];
+    const status = await runAndMonitorDeploy({
+        deployArgs: ['project', 'deploy', 'start'],
+        operation: deployOperations.DEPLOY,
+        targetOrg: 'test-org',
+        repoRoot: '/repo',
+        runSfWithOutputCommand() {
+            return {
+                status: null,
+                stderr: '',
+                stdout: '',
+                error: Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' })
+            };
+        },
+        writeLine(message) {
+            lines.push(message);
+        },
+        writeError(message) {
+            errors.push(message);
+        }
+    });
+
+    assert.equal(status, 1);
+    assert.match(errors[0], /timed out/);
+    assert.match(lines[0], /開始状況を確認できません/);
+    assert.match(lines[1], /Deployment Status/);
+});
+
+test('解析できたCLIエラーは開始失敗として扱い、開始状況不明とは案内しない', async () => {
+    const lines = [];
+    const errors = [];
+    const status = await runAndMonitorDeploy({
+        deployArgs: ['project', 'deploy', 'start'],
+        operation: deployOperations.DEPLOY,
+        targetOrg: 'test-org',
+        repoRoot: '/repo',
+        runSfWithOutputCommand() {
+            return {
+                status: 1,
+                stderr: '',
+                stdout: JSON.stringify({ status: 1, message: 'manifest error' })
+            };
+        },
+        writeLine(message) {
+            lines.push(message);
+        },
+        writeError(message) {
+            errors.push(message);
+        }
+    });
+
+    assert.equal(status, 1);
+    assert.match(errors[0], /開始に失敗しました: manifest error/);
+    assert.deepEqual(lines, []);
 });
 
 test('監視応答を解析できない場合は組織側の継続可能性と結果確認コマンドを表示する', async () => {
@@ -209,8 +212,7 @@ test('監視応答を解析できない場合は組織側の継続可能性と�
 
     const status = await runAndMonitorDeploy({
         deployArgs: ['project', 'deploy', 'start'],
-        dryRun: false,
-        expectedComponents,
+        operation: deployOperations.DEPLOY,
         targetOrg: 'test-org',
         repoRoot: '/repo',
         runSfWithOutputCommand() {
@@ -240,19 +242,47 @@ test('監視応答を解析できない場合は組織側の継続可能性と�
 test('Ctrl+Cではローカル監視だけを停止し、結果確認コマンドを表示する', async () => {
     const lines = [];
     const reporter = createReporter();
+    const results = [
+        createSfResult({ id: deployId }),
+        createSfResult(
+            createSuccessfulDeployResult({
+                status: 'InProgress',
+                success: false,
+                done: false,
+                numberComponentsDeployed: 1
+            }),
+            69
+        )
+    ];
+    let interrupt;
+    let waitWasAborted = false;
 
     const status = await runAndMonitorDeploy({
         deployArgs: ['project', 'deploy', 'start'],
-        dryRun: false,
-        expectedComponents,
+        operation: deployOperations.DEPLOY,
         targetOrg: 'test-org',
         repoRoot: '/repo',
         runSfWithOutputCommand() {
-            return createSfResult({ id: deployId });
+            return results.shift();
         },
         registerInterrupt(handler) {
-            handler();
+            interrupt = handler;
             return () => {};
+        },
+        waitForNextPoll(milliseconds, signal) {
+            assert.equal(milliseconds, 5_000);
+            interrupt();
+
+            return new Promise((resolve) => {
+                signal.addEventListener(
+                    'abort',
+                    () => {
+                        waitWasAborted = true;
+                        resolve();
+                    },
+                    { once: true }
+                );
+            });
         },
         progressReporter: reporter.reporter,
         writeLine(message) {
@@ -261,94 +291,12 @@ test('Ctrl+Cではローカル監視だけを停止し、結果確認コマン�
     });
 
     assert.equal(status, 130);
-    assert.match(reporter.finishes[0], /組織上のdeployは継続/);
+    assert.equal(waitWasAborted, true);
+    assert.match(reporter.finishes.at(-1), /組織上のdeployは継続/);
     assert.equal(lines.at(-1), `結果確認: ${getReportCommand(deployId, 'test-org')}`);
 });
 
-test('30分で進捗監視を終了し、組織側の結果確認コマンドを表示する', async () => {
-    const lines = [];
-    const errors = [];
-    const reporter = createReporter();
-    const times = [0, 30 * 60 * 1_000];
-
-    const status = await runAndMonitorDeploy({
-        deployArgs: ['project', 'deploy', 'start'],
-        dryRun: false,
-        expectedComponents,
-        targetOrg: 'test-org',
-        repoRoot: '/repo',
-        runSfWithOutputCommand() {
-            return createSfResult({ id: deployId });
-        },
-        getCurrentTime() {
-            return times.shift();
-        },
-        registerInterrupt() {
-            return () => {};
-        },
-        progressReporter: reporter.reporter,
-        writeLine(message) {
-            lines.push(message);
-        },
-        writeError(message) {
-            errors.push(message);
-        }
-    });
-
-    assert.equal(status, 124);
-    assert.match(reporter.finishes[0], /タイムアウト/);
-    assert.match(errors[0], /30分でタイムアウト/);
-    assert.deepEqual(lines.slice(-2), [
-        '組織上のdeployは継続している可能性があります。',
-        `結果確認: ${getReportCommand(deployId, 'test-org')}`
-    ]);
-});
-
-test('完了報告コマンドが失敗した場合は構造検証を成功扱いしない', async () => {
-    const results = [createSfResult({ id: deployId }), createSfResult(createSuccessfulDeployResult())];
-    const status = await runAndMonitorDeploy({
-        deployArgs: ['project', 'deploy', 'start'],
-        dryRun: false,
-        expectedComponents,
-        targetOrg: 'test-org',
-        repoRoot: '/repo',
-        runSfWithOutputCommand() {
-            return results.shift();
-        },
-        runSfCommand() {
-            return 1;
-        },
-        registerInterrupt() {
-            return () => {};
-        },
-        progressReporter: createReporter().reporter,
-        writeLine() {}
-    });
-
-    assert.equal(status, 1);
-});
-
-test('manifestの削除対象が完了結果にない場合は拒否する', () => {
-    assert.throws(
-        () =>
-            validateSuccessfulDeployResult({
-                result: createSuccessfulDeployResult({
-                    files: [],
-                    details: { ...createSuccessfulDeployResult().details, componentSuccesses: [] }
-                }),
-                deployId,
-                dryRun: false,
-                expectedComponents
-            }),
-        /削除結果を確認できません/
-    );
-});
-
 for (const [name, overrides, message] of [
-    ['metadata componentが未完了', { numberComponentsDeployed: 1 }, /metadata componentの全件完了を確認できません/],
-    ['Apexテストが0件', { numberTestsCompleted: 0, numberTestsTotal: 0 }, /全件完了を確認できません/],
-    ['Apexテスト失敗がある', { numberTestErrors: 1 }, /numberTestErrorsが0ではありません/],
-    ['全体ロールバックが無効', { rollbackOnError: false }, /全体ロールバックを保証できません/],
     ['dry-run種別が不一致', { checkOnly: true }, /dry-run種別が開始時の指定と一致しません/],
     ['最終状態が部分成功', { status: 'SucceededPartial' }, /成功状態ではありません/]
 ]) {
@@ -358,8 +306,7 @@ for (const [name, overrides, message] of [
                 validateSuccessfulDeployResult({
                     result: createSuccessfulDeployResult(overrides),
                     deployId,
-                    dryRun: false,
-                    expectedComponents
+                    operation: deployOperations.DEPLOY
                 }),
             message
         );

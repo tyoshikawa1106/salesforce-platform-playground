@@ -212,8 +212,8 @@
 | `scripts/common/test/`                                   | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
 | `scripts/common/test/*.node.js`                          | ファイル群 | 承認判定、外部CLI実行、対象組織判定の振る舞いを確認する。                   |
 | `scripts/metadata/destructive/`                          | フォルダ   | metadata削除scriptを格納する。                                              |
-| `scripts/metadata/destructive/destructive.js`            | ファイル   | destructive changesのdry-runと実削除をRunLocalTests付きで実行する。         |
-| `scripts/metadata/destructive/internal/deploy-runner.js` | ファイル   | destructive deployを完了まで監視し、削除対象とApexテスト結果を検証する。    |
+| `scripts/metadata/destructive/destructive.js`            | ファイル   | 接続組織を確認し、dry-run成功後にメタデータを削除する。                     |
+| `scripts/metadata/destructive/internal/deploy-runner.js` | ファイル   | deployを監視し、実行方法別にjob完了結果を検証する。                         |
 | `scripts/metadata/destructive/test/`                     | フォルダ   | metadata削除scriptとdeploy監視処理のNode.js testを格納する。                |
 | `scripts/metadata/retrieve/`                             | フォルダ   | metadata retrieve scriptを格納する。                                        |
 | `scripts/metadata/retrieve/retrieve.js`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
