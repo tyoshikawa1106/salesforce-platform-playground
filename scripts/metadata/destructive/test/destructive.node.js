@@ -48,7 +48,7 @@ test('削除対象manifestに削除対象がない場合は拒否する', () => 
         () =>
             validateDestructiveManifest({
                 readFileSync() {
-                    return '<Package><version>67.0</version></Package>';
+                    return '<Package></Package>';
                 }
             }),
         /削除対象が設定されていません/

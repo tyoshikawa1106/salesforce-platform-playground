@@ -2,12 +2,14 @@
 
 Salesforce メタデータを取得・参照・編集・反映するときの実務ルールです。
 
+一括取得の現行動作と表示内容は、[メタデータ取得スクリプト仕様](../specifications/scripts/metadata-retrieve/index.md)を参照してください。
+
 ## 基本方針
 
-- `manifest/retrieve-profile.xml` は、スクリプトでProfileと関連メタデータを同時に取得する最初の retrieve scope として扱う。
+- `manifest/retrieve-profile.xml` は、Profileの権限設定を取得するため、Profileと関連メタデータを同じretrieve要求に含める専用scopeとして扱う。
 - applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。分割manifestを取得定義の正本とし、実行順は`scripts/metadata/retrieve/retrieve.js`を基準にする。
 - `npm run sf:retrieve` は、orgへ接続する前に、すべての分割manifestが存在して取得対象を持ち、API versionが`sfdx-project.json`と一致することをローカルで確認する。
-- `manifest/retrieve-translations.xml` は、`Translations` とその内容を構成する関連メタデータを同時に取得する最後の retrieve scope として扱う。
+- `manifest/retrieve-translations.xml` は、翻訳内容を取得するため、`Translations` と関連メタデータを同じretrieve要求に含める専用scopeとして扱う。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest として扱う。
 - retrieve / package manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
 - 組織から retrieve したメタデータは、コミット前または反映前に差分を確認する。
@@ -19,7 +21,7 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 - retrieve 対象の指定がない場合は、`npm run sf:retrieve`を使い、Salesforce CLIに設定されているDefault Target Orgから`scripts/metadata/retrieve/retrieve.js`に定義したretrieve用manifestを順に取得する。
 - 通常の一括retrieveではorg API呼び出しを追加せず、既存の責務別manifestを1回ずつ取得する。org全体のmetadata typeやcomponent一覧との棚卸しは、必要性と負荷を確認した別タスクとして扱う。
-- `Translations` は関連メタデータと別に取得すると内容が欠落するため、`retrieve-translations.xml` を最後に実行して完全な翻訳ファイルで更新する。
+- `Translations` は同じretrieve要求に含めた関連メタデータの翻訳だけが返るため、`retrieve-translations.xml` 内で関連メタデータと同時に取得する。
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
 - retrieve 前に、対象 Salesforce 組織の alias、取得方法、既存ファイルへの上書き影響、権限系メタデータへの影響を確認する。
@@ -39,9 +41,11 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 2. 必要に応じて `git diff` で内容を確認する。
 3. ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認する。
 
-`npm run sf:retrieve` は各manifestを`--json`で実行し、取得component数、source形式の取得ファイル数、Metadata APIの取得ファイル数、metadata type別のAPIファイル数、所要時間をmanifest単位で表示します。長時間のretrieveでは30秒ごとに経過時間を表示します。
+`npm run sf:retrieve` は各manifestを`--wait 120 --json`で実行し、取得component数、source形式の取得ファイル数、Metadata APIの取得ファイル数、metadata type別のAPIファイル数、所要時間をmanifest単位で表示します。長時間のretrieveでは30秒ごとに経過時間を表示します。
 
 Salesforce CLIのwarningとMetadata APIの取得warningは表示して後続manifestを取得します。取得warningがあるmanifestと、Metadata APIの取得ファイル数が1回の上限10,000件に達したmanifestは要確認として最後にまとめ、全manifest実行後に非0で終了します。未完了status、非0の終了状態、解析できない応答など、retrieveを継続できない失敗はそのmanifestで停止します。自動retryや確認目的の再retrieveは行いません。
+
+各manifestは独立したretrieveとして順次ローカルファイルを更新します。一括トランザクションではないため、途中で失敗しても、それ以前に完了したmanifestの取得結果はローカルに残ります。失敗後は再実行前にGit差分を確認します。
 
 広い manifest で retrieve すると、Salesforce CLI の結果表では `Changed` が多数表示されることがあります。コミット判断では、CLI の表示だけでなく Git の差分を基準にします。
 

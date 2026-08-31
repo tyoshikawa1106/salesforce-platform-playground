@@ -1,5 +1,5 @@
 // 実行コマンド: node --test scripts/metadata/retrieve/test/retrieve.node.js
-// 用途: retrieve対象のmanifest、取得順、未知の引数を指定した場合の動作を検証する。
+// 用途: retrieveのmanifest計画、CLI結果判定、接続組織の承認、実行順、停止条件を検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -20,6 +20,7 @@ const {
 
 // manifestとretrieveスクリプトをリポジトリルート基準で参照する。
 const repoRoot = path.resolve(__dirname, '../../../..');
+const projectConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sfdx-project.json'), 'utf8'));
 
 // retrieve開始確認へ指定した回答を返す。
 function createPrompt(answer) {
@@ -111,7 +112,18 @@ function createRetrieveResult({
 
 // 確認済みのTarget Orgを明示したretrieve引数を作成する。
 function createRetrieveArgs(manifest) {
-    return ['project', 'retrieve', 'start', '--manifest', manifest, '--target-org', 'test-org', '--json'];
+    return [
+        'project',
+        'retrieve',
+        'start',
+        '--manifest',
+        manifest,
+        '--target-org',
+        'test-org',
+        '--wait',
+        '120',
+        '--json'
+    ];
 }
 
 test('retrieve scriptが分割manifestを重複なくすべて含む', () => {
@@ -132,17 +144,14 @@ test('retrieve scriptが分割manifestを重複なくすべて含む', () => {
     assert.ok(manifests.every((entry) => fs.existsSync(path.join(repoRoot, entry))));
 });
 
-test('Profileを最初、Translationsを最後に取得する', () => {
-    // 関連メタデータを含めるため、Profileを最初に取得する。
-    assert.equal(manifests[0], 'manifest/retrieve-profile.xml');
-
-    // 翻訳内容を欠落させないため、Translationsを最後に取得する。
-    assert.equal(manifests.at(-1), 'manifest/retrieve-translations.xml');
-});
-
 test('分割manifestだけから取得計画を検証して集計する', () => {
     // 現在の分割manifestとsfdx-project.jsonを実装と同じ方法で検証する。
-    assert.deepEqual(validateRetrieveManifestPlan(), { manifestCount: 27, typeCount: 217, version: '67.0' });
+    const manifestPlan = validateRetrieveManifestPlan();
+
+    // manifest自体を正とし、変更のたびに固定件数を更新せず構成上の契約を確認する。
+    assert.equal(manifestPlan.manifestCount, manifests.length);
+    assert.ok(manifestPlan.typeCount > 0);
+    assert.equal(manifestPlan.version, projectConfig.sourceApiVersion);
 });
 
 test('取得対象metadata typeがないmanifestを検出する', () => {
@@ -150,18 +159,20 @@ test('取得対象metadata typeがないmanifestを検出する', () => {
     const splitSources = [
         {
             label: 'manifest/retrieve-empty.xml',
-            source: '<?xml version="1.0" encoding="UTF-8" ?><Package xmlns="http://soap.sforce.com/2006/04/metadata"><version>67.0</version></Package>'
+            source: `<?xml version="1.0" encoding="UTF-8" ?><Package xmlns="http://soap.sforce.com/2006/04/metadata"><version>${projectConfig.sourceApiVersion}</version></Package>`
         }
     ];
 
     // 空の分割manifestをorg接続前の構成エラーとして検出する。
     assert.throws(
-        () => validateManifestDefinitions(splitSources, '67.0'),
+        () => validateManifestDefinitions(splitSources, projectConfig.sourceApiVersion),
         /retrieve-empty\.xmlに取得対象metadata typeがありません/
     );
 });
 
 test('分割manifestのAPI version差を検出する', () => {
+    const mismatchedApiVersion = `${Number.parseInt(projectConfig.sourceApiVersion, 10) - 1}.0`;
+
     // 1件だけ異なるAPI versionを持つ分割manifest入力を作る。
     const splitSources = manifests.map((manifest) => {
         const source = fs.readFileSync(path.join(repoRoot, manifest), 'utf8');
@@ -169,16 +180,18 @@ test('分割manifestのAPI version差を検出する', () => {
             label: manifest,
             source:
                 manifest === manifests[0]
-                    ? source.replace('<version>67.0</version>', '<version>66.0</version>')
+                    ? source.replace(
+                          `<version>${projectConfig.sourceApiVersion}</version>`,
+                          `<version>${mismatchedApiVersion}</version>`
+                      )
                     : source
         };
     });
 
     // 不一致のmanifestとversionを取得開始前に検出する。
-    assert.throws(
-        () => validateManifestDefinitions(splitSources, '67.0'),
-        /retrieve-profile\.xmlのAPI versionがsfdx-project\.jsonと一致しません: 66\.0 \/ 67\.0/
-    );
+    assert.throws(() => validateManifestDefinitions(splitSources, projectConfig.sourceApiVersion), {
+        message: `manifest/retrieve-profile.xmlのAPI versionがsfdx-project.jsonと一致しません: ${mismatchedApiVersion} / ${projectConfig.sourceApiVersion}`
+    });
 });
 
 test('retrieve成功結果からcomponent数とfile数を集計する', () => {
