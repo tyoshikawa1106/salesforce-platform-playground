@@ -1,5 +1,5 @@
 // 実行コマンド: npm run docs:check
-// 用途: Git管理対象のMarkdownを検査し、見つかった問題をまとめて表示する。
+// 用途: Git管理対象と未追跡・非除外のMarkdownを検査し、見つかった問題をまとめて表示する。
 
 const fs = require('fs');
 const {
@@ -12,12 +12,12 @@ const {
 } = require('./internal/markdown-files');
 const { validateDocumentation } = require('./internal/validate-docs');
 
-// docs配下の現行文書を、索引到達性と件数表示の対象として列挙する。
-const docsMarkdownFiles = getDocsMarkdownFiles();
-// READMEなどdocs外で管理する単独文書を別区分として列挙する。
-const additionalDocumentMarkdownFiles = getAdditionalDocumentMarkdownFiles();
 // 文書断片を含む、構造とリンクを検証する全Markdownを列挙する。
 const markdownFiles = getManagedMarkdownFiles();
+// 同じ対象一覧から、docs配下の現行文書を索引到達性と件数表示の対象へ分類する。
+const docsMarkdownFiles = getDocsMarkdownFiles(markdownFiles);
+// 同じ対象一覧から、READMEなどdocs外で管理する単独文書を別区分へ分類する。
+const additionalDocumentMarkdownFiles = getAdditionalDocumentMarkdownFiles(markdownFiles);
 // 同じ対象一覧と読み込み方法を検証処理へ渡し、問題を一括収集する。
 const issues = validateDocumentation({
     docsIndex,

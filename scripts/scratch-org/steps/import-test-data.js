@@ -33,7 +33,7 @@ async function main({
             argv: ['--plan', scratchOrg.importPlan, '--default-repeat', '40'],
             targetOrg: alias
         });
-        // 共通データ投入が完了した場合だけ成功を返す。
+        // 共通データ投入が例外なく終了した場合は、利用者による中止を含め正常終了として返す。
         return 0;
     } catch (error) {
         // setup.jsが失敗stepを識別できるよう、利用者向け表示後に1を返す。
