@@ -78,6 +78,8 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
     const localLinks = [];
     // コード例を文書構造から除外するため、開いているフェンスの記号と長さを追跡する。
     let fenceMarker = null;
+    // 閉じていないコードフェンスを開始位置付きで報告するため、開始行を保持する。
+    let fenceStartLine = null;
     // H1件数と直前の見出しレベルを、文書全体を通した構造判定に使用する。
     let h1Count = 0;
     // 次の見出しが複数段飛んでいないか確認するため直前レベルを保持する。
@@ -87,6 +89,14 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
     lines.forEach((line, index) => {
         // 文書構造とコマンド例で同じ境界条件を使い、コードフェンスの状態を更新する。
         const fence = getNextFenceMarker(line, fenceMarker);
+        // フェンス外から開始markerへ遷移した行を、未完了時の報告位置として保持する。
+        if (fenceMarker === null && fence.marker !== null && fence.isFenceLine) {
+            fenceStartLine = index + 1;
+        }
+        // 対応する終了markerを検出した場合は、未完了フェンスの開始位置を解除する。
+        if (fenceMarker !== null && fence.marker === null) {
+            fenceStartLine = null;
+        }
         // 短い同種markerでは閉じない状態を次の行へ引き継ぐ。
         fenceMarker = fence.marker;
 
@@ -156,6 +166,13 @@ function parseMarkdown({ content, filePath, projectRoot, requireH1 }) {
             localLinks.push({ line: index + 1, target });
         }
     });
+
+    // 文書末尾まで閉じられなかったコードフェンスを、開始行付きの構造問題として扱う。
+    if (fenceMarker !== null) {
+        issues.push(
+            `${getRelativePath(projectRoot, filePath)}:${fenceStartLine}: コードフェンスが閉じられていません。`
+        );
+    }
 
     // 通常文書では文書タイトルとなるH1を1件だけ必須にする。
     if (requireH1 && h1Count !== 1) {
