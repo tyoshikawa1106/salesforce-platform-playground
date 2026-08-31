@@ -1,6 +1,8 @@
 // 実行方法: test-runner.jsとテストスクリプトから読み込む。
 // 用途: 組織テストのSalesforce CLI応答、進捗取得、利用者向け表示を共通処理する。
 
+const { clearLine, cursorTo } = require('node:readline');
+
 // 組織テスト全体の処理が終了したと判断できるステータス。
 const finishedStatuses = new Set(['Aborted', 'Completed', 'Failed', 'Passed', 'Skipped']);
 
@@ -14,6 +16,18 @@ const statusLabels = Object.freeze({
     Queued: '待機中',
     Skipped: 'スキップ'
 });
+
+// ローカル日時を進捗表示用の固定形式へ変換する。
+function formatProgressCheckedAt(checkedAt) {
+    // 月日と時分秒を2桁で揃える。
+    const pad = (value) => String(value).padStart(2, '0');
+
+    // 実行日と確認時刻を一目で識別できる形式で返す。
+    return (
+        `${checkedAt.getFullYear()}/${pad(checkedAt.getMonth() + 1)}/${pad(checkedAt.getDate())} ` +
+        `${pad(checkedAt.getHours())}:${pad(checkedAt.getMinutes())}:${pad(checkedAt.getSeconds())}`
+    );
+}
 
 // Salesforce CLIの実行結果をJSONとして検証する。
 function parseSfJson(result, operation) {
@@ -35,6 +49,12 @@ function parseSfJson(result, operation) {
         throw new Error(`${operation}のJSONを解析できませんでした: ${error.message}`);
     }
 
+    // objectと数値statusがないJSONをSalesforce CLIの応答として扱わない。
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || typeof parsed.status !== 'number') {
+        // nullなどの構造不正を内部的なTypeErrorではなく操作エラーとして返す。
+        throw new Error(`${operation}のJSON応答を解釈できませんでした。`);
+    }
+
     // CLIまたはJSON本文のどちらかが失敗なら、同じ操作エラーとして扱う。
     if (result.status !== 0 || parsed.status !== 0) {
         // CLIが返したmessageがある場合だけ診断情報へ追加する。
@@ -49,9 +69,6 @@ function parseSfJson(result, operation) {
 
 // 進捗をTTYでは同じ行へ、それ以外では行単位で表示する。
 function createProgressReporter({ stdout = process.stdout, writeLine = console.log } = {}) {
-    // TTY上で短い表示へ更新したとき、前回分を空白で消すため長さを保持する。
-    let previousLength = 0;
-
     // 出力先の種別に応じて進捗の更新または確定を行う。
     function write(message, endOfLine) {
         // CIなど非TTYでは履歴が残るよう、更新ごとに改行して出力する。
@@ -62,12 +79,12 @@ function createProgressReporter({ stdout = process.stdout, writeLine = console.l
             return;
         }
 
-        // 前回より短いメッセージでも末尾が画面に残らないよう空白を補う。
-        const padding = ' '.repeat(Math.max(0, previousLength - message.length));
+        // 日本語の表示幅に依存せず更新できるようカーソルを行頭へ戻す。
+        cursorTo(stdout, 0);
+        // 前回の進捗行を全体消去してから現在の内容を描画する。
+        clearLine(stdout, 0);
         // 終了時だけ改行し、進捗更新中は同じ行を上書きする。
-        stdout.write(`\r${message}${padding}${endOfLine ? '\n' : ''}`);
-        // 改行後は次の表示を新しい行として扱う。
-        previousLength = endOfLine ? 0 : message.length;
+        stdout.write(`${message}${endOfLine ? '\n' : ''}`);
     }
 
     // 呼び出し元へ更新中と完了時の2つの表示操作を提供する。
@@ -84,16 +101,27 @@ function createProgressReporter({ stdout = process.stdout, writeLine = console.l
 }
 
 // テストランのクラス単位の進捗をTooling APIから取得する。
-function getTestRunProgress({ repoRoot, runSfWithOutputCommand, targetOrg, testRunId }) {
+async function getTestRunProgress({
+    repoRoot,
+    runSfWithOutputCommand,
+    sfCommandTimeoutMs,
+    signal,
+    targetOrg,
+    testRunId
+}) {
     // 開始した非同期jobに対応するApexTestRunResultだけを取得する。
     const query =
         `SELECT Status, ClassesCompleted, ClassesEnqueued ` +
         `FROM ApexTestRunResult WHERE AsyncApexJobId = '${testRunId}'`;
     // Tooling APIのJSON応答からテストラン結果を取り出す。
     const result = parseSfJson(
-        runSfWithOutputCommand(
+        await runSfWithOutputCommand(
             ['data', 'query', '--use-tooling-api', '--query', query, '--target-org', targetOrg, '--json'],
-            repoRoot
+            repoRoot,
+            undefined,
+            undefined,
+            sfCommandTimeoutMs,
+            signal
         ),
         '組織テスト進捗の取得'
     );
@@ -134,11 +162,14 @@ function getTestRunProgress({ repoRoot, runSfWithOutputCommand, targetOrg, testR
 }
 
 // 取得した進捗を表示メッセージと終了判定へ変換する。
-function describeTestRunProgress(progress) {
+function describeTestRunProgress(progress, checkedAt = new Date()) {
+    // Salesforceから進捗を取得できたローカル日時を表示に付与する。
+    const checkedAtLabel = formatProgressCheckedAt(checkedAt);
+
     // レコード作成前は終了とみなさず、キュー登録中を表示する。
     if (progress === null) {
         // 未完了判定と利用者向けメッセージをまとめて返す。
-        return { finished: false, message: '進捗: キュー登録中' };
+        return { finished: false, message: `進捗: キュー登録中｜${checkedAtLabel}` };
     }
 
     // 未知の新規ステータスは英語値を残し、状態を隠さない。
@@ -146,7 +177,7 @@ function describeTestRunProgress(progress) {
     // 完了判定とクラス件数を含む表示メッセージを返す。
     return {
         finished: finishedStatuses.has(progress.Status),
-        message: `進捗: ${progress.ClassesCompleted} / ${progress.ClassesEnqueued}件完了（${statusLabel}）`
+        message: `進捗: ${progress.ClassesCompleted} / ${progress.ClassesEnqueued}件完了（${statusLabel}）｜${checkedAtLabel}`
     };
 }
 

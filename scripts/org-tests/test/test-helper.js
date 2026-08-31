@@ -40,6 +40,10 @@ function createOrgInfoCommand(type = 'sandbox') {
             return createSfResult([{ name: 'target-org', success: true, value: 'test-org' }]);
         }
 
+        if (args[0] === 'data') {
+            return createSfResult({ records: [{ IsDisableParallelApexTestingEnabled: true }] });
+        }
+
         const org = {
             alias: 'test-org',
             instanceUrl: 'https://example.my.salesforce.com',

@@ -4,7 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { buildSfCommand, runNodeScript, runSf, runSfWithOutput } = require('../run-command');
+const { buildSfCommand, runNodeScript, runSf, runSfWithOutput, runSfWithOutputAsync } = require('../run-command');
 
 // 外部処理をリポジトリルートで実行する。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -173,6 +173,46 @@ test('出力取得用のSalesforce CLIを開始できない場合はエラー情
     assert.equal(result.stdout, '');
     assert.equal(result.stderr, '');
     assert.match(result.error.message, /起動失敗/);
+});
+
+test('非同期のSalesforce CLIへ時間上限と中断signalを渡す', async () => {
+    const timeout = 120_000;
+    const controller = new AbortController();
+    const sfCommand = buildSfCommand(['data', 'query']);
+
+    const result = await runSfWithOutputAsync(
+        ['data', 'query'],
+        repoRoot,
+        (command, args, options, callback) => {
+            assert.equal(command, sfCommand.command);
+            assert.deepEqual(args, sfCommand.args);
+            assert.deepEqual(options, {
+                cwd: repoRoot,
+                encoding: 'utf8',
+                signal: controller.signal,
+                timeout
+            });
+            callback(null, '{}', '');
+        },
+        undefined,
+        timeout,
+        controller.signal
+    );
+
+    assert.deepEqual(result, { signal: null, status: 0, stderr: '', stdout: '{}' });
+});
+
+test('非同期のSalesforce CLIで非0終了と中断を区別する', async () => {
+    const failed = await runSfWithOutputAsync([], repoRoot, (_command, _args, _options, callback) => {
+        callback(Object.assign(new Error('CLI error'), { code: 1 }), '{"status":1}', '');
+    });
+    const aborted = await runSfWithOutputAsync([], repoRoot, (_command, _args, _options, callback) => {
+        callback(Object.assign(new Error('aborted'), { code: 'ABORT_ERR' }), '', '');
+    });
+
+    assert.deepEqual(failed, { signal: null, status: 1, stderr: '', stdout: '{"status":1}' });
+    assert.equal(aborted.status, null);
+    assert.equal(aborted.error.code, 'ABORT_ERR');
 });
 
 test('Node.js子スクリプトの終了コードを返す', () => {
