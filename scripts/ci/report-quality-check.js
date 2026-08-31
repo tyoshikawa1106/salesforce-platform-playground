@@ -56,8 +56,19 @@ function formatJstTimestamp(date) {
 
 // open Issue一覧から、チェック名に対応するIssue番号を取得する。
 function findOpenIssue(issueTitle, runGhCommand) {
-    // 同名Issueの重複作成を避けるため、open IssueをJSONで取得する。
-    const output = runGhCommand(['issue', 'list', '--state', 'open', '--limit', '100', '--json', 'number,title']);
+    // 同名Issueの重複作成を避けるため、タイトル候補へ絞ったopen IssueをJSONで取得する。
+    const output = runGhCommand([
+        'issue',
+        'list',
+        '--state',
+        'open',
+        '--search',
+        `"${issueTitle}" in:title`,
+        '--limit',
+        '1000',
+        '--json',
+        'number,title'
+    ]);
     // JSON解析が完了するまで候補一覧を未確定として保持する。
     let issues;
 

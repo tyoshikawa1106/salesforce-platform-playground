@@ -34,3 +34,21 @@ test('リンク、アンカー、docs indexからの到達性をまとめて検�
     // 索引から辿れない文書だけが報告されることを確認する。
     assert.deepEqual(issues, ['docs/unreachable.md: docs/index.md から辿れません。']);
 });
+
+test('不正なURLエンコードをリンク元の問題として報告する', () => {
+    // 不正なURLエンコードを含むリンクをメモリ上に用意する。
+    const docsIndex = path.join(projectRoot, 'docs/index.md');
+    const files = new Map([[docsIndex, '# Index\n\n[Invalid](missing%zz.md)']]);
+
+    const issues = validateDocumentation({
+        docsIndex,
+        docsMarkdownFiles: [...files.keys()],
+        fileExists: (filePath) => files.has(filePath),
+        fragmentMarkdownFiles: [],
+        markdownFiles: [...files.keys()],
+        projectRoot,
+        readFile: (filePath) => files.get(filePath)
+    });
+
+    assert.deepEqual(issues, ['docs/index.md:3: URLエンコードを解析できません: missing%zz.md']);
+});

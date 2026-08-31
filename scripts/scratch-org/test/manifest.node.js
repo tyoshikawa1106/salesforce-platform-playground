@@ -1,5 +1,5 @@
 // 実行コマンド: node --test scripts/scratch-org/test/manifest.node.js
-// 用途: Scratch Org再構築manifestに自作ソースがすべて含まれることを検証する。
+// 用途: Scratch Org再構築manifestの固定scopeとGit管理sourceの整合を検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

@@ -2,6 +2,8 @@
 
 この文書は、GitHub ActionsでSalesforce sourceを確認するときの運用ルールです。接続組織へのvalidate / deployは[組織操作ルール](org-operation-rules.md)に従います。
 
+定期品質チェック結果をIssueへ反映する現在の処理は[定期品質チェック結果報告スクリプト仕様](../specifications/scripts/ci-quality-reporting/index.md)を参照してください。
+
 ## 実行ルール
 
 - CIはSalesforce組織へログインしない。

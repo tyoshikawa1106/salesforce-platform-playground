@@ -2,6 +2,8 @@
 
 Salesforce CLI で、リポジトリ管理された合成テストデータを org に投入する手順です。
 
+スクリプトの現在の入力、処理順、停止条件、出力は[テストデータ投入スクリプト仕様](../specifications/scripts/test-data-import/index.md)を参照してください。
+
 ## 使い分け
 
 この仕組みは、画面操作や Flow / Trigger の動作確認など、org 上に一時的なテストレコードが必要な場合に使います。

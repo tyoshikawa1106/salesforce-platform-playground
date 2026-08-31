@@ -65,8 +65,25 @@ function validateDocumentation({
         for (const { line, target } of parsedFiles.get(filePath).localLinks) {
             // URL片をファイルパスとアンカーに分け、相対パスを実ファイルへ解決する。
             const [rawPath, rawAnchor] = target.split('#', 2);
+            // 不正なURLエンコードを検証全体の例外にせず、リンク単位の問題として扱う。
+            let decodedPath;
+            let decodedAnchor;
+
+            try {
+                // URL encoded文字を戻し、ファイルパスとアンカーを解析可能な文字列へ揃える。
+                decodedPath = decodeURIComponent(rawPath);
+                decodedAnchor = rawAnchor === undefined ? undefined : decodeURIComponent(rawAnchor);
+            } catch {
+                // 修正場所を特定できるよう、リンク元の行番号と指定値を問題一覧へ追加する。
+                issues.push(
+                    `${getRelativePath(projectRoot, filePath)}:${line}: URLエンコードを解析できません: ${target}`
+                );
+                // 解析できないリンクではファイル、アンカー、到達性を判定しない。
+                continue;
+            }
+
             // すべてのローカルリンクを同じ絶対パス基準で比較できるよう正規化する。
-            const targetPath = rawPath ? path.resolve(path.dirname(filePath), decodeURIComponent(rawPath)) : filePath;
+            const targetPath = decodedPath ? path.resolve(path.dirname(filePath), decodedPath) : filePath;
 
             // 存在しないリンク先はアンカー確認へ進まず、元の記述位置を報告する。
             if (!fileExists(targetPath)) {
@@ -78,11 +95,8 @@ function validateDocumentation({
 
             // 管理対象Markdownへのリンクだけ、解析済みアンカーと照合する。
             if (rawAnchor && markdownFileSet.has(targetPath)) {
-                // URL encoded文字を戻し、解析済みアンカーと同じ形式に揃える。
-                const anchor = decodeURIComponent(rawAnchor);
-
                 // リンク先文書に該当アンカーが登録されているか確認する。
-                if (!parsedFiles.get(targetPath).anchors.has(anchor)) {
+                if (!parsedFiles.get(targetPath).anchors.has(decodedAnchor)) {
                     // 存在しないアンカーをリンク元の行番号付きで記録する。
                     issues.push(`${getRelativePath(projectRoot, filePath)}:${line}: アンカーがありません: ${target}`);
                 }

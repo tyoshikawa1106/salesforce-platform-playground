@@ -52,8 +52,10 @@ test('初回失敗時はラベルと担当者を指定してIssueを作成する
         'list',
         '--state',
         'open',
+        '--search',
+        '"CI: Nightly npm checksが失敗しています" in:title',
         '--limit',
-        '100',
+        '1000',
         '--json',
         'number,title'
     ]);

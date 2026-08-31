@@ -2,6 +2,8 @@
 
 この文書は、AI エージェントが Scratch Org を作成し、このプロジェクトのメタデータを再現するときの実行ルールを定義します。
 
+準備・削除スクリプトの現在の入力、処理順、停止条件、出力は[Scratch Org管理スクリプト仕様](../specifications/scripts/scratch-org-management/index.md)を参照してください。
+
 ## 目的別の参照先
 
 | 目的                                     | 参照先                                                           |
@@ -70,6 +72,14 @@ alias の付け方と Scratch definition の feature 判断は、[Scratch Org �
 4. 標準オブジェクトのテストデータを投入する。
 
 途中で失敗した場合は、その時点で停止します。alias、duration、manifest、Permission Set、import plan は `scripts/scratch-org/scratch-org.json` で定義します。
+
+4番目のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
+
+```text
+この接続組織で続行しますか？ [y/N]:
+```
+
+承認しなかった場合はテストデータを投入せず、一括実行を正常終了します。作成、metadata反映、Permission Set割り当てまでの結果は自動で取り消しません。
 
 ```sh
 node scripts/scratch-org/setup.js
