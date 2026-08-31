@@ -16,6 +16,8 @@ Salesforce DX で Scratch Org を使う場合、manifest は用途ごとに分�
 - Scratch Org 初期反映用 manifest は Scratch Org を作り直すために使い、Scratch Org で作業した変更を別 org へ戻す用途には使わない。
 - 作業対象 manifest は作業開始前に scope を決めて用意し、Scratch Org からローカルへの retrieve と、ローカルから別 org への deploy に同じ scope を使う。
 
+Scratch Org 初期反映用 manifestは、`scripts/scratch-org/test/manifest.node.js`でローカルsourceと照合します。ファイル単位のmetadataと主要なCustomObject配下metadataについて、manifestへの追加漏れと削除済みmemberの残存を検出します。初期反映から意図的に除外するmetadataはテスト内で明示し、新しいsourceを暗黙に除外しません。
+
 ## 基本ルール
 
 Scratch Org で作業した metadata を別 org へ反映する場合は、Scratch Org から直接別 org へ deploy しません。
