@@ -26,7 +26,10 @@ const metadataTypeDisplayLimit = 20;
 // 長時間retrieveが実行中であることを定期的に表示する。
 const retrieveProgressIntervalMilliseconds = 30 * 1000;
 
-// 依存関係を保つためProfileを最初、Translationsを最後に取得する。
+// 1 manifestのretrieve完了をSalesforce CLIが待機する時間を分単位で指定する。
+const retrieveWaitMinutes = 120;
+
+// 責務別に分割したmanifestを、この定義順に取得する。
 const manifests = [
     'manifest/retrieve-profile.xml',
     'manifest/retrieve-code.xml',
@@ -597,9 +600,20 @@ async function main({
 
         // 成功、失敗、例外のいずれでも定期表示を確実に停止する。
         try {
-            // 非同期retrieveを待ちながら30秒ごとの進捗表示を動かす。
+            // Salesforce CLIの完了待機中も30秒ごとの進捗表示を動かす。
             commandResult = await runRetrieveCommand(
-                ['project', 'retrieve', 'start', '--manifest', manifest, '--target-org', targetOrg, '--json'],
+                [
+                    'project',
+                    'retrieve',
+                    'start',
+                    '--manifest',
+                    manifest,
+                    '--target-org',
+                    targetOrg,
+                    '--wait',
+                    String(retrieveWaitMinutes),
+                    '--json'
+                ],
                 repoRoot
             );
         } finally {
