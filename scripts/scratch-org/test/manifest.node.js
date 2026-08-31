@@ -5,80 +5,76 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { repoRoot, scratchOrg } = require('../internal/context');
 
 // Scratch Org再構築manifestを読み込む。
 const manifest = fs.readFileSync(path.join(repoRoot, scratchOrg.manifest), 'utf8');
 
+// ローカルretrieveで生成されるGit管理外metadataを検証対象へ混ぜないため、Git管理中のsourceだけを取得する。
+const trackedSourceFiles = execFileSync('git', ['ls-files', '-z', '--cached', '--', 'force-app/main/default'], {
+    cwd: repoRoot,
+    encoding: 'utf8'
+})
+    .split('\0')
+    .filter(Boolean);
+
+// manifestの全typesを、type名とmember一覧へ変換する。
+const manifestTypes = [...manifest.matchAll(/<types>([\s\S]*?)<\/types>/g)].map(([, typeBlock]) => ({
+    members: [...typeBlock.matchAll(/<members>([^<]+)<\/members>/g)].map((match) => match[1]),
+    typeName: typeBlock.match(/<name>([^<]+)<\/name>/)?.[1]
+}));
+
 // manifestから指定したメタデータ種別のmembersを取得する。
 function getManifestMembers(typeName) {
-    const typeBlocks = manifest.matchAll(/<types>([\s\S]*?)<\/types>/g);
-
-    for (const [, typeBlock] of typeBlocks) {
-        if (typeBlock.includes(`<name>${typeName}</name>`)) {
-            return [...typeBlock.matchAll(/<members>([^<]+)<\/members>/g)].map((match) => match[1]);
-        }
-    }
-
-    return [];
+    return manifestTypes.find((type) => type.typeName === typeName)?.members ?? [];
 }
 
-// 指定した拡張子のソース名をディレクトリから取得する。
+// Git管理中の直下ファイルから、指定した拡張子のsource名を取得する。
 function getSourceNames(directory, extension) {
-    return fs
-        .readdirSync(path.join(repoRoot, directory))
-        .filter((fileName) => fileName.endsWith(extension))
+    const directoryPrefix = `${directory}/`;
+
+    return trackedSourceFiles
+        .filter((filePath) => filePath.startsWith(directoryPrefix))
+        .map((filePath) => filePath.slice(directoryPrefix.length))
+        .filter((fileName) => !fileName.includes('/') && fileName.endsWith(extension))
         .map((fileName) => fileName.slice(0, -extension.length))
         .sort();
 }
 
-// Objectごとのmetadataファイルを持つCustomObject名を取得する。
+// Git管理中のObject定義からCustomObject名を取得する。
 function getCustomObjectNames() {
-    const objectsDirectory = path.join(repoRoot, 'force-app/main/default/objects');
-
-    return fs
-        .readdirSync(objectsDirectory, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => entry.name)
-        .filter((objectName) => fs.existsSync(path.join(objectsDirectory, objectName, `${objectName}.object-meta.xml`)))
+    return trackedSourceFiles
+        .map((filePath) => filePath.match(/^force-app\/main\/default\/objects\/([^/]+)\/([^/]+)\.object-meta\.xml$/))
+        .filter((match) => match !== null && match[1] === match[2])
+        .map((match) => match[1])
         .sort();
 }
 
-// Object配下で管理する子metadataをObject.Component形式へ変換する。
+// Git管理中のObject配下metadataをObject.Component形式へ変換する。
 function getObjectChildNames(childDirectory, extension) {
-    const objectsDirectory = path.join(repoRoot, 'force-app/main/default/objects');
-    const names = [];
-
-    for (const objectEntry of fs.readdirSync(objectsDirectory, { withFileTypes: true })) {
-        if (!objectEntry.isDirectory()) {
-            continue;
-        }
-
-        const componentDirectory = path.join(objectsDirectory, objectEntry.name, childDirectory);
-
-        if (!fs.existsSync(componentDirectory)) {
-            continue;
-        }
-
-        for (const fileName of fs.readdirSync(componentDirectory)) {
-            if (fileName.endsWith(extension)) {
-                names.push(`${objectEntry.name}.${fileName.slice(0, -extension.length)}`);
-            }
-        }
-    }
-
-    return names.sort();
+    return trackedSourceFiles
+        .map((filePath) => filePath.split('/'))
+        .filter(
+            (parts) =>
+                parts.length === 7 &&
+                parts[0] === 'force-app' &&
+                parts[1] === 'main' &&
+                parts[2] === 'default' &&
+                parts[3] === 'objects' &&
+                parts[5] === childDirectory &&
+                parts[6].endsWith(extension)
+        )
+        .map((parts) => `${parts[4]}.${parts[6].slice(0, -extension.length)}`)
+        .sort();
 }
 
-// LWCのメタデータファイルがあるバンドル名を取得する。
-function getLightningComponentBundleNames(directory) {
-    const sourceDirectory = path.join(repoRoot, directory);
-
-    return fs
-        .readdirSync(sourceDirectory, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .filter((entry) => fs.existsSync(path.join(sourceDirectory, entry.name, `${entry.name}.js-meta.xml`)))
-        .map((entry) => entry.name)
+// Git管理中のLWCメタデータファイルからバンドル名を取得する。
+function getLightningComponentBundleNames() {
+    return trackedSourceFiles
+        .map((filePath) => filePath.match(/^force-app\/main\/default\/lwc\/([^/]+)\/([^/]+)\.js-meta\.xml$/))
+        .filter((match) => match !== null && match[1] === match[2])
+        .map((match) => match[1])
         .sort();
 }
 
@@ -90,18 +86,6 @@ const excludedSourceNames = {
         'CollaborationGroup-グループレイアウト',
         'UserAlt-User Profile Layout',
         'WorkPlan-Work Plan Layout'
-    ]),
-    ListView: new Set([
-        'Activity.AllActivities',
-        'Activity.MyActivities',
-        'Activity.TodaysTasks',
-        'Activity.UpcomingEvents',
-        'CollaborationGroup.All_ChatterGroups',
-        'ConsumptionSchedule.All_ConsumptionSchedules',
-        'ConsumptionSchedule.My_ConsumptionSchedules',
-        'Individual.All_Individuals',
-        'Solution.AllReviewedSolutions',
-        'Solution.AllUnreviewedSolutions'
     ]),
     PermissionSet: new Set(['Salesforce_Platform_Playground_User']),
     ReportType: new Set(['flow_orchestration_work_item_ootb_crt_two_four_eight']),
@@ -126,10 +110,6 @@ const fileMetadataTypes = [
     ['ApexClass', 'classes', '.cls'],
     ['ApexPage', 'pages', '.page'],
     ['ApexTrigger', 'triggers', '.trigger'],
-    ['ApexEmailNotifications', 'apexEmailNotifications', '.notifications-meta.xml'],
-    ['AssignmentRules', 'assignmentRules', '.assignmentRules-meta.xml'],
-    ['AutoResponseRules', 'autoResponseRules', '.autoResponseRules-meta.xml'],
-    ['CleanDataService', 'cleanDataServices', '.cleanDataService-meta.xml'],
     ['FlexiPage', 'flexipages', '.flexipage-meta.xml'],
     ['Flow', 'flows', '.flow-meta.xml'],
     ['HomePageLayout', 'homePageLayouts', '.homePageLayout-meta.xml'],
@@ -141,11 +121,44 @@ const fileMetadataTypes = [
     ['QuickAction', 'quickActions', '.quickAction-meta.xml'],
     ['RemoteSiteSetting', 'remoteSiteSettings', '.remoteSite-meta.xml'],
     ['ReportType', 'reportTypes', '.reportType-meta.xml'],
-    ['Role', 'roles', '.role-meta.xml'],
     ['TopicsForObjects', 'topicsForObjects', '.topicsForObjects-meta.xml'],
     ['TransactionSecurityPolicy', 'transactionSecurityPolicies', '.transactionSecurityPolicy-meta.xml'],
     ['Workflow', 'workflows', '.workflow-meta.xml']
 ];
+
+// Git管理外の標準metadataはsourceファイルではなく、manifestの固定scopeだけを検証する。
+const manifestOnlyTypes = [
+    'ApexEmailNotifications',
+    'AssignmentRules',
+    'AutoResponseRules',
+    'CleanDataService',
+    'ListView',
+    'Role'
+];
+
+// 個別source照合とmanifest固定scopeのどちらかへ、全metadata typeを明示的に分類する。
+const sourceComparedTypes = [
+    ...fileMetadataTypes.map(([typeName]) => typeName),
+    'CustomApplication',
+    'CustomField',
+    'CustomObject',
+    'LightningComponentBundle',
+    'ValidationRule',
+    'WebLink'
+];
+
+test('再構築manifestの全metadata typeに検証方針がありmemberが固定されている', () => {
+    const expectedTypeNames = [...sourceComparedTypes, ...manifestOnlyTypes].sort();
+    const actualTypeNames = manifestTypes.map((type) => type.typeName).sort();
+
+    assert.deepEqual(actualTypeNames, expectedTypeNames);
+
+    for (const { members, typeName } of manifestTypes) {
+        assert.ok(members.length > 0, `${typeName}には1件以上のmemberが必要です。`);
+        assert.equal(new Set(members).size, members.length, `${typeName}のmemberが重複しています。`);
+        assert.equal(members.includes('*'), false, `${typeName}にワイルドカードは使用できません。`);
+    }
+});
 
 for (const [typeName, directory, extension] of fileMetadataTypes) {
     test(`${typeName}の初期反映対象がsourceと再構築manifestで一致する`, () => {
@@ -173,7 +186,6 @@ test('CustomObjectの全sourceが再構築manifestと一致する', () => {
 });
 
 for (const [typeName, childDirectory, extension] of [
-    ['ListView', 'listViews', '.listView-meta.xml'],
     ['ValidationRule', 'validationRules', '.validationRule-meta.xml'],
     ['WebLink', 'webLinks', '.webLink-meta.xml']
 ]) {
@@ -202,7 +214,7 @@ test('CustomFieldのカスタム項目が再構築manifestに含まれ、全memb
 
 test('LightningComponentBundleの全ソースが再構築manifestに含まれる', () => {
     // メタデータファイルを持つLWCバンドルだけを比較する。
-    const sourceNames = getLightningComponentBundleNames('force-app/main/default/lwc');
+    const sourceNames = getLightningComponentBundleNames();
     const manifestMembers = getManifestMembers('LightningComponentBundle').sort();
 
     assert.deepEqual(manifestMembers, sourceNames);
