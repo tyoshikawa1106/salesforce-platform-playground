@@ -83,6 +83,21 @@ for (const { close, name, open, shorterMarker } of longFenceCases) {
     });
 }
 
+for (const { name, open } of longFenceCases) {
+    test(`閉じていない${name}フェンスを開始行付きで報告する`, () => {
+        const filePath = path.join(projectRoot, 'docs/example.md');
+        const parsed = parseMarkdown({
+            content: ['# 見出し', '', open, '[対象外リンク](missing.md)'].join('\n'),
+            filePath,
+            projectRoot,
+            requireH1: true
+        });
+
+        assert.deepEqual(parsed.localLinks, []);
+        assert.deepEqual(parsed.issues, ['docs/example.md:3: コードフェンスが閉じられていません。']);
+    });
+}
+
 test('コードブロック内のsetx PATHを拒否し、注意書きでの言及は許可する', () => {
     // 注意書きと実行例の両方にsetx PATHを含むMarkdownを検証する。
     const issues = validateUnsafeContent(

@@ -114,9 +114,9 @@ test('import planの全entryを検証し、共通preambleを重複定義しな�
     });
     const composedEntries = preparedEntries.filter((prepared) => !prepared.entry.standalone);
 
-    // planのentry件数と合成対象件数を確認する。
-    assert.equal(preparedEntries.length, 26);
-    assert.equal(composedEntries.length, 23);
+    // 固定件数ではなく、現在のplan全体が漏れなく準備されたことを確認する。
+    assert.equal(preparedEntries.length, plan.imports.length);
+    assert.equal(composedEntries.length, plan.imports.filter((entry) => !entry.standalone).length);
 
     // 各合成ソースがpreambleを1回だけ含むことを確認する。
     for (const prepared of composedEntries) {
