@@ -2,9 +2,9 @@
 
 ## 概要
 
-設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。変換処理はSalesforce組織へ接続せず、Profile XMLと同じsource treeにある関連CustomField metadataだけを入力として使用します。
+設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。実行前にSalesforce CLIのDefault Target Orgと認証済み組織情報を表示して利用者へ確認しますが、変換にはProfile XMLと同じsource treeにある関連CustomField metadataだけを使用します。
 
-生成物は日時別フォルダへ保存します。生成後は、利用者が対象組織を選んで実行するvalidate、dry-run、deploy、保存結果確認コマンドを表示しますが、変換スクリプト自身はSalesforce CLIを実行しません。
+生成物は日時別フォルダへ保存します。生成後は、利用者が対象組織を選んで実行するvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
 
 ## 目的・対象外
 
@@ -54,7 +54,7 @@ npm run sf:convert:profile
 | `--dry-run`                 | 任意 | 変換結果を表示するがファイルを生成せず、後続コマンドも表示しない |
 | `--help`                    | 任意 | 使用方法を表示する                                               |
 
-`--target-org`、`--profile-id`、`--overwrite`は受け付けません。変換処理はDefault Target Orgを含むSalesforce CLI設定を参照しません。
+`--target-org`、`--profile-id`、`--overwrite`は受け付けません。接続組織の確認にはSalesforce CLIのDefault Target Orgを使用します。
 
 ## 名前とライセンス
 
@@ -71,14 +71,16 @@ npm run sf:convert:profile
 ## 処理フロー
 
 1. CLI引数、設定ファイル、Profileパス、objects directoryを検証する。
-2. Profileファイル名をmetadata fullName、Permission Set API名、ラベルへ変換する。
-3. Profile XMLを検証し、1回だけ解析する。
-4. 有効なアクセス権、項目権限、オブジェクト権限、レコードタイプ、タブを変換する。
-5. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
-6. 未知要素がなければPermission Set XMLとレポートを日時別フォルダへ一括出力する。
-7. 全Profileを生成できた場合だけ、利用者が別途実行する後続コマンドを表示する。
+2. Default Target Orgを認証済み組織一覧から特定し、Alias、Username、URL、組織種別を表示する。
+3. 利用者へ実行確認を行い、本番環境では追加確認を行う。
+4. Profileファイル名をmetadata fullName、Permission Set API名、ラベルへ変換する。
+5. Profile XMLを検証し、1回だけ解析する。
+6. 有効なアクセス権、項目権限、オブジェクト権限、レコードタイプ、タブを変換する。
+7. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
+8. 未知要素がなければPermission Set XMLとレポートを日時別フォルダへ一括出力する。
+9. 全Profileを生成できた場合だけ、利用者が別途実行する後続コマンドを表示する。
 
-この処理中にSalesforce CLI、SOQL、Metadata API、sObject describe、validate、deploy、retrieveは実行しません。
+接続組織の確認では`sf config get target-org`と`sf org list --skip-connection-status`だけを実行します。SOQL、Metadata API、sObject describe、validate、deploy、retrieveは実行せず、組織情報をPermission Setの変換内容へ渡しません。
 
 ## 変換規則
 
@@ -143,23 +145,25 @@ sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<�
 npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --target-org <alias>
 ```
 
-保存結果確認スクリプトだけが、明示された`--target-org`へ接続します。生成フォルダのPermission Set API名をexact-nameで取得し、繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱います。権限の欠落、追加、値変更は比較レポートへ記録します。
+保存結果確認スクリプトは、明示された`--target-org`から生成フォルダのPermission Set API名をexact-nameで取得します。繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
 保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
 
 ## エラー処理
 
-| 条件                                          | 動作                                             |
-| --------------------------------------------- | ------------------------------------------------ |
-| 設定ファイルがない、またはProfileパスが0件    | 組織へ接続せず停止する                           |
-| 絶対パス、profiles外、非Profile XML、重複パス | 組織へ接続せず停止する                           |
-| Profile XML、namespace、User Licenseが不正    | 変換を停止する                                   |
-| API名、ラベル、boolean値が不正                | 推測で補正せず停止する                           |
-| 項目API名またはCustomField参照先が不正        | objectsディレクトリ外を参照せず停止する          |
-| 同じ権限が重複                                | 対象API名を表示して停止する                      |
-| 未知のProfile要素またはタブ状態               | レポートへ記録し、Permission Set XMLを生成しない |
-| 関連CustomField metadataがない                | 権限候補を維持し、手動validate事項として記録する |
-| 出力先が重複または処理中に作成された          | 既存ファイルを上書きせず停止する                 |
-| XMLまたはレポートの出力途中で失敗             | 今回の全一時出力と配置済み出力を削除して停止する |
+| 条件                                               | 動作                                             |
+| -------------------------------------------------- | ------------------------------------------------ |
+| 設定ファイルがない、またはProfileパスが0件         | 組織へ接続せず停止する                           |
+| 絶対パス、profiles外、非Profile XML、重複パス      | 組織へ接続せず停止する                           |
+| Profile XML、namespace、User Licenseが不正         | 変換を停止する                                   |
+| Default Target Orgまたは認証済み組織を確認できない | ファイルを生成せず停止する                       |
+| 接続組織または本番環境の追加確認が承認されない     | ファイルを生成せず正常終了する                   |
+| API名、ラベル、boolean値が不正                     | 推測で補正せず停止する                           |
+| 項目API名またはCustomField参照先が不正             | objectsディレクトリ外を参照せず停止する          |
+| 同じ権限が重複                                     | 対象API名を表示して停止する                      |
+| 未知のProfile要素またはタブ状態                    | レポートへ記録し、Permission Set XMLを生成しない |
+| 関連CustomField metadataがない                     | 権限候補を維持し、手動validate事項として記録する |
+| 出力先が重複または処理中に作成された               | 既存ファイルを上書きせず停止する                 |
+| XMLまたはレポートの出力途中で失敗                  | 今回の全一時出力と配置済み出力を削除して停止する |
 
 ## テスト・確認観点
 
@@ -169,7 +173,8 @@ node --test scripts/permissionset-conversion/test/*.node.js
 
 主な確認内容です。
 
-- 変換入口がSalesforce CLIや組織情報を呼び出さない
+- 変換入口がDefault Target Orgと認証済み組織情報を表示し、承認後だけ処理する
+- 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
 - `StandardAul`と`Admin`も現在のProfile XMLとの意味的一致で確認する
 - Profile XMLにないObject Permissionを追加しない
@@ -182,7 +187,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
 - 保存後の意味差分を検出し、変換結果へ反映せず比較レポートへ保存する
 
-単体テストは組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者が対象組織を明示して実行する後続工程で確認します。
+単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者が対象組織を明示して実行する後続工程で確認します。
 
 ## 制約・確認事項
 

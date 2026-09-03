@@ -1,5 +1,5 @@
 // 実行コマンド: node --test scripts/permissionset-conversion/test/profile-converter.node.js
-// 用途: ローカルProfile XMLからPermission Setを生成し、組織へ接続しないこととfail closedを検証する。
+// 用途: 接続組織を確認し、ローカルProfile XMLだけからPermission Setを生成することとfail closedを検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -30,6 +30,7 @@ const {
     getSandboxValidationCommand,
     getVerificationCommand
 } = require('../internal/validation-runner');
+const { orgTypes } = require('../../common/target-org');
 
 // 実ファイルを使うテストで共通利用するリポジトリとfixtureのパスを定義する。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -39,6 +40,70 @@ const fixtureObjectsDirectory = path.join(fixturesDirectory, 'objects');
 const fixedRunAt = new Date(2026, 8, 2, 5, 19, 22, 123);
 const fixedRunDirectoryName = '20260902-051922-123';
 const xmlParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
+
+// Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
+function createSfResult(result) {
+    return {
+        status: 0,
+        stderr: '',
+        stdout: JSON.stringify({ status: 0, result })
+    };
+}
+
+// Default Target Orgと認証済み組織一覧だけを返すCLI stubを作成する。
+function createOrgCommand(type = orgTypes.SANDBOX) {
+    const calls = [];
+    const org = {
+        alias: 'target-org',
+        instanceUrl: 'https://example.my.salesforce.com',
+        isSandbox: type === orgTypes.SANDBOX,
+        orgEdition: type === orgTypes.DEVELOPER_EDITION ? 'Developer Edition' : 'Enterprise Edition',
+        orgId: '00D000000000001',
+        username: 'user@example.com'
+    };
+
+    return {
+        calls,
+        command(args) {
+            calls.push(args);
+
+            if (args[0] === 'config') {
+                return createSfResult([{ name: 'target-org', success: true, value: 'target-org' }]);
+            }
+
+            if (args[0] === 'org') {
+                return createSfResult({
+                    nonScratchOrgs: [org],
+                    sandboxes: type === orgTypes.SANDBOX ? [org] : [],
+                    scratchOrgs: []
+                });
+            }
+
+            throw new Error(`想定外のSalesforce CLI呼び出しです: ${args.join(' ')}`);
+        }
+    };
+}
+
+// 確認質問とcloseを記録し、指定した回答を順番に返すpromptを作成する。
+function createPrompt(answers) {
+    const questions = [];
+    let closed = false;
+    const prompt = {
+        close() {
+            closed = true;
+        },
+        async question(question) {
+            questions.push(question);
+            return answers.shift();
+        }
+    };
+
+    return {
+        factory: () => prompt,
+        getQuestions: () => questions,
+        isClosed: () => closed
+    };
+}
 
 // XML parserが単一要素をobjectで返す場合も配列として比較できるようにする。
 function toArray(value) {
@@ -650,21 +715,20 @@ test('複数Profileの途中失敗時にbatch全体をrollbackする', () => {
     }
 });
 
-test('CLIは組織へ接続せずローカルmetadataとレポートを生成する', async () => {
-    // 組織コマンドが呼ばれたら失敗する依存を渡し、通常生成を実行する。
+test('CLIはDefault Target Orgを確認してローカルmetadataとレポートを生成する', async () => {
+    // 認証済みSandboxと承認回答を用意して通常生成を実行する。
     const project = createTestProject();
     const lines = [];
-    let orgCalls = 0;
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
 
     try {
         const status = await main({
             argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
             now: () => fixedRunAt,
             projectRoot: project.projectRoot,
-            runSfWithOutputCommand() {
-                orgCalls += 1;
-                throw new Error('組織へ接続してはいけません');
-            },
+            runSfWithOutputCommand: orgCommand.command,
             writeLine: (line) => lines.push(line)
         });
         const outputDirectory = path.join(
@@ -677,37 +741,104 @@ test('CLIは組織へ接続せずローカルmetadataとレポートを生成す
         const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
 
         assert.equal(status, 0);
-        assert.equal(orgCalls, 0);
+        assert.equal(orgCommand.calls.length, 2);
+        assert.deepEqual(orgCommand.calls[0], ['config', 'get', 'target-org', '--json']);
+        assert.deepEqual(orgCommand.calls[1], ['org', 'list', '--json', '--skip-connection-status']);
+        assert.deepEqual(prompt.getQuestions(), [
+            'この接続組織を確認し、1件のローカルProfile XMLからPermission Set metadataを生成しますか？ [y/N]: '
+        ]);
+        assert.equal(prompt.isClosed(), true);
         assert.equal(fs.existsSync(xmlPath), true);
         assert.equal(report.schemaVersion, 2);
         assert.equal(report.permissionSet.label, 'Platform_Test');
         assert.equal('profileId' in report.source, false);
-        assert.ok(lines.includes('※この変換スクリプトはSalesforce組織へ接続しません。'));
+        assert.ok(lines.includes('接続組織を確認してください。'));
+        assert.ok(lines.includes('※接続組織の情報はPermission Setの変換内容に使用していません。'));
         assert.ok(lines.some((line) => line.startsWith('sf project deploy validate --source-dir')));
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
 });
 
-test('CLIのdry-runは組織接続もファイル生成も行わない', async () => {
-    // dry-runで変換結果だけを表示し、出力フォルダを作らないことを確認する。
+test('CLIのdry-runもDefault Target Orgを確認してファイルを生成しない', async () => {
+    // 認証済みSandboxと承認回答を用意してdry-runを実行する。
     const project = createTestProject();
-    let orgCalls = 0;
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
 
     try {
         const status = await main({
             argv: ['--objects-dir', fixtureObjectsDirectory, '--dry-run'],
+            createPrompt: prompt.factory,
             now: () => fixedRunAt,
             projectRoot: project.projectRoot,
-            runSfWithOutputCommand() {
-                orgCalls += 1;
-            },
+            runSfWithOutputCommand: orgCommand.command,
             writeLine() {}
         });
         const outputDirectory = path.join(project.projectRoot, 'scripts/permissionset-conversion/outputs');
 
         assert.equal(status, 0);
-        assert.equal(orgCalls, 0);
+        assert.equal(orgCommand.calls.length, 2);
+        assert.deepEqual(prompt.getQuestions(), [
+            'この接続組織を確認し、1件のローカルProfile XMLの変換結果をdry-runで確認しますか？ [y/N]: '
+        ]);
+        assert.equal(prompt.isClosed(), true);
+        assert.equal(fs.existsSync(outputDirectory), false);
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('接続組織を承認しない場合はPermission Setを生成しない', async () => {
+    // 認証済みSandboxに対する確認を拒否する回答を用意する。
+    const project = createTestProject();
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['n']);
+
+    try {
+        // 接続組織の表示後に拒否し、出力を開始しないことを確認する。
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine() {}
+        });
+        const outputDirectory = path.join(project.projectRoot, 'scripts/permissionset-conversion/outputs');
+
+        assert.equal(status, 0);
+        assert.equal(orgCommand.calls.length, 2);
+        assert.equal(prompt.getQuestions().length, 1);
+        assert.equal(prompt.isClosed(), true);
+        assert.equal(fs.existsSync(outputDirectory), false);
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('本番環境の追加確認を承認しない場合はPermission Setを生成しない', async () => {
+    // 本番環境の通常確認だけを承認し、追加確認を拒否する回答を用意する。
+    const project = createTestProject();
+    const orgCommand = createOrgCommand(orgTypes.PRODUCTION);
+    const prompt = createPrompt(['y', 'n']);
+
+    try {
+        // 二段階目で拒否し、本番環境向けの出力を開始しないことを確認する。
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine() {}
+        });
+        const outputDirectory = path.join(project.projectRoot, 'scripts/permissionset-conversion/outputs');
+
+        assert.equal(status, 0);
+        assert.deepEqual(prompt.getQuestions(), [
+            'この接続組織を確認し、1件のローカルProfile XMLからPermission Set metadataを生成しますか？ [y/N]: ',
+            '本番環境です。1件のローカルProfile XMLからPermission Set metadataを生成してよろしいですか？ [y/N]: '
+        ]);
+        assert.equal(prompt.isClosed(), true);
         assert.equal(fs.existsSync(outputDirectory), false);
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
@@ -724,12 +855,16 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
         fileName: 'Unknown.profile-meta.xml',
         profileXml
     });
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
 
     try {
         const status = await main({
             argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
             now: () => fixedRunAt,
             projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
             writeLine() {}
         });
         const outputDirectory = path.join(

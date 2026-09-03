@@ -4,6 +4,9 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { createApprovalPrompt, isApproved } = require('../common/approval');
+const { runSfWithOutput } = require('../common/run-command');
+const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../common/target-org');
 const { convertProfile, parseProfileXml } = require('./internal/profile-converter');
 const {
     createPermissionSetApiName,
@@ -21,6 +24,7 @@ const {
 const repoRoot = path.resolve(__dirname, '../..');
 const defaultConfigRelativePath = 'scripts/permissionset-conversion/profile-paths.config.txt';
 const defaultOutputRootRelativePath = 'scripts/permissionset-conversion/outputs';
+const sfCommandTimeoutMs = 120_000;
 
 // 設定内容からコメントと空行を除き、実際のProfileパスだけを取り出す。
 function parseConfiguredProfilePaths(content) {
@@ -461,6 +465,49 @@ function printRunConfiguration({ configuredProfiles, inputPaths, runOutputDirect
     writeLine(`出力先: ${runOutputDirectory}`);
 }
 
+// Default Target Orgの表示後に通常確認と本番環境の追加確認を行う。
+async function confirmRun({ configuredProfileCount, createPrompt, options, orgInfo, writeLine }) {
+    // テストまたは端末の確認入力を共通のpromptへ揃える。
+    const prompt = createApprovalPrompt(createPrompt);
+    // dry-runと通常生成で実際に行うローカル処理を明示する。
+    const requestedOperation = options.dryRun
+        ? `${configuredProfileCount}件のローカルProfile XMLの変換結果をdry-runで確認`
+        : `${configuredProfileCount}件のローカルProfile XMLからPermission Set metadataを生成`;
+
+    try {
+        // 表示済みの接続組織を確認した利用者だけが処理を続行できるようにする。
+        const targetAnswer = await prompt.question(`この接続組織を確認し、${requestedOperation}しますか？ [y/N]: `);
+
+        // yまたはY以外ではローカル生成も開始しない。
+        if (!isApproved(targetAnswer)) {
+            writeLine('ProfileからPermission Setへの変換を中止しました。');
+            return false;
+        }
+
+        // 本番環境以外は通常確認だけで処理を続行する。
+        if (orgInfo.type !== orgTypes.PRODUCTION) {
+            return true;
+        }
+
+        // 本番環境であることを明示した別の質問で誤操作を再確認する。
+        const environmentAnswer = await prompt.question(
+            `${orgInfo.typeLabel}です。${requestedOperation}してよろしいですか？ [y/N]: `
+        );
+
+        // 本番環境の追加確認がない場合も生成を開始しない。
+        if (!isApproved(environmentAnswer)) {
+            writeLine('ProfileからPermission Setへの変換を中止しました。');
+            return false;
+        }
+
+        // 両方の確認を通過した本番環境だけ処理を許可する。
+        return true;
+    } finally {
+        // 承認、中止、入力例外のすべてでreadlineを終了する。
+        prompt.close();
+    }
+}
+
 // Profile XMLを一度解析し、最終変換で再利用する入力と出力パスを準備する。
 function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileSync, runOutputDirectory }) {
     return profiles.map((profile) => {
@@ -499,7 +546,7 @@ function createConversionPlans({ preparedProfiles }) {
     }));
 }
 
-// 変換中は組織へ接続せず、利用者が後から検証、デプロイ、保存結果確認するコマンドを表示する。
+// 利用者が後から対象組織を選び、検証、デプロイ、保存結果確認するコマンドを表示する。
 function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine('');
     writeLine('Production／Developer Editionのvalidateコマンド:');
@@ -514,7 +561,7 @@ function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine('デプロイ後の保存結果確認コマンド:');
     writeLine(getVerificationCommand({ projectRoot, sourceDirectory }));
     writeLine('※<alias>を対象組織のSalesforce CLI aliasへ置き換えてください。');
-    writeLine('※この変換スクリプトはSalesforce組織へ接続しません。');
+    writeLine('※接続組織の情報はPermission Setの変換内容に使用していません。');
 }
 
 // 全変換結果を必要に応じて書き込み、画面表示して要修正件数を返す。
@@ -536,11 +583,13 @@ function processConversionPlans({ existsSync, mkdirSync, options, plans, writeFi
 function resolveMainDependencies(overrides) {
     return {
         argv: process.argv.slice(2),
+        createPrompt: undefined,
         existsSync: fs.existsSync,
         mkdirSync: fs.mkdirSync,
         now: () => new Date(),
         projectRoot: repoRoot,
         readFileSync: fs.readFileSync,
+        runSfWithOutputCommand: runSfWithOutput,
         statSync: fs.statSync,
         writeFileSync: fs.writeFileSync,
         writeLine: console.log,
@@ -548,10 +597,21 @@ function resolveMainDependencies(overrides) {
     };
 }
 
-// ローカルProfile XMLだけを読み、組織へ接続せずPermission Set候補を生成する。
+// 接続組織を確認した後、ローカルProfile XMLだけからPermission Set候補を生成する。
 async function main(overrides = {}) {
-    const { argv, existsSync, mkdirSync, now, projectRoot, readFileSync, statSync, writeFileSync, writeLine } =
-        resolveMainDependencies(overrides);
+    const {
+        argv,
+        createPrompt,
+        existsSync,
+        mkdirSync,
+        now,
+        projectRoot,
+        readFileSync,
+        runSfWithOutputCommand,
+        statSync,
+        writeFileSync,
+        writeLine
+    } = resolveMainDependencies(overrides);
     const options = parseArguments(argv);
 
     if (options.help) {
@@ -572,6 +632,31 @@ async function main(overrides = {}) {
     validateInputDirectory({ existsSync, inputPaths, statSync });
     printRunConfiguration({ configuredProfiles, inputPaths, runOutputDirectory, writeLine });
 
+    // 組織確認用CLIが停止し続けないよう共通の時間上限を適用する。
+    const runOrgInfoCommand = (args, workingDirectory) =>
+        runSfWithOutputCommand(args, workingDirectory, undefined, undefined, sfCommandTimeoutMs);
+    // CLI設定から引数指定のないDefault Target Orgを取得する。
+    const targetOrg = getDefaultTargetOrg({ repoRoot: projectRoot, runSfCommand: runOrgInfoCommand });
+    // 認証済み組織一覧から接続組織の表示情報と種別を確定する。
+    const orgInfo = getTargetOrgInfo({ repoRoot: projectRoot, runSfCommand: runOrgInfoCommand, targetOrg });
+
+    // 変換前に接続組織を利用者へ表示する。
+    printTargetOrgInfo(orgInfo, writeLine);
+    // 通常確認と必要な本番環境の追加確認を実行する。
+    const approved = await confirmRun({
+        configuredProfileCount: configuredProfiles.length,
+        createPrompt,
+        options,
+        orgInfo,
+        writeLine
+    });
+
+    // 利用者が承認しなかった場合はファイルを生成せず正常終了する。
+    if (!approved) {
+        return 0;
+    }
+
+    // 組織情報を渡さず、ローカルProfileと関連metadataだけを変換入力にする。
     const preparedProfiles = prepareProfileConversions({
         existsSync,
         inputPaths,
@@ -614,6 +699,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+    confirmRun,
     defaultConfigRelativePath,
     defaultOutputRootRelativePath,
     formatRunTimestamp,
