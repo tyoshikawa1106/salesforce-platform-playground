@@ -4,7 +4,7 @@
 
 設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。実行前にSalesforce CLIのDefault Target Orgと認証済み組織情報を表示して利用者へ確認しますが、変換にはProfile XMLと同じsource treeにある関連CustomField metadataだけを使用します。
 
-生成物は日時別フォルダへ保存します。生成後は、利用者が対象組織を選んで実行するvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
+生成物は日時別フォルダへ保存します。生成後は、Default Target Orgを対象とするvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
 
 ## 目的・対象外
 
@@ -119,33 +119,33 @@ scripts/permissionset-conversion/outputs/<YYYYMMDD-HHmmss-SSS>/
 
 ## 後続の手動操作
 
-全XMLを生成できた場合、次のコマンドを実際の出力パス付きで表示します。`<alias>`は利用者が対象組織のSalesforce CLI aliasへ置き換えます。
+全XMLを生成できた場合、次のコマンドを実際の出力パス付きで表示します。すべてSalesforce CLIのDefault Target Orgを対象にします。
 
 ProductionまたはDeveloper Editionでは次を使用します。
 
 ```sh
-sf project deploy validate --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30 --target-org <alias>
+sf project deploy validate --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30
 ```
 
 SandboxまたはScratch Orgでは次を使用します。
 
 ```sh
-sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30 --target-org <alias>
+sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30
 ```
 
 内容と対象組織を確認した後、通常deployを手動実行します。
 
 ```sh
-sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30 --target-org <alias>
+sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
 ```
 
 デプロイ後の保存値を生成XMLと比較します。
 
 ```sh
-npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --target-org <alias>
+npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets
 ```
 
-保存結果確認スクリプトは、明示された`--target-org`から生成フォルダのPermission Set API名をexact-nameで取得します。繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
+保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。`--target-org`は受け付けません。繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
 保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
 
 ## エラー処理
@@ -187,7 +187,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
 - 保存後の意味差分を検出し、変換結果へ反映せず比較レポートへ保存する
 
-単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者が対象組織を明示して実行する後続工程で確認します。
+単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者がDefault Target Orgを確認して実行する後続工程で確認します。
 
 ## 制約・確認事項
 

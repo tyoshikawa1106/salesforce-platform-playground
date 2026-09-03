@@ -546,7 +546,7 @@ function createConversionPlans({ preparedProfiles }) {
     }));
 }
 
-// 利用者が後から対象組織を選び、検証、デプロイ、保存結果確認するコマンドを表示する。
+// 利用者が後からDefault Target Orgを検証、デプロイ、保存結果確認するコマンドを表示する。
 function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine('');
     writeLine('Production／Developer Editionのvalidateコマンド:');
@@ -560,7 +560,7 @@ function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine('');
     writeLine('デプロイ後の保存結果確認コマンド:');
     writeLine(getVerificationCommand({ projectRoot, sourceDirectory }));
-    writeLine('※<alias>を対象組織のSalesforce CLI aliasへ置き換えてください。');
+    writeLine('※各コマンドはSalesforce CLIのDefault Target Orgを対象にします。');
     writeLine('※接続組織の情報はPermission Setの変換内容に使用していません。');
 }
 

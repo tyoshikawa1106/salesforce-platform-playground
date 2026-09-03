@@ -893,19 +893,19 @@ test('生成後の手動validate、deploy、保存結果確認コマンドを限
 
     assert.equal(
         getProductionValidationCommand({ projectRoot: repoRoot, sourceDirectory }),
-        `sf project deploy validate --source-dir ${relative} --test-level RunLocalTests --wait 30 --target-org <alias>`
+        `sf project deploy validate --source-dir ${relative} --test-level RunLocalTests --wait 30`
     );
     assert.equal(
         getSandboxValidationCommand({ projectRoot: repoRoot, sourceDirectory }),
-        `sf project deploy start --dry-run --source-dir ${relative} --test-level RunLocalTests --wait 30 --target-org <alias>`
+        `sf project deploy start --dry-run --source-dir ${relative} --test-level RunLocalTests --wait 30`
     );
     assert.equal(
         getDeploymentCommand({ projectRoot: repoRoot, sourceDirectory }),
-        `sf project deploy start --source-dir ${relative} --wait 30 --target-org <alias>`
+        `sf project deploy start --source-dir ${relative} --wait 30`
     );
     assert.equal(
         getVerificationCommand({ projectRoot: repoRoot, sourceDirectory }),
-        `npm run sf:verify:permissionsets -- --source-dir ${relative} --target-org <alias>`
+        `npm run sf:verify:permissionsets -- --source-dir ${relative}`
     );
     assert.throws(
         () => getDeploymentCommand({ projectRoot: repoRoot, sourceDirectory: '/tmp/permissionsets' }),

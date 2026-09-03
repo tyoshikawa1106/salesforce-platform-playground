@@ -1,10 +1,10 @@
-// 実行コマンド: npm run sf:verify:permissionsets -- --source-dir <生成フォルダ>/permissionsets --target-org <alias>
+// 実行コマンド: npm run sf:verify:permissionsets -- --source-dir <生成フォルダ>/permissionsets
 // 用途: 手動deploy後のPermission Setを再取得し、生成XMLとの意味的な差分を検出する。
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { runSfWithOutput } = require('../common/run-command');
-const { getTargetOrgInfo, printTargetOrgInfo } = require('../common/target-org');
+const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo } = require('../common/target-org');
 const {
     comparePermissionSetDirectories,
     listPermissionSetApiNames,
@@ -14,13 +14,10 @@ const {
 const repoRoot = path.resolve(__dirname, '../..');
 const outputsRootRelativePath = 'scripts/permissionset-conversion/outputs';
 
-// 保存結果確認で受け付ける生成フォルダと接続先aliasだけを解析する。
+// 保存結果確認で受け付ける生成フォルダだけを解析する。
 function parseArguments(argv) {
     const options = {};
-    const valueOptions = new Map([
-        ['--source-dir', 'sourceDirectory'],
-        ['--target-org', 'targetOrg']
-    ]);
+    const valueOptions = new Map([['--source-dir', 'sourceDirectory']]);
 
     for (let index = 0; index < argv.length; index += 1) {
         const argument = argv[index];
@@ -156,14 +153,8 @@ async function main(overrides = {}) {
     const options = parseArguments(argv);
 
     if (options.help) {
-        writeLine(
-            'npm run sf:verify:permissionsets -- --source-dir <生成フォルダ>/permissionsets --target-org <alias>'
-        );
+        writeLine('npm run sf:verify:permissionsets -- --source-dir <生成フォルダ>/permissionsets');
         return 0;
-    }
-
-    if (typeof options.targetOrg !== 'string' || options.targetOrg.trim() === '') {
-        throw new Error('--target-orgを指定してください。');
     }
 
     const sourceDirectory = resolveSourceDirectory({
@@ -173,10 +164,11 @@ async function main(overrides = {}) {
         statSync
     });
     const apiNames = listPermissionSetApiNames(sourceDirectory);
+    const targetOrg = getDefaultTargetOrg({ repoRoot: projectRoot, runSfCommand: runSfWithOutputCommand });
     const orgInfo = getTargetOrgInfo({
         repoRoot: projectRoot,
         runSfCommand: runSfWithOutputCommand,
-        targetOrg: options.targetOrg
+        targetOrg
     });
     printTargetOrgInfo(orgInfo, writeLine);
     const verificationDirectory = resolveVerificationDirectory({ existsSync, now, sourceDirectory });
@@ -188,8 +180,7 @@ async function main(overrides = {}) {
         apiNames,
         outputDirectory: retrievedDirectory,
         projectRoot,
-        runSfWithOutputCommand,
-        targetOrg: options.targetOrg
+        runSfWithOutputCommand
     });
     const comparison = comparePermissionSetDirectories({
         retrievedDirectory: path.join(retrievedDirectory, 'permissionsets'),
@@ -200,7 +191,7 @@ async function main(overrides = {}) {
         schemaVersion: 1,
         checkedAt,
         sourceDirectory: path.relative(projectRoot, sourceDirectory).split(path.sep).join('/'),
-        targetOrg: options.targetOrg,
+        targetOrg,
         summary: {
             permissionSets: comparison.permissionSets,
             equal: comparison.equal,

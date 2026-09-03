@@ -34,14 +34,14 @@ function createComparisonProject() {
 }
 
 test('保存結果確認の引数を限定する', () => {
-    // 必須の生成フォルダと組織aliasを解析する。
-    assert.deepEqual(parseArguments(['--source-dir', 'outputs/run/permissionsets', '--target-org', 'target-org-a']), {
-        sourceDirectory: 'outputs/run/permissionsets',
-        targetOrg: 'target-org-a'
+    // 必須の生成フォルダだけを解析する。
+    assert.deepEqual(parseArguments(['--source-dir', 'outputs/run/permissionsets']), {
+        sourceDirectory: 'outputs/run/permissionsets'
     });
-    // 未対応引数と同一引数の重複を拒否する。
+    // 未対応引数、廃止した組織引数、同一引数の重複を拒否する。
     assert.throws(() => parseArguments(['--unknown']), /未対応の引数/);
-    assert.throws(() => parseArguments(['--target-org', 'one', '--target-org', 'two']), /1回だけ指定/);
+    assert.throws(() => parseArguments(['--target-org', 'target-org-a']), /未対応の引数/);
+    assert.throws(() => parseArguments(['--source-dir', 'one', '--source-dir', 'two']), /1回だけ指定/);
 });
 
 test('保存結果確認は日時別outputs直下のpermissionsetsだけを受け付ける', () => {
@@ -72,17 +72,16 @@ test('retrieveは生成したPermission Set API名だけを完全一致で指定
     // 2件のPermission Setを指定してSalesforce CLI引数を作る。
     const args = buildRetrieveArgs({
         apiNames: ['Admin', 'Platform_User'],
-        outputDirectory: '/tmp/retrieved',
-        targetOrg: 'target-org-a'
+        outputDirectory: '/tmp/retrieved'
     });
 
-    // exact-name metadata指定、接続先、再取得先が引数に含まれることを確認する。
+    // exact-name metadata指定と再取得先を含み、組織引数を含まないことを確認する。
     assert.deepEqual(args.slice(0, 3), ['project', 'retrieve', 'start']);
     assert.deepEqual(
         args.filter((argument) => argument.startsWith('PermissionSet:')),
         ['PermissionSet:Admin', 'PermissionSet:Platform_User']
     );
-    assert.equal(args[args.indexOf('--target-org') + 1], 'target-org-a');
+    assert.equal(args.includes('--target-org'), false);
     assert.equal(args[args.indexOf('--output-dir') + 1], '/tmp/retrieved');
 });
 
@@ -175,16 +174,21 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
     try {
         // 組織一覧とPermission Set retrieveを返すSalesforce CLI stubで入口を実行する。
         const status = await main({
-            argv: [
-                '--source-dir',
-                path.relative(project.projectRoot, project.sourceDirectory),
-                '--target-org',
-                'target-org-a'
-            ],
+            argv: ['--source-dir', path.relative(project.projectRoot, project.sourceDirectory)],
             now: () => fixedNow,
             projectRoot: project.projectRoot,
             runSfWithOutputCommand(args) {
                 calls.push(args);
+
+                if (args[0] === 'config') {
+                    return {
+                        status: 0,
+                        stdout: JSON.stringify({
+                            status: 0,
+                            result: [{ name: 'target-org', success: true, value: 'target-org-a' }]
+                        })
+                    };
+                }
 
                 if (args[0] === 'org') {
                     const org = {
@@ -217,8 +221,10 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
 
         // 一致で終了コード0を返し、retrieve対象をexact-nameで指定する。
         assert.equal(status, 0);
-        assert.equal(calls.length, 2);
-        assert.equal(calls[1].includes('PermissionSet:Example'), true);
+        assert.equal(calls.length, 3);
+        assert.deepEqual(calls[0], ['config', 'get', 'target-org', '--json']);
+        assert.equal(calls[2].includes('PermissionSet:Example'), true);
+        assert.equal(calls[2].includes('--target-org'), false);
         assert.equal(outputLines.includes('保存結果確認: 一致1件、差異あり0件、差分0件'), true);
         // 日時別の比較レポートへ一致結果を保存する。
         const verificationDirectory = resolveVerificationDirectory({
@@ -227,6 +233,7 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
             sourceDirectory: project.sourceDirectory
         });
         const report = JSON.parse(fs.readFileSync(path.join(verificationDirectory, 'comparison-report.json'), 'utf8'));
+        assert.equal(report.targetOrg, 'target-org-a');
         assert.deepEqual(report.summary, { permissionSets: 1, equal: 1, different: 0, differences: 0 });
     } finally {
         // テストで作成した一時プロジェクトを削除する。
@@ -248,15 +255,20 @@ test('CLIは保存時の差分を比較レポートだけへ保存する', async
     try {
         // 組織一覧と編集権限が縮小されたretrieve結果を返すCLI stubで入口を実行する。
         const status = await main({
-            argv: [
-                '--source-dir',
-                path.relative(project.projectRoot, project.sourceDirectory),
-                '--target-org',
-                'target-org-b'
-            ],
+            argv: ['--source-dir', path.relative(project.projectRoot, project.sourceDirectory)],
             now: () => fixedNow,
             projectRoot: project.projectRoot,
             runSfWithOutputCommand(args) {
+                if (args[0] === 'config') {
+                    return {
+                        status: 0,
+                        stdout: JSON.stringify({
+                            status: 0,
+                            result: [{ name: 'target-org', success: true, value: 'target-org-b' }]
+                        })
+                    };
+                }
+
                 if (args[0] === 'org') {
                     const org = {
                         alias: 'target-org-b',
@@ -298,6 +310,7 @@ test('CLIは保存時の差分を比較レポートだけへ保存する', async
             sourceDirectory: project.sourceDirectory
         });
         const report = JSON.parse(fs.readFileSync(path.join(verificationDirectory, 'comparison-report.json'), 'utf8'));
+        assert.equal(report.targetOrg, 'target-org-b');
         assert.deepEqual(report.summary, { permissionSets: 1, equal: 0, different: 1, differences: 1 });
         assert.deepEqual(report.results[0].differences[0], {
             element: 'fieldPermissions',

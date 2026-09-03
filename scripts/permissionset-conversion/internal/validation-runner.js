@@ -23,28 +23,28 @@ function getRelativeSourceDirectory({ projectRoot, sourceDirectory }) {
 function getProductionValidationCommand({ projectRoot, sourceDirectory }) {
     const normalizedSourceDirectory = getRelativeSourceDirectory({ projectRoot, sourceDirectory });
 
-    return `sf project deploy validate --source-dir ${normalizedSourceDirectory} --test-level RunLocalTests --wait 30 --target-org <alias>`;
+    return `sf project deploy validate --source-dir ${normalizedSourceDirectory} --test-level RunLocalTests --wait 30`;
 }
 
 // SandboxまたはScratch Orgで利用する手動dry-runコマンドを作る。
 function getSandboxValidationCommand({ projectRoot, sourceDirectory }) {
     const normalizedSourceDirectory = getRelativeSourceDirectory({ projectRoot, sourceDirectory });
 
-    return `sf project deploy start --dry-run --source-dir ${normalizedSourceDirectory} --test-level RunLocalTests --wait 30 --target-org <alias>`;
+    return `sf project deploy start --dry-run --source-dir ${normalizedSourceDirectory} --test-level RunLocalTests --wait 30`;
 }
 
-// 今回生成したフォルダだけを選択した組織へ手動deployするコマンドを作る。
+// 今回生成したフォルダだけをDefault Target Orgへ手動deployするコマンドを作る。
 function getDeploymentCommand({ projectRoot, sourceDirectory }) {
     const normalizedSourceDirectory = getRelativeSourceDirectory({ projectRoot, sourceDirectory });
 
-    return `sf project deploy start --source-dir ${normalizedSourceDirectory} --wait 30 --target-org <alias>`;
+    return `sf project deploy start --source-dir ${normalizedSourceDirectory} --wait 30`;
 }
 
-// 手動deploy後に組織へ保存されたPermission Setを再取得して比較するコマンドを作る。
-function getVerificationCommand({ projectRoot, sourceDirectory, targetOrg = '<alias>' }) {
+// 手動deploy後にDefault Target Orgへ保存されたPermission Setを再取得して比較するコマンドを作る。
+function getVerificationCommand({ projectRoot, sourceDirectory }) {
     const normalizedSourceDirectory = getRelativeSourceDirectory({ projectRoot, sourceDirectory });
 
-    return `npm run sf:verify:permissionsets -- --source-dir ${normalizedSourceDirectory} --target-org ${targetOrg}`;
+    return `npm run sf:verify:permissionsets -- --source-dir ${normalizedSourceDirectory}`;
 }
 
 module.exports = {

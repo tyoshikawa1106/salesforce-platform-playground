@@ -176,15 +176,13 @@ function listPermissionSetApiNames(sourceDirectory, readdirSync = fs.readdirSync
     });
 }
 
-// Salesforce CLIへ完全一致のPermission Setだけを指定するretrieve引数を作る。
-function buildRetrieveArgs({ apiNames, outputDirectory, targetOrg }) {
+// Default Target Orgから完全一致のPermission Setだけを取得するretrieve引数を作る。
+function buildRetrieveArgs({ apiNames, outputDirectory }) {
     return [
         'project',
         'retrieve',
         'start',
         ...apiNames.flatMap((apiName) => ['--metadata', `PermissionSet:${apiName}`]),
-        '--target-org',
-        targetOrg,
         '--output-dir',
         outputDirectory,
         '--wait',
@@ -241,11 +239,10 @@ function retrievePermissionSets({
     outputDirectory,
     projectRoot,
     runSfWithOutputCommand,
-    targetOrg,
     timeout = 35 * 60 * 1_000
 }) {
     const result = runSfWithOutputCommand(
-        buildRetrieveArgs({ apiNames, outputDirectory, targetOrg }),
+        buildRetrieveArgs({ apiNames, outputDirectory }),
         projectRoot,
         undefined,
         50 * 1024 * 1024,
