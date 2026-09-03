@@ -10,6 +10,7 @@
 - `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを開始し、進捗と結果を取得するNodeスクリプト。処理内容は[組織テスト実行スクリプト仕様](../docs/specifications/scripts/org-tests/index.md)を参照する。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
 - `scripts/metadata/destructive/`: Salesforce組織からメタデータを削除するNodeスクリプト。処理フローと表示は[メタデータ削除スクリプト仕様](../docs/specifications/scripts/metadata-deletion/index.md)を参照する。
+- `scripts/permissionset-conversion/`: 設定ファイルに列挙したローカルProfile XMLと関連CustomField metadataだけを使用し、有効な付与権限をProfileごとのPermission Set metadataへ変換するNodeスクリプト。変換処理は組織へ接続せず、生成後のvalidate、dry-run、deploy、保存結果確認は対象組織を明示して手動実行する。処理内容は[Profile権限セット変換スクリプト仕様](../docs/specifications/scripts/permissionset-conversion/index.md)を参照する。
 - `scripts/metadata/retrieve/`: Salesforce CLIに設定されているDefault Target Orgから、スクリプトに定義した順序で分割manifestをretrieveするNodeスクリプト。処理内容は[メタデータ取得スクリプト仕様](../docs/specifications/scripts/metadata-retrieve/index.md)を参照する。
 - `scripts/scratch-org/`: Scratch Orgの準備・削除を行う実行スクリプト。読み込み専用処理は`internal/`、setupから実行する各手順は`steps/`に分ける。処理内容は[Scratch Org管理スクリプト仕様](../docs/specifications/scripts/scratch-org-management/index.md)を参照する。
 
