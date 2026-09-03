@@ -444,6 +444,84 @@ test('Profileで省略されたobjectPermissionsの必須booleanをfalseで補�
     assert.equal(objectPermission.viewAllRecords, 'false');
 });
 
+test('公開ドキュメント管理権限が要求するDocument CRUDを補完する', () => {
+    // ProfileにManagePublicDocumentsだけがあり、依存するDocument権限が省略された状態を再現する。
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const profileXml = baseXml.replace(
+        '</Profile>',
+        '    <userPermissions>\n        <enabled>true</enabled>\n        <name>ManagePublicDocuments</name>\n    </userPermissions>\n</Profile>'
+    );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const documentPermission = toArray(permissionSet.objectPermissions).find(({ object }) => object === 'Document');
+
+    // Metadata APIが要求するDocumentの作成、削除、編集、参照を明示してdeploy可能な形にする。
+    assert.deepEqual(documentPermission, {
+        allowCreate: 'true',
+        allowDelete: 'true',
+        allowEdit: 'true',
+        allowRead: 'true',
+        modifyAllRecords: 'false',
+        object: 'Document',
+        viewAllRecords: 'false'
+    });
+    // Profileに明示されたManagePublicDocuments自体もPermission Setへ維持する。
+    assert.ok(
+        toArray(permissionSet.userPermissions).some(
+            ({ enabled, name }) => enabled === 'true' && name === 'ManagePublicDocuments'
+        )
+    );
+    // 推測ではなくUser Permissionの依存補完として監査レポートへ残す。
+    assert.ok(
+        conversion.report.converted.some(
+            ({ action, name, targetName }) =>
+                action === 'addedDependency' && name === 'ManagePublicDocuments' && targetName === 'Document'
+        )
+    );
+});
+
+test('既存Document権限が不足する場合だけ公開ドキュメント管理の依存権限を追加する', () => {
+    // ProfileにDocumentの参照権限だけが明示されている状態を再現する。
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const profileXml = baseXml.replace(
+        '</Profile>',
+        [
+            '    <objectPermissions>',
+            '        <allowCreate>false</allowCreate>',
+            '        <allowDelete>false</allowDelete>',
+            '        <allowEdit>false</allowEdit>',
+            '        <allowRead>true</allowRead>',
+            '        <modifyAllRecords>false</modifyAllRecords>',
+            '        <object>Document</object>',
+            '        <viewAllRecords>false</viewAllRecords>',
+            '    </objectPermissions>',
+            '    <userPermissions>',
+            '        <enabled>true</enabled>',
+            '        <name>ManagePublicDocuments</name>',
+            '    </userPermissions>',
+            '</Profile>'
+        ].join('\n')
+    );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const documentPermission = toArray(permissionSet.objectPermissions).find(({ object }) => object === 'Document');
+    const dependencyReport = conversion.report.converted.find(
+        ({ action, name }) => action === 'addedDependency' && name === 'ManagePublicDocuments'
+    );
+
+    // 既存の参照権限を維持し、不足する作成、削除、編集だけを追加する。
+    assert.deepEqual(documentPermission, {
+        allowCreate: 'true',
+        allowDelete: 'true',
+        allowEdit: 'true',
+        allowRead: 'true',
+        modifyAllRecords: 'false',
+        object: 'Document',
+        viewAllRecords: 'false'
+    });
+    assert.deepEqual(dependencyReport.addedPermissions, ['allowCreate', 'allowDelete', 'allowEdit']);
+});
+
 test('Profile固有設定と無効権限を監査レポートへ分類する', () => {
     // 代表Profileを変換してProfile残置、無効、未知の分類を確認する。
     const { report } = convertFixture();

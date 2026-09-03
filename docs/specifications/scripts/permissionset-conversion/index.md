@@ -91,6 +91,7 @@ npm run sf:convert:profile
 | `enabled=true`のアクセス権                                | 対応するPermission Set要素へ出力する                                        |
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
 | `objectPermissions`                                       | Profile XMLに存在し、1件以上の`true`を持つオブジェクトだけを出力する        |
+| `ManagePublicDocuments=true`                              | Metadata APIが要求する`Document`の作成・削除・編集・参照権限を補完する      |
 | 省略されたObject Permissionのboolean                      | Permission Setの必須子要素だけ`false`で補完する                             |
 | `fieldPermissions.readable=false`                         | 出力しない                                                                  |
 | ローカルmetadataで必須またはMaster-Detailと確認できる項目 | 出力せず理由を要validateへ記録する                                          |
@@ -181,7 +182,8 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
-- Profile XMLにないObject Permissionを追加しない
+- 明示したUser Permission依存以外では、Profile XMLにないObject Permissionを追加しない
+- `ManagePublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
