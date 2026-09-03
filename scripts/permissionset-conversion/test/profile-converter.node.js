@@ -445,11 +445,11 @@ test('Profileで省略されたobjectPermissionsの必須booleanをfalseで補�
 });
 
 test('公開ドキュメント管理権限が要求するDocument CRUDを補完する', () => {
-    // ProfileにManagePublicDocumentsだけがあり、依存するDocument権限が省略された状態を再現する。
+    // ProfileにEditPublicDocumentsだけがあり、依存するDocument権限が省略された状態を再現する。
     const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
     const profileXml = baseXml.replace(
         '</Profile>',
-        '    <userPermissions>\n        <enabled>true</enabled>\n        <name>ManagePublicDocuments</name>\n    </userPermissions>\n</Profile>'
+        '    <userPermissions>\n        <enabled>true</enabled>\n        <name>EditPublicDocuments</name>\n    </userPermissions>\n</Profile>'
     );
     const conversion = convertFixture(profileXml);
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
@@ -465,17 +465,17 @@ test('公開ドキュメント管理権限が要求するDocument CRUDを補完�
         object: 'Document',
         viewAllRecords: 'false'
     });
-    // Profileに明示されたManagePublicDocuments自体もPermission Setへ維持する。
+    // Profileに明示されたEditPublicDocuments自体もPermission Setへ維持する。
     assert.ok(
         toArray(permissionSet.userPermissions).some(
-            ({ enabled, name }) => enabled === 'true' && name === 'ManagePublicDocuments'
+            ({ enabled, name }) => enabled === 'true' && name === 'EditPublicDocuments'
         )
     );
     // 推測ではなくUser Permissionの依存補完として監査レポートへ残す。
     assert.ok(
         conversion.report.converted.some(
             ({ action, name, targetName }) =>
-                action === 'addedDependency' && name === 'ManagePublicDocuments' && targetName === 'Document'
+                action === 'addedDependency' && name === 'EditPublicDocuments' && targetName === 'Document'
         )
     );
 });
@@ -497,7 +497,7 @@ test('既存Document権限が不足する場合だけ公開ドキュメント管
             '    </objectPermissions>',
             '    <userPermissions>',
             '        <enabled>true</enabled>',
-            '        <name>ManagePublicDocuments</name>',
+            '        <name>EditPublicDocuments</name>',
             '    </userPermissions>',
             '</Profile>'
         ].join('\n')
@@ -506,7 +506,7 @@ test('既存Document権限が不足する場合だけ公開ドキュメント管
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
     const documentPermission = toArray(permissionSet.objectPermissions).find(({ object }) => object === 'Document');
     const dependencyReport = conversion.report.converted.find(
-        ({ action, name }) => action === 'addedDependency' && name === 'ManagePublicDocuments'
+        ({ action, name }) => action === 'addedDependency' && name === 'EditPublicDocuments'
     );
 
     // 既存の参照権限を維持し、不足する作成、削除、編集だけを追加する。
