@@ -104,7 +104,7 @@ const userPermissionObjectDependencies = [
     {
         objectApiName: 'Document',
         requiredPermissions: ['allowCreate', 'allowDelete', 'allowEdit', 'allowRead'],
-        userPermissionName: 'ManagePublicDocuments'
+        userPermissionName: 'EditPublicDocuments'
     }
 ];
 
