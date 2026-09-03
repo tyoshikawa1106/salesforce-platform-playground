@@ -12,7 +12,7 @@ const {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
-    isGuestUserLicense,
+    getExcludedUserLicenseReason,
     profileFileSuffix
 } = require('./internal/profile-resolver');
 const {
@@ -522,12 +522,14 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
         const profileModel = parseProfileXml(profileXml);
         const userLicense = profileModel.profile.userLicense;
 
-        // Guest User Licenseは汎用Permission Setへ移行せず対象外として記録する。
-        if (isGuestUserLicense(userLicense)) {
+        // Permission Setで表現できないUser LicenseはProfile単位で対象外として記録する。
+        const excludedReason = getExcludedUserLicenseReason(userLicense);
+
+        if (excludedReason !== undefined) {
             excludedProfiles.push({
                 profileFullName: profile.fullName,
                 profilePath: profile.configuredPath,
-                reason: 'Guest User Licenseは汎用Permission Setへの移行対象外です。',
+                reason: excludedReason,
                 userLicense
             });
             continue;

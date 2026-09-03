@@ -76,7 +76,7 @@ npm run sf:convert:profile
 2. Default Target Orgを認証済み組織一覧から特定し、Alias、Username、URL、組織種別を表示する。
 3. 利用者へ実行確認を行い、本番環境では追加確認を行う。
 4. Profileファイル名をmetadata fullNameとラベルへ変換し、Profile XMLを1回だけ解析する。
-5. Guest User LicenseのProfileを変換対象外として表示し、残るProfileへ実行単位で一意な仮API名を生成する。
+5. Guest User LicenseとChatter系User LicenseのProfileを変換対象外として表示し、残るProfileへ実行単位で一意な仮API名を生成する。
 6. 有効なアクセス権、項目権限、オブジェクト権限、レコードタイプ、タブを変換する。
 7. Metadata APIで明示が必要な既知の依存権限を補完する。
 8. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
@@ -93,10 +93,12 @@ npm run sf:convert:profile
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
 | User Licenseが`Guest User License`                        | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
+| User Licenseが`Chatter External`または`Chatter Free`      | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
 | `objectPermissions`                                       | Profile XMLに存在し、1件以上の`true`を持つオブジェクトだけを出力する        |
 | `EditHtmlTemplates=true`                                  | Metadata APIが要求する`Document`の参照権限を補完する                        |
 | `EditPublicDocuments=true`                                | Metadata APIが要求する`Document`の作成・削除・編集・参照権限を補完する      |
 | `ViewAllData=true`                                        | `Document`の参照権限と`viewAllRecords=true`を補完する                       |
+| `Entitlement.allowRead=true`                              | Metadata APIが要求する`Account`の参照権限を補完する                         |
 | 省略されたObject Permissionのboolean                      | Permission Setの必須子要素だけ`false`で補完する                             |
 | `fieldPermissions.readable=false`                         | 出力しない                                                                  |
 | ローカルmetadataで必須またはMaster-Detailと確認できる項目 | 出力せず理由を要validateへ記録する                                          |
@@ -193,13 +195,14 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - `EditPublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
 - `EditHtmlTemplates`からMetadata APIが要求する`Document`参照権限だけを補完する
 - `ViewAllData`から`Document`の参照権限と全レコード参照権限だけを重複なく補完する
+- `Entitlement`の参照権限から`Account`の参照権限だけを重複なく補完する
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
 - Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、一意なラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
 - 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
-- Guest User LicenseのProfileだけを除外し、生成対象へ連続するProfile連番を付ける
+- Guest User LicenseとChatter系User LicenseのProfileを除外し、生成対象へ連続するProfile連番を付ける
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
 - validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする

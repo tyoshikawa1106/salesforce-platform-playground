@@ -6,6 +6,7 @@ const { validatePermissionSetApiName } = require('./profile-converter');
 const profileFileSuffix = '.profile-meta.xml';
 const maxUserLicenseApiNameLength = 32;
 const guestUserLicenseKeys = new Set(['guestuserlicense', 'guestuserlicence']);
+const chatterUserLicenseKeys = new Set(['chatterexternal', 'chatterfree']);
 
 // Salesforce source形式のpercent encodingを1回だけ戻し、論理fullNameとして正規化する。
 function decodeProfileFullName(encodedName, sourceDescription) {
@@ -64,6 +65,32 @@ function isGuestUserLicense(userLicense) {
     return guestUserLicenseKeys.has(normalizedLicense);
 }
 
+// Permission Setでアプリケーション権限を保持できないChatter系User Licenseを表記差を除いて判定する。
+function isChatterUserLicense(userLicense) {
+    if (typeof userLicense !== 'string') {
+        return false;
+    }
+
+    const normalizedLicense = userLicense
+        .normalize('NFKC')
+        .replace(/[^A-Za-z]/gu, '')
+        .toLowerCase();
+    return chatterUserLicenseKeys.has(normalizedLicense);
+}
+
+// 汎用Permission Setへの変換対象外となるUser Licenseの理由を返す。
+function getExcludedUserLicenseReason(userLicense) {
+    if (isGuestUserLicense(userLicense)) {
+        return 'Guest User Licenseは汎用Permission Setへの移行対象外です。';
+    }
+
+    if (isChatterUserLicense(userLicense)) {
+        return 'Chatter系User Licenseは汎用Permission Setへの移行対象外です。';
+    }
+
+    return undefined;
+}
+
 // User License、実行日時、Profile連番からデプロイ後の確認用の一意な仮API名を作る。
 function createTemporaryPermissionSetApiName({ runIdentifier, sequence, userLicense }) {
     if (typeof runIdentifier !== 'string' || !/^\d{8}-\d{6}-\d{3}(?:-\d{4})?$/u.test(runIdentifier)) {
@@ -117,6 +144,8 @@ module.exports = {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
+    getExcludedUserLicenseReason,
+    isChatterUserLicense,
     isGuestUserLicense,
     maxUserLicenseApiNameLength,
     normalizeUserLicenseForApiName,

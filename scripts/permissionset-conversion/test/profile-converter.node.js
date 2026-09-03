@@ -23,6 +23,8 @@ const {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
+    getExcludedUserLicenseReason,
+    isChatterUserLicense,
     isGuestUserLicense,
     maxUserLicenseApiNameLength,
     normalizeUserLicenseForApiName
@@ -622,6 +624,91 @@ test('Documentの全レコード参照権限が既にある場合は依存権限
     );
 });
 
+test('Entitlementの参照権限が要求するAccountの参照権限を補完する', () => {
+    // ProfileにEntitlementの参照権限だけがあり、依存するAccount権限が省略された状態を再現する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '</Profile>',
+            [
+                '    <objectPermissions>',
+                '        <allowCreate>false</allowCreate>',
+                '        <allowDelete>false</allowDelete>',
+                '        <allowEdit>false</allowEdit>',
+                '        <allowRead>true</allowRead>',
+                '        <modifyAllRecords>false</modifyAllRecords>',
+                '        <object>Entitlement</object>',
+                '        <viewAllRecords>false</viewAllRecords>',
+                '    </objectPermissions>',
+                '</Profile>'
+            ].join('\n')
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const accountPermission = toArray(permissionSet.objectPermissions).find(({ object }) => object === 'Account');
+    const entitlementPermission = toArray(permissionSet.objectPermissions).find(
+        ({ object }) => object === 'Entitlement'
+    );
+    const dependencyReport = conversion.report.converted.find(
+        ({ action, name, targetName }) =>
+            action === 'addedDependency' && name === 'Entitlement' && targetName === 'Account'
+    );
+
+    // Entitlementの参照権限を維持し、Metadata APIが要求するAccountの参照権限を追加する。
+    assert.equal(entitlementPermission.allowRead, 'true');
+    assert.deepEqual(accountPermission, {
+        allowCreate: 'false',
+        allowDelete: 'false',
+        allowEdit: 'false',
+        allowRead: 'true',
+        modifyAllRecords: 'false',
+        object: 'Account',
+        viewAllRecords: 'false'
+    });
+    assert.deepEqual(dependencyReport.addedPermissions, ['allowRead']);
+});
+
+test('Accountの参照権限が既にある場合はEntitlementの依存権限を重複追加しない', () => {
+    // ProfileにEntitlementとAccountの参照権限が両方ある状態を再現する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '</Profile>',
+            [
+                '    <objectPermissions>',
+                '        <allowCreate>false</allowCreate>',
+                '        <allowDelete>false</allowDelete>',
+                '        <allowEdit>false</allowEdit>',
+                '        <allowRead>true</allowRead>',
+                '        <modifyAllRecords>false</modifyAllRecords>',
+                '        <object>Account</object>',
+                '        <viewAllRecords>false</viewAllRecords>',
+                '    </objectPermissions>',
+                '    <objectPermissions>',
+                '        <allowCreate>false</allowCreate>',
+                '        <allowDelete>false</allowDelete>',
+                '        <allowEdit>false</allowEdit>',
+                '        <allowRead>true</allowRead>',
+                '        <modifyAllRecords>false</modifyAllRecords>',
+                '        <object>Entitlement</object>',
+                '        <viewAllRecords>false</viewAllRecords>',
+                '    </objectPermissions>',
+                '</Profile>'
+            ].join('\n')
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const accountPermissions = toArray(permissionSet.objectPermissions).filter(({ object }) => object === 'Account');
+
+    // 既存のAccount参照権限を維持し、追加依存のレポートは作らない。
+    assert.equal(accountPermissions.length, 1);
+    assert.equal(accountPermissions[0].allowRead, 'true');
+    assert.equal(
+        conversion.report.converted.some(({ action, name }) => action === 'addedDependency' && name === 'Entitlement'),
+        false
+    );
+});
+
 test('Profile固有設定と無効権限を監査レポートへ分類する', () => {
     // 代表Profileを変換してProfile残置、無効、未知の分類を確認する。
     const { report } = convertFixture();
@@ -892,10 +979,20 @@ test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラ�
     );
     // User License内のアンダースコアも区切りとして残さない。
     assert.equal(normalizeUserLicenseForApiName('Salesforce_Platform'), 'SalesforcePlatform');
-    // Guest User Licenseだけを汎用Permission Setの移行対象外として判定する。
+    // Guest User Licenseを汎用Permission Setの移行対象外として判定する。
     assert.equal(isGuestUserLicense('Guest User License'), true);
     assert.equal(isGuestUserLicense('GuestUserLicence'), true);
     assert.equal(isGuestUserLicense('Field Service Guest User'), false);
+    // Chatter ExternalとChatter Freeを表記差にかかわらず移行対象外として判定する。
+    assert.equal(isChatterUserLicense('Chatter External'), true);
+    assert.equal(isChatterUserLicense('Chatter_Free'), true);
+    assert.equal(isChatterUserLicense('Chatter Only'), false);
+    // User Licenseごとに利用者へ表示する対象外理由を確定する。
+    assert.equal(
+        getExcludedUserLicenseReason('Chatter Free'),
+        'Chatter系User Licenseは汎用Permission Setへの移行対象外です。'
+    );
+    assert.equal(getExcludedUserLicenseReason('Salesforce Platform'), undefined);
     // Profile metadata fullNameへ実行識別子と連番を加えて表示ラベルも一意にする。
     assert.equal(
         createPermissionSetLabel({
@@ -1248,6 +1345,63 @@ test('Guest User LicenseのProfileを除外し、生成対象だけへ連番を�
         assert.ok(lines.includes('・Profile Metadata Name: Guest_Test'));
         assert.ok(lines.includes('・理由: Guest User Licenseは汎用Permission Setへの移行対象外です。'));
         assert.ok(lines.includes('Permission Set metadata生成結果: 生成1件、対象外1件、要修正0件'));
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('Chatter系User LicenseのProfileを除外し、通常Profileだけを生成する', async () => {
+    // Chatter External、Chatter Free、通常Profileを同じ実行へ設定する。
+    const chatterExternalPath = 'force-app/main/default/profiles/Chatter_External.profile-meta.xml';
+    const chatterFreePath = 'force-app/main/default/profiles/Chatter_Free.profile-meta.xml';
+    const platformProfilePath = 'force-app/main/default/profiles/Platform_Test.profile-meta.xml';
+    const baseProfileXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const chatterExternalXml = baseProfileXml.replace(
+        '<userLicense>Salesforce Platform</userLicense>',
+        '<userLicense>Chatter External</userLicense>'
+    );
+    const chatterFreeXml = baseProfileXml.replace(
+        '<userLicense>Salesforce Platform</userLicense>',
+        '<userLicense>Chatter Free</userLicense>'
+    );
+    const project = createTestProject({
+        configLines: [chatterExternalPath, chatterFreePath, platformProfilePath],
+        fileName: 'Chatter_External.profile-meta.xml',
+        profileXml: chatterExternalXml
+    });
+    fs.writeFileSync(path.join(project.projectRoot, chatterFreePath), chatterFreeXml, 'utf8');
+    fs.writeFileSync(path.join(project.projectRoot, platformProfilePath), baseProfileXml, 'utf8');
+    const lines = [];
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
+
+    try {
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            now: () => fixedRunAt,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine: (line) => lines.push(line)
+        });
+        const permissionsetsDirectory = path.join(
+            project.projectRoot,
+            'scripts/permissionset-conversion/outputs',
+            fixedRunDirectoryName,
+            'permissionsets'
+        );
+
+        // Chatter系Profileを生成せず、通常Profileを0001から生成する。
+        assert.equal(status, 0);
+        assert.deepEqual(fs.readdirSync(permissionsetsDirectory), [
+            `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`
+        ]);
+        assert.equal(
+            lines.filter((line) => line === '・理由: Chatter系User Licenseは汎用Permission Setへの移行対象外です。')
+                .length,
+            2
+        );
+        assert.ok(lines.includes('Permission Set metadata生成結果: 生成1件、対象外2件、要修正0件'));
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
