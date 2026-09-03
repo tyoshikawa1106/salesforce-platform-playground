@@ -44,6 +44,7 @@ const fixedRunAt = new Date(2026, 8, 2, 5, 19, 22, 123);
 const fixedRunDirectoryName = '20260902-051922-123';
 const fixedPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_20260902_051922_123_0001';
 const fixedSecondPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_20260902_051922_123_0002';
+const fixedPlatformTemporaryLabel = 'Platform_Test 20260902-051922-123 0001';
 const xmlParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
 
 // Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
@@ -553,8 +554,8 @@ test('HTMLテンプレート編集権限が要求するDocument参照権限を�
     assert.deepEqual(dependencyReport.addedPermissions, ['allowRead']);
 });
 
-test('すべてのデータの参照権限が要求するすべてのDocument参照権限を補完する', () => {
-    // ProfileにViewAllDataだけがあり、依存するViewAllDocumentsが省略された状態を再現する。
+test('すべてのデータの参照権限が要求するDocumentの全レコード参照権限を補完する', () => {
+    // ProfileにViewAllDataだけがあり、依存するDocumentのObject Permissionが省略された状態を再現する。
     const profileXml = fs
         .readFileSync(fixtureProfilePath, 'utf8')
         .replace(
@@ -564,18 +565,29 @@ test('すべてのデータの参照権限が要求するすべてのDocument参
     const conversion = convertFixture(profileXml);
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
     const userPermissionNames = toArray(permissionSet.userPermissions).map(({ name }) => name);
+    const documentPermission = toArray(permissionSet.objectPermissions).find(({ object }) => object === 'Document');
     const dependencyReport = conversion.report.converted.find(
-        ({ action, name }) => action === 'addedDependency' && name === 'ViewAllData'
+        ({ action, name, targetName }) =>
+            action === 'addedDependency' && name === 'ViewAllData' && targetName === 'Document'
     );
 
-    // 元のViewAllDataを維持し、ViewAllDocumentsを重複なく追加する。
+    // 未定義のUser Permissionを作らず、Documentの参照と全レコード参照を補完する。
     assert.equal(userPermissionNames.includes('ViewAllData'), true);
-    assert.equal(userPermissionNames.filter((name) => name === 'ViewAllDocuments').length, 1);
-    assert.deepEqual(dependencyReport.addedPermissions, ['ViewAllDocuments']);
+    assert.equal(userPermissionNames.includes('ViewAllDocuments'), false);
+    assert.deepEqual(documentPermission, {
+        allowCreate: 'false',
+        allowDelete: 'false',
+        allowEdit: 'false',
+        allowRead: 'true',
+        modifyAllRecords: 'false',
+        object: 'Document',
+        viewAllRecords: 'true'
+    });
+    assert.deepEqual(dependencyReport.addedPermissions, ['allowRead', 'viewAllRecords']);
 });
 
-test('すべてのDocument参照権限が既にある場合は依存権限を重複追加しない', () => {
-    // ProfileにViewAllDataとViewAllDocumentsが両方ある状態を再現する。
+test('Documentの全レコード参照権限が既にある場合は依存権限を重複追加しない', () => {
+    // ProfileにViewAllDataと必要なDocumentのObject Permissionが両方ある状態を再現する。
     const profileXml = fs
         .readFileSync(fixtureProfilePath, 'utf8')
         .replace(
@@ -584,14 +596,26 @@ test('すべてのDocument参照権限が既にある場合は依存権限を重
         )
         .replace(
             '</Profile>',
-            '    <userPermissions>\n        <enabled>true</enabled>\n        <name>ViewAllDocuments</name>\n    </userPermissions>\n</Profile>'
+            [
+                '    <objectPermissions>',
+                '        <allowCreate>false</allowCreate>',
+                '        <allowDelete>false</allowDelete>',
+                '        <allowEdit>false</allowEdit>',
+                '        <allowRead>true</allowRead>',
+                '        <modifyAllRecords>false</modifyAllRecords>',
+                '        <object>Document</object>',
+                '        <viewAllRecords>true</viewAllRecords>',
+                '    </objectPermissions>',
+                '</Profile>'
+            ].join('\n')
         );
     const conversion = convertFixture(profileXml);
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
-    const userPermissionNames = toArray(permissionSet.userPermissions).map(({ name }) => name);
+    const documentPermissions = toArray(permissionSet.objectPermissions).filter(({ object }) => object === 'Document');
 
     // 既存の依存権限を維持し、追加依存のレポートは作らない。
-    assert.equal(userPermissionNames.filter((name) => name === 'ViewAllDocuments').length, 1);
+    assert.equal(documentPermissions.length, 1);
+    assert.equal(documentPermissions[0].viewAllRecords, 'true');
     assert.equal(
         conversion.report.converted.some(({ action, name }) => action === 'addedDependency' && name === 'ViewAllData'),
         false
@@ -872,10 +896,31 @@ test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラ�
     assert.equal(isGuestUserLicense('Guest User License'), true);
     assert.equal(isGuestUserLicense('GuestUserLicence'), true);
     assert.equal(isGuestUserLicense('Field Service Guest User'), false);
-    // Profile metadata fullNameをPermission Setラベルとして維持する。
-    assert.equal(createPermissionSetLabel('Admin'), 'Admin');
-    assert.equal(createPermissionSetLabel('日本語プロファイル'), '日本語プロファイル');
-    assert.throws(() => createPermissionSetLabel('あ'.repeat(81)), /80文字以内/);
+    // Profile metadata fullNameへ実行識別子と連番を加えて表示ラベルも一意にする。
+    assert.equal(
+        createPermissionSetLabel({
+            profileFullName: 'Admin',
+            runIdentifier: fixedRunDirectoryName,
+            sequence: 1
+        }),
+        'Admin 20260902-051922-123 0001'
+    );
+    assert.equal(
+        createPermissionSetLabel({
+            profileFullName: '日本語プロファイル',
+            runIdentifier: fixedRunDirectoryName,
+            sequence: 2
+        }),
+        '日本語プロファイル 20260902-051922-123 0002'
+    );
+    // 長いProfile名は一意なsuffixを維持したまま80文字へ収める。
+    const longLabel = createPermissionSetLabel({
+        profileFullName: 'あ'.repeat(81),
+        runIdentifier: `${fixedRunDirectoryName}-0001`,
+        sequence: 9_999
+    });
+    assert.equal(longLabel.length, 80);
+    assert.equal(longLabel.endsWith(' 20260902-051922-123-0001 9999'), true);
 });
 
 test('CLI引数とProfileパス設定を限定する', () => {
@@ -1092,7 +1137,7 @@ test('CLIはDefault Target Orgを確認してローカルmetadataとレポート
         assert.equal(fs.existsSync(xmlPath), true);
         assert.equal(report.schemaVersion, 2);
         assert.equal(report.permissionSet.apiName, fixedPlatformTemporaryApiName);
-        assert.equal(report.permissionSet.label, 'Platform_Test');
+        assert.equal(report.permissionSet.label, fixedPlatformTemporaryLabel);
         assert.equal('profileId' in report.source, false);
         assert.ok(lines.includes('接続組織を確認してください。'));
         assert.ok(lines.includes('※接続組織の情報はPermission Setの変換内容に使用していません。'));
@@ -1144,6 +1189,15 @@ test('同じUser Licenseの複数Profileへ実行順の異なる仮API名を生�
             `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`,
             `${fixedSecondPlatformTemporaryApiName}.permissionset-meta.xml`
         ]);
+        const generatedLabels = fs
+            .readdirSync(permissionsetsDirectory)
+            .map((fileName) => xmlParser.parse(fs.readFileSync(path.join(permissionsetsDirectory, fileName), 'utf8')))
+            .map(({ PermissionSet }) => PermissionSet.label);
+        assert.deepEqual(generatedLabels.sort(), [
+            'Platform_Second 20260902-051922-123 0002',
+            fixedPlatformTemporaryLabel
+        ]);
+        assert.equal(new Set(generatedLabels).size, 2);
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }

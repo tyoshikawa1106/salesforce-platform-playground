@@ -64,8 +64,8 @@ npm run sf:convert:profile
 - 実行日時には一意な出力フォルダ名を使用します。同じProfileを再実行した場合も前回のPermission Setを更新しません。
 - Profile連番は、対象外Profileを除いた生成順に1から9999まで4桁で付与します。
 - 組織上の保存結果を確認した後に、Salesforce設定画面の「プロパティを編集」から最終API名へ変更します。
-- Permission SetラベルはProfile metadata fullNameを使用します。Profile XMLには組織上の表示ラベルが含まれないため、`Admin`からローカル処理だけで「システム管理者」は取得しません。
-- ラベルが80文字を超える場合は、意味を変えて短縮せず変換を停止します。
+- Permission Setラベルは`<Profile metadata fullName> <実行日時> <4桁連番>`形式にし、API名と同じ実行識別子と連番で一意にします。
+- ラベルが80文字を超える場合は、一意性を担保する末尾を維持してProfile metadata fullName部分を短縮します。Profile XMLには組織上の表示ラベルが含まれないため、`Admin`からローカル処理だけで「システム管理者」は取得しません。
 - Permission Setの説明は`<Profile metadata fullName> Profileから生成した権限セット`です。
 - Permission Setの`license`には、Profile XMLの`userLicense`を設定します。
 - Profile IDは取得せず、変換レポートにも保存しません。
@@ -96,7 +96,7 @@ npm run sf:convert:profile
 | `objectPermissions`                                       | Profile XMLに存在し、1件以上の`true`を持つオブジェクトだけを出力する        |
 | `EditHtmlTemplates=true`                                  | Metadata APIが要求する`Document`の参照権限を補完する                        |
 | `EditPublicDocuments=true`                                | Metadata APIが要求する`Document`の作成・削除・編集・参照権限を補完する      |
-| `ViewAllData=true`                                        | Metadata APIが要求する`ViewAllDocuments=true`を補完する                     |
+| `ViewAllData=true`                                        | `Document`の参照権限と`viewAllRecords=true`を補完する                       |
 | 省略されたObject Permissionのboolean                      | Permission Setの必須子要素だけ`false`で補完する                             |
 | `fieldPermissions.readable=false`                         | 出力しない                                                                  |
 | ローカルmetadataで必須またはMaster-Detailと確認できる項目 | 出力せず理由を要validateへ記録する                                          |
@@ -192,11 +192,11 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 明示したUser Permission依存以外では、Profile XMLにないObject Permissionを追加しない
 - `EditPublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
 - `EditHtmlTemplates`からMetadata APIが要求する`Document`参照権限だけを補完する
-- `ViewAllData`からMetadata APIが要求する`ViewAllDocuments`だけを重複なく補完する
+- `ViewAllData`から`Document`の参照権限と全レコード参照権限だけを重複なく補完する
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
-- Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、ラベル制約を確認する
+- Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、一意なラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
 - 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
 - Guest User LicenseのProfileだけを除外し、生成対象へ連続するProfile連番を付ける

@@ -104,13 +104,10 @@ const userPermissionObjectDependencies = [
         objectApiName: 'Document',
         requiredPermissions: ['allowCreate', 'allowDelete', 'allowEdit', 'allowRead'],
         userPermissionName: 'EditPublicDocuments'
-    }
-];
-
-// Metadata APIで明示が必要なUser Permission同士の依存を定義する。
-const userPermissionDependencies = [
+    },
     {
-        requiredUserPermissions: ['ViewAllDocuments'],
+        objectApiName: 'Document',
+        requiredPermissions: ['allowRead', 'viewAllRecords'],
         userPermissionName: 'ViewAllData'
     }
 ];
@@ -797,47 +794,6 @@ function applyUserPermissionObjectDependencies({ convertedSections, report }) {
         objectPermissions.length > 0 ? sortByIdentifier(objectPermissions, 'object') : undefined;
 }
 
-// 有効なUser Permissionが要求する別のUser Permissionを明示的に補完する。
-function applyUserPermissionDependencies({ convertedSections, report }) {
-    const userPermissions = toArray(convertedSections.userPermissions).map((entry) => ({ ...entry }));
-    const enabledUserPermissions = new Set(userPermissions.map(({ name }) => name));
-
-    for (const dependency of userPermissionDependencies) {
-        if (!enabledUserPermissions.has(dependency.userPermissionName)) {
-            continue;
-        }
-
-        const addedPermissions = dependency.requiredUserPermissions.filter(
-            (permissionName) => !enabledUserPermissions.has(permissionName)
-        );
-
-        if (addedPermissions.length === 0) {
-            continue;
-        }
-
-        for (const permissionName of addedPermissions) {
-            userPermissions.push({ enabled: 'true', name: permissionName });
-            enabledUserPermissions.add(permissionName);
-        }
-
-        addReportEntry(
-            report,
-            'converted',
-            'userPermissions',
-            dependency.userPermissionName,
-            '依存するUser Permissionを補完しました。',
-            {
-                action: 'addedDependency',
-                addedPermissions,
-                targetElement: 'userPermissions'
-            }
-        );
-    }
-
-    convertedSections.userPermissions =
-        userPermissions.length > 0 ? sortByIdentifier(userPermissions, 'name') : undefined;
-}
-
 // 単一レコードタイプの利用可否とProfileに残るデフォルト指定を分類する。
 function convertRecordType(recordType, report) {
     const name = requireIdentifier(recordType, 'recordType', 'recordTypeVisibilities');
@@ -1092,7 +1048,6 @@ function convertProfile({
     });
 
     convertedSections.objectPermissions = convertObjectPermissionSection({ profile, report });
-    applyUserPermissionDependencies({ convertedSections, report });
     applyUserPermissionObjectDependencies({ convertedSections, report });
 
     convertedSections.recordTypeVisibilities = convertRecordTypeSection(profile, report);
