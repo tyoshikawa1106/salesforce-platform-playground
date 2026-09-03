@@ -89,17 +89,26 @@ function createTemporaryPermissionSetApiName({ runIdentifier, sequence, userLice
     return candidate;
 }
 
-// 組織へ接続せず、Profile metadata fullNameをPermission Setラベルとして検証する。
-function createPermissionSetLabel(profileFullName) {
+// Profile metadata fullNameへ実行識別子と連番を加え、一意なPermission Setラベルを作る。
+function createPermissionSetLabel({ profileFullName, runIdentifier, sequence }) {
     if (typeof profileFullName !== 'string' || profileFullName.trim() === '') {
         throw new Error('Permission Setラベルに使用するProfile metadata fullNameを指定してください。');
     }
 
-    const label = profileFullName.trim().normalize('NFC');
-
-    if (label.length > 80) {
-        throw new Error(`Profile metadata fullNameを80文字以内のPermission Setラベルにできません: ${label}`);
+    if (typeof runIdentifier !== 'string' || !/^\d{8}-\d{6}-\d{3}(?:-\d{4})?$/u.test(runIdentifier)) {
+        throw new Error('Permission Setラベルへ使用する実行識別子が不正です。');
     }
+
+    if (!Number.isSafeInteger(sequence) || sequence < 1 || sequence > 9_999) {
+        throw new Error('Permission Setラベルへ使用するProfile連番は1以上9999以下の整数で指定してください。');
+    }
+
+    const normalizedProfileFullName = profileFullName.trim().normalize('NFC');
+    const profileSequence = String(sequence).padStart(4, '0');
+    const uniqueSuffix = ` ${runIdentifier} ${profileSequence}`;
+    const profileNameLength = 80 - uniqueSuffix.length;
+    const profileName = normalizedProfileFullName.slice(0, profileNameLength).trimEnd();
+    const label = `${profileName}${uniqueSuffix}`;
 
     return label;
 }

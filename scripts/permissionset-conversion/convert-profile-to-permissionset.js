@@ -533,10 +533,11 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
             continue;
         }
 
+        const sequence = preparedProfiles.length + 1;
         // User License、実行日時、Profile連番から衝突しない仮API名を作る。
         const permissionSetApiName = createTemporaryPermissionSetApiName({
             runIdentifier,
-            sequence: preparedProfiles.length + 1,
+            sequence,
             userLicense
         });
         const paths = resolvePaths({
@@ -551,7 +552,11 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
                 existsSync,
                 objectsDirectory: paths.objectsDirectory,
                 permissionSetApiName,
-                permissionSetLabel: createPermissionSetLabel(profile.fullName),
+                permissionSetLabel: createPermissionSetLabel({
+                    profileFullName: profile.fullName,
+                    runIdentifier,
+                    sequence
+                }),
                 profileFullName: profile.fullName,
                 profileModel,
                 profilePath: profile.configuredPath,
