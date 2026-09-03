@@ -548,6 +548,95 @@ test('User License名から有効な権限を推測で除外しない', () => {
     );
     assert.equal(toArray(permissionSet.tabSettings).length, 2);
     assert.equal(toArray(permissionSet.fieldPermissions).length, 3);
+    assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
+});
+
+test('ApiUserOnlyが有効なProfileではVisualforceページアクセスをProfileへ残す', () => {
+    // ライセンス名は変更せず、Profile XMLへAPI専用権限だけを追加する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '    <pageAccesses>\n        <apexPage>EnabledPage</apexPage>\n        <enabled>true</enabled>\n    </pageAccesses>',
+            [
+                '    <pageAccesses>',
+                '        <apexPage>EnabledPage</apexPage>',
+                '        <enabled>true</enabled>',
+                '    </pageAccesses>',
+                '    <pageAccesses>',
+                '        <apexPage>DisabledPage</apexPage>',
+                '        <enabled>false</enabled>',
+                '    </pageAccesses>'
+            ].join('\n')
+        )
+        .replace(
+            '    <userPermissions>\n        <enabled>true</enabled>\n        <name>RunReports</name>\n    </userPermissions>',
+            [
+                '    <userPermissions>',
+                '        <enabled>true</enabled>',
+                '        <name>ApiUserOnly</name>',
+                '    </userPermissions>',
+                '    <userPermissions>',
+                '        <enabled>true</enabled>',
+                '        <name>RunReports</name>',
+                '    </userPermissions>'
+            ].join('\n')
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const omittedPage = conversion.report.retainedInProfile.find(
+        ({ action, sourceElement }) => action === 'omitted' && sourceElement === 'pageAccesses'
+    );
+
+    // API専用権限とApexクラスは維持し、Visualforceページだけを除外する。
+    assert.equal(
+        toArray(permissionSet.userPermissions).some(({ name }) => name === 'ApiUserOnly'),
+        true
+    );
+    assert.deepEqual(permissionSet.classAccesses, { apexClass: 'EnabledController', enabled: 'true' });
+    assert.equal(permissionSet.pageAccesses, undefined);
+    assert.equal(
+        conversion.report.skippedDisabled.some(({ name, sourceElement }) => {
+            return name === 'DisabledPage' && sourceElement === 'pageAccesses';
+        }),
+        true
+    );
+    assert.deepEqual(omittedPage, {
+        action: 'omitted',
+        message:
+            'ApiUserOnly=trueのProfileではVisualforceページアクセスを利用できないためPermission Setへ出力しません。',
+        name: 'EnabledPage',
+        reason: 'apiUserOnly',
+        sourceElement: 'pageAccesses'
+    });
+});
+
+test('ApiUserOnlyが無効なProfileではVisualforceページアクセスを維持する', () => {
+    // 無効なAPI専用権限を追加し、ライセンス名ではなく有効値で判定する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '    <userPermissions>\n        <enabled>true</enabled>\n        <name>RunReports</name>\n    </userPermissions>',
+            [
+                '    <userPermissions>',
+                '        <enabled>false</enabled>',
+                '        <name>ApiUserOnly</name>',
+                '    </userPermissions>',
+                '    <userPermissions>',
+                '        <enabled>true</enabled>',
+                '        <name>RunReports</name>',
+                '    </userPermissions>'
+            ].join('\n')
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
+    assert.equal(
+        conversion.report.skippedDisabled.some(({ name, sourceElement }) => {
+            return name === 'ApiUserOnly' && sourceElement === 'userPermissions';
+        }),
+        true
+    );
 });
 
 test('未知のProfile要素と対応済み要素内の未知の子要素をfail closedにする', () => {

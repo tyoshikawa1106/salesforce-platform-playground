@@ -90,6 +90,7 @@ npm run sf:convert:profile
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `enabled=true`のアクセス権                                | 対応するPermission Set要素へ出力する                                        |
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
+| `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
 | `objectPermissions`                                       | Profile XMLに存在し、1件以上の`true`を持つオブジェクトだけを出力する        |
 | `EditPublicDocuments=true`                                | Metadata APIが要求する`Document`の作成・削除・編集・参照権限を補完する      |
 | 省略されたObject Permissionのboolean                      | Permission Setの必須子要素だけ`false`で補完する                             |
@@ -181,6 +182,8 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 変換入口がDefault Target Orgと認証済み組織情報を表示し、承認後だけ処理する
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
+- `ApiUserOnly=true`ではVisualforceページだけを除外し、ApexクラスとAPI専用権限を維持する
+- ライセンス名や無効な`ApiUserOnly`からVisualforceページアクセスを除外しない
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
 - 明示したUser Permission依存以外では、Profile XMLにないObject Permissionを追加しない
 - `EditPublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
