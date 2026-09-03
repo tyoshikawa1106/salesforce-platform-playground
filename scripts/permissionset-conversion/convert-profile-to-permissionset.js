@@ -12,6 +12,7 @@ const {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
+    isGuestUserLicense,
     profileFileSuffix
 } = require('./internal/profile-resolver');
 const {
@@ -511,17 +512,32 @@ async function confirmRun({ configuredProfileCount, createPrompt, options, orgIn
 // Profile XMLを一度解析し、最終変換で再利用する入力と出力パスを準備する。
 function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileSync, runOutputDirectory }) {
     const runIdentifier = path.basename(runOutputDirectory);
+    const excludedProfiles = [];
+    const preparedProfiles = [];
 
-    return profiles.map((profile, index) => {
+    for (const profile of profiles) {
         // 命名と変換で共有するProfile XMLを入力ファイルから一度だけ読み込む。
         const profileXml = readFileSync(profile.profilePath, 'utf8');
         // 元ProfileのUser Licenseを含む解析結果を仮API名の生成前に確定する。
         const profileModel = parseProfileXml(profileXml);
+        const userLicense = profileModel.profile.userLicense;
+
+        // Guest User Licenseは汎用Permission Setへ移行せず対象外として記録する。
+        if (isGuestUserLicense(userLicense)) {
+            excludedProfiles.push({
+                profileFullName: profile.fullName,
+                profilePath: profile.configuredPath,
+                reason: 'Guest User Licenseは汎用Permission Setへの移行対象外です。',
+                userLicense
+            });
+            continue;
+        }
+
         // User License、実行日時、Profile連番から衝突しない仮API名を作る。
         const permissionSetApiName = createTemporaryPermissionSetApiName({
             runIdentifier,
-            sequence: index + 1,
-            userLicense: profileModel.profile.userLicense
+            sequence: preparedProfiles.length + 1,
+            userLicense
         });
         const paths = resolvePaths({
             ...inputPaths,
@@ -529,7 +545,7 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
             profilePath: profile.profilePath,
             runOutputDirectory
         });
-        return {
+        preparedProfiles.push({
             profileModel,
             conversionInput: {
                 existsSync,
@@ -543,8 +559,10 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
                 readFileSync
             },
             paths
-        };
-    });
+        });
+    }
+
+    return { excludedProfiles, preparedProfiles };
 }
 
 // 解析済みのローカルProfileと関連metadataだけを使用して変換結果を作る。
@@ -576,8 +594,8 @@ function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
 }
 
 // 全変換結果を必要に応じて書き込み、画面表示して要修正件数を返す。
-function processConversionPlans({ existsSync, mkdirSync, options, plans, writeFileSync, writeLine }) {
-    if (!options.dryRun) {
+function processConversionPlans({ excludedProfiles, existsSync, mkdirSync, options, plans, writeFileSync, writeLine }) {
+    if (!options.dryRun && plans.length > 0) {
         writeConversionPlans({ existsSync, mkdirSync, plans, writeFileSync });
     }
 
@@ -585,9 +603,20 @@ function processConversionPlans({ existsSync, mkdirSync, options, plans, writeFi
         printSummary({ canWrite: conversion.canWrite, options, paths, report: conversion.report, writeLine });
     }
 
+    for (const excludedProfile of excludedProfiles) {
+        writeLine('ProfileからPermission Setへの変換対象外');
+        writeLine(`・Profile Metadata Name: ${excludedProfile.profileFullName}`);
+        writeLine(`・Profile Path: ${excludedProfile.profilePath}`);
+        writeLine(`・User License: ${excludedProfile.userLicense}`);
+        writeLine(`・理由: ${excludedProfile.reason}`);
+    }
+
     const failedCount = plans.filter(({ conversion }) => !conversion.canWrite).length;
-    writeLine(`Permission Set metadata生成結果: 生成${plans.length - failedCount}件、要修正${failedCount}件`);
-    return failedCount;
+    const generatedCount = plans.length - failedCount;
+    writeLine(
+        `Permission Set metadata生成結果: 生成${generatedCount}件、対象外${excludedProfiles.length}件、要修正${failedCount}件`
+    );
+    return { failedCount, generatedCount };
 }
 
 // CLI実行時の標準依存をテスト差し替え値と一箇所で合成する。
@@ -668,7 +697,7 @@ async function main(overrides = {}) {
     }
 
     // 組織情報を渡さず、ローカルProfileと関連metadataだけを変換入力にする。
-    const preparedProfiles = prepareProfileConversions({
+    const { excludedProfiles, preparedProfiles } = prepareProfileConversions({
         existsSync,
         inputPaths,
         profiles: configuredProfiles,
@@ -676,7 +705,8 @@ async function main(overrides = {}) {
         runOutputDirectory
     });
     const plans = createConversionPlans({ preparedProfiles });
-    const failedCount = processConversionPlans({
+    const { failedCount, generatedCount } = processConversionPlans({
+        excludedProfiles,
         existsSync,
         mkdirSync,
         options,
@@ -685,7 +715,7 @@ async function main(overrides = {}) {
         writeLine
     });
 
-    if (options.dryRun || failedCount > 0) {
+    if (options.dryRun || failedCount > 0 || generatedCount === 0) {
         if (failedCount > 0) {
             writeLine('Permission Setを生成できないProfileがあるため、後続コマンドは表示しません。');
         }

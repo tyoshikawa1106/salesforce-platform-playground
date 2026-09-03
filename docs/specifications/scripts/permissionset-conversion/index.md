@@ -60,9 +60,9 @@ npm run sf:convert:profile
 
 - Profile metadata fullNameは、Profileファイル名から`.profile-meta.xml`を除き、percent decodeしてNFCへ正規化します。
 - Permission Set API名は、`ProfileConversion_<元ProfileのUser License>_<実行日時>_<Profile連番>`形式の仮名です。
-- User Licenseの空白と記号は単一のアンダースコアへ正規化し、API名で使用する部分を最大32文字にします。切り詰め位置がアンダースコアの場合は末尾から除去します。
+- User Licenseの空白、記号、アンダースコアは除去し、API名で使用する英数字部分を最大32文字にします。
 - 実行日時には一意な出力フォルダ名を使用します。同じProfileを再実行した場合も前回のPermission Setを更新しません。
-- Profile連番は設定ファイルの記載順に1から9999まで付与します。
+- Profile連番は、対象外Profileを除いた生成順に1から9999まで4桁で付与します。
 - 組織上の保存結果を確認した後に、Salesforce設定画面の「プロパティを編集」から最終API名へ変更します。
 - Permission SetラベルはProfile metadata fullNameを使用します。Profile XMLには組織上の表示ラベルが含まれないため、`Admin`からローカル処理だけで「システム管理者」は取得しません。
 - ラベルが80文字を超える場合は、意味を変えて短縮せず変換を停止します。
@@ -75,12 +75,13 @@ npm run sf:convert:profile
 1. CLI引数、設定ファイル、Profileパス、objects directoryを検証する。
 2. Default Target Orgを認証済み組織一覧から特定し、Alias、Username、URL、組織種別を表示する。
 3. 利用者へ実行確認を行い、本番環境では追加確認を行う。
-4. Profileファイル名をmetadata fullNameとラベルへ変換し、実行単位で一意な仮API名を生成する。
-5. Profile XMLを検証し、1回だけ解析する。
+4. Profileファイル名をmetadata fullNameとラベルへ変換し、Profile XMLを1回だけ解析する。
+5. Guest User LicenseのProfileを変換対象外として表示し、残るProfileへ実行単位で一意な仮API名を生成する。
 6. 有効なアクセス権、項目権限、オブジェクト権限、レコードタイプ、タブを変換する。
-7. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
-8. 未知要素がなければPermission Set XMLとレポートを日時別フォルダへ一括出力する。
-9. 全Profileを生成できた場合だけ、利用者が別途実行する後続コマンドを表示する。
+7. Metadata APIで明示が必要な既知の依存権限を補完する。
+8. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
+9. 未知要素がなければPermission Set XMLとレポートを日時別フォルダへ一括出力する。
+10. 1件以上のProfileを生成できた場合だけ、利用者が別途実行する後続コマンドを表示する。
 
 接続組織の確認では`sf config get target-org`と`sf org list --skip-connection-status`だけを実行します。SOQL、Metadata API、sObject describe、validate、deploy、retrieveは実行せず、組織情報をPermission Setの変換内容へ渡しません。
 
@@ -91,8 +92,11 @@ npm run sf:convert:profile
 | `enabled=true`のアクセス権                                | 対応するPermission Set要素へ出力する                                        |
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
+| User Licenseが`Guest User License`                        | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
 | `objectPermissions`                                       | Profile XMLに存在し、1件以上の`true`を持つオブジェクトだけを出力する        |
+| `EditHtmlTemplates=true`                                  | Metadata APIが要求する`Document`の参照権限を補完する                        |
 | `EditPublicDocuments=true`                                | Metadata APIが要求する`Document`の作成・削除・編集・参照権限を補完する      |
+| `ViewAllData=true`                                        | Metadata APIが要求する`ViewAllDocuments=true`を補完する                     |
 | 省略されたObject Permissionのboolean                      | Permission Setの必須子要素だけ`false`で補完する                             |
 | `fieldPermissions.readable=false`                         | 出力しない                                                                  |
 | ローカルmetadataで必須またはMaster-Detailと確認できる項目 | 出力せず理由を要validateへ記録する                                          |
@@ -105,7 +109,7 @@ npm run sf:convert:profile
 | 割り当てアプリケーション、デフォルト指定、Layout等        | Profile残置として記録する                                                   |
 | 未知の直下要素または未知の子要素                          | `unsupportedUnknown`へ記録し、Permission Set XMLを生成しない                |
 
-ローカルProfile XMLに存在しない権限を、接続組織やライセンス名から補完・推測しません。
+接続組織やライセンス名から権限を補完・推測しません。ローカルProfile XMLに存在しない権限を追加するのは、上表に明記したMetadata APIの依存権限だけです。
 
 ## 出力
 
@@ -187,12 +191,15 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
 - 明示したUser Permission依存以外では、Profile XMLにないObject Permissionを追加しない
 - `EditPublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
+- `EditHtmlTemplates`からMetadata APIが要求する`Document`参照権限だけを補完する
+- `ViewAllData`からMetadata APIが要求する`ViewAllDocuments`だけを重複なく補完する
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
 - Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、ラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
 - 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
+- Guest User LicenseのProfileだけを除外し、生成対象へ連続するProfile連番を付ける
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
 - validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする

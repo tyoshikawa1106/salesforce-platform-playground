@@ -23,6 +23,7 @@ const {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
+    isGuestUserLicense,
     maxUserLicenseApiNameLength,
     normalizeUserLicenseForApiName
 } = require('../internal/profile-resolver');
@@ -41,8 +42,8 @@ const fixtureProfilePath = path.join(fixturesDirectory, 'profiles/Platform_Test.
 const fixtureObjectsDirectory = path.join(fixturesDirectory, 'objects');
 const fixedRunAt = new Date(2026, 8, 2, 5, 19, 22, 123);
 const fixedRunDirectoryName = '20260902-051922-123';
-const fixedPlatformTemporaryApiName = 'ProfileConversion_Salesforce_Platform_20260902_051922_123_0001';
-const fixedSecondPlatformTemporaryApiName = 'ProfileConversion_Salesforce_Platform_20260902_051922_123_0002';
+const fixedPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_20260902_051922_123_0001';
+const fixedSecondPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_20260902_051922_123_0002';
 const xmlParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
 
 // Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
@@ -524,6 +525,79 @@ test('既存Document権限が不足する場合だけ公開ドキュメント管
     assert.deepEqual(dependencyReport.addedPermissions, ['allowCreate', 'allowDelete', 'allowEdit']);
 });
 
+test('HTMLテンプレート編集権限が要求するDocument参照権限を補完する', () => {
+    // ProfileにEditHtmlTemplatesだけがあり、依存するDocument参照権限が省略された状態を再現する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '</Profile>',
+            '    <userPermissions>\n        <enabled>true</enabled>\n        <name>EditHtmlTemplates</name>\n    </userPermissions>\n</Profile>'
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const documentPermission = toArray(permissionSet.objectPermissions).find(({ object }) => object === 'Document');
+    const dependencyReport = conversion.report.converted.find(
+        ({ action, name }) => action === 'addedDependency' && name === 'EditHtmlTemplates'
+    );
+
+    // EditHtmlTemplatesの依存権限としてDocumentの参照だけを追加する。
+    assert.deepEqual(documentPermission, {
+        allowCreate: 'false',
+        allowDelete: 'false',
+        allowEdit: 'false',
+        allowRead: 'true',
+        modifyAllRecords: 'false',
+        object: 'Document',
+        viewAllRecords: 'false'
+    });
+    assert.deepEqual(dependencyReport.addedPermissions, ['allowRead']);
+});
+
+test('すべてのデータの参照権限が要求するすべてのDocument参照権限を補完する', () => {
+    // ProfileにViewAllDataだけがあり、依存するViewAllDocumentsが省略された状態を再現する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '<enabled>false</enabled>\n        <name>ViewAllData</name>',
+            '<enabled>true</enabled>\n        <name>ViewAllData</name>'
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const userPermissionNames = toArray(permissionSet.userPermissions).map(({ name }) => name);
+    const dependencyReport = conversion.report.converted.find(
+        ({ action, name }) => action === 'addedDependency' && name === 'ViewAllData'
+    );
+
+    // 元のViewAllDataを維持し、ViewAllDocumentsを重複なく追加する。
+    assert.equal(userPermissionNames.includes('ViewAllData'), true);
+    assert.equal(userPermissionNames.filter((name) => name === 'ViewAllDocuments').length, 1);
+    assert.deepEqual(dependencyReport.addedPermissions, ['ViewAllDocuments']);
+});
+
+test('すべてのDocument参照権限が既にある場合は依存権限を重複追加しない', () => {
+    // ProfileにViewAllDataとViewAllDocumentsが両方ある状態を再現する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '<enabled>false</enabled>\n        <name>ViewAllData</name>',
+            '<enabled>true</enabled>\n        <name>ViewAllData</name>'
+        )
+        .replace(
+            '</Profile>',
+            '    <userPermissions>\n        <enabled>true</enabled>\n        <name>ViewAllDocuments</name>\n    </userPermissions>\n</Profile>'
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const userPermissionNames = toArray(permissionSet.userPermissions).map(({ name }) => name);
+
+    // 既存の依存権限を維持し、追加依存のレポートは作らない。
+    assert.equal(userPermissionNames.filter((name) => name === 'ViewAllDocuments').length, 1);
+    assert.equal(
+        conversion.report.converted.some(({ action, name }) => action === 'addedDependency' && name === 'ViewAllData'),
+        false
+    );
+});
+
 test('Profile固有設定と無効権限を監査レポートへ分類する', () => {
     // 代表Profileを変換してProfile残置、無効、未知の分類を確認する。
     const { report } = convertFixture();
@@ -760,15 +834,15 @@ test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラ�
             }),
         /1以上9999以下/
     );
-    // User Licenseの空白と記号をAPI名で使用できる形式へ正規化する。
-    assert.equal(normalizeUserLicenseForApiName('Work.com Only'), 'Work_com_Only');
+    // User License内の空白と記号を除去し、API名の区切りと混同させない。
+    assert.equal(normalizeUserLicenseForApiName('Work.com Only'), 'WorkcomOnly');
     assert.equal(
         createTemporaryPermissionSetApiName({
             runIdentifier: fixedRunDirectoryName,
             sequence: 1,
             userLicense: 'Salesforce Integration'
         }),
-        'ProfileConversion_Salesforce_Integration_20260902_051922_123_0001'
+        'ProfileConversion_SalesforceIntegration_20260902_051922_123_0001'
     );
     // 空またはAPI名へ変換できないUser Licenseを推測で補正しない。
     assert.throws(
@@ -792,8 +866,12 @@ test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラ�
         }).length,
         80
     );
-    // 切り詰め位置の記号を除去し、連続するアンダースコアを作らない。
-    assert.equal(normalizeUserLicenseForApiName(`${'A'.repeat(31)} License`), 'A'.repeat(31));
+    // User License内のアンダースコアも区切りとして残さない。
+    assert.equal(normalizeUserLicenseForApiName('Salesforce_Platform'), 'SalesforcePlatform');
+    // Guest User Licenseだけを汎用Permission Setの移行対象外として判定する。
+    assert.equal(isGuestUserLicense('Guest User License'), true);
+    assert.equal(isGuestUserLicense('GuestUserLicence'), true);
+    assert.equal(isGuestUserLicense('Field Service Guest User'), false);
     // Profile metadata fullNameをPermission Setラベルとして維持する。
     assert.equal(createPermissionSetLabel('Admin'), 'Admin');
     assert.equal(createPermissionSetLabel('日本語プロファイル'), '日本語プロファイル');
@@ -1066,6 +1144,87 @@ test('同じUser Licenseの複数Profileへ実行順の異なる仮API名を生�
             `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`,
             `${fixedSecondPlatformTemporaryApiName}.permissionset-meta.xml`
         ]);
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('Guest User LicenseのProfileを除外し、生成対象だけへ連番を付ける', async () => {
+    // Guest User Licenseと通常Profileを同じ実行へ設定する。
+    const guestProfilePath = 'force-app/main/default/profiles/Guest_Test.profile-meta.xml';
+    const platformProfilePath = 'force-app/main/default/profiles/Platform_Test.profile-meta.xml';
+    const guestProfileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Guest User License</userLicense>');
+    const project = createTestProject({
+        configLines: [guestProfilePath, platformProfilePath],
+        fileName: 'Guest_Test.profile-meta.xml',
+        profileXml: guestProfileXml
+    });
+    fs.writeFileSync(
+        path.join(project.projectRoot, platformProfilePath),
+        fs.readFileSync(fixtureProfilePath, 'utf8'),
+        'utf8'
+    );
+    const lines = [];
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
+
+    try {
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            now: () => fixedRunAt,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine: (line) => lines.push(line)
+        });
+        const permissionsetsDirectory = path.join(
+            project.projectRoot,
+            'scripts/permissionset-conversion/outputs',
+            fixedRunDirectoryName,
+            'permissionsets'
+        );
+
+        // Guest ProfileのXMLを生成せず、通常Profileを0001から生成する。
+        assert.equal(status, 0);
+        assert.deepEqual(fs.readdirSync(permissionsetsDirectory), [
+            `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`
+        ]);
+        assert.ok(lines.includes('・Profile Metadata Name: Guest_Test'));
+        assert.ok(lines.includes('・理由: Guest User Licenseは汎用Permission Setへの移行対象外です。'));
+        assert.ok(lines.includes('Permission Set metadata生成結果: 生成1件、対象外1件、要修正0件'));
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('全ProfileがGuest User Licenseの場合は出力と後続コマンドを作らない', async () => {
+    // Guest User Licenseだけを設定し、生成対象が0件になる実行を再現する。
+    const guestProfileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Guest User License</userLicense>');
+    const project = createTestProject({ profileXml: guestProfileXml });
+    const lines = [];
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
+
+    try {
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            now: () => fixedRunAt,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine: (line) => lines.push(line)
+        });
+        const outputDirectory = path.join(project.projectRoot, 'scripts/permissionset-conversion/outputs');
+
+        // 対象外だけの実行は正常終了し、空の出力や実行不能な後続コマンドを残さない。
+        assert.equal(status, 0);
+        assert.equal(fs.existsSync(outputDirectory), false);
+        assert.ok(lines.includes('Permission Set metadata生成結果: 生成0件、対象外1件、要修正0件'));
+        assert.equal(lines.includes('Permission Setのデプロイコマンド:'), false);
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }

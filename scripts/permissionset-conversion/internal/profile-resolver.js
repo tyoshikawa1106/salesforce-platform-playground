@@ -5,6 +5,7 @@ const { validatePermissionSetApiName } = require('./profile-converter');
 
 const profileFileSuffix = '.profile-meta.xml';
 const maxUserLicenseApiNameLength = 32;
+const guestUserLicenseKeys = new Set(['guestuserlicense', 'guestuserlicence']);
 
 // Salesforce source形式のpercent encodingを1回だけ戻し、論理fullNameとして正規化する。
 function decodeProfileFullName(encodedName, sourceDescription) {
@@ -26,19 +27,18 @@ function decodeProfileFileName(fileName) {
     return decodeProfileFullName(encodedName, 'Profile metadataのファイル名');
 }
 
-// User LicenseをPermission Set API名で使用できる英数字とアンダースコアへ正規化する。
+// User LicenseをPermission Set API名で使用できる英数字だけへ正規化する。
 function normalizeUserLicenseForApiName(userLicense) {
     // 元ProfileにUser Licenseがない状態では命名規則を成立させない。
     if (typeof userLicense !== 'string' || userLicense.trim() === '') {
         throw new Error('仮API名へ使用する元ProfileのUser Licenseを指定してください。');
     }
 
-    // 空白と記号を単一のアンダースコアへ置換して可読性を維持する。
+    // API名の区切りと混同しないよう、User License内の空白と記号を除去する。
     const normalizedLicense = userLicense
         .trim()
         .normalize('NFKC')
-        .replace(/[^A-Za-z0-9]+/gu, '_')
-        .replace(/^_+|_+$/gu, '');
+        .replace(/[^A-Za-z0-9]+/gu, '');
 
     // 変換後に識別文字が残らないUser Licenseは推測で命名しない。
     if (normalizedLicense === '') {
@@ -46,9 +46,22 @@ function normalizeUserLicenseForApiName(userLicense) {
     }
 
     // 日時、出力重複連番、Profile連番を含めてもAPI名が80文字以内になる長さへ制限する。
-    const truncatedLicense = normalizedLicense.slice(0, maxUserLicenseApiNameLength).replace(/_+$/u, '');
+    const truncatedLicense = normalizedLicense.slice(0, maxUserLicenseApiNameLength);
     // API名へ組み込める正規化済みUser Licenseを返す。
     return truncatedLicense;
+}
+
+// 汎用Permission Setへ移行できないGuest User Licenseを表記差を除いて判定する。
+function isGuestUserLicense(userLicense) {
+    if (typeof userLicense !== 'string') {
+        return false;
+    }
+
+    const normalizedLicense = userLicense
+        .normalize('NFKC')
+        .replace(/[^A-Za-z]/gu, '')
+        .toLowerCase();
+    return guestUserLicenseKeys.has(normalizedLicense);
 }
 
 // User License、実行日時、Profile連番からデプロイ後の確認用の一意な仮API名を作る。
@@ -95,6 +108,7 @@ module.exports = {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
+    isGuestUserLicense,
     maxUserLicenseApiNameLength,
     normalizeUserLicenseForApiName,
     profileFileSuffix
