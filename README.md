@@ -212,6 +212,14 @@ git clean -fdX logs
 
 `-X` によって ignore 対象だけを削除するため、Git 管理している各ログガイドは残ります。
 
+### ProfileからPermission Setへの変換
+
+ProfileをPermission Setへ変換するためのmetadataを生成します。
+
+```sh
+npm run sf:convert:profile
+```
+
 ## AI エージェントスキル
 
 `forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の参考情報として利用します。
