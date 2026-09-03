@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Master__c</fullName>
+    <label>Master</label>
+    <referenceTo>Parent__c</referenceTo>
+    <relationshipLabel>Examples</relationshipLabel>
+    <relationshipName>Examples</relationshipName>
+    <type>MasterDetail</type>
+</CustomField>

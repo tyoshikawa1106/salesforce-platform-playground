@@ -49,6 +49,7 @@ yarn-error.log*
 # Local generated exports
 export-out/*
 !export-out/export-out-guide.md
+scripts/permissionset-conversion/outputs/
 
 # Dependency directories
 node_modules/

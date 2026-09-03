@@ -247,3 +247,5 @@
 | `scripts/soql/test-data-check-queries/`                  | フォルダ   | 合成テストデータの確認用SOQLを格納する。                                    |
 | `scripts/soql/test-data-check-queries/*.soql`            | ファイル群 | Objectごとの投入結果を確認する。                                            |
 | `scripts/scripts-guide.md`                               | ファイル   | scripts配下の用途と実行方法を案内する。                                     |
+| `scripts/permissionset-conversion/`                      | フォルダ   | ProfileからPermission Setを生成・検証する。                                 |
+| `scripts/permissionset-conversion/internal/`             | フォルダ   | Profile解決、権限変換、検証、設定検査を行う。                               |

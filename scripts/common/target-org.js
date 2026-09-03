@@ -202,5 +202,6 @@ module.exports = {
     getDefaultTargetOrg,
     getTargetOrgInfo,
     orgTypes,
+    parseSfJson,
     printTargetOrgInfo
 };
