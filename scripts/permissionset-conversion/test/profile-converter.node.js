@@ -22,7 +22,9 @@ const { convertProfile, supportedProfileElements } = require('../internal/profil
 const {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
-    decodeProfileFileName
+    decodeProfileFileName,
+    maxUserLicenseApiNameLength,
+    normalizeUserLicenseForApiName
 } = require('../internal/profile-resolver');
 const {
     getDeploymentCommand,
@@ -39,8 +41,8 @@ const fixtureProfilePath = path.join(fixturesDirectory, 'profiles/Platform_Test.
 const fixtureObjectsDirectory = path.join(fixturesDirectory, 'objects');
 const fixedRunAt = new Date(2026, 8, 2, 5, 19, 22, 123);
 const fixedRunDirectoryName = '20260902-051922-123';
-const fixedRunNonce = 'A1B2C3D4';
-const fixedPlatformTemporaryApiName = 'ProfileConversion_20260902_051922_123_A1B2C3D4_0001_D736069086';
+const fixedPlatformTemporaryApiName = 'ProfileConversion_Salesforce_Platform_20260902_051922_123_0001';
+const fixedSecondPlatformTemporaryApiName = 'ProfileConversion_Salesforce_Platform_20260902_051922_123_0002';
 const xmlParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
 
 // Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
@@ -700,36 +702,33 @@ test('追加されたProfile権限を固定件数に依存せず内容比較す�
     assertProfilePermissionEquivalence({ conversion, profileXml });
 });
 
-test('Profileファイル名からmetadata名、仮API名、ラベルを組織非接続で生成する', () => {
+test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラベルを組織非接続で生成する', () => {
     // percent encodingされたProfileファイル名を論理fullNameへ変換する。
     assert.equal(decodeProfileFileName('Custom%3A Sales Profile.profile-meta.xml'), 'Custom: Sales Profile');
-    // 同じ実行とProfileから、Salesforceの制約を満たす同じ仮API名を生成する。
+    // User License、実行日時、Profile連番からSalesforceの制約を満たす仮API名を生成する。
     assert.equal(
         createTemporaryPermissionSetApiName({
-            profileFullName: 'Platform_Test',
             runIdentifier: fixedRunDirectoryName,
-            runNonce: fixedRunNonce,
-            sequence: 1
+            sequence: 1,
+            userLicense: 'Salesforce Platform'
         }),
         fixedPlatformTemporaryApiName
     );
     // 実行識別子が異なる場合は、前回のPermission Setと衝突しない仮API名を生成する。
     assert.notEqual(
         createTemporaryPermissionSetApiName({
-            profileFullName: 'Platform_Test',
             runIdentifier: `${fixedRunDirectoryName}-0001`,
-            runNonce: fixedRunNonce,
-            sequence: 1
+            sequence: 1,
+            userLicense: 'Salesforce Platform'
         }),
         fixedPlatformTemporaryApiName
     );
     // 同じ実行内の連番が異なる場合も別の仮API名を生成する。
     assert.notEqual(
         createTemporaryPermissionSetApiName({
-            profileFullName: 'Platform_Test',
             runIdentifier: fixedRunDirectoryName,
-            runNonce: fixedRunNonce,
-            sequence: 2
+            sequence: 2,
+            userLicense: 'Salesforce Platform'
         }),
         fixedPlatformTemporaryApiName
     );
@@ -737,34 +736,64 @@ test('Profileファイル名からmetadata名、仮API名、ラベルを組織�
     assert.throws(
         () =>
             createTemporaryPermissionSetApiName({
-                profileFullName: 'Admin',
                 runIdentifier: 'invalid',
-                runNonce: fixedRunNonce,
-                sequence: 1
+                sequence: 1,
+                userLicense: 'Salesforce'
             }),
         /実行識別子が不正/
     );
     assert.throws(
         () =>
             createTemporaryPermissionSetApiName({
-                profileFullName: 'Admin',
                 runIdentifier: fixedRunDirectoryName,
-                runNonce: fixedRunNonce,
-                sequence: 0
+                sequence: 0,
+                userLicense: 'Salesforce'
             }),
-        /1以上の整数/
+        /1以上9999以下/
     );
-    // 実行IDは固定長の大文字16進数だけを受け付ける。
     assert.throws(
         () =>
             createTemporaryPermissionSetApiName({
-                profileFullName: 'Admin',
                 runIdentifier: fixedRunDirectoryName,
-                runNonce: 'invalid',
-                sequence: 1
+                sequence: 10_000,
+                userLicense: 'Salesforce'
             }),
-        /実行IDが不正/
+        /1以上9999以下/
     );
+    // User Licenseの空白と記号をAPI名で使用できる形式へ正規化する。
+    assert.equal(normalizeUserLicenseForApiName('Work.com Only'), 'Work_com_Only');
+    assert.equal(
+        createTemporaryPermissionSetApiName({
+            runIdentifier: fixedRunDirectoryName,
+            sequence: 1,
+            userLicense: 'Salesforce Integration'
+        }),
+        'ProfileConversion_Salesforce_Integration_20260902_051922_123_0001'
+    );
+    // 空またはAPI名へ変換できないUser Licenseを推測で補正しない。
+    assert.throws(
+        () =>
+            createTemporaryPermissionSetApiName({
+                runIdentifier: fixedRunDirectoryName,
+                sequence: 1,
+                userLicense: ''
+            }),
+        /User Licenseを指定/
+    );
+    assert.throws(() => normalizeUserLicenseForApiName('日本語'), /API名へ変換できません/);
+    // 長いUser Licenseは32文字へ制限し、出力先重複連番を含む最長形式も80文字以内にする。
+    assert.equal(maxUserLicenseApiNameLength, 32);
+    assert.equal(normalizeUserLicenseForApiName('A'.repeat(50)), 'A'.repeat(32));
+    assert.equal(
+        createTemporaryPermissionSetApiName({
+            runIdentifier: `${fixedRunDirectoryName}-0001`,
+            sequence: 9_999,
+            userLicense: 'A'.repeat(50)
+        }).length,
+        80
+    );
+    // 切り詰め位置の記号を除去し、連続するアンダースコアを作らない。
+    assert.equal(normalizeUserLicenseForApiName(`${'A'.repeat(31)} License`), 'A'.repeat(31));
     // Profile metadata fullNameをPermission Setラベルとして維持する。
     assert.equal(createPermissionSetLabel('Admin'), 'Admin');
     assert.equal(createPermissionSetLabel('日本語プロファイル'), '日本語プロファイル');
@@ -954,7 +983,6 @@ test('CLIはDefault Target Orgを確認してローカルmetadataとレポート
         const status = await main({
             argv: ['--objects-dir', fixtureObjectsDirectory],
             createPrompt: prompt.factory,
-            createRunNonce: () => fixedRunNonce,
             now: () => fixedRunAt,
             projectRoot: project.projectRoot,
             runSfWithOutputCommand: orgCommand.command,
@@ -997,6 +1025,47 @@ test('CLIはDefault Target Orgを確認してローカルmetadataとレポート
             )
         );
         assert.ok(lines.some((line) => line.startsWith('sf project deploy validate --source-dir')));
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('同じUser Licenseの複数Profileへ実行順の異なる仮API名を生成する', async () => {
+    // 同じUser Licenseを持つ2件のProfileを同じ実行へ設定する。
+    const secondProfilePath = 'force-app/main/default/profiles/Platform_Second.profile-meta.xml';
+    const project = createTestProject({
+        configLines: ['force-app/main/default/profiles/Platform_Test.profile-meta.xml', secondProfilePath]
+    });
+    fs.writeFileSync(
+        path.join(project.projectRoot, secondProfilePath),
+        fs.readFileSync(fixtureProfilePath, 'utf8'),
+        'utf8'
+    );
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
+
+    try {
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            now: () => fixedRunAt,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine() {}
+        });
+        const permissionsetsDirectory = path.join(
+            project.projectRoot,
+            'scripts/permissionset-conversion/outputs',
+            fixedRunDirectoryName,
+            'permissionsets'
+        );
+
+        // 共通のUser Licenseと実行日時を維持しながら末尾連番で重複を防ぐ。
+        assert.equal(status, 0);
+        assert.deepEqual(fs.readdirSync(permissionsetsDirectory).sort(), [
+            `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`,
+            `${fixedSecondPlatformTemporaryApiName}.permissionset-meta.xml`
+        ]);
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
@@ -1104,7 +1173,6 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
         const status = await main({
             argv: ['--objects-dir', fixtureObjectsDirectory],
             createPrompt: prompt.factory,
-            createRunNonce: () => fixedRunNonce,
             now: () => fixedRunAt,
             projectRoot: project.projectRoot,
             runSfWithOutputCommand: orgCommand.command,
@@ -1115,7 +1183,7 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
             'scripts/permissionset-conversion/outputs',
             fixedRunDirectoryName
         );
-        const temporaryApiName = 'ProfileConversion_20260902_051922_123_A1B2C3D4_0001_B764CDC0EA';
+        const temporaryApiName = fixedPlatformTemporaryApiName;
         const xmlPath = path.join(outputDirectory, `permissionsets/${temporaryApiName}.permissionset-meta.xml`);
         const reportPath = path.join(outputDirectory, `reports/${temporaryApiName}.conversion-report.json`);
 

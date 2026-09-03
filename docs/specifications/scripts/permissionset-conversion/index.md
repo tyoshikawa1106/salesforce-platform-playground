@@ -59,10 +59,10 @@ npm run sf:convert:profile
 ## 名前とライセンス
 
 - Profile metadata fullNameは、Profileファイル名から`.profile-meta.xml`を除き、percent decodeしてNFCへ正規化します。
-- Permission Set API名は、`ProfileConversion_<実行日時>_<実行ID>_<Profile連番>_<Profile fullNameのhash 10桁>`形式の仮名です。
-- 実行日時には一意な出力フォルダ名を使用し、実行IDには実行時に生成する8桁のランダム値を使用します。同じProfileを再実行した場合も前回のPermission Setを更新しません。
-- Profile連番は設定ファイルの記載順に1から付与します。
-- Profile fullNameのhashは生成元を識別するために使用し、権限内容はhashへ含めません。
+- Permission Set API名は、`ProfileConversion_<元ProfileのUser License>_<実行日時>_<Profile連番>`形式の仮名です。
+- User Licenseの空白と記号は単一のアンダースコアへ正規化し、API名で使用する部分を最大32文字にします。切り詰め位置がアンダースコアの場合は末尾から除去します。
+- 実行日時には一意な出力フォルダ名を使用します。同じProfileを再実行した場合も前回のPermission Setを更新しません。
+- Profile連番は設定ファイルの記載順に1から9999まで付与します。
 - 組織上の保存結果を確認した後に、Salesforce設定画面の「プロパティを編集」から最終API名へ変更します。
 - Permission SetラベルはProfile metadata fullNameを使用します。Profile XMLには組織上の表示ラベルが含まれないため、`Admin`からローカル処理だけで「システム管理者」は取得しません。
 - ラベルが80文字を超える場合は、意味を変えて短縮せず変換を停止します。
@@ -190,8 +190,9 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
-- Profileファイル名のpercent decode、日本語fullNameのhash生成、ラベル制約を確認する
+- Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、ラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
+- 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
 - validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする

@@ -1,10 +1,10 @@
 // 実行方法: ProfileからPermission Setを生成する入口スクリプトから読み込む。
 // 用途: ローカルProfile sourceファイル名をmetadata fullNameとPermission Set名へ変換する。
 
-const crypto = require('node:crypto');
 const { validatePermissionSetApiName } = require('./profile-converter');
 
 const profileFileSuffix = '.profile-meta.xml';
+const maxUserLicenseApiNameLength = 32;
 
 // Salesforce source形式のpercent encodingを1回だけ戻し、論理fullNameとして正規化する。
 function decodeProfileFullName(encodedName, sourceDescription) {
@@ -26,36 +26,53 @@ function decodeProfileFileName(fileName) {
     return decodeProfileFullName(encodedName, 'Profile metadataのファイル名');
 }
 
-// 実行単位とProfileを識別できる、デプロイ後の確認用の一意な仮API名を作る。
-function createTemporaryPermissionSetApiName({ profileFullName, runIdentifier, runNonce, sequence }) {
-    if (typeof profileFullName !== 'string' || profileFullName.trim() === '') {
-        throw new Error('仮API名へ使用するProfile metadata fullNameを指定してください。');
+// User LicenseをPermission Set API名で使用できる英数字とアンダースコアへ正規化する。
+function normalizeUserLicenseForApiName(userLicense) {
+    // 元ProfileにUser Licenseがない状態では命名規則を成立させない。
+    if (typeof userLicense !== 'string' || userLicense.trim() === '') {
+        throw new Error('仮API名へ使用する元ProfileのUser Licenseを指定してください。');
     }
 
+    // 空白と記号を単一のアンダースコアへ置換して可読性を維持する。
+    const normalizedLicense = userLicense
+        .trim()
+        .normalize('NFKC')
+        .replace(/[^A-Za-z0-9]+/gu, '_')
+        .replace(/^_+|_+$/gu, '');
+
+    // 変換後に識別文字が残らないUser Licenseは推測で命名しない。
+    if (normalizedLicense === '') {
+        throw new Error(`元ProfileのUser LicenseをPermission Set API名へ変換できません: ${userLicense}`);
+    }
+
+    // 日時、出力重複連番、Profile連番を含めてもAPI名が80文字以内になる長さへ制限する。
+    const truncatedLicense = normalizedLicense.slice(0, maxUserLicenseApiNameLength).replace(/_+$/u, '');
+    // API名へ組み込める正規化済みUser Licenseを返す。
+    return truncatedLicense;
+}
+
+// User License、実行日時、Profile連番からデプロイ後の確認用の一意な仮API名を作る。
+function createTemporaryPermissionSetApiName({ runIdentifier, sequence, userLicense }) {
     if (typeof runIdentifier !== 'string' || !/^\d{8}-\d{6}-\d{3}(?:-\d{4})?$/u.test(runIdentifier)) {
         throw new Error('仮API名へ使用する実行識別子が不正です。');
     }
 
-    if (typeof runNonce !== 'string' || !/^[A-F0-9]{8}$/u.test(runNonce)) {
-        throw new Error('仮API名へ使用する実行IDが不正です。');
+    if (!Number.isSafeInteger(sequence) || sequence < 1 || sequence > 9_999) {
+        throw new Error('仮API名へ使用するProfile連番は1以上9999以下の整数で指定してください。');
     }
 
-    if (!Number.isSafeInteger(sequence) || sequence < 1) {
-        throw new Error('仮API名へ使用するProfile連番は1以上の整数で指定してください。');
-    }
-
-    const normalizedProfileName = profileFullName.trim().normalize('NFC');
-    const profileHash = crypto
-        .createHash('sha256')
-        .update(normalizedProfileName)
-        .digest('hex')
-        .slice(0, 10)
-        .toUpperCase();
+    // 元ProfileのUser LicenseをAPI名で使用できる形式へ揃える。
+    const normalizedLicense = normalizeUserLicenseForApiName(userLicense);
+    // 出力フォルダと同じ実行日時をAPI名で使用できる形式へ揃える。
     const normalizedRunIdentifier = runIdentifier.replaceAll('-', '_');
+    // 同じUser LicenseのProfileが複数ある場合も衝突しない連番を作る。
     const profileSequence = String(sequence).padStart(4, '0');
-    const candidate = `ProfileConversion_${normalizedRunIdentifier}_${runNonce}_${profileSequence}_${profileHash}`;
+    // 命名規則どおりの仮API名を組み立てる。
+    const candidate = `ProfileConversion_${normalizedLicense}_${normalizedRunIdentifier}_${profileSequence}`;
 
+    // SalesforceのPermission Set API名制約を満たさない候補は書き込まない。
     validatePermissionSetApiName(candidate);
+    // 検証済みの仮API名を返す。
     return candidate;
 }
 
@@ -78,5 +95,7 @@ module.exports = {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
+    maxUserLicenseApiNameLength,
+    normalizeUserLicenseForApiName,
     profileFileSuffix
 };

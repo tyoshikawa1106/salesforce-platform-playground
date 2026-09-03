@@ -509,15 +509,19 @@ async function confirmRun({ configuredProfileCount, createPrompt, options, orgIn
 }
 
 // Profile XMLを一度解析し、最終変換で再利用する入力と出力パスを準備する。
-function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileSync, runNonce, runOutputDirectory }) {
+function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileSync, runOutputDirectory }) {
     const runIdentifier = path.basename(runOutputDirectory);
 
     return profiles.map((profile, index) => {
+        // 命名と変換で共有するProfile XMLを入力ファイルから一度だけ読み込む。
+        const profileXml = readFileSync(profile.profilePath, 'utf8');
+        // 元ProfileのUser Licenseを含む解析結果を仮API名の生成前に確定する。
+        const profileModel = parseProfileXml(profileXml);
+        // User License、実行日時、Profile連番から衝突しない仮API名を作る。
         const permissionSetApiName = createTemporaryPermissionSetApiName({
-            profileFullName: profile.fullName,
             runIdentifier,
-            runNonce,
-            sequence: index + 1
+            sequence: index + 1,
+            userLicense: profileModel.profile.userLicense
         });
         const paths = resolvePaths({
             ...inputPaths,
@@ -525,8 +529,6 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
             profilePath: profile.profilePath,
             runOutputDirectory
         });
-        const profileXml = readFileSync(paths.profilePath, 'utf8');
-        const profileModel = parseProfileXml(profileXml);
         return {
             profileModel,
             conversionInput: {
@@ -593,7 +595,6 @@ function resolveMainDependencies(overrides) {
     return {
         argv: process.argv.slice(2),
         createPrompt: undefined,
-        createRunNonce: () => crypto.randomBytes(4).toString('hex').toUpperCase(),
         existsSync: fs.existsSync,
         mkdirSync: fs.mkdirSync,
         now: () => new Date(),
@@ -612,7 +613,6 @@ async function main(overrides = {}) {
     const {
         argv,
         createPrompt,
-        createRunNonce,
         existsSync,
         mkdirSync,
         now,
@@ -673,7 +673,6 @@ async function main(overrides = {}) {
         inputPaths,
         profiles: configuredProfiles,
         readFileSync,
-        runNonce: createRunNonce(),
         runOutputDirectory
     });
     const plans = createConversionPlans({ preparedProfiles });
