@@ -26,28 +26,37 @@ function decodeProfileFileName(fileName) {
     return decodeProfileFullName(encodedName, 'Profile metadataのファイル名');
 }
 
-// fullNameがAPI名制約を満たさない場合だけ、ASCII片と短いhashから安定した名前を作る。
-function createPermissionSetApiName(profileFullName) {
-    const normalizedFullName = profileFullName.normalize('NFC');
-
-    try {
-        validatePermissionSetApiName(normalizedFullName);
-        return normalizedFullName;
-    } catch {
-        const hash = crypto.createHash('sha256').update(normalizedFullName).digest('hex').slice(0, 10).toUpperCase();
-        const normalizedAscii = normalizedFullName
-            .normalize('NFKD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^A-Za-z0-9]+/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .replace(/_+/g, '_');
-        const safeBase = /^[A-Za-z]/.test(normalizedAscii) ? normalizedAscii : `Profile_${normalizedAscii}`;
-        const base = safeBase.replace(/_+$/g, '') || 'Profile';
-        const candidate = `${base.slice(0, 69).replace(/_+$/g, '')}_${hash}`;
-
-        validatePermissionSetApiName(candidate);
-        return candidate;
+// 実行単位とProfileを識別できる、デプロイ後の確認用の一意な仮API名を作る。
+function createTemporaryPermissionSetApiName({ profileFullName, runIdentifier, runNonce, sequence }) {
+    if (typeof profileFullName !== 'string' || profileFullName.trim() === '') {
+        throw new Error('仮API名へ使用するProfile metadata fullNameを指定してください。');
     }
+
+    if (typeof runIdentifier !== 'string' || !/^\d{8}-\d{6}-\d{3}(?:-\d{4})?$/u.test(runIdentifier)) {
+        throw new Error('仮API名へ使用する実行識別子が不正です。');
+    }
+
+    if (typeof runNonce !== 'string' || !/^[A-F0-9]{8}$/u.test(runNonce)) {
+        throw new Error('仮API名へ使用する実行IDが不正です。');
+    }
+
+    if (!Number.isSafeInteger(sequence) || sequence < 1) {
+        throw new Error('仮API名へ使用するProfile連番は1以上の整数で指定してください。');
+    }
+
+    const normalizedProfileName = profileFullName.trim().normalize('NFC');
+    const profileHash = crypto
+        .createHash('sha256')
+        .update(normalizedProfileName)
+        .digest('hex')
+        .slice(0, 10)
+        .toUpperCase();
+    const normalizedRunIdentifier = runIdentifier.replaceAll('-', '_');
+    const profileSequence = String(sequence).padStart(4, '0');
+    const candidate = `ProfileConversion_${normalizedRunIdentifier}_${runNonce}_${profileSequence}_${profileHash}`;
+
+    validatePermissionSetApiName(candidate);
+    return candidate;
 }
 
 // 組織へ接続せず、Profile metadata fullNameをPermission Setラベルとして検証する。
@@ -66,8 +75,8 @@ function createPermissionSetLabel(profileFullName) {
 }
 
 module.exports = {
-    createPermissionSetApiName,
     createPermissionSetLabel,
+    createTemporaryPermissionSetApiName,
     decodeProfileFileName,
     profileFileSuffix
 };
