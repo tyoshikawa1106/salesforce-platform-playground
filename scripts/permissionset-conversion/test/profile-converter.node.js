@@ -507,31 +507,29 @@ test('不正XML、重複権限、API名とラベルの長さ違反を拒否す�
     assert.throws(() => convertFixture(undefined, { permissionSetLabel: 'あ'.repeat(81) }), /ラベルは80文字以内/);
 });
 
-for (const [profileFullName, expectedLicense] of [
-    ['StandardAul', 'Salesforce Platform'],
-    ['Admin', 'Salesforce']
-]) {
-    test(`${profileFullName} Profileの移行可能な権限を内容比較する`, () => {
-        // 現在のProfile XMLを固定件数ではなく権限内容そのものと比較する。
-        const profilePath = path.join(repoRoot, `force-app/main/default/profiles/${profileFullName}.profile-meta.xml`);
-        const profileXml = fs.readFileSync(profilePath, 'utf8');
-        const conversion = convertProfile({
-            objectsDirectory: path.join(repoRoot, 'force-app/main/default/objects'),
-            permissionSetApiName: profileFullName,
-            permissionSetLabel: profileFullName,
-            profileFullName,
-            profilePath: path.relative(repoRoot, profilePath),
-            profileXml
-        });
-        const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+test('追加されたProfile権限を固定件数に依存せず内容比較する', () => {
+    // Git管理fixtureへ有効なクラスアクセスを追加する。
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '</Profile>',
+            '    <classAccesses>\n        <apexClass>AdditionalController</apexClass>\n        <enabled>true</enabled>\n    </classAccesses>\n</Profile>'
+        );
+    // 追加後のProfile XMLを同じ変換処理へ渡す。
+    const conversion = convertFixture(profileXml);
+    // 生成されたPermission Setを要素単位で確認できる形式へ解析する。
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
 
-        assert.equal(conversion.canWrite, true);
-        assert.equal(permissionSet.license, expectedLicense);
-        assert.equal(conversion.report.schemaVersion, 2);
-        assert.equal('profileId' in conversion.report.source, false);
-        assertProfilePermissionEquivalence({ conversion, profileXml });
-    });
-}
+    // 権限数を固定せず、追加した権限を含む入力全体との意味的一致を確認する。
+    assert.equal(conversion.canWrite, true);
+    assert.equal(conversion.report.schemaVersion, 2);
+    assert.equal('profileId' in conversion.report.source, false);
+    assert.equal(
+        toArray(permissionSet.classAccesses).some(({ apexClass }) => apexClass === 'AdditionalController'),
+        true
+    );
+    assertProfilePermissionEquivalence({ conversion, profileXml });
+});
 
 test('Profileファイル名からmetadata名、API名、ラベルを組織非接続で生成する', () => {
     // percent encoding、日本語、標準API名をローカル文字列だけで変換する。

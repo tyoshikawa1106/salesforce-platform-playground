@@ -176,7 +176,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 変換入口がDefault Target Orgと認証済み組織情報を表示し、承認後だけ処理する
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
-- `StandardAul`と`Admin`も現在のProfile XMLとの意味的一致で確認する
+- Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
 - Profile XMLにないObject Permissionを追加しない
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
