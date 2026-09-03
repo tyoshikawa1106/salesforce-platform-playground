@@ -9,8 +9,8 @@ const { runSfWithOutput } = require('../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../common/target-org');
 const { convertProfile, parseProfileXml } = require('./internal/profile-converter');
 const {
-    createPermissionSetApiName,
     createPermissionSetLabel,
+    createTemporaryPermissionSetApiName,
     decodeProfileFileName,
     profileFileSuffix
 } = require('./internal/profile-resolver');
@@ -403,7 +403,7 @@ function printSummary({ canWrite, options, paths, report, writeLine }) {
     writeLine(`・Permission Set Label: ${report.permissionSet.label}`);
     writeLine(`・User License: ${report.source.userLicense}`);
     writeLine(`・Permission Set License: ${report.permissionSet.license}`);
-    writeLine(`・Permission Set: ${report.permissionSet.apiName}`);
+    writeLine(`・Permission Set（仮API名）: ${report.permissionSet.apiName}`);
     writeLine(`・converted: ${report.summary.converted}件`);
     writeLine(`・retainedInProfile: ${report.summary.retainedInProfile}件`);
     writeLine(`・skippedDisabled: ${report.summary.skippedDisabled}件`);
@@ -509,9 +509,16 @@ async function confirmRun({ configuredProfileCount, createPrompt, options, orgIn
 }
 
 // Profile XMLを一度解析し、最終変換で再利用する入力と出力パスを準備する。
-function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileSync, runOutputDirectory }) {
-    return profiles.map((profile) => {
-        const permissionSetApiName = createPermissionSetApiName(profile.fullName);
+function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileSync, runNonce, runOutputDirectory }) {
+    const runIdentifier = path.basename(runOutputDirectory);
+
+    return profiles.map((profile, index) => {
+        const permissionSetApiName = createTemporaryPermissionSetApiName({
+            profileFullName: profile.fullName,
+            runIdentifier,
+            runNonce,
+            sequence: index + 1
+        });
         const paths = resolvePaths({
             ...inputPaths,
             permissionSetApiName,
@@ -562,6 +569,8 @@ function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine(getVerificationCommand({ projectRoot, sourceDirectory }));
     writeLine('※各コマンドはSalesforce CLIのDefault Target Orgを対象にします。');
     writeLine('※接続組織の情報はPermission Setの変換内容に使用していません。');
+    writeLine('※生成したPermission SetのAPI名は仮名です。');
+    writeLine('※保存結果確認後に、Salesforce設定画面の「プロパティを編集」から最終API名へ変更してください。');
 }
 
 // 全変換結果を必要に応じて書き込み、画面表示して要修正件数を返す。
@@ -584,6 +593,7 @@ function resolveMainDependencies(overrides) {
     return {
         argv: process.argv.slice(2),
         createPrompt: undefined,
+        createRunNonce: () => crypto.randomBytes(4).toString('hex').toUpperCase(),
         existsSync: fs.existsSync,
         mkdirSync: fs.mkdirSync,
         now: () => new Date(),
@@ -602,6 +612,7 @@ async function main(overrides = {}) {
     const {
         argv,
         createPrompt,
+        createRunNonce,
         existsSync,
         mkdirSync,
         now,
@@ -662,6 +673,7 @@ async function main(overrides = {}) {
         inputPaths,
         profiles: configuredProfiles,
         readFileSync,
+        runNonce: createRunNonce(),
         runOutputDirectory
     });
     const plans = createConversionPlans({ preparedProfiles });

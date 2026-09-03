@@ -4,7 +4,7 @@
 
 設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。実行前にSalesforce CLIのDefault Target Orgと認証済み組織情報を表示して利用者へ確認しますが、変換にはProfile XMLと同じsource treeにある関連CustomField metadataだけを使用します。
 
-生成物は日時別フォルダへ保存します。生成後は、Default Target Orgを対象とするvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
+生成物は日時別フォルダへ保存します。Permission Setは既存metadataとの更新競合を避ける一意な仮API名で生成し、組織上の保存結果を確認した後に設定画面で最終API名へ変更します。生成後は、Default Target Orgを対象とするvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
 
 ## 目的・対象外
 
@@ -59,9 +59,11 @@ npm run sf:convert:profile
 ## 名前とライセンス
 
 - Profile metadata fullNameは、Profileファイル名から`.profile-meta.xml`を除き、percent decodeしてNFCへ正規化します。
-- Permission Set API名は、fullNameがAPI名制約を満たす場合はそのまま使用します。
-- 日本語、空白、記号を含むfullNameはASCII部分を正規化し、fullNameのSHA-256から作る10桁hashを付けます。
-- `_Migrated`は付加しません。
+- Permission Set API名は、`ProfileConversion_<実行日時>_<実行ID>_<Profile連番>_<Profile fullNameのhash 10桁>`形式の仮名です。
+- 実行日時には一意な出力フォルダ名を使用し、実行IDには実行時に生成する8桁のランダム値を使用します。同じProfileを再実行した場合も前回のPermission Setを更新しません。
+- Profile連番は設定ファイルの記載順に1から付与します。
+- Profile fullNameのhashは生成元を識別するために使用し、権限内容はhashへ含めません。
+- 組織上の保存結果を確認した後に、Salesforce設定画面の「プロパティを編集」から最終API名へ変更します。
 - Permission SetラベルはProfile metadata fullNameを使用します。Profile XMLには組織上の表示ラベルが含まれないため、`Admin`からローカル処理だけで「システム管理者」は取得しません。
 - ラベルが80文字を超える場合は、意味を変えて短縮せず変換を停止します。
 - Permission Setの説明は`<Profile metadata fullName> Profileから生成した権限セット`です。
@@ -73,7 +75,7 @@ npm run sf:convert:profile
 1. CLI引数、設定ファイル、Profileパス、objects directoryを検証する。
 2. Default Target Orgを認証済み組織一覧から特定し、Alias、Username、URL、組織種別を表示する。
 3. 利用者へ実行確認を行い、本番環境では追加確認を行う。
-4. Profileファイル名をmetadata fullName、Permission Set API名、ラベルへ変換する。
+4. Profileファイル名をmetadata fullNameとラベルへ変換し、実行単位で一意な仮API名を生成する。
 5. Profile XMLを検証し、1回だけ解析する。
 6. 有効なアクセス権、項目権限、オブジェクト権限、レコードタイプ、タブを変換する。
 7. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
@@ -108,9 +110,9 @@ npm run sf:convert:profile
 ```text
 scripts/permissionset-conversion/outputs/<YYYYMMDD-HHmmss-SSS>/
 ├── permissionsets/
-│   └── <Permission Set API名>.permissionset-meta.xml
+│   └── <Permission Set仮API名>.permissionset-meta.xml
 └── reports/
-    └── <Permission Set API名>.conversion-report.json
+    └── <Permission Set仮API名>.conversion-report.json
 ```
 
 同じミリ秒のフォルダが既に存在する場合は4桁の連番を付けます。`outputs/`配下はGit管理対象外です。
@@ -144,6 +146,8 @@ sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<�
 ```sh
 npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets
 ```
+
+保存結果確認後に、Salesforce設定画面で対象Permission Setの「プロパティを編集」を開き、仮API名を最終API名へ変更します。API名変更後は生成XMLの仮API名と一致しなくなるため、保存結果確認スクリプトは変更前に実行します。
 
 保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。確認後の設定変更で取得先が変わらないよう、取得したDefault Target Orgを内部のSalesforce CLIへ固定して渡しますが、利用者からの`--target-org`は受け付けません。繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
 保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
@@ -181,7 +185,8 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
-- Profileファイル名のpercent decode、日本語API名生成、ラベル制約を確認する
+- Profileファイル名のpercent decode、日本語fullNameのhash生成、ラベル制約を確認する
+- 実行ごと、Profileごとに異なる仮API名を生成する
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
 - validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
