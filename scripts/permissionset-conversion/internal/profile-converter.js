@@ -58,12 +58,6 @@ const enabledAccessDefinitions = [
         targetOrder: ['configName', 'enabled']
     },
     {
-        source: 'pageAccesses',
-        target: 'pageAccesses',
-        identifier: 'apexPage',
-        targetOrder: ['apexPage', 'enabled']
-    },
-    {
         source: 'servicePresenceStatusAccesses',
         target: 'servicePresenceStatusAccesses',
         identifier: 'servicePresenceStatus',
@@ -115,6 +109,7 @@ const supportedProfileElements = new Set([
     'custom',
     'fieldPermissions',
     'objectPermissions',
+    'pageAccesses',
     'recordTypeVisibilities',
     'tabVisibilities',
     'userLicense',
@@ -454,6 +449,63 @@ function convertEnabledAccessSections(profile, report) {
     }
 
     return convertedSections;
+}
+
+// API専用Profileでは利用できないVisualforceページアクセスを移行対象から分離する。
+function convertPageAccessSection({ apiUserOnly, profile, report }) {
+    // Profile XMLに記載されたVisualforceページアクセスを正規化する。
+    const entries = toArray(profile.pageAccesses);
+    // 同じVisualforceページが重複する不正入力を拒否する。
+    assertUniqueIdentifier(entries, 'apexPage', 'pageAccesses');
+    // Permission Setへ出力できるVisualforceページアクセスを蓄積する。
+    const convertedEntries = [];
+
+    // 各Visualforceページを有効状態とAPI専用制約に従って分類する。
+    for (const entry of entries) {
+        // 監査レポートと出力で共有するVisualforceページ名を取得する。
+        const name = requireIdentifier(entry, 'apexPage', 'pageAccesses');
+        // 将来追加された未知の子要素を黙って破棄しない。
+        reportUnknownEntryKeys(report, 'pageAccesses', name, entry, new Set(['apexPage', 'enabled']));
+        // 文字列とbooleanの差を吸収して有効状態を確定する。
+        const enabled = parseBoolean(entry.enabled, `pageAccesses.${name}.enabled`);
+
+        // 無効なアクセス権はPermission Setの拒否権限として扱わない。
+        if (!enabled) {
+            // 移行しない理由を監査レポートへ記録する。
+            addReportEntry(
+                report,
+                'skippedDisabled',
+                'pageAccesses',
+                name,
+                'enabled=falseは拒否権限ではないため出力しません。'
+            );
+            continue;
+        }
+
+        // ApiUserOnlyが有効ならVisualforceを利用できないためProfile側へ残す。
+        if (apiUserOnly) {
+            // ライセンス名ではなくProfile XMLのAPI専用設定を根拠として記録する。
+            addReportEntry(
+                report,
+                'retainedInProfile',
+                'pageAccesses',
+                name,
+                'ApiUserOnly=trueのProfileではVisualforceページアクセスを利用できないためPermission Setへ出力しません。',
+                { action: 'omitted', reason: 'apiUserOnly' }
+            );
+            continue;
+        }
+
+        // 通常Profileの有効なVisualforceページアクセスは値を変えずに出力する。
+        convertedEntries.push({ apexPage: name, enabled: 'true' });
+        // 正常変換した要素を監査レポートへ記録する。
+        addReportEntry(report, 'converted', 'pageAccesses', name, '有効なアクセス権を変換しました。', {
+            targetElement: 'pageAccesses'
+        });
+    }
+
+    // API名順の安定した出力を返し、対象がなければセクション自体を省略する。
+    return convertedEntries.length > 0 ? sortByIdentifier(convertedEntries, 'apexPage') : undefined;
 }
 
 // 参照不可の項目権限を拒否権限または矛盾した入力として分類する。
@@ -971,6 +1023,10 @@ function convertProfile({
     reportUnknownProfileElements(profile, report);
     reportApplicationVisibilities(profile, report);
     const convertedSections = convertEnabledAccessSections(profile, report);
+    // Profile XMLで有効なApiUserOnlyをVisualforceアクセスの互換性判定に使用する。
+    const apiUserOnly = toArray(convertedSections.userPermissions).some(({ name }) => name === 'ApiUserOnly');
+    // API専用制約を適用したVisualforceページアクセスを変換結果へ追加する。
+    convertedSections.pageAccesses = convertPageAccessSection({ apiUserOnly, profile, report });
 
     convertedSections.fieldPermissions = convertFieldPermissionSection({
         existsSync,
