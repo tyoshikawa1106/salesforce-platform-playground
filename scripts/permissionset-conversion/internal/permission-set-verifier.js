@@ -176,13 +176,15 @@ function listPermissionSetApiNames(sourceDirectory, readdirSync = fs.readdirSync
     });
 }
 
-// Default Target Orgから完全一致のPermission Setだけを取得するretrieve引数を作る。
-function buildRetrieveArgs({ apiNames, outputDirectory }) {
+// 確認済みのDefault Target Orgから完全一致のPermission Setだけを取得するretrieve引数を作る。
+function buildRetrieveArgs({ apiNames, outputDirectory, targetOrg }) {
     return [
         'project',
         'retrieve',
         'start',
         ...apiNames.flatMap((apiName) => ['--metadata', `PermissionSet:${apiName}`]),
+        '--target-org',
+        targetOrg,
         '--output-dir',
         outputDirectory,
         '--wait',
@@ -239,10 +241,11 @@ function retrievePermissionSets({
     outputDirectory,
     projectRoot,
     runSfWithOutputCommand,
+    targetOrg,
     timeout = 35 * 60 * 1_000
 }) {
     const result = runSfWithOutputCommand(
-        buildRetrieveArgs({ apiNames, outputDirectory }),
+        buildRetrieveArgs({ apiNames, outputDirectory, targetOrg }),
         projectRoot,
         undefined,
         50 * 1024 * 1024,

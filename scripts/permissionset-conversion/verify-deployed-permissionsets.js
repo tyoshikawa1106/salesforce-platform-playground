@@ -180,7 +180,8 @@ async function main(overrides = {}) {
         apiNames,
         outputDirectory: retrievedDirectory,
         projectRoot,
-        runSfWithOutputCommand
+        runSfWithOutputCommand,
+        targetOrg
     });
     const comparison = comparePermissionSetDirectories({
         retrievedDirectory: path.join(retrievedDirectory, 'permissionsets'),

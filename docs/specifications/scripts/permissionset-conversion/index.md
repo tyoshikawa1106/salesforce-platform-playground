@@ -14,16 +14,16 @@ Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから
 
 ## 構成
 
-| 種別           | パス                                                                   | 役割                                                           |
-| -------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 入力設定       | `scripts/permissionset-conversion/profile-paths.config.txt`            | 変換するProfile XMLの相対パスを1行ずつ指定する                 |
-| 実行スクリプト | `scripts/permissionset-conversion/convert-profile-to-permissionset.js` | 入力検証、変換、日時別出力、後続コマンド表示を管理する         |
-| Profile変換    | `scripts/permissionset-conversion/internal/profile-converter.js`       | Profile要素を分類してPermission Set XMLとレポートを作る        |
-| Profile名解決  | `scripts/permissionset-conversion/internal/profile-resolver.js`        | ファイル名をmetadata fullName、API名、ラベルへ変換する         |
-| 要素定義       | `scripts/permissionset-conversion/internal/permission-set-elements.js` | 比較対象となるPermission Set要素と識別子を定義する             |
-| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | validate、dry-run、deploy、保存結果確認コマンドを作る          |
-| 保存結果確認   | `scripts/permissionset-conversion/verify-deployed-permissionsets.js`   | 明示した組織からデプロイ済みPermission Setを再取得して比較する |
-| テスト         | `scripts/permissionset-conversion/test/`                               | ローカル変換、異常系、保存結果比較を検証する                   |
+| 種別           | パス                                                                   | 役割                                                                 |
+| -------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 入力設定       | `scripts/permissionset-conversion/profile-paths.config.txt`            | 変換するProfile XMLの相対パスを1行ずつ指定する                       |
+| 実行スクリプト | `scripts/permissionset-conversion/convert-profile-to-permissionset.js` | 入力検証、変換、日時別出力、後続コマンド表示を管理する               |
+| Profile変換    | `scripts/permissionset-conversion/internal/profile-converter.js`       | Profile要素を分類してPermission Set XMLとレポートを作る              |
+| Profile名解決  | `scripts/permissionset-conversion/internal/profile-resolver.js`        | ファイル名をmetadata fullName、API名、ラベルへ変換する               |
+| 要素定義       | `scripts/permissionset-conversion/internal/permission-set-elements.js` | 比較対象となるPermission Set要素と識別子を定義する                   |
+| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | validate、dry-run、deploy、保存結果確認コマンドを作る                |
+| 保存結果確認   | `scripts/permissionset-conversion/verify-deployed-permissionsets.js`   | Default Target Orgからデプロイ済みPermission Setを再取得して比較する |
+| テスト         | `scripts/permissionset-conversion/test/`                               | ローカル変換、異常系、保存結果比較を検証する                         |
 
 ## 入力
 
@@ -145,7 +145,7 @@ sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<�
 npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets
 ```
 
-保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。`--target-org`は受け付けません。繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
+保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。確認後の設定変更で取得先が変わらないよう、取得したDefault Target Orgを内部のSalesforce CLIへ固定して渡しますが、利用者からの`--target-org`は受け付けません。繰り返し要素と子要素の順序、`objectPermissions.viewAllFields=false`の省略だけを無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
 保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
 
 ## エラー処理

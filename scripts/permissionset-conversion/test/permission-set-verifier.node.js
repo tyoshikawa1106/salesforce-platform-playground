@@ -72,16 +72,17 @@ test('retrieveは生成したPermission Set API名だけを完全一致で指定
     // 2件のPermission Setを指定してSalesforce CLI引数を作る。
     const args = buildRetrieveArgs({
         apiNames: ['Admin', 'Platform_User'],
-        outputDirectory: '/tmp/retrieved'
+        outputDirectory: '/tmp/retrieved',
+        targetOrg: 'target-org-a'
     });
 
-    // exact-name metadata指定と再取得先を含み、組織引数を含まないことを確認する。
+    // exact-name metadata指定、確認済みDefault Target Org、再取得先を含むことを確認する。
     assert.deepEqual(args.slice(0, 3), ['project', 'retrieve', 'start']);
     assert.deepEqual(
         args.filter((argument) => argument.startsWith('PermissionSet:')),
         ['PermissionSet:Admin', 'PermissionSet:Platform_User']
     );
-    assert.equal(args.includes('--target-org'), false);
+    assert.equal(args[args.indexOf('--target-org') + 1], 'target-org-a');
     assert.equal(args[args.indexOf('--output-dir') + 1], '/tmp/retrieved');
 });
 
@@ -224,7 +225,7 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
         assert.equal(calls.length, 3);
         assert.deepEqual(calls[0], ['config', 'get', 'target-org', '--json']);
         assert.equal(calls[2].includes('PermissionSet:Example'), true);
-        assert.equal(calls[2].includes('--target-org'), false);
+        assert.equal(calls[2][calls[2].indexOf('--target-org') + 1], 'target-org-a');
         assert.equal(outputLines.includes('保存結果確認: 一致1件、差異あり0件、差分0件'), true);
         // 日時別の比較レポートへ一致結果を保存する。
         const verificationDirectory = resolveVerificationDirectory({
