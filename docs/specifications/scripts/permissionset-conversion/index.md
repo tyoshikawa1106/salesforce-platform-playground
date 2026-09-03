@@ -4,7 +4,7 @@
 
 設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。実行前にSalesforce CLIのDefault Target Orgと認証済み組織情報を表示して利用者へ確認しますが、変換にはProfile XMLと同じsource treeにある関連CustomField metadataだけを使用します。
 
-生成物は日時別フォルダへ保存します。Permission Setは既存metadataとの更新競合を避ける一意な仮API名で生成し、組織上の保存結果を確認した後に設定画面で最終API名へ変更します。生成後は、Default Target Orgを対象とするvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
+生成物は日時別フォルダへ保存します。Permission Setは既存metadataとの更新競合を避ける一意な仮API名で生成し、組織上の保存結果を確認した後に設定画面で最終API名へ変更します。生成後は、Default Target Orgを対象とするdry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、dry-run、deployは実行しません。
 
 ## 目的・対象外
 
@@ -21,7 +21,7 @@ Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから
 | Profile変換    | `scripts/permissionset-conversion/internal/profile-converter.js`       | Profile要素を分類してPermission Set XMLとレポートを作る              |
 | Profile名解決  | `scripts/permissionset-conversion/internal/profile-resolver.js`        | ファイル名をmetadata fullName、API名、ラベルへ変換する               |
 | 要素定義       | `scripts/permissionset-conversion/internal/permission-set-elements.js` | 比較対象となるPermission Set要素と識別子を定義する                   |
-| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | validate、dry-run、deploy、保存結果確認コマンドを作る                |
+| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | dry-run、deploy、保存結果確認コマンドを作る                          |
 | 保存結果確認   | `scripts/permissionset-conversion/verify-deployed-permissionsets.js`   | Default Target Orgからデプロイ済みPermission Setを再取得して比較する |
 | テスト         | `scripts/permissionset-conversion/test/`                               | ローカル変換、異常系、保存結果比較を検証する                         |
 
@@ -131,16 +131,10 @@ scripts/permissionset-conversion/outputs/<YYYYMMDD-HHmmss-SSS>/
 
 全XMLを生成できた場合、次のコマンドを実際の出力パス付きで表示します。すべてSalesforce CLIのDefault Target Orgを対象にします。
 
-ProductionまたはDeveloper Editionでは次を使用します。
+Permission SetだけをApexテストなしで検証するため、組織種別にかかわらず次を使用します。`--test-level`は指定しません。
 
 ```sh
-sf project deploy validate --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30
-```
-
-SandboxまたはScratch Orgでは次を使用します。
-
-```sh
-sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30
+sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
 ```
 
 内容と対象組織を確認した後、通常deployを手動実行します。
@@ -205,7 +199,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - Guest User LicenseとChatter系User LicenseのProfileを除外し、生成対象へ連続するProfile連番を付ける
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
-- validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
+- dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
 - 保存後の意味差分を検出し、変換結果へ反映せず比較レポートへ保存する
 
 単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者がDefault Target Orgを確認して実行する後続工程で確認します。

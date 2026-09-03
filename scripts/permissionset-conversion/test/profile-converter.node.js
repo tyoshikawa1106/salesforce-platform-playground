@@ -29,12 +29,7 @@ const {
     maxUserLicenseApiNameLength,
     normalizeUserLicenseForApiName
 } = require('../internal/profile-resolver');
-const {
-    getDeploymentCommand,
-    getProductionValidationCommand,
-    getSandboxValidationCommand,
-    getVerificationCommand
-} = require('../internal/validation-runner');
+const { getDeploymentCommand, getDryRunCommand, getVerificationCommand } = require('../internal/validation-runner');
 const { orgTypes } = require('../../common/target-org');
 
 // 実ファイルを使うテストで共通利用するリポジトリとfixtureのパスを定義する。
@@ -1244,7 +1239,11 @@ test('CLIはDefault Target Orgを確認してローカルmetadataとレポート
                 '※保存結果確認後に、Salesforce設定画面の「プロパティを編集」から最終API名へ変更してください。'
             )
         );
-        assert.ok(lines.some((line) => line.startsWith('sf project deploy validate --source-dir')));
+        assert.ok(lines.some((line) => line.startsWith('sf project deploy start --dry-run --source-dir')));
+        assert.equal(
+            lines.some((line) => line.includes('--test-level')),
+            false
+        );
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
@@ -1562,7 +1561,7 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
     }
 });
 
-test('生成後の手動validate、deploy、保存結果確認コマンドを限定scopeで作る', () => {
+test('生成後の手動dry-run、deploy、保存結果確認コマンドを限定scopeで作る', () => {
     // 日時別Permission Set出力をすべての後続コマンドへ同じscopeで渡す。
     const sourceDirectory = path.join(
         repoRoot,
@@ -1571,12 +1570,8 @@ test('生成後の手動validate、deploy、保存結果確認コマンドを限
     const relative = 'scripts/permissionset-conversion/outputs/20260902-091924-927/permissionsets';
 
     assert.equal(
-        getProductionValidationCommand({ projectRoot: repoRoot, sourceDirectory }),
-        `sf project deploy validate --source-dir ${relative} --test-level RunLocalTests --wait 30`
-    );
-    assert.equal(
-        getSandboxValidationCommand({ projectRoot: repoRoot, sourceDirectory }),
-        `sf project deploy start --dry-run --source-dir ${relative} --test-level RunLocalTests --wait 30`
+        getDryRunCommand({ projectRoot: repoRoot, sourceDirectory }),
+        `sf project deploy start --dry-run --source-dir ${relative} --wait 30`
     );
     assert.equal(
         getDeploymentCommand({ projectRoot: repoRoot, sourceDirectory }),

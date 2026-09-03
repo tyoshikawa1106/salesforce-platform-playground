@@ -15,12 +15,7 @@ const {
     getExcludedUserLicenseReason,
     profileFileSuffix
 } = require('./internal/profile-resolver');
-const {
-    getDeploymentCommand,
-    getProductionValidationCommand,
-    getSandboxValidationCommand,
-    getVerificationCommand
-} = require('./internal/validation-runner');
+const { getDeploymentCommand, getDryRunCommand, getVerificationCommand } = require('./internal/validation-runner');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const defaultConfigRelativePath = 'scripts/permissionset-conversion/profile-paths.config.txt';
@@ -583,11 +578,8 @@ function createConversionPlans({ preparedProfiles }) {
 // 利用者が後からDefault Target Orgを検証、デプロイ、保存結果確認するコマンドを表示する。
 function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine('');
-    writeLine('Production／Developer Editionのvalidateコマンド:');
-    writeLine(getProductionValidationCommand({ projectRoot, sourceDirectory }));
-    writeLine('');
-    writeLine('Sandbox／Scratch Orgのdry-runコマンド:');
-    writeLine(getSandboxValidationCommand({ projectRoot, sourceDirectory }));
+    writeLine('Permission Setのdry-runコマンド:');
+    writeLine(getDryRunCommand({ projectRoot, sourceDirectory }));
     writeLine('');
     writeLine('Permission Setのデプロイコマンド:');
     writeLine(getDeploymentCommand({ projectRoot, sourceDirectory }));

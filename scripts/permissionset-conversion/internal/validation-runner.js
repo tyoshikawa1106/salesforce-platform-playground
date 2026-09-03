@@ -19,18 +19,11 @@ function getRelativeSourceDirectory({ projectRoot, sourceDirectory }) {
     return relativeSourceDirectory.split(path.sep).join('/');
 }
 
-// ProductionまたはDeveloper Editionで利用する手動validateコマンドを作る。
-function getProductionValidationCommand({ projectRoot, sourceDirectory }) {
+// Permission SetだけをApexテストなしで検証する手動dry-runコマンドを作る。
+function getDryRunCommand({ projectRoot, sourceDirectory }) {
     const normalizedSourceDirectory = getRelativeSourceDirectory({ projectRoot, sourceDirectory });
 
-    return `sf project deploy validate --source-dir ${normalizedSourceDirectory} --test-level RunLocalTests --wait 30`;
-}
-
-// SandboxまたはScratch Orgで利用する手動dry-runコマンドを作る。
-function getSandboxValidationCommand({ projectRoot, sourceDirectory }) {
-    const normalizedSourceDirectory = getRelativeSourceDirectory({ projectRoot, sourceDirectory });
-
-    return `sf project deploy start --dry-run --source-dir ${normalizedSourceDirectory} --test-level RunLocalTests --wait 30`;
+    return `sf project deploy start --dry-run --source-dir ${normalizedSourceDirectory} --wait 30`;
 }
 
 // 今回生成したフォルダだけをDefault Target Orgへ手動deployするコマンドを作る。
@@ -49,7 +42,6 @@ function getVerificationCommand({ projectRoot, sourceDirectory }) {
 
 module.exports = {
     getDeploymentCommand,
-    getProductionValidationCommand,
-    getSandboxValidationCommand,
+    getDryRunCommand,
     getVerificationCommand
 };
