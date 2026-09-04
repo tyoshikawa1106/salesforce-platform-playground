@@ -91,6 +91,7 @@ const userLicensesWithoutAssignedApps = new Set([
     'Customer Community Plus Login',
     'Customer Portal Manager Custom',
     'Customer Portal Manager Standard',
+    'External Apps',
     'External Apps Login',
     'External Identity',
     'High Volume Customer Portal',
@@ -422,6 +423,7 @@ function convertApplicationVisibilitySection(profile, report) {
             application,
             new Set(['application', 'default', 'visible'])
         );
+        const isDefault = parseBoolean(application.default, `applicationVisibilities.${name}.default`);
         const visible = parseBoolean(application.visible, `applicationVisibilities.${name}.visible`);
 
         if (visible && canAssignApplications) {
@@ -454,10 +456,7 @@ function convertApplicationVisibilitySection(profile, report) {
             );
         }
 
-        if (
-            application.default !== undefined &&
-            parseBoolean(application.default, `applicationVisibilities.${name}.default`)
-        ) {
+        if (isDefault) {
             addReportEntry(
                 report,
                 'retainedInProfile',
@@ -927,6 +926,7 @@ function convertRecordType(recordType, report) {
         recordType,
         new Set(['default', 'personAccountDefault', 'recordType', 'visible'])
     );
+    const isDefault = parseBoolean(recordType.default, `recordTypeVisibilities.${name}.default`);
     const visible = parseBoolean(recordType.visible, `recordTypeVisibilities.${name}.visible`);
 
     if (visible) {
@@ -955,10 +955,7 @@ function convertRecordType(recordType, report) {
         );
     }
 
-    if (
-        recordType.default !== undefined &&
-        parseBoolean(recordType.default, `recordTypeVisibilities.${name}.default`)
-    ) {
+    if (isDefault) {
         addReportEntry(
             report,
             'retainedInProfile',

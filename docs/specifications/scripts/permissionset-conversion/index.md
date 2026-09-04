@@ -126,6 +126,7 @@ npm run sf:convert:profile
 - `Customer Community Plus Login`
 - `Customer Portal Manager Custom`
 - `Customer Portal Manager Standard`
+- `External Apps`
 - `External Apps Login`
 - `External Identity`
 - `High Volume Customer Portal`
@@ -215,6 +216,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
+- Metadata APIで必須のアプリケーションとレコードタイプの`default`値がない入力を拒否する
 - Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、一意なラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
 - 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない

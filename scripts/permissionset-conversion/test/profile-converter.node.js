@@ -51,6 +51,7 @@ const userLicensesWithoutAssignedApps = [
     'Customer Community Plus Login',
     'Customer Portal Manager Custom',
     'Customer Portal Manager Standard',
+    'External Apps',
     'External Apps Login',
     'External Identity',
     'High Volume Customer Portal',
@@ -931,6 +932,27 @@ test('不正XML、重複権限、API名とラベルの長さ違反を拒否す�
     assert.throws(() => convertFixture(duplicateXml), /重複した設定があります: RunReports/);
     assert.throws(() => convertFixture(undefined, { permissionSetApiName: `A${'a'.repeat(80)}` }), /API名は80文字以内/);
     assert.throws(() => convertFixture(undefined, { permissionSetLabel: 'あ'.repeat(81) }), /ラベルは80文字以内/);
+});
+
+test('Metadata APIで必須のProfile default値がない入力を拒否する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const missingApplicationDefault = baseXml.replace(
+        '        <default>true</default>\n        <visible>true</visible>',
+        '        <visible>true</visible>'
+    );
+    const missingRecordTypeDefault = baseXml.replace(
+        '    <recordTypeVisibilities>\n        <default>true</default>',
+        '    <recordTypeVisibilities>'
+    );
+
+    assert.throws(
+        () => convertFixture(missingApplicationDefault),
+        /applicationVisibilities\.Test_App\.defaultはtrueまたはfalse/
+    );
+    assert.throws(
+        () => convertFixture(missingRecordTypeDefault),
+        /recordTypeVisibilities\.Example__c\.Business\.defaultはtrueまたはfalse/
+    );
 });
 
 test('追加されたProfile権限を固定件数に依存せず内容比較する', () => {
