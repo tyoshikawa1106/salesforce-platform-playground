@@ -43,6 +43,19 @@ const fixedPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_2026
 const fixedSecondPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_20260902_051922_123_0002';
 const fixedPlatformTemporaryLabel = 'Platform_Test 20260902-051922-123 0001';
 const xmlParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
+const userLicensesWithoutAssignedApps = [
+    'Authenticated Website',
+    'Customer Community',
+    'Customer Community Login',
+    'Customer Community Plus',
+    'Customer Community Plus Login',
+    'Customer Portal Manager Custom',
+    'Customer Portal Manager Standard',
+    'External Apps Login',
+    'External Identity',
+    'High Volume Customer Portal',
+    'Work.com Only'
+];
 
 // Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
 function createSfResult(result) {
@@ -263,6 +276,47 @@ test('有効なProfile権限だけをPermission Set候補へ変換する', () =>
     assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
     assert.deepEqual(permissionSet.userPermissions, { enabled: 'true', name: 'RunReports' });
     assertProfilePermissionEquivalence({ conversion, profileXml: fs.readFileSync(fixtureProfilePath, 'utf8') });
+});
+
+test('Assigned Appsを許可しないUser LicenseではアプリアクセスをProfileへ残す', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+
+    for (const userLicense of userLicensesWithoutAssignedApps) {
+        const profileXml = baseXml.replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            `<userLicense>${userLicense}</userLicense>`
+        );
+        const conversion = convertFixture(profileXml);
+        const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+        assert.equal(permissionSet.applicationVisibilities, undefined, userLicense);
+        assert.ok(
+            conversion.report.retainedInProfile.some(
+                ({ name, reason }) => name === 'Test_App' && reason === 'userLicenseDoesNotAllowAssignedApps'
+            ),
+            userLicense
+        );
+        assert.ok(
+            conversion.report.requiresValidation.some(
+                ({ name, reason }) => name === userLicense && reason === 'userLicenseDoesNotAllowAssignedApps'
+            ),
+            userLicense
+        );
+    }
+});
+
+test('Assigned Appsを許可する外部User Licenseではアプリアクセスを維持する', () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Partner Community</userLicense>');
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.deepEqual(permissionSet.applicationVisibilities, { application: 'Test_App', visible: 'true' });
+    assert.equal(
+        conversion.report.retainedInProfile.some(({ reason }) => reason === 'userLicenseDoesNotAllowAssignedApps'),
+        false
+    );
 });
 
 test('Metadata API 67.0のProfile直下要素をすべて明示的に扱う', () => {

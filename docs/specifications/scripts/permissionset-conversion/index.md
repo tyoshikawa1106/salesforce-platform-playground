@@ -91,7 +91,8 @@ npm run sf:convert:profile
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `enabled=true`のアクセス権                                | 対応するPermission Set要素へ出力する                                        |
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
-| `applicationVisibilities.visible=true`                    | `default`を除き、割り当てアプリケーションの表示権限を出力する               |
+| `applicationVisibilities.visible=true`                    | 対応User Licenseでは`default`を除き、割り当てアプリケーションを出力する     |
+| Assigned Apps非対応User Licenseの`visible=true`           | Permission Setへ出力せず、Profile残置と要確認へ記録する                     |
 | `applicationVisibilities.visible=false`                   | 拒否権限ではないため出力しない                                              |
 | `applicationVisibilities.default=true`                    | デフォルトアプリケーション指定だけをProfile残置として記録する               |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
@@ -115,6 +116,22 @@ npm run sf:convert:profile
 | 未知の直下要素または未知の子要素                          | `unsupportedUnknown`へ記録し、Permission Set XMLを生成しない                |
 
 接続組織やライセンス名から権限を補完・推測しません。ローカルProfile XMLに存在しない権限を追加するのは、上表に明記したMetadata APIの依存権限だけです。
+
+次のUser LicenseはPermission SetのAssigned Appsを許可しないため、アプリケーションの表示権限をProfileに残します。
+
+- `Authenticated Website`
+- `Customer Community`
+- `Customer Community Login`
+- `Customer Community Plus`
+- `Customer Community Plus Login`
+- `Customer Portal Manager Custom`
+- `Customer Portal Manager Standard`
+- `External Apps Login`
+- `External Identity`
+- `High Volume Customer Portal`
+- `Work.com Only`
+
+この判定はアプリアクセスだけに適用し、同じProfileのほかの移行可能な権限はPermission Set候補へ出力します。上記以外のUser Licenseでも組織や契約機能による互換性差があり得るため、生成後のdry-runは省略しません。
 
 ## 出力
 
@@ -186,6 +203,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
 - 表示可能な割り当てアプリケーションを移行し、デフォルトアプリケーション指定だけをProfileへ残す
+- Assigned Apps非対応User Licenseではアプリケーション表示権限をProfileへ残し、対応する外部User Licenseでは移行する
 - `ApiUserOnly=true`ではVisualforceページだけを除外し、ApexクラスとAPI専用権限を維持する
 - ライセンス名や無効な`ApiUserOnly`からVisualforceページアクセスを除外しない
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する

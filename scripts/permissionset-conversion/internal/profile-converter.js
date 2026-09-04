@@ -82,9 +82,24 @@ const retainedProfileElements = new Map([
     ['profileActionOverrides', 'Profile固有のアクションオーバーライドはProfileに残します。']
 ]);
 
+// Permission SetのAssigned Appsを許可しないUser Licenseを定義する。
+const userLicensesWithoutAssignedApps = new Set([
+    'Authenticated Website',
+    'Customer Community',
+    'Customer Community Login',
+    'Customer Community Plus',
+    'Customer Community Plus Login',
+    'Customer Portal Manager Custom',
+    'Customer Portal Manager Standard',
+    'External Apps Login',
+    'External Identity',
+    'High Volume Customer Portal',
+    'Work.com Only'
+]);
+
 /*
- * 組織やリリースによって変わるPermission Set互換性はこの変換器に固定しない。
- * それらの差分はデプロイ後の再取得で検出し、比較レポートで確認する。
+ * Assigned Apps非対応として確認済みのUser Licenseだけを変換時に扱う。
+ * そのほかの組織やリリースによる互換性差はdry-runと保存後の再取得で確認する。
  */
 // Profile XMLのオブジェクト権限名をPermission SetのMetadata API順に定義する。
 const leadingObjectPermissionNames = ['allowCreate', 'allowDelete', 'allowEdit', 'allowRead', 'modifyAllRecords'];
@@ -394,6 +409,9 @@ function convertApplicationVisibilitySection(profile, report) {
     const applications = toArray(profile.applicationVisibilities);
     assertUniqueIdentifier(applications, 'application', 'applicationVisibilities');
     const converted = [];
+    const userLicense = report.source.userLicense;
+    const canAssignApplications = !userLicensesWithoutAssignedApps.has(userLicense);
+    let retainedByUserLicense = false;
 
     for (const application of applications) {
         const name = requireIdentifier(application, 'application', 'applicationVisibilities');
@@ -406,7 +424,7 @@ function convertApplicationVisibilitySection(profile, report) {
         );
         const visible = parseBoolean(application.visible, `applicationVisibilities.${name}.visible`);
 
-        if (visible) {
+        if (visible && canAssignApplications) {
             converted.push({ application: name, visible: 'true' });
             addReportEntry(
                 report,
@@ -416,13 +434,23 @@ function convertApplicationVisibilitySection(profile, report) {
                 '表示可能な割り当てアプリケーションを変換しました。',
                 { targetElement: 'applicationVisibilities' }
             );
-        } else {
+        } else if (!visible) {
             addReportEntry(
                 report,
                 'skippedDisabled',
                 'applicationVisibilities',
                 name,
                 'visible=falseは拒否権限ではないため出力しません。'
+            );
+        } else {
+            retainedByUserLicense = true;
+            addReportEntry(
+                report,
+                'retainedInProfile',
+                'applicationVisibilities',
+                name,
+                'このUser LicenseではPermission Setの割り当てアプリケーションが許可されないためProfileに残します。',
+                { action: 'omitted', reason: 'userLicenseDoesNotAllowAssignedApps', userLicense }
             );
         }
 
@@ -438,6 +466,17 @@ function convertApplicationVisibilitySection(profile, report) {
                 'デフォルトアプリケーション指定はProfileに残します。'
             );
         }
+    }
+
+    if (retainedByUserLicense) {
+        addReportEntry(
+            report,
+            'requiresValidation',
+            'applicationVisibilities',
+            userLicense,
+            'Permission Setへ移行できない割り当てアプリケーションがProfileで維持されることを確認してください。',
+            { action: 'confirmProfileRetention', reason: 'userLicenseDoesNotAllowAssignedApps' }
+        );
     }
 
     return converted.length > 0 ? sortByIdentifier(converted, 'application') : undefined;
