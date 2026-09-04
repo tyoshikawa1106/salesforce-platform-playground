@@ -55,6 +55,10 @@ const userLicensesWithoutAssignedApps = [
     'External Apps Login',
     'External Identity',
     'High Volume Customer Portal',
+    'Overage Authenticated Website',
+    'Overage Customer Portal Manager Custom',
+    'Overage Customer Portal Manager Standard',
+    'Overage High Volume Customer Portal',
     'Work.com Only'
 ];
 
@@ -306,17 +310,99 @@ test('Assigned Appsを許可しないUser LicenseではアプリアクセスをP
     }
 });
 
-test('Assigned Appsを許可する外部User Licenseではアプリアクセスを維持する', () => {
+test('確認済みまたは公式Helpで同等のUser Licenseではアプリアクセスを維持する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+
+    for (const userLicense of ['Force.com - App Subscription', 'Partner Community', 'Salesforce Platform Login']) {
+        const profileXml = baseXml.replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            `<userLicense>${userLicense}</userLicense>`
+        );
+        const conversion = convertFixture(profileXml);
+        const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+        assert.equal(conversion.canWrite, true, userLicense);
+        assert.deepEqual(
+            permissionSet.applicationVisibilities,
+            { application: 'Test_App', visible: 'true' },
+            userLicense
+        );
+        assert.equal(
+            conversion.report.retainedInProfile.some(({ reason }) => reason === 'userLicenseDoesNotAllowAssignedApps'),
+            false,
+            userLicense
+        );
+    }
+});
+
+test('Assigned Apps互換性が未確認のUser Licenseではfail closedにする', () => {
     const profileXml = fs
         .readFileSync(fixtureProfilePath, 'utf8')
-        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Partner Community</userLicense>');
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Future User License</userLicense>');
     const conversion = convertFixture(profileXml);
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
 
-    assert.deepEqual(permissionSet.applicationVisibilities, { application: 'Test_App', visible: 'true' });
+    assert.equal(conversion.canWrite, false);
+    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.ok(
+        conversion.report.unsupportedUnknown.some(
+            ({ name, reason }) =>
+                name === 'Future User License' && reason === 'userLicenseAssignedAppsCompatibilityUnknown'
+        )
+    );
+    assert.ok(
+        conversion.report.retainedInProfile.some(
+            ({ name, reason }) => name === 'Test_App' && reason === 'userLicenseAssignedAppsCompatibilityUnknown'
+        )
+    );
+});
+
+test('Assigned Appsの移行対象がない未確認User Licenseではほかの権限を変換する', () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<visible>true</visible>', '<visible>false</visible>')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Future User License</userLicense>');
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.equal(conversion.canWrite, true);
+    assert.equal(permissionSet.applicationVisibilities, undefined);
     assert.equal(
-        conversion.report.retainedInProfile.some(({ reason }) => reason === 'userLicenseDoesNotAllowAssignedApps'),
+        conversion.report.unsupportedUnknown.some(
+            ({ reason }) => reason === 'userLicenseAssignedAppsCompatibilityUnknown'
+        ),
         false
+    );
+});
+
+test('Force.com App Subscriptionの表示アプリケーション上限を超えた場合はfail closedにする', () => {
+    const secondVisibleApplication = [
+        '    <applicationVisibilities>',
+        '        <application>Second_Test_App</application>',
+        '        <default>false</default>',
+        '        <visible>true</visible>',
+        '    </applicationVisibilities>',
+        ''
+    ].join('\n');
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('    <categoryGroupVisibilities>', `${secondVisibleApplication}    <categoryGroupVisibilities>`)
+        .replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            '<userLicense>Force.com - App Subscription</userLicense>'
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.equal(conversion.canWrite, false);
+    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.ok(
+        conversion.report.unsupportedUnknown.some(
+            ({ maximumApplications, reason, visibleApplicationCount }) =>
+                maximumApplications === 1 &&
+                reason === 'userLicenseAssignedAppsLimitExceeded' &&
+                visibleApplicationCount === 2
+        )
     );
 });
 

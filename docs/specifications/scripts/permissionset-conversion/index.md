@@ -93,6 +93,8 @@ npm run sf:convert:profile
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
 | `applicationVisibilities.visible=true`                    | 対応User Licenseでは`default`を除き、割り当てアプリケーションを出力する     |
 | Assigned Apps非対応User Licenseの`visible=true`           | Permission Setへ出力せず、Profile残置と要確認へ記録する                     |
+| Assigned Apps互換性が未確認のUser Licenseの`visible=true` | Profile残置と`unsupportedUnknown`へ記録し、Permission Set XMLを生成しない   |
+| Assigned Appsの既知上限を超える`visible=true`             | 部分変換せず`unsupportedUnknown`へ記録し、Permission Set XMLを生成しない    |
 | `applicationVisibilities.visible=false`                   | 拒否権限ではないため出力しない                                              |
 | `applicationVisibilities.default=true`                    | デフォルトアプリケーション指定だけをProfile残置として記録する               |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
@@ -130,9 +132,34 @@ npm run sf:convert:profile
 - `External Apps Login`
 - `External Identity`
 - `High Volume Customer Portal`
+- `Overage Authenticated Website`
+- `Overage Customer Portal Manager Custom`
+- `Overage Customer Portal Manager Standard`
+- `Overage High Volume Customer Portal`
 - `Work.com Only`
 
-この判定はアプリアクセスだけに適用し、同じProfileのほかの移行可能な権限はPermission Set候補へ出力します。上記以外のUser Licenseでも組織や契約機能による互換性差があり得るため、生成後のdry-runは省略しません。
+Overage系User Licenseは、対応する通常ライセンスとログイン量以外が同等であるというSalesforce Helpの説明に基づき、通常ライセンスと同じ非対応方針にします。
+
+Assigned Appsを出力するのは、現在の組織で生成結果のdry-runに成功した次のUser Licenseだけです。
+
+- `Analytics Cloud Integration User`
+- `Force.com - App Subscription`
+- `Force.com - Free`
+- `Gold Partner`
+- `Identity`
+- `Partner App Subscription`
+- `Partner Community`
+- `Partner Community Login`
+- `Salesforce`
+- `Salesforce Integration`
+- `Salesforce Platform`
+- `Silver Partner`
+
+`Salesforce Platform Login`は、`Salesforce Platform`と同じ機能およびアクセスを持つというSalesforce Helpの説明に基づき、同じ方針で変換します。`Force.com - App Subscription`は1アプリ用ライセンスのため、Profileで`visible=true`のアプリケーションが2件以上ある場合は変換を停止します。
+
+上記の対応・非対応・同等関係を確認できないUser Licenseに`visible=true`のアプリケーションがある場合は、推測でAssigned Appsを出力せず変換を停止します。表示アプリケーションがない場合は、Assigned Appsの移行対象がないため、ほかの権限の変換を続行します。この判定はアプリアクセスだけに適用します。ライセンスの契約機能、アプリケーション種別、ユーザーへ割り当て済みの権限セットをローカルProfile XMLだけでは判定できないため、生成後のdry-runとユーザー割り当て時のライセンス上限確認は省略しません。
+
+判断根拠はSalesforce Helpの[Standard User Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_available.htm&language=en_US&type=5)、[Salesforce Platform Login License Details](https://help.salesforce.com/s/articleView?id=platform.users_license_types_salesforce_platform_login.htm&language=en_US&type=5)、[Force.com-one app subscription](https://help.salesforce.com/s/articleView?id=000383868&language=en_US&type=1)、[Legacy Portal Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_portal.htm&language=en_US&type=5)、[Authenticated Website User Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_platformportal.htm&language=en_US&type=5)です。
 
 ## 出力
 
@@ -204,7 +231,9 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
 - 表示可能な割り当てアプリケーションを移行し、デフォルトアプリケーション指定だけをProfileへ残す
-- Assigned Apps非対応User Licenseではアプリケーション表示権限をProfileへ残し、対応する外部User Licenseでは移行する
+- Assigned Apps非対応User LicenseとOverage系同等ライセンスではアプリケーション表示権限をProfileへ残す
+- dry-run確認済みまたは公式Helpで同等のUser LicenseだけAssigned Appsを移行する
+- Assigned Apps互換性が未確認のUser Licenseと既知上限を超える入力をfail closedで拒否する
 - `ApiUserOnly=true`ではVisualforceページだけを除外し、ApexクラスとAPI専用権限を維持する
 - ライセンス名や無効な`ApiUserOnly`からVisualforceページアクセスを除外しない
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する

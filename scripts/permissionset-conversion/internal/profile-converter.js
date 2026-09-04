@@ -82,7 +82,29 @@ const retainedProfileElements = new Map([
     ['profileActionOverrides', 'Profile固有のアクションオーバーライドはProfileに残します。']
 ]);
 
-// Permission SetのAssigned Appsを許可しないUser Licenseを定義する。
+// Permission SetのAssigned Appsを現在の組織でdry-runできたUser Licenseを定義する。
+const userLicensesWithAssignedApps = new Set([
+    'Analytics Cloud Integration User',
+    'Force.com - App Subscription',
+    'Force.com - Free',
+    'Gold Partner',
+    'Identity',
+    'Partner App Subscription',
+    'Partner Community',
+    'Partner Community Login',
+    'Salesforce',
+    'Salesforce Integration',
+    'Salesforce Platform',
+    'Silver Partner'
+]);
+
+// 既知の同等ライセンスだけを、確認済みライセンスと同じ方針へ関連付ける。
+const equivalentAssignedAppsUserLicenses = new Map([['Salesforce Platform Login', 'Salesforce Platform']]);
+
+// 公式Helpの上限をローカルProfile XMLだけで安全に検証できるUser Licenseを定義する。
+const assignedAppsMaximumsByUserLicense = new Map([['Force.com - App Subscription', 1]]);
+
+// Permission SetのAssigned Appsを許可しない、または対応元と同等のUser Licenseを定義する。
 const userLicensesWithoutAssignedApps = new Set([
     'Authenticated Website',
     'Customer Community',
@@ -95,13 +117,36 @@ const userLicensesWithoutAssignedApps = new Set([
     'External Apps Login',
     'External Identity',
     'High Volume Customer Portal',
+    'Overage Authenticated Website',
+    'Overage Customer Portal Manager Custom',
+    'Overage Customer Portal Manager Standard',
+    'Overage High Volume Customer Portal',
     'Work.com Only'
 ]);
 
-/*
- * Assigned Apps非対応として確認済みのUser Licenseだけを変換時に扱う。
- * そのほかの組織やリリースによる互換性差はdry-runと保存後の再取得で確認する。
- */
+// User Licenseを確認済みのAssigned Apps方針へ分類する。
+function getAssignedAppsLicensePolicy(userLicense) {
+    // 非対応と確認できるライセンスはアプリケーション表示権限をProfileへ残す。
+    if (userLicensesWithoutAssignedApps.has(userLicense)) {
+        return { status: 'unsupported' };
+    }
+
+    // 公式Helpで同等と確認できる新しいライセンス名を検証済みの基準名へ揃える。
+    const validatedUserLicense = equivalentAssignedAppsUserLicenses.get(userLicense) ?? userLicense;
+
+    // 検証済み一覧にないライセンスを対応扱いせず、後続処理でfail closedにする。
+    if (!userLicensesWithAssignedApps.has(validatedUserLicense)) {
+        return { status: 'unknown' };
+    }
+
+    // 静的に検証できる上限がある場合は、変換前の件数確認へ渡す。
+    return {
+        maximumApplications: assignedAppsMaximumsByUserLicense.get(validatedUserLicense),
+        status: 'supported',
+        validatedUserLicense
+    };
+}
+
 // Profile XMLのオブジェクト権限名をPermission SetのMetadata API順に定義する。
 const leadingObjectPermissionNames = ['allowCreate', 'allowDelete', 'allowEdit', 'allowRead', 'modifyAllRecords'];
 const trailingObjectPermissionNames = ['viewAllRecords'];
@@ -411,10 +456,10 @@ function convertApplicationVisibilitySection(profile, report) {
     assertUniqueIdentifier(applications, 'application', 'applicationVisibilities');
     const converted = [];
     const userLicense = report.source.userLicense;
-    const canAssignApplications = !userLicensesWithoutAssignedApps.has(userLicense);
-    let retainedByUserLicense = false;
-
-    for (const application of applications) {
+    // ライセンス名を推測で許可せず、確認済み方針だけを使用する。
+    const licensePolicy = getAssignedAppsLicensePolicy(userLicense);
+    // 件数上限と変換可否を同じ解析値から判断できるよう、アプリケーション設定を先に正規化する。
+    const parsedApplications = applications.map((application) => {
         const name = requireIdentifier(application, 'application', 'applicationVisibilities');
         reportUnknownEntryKeys(
             report,
@@ -423,9 +468,51 @@ function convertApplicationVisibilitySection(profile, report) {
             application,
             new Set(['application', 'default', 'visible'])
         );
+        // 必須booleanを変換判断前に検証する。
         const isDefault = parseBoolean(application.default, `applicationVisibilities.${name}.default`);
         const visible = parseBoolean(application.visible, `applicationVisibilities.${name}.visible`);
+        // 解析済み値をレポート分類とXML生成で再利用する。
+        return { isDefault, name, visible };
+    });
+    // ライセンス上限へ影響する表示アプリケーションだけを数える。
+    const visibleApplicationCount = parsedApplications.filter(({ visible }) => visible).length;
+    // 上限未定義のライセンスでは件数だけから互換性を推測しない。
+    const exceedsMaximum =
+        licensePolicy.maximumApplications !== undefined && visibleApplicationCount > licensePolicy.maximumApplications;
+    // 対応未確認または上限超過のライセンスではPermission Set XMLの書き込みを止める。
+    const canAssignApplications = licensePolicy.status === 'supported' && !exceedsMaximum;
+    let retainedByUserLicense = false;
 
+    // 表示アプリがある場合だけ、未知ライセンスを実際の変換阻止理由として記録する。
+    if (visibleApplicationCount > 0 && licensePolicy.status === 'unknown') {
+        addReportEntry(
+            report,
+            'unsupportedUnknown',
+            'applicationVisibilities',
+            userLicense,
+            'このUser LicenseのAssigned Apps互換性を確認できないため、書き込みできません。',
+            { reason: 'userLicenseAssignedAppsCompatibilityUnknown', userLicense }
+        );
+    }
+
+    // 公式Helpから検証できるアプリケーション上限を超えた場合は部分変換せず停止する。
+    if (exceedsMaximum) {
+        addReportEntry(
+            report,
+            'unsupportedUnknown',
+            'applicationVisibilities',
+            userLicense,
+            'このUser Licenseの割り当てアプリケーション上限を超えるため、書き込みできません。',
+            {
+                maximumApplications: licensePolicy.maximumApplications,
+                reason: 'userLicenseAssignedAppsLimitExceeded',
+                userLicense,
+                visibleApplicationCount
+            }
+        );
+    }
+
+    for (const { isDefault, name, visible } of parsedApplications) {
         if (visible && canAssignApplications) {
             converted.push({ application: name, visible: 'true' });
             addReportEntry(
@@ -446,13 +533,20 @@ function convertApplicationVisibilitySection(profile, report) {
             );
         } else {
             retainedByUserLicense = true;
+            // 非対応、未知、上限超過をレポートから区別できる理由へ分類する。
+            const reason =
+                licensePolicy.status === 'unsupported'
+                    ? 'userLicenseDoesNotAllowAssignedApps'
+                    : exceedsMaximum
+                      ? 'userLicenseAssignedAppsLimitExceeded'
+                      : 'userLicenseAssignedAppsCompatibilityUnknown';
             addReportEntry(
                 report,
                 'retainedInProfile',
                 'applicationVisibilities',
                 name,
-                'このUser LicenseではPermission Setの割り当てアプリケーションが許可されないためProfileに残します。',
-                { action: 'omitted', reason: 'userLicenseDoesNotAllowAssignedApps', userLicense }
+                'このUser Licenseでは安全に変換できないため、アプリケーション表示権限をProfileに残します。',
+                { action: 'omitted', reason, userLicense }
             );
         }
 
@@ -468,13 +562,20 @@ function convertApplicationVisibilitySection(profile, report) {
     }
 
     if (retainedByUserLicense) {
+        // 非対応ライセンスと、書き込みを止めた未確認条件を確認手順から区別する。
+        const reason =
+            licensePolicy.status === 'unsupported'
+                ? 'userLicenseDoesNotAllowAssignedApps'
+                : exceedsMaximum
+                  ? 'userLicenseAssignedAppsLimitExceeded'
+                  : 'userLicenseAssignedAppsCompatibilityUnknown';
         addReportEntry(
             report,
             'requiresValidation',
             'applicationVisibilities',
             userLicense,
             'Permission Setへ移行できない割り当てアプリケーションがProfileで維持されることを確認してください。',
-            { action: 'confirmProfileRetention', reason: 'userLicenseDoesNotAllowAssignedApps' }
+            { action: 'confirmProfileRetention', reason }
         );
     }
 
