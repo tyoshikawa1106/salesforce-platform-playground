@@ -37,7 +37,7 @@ force-app/main/default/profiles/Custom%3A Sales Profile.profile-meta.xml
 
 空行と、前後空白を除いた後に`#`で始まる行は無視します。パスはリポジトリルートからの相対パスとし、`force-app/main/default/profiles`配下の`.profile-meta.xml`だけを受け付けます。
 
-設定ファイルは変換ロジックではなく、今回変換するローカルProfileの選択を表します。別のsource treeで実行する場合は、そのtreeに存在するProfile XMLに合わせて一覧を更新するか、`--config`で別の設定ファイルを指定します。
+設定ファイルは変換ロジックではなく、今回変換するローカルProfileの選択を表します。`--config`で変更できるのは設定ファイルの位置だけです。Profile XMLは`force-app/main/default/profiles`配下に配置し、別のsource treeは指定できません。
 
 ## 実行方法
 

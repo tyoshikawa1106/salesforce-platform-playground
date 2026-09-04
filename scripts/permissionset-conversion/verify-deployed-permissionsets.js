@@ -13,6 +13,7 @@ const {
 
 const repoRoot = path.resolve(__dirname, '../..');
 const outputsRootRelativePath = 'scripts/permissionset-conversion/outputs';
+const sfCommandTimeoutMs = 120_000;
 
 // 保存結果確認で受け付ける生成フォルダだけを解析する。
 function parseArguments(argv) {
@@ -164,10 +165,15 @@ async function main(overrides = {}) {
         statSync
     });
     const apiNames = listPermissionSetApiNames(sourceDirectory);
-    const targetOrg = getDefaultTargetOrg({ repoRoot: projectRoot, runSfCommand: runSfWithOutputCommand });
+    // 組織確認用CLIが停止し続けないよう共通の時間上限を適用する。
+    const runOrgInfoCommand = (args, workingDirectory) =>
+        runSfWithOutputCommand(args, workingDirectory, undefined, undefined, sfCommandTimeoutMs);
+    // CLI設定から引数指定のないDefault Target Orgを取得する。
+    const targetOrg = getDefaultTargetOrg({ repoRoot: projectRoot, runSfCommand: runOrgInfoCommand });
+    // 認証済み組織一覧から取得対象の組織情報を確定する。
     const orgInfo = getTargetOrgInfo({
         repoRoot: projectRoot,
-        runSfCommand: runSfWithOutputCommand,
+        runSfCommand: runOrgInfoCommand,
         targetOrg
     });
     printTargetOrgInfo(orgInfo, writeLine);

@@ -170,6 +170,7 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
     fs.writeFileSync(path.join(project.sourceDirectory, 'Example.permissionset-meta.xml'), permissionSetXml);
     const fixedNow = new Date('2026-09-02T06:30:18.540Z');
     const calls = [];
+    const timeouts = [];
     const outputLines = [];
 
     try {
@@ -178,8 +179,9 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
             argv: ['--source-dir', path.relative(project.projectRoot, project.sourceDirectory)],
             now: () => fixedNow,
             projectRoot: project.projectRoot,
-            runSfWithOutputCommand(args) {
+            runSfWithOutputCommand(args, workingDirectory, spawnCommand, maxBuffer, timeout) {
                 calls.push(args);
+                timeouts.push(timeout);
 
                 if (args[0] === 'config') {
                     return {
@@ -224,6 +226,7 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
         assert.equal(status, 0);
         assert.equal(calls.length, 3);
         assert.deepEqual(calls[0], ['config', 'get', 'target-org', '--json']);
+        assert.deepEqual(timeouts, [120_000, 120_000, 35 * 60 * 1_000]);
         assert.equal(calls[2].includes('PermissionSet:Example'), true);
         assert.equal(calls[2][calls[2].indexOf('--target-org') + 1], 'target-org-a');
         assert.equal(outputLines.includes('保存結果確認: 一致1件、差異あり0件、差分0件'), true);

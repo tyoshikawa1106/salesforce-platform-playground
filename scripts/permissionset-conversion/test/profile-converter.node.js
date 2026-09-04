@@ -157,6 +157,7 @@ function assertProfilePermissionEquivalence({ conversion, profileXml }) {
         ['customSettingAccesses', 'name', 'customSettingAccesses'],
         ['externalDataSourceAccesses', 'externalDataSource', 'externalDataSourceAccesses'],
         ['flowAccesses', 'flow', 'flowAccesses'],
+        ['genComputingSummaryDefAccesses', 'configName', 'genComputingSummaryDefAccesses'],
         ['pageAccesses', 'apexPage', 'pageAccesses'],
         ['servicePresenceStatusAccesses', 'servicePresenceStatus', 'servicePresenceStatusAccesses'],
         ['userPermissions', 'name', 'userPermissions']
