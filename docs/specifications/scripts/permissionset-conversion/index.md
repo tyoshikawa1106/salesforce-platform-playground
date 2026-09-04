@@ -10,7 +10,7 @@
 
 Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから1 Permission Setを生成します。Profile XMLに明示された移行可能な付与権限を維持し、無効な設定、Profile固有設定、Permission Setで表現できない設定を監査レポートへ分類します。
 
-最小権限化、Permission Set Group化、ユーザー割り当て、元Profileの権限削除、実deployは対象外です。割り当てアプリケーション、デフォルトアプリケーション、デフォルトタブ、デフォルトレコードタイプ、Page LayoutなどのProfile固有設定も移行しません。
+最小権限化、Permission Set Group化、ユーザー割り当て、元Profileの権限削除、実deployは対象外です。デフォルトアプリケーション、デフォルトタブ、デフォルトレコードタイプ、Page LayoutなどのProfile固有設定は移行しません。割り当てアプリケーションの表示権限はPermission Setへ移行します。
 
 ## 構成
 
@@ -91,6 +91,9 @@ npm run sf:convert:profile
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `enabled=true`のアクセス権                                | 対応するPermission Set要素へ出力する                                        |
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
+| `applicationVisibilities.visible=true`                    | `default`を除き、割り当てアプリケーションの表示権限を出力する               |
+| `applicationVisibilities.visible=false`                   | 拒否権限ではないため出力しない                                              |
+| `applicationVisibilities.default=true`                    | デフォルトアプリケーション指定だけをProfile残置として記録する               |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
 | User Licenseが`Guest User License`                        | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
 | User Licenseが`Chatter External`または`Chatter Free`      | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
@@ -108,7 +111,7 @@ npm run sf:convert:profile
 | `tabVisibilities.DefaultOff`                              | `tabSettings.Available`へ変換する                                           |
 | `tabVisibilities.Hidden`                                  | 出力しない                                                                  |
 | 表示可能なRecord Type                                     | `default`を除いて出力する                                                   |
-| 割り当てアプリケーション、デフォルト指定、Layout等        | Profile残置として記録する                                                   |
+| デフォルトタブ、デフォルトレコードタイプ、Layout等        | Profile残置として記録する                                                   |
 | 未知の直下要素または未知の子要素                          | `unsupportedUnknown`へ記録し、Permission Set XMLを生成しない                |
 
 接続組織やライセンス名から権限を補完・推測しません。ローカルProfile XMLに存在しない権限を追加するのは、上表に明記したMetadata APIの依存権限だけです。
@@ -182,6 +185,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 変換入口がDefault Target Orgと認証済み組織情報を表示し、承認後だけ処理する
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
+- 表示可能な割り当てアプリケーションを移行し、デフォルトアプリケーション指定だけをProfileへ残す
 - `ApiUserOnly=true`ではVisualforceページだけを除外し、ApexクラスとAPI専用権限を維持する
 - ライセンス名や無効な`ApiUserOnly`からVisualforceページアクセスを除外しない
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
@@ -200,7 +204,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
 - dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
-- 保存後の意味差分を検出し、変換結果へ反映せず比較レポートへ保存する
+- 保存後の意味差分を検出し、割り当てアプリケーションの順序差を無視して、変換結果へ反映せず比較レポートへ保存する
 
 単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者がDefault Target Orgを確認して実行する後続工程で確認します。
 

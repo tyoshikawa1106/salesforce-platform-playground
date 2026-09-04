@@ -389,10 +389,11 @@ function reportUnknownProfileElements(profile, report) {
     }
 }
 
-// アプリケーションの利用可否とデフォルト指定をProfile残置または無効設定へ分類する。
-function reportApplicationVisibilities(profile, report) {
+// アプリケーションの利用権限を変換し、Profile固有のデフォルト指定を分離する。
+function convertApplicationVisibilitySection(profile, report) {
     const applications = toArray(profile.applicationVisibilities);
     assertUniqueIdentifier(applications, 'application', 'applicationVisibilities');
+    const converted = [];
 
     for (const application of applications) {
         const name = requireIdentifier(application, 'application', 'applicationVisibilities');
@@ -404,15 +405,26 @@ function reportApplicationVisibilities(profile, report) {
             new Set(['application', 'default', 'visible'])
         );
         const visible = parseBoolean(application.visible, `applicationVisibilities.${name}.visible`);
-        addReportEntry(
-            report,
-            visible ? 'retainedInProfile' : 'skippedDisabled',
-            'applicationVisibilities',
-            name,
-            visible
-                ? '割り当てアプリケーションは移行対象外のためProfileに残します。'
-                : 'visible=falseは拒否権限ではないため出力しません。'
-        );
+
+        if (visible) {
+            converted.push({ application: name, visible: 'true' });
+            addReportEntry(
+                report,
+                'converted',
+                'applicationVisibilities',
+                name,
+                '表示可能な割り当てアプリケーションを変換しました。',
+                { targetElement: 'applicationVisibilities' }
+            );
+        } else {
+            addReportEntry(
+                report,
+                'skippedDisabled',
+                'applicationVisibilities',
+                name,
+                'visible=falseは拒否権限ではないため出力しません。'
+            );
+        }
 
         if (
             application.default !== undefined &&
@@ -427,6 +439,8 @@ function reportApplicationVisibilities(profile, report) {
             );
         }
     }
+
+    return converted.length > 0 ? sortByIdentifier(converted, 'application') : undefined;
 }
 
 // enabled形式の各Profile権限を共通規則で変換し、Permission Setのセクションごとに返す。
@@ -1006,7 +1020,14 @@ function reportRetainedProfileElements(profile, report) {
 function buildPermissionSet({ convertedSections, permissionSetDescription, permissionSetLabel, userLicense }) {
     const permissionSet = {};
     const sectionGroups = [
-        ['agentAccesses', 'classAccesses', 'customMetadataTypeAccesses', 'customPermissions', 'customSettingAccesses'],
+        [
+            'agentAccesses',
+            'applicationVisibilities',
+            'classAccesses',
+            'customMetadataTypeAccesses',
+            'customPermissions',
+            'customSettingAccesses'
+        ],
         ['externalDataSourceAccesses', 'fieldPermissions', 'flowAccesses', 'genComputingSummaryDefAccesses'],
         [
             'objectPermissions',
@@ -1101,8 +1122,8 @@ function convertProfile({
         userLicense
     });
     reportUnknownProfileElements(profile, report);
-    reportApplicationVisibilities(profile, report);
     const convertedSections = convertEnabledAccessSections(profile, report);
+    convertedSections.applicationVisibilities = convertApplicationVisibilitySection(profile, report);
     // Profile XMLで有効なApiUserOnlyをVisualforceアクセスの互換性判定に使用する。
     const apiUserOnly = toArray(convertedSections.userPermissions).some(({ name }) => name === 'ApiUserOnly');
     // API専用制約を適用したVisualforceページアクセスを変換結果へ追加する。

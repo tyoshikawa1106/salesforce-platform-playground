@@ -86,18 +86,18 @@ test('retrieveは生成したPermission Set API名だけを完全一致で指定
     assert.equal(args[args.indexOf('--output-dir') + 1], '/tmp/retrieved');
 });
 
-test('要素順とviewAllFieldsの省略値だけが異なるPermission Setを同一と判定する', () => {
-    // 生成XMLではviewAllFieldsを省略し、組織XMLではfalseを明示した入力を作る。
+test('繰り返し要素順とviewAllFieldsの省略値だけが異なるPermission Setを同一と判定する', () => {
+    // 生成XMLではアプリ順を固定し、viewAllFieldsを省略した入力を作る。
     const expected = parsePermissionSetXml(
         createPermissionSetXml(
-            '    <label>Example</label>\n    <objectPermissions>\n        <allowCreate>false</allowCreate>\n        <allowDelete>false</allowDelete>\n        <allowEdit>false</allowEdit>\n        <allowRead>true</allowRead>\n        <modifyAllRecords>false</modifyAllRecords>\n        <object>Account</object>\n        <viewAllRecords>false</viewAllRecords>\n    </objectPermissions>'
+            '    <applicationVisibilities>\n        <application>App_A</application>\n        <visible>true</visible>\n    </applicationVisibilities>\n    <applicationVisibilities>\n        <application>App_B</application>\n        <visible>true</visible>\n    </applicationVisibilities>\n    <label>Example</label>\n    <objectPermissions>\n        <allowCreate>false</allowCreate>\n        <allowDelete>false</allowDelete>\n        <allowEdit>false</allowEdit>\n        <allowRead>true</allowRead>\n        <modifyAllRecords>false</modifyAllRecords>\n        <object>Account</object>\n        <viewAllRecords>false</viewAllRecords>\n    </objectPermissions>'
         ),
         '生成XML'
     );
-    // 再取得XMLでは直下順を変え、Salesforceが補完するfalseを含める。
+    // 再取得XMLでは直下順とアプリ順を変え、Salesforceが補完するfalseを含める。
     const actual = parsePermissionSetXml(
         createPermissionSetXml(
-            '    <objectPermissions>\n        <allowRead>true</allowRead>\n        <allowEdit>false</allowEdit>\n        <allowDelete>false</allowDelete>\n        <allowCreate>false</allowCreate>\n        <modifyAllRecords>false</modifyAllRecords>\n        <object>Account</object>\n        <viewAllFields>false</viewAllFields>\n        <viewAllRecords>false</viewAllRecords>\n    </objectPermissions>\n    <label>Example</label>'
+            '    <objectPermissions>\n        <allowRead>true</allowRead>\n        <allowEdit>false</allowEdit>\n        <allowDelete>false</allowDelete>\n        <allowCreate>false</allowCreate>\n        <modifyAllRecords>false</modifyAllRecords>\n        <object>Account</object>\n        <viewAllFields>false</viewAllFields>\n        <viewAllRecords>false</viewAllRecords>\n    </objectPermissions>\n    <label>Example</label>\n    <applicationVisibilities>\n        <visible>true</visible>\n        <application>App_B</application>\n    </applicationVisibilities>\n    <applicationVisibilities>\n        <visible>true</visible>\n        <application>App_A</application>\n    </applicationVisibilities>'
         ),
         '組織XML'
     );

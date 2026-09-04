@@ -149,6 +149,12 @@ function createTestProject({
 function assertProfilePermissionEquivalence({ conversion, profileXml }) {
     const profile = xmlParser.parse(profileXml).Profile;
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const expectedApplications = toArray(profile.applicationVisibilities)
+        .filter(({ visible }) => visible === 'true')
+        .map(({ application, visible }) => ({ application, visible }))
+        .sort((left, right) => left.application.localeCompare(right.application, 'en'));
+
+    assert.deepEqual(toArray(permissionSet.applicationVisibilities), expectedApplications);
     const enabledSections = [
         ['agentAccesses', 'agentName', 'agentAccesses'],
         ['classAccesses', 'apexClass', 'classAccesses'],
@@ -252,7 +258,7 @@ test('有効なProfile権限だけをPermission Set候補へ変換する', () =>
     assert.equal(permissionSet.license, 'Salesforce Platform');
     assert.equal(permissionSet.description, 'Platform_Test Profileから生成した権限セット');
     assert.equal(permissionSet.label, 'Platform_Test');
-    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.deepEqual(permissionSet.applicationVisibilities, { application: 'Test_App', visible: 'true' });
     assert.deepEqual(permissionSet.classAccesses, { apexClass: 'EnabledController', enabled: 'true' });
     assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
     assert.deepEqual(permissionSet.userPermissions, { enabled: 'true', name: 'RunReports' });
@@ -710,7 +716,21 @@ test('Profile固有設定と無効権限を監査レポートへ分類する', (
     const { report } = convertFixture();
 
     assert.ok(report.retainedInProfile.some(({ sourceElement }) => sourceElement === 'layoutAssignments'));
-    assert.ok(report.retainedInProfile.some(({ sourceElement }) => sourceElement === 'applicationVisibilities'));
+    assert.ok(
+        report.retainedInProfile.some(
+            ({ name, sourceElement }) => sourceElement === 'applicationVisibilities' && name === 'Test_App'
+        )
+    );
+    assert.ok(
+        report.converted.some(
+            ({ name, sourceElement }) => sourceElement === 'applicationVisibilities' && name === 'Test_App'
+        )
+    );
+    assert.ok(
+        report.skippedDisabled.some(
+            ({ name, sourceElement }) => sourceElement === 'applicationVisibilities' && name === 'Hidden_App'
+        )
+    );
     assert.ok(report.skippedDisabled.some(({ name }) => name === 'DisabledController'));
     assert.ok(report.skippedDisabled.some(({ name }) => name === 'Hidden__c'));
     assert.equal(report.unsupportedUnknown.length, 0);
