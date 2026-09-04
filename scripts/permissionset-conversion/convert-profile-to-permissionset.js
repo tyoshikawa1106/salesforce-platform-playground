@@ -12,15 +12,10 @@ const {
     createPermissionSetLabel,
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
-    isGuestUserLicense,
+    getExcludedUserLicenseReason,
     profileFileSuffix
 } = require('./internal/profile-resolver');
-const {
-    getDeploymentCommand,
-    getProductionValidationCommand,
-    getSandboxValidationCommand,
-    getVerificationCommand
-} = require('./internal/validation-runner');
+const { getDeploymentCommand, getDryRunCommand, getVerificationCommand } = require('./internal/validation-runner');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const defaultConfigRelativePath = 'scripts/permissionset-conversion/profile-paths.config.txt';
@@ -522,12 +517,14 @@ function prepareProfileConversions({ existsSync, inputPaths, profiles, readFileS
         const profileModel = parseProfileXml(profileXml);
         const userLicense = profileModel.profile.userLicense;
 
-        // Guest User Licenseは汎用Permission Setへ移行せず対象外として記録する。
-        if (isGuestUserLicense(userLicense)) {
+        // Permission Setで表現できないUser LicenseはProfile単位で対象外として記録する。
+        const excludedReason = getExcludedUserLicenseReason(userLicense);
+
+        if (excludedReason !== undefined) {
             excludedProfiles.push({
                 profileFullName: profile.fullName,
                 profilePath: profile.configuredPath,
-                reason: 'Guest User Licenseは汎用Permission Setへの移行対象外です。',
+                reason: excludedReason,
                 userLicense
             });
             continue;
@@ -581,11 +578,8 @@ function createConversionPlans({ preparedProfiles }) {
 // 利用者が後からDefault Target Orgを検証、デプロイ、保存結果確認するコマンドを表示する。
 function printManualCommands({ projectRoot, sourceDirectory, writeLine }) {
     writeLine('');
-    writeLine('Production／Developer Editionのvalidateコマンド:');
-    writeLine(getProductionValidationCommand({ projectRoot, sourceDirectory }));
-    writeLine('');
-    writeLine('Sandbox／Scratch Orgのdry-runコマンド:');
-    writeLine(getSandboxValidationCommand({ projectRoot, sourceDirectory }));
+    writeLine('Permission Setのdry-runコマンド:');
+    writeLine(getDryRunCommand({ projectRoot, sourceDirectory }));
     writeLine('');
     writeLine('Permission Setのデプロイコマンド:');
     writeLine(getDeploymentCommand({ projectRoot, sourceDirectory }));

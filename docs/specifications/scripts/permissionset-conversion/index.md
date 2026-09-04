@@ -4,7 +4,7 @@
 
 設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。実行前にSalesforce CLIのDefault Target Orgと認証済み組織情報を表示して利用者へ確認しますが、変換にはProfile XMLと同じsource treeにある関連CustomField metadataだけを使用します。
 
-生成物は日時別フォルダへ保存します。Permission Setは既存metadataとの更新競合を避ける一意な仮API名で生成し、組織上の保存結果を確認した後に設定画面で最終API名へ変更します。生成後は、Default Target Orgを対象とするvalidate、dry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、validate、deployは実行しません。
+生成物は日時別フォルダへ保存します。Permission Setは既存metadataとの更新競合を避ける一意な仮API名で生成し、組織上の保存結果を確認した後に設定画面で最終API名へ変更します。生成後は、Default Target Orgを対象とするdry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、dry-run、deployは実行しません。
 
 ## 目的・対象外
 
@@ -21,7 +21,7 @@ Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから
 | Profile変換    | `scripts/permissionset-conversion/internal/profile-converter.js`       | Profile要素を分類してPermission Set XMLとレポートを作る              |
 | Profile名解決  | `scripts/permissionset-conversion/internal/profile-resolver.js`        | ファイル名をmetadata fullName、API名、ラベルへ変換する               |
 | 要素定義       | `scripts/permissionset-conversion/internal/permission-set-elements.js` | 比較対象となるPermission Set要素と識別子を定義する                   |
-| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | validate、dry-run、deploy、保存結果確認コマンドを作る                |
+| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | dry-run、deploy、保存結果確認コマンドを作る                          |
 | 保存結果確認   | `scripts/permissionset-conversion/verify-deployed-permissionsets.js`   | Default Target Orgからデプロイ済みPermission Setを再取得して比較する |
 | テスト         | `scripts/permissionset-conversion/test/`                               | ローカル変換、異常系、保存結果比較を検証する                         |
 
@@ -37,7 +37,7 @@ force-app/main/default/profiles/Custom%3A Sales Profile.profile-meta.xml
 
 空行と、前後空白を除いた後に`#`で始まる行は無視します。パスはリポジトリルートからの相対パスとし、`force-app/main/default/profiles`配下の`.profile-meta.xml`だけを受け付けます。
 
-設定ファイルは変換ロジックではなく、今回変換するローカルProfileの選択を表します。別のsource treeで実行する場合は、そのtreeに存在するProfile XMLに合わせて一覧を更新するか、`--config`で別の設定ファイルを指定します。
+設定ファイルは変換ロジックではなく、今回変換するローカルProfileの選択を表します。`--config`で変更できるのは設定ファイルの位置だけです。Profile XMLは`force-app/main/default/profiles`配下に配置し、別のsource treeは指定できません。
 
 ## 実行方法
 
@@ -76,7 +76,7 @@ npm run sf:convert:profile
 2. Default Target Orgを認証済み組織一覧から特定し、Alias、Username、URL、組織種別を表示する。
 3. 利用者へ実行確認を行い、本番環境では追加確認を行う。
 4. Profileファイル名をmetadata fullNameとラベルへ変換し、Profile XMLを1回だけ解析する。
-5. Guest User LicenseのProfileを変換対象外として表示し、残るProfileへ実行単位で一意な仮API名を生成する。
+5. Guest User LicenseとChatter系User LicenseのProfileを変換対象外として表示し、残るProfileへ実行単位で一意な仮API名を生成する。
 6. 有効なアクセス権、項目権限、オブジェクト権限、レコードタイプ、タブを変換する。
 7. Metadata APIで明示が必要な既知の依存権限を補完する。
 8. Profile固有設定、無効設定、要validate、未知要素を監査レポートへ分類する。
@@ -93,10 +93,12 @@ npm run sf:convert:profile
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
 | User Licenseが`Guest User License`                        | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
+| User Licenseが`Chatter External`または`Chatter Free`      | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
 | `objectPermissions`                                       | Profile XMLに存在し、1件以上の`true`を持つオブジェクトだけを出力する        |
 | `EditHtmlTemplates=true`                                  | Metadata APIが要求する`Document`の参照権限を補完する                        |
 | `EditPublicDocuments=true`                                | Metadata APIが要求する`Document`の作成・削除・編集・参照権限を補完する      |
 | `ViewAllData=true`                                        | `Document`の参照権限と`viewAllRecords=true`を補完する                       |
+| `Entitlement.allowRead=true`                              | Metadata APIが要求する`Account`の参照権限を補完する                         |
 | 省略されたObject Permissionのboolean                      | Permission Setの必須子要素だけ`false`で補完する                             |
 | `fieldPermissions.readable=false`                         | 出力しない                                                                  |
 | ローカルmetadataで必須またはMaster-Detailと確認できる項目 | 出力せず理由を要validateへ記録する                                          |
@@ -129,16 +131,10 @@ scripts/permissionset-conversion/outputs/<YYYYMMDD-HHmmss-SSS>/
 
 全XMLを生成できた場合、次のコマンドを実際の出力パス付きで表示します。すべてSalesforce CLIのDefault Target Orgを対象にします。
 
-ProductionまたはDeveloper Editionでは次を使用します。
+Permission SetだけをApexテストなしで検証するため、組織種別にかかわらず次を使用します。`--test-level`は指定しません。
 
 ```sh
-sf project deploy validate --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30
-```
-
-SandboxまたはScratch Orgでは次を使用します。
-
-```sh
-sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --test-level RunLocalTests --wait 30
+sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
 ```
 
 内容と対象組織を確認した後、通常deployを手動実行します。
@@ -193,16 +189,17 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - `EditPublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
 - `EditHtmlTemplates`からMetadata APIが要求する`Document`参照権限だけを補完する
 - `ViewAllData`から`Document`の参照権限と全レコード参照権限だけを重複なく補完する
+- `Entitlement`の参照権限から`Account`の参照権限だけを重複なく補完する
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
 - Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、一意なラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
 - 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
-- Guest User LicenseのProfileだけを除外し、生成対象へ連続するProfile連番を付ける
+- Guest User LicenseとChatter系User LicenseのProfileを除外し、生成対象へ連続するProfile連番を付ける
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
-- validate、dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
+- dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
 - 保存後の意味差分を検出し、変換結果へ反映せず比較レポートへ保存する
 
 単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者がDefault Target Orgを確認して実行する後続工程で確認します。

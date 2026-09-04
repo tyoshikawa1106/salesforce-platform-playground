@@ -112,6 +112,16 @@ const userPermissionObjectDependencies = [
     }
 ];
 
+// Metadata APIで子オブジェクト権限が要求する親オブジェクト権限を定義する。
+const objectPermissionObjectDependencies = [
+    {
+        objectApiName: 'Account',
+        requiredPermissions: ['allowRead'],
+        sourceObjectApiName: 'Entitlement',
+        sourcePermissions: ['allowRead']
+    }
+];
+
 // Metadata API 67.0のProfile直下で、変換、残置、または制御情報として扱う要素を定義する。
 const supportedProfileElements = new Set([
     '@_xmlns',
@@ -794,6 +804,66 @@ function applyUserPermissionObjectDependencies({ convertedSections, report }) {
         objectPermissions.length > 0 ? sortByIdentifier(objectPermissions, 'object') : undefined;
 }
 
+// 有効な子オブジェクト権限が要求する親オブジェクト権限を、変換済み権限へ補完する。
+function applyObjectPermissionObjectDependencies({ convertedSections, report }) {
+    const objectPermissions = toArray(convertedSections.objectPermissions).map((entry) => ({ ...entry }));
+
+    for (const dependency of objectPermissionObjectDependencies) {
+        const source = objectPermissions.find(({ object }) => object === dependency.sourceObjectApiName);
+        const hasSourceGrant = dependency.sourcePermissions.some(
+            (permissionName) => source?.[permissionName] === 'true'
+        );
+
+        if (!hasSourceGrant) {
+            continue;
+        }
+
+        const existingIndex = objectPermissions.findIndex(({ object }) => object === dependency.objectApiName);
+        const existing = existingIndex >= 0 ? objectPermissions[existingIndex] : undefined;
+        const values = Object.fromEntries(
+            objectPermissionNames.map((permissionName) => [permissionName, existing?.[permissionName] === 'true'])
+        );
+        const addedPermissions = dependency.requiredPermissions.filter((permissionName) => !values[permissionName]);
+
+        if (addedPermissions.length === 0) {
+            continue;
+        }
+
+        for (const permissionName of addedPermissions) {
+            values[permissionName] = true;
+        }
+
+        const derivedEntry = buildObjectPermissionEntry({
+            objectApiName: dependency.objectApiName,
+            profileObjectPermission: existing,
+            values
+        });
+
+        if (existingIndex >= 0) {
+            objectPermissions[existingIndex] = derivedEntry;
+        } else {
+            objectPermissions.push(derivedEntry);
+        }
+
+        addReportEntry(
+            report,
+            'converted',
+            'objectPermissions',
+            dependency.sourceObjectApiName,
+            `依存する${dependency.objectApiName}のObject Permissionを補完しました。`,
+            {
+                action: 'addedDependency',
+                addedPermissions,
+                targetElement: 'objectPermissions',
+                targetName: dependency.objectApiName
+            }
+        );
+    }
+
+    convertedSections.objectPermissions =
+        objectPermissions.length > 0 ? sortByIdentifier(objectPermissions, 'object') : undefined;
+}
+
 // 単一レコードタイプの利用可否とProfileに残るデフォルト指定を分類する。
 function convertRecordType(recordType, report) {
     const name = requireIdentifier(recordType, 'recordType', 'recordTypeVisibilities');
@@ -1049,6 +1119,7 @@ function convertProfile({
 
     convertedSections.objectPermissions = convertObjectPermissionSection({ profile, report });
     applyUserPermissionObjectDependencies({ convertedSections, report });
+    applyObjectPermissionObjectDependencies({ convertedSections, report });
 
     convertedSections.recordTypeVisibilities = convertRecordTypeSection(profile, report);
     convertedSections.tabSettings = convertTabSection(profile, report);
