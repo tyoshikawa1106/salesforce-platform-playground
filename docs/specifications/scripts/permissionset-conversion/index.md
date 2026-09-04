@@ -10,7 +10,7 @@
 
 Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから1 Permission Setを生成します。Profile XMLに明示された移行可能な付与権限を維持し、無効な設定、Profile固有設定、Permission Setで表現できない設定を監査レポートへ分類します。
 
-最小権限化、Permission Set Group化、ユーザー割り当て、元Profileの権限削除、実deployは対象外です。割り当てアプリケーション、デフォルトアプリケーション、デフォルトタブ、デフォルトレコードタイプ、Page LayoutなどのProfile固有設定も移行しません。
+最小権限化、Permission Set Group化、ユーザー割り当て、元Profileの権限削除、実deployは対象外です。デフォルトアプリケーション、デフォルトタブ、デフォルトレコードタイプ、Page LayoutなどのProfile固有設定は移行しません。割り当てアプリケーションの表示権限はPermission Setへ移行します。
 
 ## 構成
 
@@ -91,6 +91,12 @@ npm run sf:convert:profile
 | --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `enabled=true`のアクセス権                                | 対応するPermission Set要素へ出力する                                        |
 | `enabled=false`                                           | 拒否権限ではないため出力しない                                              |
+| `applicationVisibilities.visible=true`                    | 対応User Licenseでは`default`を除き、割り当てアプリケーションを出力する     |
+| Assigned Apps非対応User Licenseの`visible=true`           | Permission Setへ出力せず、Profile残置と要確認へ記録する                     |
+| Assigned Apps互換性が未確認のUser Licenseの`visible=true` | Profile残置と`unsupportedUnknown`へ記録し、Permission Set XMLを生成しない   |
+| Assigned Appsの既知上限を超える`visible=true`             | 部分変換せず`unsupportedUnknown`へ記録し、Permission Set XMLを生成しない    |
+| `applicationVisibilities.visible=false`                   | 拒否権限ではないため出力しない                                              |
+| `applicationVisibilities.default=true`                    | デフォルトアプリケーション指定だけをProfile残置として記録する               |
 | `ApiUserOnly=true`かつ有効な`pageAccesses`                | Visualforceを利用できないため出力せずProfile残置として記録する              |
 | User Licenseが`Guest User License`                        | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
 | User Licenseが`Chatter External`または`Chatter Free`      | 汎用Permission Setへの変換対象外とし、XMLを生成せず理由を表示する           |
@@ -108,10 +114,52 @@ npm run sf:convert:profile
 | `tabVisibilities.DefaultOff`                              | `tabSettings.Available`へ変換する                                           |
 | `tabVisibilities.Hidden`                                  | 出力しない                                                                  |
 | 表示可能なRecord Type                                     | `default`を除いて出力する                                                   |
-| 割り当てアプリケーション、デフォルト指定、Layout等        | Profile残置として記録する                                                   |
+| デフォルトタブ、デフォルトレコードタイプ、Layout等        | Profile残置として記録する                                                   |
 | 未知の直下要素または未知の子要素                          | `unsupportedUnknown`へ記録し、Permission Set XMLを生成しない                |
 
 接続組織やライセンス名から権限を補完・推測しません。ローカルProfile XMLに存在しない権限を追加するのは、上表に明記したMetadata APIの依存権限だけです。
+
+次のUser LicenseはPermission SetのAssigned Appsを許可しないため、アプリケーションの表示権限をProfileに残します。
+
+- `Authenticated Website`
+- `Customer Community`
+- `Customer Community Login`
+- `Customer Community Plus`
+- `Customer Community Plus Login`
+- `Customer Portal Manager Custom`
+- `Customer Portal Manager Standard`
+- `External Apps`
+- `External Apps Login`
+- `External Identity`
+- `High Volume Customer Portal`
+- `Overage Authenticated Website`
+- `Overage Customer Portal Manager Custom`
+- `Overage Customer Portal Manager Standard`
+- `Overage High Volume Customer Portal`
+- `Work.com Only`
+
+Overage系User Licenseは、対応する通常ライセンスとログイン量以外が同等であるというSalesforce Helpの説明に基づき、通常ライセンスと同じ非対応方針にします。
+
+Assigned Appsを出力するのは、現在の組織で生成結果のdry-runに成功した次のUser Licenseだけです。
+
+- `Analytics Cloud Integration User`
+- `Force.com - App Subscription`
+- `Force.com - Free`
+- `Gold Partner`
+- `Identity`
+- `Partner App Subscription`
+- `Partner Community`
+- `Partner Community Login`
+- `Salesforce`
+- `Salesforce Integration`
+- `Salesforce Platform`
+- `Silver Partner`
+
+`Salesforce Platform Login`は、`Salesforce Platform`と同じ機能およびアクセスを持つというSalesforce Helpの説明に基づき、同じ方針で変換します。`Force.com - App Subscription`は1アプリ用ライセンスのため、Profileで`visible=true`のアプリケーションが2件以上ある場合は変換を停止します。
+
+上記の対応・非対応・同等関係を確認できないUser Licenseに`visible=true`のアプリケーションがある場合は、推測でAssigned Appsを出力せず変換を停止します。表示アプリケーションがない場合は、Assigned Appsの移行対象がないため、ほかの権限の変換を続行します。この判定はアプリアクセスだけに適用します。ライセンスの契約機能、アプリケーション種別、ユーザーへ割り当て済みの権限セットをローカルProfile XMLだけでは判定できないため、生成後のdry-runとユーザー割り当て時のライセンス上限確認は省略しません。
+
+判断根拠はSalesforce Helpの[Standard User Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_available.htm&language=en_US&type=5)、[Salesforce Platform Login License Details](https://help.salesforce.com/s/articleView?id=platform.users_license_types_salesforce_platform_login.htm&language=en_US&type=5)、[Force.com-one app subscription](https://help.salesforce.com/s/articleView?id=000383868&language=en_US&type=1)、[Legacy Portal Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_portal.htm&language=en_US&type=5)、[Authenticated Website User Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_platformportal.htm&language=en_US&type=5)です。
 
 ## 出力
 
@@ -182,6 +230,10 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 変換入口がDefault Target Orgと認証済み組織情報を表示し、承認後だけ処理する
 - 本番環境では追加確認を行い、組織情報を変換内容には使用しない
 - Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
+- 表示可能な割り当てアプリケーションを移行し、デフォルトアプリケーション指定だけをProfileへ残す
+- Assigned Apps非対応User LicenseとOverage系同等ライセンスではアプリケーション表示権限をProfileへ残す
+- dry-run確認済みまたは公式Helpで同等のUser LicenseだけAssigned Appsを移行する
+- Assigned Apps互換性が未確認のUser Licenseと既知上限を超える入力をfail closedで拒否する
 - `ApiUserOnly=true`ではVisualforceページだけを除外し、ApexクラスとAPI専用権限を維持する
 - ライセンス名や無効な`ApiUserOnly`からVisualforceページアクセスを除外しない
 - Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
@@ -193,6 +245,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - 必須、Master-Detail、数式項目をローカルmetadataから判定する
 - 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
 - 未知要素、未知の子要素、重複、不正XMLをfail closedで拒否する
+- Metadata APIで必須のアプリケーションとレコードタイプの`default`値がない入力を拒否する
 - Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、一意なラベル制約を確認する
 - 実行ごと、Profileごとに異なる仮API名を生成する
 - 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
@@ -200,7 +253,7 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - dry-runでファイルを作成せず、通常実行では日時別出力を作る
 - 出力途中の失敗時にbatch全体をrollbackする
 - dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
-- 保存後の意味差分を検出し、変換結果へ反映せず比較レポートへ保存する
+- 保存後の意味差分を検出し、割り当てアプリケーションの順序差を無視して、変換結果へ反映せず比較レポートへ保存する
 
 単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者がDefault Target Orgを確認して実行する後続工程で確認します。
 

@@ -43,6 +43,24 @@ const fixedPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_2026
 const fixedSecondPlatformTemporaryApiName = 'ProfileConversion_SalesforcePlatform_20260902_051922_123_0002';
 const fixedPlatformTemporaryLabel = 'Platform_Test 20260902-051922-123 0001';
 const xmlParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
+const userLicensesWithoutAssignedApps = [
+    'Authenticated Website',
+    'Customer Community',
+    'Customer Community Login',
+    'Customer Community Plus',
+    'Customer Community Plus Login',
+    'Customer Portal Manager Custom',
+    'Customer Portal Manager Standard',
+    'External Apps',
+    'External Apps Login',
+    'External Identity',
+    'High Volume Customer Portal',
+    'Overage Authenticated Website',
+    'Overage Customer Portal Manager Custom',
+    'Overage Customer Portal Manager Standard',
+    'Overage High Volume Customer Portal',
+    'Work.com Only'
+];
 
 // Salesforce CLIのJSON成功結果を子プロセスの戻り値形式で作成する。
 function createSfResult(result) {
@@ -149,6 +167,12 @@ function createTestProject({
 function assertProfilePermissionEquivalence({ conversion, profileXml }) {
     const profile = xmlParser.parse(profileXml).Profile;
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+    const expectedApplications = toArray(profile.applicationVisibilities)
+        .filter(({ visible }) => visible === 'true')
+        .map(({ application, visible }) => ({ application, visible }))
+        .sort((left, right) => left.application.localeCompare(right.application, 'en'));
+
+    assert.deepEqual(toArray(permissionSet.applicationVisibilities), expectedApplications);
     const enabledSections = [
         ['agentAccesses', 'agentName', 'agentAccesses'],
         ['classAccesses', 'apexClass', 'classAccesses'],
@@ -252,11 +276,134 @@ test('有効なProfile権限だけをPermission Set候補へ変換する', () =>
     assert.equal(permissionSet.license, 'Salesforce Platform');
     assert.equal(permissionSet.description, 'Platform_Test Profileから生成した権限セット');
     assert.equal(permissionSet.label, 'Platform_Test');
-    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.deepEqual(permissionSet.applicationVisibilities, { application: 'Test_App', visible: 'true' });
     assert.deepEqual(permissionSet.classAccesses, { apexClass: 'EnabledController', enabled: 'true' });
     assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
     assert.deepEqual(permissionSet.userPermissions, { enabled: 'true', name: 'RunReports' });
     assertProfilePermissionEquivalence({ conversion, profileXml: fs.readFileSync(fixtureProfilePath, 'utf8') });
+});
+
+test('Assigned Appsを許可しないUser LicenseではアプリアクセスをProfileへ残す', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+
+    for (const userLicense of userLicensesWithoutAssignedApps) {
+        const profileXml = baseXml.replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            `<userLicense>${userLicense}</userLicense>`
+        );
+        const conversion = convertFixture(profileXml);
+        const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+        assert.equal(permissionSet.applicationVisibilities, undefined, userLicense);
+        assert.ok(
+            conversion.report.retainedInProfile.some(
+                ({ name, reason }) => name === 'Test_App' && reason === 'userLicenseDoesNotAllowAssignedApps'
+            ),
+            userLicense
+        );
+        assert.ok(
+            conversion.report.requiresValidation.some(
+                ({ name, reason }) => name === userLicense && reason === 'userLicenseDoesNotAllowAssignedApps'
+            ),
+            userLicense
+        );
+    }
+});
+
+test('確認済みまたは公式Helpで同等のUser Licenseではアプリアクセスを維持する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+
+    for (const userLicense of ['Force.com - App Subscription', 'Partner Community', 'Salesforce Platform Login']) {
+        const profileXml = baseXml.replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            `<userLicense>${userLicense}</userLicense>`
+        );
+        const conversion = convertFixture(profileXml);
+        const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+        assert.equal(conversion.canWrite, true, userLicense);
+        assert.deepEqual(
+            permissionSet.applicationVisibilities,
+            { application: 'Test_App', visible: 'true' },
+            userLicense
+        );
+        assert.equal(
+            conversion.report.retainedInProfile.some(({ reason }) => reason === 'userLicenseDoesNotAllowAssignedApps'),
+            false,
+            userLicense
+        );
+    }
+});
+
+test('Assigned Apps互換性が未確認のUser Licenseではfail closedにする', () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Future User License</userLicense>');
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.equal(conversion.canWrite, false);
+    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.ok(
+        conversion.report.unsupportedUnknown.some(
+            ({ name, reason }) =>
+                name === 'Future User License' && reason === 'userLicenseAssignedAppsCompatibilityUnknown'
+        )
+    );
+    assert.ok(
+        conversion.report.retainedInProfile.some(
+            ({ name, reason }) => name === 'Test_App' && reason === 'userLicenseAssignedAppsCompatibilityUnknown'
+        )
+    );
+});
+
+test('Assigned Appsの移行対象がない未確認User Licenseではほかの権限を変換する', () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<visible>true</visible>', '<visible>false</visible>')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Future User License</userLicense>');
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.equal(conversion.canWrite, true);
+    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.equal(
+        conversion.report.unsupportedUnknown.some(
+            ({ reason }) => reason === 'userLicenseAssignedAppsCompatibilityUnknown'
+        ),
+        false
+    );
+});
+
+test('Force.com App Subscriptionの表示アプリケーション上限を超えた場合はfail closedにする', () => {
+    const secondVisibleApplication = [
+        '    <applicationVisibilities>',
+        '        <application>Second_Test_App</application>',
+        '        <default>false</default>',
+        '        <visible>true</visible>',
+        '    </applicationVisibilities>',
+        ''
+    ].join('\n');
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('    <categoryGroupVisibilities>', `${secondVisibleApplication}    <categoryGroupVisibilities>`)
+        .replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            '<userLicense>Force.com - App Subscription</userLicense>'
+        );
+    const conversion = convertFixture(profileXml);
+    const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+
+    assert.equal(conversion.canWrite, false);
+    assert.equal(permissionSet.applicationVisibilities, undefined);
+    assert.ok(
+        conversion.report.unsupportedUnknown.some(
+            ({ maximumApplications, reason, visibleApplicationCount }) =>
+                maximumApplications === 1 &&
+                reason === 'userLicenseAssignedAppsLimitExceeded' &&
+                visibleApplicationCount === 2
+        )
+    );
 });
 
 test('Metadata API 67.0のProfile直下要素をすべて明示的に扱う', () => {
@@ -710,7 +857,21 @@ test('Profile固有設定と無効権限を監査レポートへ分類する', (
     const { report } = convertFixture();
 
     assert.ok(report.retainedInProfile.some(({ sourceElement }) => sourceElement === 'layoutAssignments'));
-    assert.ok(report.retainedInProfile.some(({ sourceElement }) => sourceElement === 'applicationVisibilities'));
+    assert.ok(
+        report.retainedInProfile.some(
+            ({ name, sourceElement }) => sourceElement === 'applicationVisibilities' && name === 'Test_App'
+        )
+    );
+    assert.ok(
+        report.converted.some(
+            ({ name, sourceElement }) => sourceElement === 'applicationVisibilities' && name === 'Test_App'
+        )
+    );
+    assert.ok(
+        report.skippedDisabled.some(
+            ({ name, sourceElement }) => sourceElement === 'applicationVisibilities' && name === 'Hidden_App'
+        )
+    );
     assert.ok(report.skippedDisabled.some(({ name }) => name === 'DisabledController'));
     assert.ok(report.skippedDisabled.some(({ name }) => name === 'Hidden__c'));
     assert.equal(report.unsupportedUnknown.length, 0);
@@ -857,6 +1018,27 @@ test('不正XML、重複権限、API名とラベルの長さ違反を拒否す�
     assert.throws(() => convertFixture(duplicateXml), /重複した設定があります: RunReports/);
     assert.throws(() => convertFixture(undefined, { permissionSetApiName: `A${'a'.repeat(80)}` }), /API名は80文字以内/);
     assert.throws(() => convertFixture(undefined, { permissionSetLabel: 'あ'.repeat(81) }), /ラベルは80文字以内/);
+});
+
+test('Metadata APIで必須のProfile default値がない入力を拒否する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const missingApplicationDefault = baseXml.replace(
+        '        <default>true</default>\n        <visible>true</visible>',
+        '        <visible>true</visible>'
+    );
+    const missingRecordTypeDefault = baseXml.replace(
+        '    <recordTypeVisibilities>\n        <default>true</default>',
+        '    <recordTypeVisibilities>'
+    );
+
+    assert.throws(
+        () => convertFixture(missingApplicationDefault),
+        /applicationVisibilities\.Test_App\.defaultはtrueまたはfalse/
+    );
+    assert.throws(
+        () => convertFixture(missingRecordTypeDefault),
+        /recordTypeVisibilities\.Example__c\.Business\.defaultはtrueまたはfalse/
+    );
 });
 
 test('追加されたProfile権限を固定件数に依存せず内容比較する', () => {

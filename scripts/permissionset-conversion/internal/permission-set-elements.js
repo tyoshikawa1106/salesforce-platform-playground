@@ -4,6 +4,7 @@
 // Permission Set metadataの繰り返し要素を、各要素の一意な識別子へ対応付ける。
 const collectionIdentifiers = new Map([
     ['agentAccesses', 'agentName'],
+    ['applicationVisibilities', 'application'],
     ['classAccesses', 'apexClass'],
     ['customMetadataTypeAccesses', 'name'],
     ['customPermissions', 'name'],
