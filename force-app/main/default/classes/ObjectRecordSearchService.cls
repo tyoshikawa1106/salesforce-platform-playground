@@ -264,9 +264,9 @@ public virtual with sharing class ObjectRecordSearchService {
         }
         String nextPageToken = '';
         if (hasNextPage) {
-            // 最終表示行から次ページ取得用カーソルを作成
+            // 最終表示行に対応する元レコードから型付きの境界を作成
             nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(
-                rows,
+                records[PAGE_SIZE - 1],
                 request.sortSpec
             );
         }

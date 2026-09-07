@@ -124,7 +124,6 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             Test.startTest();
 
             cursor = createParsedCursor(
-                context.config,
                 sortSpec
             );
 
@@ -159,7 +158,6 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             Test.startTest();
 
             cursor = createParsedCursor(
-                context.config,
                 sortSpec
             );
 
@@ -174,7 +172,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
     }
 
     /**
-     * 行がない場合はページトークンを返さない
+     * 境界レコードがない場合はページトークンを返さない
      */
     @IsTest
     static void shouldReturnEmptyTokenWhenRowsAreMissing() {
@@ -189,7 +187,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             Test.startTest();
 
             pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
-                new List<ObjectRecordSearchRowWrapper>(),
+                null,
                 sortSpec
             );
 
@@ -199,7 +197,7 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         Assert.areEqual(
             '',
             pageToken,
-            '空の行リストは空のページトークンを返す必要あり'
+            'nullの境界レコードは空のページトークンを返す必要あり'
         );
     }
 
@@ -474,21 +472,14 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         ].Id;
     }
 
-    private static ObjectRecordSearchSortSupport.PageCursor createParsedCursor(ObjectRecordSearchConfigWrapper config, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+    private static ObjectRecordSearchSortSupport.PageCursor createParsedCursor(ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         Account accountRecord = new Account(
             Id = getTestAccountId(),
             Name = 'Cursor Account',
             Industry = 'Technology'
         );
-        List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>{
-            new ObjectRecordSearchRowWrapper(
-                accountRecord,
-                config.nameFieldApiName,
-                config.displayFields
-            )
-        };
         String pageToken = ObjectRecordSearchSortSupport.createNextPageToken(
-            rows,
+            accountRecord,
             sortSpec
         );
         ObjectRecordSearchPageTokenCodec.ParseResult result = ObjectRecordSearchSortSupport.parsePageToken(

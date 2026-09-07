@@ -5,6 +5,20 @@ import {
 } from '../objectRecordSearchDisplay';
 
 describe('objectRecordSearchDisplay', () => {
+    it.each([
+        ['Incoming', 'boolean', false],
+        ['Incoming', 'boolean', true],
+        ['Amount', 'number', 0],
+        ['Amount', 'number', 1234.5],
+        ['StartDateTime', 'date', '2026-09-07T00:00:00.123Z'],
+        ['ActivityDate', 'date-local', '2026-09-07']
+    ])('%s の型付き値 %s をセルまで保持する', (apiName, dataType, value) => {
+        const fields = [{ apiName, dataType }];
+        const row = createDisplayRow({ fieldValues: { [apiName]: value } }, fields);
+        expect(row[`displayField_${apiName}`]).toBe(value);
+        expect(createColumns({ displayFields: fields })[1].type).toBe(dataType);
+    });
+
     it('creates datatable columns with display field types and row actions', () => {
         const columns = createColumns({
             nameFieldLabel: '取引先名',
