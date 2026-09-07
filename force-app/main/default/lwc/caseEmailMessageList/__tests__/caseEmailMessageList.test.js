@@ -98,6 +98,9 @@ function createComponent() {
 
 async function flushPromises() {
     await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
 }
 
 async function emitCountAndPage(count, page) {
@@ -109,6 +112,92 @@ async function emitCountAndPage(count, page) {
 }
 
 describe('c-case-email-message-list', () => {
+    it('loads the new case when navigation changes during refresh', async () => {
+        const element = createComponent();
+        await emitCountAndPage(100, initialPage);
+        await flushPromises();
+        refreshApex.mockResolvedValue();
+        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+        let finishOldRequest;
+        getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishOldRequest = resolve; }));
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+
+        element.recordId = '500000000000002AAA';
+        await flushPromises();
+        getEmailMessagePaginationCursor.mockResolvedValueOnce({ cursorId: 'new-case' });
+        getEmailMessages.mockResolvedValueOnce(emptyPage);
+        getEmailMessageCount.emit(0);
+        finishOldRequest(initialPage);
+        await flushPromises();
+        await flushPromises();
+        expect(getEmailMessages).toHaveBeenLastCalledWith({ caseId: '500000000000002AAA', paginationCursor: { cursorId: 'new-case' }, startIndex: 0 });
+        expect(element.shadowRoot.querySelector('lightning-spinner')).toBeNull();
+        expect(element.shadowRoot.textContent).toContain('このケースに紐づくメールメッセージはありません。');
+    });
+
+    it.each(['success', 'failure'])('ignores an old case load-more %s after another case has loaded', async (outcome) => {
+        const element = createComponent();
+        await emitCountAndPage(100, initialPage);
+        await flushPromises();
+        let finishOldRequest;
+        getEmailMessages.mockImplementationOnce(() => new Promise((resolve, reject) => {
+            finishOldRequest = outcome === 'success' ? () => resolve(nextPage) : () => reject(new Error('古いケースの失敗'));
+        }));
+        element.shadowRoot.querySelector('lightning-button').click();
+        await flushPromises();
+
+        element.recordId = '500000000000002AAA';
+        await flushPromises();
+        const newCursor = { cursorId: 'new-case-cursor' };
+        getEmailMessagePaginationCursor.mockResolvedValueOnce(newCursor);
+        getEmailMessages.mockResolvedValueOnce({ emailMessages: [{ Id: '02s000000000004AAA', Subject: '新しいケース' }], hasNextPage: true, nextIndex: 50 });
+        getEmailMessageCount.emit(60);
+        await flushPromises();
+        await flushPromises();
+        await flushPromises();
+
+        // 新しいケースの追加取得中に古い取得が完了しても操作抑止を解除しない。
+        let finishNewRequest;
+        getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishNewRequest = resolve; }));
+        element.shadowRoot.querySelector('lightning-button').click();
+        await flushPromises();
+        finishOldRequest();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('新しいケース');
+        expect(element.shadowRoot.textContent).not.toContain('次のメール');
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+        expect(getEmailMessages).toHaveBeenLastCalledWith({ caseId: '500000000000002AAA', paginationCursor: newCursor, startIndex: 50 });
+
+        finishNewRequest(emptyPage);
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('lightning-spinner')).toBeNull();
+    });
+
+    it('discards an old page even when navigation returns to the original case', async () => {
+        const element = createComponent();
+        await emitCountAndPage(100, initialPage);
+        await flushPromises();
+        let finishOldRequest;
+        getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishOldRequest = resolve; }));
+        element.shadowRoot.querySelector('lightning-button').click();
+        await flushPromises();
+        element.recordId = '500000000000002AAA';
+        element.recordId = '500000000000001AAA';
+        await flushPromises();
+        await emitCountAndPage(1, { emailMessages: [emailMessages[0]], hasNextPage: false, nextIndex: 1 });
+        await flushPromises();
+        finishOldRequest(nextPage);
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.querySelectorAll('ul.slds-timeline [role="listitem"]')).toHaveLength(1);
+        expect(element.shadowRoot.textContent).not.toContain('次のメール');
+    });
+
     afterEach(() => {
         while (document.body.firstChild) {
             document.body.removeChild(document.body.firstChild);
