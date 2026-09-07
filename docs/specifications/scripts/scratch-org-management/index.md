@@ -42,11 +42,13 @@ node scripts/scratch-org/delete.js --alias <alias>
 ### Scratch Orgの準備
 
 1. `sf org create scratch`でScratch定義、alias、有効日数を指定して作成する。
-2. `manifest/rebuild-scratch-org.xml`を`RunLocalTests`と設定済み待機時間でdeployする。
+2. CLIの認証済み組織一覧で対象が一意のScratch Orgであることを確認し、そのusernameを接続先に固定して`manifest/rebuild-scratch-org.xml`を`RunLocalTests`と設定済み待機時間でdeployする。
 3. 設定済みPermission SetをScratch Orgユーザーへ割り当てる。
 4. 共通のテストデータ投入スクリプトへ作成済みalias、import plan、`--default-repeat 40`を渡す。
 
 各stepは子Node.jsプロセスとして順番に実行し、非0終了した時点で後続stepを実行しません。テストデータ投入stepでは接続組織を表示し、利用者の承認後に投入します。
+
+deploy stepを単独で実行した場合も同じ組織種別の確認を行います。本番、Developer Edition、Sandbox、対象不明、CLI取得失敗、不完全な応答ではdeployを実行せず非0終了します。
 
 ### Scratch Orgの削除
 

@@ -49,7 +49,7 @@ test('Scratch Orgを設定ファイルの内容で作成する', () => {
 test('Scratch Orgへ設定ファイルのmanifestをRunLocalTests付きで反映する', () => {
     // manifest、alias、Apexテストレベル、待機時間がSalesforce CLIへ渡ることを確認する。
     const args = captureSfCall((runSfCommand) =>
-        deployMetadata({ argv: ['--alias', 'test-scratch-org'], runSfCommand })
+        deployMetadata({ argv: ['--alias', 'test-scratch-org'], runSfCommand, runSfQuery: scratchOrgQuery })
     );
 
     assert.deepEqual(args, [
@@ -59,7 +59,7 @@ test('Scratch Orgへ設定ファイルのmanifestをRunLocalTests付きで反映
         '--manifest',
         scratchOrg.manifest,
         '--target-org',
-        'test-scratch-org',
+        'scratch-test@example.invalid',
         '--test-level',
         'RunLocalTests',
         '--wait',
@@ -109,3 +109,99 @@ test('明示されたaliasのScratch Orgだけを削除する', () => {
 
     assert.deepEqual(args, ['org', 'delete', 'scratch', '--target-org', 'test-scratch-org']);
 });
+
+// CLIの種別確認も注入し、単体テストから実組織へ接続しない。
+function scratchOrgQuery(args, workingDirectory) {
+    assert.deepEqual(args, ['org', 'list', '--json', '--skip-connection-status']);
+    assert.equal(workingDirectory, repoRoot);
+    return {
+        status: 0,
+        stdout: JSON.stringify({
+            status: 0,
+            result: {
+                nonScratchOrgs: [],
+                sandboxes: [],
+                scratchOrgs: [
+                    {
+                        alias: 'test-scratch-org',
+                        username: 'scratch-test@example.invalid',
+                        instanceUrl: 'https://scratch.example.invalid'
+                    }
+                ]
+            }
+        })
+    };
+}
+
+for (const [name, orgEdition, isSandbox] of [
+    ['本番', 'Enterprise Edition', false],
+    ['Developer Edition', 'Developer Edition', false],
+    ['Sandbox', 'Enterprise Edition', true]
+]) {
+    test(`${name}には再構築deployを実行しない`, () => {
+        const org = {
+            alias: 'test-scratch-org',
+            username: 'test@example.invalid',
+            instanceUrl: 'https://org.example.invalid',
+            orgId: 'test-org',
+            orgEdition,
+            isSandbox
+        };
+        let deployed = false;
+        const status = deployMetadata({
+            argv: ['--alias', 'test-scratch-org'],
+            runSfCommand() {
+                deployed = true;
+            },
+            runSfQuery() {
+                return {
+                    status: 0,
+                    stdout: JSON.stringify({
+                        status: 0,
+                        result: {
+                            nonScratchOrgs: [org],
+                            sandboxes: isSandbox ? [org] : [],
+                            scratchOrgs: []
+                        }
+                    })
+                };
+            }
+        });
+        assert.equal(status, 1);
+        assert.equal(deployed, false);
+    });
+}
+
+for (const [name, response] of [
+    ['CLI失敗', { status: 1, stdout: '' }],
+    ['壊れたJSON', { status: 0, stdout: '{' }],
+    [
+        '対象なし',
+        {
+            status: 0,
+            stdout: JSON.stringify({
+                status: 0,
+                result: {
+                    nonScratchOrgs: [],
+                    sandboxes: [],
+                    scratchOrgs: []
+                }
+            })
+        }
+    ]
+]) {
+    test(`${name}では再構築deployを実行しない`, () => {
+        let deployed = false;
+        const status = deployMetadata({
+            argv: ['--alias', 'test-scratch-org'],
+            runSfCommand() {
+                deployed = true;
+            },
+            runSfQuery() {
+                return response;
+            }
+        });
+        assert.equal(status, 1);
+        assert.equal(deployed, false);
+    });
+}
