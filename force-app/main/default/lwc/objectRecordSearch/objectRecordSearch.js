@@ -63,6 +63,8 @@ export default class ObjectRecordSearch extends LightningElement {
     isDeleting = false;
     // レコードフォーム保存中の操作抑止状態を保持
     isSaving = false;
+    // 検索条件変更後の応答待ちを初回wireとは別に管理
+    isSearchPending = false;
     // 編集フォームで開くレコードIDを保持
     formRecordId;
     // 作成、編集、アップロード画面の表示状態を保持
@@ -92,6 +94,8 @@ export default class ObjectRecordSearch extends LightningElement {
 
         // 取得成功時は設定、行、ページング状態をまとめて更新
         if (data) {
+            // 検索成功応答でページ操作の抑止を解除
+            this.isSearchPending = false;
             // 検索応答からLogicが生成した画面状態をまとめて反映
             Object.assign(
                 this,
@@ -101,6 +105,8 @@ export default class ObjectRecordSearch extends LightningElement {
             this.updateFormState();
         // 取得失敗時は古い一覧を残さずエラー状態へ移行
         } else if (error) {
+            // 検索失敗後も再検索を許可
+            this.isSearchPending = false;
             // 検索エラーからLogicが生成した画面状態をまとめて反映
             Object.assign(this, createSearchFailureState(error));
         }
@@ -213,13 +219,16 @@ export default class ObjectRecordSearch extends LightningElement {
         return this.isLoading || this.isDeleting || this.isSaving;
     }
 
-    // 検索wireの初回レスポンス待ち状態を判定
+    // 初回取得と検索条件変更後の応答待ち状態を判定
     get isLoading() {
-        // データ、エラー、明示エラーのいずれもない間だけ読込中とする
+        // 明示的な検索待ちと初回wire未取得を読込中とする
         return (
-            !this.errorMessage &&
-            !this.wiredSearchResult?.data &&
-            !this.wiredSearchResult?.error
+            // 前のwire結果が残っていても新しい検索の完了を待つ
+            this.isSearchPending ||
+            // 初回wire応答前の取得状態を判定
+            (!this.errorMessage &&
+                !this.wiredSearchResult?.data &&
+                !this.wiredSearchResult?.error)
         );
     }
 
@@ -349,9 +358,13 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 入力中の検索語を確定して1ページ目から検索
     handleSearch() {
+        // 進行中の検索や保存に重なる検索要求を拒否
+        if (this.isBusy) {
+            // 現在の要求が完了するまで条件を維持
+            return;
+        }
         // 検索語確定とページング初期化を1つの画面状態として反映
-        Object.assign(
-            this,
+        this.applySearchState(
             createSearchCriteriaState(this.draftSearchTerm)
         );
     }
@@ -365,8 +378,7 @@ export default class ObjectRecordSearch extends LightningElement {
         }
 
         // 現在状態からLogicが生成した前ページ検索状態を反映
-        Object.assign(
-            this,
+        this.applySearchState(
             createPreviousSearchState({
                 // 現在ページ番号から1つ戻す基準を渡す
                 pageNumber: this.pageNumber,
@@ -385,8 +397,7 @@ export default class ObjectRecordSearch extends LightningElement {
         }
 
         // 現在状態からLogicが生成した次ページ検索状態を反映
-        Object.assign(
-            this,
+        this.applySearchState(
             createNextSearchState({
                 // 現在ページ番号から1つ進める基準を渡す
                 pageNumber: this.pageNumber,
@@ -400,13 +411,27 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // datatableのソート変更をApex検索条件へ反映
     handleSort(event) {
+        // 応答待ちや保存中のソート変更を拒否
+        if (this.isBusy) {
+            // 現在のソート条件を維持
+            return;
+        }
         // 選択列とソート方向をイベントから取得
         const { fieldName, sortDirection } = event.detail;
         // ソート条件とページング初期化を1つの画面状態として反映
-        Object.assign(
-            this,
+        this.applySearchState(
             createSortSearchState({ fieldName, sortDirection })
         );
+    }
+
+    // 問い合わせ条件が変わる場合だけ応答待ちを開始
+    applySearchState(nextState) {
+        // wireが再実行されるかを現在の問い合わせ値で判定
+        const previousRequest = JSON.stringify(this.searchRequest);
+        // ページと検索条件を同じ状態遷移で更新
+        Object.assign(this, nextState);
+        // 同一条件の再操作では存在しない応答を待たない
+        this.isSearchPending = previousRequest !== JSON.stringify(this.searchRequest);
     }
 
     // datatableの現在選択行を一括削除対象へ反映

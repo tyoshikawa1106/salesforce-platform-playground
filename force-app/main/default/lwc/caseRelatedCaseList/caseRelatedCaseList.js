@@ -78,6 +78,10 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     contactCasesHaveError = false;
     // 会社側の取得エラー表示を制御
     accountCasesHaveError = false;
+    // 顧客側の最新カード変換を識別
+    contactCasesRequestId = 0;
+    // 会社側の最新カード変換を識別
+    accountCasesRequestId = 0;
 
     // 表示中Caseから顧客と会社を特定し、各タブの関連リスト取得を開始
     @wire(getRecord, {
@@ -128,10 +132,21 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         sortBy: RELATED_CASE_SORT
     })
     async wiredContactCases({ data, error }) {
+        // 成功と失敗のどちらの新応答でも以前の変換を無効化
+        const requestId = ++this.contactCasesRequestId;
+        // 変換開始時の表示ケースを固定
+        const recordId = this.recordId;
         // 取得成功時はUI APIレコードを表示用カードへ変換
         if (data) {
             // リンク生成を含むカード変換が完了してから一覧へ反映
-            this.contactCases = await this.createCaseCards(data.records);
+            const contactCases = await this.createCaseCards(data.records);
+            // 後続応答またはケース切り替えがあれば古い変換を破棄
+            if (requestId !== this.contactCasesRequestId || recordId !== this.recordId) {
+                // 最新一覧と取得状態を維持
+                return;
+            }
+            // 最新の変換結果だけを顧客タブへ反映
+            this.contactCases = contactCases;
             // 顧客タブのローディングを終了
             this.contactCasesHaveLoaded = true;
             // 再取得成功時は顧客タブのエラー表示を解除
@@ -157,10 +172,21 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         sortBy: RELATED_CASE_SORT
     })
     async wiredAccountCases({ data, error }) {
+        // 成功と失敗のどちらの新応答でも以前の変換を無効化
+        const requestId = ++this.accountCasesRequestId;
+        // 変換開始時の表示ケースを固定
+        const recordId = this.recordId;
         // 取得成功時はUI APIレコードを表示用カードへ変換
         if (data) {
             // リンク生成を含むカード変換が完了してから一覧へ反映
-            this.accountCases = await this.createCaseCards(data.records);
+            const accountCases = await this.createCaseCards(data.records);
+            // 後続応答またはケース切り替えがあれば古い変換を破棄
+            if (requestId !== this.accountCasesRequestId || recordId !== this.recordId) {
+                // 最新一覧と取得状態を維持
+                return;
+            }
+            // 最新の変換結果だけを会社タブへ反映
+            this.accountCases = accountCases;
             // 会社タブのローディングを終了
             this.accountCasesHaveLoaded = true;
             // 再取得成功時は会社タブのエラー表示を解除
@@ -358,6 +384,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     ) {
         // レコードページ内の画面遷移で古い関連ケースを残さないよう取得状態を初期化
         if (previousContactId !== this.contactId) {
+            // 前の顧客向けに進行中のカード変換を無効化
+            this.contactCasesRequestId++;
             // 以前のContactに紐づくカードを即時に破棄
             this.contactCases = [];
             // Contact未設定ならwire待ちをせず取得完了扱いに変更
@@ -368,6 +396,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
         // Accountが変わった場合だけ会社タブの状態を更新
         if (previousAccountId !== this.accountId) {
+            // 前の会社向けに進行中のカード変換を無効化
+            this.accountCasesRequestId++;
             // 以前のAccountに紐づくカードを即時に破棄
             this.accountCases = [];
             // Account未設定ならwire待ちをせず取得完了扱いに変更
@@ -379,6 +409,10 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // 親Case取得失敗時に両タブを表示可能な初期状態へ戻す
     resetRelatedCases() {
+        // 親ケースの失敗後に古い顧客カードを復元しない
+        this.contactCasesRequestId++;
+        // 親ケースの失敗後に古い会社カードを復元しない
+        this.accountCasesRequestId++;
         // 顧客側のカードをすべて破棄
         this.contactCases = [];
         // 会社側のカードをすべて破棄
