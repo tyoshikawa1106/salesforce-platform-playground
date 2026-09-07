@@ -203,15 +203,15 @@ function comparePermissionSets(expected, actual) {
 }
 
 // 生成元フォルダのPermission Set API名を検証し、安定した順序で返す。
-function listPermissionSetApiNames(sourceDirectory, readdirSync = fs.readdirSync) {
+function listPermissionSetApiNames(sourceDirectory, readdirSync = fs.readdirSync, { allowEmpty = false } = {}) {
     // 通常ファイルの権限セットだけを安定順で列挙する。
     const fileNames = readdirSync(sourceDirectory, { withFileTypes: true })
         .filter((entry) => entry.isFile() && entry.name.endsWith(permissionSetFileSuffix))
         .map((entry) => entry.name)
         .sort();
 
-    // 空フォルダを正常な比較対象として扱わない。
-    if (fileNames.length === 0) {
+    // 生成元の空入力は拒否し、再取得側だけは欠落比較のため空集合を許可する。
+    if (fileNames.length === 0 && !allowEmpty) {
         // 比較元がないことをパス付きで通知する。
         throw new Error(`比較するPermission Set XMLがありません: ${sourceDirectory}`);
     }
@@ -256,8 +256,10 @@ function comparePermissionSetDirectories({
     const apiNames = listPermissionSetApiNames(sourceDirectory);
     // 生成対象から期待するファイル名集合を作る。
     const expectedFileNames = apiNames.map((apiName) => `${apiName}${permissionSetFileSuffix}`);
-    // 取得先がない場合も期待する権限セットの欠落として扱う。
-    const retrievedApiNames = existsSync(retrievedDirectory) ? listPermissionSetApiNames(retrievedDirectory) : [];
+    // 取得先の不存在とXMLが0件のフォルダを同じ欠落結果として扱う。
+    const retrievedApiNames = existsSync(retrievedDirectory)
+        ? listPermissionSetApiNames(retrievedDirectory, fs.readdirSync, { allowEmpty: true })
+        : [];
     // 保存結果のファイル有無を完全一致で確認する。
     const retrievedFileNames = new Set(retrievedApiNames.map((apiName) => `${apiName}${permissionSetFileSuffix}`));
     // 各権限セットの比較結果を集計する器を用意する。

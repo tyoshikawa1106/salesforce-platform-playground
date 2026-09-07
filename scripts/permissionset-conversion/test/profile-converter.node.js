@@ -1569,6 +1569,106 @@ test('出力先の衝突と入力Profileの上書きを拒否する', () => {
     );
 });
 
+test('最終存在確認の直後に作られたXML・レポートを上書きせず競合時は自分の出力だけ戻す', () => {
+    for (const collisionTarget of ['xml', 'report']) {
+        const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-output-race-'));
+        const outputPath = path.join(directory, 'Expected.permissionset-meta.xml');
+        const reportPath = path.join(directory, 'Expected.json');
+        const collisionPath = collisionTarget === 'xml' ? outputPath : reportPath;
+        let reportChecks = 0;
+        try {
+            assert.throws(
+                () =>
+                    writeConversionOutputs({
+                        outputPath,
+                        reportPath,
+                        permissionSetXml: 'generated XML',
+                        report: { generated: true },
+                        existsSync(targetPath) {
+                            const exists = fs.existsSync(targetPath);
+                            // 最後の存在確認がfalseを返した直後に別実行のファイルを置く。
+                            if (targetPath === reportPath && ++reportChecks === 2) {
+                                fs.writeFileSync(collisionPath, 'other execution', { flag: 'wx' });
+                            }
+                            return exists;
+                        }
+                    }),
+                { code: 'EEXIST' }
+            );
+            assert.equal(fs.readFileSync(collisionPath, 'utf8'), 'other execution');
+            assert.deepEqual(fs.readdirSync(directory), [path.basename(collisionPath)]);
+        } finally {
+            fs.rmSync(directory, { recursive: true, force: true });
+        }
+    }
+});
+
+test('既存の一時ファイルと競合しても削除せず、自分が作成した一時ファイルだけ戻す', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-temp-race-'));
+    const outputPath = path.join(directory, 'Expected.permissionset-meta.xml');
+    const reportPath = path.join(directory, 'Expected.json');
+    const existingTemporaryPath = `${reportPath}.tmp-fixed`;
+    try {
+        fs.writeFileSync(existingTemporaryPath, 'other execution');
+        assert.throws(
+            () =>
+                writeConversionOutputs({
+                    outputPath,
+                    reportPath,
+                    permissionSetXml: 'new XML',
+                    report: {},
+                    randomUUID: () => 'fixed'
+                }),
+            { code: 'EEXIST' }
+        );
+        assert.equal(fs.readFileSync(existingTemporaryPath, 'utf8'), 'other execution');
+        assert.deepEqual(fs.readdirSync(directory), [path.basename(existingTemporaryPath)]);
+    } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
+
+test('一時書き込み・排他的配置・一時名の削除が失敗しても今回の出力を回収する', () => {
+    for (const failure of ['write', 'link', 'unlink']) {
+        const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-output-failure-'));
+        let injected = false;
+        try {
+            assert.throws(
+                () =>
+                    writeConversionOutputs({
+                        outputPath: path.join(directory, 'Expected.permissionset-meta.xml'),
+                        reportPath: path.join(directory, 'Expected.json'),
+                        permissionSetXml: 'new XML',
+                        report: {},
+                        writeFileSync(descriptor, content, options) {
+                            if (failure === 'write' && !injected) {
+                                injected = true;
+                                fs.writeFileSync(descriptor, 'partial');
+                                throw new Error('injected write failure');
+                            }
+                            fs.writeFileSync(descriptor, content, options);
+                        },
+                        linkSync(source, target) {
+                            if (failure === 'link') throw new Error('injected link failure');
+                            fs.linkSync(source, target);
+                        },
+                        unlinkSync(target) {
+                            if (failure === 'unlink' && !injected) {
+                                injected = true;
+                                throw new Error('injected unlink failure');
+                            }
+                            fs.unlinkSync(target);
+                        }
+                    }),
+                new RegExp(`injected ${failure} failure`)
+            );
+            assert.deepEqual(fs.readdirSync(directory), []);
+        } finally {
+            fs.rmSync(directory, { recursive: true, force: true });
+        }
+    }
+});
+
 test('出力途中の失敗時にXMLとレポートを残さない', () => {
     // レポート配置だけを失敗させ、先に配置されたXMLもrollbackされることを確認する。
     const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-permission-set-rollback-'));
@@ -1582,12 +1682,12 @@ test('出力途中の失敗時にXMLとレポートを残さない', () => {
                     outputPath,
                     permissionSetXml: 'new xml',
                     randomUUID: () => 'transaction',
-                    renameSync(sourcePath, targetPath) {
+                    linkSync(sourcePath, targetPath) {
                         if (targetPath === reportPath) {
                             throw new Error('report install failed');
                         }
 
-                        fs.renameSync(sourcePath, targetPath);
+                        fs.linkSync(sourcePath, targetPath);
                     },
                     report: { status: 'new' },
                     reportPath
@@ -1619,12 +1719,12 @@ test('複数Profileの途中失敗時にbatch全体をrollbackする', () => {
                 writeConversionPlans({
                     plans,
                     randomUUID: () => 'batch',
-                    renameSync(sourcePath, targetPath) {
+                    linkSync(sourcePath, targetPath) {
                         if (targetPath === plans[1].paths.reportPath) {
                             throw new Error('second report failed');
                         }
 
-                        fs.renameSync(sourcePath, targetPath);
+                        fs.linkSync(sourcePath, targetPath);
                     }
                 }),
             /second report failed/

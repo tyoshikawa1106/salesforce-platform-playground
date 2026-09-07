@@ -206,6 +206,139 @@ test('フォルダ比較はPermission Setごとの一致数と全差分を集計
     }
 });
 
+test('再取得先の不存在・空フォルダ・対象外ファイルだけの場合は全件欠落を返す', () => {
+    for (const state of ['absent', 'empty', 'unrelated']) {
+        const project = createComparisonProject();
+        const retrievedDirectory = path.join(project.runDirectory, 'retrieved/permissionsets');
+        try {
+            fs.writeFileSync(
+                path.join(project.sourceDirectory, 'Expected.permissionset-meta.xml'),
+                createPermissionSetXml('<label>Expected</label>')
+            );
+            if (state !== 'absent') fs.mkdirSync(retrievedDirectory, { recursive: true });
+            if (state === 'unrelated') fs.writeFileSync(path.join(retrievedDirectory, 'notes.txt'), 'not metadata');
+            const result = comparePermissionSetDirectories({
+                sourceDirectory: project.sourceDirectory,
+                retrievedDirectory
+            });
+            assert.deepEqual(result, {
+                permissionSets: 1,
+                equal: 0,
+                different: 1,
+                differences: 1,
+                results: [{ apiName: 'Expected', equal: false, differences: [{ kind: 'missingPermissionSetInOrg' }] }]
+            });
+        } finally {
+            fs.rmSync(project.projectRoot, { recursive: true, force: true });
+        }
+    }
+});
+
+test('生成元が空なら組織へ接続せず拒否し、再取得先の読み取りエラーを欠落扱いにしない', async () => {
+    const project = createComparisonProject();
+    let calls = 0;
+    try {
+        await assert.rejects(
+            main({
+                argv: ['--source-dir', path.relative(project.projectRoot, project.sourceDirectory)],
+                projectRoot: project.projectRoot,
+                runSfWithOutputCommand() {
+                    calls++;
+                    throw new Error('unexpected org call');
+                },
+                writeLine() {}
+            }),
+            /比較するPermission Set XMLがありません/
+        );
+        assert.equal(calls, 0);
+        fs.writeFileSync(
+            path.join(project.sourceDirectory, 'Expected.permissionset-meta.xml'),
+            createPermissionSetXml('<label>Expected</label>')
+        );
+        const retrievedDirectory = path.join(project.runDirectory, 'not-a-directory');
+        fs.writeFileSync(retrievedDirectory, 'invalid retrieval path');
+        assert.throws(
+            () =>
+                comparePermissionSetDirectories({
+                    sourceDirectory: project.sourceDirectory,
+                    retrievedDirectory
+                }),
+            { code: 'ENOTDIR' }
+        );
+    } finally {
+        fs.rmSync(project.projectRoot, { recursive: true, force: true });
+    }
+});
+
+test('CLIは再取得0件でも全対象の欠落レポートを保存し終了コード1を返す', async () => {
+    const project = createComparisonProject();
+    const fixedNow = new Date('2026-09-02T06:30:18.540Z');
+    const lines = [];
+    try {
+        for (const name of ['First', 'Second'])
+            fs.writeFileSync(
+                path.join(project.sourceDirectory, `${name}.permissionset-meta.xml`),
+                createPermissionSetXml(`<label>${name}</label>`)
+            );
+        const status = await main({
+            argv: ['--source-dir', path.relative(project.projectRoot, project.sourceDirectory)],
+            projectRoot: project.projectRoot,
+            now: () => fixedNow,
+            writeLine: (line) => lines.push(line),
+            runSfWithOutputCommand(args) {
+                if (args[0] === 'config')
+                    return {
+                        status: 0,
+                        stdout: JSON.stringify({
+                            status: 0,
+                            result: [{ name: 'target-org', success: true, value: 'target-org-a' }]
+                        })
+                    };
+                if (args[0] === 'org') {
+                    const org = {
+                        alias: 'target-org-a',
+                        username: 'integration@example.com',
+                        instanceUrl: 'https://example--test.sandbox.my.salesforce.com',
+                        orgId: '00D000000000001AAA',
+                        isSandbox: true,
+                        orgEdition: 'Enterprise Edition'
+                    };
+                    return {
+                        status: 0,
+                        stdout: JSON.stringify({
+                            status: 0,
+                            result: { nonScratchOrgs: [org], sandboxes: [org], scratchOrgs: [] }
+                        })
+                    };
+                }
+                assert.deepEqual(args.slice(0, 3), ['project', 'retrieve', 'start']);
+                const outputDirectory = args[args.indexOf('--output-dir') + 1];
+                fs.mkdirSync(path.join(outputDirectory, 'permissionsets'), { recursive: true });
+                return { status: 0, stdout: JSON.stringify({ status: 0, result: { status: 'Succeeded' } }) };
+            }
+        });
+        assert.equal(status, 1);
+        assert.ok(lines.includes('保存結果確認: 一致0件、差異あり2件、差分2件'));
+        const directory = resolveVerificationDirectory({
+            existsSync: () => false,
+            now: () => fixedNow,
+            sourceDirectory: project.sourceDirectory
+        });
+        const report = JSON.parse(fs.readFileSync(path.join(directory, 'comparison-report.json'), 'utf8'));
+        assert.deepEqual(report.summary, { permissionSets: 2, equal: 0, different: 2, differences: 2 });
+        assert.deepEqual(
+            report.results,
+            ['First', 'Second'].map((apiName) => ({
+                apiName,
+                equal: false,
+                differences: [{ kind: 'missingPermissionSetInOrg' }]
+            }))
+        );
+    } finally {
+        fs.rmSync(project.projectRoot, { recursive: true, force: true });
+    }
+});
+
 test('CLIは組織から再取得した一致結果をJSONへ保存する', async () => {
     // 1件の生成XMLと認証済みSandbox情報を一時プロジェクトへ用意する。
     const project = createComparisonProject();

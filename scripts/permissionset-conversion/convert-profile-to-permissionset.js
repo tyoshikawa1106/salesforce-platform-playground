@@ -359,13 +359,15 @@ function cleanupOutputPaths({ existsSync, paths, unlinkSync }) {
     return rollbackErrors;
 }
 
-// 複数Profileを含む全内容を一時ファイルへ書いた後に置換し、途中失敗時は元の出力へ戻す。
+// 全内容を一時ファイルへ書いた後に排他的に公開し、途中失敗時は今回の出力だけを戻す。
 function writeOutputDefinitions({
+    closeSync = fs.closeSync,
     existsSync = fs.existsSync,
+    linkSync = fs.linkSync,
     mkdirSync = fs.mkdirSync,
+    openSync = fs.openSync,
     outputDefinitions,
     randomUUID = crypto.randomUUID,
-    renameSync = fs.renameSync,
     unlinkSync = fs.unlinkSync,
     writeFileSync = fs.writeFileSync
 }) {
@@ -379,6 +381,8 @@ function writeOutputDefinitions({
     }));
     // 失敗時に戻す配置済みファイルを追跡する。
     const installedOutputs = [];
+    // 作成に成功した一時ファイルだけを後始末の対象にする。
+    const createdTemporaryPaths = [];
 
     // 生成対象ごとの親フォルダを準備する。
     for (const { targetPath } of transactionalOutputs) {
@@ -390,8 +394,18 @@ function writeOutputDefinitions({
     try {
         // 配置前に全出力を一時ファイルへ保存する。
         for (const { content, temporaryPath } of transactionalOutputs) {
-            // 他実行の一時ファイルを上書きしない。
-            writeFileSync(temporaryPath, content, { encoding: 'utf8', flag: 'wx' });
+            // 名前の競合時は既存ファイルへ触れず、作成できたファイルだけを所有する。
+            const descriptor = openSync(temporaryPath, 'wx');
+            // 部分書き込みで失敗したファイルも回収する。
+            createdTemporaryPaths.push(temporaryPath);
+            // 書き込みの成否にかかわらず開いたファイルを閉じる。
+            try {
+                // 自分が作成したファイル記述子へ全内容を書き込む。
+                writeFileSync(descriptor, content, { encoding: 'utf8' });
+            } finally {
+                // 完成した内容を公開する前に記述子を解放する。
+                closeSync(descriptor);
+            }
         }
 
         // 書き込み中に出力先が使われ始めていないか再確認する。
@@ -405,12 +419,17 @@ function writeOutputDefinitions({
             throw new Error(`出力先が処理中に作成されました: ${newlyExistingPaths.join(', ')}`);
         }
 
-        // 全一時ファイルを最終配置へ移す。
+        // 完成した一時ファイルを同じディレクトリ内の最終パスへ公開する。
         for (const output of transactionalOutputs) {
-            // 完成したファイルだけを公開する。
-            renameSync(output.temporaryPath, output.targetPath);
+            // ハードリンク作成は既存パスを置換しないため、存在確認後の競合も拒否する。
+            linkSync(output.temporaryPath, output.targetPath);
             // 後続の配置失敗に備えて完了済み出力を記録する。
             installedOutputs.push(output);
+        }
+        // 全配置が成功したら一時名だけを削除し、最終パスの内容を残す。
+        for (const temporaryPath of createdTemporaryPaths) {
+            // 最終パスと同じ内容を参照する一時リンクを取り除く。
+            unlinkSync(temporaryPath);
         }
     } catch (error) {
         // 配置済み出力と残った一時ファイルの両方を後始末する。
@@ -422,7 +441,7 @@ function writeOutputDefinitions({
             }),
             ...cleanupOutputPaths({
                 existsSync,
-                paths: transactionalOutputs.map(({ temporaryPath }) => temporaryPath),
+                paths: createdTemporaryPaths,
                 unlinkSync
             })
         ];
@@ -440,13 +459,15 @@ function writeOutputDefinitions({
 
 // 単一ProfileのXMLとレポートを同一トランザクションで出力する。
 function writeConversionOutputs({
+    closeSync = fs.closeSync,
     existsSync = fs.existsSync,
+    linkSync = fs.linkSync,
     mkdirSync = fs.mkdirSync,
+    openSync = fs.openSync,
     outputPath,
     permissionSetXml,
     protectedPaths = [],
     randomUUID = crypto.randomUUID,
-    renameSync = fs.renameSync,
     report,
     reportPath,
     unlinkSync = fs.unlinkSync,
@@ -464,14 +485,16 @@ function writeConversionOutputs({
 
     // XMLとレポートをまとめて保存する。
     writeOutputDefinitions({
+        closeSync,
         existsSync,
+        linkSync,
         mkdirSync,
+        openSync,
         outputDefinitions: [
             ...(writePermissionSet ? [{ content: permissionSetXml, targetPath: outputPath }] : []),
             { content: `${JSON.stringify(report, null, 2)}\n`, targetPath: reportPath }
         ],
         randomUUID,
-        renameSync,
         unlinkSync,
         writeFileSync
     });
@@ -479,11 +502,13 @@ function writeConversionOutputs({
 
 // 複数Profileの全XMLとレポートを一括し、どれか1件の失敗時は全出力を元へ戻す。
 function writeConversionPlans({
+    closeSync = fs.closeSync,
     existsSync = fs.existsSync,
+    linkSync = fs.linkSync,
     mkdirSync = fs.mkdirSync,
+    openSync = fs.openSync,
     plans,
     randomUUID = crypto.randomUUID,
-    renameSync = fs.renameSync,
     unlinkSync = fs.unlinkSync,
     writeFileSync = fs.writeFileSync
 }) {
@@ -499,11 +524,13 @@ function writeConversionPlans({
 
     // バッチ全体へ同一の書き込み・復旧処理を適用する。
     writeOutputDefinitions({
+        closeSync,
         existsSync,
+        linkSync,
         mkdirSync,
+        openSync,
         outputDefinitions,
         randomUUID,
-        renameSync,
         unlinkSync,
         writeFileSync
     });
