@@ -18,10 +18,14 @@ export function createDisplayRow(emailMessage) {
     const direction = emailMessage.Incoming ? '受信' : '送信';
     // 送受信区分に対応するLightningアイコンを選択
     const directionIconName = emailMessage.Incoming ? 'utility:email_open' : 'utility:sender_email';
-    // 差出人未設定時もリンクラベルを空にしない
-    const fromAddress = emailMessage.FromAddress || '(差出人なし)';
+    // 空白のみのアドレスも未設定として判定
+    const rawFromAddress = emailMessage.FromAddress?.trim() || '';
+    // 宛先の実値を表示ラベルから分離
+    const rawToAddress = emailMessage.ToAddress?.trim() || '';
+    // 差出人未設定時はリンクを持たない代替ラベルを表示
+    const fromAddress = rawFromAddress || '(差出人なし)';
     // 宛先未設定時も表示内容を空にしない
-    const toAddress = emailMessage.ToAddress || '(宛先なし)';
+    const toAddress = rawToAddress || '(宛先なし)';
 
     // 表示、リンク、アクセシビリティ用の値をまとめて返却
     return {
@@ -38,7 +42,7 @@ export function createDisplayRow(emailMessage) {
         // 整形済み差出人を表示
         fromAddress,
         // 差出人を宛先にしたメールリンクを生成
-        fromAddressUrl: `mailto:${encodeURIComponent(fromAddress)}`,
+        fromAddressUrl: rawFromAddress ? `mailto:${encodeURIComponent(rawFromAddress)}` : '',
         // メッセージ見出しのaria参照IDを生成
         headingId: `email-message-${emailMessage.Id}`,
         // Salesforceの送受信日時を保持
@@ -54,7 +58,7 @@ export function createDisplayRow(emailMessage) {
         // 整形済み宛先を表示
         toAddress,
         // 宛先を宛先にしたメールリンクを生成
-        toAddressUrl: `mailto:${encodeURIComponent(toAddress)}`
+        toAddressUrl: rawToAddress ? `mailto:${encodeURIComponent(rawToAddress)}` : ''
     };
 }
 

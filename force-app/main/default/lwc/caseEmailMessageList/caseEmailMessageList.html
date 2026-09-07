@@ -148,17 +148,19 @@
                                             class="slds-truncate slds-text-body_small slds-text-color_weak"
                                             title={emailMessage.summary}
                                         >
-                                            <a href={emailMessage.fromAddressUrl}>
+                                            <a lwc:if={emailMessage.fromAddressUrl} href={emailMessage.fromAddressUrl}>
                                                 {emailMessage.fromAddress}
                                             </a>
+                                            <span lwc:else>{emailMessage.fromAddress}</span>
                                             <span
                                                 class="slds-m-horizontal_xx-small"
                                             >
                                                 から
                                             </span>
-                                            <a href={emailMessage.toAddressUrl}>
+                                            <a lwc:if={emailMessage.toAddressUrl} href={emailMessage.toAddressUrl}>
                                                 {emailMessage.toAddress}
                                             </a>
+                                            <span lwc:else>{emailMessage.toAddress}</span>
                                             <span class="slds-m-left_xx-small">
                                                 への{emailMessage.direction}メール
                                             </span>

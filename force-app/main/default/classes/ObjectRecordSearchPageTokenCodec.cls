@@ -13,22 +13,19 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
     /**
      * 現在ページ末尾の行から次ページ取得用 token を作成
      *
-     * @param rows 現在ページの表示行
+     * @param lastRecord 現在ページ末尾の元レコード
      * @param sortSpec ソート条件
      * @return 次ページ取得用 token
      */
-    public static String createNextPageToken(List<ObjectRecordSearchRowWrapper> rows, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
-        // 行またはソート条件がない場合は次ページなしとして扱う
-        Boolean hasRows = rows != null && !rows.isEmpty();
-        if (!hasRows || sortSpec == null) {
+    public static String createNextPageToken(SObject lastRecord, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
+        // 境界レコードまたはソート条件がない場合は次ページなしとして扱う
+        if (lastRecord == null || sortSpec == null) {
             return '';
         }
-        // 現在ページ末尾の行を次ページ取得境界にする
-        Integer lastRowIndex = rows.size() - 1;
-        ObjectRecordSearchRowWrapper lastRow = rows[lastRowIndex];
-        String recordIdValue = String.valueOf(lastRow.id);
-        String rowSortValue = getRowSortValue(lastRow, sortSpec);
-        Map<String, String> tokenParts = new Map<String, String>{
+        // 表示ラベルを経由せず元の型とnullをJSONへ保持
+        String recordIdValue = String.valueOf(lastRecord.get('Id'));
+        Object rowSortValue = lastRecord.get(sortSpec.fieldApiName);
+        Map<String, Object> tokenParts = new Map<String, Object>{
             'objectApiName' => sortSpec.objectApiName,
             'fieldApiName' => sortSpec.fieldApiName,
             'sortDirection' => sortSpec.direction,
@@ -134,15 +131,6 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
         return cursor;
     }
 
-    private static String getRowSortValue(ObjectRecordSearchRowWrapper row, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
-        if (sortSpec.fieldApiName == sortSpec.nameFieldApiName) {
-            return row.name;
-        }
-        // 表示項目でソートしている場合は行の fieldValues から境界値を取る
-        String sortValue = row.fieldValues.get(sortSpec.fieldApiName);
-        return sortValue;
-    }
-
     private static Object parseCursorSortValue(Object rawValue, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         if (rawValue == null) {
             return null;
@@ -154,7 +142,8 @@ public with sharing class ObjectRecordSearchPageTokenCodec {
             return Date.valueOf(stringValue);
         }
         if (displayType == Schema.DisplayType.DATETIME) {
-            return Datetime.valueOf(stringValue);
+            // ISO 8601のUTC日時をミリ秒とタイムゾーンを維持して復元
+            return JSON.deserialize(JSON.serialize(stringValue), Datetime.class);
         }
         Boolean isNumericDisplayType = NUMERIC_DISPLAY_TYPES.contains(displayType);
         if (isNumericDisplayType) {

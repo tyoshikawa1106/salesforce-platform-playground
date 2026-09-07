@@ -17,7 +17,7 @@ public with sharing class ObjectRecordSearchRowWrapper {
 
     // 固定表示項目の値
     @AuraEnabled
-    public Map<String, String> fieldValues { get; private set; }
+    public Map<String, Object> fieldValues { get; private set; }
 
     /**
      * 検索結果 SObject から一覧行を作成
@@ -39,30 +39,23 @@ public with sharing class ObjectRecordSearchRowWrapper {
             '/' +
             String.valueOf(this.id) +
             '/view';
-        // 固定表示項目の値を datatable で扱える文字列に変換
+        // Boolean・数値・日付・日時・nullを元の型のまま返却
         this.fieldValues = createFieldValues(
             record,
             displayFields ?? new List<ObjectRecordSearchFieldWrapper>()
         );
     }
 
-    private Map<String, String> createFieldValues(SObject record, List<ObjectRecordSearchFieldWrapper> displayFields) {
+    private Map<String, Object> createFieldValues(SObject record, List<ObjectRecordSearchFieldWrapper> displayFields) {
         // 項目 API 参照名をキーにして追加列の表示値を保持
-        Map<String, String> valuesByField = new Map<String, String>();
+        Map<String, Object> valuesByField = new Map<String, Object>();
         for (ObjectRecordSearchFieldWrapper displayField : displayFields) {
             Object fieldValue = record.get(displayField.apiName);
             valuesByField.put(
                 displayField.apiName,
-                formatValue(fieldValue)
+                fieldValue
             );
         }
         return valuesByField;
-    }
-
-    private String formatValue(Object value) {
-        if (value == null) {
-            return '';
-        }
-        return String.valueOf(value);
     }
 }

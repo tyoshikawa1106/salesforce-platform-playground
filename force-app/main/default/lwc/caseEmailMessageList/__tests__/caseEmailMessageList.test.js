@@ -112,6 +112,14 @@ async function emitCountAndPage(count, page) {
 }
 
 describe('c-case-email-message-list', () => {
+    it('アドレスがないメールはリンクなしの代替ラベルを描画する', async () => {
+        const element = createComponent();
+        await emitCountAndPage(1, { emailMessages: [{ ...emailMessages[0], FromAddress: null, ToAddress: '  ' }], hasNextPage: false, nextIndex: 1 });
+        expect(element.shadowRoot.querySelectorAll('a[href^="mailto:"]')).toHaveLength(0);
+        expect(element.shadowRoot.textContent).toContain('(差出人なし)');
+        expect(element.shadowRoot.textContent).toContain('(宛先なし)');
+    });
+
     it('loads the new case when navigation changes during refresh', async () => {
         const element = createComponent();
         await emitCountAndPage(100, initialPage);

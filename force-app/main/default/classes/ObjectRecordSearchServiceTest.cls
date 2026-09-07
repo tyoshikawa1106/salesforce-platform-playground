@@ -226,6 +226,11 @@ private with sharing class ObjectRecordSearchServiceTest {
             result.nextPageToken,
             '次ページ状態はカーソルトークンを含む必要あり'
         );
+        // 余分な51件目ではなく表示末尾の50件目を次ページ境界にする
+        ObjectRecordSearchPageTokenCodec.ParseResult boundary = ObjectRecordSearchSortSupport.parsePageToken(result.nextPageToken, sortSpec);
+        Assert.isTrue(boundary.isValid, '結果整形が発行したtokenを復元できる必要あり');
+        Assert.areEqual(records[49].get('Id'), boundary.cursor.recordId, '50件目のIdを境界にする必要あり');
+        Assert.areEqual(records[49].get('Name'), boundary.cursor.sortValue, '50件目の元のソート値を境界にする必要あり');
         Assert.areEqual(
             1,
             result.pageNumber,

@@ -370,6 +370,41 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
     }
 
+    /**
+     * nullが51件ある結果を表示変換とtoken経由で重複なく読み切る
+     */
+    @IsTest
+    static void shouldPageThroughNullValuesWithoutDuplicates() {
+        // 必須名だけを設定し全レコードのIndustryをnullにする
+        List<Account> accounts = new List<Account>();
+        for (Integer index = 0; index < 51; index++) {
+            accounts.add(TestDataFactory.createAccount('Null Paging ' + index, TestDataFactory.SaveMode.DO_NOT_INSERT));
+        }
+        insert accounts;
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+        ObjectRecordSearchService service = new ObjectRecordSearchService();
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest('Null Paging', 'Industry');
+        System.runAs(testUser) {
+            Test.startTest();
+            ObjectRecordSearchResultWrapper firstPage = service.createSearchResult(request, selector.searchRecords(request));
+            Assert.areEqual(50, firstPage.records.size(), '先頭ページは50件だけ表示する必要あり');
+            Assert.isTrue(firstPage.hasNextPage, '51件目があるため次ページを返す必要あり');
+            ObjectRecordSearchPageTokenCodec.ParseResult parsed = ObjectRecordSearchSortSupport.parsePageToken(firstPage.nextPageToken, request.sortSpec);
+            Assert.isTrue(parsed.isValid, '結果整形したnull境界を復元できる必要あり');
+            Assert.isNull(parsed.cursor.sortValue, '空文字へ変換せずnull境界を維持する必要あり');
+            request.cursor = parsed.cursor;
+            ObjectRecordSearchResultWrapper secondPage = service.createSearchResult(request, selector.searchRecords(request));
+            Test.stopTest();
+            Assert.areEqual(1, secondPage.records.size(), '次ページは未表示の1件だけを返す必要あり');
+            Assert.isFalse(secondPage.hasNextPage, '全件表示後は次ページを返さない必要あり');
+            Set<Id> displayedIds = new Set<Id>();
+            for (ObjectRecordSearchRowWrapper row : firstPage.records) {
+                displayedIds.add(row.id);
+            }
+            Assert.isFalse(displayedIds.contains(secondPage.records[0].id), '前ページのレコードを再表示しない必要あり');
+        }
+    }
+
     private static ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(String searchTerm, String sortBy) {
         return createSearchQueryRequest(searchTerm, sortBy, null);
     }

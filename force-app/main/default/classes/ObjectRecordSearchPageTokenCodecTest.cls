@@ -159,7 +159,7 @@ private with sharing class ObjectRecordSearchPageTokenCodecTest {
      */
     @IsTest
     static void shouldParseDatetimeSortValue() {
-        Datetime expectedSortValue = Datetime.valueOf('2026-08-23 12:30:00');
+        Datetime expectedSortValue = Datetime.valueOfGmt('2026-08-23 12:30:00');
         ObjectRecordSearchPageTokenCodec.ParseResult result;
 
         System.runAs(testUser) {
@@ -167,7 +167,7 @@ private with sharing class ObjectRecordSearchPageTokenCodecTest {
 
             result = parseToken(
                 'CreatedDate',
-                String.valueOf(expectedSortValue)
+                expectedSortValue
             );
 
             Test.stopTest();
@@ -221,6 +221,146 @@ private with sharing class ObjectRecordSearchPageTokenCodecTest {
 
         Assert.isTrue(result.isValid, 'Boolean のソート値を持つ有効なトークンを受け付ける必要あり');
         Assert.areEqual(expectedSortValue, result.cursor.sortValue, 'Boolean のソート値を復元する必要あり');
+    }
+
+    /**
+     * 数値のnullの元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripNullNumberFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = null;
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('AnnualRevenue', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のAnnualRevenue値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * 日付のnullの元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripNullDateFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = null;
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('LastActivityDate', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のLastActivityDate値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * 日時のnullの元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripNullDatetimeFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = null;
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('CreatedDate', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のCreatedDate値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * 名前のnullの元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripNullNameFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = null;
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('Name', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のName値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * falseの元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripFalseFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = false;
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('IsDeleted', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のIsDeleted値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * ゼロの元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripZeroFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = Decimal.valueOf('0');
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('AnnualRevenue', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のAnnualRevenue値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * 日付の元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripDateFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = Date.newInstance(2026, 9, 7);
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('LastActivityDate', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のLastActivityDate値を型とともに復元する必要あり');
+        }
+    }
+
+    /**
+     * 日時の元レコード値を表示とページ境界で保持
+     */
+    @IsTest
+    static void shouldRoundTripDatetimeFromRecord() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Object expectedValue = Datetime.newInstance(1788739200123L);
+            ObjectRecordSearchSortSupport.PageCursor cursor = createRecordRoundTripCursor('CreatedDate', expectedValue);
+            Test.stopTest();
+            Assert.areEqual(expectedValue, cursor.sortValue, '元のCreatedDate値を型とともに復元する必要あり');
+        }
+    }
+
+    private static ObjectRecordSearchSortSupport.PageCursor createRecordRoundTripCursor(String fieldApiName, Object expectedValue) {
+        // 読み取り専用項目も取得済みSObjectと同じ型で用意
+        Map<String, Object> recordValues = new Map<String, Object>{
+            'Id' => getTestAccountId(), 'Name' => 'Cursor Account'
+        };
+        recordValues.put(fieldApiName, expectedValue);
+        Account record = (Account) JSON.deserialize(JSON.serialize(recordValues), Account.class);
+        ObjectRecordSearchRowWrapper row = new ObjectRecordSearchRowWrapper(
+            record, 'Name', new List<ObjectRecordSearchFieldWrapper>{
+                new ObjectRecordSearchFieldWrapper(fieldApiName, fieldApiName, 'text')
+            }
+        );
+        // 表示MapからJSONへ渡る際もfalse・0・null・日時を保持
+        Map<String, Object> actualValues = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(row.fieldValues));
+        Object expectedJsonValue = JSON.deserializeUntyped(JSON.serialize(expectedValue));
+        Assert.areEqual(expectedJsonValue, actualValues.get(fieldApiName), '表示値の型とnullを維持する必要あり');
+        // 同じ元レコードから発行したtokenを次のリクエストとして復元
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = createSortSpec(fieldApiName);
+        String token = ObjectRecordSearchSortSupport.createNextPageToken(record, sortSpec);
+        ObjectRecordSearchPageTokenCodec.ParseResult parsed = ObjectRecordSearchSortSupport.parsePageToken(token, sortSpec);
+        Assert.isTrue(parsed.isValid, '元レコードから生成したtokenを解析できる必要あり');
+        Assert.areEqual(record.Id, parsed.cursor.recordId, '同値ソート時のId境界を維持する必要あり');
+        if (fieldApiName == 'Name' && expectedValue == null) {
+            Assert.areEqual(String.valueOf(record.Id), row.name, '表示ラベルだけはIdで補う必要あり');
+        }
+        return parsed.cursor;
     }
 
     private static ObjectRecordSearchPageTokenCodec.ParseResult parseToken(String fieldApiName, Object sortValue) {

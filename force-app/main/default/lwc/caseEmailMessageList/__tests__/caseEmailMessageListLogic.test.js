@@ -1,5 +1,6 @@
 import {
     createCardTitle,
+    createDisplayRow,
     createEmptyPaginationState,
     createInitialPageState,
     createNextPageState
@@ -16,6 +17,14 @@ const EMAIL_MESSAGE = {
 };
 
 describe('caseEmailMessageListLogic', () => {
+    it.each([null, undefined, '', '   '])('空アドレス %s は代替表示だけを返す', (address) => {
+        const row = createDisplayRow({ ...EMAIL_MESSAGE, FromAddress: address, ToAddress: address });
+        expect(row.fromAddress).toBe('(差出人なし)');
+        expect(row.toAddress).toBe('(宛先なし)');
+        expect(row.fromAddressUrl).toBe('');
+        expect(row.toAddressUrl).toBe('');
+    });
+
     it('メールを表示行へ変換して初期ページ状態を生成する', () => {
         const state = createInitialPageState(
             {

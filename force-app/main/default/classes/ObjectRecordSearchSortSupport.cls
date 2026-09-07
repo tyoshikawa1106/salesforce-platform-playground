@@ -41,14 +41,14 @@ public with sharing class ObjectRecordSearchSortSupport {
 
     /**
      * 次ページ取得用のカーソルトークンを作成
-     * @param rows 現在ページの表示行
+     * @param lastRecord 現在ページ末尾の元レコード
      * @param sortSpec ソート条件
      * @return 次ページ取得用トークン、行またはソート条件がない場合は空文字列
      */
-    public static String createNextPageToken(List<ObjectRecordSearchRowWrapper> rows, SortSpec sortSpec) {
+    public static String createNextPageToken(SObject lastRecord, SortSpec sortSpec) {
         // 最終行のソート値と Id を次ページ token に変換
         String nextPageToken = ObjectRecordSearchPageTokenCodec.createNextPageToken(
-            rows,
+            lastRecord,
             sortSpec
         );
         return nextPageToken;
