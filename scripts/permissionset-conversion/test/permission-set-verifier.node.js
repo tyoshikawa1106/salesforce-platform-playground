@@ -33,6 +33,49 @@ function createComparisonProject() {
     return { projectRoot, runDirectory, sourceDirectory };
 }
 
+test('XML文字参照の表記差を無視し実際の値変更は検出する', () => {
+    const expected = parsePermissionSetXml(
+        createPermissionSetXml(
+            '<label>Sales &amp; &quot;Support&quot; &apos;Team&apos; &lt;Ops&gt;</label><classAccesses><apexClass>Enabled&#67;ontroller</apexClass><enabled>true</enabled></classAccesses>'
+        ),
+        '生成XML'
+    );
+    const actual = parsePermissionSetXml(
+        createPermissionSetXml(
+            '<label>Sales &#38; "Support" \'Team\' &#x3C;Ops&#62;</label><classAccesses><apexClass>EnabledController</apexClass><enabled>true</enabled></classAccesses>'
+        ),
+        '再取得XML'
+    );
+    assert.deepEqual(comparePermissionSets(expected, actual), []);
+    assert.equal(comparePermissionSets(expected, { ...actual, label: 'Changed' }).length, 1);
+    const literal = parsePermissionSetXml(createPermissionSetXml('<label>&amp;#38;</label>'), '文字列');
+    const decoded = parsePermissionSetXml(createPermissionSetXml('<label>&#38;</label>'), '文字参照');
+    assert.equal(comparePermissionSets(literal, decoded).length, 1);
+});
+
+test('Permission Set比較で内部・外部DOCTYPEを拒否する', () => {
+    for (const declaration of [
+        '<!DOCTYPE PermissionSet [<!ENTITY label "Example">]>',
+        '<!DOCTYPE PermissionSet SYSTEM "https://example.invalid/metadata.dtd">'
+    ]) {
+        assert.throws(
+            () =>
+                parsePermissionSetXml(
+                    createPermissionSetXml('<label>Example</label>').replace(
+                        '<PermissionSet ',
+                        `${declaration}\n<PermissionSet `
+                    ),
+                    '比較XML'
+                ),
+            /DOCTYPE/
+        );
+    }
+    const commentXml = createPermissionSetXml(
+        '<!-- <!DOCTYPE PermissionSet> --><label><![CDATA[<!DOCTYPE example>]]></label>'
+    );
+    assert.equal(parsePermissionSetXml(commentXml, 'コメントXML').label, '<!DOCTYPE example>');
+});
+
 test('保存結果確認の引数を限定する', () => {
     // 必須の生成フォルダだけを解析する。
     assert.deepEqual(parseArguments(['--source-dir', 'outputs/run/permissionsets']), {

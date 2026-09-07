@@ -1,5 +1,5 @@
 // 実行コマンド: node --test scripts/permissionset-conversion/test/profile-converter.node.js
-// 用途: 接続組織を確認し、ローカルProfile XMLだけからPermission Setを生成することとfail closedを検証する。
+// 用途: ローカルProfile XMLの変換、未対応設定のスキップ、不正入力の拒否を検証する。
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -24,7 +24,6 @@ const {
     createTemporaryPermissionSetApiName,
     decodeProfileFileName,
     getExcludedUserLicenseReason,
-    isChatterUserLicense,
     isGuestUserLicense,
     maxUserLicenseApiNameLength,
     normalizeUserLicenseForApiName
@@ -280,6 +279,11 @@ test('有効なProfile権限だけをPermission Set候補へ変換する', () =>
     assert.deepEqual(permissionSet.classAccesses, { apexClass: 'EnabledController', enabled: 'true' });
     assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
     assert.deepEqual(permissionSet.userPermissions, { enabled: 'true', name: 'RunReports' });
+    assert.equal(
+        conversion.report.requiresValidation.some(({ action }) => action === 'confirmSourceCompleteness'),
+        false
+    );
+    assert.doesNotMatch(JSON.stringify(conversion.report), /入力Profile XMLの権限網羅性/);
     assertProfilePermissionEquivalence({ conversion, profileXml: fs.readFileSync(fixtureProfilePath, 'utf8') });
 });
 
@@ -305,6 +309,11 @@ test('Assigned Appsを許可しないUser LicenseではアプリアクセスをP
             conversion.report.requiresValidation.some(
                 ({ name, reason }) => name === userLicense && reason === 'userLicenseDoesNotAllowAssignedApps'
             ),
+            userLicense
+        );
+        assert.equal(
+            conversion.report.requiresValidation.find(({ action }) => action === 'confirmProfileRetention').message,
+            'このライセンスでは、権限セットの「割り当てアプリケーション」が許可されないため、アプリへのアクセス設定をXMLに含めていません。',
             userLicense
         );
     }
@@ -375,10 +384,10 @@ test('Assigned Appsの移行対象がない未確認User Licenseではほかの�
     );
 });
 
-test('Force.com App Subscriptionの表示アプリケーション上限を超えた場合はfail closedにする', () => {
+test('Force.com App Subscriptionでは標準アプリとカスタムアプリを合算して拒否しない', () => {
     const secondVisibleApplication = [
         '    <applicationVisibilities>',
-        '        <application>Second_Test_App</application>',
+        '        <application>standard__Platform</application>',
         '        <default>false</default>',
         '        <visible>true</visible>',
         '    </applicationVisibilities>',
@@ -394,16 +403,71 @@ test('Force.com App Subscriptionの表示アプリケーション上限を超え
     const conversion = convertFixture(profileXml);
     const permissionSet = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
 
-    assert.equal(conversion.canWrite, false);
-    assert.equal(permissionSet.applicationVisibilities, undefined);
-    assert.ok(
-        conversion.report.unsupportedUnknown.some(
-            ({ maximumApplications, reason, visibleApplicationCount }) =>
-                maximumApplications === 1 &&
-                reason === 'userLicenseAssignedAppsLimitExceeded' &&
-                visibleApplicationCount === 2
-        )
+    assert.equal(conversion.canWrite, true);
+    assert.deepEqual(
+        toArray(permissionSet.applicationVisibilities)
+            .map(({ application }) => application)
+            .sort(),
+        ['Test_App', 'standard__Platform']
     );
+    assert.equal(conversion.report.unsupportedUnknown.length, 0);
+    assert.equal(
+        conversion.report.requiresValidation.some(({ action }) => action === 'confirmAssignedAppsLimits'),
+        false
+    );
+});
+
+test('XMLの文字参照を復号してから権限名とライセンスを生成する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const profileXml = baseXml
+        .replace('EnabledController', 'Enabled&#67;ontroller')
+        .replace('Example__c.Editable__c', 'Example__c.&#x45;ditable__c')
+        .replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            '<userLicense>Salesforce &#80;latform</userLicense>'
+        );
+    const conversion = convertFixture(profileXml);
+    assert.equal(conversion.canWrite, true);
+    assert.equal(conversion.permissionSetXml, convertFixture(baseXml).permissionSetXml);
+    assert.ok(conversion.report.converted.some(({ name }) => name === 'EnabledController'));
+    assert.equal(conversion.report.source.userLicense, 'Salesforce Platform');
+});
+
+test('文字参照で表記した重複権限も復号後に拒否する', () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('DisabledController', 'Enabled&#67;ontroller');
+    assert.throws(() => convertFixture(profileXml), /重複した設定.*EnabledController/);
+});
+
+test('DOCTYPEはProfileと関連CustomFieldの両方で解析前に拒否する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    for (const declaration of [
+        '<!DOCTYPE Profile [<!ENTITY license "Salesforce Platform">]>',
+        '<!DOCTYPE Profile SYSTEM "https://example.invalid/metadata.dtd">'
+    ]) {
+        assert.throws(() => convertFixture(baseXml.replace('<Profile ', `${declaration}\n<Profile `)), /DOCTYPE/);
+    }
+    assert.throws(
+        () =>
+            convertFixture(baseXml, {
+                existsSync: () => true,
+                readFileSync: () =>
+                    '<!DOCTYPE CustomField [<!ENTITY fieldType "Text">]><CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><type>&fieldType;</type></CustomField>'
+            }),
+        /DOCTYPE/
+    );
+});
+
+test('コメントやCDATA内のDOCTYPE文字列を宣言と誤認せず通常の文字参照を一度だけ復号する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const profileXml = baseXml
+        .replace('<Profile ', '<!-- <!DOCTYPE Profile> -->\n<Profile ')
+        .replace('変換テスト用Profile', '<![CDATA[<!DOCTYPE Profile>]]>');
+    assert.equal(convertFixture(profileXml).permissionSetXml, convertFixture(baseXml).permissionSetXml);
+    const literalReferenceXml = baseXml.replace('EnabledController', 'Enabled&amp;#67;ontroller');
+    const permissionSet = xmlParser.parse(convertFixture(literalReferenceXml).permissionSetXml).PermissionSet;
+    assert.equal(permissionSet.classAccesses.apexClass, 'Enabled&#67;ontroller');
 });
 
 test('Metadata API 67.0のProfile直下要素をすべて明示的に扱う', () => {
@@ -528,7 +592,7 @@ test('fieldPermissionsの項目API名からobjectsディレクトリ外を参照
     }
 });
 
-test('関連CustomField metadataがない項目を候補へ残して手動validate対象にする', () => {
+test('項目定義ファイルがなくても参照・編集権限を維持し、不足通知を記録しない', () => {
     // 1項目のローカルmetadataだけが存在しない状態を再現する。
     const conversion = convertFixture(undefined, {
         existsSync(metadataPath) {
@@ -538,15 +602,22 @@ test('関連CustomField metadataがない項目を候補へ残して手動valida
     const fields = toArray(xmlParser.parse(conversion.permissionSetXml).PermissionSet.fieldPermissions);
 
     assert.equal(conversion.canWrite, true);
-    assert.equal(
-        fields.some(({ field }) => field === 'Example__c.Missing__c'),
-        true
+    assert.deepEqual(
+        fields.find(({ field }) => field === 'Example__c.Missing__c'),
+        {
+            editable: 'true',
+            field: 'Example__c.Missing__c',
+            readable: 'true'
+        }
     );
-    assert.ok(
-        conversion.report.requiresValidation.some(
-            ({ action, name }) => action === 'preservedForValidation' && name === 'Example__c.Missing__c'
-        )
-    );
+    assert.equal(conversion.permissionSetXml, convertFixture().permissionSetXml);
+    assert.ok(conversion.report.converted.some(({ name }) => name === 'Example__c.Missing__c'));
+    for (const category of ['requiresValidation', 'skippedDisabled', 'skippedUnsupported', 'unsupportedUnknown']) {
+        assert.equal(
+            conversion.report[category].some(({ name }) => name === 'Example__c.Missing__c'),
+            false
+        );
+    }
 });
 
 test('fieldPermissionsで省略されたreadableをfalseとして扱う', () => {
@@ -877,15 +948,15 @@ test('Profile固有設定と無効権限を監査レポートへ分類する', (
     assert.equal(report.unsupportedUnknown.length, 0);
 });
 
-test('User License名から有効な権限を推測で除外しない', () => {
+test('Chatter限定の制約を通常ライセンスへ適用しない', () => {
     // User Licenseとユーザー権限名を変更し、Profile XMLの付与内容が維持されることを確認する。
     const profileXml = fs
         .readFileSync(fixtureProfilePath, 'utf8')
-        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Chatter Free</userLicense>')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Salesforce</userLicense>')
         .replace('<name>RunReports</name>', '<name>AssignTopics</name>');
     const permissionSet = xmlParser.parse(convertFixture(profileXml).permissionSetXml).PermissionSet;
 
-    assert.equal(permissionSet.license, 'Chatter Free');
+    assert.equal(permissionSet.license, 'Salesforce');
     assert.equal(
         toArray(permissionSet.userPermissions).some(({ name }) => name === 'AssignTopics'),
         true
@@ -893,6 +964,110 @@ test('User License名から有効な権限を推測で除外しない', () => {
     assert.equal(toArray(permissionSet.tabSettings).length, 2);
     assert.equal(toArray(permissionSet.fieldPermissions).length, 3);
     assert.deepEqual(permissionSet.pageAccesses, { apexPage: 'EnabledPage', enabled: 'true' });
+});
+
+test('Chatterは制約対象だけを省略し、その他の権限と依存ペアを維持する', () => {
+    const names = [
+        'AssignTopics',
+        'CreateTopics',
+        'EditTopics',
+        'AddDirectMessageMembers',
+        'RemoveDirectMessageMembers',
+        'FuturePermission'
+    ];
+    const baseXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '</Profile>',
+            `${names.map((name) => `<userPermissions><enabled>true</enabled><name>${name}</name></userPermissions>`).join('')}</Profile>`
+        );
+    const baseline = xmlParser.parse(convertFixture(baseXml).permissionSetXml).PermissionSet;
+    for (const license of ['Chatter Free', 'Chatter External']) {
+        const profileXml = baseXml.replace(
+            '<userLicense>Salesforce Platform</userLicense>',
+            `<userLicense>${license}</userLicense>`
+        );
+        const conversion = convertFixture(profileXml);
+        const actual = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+        const expected = { ...baseline, license };
+        delete expected.applicationVisibilities;
+        delete expected.fieldPermissions;
+        delete expected.tabSettings;
+        expected.userPermissions = expected.userPermissions.filter(
+            ({ name }) => !['AssignTopics', 'CreateTopics', 'EditTopics'].includes(name)
+        );
+        assert.equal(conversion.canWrite, true);
+        assert.deepEqual(actual, expected);
+        assert.equal(conversion.report.summary.skippedUnsupported, 11);
+        const profile = xmlParser.parse(profileXml).Profile;
+        for (const skipped of conversion.report.skippedUnsupported) {
+            assert.equal(skipped.reason, 'userLicenseDoesNotAllowPermission');
+            assert.equal(skipped.userLicense, license);
+            assert.ok(
+                toArray(profile[skipped.sourceElement]).some(
+                    (entry) => JSON.stringify(entry) === JSON.stringify(skipped.value)
+                )
+            );
+            assert.equal(
+                conversion.report.converted.some(
+                    ({ sourceElement, name }) => sourceElement === skipped.sourceElement && name === skipped.name
+                ),
+                false
+            );
+        }
+    }
+});
+
+test('Chatterの無効な設定はライセンス制約ではなく無効設定として分類する', () => {
+    const xml =
+        '<Profile xmlns="http://soap.sforce.com/2006/04/metadata"><userLicense>Chatter Free</userLicense><applicationVisibilities><application>Hidden_App</application><default>false</default><visible>false</visible></applicationVisibilities><fieldPermissions><field>Example__c.Hidden__c</field><editable>false</editable><readable>false</readable></fieldPermissions><tabVisibilities><tab>Hidden__c</tab><visibility>Hidden</visibility></tabVisibilities><userPermissions><name>AssignTopics</name><enabled>false</enabled></userPermissions></Profile>';
+    const conversion = convertFixture(xml);
+    assert.equal(conversion.canWrite, true);
+    assert.equal(conversion.report.summary.skippedDisabled, 4);
+    assert.equal(conversion.report.summary.skippedUnsupported, 0);
+});
+
+test('Chatterでも矛盾・不正値・重複をライセンススキップで隠さない', () => {
+    const baseXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('<userLicense>Salesforce Platform</userLicense>', '<userLicense>Chatter External</userLicense>');
+    const contradiction = convertFixture(baseXml.replace('<readable>true</readable>', '<readable>false</readable>'));
+    assert.equal(contradiction.canWrite, false);
+    assert.ok(contradiction.report.unsupportedUnknown.some(({ name }) => name === 'Example__c.Editable__c'));
+    assert.throws(
+        () => convertFixture(baseXml.replace('<editable>true</editable>', '<editable>invalid</editable>')),
+        /trueまたはfalse/
+    );
+    assert.throws(
+        () =>
+            convertFixture(
+                baseXml.replace(
+                    '</Profile>',
+                    '<userPermissions><enabled>true</enabled><name>RunReports</name></userPermissions></Profile>'
+                )
+            ),
+        /重複/
+    );
+    const invalidTab = convertFixture(baseXml.replace('<visibility>DefaultOn</visibility>', '<visibility/>'));
+    assert.equal(invalidTab.canWrite, false);
+});
+
+test('Chatter OnlyとChatter PlusへFree・Externalの権限制約を拡大しない', () => {
+    for (const license of ['Chatter Only', 'Chatter Plus']) {
+        // Assigned Appsの別方針と混同せず、今回のFLS・タブ・システム権限制約だけを検証する。
+        const xml = fs
+            .readFileSync(fixtureProfilePath, 'utf8')
+            .replace('<userLicense>Salesforce Platform</userLicense>', `<userLicense>${license}</userLicense>`)
+            .replace(/<applicationVisibilities>[\s\S]*?<\/applicationVisibilities>/gu, '')
+            .replace('<name>RunReports</name>', '<name>AssignTopics</name>');
+        const conversion = convertFixture(xml);
+        const actual = xmlParser.parse(conversion.permissionSetXml).PermissionSet;
+        assert.equal(conversion.canWrite, true);
+        assert.equal(conversion.report.summary.skippedUnsupported, 0);
+        assert.equal(toArray(actual.fieldPermissions).length, 3);
+        assert.equal(toArray(actual.tabSettings).length, 2);
+        assert.equal(actual.userPermissions.name, 'AssignTopics');
+    }
 });
 
 test('ApiUserOnlyが有効なProfileではVisualforceページアクセスをProfileへ残す', () => {
@@ -983,7 +1158,7 @@ test('ApiUserOnlyが無効なProfileではVisualforceページアクセスを維
     );
 });
 
-test('未知のProfile要素と対応済み要素内の未知の子要素をfail closedにする', () => {
+test('未対応のProfile要素と子要素だけをスキップし、既知の権限は同じXMLへ変換する', () => {
     // 未知の直下要素と未知の子要素をそれぞれ追加する。
     const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
     const unknownElement = convertFixture(
@@ -999,10 +1174,83 @@ test('未知のProfile要素と対応済み要素内の未知の子要素をfail
         )
     );
 
-    assert.equal(unknownElement.canWrite, false);
-    assert.equal(unknownElement.report.unsupportedUnknown[0].sourceElement, 'futurePermission');
-    assert.equal(unknownChild.canWrite, false);
-    assert.equal(unknownChild.report.unsupportedUnknown[0].childElement, 'futureDefault');
+    const baseline = convertFixture(baseXml);
+    for (const conversion of [unknownElement, unknownChild]) {
+        assert.equal(conversion.canWrite, true);
+        assert.equal(conversion.permissionSetXml, baseline.permissionSetXml);
+        assert.equal(conversion.report.summary.skippedUnsupported, 1);
+        assert.equal(conversion.report.summary.unsupportedUnknown, 0);
+    }
+    assert.equal(unknownElement.report.skippedUnsupported[0].sourceElement, 'futurePermission');
+    assert.deepEqual(unknownElement.report.skippedUnsupported[0].value, { enabled: 'true' });
+    assert.equal(unknownChild.report.skippedUnsupported[0].childElement, 'futureDefault');
+    assert.equal(unknownChild.report.skippedUnsupported[0].value, 'true');
+});
+
+test('各権限分類の未対応子要素を省略しても、既知の設定値やカスタム項目権限を維持する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const baseline = convertFixture(baseXml);
+    for (const section of [
+        'applicationVisibilities',
+        'classAccesses',
+        'fieldPermissions',
+        'objectPermissions',
+        'pageAccesses',
+        'recordTypeVisibilities',
+        'tabVisibilities',
+        'userPermissions'
+    ]) {
+        assert.ok(baseXml.includes(`<${section}>`), section);
+        const conversion = convertFixture(
+            baseXml.replace(
+                `<${section}>`,
+                `<${section}><futureSetting><customName>Arbitrary__c</customName></futureSetting>`
+            )
+        );
+        assert.equal(conversion.canWrite, true, section);
+        assert.equal(conversion.permissionSetXml, baseline.permissionSetXml, section);
+        assert.equal(conversion.report.skippedUnsupported.length, 1, section);
+        assert.equal(conversion.report.skippedUnsupported[0].sourceElement, section);
+        assert.deepEqual(conversion.report.skippedUnsupported[0].value, { customName: 'Arbitrary__c' });
+    }
+});
+
+test('未対応のタブ表示状態だけをスキップし、状態の欠落や不正な型はエラーにする', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const conversion = convertFixture(
+        baseXml.replace(
+            '</Profile>',
+            '<tabVisibilities><tab>Future__c</tab><visibility>FutureState</visibility></tabVisibilities></Profile>'
+        )
+    );
+    assert.equal(conversion.canWrite, true);
+    assert.equal(conversion.permissionSetXml, convertFixture(baseXml).permissionSetXml);
+    assert.equal(conversion.report.skippedUnsupported[0].name, 'Future__c');
+    assert.equal(conversion.report.skippedUnsupported[0].value, 'FutureState');
+    for (const visibility of ['', '<visibility/>', '<visibility><nested>true</nested></visibility>']) {
+        const invalid = convertFixture(
+            baseXml.replace(
+                '</Profile>',
+                `<tabVisibilities><tab>Future__c</tab>${visibility}</tabVisibilities></Profile>`
+            )
+        );
+        assert.equal(invalid.canWrite, false);
+        assert.equal(invalid.report.summary.unsupportedUnknown, 1);
+    }
+});
+
+test('スキップ対象と矛盾した項目権限が同居しても、矛盾による生成停止を維持する', () => {
+    const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
+    const conversion = convertFixture(
+        baseXml.replace(
+            '</Profile>',
+            '<futurePermission>true</futurePermission><fieldPermissions><editable>true</editable><field>Example__c.Invalid__c</field><readable>false</readable></fieldPermissions></Profile>'
+        )
+    );
+    assert.equal(conversion.canWrite, false);
+    assert.equal(conversion.report.summary.skippedUnsupported, 1);
+    assert.equal(conversion.report.summary.unsupportedUnknown, 1);
+    assert.match(conversion.report.unsupportedUnknown[0].message, /editable=trueかつreadable=false/);
 });
 
 test('不正XML、重複権限、API名とラベルの長さ違反を拒否する', () => {
@@ -1056,7 +1304,7 @@ test('追加されたProfile権限を固定件数に依存せず内容比較す�
 
     // 権限数を固定せず、追加した権限を含む入力全体との意味的一致を確認する。
     assert.equal(conversion.canWrite, true);
-    assert.equal(conversion.report.schemaVersion, 2);
+    assert.equal(conversion.report.schemaVersion, 3);
     assert.equal('profileId' in conversion.report.source, false);
     assert.equal(
         toArray(permissionSet.classAccesses).some(({ apexClass }) => apexClass === 'AdditionalController'),
@@ -1161,15 +1409,8 @@ test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラ�
     assert.equal(isGuestUserLicense('Guest User License'), true);
     assert.equal(isGuestUserLicense('GuestUserLicence'), true);
     assert.equal(isGuestUserLicense('Field Service Guest User'), false);
-    // Chatter ExternalとChatter Freeを表記差にかかわらず移行対象外として判定する。
-    assert.equal(isChatterUserLicense('Chatter External'), true);
-    assert.equal(isChatterUserLicense('Chatter_Free'), true);
-    assert.equal(isChatterUserLicense('Chatter Only'), false);
-    // User Licenseごとに利用者へ表示する対象外理由を確定する。
-    assert.equal(
-        getExcludedUserLicenseReason('Chatter Free'),
-        'Chatter系User Licenseは汎用Permission Setへの移行対象外です。'
-    );
+    // ChatterはProfile全体ではなく、変換時に制約対象の権限だけを省略する。
+    assert.equal(getExcludedUserLicenseReason('Chatter Free'), undefined);
     assert.equal(getExcludedUserLicenseReason('Salesforce Platform'), undefined);
     // Profile metadata fullNameへ実行識別子と連番を加えて表示ラベルも一意にする。
     assert.equal(
@@ -1196,6 +1437,30 @@ test('Profileファイル名とUser Licenseからmetadata名、仮API名、ラ�
     });
     assert.equal(longLabel.length, 80);
     assert.equal(longLabel.endsWith(' 20260902-051922-123-0001 9999'), true);
+});
+
+test('Profile全体除外を特定ライセンスだけへ限定し理由を簡潔に明示する', () => {
+    for (const license of ['Guest User License', 'GuestUserLicence']) {
+        const reason = getExcludedUserLicenseReason(license);
+        assert.match(reason, /対象外です。$/);
+        assert.doesNotMatch(reason, /未検証|確認できない|維持してください/);
+    }
+
+    // 名前の一部が似ていても、別製品や別ライセンスを一律除外しない。
+    for (const license of [
+        'Chatter Free',
+        'Chatter External',
+        'Chatter Only',
+        'Chatter Plus',
+        'Field Service Guest User',
+        'Field Service Guest User License',
+        'Salesforce',
+        'Salesforce Platform',
+        'Salesforce Integration',
+        'Customer Community'
+    ]) {
+        assert.equal(getExcludedUserLicenseReason(license), undefined, license);
+    }
 });
 
 test('CLI引数とProfileパス設定を限定する', () => {
@@ -1410,7 +1675,7 @@ test('CLIはDefault Target Orgを確認してローカルmetadataとレポート
         ]);
         assert.equal(prompt.isClosed(), true);
         assert.equal(fs.existsSync(xmlPath), true);
-        assert.equal(report.schemaVersion, 2);
+        assert.equal(report.schemaVersion, 3);
         assert.equal(report.permissionSet.apiName, fixedPlatformTemporaryApiName);
         assert.equal(report.permissionSet.label, fixedPlatformTemporaryLabel);
         assert.equal('profileId' in report.source, false);
@@ -1525,14 +1790,14 @@ test('Guest User LicenseのProfileを除外し、生成対象だけへ連番を�
             `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`
         ]);
         assert.ok(lines.includes('・Profile Metadata Name: Guest_Test'));
-        assert.ok(lines.includes('・理由: Guest User Licenseは汎用Permission Setへの移行対象外です。'));
+        assert.ok(lines.includes('・理由: Guest User Licenseは本スクリプトの変換対象外です。'));
         assert.ok(lines.includes('Permission Set metadata生成結果: 生成1件、対象外1件、要修正0件'));
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
 });
 
-test('Chatter系User LicenseのProfileを除外し、通常Profileだけを生成する', async () => {
+test('CLIでChatterも生成し、ライセンスによるスキップをレポートへ保存する', async () => {
     // Chatter External、Chatter Free、通常Profileを同じ実行へ設定する。
     const chatterExternalPath = 'force-app/main/default/profiles/Chatter_External.profile-meta.xml';
     const chatterFreePath = 'force-app/main/default/profiles/Chatter_Free.profile-meta.xml';
@@ -1573,17 +1838,38 @@ test('Chatter系User LicenseのProfileを除外し、通常Profileだけを生�
             'permissionsets'
         );
 
-        // Chatter系Profileを生成せず、通常Profileを0001から生成する。
+        // 通常の入口でChatterを含む全件を生成し、後加工なしのXMLとレポートを確認する。
         assert.equal(status, 0);
         assert.deepEqual(fs.readdirSync(permissionsetsDirectory), [
-            `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`
+            'ProfileConversion_ChatterExternal_20260902_051922_123_0001.permissionset-meta.xml',
+            'ProfileConversion_ChatterFree_20260902_051922_123_0002.permissionset-meta.xml',
+            'ProfileConversion_SalesforcePlatform_20260902_051922_123_0003.permissionset-meta.xml'
         ]);
-        assert.equal(
-            lines.filter((line) => line === '・理由: Chatter系User Licenseは汎用Permission Setへの移行対象外です。')
-                .length,
-            2
-        );
-        assert.ok(lines.includes('Permission Set metadata生成結果: 生成1件、対象外2件、要修正0件'));
+        for (const file of fs.readdirSync(permissionsetsDirectory).slice(0, 2)) {
+            const permissionSet = xmlParser.parse(
+                fs.readFileSync(path.join(permissionsetsDirectory, file), 'utf8')
+            ).PermissionSet;
+            const report = JSON.parse(
+                fs.readFileSync(
+                    path.join(
+                        permissionsetsDirectory,
+                        '../reports',
+                        file.replace('.permissionset-meta.xml', '.conversion-report.json')
+                    ),
+                    'utf8'
+                )
+            );
+            assert.equal(permissionSet.applicationVisibilities, undefined);
+            assert.equal(permissionSet.fieldPermissions, undefined);
+            assert.equal(permissionSet.tabSettings, undefined);
+            assert.deepEqual(permissionSet.userPermissions, { enabled: 'true', name: 'RunReports' });
+            assert.equal(report.summary.skippedUnsupported, 8);
+            assert.equal(report.summary.unsupportedUnknown, 0);
+            assert.equal(report.source.userLicense, permissionSet.license);
+        }
+        assert.equal(lines.filter((line) => line === '・結果: 生成成功・スキップあり。').length, 2);
+        assert.ok(lines.includes('Permission Set metadata生成結果: 生成3件、対象外0件、要修正0件'));
+        assert.equal(orgCommand.calls.length, 2);
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
@@ -1705,7 +1991,7 @@ test('本番環境の追加確認を承認しない場合はPermission Setを生
     }
 });
 
-test('CLIは未知要素があるProfileのXMLを作らず監査レポートだけを保存する', async () => {
+test('CLIは未対応要素をスキップしてXMLとレポートを保存し、後続コマンドを表示する', async () => {
     // 未知要素を追加したローカルProfileを一時プロジェクトへ配置する。
     const profileXml = fs
         .readFileSync(fixtureProfilePath, 'utf8')
@@ -1717,6 +2003,7 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
     });
     const orgCommand = createOrgCommand();
     const prompt = createPrompt(['y']);
+    const lines = [];
 
     try {
         const status = await main({
@@ -1725,7 +2012,9 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
             now: () => fixedRunAt,
             projectRoot: project.projectRoot,
             runSfWithOutputCommand: orgCommand.command,
-            writeLine() {}
+            writeLine(line) {
+                lines.push(line);
+            }
         });
         const outputDirectory = path.join(
             project.projectRoot,
@@ -1736,9 +2025,120 @@ test('CLIは未知要素があるProfileのXMLを作らず監査レポートだ�
         const xmlPath = path.join(outputDirectory, `permissionsets/${temporaryApiName}.permissionset-meta.xml`);
         const reportPath = path.join(outputDirectory, `reports/${temporaryApiName}.conversion-report.json`);
 
+        assert.equal(status, 0);
+        assert.equal(fs.existsSync(xmlPath), true);
+        const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+        assert.equal(report.summary.skippedUnsupported, 1);
+        assert.equal(report.summary.unsupportedUnknown, 0);
+        assert.equal(report.skippedUnsupported[0].sourceElement, 'futurePermission');
+        assert.doesNotMatch(fs.readFileSync(xmlPath, 'utf8'), /futurePermission/);
+        assert.ok(lines.includes('・結果: 生成成功・スキップあり。'));
+        assert.ok(lines.includes('Permission Setのdry-runコマンド:'));
+        const verificationHeadingIndex = lines.indexOf('デプロイ後の保存結果確認コマンド:');
+        assert.ok(verificationHeadingIndex >= 0);
+        assert.notEqual(lines[verificationHeadingIndex + 1], '');
+        assert.equal(lines[verificationHeadingIndex + 2], '');
+        assert.equal(
+            lines[verificationHeadingIndex + 3],
+            '※各コマンドはSalesforce CLIのDefault Target Orgを対象にします。'
+        );
+        assert.deepEqual(
+            orgCommand.calls.map((args) => args.slice(0, 2)),
+            [
+                ['config', 'get'],
+                ['org', 'list']
+            ]
+        );
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('CLIのdry-runはスキップがあっても正常終了し、ファイルや後続コマンドを生成しない', async () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace('</Profile>', '<futurePermission>true</futurePermission></Profile>');
+    const project = createTestProject({
+        configLines: ['force-app/main/default/profiles/Unknown.profile-meta.xml'],
+        fileName: 'Unknown.profile-meta.xml',
+        profileXml
+    });
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
+    const lines = [];
+    try {
+        const status = await main({
+            argv: ['--dry-run', '--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            now: () => fixedRunAt,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine(line) {
+                lines.push(line);
+            }
+        });
+        assert.equal(status, 0);
+        assert.ok(lines.includes('・結果: 変換可能・スキップあり（dry-runのためファイルを生成していません）。'));
+        assert.equal(lines.includes('Permission Setのdry-runコマンド:'), false);
+        assert.equal(
+            fs.existsSync(
+                path.join(project.projectRoot, 'scripts/permissionset-conversion/outputs', fixedRunDirectoryName)
+            ),
+            false
+        );
+    } finally {
+        fs.rmSync(project.projectRoot, { force: true, recursive: true });
+    }
+});
+
+test('CLIでスキップと矛盾した設定が同居するProfileはレポートだけを保存して異常終了する', async () => {
+    const profileXml = fs
+        .readFileSync(fixtureProfilePath, 'utf8')
+        .replace(
+            '</Profile>',
+            '<futurePermission>true</futurePermission><fieldPermissions><editable>true</editable><field>Example__c.Invalid__c</field><readable>false</readable></fieldPermissions></Profile>'
+        );
+    const project = createTestProject({
+        configLines: ['force-app/main/default/profiles/Invalid.profile-meta.xml'],
+        fileName: 'Invalid.profile-meta.xml',
+        profileXml
+    });
+    const orgCommand = createOrgCommand();
+    const prompt = createPrompt(['y']);
+    const lines = [];
+    try {
+        const status = await main({
+            argv: ['--objects-dir', fixtureObjectsDirectory],
+            createPrompt: prompt.factory,
+            now: () => fixedRunAt,
+            projectRoot: project.projectRoot,
+            runSfWithOutputCommand: orgCommand.command,
+            writeLine(line) {
+                lines.push(line);
+            }
+        });
+        const output = path.join(
+            project.projectRoot,
+            'scripts/permissionset-conversion/outputs',
+            fixedRunDirectoryName
+        );
         assert.equal(status, 1);
-        assert.equal(fs.existsSync(xmlPath), false);
-        assert.equal(JSON.parse(fs.readFileSync(reportPath, 'utf8')).summary.unsupportedUnknown, 1);
+        assert.equal(
+            fs.existsSync(
+                path.join(output, 'permissionsets', `${fixedPlatformTemporaryApiName}.permissionset-meta.xml`)
+            ),
+            false
+        );
+        const report = JSON.parse(
+            fs.readFileSync(
+                path.join(output, 'reports', `${fixedPlatformTemporaryApiName}.conversion-report.json`),
+                'utf8'
+            )
+        );
+        assert.equal(report.summary.skippedUnsupported, 1);
+        assert.equal(report.summary.unsupportedUnknown, 1);
+        assert.equal(lines.includes('Permission Setのdry-runコマンド:'), false);
+        assert.equal(lines.includes('・結果: 生成成功・スキップあり。'), false);
     } finally {
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
