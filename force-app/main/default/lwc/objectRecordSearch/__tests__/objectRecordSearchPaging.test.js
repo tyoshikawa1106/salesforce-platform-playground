@@ -8,6 +8,55 @@ import {
 } from '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchTestUtils';
 
 describe('c-object-record-search paging and sorting', () => {
+    it('blocks repeated page actions until the response arrives', async () => {
+        const element = createComponent();
+        searchRecords.emit({ ...searchResponse, hasNextPage: true, nextPageToken: 'page-2' });
+        await flushPromises();
+
+        const nextButton = findButton(element, '次へ');
+        nextButton.click();
+        nextButton.click();
+        await flushPromises();
+
+        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 2, pageToken: 'page-2' });
+        expect(findButton(element, '次へ').disabled).toBe(true);
+        expect(findButton(element, '前へ').disabled).toBe(true);
+
+        searchRecords.emit({ ...searchResponse, pageNumber: 2, hasNextPage: true, nextPageToken: 'page-3' });
+        await flushPromises();
+        expect(findButton(element, '次へ').disabled).toBe(false);
+        findButton(element, '次へ').click();
+        await flushPromises();
+        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 3, pageToken: 'page-3' });
+    });
+
+    it('allows retry after a failed search without waiting on unchanged criteria', async () => {
+        const element = createComponent();
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        const input = element.shadowRoot.querySelector('lightning-input');
+        input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('lightning-datatable').isLoading).toBe(false);
+
+        input.value = 'Acme';
+        input.dispatchEvent(new CustomEvent('change'));
+        input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('lightning-datatable').isLoading).toBe(true);
+        searchRecords.error({ message: '検索に失敗しました' });
+        await flushPromises();
+
+        input.value = 'Other';
+        input.dispatchEvent(new CustomEvent('change'));
+        input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+        await flushPromises();
+        expect(searchRecords.getLastConfig().request.searchTerm).toBe('Other');
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('lightning-datatable').isLoading).toBe(false);
+    });
+
     afterEach(() => {
         while (document.body.firstChild) {
             document.body.removeChild(document.body.firstChild);
