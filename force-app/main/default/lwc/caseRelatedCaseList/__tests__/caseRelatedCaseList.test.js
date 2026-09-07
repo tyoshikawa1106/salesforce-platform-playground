@@ -3,6 +3,19 @@ import { getRecord } from 'lightning/uiRecordApi';
 import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
 import CaseRelatedCaseList from 'c/caseRelatedCaseList';
 
+const mockGenerateUrl = jest.fn();
+
+jest.mock('lightning/navigation', () => {
+    const GenerateUrl = Symbol('GenerateUrl');
+    const NavigationMixin = (Base) => class extends Base {
+        [GenerateUrl](pageReference) {
+            return mockGenerateUrl(pageReference);
+        }
+    };
+    NavigationMixin.GenerateUrl = GenerateUrl;
+    return { NavigationMixin };
+});
+
 const CASE_RECORD_ID = '500000000000001AAA';
 const CONTACT_RECORD_ID = '003000000000001AAA';
 const ACCOUNT_RECORD_ID = '001000000000001AAA';
@@ -161,6 +174,54 @@ const getTabText = (tab) =>
         .join(' ');
 
 describe('c-case-related-case-list', () => {
+    beforeEach(() => {
+        mockGenerateUrl.mockReset().mockResolvedValue('https://www.example.com');
+    });
+
+    it.each([
+        ['contactId', CONTACT_RECORD_ID, '003000000000002AAA', 0],
+        ['accountId', ACCOUNT_RECORD_ID, '001000000000002AAA', 1]
+    ])('keeps the latest %s cards when older URL generation finishes last', async (field, oldParent, newParent, tabIndex) => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        let finishOldRequest;
+        const oldUrls = new Promise((resolve) => { finishOldRequest = resolve; });
+        mockGenerateUrl.mockImplementation((page) => (
+            page.attributes.recordId === '500000000000002AAA' ? oldUrls : Promise.resolve('https://www.example.com')
+        ));
+        emitRelatedCases(oldParent, [createRelatedCase({ id: '500000000000002AAA', caseNumber: 'OLD-CASE' })]);
+        await flushPromises();
+
+        getRecord.emit(createCaseRecord({ [field]: newParent }));
+        await flushPromises();
+        emitRelatedCases(newParent, [createRelatedCase({ id: '500000000000003AAA', caseNumber: 'NEW-CASE' })]);
+        await flushPromises();
+        finishOldRequest('https://www.example.com/old');
+        await flushPromises();
+        const tab = element.shadowRoot.querySelectorAll('lightning-tab')[tabIndex];
+        expect(getTabText(tab)).toContain('NEW-CASE');
+        expect(getTabText(tab)).not.toContain('OLD-CASE');
+    });
+
+    it.each([0, 1])('does not replace a newer related-list error with pending cards in tab %s', async (tabIndex) => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        let finishOldRequest;
+        mockGenerateUrl.mockReturnValue(new Promise((resolve) => { finishOldRequest = resolve; }));
+        emitRelatedCases(CONTACT_RECORD_ID, [createRelatedCase({ id: '500000000000002AAA', caseNumber: 'OLD-CASE' })]);
+        emitRelatedCases(ACCOUNT_RECORD_ID, [createRelatedCase({ id: '500000000000002AAA', caseNumber: 'OLD-CASE' })]);
+        await flushPromises();
+        getRelatedListRecords.error();
+        await flushPromises();
+        finishOldRequest('https://www.example.com/old');
+        await flushPromises();
+        const tab = element.shadowRoot.querySelectorAll('lightning-tab')[tabIndex];
+        expect(getTabText(tab)).not.toContain('OLD-CASE');
+        expect(getTabText(tab)).toContain('問い合わせを読み込めませんでした。');
+    });
+
     afterEach(() => {
         while (document.body.firstChild) {
             document.body.removeChild(document.body.firstChild);
