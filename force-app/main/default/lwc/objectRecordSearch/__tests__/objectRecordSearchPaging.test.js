@@ -8,6 +8,27 @@ import {
 } from '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchTestUtils';
 
 describe('c-object-record-search paging and sorting', () => {
+    it.each(['search', 'sort'])('preserves the next page after unchanged %s criteria', async (action) => {
+        const element = createComponent();
+        searchRecords.emit({ ...searchResponse, hasNextPage: true, nextPageToken: 'page-2' });
+        await flushPromises();
+
+        if (action === 'search') {
+            findButton(element, '検索').click();
+        } else {
+            element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(
+                new CustomEvent('sort', { detail: { fieldName: 'recordUrl', sortDirection: 'asc' } })
+            );
+        }
+        await flushPromises();
+
+        expect(findButton(element, '次へ').disabled).toBe(false);
+        expect(element.shadowRoot.querySelector('lightning-datatable').isLoading).toBe(false);
+        findButton(element, '次へ').click();
+        await flushPromises();
+        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 2, pageToken: 'page-2' });
+    });
+
     it('blocks repeated page actions until the response arrives', async () => {
         const element = createComponent();
         searchRecords.emit({ ...searchResponse, hasNextPage: true, nextPageToken: 'page-2' });
