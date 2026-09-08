@@ -151,6 +151,12 @@ function reportCheck({ actor, checkName, now = () => new Date(), result, runGhCo
 
 // GitHub Actionsから渡された各jobの結果を、同じルールで順番に処理する。
 function main({ env = process.env, now = () => new Date(), runGhCommand = runGh } = {}) {
+    // 作業ブランチの手動実行をmainの障害・復旧として報告しない。
+    if (env.GITHUB_REF !== 'refs/heads/main') {
+        // 対象refが不明な場合も監視Issueを変更せず終了する。
+        return;
+    }
+
     // workflow共通の実行情報を1つにまとめ、各品質チェックへ再利用する。
     const context = {
         actor: env.GITHUB_ACTOR,

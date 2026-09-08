@@ -120,6 +120,7 @@ test('workflowの環境変数から2つのチェック結果を処理する', ()
     main({
         env: {
             GITHUB_ACTOR: 'ci-actor',
+            GITHUB_REF: 'refs/heads/main',
             GITHUB_SHA: 'abc123',
             NPM_RESULT: 'failure',
             RUN_URL: 'https://github.example/actions/runs/123',
@@ -153,4 +154,26 @@ test('GitHub CLIの起動失敗と終了コードをエラーとして扱う', (
         () => runGh(['issue', 'list'], () => ({ status: 1, stderr: 'permission denied', stdout: '' })),
         /GitHub CLIが失敗しました: permission denied/
     );
+});
+
+for (const ref of ['refs/heads/codex/fix', 'refs/tags/v1', undefined]) {
+    for (const result of ['success', 'failure']) {
+        test(`main以外または不明なrefでは${result}でも監視Issueを変更しない: ${ref}`, () => {
+            const recorder = createGhRecorder([{ number: 42, title: 'CI: Nightly npm checksが失敗しています' }]);
+            main({
+                env: { GITHUB_REF: ref, NPM_RESULT: result, WINDOWS_RESULT: result },
+                runGhCommand: recorder.runGhCommand
+            });
+            assert.deepEqual(recorder.calls, []);
+        });
+    }
+}
+
+test('mainの成功時だけ監視Issueを復旧として閉じる', () => {
+    const recorder = createGhRecorder([{ number: 42, title: 'CI: Nightly npm checksが失敗しています' }]);
+    main({
+        env: { GITHUB_REF: 'refs/heads/main', NPM_RESULT: 'success', WINDOWS_RESULT: 'skipped' },
+        runGhCommand: recorder.runGhCommand
+    });
+    assert.deepEqual(recorder.calls.at(-1), ['issue', 'close', '42', '--reason', 'completed']);
 });
