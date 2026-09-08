@@ -155,7 +155,12 @@ test('分割manifestだけから取得計画を検証して集計する', () => 
     assert.equal(manifestPlan.version, projectConfig.sourceApiVersion);
 });
 
-for (const { manifest, type } of [{ manifest: 'retrieve-custom-configuration.xml', type: 'StandardValueSet' }]) {
+for (const { manifest, type } of [
+    { manifest: 'retrieve-custom-configuration.xml', type: 'StandardValueSet' },
+    { manifest: 'retrieve-email-notification.xml', type: 'EmailTemplate' },
+    { manifest: 'retrieve-email-notification.xml', type: 'EmailFolder' },
+    { manifest: 'retrieve-email-notification.xml', type: 'EmailTemplateFolder' }
+]) {
     test(`${type}は取得漏れを起こすワイルドカードではなく具体名を指定する`, () => {
         const source = fs.readFileSync(path.join(repoRoot, 'manifest', manifest), 'utf8');
         assert.equal(XMLValidator.validate(source), true);
@@ -169,6 +174,9 @@ for (const { manifest, type } of [{ manifest: 'retrieve-custom-configuration.xml
             assert.equal(typeof member, 'string');
             assert.ok(member.trim().length > 0);
             assert.doesNotMatch(member, /\*/);
+            if (type === 'EmailTemplate') {
+                assert.match(member, /^[^/]+\/[^/]+$/, 'メールテンプレートにはフォルダ名を含める');
+            }
         }
     });
 }
