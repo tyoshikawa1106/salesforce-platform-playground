@@ -177,4 +177,33 @@ describe('c-account-data-quality-scan', () => {
         );
         await expect(element).toBeAccessible();
     });
+
+    it('開始後の再取得失敗でも待機状態を保持し開始失敗と通知しない', async () => {
+        const element = createComponent();
+        const toast = jest.fn();
+        element.addEventListener('lightning__showtoast', toast);
+        startScan.mockResolvedValueOnce({ ...runningScan, status: 'Pending' });
+        refreshApex.mockImplementationOnce(async () => {
+            getLatestScan.error({ message: '再取得エラー' });
+            throw new Error('再取得エラー');
+        });
+        getLatestScan.emit(null);
+        await flushPromises();
+        element.shadowRoot.querySelector('lightning-button').click();
+        await flushPromises();
+        await flushPromises();
+        expect(toast.mock.calls.map(([event]) => event.detail.variant)).toEqual(['success']);
+        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得エラー');
+        expect(element.shadowRoot.querySelector('lightning-button-icon').disabled).toBe(false);
+        refreshApex.mockImplementationOnce(async () => {
+            getLatestScan.emit({ ...runningScan, status: 'Completed' });
+        });
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('完了');
+        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(false);
+    });
+
 });

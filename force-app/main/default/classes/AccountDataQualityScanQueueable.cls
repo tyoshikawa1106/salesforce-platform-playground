@@ -10,8 +10,6 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
     private Integer position;
     private Id scanId;
     private Integer fetchSize;
-    @TestVisible
-    private Boolean shouldStopBeforeChainingForTest = false;
     private AccountDataQualityScanService service = new AccountDataQualityScanService();
     private AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();
 
@@ -40,11 +38,22 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
     }
 
     /**
-     * テストで最初の区間処理後にQueueable連鎖を停止
+     * 残りの区間数を連鎖上限に設定して初回ジョブを登録
+     *
+     * @return 登録した非同期ジョブID
+     * @throws AccountDataQualityScanService.ScanException Cursorまたは保存済みスキャンがない場合
      */
-    @TestVisible
-    private void stopBeforeChainingForTest() {
-        this.shouldStopBeforeChainingForTest = true;
+    public Id enqueueInitialJob() {
+        // 分割処理に必要な初期状態がないジョブは登録しない
+        if (this.accountCursor == null || this.scanId == null) {
+            throw new AccountDataQualityScanService.ScanException('スキャンを開始するための状態がありません。');
+        }
+        // Cursor の残件数から、端数区間を含む必要な連鎖段数を算出
+        Integer remainingCount = Math.max(this.accountCursor.getNumRecords() - this.position, 0);
+        AsyncOptions options = new AsyncOptions();
+        // 対象0件でも完了状態を保存するジョブを1回実行
+        options.MaximumQueueableStackDepth = Math.max(1, (remainingCount + this.fetchSize - 1) / this.fetchSize);
+        return System.enqueueJob(this, options);
     }
 
     /**
@@ -77,9 +86,6 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
                 this.scanId
             );
             nextJob.fetchSize = this.fetchSize;
-            if (this.shouldStopBeforeChainingForTest) {
-                return;
-            }
             System.enqueueJob(nextJob);
         }
     }

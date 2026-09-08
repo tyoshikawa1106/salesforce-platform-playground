@@ -49,7 +49,7 @@ public with sharing class AccountDataQualityScanController {
             // 待機中スキャンを利用者権限で保存
             service.insertScan(scanRecord);
             // Cursor 分割処理を非同期キューへ登録
-            System.enqueueJob(new AccountDataQualityScanQueueable(accountCursor, 0, scanRecord.Id));
+            new AccountDataQualityScanQueueable(accountCursor, 0, scanRecord.Id).enqueueInitialJob();
             // 非同期登録直後の待機状態を画面へ返却
             return service.createViewModel(scanRecord);
         } catch (AccountDataQualityScanService.ScanException e) {

@@ -62,6 +62,40 @@ private with sharing class AccountDataQualityScanControllerTest {
     }
 
     /**
+     * 開始入口から既定区間を超える取引先を最後まで集計
+     */
+    @IsTest
+    static void shouldCompleteScanBeyondDefaultChunkSize() {
+        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        List<Account> accounts = new List<Account>();
+        for (Integer index = 0; index < 501; index++) {
+            accounts.add(TestDataFactory.createAccount('分割スキャン取引先' + index, TestDataFactory.SaveMode.DO_NOT_INSERT));
+        }
+        insert accounts;
+        AccountDataQualityScanWrapper startResult;
+        DataQualityScan__c savedScan;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            startResult = AccountDataQualityScanController.startScan();
+
+            Test.stopTest();
+            savedScan = [
+                SELECT Status__c, Processed_Count__c, Missing_Phone_Count__c, Active_Key__c
+                FROM DataQualityScan__c
+                WHERE Id = :startResult.scanId
+            ];
+        }
+
+        Assert.areEqual(AccountDataQualityScanService.STATUS_PENDING, startResult.status, '開始応答は待機状態を返す必要あり');
+        Assert.areEqual(AccountDataQualityScanService.STATUS_COMPLETED, savedScan.Status__c, '次区間へ連鎖して完了する必要あり');
+        Assert.areEqual(501, savedScan.Processed_Count__c, '既定500件を超える最終レコードまで処理する必要あり');
+        Assert.areEqual(501, savedScan.Missing_Phone_Count__c, '全区間の電話未設定件数を累積する必要あり');
+        Assert.isNull(savedScan.Active_Key__c, '全区間の完了後に再実行を許可する必要あり');
+    }
+
+    /**
      * 実行中スキャンがある場合は新しい開始を拒否
      */
     @IsTest
