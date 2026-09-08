@@ -308,6 +308,31 @@ describe('c-object-record-search form flows', () => {
         expect(findButton(element, '保存').disabled).toBe(true);
     });
 
+    it('keeps the form open when header close is clicked during a save', async () => {
+        const element = await createRecordFormReadyComponent();
+        await openNewRecordForm(element);
+        element.shadowRoot.querySelectorAll('lightning-input-field').forEach((field) => {
+            field.reportValidity = jest.fn().mockReturnValue(true);
+        });
+        const form = element.shadowRoot.querySelector('lightning-record-edit-form');
+        form.dispatchEvent(new CustomEvent('submit'));
+        await flushPromises();
+
+        const closeButton = element.shadowRoot.querySelector('.slds-modal__close');
+        expect(closeButton.disabled).toBe(true);
+        closeButton.click();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('lightning-record-edit-form')).toBe(form);
+        expect(findButton(element, '新規').disabled).toBe(true);
+
+        form.dispatchEvent(new CustomEvent('error', { detail: { message: '保存失敗' } }));
+        await flushPromises();
+        expect(closeButton.disabled).toBe(false);
+        closeButton.click();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="dialog"]')).toBeNull();
+    });
+
     it('shows fallback save error when record form save fails without a message', async () => {
         const element = await createRecordFormReadyComponent();
         const toastHandler = jest.fn();
