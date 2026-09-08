@@ -27,6 +27,10 @@
 - 各manifestのAPI versionは`sfdx-project.json`の`sourceApiVersion`と一致する必要があります。
 - `retrieve-profile.xml`は、Profileの権限設定を取得するため、Profileと関連metadataを同じretrieve要求に含めます。
 - `retrieve-translations.xml`は、翻訳内容を取得するため、`Translations`と関連metadataを同じretrieve要求に含めます。
+- `retrieve-custom-configuration.xml`の`StandardValueSet`は具体名で指定します。選択肢の追加や変更は、同じ名前を指定した次回のretrieveで取得します。
+- `retrieve-email-notification.xml`の`EmailTemplate`は、`フォルダ名/テンプレート名`の具体名で指定します。フォルダの取得指定だけでは、その中のテンプレートの取得指定にはなりません。
+- `EmailFolder`と`EmailTemplateFolder`もフォルダの具体名で指定します。これらに`*`を残すと、CLIがMetadata API用の要求へ変換するときに`EmailTemplate`の具体名が`*`へ置き換わり、テンプレートの取得漏れが再発します。
+- この2種類の対象一覧はmanifestに保持し、通常のretrieveでは組織への一覧探索を行いません。新たに取得する標準選択リストやメールテンプレートは、一覧を確認してmanifestへ追加します。
 
 ## 処理内容
 
@@ -197,6 +201,7 @@ node --test scripts/metadata/retrieve/test/retrieve.node.js
 
 - すべての分割manifestが実行対象に含まれる
 - manifestの構造とAPI versionを取得開始前に確認する
+- `StandardValueSet`、`EmailTemplate`、`EmailFolder`、`EmailTemplateFolder`に空でない具体名を重複なく指定し、メールテンプレート名にフォルダ名を含める
 - 同じTarget Orgと`--wait 120`を全retrieveへ指定する
 - warningでは後続を続行し、hard failureでは停止する
 - 未完了または解析不能な応答を成功扱いしない
@@ -212,6 +217,7 @@ node --test scripts/metadata/retrieve/test/retrieve.node.js
 - `--wait 120`を超過すると現在のmanifestを失敗として停止します。retrieveにはCLIのresumeまたはreportコマンドを使用しません。
 - 1回のMetadata API retrieveには10,000ファイルと圧縮ZIPサイズの上限があります。10,000件未満でもサイズ上限などで失敗する可能性があります。
 - manifestのmetadata type一覧は組織上の全metadata componentを保証しません。
+- 具体名を列挙する対象は、新しいcomponentが組織へ追加されても自動では取得対象になりません。別の組織では、列挙されたcomponentが存在しない場合もあります。
 - Profileの権限設定とTranslationsの翻訳内容は、同じretrieve要求に含めた関連metadataに依存します。manifest一覧上の先頭または末尾であることには依存しません。
 - 取得後はGit差分を確認し、Salesforce側の並び替えや既定値補完と実際の設定差分を区別します。
 
@@ -220,4 +226,6 @@ node --test scripts/metadata/retrieve/test/retrieve.node.js
 - 状態: 未確認（承認済み要求または外部契約との比較元を特定していません）
 - Node.jsテストでは、manifest計画、CLI引数、模擬JSONによる結果判定を確認しています。
 - Salesforce CLI 2.148.3、API 67.0、Developer Editionの実組織では、27個のmanifestがwarningなしですべて成功し、実際のretrieve JSONから件数とmetadata type別の内訳を解析できることを確認しています。
+- CLIの成功とwarningなしは、取得対象の網羅性を保証しません。Salesforce CLI 2.149.9、API 67.0、Developer Editionでは、`StandardValueSet`と`EmailTemplate`の`*`指定がそれぞれ成功・warningなし・取得0件となり、具体名指定では標準選択リスト4件とメールテンプレート16件を取得できることを確認しています。
+- `StandardValueSet`の取得定義にはCLIの組織照会で列挙された48種類、`EmailTemplate`には取得を確認した16件を反映しています。CLIによる標準選択リスト一覧の生成は既知の候補名に基づくため、候補一覧に含まれない対象の網羅性は保証しません。
 - Metadata APIの取得ファイル数が10,000件付近の場合と、`--wait 120`を超過する長時間retrieveの実応答は未確認です。該当する規模の組織で使用する場合は、manifest単位の結果とGit差分を確認します。

@@ -59,6 +59,7 @@ Salesforce DX 開発について調査、整理した時点の記録を分野別
 | [Salesforce 公式参考リンク](salesforce-official-references.md)                                      | 公式ドキュメントとサンプルへの入口         |
 | [package.xml のメタデータ一覧](salesforce-package-xml-metadata-types.md)                            | manifest の分類と metadata type            |
 | [package.xml による retrieve の分析ポイント](salesforce-package-xml-retrieve-analysis.md)           | 広い retrieve 結果の確認観点               |
+| [retrieveのワイルドカードと具体名取得の検証](salesforce-retrieve-wildcard-verification.md) | 標準選択リスト・メールテンプレートの列挙コマンドと取得漏れの実検証 |
 | [Salesforce Settings の有効化状況](salesforce-settings-enable-status.md)                            | Settings の状態分類と有効化候補の扱い      |
 
 ## 標準オブジェクト

@@ -2,7 +2,22 @@
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <!-- メール / 通知 -->
     <types>
-        <members>*</members>
+        <members>unfiled$public/CommerceReorderPortalInvitation</members>
+        <members>unfiled$public/Embed_a_Survey_Link</members>
+        <members>unfiled$public/Embed_a_Survey_Question</members>
+        <members>unfiled$public/MarketingProductInquiryResponse</members>
+        <members>unfiled$public/SUPPORTSelfServiceNewCommentNotificationSAMPLE</members>
+        <members>unfiled$public/SUPPORTSelfServiceNewUserLoginInformationSAMPLE</members>
+        <members>unfiled$public/SUPPORTSelfServiceResetPasswordSAMPLE</members>
+        <members>unfiled$public/SalesNewCustomerEmail</members>
+        <members>unfiled$public/SupportCaseAssignmentNotification</members>
+        <members>unfiled$public/SupportCaseCreatedPhoneInquiries</members>
+        <members>unfiled$public/SupportCaseCreatedWebInquiries</members>
+        <members>unfiled$public/SupportCaseResponse</members>
+        <members>unfiled$public/SupportEscalatedCaseNotification</members>
+        <members>unfiled$public/SupportEscalatedCaseReassignment</members>
+        <members>unfiled$public/SupportSelfServiceNewLoginandPassword</members>
+        <members>unfiled$public/SupportSelfServiceResetPassword</members>
         <name>EmailTemplate</name>
     </types>
     <types>
@@ -22,11 +37,11 @@
         <name>ApexEmailNotifications</name>
     </types>
     <types>
-        <members>*</members>
+        <members>unfiled$public</members>
         <name>EmailFolder</name>
     </types>
     <types>
-        <members>*</members>
+        <members>unfiled$public</members>
         <name>EmailTemplateFolder</name>
     </types>
     <version>67.0</version>
