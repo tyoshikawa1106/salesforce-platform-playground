@@ -112,6 +112,69 @@ async function emitCountAndPage(count, page) {
 }
 
 describe('c-case-email-message-list', () => {
+    it.each(['initial', 'more'])('preserves count errors after an in-flight %s page and recovers on refresh', async (phase) => {
+        const element = createComponent();
+        if (phase === 'more') {
+            await emitCountAndPage(100, initialPage);
+        }
+        let finishPage;
+        getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishPage = resolve; }));
+        if (phase === 'initial') {
+            getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+            getEmailMessageCount.emit(100);
+        } else {
+            element.shadowRoot.querySelector('lightning-button').click();
+        }
+        await flushPromises();
+        getEmailMessageCount.error({ message: '件数取得失敗' });
+        await flushPromises();
+        const callsBeforeCompletion = getEmailMessages.mock.calls.length;
+        finishPage(phase === 'initial' ? initialPage : nextPage);
+        await flushPromises();
+        await flushPromises();
+
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('件数取得失敗');
+        expect(element.shadowRoot.querySelector('ul.slds-timeline')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ');
+        expect(getEmailMessages).toHaveBeenCalledTimes(callsBeforeCompletion);
+        expect(element.shadowRoot.querySelector('lightning-button-icon').disabled).toBe(false);
+
+        refreshApex.mockImplementationOnce(async () => { getEmailMessageCount.emit(0); });
+        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+        getEmailMessages.mockResolvedValueOnce(emptyPage);
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (0)');
+        expect(getEmailMessages).toHaveBeenCalledTimes(callsBeforeCompletion + 1);
+    });
+
+    it('waits for an invalidated initial page before loading a recovered count', async () => {
+        const element = createComponent();
+        let finishPage;
+        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+        getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishPage = resolve; }));
+        getEmailMessageCount.emit(100);
+        await flushPromises();
+        getEmailMessageCount.error({ message: '件数取得失敗' });
+        await flushPromises();
+        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+        getEmailMessages.mockResolvedValueOnce(emptyPage);
+        getEmailMessageCount.emit(0);
+        await flushPromises();
+        expect(getEmailMessages).toHaveBeenCalledTimes(1);
+        finishPage(initialPage);
+        await flushPromises();
+        await flushPromises();
+        await flushPromises();
+        expect(getEmailMessages).toHaveBeenCalledTimes(2);
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('ul.slds-timeline')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (0)');
+        expect(element.shadowRoot.querySelector('lightning-spinner')).toBeNull();
+    });
+
     it('アドレスがないメールはリンクなしの代替ラベルを描画する', async () => {
         const element = createComponent();
         await emitCountAndPage(1, { emailMessages: [{ ...emailMessages[0], FromAddress: null, ToAddress: '  ' }], hasNextPage: false, nextIndex: 1 });

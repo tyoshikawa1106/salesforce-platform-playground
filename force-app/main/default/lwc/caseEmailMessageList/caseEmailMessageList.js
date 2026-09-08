@@ -103,12 +103,16 @@ export default class CaseEmailMessageList extends LightningElement {
             }
             // 件数取得失敗時は一覧を表示せず全体エラーへ移行
         } else if (error) {
+            // 件数取得失敗前に開始したページ応答を無効化
+            this.paginationGeneration++;
+            // 無効化した追加取得の完了を待たず操作状態を解除
+            this.isLoadingMore = false;
             // 件数を安全な0件へ戻す
             this.totalEmailMessageCount = 0;
             // 以前の一覧とページング状態を共通処理で破棄
             Object.assign(this, createEmptyPaginationState());
-            // 同じCaseで自動再試行し続けないよう取得済み対象を記録
-            this.loadedRecordId = this.recordId;
+            // 件数取得が復旧した場合は同じCaseの初期ページも再取得
+            this.loadedRecordId = undefined;
             // エラー応答を初期取得の完了として記録
             this.hasLoadedInitialPage = true;
             // Salesforceエラーを利用者向け文言へ変換
@@ -118,9 +122,9 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // AuraEnabled応答として初期ページとPaginationCursorを取得
     async loadInitialPage() {
-        // Case未確定または取得中の場合は重複呼び出しを行わない
-        if (!this.recordId || this.isLoadingInitialPage) {
-            // 現在の取得処理に初期化を委ねる
+        // 件数取得失敗中はページを取得せず、進行中の初期取得も重複させない
+        if (!this.recordId || this.isLoadingInitialPage || this.wiredEmailMessageCountResult?.error) {
+            // 件数取得の復旧または現在の初期取得完了を待つ
             return;
         }
 
@@ -176,9 +180,9 @@ export default class CaseEmailMessageList extends LightningElement {
             if (targetRecordId === this.recordId && generation === this.paginationGeneration) {
                 // テンプレートの読込表示を終了
                 this.hasLoadedInitialPage = true;
-                // 取得中にCaseが変わった場合は新しい初期ページを取得
-            } else if (!this.isRefreshing) {
-                // 新しいCase IDで初期ページ取得を開始
+                // Case変更または件数復旧後の未取得ページへ処理を引き継ぐ
+            } else if (!this.isRefreshing && this.loadedRecordId !== this.recordId) {
+                // 件数取得の成否を再確認して現在のCaseの初期ページを取得
                 this.loadInitialPage();
             }
         }
