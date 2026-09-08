@@ -27,7 +27,10 @@ for (String definition : definitions) {
 }
 // 同じ商品コードの既存商品を取得し、繰り返し実行時に再利用
 Map<String, Product2> existingByCode = new Map<String, Product2>();
-for (Product2 product : [SELECT Id, ProductCode FROM Product2 WHERE ProductCode IN :codes]) {
+for (Product2 product : [SELECT Id, Name, ProductCode FROM Product2 WHERE ProductCode IN :codes]) {
+    // 業務商品とのコード衝突と重複コードは、保存前に停止
+    System.assert(product.Name.startsWith(seedPrefix + ' '), 'Product code conflicts with a non-test product.');
+    System.assert(!existingByCode.containsKey(product.ProductCode), 'Multiple products use the same seed product code.');
     existingByCode.put(product.ProductCode, product);
 }
 List<Product2> inserts = new List<Product2>();
