@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { XMLParser, XMLValidator } = require('fast-xml-parser');
 const {
     main,
     manifests,
@@ -153,6 +154,24 @@ test('分割manifestだけから取得計画を検証して集計する', () => 
     assert.ok(manifestPlan.typeCount > 0);
     assert.equal(manifestPlan.version, projectConfig.sourceApiVersion);
 });
+
+for (const { manifest, type } of [{ manifest: 'retrieve-custom-configuration.xml', type: 'StandardValueSet' }]) {
+    test(`${type}は取得漏れを起こすワイルドカードではなく具体名を指定する`, () => {
+        const source = fs.readFileSync(path.join(repoRoot, 'manifest', manifest), 'utf8');
+        assert.equal(XMLValidator.validate(source), true);
+        const definition = new XMLParser({ isArray: (name) => name === 'types' || name === 'members' }).parse(source);
+        const matchingTypes = definition.Package.types.filter((entry) => entry.name === type);
+        assert.equal(matchingTypes.length, 1);
+        const members = matchingTypes[0].members;
+        assert.ok(members.length > 0);
+        assert.equal(new Set(members).size, members.length);
+        for (const member of members) {
+            assert.equal(typeof member, 'string');
+            assert.ok(member.trim().length > 0);
+            assert.doesNotMatch(member, /\*/);
+        }
+    });
+}
 
 test('取得対象metadata typeがないmanifestを検出する', () => {
     // API versionだけでmetadata typeを持たないmanifest入力を作る。
