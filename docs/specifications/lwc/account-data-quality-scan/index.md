@@ -58,7 +58,7 @@
 
 1. `Pending`または`Running`のAccountスキャンがないことを確認します。
 2. 利用者が参照できるAccountの`Database.Cursor`を作成し、対象総件数を`DataQualityScan__c`へ保存します。
-3. `AccountDataQualityScanQueueable`を登録します。
+3. Cursor残件数を500件で割って切り上げた必要段数（0件は1段）を `AsyncOptions.MaximumQueueableStackDepth` に設定し、初回の `AccountDataQualityScanQueueable` を登録します。後続ジョブはこの上限を引き継ぎます。
 4. QueueableごとにCursorから最大500件を取得し、項目不足を集計します。
 5. 処理済み位置と累積件数を保存し、残りがあればCursorと次位置を次のQueueableへ引き継ぎます。
 6. 全取得位置を処理したら`Completed`へ変更し、終了日時を保存します。
@@ -111,6 +111,8 @@ AccountのCursorは`AccessLevel.USER_MODE`で作成し、スキャン管理レ�
 
 ## エラー処理
 
+LWCは開始成功時の応答を保持してから最新状態を再取得します。その再取得が失敗しても開始失敗と通知せず、確認済みの実行状態を保持して重複開始を抑止し、状態更新から再試行できます。
+
 実行中スキャンがある場合は、新しい開始を拒否して完了後の再実行を案内します。Queueableが未処理例外で終了した場合はFinalizerが`Failed`、終了日時、安全な最終エラーを保存し、同時実行防止キーを解放します。
 
 LWCと管理レコードにはSOQL、スタックトレース、内部ID、個人情報を含む例外詳細を表示しません。
@@ -124,8 +126,8 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 
 - `AccountDataQualityScanServiceTest`: 各不足条件、累積、完了、失敗、禁止状態遷移
 - `AccountDataQualityScanSelectorTest`: USER_MODE Cursor、分割取得、管理レコードI/O、一意制約
-- `AccountDataQualityScanQueueableTest`: 0件、1区間完了、複数区間の連鎖
-- `AccountDataQualityScanControllerTest`: 初期表示、開始、重複開始拒否、直近結果
+- `AccountDataQualityScanQueueableTest`: 0件、1区間完了、端数区間、6段連鎖、入力不足の拒否、Finalizerの失敗記録
+- `AccountDataQualityScanControllerTest`: 初期表示、開始、501件の分割完了、重複開始拒否、直近結果
 - `accountDataQualityScan.test.js`: 画面状態、開始、手動更新、エラー、アクセシビリティ
 - `accountDataQualityScanLogic.test.js`: 状態ラベル、操作可否、表示値の正規化
 
@@ -142,8 +144,8 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 
 ## 既知の差異・確認事項
 
-接続済みのDeveloper Editionへ限定デプロイし、Permission Setを割り当てた利用者で62件のAccountスキャンが完了することを確認済みです。
+接続済みのDeveloper Editionへ限定デプロイし、関連Apexテスト31件が成功しています。501件の分割完了、6段のQueueable連鎖、端数区間の集計をApexテストで確認済みです。
 
-`HomeFlexiPage`へ配置したLWCをChromeで確認し、初期表示、スキャン開始中の操作抑止、完了表示、手動更新を確認済みです。
+変更後のLWCのChrome上での動作と、Permission Setを割り当てた利用者権限での操作は未確認です。
 
-500件を超える実データでのQueueable連鎖と、実障害時のFinalizerによる失敗記録は組織上で未確認です。これらの分岐はApexテストで確認します。
+500件を超える実データでのQueueable連鎖と、実障害時のFinalizerによる失敗記録は組織上で未確認です。Finalizerの失敗記録テストはコンテキストmockを使用し、実際の非同期障害の再現とは区別します。

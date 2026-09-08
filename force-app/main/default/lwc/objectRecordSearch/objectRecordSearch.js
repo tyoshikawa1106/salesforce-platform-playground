@@ -61,6 +61,8 @@ export default class ObjectRecordSearch extends LightningElement {
     errorMessage;
     // 一括削除中の操作抑止状態を保持
     isDeleting = false;
+    // 再取得中の検索・保存・削除操作を抑止
+    isRefreshing = false;
     // レコードフォーム保存中の操作抑止状態を保持
     isSaving = false;
     // 検索条件変更後の応答待ちを初回wireとは別に管理
@@ -213,10 +215,10 @@ export default class ObjectRecordSearch extends LightningElement {
         return this.selectedRowIds.length;
     }
 
-    // 初期取得、削除、保存をまとめた操作中状態を返却
+    // 初期取得、再取得、削除、保存をまとめた操作中状態を返却
     get isBusy() {
         // いずれかの非同期処理中は重複操作を抑止
-        return this.isLoading || this.isDeleting || this.isSaving;
+        return this.isLoading || this.isDeleting || this.isSaving || this.isRefreshing;
     }
 
     // 初回取得と検索条件変更後の応答待ち状態を判定
@@ -331,14 +333,13 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 利用者操作で現在の検索結果を再取得
     async handleRefresh() {
-        // wire初期化前の再読み込み要求は処理しない
-        if (!this.wiredSearchResult) {
-            // 現在表示を維持して再読み込みを終了
+        // wire未取得または別操作中の重複更新を拒否
+        if (!this.wiredSearchResult || this.isBusy) {
+            // 現在の処理が完了するまで状態を維持
             return;
         }
-
-        // 現在の検索条件を維持してApexを再実行
-        await refreshApex(this.wiredSearchResult);
+        // 再取得固有のエラー処理と操作抑止を適用
+        await this.refreshRecords();
     }
 
     // 検索入力値を未確定状態として保持
@@ -601,12 +602,35 @@ export default class ObjectRecordSearch extends LightningElement {
         }
     }
 
-    // レコード変更後に検索結果を更新して親へ通知
+    // 確定したレコード変更を親へ通知して検索結果を更新
     async refreshRecordsAndNotifyChange() {
-        // 現在の検索条件を維持してApexを再実行
-        await refreshApex(this.wiredSearchResult);
-        // 親データボードへ件数再取得を要求
+        // 更新済みレコードへの古い選択状態を解除
+        this.selectedRowIds = [];
+        // 一覧の再取得成否に依存させず確定した変更を親へ通知
         this.dispatchEvent(new CustomEvent('recordschanged'));
+        // 保存・削除とは独立した再取得結果を表示
+        await this.refreshRecords();
+    }
+
+    // 一覧取得の失敗を保存・削除の失敗へ伝播させず処理
+    async refreshRecords() {
+        // 再取得完了まで一覧操作を抑止
+        this.isRefreshing = true;
+        // wireの最新結果を取得して表示を更新
+        try {
+            // キャッシュ更新が完了するまで待機
+            await refreshApex(this.wiredSearchResult);
+            // 復旧後に以前の取得エラーを残さない
+            this.errorTitle = undefined;
+            // 正常に再取得できたことを画面へ反映
+            this.errorMessage = undefined;
+        } catch (error) {
+            // 古い一覧と選択を破棄して再取得の失敗を案内
+            Object.assign(this, createSearchFailureState(error));
+        } finally {
+            // 成否にかかわらず手動の再試行を許可
+            this.isRefreshing = false;
+        }
     }
 
     // Lightning標準トーストを共通形式で表示

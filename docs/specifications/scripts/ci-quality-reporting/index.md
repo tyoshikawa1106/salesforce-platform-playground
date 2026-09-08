@@ -14,21 +14,24 @@ GitHub Actionsの定期品質チェック結果を受け取り、チェックご
 | ---------------- | ---------------------------------------------- | -------------------------------------------- |
 | GitHub Actions   | `.github/workflows/ci.yml`                     | 定期チェック結果と実行情報を環境変数で渡す   |
 | Node.js script   | `scripts/ci/report-quality-check.js`           | GitHub Issueの作成、追記、クローズを制御する |
-| テストスクリプト | `scripts/ci/test/report-quality-check.node.js` | 結果別のGitHub CLI操作を検証する             |
+| テストスクリプト | `scripts/ci/test/report-quality-check.node.js` | ブランチと結果別のGitHub CLI操作を検証する   |
 
 ## 入力
 
 GitHub Actionsから次の環境変数を受け取ります。
 
-| 環境変数         | 用途                                          |
-| ---------------- | --------------------------------------------- |
-| `NPM_RESULT`     | `Nightly npm checks` jobの結果                |
-| `WINDOWS_RESULT` | `Weekly Windows script checks` jobの結果      |
-| `GITHUB_ACTOR`   | 新規Issueの担当者                             |
-| `GITHUB_SHA`     | Issue本文またはコメントへ記録する対象コミット |
-| `RUN_URL`        | GitHub Actions実行ログのURL                   |
-| `GH_TOKEN`       | GitHub CLIがIssueを操作するためのtoken        |
-| `GH_REPO`        | GitHub CLIの対象リポジトリ                    |
+| 環境変数         | 用途                                             |
+| ---------------- | ------------------------------------------------ |
+| `NPM_RESULT`     | `Nightly npm checks` jobの結果                   |
+| `WINDOWS_RESULT` | `Weekly Windows script checks` jobの結果         |
+| `GITHUB_ACTOR`   | 新規Issueの担当者                                |
+| `GITHUB_REF`     | `refs/heads/main` の実行だけを報告対象とする判定 |
+| `GITHUB_SHA`     | Issue本文またはコメントへ記録する対象コミット    |
+| `RUN_URL`        | GitHub Actions実行ログのURL                      |
+| `GH_TOKEN`       | GitHub CLIがIssueを操作するためのtoken           |
+| `GH_REPO`        | GitHub CLIの対象リポジトリ                       |
+
+`GITHUB_REF` が `refs/heads/main` と一致する場合だけGitHub CLIを実行します。作業ブランチ、タグ、ref不明の実行は監視Issueを変更しません。
 
 結果は`failure`と`success`だけを処理し、`skipped`、`cancelled`、未定義値はIssueを変更しません。
 

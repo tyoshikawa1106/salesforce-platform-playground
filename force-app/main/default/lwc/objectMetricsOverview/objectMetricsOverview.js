@@ -68,7 +68,7 @@ export default class ObjectMetricsOverview extends LightningElement {
         );
     }
 
-    // 利用者操作で件数一覧を再取得
+    // 利用者操作または子の変更通知で件数一覧を再取得
     async handleRefresh() {
         // wire初期化前の再読み込み要求は処理しない
         if (!this.wiredObjectMetricsResult) {
@@ -82,6 +82,8 @@ export default class ObjectMetricsOverview extends LightningElement {
         try {
             // 保存済みwireレスポンスをSalesforceから再取得
             await refreshApex(this.wiredObjectMetricsResult);
+            // 再取得成功後は以前のエラーを解除
+            this.errorMessage = undefined;
         // 再読み込み失敗時は画面上のエラーへ移行
         } catch (error) {
             // 再読み込み失敗を画面上のエラーへ反映
@@ -110,15 +112,6 @@ export default class ObjectMetricsOverview extends LightningElement {
         this.selectedMetricKey = undefined;
         // 復帰後のカード一覧を先頭から表示
         this.scrollToTop();
-    }
-
-    // 子検索画面のレコード変更後に件数を再取得
-    async handleRecordsChanged() {
-        // wire初期化済みの場合だけ最新件数を要求
-        if (this.wiredObjectMetricsResult) {
-            // 親カードへ作成、更新、削除結果を反映
-            await refreshApex(this.wiredObjectMetricsResult);
-        }
     }
 
     // 描画完了後にブラウザ表示位置をページ先頭へ移動

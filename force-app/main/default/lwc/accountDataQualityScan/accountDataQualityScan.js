@@ -43,9 +43,7 @@ export default class AccountDataQualityScan extends LightningElement {
             this.errorMessage = undefined;
         // 取得失敗時は古い結果を表示せずエラーへ移行
         } else if (error) {
-            // 古いスキャン結果を破棄
-            this.scan = undefined;
-            // Salesforceエラーを利用者向け文言へ変換
+            // 確認済みの実行状態を保持し、再取得の失敗だけを表示
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
         }
     }
@@ -110,7 +108,7 @@ export default class AccountDataQualityScan extends LightningElement {
         // 非同期登録と最新状態の再取得を順番に実行
         try {
             // Apexへ取引先スキャン開始を要求
-            await startScan();
+            this.scan = await startScan();
             // 開始受付を成功トーストで通知
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -159,27 +157,32 @@ export default class AccountDataQualityScan extends LightningElement {
 
         // 更新完了まで操作を抑止
         this.isRefreshing = true;
-        // 手動更新結果を画面へ反映
+        // 取得エラーは再取得処理の中で画面へ反映
         try {
-            // 保存済みwireレスポンスをSalesforceから再取得
+            // 保存済みの最新状態を再取得
             await this.refreshLatestScan();
-        // 更新失敗時は画面上のエラーへ移行
-        } catch (error) {
-            // Salesforceエラーを利用者向け文言へ変換
-            this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
-        // 成否にかかわらず更新操作を再び許可
         } finally {
-            // 更新中状態を解除
+            // 更新後の手動操作を許可
             this.isRefreshing = false;
         }
     }
 
-    // 保存済みwireレスポンスを最新状態へ更新
+    // 最新状態の取得失敗を開始操作の失敗と区別して表示
     async refreshLatestScan() {
-        // wire初期化済みの場合だけサーバー再取得を実行
-        if (this.wiredLatestScanResult) {
-            // refreshApex完了まで呼び出し元の処理を待機
+        // wire初期化前は再取得しない
+        if (!this.wiredLatestScanResult) {
+            // 再取得対象のない状態では終了
+            return;
+        }
+        // 最後に確認した状態を保持したまま再取得
+        try {
+            // 最新状態のwire反映まで待機
             await refreshApex(this.wiredLatestScanResult);
+            // 再取得できた場合は以前の通信エラーを解除
+            this.errorMessage = undefined;
+        } catch (error) {
+            // 開始成功を取り消さず再取得だけの失敗を表示
+            this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
         }
     }
 }

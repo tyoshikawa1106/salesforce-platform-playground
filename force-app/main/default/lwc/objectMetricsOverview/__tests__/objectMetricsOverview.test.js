@@ -355,4 +355,23 @@ describe('c-object-metrics-overview', () => {
             element.shadowRoot.querySelectorAll('lightning-spinner')
         ).toHaveLength(0);
     });
+    it('子の変更通知後に件数取得が失敗しても戻った画面で再試行できる', async () => {
+        const element = createComponent();
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+        element.shadowRoot.querySelector('.count-card-button').click();
+        await flushPromises();
+        refreshApex.mockRejectedValueOnce(new Error('件数の再取得に失敗'));
+        const child = element.shadowRoot.querySelector('c-object-record-search');
+        child.dispatchEvent(new CustomEvent('recordschanged'));
+        await flushPromises();
+        child.dispatchEvent(new CustomEvent('back'));
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('件数の再取得に失敗');
+        refreshApex.mockResolvedValueOnce();
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    });
+
 });

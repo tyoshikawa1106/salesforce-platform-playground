@@ -25,6 +25,8 @@ Caseレコードの顧客または会社に紐づく現在Caseと直近の別ケ
 
 ## 処理内容
 
+関連リストの未加工レコードを保持し、関連リスト応答と表示中Case応答のどちらが変わってもカードを再生成します。同じContact・Accountの別Caseへの移動や、現在Caseの件名・状況変更にも「現在のケース」バッジ、リンク、表示値を追従させます。関連先の変更・取得エラーでは対応する元データを破棄し、後から完了した古いURL生成結果を表示しません。
+
 1. Lightning Data Serviceの`getRecord`で表示中CaseのContactとAccountを取得します。
 2. `getRelatedListRecords`でContactとAccountそれぞれの`Cases`関連リストを取得します。
 3. 関連ケースを`CreatedDate`の降順で20件取得します。
