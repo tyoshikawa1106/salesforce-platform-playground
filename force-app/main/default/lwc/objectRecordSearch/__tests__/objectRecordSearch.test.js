@@ -363,4 +363,51 @@ describe('c-object-record-search', () => {
 
         expect(backHandler).toHaveBeenCalledTimes(1);
     });
+
+    it('削除成功後の再取得失敗を削除失敗と誤通知せず親へ変更を通知する', async () => {
+        const element = createComponent();
+        const toast = jest.fn();
+        const changed = jest.fn();
+        element.addEventListener('lightning__showtoast', toast);
+        element.addEventListener('recordschanged', changed);
+        deleteRecords.mockResolvedValueOnce({ requestedCount: 1, deletedCount: 1, errors: [] });
+        refreshApex.mockRejectedValueOnce(new Error('一覧の再取得に失敗'));
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(
+            new CustomEvent('rowselection', { detail: { selectedRows: [searchResponse.records[0]] } })
+        );
+        findButton(element, '選択したレコードを削除').click();
+        await flushPromises();
+        await flushPromises();
+        expect(toast.mock.calls.map(([event]) => event.detail.title)).toEqual(['削除しました']);
+        expect(changed).toHaveBeenCalledTimes(1);
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得');
+        expect(findButton(element, '選択したレコードを削除').disabled).toBe(true);
+        await expect(element).toBeAccessible();
+    });
+
+    it('手動再取得中の重複操作を抑止し失敗後は再試行できる', async () => {
+        const element = createComponent();
+        let rejectRefresh;
+        refreshApex.mockImplementationOnce(() => new Promise((resolve, reject) => { rejectRefresh = reject; }));
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        const button = element.shadowRoot.querySelector('lightning-button-icon[title="再読み込み"]');
+        button.click();
+        button.click();
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+        expect(findButton(element, '検索').disabled).toBe(true);
+        rejectRefresh(new Error('再取得エラー'));
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得エラー');
+        expect(button.disabled).toBe(false);
+        refreshApex.mockResolvedValueOnce();
+        button.click();
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(2);
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    });
+
 });

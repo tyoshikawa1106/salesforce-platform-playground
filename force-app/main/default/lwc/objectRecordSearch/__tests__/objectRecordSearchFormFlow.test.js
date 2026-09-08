@@ -359,6 +359,33 @@ describe('c-object-record-search form flows', () => {
             element.shadowRoot.querySelector('lightning-record-edit-form')
         ).toBeNull();
     });
+    it.each(['save', 'upload'])('%s成功後の取得失敗でも成功通知と親通知を維持する', async (operation) => {
+        const element = operation === 'save' ? await createRecordFormReadyComponent() : createComponent();
+        const changed = jest.fn();
+        const toast = jest.fn();
+        element.addEventListener('recordschanged', changed);
+        element.addEventListener('lightning__showtoast', toast);
+        refreshApex.mockRejectedValueOnce(new Error('一覧の再取得に失敗'));
+        if (operation === 'save') {
+            await openNewRecordForm(element);
+            element.shadowRoot.querySelector('lightning-record-edit-form').dispatchEvent(new CustomEvent('success'));
+        } else {
+            searchRecords.emit(createSearchResponse({ metricKey: 'files', objectApiName: 'ContentDocument', objectLabel: 'ファイル' }));
+            await flushPromises();
+            findButton(element, 'アップロード').click();
+            await flushPromises();
+            element.shadowRoot.querySelector('lightning-file-upload').dispatchEvent(
+                new CustomEvent('uploadfinished', { detail: { files: [{ name: 'sample.pdf' }] } })
+            );
+        }
+        await flushPromises();
+        await flushPromises();
+        expect(changed).toHaveBeenCalledTimes(1);
+        expect(toast.mock.calls.map(([event]) => event.detail.variant)).toEqual(['success']);
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得');
+        expect(element.shadowRoot.querySelector('[role="dialog"]')).toBeNull();
+    });
+
 });
 
 async function createRecordFormReadyComponent() {
