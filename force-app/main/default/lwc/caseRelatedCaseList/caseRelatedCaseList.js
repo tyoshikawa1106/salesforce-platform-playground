@@ -67,6 +67,10 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     // Case取得失敗時の利用者向けメッセージを保持
     caseErrorMessage;
     // 顧客タブへ表示するケースカードを保持
+    // 再生成用に顧客の未加工関連ケースを保持
+    contactCaseRecords;
+    // 再生成用に会社の未加工関連ケースを保持
+    accountCaseRecords;
     contactCases = [];
     // 会社タブへ表示するケースカードを保持
     accountCases = [];
@@ -108,6 +112,10 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                 previousContactId,
                 previousAccountId
             );
+            // 関連先が同じでも現在ケースの表示値とバッジを更新
+            this.updateContactCases();
+            // 会社タブも現在ケースの変更を反映
+            this.updateAccountCases();
         // 取得失敗時は関連一覧を残さずコンポーネント全体をエラー表示
         } else if (error) {
             // 取得失敗したCaseレスポンスを参照しないよう破棄
@@ -132,34 +140,50 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         sortBy: RELATED_CASE_SORT
     })
     async wiredContactCases({ data, error }) {
-        // 成功と失敗のどちらの新応答でも以前の変換を無効化
-        const requestId = ++this.contactCasesRequestId;
-        // 変換開始時の表示ケースを固定
-        const recordId = this.recordId;
-        // 取得成功時はUI APIレコードを表示用カードへ変換
+        // 関連リスト取得成功時は再生成に使う元データを保持
         if (data) {
-            // リンク生成を含むカード変換が完了してから一覧へ反映
-            const contactCases = await this.createCaseCards(data.records);
-            // 後続応答またはケース切り替えがあれば古い変換を破棄
-            if (requestId !== this.contactCasesRequestId || recordId !== this.recordId) {
-                // 最新一覧と取得状態を維持
-                return;
-            }
-            // 最新の変換結果だけを顧客タブへ反映
-            this.contactCases = contactCases;
-            // 顧客タブのローディングを終了
-            this.contactCasesHaveLoaded = true;
-            // 再取得成功時は顧客タブのエラー表示を解除
-            this.contactCasesHaveError = false;
-        // 顧客側だけ失敗した場合は会社タブへ影響させずエラー表示
+            // 現在ケースの変更時にも使えるよう未加工レコードを保存
+            this.contactCaseRecords = data.records;
+            // 現在ケースと最新関連リストからカードを作成
+            await this.updateContactCases();
         } else if (error) {
-            // 以前取得した顧客ケースをエラー時に残さない
+            // 進行中の古いカード変換を無効化
+            this.contactCasesRequestId++;
+            // 取得失敗した元データを再利用しない
+            this.contactCaseRecords = undefined;
+            // 古いカードを表示から除去
             this.contactCases = [];
-            // 顧客タブをローディングからエラー状態へ遷移
+            // エラーを表示できる取得済み状態にする
             this.contactCasesHaveLoaded = true;
-            // 顧客タブの取得失敗をテンプレートへ通知
+            // この関連リストだけにエラーを表示
             this.contactCasesHaveError = true;
         }
+    }
+
+    // 現在ケースと保持した関連レコードから顧客カードを再生成
+    async updateContactCases() {
+        // 対象関連先の初回応答がまだなければ再生成しない
+        if (!this.contactCaseRecords) {
+            // 未取得または取得失敗の状態を維持
+            return;
+        }
+        // 同じ関連先の再生成でも以前の変換結果を無効化
+        const requestId = ++this.contactCasesRequestId;
+        // 非同期変換の対象ケースを固定
+        const recordId = this.recordId;
+        // URL生成を含めたカード表示を作成
+        const cases = await this.createCaseCards(this.contactCaseRecords);
+        // 後続の応答またはケース変更があれば古い結果を破棄
+        if (requestId !== this.contactCasesRequestId || recordId !== this.recordId) {
+            // 最新の表示状態を維持
+            return;
+        }
+        // 現在ケースを反映したカードを表示
+        this.contactCases = cases;
+        // 初回表示のローディングを終了
+        this.contactCasesHaveLoaded = true;
+        // 正常取得後のエラー表示を解除
+        this.contactCasesHaveError = false;
     }
 
     // 会社タブ用に同じAccountへ紐づくケースを取得
@@ -172,34 +196,50 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         sortBy: RELATED_CASE_SORT
     })
     async wiredAccountCases({ data, error }) {
-        // 成功と失敗のどちらの新応答でも以前の変換を無効化
-        const requestId = ++this.accountCasesRequestId;
-        // 変換開始時の表示ケースを固定
-        const recordId = this.recordId;
-        // 取得成功時はUI APIレコードを表示用カードへ変換
+        // 関連リスト取得成功時は再生成に使う元データを保持
         if (data) {
-            // リンク生成を含むカード変換が完了してから一覧へ反映
-            const accountCases = await this.createCaseCards(data.records);
-            // 後続応答またはケース切り替えがあれば古い変換を破棄
-            if (requestId !== this.accountCasesRequestId || recordId !== this.recordId) {
-                // 最新一覧と取得状態を維持
-                return;
-            }
-            // 最新の変換結果だけを会社タブへ反映
-            this.accountCases = accountCases;
-            // 会社タブのローディングを終了
-            this.accountCasesHaveLoaded = true;
-            // 再取得成功時は会社タブのエラー表示を解除
-            this.accountCasesHaveError = false;
-        // 会社側だけ失敗した場合は顧客タブへ影響させずエラー表示
+            // 現在ケースの変更時にも使えるよう未加工レコードを保存
+            this.accountCaseRecords = data.records;
+            // 現在ケースと最新関連リストからカードを作成
+            await this.updateAccountCases();
         } else if (error) {
-            // 以前取得した会社ケースをエラー時に残さない
+            // 進行中の古いカード変換を無効化
+            this.accountCasesRequestId++;
+            // 取得失敗した元データを再利用しない
+            this.accountCaseRecords = undefined;
+            // 古いカードを表示から除去
             this.accountCases = [];
-            // 会社タブをローディングからエラー状態へ遷移
+            // エラーを表示できる取得済み状態にする
             this.accountCasesHaveLoaded = true;
-            // 会社タブの取得失敗をテンプレートへ通知
+            // この関連リストだけにエラーを表示
             this.accountCasesHaveError = true;
         }
+    }
+
+    // 現在ケースと保持した関連レコードから会社カードを再生成
+    async updateAccountCases() {
+        // 対象関連先の初回応答がまだなければ再生成しない
+        if (!this.accountCaseRecords) {
+            // 未取得または取得失敗の状態を維持
+            return;
+        }
+        // 同じ関連先の再生成でも以前の変換結果を無効化
+        const requestId = ++this.accountCasesRequestId;
+        // 非同期変換の対象ケースを固定
+        const recordId = this.recordId;
+        // URL生成を含めたカード表示を作成
+        const cases = await this.createCaseCards(this.accountCaseRecords);
+        // 後続の応答またはケース変更があれば古い結果を破棄
+        if (requestId !== this.accountCasesRequestId || recordId !== this.recordId) {
+            // 最新の表示状態を維持
+            return;
+        }
+        // 現在ケースを反映したカードを表示
+        this.accountCases = cases;
+        // 初回表示のローディングを終了
+        this.accountCasesHaveLoaded = true;
+        // 正常取得後のエラー表示を解除
+        this.accountCasesHaveError = false;
     }
 
     // Caseの初回レスポンス前だけ全体ローディングを有効化
@@ -386,6 +426,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         if (previousContactId !== this.contactId) {
             // 前の顧客向けに進行中のカード変換を無効化
             this.contactCasesRequestId++;
+            // 変更前の関連先レコードを再生成へ使わない
+            this.contactCaseRecords = undefined;
             // 以前のContactに紐づくカードを即時に破棄
             this.contactCases = [];
             // Contact未設定ならwire待ちをせず取得完了扱いに変更
@@ -398,6 +440,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         if (previousAccountId !== this.accountId) {
             // 前の会社向けに進行中のカード変換を無効化
             this.accountCasesRequestId++;
+            // 変更前の関連先レコードを再生成へ使わない
+            this.accountCaseRecords = undefined;
             // 以前のAccountに紐づくカードを即時に破棄
             this.accountCases = [];
             // Account未設定ならwire待ちをせず取得完了扱いに変更
@@ -409,6 +453,10 @@ export default class CaseRelatedCaseList extends NavigationMixin(
 
     // 親Case取得失敗時に両タブを表示可能な初期状態へ戻す
     resetRelatedCases() {
+        // 親ケース取得失敗後に古い関連レコードを使わない
+        this.contactCaseRecords = undefined;
+        // 会社側も未加工レコードを破棄
+        this.accountCaseRecords = undefined;
         // 親ケースの失敗後に古い顧客カードを復元しない
         this.contactCasesRequestId++;
         // 親ケースの失敗後に古い会社カードを復元しない

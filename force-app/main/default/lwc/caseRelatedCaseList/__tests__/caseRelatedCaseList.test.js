@@ -492,4 +492,39 @@ describe('c-case-related-case-list', () => {
         expect(element.shadowRoot.querySelector('lightning-tabset')).toBeNull();
         await expect(element).toBeAccessible();
     });
+
+    it.each([0, 1])('同じ関連先の別ケースへ移動しても現在ケースを再生成する: %s', async (tabIndex) => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        const nextId = '500000000000002AAA';
+        const records = [createCaseRecord(), createRelatedCase({ id: nextId, caseNumber: 'NEXT' })];
+        emitRelatedCases(CONTACT_RECORD_ID, records);
+        emitRelatedCases(ACCOUNT_RECORD_ID, records);
+        await flushPromises();
+        element.recordId = nextId;
+        getRecord.emit({ ...createCaseRecord({ caseNumber: 'NEXT', subject: '移動後の最新件名' }), id: nextId });
+        await flushPromises();
+        const tab = element.shadowRoot.querySelectorAll('lightning-tab')[tabIndex];
+        const tiles = getTabTiles(tab);
+        expect(getTabText(tab)).toContain('移動後の最新件名');
+        const current = tiles.find(tile => tile.querySelector('lightning-badge'));
+        expect(getTileCaseNumber(current)).toBe('NEXT');
+        expect(getTileCaseLink(current)).toBeNull();
+        expect(getTileCaseLink(tiles.find(tile => getTileCaseNumber(tile) === '00001000'))).not.toBeNull();
+    });
+
+    it('関連先を変更しない件名更新でも保持した一覧の現在ケースを更新する', async () => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        emitRelatedCases(CONTACT_RECORD_ID, []);
+        await flushPromises();
+        getRecord.emit(createCaseRecord({ subject: '変更後の件名' }));
+        await flushPromises();
+        const tab = element.shadowRoot.querySelectorAll('lightning-tab')[0];
+        expect(getTabText(tab)).toContain('変更後の件名');
+        expect(getTabText(tab)).not.toContain('現在の問い合わせ');
+    });
+
 });
