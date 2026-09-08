@@ -3,6 +3,19 @@ import { getRecord } from 'lightning/uiRecordApi';
 import { getRelatedListCount } from 'lightning/uiRelatedListApi';
 import CaseContactProfile from 'c/caseContactProfile';
 
+const mockGenerateUrl = jest.fn();
+
+jest.mock('lightning/navigation', () => {
+    const GenerateUrl = Symbol('GenerateUrl');
+    const NavigationMixin = (Base) => class extends Base {
+        [GenerateUrl](pageReference) {
+            return mockGenerateUrl(pageReference);
+        }
+    };
+    NavigationMixin.GenerateUrl = GenerateUrl;
+    return { NavigationMixin };
+});
+
 const CASE_RECORD_ID = '500000000000001AAA';
 const CONTACT_RECORD_ID = '003000000000001AAA';
 const CASE_ACCOUNT_RECORD_ID = '001000000000001AAA';
@@ -105,6 +118,52 @@ const createCaseRecord = ({
 });
 
 describe('c-case-contact-profile', () => {
+    beforeEach(() => {
+        mockGenerateUrl.mockReset().mockImplementation((page) => Promise.resolve('/' + page.attributes.recordId));
+    });
+
+    it('removes old links while new parent URLs are pending and keeps them absent on failure', async () => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        expect(element.shadowRoot.querySelectorAll('a').length).toBe(2);
+
+        let rejectUrls;
+        mockGenerateUrl.mockReturnValue(new Promise((resolve, reject) => { rejectUrls = reject; }));
+        getRecord.emit(createCaseRecord({
+            contactId: '003000000000002AAA',
+            contactName: '新しい顧客',
+            caseAccountId: '001000000000002AAA',
+            caseCompanyName: '新しい会社'
+        }));
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('新しい顧客');
+        expect(element.shadowRoot.textContent).toContain('新しい会社');
+        expect(element.shadowRoot.querySelectorAll('a').length).toBe(0);
+
+        rejectUrls(new Error('URL unavailable'));
+        await flushPromises();
+        expect(element.shadowRoot.querySelectorAll('a').length).toBe(0);
+    });
+
+    it('replaces cleared links only with the latest parent URLs', async () => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        const pending = [];
+        mockGenerateUrl.mockImplementation((page) => new Promise((resolve) => {
+            pending.push(() => resolve('/' + page.attributes.recordId));
+        }));
+        getRecord.emit(createCaseRecord({ contactId: '003000000000002AAA', caseAccountId: '001000000000002AAA' }));
+        await flushPromises();
+        expect(element.shadowRoot.querySelectorAll('a').length).toBe(0);
+        pending.forEach((resolve) => resolve());
+        await flushPromises();
+        expect([...element.shadowRoot.querySelectorAll('a')].map((link) => link.getAttribute('href')).sort()).toEqual([
+            '/001000000000002AAA', '/003000000000002AAA'
+        ]);
+    });
+
     afterEach(() => {
         while (document.body.firstChild) {
             document.body.removeChild(document.body.firstChild);

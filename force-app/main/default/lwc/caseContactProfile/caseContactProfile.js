@@ -102,8 +102,8 @@ export default class CaseContactProfile extends NavigationMixin(
             this.profile = this.createProfileFromRecord(data);
             // 再取得成功時は以前のエラー表示を解除
             this.errorMessage = undefined;
-            // 親レコードが変わった件数だけを未取得状態へ戻す
-            this.resetCaseCountsWhenParentChanges(
+            // 親レコードが変わった件数とリンクを未取得状態へ戻す
+            this.resetRelatedStateWhenParentChanges(
                 previousContactId,
                 previousAccountId
             );
@@ -369,18 +369,22 @@ export default class CaseContactProfile extends NavigationMixin(
         });
     }
 
-    // ContactまたはAccount変更時に対応する件数状態だけを初期化
-    resetCaseCountsWhenParentChanges(
+    // ContactまたはAccount変更時に対応する件数とリンクを初期化
+    resetRelatedStateWhenParentChanges(
         previousContactId,
         previousAccountId
     ) {
         // Contactが変わった場合は以前の問い合わせ件数を破棄
         if (previousContactId !== this.contactId) {
+            // URL生成中に旧顧客へ遷移しないよう解除
+            this.contactRecordUrl = undefined;
             // Contact件数を新しいwire応答待ちへ戻す
             this.resetContactCaseCount();
         }
         // Accountが変わった場合は以前の問い合わせ件数を破棄
         if (previousAccountId !== this.accountId) {
+            // URL生成中に旧会社へ遷移しないよう解除
+            this.accountRecordUrl = undefined;
             // Account件数を新しいwire応答待ちへ戻す
             this.resetAccountCaseCount();
         }

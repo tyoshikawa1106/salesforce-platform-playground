@@ -429,10 +429,25 @@ export default class ObjectRecordSearch extends LightningElement {
     applySearchState(nextState) {
         // wireが再実行されるかを現在の問い合わせ値で判定
         const previousRequest = JSON.stringify(this.searchRequest);
+        // 状態を変更する前に次の問い合わせを組み立てる
+        const nextRequest = createSearchRequest({
+            metricKey: this.metricKey,
+            config: this.config,
+            searchTerm: this.searchTerm,
+            currentPageToken: this.currentPageToken,
+            sortedBy: this.sortedBy,
+            sortedDirection: this.sortedDirection,
+            pageNumber: this.pageNumber,
+            ...nextState
+        });
+        // 同じ問い合わせでは取得済みの次ページ情報を保持
+        if (previousRequest === JSON.stringify(nextRequest)) {
+            return;
+        }
         // ページと検索条件を同じ状態遷移で更新
         Object.assign(this, nextState);
-        // 同一条件の再操作では存在しない応答を待たない
-        this.isSearchPending = previousRequest !== JSON.stringify(this.searchRequest);
+        // 変更後の問い合わせへの応答を待つ
+        this.isSearchPending = true;
     }
 
     // datatableの現在選択行を一括削除対象へ反映
