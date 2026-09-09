@@ -264,10 +264,12 @@ job IDの取得後にreport応答を解析または検証できない場合は�
 
 ### Ctrl+C
 
-監視中にCtrl+Cを受けた場合は、ローカル監視と次回pollまでの待機だけを終了します。Salesforce組織上のdeployはキャンセルしません。
+開始コマンド、進捗照会、次回pollまでの待機は非同期で実行し、Ctrl+CでローカルCLIと待機を中断します。中断状態はdry-runから実削除への移行まで共有し、終了コード`130`を変更せず返します。dry-run中または完了後に中断を受けた場合は実削除を開始しません。Salesforce組織上で開始済みのdeployはキャンセルしません。
+
+開始応答からjob IDを取得できない場合は、開始状況不明としてDeployment Statusの確認を案内します。job IDを取得できた場合は、同じjobの結果確認コマンドを表示します。
 
 ```text
-進捗監視を終了しました。組織上のdeployは継続しています。
+進捗監視を終了しました。組織上のdeployは継続している可能性があります。
 結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <default-target-org>
 ```
 
@@ -294,7 +296,7 @@ node --test scripts/metadata/destructive/test/destructive.node.js
 
 ### deployの実行と監視
 
-次のコマンドで、非同期開始、5秒間隔のreport、CLI呼び出し上限、開始状況不明、監視エラー、Ctrl+C、dry-run／実削除の成功判定を確認します。
+次のコマンドで、非同期開始、5秒間隔のreport、CLI呼び出し上限、開始状況不明、監視エラー、開始・照会・poll待機中のCtrl+C、実削除移行前の中断、dry-run／実削除の成功判定を確認します。
 
 ```sh
 node --test scripts/metadata/destructive/test/deploy-runner.node.js
