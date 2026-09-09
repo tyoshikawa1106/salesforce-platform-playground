@@ -20,6 +20,65 @@ describe('c-object-record-search form flows', () => {
         jest.clearAllMocks();
     });
 
+    it('作成可能項目がなくても更新可能なレコードを編集できる', async () => {
+        const element = createComponent();
+        searchRecords.emit(createSearchResponse({ createable: false, updateable: true }));
+        await flushPromises();
+        emitObjectInfo({ Name: { custom: false, createable: false, updateable: true } });
+        await flushPromises();
+        emitLayout({ mode: 'Create', fields: [] });
+        await flushPromises();
+        expect(findButton(element, '新規').disabled).toBe(true);
+        let table = element.shadowRoot.querySelector('lightning-datatable');
+        expect(table.columns.some((column) => column.type === 'action')).toBe(false);
+
+        emitLayout({ mode: 'Edit', fields: ['Name'] });
+        await flushPromises();
+        table = element.shadowRoot.querySelector('lightning-datatable');
+        expect(table.columns.some((column) => column.type === 'action')).toBe(true);
+        table.dispatchEvent(new CustomEvent('rowaction', {
+            detail: { action: { name: 'edit' }, row: searchResponse.records[0] }
+        }));
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('lightning-record-edit-form').recordId)
+            .toBe(searchResponse.records[0].id);
+        expect(getInputFieldNames(element)).toContain('Name');
+        await expect(element).toBeAccessible();
+    });
+
+    it('編集レイアウトに項目がなくても作成操作は有効にする', async () => {
+        const element = createComponent();
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        await flushPromises();
+        emitLayout({ mode: 'Create', fields: ['Name'] });
+        emitLayout({ mode: 'Edit', fields: [] });
+        await flushPromises();
+        expect(findButton(element, '新規').disabled).toBe(false);
+        const table = element.shadowRoot.querySelector('lightning-datatable');
+        expect(table.columns.some((column) => column.type === 'action')).toBe(false);
+        findButton(element, '新規').click();
+        await flushPromises();
+        expect(getInputFieldNames(element)).toContain('Name');
+    });
+
+    it('作成レイアウトの応答前でも編集レイアウトから編集を許可する', async () => {
+        const element = createComponent();
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        await flushPromises();
+        emitLayout({ mode: 'Edit', fields: ['Name'] });
+        await flushPromises();
+        expect(findButton(element, '新規').disabled).toBe(true);
+        const table = element.shadowRoot.querySelector('lightning-datatable');
+        expect(table.columns.some((column) => column.type === 'action')).toBe(true);
+        emitLayout({ mode: 'Create', fields: [] });
+        await flushPromises();
+        expect(table.columns.some((column) => column.type === 'action')).toBe(true);
+    });
+
     it('opens a create form for the target object', async () => {
         const element = await createRecordFormReadyComponent();
 

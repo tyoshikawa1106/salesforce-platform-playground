@@ -244,7 +244,8 @@ export function hasFormWireInputChanged(currentState = {}, nextState = {}) {
 export function createFormViewState({
     config,
     objectInfoResult,
-    formLayoutResult,
+    createLayoutResult,
+    editLayoutResult,
     formRecordId,
     formWireState
 }) {
@@ -252,39 +253,44 @@ export function createFormViewState({
     const {
         isFileUploadObject,
         isRecordFormObject,
-        layoutMode,
         objectUiCapability
     } = formWireState;
-    // 対応オブジェクトでデータとエラーがない間だけ取得中とする
-    const isFormLayoutLoading = Boolean(
-        isRecordFormObject &&
-            !formLayoutResult?.data &&
-            !formLayoutResult?.error
+    // 作成レイアウトの応答待ちを編集と独立して判定
+    const isCreateLayoutLoading = Boolean(
+        isRecordFormObject && !createLayoutResult?.data && !createLayoutResult?.error
     );
-    // レイアウトまたは代替定義からフォームセクションを生成
-    const formSections = createFormSections({
-        // Apexが返した対象オブジェクト設定を渡す
+    // 編集レイアウトの応答待ちを作成と独立して判定
+    const isEditLayoutLoading = Boolean(
+        isRecordFormObject && !editLayoutResult?.data && !editLayoutResult?.error
+    );
+    // 作成権限と作成レイアウトから入力セクションを生成
+    const createSections = createFormSections({
         config,
-        // 項目属性と権限情報を含む応答を渡す
         objectInfoResult,
-        // Fullページレイアウト応答を渡す
-        formLayoutResult,
-        // 作成または編集モードを判定するIDを渡す
-        formRecordId,
-        // 標準フォーム対応状況を渡す
+        formLayoutResult: createLayoutResult,
         isRecordFormObject,
-        // CreateまたはEditの現在モードを渡す
-        layoutMode
+        layoutMode: 'Create'
     });
-    // ボタン制御と案内判定に使う全項目を平坦化
-    const formFields = formSections.flatMap((section) => section.fields);
-    // 作成と編集権限はあるが表示項目がない状態を判定
+    // 更新権限と編集レイアウトから入力セクションを生成
+    const editSections = createFormSections({
+        config,
+        objectInfoResult,
+        formLayoutResult: editLayoutResult,
+        isRecordFormObject,
+        layoutMode: 'Edit'
+    });
+    // 表示中のフォームモードに対応するセクションを選択
+    const formSections = formRecordId ? editSections : createSections;
+    // 表示中のフォームモードに対応する応答を選択
+    const formLayoutResult = formRecordId ? editLayoutResult : createLayoutResult;
+    // 表示中のモードの読込状態だけを画面へ返す
+    const isFormLayoutLoading = formRecordId ? isEditLayoutLoading : isCreateLayoutLoading;
+    // 操作権限のあるモードで入力可能項目がない場合に案内
     const shouldShowFormFieldMessage = Boolean(
-        isRecordFormObject &&
-            !isFormLayoutLoading &&
-            config?.createable &&
-            config?.updateable &&
-            formFields.length === 0
+        isRecordFormObject && (
+            (config?.createable && !isCreateLayoutLoading && createSections.length === 0) ||
+            (config?.updateable && !isEditLayoutLoading && editSections.length === 0)
+        )
     );
     // 検索設定取得後だけオブジェクト固有の案内を使用
     const formCapabilityMessage = config?.objectApiName
@@ -321,16 +327,16 @@ export function createFormViewState({
             ? false
             : Boolean(
                   !isRecordFormObject ||
-                      isFormLayoutLoading ||
+                      isCreateLayoutLoading ||
                       !config?.createable ||
-                      formFields.length === 0
+                      createSections.length === 0
               ),
         // 処理中状態を除く行編集不可条件を保持
         editUnavailable: Boolean(
             !isRecordFormObject ||
-                isFormLayoutLoading ||
+                isEditLayoutLoading ||
                 !config?.updateable ||
-                formFields.length === 0
+                editSections.length === 0
         ),
         // ファイルアップロード方式か保持
         isFileUploadObject,
@@ -356,7 +362,6 @@ function createFormSections({
     config,
     objectInfoResult,
     formLayoutResult,
-    formRecordId,
     isRecordFormObject,
     layoutMode
 }) {
@@ -381,8 +386,8 @@ function createFormSections({
         layout: currentLayout,
         // 項目属性と権限情報を渡す
         fieldInfoByApiName: objectInfoResult?.data?.fields,
-        // 作成または編集モードを判定するレコードIDを渡す
-        formRecordId
+        // 作成または編集に対応する項目権限を判定
+        layoutMode
     });
     // 1項目以上ある場合はオブジェクト別必須項目を補完
     if (layoutSections.length > 0) {
@@ -395,7 +400,7 @@ function createFormSections({
             // 項目の作成更新権限を再確認
             fieldInfoByApiName: objectInfoResult?.data?.fields,
             // 作成または編集モードを判定
-            formRecordId
+            layoutMode
         });
     }
 

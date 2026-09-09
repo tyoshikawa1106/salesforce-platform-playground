@@ -86,12 +86,7 @@ export function emitObjectInfo(fieldOverrides = {}) {
     });
 }
 
-export function emitLayout({
-    objectApiName = 'Account',
-    mode = 'Create',
-    fields = ['Name', 'Industry'],
-    sections
-} = {}) {
+export function emitLayout({ objectApiName = 'Account', mode, fields = ['Name', 'Industry'], sections } = {}) {
     const layoutSections = (sections ?? [{ heading: '基本情報', fields }]).map((section) => ({
         heading: section.heading,
         layoutRows: [
@@ -111,17 +106,20 @@ export function emitLayout({
         ]
     }));
 
-    getLayout.emit({
-        layouts: {
-            [objectApiName]: {
-                Full: {
-                    [mode]: {
-                        sections: layoutSections
+    for (const targetMode of mode ? [mode] : ['Create', 'Edit']) {
+        getLayout.emit(
+            {
+                layouts: {
+                    [objectApiName]: {
+                        Full: {
+                            [targetMode]: { sections: layoutSections }
+                        }
                     }
                 }
-            }
-        }
-    });
+            },
+            (config) => config.mode === targetMode
+        );
+    }
 }
 
 export function findButton(element, label) {
