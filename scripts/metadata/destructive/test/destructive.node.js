@@ -9,6 +9,11 @@ const { spawnSync } = require('node:child_process');
 const { main, validateDestructiveManifest } = require('../destructive');
 const { deployOperations } = require('../internal/deploy-runner');
 
+// 組織表示は各テストの検証対象ではないため、テストランナーの出力へ混在させない。
+test.beforeEach((t) => {
+    t.mock.method(console, 'log', () => {});
+});
+
 // destructiveスクリプトをリポジトリルート基準で実行する。
 const repoRoot = path.resolve(__dirname, '../../../..');
 
@@ -419,5 +424,27 @@ for (const phase of ['dry-run', 'transition', 'deploy']) {
         );
         assert.equal(unregistered, true);
         assert.equal(prompt.isClosed(), true);
+    });
+}
+
+for (const type of ['sandbox', 'production']) {
+    test(`${type}の全承認が終わった後、dry-run開始前に入力を閉じる`, async () => {
+        const prompt = createPrompt(['y', 'y']);
+        let calls = 0;
+        const status = await main({
+            argv: [],
+            validateManifest() {},
+            createPrompt: () => prompt.prompt,
+            runSfWithOutputCommand: createOrgInfoCommand(type),
+            async runDeployCommand() {
+                assert.equal(prompt.isClosed(), true);
+                assert.equal(prompt.getQuestions().length, type === 'production' ? 2 : 1);
+                calls++;
+                return 0;
+            },
+            writeLine() {}
+        });
+        assert.equal(status, 0);
+        assert.equal(calls, 2);
     });
 }

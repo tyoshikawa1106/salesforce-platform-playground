@@ -90,11 +90,6 @@ async function main({
     // 接続先と組織種別の確認入力を受け付ける。
     const prompt = createApprovalPrompt(createPrompt);
 
-    // dry-runから実削除まで同じ中断状態を保持する。
-    const controller = new AbortController();
-    // 承認完了後に登録したハンドラーをfinallyで解除する。
-    let unregisterInterrupt = () => {};
-
     // 承認入力中の例外でもpromptを閉じられるようfinallyで管理する。
     try {
         // 表示された接続組織を実行者が承認した場合だけ組織種別の確認へ進む。
@@ -123,7 +118,18 @@ async function main({
                 return 0;
             }
         }
+    } finally {
+        // 全承認の終了後にraw入力を解除し、端末のCtrl+CをSIGINTとして受け付ける。
+        prompt.close();
+    }
 
+    // dry-runから実削除まで同じ中断状態を保持する。
+    const controller = new AbortController();
+    // 承認完了後に登録したハンドラーをfinallyで解除する。
+    let unregisterInterrupt = () => {};
+
+    // 開始した操作の終了時に中断ハンドラーを解除する。
+    try {
         // 通常manifestと削除対象manifestを明示し、テストレベルはSalesforce標準の判定に任せる。
         const deployArgs = [
             'project',
@@ -184,8 +190,6 @@ async function main({
     } finally {
         // 実削除への移行まで保持した中断ハンドラーを解除する。
         unregisterInterrupt();
-        // 中止やCLI失敗の場合も確認入力を終了する。
-        prompt.close();
     }
 }
 
