@@ -85,20 +85,32 @@ function resolveSourceDirectory({
 }
 
 // 同じ実行結果内に上書きしない日時別の検証フォルダを確保する。
-function resolveVerificationDirectory({ existsSync = fs.existsSync, now = () => new Date(), sourceDirectory }) {
+function resolveVerificationDirectory({ mkdirSync = fs.mkdirSync, now = () => new Date(), sourceDirectory }) {
     const runDirectory = path.dirname(sourceDirectory);
     const timestamp = now()
         .toISOString()
         .replace(/[-:TZ.]/gu, '')
         .slice(0, 17);
     const verificationRoot = path.join(runDirectory, 'verification');
+    // 親フォルダだけは複数実行で共有する。
+    mkdirSync(verificationRoot, { recursive: true });
 
     for (let sequence = 0; sequence < 10_000; sequence += 1) {
         const suffix = sequence === 0 ? '' : `-${String(sequence).padStart(4, '0')}`;
         const candidate = path.join(verificationRoot, `${timestamp}${suffix}`);
 
-        if (!existsSync(candidate)) {
+        // 存在確認と作成を分けず、作成成功を実行専用フォルダの確保とする。
+        try {
+            // 既存フォルダは成功扱いせず、他実行の取得先を使用しない。
+            mkdirSync(candidate);
+            // この実行だけが確保した保存先を返す。
             return candidate;
+        } catch (error) {
+            // 名前の競合だけ連番で再試行し、権限やI/Oの失敗は隠さない。
+            if (error.code !== 'EEXIST') {
+                // 取得処理を始める前に元のエラーで停止する。
+                throw error;
+            }
         }
     }
 
@@ -177,9 +189,8 @@ async function main(overrides = {}) {
         targetOrg
     });
     printTargetOrgInfo(orgInfo, writeLine);
-    const verificationDirectory = resolveVerificationDirectory({ existsSync, now, sourceDirectory });
+    const verificationDirectory = resolveVerificationDirectory({ mkdirSync, now, sourceDirectory });
     const retrievedDirectory = path.join(verificationDirectory, 'retrieved');
-    mkdirSync(verificationDirectory, { recursive: true });
     writeLine(`Permission Set保存結果確認対象: ${sourceDirectory}`);
     writeLine(`再取得対象: ${apiNames.length}件`);
     retrievePermissionSets({
