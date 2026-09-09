@@ -237,6 +237,8 @@ npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversio
 
 生成元フォルダにPermission Set XMLがない場合は、組織への接続前に入力エラーとして停止します。retrieve成功後の再取得先が存在しない場合、空の場合、対象XMLが0件の場合は、生成元の全対象を`missingPermissionSetInOrg`として比較レポートへ保存し、終了コード1を返します。読み取りエラーや不正なXMLは欠落として扱わずエラーにします。
 
+保存結果確認の実行フォルダは、日時と連番を使って排他的に作成します。同じ候補名を別の実行が確保済みの場合だけ次の連番を試し、取得ファイルと比較レポートの保存先を実行ごとに分離します。権限不足など名前の競合以外の作成エラーでは再試行せず停止し、既存の検証結果を使用・上書きしません。
+
 ## 権限・実行条件
 
 - Node.jsとSalesforce CLIが利用でき、Default Target Orgが認証済み組織一覧から特定できる必要があります。

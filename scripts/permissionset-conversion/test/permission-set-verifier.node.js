@@ -319,11 +319,7 @@ test('CLIは再取得0件でも全対象の欠落レポートを保存し終了�
         });
         assert.equal(status, 1);
         assert.ok(lines.includes('保存結果確認: 一致0件、差異あり2件、差分2件'));
-        const directory = resolveVerificationDirectory({
-            existsSync: () => false,
-            now: () => fixedNow,
-            sourceDirectory: project.sourceDirectory
-        });
+        const directory = path.join(path.dirname(project.sourceDirectory), 'verification', '20260902063018540');
         const report = JSON.parse(fs.readFileSync(path.join(directory, 'comparison-report.json'), 'utf8'));
         assert.deepEqual(report.summary, { permissionSets: 2, equal: 0, different: 2, differences: 2 });
         assert.deepEqual(
@@ -407,11 +403,11 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
         assert.equal(calls[2][calls[2].indexOf('--target-org') + 1], 'target-org-a');
         assert.equal(outputLines.includes('保存結果確認: 一致1件、差異あり0件、差分0件'), true);
         // 日時別の比較レポートへ一致結果を保存する。
-        const verificationDirectory = resolveVerificationDirectory({
-            existsSync: () => false,
-            now: () => fixedNow,
-            sourceDirectory: project.sourceDirectory
-        });
+        const verificationDirectory = path.join(
+            path.dirname(project.sourceDirectory),
+            'verification',
+            '20260902063018540'
+        );
         const report = JSON.parse(fs.readFileSync(path.join(verificationDirectory, 'comparison-report.json'), 'utf8'));
         assert.equal(report.targetOrg, 'target-org-a');
         assert.deepEqual(report.summary, { permissionSets: 1, equal: 1, different: 0, differences: 0 });
@@ -484,11 +480,11 @@ test('CLIは保存時の差分を比較レポートだけへ保存する', async
             false
         );
         // 日時別検証フォルダの比較レポートへ差分を保存する。
-        const verificationDirectory = resolveVerificationDirectory({
-            existsSync: () => false,
-            now: () => fixedNow,
-            sourceDirectory: project.sourceDirectory
-        });
+        const verificationDirectory = path.join(
+            path.dirname(project.sourceDirectory),
+            'verification',
+            '20260902063018540'
+        );
         const report = JSON.parse(fs.readFileSync(path.join(verificationDirectory, 'comparison-report.json'), 'utf8'));
         assert.equal(report.targetOrg, 'target-org-b');
         assert.deepEqual(report.summary, { permissionSets: 1, equal: 0, different: 1, differences: 1 });
@@ -504,4 +500,67 @@ test('CLIは保存時の差分を比較レポートだけへ保存する', async
         // テストで作成した一時プロジェクトを削除する。
         fs.rmSync(project.projectRoot, { force: true, recursive: true });
     }
+});
+
+test('同時実行が候補フォルダを先に確保しても取得先を共有しない', () => {
+    const project = createComparisonProject();
+    const now = () => new Date('2026-09-02T06:30:18.540Z');
+    let competingDirectory;
+    try {
+        const directory = resolveVerificationDirectory({
+            sourceDirectory: project.sourceDirectory,
+            now,
+            mkdirSync(candidate, options) {
+                if (!options && !competingDirectory) {
+                    competingDirectory = resolveVerificationDirectory({
+                        sourceDirectory: project.sourceDirectory,
+                        now
+                    });
+                    fs.writeFileSync(path.join(competingDirectory, 'existing.txt'), 'other-run');
+                }
+                return fs.mkdirSync(candidate, options);
+            }
+        });
+        assert.notEqual(directory, competingDirectory);
+        assert.equal(path.basename(directory), '20260902063018540-0001');
+        assert.equal(fs.readFileSync(path.join(competingDirectory, 'existing.txt'), 'utf8'), 'other-run');
+        assert.deepEqual(fs.readdirSync(directory), []);
+    } finally {
+        fs.rmSync(project.projectRoot, { recursive: true, force: true });
+    }
+});
+
+test('保存先確保の権限エラーは再試行せず元のエラーで停止する', () => {
+    const error = Object.assign(new Error('denied'), { code: 'EACCES' });
+    let calls = 0;
+    assert.throws(
+        () =>
+            resolveVerificationDirectory({
+                sourceDirectory: '/unused/permissionsets',
+                mkdirSync(candidate, options) {
+                    calls++;
+                    if (!options) throw error;
+                }
+            }),
+        (actual) => actual === error
+    );
+    assert.equal(calls, 2);
+});
+
+test('すべての連番が使用済みの場合は取得先を返さず停止する', () => {
+    let attempts = 0;
+    assert.throws(
+        () =>
+            resolveVerificationDirectory({
+                sourceDirectory: '/unused/permissionsets',
+                mkdirSync(candidate, options) {
+                    if (!options) {
+                        attempts++;
+                        throw Object.assign(new Error('exists'), { code: 'EEXIST' });
+                    }
+                }
+            }),
+        /一意な保存結果確認フォルダを確保できません/
+    );
+    assert.equal(attempts, 10000);
 });

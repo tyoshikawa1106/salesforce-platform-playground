@@ -376,3 +376,48 @@ test('実削除が失敗した場合はApexテストを案内しない', async (
     ]);
     assert.equal(prompt.isClosed(), true);
 });
+
+for (const phase of ['dry-run', 'transition', 'deploy']) {
+    test(`${phase}で中断すると130を保持し、後続処理を開始しない`, async () => {
+        const prompt = createPrompt(['y']);
+        const calls = [];
+        let interrupt;
+        let unregistered = false;
+        const lines = [];
+        const status = await main({
+            argv: [],
+            validateManifest() {},
+            createPrompt: () => prompt.prompt,
+            runSfWithOutputCommand: createOrgInfoCommand(),
+            registerInterrupt(handler) {
+                interrupt = handler;
+                return () => {
+                    unregistered = true;
+                };
+            },
+            async runDeployCommand(options) {
+                calls.push(options);
+                if (phase === 'transition') {
+                    setImmediate(interrupt);
+                    return 0;
+                }
+                if (options.operation === phase) {
+                    interrupt();
+                    assert.equal(options.signal.aborted, true);
+                    return 130;
+                }
+                return 0;
+            },
+            writeLine: (line) => lines.push(line)
+        });
+        assert.equal(status, 130);
+        assert.equal(calls.length, phase === 'deploy' ? 2 : 1);
+        if (calls.length === 2) assert.equal(calls[0].signal, calls[1].signal);
+        assert.equal(
+            lines.some((line) => line.includes('削除が完了')),
+            false
+        );
+        assert.equal(unregistered, true);
+        assert.equal(prompt.isClosed(), true);
+    });
+}

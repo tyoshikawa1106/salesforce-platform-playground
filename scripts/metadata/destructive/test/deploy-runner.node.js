@@ -271,7 +271,7 @@ test('Ctrl+Cではローカル監視だけを停止し、結果確認コマン�
         },
         waitForNextPoll(milliseconds, signal) {
             assert.equal(milliseconds, 5_000);
-            interrupt();
+            setImmediate(interrupt);
 
             return new Promise((resolve) => {
                 signal.addEventListener(
@@ -312,3 +312,152 @@ for (const [name, overrides, message] of [
         );
     });
 }
+
+for (const phase of ['start', 'report']) {
+    for (const response of ['abort', 'success']) {
+        test(`${phase}応答待ちの中断は${response}応答でも130で終了する`, async () => {
+            let interrupt;
+            let unregistered = false;
+            const lines = [];
+            const calls = [];
+            const status = await runAndMonitorDeploy({
+                deployArgs: ['project', 'deploy', 'start'],
+                operation: deployOperations.DRY_RUN,
+                targetOrg: 'test-org',
+                repoRoot: '/repo',
+                registerInterrupt(handler) {
+                    interrupt = handler;
+                    return () => {
+                        unregistered = true;
+                    };
+                },
+                runSfWithOutputCommand(args, cwd, exec, maxBuffer, timeout, signal) {
+                    calls.push(args);
+                    const isStart = args[2] === 'start';
+                    if (phase === 'report' && isStart) return createSfResult({ id: deployId });
+                    assert.equal(signal.aborted, false);
+                    return new Promise((resolve) => {
+                        signal.addEventListener(
+                            'abort',
+                            () =>
+                                resolve(
+                                    response === 'abort'
+                                        ? { error: new Error('aborted'), status: null, stdout: '' }
+                                        : createSfResult(
+                                              isStart
+                                                  ? { id: deployId }
+                                                  : createSuccessfulDeployResult({ checkOnly: true })
+                                          )
+                                ),
+                            { once: true }
+                        );
+                        setImmediate(interrupt);
+                    });
+                },
+                writeLine: (line) => lines.push(line),
+                writeError: (line) => assert.fail(line)
+            });
+            assert.equal(status, 130);
+            assert.equal(calls.length, phase === 'start' ? 1 : 2);
+            assert.equal(unregistered, true);
+            assert.ok(
+                lines.some((line) =>
+                    line.includes(
+                        phase === 'start' && response === 'abort'
+                            ? 'Deployment Status'
+                            : getReportCommand(deployId, 'test-org')
+                    )
+                )
+            );
+        });
+    }
+}
+
+test('開始前に中断されたsignalではCLIを呼ばない', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    assert.equal(
+        await runAndMonitorDeploy({
+            deployArgs: [],
+            operation: deployOperations.DEPLOY,
+            targetOrg: 'test-org',
+            repoRoot: '/repo',
+            signal: controller.signal,
+            runSfWithOutputCommand: () => assert.fail('CLIを呼んではならない'),
+            writeLine() {}
+        }),
+        130
+    );
+});
+
+test('poll待機のAbortErrorを通常エラーとして扱わない', async () => {
+    let interrupt;
+    const results = [createSfResult({ id: deployId }), createSfResult(createSuccessfulDeployResult({ done: false }))];
+    const status = await runAndMonitorDeploy({
+        deployArgs: [],
+        operation: deployOperations.DEPLOY,
+        targetOrg: 'test-org',
+        repoRoot: '/repo',
+        runSfWithOutputCommand: () => results.shift(),
+        registerInterrupt(handler) {
+            interrupt = handler;
+            return () => {};
+        },
+        waitForNextPoll(ms, signal) {
+            const promise = require('node:timers/promises').setTimeout(ms, undefined, { signal });
+            setImmediate(interrupt);
+            return promise;
+        },
+        writeLine() {},
+        writeError: (line) => assert.fail(line)
+    });
+    assert.equal(status, 130);
+});
+
+test(
+    '実プロセスのSIGINTで応答待ちCLIを中断し成功を返さない',
+    {
+        skip: process.platform === 'win32' ? 'WindowsはPOSIX SIGINT送信の対象外' : false,
+        timeout: 10000
+    },
+    async (t) => {
+        const { spawn } = require('node:child_process');
+        const runnerPath = require.resolve('../internal/deploy-runner');
+        const commandPath = require.resolve('../../../common/run-command');
+        const code = `
+        const { runAndMonitorDeploy } = require(${JSON.stringify(runnerPath)});
+        const { runSfWithOutputAsync } = require(${JSON.stringify(commandPath)});
+        const { execFile } = require('node:child_process');
+        runAndMonitorDeploy({
+            deployArgs: ['project', 'deploy', 'start'], operation: 'dry-run',
+            targetOrg: 'test-org', repoRoot: process.cwd(),
+            runSfWithOutputCommand(args, cwd, unused, maxBuffer, timeout, signal) {
+                if (args[2] === 'start') return { status: 0, stdout: JSON.stringify({status: 0, result: {id: '${deployId}'}}) };
+                return runSfWithOutputAsync(args, cwd, (command, commandArgs, options, callback) => {
+                    const child = execFile(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], options, callback);
+                    process.send('waiting');
+                    return child;
+                }, maxBuffer, timeout, signal);
+            },
+            writeLine() {}, writeError() {}
+        }).then(status => { process.send(status); process.disconnect(); });
+    `;
+        const child = spawn(process.execPath, ['-e', code], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+        t.after(() => {
+            if (child.exitCode === null) child.kill('SIGKILL');
+        });
+        const messages = [];
+        let stderr = '';
+        child.stderr.on('data', (chunk) => {
+            stderr += chunk;
+        });
+        child.on('message', (message) => {
+            messages.push(message);
+            if (message === 'waiting') child.kill('SIGINT');
+        });
+        const [codeResult, signalResult] = await require('node:events').once(child, 'exit');
+        assert.equal(codeResult, 0, stderr);
+        assert.equal(signalResult, null);
+        assert.deepEqual(messages, ['waiting', 130]);
+    }
+);

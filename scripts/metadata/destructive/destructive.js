@@ -4,9 +4,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
-const { runSfWithOutput } = require('../../common/run-command');
+const { setImmediate: yieldToEvents } = require('node:timers/promises');
+const { runSfWithOutput, runSfWithOutputAsync } = require('../../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../../common/target-org');
-const { deployOperations, runAndMonitorDeploy } = require('./internal/deploy-runner');
+const { deployOperations, registerInterruptHandler, runAndMonitorDeploy } = require('./internal/deploy-runner');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -60,6 +61,8 @@ async function main({
     argv = process.argv.slice(2),
     createPrompt,
     runSfWithOutputCommand = runSfWithOutput,
+    runSfWithOutputAsyncCommand = runSfWithOutputAsync,
+    registerInterrupt = registerInterruptHandler,
     validateManifest = validateDestructiveManifest,
     runDeployCommand = runAndMonitorDeploy,
     writeLine = console.log
@@ -86,6 +89,11 @@ async function main({
 
     // 接続先と組織種別の確認入力を受け付ける。
     const prompt = createApprovalPrompt(createPrompt);
+
+    // dry-runから実削除まで同じ中断状態を保持する。
+    const controller = new AbortController();
+    // 承認完了後に登録したハンドラーをfinallyで解除する。
+    let unregisterInterrupt = () => {};
 
     // 承認入力中の例外でもpromptを閉じられるようfinallyで管理する。
     try {
@@ -129,20 +137,29 @@ async function main({
             targetOrg
         ];
 
+        // 開始待ちと実削除への移行を含めてSIGINTを受け付ける。
+        unregisterInterrupt = registerInterrupt(() => controller.abort());
         writeLine('dry-runによるメタデータ削除の検証を開始します。');
 
-        // dry-runが失敗した場合は実削除せずに終了する。
-        if (
-            (await runDeployCommand({
-                deployArgs,
-                operation: deployOperations.DRY_RUN,
-                targetOrg,
-                repoRoot,
-                runSfWithOutputCommand
-            })) !== 0
-        ) {
-            // dry-run失敗を呼び出し元へ伝える。
-            return 1;
+        // 同じsignalを渡し、CLI開始から監視完了まで中断可能にする。
+        const dryRunStatus = await runDeployCommand({
+            deployArgs,
+            operation: deployOperations.DRY_RUN,
+            targetOrg,
+            repoRoot,
+            runSfWithOutputCommand: runSfWithOutputAsyncCommand,
+            signal: controller.signal
+        });
+        // 中断を含む非0終了を変更せず返し、実削除へ進まない。
+        if (dryRunStatus !== 0) {
+            return dryRunStatus;
+        }
+        // 成功直前に届いたSIGINTも実削除の開始前に処理する。
+        await yieldToEvents();
+        // dry-run完了後の中断も実削除開始を禁止する。
+        if (controller.signal.aborted) {
+            writeLine('メタデータの実削除を開始する前に中断しました。');
+            return 130;
         }
 
         writeLine('dry-runによるメタデータ削除の検証が成功しました。');
@@ -154,7 +171,8 @@ async function main({
             operation: deployOperations.DEPLOY,
             targetOrg,
             repoRoot,
-            runSfWithOutputCommand
+            runSfWithOutputCommand: runSfWithOutputAsyncCommand,
+            signal: controller.signal
         });
 
         if (deployStatus === 0) {
@@ -164,6 +182,8 @@ async function main({
 
         return deployStatus;
     } finally {
+        // 実削除への移行まで保持した中断ハンドラーを解除する。
+        unregisterInterrupt();
         // 中止やCLI失敗の場合も確認入力を終了する。
         prompt.close();
     }
