@@ -106,8 +106,8 @@ function createDisplayFieldColumn(field) {
         fieldName,
         // Apexが返したdatatable対応型を使用
         type,
-        // 追加表示項目によるサーバーソートを許可
-        sortable: true,
+        // Apexがソート可能と判定した項目だけ操作を許可
+        sortable: field.sortable === true,
         // 長い表示値をセル内で折り返す
         wrapText: true,
         // 追加列を読みやすい初期幅に設定

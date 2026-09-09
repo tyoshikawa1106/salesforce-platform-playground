@@ -200,9 +200,8 @@ describe('objectRecordSearchLogic', () => {
         const formViewState = createFormViewState({
             config,
             objectInfoResult,
-            formLayoutResult: {
-                error: { status: 403 }
-            },
+            createLayoutResult: { error: { status: 403 } },
+            editLayoutResult: { error: { status: 403 } },
             formRecordId: undefined,
             formWireState
         });

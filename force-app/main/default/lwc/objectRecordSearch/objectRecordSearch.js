@@ -75,8 +75,10 @@ export default class ObjectRecordSearch extends LightningElement {
     wiredSearchResult;
     // フォーム項目権限に使うgetObjectInfo応答を保持
     objectInfoResult;
-    // フォーム構築に使うページレイアウト応答を保持
-    formLayoutResult;
+    // 作成用フォームの項目と操作可否を判定する応答を保持
+    createLayoutResult;
+    // 編集用フォームの項目と操作可否を判定する応答を保持
+    editLayoutResult;
     // UI API wireへ渡す軽量なフォーム条件を保持
     formWireState = createFormWireState({});
     // UI API応答変更時に生成したフォーム表示状態を保持
@@ -123,17 +125,31 @@ export default class ObjectRecordSearch extends LightningElement {
         this.updateFormState();
     }
 
-    // 作成または編集モードのFullページレイアウトを取得
+    // 一覧表示時から作成用のFullページレイアウトを取得
     @wire(getLayout, {
         objectApiName: '$layoutObjectApiName',
         layoutType: 'Full',
-        mode: '$layoutMode',
+        mode: 'Create',
         recordTypeId: '$defaultRecordTypeId'
     })
-    wiredFormLayout(result) {
-        // フォームセクション構築に応答全体を保存
-        this.formLayoutResult = result;
-        // 最新ページレイアウトからフォーム表示状態を再生成
+    wiredCreateLayout(result) {
+        // 作成用応答だけを保存して編集用応答と混在させない
+        this.createLayoutResult = result;
+        // 作成項目と新規ボタンの可否を更新
+        this.updateFormState();
+    }
+
+    // 作成権限に依存せず編集用のFullページレイアウトを取得
+    @wire(getLayout, {
+        objectApiName: '$layoutObjectApiName',
+        layoutType: 'Full',
+        mode: 'Edit',
+        recordTypeId: '$defaultRecordTypeId'
+    })
+    wiredEditLayout(result) {
+        // 編集用応答だけを保存して作成用応答と混在させない
+        this.editLayoutResult = result;
+        // 編集項目と行アクションの可否を更新
         this.updateFormState();
     }
 
@@ -700,8 +716,10 @@ export default class ObjectRecordSearch extends LightningElement {
             config: this.config,
             // 項目属性と権限情報を含むUI API応答を渡す
             objectInfoResult: this.objectInfoResult,
-            // 現在モードのページレイアウト応答を渡す
-            formLayoutResult: this.formLayoutResult,
+            // 作成用のページレイアウト応答を渡す
+            createLayoutResult: this.createLayoutResult,
+            // 編集用のページレイアウト応答を渡す
+            editLayoutResult: this.editLayoutResult,
             // 作成または編集モードを判定するレコードIDを渡す
             formRecordId: this.formRecordId,
             // 最新入力から生成したフォーム方式とwire条件を渡す

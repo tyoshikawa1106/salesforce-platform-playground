@@ -29,7 +29,8 @@ export function getCurrentLayout({ formLayoutData, objectApiName, layoutMode }) 
 export function createLayoutFormSections({
     layout,
     fieldInfoByApiName = {},
-    formRecordId
+    formRecordId,
+    layoutMode = formRecordId ? 'Edit' : 'Create'
 } = {}) {
     // 同じ項目が複数箇所へ配置されても一度だけ表示
     const fieldApiNames = new Set();
@@ -55,8 +56,8 @@ export function createLayoutFormSections({
                         component.componentType !== 'Field' ||
                         !apiName ||
                         fieldApiNames.has(apiName) ||
-                        !isEditableLayoutItem(item, formRecordId) ||
-                        !isSupportedStandardField(fieldInfo, formRecordId)
+                        !isEditableLayoutItem(item, layoutMode) ||
+                        !isSupportedStandardField(fieldInfo, layoutMode)
                     ) {
                         // 対象外コンポーネントは現在の反復だけを終了
                         return;
@@ -97,7 +98,8 @@ export function applyFormFieldOverrides({
     sections = [],
     objectApiName,
     fieldInfoByApiName = {},
-    formRecordId
+    formRecordId,
+    layoutMode = formRecordId ? 'Edit' : 'Create'
 } = {}) {
     // 対象オブジェクトへ設定された補完項目を取得
     const configuredFields = getConfiguredFormFields(objectApiName);
@@ -127,7 +129,7 @@ export function applyFormFieldOverrides({
         // レイアウトにない利用可能項目は先頭セクションへ追加
         if (
             !existingFieldApiNames.has(field.apiName) &&
-            isSupportedStandardField(fieldInfo, formRecordId)
+            isSupportedStandardField(fieldInfo, layoutMode)
         ) {
             // 基本入力として先頭セクションの末尾へ追加
             nextSections[0].fields.push(field);
@@ -218,13 +220,13 @@ function createFormSection(label, fields, index) {
 }
 
 // 作成または編集モードに応じてレイアウト項目の編集可否を判定
-function isEditableLayoutItem(item, formRecordId) {
-    // レコードIDがある場合は更新権限、ない場合は新規作成権限を使用
-    return formRecordId ? item.editableForUpdate : item.editableForNew;
+function isEditableLayoutItem(item, layoutMode) {
+    // 編集モードでは更新権限、作成モードでは新規作成権限を使用
+    return layoutMode === 'Edit' ? item.editableForUpdate : item.editableForNew;
 }
 
 // 汎用フォームで扱える標準項目かつ操作可能か判定
-function isSupportedStandardField(fieldInfo, formRecordId) {
+function isSupportedStandardField(fieldInfo, layoutMode) {
     // 項目情報がない場合とカスタム項目は対象外
     if (!fieldInfo || fieldInfo.custom) {
         // 汎用フォームへ表示できない項目として返却
@@ -232,5 +234,5 @@ function isSupportedStandardField(fieldInfo, formRecordId) {
     }
 
     // 編集時は更新権限、作成時は作成権限を使用
-    return formRecordId ? fieldInfo.updateable : fieldInfo.createable;
+    return layoutMode === 'Edit' ? fieldInfo.updateable : fieldInfo.createable;
 }

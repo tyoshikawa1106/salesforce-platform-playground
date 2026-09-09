@@ -259,14 +259,11 @@ public with sharing class ObjectRecordSearchDisplayFieldCatalog {
 
     private static ObjectRecordSearchFieldWrapper createDisplayField(Schema.DescribeFieldResult fieldDescribe) {
         // Salesforce の項目型を lightning-datatable の型へ変換
-        String fieldApiName = fieldDescribe.getName();
-        String fieldLabel = fieldDescribe.getLabel();
         Schema.DisplayType fieldType = fieldDescribe.getType();
         String datatableType = getDatatableType(fieldType);
 
         return new ObjectRecordSearchFieldWrapper(
-            fieldApiName,
-            fieldLabel,
+            fieldDescribe,
             datatableType
         );
     }
