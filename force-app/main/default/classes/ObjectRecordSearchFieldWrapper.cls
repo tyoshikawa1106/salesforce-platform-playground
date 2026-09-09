@@ -15,6 +15,10 @@ public with sharing class ObjectRecordSearchFieldWrapper {
     @AuraEnabled
     public String dataType { get; private set; }
 
+    // SOQLでこの項目をソートできるか
+    @AuraEnabled
+    public Boolean sortable { get; private set; }
+
     /**
      * 固定項目定義を作成
      *
@@ -29,5 +33,21 @@ public with sharing class ObjectRecordSearchFieldWrapper {
         this.label = label ?? '';
         // datatable の表示形式を指定できるようにする
         this.dataType = dataType ?? '';
+        // 未指定の場合はソート操作を許可しない
+        this.sortable = false;
     }
+
+    /**
+     * Describeから表示項目とソート可否を作成
+     *
+     * @param fieldDescribe 表示項目のDescribe情報、nullの場合は空項目
+     * @param dataType lightning-datatableで使う表示型
+     */
+    public ObjectRecordSearchFieldWrapper(Schema.DescribeFieldResult fieldDescribe, String dataType) {
+        // 表示名とAPI名の正規化を共通の初期化へ委譲
+        this(fieldDescribe?.getName(), fieldDescribe?.getLabel(), dataType);
+        // Describeが許可するソート操作だけを画面へ公開
+        this.sortable = fieldDescribe?.isSortable() == true;
+    }
+
 }

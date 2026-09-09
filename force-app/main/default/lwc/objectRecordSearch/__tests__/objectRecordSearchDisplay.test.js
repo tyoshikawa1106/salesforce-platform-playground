@@ -5,6 +5,15 @@ import {
 } from '../objectRecordSearchDisplay';
 
 describe('objectRecordSearchDisplay', () => {
+    it('ソート可否が明示された列だけソート操作を表示する', () => {
+        const columns = createColumns({ displayFields: [
+            { apiName: 'Email', dataType: 'email', sortable: true },
+            { apiName: 'Description', dataType: 'text', sortable: false },
+            { apiName: 'Unknown', dataType: 'text' }
+        ] });
+        expect(columns.map((column) => column.sortable)).toEqual([true, true, false, false]);
+    });
+
     it.each([
         ['Incoming', 'boolean', false],
         ['Incoming', 'boolean', true],

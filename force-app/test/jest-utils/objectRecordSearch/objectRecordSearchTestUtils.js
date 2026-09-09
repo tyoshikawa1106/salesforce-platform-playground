@@ -17,12 +17,12 @@ export const searchResponse = {
         nameFieldCreateable: true,
         nameFieldUpdateable: true,
         displayFields: [
-            { apiName: 'Industry', label: '業種', dataType: 'text' },
-            { apiName: 'Type', label: '種別', dataType: 'text' },
-            { apiName: 'Website', label: 'Webサイト', dataType: 'url' },
-            { apiName: 'Phone', label: '電話', dataType: 'phone' },
-            { apiName: 'BillingState', label: '都道府県', dataType: 'text' },
-            { apiName: 'BillingCity', label: '市区郡', dataType: 'text' }
+            { apiName: 'Industry', label: '業種', dataType: 'text', sortable: true },
+            { apiName: 'Type', label: '種別', dataType: 'text', sortable: true },
+            { apiName: 'Website', label: 'Webサイト', dataType: 'url', sortable: true },
+            { apiName: 'Phone', label: '電話', dataType: 'phone', sortable: true },
+            { apiName: 'BillingState', label: '都道府県', dataType: 'text', sortable: true },
+            { apiName: 'BillingCity', label: '市区郡', dataType: 'text', sortable: true }
         ]
     },
     records: [
