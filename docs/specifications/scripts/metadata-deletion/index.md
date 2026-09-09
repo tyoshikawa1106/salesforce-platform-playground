@@ -264,6 +264,8 @@ job IDの取得後にreport応答を解析または検証できない場合は�
 
 ### Ctrl+C
 
+接続組織の承認と、本番・Developer Editionの追加承認をすべて終えた時点で、確認入力用のreadlineを閉じます。端末のraw入力を解除し、以後のCtrl+CをプロセスのSIGINTとして受け付けます。
+
 開始コマンド、進捗照会、次回pollまでの待機は非同期で実行し、Ctrl+CでローカルCLIと待機を中断します。中断状態はdry-runから実削除への移行まで共有し、終了コード`130`を変更せず返します。dry-run中または完了後に中断を受けた場合は実削除を開始しません。Salesforce組織上で開始済みのdeployはキャンセルしません。
 
 開始応答からjob IDを取得できない場合は、開始状況不明としてDeployment Statusの確認を案内します。job IDを取得できた場合は、同じjobの結果確認コマンドを表示します。
@@ -293,6 +295,8 @@ job IDの取得後にreport応答を解析または検証できない場合は�
 ```sh
 node --test scripts/metadata/destructive/test/destructive.node.js
 ```
+
+Sandboxと本番の全承認後、dry-run開始前に入力受付を閉じることを単体テストで確認します。端末への実際のCtrl+C入力は自動テストの対象外です。
 
 ### deployの実行と監視
 
