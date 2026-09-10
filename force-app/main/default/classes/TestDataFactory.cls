@@ -234,4 +234,35 @@ public with sharing class TestDataFactory {
         }
         return scanRecord;
     }
+    /**
+     * 標準ページングの型別境界を確認する複数ページのデータを作成
+     */
+    public static void createSearchPaginationRecords() {
+        // 設定順に並ぶ選択値とnullを別々のグループにする
+        List<Schema.PicklistEntry> values = Account.Industry.getDescribe().getPicklistValues();
+        // 同値内の境界も越える件数を用意
+        List<Account> accounts = new List<Account>();
+        List<Product2> products = new List<Product2>();
+        List<Opportunity> opportunities = new List<Opportunity>();
+        for (Integer index = 0; index < 251; index++) {
+            // ファクトリの既存ルールで名前を持つレコードを作成
+            Account record = createAccount('Pagination ' + index, SaveMode.DO_NOT_INSERT);
+            record.Industry = index < 100 ? values[0].getValue() : (index < 200 ? values[1].getValue() : null);
+            accounts.add(record);
+            // Booleanの両値がそれぞれ複数ページになるようにする
+            Product2 product = createProduct('Pagination ' + index, SaveMode.DO_NOT_INSERT);
+            product.IsActive = index < 125;
+            products.add(product);
+        }
+        // トリガの一括境界も越えた状態で保存
+        insert accounts;
+        insert products;
+        // 設定順ではProspectingが先、字句順ではNeeds Analysisが先になる組合せ
+        for (Integer index = 0; index < 251; index++) {
+            Opportunity opportunity = createOpportunity(accounts[0], 'Pagination ' + index, SaveMode.DO_NOT_INSERT);
+            opportunity.StageName = index < 125 ? 'Prospecting' : 'Needs Analysis';
+            opportunities.add(opportunity);
+        }
+        insert opportunities;
+    }
 }

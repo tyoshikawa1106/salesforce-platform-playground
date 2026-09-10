@@ -16,12 +16,12 @@ export function createInitialPaginationState() {
         pageNumber: FIRST_PAGE_NUMBER,
         // 既定の取得件数を設定
         pageSize: DEFAULT_PAGE_SIZE,
-        // 1ページ目には入力トークンを設定しない
-        currentPageToken: undefined,
-        // 応答受信前は次ページトークンを設定しない
-        nextPageToken: undefined,
-        // 前ページへ戻るためのトークン履歴を初期化
-        pageTokenHistory: [],
+        // 1ページ目には取得位置を設定しない
+        currentPagePosition: undefined,
+        // 応答受信前は次ページ取得位置を設定しない
+        nextPagePosition: undefined,
+        // 前ページへ戻るための取得位置の履歴を初期化
+        pagePositionHistory: [],
         // 応答受信前は次ページなしとして扱う
         hasNextPage: false
     };
@@ -35,42 +35,45 @@ export function createPaginationStateFromResponse(data, currentPageSize) {
         pageNumber: data.pageNumber ?? FIRST_PAGE_NUMBER,
         // 応答、現在値、既定値の順で取得件数を決定
         pageSize: data.pageSize ?? currentPageSize ?? DEFAULT_PAGE_SIZE,
-        // 次回検索に使うページトークンを保持
-        nextPageToken: data.nextPageToken,
+        // 次回検索に使うページ取得位置を保持
+        nextPagePosition: data.hasNextPage ? {
+            paginationCursor: data.paginationCursor,
+            startIndex: data.nextIndex
+        } : undefined,
         // Apex応答を真偽値へ正規化
         hasNextPage: Boolean(data.hasNextPage)
     };
 }
 
 // 1つ前の検索境界へ戻すページング状態を生成
-export function createPreviousPageState({ pageNumber, pageTokenHistory }) {
-    // 現在ページへ進む際に追加した末尾トークンを除外
-    const previousHistory = pageTokenHistory.slice(0, -1);
+export function createPreviousPageState({ pageNumber, pagePositionHistory }) {
+    // 現在ページへ進む際に追加した末尾の取得位置を除外
+    const previousHistory = pagePositionHistory.slice(0, -1);
     // 前ページ番号と対応する検索境界を返却
     return {
         // 表示ページを1つ戻す
         pageNumber: pageNumber - 1,
-        // 残った履歴の末尾を前ページの入力トークンに設定
-        currentPageToken: previousHistory[previousHistory.length - 1],
+        // 残った履歴の末尾を前ページの取得位置に設定
+        currentPagePosition: previousHistory[previousHistory.length - 1],
         // 更新済み履歴を次回操作へ引き継ぐ
-        pageTokenHistory: previousHistory
+        pagePositionHistory: previousHistory
     };
 }
 
 // 応答の次ページ境界へ進むページング状態を生成
 export function createNextPageState({
     pageNumber,
-    pageTokenHistory,
-    nextPageToken
+    pagePositionHistory,
+    nextPagePosition
 }) {
     // 次ページ番号と新しい検索境界を返却
     return {
         // 表示ページを1つ進める
         pageNumber: pageNumber + 1,
-        // Apex応答のトークンを次回検索へ使用
-        currentPageToken: nextPageToken,
-        // 前ページへ戻れるよう使用済みトークンを履歴へ追加
-        pageTokenHistory: [...pageTokenHistory, nextPageToken]
+        // Apex応答の取得位置を次回検索へ使用
+        currentPagePosition: nextPagePosition,
+        // 前ページへ戻れるよう使用済みの取得位置を履歴へ追加
+        pagePositionHistory: [...pagePositionHistory, nextPagePosition]
     };
 }
 

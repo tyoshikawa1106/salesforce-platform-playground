@@ -5,6 +5,14 @@ import {
 } from '../objectRecordSearchDisplay';
 
 describe('objectRecordSearchDisplay', () => {
+    it('日時列に時分を表示し、日付列には時刻を加えない', () => {
+        const columns = createColumns({ displayFields: [
+            { apiName: 'StartDateTime', dataType: 'date' },
+            { apiName: 'CloseDate', dataType: 'date-local' }
+        ] });
+        expect(columns[1].typeAttributes).toMatchObject({ hour: '2-digit', minute: '2-digit' });
+        expect(columns[2].typeAttributes).toBeUndefined();
+    });
     it('ソート可否が明示された列だけソート操作を表示する', () => {
         const columns = createColumns({ displayFields: [
             { apiName: 'Email', dataType: 'email', sortable: true },

@@ -3,33 +3,41 @@
  */
 public virtual with sharing class ObjectRecordSearchSelector {
 
-    // カーソル境界を逆方向に進める降順値
-    private static final String SORT_DESCENDING = 'desc';
-
     /**
-     * 検証済み条件から動的 SOQL と bind 値を組み立ててレコード取得
+     * 検証済み条件から標準PaginationCursorを作成
      *
      * @param searchQueryRequest 検索対象、検索語、ソート、ページングを持つ問い合わせ条件
-     * @return 検索結果 SObject
+     * @return 利用者権限のソート済み標準カーソル
      * @throws IllegalArgumentException 内部で組み立てた問い合わせ条件が契約を満たさない場合
      */
-    public virtual List<SObject> searchRecords(ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest) {
-        // 動的 SOQL に使うオブジェクトと項目を許可済み条件に限定
-        ObjectRecordSearchQueryPlan.SearchQueryRequest validatedRequest = ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(
-            searchQueryRequest
-        );
-        // 検索語とカーソル境界を SOQL 文字列から分離
-        Map<String, Object> bindValues = createSearchBindValues(validatedRequest);
-        // 許可済み識別子と bind 名だけで検索 SOQL を組み立て
-        String soql = buildSearchSoql(validatedRequest, bindValues);
-        // 画面利用者の権限で bind 付き動的 SOQL を評価
-        List<SObject> records = Database.queryWithBinds(
-            soql,
-            bindValues,
-            AccessLevel.USER_MODE
-        );
-        // 取得した未加工レコードを Controller へ返却
-        return records;
+    public virtual Database.PaginationCursor createPaginationCursor(ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest) {
+        // 許可された検索条件だけで結果集合を作成
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request = ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(searchQueryRequest);
+        // 名称検索は従来どおりbindで渡し、ページ境界のWHEREは作らない
+        Map<String, Object> bindValues = createSearchBindValues(request);
+        // ソート済み結果集合の管理をSalesforceに委譲
+        return Database.getPaginationCursorWithBinds(buildSearchSoql(request, bindValues), bindValues, AccessLevel.USER_MODE);
+    }
+
+    /**
+     * 標準カーソルの指定位置から最大50件を取得
+     * @param request 検証済み検索条件と標準カーソル
+     * @return 標準の取得結果、残件数がない場合はnull
+     */
+    public virtual Database.CursorFetchResult searchRecords(ObjectRecordSearchQueryPlan.SearchQueryRequest request) {
+        // 不正な識別子を含む内部要求を拒否
+        ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(request);
+        // 初回だけ結果集合を作成し、後続ページでは標準カーソルを再利用
+        if (request.paginationCursor == null) {
+            request.paginationCursor = createPaginationCursor(request);
+        }
+        // 0件と最終ページの範囲外をfetchPageへ渡さない
+        Integer remaining = request.paginationCursor.getNumRecords() - request.startIndex;
+        if (remaining <= 0) {
+            return null;
+        }
+        // 削除済み行のスキップと次の取得位置は標準APIへ委譲
+        return request.paginationCursor.fetchPage(request.startIndex, Math.min(request.fetchSize, remaining));
     }
 
     /**
@@ -87,16 +95,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
                 '%' + request.normalizedSearchTerm + '%'
             );
         }
-        // 次ページ条件がある場合だけ境界値を bind に設定
-        if (request.cursor != null) {
-            // 第 1 ソートキーの境界値を設定
-            bindValues.put('cursorSortValue', request.cursor.sortValue);
-            // 同値レコードの位置を確定する ID を設定
-            bindValues.put('cursorRecordId', request.cursor.recordId);
-        }
-        // 固定取得件数を SOQL 文字列へ直接埋め込まず bind に設定
-        bindValues.put('recordLimit', request.fetchSize);
-        // SOQL 実行で参照する bind 値を返却
         return bindValues;
     }
 
@@ -115,16 +113,6 @@ public virtual with sharing class ObjectRecordSearchSelector {
         if (hasNameSearch) {
             whereClauses.add(request.context.config.nameFieldApiName + ' LIKE :nameSearchTerm');
         }
-        // 次ページ取得時は前ページ末尾より後ろの条件を追加
-        if (request.cursor != null) {
-            // ソート方向と null 配置を考慮したカーソル条件を作成
-            String cursorWhereClause = createCursorWhereClause(
-                request.sortSpec,
-                request.cursor
-            );
-            // 名称検索条件と同じ WHERE 句に含める
-            whereClauses.add(cursorWhereClause);
-        }
         // 条件がある場合だけ WHERE 句を付与
         Boolean hasWhereClauses = !whereClauses.isEmpty();
         // 複数条件を AND で結合して基本 SOQL へ追加
@@ -142,29 +130,9 @@ public virtual with sharing class ObjectRecordSearchSelector {
             request.sortSpec.fieldApiName +
             ' ' +
             sortDirection +
-            ' NULLS LAST, Id ASC LIMIT :recordLimit';
+            ' NULLS LAST, Id ASC LIMIT 100000';
         // 利用者値を含まない動的 SOQL を実行処理へ返却
         return soql;
     }
 
-    private String createCursorWhereClause(ObjectRecordSearchSortSupport.SortSpec sortSpec, ObjectRecordSearchSortSupport.PageCursor cursor) {
-        // null 値グループでは Id だけを使って次の位置へ進める
-        if (cursor.sortValue == null) {
-            return '(' + sortSpec.fieldApiName + ' = NULL AND Id > :cursorRecordId)';
-        }
-        // 降順ではより小さい値、昇順ではより大きい値を次ページに含める
-        String sortOperator = sortSpec.direction == SORT_DESCENDING ? '<' : '>';
-        // 第 1 キーの後続値、同値の後続 ID、null 値グループを次ページ条件にする
-        String whereClause = '(' +
-            sortSpec.fieldApiName +
-            ' ' +
-            sortOperator +
-            ' :cursorSortValue OR (' +
-            sortSpec.fieldApiName +
-            ' = :cursorSortValue AND Id > :cursorRecordId) OR ' +
-            sortSpec.fieldApiName +
-            ' = NULL)';
-        // ページ境界の bind 名を含む WHERE 条件を返却
-        return whereClause;
-    }
 }

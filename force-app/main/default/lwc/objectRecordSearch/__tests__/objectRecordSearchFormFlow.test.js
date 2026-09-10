@@ -1,5 +1,7 @@
+import { getModal, getModalRoot, mockModalOpen } from '../../../../../test/jest-utils/objectRecordSearch/objectRecordFormModalMock';
 import '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchApexMocks';
 import { refreshApex } from '@salesforce/apex';
+import ObjectRecordFormModal from 'c/objectRecordFormModal';
 import { getLayout } from 'lightning/uiLayoutApi';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import {
@@ -13,11 +15,13 @@ import {
 } from '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchTestUtils';
 
 describe('c-object-record-search form flows', () => {
+    beforeEach(() => mockModalOpen());
     afterEach(() => {
         while (document.body.firstChild) {
             document.body.removeChild(document.body.firstChild);
         }
         jest.clearAllMocks();
+        jest.restoreAllMocks();
     });
 
     it('作成可能項目がなくても更新可能なレコードを編集できる', async () => {
@@ -40,9 +44,9 @@ describe('c-object-record-search form flows', () => {
             detail: { action: { name: 'edit' }, row: searchResponse.records[0] }
         }));
         await flushPromises();
-        expect(element.shadowRoot.querySelector('lightning-record-edit-form').recordId)
+        expect(getModalRoot().querySelector('lightning-record-edit-form').recordId)
             .toBe(searchResponse.records[0].id);
-        expect(getInputFieldNames(element)).toContain('Name');
+        expect(getInputFieldNames()).toContain('Name');
         await expect(element).toBeAccessible();
     });
 
@@ -60,7 +64,7 @@ describe('c-object-record-search form flows', () => {
         expect(table.columns.some((column) => column.type === 'action')).toBe(false);
         findButton(element, '新規').click();
         await flushPromises();
-        expect(getInputFieldNames(element)).toContain('Name');
+        expect(getInputFieldNames()).toContain('Name');
     });
 
     it('作成レイアウトの応答前でも編集レイアウトから編集を許可する', async () => {
@@ -84,16 +88,44 @@ describe('c-object-record-search form flows', () => {
 
         await openNewRecordForm(element);
 
-        const form = element.shadowRoot.querySelector(
+        const form = getModalRoot().querySelector(
             'lightning-record-edit-form'
         );
-        const modal = element.shadowRoot.querySelector('.slds-modal');
-        expect(element.shadowRoot.textContent).toContain('取引先を作成');
-        expect(modal.classList).toContain('slds-modal_large');
+        const modal = getModal();
+        expect(getModal().label).toBe('取引先を作成');
+        expect(modal.dataset.size).toBe('large');
         expect(form.objectApiName).toBe('Account');
         expect(form.recordId).toBeUndefined();
-        expect(getInputFieldNames(element)).toEqual(['Name', 'Industry']);
+        expect(getInputFieldNames()).toEqual(['Name', 'Industry']);
         await expect(element).toBeAccessible();
+    });
+
+    it('重複起動を防ぎ、キャンセル後は一覧を更新せず新しいモーダルを開ける', async () => {
+        const element = await createRecordFormReadyComponent();
+        await openNewRecordForm(element);
+        const firstModal = getModal();
+        findButton(element, '新規').click();
+        expect(ObjectRecordFormModal.open).toHaveBeenCalledTimes(1);
+        firstModal.close();
+        await flushPromises();
+        expect(refreshApex).not.toHaveBeenCalled();
+        expect(getModal()).toBeNull();
+        await openNewRecordForm(element);
+        expect(ObjectRecordFormModal.open).toHaveBeenCalledTimes(2);
+        expect(getModal()).not.toBe(firstModal);
+    });
+
+    it('モーダルの起動失敗を通知して再試行できる', async () => {
+        const element = await createRecordFormReadyComponent();
+        const toast = jest.fn();
+        element.addEventListener('lightning__showtoast', toast);
+        ObjectRecordFormModal.open.mockRejectedValueOnce(new Error('起動失敗'));
+        await openNewRecordForm(element);
+        expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+            detail: expect.objectContaining({ title: 'フォームを開けませんでした', variant: 'error' })
+        }));
+        await openNewRecordForm(element);
+        expect(getModal()).not.toBeNull();
     });
 
     it('explains layout fallback when the page layout cannot be loaded', async () => {
@@ -115,7 +147,7 @@ describe('c-object-record-search form flows', () => {
         findButton(element, '新規').click();
         await flushPromises();
 
-        expect(getInputFieldNames(element)).toEqual(['Name', 'Industry']);
+        expect(getInputFieldNames()).toEqual(['Name', 'Industry']);
     });
 
     it('groups record form fields by layout section', async () => {
@@ -135,7 +167,7 @@ describe('c-object-record-search form flows', () => {
         findButton(element, '新規').click();
         await flushPromises();
 
-        const sections = element.shadowRoot.querySelectorAll('.form-section');
+        const sections = getModalRoot().querySelectorAll('.form-section');
         expect(sections).toHaveLength(2);
         expect(sections[0].textContent).toContain('基本情報');
         expect(sections[1].textContent).toContain('追加情報');
@@ -159,7 +191,7 @@ describe('c-object-record-search form flows', () => {
         findButton(element, '新規').click();
         await flushPromises();
 
-        expect(getInputFieldNames(element)).toEqual(['Name', 'Industry']);
+        expect(getInputFieldNames()).toEqual(['Name', 'Industry']);
     });
 
     it('renders split required name fields for contacts', async () => {
@@ -187,7 +219,7 @@ describe('c-object-record-search form flows', () => {
         newButton.click();
         await flushPromises();
 
-        const fields = getInputFields(element);
+        const fields = getInputFields();
         expect(fields.map((field) => field.fieldName)).toEqual([
             'FirstName',
             'LastName'
@@ -218,7 +250,7 @@ describe('c-object-record-search form flows', () => {
         findButton(element, '新規').click();
         await flushPromises();
 
-        const fields = getInputFields(element);
+        const fields = getInputFields();
         expect(fields.map((field) => field.fieldName)).toEqual([
             'FirstName',
             'LastName',
@@ -248,7 +280,7 @@ describe('c-object-record-search form flows', () => {
         findButton(element, '新規').click();
         await flushPromises();
 
-        const fields = getInputFields(element);
+        const fields = getInputFields();
         expect(fields.map((field) => field.fieldName)).toEqual([
             'Name',
             'StageName',
@@ -270,10 +302,10 @@ describe('c-object-record-search form flows', () => {
         );
         await flushPromises();
 
-        const form = element.shadowRoot.querySelector(
+        const form = getModalRoot().querySelector(
             'lightning-record-edit-form'
         );
-        expect(element.shadowRoot.textContent).toContain('取引先を編集');
+        expect(getModal().label).toBe('取引先を編集');
         expect(form.recordId).toBe('001xx000003DGbYAAW');
     });
 
@@ -298,11 +330,11 @@ describe('c-object-record-search form flows', () => {
         findButton(element, 'アップロード').click();
         await flushPromises();
 
-        const upload = element.shadowRoot.querySelector(
+        const upload = getModalRoot().querySelector(
             'lightning-file-upload'
         );
         expect(upload).not.toBeNull();
-        expect(element.shadowRoot.textContent).toContain(
+        expect(getModal().label).toBe(
             'ファイルをアップロード'
         );
         expect(element.shadowRoot.textContent).toContain(
@@ -337,12 +369,12 @@ describe('c-object-record-search form flows', () => {
 
         await openNewRecordForm(element);
 
-        element.shadowRoot.querySelector(
+        getModalRoot().querySelector(
             'lightning-input-field'
         ).reportValidity = jest.fn().mockReturnValue(false);
         const submitEvent = new CustomEvent('submit', { cancelable: true });
         submitEvent.preventDefault = jest.fn();
-        element.shadowRoot
+        getModalRoot()
             .querySelector('lightning-record-edit-form')
             .dispatchEvent(submitEvent);
 
@@ -354,65 +386,55 @@ describe('c-object-record-search form flows', () => {
 
         await openNewRecordForm(element);
 
-        element.shadowRoot
+        getModalRoot()
             .querySelectorAll('lightning-input-field')
             .forEach((field) => {
                 field.reportValidity = jest.fn().mockReturnValue(true);
             });
-        element.shadowRoot
+        getModalRoot()
             .querySelector('lightning-record-edit-form')
             .dispatchEvent(new CustomEvent('submit'));
         await flushPromises();
 
-        expect(findButton(element, '保存').disabled).toBe(true);
+        expect(findButton(getModal(), '保存').disabled).toBe(true);
+        expect(getModal().disableClose).toBe(true);
+        const duplicateSubmit = new CustomEvent('submit', { cancelable: true });
+        getModalRoot().querySelector('lightning-record-edit-form').dispatchEvent(duplicateSubmit);
+        expect(duplicateSubmit.defaultPrevented).toBe(true);
     });
 
-    it('keeps the form open when header close is clicked during a save', async () => {
+    it('保存中は標準モーダルを閉じられず、エラー後は再び閉じられる', async () => {
         const element = await createRecordFormReadyComponent();
         await openNewRecordForm(element);
-        element.shadowRoot.querySelectorAll('lightning-input-field').forEach((field) => {
+        getModalRoot().querySelectorAll('lightning-input-field').forEach((field) => {
             field.reportValidity = jest.fn().mockReturnValue(true);
         });
-        const form = element.shadowRoot.querySelector('lightning-record-edit-form');
+        const form = getModalRoot().querySelector('lightning-record-edit-form');
         form.dispatchEvent(new CustomEvent('submit'));
         await flushPromises();
 
-        const closeButton = element.shadowRoot.querySelector('.slds-modal__close');
-        expect(closeButton.disabled).toBe(true);
-        closeButton.click();
+        const modal = getModal();
+        expect(modal.disableClose).toBe(true);
+        findButton(modal, 'キャンセル').click();
+        modal.close();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('lightning-record-edit-form')).toBe(form);
-        expect(findButton(element, '新規').disabled).toBe(true);
+        expect(getModalRoot().querySelector('lightning-record-edit-form')).toBe(form);
 
         form.dispatchEvent(new CustomEvent('error', { detail: { message: '保存失敗' } }));
         await flushPromises();
-        expect(closeButton.disabled).toBe(false);
-        closeButton.click();
+        expect(modal.disableClose).toBe(false);
+        findButton(modal, 'キャンセル').click();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="dialog"]')).toBeNull();
+        expect(getModal()).toBeNull();
     });
 
-    it('shows fallback save error when record form save fails without a message', async () => {
+    it('保存エラーにメッセージがない場合はフォーム内に代替案内を表示する', async () => {
         const element = await createRecordFormReadyComponent();
-        const toastHandler = jest.fn();
-        element.addEventListener('lightning__showtoast', toastHandler);
-
         await openNewRecordForm(element);
-
-        element.shadowRoot
-            .querySelector('lightning-record-edit-form')
-            .dispatchEvent(new CustomEvent('error'));
+        getModalRoot().querySelector('lightning-record-edit-form').dispatchEvent(new CustomEvent('error'));
         await flushPromises();
-
-        expect(toastHandler).toHaveBeenCalledWith(
-            expect.objectContaining({
-                detail: expect.objectContaining({
-                    title: '保存に失敗しました',
-                    message: '取引先を保存できませんでした。',
-                    variant: 'error'
-                })
-            })
-        );
+        expect(getModalRoot().querySelector('[role="alert"]').textContent).toBe('取引先を保存できませんでした。');
+        expect(getModal().disableClose).toBe(false);
     });
 
     it('refreshes rows and dispatches recordschanged when a form save succeeds', async () => {
@@ -424,7 +446,7 @@ describe('c-object-record-search form flows', () => {
 
         await openNewRecordForm(element);
 
-        element.shadowRoot
+        getModalRoot()
             .querySelector('lightning-record-edit-form')
             .dispatchEvent(new CustomEvent('success'));
         await flushPromises();
@@ -439,9 +461,7 @@ describe('c-object-record-search form flows', () => {
                 })
             })
         );
-        expect(
-            element.shadowRoot.querySelector('lightning-record-edit-form')
-        ).toBeNull();
+        expect(getModal()).toBeNull();
     });
     it.each(['save', 'upload'])('%s成功後の取得失敗でも成功通知と親通知を維持する', async (operation) => {
         const element = operation === 'save' ? await createRecordFormReadyComponent() : createComponent();
@@ -452,13 +472,13 @@ describe('c-object-record-search form flows', () => {
         refreshApex.mockRejectedValueOnce(new Error('一覧の再取得に失敗'));
         if (operation === 'save') {
             await openNewRecordForm(element);
-            element.shadowRoot.querySelector('lightning-record-edit-form').dispatchEvent(new CustomEvent('success'));
+            getModalRoot().querySelector('lightning-record-edit-form').dispatchEvent(new CustomEvent('success'));
         } else {
             searchRecords.emit(createSearchResponse({ metricKey: 'files', objectApiName: 'ContentDocument', objectLabel: 'ファイル' }));
             await flushPromises();
             findButton(element, 'アップロード').click();
             await flushPromises();
-            element.shadowRoot.querySelector('lightning-file-upload').dispatchEvent(
+            getModalRoot().querySelector('lightning-file-upload').dispatchEvent(
                 new CustomEvent('uploadfinished', { detail: { files: [{ name: 'sample.pdf' }] } })
             );
         }
@@ -467,7 +487,7 @@ describe('c-object-record-search form flows', () => {
         expect(changed).toHaveBeenCalledTimes(1);
         expect(toast.mock.calls.map(([event]) => event.detail.variant)).toEqual(['success']);
         expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得');
-        expect(element.shadowRoot.querySelector('[role="dialog"]')).toBeNull();
+        expect(getModal()).toBeNull();
     });
 
 });
@@ -488,12 +508,12 @@ async function openNewRecordForm(element) {
     await flushPromises();
 }
 
-function getInputFieldNames(element) {
-    return getInputFields(element).map((field) => field.fieldName);
+function getInputFieldNames() {
+    return getInputFields().map((field) => field.fieldName);
 }
 
-function getInputFields(element) {
+function getInputFields() {
     return Array.from(
-        element.shadowRoot.querySelectorAll('lightning-input-field')
+        getModalRoot().querySelectorAll('lightning-input-field')
     );
 }

@@ -41,21 +41,14 @@ private with sharing class ObjectRecordSearchServiceTest {
             sortSpec
         );
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
-        List<SObject> records = [
-            SELECT Id, Name, Industry
-            FROM Account
-            WHERE Name LIKE 'Service%'
-            ORDER BY Name
-        ];
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = service.createSearchResult(
-                searchQueryRequest,
-                records
-            );
+            searchQueryRequest.paginationCursor = selector.createPaginationCursor(searchQueryRequest);
+            result = service.createSearchResult(searchQueryRequest, selector.searchRecords(searchQueryRequest));
 
             Test.stopTest();
         }
@@ -123,7 +116,7 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
-     * 不正なページトークンは原因コードで通知
+     * 不正なページ取得位置は原因コードで通知
      */
     @IsTest
     static void shouldReturnFailureWhenPageTokenIsInvalid() {
@@ -132,7 +125,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             'accounts',
             null
         );
-        request.pageToken = 'not-json';
+        request.startIndex = -1;
         ObjectRecordSearchContext context = createAccountContext(service);
         ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
             context,
@@ -152,15 +145,15 @@ private with sharing class ObjectRecordSearchServiceTest {
             Test.stopTest();
         }
 
-        Assert.isFalse(result.isSuccess(), '不正なページトークンは検索条件を返さない必要あり');
+        Assert.isFalse(result.isSuccess(), '不正なページ取得位置は検索条件を返さない必要あり');
         Assert.areEqual(
-            ObjectRecordSearchService.ErrorCode.INVALID_PAGE_TOKEN,
+            ObjectRecordSearchService.ErrorCode.INVALID_PAGE_POSITION,
             result.errorCode,
-            '不正なページトークンを原因コードで通知する必要あり'
+            '不正なページ取得位置を原因コードで通知する必要あり'
         );
         Assert.isNull(
             result.searchQueryRequest,
-            '不正なページトークンから問い合わせ条件を作成しない必要あり'
+            '不正なページ取得位置から問い合わせ条件を作成しない必要あり'
         );
     }
 
@@ -193,22 +186,14 @@ private with sharing class ObjectRecordSearchServiceTest {
             sortSpec
         );
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
-        List<SObject> records = [
-            SELECT Id, Name, Industry
-            FROM Account
-            WHERE Name LIKE 'Paged Account%'
-            ORDER BY Name, Id
-            LIMIT 51
-        ];
+        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = service.createSearchResult(
-                searchQueryRequest,
-                records
-            );
+            searchQueryRequest.paginationCursor = selector.createPaginationCursor(searchQueryRequest);
+            result = service.createSearchResult(searchQueryRequest, selector.searchRecords(searchQueryRequest));
 
             Test.stopTest();
         }
@@ -223,14 +208,10 @@ private with sharing class ObjectRecordSearchServiceTest {
             '複数ページ分を取得した場合は次ページ状態を作成する必要あり'
         );
         Assert.isNotNull(
-            result.nextPageToken,
-            '次ページ状態はカーソルトークンを含む必要あり'
+            result.paginationCursor,
+            '次ページ状態は標準カーソルを含む必要あり'
         );
-        // 余分な51件目ではなく表示末尾の50件目を次ページ境界にする
-        ObjectRecordSearchPageTokenCodec.ParseResult boundary = ObjectRecordSearchSortSupport.parsePageToken(result.nextPageToken, sortSpec);
-        Assert.isTrue(boundary.isValid, '結果整形が発行したtokenを復元できる必要あり');
-        Assert.areEqual(records[49].get('Id'), boundary.cursor.recordId, '50件目のIdを境界にする必要あり');
-        Assert.areEqual(records[49].get('Name'), boundary.cursor.sortValue, '50件目の元のソート値を境界にする必要あり');
+        Assert.areEqual(50, result.nextIndex, '標準APIの次ページ位置を保持する必要あり');
         Assert.areEqual(
             1,
             result.pageNumber,

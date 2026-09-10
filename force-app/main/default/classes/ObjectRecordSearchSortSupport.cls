@@ -30,44 +30,13 @@ public with sharing class ObjectRecordSearchSortSupport {
             fieldDescribe = context.getAllowedFieldDescribe(fieldApiName);
         }
         SortSpec sortSpec = new SortSpec();
-        // ページトークンを現在の検索対象オブジェクトへ束縛
+        // ソート条件が属する検索対象オブジェクトを保持
         sortSpec.objectApiName = context.config.objectApiName;
         sortSpec.fieldApiName = fieldApiName;
         sortSpec.direction = getSortDirection(request);
         sortSpec.fieldDescribe = fieldDescribe;
         sortSpec.nameFieldApiName = context.config.nameFieldApiName;
         return sortSpec;
-    }
-
-    /**
-     * 次ページ取得用のカーソルトークンを作成
-     * @param lastRecord 現在ページ末尾の元レコード
-     * @param sortSpec ソート条件
-     * @return 次ページ取得用トークン、行またはソート条件がない場合は空文字列
-     */
-    public static String createNextPageToken(SObject lastRecord, SortSpec sortSpec) {
-        // 最終行のソート値と Id を次ページ token に変換
-        String nextPageToken = ObjectRecordSearchPageTokenCodec.createNextPageToken(
-            lastRecord,
-            sortSpec
-        );
-        return nextPageToken;
-    }
-
-    /**
-     * カーソルトークン読み込み
-     * @param pageToken LWC から受け取ったページトークン
-     * @param sortSpec 現在のソート条件
-     * @return token の有効性と次ページ取得用カーソル
-     * @throws IllegalArgumentException 内部のソート条件が解析契約を満たさない場合
-     */
-    public static ObjectRecordSearchPageTokenCodec.ParseResult parsePageToken(String pageToken, SortSpec sortSpec) {
-        // LWC から戻った token を現在のソート条件に対応するカーソルへ復元
-        ObjectRecordSearchPageTokenCodec.ParseResult result = ObjectRecordSearchPageTokenCodec.parsePageToken(
-            pageToken,
-            sortSpec
-        );
-        return result;
     }
 
     private static String getSortFieldApiName(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request) {
@@ -90,7 +59,7 @@ public with sharing class ObjectRecordSearchSortSupport {
      */
     public class SortSpec {
 
-        // ページトークンと照合する検索対象オブジェクト
+        // ソート条件が属する検索対象オブジェクト
         public String objectApiName = '';
         public String fieldApiName = '';
         public String direction = '';
@@ -98,12 +67,4 @@ public with sharing class ObjectRecordSearchSortSupport {
         public String nameFieldApiName = '';
     }
 
-    /**
-     * ページングに使う現在ページ末尾の値
-     */
-    public class PageCursor {
-
-        public Object sortValue;
-        public Id recordId;
-    }
 }

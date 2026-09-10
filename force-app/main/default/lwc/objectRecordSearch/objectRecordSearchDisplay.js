@@ -114,7 +114,15 @@ function createDisplayFieldColumn(field) {
         initialWidth: 180
     };
 
-    // URL型だけリンク用の表示属性を追加
+    // 日時列では日付だけでなく時刻も識別できるようにする
+    if (type === 'date') {
+        column.typeAttributes = {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        };
+    }
+
+    // URL型にはリンク用の表示属性を追加
     if (type === 'url') {
         // URL値自身をラベルに使い新しいタブで開く
         column.typeAttributes = {

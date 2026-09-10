@@ -12,9 +12,9 @@ describe('objectRecordSearchState', () => {
         expect(createInitialPaginationState()).toEqual({
             pageNumber: 1,
             pageSize: 50,
-            currentPageToken: undefined,
-            nextPageToken: undefined,
-            pageTokenHistory: [],
+            currentPagePosition: undefined,
+            nextPagePosition: undefined,
+            pagePositionHistory: [],
             hasNextPage: false
         });
         expect(normalizeSortDirection('desc')).toBe('desc');
@@ -25,29 +25,29 @@ describe('objectRecordSearchState', () => {
         expect(createPaginationStateFromResponse({}, 25)).toEqual({
             pageNumber: 1,
             pageSize: 25,
-            nextPageToken: undefined,
+            nextPagePosition: undefined,
             hasNextPage: false
         });
         expect(
             createNextPageState({
                 pageNumber: 1,
-                pageTokenHistory: [],
-                nextPageToken: 'token-2'
+                pagePositionHistory: [],
+                nextPagePosition: 'token-2'
             })
         ).toEqual({
             pageNumber: 2,
-            currentPageToken: 'token-2',
-            pageTokenHistory: ['token-2']
+            currentPagePosition: 'token-2',
+            pagePositionHistory: ['token-2']
         });
         expect(
             createPreviousPageState({
                 pageNumber: 3,
-                pageTokenHistory: ['token-2', 'token-3']
+                pagePositionHistory: ['token-2', 'token-3']
             })
         ).toEqual({
             pageNumber: 2,
-            currentPageToken: 'token-2',
-            pageTokenHistory: ['token-2']
+            currentPagePosition: 'token-2',
+            pagePositionHistory: ['token-2']
         });
     });
 

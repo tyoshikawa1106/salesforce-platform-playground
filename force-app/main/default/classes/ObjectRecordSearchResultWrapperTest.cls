@@ -21,7 +21,7 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
                 config,
                 new List<ObjectRecordSearchRowWrapper>()
             )
-                .withPageState(50, 2, 'next-token');
+                .withPageState(2, null, 50);
 
             Test.stopTest();
         }
@@ -47,18 +47,18 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
             'Result wrapper はページ番号を公開する必要あり'
         );
         Assert.areEqual(
-            'next-token',
-            wrapper.nextPageToken,
-            'Result wrapper は次ページトークンを公開する必要あり'
+            50,
+            wrapper.nextIndex,
+            'Result wrapper は次ページの取得位置を公開する必要あり'
         );
-        Assert.isTrue(
+        Assert.isFalse(
             wrapper.hasNextPage,
-            'Result wrapper は空でない次ページトークンを利用可能として扱う必要あり'
+            'Result wrapper はカーソルがない場合は次ページなしとして扱う必要あり'
         );
     }
 
     /**
-     * null のレコード一覧とページトークンを空値へ変換
+     * null のレコード一覧と取得位置を既定値へ変換
      */
     @IsTest
     static void shouldNormalizeNullResultValues() {
@@ -77,10 +77,10 @@ private with sharing class ObjectRecordSearchResultWrapperTest {
         }
 
         Assert.isTrue(wrapper.records.isEmpty(), 'null のレコード一覧は空の一覧へ変換する必要あり');
-        Assert.areEqual(0, wrapper.pageSize, 'null のページサイズは 0 へ変換する必要あり');
+        Assert.areEqual(50, wrapper.pageSize, 'ページサイズは50件固定である必要あり');
         Assert.areEqual(1, wrapper.pageNumber, 'null のページ番号は 1 へ変換する必要あり');
-        Assert.areEqual('', wrapper.nextPageToken, 'null のページトークンは空文字列へ変換する必要あり');
-        Assert.isFalse(wrapper.hasNextPage, '空のページトークンは次ページなしとして扱う必要あり');
+        Assert.areEqual(0, wrapper.nextIndex, 'null の取得位置は0へ変換する必要あり');
+        Assert.isFalse(wrapper.hasNextPage, 'カーソルなしの状態は次ページなしとして扱う必要あり');
     }
 
     private static ObjectRecordSearchConfigWrapper createConfigWrapper() {

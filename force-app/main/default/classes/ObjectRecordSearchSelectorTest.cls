@@ -35,191 +35,32 @@ private with sharing class ObjectRecordSearchSelectorTest {
         insert accounts;
     }
 
-    /**
-     * 検索語を bind 値にして一致レコードを取得
-     */
     @IsTest
-    static void searchRecordsShouldApplyBoundNameSearch() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest(
-            ' Alpha ',
-            null
-        );
-        List<SObject> records;
-
+    static void shouldUseBoundSearchWithStandardCursor() {
         System.runAs(testUser) {
             Test.startTest();
-
-            records = selector.searchRecords(request);
-
+            ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
+            input.metricKey = 'accounts';
+            input.searchTerm = ' Selector Alpha ';
+            ObjectRecordSearchResultWrapper page = ObjectRecordSearchController.searchRecords(input);
             Test.stopTest();
+            Assert.areEqual(1, page.records.size(), '名称検索が標準カーソルにも適用される必要あり');
+            Assert.areEqual('Selector Alpha', page.records[0].name, '前後空白を正規化する必要あり');
+            Assert.isFalse(page.hasNextPage, '最終ページの次へを無効化する必要あり');
         }
-
-        Assert.areEqual(
-            1,
-            records.size(),
-            '部分一致 bind は対象レコードだけを返す必要あり'
-        );
-        Assert.areEqual(
-            'Selector Alpha',
-            (String) records[0].get('Name'),
-            '検索語の前後空白を除いた値で検索する必要あり'
-        );
     }
 
-    /**
-     * 昇順カーソル境界より後ろのレコードを取得
-     */
     @IsTest
-    static void searchRecordsShouldApplyAscendingCursor() {
-        Account cursorAccount = [
-            SELECT Id, Industry
-            FROM Account
-            WHERE Name = 'Selector Beta'
-            LIMIT 1
-        ];
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest(
-            'Selector',
-            'Industry'
-        );
-        request.cursor = new ObjectRecordSearchSortSupport.PageCursor();
-        request.cursor.sortValue = cursorAccount.Industry;
-        request.cursor.recordId = cursorAccount.Id;
-        List<SObject> records;
-
+    static void shouldReturnEmptyPage() {
         System.runAs(testUser) {
             Test.startTest();
-
-            records = selector.searchRecords(request);
-
+            ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
+            input.metricKey = 'accounts';
+            input.searchTerm = 'No matching records';
+            ObjectRecordSearchResultWrapper page = ObjectRecordSearchController.searchRecords(input);
             Test.stopTest();
-        }
-
-        Assert.areEqual(
-            6,
-            records.size(),
-            '昇順カーソルは Finance より後ろと null 値の行を返す必要あり'
-        );
-        Assert.areEqual(
-            'Healthcare',
-            (String) records[0].get('Industry'),
-            '昇順カーソル後の最初の値から返す必要あり'
-        );
-    }
-
-    /**
-     * 降順カーソル境界は同値 ID と null 値グループへ進行
-     */
-    @IsTest
-    static void searchRecordsShouldApplyDescendingCursor() {
-        List<Account> retailAccounts = [
-            SELECT Id, Industry
-            FROM Account
-            WHERE Industry = 'Retail'
-            ORDER BY Id
-        ];
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest(
-            'Selector',
-            'Industry',
-            'desc'
-        );
-        request.cursor = new ObjectRecordSearchSortSupport.PageCursor();
-        request.cursor.sortValue = retailAccounts[0].Industry;
-        request.cursor.recordId = retailAccounts[0].Id;
-        List<SObject> records;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            records = selector.searchRecords(request);
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            5,
-            records.size(),
-            '降順カーソルは同値の次 ID、後続値、null 値を返す必要あり'
-        );
-        Assert.areEqual(
-            retailAccounts[1].Id,
-            (Id) records[0].get('Id'),
-            '同値グループはカーソル ID より後ろから返す必要あり'
-        );
-        Assert.areEqual(
-            'Healthcare',
-            (String) records[1].get('Industry'),
-            '降順では Retail より小さい値へ進む必要あり'
-        );
-        Assert.isNull(
-            records[records.size() - 1].get('Industry'),
-            '降順の非 null 値の後に null 値グループを返す必要あり'
-        );
-    }
-
-    /**
-     * null ソート値のカーソルは ID で次の行へ進行
-     */
-    @IsTest
-    static void searchRecordsShouldAdvanceNullCursorById() {
-        List<Account> nullIndustryAccounts = [
-            SELECT Id
-            FROM Account
-            WHERE Name LIKE 'Selector Null%'
-            ORDER BY Id
-        ];
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest(
-            'Selector Null',
-            'Industry'
-        );
-        request.cursor = new ObjectRecordSearchSortSupport.PageCursor();
-        request.cursor.recordId = nullIndustryAccounts[0].Id;
-        List<SObject> records;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            records = selector.searchRecords(request);
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            1,
-            records.size(),
-            'null 値グループはカーソル ID より後ろの行だけを返す必要あり'
-        );
-        Assert.areEqual(
-            nullIndustryAccounts[1].Id,
-            (Id) records[0].get('Id'),
-            'null 値グループ内の次 ID へ進む必要あり'
-        );
-    }
-
-    /**
-     * 検索条件が null の場合は例外を送出
-     */
-    @IsTest
-    static void searchRecordsShouldRejectNullRequest() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            try {
-                selector.searchRecords(null);
-                Assert.fail('null の問い合わせ条件は拒否する必要あり');
-            } catch (IllegalArgumentException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('検索条件'),
-                    'null の問い合わせ条件は利用者が見直す内容を返す必要あり'
-                );
-            }
-
-            Test.stopTest();
+            Assert.areEqual(0, page.records.size(), '対象なしは空一覧となる必要あり');
+            Assert.isFalse(page.hasNextPage, '対象なしで次ページを作らない必要あり');
         }
     }
 
@@ -370,85 +211,4 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
     }
 
-    /**
-     * nullが51件ある結果を表示変換とtoken経由で重複なく読み切る
-     */
-    @IsTest
-    static void shouldPageThroughNullValuesWithoutDuplicates() {
-        // 必須名だけを設定し全レコードのIndustryをnullにする
-        List<Account> accounts = new List<Account>();
-        for (Integer index = 0; index < 51; index++) {
-            accounts.add(TestDataFactory.createAccount('Null Paging ' + index, TestDataFactory.SaveMode.DO_NOT_INSERT));
-        }
-        insert accounts;
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest('Null Paging', 'Industry');
-        System.runAs(testUser) {
-            Test.startTest();
-            ObjectRecordSearchResultWrapper firstPage = service.createSearchResult(request, selector.searchRecords(request));
-            Assert.areEqual(50, firstPage.records.size(), '先頭ページは50件だけ表示する必要あり');
-            Assert.isTrue(firstPage.hasNextPage, '51件目があるため次ページを返す必要あり');
-            ObjectRecordSearchPageTokenCodec.ParseResult parsed = ObjectRecordSearchSortSupport.parsePageToken(firstPage.nextPageToken, request.sortSpec);
-            Assert.isTrue(parsed.isValid, '結果整形したnull境界を復元できる必要あり');
-            Assert.isNull(parsed.cursor.sortValue, '空文字へ変換せずnull境界を維持する必要あり');
-            request.cursor = parsed.cursor;
-            ObjectRecordSearchResultWrapper secondPage = service.createSearchResult(request, selector.searchRecords(request));
-            Test.stopTest();
-            Assert.areEqual(1, secondPage.records.size(), '次ページは未表示の1件だけを返す必要あり');
-            Assert.isFalse(secondPage.hasNextPage, '全件表示後は次ページを返さない必要あり');
-            Set<Id> displayedIds = new Set<Id>();
-            for (ObjectRecordSearchRowWrapper row : firstPage.records) {
-                displayedIds.add(row.id);
-            }
-            Assert.isFalse(displayedIds.contains(secondPage.records[0].id), '前ページのレコードを再表示しない必要あり');
-        }
-    }
-
-    private static ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(String searchTerm, String sortBy) {
-        return createSearchQueryRequest(searchTerm, sortBy, null);
-    }
-
-    private static ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchQueryRequest(String searchTerm, String sortBy, String sortDirection) {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
-        ObjectRecordSearchContext context = createAccountContext(service);
-        ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
-        request.metricKey = 'accounts';
-        request.searchTerm = searchTerm;
-        request.sortBy = sortBy;
-        request.sortDirection = sortDirection;
-        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
-            context,
-            request
-        );
-        ObjectRecordSearchService.SearchQueryRequestResult result = service.createSearchQueryRequest(
-            context,
-            request,
-            sortSpec
-        );
-        return result.searchQueryRequest;
-    }
-
-    private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
-        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
-            'accounts'
-        );
-        Schema.DescribeSObjectResult objectDescribe = Account.SObjectType.getDescribe(
-            SObjectDescribeOptions.DEFERRED
-        );
-        ObjectRecordSearchConfigWrapper config = service.createObjectConfig(
-            definition,
-            Account.Name.getDescribe(),
-            objectDescribe
-        )
-            .withDisplayFields(ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
-                'Account',
-                objectDescribe
-            ));
-        return service.createSearchContext(
-            config,
-            Account.Name.getDescribe(),
-            objectDescribe
-        );
-    }
 }

@@ -3,7 +3,6 @@
  */
 public virtual with sharing class ObjectRecordSearchService {
 
-    private static final Integer PAGE_SIZE = 50;
     private static final Integer PAGE_FETCH_SIZE = ObjectRecordSearchQueryPlan.SEARCH_FETCH_SIZE;
     private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。権限や関連データを確認してください。';
 
@@ -17,7 +16,7 @@ public virtual with sharing class ObjectRecordSearchService {
         OBJECT_ACCESS_DENIED,
         NAME_FIELD_UNAVAILABLE,
         NAME_FIELD_ACCESS_DENIED,
-        INVALID_PAGE_TOKEN
+        INVALID_PAGE_POSITION
     }
 
     /**
@@ -214,14 +213,10 @@ public virtual with sharing class ObjectRecordSearchService {
      */
     public SearchQueryRequestResult createSearchQueryRequest(ObjectRecordSearchContext context, ObjectRecordSearchRequestWrapper request, ObjectRecordSearchSortSupport.SortSpec sortSpec) {
         SearchQueryRequestResult result = new SearchQueryRequestResult();
-        // ページトークンを現在のソート条件に対応するカーソルへ変換
-        String pageToken = request?.pageToken ?? '';
-        ObjectRecordSearchPageTokenCodec.ParseResult pageTokenResult = ObjectRecordSearchSortSupport.parsePageToken(
-            pageToken,
-            sortSpec
-        );
-        if (!pageTokenResult.isValid) {
-            result.errorCode = ErrorCode.INVALID_PAGE_TOKEN;
+        // 標準カーソルがない場合は先頭からのみ取得可能
+        Integer startIndex = request?.startIndex ?? 0;
+        if (startIndex < 0 || (request?.paginationCursor == null && startIndex != 0)) {
+            result.errorCode = ErrorCode.INVALID_PAGE_POSITION;
             return result;
         }
 
@@ -232,7 +227,9 @@ public virtual with sharing class ObjectRecordSearchService {
         // 任意の名称フィルターを問い合わせ処理で共有する値へ正規化
         searchQueryRequest.normalizedSearchTerm = request?.searchTerm?.trim() ?? '';
         searchQueryRequest.sortSpec = sortSpec;
-        searchQueryRequest.cursor = pageTokenResult.cursor;
+        searchQueryRequest.paginationCursor = request?.paginationCursor;
+        // 標準APIが返した位置を次の取得開始点に使用
+        searchQueryRequest.startIndex = startIndex;
         searchQueryRequest.fetchSize = PAGE_FETCH_SIZE;
         result.searchQueryRequest = searchQueryRequest;
         result.errorCode = ErrorCode.NONE;
@@ -243,12 +240,14 @@ public virtual with sharing class ObjectRecordSearchService {
      * 検索結果レコードを LWC 返却用 Wrapper に変換
      *
      * @param request 検索クエリと結果整形で共有する検索条件
-     * @param records 検索結果 SObject
+     * @param fetched 標準カーソルの取得結果
      * @return 1 ページ最大 50 件の検索結果
      */
-    public ObjectRecordSearchResultWrapper createSearchResult(ObjectRecordSearchQueryPlan.SearchQueryRequest request, List<SObject> records) {
+    public ObjectRecordSearchResultWrapper createSearchResult(ObjectRecordSearchQueryPlan.SearchQueryRequest request, Database.CursorFetchResult fetched) {
         // SOQL 結果を LWC が扱う行 Wrapper へ変換
         List<ObjectRecordSearchRowWrapper> rows = new List<ObjectRecordSearchRowWrapper>();
+        // 0件時も非nullの一覧へ正規化
+        List<SObject> records = fetched == null ? new List<SObject>() : fetched.getRecords();
         for (SObject record : records) {
             ObjectRecordSearchRowWrapper row = new ObjectRecordSearchRowWrapper(
                 record,
@@ -256,19 +255,6 @@ public virtual with sharing class ObjectRecordSearchService {
                 request.context.config.displayFields
             );
             rows.add(row);
-        }
-        // 1 件多く取得した結果で次ページ有無を判定
-        Boolean hasNextPage = rows.size() > PAGE_SIZE;
-        if (hasNextPage) {
-            rows.remove(PAGE_SIZE);
-        }
-        String nextPageToken = '';
-        if (hasNextPage) {
-            // 最終表示行に対応する元レコードから型付きの境界を作成
-            nextPageToken = ObjectRecordSearchSortSupport.createNextPageToken(
-                records[PAGE_SIZE - 1],
-                request.sortSpec
-            );
         }
         // 表示設定、行、ページ状態を 1 つの返却 Wrapper に集約
         ObjectRecordSearchResultWrapper result = new ObjectRecordSearchResultWrapper(
@@ -280,9 +266,9 @@ public virtual with sharing class ObjectRecordSearchService {
             request.searchRequest?.pageNumber
         );
         result = result.withPageState(
-            PAGE_SIZE,
             pageNumber,
-            nextPageToken
+            request.paginationCursor,
+            fetched == null ? 0 : fetched.getNextIndex()
         );
         return result;
     }

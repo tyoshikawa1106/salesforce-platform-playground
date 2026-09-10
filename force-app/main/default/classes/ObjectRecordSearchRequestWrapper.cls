@@ -11,9 +11,13 @@ public with sharing class ObjectRecordSearchRequestWrapper {
     @AuraEnabled
     public String searchTerm { get; set; }
 
-    // 次ページ取得用のカーソルトークン
+    // Salesforce標準のページネーションカーソル
     @AuraEnabled
-    public String pageToken { get; set; }
+    public Database.PaginationCursor paginationCursor { get; set; }
+
+    // 標準カーソルから取得する開始位置
+    @AuraEnabled
+    public Integer startIndex { get; set; }
 
     // 一覧のソート項目
     @AuraEnabled
@@ -36,7 +40,7 @@ public with sharing class ObjectRecordSearchRequestWrapper {
         // 初期表示では名称検索条件を付けない
         this.searchTerm = '';
         // 初期表示では先頭ページから取得する
-        this.pageToken = '';
+        this.startIndex = 0;
         // 初期表示では既定の表示項目で並べる
         this.sortBy = '';
         // 初期表示の並び順を昇順に固定

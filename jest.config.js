@@ -4,6 +4,7 @@ module.exports = {
     ...jestConfig,
     moduleNameMapper: {
         ...(jestConfig.moduleNameMapper || {}),
+        '^lightning/modal$': '<rootDir>/force-app/test/jest-mocks/lightning/modal.js',
         '^lightning/uiLayoutApi$': '<rootDir>/force-app/test/jest-mocks/lightning/uiLayoutApi.js',
         '^lightning/uiObjectInfoApi$': '<rootDir>/force-app/test/jest-mocks/lightning/uiObjectInfoApi.js'
     },
