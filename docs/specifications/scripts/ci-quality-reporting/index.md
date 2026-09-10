@@ -33,6 +33,8 @@ GitHub Actionsから次の環境変数を受け取ります。
 
 `GITHUB_REF` が `refs/heads/main` と一致する場合だけGitHub CLIを実行します。作業ブランチ、タグ、ref不明の実行は監視Issueを変更しません。
 
+報告前にGitHub APIで現在のmainのSHAを取得し、`GITHUB_SHA`と一致しない古いコミットの結果は反映しません。SHAが未指定の場合も反映せず、API取得失敗時は報告jobを失敗させます。報告jobは同じref内で直列化します。
+
 結果は`failure`と`success`だけを処理し、`skipped`、`cancelled`、未定義値はIssueを変更しません。
 
 ## 処理内容
@@ -71,7 +73,7 @@ GitHub Actionsから次の環境変数を受け取ります。
 
 ## テスト・確認観点
 
-`scripts/ci/test/report-quality-check.node.js`で、対象外結果、初回失敗、継続失敗、復旧、対応Issueなし、JSON不正、GitHub CLI失敗、JST日時を確認します。
+`scripts/ci/test/report-quality-check.node.js`で、対象外結果、初回失敗、継続失敗、復旧、対応Issueなし、JSON不正、GitHub CLI失敗、JST日時、古いコミットの成功・失敗を反映しないこと、mainのSHA取得失敗を確認します。
 
 ```sh
 node --test scripts/ci/test/report-quality-check.node.js
