@@ -45,12 +45,7 @@ git diff
 retrieve 結果に対象外の標準 metadata、org 固有値、権限系の広い差分が混ざった場合は、そのまま deploy しません。
 作業対象 manifest を絞り直すか、不要差分を戻してから validate / deploy します。
 
-別 org へ反映する場合は、同じ作業対象 manifest で dry-run してから deploy します。
-
-```sh
-sf project deploy start --dry-run --manifest manifest/<work>.xml --target-org <target-org> --wait 30
-sf project deploy start --manifest manifest/<work>.xml --target-org <target-org> --wait 30
-```
+別 org へ反映する場合は、同じ作業対象 manifest を使い、対象 org の種別に応じて validate または dry-run を行います。検証と deploy の手順・承認条件は[組織操作ルール](org-operation-rules.md)に従います。
 
 ## Apex 開発から Salesforce 組織へのリリース
 
@@ -107,17 +102,9 @@ sf apex run test --test-level RunLocalTests --result-format human --target-org <
 
 ### Salesforce 組織への反映
 
-Salesforce 組織へ出す前に、同じ作業対象 manifest で dry-run します。
+Salesforce 組織へ出す前に、同じ作業対象 manifest を使い、Production とこのリポジトリで実行確認済みの Developer Edition では `deploy validate`、Sandbox と Scratch Org では `deploy start --dry-run` を実行します。いずれも `--test-level RunLocalTests` と確認済みの対象 org alias を指定します。
 
-```sh
-sf project deploy start --dry-run --manifest manifest/<work>.xml --target-org <dev-org> --wait 30
-```
-
-dry-run が成功したら、Salesforce 組織へ deploy します。
-
-```sh
-sf project deploy start --manifest manifest/<work>.xml --target-org <dev-org> --wait 30
-```
+検証成功後の deploy は、対象 scope の明示承認を受けて[組織操作ルール](org-operation-rules.md)に従って実行します。PR マージは deploy の依頼として扱いません。
 
 ### DevOps Center を使う場合
 

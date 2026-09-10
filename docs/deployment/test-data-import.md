@@ -91,7 +91,7 @@ npm run setup:data:dry-run -- --only case-related-case-list
 npm run setup:data -- --only case-related-case-list
 ```
 
-画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで先頭表示され、その後へ別Caseが直近順で4件表示されることを確認します。5件目の別Caseは最大5件の表示制限により表示されません。
+画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで含まれ、別Caseと合わせて作成日時の降順で最大20件表示されることを確認します。表示中Caseは先頭に固定しません。関連するCaseが表示中Caseと投入した5件だけの場合は、合計6件が表示されます。詳細は[最近の問い合わせ仕様](../specifications/lwc/case-related-case-list/index.md)を参照してください。
 
 投入後の主要レコードは、確認用 SOQL で確認できます。
 
