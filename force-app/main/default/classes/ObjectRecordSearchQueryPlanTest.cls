@@ -32,7 +32,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
             '検証済みの問い合わせ条件を Selector へ渡す必要あり'
         );
         Assert.areEqual(
-            51,
+            50,
             result.fetchSize,
             '検証後も取得件数を保つ必要あり'
         );

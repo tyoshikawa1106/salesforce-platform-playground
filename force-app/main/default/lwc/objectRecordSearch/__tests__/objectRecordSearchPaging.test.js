@@ -10,7 +10,7 @@ import {
 describe('c-object-record-search paging and sorting', () => {
     it.each(['search', 'sort'])('preserves the next page after unchanged %s criteria', async (action) => {
         const element = createComponent();
-        searchRecords.emit({ ...searchResponse, hasNextPage: true, nextPageToken: 'page-2' });
+        searchRecords.emit({ ...searchResponse, hasNextPage: true, paginationCursor: 'standard-cursor', nextIndex: 50 });
         await flushPromises();
 
         if (action === 'search') {
@@ -26,12 +26,12 @@ describe('c-object-record-search paging and sorting', () => {
         expect(element.shadowRoot.querySelector('lightning-datatable').isLoading).toBe(false);
         findButton(element, '次へ').click();
         await flushPromises();
-        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 2, pageToken: 'page-2' });
+        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 2, paginationCursor: 'standard-cursor', startIndex: 50 });
     });
 
     it('blocks repeated page actions until the response arrives', async () => {
         const element = createComponent();
-        searchRecords.emit({ ...searchResponse, hasNextPage: true, nextPageToken: 'page-2' });
+        searchRecords.emit({ ...searchResponse, hasNextPage: true, paginationCursor: 'standard-cursor', nextIndex: 50 });
         await flushPromises();
 
         const nextButton = findButton(element, '次へ');
@@ -39,16 +39,16 @@ describe('c-object-record-search paging and sorting', () => {
         nextButton.click();
         await flushPromises();
 
-        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 2, pageToken: 'page-2' });
+        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 2, paginationCursor: 'standard-cursor', startIndex: 50 });
         expect(findButton(element, '次へ').disabled).toBe(true);
         expect(findButton(element, '前へ').disabled).toBe(true);
 
-        searchRecords.emit({ ...searchResponse, pageNumber: 2, hasNextPage: true, nextPageToken: 'page-3' });
+        searchRecords.emit({ ...searchResponse, pageNumber: 2, hasNextPage: true, paginationCursor: 'standard-cursor', nextIndex: 100 });
         await flushPromises();
         expect(findButton(element, '次へ').disabled).toBe(false);
         findButton(element, '次へ').click();
         await flushPromises();
-        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 3, pageToken: 'page-3' });
+        expect(searchRecords.getLastConfig().request).toMatchObject({ pageNumber: 3, paginationCursor: 'standard-cursor', startIndex: 100 });
     });
 
     it('allows retry after a failed search without waiting on unchanged criteria', async () => {
@@ -101,7 +101,7 @@ describe('c-object-record-search paging and sorting', () => {
             request: {
                 metricKey: 'accounts',
                 searchTerm: 'Acme',
-                pageToken: undefined,
+                paginationCursor: null, startIndex: 0,
                 sortBy: 'Name',
                 sortDirection: 'asc',
                 pageNumber: 1
@@ -134,12 +134,35 @@ describe('c-object-record-search paging and sorting', () => {
             request: {
                 metricKey: 'accounts',
                 searchTerm: '',
-                pageToken: undefined,
+                paginationCursor: null, startIndex: 0,
                 sortBy: 'Industry',
                 sortDirection: 'desc',
                 pageNumber: 1
             }
         });
+    });
+
+    it('discards the old cursor when refreshing a later page', async () => {
+        const element = createComponent();
+        searchRecords.emit({ ...searchResponse, hasNextPage: true, paginationCursor: 'standard-cursor', nextIndex: 50 });
+        await flushPromises();
+        findButton(element, '次へ').click();
+        await flushPromises();
+        searchRecords.emit({ ...searchResponse, pageNumber: 2, hasNextPage: false, paginationCursor: 'standard-cursor', nextIndex: 100 });
+        await flushPromises();
+        element.shadowRoot.querySelector('lightning-button-icon[title="再読み込み"]').click();
+        await flushPromises();
+        expect(searchRecords.getLastConfig().request).toMatchObject({ paginationCursor: null, startIndex: 0, pageNumber: 1 });
+    });
+
+    it('shows an explicit notice when the result reaches the display limit', async () => {
+        const element = createComponent();
+        searchRecords.emit({ ...searchResponse, isResultLimitReached: true });
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('表示上限の100,000件');
+        searchRecords.emit({ ...searchResponse, isResultLimitReached: false });
+        await flushPromises();
+        expect(element.shadowRoot.textContent).not.toContain('表示上限の100,000件');
     });
 
     it('moves between server-side result pages', async () => {
@@ -148,7 +171,7 @@ describe('c-object-record-search paging and sorting', () => {
         searchRecords.emit({
             ...searchResponse,
             hasNextPage: true,
-            nextPageToken: 'next-token'
+            paginationCursor: 'standard-cursor', nextIndex: 50
         });
         await flushPromises();
 
@@ -162,7 +185,7 @@ describe('c-object-record-search paging and sorting', () => {
             request: {
                 metricKey: 'accounts',
                 searchTerm: '',
-                pageToken: 'next-token',
+                paginationCursor: 'standard-cursor', startIndex: 50,
                 sortBy: 'Name',
                 sortDirection: 'asc',
                 pageNumber: 2
@@ -174,7 +197,7 @@ describe('c-object-record-search paging and sorting', () => {
             records: [],
             pageNumber: 2,
             hasNextPage: false,
-            nextPageToken: null
+            paginationCursor: 'standard-cursor', nextIndex: 0
         });
         await flushPromises();
 
@@ -187,7 +210,7 @@ describe('c-object-record-search paging and sorting', () => {
             request: {
                 metricKey: 'accounts',
                 searchTerm: '',
-                pageToken: undefined,
+                paginationCursor: null, startIndex: 0,
                 sortBy: 'Name',
                 sortDirection: 'asc',
                 pageNumber: 1

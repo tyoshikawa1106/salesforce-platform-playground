@@ -3,8 +3,8 @@
  */
 public with sharing class ObjectRecordSearchQueryPlan {
 
-    // 1 ページ 50 件と次ページ判定用 1 件を取得する固定件数
-    public static final Integer SEARCH_FETCH_SIZE = 51;
+    // 1 ページの最大表示件数
+    public static final Integer SEARCH_FETCH_SIZE = 50;
     // 動的 ORDER BY に使用できる昇順値
     private static final String SORT_ASCENDING = 'asc';
     // 動的 ORDER BY に使用できる降順値
@@ -89,8 +89,10 @@ public with sharing class ObjectRecordSearchQueryPlan {
         // 許可済み項目と方向を持つソート条件
         public ObjectRecordSearchSortSupport.SortSpec sortSpec;
         // 次ページの開始位置を持つカーソル
-        public ObjectRecordSearchSortSupport.PageCursor cursor;
-        // 次ページ判定用の追加 1 件を含む取得件数
+        public Database.PaginationCursor paginationCursor;
+        // fetchPageへ渡す開始位置
+        public Integer startIndex = 0;
+        // 標準カーソルから一度に取得する件数
         public Integer fetchSize = 0;
     }
 }

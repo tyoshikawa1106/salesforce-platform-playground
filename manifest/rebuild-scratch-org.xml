@@ -58,8 +58,7 @@
         <members>ObjectRecordSearchDisplayFieldCatalog</members>
         <members>ObjectRecordSearchFieldWrapper</members>
         <members>ObjectRecordSearchFieldWrapperTest</members>
-        <members>ObjectRecordSearchPageTokenCodec</members>
-        <members>ObjectRecordSearchPageTokenCodecTest</members>
+        <members>ObjectRecordSearchPaginationTest</members>
         <members>ObjectRecordSearchQueryPlan</members>
         <members>ObjectRecordSearchQueryPlanTest</members>
         <members>ObjectRecordSearchRequestWrapper</members>
@@ -799,6 +798,7 @@
         <members>caseRelatedCaseList</members>
         <members>errorUtils</members>
         <members>objectMetricsOverview</members>
+        <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>
         <name>LightningComponentBundle</name>
     </types>

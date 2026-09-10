@@ -23,9 +23,17 @@ public with sharing class ObjectRecordSearchResultWrapper {
     @AuraEnabled
     public Boolean hasNextPage { get; private set; }
 
-    // 次ページ取得用のカーソルトークン
+    // 次の操作へ引き継ぐ標準カーソル
     @AuraEnabled
-    public String nextPageToken { get; private set; }
+    public Database.PaginationCursor paginationCursor { get; private set; }
+
+    // 標準APIが返した次の取得位置
+    @AuraEnabled
+    public Integer nextIndex { get; private set; }
+
+    // 標準カーソルの取得上限に達した場合の案内判定
+    @AuraEnabled
+    public Boolean isResultLimitReached { get; private set; }
 
     /**
      * レコード検索結果を作成
@@ -42,26 +50,31 @@ public with sharing class ObjectRecordSearchResultWrapper {
         this.pageSize = 0;
         this.pageNumber = 1;
         this.hasNextPage = false;
-        this.nextPageToken = '';
+        this.nextIndex = 0;
+        this.isResultLimitReached = false;
     }
 
     /**
      * 検索結果にページング状態反映
      *
-     * @param pageSize 1 ページあたりの最大表示件数
      * @param pageNumber 現在のページ番号
-     * @param nextPageToken 次ページ取得用のカーソルトークン
+     * @param paginationCursor 標準カーソル
+     * @param nextIndex 標準APIの次ページ位置
      * @return ページング状態を反映した検索結果
      */
-    public ObjectRecordSearchResultWrapper withPageState(Integer pageSize, Integer pageNumber, String nextPageToken) {
+    public ObjectRecordSearchResultWrapper withPageState(Integer pageNumber, Database.PaginationCursor paginationCursor, Integer nextIndex) {
         // 画面側の件数表示と次ページ判定に使う
-        this.pageSize = pageSize ?? 0;
+        this.pageSize = ObjectRecordSearchQueryPlan.SEARCH_FETCH_SIZE;
         // 画面側の現在ページ表示に使う
         this.pageNumber = pageNumber ?? 1;
         // 次ページ取得ボタンのリクエストに使う
-        this.nextPageToken = nextPageToken ?? '';
-        // token の有無から次ページ表示状態を確定
-        this.hasNextPage = String.isNotBlank(this.nextPageToken);
+        this.paginationCursor = paginationCursor;
+        // 取得結果の位置をそのまま保持
+        this.nextIndex = nextIndex ?? 0;
+        // 上限到達時には全件表示と誤解させない案内を返す
+        this.isResultLimitReached = paginationCursor != null && paginationCursor.getNumRecords() >= 100000;
+        // 標準カーソルの件数と取得位置から次ページ表示状態を確定
+        this.hasNextPage = paginationCursor != null && this.nextIndex > 0 && this.nextIndex < paginationCursor.getNumRecords();
         return this;
     }
 }

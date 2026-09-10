@@ -20,7 +20,7 @@ public with sharing class ObjectRecordSearchController {
     // 利用者が一覧の主表示項目を参照できない場合の案内
     private static final String NAME_FIELD_ACCESS_DENIED_MESSAGE = '検索に必要な項目を参照する権限がありません。管理者に項目権限を確認してください。';
     // 現在の検索条件でページ情報を再利用できない場合の案内
-    private static final String INVALID_PAGE_TOKEN_MESSAGE = 'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。';
+    private static final String INVALID_PAGE_POSITION_MESSAGE = 'ページ情報を読み込めませんでした。一覧を更新してからもう一度お試しください。';
     // 下位層の判定結果を利用者が次の操作を選べる案内へ変換
     private static final Map<ObjectRecordSearchService.ErrorCode, String> ERROR_MESSAGES_BY_CODE = new Map<ObjectRecordSearchService.ErrorCode, String>{
         ObjectRecordSearchService.ErrorCode.UNSUPPORTED_METRIC_KEY => UNSUPPORTED_METRIC_MESSAGE,
@@ -28,7 +28,7 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchService.ErrorCode.OBJECT_ACCESS_DENIED => OBJECT_ACCESS_DENIED_MESSAGE,
         ObjectRecordSearchService.ErrorCode.NAME_FIELD_UNAVAILABLE => NAME_FIELD_UNAVAILABLE_MESSAGE,
         ObjectRecordSearchService.ErrorCode.NAME_FIELD_ACCESS_DENIED => NAME_FIELD_ACCESS_DENIED_MESSAGE,
-        ObjectRecordSearchService.ErrorCode.INVALID_PAGE_TOKEN => INVALID_PAGE_TOKEN_MESSAGE
+        ObjectRecordSearchService.ErrorCode.INVALID_PAGE_POSITION => INVALID_PAGE_POSITION_MESSAGE
     };
 
     // 公開APIを通した例外境界テストで Service の失敗を再現
@@ -121,8 +121,8 @@ public with sharing class ObjectRecordSearchController {
                 throw createHandledException(errorMessage);
             }
             ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
-            // Selector 内で動的 SOQL と bind 値を組み立てて利用者権限で実行
-            List<SObject> records = this.selector.searchRecords(searchQueryRequest);
+            // 既存カーソルの位置からページを取得
+            Database.CursorFetchResult records = this.selector.searchRecords(searchQueryRequest);
             // 検索結果を LWC 返却用の行とページ状態へ変換
             ObjectRecordSearchResultWrapper result = this.service.createSearchResult(
                 searchQueryRequest,

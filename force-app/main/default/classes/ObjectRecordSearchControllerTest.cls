@@ -307,7 +307,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     }
 
     /**
-     * 不正なページトークンは画面向けエラーへ変換
+     * 不正なページ取得位置は画面向けエラーへ変換
      */
     @IsTest
     static void shouldThrowUserFacingErrorWhenPageTokenIsInvalid() {
@@ -315,18 +315,18 @@ private with sharing class ObjectRecordSearchControllerTest {
             'accounts',
             null
         );
-        request.pageToken = 'not-json';
+        request.startIndex = -1;
 
         System.runAs(testUser) {
             Test.startTest();
 
             try {
                 ObjectRecordSearchController.searchRecords(request);
-                Assert.fail('不正なページトークンは例外にする必要あり');
+                Assert.fail('不正なページ取得位置は例外にする必要あり');
             } catch (AuraHandledException e) {
                 Assert.isTrue(
                     e.getMessage().contains('一覧を更新'),
-                    '不正なページトークンは再読み込みを案内する必要あり'
+                    '不正なページ取得位置は再読み込みを案内する必要あり'
                 );
             }
 

@@ -157,6 +157,17 @@ function main({ env = process.env, now = () => new Date(), runGhCommand = runGh 
         return;
     }
 
+    // 実行時点のmain以外の結果では現在の障害状態を変更しない。
+    if (!env.GITHUB_SHA) {
+        return;
+    }
+    // 比較対象はキャッシュしたrefではなくGitHub上の現在のmainとする。
+    const currentMainSha = runGhCommand(['api', 'repos/{owner}/{repo}/commits/main', '--jq', '.sha']).trim();
+    // 新しいコミットの失敗を古い成功で解消扱いしない。
+    if (currentMainSha !== env.GITHUB_SHA) {
+        return;
+    }
+
     // workflow共通の実行情報を1つにまとめ、各品質チェックへ再利用する。
     const context = {
         actor: env.GITHUB_ACTOR,

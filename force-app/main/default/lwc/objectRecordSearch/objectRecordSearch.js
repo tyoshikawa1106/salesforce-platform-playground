@@ -3,6 +3,7 @@ import { refreshApex } from '@salesforce/apex';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { getLayout } from 'lightning/uiLayoutApi';
+import ObjectRecordFormModal from 'c/objectRecordFormModal';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 import { createToastMessage, reduceErrors } from 'c/errorUtils';
@@ -43,12 +44,12 @@ export default class ObjectRecordSearch extends LightningElement {
     pageNumber = INITIAL_SEARCH_STATE.pageNumber;
     // Apexが返した現在の取得件数を保持
     pageSize = INITIAL_SEARCH_STATE.pageSize;
-    // 現在ページの検索境界トークンを保持
-    currentPageToken = INITIAL_SEARCH_STATE.currentPageToken;
-    // 次ページの検索境界トークンを保持
-    nextPageToken = INITIAL_SEARCH_STATE.nextPageToken;
-    // 前ページへ戻るための使用済みトークン履歴を保持
-    pageTokenHistory = INITIAL_SEARCH_STATE.pageTokenHistory;
+    // 現在ページの標準カーソルと取得位置を保持
+    currentPagePosition = INITIAL_SEARCH_STATE.currentPagePosition;
+    // 次ページの標準カーソルと取得位置を保持
+    nextPagePosition = INITIAL_SEARCH_STATE.nextPagePosition;
+    // 前ページへ戻るための使用済み取得位置の履歴を保持
+    pagePositionHistory = INITIAL_SEARCH_STATE.pagePositionHistory;
     // datatableで選択中の列キーを保持
     sortedBy = INITIAL_SEARCH_STATE.sortedBy;
     // Apex検索へ送るソート方向を保持
@@ -63,8 +64,6 @@ export default class ObjectRecordSearch extends LightningElement {
     isDeleting = false;
     // 再取得中の検索・保存・削除操作を抑止
     isRefreshing = false;
-    // レコードフォーム保存中の操作抑止状態を保持
-    isSaving = false;
     // 検索条件変更後の応答待ちを初回wireとは別に管理
     isSearchPending = false;
     // 編集フォームで開くレコードIDを保持
@@ -73,6 +72,10 @@ export default class ObjectRecordSearch extends LightningElement {
     showRecordForm = false;
     // refreshApexへ渡す検索wireレスポンスを保持
     wiredSearchResult;
+    // 再読み込みで新しい結果集合を作るため先頭ページのwireを保持
+    firstPageWireResult;
+    // 結果が表示上限に達した場合は検索の絞り込みを案内
+    isResultLimitReached = false;
     // フォーム項目権限に使うgetObjectInfo応答を保持
     objectInfoResult;
     // 作成用フォームの項目と操作可否を判定する応答を保持
@@ -98,6 +101,12 @@ export default class ObjectRecordSearch extends LightningElement {
 
         // 取得成功時は設定、行、ページング状態をまとめて更新
         if (data) {
+            // 取得上限に達した応答を全件表示と区別
+            this.isResultLimitReached = Boolean(data.isResultLimitReached);
+            // 先頭ページの要求はカーソルを持たず、refreshで結果集合を再作成する
+            if (!this.currentPagePosition) {
+                this.firstPageWireResult = result;
+            }
             // 検索成功応答でページ操作の抑止を解除
             this.isSearchPending = false;
             // 検索応答からLogicが生成した画面状態をまとめて反映
@@ -109,6 +118,8 @@ export default class ObjectRecordSearch extends LightningElement {
             this.updateFormState();
         // 取得失敗時は古い一覧を残さずエラー状態へ移行
         } else if (error) {
+            // 取得失敗時に前回の上限案内を残さない
+            this.isResultLimitReached = false;
             // 検索失敗後も再検索を許可
             this.isSearchPending = false;
             // 検索エラーからLogicが生成した画面状態をまとめて反映
@@ -170,7 +181,7 @@ export default class ObjectRecordSearch extends LightningElement {
             // 確定済み検索語を渡す
             searchTerm: this.searchTerm,
             // 現在ページのカーソル境界を渡す
-            currentPageToken: this.currentPageToken,
+            currentPagePosition: this.currentPagePosition,
             // 現在選択中のdatatable列キーを渡す
             sortedBy: this.sortedBy,
             // Apexへ送るソート方向を渡す
@@ -234,7 +245,7 @@ export default class ObjectRecordSearch extends LightningElement {
     // 初期取得、再取得、削除、保存をまとめた操作中状態を返却
     get isBusy() {
         // いずれかの非同期処理中は重複操作を抑止
-        return this.isLoading || this.isDeleting || this.isSaving || this.isRefreshing;
+        return this.isLoading || this.isDeleting || this.isRefreshing;
     }
 
     // 初回取得と検索条件変更後の応答待ち状態を判定
@@ -268,18 +279,6 @@ export default class ObjectRecordSearch extends LightningElement {
     get editDisabled() {
         // 処理中またはフォーム構造上の編集不可状態で無効化
         return this.isBusy || this.formViewState.editUnavailable;
-    }
-
-    // 現在ファイルアップロード画面を表示するか判定
-    get isFileUploadForm() {
-        // モーダル表示中かつファイル方式の場合だけ表示
-        return this.showRecordForm && this.formViewState.isFileUploadObject;
-    }
-
-    // 現在標準レコードフォームを表示するか判定
-    get showLightningRecordForm() {
-        // モーダル表示中かつ標準レコード方式の場合だけ表示
-        return this.showRecordForm && this.formViewState.isRecordFormObject;
     }
 
     // UI APIへ渡すフォーム対象オブジェクトAPI名を返却
@@ -386,7 +385,7 @@ export default class ObjectRecordSearch extends LightningElement {
         );
     }
 
-    // トークン履歴を使って1つ前のページへ戻る
+    // 取得位置の履歴を使って1つ前のページへ戻る
     handlePreviousPage() {
         // 処理中または1ページ目では状態を変更しない
         if (this.previousDisabled) {
@@ -400,12 +399,12 @@ export default class ObjectRecordSearch extends LightningElement {
                 // 現在ページ番号から1つ戻す基準を渡す
                 pageNumber: this.pageNumber,
                 // 前ページ境界を解決する履歴を渡す
-                pageTokenHistory: this.pageTokenHistory
+                pagePositionHistory: this.pagePositionHistory
             })
         );
     }
 
-    // Apex応答の次ページトークンを使って先へ進む
+    // Apex応答の次ページ取得位置を使って先へ進む
     handleNextPage() {
         // 処理中または次ページなしでは状態を変更しない
         if (this.nextDisabled) {
@@ -419,9 +418,9 @@ export default class ObjectRecordSearch extends LightningElement {
                 // 現在ページ番号から1つ進める基準を渡す
                 pageNumber: this.pageNumber,
                 // 現在境界を履歴へ追加するため既存履歴を渡す
-                pageTokenHistory: this.pageTokenHistory,
+                pagePositionHistory: this.pagePositionHistory,
                 // Apex応答の次ページ境界を渡す
-                nextPageToken: this.nextPageToken
+                nextPagePosition: this.nextPagePosition
             })
         );
     }
@@ -450,7 +449,7 @@ export default class ObjectRecordSearch extends LightningElement {
             metricKey: this.metricKey,
             config: this.config,
             searchTerm: this.searchTerm,
-            currentPageToken: this.currentPageToken,
+            currentPagePosition: this.currentPagePosition,
             sortedBy: this.sortedBy,
             sortedDirection: this.sortedDirection,
             pageNumber: this.pageNumber,
@@ -494,80 +493,6 @@ export default class ObjectRecordSearch extends LightningElement {
 
         // レコードIDなしで共通フォーム表示処理を呼び出す
         this.openRecordForm();
-    }
-
-    // レコードフォームを閉じて一覧表示へ戻る
-    handleCloseRecordForm() {
-        // 作成、編集、アップロード画面を非表示にする
-        this.showRecordForm = false;
-        // 以前の編集対象レコードIDを破棄
-        this.formRecordId = undefined;
-        // 作成モードへ戻したwire条件と表示状態を再生成
-        this.updateFormState();
-        // エラーやキャンセル時も保存中状態を解除
-        this.isSaving = false;
-    }
-
-    // 標準レコードフォーム送信前に全入力項目を検証
-    handleRecordFormSubmit(event) {
-        // 各lightning-input-fieldのエラー表示と判定をまとめて実行
-        const isValid = [
-            ...this.template.querySelectorAll('lightning-input-field')
-        ].reduce((valid, field) => field.reportValidity() && valid, true);
-        // 1項目でも不正な場合はSalesforceへの送信を中止
-        if (!isValid) {
-            // lightning-record-edit-formの既定送信を抑止
-            event.preventDefault();
-            // 保存中状態へ移行せず送信処理を終了
-            return;
-        }
-
-        // 保存完了イベントまで重複操作を抑止
-        this.isSaving = true;
-    }
-
-    // 標準レコードフォーム保存成功後に一覧と親件数を更新
-    async handleRecordFormSuccess() {
-        // 編集対象の有無に応じてトースト見出しを切り替え
-        const toastTitle = this.formRecordId ? '更新しました' : '作成しました';
-        // 利用者へ保存成功を通知
-        this.showToast(
-            toastTitle,
-            `${this.config.objectLabel}を保存しました。`,
-            'success'
-        );
-        // 一覧へ戻りフォーム状態を初期化
-        this.handleCloseRecordForm();
-        // 検索結果を再取得して親データボードへ変更を通知
-        await this.refreshRecordsAndNotifyChange();
-    }
-
-    // ファイルアップロード完了後に一覧と親件数を更新
-    async handleUploadFinished(event) {
-        // UI APIイベントから登録されたファイル件数を取得
-        const uploadedCount = event.detail?.files?.length ?? 0;
-        // 利用者へアップロード成功件数を通知
-        this.showToast(
-            'アップロードしました',
-            `${uploadedCount} 件のファイルを登録しました。`,
-            'success'
-        );
-        // 一覧へ戻りアップロード画面状態を初期化
-        this.handleCloseRecordForm();
-        // 検索結果を再取得して親データボードへ変更を通知
-        await this.refreshRecordsAndNotifyChange();
-    }
-
-    // 標準レコードフォーム保存失敗をトーストへ表示
-    handleRecordFormError(event) {
-        // 再試行できるよう保存中状態を解除
-        this.isSaving = false;
-        // Salesforceメッセージを優先し、ない場合は一般文言を使用
-        const message =
-            event.detail?.message ??
-            `${this.config.objectLabel}を保存できませんでした。`;
-        // 利用者へ保存失敗内容を通知
-        this.showToast('保存に失敗しました', message, 'error');
     }
 
     // 選択されたレコードをUSER_MODE Apexで一括削除
@@ -650,7 +575,11 @@ export default class ObjectRecordSearch extends LightningElement {
         // wireの最新結果を取得して表示を更新
         try {
             // キャッシュ更新が完了するまで待機
-            await refreshApex(this.wiredSearchResult);
+            const firstPageResult = this.firstPageWireResult ?? this.wiredSearchResult;
+            // 保存・削除・期限切れ後は古い結果集合と履歴を破棄
+            this.applySearchState(createSearchCriteriaState(this.searchTerm));
+            // 先頭ページのカーソルなし要求を再実行
+            await refreshApex(firstPageResult);
             // 復旧後に以前の取得エラーを残さない
             this.errorTitle = undefined;
             // 正常に再取得できたことを画面へ反映
@@ -679,14 +608,52 @@ export default class ObjectRecordSearch extends LightningElement {
         );
     }
 
-    // 作成または編集対象を設定してレコードフォームを表示
-    openRecordForm(recordId) {
-        // レコードIDがある場合は編集、ない場合は新規作成として保持
+    // 標準モーダルへフォームを渡し、確定した変更だけ一覧へ反映
+    async openRecordForm(recordId) {
+        // 二重起動を拒否し、標準モーダルが戻すフォーカス先のボタンは保持
+        if (this.showRecordForm) {
+            return;
+        }
+        // レコードIDの有無でフォームの作成・編集モードを選択
         this.formRecordId = recordId;
-        // 作成または編集モードに対応するフォーム状態を生成
+        // 選択モードの項目と見出しを構築
         this.updateFormState();
-        // 対象オブジェクトに対応するフォーム画面へ切り替え
+        // モーダルの終了まで同じ画面の再起動を抑止
         this.showRecordForm = true;
+        // キーボード操作とフォーカス管理をLightningModalへ委譲
+        try {
+            // フォーム表示時点の設定を独立したモーダルへ渡す
+            const result = await ObjectRecordFormModal.open({
+                size: 'large',
+                label: this.formTitle,
+                objectApiName: this.config.objectApiName,
+                objectLabel: this.config.objectLabel,
+                recordId,
+                formSections: this.formSections,
+                isFileUpload: this.formViewState.isFileUploadObject
+            });
+            // キャンセルや標準の閉じる操作では一覧を再取得しない
+            if (result) {
+                // 保存・アップロードの確定結果を通知
+                this.showToast(result.title, result.message, 'success');
+                // 再取得の失敗と保存結果を分けて親へ変更を通知
+                await this.refreshRecordsAndNotifyChange();
+            }
+        } catch (error) {
+            // モーダル起動に失敗しても利用者が再試行できるようにする
+            this.showToast(
+                'フォームを開けませんでした',
+                reduceErrors(error, '時間をおいて再度お試しください。'),
+                'error'
+            );
+        } finally {
+            // 閉じたフォームの編集対象を次の操作へ持ち越さない
+            this.formRecordId = undefined;
+            // 作成モードの派生状態へ戻す
+            this.updateFormState();
+            // 成否にかかわらず再起動を許可
+            this.showRecordForm = false;
+        }
     }
 
     // フォーム入力元が変わった時だけwire条件と表示状態を再生成

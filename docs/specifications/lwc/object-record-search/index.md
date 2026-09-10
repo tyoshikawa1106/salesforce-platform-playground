@@ -15,6 +15,8 @@
 | 種別           | API 名・ファイル名                | 役割                                            |
 | -------------- | --------------------------------- | ----------------------------------------------- |
 | LWC            | `objectRecordSearch`              | 検索条件、一覧、ページング、作成、編集、削除 UI |
+| LWC            | `objectRecordFormModal`           | 標準モーダル内のレコード保存・アップロード      |
+| LWC JavaScript | `objectRecordFormModalLogic.js`   | 保存・アップロード結果とエラー表示値の生成      |
 | LWC            | `errorUtils`                      | Apex と UI API エラーのメッセージ変換           |
 | LWC JavaScript | `objectRecordSearch.js`           | 画面操作と Apex、UI API 呼び出しの統括          |
 | LWC JavaScript | `objectRecordSearchLogic.js`      | 画面単位の検索、一覧、フォーム状態生成          |
@@ -33,7 +35,6 @@
 | Apex Class | `ObjectRecordSearchService`             | 設定、検索結果、削除結果の組み立て             |
 | Apex Class | `ObjectRecordSearchQueryPlan`           | Selector と Service で共有する検証済み検索条件 |
 | Apex Class | `ObjectRecordSearchSortSupport`         | ソート条件の検証                               |
-| Apex Class | `ObjectRecordSearchPageTokenCodec`      | カーソルページング用トークンの変換             |
 | Apex Class | `ObjectRecordSearchDisplayFieldCatalog` | オブジェクト別の追加表示項目定義               |
 | Apex Class | `ObjectMetricCatalog`                   | カードキーと対象オブジェクトの許可リスト       |
 | Apex Class | `ObjectRecordSearchConfigWrapper`       | 検索画面の設定情報                             |
@@ -53,7 +54,7 @@
 - `metricKey`: `ObjectMetricCatalog` に定義されたデータボードカードキー
 - 検索語: 対象オブジェクトの `Name` 相当項目に対する部分一致条件
 - ソート項目と昇順、降順
-- ページ番号とページトークン
+- ページ番号、標準PaginationCursorと取得位置
 - 削除対象として選択したレコード ID
 - 作成、編集フォームへの入力、またはファイルアップロード
 
@@ -63,7 +64,7 @@
 2. オブジェクト別の固定表示項目から、利用者が参照できる項目だけを一覧列にします。
 3. 検索、ソート、ページ移動を処理します。詳細は [検索・ソート・ページング](search-and-pagination.md) を参照してください。
 4. 権限とオブジェクト別の対応状況に応じて、作成、編集、削除、ファイルアップロードを処理します。詳細は [レコード操作](record-operations.md) を参照してください。
-5. レコード変更後は一覧を再読み込みし、親のデータボードへ `recordschanged` イベントを通知します。
+5. レコード変更後は親のデータボードへ `recordschanged` イベントを通知し、一覧を再読み込みします。
 
 ## 出力・更新対象
 
@@ -79,14 +80,14 @@
 - `Salesforce_Application_User` Permission Setで、LWCから直接呼び出す`ObjectRecordSearchController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトが参照可能かつクエリ可能で、`Name` 相当項目を参照できる必要があります。
 - 一覧取得と削除は `with sharing`、`AccessLevel.USER_MODE` で利用者の権限を適用します。
-- 検索語は任意フィルターとして扱い、空の場合も許可済みオブジェクトと項目、決定的なソート、51件の取得上限で初期一覧を取得します。
+- 検索語は任意フィルターとして扱い、空の場合も許可済みオブジェクトと項目、決定的なソート、1ページ50件・検索結果100,000件の上限で初期一覧を取得します。
 - 作成、編集、削除ボタンは Describe 結果と UI 対応状況に応じて無効化します。
 - 表示項目は項目レベル参照権限で絞り込みます。
 
 ## エラー処理
 
 - 想定内の状態を例外型で識別せず、下位層の判定結果と Controller の固定メッセージを境界にします。空の独自例外では公開可能なメッセージを保証できないため、`ObjectRecordSearchException` は使用しません。
-- 未定義のカードキー、利用できないオブジェクト、参照不可の `Name` 相当項目、不正なページトークンは、Service が判定結果と原因コードで Controller へ返します。
+- 未定義のカードキー、利用できないオブジェクト、参照不可の `Name` 相当項目、不正なページ取得位置は、Service が判定結果と原因コードで Controller へ返します。
 - Controller は原因コードを利用者が次の操作を選べるメッセージへ対応付け、LWC の境界で `AuraHandledException` として返します。
 - 内部の検索状態や検索条件が成立しない場合は処理を継続せず、Controller が内部エラーの詳細を公開しない一般化メッセージへ変換します。
 - 予期しない検索、設定、削除エラーは操作別の一般化メッセージに変換します。
@@ -103,7 +104,7 @@
 ## テスト・確認観点
 
 - `ObjectRecordSearchControllerTest`、`ObjectRecordSearchSelectorTest`、`ObjectRecordSearchServiceTest` で、設定取得、検索語の正規化、任意フィルターなしの初期一覧、ページング、削除、不正入力を確認すること
-- `ObjectRecordSearchSelectorTest`、`ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、動的 SOQL と bind、許可済み検索条件、固定取得件数、昇順・降順ソート、カーソル、不正ページトークンを確認すること
+- `ObjectRecordSearchSelectorTest`、`ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、動的 SOQL と bind、許可済み検索条件、固定取得件数、昇順・降順ソート、カーソル、不正ページ取得位置を確認すること
 - `objectRecordSearch.test.js`、`objectRecordSearchPaging.test.js`、`objectRecordSearchFormFlow.test.js` で、一覧表示、検索、ページ移動、レコード操作、権限メッセージ、エラー、親イベント通知を確認すること
 - 対応する各オブジェクトで `Name` 相当項目と追加表示項目が正しく表示されることを確認します。
 - 権限の異なるユーザーでボタン状態、表示列、検索、各 DML を確認します。

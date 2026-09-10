@@ -41,7 +41,7 @@ export function createInitialSearchState() {
 export function createSearchRequest({
     metricKey,
     searchTerm,
-    currentPageToken,
+    currentPagePosition,
     sortedBy,
     sortedDirection,
     pageNumber,
@@ -61,7 +61,9 @@ export function createSearchRequest({
         // 確定済み検索語だけを送信
         searchTerm,
         // 現在ページのカーソル境界を指定
-        pageToken: currentPageToken,
+        paginationCursor: currentPagePosition?.paginationCursor ?? null,
+        // 標準APIが返した取得位置を指定
+        startIndex: currentPagePosition?.startIndex ?? 0,
         // datatable列キーから解決した項目API名を指定
         sortBy,
         // 許可値へ正規化済みのソート方向を指定
@@ -116,8 +118,8 @@ export function createSearchFailureState(error) {
     return {
         // 以前取得した表示行を破棄
         rows: [],
-        // 古い次ページトークンを破棄
-        nextPageToken: undefined,
+        // 古い次ページ取得位置を破棄
+        nextPagePosition: undefined,
         // 追加ページ操作を無効化
         hasNextPage: false,
         // 古い選択状態を破棄
@@ -154,25 +156,25 @@ export function createSearchCriteriaState(draftSearchTerm = '') {
 }
 
 // 現在状態から1つ前のページを検索する状態を生成
-export function createPreviousSearchState({ pageNumber, pageTokenHistory }) {
+export function createPreviousSearchState({ pageNumber, pagePositionHistory }) {
     // Stateへ現在ページ情報を渡して前ページ境界を解決
-    return createPreviousPageState({ pageNumber, pageTokenHistory });
+    return createPreviousPageState({ pageNumber, pagePositionHistory });
 }
 
-// Apex応答の次ページトークンを使う検索状態を生成
+// Apex応答の次ページ取得位置を使う検索状態を生成
 export function createNextSearchState({
     pageNumber,
-    pageTokenHistory,
-    nextPageToken
+    pagePositionHistory,
+    nextPagePosition
 }) {
     // Stateへ現在ページ情報を渡して次ページ境界を解決
     return createNextPageState({
         // 現在ページ番号を渡す
         pageNumber,
-        // 使用済みページトークン履歴を渡す
-        pageTokenHistory,
-        // Apex応答の次ページトークンを渡す
-        nextPageToken
+        // 使用済みページ取得位置履歴を渡す
+        pagePositionHistory,
+        // Apex応答の次ページ取得位置を渡す
+        nextPagePosition
     });
 }
 

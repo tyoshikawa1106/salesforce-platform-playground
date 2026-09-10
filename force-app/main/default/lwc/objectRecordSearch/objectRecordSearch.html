@@ -78,6 +78,12 @@
             </div>
         </template>
 
+        <template lwc:if={isResultLimitReached}>
+            <p class="slds-m-horizontal_medium slds-m-bottom_small" role="status">
+                表示上限の100,000件に達しています。すべての候補を確認するには、検索条件を絞り込んでください。
+            </p>
+        </template>
+
         <template lwc:if={hasRows}>
             <div class="record-table" tabindex="0">
                 <lightning-datatable
@@ -131,118 +137,4 @@
         </div>
     </lightning-card>
 
-    <template lwc:if={showRecordForm}>
-        <section
-            role="dialog"
-            tabindex="-1"
-            aria-modal="true"
-            aria-labelledby="object-record-form-heading"
-            class="slds-modal slds-fade-in-open slds-modal_large"
-        >
-            <div class="slds-modal__container">
-                <header class="slds-modal__header">
-                    <button
-                        class="slds-button slds-button_icon slds-modal__close"
-                        type="button"
-                        title="閉じる"
-                        disabled={isSaving}
-                        onclick={handleCloseRecordForm}
-                    >
-                        <lightning-icon
-                            alternative-text="閉じる"
-                            icon-name="utility:close"
-                            size="small"
-                        ></lightning-icon>
-                        <span class="slds-assistive-text">閉じる</span>
-                    </button>
-                    <h2
-                        id="object-record-form-heading"
-                        class="slds-modal__title slds-hyphenate"
-                    >
-                        {formTitle}
-                    </h2>
-                </header>
-                <div class="slds-modal__content slds-p-around_medium">
-                    <template lwc:if={showLightningRecordForm}>
-                        <lightning-record-edit-form
-                            object-api-name={config.objectApiName}
-                            record-id={formRecordId}
-                            onsubmit={handleRecordFormSubmit}
-                            onsuccess={handleRecordFormSuccess}
-                            onerror={handleRecordFormError}
-                        >
-                            <lightning-messages></lightning-messages>
-                            <template
-                                for:each={formSections}
-                                for:item="section"
-                            >
-                                <section
-                                    key={section.key}
-                                    class="form-section slds-m-bottom_medium"
-                                    aria-labelledby={section.headingId}
-                                >
-                                    <h3
-                                        id={section.headingId}
-                                        class="slds-section__title slds-theme_shade slds-p-horizontal_small slds-p-vertical_x-small"
-                                    >
-                                        {section.label}
-                                    </h3>
-                                    <div
-                                        class="form-section__fields slds-p-top_small"
-                                    >
-                                        <template
-                                            for:each={section.fields}
-                                            for:item="field"
-                                        >
-                                            <div
-                                                key={field.apiName}
-                                                class="form-section__field"
-                                            >
-                                                <lightning-input-field
-                                                    field-name={field.apiName}
-                                                    required={field.required}
-                                                ></lightning-input-field>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </section>
-                            </template>
-                            <div
-                                class="slds-modal__footer slds-p-horizontal_none"
-                            >
-                                <lightning-button
-                                    label="キャンセル"
-                                    onclick={handleCloseRecordForm}
-                                    disabled={isSaving}
-                                ></lightning-button>
-                                <lightning-button
-                                    class="slds-m-left_x-small"
-                                    label="保存"
-                                    type="submit"
-                                    variant="brand"
-                                    disabled={isSaving}
-                                ></lightning-button>
-                            </div>
-                        </lightning-record-edit-form>
-                    </template>
-                    <template lwc:elseif={isFileUploadForm}>
-                        <lightning-file-upload
-                            label="ファイル"
-                            name="fileUploader"
-                            multiple
-                            onuploadfinished={handleUploadFinished}
-                        ></lightning-file-upload>
-                        <div class="slds-modal__footer slds-p-horizontal_none">
-                            <lightning-button
-                                label="閉じる"
-                                onclick={handleCloseRecordForm}
-                                disabled={isSaving}
-                            ></lightning-button>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </section>
-        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
-    </template>
 </template>

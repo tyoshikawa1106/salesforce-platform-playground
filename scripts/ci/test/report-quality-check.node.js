@@ -21,6 +21,7 @@ function createGhRecorder(openIssues = []) {
     return {
         calls,
         runGhCommand(args) {
+            if (args[0] === 'api') return 'abc123';
             calls.push(args);
             return args[0] === 'issue' && args[1] === 'list' ? JSON.stringify(openIssues) : '';
         }
@@ -172,8 +173,35 @@ for (const ref of ['refs/heads/codex/fix', 'refs/tags/v1', undefined]) {
 test('mainの成功時だけ監視Issueを復旧として閉じる', () => {
     const recorder = createGhRecorder([{ number: 42, title: 'CI: Nightly npm checksが失敗しています' }]);
     main({
-        env: { GITHUB_REF: 'refs/heads/main', NPM_RESULT: 'success', WINDOWS_RESULT: 'skipped' },
+        env: { GITHUB_SHA: 'abc123', GITHUB_REF: 'refs/heads/main', NPM_RESULT: 'success', WINDOWS_RESULT: 'skipped' },
         runGhCommand: recorder.runGhCommand
     });
     assert.deepEqual(recorder.calls.at(-1), ['issue', 'close', '42', '--reason', 'completed']);
+});
+
+test('古いmainの成功も失敗も現在の障害Issueを変更しない', () => {
+    for (const result of ['success', 'failure']) {
+        const calls = [];
+        main({
+            env: { GITHUB_REF: 'refs/heads/main', GITHUB_SHA: 'older-commit', NPM_RESULT: result },
+            runGhCommand(args) {
+                calls.push(args);
+                return 'newer-commit';
+            }
+        });
+        assert.deepEqual(calls, [['api', 'repos/{owner}/{repo}/commits/main', '--jq', '.sha']]);
+    }
+});
+
+test('現在のmainを確認できない場合はIssueを変更しない', () => {
+    assert.throws(
+        () =>
+            main({
+                env: { GITHUB_REF: 'refs/heads/main', GITHUB_SHA: 'abc123', NPM_RESULT: 'success' },
+                runGhCommand() {
+                    throw new Error('lookup failed');
+                }
+            }),
+        /lookup failed/
+    );
 });

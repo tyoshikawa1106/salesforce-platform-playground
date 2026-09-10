@@ -43,7 +43,7 @@ export const searchResponse = {
     pageSize: 50,
     pageNumber: 1,
     hasNextPage: false,
-    nextPageToken: null
+    nextPagePosition: null
 };
 
 export function createSearchResponse(configOverrides = {}) {

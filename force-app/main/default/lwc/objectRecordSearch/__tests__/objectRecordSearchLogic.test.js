@@ -19,7 +19,7 @@ describe('objectRecordSearchLogic', () => {
             createSearchRequest({
                 metricKey: 'accounts',
                 searchTerm: 'Acme',
-                currentPageToken: 'page-token',
+                currentPagePosition: { paginationCursor: 'standard-cursor', startIndex: 50 },
                 sortedBy: 'displayField_Industry',
                 sortedDirection: 'desc',
                 pageNumber: 2,
@@ -28,7 +28,7 @@ describe('objectRecordSearchLogic', () => {
         ).toEqual({
             metricKey: 'accounts',
             searchTerm: 'Acme',
-            pageToken: 'page-token',
+            paginationCursor: 'standard-cursor', startIndex: 50,
             sortBy: 'Industry',
             sortDirection: 'desc',
             pageNumber: 2
@@ -56,7 +56,7 @@ describe('objectRecordSearchLogic', () => {
                 ],
                 pageNumber: 2,
                 pageSize: 25,
-                nextPageToken: 'next-token',
+                paginationCursor: 'standard-cursor', nextIndex: 50,
                 hasNextPage: true
             },
             50
@@ -72,7 +72,7 @@ describe('objectRecordSearchLogic', () => {
                 ],
                 pageNumber: 2,
                 pageSize: 25,
-                nextPageToken: 'next-token',
+                nextPagePosition: { paginationCursor: 'standard-cursor', startIndex: 50 },
                 hasNextPage: true,
                 selectedRowIds: [],
                 errorTitle: undefined,
@@ -89,7 +89,7 @@ describe('objectRecordSearchLogic', () => {
             })
         ).toEqual({
             rows: [],
-            nextPageToken: undefined,
+            nextPagePosition: undefined,
             hasNextPage: false,
             selectedRowIds: [],
             errorTitle: 'アクセス権限を確認してください',
@@ -103,38 +103,38 @@ describe('objectRecordSearchLogic', () => {
             sortedDirection: 'asc',
             pageNumber: 1,
             pageSize: 50,
-            currentPageToken: undefined,
-            nextPageToken: undefined,
-            pageTokenHistory: [],
+            currentPagePosition: undefined,
+            nextPagePosition: undefined,
+            pagePositionHistory: [],
             hasNextPage: false
         });
         expect(createSearchCriteriaState('  Acme  ')).toEqual(
             expect.objectContaining({
                 searchTerm: 'Acme',
                 pageNumber: 1,
-                pageTokenHistory: []
+                pagePositionHistory: []
             })
         );
         expect(
             createNextSearchState({
                 pageNumber: 1,
-                pageTokenHistory: [],
-                nextPageToken: 'token-2'
+                pagePositionHistory: [],
+                nextPagePosition: 'token-2'
             })
         ).toEqual({
             pageNumber: 2,
-            currentPageToken: 'token-2',
-            pageTokenHistory: ['token-2']
+            currentPagePosition: 'token-2',
+            pagePositionHistory: ['token-2']
         });
         expect(
             createPreviousSearchState({
                 pageNumber: 3,
-                pageTokenHistory: ['token-2', 'token-3']
+                pagePositionHistory: ['token-2', 'token-3']
             })
         ).toEqual({
             pageNumber: 2,
-            currentPageToken: 'token-2',
-            pageTokenHistory: ['token-2']
+            currentPagePosition: 'token-2',
+            pagePositionHistory: ['token-2']
         });
         expect(
             createSortSearchState({
@@ -146,7 +146,7 @@ describe('objectRecordSearchLogic', () => {
                 sortedBy: 'displayField_Industry',
                 sortedDirection: 'desc',
                 pageNumber: 1,
-                pageTokenHistory: []
+                pagePositionHistory: []
             })
         );
     });
