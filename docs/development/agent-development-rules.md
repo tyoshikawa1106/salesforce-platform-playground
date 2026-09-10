@@ -170,7 +170,7 @@ Apex 変更を push する前に、関連する Apex テストを coverage 付�
 
 ## 静的解析
 
-PR の CI では SLDS Linter を `npm run lint:slds`、Salesforce Code Analyzer を `npm run code-analyzer:ci` で実行します。
+定期・手動の品質チェックでは SLDS Linter を `npm run lint:slds`、Salesforce Code Analyzer を `npm run code-analyzer:ci` で実行します。PR 作成や更新を起点とした自動実行は行いません。実行条件は[CI メタデータ検証ルール](../deployment/ci-metadata-validation-rules.md)を参照してください。
 
 静的解析は、対象とするソースに応じて次のように使い分けます。
 
