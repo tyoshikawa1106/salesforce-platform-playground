@@ -176,6 +176,38 @@ test('開始コマンドがタイムアウトした場合は開始状況不明�
     assert.match(lines[1], /Deployment Status/);
 });
 
+for (const [name, processStatus, response] of [
+    ['statusなし', 0, {}],
+    ['文字列status', 0, { status: '1' }],
+    ['null応答', 0, null],
+    ['配列応答', 0, []],
+    ['非0終了と成功status', 1, { status: 0 }],
+    ['非0終了とstatusなし', 1, { result: { id: deployId } }]
+]) {
+    test(`${name}は開始状況不明として再実行せず履歴確認を案内する`, async () => {
+        const lines = [];
+        let commandCount = 0;
+        const status = await runAndMonitorDeploy({
+            deployArgs: ['project', 'deploy', 'start'],
+            operation: deployOperations.DEPLOY,
+            targetOrg: 'test-org',
+            repoRoot: '/repo',
+            runSfWithOutputCommand() {
+                commandCount += 1;
+                return { status: processStatus, stdout: JSON.stringify(response) };
+            },
+            writeLine: (message) => lines.push(message),
+            writeError() {}
+        });
+
+        assert.equal(status, 1);
+        assert.equal(commandCount, 1);
+        assert.match(lines.join('\n'), /開始状況を確認できません。自動で再実行しないでください/);
+        assert.match(lines.join('\n'), /Deployment Status/);
+        assert.doesNotMatch(lines.join('\n'), /sf project deploy report/);
+    });
+}
+
 test('解析できたCLIエラーは開始失敗として扱い、開始状況不明とは案内しない', async () => {
     const lines = [];
     const errors = [];

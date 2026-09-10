@@ -17,6 +17,7 @@ const deployOperations = Object.freeze({
     DEPLOY: 'deploy',
     DRY_RUN: 'dry-run'
 });
+// 実行種別ごとのcheckOnly値と通知名を対応付ける。
 const operationContracts = Object.freeze({
     [deployOperations.DEPLOY]: { checkOnly: false, label: 'destructive deploy' },
     [deployOperations.DRY_RUN]: { checkOnly: true, label: 'dry-run' }
@@ -37,121 +38,165 @@ const deployStatuses = new Set([
 
 // Ctrl+Cで監視を終了するときに、次回pollまでの待機も中断できるPromiseを返す。
 function waitForPoll(milliseconds, signal) {
+    // 待機中も中断signalで監視を終了できるようにする。
     return wait(milliseconds, undefined, { signal });
 }
 
 // Ctrl+Cでは監視だけを止められるよう、解除可能なハンドラーを登録する。
 function registerInterruptHandler(handler, processRef = process) {
+    // 同じ中断を重複処理しないよう1回だけ通知する。
     processRef.once('SIGINT', handler);
+    // 通常終了後に他の処理へ中断ハンドラーを残さない。
     return () => processRef.removeListener('SIGINT', handler);
 }
 
 // CLIのJSON応答を解析し、外側のstatusとdeploy結果を分けて返す。
 function parseSfJson(result, operation, { allowNonZero = false } = {}) {
+    // CLI起動失敗と応答解析を分けて扱う。
     if (result.error) {
+        // CLIプロセスが返せなかった理由を上位へ伝える。
         throw new Error(`${operation}を開始できませんでした: ${result.error.message}`);
     }
 
+    // JSON以外の出力を結果判定に使わない。
     let parsed;
 
+    // JSONとして取得できた情報だけを信頼する。
     try {
+        // 空出力も解析失敗として扱う。
         parsed = JSON.parse(result.stdout || '');
     } catch (error) {
+        // 解析不能な応答を成功と誤認させない。
         throw new Error(`${operation}のJSONを解析できませんでした: ${error.message}`);
     }
 
+    // 開始時はプロセスとCLI双方の成功が必要になる。
     if (!allowNonZero && (result.status !== 0 || parsed.status !== 0)) {
+        // 利用可能なCLIメッセージだけを理由へ添える。
         const detail = typeof parsed.message === 'string' ? `: ${parsed.message}` : '';
+        // 失敗応答からjob監視を開始しない。
         throw new Error(`${operation}に失敗しました${detail}`);
     }
 
+    // CLI外側の成功だけでdeploy本体の結果を補完しない。
     if (!parsed.result || typeof parsed.result !== 'object' || Array.isArray(parsed.result)) {
+        // 利用可能なCLIメッセージだけを理由へ添える。
         const detail = typeof parsed.message === 'string' ? `: ${parsed.message}` : '';
+        // 結果本体がなければ安全に監視状態を判断できない。
         throw new Error(`${operation}の応答にresultがありません${detail}`);
     }
 
+    // 検証済みの結果本体を監視処理へ渡す。
     return parsed.result;
 }
 
 // 開始処理の失敗時に、組織上のjobが作成された可能性を判定する。
 function isStartStateUnknown(result) {
+    // CLI起動失敗と応答解析を分けて扱う。
     if (result.error) {
         // timeoutや出力上限超過では、子プロセス終了前にjobが作成された可能性が残る。
         return result.error.code !== 'ENOENT' && result.error.code !== 'EACCES';
     }
 
+    // JSON以外の出力を結果判定に使わない。
     let parsed;
 
+    // JSONとして取得できた情報だけを信頼する。
     try {
+        // 空出力も解析失敗として扱う。
         parsed = JSON.parse(result.stdout || '');
     } catch {
+        // 非JSON出力では開始済みの可能性を否定できない。
         return true;
     }
 
-    // 構造化された非0終了はCLIが確定した開始失敗として扱う。
-    return result.status === 0 && parsed.status === 0;
+    // 数値の非0 statusがなければ、プロセス終了だけで開始失敗を断定しない。
+    return typeof parsed?.status !== 'number' || parsed.status === 0;
 }
 
 // deploy job IDを後続のCLI引数へ渡す前に検証する。
 function validateDeployId(deployId) {
+    // 任意文字列をCLI引数へ混入させずMetadata APIのIDだけを許可する。
     if (typeof deployId !== 'string' || !/^0Af[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?$/.test(deployId)) {
+        // 不正なIDでは照会コマンドを組み立てない。
         throw new Error('deploy job IDを取得できませんでした。');
     }
 
+    // 形式確認した照会先を後続処理で共有する。
     return deployId;
 }
 
 // 未知の実行方法を暗黙のdeployとして扱わない。
 function getOperationContract(operation) {
+    // 許可された実行種別だけから成功条件を取得する。
     const contract = operationContracts[operation];
 
+    // 定義されていない操作を削除として扱わない。
     if (!contract) {
+        // 意図しない実行方法でCLIへ進まない。
         throw new Error('destructive deployの実行方法が不正です。');
     }
 
+    // 呼び出し元で実行方法と成功条件を一致させる。
     return contract;
 }
 
 // 監視応答に終了判定と表示に必要な値が揃っていることを確認する。
 function validateProgressResult(result, deployId) {
+    // 別jobの成功結果を今回の処理へ流用しない。
     if (result.id !== deployId) {
+        // 照会先の不一致を確定的な検証失敗にする。
         throw new Error('deploy監視結果のjob IDが開始したjobと一致しません。');
     }
 
+    // 未知の状態や型不正を完了と推測しない。
     if (typeof result.done !== 'boolean' || typeof result.status !== 'string' || !deployStatuses.has(result.status)) {
+        // 状態を判断できなければ手動確認へ切り替える。
         throw new Error('deploy監視結果に有効な完了状態がありません。');
     }
 
+    // 進捗表示に使う件数を同じ条件で確認する。
     for (const field of ['numberComponentsDeployed', 'numberComponentsTotal']) {
+        // 負数や小数の件数を正しい進捗として表示しない。
         if (!Number.isInteger(result[field]) || result[field] < 0) {
+            // 不正な件数を含む応答では監視を継続しない。
             throw new Error(`deploy監視結果の${field}が不正です。`);
         }
     }
 
+    // 必須情報が揃った監視結果だけを返す。
     return result;
 }
 
 // deployのmetadata件数を1行の進捗へ変換する。
 function describeDeployProgress(result) {
+    // 実行状態と完了件数を同じ進捗行で示す。
     return `進捗: metadata ${result.numberComponentsDeployed} / ${result.numberComponentsTotal}件（${result.status}）`;
 }
 
 // Salesforce CLIの成功判定を正とし、完了状態とdry-run種別の整合だけを確認する。
 function validateSuccessfulDeployResult({ result, deployId, operation }) {
+    // 開始時の実行方法と終了結果を比較する。
     const contract = getOperationContract(operation);
+    // job IDと必須情報は成功判定でも省略しない。
     validateProgressResult(result, deployId);
 
+    // 部分成功や未完了を全件成功として扱わない。
     if (result.done !== true || result.status !== 'Succeeded' || result.success !== true) {
+        // 完了失敗は次の実削除へ進めない。
         throw new Error(`deployが成功状態ではありません: ${result.status}`);
     }
 
+    // dry-runと実削除の結果が入れ替わっていないことを確認する。
     if (result.checkOnly !== contract.checkOnly) {
+        // 実行方法が一致しない結果では成功を返さない。
         throw new Error('deploy結果のdry-run種別が開始時の指定と一致しません。');
     }
 }
 
 // deploy job IDを使用した手動の結果取得コマンドを組み立てる。
 function getReportCommand(deployId, targetOrg) {
+    // 再開始せず同じjobを確認する手順を残す。
     return `sf project deploy report --job-id ${deployId} --target-org ${targetOrg}`;
 }
 
