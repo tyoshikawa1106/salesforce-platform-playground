@@ -142,7 +142,7 @@ Guest User Licenseは本スクリプトの対応範囲外です。製品固有�
 
 その他の権限は通常の変換規則に従います。`AddDirectMessageMembers`と`RemoveDirectMessageMembers`などの入力に存在する権限は維持し、未知のシステム権限をライセンス名だけで除外しません。`Chatter Only`・`Chatter Plus`へこの制約を適用しません。
 
-制約対象はMetadata API 67.0のdry-runによる拒否結果に基づきます。Chatterの現在の入力3 Profileは、通常のCLIで生成したXMLを変更せずdry-runに成功しています。dry-run成功は実保存やユーザー割り当て、実アクセスの確認とは区別します。
+ライセンス制約は変換処理の定義を正とします。入力Profile、ライセンス、API versionが変わる場合は生成結果を対象組織でdry-runし、結果をPRとログへ記録します。dry-run成功は実保存やユーザー割り当て、実アクセスの確認とは区別します。
 
 ### Assigned Appsのライセンス別変換
 
