@@ -19,15 +19,15 @@
 1. カードキーから許可済みオブジェクトを解決し、Describeで参照権限と項目を確認します。
 2. 検索語の前後空白を除去し、検索可能なName相当項目に部分一致条件を設定します。検索語はbind値で渡します。
 3. ソート項目をName相当項目または参照可能でソート可能な追加項目に限定します。
-4. 初回は `Database.getPaginationCursorWithBinds` を `AccessLevel.USER_MODE` で呼び出します。並び順は `ORDER BY <指定項目> ASC/DESC NULLS LAST, Id ASC`、上限は100,000件です。
-5. 継続取得では標準カーソルの `fetchPage(startIndex, fetchSize)` を使い、最大50件を取得します。独自のソート値比較WHERE条件やOFFSETは使用しません。
+4. 初回は `Database.getPaginationCursorWithBinds` を `AccessLevel.USER_MODE` で呼び出します。並び順は `ORDER BY <指定項目> ASC/DESC NULLS LAST, Id ASC`で、取得上限を設定します。
+5. 継続取得では標準カーソルの `fetchPage(startIndex, fetchSize)` を使い、ページサイズを上限に取得します。独自のソート値比較WHERE条件やOFFSETは使用しません。
 6. `CursorFetchResult.getNextIndex()` を次の取得位置に使用します。カーソル件数と取得位置から次ページ有無を判定します。
 
 検索・ソート条件変更時はカーソルとページ履歴を初期化します。再読み込み、保存・削除後の更新では先頭ページのwireを `refreshApex` し、結果集合を作り直します。応答待ちの間は追加の検索・ページ操作を抑止します。同一条件の再操作では新しい応答待ちを開始しません。
 
 ## 出力・更新対象
 
-- 検索画面設定と最大50件の表示行
+- 検索画面設定とページ単位の表示行
 - ページサイズ、現在ページ番号、次ページ有無
 - 標準カーソルと `nextIndex`
 - 表示上限到達を示す `isResultLimitReached`
@@ -71,4 +71,4 @@ Boolean、数値、日付、日時、nullは元の型を保持します。日時
 ## 既知の差異・確認事項
 
 - ページ取得は標準PaginationCursorへ統一しています。独自の境界値比較による取得制御はありません。
-- 100,000件を超える結果と標準カーソルの有効期間はSalesforceの制約に従います。無制限の全件取得は保証しません。
+- 取得上限を超える結果と標準カーソルの有効期間はSalesforceの制約に従います。無制限の全件取得は保証しません。

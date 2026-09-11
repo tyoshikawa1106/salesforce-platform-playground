@@ -43,12 +43,12 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 - 件数カードの選択
 - `objectRecordSearch` から通知されるレコード変更イベント
 
-カードの対象は、取引先、取引先責任者、リード、商談、商談商品、商品、価格表、価格表エントリ、納入商品、キャンペーン、ケース、契約、注文、注文商品、エンタイトルメント、サービス契約、作業指示、作業指示品目、ナレッジ、行動、ToDo、メールメッセージ、メールテンプレート、レポート、ダッシュボード、ファイル、ユーザーです。
+カードの対象と表示順は `ObjectMetricCatalog` を正とします。
 
 ## 処理内容
 
 1. `getObjectMetrics` をWireで呼び出します。
-2. Serviceがカタログに定義された各オブジェクトの参照権限を確認し、最大50件の件数取得計画を作成します。
+2. Serviceがカタログに定義された各オブジェクトの参照権限を確認し、件数取得計画を作成します。
 3. 専用Coordinatorが現在トランザクションの残りSOQL数を確認し、`WITH USER_MODE` のCOUNTクエリを順次実行します。ユーザーは有効ユーザーだけを数えます。
 4. Serviceが未加工件数を表示上限付きの値へ集計し、カタログの定義順にラベル、アイコン、件数を返します。
 5. LWCは件数カードを表示し、カード選択時に同じ画面内で `objectRecordSearch` へ切り替えます。
@@ -83,7 +83,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ## テスト・確認観点
 
-- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsOverviewQueryCoordinatorTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、50,000件上限を確認すること
+- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsOverviewQueryCoordinatorTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、集計上限の境界を確認すること
 - `objectMetricsOverview.test.js` で、初期表示、読込中、件数表示、上限表示、エラー、再読み込み、カード選択、検索画面からの復帰を確認すること
 - ホームページ上でカードの表示順、ラベル、アイコン、レスポンシブ表示を確認します。
 - 利用権限の異なるユーザーで件数とエラー表示を確認します。
@@ -92,13 +92,13 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 - 対象オブジェクトと表示順は `ObjectMetricCatalog` の固定定義です。
 - 件数取得計画は最大50件です。固定カタログの対象数または現在トランザクションの残りSOQL数が上限を満たさない場合は、個別取得を始める前に全体をエラーとして返します。
-- 件数は最大50,000件で打ち切るため、50,000件以上の正確な総数は表示しません。
+- 件数は表示上限で打ち切るため、上限以上の正確な総数は表示しません。
 - 参照できないオブジェクトと実際に0件のオブジェクトは、どちらも0件表示になります。
 - 対象オブジェクト数に応じてCOUNTクエリを個別に実行します。
 
 ### 大量データと性能
 
-- 各COUNTクエリは50,000件で打ち切り、上限到達時は `capped=true` としてLWCへ返します。
+- 各COUNTクエリは表示上限で打ち切り、上限到達時は `capped=true` としてLWCへ返します。
 - カタログ内のオブジェクトごとにCOUNTクエリを実行するため、対象追加時はSOQL数と画面応答時間への影響を確認します。
 - 件数取得は同期Apexで実行し、再読み込みと子コンポーネントのレコード変更通知でも再実行されます。
 
