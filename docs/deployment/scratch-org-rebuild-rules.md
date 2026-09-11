@@ -116,19 +116,7 @@ alias、状態、有効期限は `sf org list` で確認します。
 
 ## 反映
 
-### Scratch Org への dry-run
-
 Scratch Org へ反映する deploy scope は `manifest/rebuild-scratch-org.xml` で管理します。
-Scratch Org 用 manifest で`RunLocalTests`付きdry-runを実行します。
-
-```sh
-sf project deploy start \
-    --dry-run \
-    --manifest manifest/rebuild-scratch-org.xml \
-    --target-org <scratch-org-alias> \
-    --test-level RunLocalTests \
-    --wait 30
-```
 
 Salesforce 組織から大きく retrieve した直後や、Scratch Org 用 manifest の対象範囲を見直す場合だけ、`force-app` 全体 dry-run で失敗範囲を確認します。
 
@@ -138,7 +126,7 @@ sf project deploy start --dry-run --source-dir force-app --target-org <scratch-o
 
 ### Scratch Org への deploy
 
-dry-run が成功したら、同じ scope と`RunLocalTests`で反映します。Apexテストが失敗した場合はdeployを失敗させ、一括実行ではPermission Set割り当てとテストデータ投入へ進みません。
+`manifest/rebuild-scratch-org.xml` と`RunLocalTests`で反映します。Apexテストが失敗した場合はdeployを失敗させ、一括実行ではPermission Set割り当てとテストデータ投入へ進みません。
 
 ```sh
 sf project deploy start \

@@ -83,7 +83,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ## テスト・確認観点
 
-- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsOverviewQueryCoordinatorTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、集計上限の境界を確認すること
+- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsQueryCoordinatorTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、集計上限の境界を確認すること
 - `objectMetricsOverview.test.js` で、初期表示、読込中、件数表示、上限表示、エラー、再読み込み、カード選択、検索画面からの復帰を確認すること
 - ホームページ上でカードの表示順、ラベル、アイコン、レスポンシブ表示を確認します。
 - 利用権限の異なるユーザーで件数とエラー表示を確認します。

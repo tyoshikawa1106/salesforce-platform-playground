@@ -20,6 +20,8 @@ export default class AccountDataQualityScan extends LightningElement {
     scan;
     // 状態取得または開始失敗時の利用者向け文言を保持
     errorMessage;
+    // 通信エラーと区別して開始を抑止する権限不足の案内
+    accessErrorMessage;
     // スキャン開始中の二重操作を防ぐ状態を保持
     isStarting = false;
     // 手動状態更新中の二重操作を防ぐ状態を保持
@@ -37,15 +39,23 @@ export default class AccountDataQualityScan extends LightningElement {
 
         // nullを含む取得成功時は最新状態へ置き換え
         if (data !== undefined) {
-            // 直近スキャンまたは履歴なし状態を保存
-            this.scan = data;
-            // 再取得成功時は以前のエラーを解除
-            this.errorMessage = undefined;
-        // 取得失敗時は古い結果を表示せずエラーへ移行
+            // 権限不足と通常のスキャン取得を同じ応答契約で反映
+            this.applyScanResponse(data);
+        // 取得失敗時は確認済みの実行状態を保持してエラーへ移行
         } else if (error) {
             // 確認済みの実行状態を保持し、再取得の失敗だけを表示
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
         }
+    }
+
+    // 権限不足では過去の集計を消し、通常応答では最新の結果へ復帰
+    applyScanResponse(data) {
+        // 専用項目で権限不足を識別し、エラー文言の一致判定を避ける
+        this.accessErrorMessage = data?.accessErrorMessage || undefined;
+        // 参照を許可されていない結果は画面状態にも保持しない
+        this.scan = this.accessErrorMessage ? undefined : data;
+        // 履歴なしや集計値と排他的に権限不足を表示
+        this.errorMessage = this.accessErrorMessage;
     }
 
     // 現在状態をテンプレート表示用モデルへ変換
@@ -79,7 +89,7 @@ export default class AccountDataQualityScan extends LightningElement {
     // スキャン開始ボタンの無効状態を返却
     get isStartDisabled() {
         // 初回読込中またはサーバー処理中は新しい開始を許可しない
-        if (this.isLoading || this.isBusy) {
+        if (this.isLoading || this.isBusy || this.accessErrorMessage) {
             // 状態が確定するまで開始操作を抑止
             return true;
         }
@@ -108,7 +118,12 @@ export default class AccountDataQualityScan extends LightningElement {
         // 非同期登録と最新状態の再取得を順番に実行
         try {
             // Apexへ取引先スキャン開始を要求
-            this.scan = await startScan();
+            this.applyScanResponse(await startScan());
+            // 権限不足の応答では開始成功を通知しない
+            if (this.accessErrorMessage) {
+                // 権限回復後の状態更新まで開始を抑止
+                return;
+            }
             // 開始受付を成功トーストで通知
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -178,8 +193,8 @@ export default class AccountDataQualityScan extends LightningElement {
         try {
             // 最新状態のwire反映まで待機
             await refreshApex(this.wiredLatestScanResult);
-            // 再取得できた場合は以前の通信エラーを解除
-            this.errorMessage = undefined;
+            // 通信エラーは解除し、最新応答の権限不足は表示し続ける
+            this.errorMessage = this.accessErrorMessage;
         } catch (error) {
             // 開始成功を取り消さず再取得だけの失敗を表示
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);

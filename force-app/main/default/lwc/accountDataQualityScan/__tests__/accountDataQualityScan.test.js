@@ -206,4 +206,66 @@ describe('c-account-data-quality-scan', () => {
         expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(false);
     });
 
+    it.each(['取引先の参照権限がありません。', 'スキャン結果の参照権限がありません。'])(
+        '権限不足を表示して結果と開始操作を抑止する: %s',
+        async (accessErrorMessage) => {
+            const element = createComponent();
+            getLatestScan.emit({ accessErrorMessage });
+            await flushPromises();
+
+            expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(accessErrorMessage);
+            expect(element.shadowRoot.textContent).not.toContain('スキャン履歴はありません。');
+            expect(element.shadowRoot.querySelectorAll('article')).toHaveLength(0);
+            const startButton = element.shadowRoot.querySelector('lightning-button');
+            expect(startButton.disabled).toBe(true);
+            startButton.click();
+            await flushPromises();
+            expect(startScan).not.toHaveBeenCalled();
+            await expect(element).toBeAccessible();
+        }
+    );
+
+    it('状態更新で権限不足になったら古い結果を消し、回復後は履歴なし表示へ復帰する', async () => {
+        const element = createComponent();
+        getLatestScan.emit({ ...runningScan, status: 'Completed' });
+        await flushPromises();
+        expect(element.shadowRoot.querySelectorAll('article')).toHaveLength(5);
+        const accessErrorMessage = '参照権限がありません。';
+        refreshApex.mockImplementationOnce(async () => {
+            getLatestScan.emit({ accessErrorMessage });
+        });
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(accessErrorMessage);
+        expect(element.shadowRoot.querySelectorAll('article')).toHaveLength(0);
+        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+
+        refreshApex.mockImplementationOnce(async () => getLatestScan.emit(null));
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.textContent).toContain('スキャン履歴はありません。');
+        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(false);
+    });
+
+    it('開始要求が参照権限不足で拒否されたら成功通知せず開始を抑止する', async () => {
+        const element = createComponent();
+        const toastHandler = jest.fn();
+        element.addEventListener('lightning__showtoast', toastHandler);
+        const accessErrorMessage = '参照権限がありません。';
+        startScan.mockResolvedValueOnce({ accessErrorMessage });
+        getLatestScan.emit(null);
+        await flushPromises();
+        element.shadowRoot.querySelector('lightning-button').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(accessErrorMessage);
+        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+        expect(element.shadowRoot.textContent).not.toContain('スキャン履歴はありません。');
+        expect(toastHandler).not.toHaveBeenCalled();
+        expect(refreshApex).not.toHaveBeenCalled();
+    });
+
 });

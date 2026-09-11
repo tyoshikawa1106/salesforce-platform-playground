@@ -6,6 +6,10 @@ public with sharing class AccountDataQualityScanController {
     private static final String ACTIVE_SCAN_MESSAGE =
         '実行中のスキャンがあります。完了後にもう一度お試しください。';
 
+    // 参照権限不足では結果や履歴なし表示に進めず権限確認を案内
+    private static final String READ_ACCESS_MESSAGE =
+        '取引先またはスキャン結果の参照権限がありません。管理者に権限を確認してください。';
+
     @TestVisible
     private static AccountDataQualityScanService service = new AccountDataQualityScanService();
     @TestVisible
@@ -16,10 +20,14 @@ public with sharing class AccountDataQualityScanController {
      *
      * 読み取り専用であり、開始操作後はLWCから再取得が必要
      *
-     * @return 直近スキャンの表示値、実行履歴がない場合はnull
+     * @return 直近スキャンの表示値、実行履歴がない場合はnull、参照権限不足時は案内のみ
      */
     @AuraEnabled(cacheable=true)
     public static AccountDataQualityScanWrapper getLatestScan() {
+        // 結果の取得前に両オブジェクトの参照権限を確認
+        if (!service.canReadScan()) {
+            return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
+        }
         try {
             // 直近スキャンの未加工検索結果を取得
             List<DataQualityScan__c> latestScans = selector.getLatestScans();
@@ -35,10 +43,14 @@ public with sharing class AccountDataQualityScanController {
     /**
      * 取引先データ品質スキャンを開始
      *
-     * @return 非同期実行を登録した待機中スキャンの表示値
+     * @return 非同期実行を登録した待機中スキャンの表示値、参照権限不足時は案内のみ
      */
     @AuraEnabled
     public static AccountDataQualityScanWrapper startScan() {
+        // 画面表示後に権限が変わった場合も保存や非同期登録の前に拒否
+        if (!service.canReadScan()) {
+            return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
+        }
         assertCanStartScan();
         DataQualityScan__c scanRecord;
         try {
