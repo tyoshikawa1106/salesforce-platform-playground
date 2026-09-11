@@ -148,7 +148,7 @@ sf project deploy report \
 進捗は次の形式で表示します。TTYでは同じ行を更新し、TTY以外では行単位で出力します。
 
 ```text
-進捗: metadata 1 / 3件（InProgress）
+進捗: metadata <完了件数> / <対象件数>件（InProgress）
 ```
 
 監視全体には時間上限を設けません。deploy開始と個々のreport呼び出しには、それぞれ2分の実行時間上限と50MBのJSON出力上限を設定します。

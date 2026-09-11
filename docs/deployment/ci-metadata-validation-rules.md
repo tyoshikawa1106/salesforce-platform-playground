@@ -15,7 +15,7 @@
 
 ## workflow の動作
 
-`.github/workflows/ci.yml`は、Ubuntu上のnpmチェックを毎日2時30分、Windows上のスクリプトテストを毎週日曜3時30分にJSTで実行します。手動実行では両方を実行します。
+`.github/workflows/ci.yml`は、Ubuntu上のnpmチェックとWindows上のスクリプトテストを定期実行します。実行日時は[GitHub Actionsの運用ルール](../development/github-repository-rules.md#github-actions)を参照してください。手動実行では両方を実行します。
 
 Ubuntu上のnpmチェックは次を実行します。
 

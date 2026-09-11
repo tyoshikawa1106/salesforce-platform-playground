@@ -51,7 +51,7 @@ Trigger 全体の独自例外処理はありません。個別処理のエラー
 
 ## テスト・確認観点
 
-- `AccountTriggerHandlerTest` で、before insert、before update、251件の一括登録をTrigger経由で確認すること
+- `AccountTriggerHandlerTest` で、before insert、before update、Triggerの実行単位をまたぐ一括登録をTrigger経由で確認すること
 - `AccountTriggerServiceTest` で、名称変更判定、空入力、更新前レコードが取得できない場合をService単位で確認すること
 - 各詳細仕様に記載されたテスト観点を確認すること
 
@@ -65,7 +65,7 @@ Trigger 全体の独自例外処理はありません。個別処理のエラー
 
 - Trigger、Handler、Serviceはリスト単位で処理し、レコードループ内でSOQLやDMLを実行しません。
 - 現行の名称正規化は追加のSOQL、DML、非同期処理を実行しません。
-- `AccountTriggerHandlerTest.shouldNormalizeCompanyAbbreviationsWhenBulkInserted` で251件の一括登録を検証します。
+- `AccountTriggerHandlerTest.shouldNormalizeCompanyAbbreviationsWhenBulkInserted` でTriggerの実行単位をまたぐ一括登録を検証します。
 
 ## 既知の差異・確認事項
 

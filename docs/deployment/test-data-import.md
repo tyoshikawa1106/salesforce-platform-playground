@@ -69,29 +69,29 @@ npm run setup:data -- --only standard-objects-accounts
 
 ### ケースメールログ表示用データ
 
-`caseEmailMessageList` の大量行表示とページングを確認する場合は、合成ケース「`[TEST] ノートPCの初期設定方法を確認したい`」へ240件の合成メールを作成します。各メールの本文は、改行と空行を含む27行のテキストです。
+`caseEmailMessageList` のページングと長文・短文の表示を確認するため、基準となる合成ケースへメールを作成します。対象ケースと生成内容は[メール用seed](../../scripts/apex/test-data/seed-case-email-message-list.apex)を参照してください。
 
-再実行時は、件名が「`[TEST-LWC-BULK]`」で始まる専用データだけを削除し、同数を再作成します。それ以外の既存メールは残します。
+再実行時は、件名が「`[TEST-LWC-BULK]`」で始まる専用データだけを削除し、seedの定義に従って再作成します。それ以外の既存メールは残します。
 
 ```sh
 npm run setup:data:dry-run -- --only case-email-message-list
 npm run setup:data -- --only case-email-message-list
 ```
 
-画面では初回に最も古い 50 件を表示します。「次のメールを読み込む」を選択し、50 件ずつ追加されることと、新しいメールが末尾へ追加されて古い順を維持することを確認します。
+画面では「次のメールを読み込む」を選択し、取得したメールが末尾へ追加されて古い順を維持することと、長文・短文を表示できることを確認します。表示上限などの仕様は[ケースメールログ表示](../specifications/lwc/case-email-message-list/index.md)を参照してください。
 
 ### 最近の問い合わせ表示用データ
 
-`caseRelatedCaseList`の顧客タブと会社タブを確認する場合は、合成ケース「`[TEST] ノートPCの初期設定方法を確認したい`」と同じContact、Accountへ5件の合成ケースを作成します。
+`caseRelatedCaseList`の顧客タブと会社タブを確認するため、基準となる合成ケースと同じContact、Accountへ関連ケースを作成します。対象ケースと生成内容は[関連ケース用seed](../../scripts/apex/test-data/seed-case-related-case-list.apex)を参照してください。
 
-再実行時は、件名が「`[TEST-LWC-RELATED]`」で始まる専用データだけを削除し、同数を再作成します。それ以外の既存ケースは残します。
+再実行時は、件名が「`[TEST-LWC-RELATED]`」で始まる専用データだけを削除し、seedの定義に従って再作成します。それ以外の既存ケースは残します。
 
 ```sh
 npm run setup:data:dry-run -- --only case-related-case-list
 npm run setup:data -- --only case-related-case-list
 ```
 
-画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで含まれ、別Caseと合わせて作成日時の降順で最大20件表示されることを確認します。表示中Caseは先頭に固定しません。関連するCaseが表示中Caseと投入した5件だけの場合は、合計6件が表示されます。詳細は[最近の問い合わせ仕様](../specifications/lwc/case-related-case-list/index.md)を参照してください。
+画面では「顧客」と「会社」の両タブに表示中Caseがリンクなしで含まれ、関連ケースと合わせて作成日時の降順で表示されることを確認します。表示中Caseは先頭に固定しません。表示上限などの仕様は[最近の問い合わせ仕様](../specifications/lwc/case-related-case-list/index.md)を参照してください。
 
 投入後の主要レコードは、確認用 SOQL で確認できます。
 
@@ -105,31 +105,16 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 
 ### 作成対象
 
-作成対象は次のとおりです。
+作成対象と依存順序は[import plan](../../scripts/setup/plans/import-test-data-plan.json)、各データの内容はplanが参照するApex sourceを正とします。投入前にdry-runで対象を確認し、投入後は実行結果の作成・削除・スキップ集計を確認します。
 
-| 分類             | API 名                                                                |
-| ---------------- | --------------------------------------------------------------------- |
-| 顧客             | `Account`, `Contact`, `Lead`                                          |
-| キャンペーン     | `Campaign`, `CampaignMember`                                          |
-| 商品・価格       | `Product2`, `PricebookEntry`                                          |
-| 商談             | `Opportunity`, `OpportunityContactRole`, `OpportunityLineItem`        |
-| 契約・注文       | `Contract`, `Order`, `OrderItem`                                      |
-| サポート         | `Asset`, `Case`, `Entitlement`, `ServiceContract`, `ContractLineItem` |
-| 作業指示         | `WorkOrder`, `WorkOrderLineItem`                                      |
-| 活動             | `Task`, `Event`                                                       |
-| メール・ファイル | `EmailMessage`, `ContentVersion`                                      |
+### 生成方針
 
-### 件数と表示名
-
-- 通常 org では、各オブジェクトを 50 件規模で作成する。
-- Scratch Org では、`scripts/scratch-org/steps/import-test-data.js` が `--default-repeat 40` を指定し、2,000 件規模へ拡張する。
-- 組織の機能や権限で作成できない optional object は、debug log に理由を出し、作成可能な範囲を続行する。
-- キャンペーンは、前年・今年・来年の各月 1 件ずつ作成する。
-- 商品価格はカスタム価格表を作成せず、標準価格表を有効化して `PricebookEntry` を作成する。
-- 商品マスターは、ノート PC、モニター、会議機器、オフィス家具、ソフトウェアなどの office product catalog として作成する。
-- `Account.Name` は `[TEST] さくらデータ企画株式会社` のように、テスト接頭辞と自然な会社名で構成する。
-- 請求先・納入先住所の都道府県は `State` で設定し、State/Country Picklist の有無に依存しないようにする。
-- `Name`、`LastName`、`Subject`、`Title` など画面に表示される主要名称には連番プレフィックスを付けない。内部識別が必要な値は、メール、URL、外部識別用フィールド、ファイルパスなどに保持する。
+- 生成量はseedとplanの繰り返し設定に従う。Scratch Org向けの繰り返し設定は[投入step](../../scripts/scratch-org/steps/import-test-data.js)で管理する。
+- 組織の機能や権限で作成できないoptional objectは、debug logに理由を出し、作成可能な範囲を続行する。
+- 商品価格はカスタム価格表を作成せず、標準価格表を有効化して`PricebookEntry`を作成する。
+- 画面で識別できる合成名称を使用する。テストデータの識別条件は各seedで確認する。
+- 請求先・納入先住所の都道府県は`State`で設定し、State/Country Picklistの有無に依存しないようにする。
+- `Name`、`LastName`、`Subject`、`Title`など画面に表示される主要名称には連番プレフィックスを付けない。内部識別が必要な値は、メール、URL、外部識別用フィールド、ファイルパスなどに保持する。
 
 ### 作成しない対象
 

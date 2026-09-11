@@ -97,7 +97,7 @@ Web-to-Caseの標準項目にはWebサイトURL、携帯電話、FAX、部署、
 - 会社名の上に人物情報との区切り罫線があること
 - CaseのAccountをContactのAccountより優先すること
 - CaseにAccountがない場合にContactのAccountを使用すること
-- ContactとAccountのCase件数、0件、1,999件超過表示、取得エラー
+- ContactとAccountのCase件数、0件、取得上限の超過表示、取得エラー
 - ContactとAccountがない場合にWeb-to-Case項目を使用し、レコードリンクを表示しないこと
 - 取得値がない項目の `-` 表示
 - 読み込み中と取得エラー
