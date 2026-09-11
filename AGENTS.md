@@ -53,7 +53,7 @@
 
 ## ドキュメント
 
-- ドキュメント配置は `docs/development/documentation-rules.md` に従う。
+- ドキュメント配置と記載粒度は `docs/development/documentation-rules.md` に従う。生成件数や過去のテスト成功件数など変動する詳細を固定せず、目的、判断基準、確認先を記載する。
 - このファイルは短く保つ。実務手順は `docs/development/` または `docs/deployment/` に置く。
 
 ## ナレッジ・ディスカッションの運用
