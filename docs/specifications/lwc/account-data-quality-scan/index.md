@@ -58,8 +58,8 @@
 
 1. `Pending`または`Running`のAccountスキャンがないことを確認します。
 2. 利用者が参照できるAccountの`Database.Cursor`を作成し、対象総件数を`DataQualityScan__c`へ保存します。
-3. Cursor残件数を500件で割って切り上げた必要段数（0件は1段）を `AsyncOptions.MaximumQueueableStackDepth` に設定し、初回の `AccountDataQualityScanQueueable` を登録します。後続ジョブはこの上限を引き継ぎます。
-4. QueueableごとにCursorから最大500件を取得し、項目不足を集計します。
+3. Cursor残件数を分割件数で割って切り上げた必要段数（対象なしでも初回ジョブは必要）を `AsyncOptions.MaximumQueueableStackDepth` に設定し、初回の `AccountDataQualityScanQueueable` を登録します。後続ジョブはこの上限を引き継ぎます。
+4. QueueableごとにCursorから分割件数を上限に取得し、項目不足を集計します。
 5. 処理済み位置と累積件数を保存し、残りがあればCursorと次位置を次のQueueableへ引き継ぎます。
 6. 全取得位置を処理したら`Completed`へ変更し、終了日時を保存します。
 7. LWCは自動ポーリングせず、「スキャン状態を更新」の操作で最新状態を再取得します。
@@ -89,7 +89,7 @@ LWCは次を表示します。
 
 - ステータス
 - 対象総件数、処理済み件数、進捗率
-- 5種類の不足件数
+- 検査項目ごとの不足件数
 - 開始日時、終了日時
 - 失敗時の利用者向けエラー
 
@@ -126,8 +126,8 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 
 - `AccountDataQualityScanServiceTest`: 各不足条件、累積、完了、失敗、禁止状態遷移
 - `AccountDataQualityScanSelectorTest`: USER_MODE Cursor、分割取得、管理レコードI/O、一意制約
-- `AccountDataQualityScanQueueableTest`: 0件、1区間完了、端数区間、6段連鎖、入力不足の拒否、Finalizerの失敗記録
-- `AccountDataQualityScanControllerTest`: 初期表示、開始、501件の分割完了、重複開始拒否、直近結果
+- `AccountDataQualityScanQueueableTest`: 0件、1区間完了、端数区間、複数段の連鎖、入力不足の拒否、Finalizerの失敗記録
+- `AccountDataQualityScanControllerTest`: 初期表示、開始、分割境界をまたぐ完了、重複開始拒否、直近結果
 - `accountDataQualityScan.test.js`: 画面状態、開始、手動更新、エラー、アクセシビリティ
 - `accountDataQualityScanLogic.test.js`: 状態ラベル、操作可否、表示値の正規化
 
@@ -144,8 +144,7 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 
 ## 既知の差異・確認事項
 
-接続済みのDeveloper Editionへ限定デプロイし、関連Apexテスト31件が成功しています。501件の分割完了、6段のQueueable連鎖、端数区間の集計をApexテストで確認済みです。
-
-変更後のLWCのChrome上での動作と、Permission Setを割り当てた利用者権限での操作は未確認です。
-
-500件を超える実データでのQueueable連鎖と、実障害時のFinalizerによる失敗記録は組織上で未確認です。Finalizerの失敗記録テストはコンテキストmockを使用し、実際の非同期障害の再現とは区別します。
+- 状態: 未確認（承認済み要求または外部契約との比較元を特定していません）
+- 組織上の確認では、分割境界をまたぐ完了、複数段のQueueable連鎖、端数区間の集計を検証します。実行結果は対象変更のPRとログへ記録します。
+- LWCのChrome上での動作と、Permission Setを割り当てた利用者権限での操作は、対象組織で別途確認が必要です。
+- 実データによるQueueable連鎖と、実障害時のFinalizerによる失敗記録は、組織上で別途確認が必要です。Finalizerの失敗記録テストはコンテキストmockを使用し、実際の非同期障害の再現とは区別します。
