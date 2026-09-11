@@ -99,14 +99,16 @@ export default class ObjectRecordSearch extends LightningElement {
         // 成功データとエラーを排他的に参照
         const { data, error } = result;
 
+        // 失敗応答も保持し、再試行で以前の検索条件を更新しない
+        if (!this.currentPagePosition && (data || error)) {
+            // 現在の先頭ページ要求を再読み込みの対象にする
+            this.firstPageWireResult = result;
+        }
+
         // 取得成功時は設定、行、ページング状態をまとめて更新
         if (data) {
             // 取得上限に達した応答を全件表示と区別
             this.isResultLimitReached = Boolean(data.isResultLimitReached);
-            // 先頭ページの要求はカーソルを持たず、refreshで結果集合を再作成する
-            if (!this.currentPagePosition) {
-                this.firstPageWireResult = result;
-            }
             // 検索成功応答でページ操作の抑止を解除
             this.isSearchPending = false;
             // 検索応答からLogicが生成した画面状態をまとめて反映
@@ -585,6 +587,8 @@ export default class ObjectRecordSearch extends LightningElement {
             // 正常に再取得できたことを画面へ反映
             this.errorMessage = undefined;
         } catch (error) {
+            // 先頭ページへの遷移中に失敗しても利用者が再試行できるようにする
+            this.isSearchPending = false;
             // 古い一覧と選択を破棄して再取得の失敗を案内
             Object.assign(this, createSearchFailureState(error));
         } finally {

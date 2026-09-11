@@ -1,5 +1,6 @@
 import '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchApexMocks';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
+import { refreshApex } from '@salesforce/apex';
 import {
     createComponent,
     findButton,
@@ -8,6 +9,49 @@ import {
 } from '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchTestUtils';
 
 describe('c-object-record-search paging and sorting', () => {
+    it('refreshes failed new criteria instead of the previous successful search', async () => {
+        const element = createComponent();
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        const input = element.shadowRoot.querySelector('lightning-input');
+        input.value = 'Other';
+        input.dispatchEvent(new CustomEvent('change'));
+        findButton(element, '検索').click();
+        await flushPromises();
+        searchRecords.error({ message: '新しい条件の検索に失敗' });
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-button-icon[title="再読み込み"]').click();
+        await flushPromises();
+
+        expect(refreshApex).toHaveBeenCalledWith(expect.objectContaining({
+            error: expect.objectContaining({ body: { message: '新しい条件の検索に失敗' } })
+        }));
+        expect(searchRecords.getLastConfig().request.searchTerm).toBe('Other');
+    });
+
+    it('unlocks retry when refreshing a later page fails', async () => {
+        const element = createComponent();
+        searchRecords.emit({ ...searchResponse, hasNextPage: true, paginationCursor: 'old-cursor', nextIndex: 50 });
+        await flushPromises();
+        findButton(element, '次へ').click();
+        await flushPromises();
+        searchRecords.emit({ ...searchResponse, pageNumber: 2, hasNextPage: false });
+        await flushPromises();
+        refreshApex.mockRejectedValueOnce(new Error('再取得エラー'));
+        const button = element.shadowRoot.querySelector('lightning-button-icon[title="再読み込み"]');
+        button.click();
+        await flushPromises();
+
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得エラー');
+        expect(button.disabled).toBe(false);
+        expect(findButton(element, '検索').disabled).toBe(false);
+        await expect(element).toBeAccessible();
+        button.click();
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(2);
+    });
+
     it.each(['search', 'sort'])('preserves the next page after unchanged %s criteria', async (action) => {
         const element = createComponent();
         searchRecords.emit({ ...searchResponse, hasNextPage: true, paginationCursor: 'standard-cursor', nextIndex: 50 });
