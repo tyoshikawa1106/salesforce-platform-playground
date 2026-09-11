@@ -62,7 +62,7 @@ manifest単位で結果を判定・表示
 検査に成功すると、manifest数、重複を除いたmetadata type数、API versionを表示します。
 
 ```text
-retrieve manifest確認: 27 manifests / 217 metadata types / API 67.0
+retrieve manifest確認: <manifest数> manifests / <metadata type数> metadata types / API <version>
 ```
 
 表示される件数は現在のmanifestから計算します。固定された組織全体のmetadata件数ではありません。
@@ -106,8 +106,8 @@ sf project retrieve start \
 `--wait 120`は1 manifestの完了を最大120分待つ指定です。スクリプト全体の制限時間ではありません。実行中は30秒ごとに、現在のmanifestを開始してからの経過時間と、表示した時点のローカル日時を表示します。
 
 ```text
-[1/27] retrieve-profile.xml を取得します。
-・実行中: 30.0秒経過｜2026/08/31 17:26:20
+[<実行位置>/<manifest数>] <manifest名> を取得します。
+・実行中: <経過秒数>秒経過｜<ローカル日時>
 ```
 
 ### 5. manifest単位で結果を判定する
@@ -124,11 +124,11 @@ Salesforce CLIの終了状態とJSON結果から次を確認します。
 
 ```text
 ・結果: 成功
-・取得component: 120件
-・取得ファイル: 240件
-・API取得ファイル: 120件
-・APIファイル種別: ApexClass 80件
-・所要時間: 12.3秒
+・取得component: <component数>件
+・取得ファイル: <source形式のファイル数>件
+・API取得ファイル: <Metadata API形式のファイル数>件
+・APIファイル種別: <metadata type> <ファイル数>件
+・所要時間: <経過秒数>秒
 ```
 
 ### 6. warningと失敗を処理する
@@ -153,7 +153,7 @@ warningとmetadata type別件数は、それぞれ表示上限まで出力し、
 
 ```text
 すべてのmanifestを実行しましたが、要確認の取得結果があります。
-・retrieve-code.xml: 取得warning 1件を記録しました。
+・<manifest名>: 取得warning <warning数>件を記録しました。
 ```
 
 hard failureの場合は、発生したmanifestの結果を表示し、後続manifestを実行せず終了コード`1`を返します。
@@ -212,7 +212,7 @@ node --test scripts/metadata/retrieve/test/retrieve.node.js
 
 ## 制約・注意事項
 
-- 各manifestは独立したretrieveです。27回の取得をまたぐ一括トランザクションや同一時点の組織snapshotではありません。
+- 各manifestは独立したretrieveです。複数manifestの取得をまたぐ一括トランザクションや同一時点の組織snapshotではありません。
 - 途中で失敗しても、それ以前に完了したmanifestのローカル変更はロールバックされません。
 - `--wait 120`を超過すると現在のmanifestを失敗として停止します。retrieveにはCLIのresumeまたはreportコマンドを使用しません。
 - 1回のMetadata API retrieveには10,000ファイルと圧縮ZIPサイズの上限があります。10,000件未満でもサイズ上限などで失敗する可能性があります。
@@ -225,7 +225,6 @@ node --test scripts/metadata/retrieve/test/retrieve.node.js
 
 - 状態: 未確認（承認済み要求または外部契約との比較元を特定していません）
 - Node.jsテストでは、manifest計画、CLI引数、模擬JSONによる結果判定を確認しています。
-- Salesforce CLI 2.148.3、API 67.0、Developer Editionの実組織では、27個のmanifestがwarningなしですべて成功し、実際のretrieve JSONから件数とmetadata type別の内訳を解析できることを確認しています。
-- CLIの成功とwarningなしは、取得対象の網羅性を保証しません。Salesforce CLI 2.149.9、API 67.0、Developer Editionでは、`StandardValueSet`と`EmailTemplate`の`*`指定がそれぞれ成功・warningなし・取得0件となり、具体名指定では標準選択リスト4件とメールテンプレート16件を取得できることを確認しています。
-- `StandardValueSet`の取得定義にはCLIの組織照会で列挙された48種類、`EmailTemplate`には取得を確認した16件を反映しています。CLIによる標準選択リスト一覧の生成は既知の候補名に基づくため、候補一覧に含まれない対象の網羅性は保証しません。
-- Metadata APIの取得ファイル数が10,000件付近の場合と、`--wait 120`を超過する長時間retrieveの実応答は未確認です。該当する規模の組織で使用する場合は、manifest単位の結果とGit差分を確認します。
+- CLIの成功とwarningなしは、取得対象の網羅性を保証しません。`StandardValueSet`と`EmailTemplate`は、ワイルドカード指定で取得されない場合があるため、manifestの具体名と取得ファイルを照合します。
+- 具体名の一覧は各manifestを正とします。CLIによる標準選択リスト一覧の生成は既知の候補名に基づくため、候補一覧に含まれない対象の網羅性は保証しません。
+- Metadata APIのファイル数上限に近い取得や待機時間を超える長時間retrieveでは、manifest単位の結果とGit差分を確認します。対象組織・CLI・API versionごとの実行結果はPRとログへ記録します。

@@ -82,7 +82,7 @@ Default Target Orgの情報と組織種別を確認し、接続組織が承認�
 npm run sf:destructive
 ```
 
-dry-runと実削除はjob IDを表示して完了まで監視し、Salesforce CLIが返す成功状態と実行種別を確認します。個々のSalesforce CLI呼び出しは2分でタイムアウトし、開始状況または完了結果を確認できない場合は自動再実行せずDeployment Statusまたは表示されたreportコマンドで確認します。削除成功後は、同じDefault Target Orgで`npm run sf:test:apex`を実行するよう案内します。
+dry-runと実削除はjob IDを表示して完了まで監視し、Salesforce CLIが返す成功状態と実行種別を確認します。個々のSalesforce CLI呼び出しにはタイムアウトがあり、開始状況または完了結果を確認できない場合は自動再実行せずDeployment Statusまたは表示されたreportコマンドで確認します。削除成功後は、同じDefault Target Orgで`npm run sf:test:apex`を実行するよう案内します。詳細は[メタデータ削除手順](docs/deployment/metadata-deletion-rules.md)を参照してください。
 
 #### Salesforce 組織テスト
 
