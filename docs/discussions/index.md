@@ -27,6 +27,7 @@
 
 | タイトル                                                                                             | 概要                                            |
 | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| [Salesforce 参照実装の課題整理](salesforce-reference-implementation-review.md) | 再現済みの問題、設計判断、検証不足と転用条件の整理 |
 | [DreamHouse 設定差分の扱い](dreamhouse-configuration-diff-policy.md)                                 | Salesforce 公式サンプルとの差分に関する判断記録 |
 | [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 更新可否の調査                        |
 | [.gitignore 管理方針の判断記録](gitignore-management-policy.md)                                      | Git 管理対象外ファイルを決めた経緯              |
