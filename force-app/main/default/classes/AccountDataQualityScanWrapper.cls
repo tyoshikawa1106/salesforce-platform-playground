@@ -3,6 +3,9 @@
  */
 public with sharing class AccountDataQualityScanWrapper {
 
+    // オブジェクト参照権限不足の案内。通常応答では空文字列
+    @AuraEnabled
+    public String accessErrorMessage { get; private set; }
     // スキャン管理レコードのID
     @AuraEnabled
     public Id scanId { get; private set; }
@@ -50,6 +53,7 @@ public with sharing class AccountDataQualityScanWrapper {
      * @param progressPercent 算出済みの進捗率
      */
     public AccountDataQualityScanWrapper(DataQualityScan__c scanRecord, Decimal progressPercent) {
+        this.accessErrorMessage = '';
         this.scanId = scanRecord.Id;
         this.status = scanRecord.Status__c ?? '';
         this.totalCount = toInteger(scanRecord.Total_Count__c);
@@ -63,6 +67,16 @@ public with sharing class AccountDataQualityScanWrapper {
         this.startedAt = scanRecord.Started_At__c;
         this.completedAt = scanRecord.Completed_At__c;
         this.errorMessage = scanRecord.Error_Message__c ?? '';
+    }
+
+    /**
+     * スキャン情報を含まない参照権限不足の応答を作成
+     *
+     * @param accessErrorMessage 利用者へ表示する権限不足の案内
+     */
+    public AccountDataQualityScanWrapper(String accessErrorMessage) {
+        this(new DataQualityScan__c(), 0);
+        this.accessErrorMessage = accessErrorMessage ?? '';
     }
 
     private static Integer toInteger(Decimal value) {

@@ -144,6 +144,7 @@ private with sharing class AccountDataQualityScanControllerTest {
             Test.stopTest();
         }
 
+        Assert.areEqual('', result.accessErrorMessage, '通常応答には権限不足の案内を含めない必要あり');
         Assert.areEqual(scanRecord.Id, result.scanId, '直近スキャンのIDを返す必要あり');
         Assert.areEqual(100, result.progressPercent, '完了済みスキャンは進捗100パーセントにする必要あり');
     }
@@ -165,6 +166,46 @@ private with sharing class AccountDataQualityScanControllerTest {
                 Assert.isTrue(e.getMessage().contains('スキャン状態を取得できませんでした'), '利用者向けの安全な文言を返す必要あり');
             }
             Test.stopTest();
+        }
+    }
+
+    /**
+     * 参照権限不足では結果を取得せず保存と非同期登録も行わない
+     */
+    @IsTest
+    static void shouldRejectReadAndStartWithoutReadAccess() {
+        User testUser = TestDataFactory.getTestUser();
+        AccountDataQualityScanController.service = new DeniedReadService();
+        AccountDataQualityScanController.selector = new FailingSelector();
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            AccountDataQualityScanWrapper latest = AccountDataQualityScanController.getLatestScan();
+            AccountDataQualityScanWrapper started = AccountDataQualityScanController.startScan();
+
+            Assert.areEqual('取引先またはスキャン結果の参照権限がありません。管理者に権限を確認してください。', latest.accessErrorMessage, '権限不足を履歴なしと区別する必要あり');
+            Assert.areEqual(latest.accessErrorMessage, started.accessErrorMessage, '開始時も同じ権限不足を返す必要あり');
+            Assert.isNull(latest.scanId, '権限不足では結果を返さない必要あり');
+            Assert.isNull(started.scanId, '権限不足ではスキャンを作成しない必要あり');
+            Assert.areEqual(0, Limits.getQueries(), '権限不足ではスキャン検索を実行しない必要あり');
+            Assert.areEqual(0, Limits.getDmlStatements(), '権限不足では保存を実行しない必要あり');
+            Assert.areEqual(0, Limits.getQueueableJobs(), '権限不足では非同期登録しない必要あり');
+            Test.stopTest();
+        }
+    }
+
+    /**
+     * 実効権限のユーザー構成に依存せず参照拒否応答を確認するService
+     */
+    private class DeniedReadService extends AccountDataQualityScanService {
+        /**
+         * 参照拒否の判定を再現
+         *
+         * @return false
+         */
+        public override Boolean canReadScan() {
+            return false;
         }
     }
 

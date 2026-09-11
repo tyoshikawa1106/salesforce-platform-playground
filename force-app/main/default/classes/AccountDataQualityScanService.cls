@@ -1,7 +1,7 @@
 /**
  * 取引先データ品質の判定とスキャン状態遷移
  */
-public with sharing class AccountDataQualityScanService {
+public virtual with sharing class AccountDataQualityScanService {
 
     // 新規スキャンが非同期実行を待つ状態
     public static final String STATUS_PENDING = 'Pending';
@@ -17,6 +17,17 @@ public with sharing class AccountDataQualityScanService {
     private static final String ACCOUNT_OBJECT = 'Account';
     // 内部情報を公開せず再実行を案内する失敗文言
     public static final String SAFE_FAILURE_MESSAGE = 'スキャン処理に失敗しました。時間をおいて再実行してください。';
+
+    /**
+     * スキャン利用に必要な取引先と管理レコードの参照権限を確認
+     *
+     * @return 両オブジェクトを参照できる場合はtrue
+     */
+    public virtual Boolean canReadScan() {
+        // 参照権限だけを確認し、関連定義の一括読み込みを避ける
+        return Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible()
+            && DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible();
+    }
 
     /**
      * Cursor件数を初期値にした待機中スキャンを作成

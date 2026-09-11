@@ -56,7 +56,7 @@
 
 ## 処理内容
 
-1. `Pending`または`Running`のAccountスキャンがないことを確認します。
+1. Accountと`DataQualityScan__c`の参照権限を確認し、`Pending`または`Running`のAccountスキャンがないことを確認します。
 2. 利用者が参照できるAccountの`Database.Cursor`を作成し、対象総件数を`DataQualityScan__c`へ保存します。
 3. Cursor残件数を分割件数で割って切り上げた必要段数（対象なしでも初回ジョブは必要）を `AsyncOptions.MaximumQueueableStackDepth` に設定し、初回の `AccountDataQualityScanQueueable` を登録します。後続ジョブはこの上限を引き継ぎます。
 4. QueueableごとにCursorから分割件数を上限に取得し、項目不足を集計します。
@@ -111,6 +111,10 @@ AccountのCursorは`AccessLevel.USER_MODE`で作成し、スキャン管理レ�
 
 ## エラー処理
 
+結果取得と開始の入口でAccountと`DataQualityScan__c`の参照権限を確認します。いずれかが不足する場合は、`accessErrorMessage`に権限確認の案内を返し、スキャン検索、管理レコード作成、Queueable登録を行いません。通常応答の同項目は空文字列で、参照可能な履歴がない場合の応答は従来どおり`null`です。
+
+LWCはこの専用項目で権限不足を判別し、保持していた結果を消してエラーだけを表示し、開始操作を無効にします。履歴なしや0件として表示しません。状態更新は可能とし、権限回復後の正常応答で通常表示と操作へ戻ります。参照可能な利用者には、実行者で絞り込まず共有範囲内の最新結果を表示します。
+
 LWCは開始成功時の応答を保持してから最新状態を再取得します。その再取得が失敗しても開始失敗と通知せず、確認済みの実行状態を保持して重複開始を抑止し、状態更新から再試行できます。
 
 実行中スキャンがある場合は、新しい開始を拒否して完了後の再実行を案内します。Queueableが未処理例外で終了した場合はFinalizerが`Failed`、終了日時、安全な最終エラーを保存し、同時実行防止キーを解放します。
@@ -127,8 +131,8 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 - `AccountDataQualityScanServiceTest`: 各不足条件、累積、完了、失敗、禁止状態遷移
 - `AccountDataQualityScanSelectorTest`: USER_MODE Cursor、分割取得、管理レコードI/O、一意制約
 - `AccountDataQualityScanQueueableTest`: 0件、1区間完了、端数区間、複数段の連鎖、入力不足の拒否、Finalizerの失敗記録
-- `AccountDataQualityScanControllerTest`: 初期表示、開始、分割境界をまたぐ完了、重複開始拒否、直近結果
-- `accountDataQualityScan.test.js`: 画面状態、開始、手動更新、エラー、アクセシビリティ
+- `AccountDataQualityScanControllerTest`: 初期表示、開始、分割境界をまたぐ完了、重複開始拒否、直近結果、参照拒否応答で取得・保存・非同期登録が行われないこと
+- `accountDataQualityScan.test.js`: 画面状態、開始、手動更新、エラー、権限不足時の結果非表示・開始抑止・回復、アクセシビリティ
 - `accountDataQualityScanLogic.test.js`: 状態ラベル、操作可否、表示値の正規化
 
 組織上ではCursorのQueueable間シリアライズ、Permission Setを割り当てた利用者権限、Queueable連鎖、Finalizerによる失敗記録を確認します。
