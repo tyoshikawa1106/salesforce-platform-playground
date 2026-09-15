@@ -1,7 +1,7 @@
 {
     "orgName": "Scratch Org",
     "edition": "Developer",
-    "features": ["EnableSetPasswordInApi", "FieldService:5"],
+    "features": ["EnableSetPasswordInApi", "FieldService:5", "PersonAccounts"],
     "settings": {
         "lightningExperienceSettings": {
             "enableS1DesktopEnabled": true

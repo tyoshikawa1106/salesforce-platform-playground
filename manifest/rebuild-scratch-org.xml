@@ -11,6 +11,24 @@
         <members>AccountDataQualityScanServiceTest</members>
         <members>AccountDataQualityScanWrapper</members>
         <members>AccountDataQualityScanWrapperTest</members>
+        <members>AccountDeleteBatch</members>
+        <members>AccountDeleteBatchScheduler</members>
+        <members>AccountDeleteBatchSchedulerTest</members>
+        <members>AccountDeleteBatchSelector</members>
+        <members>AccountDeleteBatchSelectorTest</members>
+        <members>AccountDeleteBatchService</members>
+        <members>AccountDeleteBatchServiceTest</members>
+        <members>AccountDeleteBatchTest</members>
+        <members>AccountDeleteBatchWrapper</members>
+        <members>AccountDeleteBatchWrapperTest</members>
+        <members>AccountDeleteController</members>
+        <members>AccountDeleteControllerTest</members>
+        <members>AccountDeleteSelector</members>
+        <members>AccountDeleteSelectorTest</members>
+        <members>AccountDeleteService</members>
+        <members>AccountDeleteServiceTest</members>
+        <members>AccountDeleteWrapper</members>
+        <members>AccountDeleteWrapperTest</members>
         <members>AccountPdfController</members>
         <members>AccountPdfControllerTest</members>
         <members>AccountPdfSelector</members>
@@ -39,13 +57,13 @@
         <members>ObjectMetricsOverviewItemWrapper</members>
         <members>ObjectMetricsOverviewItemWrapperTest</members>
         <members>ObjectMetricsOverviewQueryCoordinator</members>
-        <members>ObjectMetricsQueryCoordinatorTest</members>
         <members>ObjectMetricsOverviewSelector</members>
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
         <members>ObjectMetricsOverviewServiceTest</members>
         <members>ObjectMetricsOverviewSummaryWrapper</members>
         <members>ObjectMetricsOverviewSummaryWrapperTest</members>
+        <members>ObjectMetricsQueryCoordinatorTest</members>
         <members>ObjectRecordSearchConfigWrapper</members>
         <members>ObjectRecordSearchConfigWrapperTest</members>
         <members>ObjectRecordSearchContext</members>
@@ -792,6 +810,8 @@
     </types>
     <types>
         <members>accountDataQualityScan</members>
+        <members>accountDelete</members>
+        <members>accountDeleteConfirm</members>
         <members>accountPdfExport</members>
         <members>caseContactProfile</members>
         <members>caseEmailMessageList</members>
@@ -869,9 +889,10 @@
         <name>ListView</name>
     </types>
     <types>
-        <members>Account_Data_Quality_Scan</members>
-        <members>Salesforce_API_Playground_Integration</members>
-        <members>Salesforce_Application_User</members>
+        <members>AccountDataQualityScan</members>
+        <members>AccountDelete</members>
+        <members>SalesforceAPIPlaygroundIntegration</members>
+        <members>SalesforceApplicationUser</members>
         <members>sfdcInternalInt__sfdc_scrt2</members>
         <name>PermissionSet</name>
     </types>
@@ -1136,6 +1157,14 @@
     <types>
         <members>Case</members>
         <name>Workflow</name>
+    </types>
+    <types>
+        <members>RunAccountDelete</members>
+        <name>CustomPermission</name>
+    </types>
+    <types>
+        <members>AccountDelete</members>
+        <name>CustomTab</name>
     </types>
     <version>67.0</version>
 </Package>
