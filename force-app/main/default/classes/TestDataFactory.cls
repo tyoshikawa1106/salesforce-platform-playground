@@ -5,7 +5,7 @@
 public with sharing class TestDataFactory {
 
     // 取引先データ品質スキャンの権限セットAPI名
-    private static final String ACCOUNT_DATA_QUALITY_SCAN_PERMISSION_SET = 'Account_Data_Quality_Scan';
+    private static final String ACCOUNT_DATA_QUALITY_SCAN_PERMISSION_SET = 'AccountDataQualityScan';
 
     // 取引先データ品質スキャン用テストユーザーのAlias
     private static final String ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS = 'dqscan';

@@ -19,7 +19,7 @@
 | Apex Class     | `CaseEmailMessageService`      | 入力検証、取得位置、次ページ状態の組み立て  |
 | Apex Class     | `CaseEmailMessageSelector`     | USER_MODE の PaginationCursor 問い合わせ    |
 | Apex Class     | `CaseEmailMessagePageWrapper`  | 取得結果、次の取得位置、終端状態の応答 DTO  |
-| Permission Set | `Salesforce_Application_User`  | Apex Controller の実行権限                  |
+| Permission Set | `SalesforceApplicationUser`    | Apex Controller の実行権限                  |
 | FlexiPage      | `CaseFlexiPage`                | Case レコードページのメールログタブへの配置 |
 
 ## 入力
@@ -51,7 +51,7 @@
 ## 権限・実行条件
 
 - `caseEmailMessageList` は Case の Lightning レコードページだけに配置できます。
-- `Salesforce_Application_User` 権限セットで `CaseEmailMessageController` の実行権限を付与します。
+- `SalesforceApplicationUser` 権限セットで `CaseEmailMessageController` の実行権限を付与します。
 - 一覧取得は `with sharing` と `WITH USER_MODE` で利用者の共有ルール、オブジェクト権限、項目権限を適用します。
 
 ## エラー処理
@@ -71,7 +71,7 @@
 - Case標準オブジェクト
 - EmailMessage標準オブジェクト
 - Case Lightningレコードページ
-- `Salesforce_Application_User` 権限セット
+- `SalesforceApplicationUser` 権限セット
 
 ## テスト・確認観点
 

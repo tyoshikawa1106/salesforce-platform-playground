@@ -170,11 +170,14 @@ private with sharing class AccountDataQualityScanServiceTest {
             Test.stopTest();
         }
 
-        DataQualityScan__c savedScan = [
-            SELECT Processed_Count__c
-            FROM DataQualityScan__c
-            WHERE Id = :scanRecord.Id
-        ];
+        DataQualityScan__c savedScan;
+        System.runAs(dataQualityUser) {
+            savedScan = [
+                SELECT Processed_Count__c
+                FROM DataQualityScan__c
+                WHERE Id = :scanRecord.Id
+            ];
+        }
         Assert.areEqual(4, savedScan.Processed_Count__c, '利用者権限で更新した進捗を保存する必要あり');
     }
 

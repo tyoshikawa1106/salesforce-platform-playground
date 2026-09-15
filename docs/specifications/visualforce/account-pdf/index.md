@@ -32,7 +32,7 @@ Lightning Experienceの取引先レコードページから、取引先の主要
 
 ### 設定・権限
 
-- `Salesforce_Application_User`: `AccountPdfController`と`AccountPdf`へのアクセス
+- `SalesforceApplicationUser`: `AccountPdfController`と`AccountPdf`へのアクセス
 
 ## 入力
 
@@ -71,7 +71,7 @@ Salesforce Files、取引先、その他のレコードへPDFや履歴を保存�
 ## 権限・実行条件
 
 - Lightning Experienceの取引先レコードページで実行する。
-- `Salesforce_Application_User`によるVisualforce PageとApex Controllerへのアクセスが必要。
+- `SalesforceApplicationUser`によるVisualforce PageとApex Controllerへのアクセスが必要。
 - 対象取引先の参照権限と、全出力項目の項目参照権限が必要。
 - `AccountPdfController`と`AccountPdfSelector`は`with sharing`で実行する。
 - SOQLは`WITH USER_MODE`を使用し、共有、CRUD、FLSを利用者権限で適用する。

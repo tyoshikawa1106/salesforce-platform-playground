@@ -46,7 +46,7 @@
 - `DataQualityScan__c-en_US`: 英語ロケールでオブジェクト名を表示する翻訳
 - `DataQualityScan__c` Sharing Rules: 共有ルールなし
 - `DataQualityScan__c` Topics for Objects: トピック無効
-- `Account_Data_Quality_Scan`: Account参照、スキャン管理、Apex実行に必要なPermission Set
+- `AccountDataQualityScan`: Account参照、スキャン管理、Apex実行に必要なPermission Set
 
 ## 入力
 
@@ -99,9 +99,10 @@ LWCは次を表示します。
 
 ## 権限・実行条件
 
-`Account_Data_Quality_Scan` Permission Setが必要です。
+`AccountDataQualityScan` Permission Setが必要です。
 
 - Accountの参照権限と検査対象項目のFLS
+- Contactの参照権限（個人取引先が有効な組織でAccount参照権限の依存条件を満たすため）
 - `DataQualityScan__c`の作成、参照、更新権限と対象項目のFLS
 - 対象Apexクラスの実行権限
 
