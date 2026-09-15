@@ -68,7 +68,7 @@ GitHub Actionsから次の環境変数を受け取ります。
 
 ## 関連コンポーネント
 
-- [CIメタデータ検証ルール](../../../deployment/ci-metadata-validation-rules.md)
+- [リポジトリ固有GitHub運用ルール](../../../development/github-repository-rules.md#github-actions)
 - `.github/workflows/ci.yml`
 
 ## テスト・確認観点

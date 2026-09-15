@@ -87,7 +87,7 @@ const excludedSourceNames = {
         'UserAlt-User Profile Layout',
         'WorkPlan-Work Plan Layout'
     ]),
-    PermissionSet: new Set(['Salesforce_Platform_Playground_User']),
+    PermissionSet: new Set(['SalesforcePlatformPlaygroundUser']),
     ReportType: new Set(['flow_orchestration_work_item_ootb_crt_two_four_eight']),
     TopicsForObjects: new Set([
         'ChangeRequest',
@@ -110,6 +110,8 @@ const fileMetadataTypes = [
     ['ApexClass', 'classes', '.cls'],
     ['ApexPage', 'pages', '.page'],
     ['ApexTrigger', 'triggers', '.trigger'],
+    ['CustomPermission', 'customPermissions', '.customPermission-meta.xml'],
+    ['CustomTab', 'tabs', '.tab-meta.xml'],
     ['FlexiPage', 'flexipages', '.flexipage-meta.xml'],
     ['Flow', 'flows', '.flow-meta.xml'],
     ['HomePageLayout', 'homePageLayouts', '.homePageLayout-meta.xml'],

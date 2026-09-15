@@ -64,3 +64,5 @@ node scripts/scratch-org/setup.js --alias <scratch-org-alias>
 Commerce、Industry、Loyalty、Einstein、Health Cloud、Financial Services Cloud など、契約や追加 package に強く依存する feature は、必要になった時点で個別に追加します。
 数量付きfeatureの設定値と採用するfeatureは `config/project-scratch-def.json` を正とします。
 CLI schemaに候補があっても、対象Dev Hubで利用できるとは限りません。数量や利用可否はDev Hub、edition、Salesforce release、CLI schemaに依存するため、definition fileまたはDev Hubを変更するときに再確認します。実行結果は対象変更のPRとログへ記録します。
+
+個人取引先を含む機能を検証するため、Scratch definitionで`PersonAccounts`を有効にします。法人・個人取引先の混在を、既存のAccountオブジェクトで確認します。

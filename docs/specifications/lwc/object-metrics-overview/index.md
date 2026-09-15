@@ -34,7 +34,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ### 設定・権限
 
-- `Salesforce_Application_User`: `ObjectMetricsOverviewController`のApexクラス実行権限
+- `SalesforceApplicationUser`: `ObjectMetricsOverviewController`のApexクラス実行権限
 
 ## 入力
 
@@ -63,7 +63,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ## 権限・実行条件
 
-- `Salesforce_Application_User` Permission Setで、LWCから直接呼び出す`ObjectMetricsOverviewController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
+- `SalesforceApplicationUser` Permission Setで、LWCから直接呼び出す`ObjectMetricsOverviewController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトの参照権限が必要です。参照できないオブジェクトは0件として扱います。
 - `with sharing` と `WITH USER_MODE` により、利用者の共有設定と参照権限を適用します。
 - LWCは `lightning__HomePage` に公開されています。

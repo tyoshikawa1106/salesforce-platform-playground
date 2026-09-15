@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="取引先一括削除">
+        <div class="slds-p-around_medium">
+            <p>実行ユーザーが参照できる取引先を、削除権限に従って一括削除します。個人取引先も対象です。</p>
+            <p>個人取引先を削除すると、対応する取引先責任者も削除されます。処理結果はメールで通知します。</p>
+            <template lwc:if={view.blockMessage}>
+                <p role="alert" class="slds-m-top_small">{view.blockMessage}</p>
+            </template>
+            <template lwc:if={errorMessage}>
+                <p role="alert" class="slds-m-top_small">{errorMessage}</p>
+            </template>
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="実行"
+                    variant="destructive"
+                    onclick={handleExecute}
+                    disabled={isExecuteDisabled}
+                ></lightning-button>
+                <lightning-button
+                    class="slds-m-left_small"
+                    label="実行状況を確認"
+                    onclick={handleRefresh}
+                    disabled={isBusy}
+                ></lightning-button>
+            </div>
+            <p class="slds-m-top_small">「実行状況を確認」で最新の処理状態を取得します。処理状態は自動更新されません。</p>
+            <template lwc:if={isBusy}>
+                <lightning-spinner alternative-text="処理中" size="small"></lightning-spinner>
+            </template>
+            <div aria-live="polite" class="slds-m-top_medium">
+                <template lwc:if={view.message}><p>{view.message}</p></template>
+                <template lwc:if={view.jobId}><p>ジョブID: {view.jobId}</p></template>
+                <template lwc:if={view.hasRun}>
+                    <p>処理状態: {view.status}</p>
+                    <p>削除件数は結果メールを確認してください。ジョブの完了は全件の削除成功を意味しません。</p>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

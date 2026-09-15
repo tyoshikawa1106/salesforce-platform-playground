@@ -63,15 +63,16 @@ private with sharing class AccountDataQualityScanSelectorTest {
     @IsTest
     static void shouldSelectActiveAndLatestScans() {
         User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
-        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
-            AccountDataQualityScanService.STATUS_PENDING,
-            10,
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        DataQualityScan__c scanRecord;
         List<DataQualityScan__c> activeScans;
         List<DataQualityScan__c> latestScans;
 
         System.runAs(testUser) {
+            scanRecord = TestDataFactory.createDataQualityScan(
+                AccountDataQualityScanService.STATUS_PENDING,
+                10,
+                TestDataFactory.SaveMode.INSERT_RECORD
+            );
             Test.startTest();
 
             AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();

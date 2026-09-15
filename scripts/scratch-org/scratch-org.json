@@ -4,6 +4,6 @@
     "durationDays": 7,
     "importPlan": "scripts/setup/plans/import-test-data-plan.json",
     "manifest": "manifest/rebuild-scratch-org.xml",
-    "permissionSet": "Salesforce_Application_User",
+    "permissionSet": "SalesforceApplicationUser",
     "waitMinutes": 30
 }

@@ -6,16 +6,13 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 基本方針
 
+- 独自に定義する権限セット、カスタムタブ、カスタム権限のAPI名は、単語の先頭を大文字にして連結し、アンダースコアで区切らない。Salesforceやパッケージが管理する名前空間、カスタムオブジェクト・項目の`__c`などプラットフォーム所定の接尾辞は維持する。
 - `manifest/retrieve-profile.xml` は、Profileの権限設定を取得するため、Profileと関連メタデータを同じretrieve要求に含める専用scopeとして扱う。
 - applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。分割manifestを取得定義の正本とし、実行順は`scripts/metadata/retrieve/retrieve.js`を基準にする。
 - `npm run sf:retrieve` は、orgへ接続する前に、すべての分割manifestが存在して取得対象を持ち、API versionが`sfdx-project.json`と一致することをローカルで確認する。
-- `manifest/retrieve-translations.xml` は、翻訳内容を取得するため、`Translations` と関連メタデータを同じretrieve要求に含める専用scopeとして扱う。
 - `manifest/package.xml` は、Apex、Aura、LWC、静的リソース、Flowを手動で取得する作業用 manifest として扱う。
 - retrieve / package manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
 - 組織から retrieve したメタデータは、コミット前または反映前に差分を確認する。
-- 広い manifest で retrieve した結果を、そのまま Git 管理の基準や deploy scope として扱わない。
-- 組織固有の値、認証情報、個人環境の値はメタデータに入れない。
-- コードや既存メタデータから確認できない業務仕様を推測で固定しない。
 
 ## 取得対象
 
@@ -25,21 +22,18 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 - 対象 metadata type や名前が指定されている場合は、`manifest/package.xml`、作業対象 manifest、または `--metadata` で必要な範囲に絞って取得する。
 - 既存 manifest に含まれない metadata が必要な場合は、`--metadata`、一時 manifest、または org から生成した manifest で追加取得する。
 - retrieve 前に、対象 Salesforce 組織の alias、取得方法、既存ファイルへの上書き影響、権限系メタデータへの影響を確認する。
-- 一括取得はdefault target orgのalias、ユーザー名、URL、種別を確認してから続行し、すべてのretrieveに確認済みのaliasを`--target-org <alias>`で明示する。個別にretrieveする場合も、確認済みのaliasを明示する。
+- 一括取得では、スクリプトが表示するdefault target orgのユーザー名、URL、種別を確認してから続行する。
 
 ## Git 管理対象
 
 - 自動生成に見える差分や権限系の広い差分は、必要性を確認してから残す。
 - Git 管理対象外の metadata でも、タスクに必要な場合は retrieve して参照してよい。編集や反映は依頼範囲に含まれる場合だけ行う。
-- Git 管理対象外の metadata を扱う場合は、対象 metadata、対象 org、反映方法、Git に残さない理由を作業報告に残す。
 - Git 管理対象にする metadata type は、原則として type 単位で扱う。個別ファイルを部分選別する場合は、Git の再現性が崩れない理由を確認する。
 - 組織依存、権限、認証、通知、ユーザー参照、機密情報を含み得る metadata は、Git 管理や反映対象にする前に必要性を確認する。
 
 ## 取得後確認
 
-1. `git status --short` と `git diff --stat` で差分の範囲を確認する。
-2. 必要に応じて `git diff` で内容を確認する。
-3. ignore されている metadata は Git 差分に出ないことがあるため、必要に応じて対象ファイルや retrieve 結果を個別に確認する。
+ignoreされているmetadataはGit差分に出ないことがあるため、必要に応じて対象ファイルやretrieve結果を個別に確認します。
 
 `npm run sf:retrieve` は各manifestを`--wait 120 --json`で実行し、取得component数、source形式の取得ファイル数、Metadata APIの取得ファイル数、metadata type別のAPIファイル数、所要時間をmanifest単位で表示します。長時間のretrieveでは30秒ごとに経過時間を表示します。
 
@@ -68,10 +62,4 @@ retrieve 後の表現を安定して保持する Salesforce ソースは `.prett
 
 ## 作業報告
 
-作業報告には次を含めます。
-
-- 変更したメタデータ種別とファイル
-- Git 管理対象外 metadata を扱った場合は、対象 metadata、対象 org、反映方法、Git に残さない理由
-- 実行した validate / deploy / test
-- 対象 Salesforce 組織の alias
-- 実行しなかった確認と、その理由
+Git管理対象外のmetadataを扱った場合は、対象metadata、対象org、反映方法、Gitに残さない理由を報告します。

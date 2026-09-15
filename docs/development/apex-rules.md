@@ -12,35 +12,17 @@ Apex クラス、トリガー、Apex テストを追加・更新するときの�
 4. 作業順序は、[開発手順](#開発手順) を見る。
 5. push 前の確認は、[push 前チェック](#push-前チェック) を見る。
 
-## 基本方針
-
-- Apex と Salesforce メタデータは `force-app/main/default` 配下を基準にする。
-- `.cls` を追加・更新する場合は、対応する `-meta.xml` も一緒に扱う。
-- 振る舞いを変える前に、関連する Object、Field、Flow、Validation Rule、Permission Set への依存を確認する。
-- 組織設定や権限から確認できない仕様を、Apex 側で推測して固定しない。
-- 本番組織や接続中の Salesforce 組織に依存する値、認証情報、個人環境の値を Apex やメタデータに入れない。
-
 ## 開発手順
 
-Apex 開発では、次の順序で作業します。
+Apex本体と関連テストを実装し、変更した振る舞いを確認します。実装を修正している途中は、変更対象に近いテストを必要に応じて実行し、最終的に関連クラス全体のテストとcoverageを確認します。
 
-1. Apex と関連メタデータを実装する。
-2. 開発中の各変更、途中の動作確認、途中コミットに、テスト、ドキュメント更新、全体検証を必須化しない。
-3. 振る舞いを変更した場合は、対象の開発 org と限定 scope を提示して deploy 承認を受け、開発 org へ deploy して org 上で動作確認する。修正が必要な場合は実装へ戻り、必要な deploy と動作確認を繰り返す。
-4. push する直前に必要なテストと、影響する機能仕様書などのドキュメントを更新してコミットする。
-5. push 前の最終確認として、対象 org alias と deploy scope を確認し、関連 Apex テストと coverage、Code Analyzer、CI と同等のローカルチェック、最終的な validate または dry-run を1回実行する。
-6. 最終確認後に deploy 対象 metadata を修正した場合だけ、変更をコミットし、影響する確認と validate または dry-run を再実行する。
-
-途中コミットでは手動の全体テスト、Code Analyzer、validate、dry-runを必須にしません。既存のコミットフックは省略せず、通常どおり実行します。
-
-`sf project deploy validate` と dry-run は反映前チェックであり、org へ変更を反映しません。振る舞いを変更した場合の deploy は開発中の動作確認として行い、PR の作成・マージ依頼ではdeployしません。本番 org への deploy は、ユーザーが本番 release を明示した場合だけ別タスクとして実行します。
+push前に必要なテストと、影響する機能仕様書を更新します。
 
 ## クラスとメタデータ
 
-クラス本体は `.cls`、メタデータは `.cls-meta.xml` で管理します。
+クラス本体は`.cls`、メタデータは`.cls-meta.xml`で管理し、追加・更新時は両者を一緒に扱います。
 
-- `apiVersion` は、既存メタデータとプロジェクトの対象バージョンに合わせる。
-- `apiVersion` は、理由なく古いままにしない。変更対象の周辺クラスとプロジェクト標準に合わせ、コードベース内の API バージョンを増やしすぎない。
+- `apiVersion`はプロジェクト標準と変更対象の周辺メタデータに合わせる。理由なく古いままにしたり、コードベース内のAPIバージョンを増やしたりしない。
 - `status` は通常 `Active` にする。変更理由がある場合は作業報告に残す。
 - 新規 Apex は、役割が分かる名前にする。用途が広すぎる名前は避ける。
 - 既存クラスの責務を広げる前に、既存の呼び出し元とテスト影響を確認する。
@@ -54,13 +36,12 @@ Apex 開発では、次の順序で作業します。
 - `Cnt`、`Num`、`Flg` などの曖昧な略語を避け、`Count`、`Number`、`Flag` のように意味が読める単語を使う。
 - 対象 object と処理結果が分かる名前にする。例: `updateAccountCaseCounts`。
 - boolean を返すメソッドは `is`、`has`、`can` などで始める。例: `canDeleteAccount`。
-- Trigger handler のメソッドは、Trigger context 名だけでなく、委譲する業務処理が分かる名前にする。
 
 ## ApexDoc
 
 ApexDoc は、Winter '26 / API 65.0 の Apex Developer Guide で追加された Apex 向けの標準ドキュメントコメント形式です。このリポジトリでは、ApexDoc を Apex の公開契約を説明するコーディング規約として扱います。
 
-ApexDoc は `/** ... */` 形式で書き、対象のクラス、インターフェース、列挙型、メソッド、コンストラクタ、プロパティ、メンバー変数の直前に置きます。Apex コンパイラは ApexDoc のタグや説明内容を検証しないため、実装を変更したら対応する ApexDoc も必ず見直します。
+ApexDoc は `/** ... */` 形式で書き、対象のクラス、インターフェース、列挙型、メソッド、コンストラクタ、プロパティの直前に置きます。Apex コンパイラは ApexDoc のタグや説明内容を検証しないため、実装を変更したら対応する ApexDoc も必ず見直します。
 
 ### 必須範囲
 
@@ -68,8 +49,7 @@ ApexDoc は `/** ... */` 形式で書き、対象のクラス、インターフ�
 - `public` / `global` のメソッドには ApexDoc を付ける。
 - 明示的に定義するコンストラクタには、公開範囲に関係なく ApexDoc を付け、通常のブロックコメント `/* ... */` で代替しない。
 - LWC、Aura、Flow、REST、Agentforce、パッケージ利用者など外部境界から呼ばれる Apex には、呼び出し側が守るべき契約を明記する。
-- 単純な LWC / Aura 用 Wrapper プロパティは、ApexDoc ではなく `//` コメントで表示項目の意味を書く。
-- 公開 API の一部になる複雑なプロパティやメンバー変数には ApexDoc を付ける。
+- 公開APIの一部になる複雑なプロパティにはApexDocを付ける。
 - `private` / `protected` のヘルパーでも、複雑な前提、例外、権限境界、拡張ポイントを持つ場合は ApexDoc を付ける。
 - テストクラスには、検証対象を短い機能ラベルで書く。テストメソッドは公開 API ドキュメントではなくテスト仕様として必要な範囲で説明し、全メソッドへ機械的に長い ApexDoc を付けない。
 
@@ -81,14 +61,15 @@ ApexDoc の先頭には、対象要素を一文で要約する主要説明を書
 
 ```apex
 /**
- * 指定された顧客リクエストから取引先を作成
- *
- * @param requests 取引先作成リクエスト、各リクエストには空でない名前が必要
- * @return 作成された取引先レコード、requests が空の場合は空のリスト
- * @throws AccountServiceException 検証に失敗した場合、または DML を完了できない場合
+ * 取引先名の前後空白を除去
+ * @param accountName 入力された取引先名、nullを許容
+ * @return 前後空白を除いた取引先名、未入力の場合は空文字
  */
-public List<Account> createAccounts(List<AccountRequest> requests) {
-    // ...
+public String normalizeAccountName(String accountName) {
+    // 未入力を後続処理で扱える空文字へ統一
+    if (String.isBlank(accountName)) return '';
+    // 入力内容を保持して前後の余分な空白だけを除去
+    return accountName.trim();
 }
 ```
 
@@ -139,11 +120,10 @@ public List<Account> createAccounts(List<AccountRequest> requests) {
 アノテーションが付く要素では、そのアノテーションが利用者に与える意味を書きます。
 
 - `@AuraEnabled(cacheable=true)` では、キャッシュ前提、更新後の再取得要否、読み取り専用であることを書く。
-- 単純な `@AuraEnabled` プロパティでは、ApexDoc ではなく直前の `//` コメントで項目の意味を書く。
 - `@InvocableMethod` では、Flow Builder から見たアクションの目的、入力 / 出力の構造、表示ラベル / 説明と ApexDoc の説明が矛盾しないことを確認する。
 - `@InvocableVariable` では、Flow から渡される値の役割、必須/任意、許可値を書く。
 - `@RestResource` と HTTP メソッドアノテーションでは、リソースの役割、リクエスト / レスポンス、ステータスコード、認証/権限前提を書く。
-- `@Future` は新規実装で使わない。既存コードで扱う場合は Queueable Apex へ移行できるか確認し、残す必要があるときだけ、非同期トランザクション、callout、ガバナ制限、呼び出し制約、残す理由を書く。
+- 既存の`@Future`を残す場合は、非同期トランザクション、callout、ガバナ制限、呼び出し制約、残す理由を書く。
 - `@Deprecated` では `@deprecated` タグも併用し、代替手段を書く。
 - `@TestVisible` では、テストのために可視性を変えている理由を書く。
 - `@SuppressWarnings` では、抑止する警告と抑止理由を書く。
@@ -156,34 +136,24 @@ public List<Account> createAccounts(List<AccountRequest> requests) {
 - 実装変更後に古い例外、古い戻り値、古い制約を残す。
 - `@return` を `void` メソッドに書く。
 - 実引数に存在しない `@param`、順序が違う `@param` を残す。
-- 組織固有のユーザー名、メールアドレス、レコード ID、エンドポイント、秘密情報を例や説明に書く。
-- 会話ログ、依頼文、作業中の判断をそのまま ApexDoc に残す。
 
 ### 通常コメント
 
-ApexDoc の対象ではないローカル変数、関数呼び出し、単純な LWC / Aura 用 Wrapper プロパティには、`//` コメントを近接して置きます。
-
-独自実装する Apex 本体では、宣言、代入、分岐、ループ、返却、DML、SOQL、メソッド呼び出しなど、意味を持つ処理ごとに、目的または成立させる状態を示す短い日本語コメントを直前へ 1 行ずつ記載します。
+独自実装するApex本体では、ローカル変数の宣言、代入、分岐、ループ、返却、DML、SOQL、メソッド呼び出しなど、意味を持つ処理ごとに`//`コメントを直前へ1行ずつ記載します。
 
 この規定は新規または変更する処理へ適用します。変更していない既存処理は、コメントを追加する目的だけで修正しません。
 
-- 1 行のコメントは、直後の 1 つの処理または論理的に不可分な処理を説明する。
 - アノテーション、空行、括弧や閉じ記号だけの行、複数行式の継続行は、1 処理ごとの日本語コメントの対象外とする。
 - Apex テストは 1 処理ごとのコメント対象外とし、準備、実行、検証などのまとまりを示すコメントだけを必要に応じて記載する。
-- コメントは識別子や呼び出し名の言い換えではなく、その行で何を成立させるかを書く。
-- ローカル変数には、後続の判定、比較、DML、戻り値作成で何を可能にする値かを短く書く。
-- 関数呼び出しには、呼び出し後に何が可能になるか、またはなぜその順序で呼ぶかを短く書く。
-- Handler から Service へ処理を委譲する呼び出しでは、対象業務処理を短い日本語コメントで補う。
+- バッチサイズや表示上限など、コード・設定で管理する調整値をコメントへ重複記載しない。値が変わっても目的が変わらない処理は、その目的を書く。
 - `// accountRecord を準備` や `// normalizeNames を実行` のように、変数名やメソッド名を言い換えるだけのコメントを書かない。
-- 複数行の準備、実行、検証を分けるテストでは、読みやすさを保つために短い区切りコメントを使う。
 - テストクラスの `System.runAs`、`Test.startTest()`、`Test.stopTest()` にはコメントを付けず、必要に応じて空白行で実行範囲を見やすく区切る。
 - テストの assertion / fail メッセージは日本語で書く。API 名、項目名、クラス名などの識別子は必要に応じてそのまま使う。
-- コメントは対象行または対象ブロックの直前に置き、コードから離れた場所にまとめない。
 - 同じ意図を ApexDoc と通常コメントで重複させない。
 - 日本語コメントは ApexDoc と同じく、機能ラベル調にし、文末の `です` / `ます` / `。` を使わない。
 
 ```apex
-// 空リストではトリガー処理を即時終了
+// 後続処理の対象があるかを判定
 Boolean hasAccounts = accounts != null && !accounts.isEmpty();
 
 // 更新前後の差分を使って変更された名称だけを補正
@@ -194,31 +164,59 @@ normalizeNames(accounts, oldAccountMap);
 
 画面や LWC から呼び出す Apex は、読みやすさと責務境界を優先して `Controller`、`Service`、`Selector`、`Wrapper` の構成を基本にします。
 
-- `Controller` は公開 API の入口と処理順序の組み立てを担当する。
+- `Controller` は公開 API の入口、処理順序の組み立て、DMLの実行を担当する。
 - `Controller` には、業務判断やデータ加工を目的にした `if` / `for` などのロジックを原則として書かない。
 - `Controller` は `Service` と `Selector` を呼び出し、両者のやり取りは引数と戻り値で行う。
-- `Service` はビジネスロジック、入力値の正規化、権限や削除可否などの判定、DML、返却用データの組み立てを担当する。
+- `Service` はビジネスロジック、入力値の正規化、権限や削除可否などの判定、DML対象レコードと返却用データの組み立てを担当する。
 - 検索結果を集計・変換する Map やコレクション、返却用データの組み立ては `Service` で行う。
 - `Service` から `Selector` を直接呼び出さない。SOQL が必要なデータは `Controller` が `Selector` から取得し、`Service` へ引数で渡す。
 - `Selector` は、検証済みの検索条件から SOQL と bind 値を組み立て、SOQL を実行し、取得した検索結果を加工せずに返す。
-- 動的 SOQL の bind 用 Map 生成と値設定は `Selector` で行ってよい。オブジェクト名、項目名、ソート方向など bind できない識別子は、許可リストまたは describe で検証済みの値に限定する。
+- 動的SOQLのbind用Map生成と値設定は`Selector`で行ってよい。検索値はbindで渡し、文字列へ組み込む必要がある場合は適切にエスケープする。オブジェクト名、項目名、ソート方向、演算子などbindできない識別子は、許可リストまたはdescribeで検証済みの値に限定する。
 - SObject レコードを取得する SOQL は、1件だけ取得する場合でも結果を必ず `List<対象型>` または `List<SObject>` で受け取る。SOQL の結果を SObject 型の変数へ直接代入しない。
 - SOQL for ループは原則として使用しない。SOQL の結果を先に List 型の変数へ代入し、ループや後続処理は別の処理として行う。
 - List への全件取得で Apex heap size の超過が見込まれ、`Database.Cursor` または `Database.PaginationCursor` を利用できない場合に限り、SOQL for ループを使用してよい。使用する理由をループの直前に日本語コメントで明記する。
 - SOQL for ループを使用する場合は、クエリと分割処理を分離できないことを責務上の例外として、専用の大量処理クラスで両者を調整してよい。このクラスは通常の `Selector` として再利用せず、例外とする理由と責務を ApexDoc に明記する。
 - 大量データの分割取得などで `Database.Cursor` または `Database.PaginationCursor` を使用する場合は、SOQL の結果を List 型で受け取るルールの対象外とする。取得後の加工や判定は `Service` で行う。
-- 単一レコードとして扱う場合は、`Service` が List の `isEmpty()` を確認してから先頭レコードを SObject 型の変数へ渡す。
+- 単一レコードとして扱う場合も、メインクラスからServiceへListのまま渡す。Serviceが空でないことを確認してから先頭レコードをSObject型の変数へ代入する。入力としてnullを受け取り得るメソッドは、`isEmpty()`や添字参照より前にnullも確認する。未確認の`records[0]`をメソッド引数へ渡さない。
 - `Selector` の公開メソッドごとに、問い合わせ範囲を確定する必須条件と、結果を追加で絞り込む任意フィルターを区別する。
 - ID、親 ID、対象 ID 集合などの必須条件が未指定で、その欠落を正常な no-op として定義している場合は、`Selector` で SOQL を実行せず、空の List、件数の `0`、カーソルなしなど、戻り値型とメソッド契約に応じた0件相当値を返す。契約違反または不正入力として定義している場合は例外を送出する。
 - 必須条件の未指定は、`null`、空文字、空白文字、空の List、空の Set とする。数値の `0` と Boolean の `false` は有効な検索値として扱い、SOQL を短絡しない。
 - 任意フィルターが未指定でも一覧取得を行う仕様の場合は、許可済みのオブジェクトと項目、利用者権限、決定的なソート、仕様で定めた安全な取得上限またはページングを満たす場合に限り、`Selector` で SOQL を実行してよい。
 - 必須条件の未指定をメソッド契約で定めた0件相当値へ変換する処理は、データ加工ではなくクエリ短絡の一部として `Selector` で行ってよい。
 - `Selector` では describe、DML、業務上の入力値正規化や判定、検索結果の集計や変換、返却用データの組み立てを行わない。必須条件の空判定、SOQL 実行を安全に短絡するガード、LIKE 用ワイルドカード付与など SOQL 構文上必要な bind 値の組み立ては、問い合わせ組み立ての一部として行ってよい。前後空白の除去、コード変換、既定値補完など入力の意味を確定する正規化は `Service` または専用のビジネスロジッククラスで行う。
-- `Wrapper` は LWC や Aura へ返すデータ構造、または画面から受け取る request 構造を表す。
+- `Wrapper` は画面との入出力や、メインクラスとServiceの間で渡すデータ・判定結果・集計値を表す。複数の結果はWrapperにまとめ、同じ結果リストを成功件数・失敗件数・理由の取得ごとに繰り返し走査しない。
 - LWC / Aura との Apex 境界で使う `Wrapper` は、既存の命名と公開範囲に合わせる。可読性や再利用性が下がる場合は、無理に inner class 化しない。
 - LWC / Aura 用 `Wrapper` はコンストラクタを明示し、公開プロパティの既定値を初期化する。
 
 この構成は、意味のある責務分離を目的に使います。単純な処理を機械的に細かく分割しすぎないようにし、クラスを増やす場合は、読みやすさ、テストしやすさ、変更影響の小ささを説明できる単位にします。
+
+### 処理の呼び出しとエラー判定
+
+Controller、Batch、Scheduler、Trigger Handlerなどのメインクラスでは、データ取得、業務判定、エラー確認、DML、結果の集計を、それぞれ独立した文として順に記述します。ServiceやSelectorの呼び出しを別の呼び出しや条件式へ埋め込みません。
+
+- ServiceやSelectorの戻り値は、名前付きのローカル変数またはWrapperのプロパティへ代入してから使う。`if`、`for`、`return`、別のメソッド・コンストラクタの引数へ取得・業務判定処理を直接書かない。
+- `if (String.isNotBlank(service.getBlockMessage()))`、`service.createView(selector.getJobs())`、`return selector.getAccounts()`のような書き方をしない。
+- `String.isNotEmpty(wrapper.errorMessage)`、`records.isEmpty()`など、取得済みの値に対する単純な空判定は条件式に書いてよい。業務判定やデータ取得の呼び出しと組み合わせない。
+- Wrapperを使う業務判定では、Serviceが業務上のエラーメッセージを`errorMessage`へ設定し、拒否理由、失敗件数などとともに新しいWrapperで返す。メインクラスのエラー分岐では、その業務処理を追加で行わない。
+- エラーがない場合の`errorMessage`は空文字とする。繰り返し呼ばれる判定では、前回のエラーメッセージをそのまま残さず、今回の判定結果で設定し直す。累積する件数や理由コードとは分けて扱う。
+- メインクラスは判定結果を受け取った直後にエラーを確認し、エラーがあれば後続処理へ進まず終了する。戻り値があるメソッドはWrapperなど契約上の戻り値を返し、`void`メソッドは`return;`で終了する。
+- `else`を伴わず、処理が単一の`return`または`throw`だけのガード節は、波括弧を付けず1行で書く。例: `if (String.isNotEmpty(wrapper.errorMessage)) return wrapper;`、`if (!sent) throw new EmailException('結果メールを送信できませんでした。');`。複数の文を実行する分岐には波括弧を付ける。
+- メール送信の受付結果など、処理の成否を返すBooleanも、先に変数へ代入してから判定する。例外として扱う必要がある失敗はメインクラスで処理する。
+
+Batchの`execute`での例:
+
+```apex
+// 今回の対象件数を取得
+Integer targetCount = scope.size();
+// 削除可否と中止時の集計をServiceで判定
+this.wrapper = this.service.checkExecutionConditions(this.wrapper, targetCount);
+// エラー判定
+if (String.isNotEmpty(this.wrapper.errorMessage)) return;
+// メインクラスで削除を実行
+List<Database.DeleteResult> results = Database.delete((List<Account>) scope, false, AccessLevel.USER_MODE);
+// 削除結果をまとめて集計
+this.wrapper = this.service.aggregateDeleteResults(results, this.wrapper);
+```
 
 ### null と空値
 
@@ -235,6 +233,12 @@ normalizeNames(accounts, oldAccountMap);
 - `Date`、`Datetime`、`Time`、`Id`、Salesforce の項目値、外部入力、Cursor、Describe 結果、任意のオブジェクト参照など、型に安全な空値がなく「値なし」が契約上の状態となる値は `null` を許容する。呼び出し側の分岐に影響する場合は ApexDoc に null の意味を記載する。
 - コンストラクタや factory が返却前にすべての経路で非 null 値を代入するプロパティは、宣言時に同じ既定値を重ねて初期化しなくてよい。
 
+### Service / Selector の状態
+
+Service、BatchService、Selector、BatchSelectorにはクラス変数やインスタンス変数・プロパティを持たせません。入力や処理結果をフィールドへ保存せず、必要な値は引数で受け取り、結果は戻り値で返します。引数のコレクションやオブジェクトを変更する副作用で結果を受け渡さず、更新後の値を別に組み立てて返します。
+
+トランザクション間で必要な集計値や処理状態はBatchなどのメインクラスに保持します。メインクラスはServiceの戻り値を自身の状態へ反映し、次の呼び出しへ引数で渡します。
+
 ### Service / Selector の初期化
 
 `Controller` や `Handler` が内部で使う標準の `Service` / `Selector` は、コンストラクタ引数ではなくフィールド宣言時に初期化します。
@@ -244,17 +248,23 @@ private ObjectRecordSearchService service = new ObjectRecordSearchService();
 private ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 ```
 
-コンストラクタで `Service` / `Selector` を受け取るのは、呼び出し元が実装を選ぶ公開契約、複数実装を切り替える設計、または `@TestVisible` などで明示的な差し替え口を持つ場合に限定します。
+コンストラクタで `Service` / `Selector` を受け取るのは、呼び出し元が実装を選ぶ公開契約や、複数実装を切り替える合意済みの設計がある場合に限定します。
+
+テストから参照・差し替えするためだけに、本体のService・Selectorフィールドへ`@TestVisible`を付けません。Service・Selectorの単体テストで使うインスタンスはテストクラス内で宣言します。メインクラスは公開された入口から検証します。
 
 ### メンバー変数
 
 クラス宣言の直後には空行を入れます。
 
-関連するメンバー変数を続けて宣言する場合は、メンバー変数同士を空行で分けません。
+Service・Selector・Wrapperのインスタンスは同じグループとしてクラス先頭にまとめて宣言し、その間に空行を入れません。その他のフィールドとの間には空行を1行入れます。同じグループ内のフィールド同士は空行で分けません。クラス変数・インスタンス変数の宣言にはコメントを付けません。
+
+フィールド群と最初のコンストラクタ・メソッドの間、およびコンストラクタ・メソッド同士の間には空行を1行入れます。ApexDocやアノテーションがある場合は、その直前を区切りとし、宣言との間には空行を入れません。整形ツールの実行後も、この空行が維持されていることを確認します。
 
 インスタンスのメンバー変数を参照する場合は、原則として `this.` を付けます。`static` 変数、ローカル変数、メソッド引数には `this.` を付けません。
 
-`static final` の定数には、値の種類ではなく後続処理での役割が分かる `//` コメントを直前に置きます。
+フィールドの用途は、役割が分かる変数名で表します。
+
+処理全体で受け渡す単一のWrapperの変数名は`wrapper`に統一します。
 
 Map 変数は、役割が明確なら `oldAccountMap` のように `{対象}Map` で簡潔に書きます。`oldAccountsById` のようにキーを名前へ含めるのは、キーが `Id` 以外で誤読されやすい場合に限ります。
 
@@ -263,10 +273,34 @@ Map 変数は、役割が明確なら `oldAccountMap` のように `{対象}Map`
 Salesforce のフレームワーク入口では `static` が必要になることがありますが、下位の処理まで機械的に `static` にしません。
 
 - `@AuraEnabled`、`@InvocableMethod`、`@RemoteAction` など、フレームワークが要求する入口は `static` にする。
-- `Controller` の `static` メソッドは薄く保ち、実処理は `Service`、`Selector`、helper へ委譲する。
-- `Service` は、既存実装に合わせつつ、状態を持たない場合でも instance 化で差し替えやテストが読みやすくなるなら instance を優先する。
+- `Service` / `Selector` は既存実装に合わせて instance メソッドを使用する。
 - `static` helper を増やす場合は、フレームワーク要件、純粋関数、既存パターンのどれに当たるかを説明できるようにする。
-- `@RemoteAction` などで入口が `static` でも、それを理由に service 層全体を `static` 設計へ寄せない。
+
+## Batch / BatchService / BatchSelector / BatchScheduler
+
+Apex バッチは、`機能名Batch`、`機能名BatchService`、`機能名BatchSelector`、`機能名BatchScheduler`を基本構成とします。定期起動や検索が不要な場合は、その役割のクラスを形式的に追加しません。
+
+- `Batch` は `start` / `execute` / `finish` の処理順序を組み立て、DMLを実行する。必要なデータを `BatchSelector` から取得し、`BatchService` へ引数で渡す。
+- `BatchService` は実行条件・権限の判定、DML対象レコードの組み立て、DML結果の集計、バッチ固有の結果通知を担当する。`BatchSelector` を直接呼び出さない。
+- `BatchSelector` は対象レコードや標準ジョブの検索を担当し、業務判断、集計、DML、通知を行わない。`Database.QueryLocator` を返す検索は、SOQL の結果を List 型で受け取るルールの対象外とする。
+- `BatchScheduler` は定期起動の入口とし、バッチを登録する。業務処理を重複実装しない。
+- 画面用のService・Selectorとバッチ用のBatchService・BatchSelectorを分ける。画面用のService・Selectorからバッチ用クラスを呼び出さず、各入口が自身の責務に対応するクラスを使う。
+- 画面からのバッチ登録はController、定期起動の登録はBatchSchedulerにそれぞれ記述する。`Database.executeBatch`の呼び出しを共通化するためだけのServiceやCoordinatorを追加しない。
+- 複数の集計値をまとめて受け渡す場合は、構成一覧へ含めた`BatchWrapper`を使用する。Batchが保持するWrapperを引数で渡し、BatchServiceが集計後の新しいWrapperを返す。
+- トランザクション間の集計値保持には、まず `Database.Stateful` で要件を満たせるかを検討する。通常の完了通知は `finish` から `BatchService` へ委譲する構成を基本とする。
+- `Coordinator`、`Notification`、`Monitor`、`Watchdog` などを追加する場合は、基本構成に収まらない理由、標準機能や既存クラスによる代替案、追加する責務を説明して合意を得る。役割を細分化できることだけを追加理由にしない。
+- finish 未実行時の補完監視、永続履歴、通知の再試行は、通常の集計・完了通知から分けて必要性を判断する。エラー対応の指示だけで、これらの追加機構まで必要と解釈しない。
+- `Database.RaisesPlatformEvents`やPlatform Eventを使ったエラー処理も追加機構として扱い、用途と処理構成の合意なしに導入しない。
+- 起動したジョブの状況を照会する処理では、起動時に返したジョブIDを呼び出し元で保持し、同じIDを指定して取得する。最新ジョブの検索で代用しない。照会時も実行ユーザーや対象クラスなど、必要なアクセス範囲を検証する。
+- 定期起動クラスの接尾辞は `BatchScheduler` とし、命名時はテストクラスの `Test` 接尾辞を含めた文字数を確認する。
+
+## DMLの配置
+
+- `insert`、`update`、`upsert`、`delete`、`undelete`、`merge`は、Controller、Batch、Trigger Handlerなど、処理全体の順序を管理するメインクラスで実行する。`Database`クラスの同等メソッドも対象とする。
+- Service、BatchService、Selector、DomainではDMLを実行しない。Serviceは判定と対象レコードの組み立てを行い、メインクラスへ返す。メインクラスがDMLを実行し、結果の集計・変換が必要な場合はServiceへ渡す。
+- DMLのユーザーモード指定、部分成功の扱い、トランザクション境界はメインクラスで明示する。DMLを隠すためだけのServiceメソッドや専用クラスを追加しない。
+- 部分成功のDML結果はレコード単位で集計し、1レコードの複数エラーを失敗件数へ重複加算しない。失敗対象の識別が必要な場合は、入力レコードと結果の対応を保持してServiceへ渡す。
+- テストデータ作成・検証のためのDMLはテストクラスと既存のTestDataFactoryで実行してよい。本体コードの責務分担とは区別する。
 
 ## セキュリティと権限
 
@@ -279,11 +313,9 @@ Apex は実行コンテキストによって共有ルール、CRUD、FLS の効�
 - API v67.0 以降の Apex SOQL では `WITH SECURITY_ENFORCED` を使わない。CRUD / FLS を考慮する場合は、`WITH USER_MODE`、`AccessLevel.USER_MODE`、`Security.stripInaccessible` など、対象 API バージョンで利用できる手段を使う。
 - `forcedotcom/sf-skills` や外部テンプレートに `WITH SECURITY_ENFORCED` の例が含まれていても、対象 API version が v67.0 以降ならこのリポジトリのルールを優先し、`WITH USER_MODE` などに置き換える。
 - `without sharing` が必要な処理は、範囲を小さい helper に閉じ込め、入口側で権限や Custom Permission を確認する。
-- dynamic SOQL では、オブジェクト名、項目名、並び順、演算子を allowlist または describe で検証する。
 - ユーザー向けエラーには内部 ID、SOQL、stack trace、個人情報、秘密情報を含めない。
 - UI に返すエラーメッセージは、内部事情や実装用語ではなく、ユーザーが次に取る行動が分かる表現にする。例: 条件を見直す、時間をおいて再試行する、管理者に権限を確認する。
 - 外部接続の認証情報や endpoint は Apex に直書きせず、Named Credential や metadata 側の設定を使う。
-- 権限や組織設定が不明な場合は、Apex 側で推測して固定せず、確認事項として残す。
 
 ## Bulkification と Governor Limits
 
@@ -292,7 +324,6 @@ Apex は一括実行される前提で実装します。1 件の画面操作か�
 - loop 内で SOQL、DML、callout を実行しない。
 - 異なる SObject の集計を単一 SOQL に統合できない場合に限り、固定の許可リストから作成した件数クエリを専用 Coordinator の loop で順次実行してよい。通常の `Selector`、`Service`、`Controller` ではこの例外を使用しない。
 - この例外を使用する Coordinator は、同期 SOQL 上限より小さい最大クエリ数と現在トランザクションの残り SOQL 数を実行前に検証し、例外とする理由、固定許可リスト、上限、責務を ApexDoc に明記する。`Selector` は Coordinator から渡された 1 件の検証済みクエリを実行する責務に限定する。
-- `for`、`if`、`return`、コンストラクタ引数、メソッド引数などの式の中に、取得処理や判定用の関数呼び出しを直接書かない。結果を名前付き変数に入れてから使う。
 - 単一引数のメソッド呼び出し、コンストラクタ呼び出し、例外生成は、行長や式の複雑さに問題がなければ 1 行で書く。
 - 複数引数のメソッド呼び出しも、行長や式の複雑さに問題がなければ 1 行で書く。
 - メソッド宣言、コンストラクタ宣言の引数リストは、行長や型の複雑さに問題がなければ 1 行で書く。
@@ -308,25 +339,29 @@ Apex は一括実行される前提で実装します。1 件の画面操作か�
 
 ```apex
 for (Account account : this.selector.getAccounts()) {
-    // process account
+    // 対象の取引先を処理
 }
 
 if (this.service.canDelete(accountId)) {
-    // delete account
+    // 削除可能な取引先を削除
 }
 ```
 
 推奨する書き方:
 
 ```apex
+// 処理対象の取引先を取得
 List<Account> accounts = this.selector.getAccounts();
+// 取得した取引先を順に処理
 for (Account account : accounts) {
-    // process account
+    // 対象の取引先を処理
 }
 
+// 対象の取引先を削除できるか判定
 Boolean canDelete = this.service.canDelete(accountId);
+// 削除可能な場合だけ削除処理へ進む
 if (canDelete) {
-    // delete account
+    // 削除可能な取引先を削除
 }
 ```
 
@@ -334,8 +369,9 @@ if (canDelete) {
 
 ### Trigger の責務
 
-Trigger は entry point に集中させ、Trigger context の分岐と handler 呼び出しだけを書きます。業務ロジック、SOQL、DML、集計、加工は handler / service 側へ寄せます。
+handlerが処理順序と必要なDMLを担当し、業務判断・対象レコードの組み立て・集計はservice、SOQLはselectorに配置します。
 
+- 一オブジェクト一Triggerを原則とする。
 - Trigger は共有ルールが効く前提にしない。Trigger 起点の処理では、必要な権限確認、共有ルール、CRUD / FLS の考慮を handler / service / selector 側で明示する。
 - 最初から 1 処理 1 クラスに分けすぎず、小さい処理は feature 単位の service に置く。
 - 複雑化した処理だけ専用クラスへ切り出す。
@@ -365,19 +401,28 @@ Trigger は entry point に集中させ、Trigger context の分岐と handler �
 
 ```apex
 trigger CaseTrigger on Case(after insert, after delete, after undelete, after update) {
+    // トリガー処理の呼び出し先を準備
     CaseTriggerHandler handler = new CaseTriggerHandler();
 
+    // ケースの変更が反映された状態で関連する取引先を更新
     if (Trigger.isAfter) {
+        // 新規ケースに関連する取引先を更新対象にする
         if (Trigger.isInsert) {
             // 取引先のケース件数を更新
             handler.updateAccountCaseCounts(Trigger.new, Trigger.newMap);
-        } else if (Trigger.isDelete) {
+        }
+        // 削除前のケースから関連する取引先を特定
+        else if (Trigger.isDelete) {
             // 取引先のケース件数を更新
             handler.updateAccountCaseCounts(Trigger.old, Trigger.oldMap);
-        } else if (Trigger.isUndelete) {
+        }
+        // 復元したケースに関連する取引先を更新対象にする
+        else if (Trigger.isUndelete) {
             // 取引先のケース件数を更新
             handler.updateAccountCaseCounts(Trigger.new, Trigger.newMap);
-        } else if (Trigger.isUpdate) {
+        }
+        // 変更前後のケースから影響する取引先を特定
+        else if (Trigger.isUpdate) {
             // 取引先のケース件数を更新
             handler.updateAccountCaseCounts(Trigger.new, Trigger.newMap, Trigger.oldMap);
         }
@@ -392,22 +437,22 @@ before と after の両方を扱う場合も、Trigger 宣言は 1 行にし、`
 
 ## Apex アノテーション
 
-Apex アノテーションは公開範囲や実行方式を変えるため、付ける理由がコードの役割と一致しているかを確認します。
+UI、Flow、API、非同期処理、静的解析抑止に関わるアノテーションは、必要性と公開範囲・実行方式への影響を確認し、付ける理由がコードの役割と一致する場合に使います。
 
 - `@AuraEnabled(cacheable=true)` は読み取り専用処理にだけ使い、DML や状態変更を含む処理には付けない。
 - UI / Flow / API に公開する範囲は最小にする。
 - `@TestVisible` は、テストのためだけに `public` / `protected` を増やすより、`private` の責務を保ったまま単体で確認したい場合に使う。
 - 新規の非同期処理では `@Future` を使わず、Queueable Apex を使う。既存の `@Future` を変更対象に含める場合は、Queueable Apex へ移行できるか確認する。
-- `@SuppressWarnings` は最後の手段にし、まずは実装で警告を解消できないか確認する。
-- dynamic SOQL は任意文字列をそのまま入れず、許可リスト、describe、必要に応じた escape で入力を制限する。
 
 ## 例外処理
 
 想定可能な業務上の失敗と、想定外の処理障害を分けて扱います。
 
+例外の捕捉・変換が必要な場合は、Controller、Batch、Scheduler、Trigger Handlerなどのメインクラスに集約します。Service・BatchService・Selectorでは捕捉・変換せず呼び出し元へ伝播させます。単に再throwするためのtry-catchは追加しません。
+
 - 入力不足、権限不足、対象なしなど、公開メソッドの契約として想定する結果は、条件を明示的に判定する。`Exception` の型やメッセージ、`NullPointerException` の発生を正常な分岐に利用しない。
 - 想定可能な失敗を下位層から返す形式は、Boolean、空コレクション、既存 Wrapper、結果オブジェクトなど、呼び出し側が誤判定しない最小の契約を選ぶ。複数の失敗理由を区別する必要がある場合は、エラーコードを持つ結果オブジェクトを検討するが、すべての処理へ一律に導入しない。
-- UI 向け `Controller` は、下位層の判定結果を利用者が次の操作を選べるメッセージへ変換する。想定外の例外を捕捉する場合も、内部の例外メッセージや stack trace を画面へ公開せず、処理に応じた一般化メッセージを返す。
+- Controllerが想定外の例外を捕捉する場合は、内部の例外メッセージやstack traceを画面へ公開せず、処理に応じた一般化メッセージへ変換する。
 - 内部契約の違反、回復不能な処理失敗、Salesforce プラットフォームから返る想定外の障害は例外として扱う。`try-catch` は、入力検証や null 判定の代わりにしない。
 - 専用例外クラスは、呼び出し側が例外型によって回復方法や変換方法を区別する必要がある場合だけ作る。型の識別以外に契約を持たない空の専用例外は作らない。
 - catch 句の例外変数名は `e` にする。
@@ -431,12 +476,13 @@ Apex アノテーションは公開範囲や実行方式を変えるため、付
 
 ```apex
 private static ObjectRecordSearchService service = new ObjectRecordSearchService();
+
 private static User testUser = TestDataFactory.getTestUser();
 ```
 
 ### TestDataFactory
 
-- 既存の `TestDataFactory` が使える場合は優先する。
+- テスト準備は既存の`TestDataFactory`を優先し、テスト固有の準備はテストクラス内に置く。
 - レコード作成 helper は原則 1 レコード作成に限定し、複数件が必要な場合はテストクラス側で繰り返し呼び出す。
 - レコード作成 helper は、`createAccount(..., TestDataFactory.SaveMode.INSERT_RECORD)` のように、このリポジトリで定義した保存モード enum で保存有無を切り替える。
 - `TestDataFactory.SaveMode` は Salesforce 標準 API ではなく、このリポジトリの TestDataFactory 用 enum として定義する。
@@ -460,37 +506,11 @@ private static User testUser = TestDataFactory.getTestUser();
 - 正常系だけでなく、権限、入力不足、例外、bulk 件数、変更なし record など変更範囲に関係する境界も確認する。
 - 検証には `System.assert`、`System.assertEquals`、`System.assertNotEquals` ではなく `Assert` クラスの関数を使う。
 - `SeeAllData=true` は、既存データが必要な理由を説明できる場合だけ使う。
-- coverage 数値を満たすためだけの assertion や、実装詳細に強く依存する brittle なテストを追加しない。
-
-例:
-
-```apex
-@IsTest
-private class MyServiceTest {
-    private static User testUser = TestDataFactory.getTestUser();
-
-    /**
-     * 有効な入力から取引先を作成
-     */
-    @IsTest
-    static void createsRecordWhenInputIsValid() {
-        System.runAs(testUser) {
-            Test.startTest();
-
-            Account actual = new Account();
-            actual.Name = 'Example';
-
-            Test.stopTest();
-            Assert.areEqual('Example', actual.Name);
-        }
-
-    }
-}
-```
+- 実装詳細に強く依存するテストを追加しない。
 
 ## push 前チェック
 
-Apex を追加・更新したら、push 前に Code Analyzer、関連 Apex テストと coverage、定期品質チェックと同等のローカルチェック、対象 org に応じた最終 validate または dry-run を確認します。接続済み org を使うコマンドは、対象 org alias を明示します。
+Apexを含む変更では、push前に関連テストとcoverage、Code Analyzer、次のローカルチェックの結果を確認します。
 
 ### 定期品質チェックと同等のローカルチェック
 
@@ -507,89 +527,26 @@ npm run test:scripts
 npm run test:unit -- -- --runInBand --passWithNoTests
 ```
 
-Salesforce validate と Apex test は、接続組織を使う確認として別途実行します。依存関係の初期化が必要な環境で `npm ci` を実行する場合は、依存導入の確認ルールに従います。
-
 ### Code Analyzer
 
-Salesforce Code Analyzer の対象になることを前提に実装します。警告を抑止する前に、設計やテストの書き方で解消できるか確認します。
+Salesforce Code Analyzer の対象になることを前提に実装します。
 
-- ローカル確認では、変更範囲と目的に応じて `npm run code-analyzer` または `npm run code-analyzer:ci` を実行する。
 - Code Analyzer の指摘は、Salesforce Apex とこのリポジトリの設計に照らして判断する。根拠が弱いものを欠陥として断定しない。
-- ユーザーの明示的な許可なしに、`@SuppressWarnings`、`code-analyzer.yml` の suppression、解析対象の除外、rule の無効化、severity threshold の緩和を追加または拡大しない。
-- suppression が必要と考える場合は、対象 rule、対象ファイル、発生件数、コードで解消できない理由、解析結果への影響を提示し、変更前にユーザーの判断を待つ。
-- Code Analyzer の結果は suppression 適用後の件数だけを報告せず、抑止された違反がある場合は、その件数、対象 rule、対象ファイルを明示する。
 - PMD 標準 `ApexDoc` は `reportProperty=true` がこのリポジトリのプロパティコメント規約と衝突するため、`Recommended` タグを外し、`reportProperty=false` の `ApexDocWithoutProperties` へ置き換える。
 - PMD 標準 `AvoidLogicInTrigger` は Trigger context 分岐も違反にするため、`Recommended` タグを外し、context 分岐と handler 呼び出しだけを許可する `TriggerDelegatesToHandler` へ置き換える。
 - 置換前の標準ルールは無効化せず、明示的な rule selector で比較・再確認できる状態を保つ。
 - test class の警告も無視しない。`System.runAs(...)`、テストデータ helper、メソッド名などで解消できる場合は修正する。
 
-### Apex テスト実行
+### 最終差分の確認
 
-開発中は必要に応じて変更対象に近いテストを絞って実行します。
-
-```sh
-sf apex run test --class-names MyServiceTest --result-format human --synchronous --target-org <alias>
-```
-
-複数クラスを確認する場合:
-
-```sh
-sf apex run test --class-names MyServiceTest --class-names MyOtherServiceTest --result-format human --wait 30 --target-org <alias>
-```
-
-広めに確認する必要がある場合:
-
-```sh
-sf apex run test --test-level RunLocalTests --result-format human --wait 30 --target-org <alias>
-```
-
-接続済み組織に対する test 実行は組織操作に含まれるため、実行前に対象と目的を確認します。
-test は確認済みの Salesforce 組織に対してのみ実行し、`--target-org <alias>` で対象を明示します。明示依頼なしに default target org を切り替えません。
-`<alias>` は実行前に確認した対象 org alias に置き換えます。
-
-### push 前の validate / dry-run
-
-push 前の基本確認は、対象 org に応じた validate または dry-run です。Apex クラス、トリガー、または関連する Salesforce メタデータを変更したら、Git 差分と明示した依存 metadata だけを `--metadata`、`--source-dir`、または作業単位の一時 manifest で指定します。コミット後・push 前に validate または dry-run を1回実行し、最終差分の deploy 可否、テスト、coverage を確認します。
-
-- Production 組織と、このリポジトリで実行確認済みの Developer Edition の Dev 組織では `sf project deploy validate` を使う。
-- Sandbox と Scratch Org では `sf project deploy start --dry-run` を使う。
-- login URL だけで判断せず、対象 org または CI 接続先を変更する場合は組織種別と利用するコマンドを確認する。
-
-対象 scope にはApex本体、テストクラス、権限、LWCなど、その作業単位の動作に必要なmetadataを含めます。差分外の依存metadataを追加する場合は、そのfullNameと理由を明示します。Apex本体だけを反映して依存metadataを漏らさず、関係ないmetadataへscopeを広げません。
-
-PR マージまで依頼されている場合も、PR マージ、`main` 同期、作業ブランチ整理までを行い、deploy は行いません。
-
-Apex を含む変更では、push 前の最終 validate または dry-run で関連 Apex テストと coverage を確認します。未反映の接続 org に対する単独の `sf apex run test` は、作業ブランチの新コードを確認した結果として扱いません。コメントやインデントだけの Apex 変更では、`git diff -w` などで振る舞い差分がないことを確認します。
-
-- 対象組織の確認: `sf config get target-org`、必要に応じて `sf org display --target-org <alias>`
-- 同じ対象 org で変更範囲を絞った確認: `sf project deploy validate --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias>`
-- Sandbox / Scratch Org で変更範囲を絞った確認: `sf project deploy start --dry-run --metadata ApexClass:MyService --metadata ApexClass:MyServiceTest --target-org <alias> --wait 30`
-- push 前の Apex テストと coverage 確認: 対象 scope の `sf project deploy validate` または `sf project deploy start --dry-run` のテスト結果を確認
-- 開発中の動作確認 deploy: 対象の開発 org と限定 scope を提示し、deploy 承認を受けた場合だけ `sf project deploy start --metadata ... --target-org <alias> --wait 30`
-
-`sf project deploy preview` は標準の確認手段にしません。反映前は Git の差分確認と、対象組織に応じた validate または dry-run で確認します。
-明示依頼がない限り、default target org の切り替えで別組織へデプロイしません。
+Apexのテスト結果は、検証したソースと対応させて判断します。未反映の接続orgに対する単独の`sf apex run test`は、作業ブランチの新コードを確認した結果として扱いません。コメントやインデントだけのApex変更では、`git diff -w`などで振る舞い差分がないことを確認します。
 
 ## Coverage の扱い
 
-このリポジトリでは、coverage 数値だけを目的にしたテスト追加はしません。
+coverage数値だけを目的にしたテストやassertionを追加せず、重要な振る舞いを検証します。
 
-- 変更した Apex の重要な振る舞いをテストで確認する。
 - coverage は push 前の test 結果の判断材料として扱う。
 - coverage は、対象クラスだけでなく、同じ変更・検証 scope に含まれる Controller、Service、Selector、Wrapper、helper などの関連する本体 Apex クラスごとに確認する。
 - 作業報告では、関連する本体 Apex クラスのクラス名と coverage を個別に示す。テストクラス自体は coverage の評価対象に含めない。
 - 組織全体の coverage 改善や CI 導入は、別 Issue で扱う。
 - coverage が不足する場合は、不足している振る舞いと対象クラスを報告する。
-
-## 作業報告
-
-Apex やメタデータを変更した後は、次を報告します。
-
-- 変更した `.cls` と `-meta.xml`
-- 追加・更新した Apex テスト
-- 対象 Salesforce 組織の alias
-- 実行した Salesforce Code Analyzer と結果
-- 実行した `sf project deploy validate` と `sf project deploy start`
-- push 前に実行した `sf apex run test --code-coverage`
-- Apex テストの成功件数と、検証 scope に含めた関連本体クラスごとの coverage、または push 前にまとめる理由
-- 実行しなかった確認と、その理由

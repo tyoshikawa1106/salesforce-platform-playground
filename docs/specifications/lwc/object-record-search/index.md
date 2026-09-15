@@ -47,7 +47,7 @@
 
 ### 設定・権限
 
-- `Salesforce_Application_User`: `ObjectRecordSearchController`のApexクラス実行権限
+- `SalesforceApplicationUser`: `ObjectRecordSearchController`のApexクラス実行権限
 
 ## 入力
 
@@ -77,7 +77,7 @@
 ## 権限・実行条件
 
 - 親の `objectMetricsOverview` から有効な `metricKey` が渡されることを前提とします。
-- `Salesforce_Application_User` Permission Setで、LWCから直接呼び出す`ObjectRecordSearchController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
+- `SalesforceApplicationUser` Permission Setで、LWCから直接呼び出す`ObjectRecordSearchController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトが参照可能かつクエリ可能で、`Name` 相当項目を参照できる必要があります。
 - 一覧取得と削除は `with sharing`、`AccessLevel.USER_MODE` で利用者の権限を適用します。
 - 検索語は任意フィルターとして扱い、空の場合も許可済みオブジェクトと項目、決定的なソート、[検索・ページング仕様](search-and-pagination.md#制約注意事項)の取得上限で初期一覧を取得します。

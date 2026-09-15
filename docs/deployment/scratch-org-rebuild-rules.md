@@ -177,11 +177,23 @@ Scratch Org で External Client App まで検証する必要が出た場合は�
 
 ### Permission Set 割り当て
 
-Scratch Org の作成ユーザーには、ユーザー作成アプリへのアクセス権として `Salesforce_Application_User` Permission Set を割り当てます。
+Scratch Org の作成ユーザーには、ユーザー作成アプリへのアクセス権として `SalesforceApplicationUser` Permission Set を割り当てます。
 スクリプトでは metadata deploy 後に自動実行します。
 
 ```sh
-sf org assign permset --name Salesforce_Application_User --target-org <scratch-org-alias>
+sf org assign permset --name SalesforceApplicationUser --target-org <scratch-org-alias>
+```
+
+取引先一括削除を試す場合は、初期反映後に機能専用の`AccountDelete` Permission Setも割り当てます。通常のアプリ利用権限とは分けて付与します。
+
+```sh
+sf org assign permset --name AccountDelete --target-org <scratch-org-alias>
+```
+
+取引先データ品質スキャンを利用する場合は、結果項目へのアクセスを含む`AccountDataQualityScan` Permission Setも割り当てます。
+
+```sh
+sf org assign permset --name AccountDataQualityScan --target-org <scratch-org-alias>
 ```
 
 ### 反映対象 metadata

@@ -6,10 +6,11 @@
 
 ### Apex 設計
 
-| タイトル                                                            | 概要                                       |
-| ------------------------------------------------------------------- | ------------------------------------------ |
-| [Apex テストデータ作成クラスの命名](apex-test-data-class-naming.md) | テストデータ作成クラスの命名候補比較       |
-| [Apex Trigger クラス構成](apex-trigger-class-structure.md)          | Trigger、Handler、Service の責務分担の検討 |
+| タイトル                                                            | 概要                                                     |
+| ------------------------------------------------------------------- | -------------------------------------------------------- |
+| [Apex テストデータ作成クラスの命名](apex-test-data-class-naming.md) | テストデータ作成クラスの命名候補比較                     |
+| [Apex Trigger クラス構成](apex-trigger-class-structure.md)          | Trigger、Handler、Service の責務分担の検討               |
+| [Apexバッチの設計方針](apex-batch-design.md)                        | 初期クラス構成を見直した理由と、最終的なバッチの責務分担 |
 
 ### LWC 設計
 
@@ -19,15 +20,16 @@
 
 ### Salesforce メタデータ管理
 
-| タイトル                                                                                 | 概要                                    |
-| ---------------------------------------------------------------------------------------- | --------------------------------------- |
-| [Salesforce メタデータの Git 管理候補](salesforce-metadata-git-management-candidates.md) | retrieve 可能な metadata の管理候補比較 |
+| タイトル                                                                                                        | 概要                                                 |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [Salesforce メタデータの Git 管理候補](salesforce-metadata-git-management-candidates.md)                        | retrieve 可能な metadata の管理候補比較              |
+| [AIエージェントによる意図しないカスタムオブジェクトの作成](account-delete-unintended-custom-object-creation.md) | 履歴保存を選んだ背景、要求とのずれ、構成判断の見直し |
 
 ### 開発環境・リポジトリ運用
 
-| タイトル                                                                                             | 概要                                            |
-| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| [Salesforce 参照実装の課題整理](salesforce-reference-implementation-review.md) | 再現済みの問題、設計判断、検証不足と転用条件の整理 |
-| [DreamHouse 設定差分の扱い](dreamhouse-configuration-diff-policy.md)                                 | Salesforce 公式サンプルとの差分に関する判断記録 |
-| [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 更新可否の調査                        |
-| [.gitignore 管理方針の判断記録](gitignore-management-policy.md)                                      | Git 管理対象外ファイルを決めた経緯              |
+| タイトル                                                                                             | 概要                                               |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [Salesforce 参照実装の課題整理](salesforce-reference-implementation-review.md)                       | 再現済みの問題、設計判断、検証不足と転用条件の整理 |
+| [DreamHouse 設定差分の扱い](dreamhouse-configuration-diff-policy.md)                                 | Salesforce 公式サンプルとの差分に関する判断記録    |
+| [ESLint 10 と Salesforce / LWC ESLint パッケージの互換性](eslint-10-salesforce-lwc-compatibility.md) | ESLint 10 更新可否の調査                           |
+| [.gitignore 管理方針の判断記録](gitignore-management-policy.md)                                      | Git 管理対象外ファイルを決めた経緯                 |
