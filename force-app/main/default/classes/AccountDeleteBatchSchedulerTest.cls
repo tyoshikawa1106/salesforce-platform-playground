@@ -6,7 +6,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
 
     @IsTest
     static void startsScheduledBatch() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             System.schedule('Account delete schedule test', '0 0 0 1 1 ? 2099', new AccountDeleteBatchScheduler());
@@ -21,7 +21,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
 
     @IsTest
     static void notifiesRejectedStart() {
-        User denied = createDeniedUser();
+        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
         System.runAs(denied) {
             Test.startTest();
             new AccountDeleteBatchScheduler().execute(null);
@@ -37,7 +37,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
 
     @IsTest
     static void rejectsRegisteredJob() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
@@ -51,38 +51,5 @@ private with sharing class AccountDeleteBatchSchedulerTest {
             System.abortJob(jobId);
             Test.stopTest();
         }
-    }
-
-    private static void grantAccess() {
-        Id permissionId = [SELECT Id FROM PermissionSet WHERE Name = 'AccountDelete' LIMIT 1].Id;
-        if (
-            [
-                SELECT COUNT()
-                FROM PermissionSetAssignment
-                WHERE AssigneeId = :UserInfo.getUserId() AND PermissionSetId = :permissionId
-            ] == 0
-        ) {
-            insert new PermissionSetAssignment(AssigneeId = UserInfo.getUserId(), PermissionSetId = permissionId);
-        }
-    }
-
-    private static User createDeniedUser() {
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'deltest',
-            LastName = 'Delete permission test',
-            Email = 'delete-test@example.invalid',
-            Username = 'delete-test.' +
-                UserInfo.getOrganizationId() +
-                '.' +
-                System.now().getTime() +
-                '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert denied;
-        return denied;
     }
 }

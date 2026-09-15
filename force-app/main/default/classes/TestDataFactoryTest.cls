@@ -37,6 +37,51 @@ private with sharing class TestDataFactoryTest {
     }
 
     /**
+     * 保存しないユーザーの項目と未保存状態を確認
+     */
+    @IsTest
+    static void createsUnsavedUser() {
+        System.runAs(testUser) {
+            Test.startTest();
+            User actual = TestDataFactory.createUser('Factory draft', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Test.stopTest();
+            Assert.isNull(actual.Id, '未保存モードではユーザーを登録しない');
+            Assert.areEqual('Factory draft', actual.LastName, '指定した姓を保持');
+            Assert.areEqual(UserInfo.getProfileId(), actual.ProfileId, '現在のプロファイルを使用');
+        }
+    }
+
+    /**
+     * 保存したユーザーには権限セットを自動付与しない
+     */
+    @IsTest
+    static void createsUserWithoutPermissionSets() {
+        System.runAs(testUser) {
+            Test.startTest();
+            User actual = TestDataFactory.createUser('Factory saved', TestDataFactory.SaveMode.INSERT_RECORD);
+            Test.stopTest();
+            Assert.isNotNull(actual.Id, '保存モードではユーザーを登録');
+            Assert.areEqual(0, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :actual.Id AND PermissionSet.IsOwnedByProfile = false], '権限セットは未割当');
+        }
+    }
+
+    /**
+     * 権限セット割当の重複を防止
+     */
+    @IsTest
+    static void assignsPermissionSetOnlyOnce() {
+        User target = TestDataFactory.createUser('Factory permission', TestDataFactory.SaveMode.INSERT_RECORD);
+
+        System.runAs(testUser) {
+            Test.startTest();
+            TestDataFactory.assignPermissionSet(target.Id, 'AccountDelete');
+            TestDataFactory.assignPermissionSet(target.Id, 'AccountDelete');
+            Test.stopTest();
+            Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :target.Id AND PermissionSet.Name = 'AccountDelete'], '再呼び出しでも指定権限セットを一度だけ付与');
+        }
+    }
+
+    /**
      * 保存モード指定で取引先の保存有無を切り替え
      */
     @IsTest
