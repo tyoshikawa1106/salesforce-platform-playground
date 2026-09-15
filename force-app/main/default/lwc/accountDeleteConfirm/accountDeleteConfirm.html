@@ -1,0 +1,17 @@
+<template>
+    <lightning-modal-header label="取引先の削除を開始しますか？"></lightning-modal-header>
+    <lightning-modal-body>
+        <p>参照できるすべての取引先（法人・個人）を削除対象とします。削除できないレコードは失敗として記録します。</p>
+        <p>個人取引先を削除すると、対応する取引先責任者も削除されます。</p>
+        <p>開始後にこの画面を閉じても処理は継続します。</p>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button label="キャンセル" onclick={handleCancel}></lightning-button>
+        <lightning-button
+            class="slds-m-left_small"
+            label="実行"
+            variant="destructive"
+            onclick={handleConfirm}
+        ></lightning-button>
+    </lightning-modal-footer>
+</template>

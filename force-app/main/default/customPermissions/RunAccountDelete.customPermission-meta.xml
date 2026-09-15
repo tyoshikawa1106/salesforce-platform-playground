@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>開発環境で取引先一括削除を開始します。Accountの参照・削除権限は別途必要です。</description>
+    <isLicensed>false</isLicensed>
+    <label>取引先一括削除を実行</label>
+</CustomPermission>

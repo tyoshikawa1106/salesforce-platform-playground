@@ -10,3 +10,5 @@ Lightning Web Components で実装した機能の仕様書一覧です。
 | ケース取引先責任者プロフィール | `caseContactProfile`     | [ケース取引先責任者プロフィール](case-contact-profile/index.md) |
 | 最近の問い合わせ               | `caseRelatedCaseList`    | [最近の問い合わせ](case-related-case-list/index.md)             |
 | ケースメールメッセージ一覧     | `caseEmailMessageList`   | [ケースメールメッセージ一覧](case-email-message-list/index.md)  |
+
+- [取引先一括削除画面](account-delete/index.md)（`accountDelete`）
