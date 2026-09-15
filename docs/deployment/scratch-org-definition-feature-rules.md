@@ -20,31 +20,14 @@ Scratch Org definition の主な項目:
 `features` は Dev Hub 側で許可されているものだけが使えます。
 Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edition で作成できない場合があります。
 
-## 現在の設定例
+## 現在の設定
 
-`config/project-scratch-def.json` は、通常時の Scratch Org 再構築に必要な feature だけを指定します。
+通常時の Scratch Org 再構築に使用する edition、features、settings は[Scratch Org definition](../../config/project-scratch-def.json)を正とします。
 主要な標準オブジェクトや製品機能の再現性を検証する場合は、後述の feature 候補を一時的に追加して、Scratch Org 作成が通るか確認します。
-
-```json
-{
-    "orgName": "Scratch Org",
-    "edition": "Developer",
-    "features": ["EnableSetPasswordInApi", "FieldService:5"],
-    "settings": {
-        "lightningExperienceSettings": {
-            "enableS1DesktopEnabled": true
-        },
-        "mobileSettings": {
-            "enableS1EncryptedStoragePref2": false
-        }
-    }
-}
-```
 
 ## feature 候補の位置づけ
 
-主要な標準オブジェクトの再現性を上げる検証では、Sales / Service / Field Service / Knowledge / Experience Cloud / 開発・自動化系を広めに指定しました。
-現在の通常設定には含めませんが、目的別に追加候補として使えます。
+次の一覧は、目的別に検討する feature の候補です。通常設定に採用済みのものも含むため、追加前に Scratch Org definition と照合します。一覧全体を一括で追加する前提にはしません。
 
 ## feature 候補の分類
 
@@ -74,18 +57,7 @@ Salesforce CLI の候補に出る feature でも、利用中の Dev Hub や edit
 ## settings の扱い
 
 `settings` には、Scratch Org 作成時に適用できる設定だけを置きます。
-現在の設定例では Lightning Experience と mobile storage の設定だけを指定しています。
-
-```json
-"settings": {
-    "lightningExperienceSettings": {
-        "enableS1DesktopEnabled": true
-    },
-    "mobileSettings": {
-        "enableS1EncryptedStoragePref2": false
-    }
-}
-```
+現在指定している値は[Scratch Org definition の settings](../../config/project-scratch-def.json)で確認します。
 
 Salesforce 組織から retrieve した `force-app/main/default/settings` を、Scratch Org 用にそのまま deploy する方針は避けます。
 Settings には、未有効化機能、証明書、メール、認証、Data Cloud、Territory など、org 固有または契約依存の値が混ざりやすいためです。
