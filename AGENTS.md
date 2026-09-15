@@ -2,59 +2,21 @@
 
 このリポジトリは、Salesforce開発プロジェクトを管理するリポジトリです。
 
-## 共通作業ルール
+## 作業の入口
 
-- 変更は依頼されたタスクの範囲に絞る。
-- 既存の設計、命名、配置、テスト方針に合わせる。
-- コードやメタデータから確認できない仕様を推測で固定しない。不明点は確認事項として残す。
-- 作業開始時は `git status` と現在ブランチを確認し、既存の未コミット変更を把握する。
-- 変更作業に入る前に、これから行う変更範囲、主な作業、確認方法を短く提示し、ユーザー確認を挟む。現状把握のための read-only 調査はこの確認前に行ってよい。
-- 既存の未コミット変更はユーザーの作業として扱い、明示依頼なしに戻さない。
-- 変更前に関連する実装、テスト、README、docs を必要範囲で確認する。
+作業開始時に `docs/index.md` と `docs/development/agent-development-rules.md` を読み、作業内容に対応する詳細ルールの本文を確認します。共通の作業手順はAIエージェント開発ルール、分野別の規定は同文書の「適用する詳細ルール」に示す担当文書で管理します。
 
-## GitHub 運用
+このファイルはリポジトリ固有の制約と案内に絞り、実務手順を重複して記載しません。
 
-- 次タスクを提案・判断するときは、会話履歴や記憶より現在の repo / GitHub 状態を優先し、必要に応じて open Issue / PR も確認する。
-- `main`へ直接コミットしない。共通手順は`docs/development/github-rules.md`、このリポジトリ固有のIssue、Project、Milestone、Release、CI運用は`docs/development/github-repository-rules.md`に従う。
+## リポジトリ固有の制約
+
 - このリポジトリ以外の外部リポジトリには、Issue や Pull Request を作成しない。
-- Issue、PR、コミット本文では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
-- コミット時のフックは原則通す。失敗した場合、依存導入や `--no-verify` は明示確認してから行う。
-- ローカルコミット後に一度停止し、プッシュ、PR 作成、CI 確認、マージはユーザーが明示した場合のみ進める。
-- 組織反映を目的とする Salesforce メタデータ変更を含む PR は、push 前に現在の default target org と org 種別を確認し、確認済みの alias で対象 org に応じた validate または dry-run を実行する。docs-only と、org から取得した状態を記録するだけの retrieve-only 変更は対象外とする。
-- Salesforce メタデータ変更を含む PR のマージ依頼は deploy の依頼を意味しない。PR マージ、`main` 同期、作業ブランチ整理までを GitHub 作業の完了範囲とし、同じフローでマージ後の deploy は行わない。本番 release など通常開発外の deploy は、明示された別タスクとして扱う。
-- PR マージ後の `main` 同期とマージ済み作業ブランチ削除は、共通手順を `docs/development/github-rules.md`、自動実行条件を `docs/development/github-repository-rules.md` に従う。
 
-## 安全・秘密情報
+## 外部Skillsの扱い
 
-- 特定の個人ユーザー名を運用ルールや automation config に固定しない。
-- コミット本文、検証ログ、作業報告では、実ユーザー名のメールアドレスや org 固有のユーザー名を書かない。
-- コードコメント、docs、コミット本文、作業報告には、会話ログ、依頼文、作業中のやり取りをそのまま残さず、必要な目的・判断・検証結果だけを記録する。
-- 秘密情報、認証ファイル、組織固有の一時ファイル、個人環境の値をコミットしない。
-- `.env`、`.env.*`、秘密鍵、証明書、token、password、client secret などの実値を含み得るファイルを読まない。
-- 明示依頼なしに、認証情報管理アプリ（macOS のキーチェーンアクセス、Windows の資格情報マネージャー、パスワードマネージャーなど）を起動・操作したり、OS の認証情報管理機能へ直接アクセスしたり、ブラウザで新規ログイン、追加認証、再認証を開始したり、認証設定を変更したりしない。通常の開発操作中に認証画面、パスワード入力、追加認証を求められた場合は、その認証操作を停止して報告する。
-- 開発確認は原則として Chrome を使用する。ブックマーク、タブグループ、プロファイル設定など、ブラウザの永続設定を変更しない。
-- `npm install` など依存関係を変更・導入するコマンドは、明示確認してから実行する。
-
-## Salesforce 固有
-
-- 振る舞いを変える前に、既存メタデータ、権限、組織前提を確認する。
-- デプロイ対象のメタデータは `force-app/main/default` を基準にする。
-- 開発中の動作確認 deploy と push 前の validate / dry-run は、Git 差分に含まれる deploy 可能な metadata と、動作に必要なことを明示した依存 metadata だけを対象にする。`force-app` 全体や org 再構築用 scope を通常開発へ流用しない。
-- 振る舞いを変更した場合は、対象の開発 org の alias と org 種別、metadata の fullName、件数、差分外依存を提示し、その限定 scope の deploy が明示承認された後に開発 org へ deploy して、org 上で動作確認する。動作確認後に振る舞いへ影響する修正を行った場合は、scope を見直して再度 deploy と動作確認を行う。
-- FlexiPage は、対象ファイルが依頼された変更差分に含まれ、かつ deploy 対象として明示されている場合だけ validate / deploy できる。
-- 組織の初回構築または再構築は通常開発と分離し、ユーザーが明示した別タスクで、全対象を確認した個別承認がある場合だけ実行する。再利用可能な接続組織向け全体 deploy コマンドや manifest は管理しない。
-- Apex、メタデータ、Salesforce 組織操作、Apex test の詳細手順は `docs/development/agent-development-rules.md`、`docs/development/apex-rules.md`、`docs/development/metadata-rules.md`、`docs/deployment/` に従う。
 - `forcedotcom/sf-skills` は Salesforce 関連作業の参考情報として使い、このリポジトリ固有の判断は `AGENTS.md` と `docs/` を優先する。
 - `forcedotcom/sf-skills` から取得した `.agents/skills/` は取得元のオリジナル状態を正とし、`skills-lock.json` は取得操作が生成した状態を正とする。いずれも取得専用の外部取得物として扱い、個別ファイルやハッシュを手編集しない。不具合や競合マーカーを見つけてもリポジトリ側で修正せず、取得元で修正された内容を取得・更新操作で取り込む。
 - Skills に deploy、retrieve、データ変更、認証操作などの手順が含まれていても、ユーザー確認や実行権限の範囲は拡張されない。
-- 振る舞いを変更した場合は `docs/development/specification-rules.md` に従って現行実装仕様への影響を判定し、影響がある仕様書を更新する。更新時期は対象実装の開発手順に従う。一括更新は独自実装した開発機能を対象とし、Salesforce 設定全体の仕様書は作成しない。
-- Apex、LWC、Aura のソースを編集する場合は 4 spaces インデントに合わせ、インストール済み・生成済みファイルは整形目的で変更しない。
-- メタデータ変更後は、変更ファイルと実行した deploy / 検証 / テストコマンドを報告する。
-
-## ドキュメント
-
-- ドキュメント配置と記載粒度は `docs/development/documentation-rules.md` に従う。生成件数や過去のテスト成功件数など変動する詳細を固定せず、目的、判断基準、確認先を記載する。
-- このファイルは短く保つ。実務手順は `docs/development/` または `docs/deployment/` に置く。
 
 ## ナレッジ・ディスカッションの運用
 
@@ -64,7 +26,3 @@
 - ユーザーが対象文書の参照または変更を明示した場合だけ、`docs/knowledge/` または `docs/discussions/` を扱う。
 - 現行情報は、実装、`docs/specifications/`、`docs/development/`、`docs/deployment/`、`docs/setup/` を確認する。
 - 後から判明した変更や最新情報に合わせる目的では、既存のナレッジやディスカッションを更新しない。
-
-## 検証
-
-- Salesforce メタデータ変更後は、該当するルール文書に従い、実行した validate / deploy / test と対象組織を報告する。

@@ -16,9 +16,8 @@
 ## GitHub Flowへの追加確認
 
 - 作業開始時に対応Issueと現在のリポジトリの状態を確認する。
-- Salesforce metadata変更を含む場合は、push前に対象orgに応じたvalidateまたはdry-runを確認する。
 - PR作成・更新後は、担当者、ラベル、Project紐づけを確認する。
-- マージ後にProjectステータス更新と作業ブランチ整理を行う。同じフローでマージ後のdeployは行わず、本番releaseなど通常開発外のdeployは明示された別タスクとして扱う。
+- マージ後にProjectステータス更新と作業ブランチ整理を行う。
 - ユーザーからマージ方式の指定がない場合はマージコミットを使う。squashマージまたはrebaseマージは、ユーザーから明示指定がある場合だけ使う。
 
 Salesforceの対象org、scope、validate、deploy、retrieve、testの詳細は [組織操作ルール](../deployment/org-operation-rules.md) を正とします。
@@ -42,14 +41,6 @@ PR マージ後は、次の条件をすべて満たす場合に限り、エー�
 - ブランチ削除に`git branch -D`が必要になる。
 - リモートブランチが保護対象、共有作業中、または削除可否を確認できない。
 - プッシュ、PR作成、CI確認、マージなど、作業ブランチ整理の範囲を超える操作が必要になる。
-
-### push前のSalesforce事前検証
-
-org反映を目的とするSalesforce metadata変更を含むPRは、push前に [組織操作ルール](../deployment/org-operation-rules.md#push-前の検証) に従って、対象orgに応じたvalidateまたはdry-runを実行します。対象org、org種別、deploy可能な変更、scope、実行結果を確認できない場合はpushしません。PR上でdeploy対象metadataを修正した場合も、再push前に必要な検証を行います。docs-onlyと、orgから取得した状態を記録するだけのretrieve-only変更はSalesforce validateまたはdry-runの対象外とします。
-
-### 開発中のSalesforce deploy
-
-振る舞いを変更した場合は、[組織操作ルール](../deployment/org-operation-rules.md#開発中の動作確認-deploy) に従い、対象の開発orgと限定scopeを提示してdeploy承認を受け、開発orgへdeployしてorg上で動作確認します。push前には追加のdeployを行わず、最終差分のvalidateまたはdry-runを実行します。PRの作成・マージ依頼ではdeployしません。
 
 ## リリースノート
 
@@ -133,7 +124,6 @@ IssueとPRには、作成時に担当者を設定します。
 - エージェントは`gh api user`などで現在の実行者を確認する。
 - 実行者を担当者にできない場合、または担当者が不明な場合はユーザーに確認する。
 - 作業対象のIssue / PRで担当者未設定に気づいた場合は、同じ方針で補正する。
-- 特定の個人ユーザー名を運用ルールや自動化設定に固定しない。
 - 作成者と担当者を区別し、担当者は現在の作業担当として扱う。
 
 ## リポジトリ保護と自動化
@@ -146,7 +136,7 @@ IssueとPRには、作成時に担当者を設定します。
 - マージ前に未解決のレビュー指摘がないことを必須にする。
 - CODEOWNERSによる必須レビューは現在の要件にしない。
 - `main`へのフォースプッシュとブランチ削除は許可しない。
-- GitHub側設定を変える場合は、現在のリポジトリの状態を確認してから別タスクで扱う。
+- GitHub Actions、Dependabot、ブランチ保護などGitHub側設定を変える場合は、現在のリポジトリの状態を確認してから別タスクで扱う。
 
 ### GitHub Actions
 
@@ -158,7 +148,18 @@ IssueとPRには、作成時に担当者を設定します。
 - 定期品質チェックで失敗した場合は、チェック名ごとのIssueを作成または更新する。後続の実行で成功した場合は、復旧コメントを追加してIssueをクローズする。
 - CIの`npm audit`は`dependencies`と`devDependencies`を対象にし、`high` / `critical`の既知脆弱性が新たに混入することを防ぐ。
 - `high` / `critical`を一時的に許容する必要がある場合は、対象パッケージ、影響、許容理由、見直し期限、追跡Issueを記録し、監査対象や失敗条件を理由なく弱めない。
-- CIではSalesforce組織へログインせず、Salesforce JWT認証用シークレットも管理しない。metadataのvalidateまたはdry-runは、push前に対象orgと限定scopeを確認してローカルで実行する。詳細は [CI メタデータ検証ルール](../deployment/ci-metadata-validation-rules.md) に従う。
+- CIではSalesforce組織へのログイン、metadataのvalidate・deployを行わず、Salesforce JWT認証用シークレットも管理しない。Code Analyzer用のSalesforce CLI・plugin導入を、組織への接続許可として扱わない。
+- PR作成・更新を起点とした品質チェックの自動実行は行わない。
+
+### CI変更時の確認
+
+`.github/workflows/ci.yml`と、定期品質チェック結果をIssueへ反映する`scripts/ci/report-quality-check.js`を確認します。
+
+- workflowのイベント、条件式、ジョブの依存関係を実行条件と照合し、定期実行と手動実行で必要なチェックが選択されることを確認する。
+- workflowと呼び出すスクリプトに、組織へのログイン、metadataのvalidate・deploy、Salesforce JWT用Secretの参照がないことを確認する。
+- 障害検知Issueの作成、更新、復旧、対象外結果をNode.js testで確認する。
+
+結果報告処理の現行仕様は[定期品質チェック結果報告スクリプト仕様](../specifications/scripts/ci-quality-reporting/index.md)で確認できます。
 
 ### Dependabot
 
@@ -168,7 +169,6 @@ IssueとPRには、作成時に担当者を設定します。
 - リポジトリ所有者を都度確認し、レビュー担当者に設定する。
 - 取り込む場合はリポジトリ所有者が承認レビューを行ってからマージする。
 - 見送る場合は理由を書いた変更要求レビューを残してからクローズする。
-- 設定ファイルには個人ユーザー名を担当者やレビュー担当者として固定しない。
 - Dependabot PRも、作成後に担当者とProjectを手動で設定する。
 
 ## ProjectとMilestone
