@@ -4,6 +4,8 @@
 @IsTest
 private with sharing class ObjectRecordSearchServiceTest {
 
+    private static ObjectRecordSearchService service = new ObjectRecordSearchService();
+
     private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
@@ -25,22 +27,11 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldCreateSearchResultFromQueriedRecords() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             'Service'
         );
-        ObjectRecordSearchContext context = createAccountContext(service);
-        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
-            context,
-            request
-        );
-        ObjectRecordSearchService.SearchQueryRequestResult requestResult = service.createSearchQueryRequest(
-            context,
-            request,
-            sortSpec
-        );
-        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = createQueryRequest(request);
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         ObjectRecordSearchResultWrapper result;
 
@@ -75,7 +66,6 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldNormalizeSearchTermWhenCreatingSearchQueryRequest() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             '  Service Alpha  '
@@ -120,7 +110,6 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldReturnFailureWhenPageTokenIsInvalid() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             null
@@ -169,23 +158,12 @@ private with sharing class ObjectRecordSearchServiceTest {
             accounts.add(accountRecord);
         }
         insert accounts;
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             'Paged'
         );
         request.pageNumber = 0;
-        ObjectRecordSearchContext context = createAccountContext(service);
-        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(
-            context,
-            request
-        );
-        ObjectRecordSearchService.SearchQueryRequestResult requestResult = service.createSearchQueryRequest(
-            context,
-            request,
-            sortSpec
-        );
-        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
+        ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = createQueryRequest(request);
         ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         ObjectRecordSearchResultWrapper result;
 
@@ -236,7 +214,6 @@ private with sharing class ObjectRecordSearchServiceTest {
             false,
             AccessLevel.USER_MODE
         );
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(testUser) {
@@ -275,7 +252,6 @@ private with sharing class ObjectRecordSearchServiceTest {
             WHERE Name = 'Service Beta'
             LIMIT 1
         ];
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(testUser) {
@@ -311,7 +287,6 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldReturnFailureWhenMetricKeyIsUnsupported() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchService.SearchContextResult result;
 
         System.runAs(testUser) {
@@ -338,7 +313,6 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldReturnFalseWhenDeleteRequestIsEmpty() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchConfigWrapper config = createAccountContext(
                 service
             )
@@ -364,7 +338,6 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldReturnFalseWhenDeleteConfigIsMissing() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         Boolean canDelete;
 
         System.runAs(testUser) {
@@ -389,7 +362,6 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldReturnSearchContextWhenObjectAndNameFieldAreAccessible() {
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         ObjectRecordSearchService.SearchContextResult result;
 
         System.runAs(testUser) {
@@ -426,7 +398,6 @@ private with sharing class ObjectRecordSearchServiceTest {
         ];
         List<SObject> recordsToDelete = new List<SObject>();
         recordsToDelete.addAll(deleteTargets);
-        ObjectRecordSearchService service = new ObjectRecordSearchService();
         List<Database.DeleteResult> deleteResults;
 
         System.runAs(testUser) {
@@ -488,6 +459,14 @@ private with sharing class ObjectRecordSearchServiceTest {
 
         Assert.areEqual(0, result.deletedCount, 'DML 失敗行を削除成功として数えない必要あり');
         Assert.areEqual(1, result.errors.size(), 'DML 失敗行ごとに利用者向けエラーを返す必要あり');
+    }
+
+    private static ObjectRecordSearchQueryPlan.SearchQueryRequest createQueryRequest(ObjectRecordSearchRequestWrapper request) {
+        ObjectRecordSearchContext context = createAccountContext(service);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context, request);
+        ObjectRecordSearchService.SearchQueryRequestResult result = service.createSearchQueryRequest(context, request, sortSpec);
+        Assert.isTrue(result.isSuccess(), '結果変換のテストには有効な検索条件が必要');
+        return result.searchQueryRequest;
     }
 
     private static ObjectRecordSearchContext createAccountContext(ObjectRecordSearchService service) {
