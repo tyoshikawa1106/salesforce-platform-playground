@@ -4,6 +4,10 @@
         <label><!-- Salesforce --></label>
         <name>Salesforce</name>
     </customApplications>
+    <customTabs>
+        <label><!-- 取引先一括削除 --></label>
+        <name>AccountDelete</name>
+    </customTabs>
     <flowDefinitions>
         <flows>
             <choices>
