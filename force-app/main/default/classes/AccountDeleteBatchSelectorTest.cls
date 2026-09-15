@@ -6,7 +6,7 @@ private with sharing class AccountDeleteBatchSelectorTest {
 
     @IsTest
     static void selectsAccountsAndStandardJob() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             TestDataFactory.createAccount('対象', TestDataFactory.SaveMode.INSERT_RECORD);
             AccountDeleteBatchSelector selector = new AccountDeleteBatchSelector();
@@ -18,19 +18,6 @@ private with sharing class AccountDeleteBatchSelectorTest {
             Assert.areEqual(1, selector.getActiveJobs().size(), '実行中を検出');
             System.abortJob(jobId);
             Test.stopTest();
-        }
-    }
-
-    private static void grantAccess() {
-        Id permissionId = [SELECT Id FROM PermissionSet WHERE Name = 'AccountDelete' LIMIT 1].Id;
-        if (
-            [
-                SELECT COUNT()
-                FROM PermissionSetAssignment
-                WHERE AssigneeId = :UserInfo.getUserId() AND PermissionSetId = :permissionId
-            ] == 0
-        ) {
-            insert new PermissionSetAssignment(AssigneeId = UserInfo.getUserId(), PermissionSetId = permissionId);
         }
     }
 }

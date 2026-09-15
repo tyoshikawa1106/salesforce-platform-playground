@@ -14,14 +14,14 @@ push前に必要なテストと、影響する機能仕様書を更新します�
 
 - `apiVersion`はプロジェクト標準と変更対象の周辺メタデータに合わせる。理由なく古いままにしたり、コードベース内のAPIバージョンを増やしたりしない。
 - `status` は通常 `Active` にする。変更理由がある場合は作業報告に残す。
-- 新規 Apex は、役割が分かる名前にする。用途が広すぎる名前は避ける。
+- クラス名は単語の先頭を大文字にした `PascalCase` で書き、対象と責務が分かる名前にする。例: `AccountDeleteController`、`AccountDeleteBatchService`、`AccountDeleteBatchSelector`。責務に応じた接尾辞は、この文書のクラス構成の規定に従う。用途が広すぎる名前は避ける。命名形式は PMD の `ClassNamingConventions` でチェックされる。
 - 既存クラスの責務を広げる前に、既存の呼び出し元とテスト影響を確認する。
 
 ## メソッド命名
 
 メソッド名は、呼び出し側だけを見ても目的が分かる名前にします。
 
-- `camelCase` を使い、動詞から始める。
+- メソッド名は先頭の単語を小文字、続く単語の先頭を大文字にした `camelCase` で書き、動詞から始める。命名形式は PMD の `MethodNamingConventions` でチェックされる。
 - `do`、`exec`、`proc` など、処理内容が分からない動詞だけで始めない。
 - `Cnt`、`Num`、`Flg` などの曖昧な略語を避け、`Count`、`Number`、`Flag` のように意味が読める単語を使う。
 - 対象 object と処理結果が分かる名前にする。例: `updateAccountCaseCounts`。
@@ -57,7 +57,7 @@ ApexDoc の先頭には、対象要素を一文で要約する主要説明を書
  */
 public String normalizeAccountName(String accountName) {
     // 未入力を後続処理で扱える空文字へ統一
-    if (String.isBlank(accountName)) return '';
+    if (String.isBlank(accountName)) { return ''; }
     // 入力内容を保持して前後の余分な空白だけを除去
     return accountName.trim();
 }
@@ -191,7 +191,7 @@ Controller、Batch、Scheduler、Trigger Handlerなどのメインクラスで�
 - エラーがない場合の`errorMessage`は空文字とする。繰り返し呼ばれる判定では、前回のエラーメッセージをそのまま残さず、今回の判定結果で設定し直す。累積する件数や理由コードとは分けて扱う。
 - メインクラスは判定結果を受け取った直後にエラーを確認し、エラーがあれば後続処理へ進まず終了する。戻り値があるメソッドはWrapperなど契約上の戻り値を返し、`void`メソッドは`return;`で終了する。`return`は現在のメソッドを終了するだけで、起点の保存・削除を拒否しない。
 - Triggerで保存・削除を拒否する業務条件を検出した場合は、Serviceの判定結果を受けたHandlerが対象のTriggerレコードへ`addError()`を付与してから終了する。後続処理をスキップするだけの場合は、通常の早期returnを使用する。
-- `else`を伴わず、処理が単一の`return`または`throw`だけのガード節は、波括弧を付けず1行で書く。例: `if (String.isNotEmpty(wrapper.errorMessage)) return wrapper;`、`if (!sent) throw new EmailException('結果メールを送信できませんでした。');`。複数の文を実行する分岐には波括弧を付ける。
+- `if` / `else`、`for`、`while` の処理には、単一文でも必ず波括弧を付ける。ガード節の早期終了は維持する。PMD の `IfStmtsMustUseBraces`、`IfElseStmtsMustUseBraces`、`ForLoopsMustUseBraces`、`WhileLoopsMustUseBraces` でチェックされる。
 - メール送信の受付結果など、処理の成否を返すBooleanも、先に変数へ代入してから判定する。例外として扱う必要がある失敗はメインクラスで処理する。
 
 Batchの`execute`での例:
@@ -202,7 +202,7 @@ Integer targetCount = scope.size();
 // 削除可否と中止時の集計をServiceで判定
 this.wrapper = this.service.checkExecutionConditions(this.wrapper, targetCount);
 // エラー判定
-if (String.isNotEmpty(this.wrapper.errorMessage)) return;
+if (String.isNotEmpty(this.wrapper.errorMessage)) { return; }
 // メインクラスで削除を実行
 List<Database.DeleteResult> results = Database.delete((List<Account>) scope, false, AccessLevel.USER_MODE);
 // 削除結果をまとめて集計
@@ -247,7 +247,7 @@ private ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
 クラス宣言の直後には空行を入れます。
 
-Service・Selector・Wrapperのインスタンスは同じグループとしてクラス先頭にまとめて宣言し、その間に空行を入れません。その他のフィールドとの間には空行を1行入れます。同じグループ内のフィールド同士は空行で分けません。クラス変数・インスタンス変数の宣言にはコメントを付けません。
+Service・Selector・Wrapperのインスタンスは同じグループとしてクラス先頭にまとめて宣言し、その間に空行を入れません。その他のフィールドとの間には空行を1行入れます。同じグループ内のフィールド同士は空行で分けません。クラス変数・インスタンス変数の宣言にはコメントを付けません。すべてのフィールド宣言は、コンストラクタやメソッドより前に置きます。この配置は PMD の `FieldDeclarationsShouldBeAtStart` でチェックされます。グループ分けや空行はレビューで確認します。
 
 フィールド群と最初のコンストラクタ・メソッドの間、およびコンストラクタ・メソッド同士の間には空行を1行入れます。ApexDocやアノテーションがある場合は、その直前を区切りとし、宣言との間には空行を入れません。整形ツールの実行後も、この空行が維持されていることを確認します。
 
@@ -312,7 +312,7 @@ Apex は実行コンテキストによって共有ルール、CRUD、FLS の効�
 
 Apex は一括実行される前提で実装します。1 件の画面操作から呼ばれる処理でも、将来の batch、Flow、trigger、API 呼び出しで複数件になる可能性を考慮します。
 
-- loop 内で SOQL、DML、callout を実行しない。
+- loop 内で SOQL、DML、callout を実行しない。SOQL は必要なレコードをループ前に一括取得し、DML はループ内で対象をコレクションへ蓄積してループ後にまとめて実行する。callout は相手 API の一括処理可否に応じて呼び出し回数を抑える。PMD の `OperationWithLimitsInLoop` は、ループ内のガバナ制限を消費する操作を検出する。呼び出し先の処理も含めた実行回数はレビューで確認する。
 - 異なる SObject の集計を単一 SOQL に統合できない場合に限り、固定の許可リストから作成した件数クエリを専用 Coordinator の loop で順次実行してよい。通常の `Selector`、`Service`、`Controller` ではこの例外を使用しない。
 - この例外を使用する Coordinator は、同期 SOQL 上限より小さい最大クエリ数と現在トランザクションの残り SOQL 数を実行前に検証し、例外とする理由、固定許可リスト、上限、責務を ApexDoc に明記する。`Selector` は Coordinator から渡された 1 件の検証済みクエリを実行する責務に限定する。
 - 単一引数のメソッド呼び出し、コンストラクタ呼び出し、例外生成は、行長や式の複雑さに問題がなければ 1 行で書く。
@@ -447,6 +447,7 @@ UI、Flow、API、非同期処理、静的解析抑止に関わるアノテー�
 - 内部契約の違反、回復不能な処理失敗、Salesforce プラットフォームから返る想定外の障害は例外として扱う。`try-catch` は、入力検証や null 判定の代わりにしない。
 - 専用例外クラスは、呼び出し側が例外型によって回復方法や変換方法を区別する必要がある場合だけ作る。型の識別以外に契約を持たない空の専用例外は作らない。
 - catch 句の例外変数名は `e` にする。
+- 空の `catch` で例外を握りつぶさない。PMD の `EmptyCatchBlock` でチェックされる。
 
 ## Apex テスト
 
@@ -456,7 +457,7 @@ UI、Flow、API、非同期処理、静的解析抑止に関わるアノテー�
 
 - テストクラス名は原則 `<対象名>Test` にする。
 - テストメソッド名は、期待する振る舞いが読める名前にする。
-- テストメソッドの `@IsTest` の上には、確認できる振る舞いを短い ApexDoc コメントで書く。
+- テストメソッドの `@IsTest` の上には、確認できる振る舞いを短い ApexDoc コメントで書く。テストメソッドの `@IsTest` の付与は PMD の `ApexUnitTestMethodShouldHaveIsTestAnnotation` でチェックされる。
 - テストデータはテスト内で作成し、組織内の既存データに依存しない。
 
 ### テスト対象インスタンス
@@ -495,8 +496,8 @@ private static User testUser = TestDataFactory.getTestUser();
 ### 検証観点
 
 - 正常系だけでなく、権限、入力不足、例外、bulk 件数、変更なし record など変更範囲に関係する境界も確認する。
-- 検証には `System.assert`、`System.assertEquals`、`System.assertNotEquals` ではなく `Assert` クラスの関数を使う。
-- `SeeAllData=true` は、既存データが必要な理由を説明できる場合だけ使う。
+- 検証には `System.assert`、`System.assertEquals`、`System.assertNotEquals` ではなく `Assert` クラスの関数を使う。例: `Assert.areEqual(expectedCount, actualCount, '対象件数が一致する必要あり');`。テストデータから期待値を定め、実際の戻り値や更新結果と比較する。PMD の `ApexUnitTestClassShouldHaveAsserts` は assertion の有無をチェックする。`Assert` クラスへの統一や検証内容の妥当性はレビューで確認する。
+- 原則として `@IsTest` に `SeeAllData=true` を指定せず、テスト内で用意したデータを使う。既存データが必要な理由を説明できる場合だけ `SeeAllData=true` を使う。PMD の `ApexUnitTestShouldNotUseSeeAllDataTrue` の指摘対象になるため、理由の記載だけで解消済みとは扱わない。
 - 実装詳細に強く依存するテストを追加しない。
 
 ## push 前チェック
@@ -520,7 +521,9 @@ npm run test:unit -- -- --runInBand --passWithNoTests
 
 ### Code Analyzer
 
-Salesforce Code Analyzer の対象になることを前提に実装します。
+Salesforce Code Analyzer の有効なルールを実装時の基準とします。実装・修正後は解析を実行し、指摘内容を確認します。終了コードが成功でも、低い severity の指摘が残っていないか確認します。
+
+各規定に記載する解析ルール名は、機械的にチェックされる範囲を示します。解析成功だけで規定全体への適合を判断せず、責務分離、業務上の権限制御、例外処理の妥当性などはコードレビューで確認します。適用ルールと閾値は実際の解析設定を正とし、全件一覧や設定値をこの文書へ転記しません。
 
 - Code Analyzer の指摘は、Salesforce Apex とこのリポジトリの設計に照らして判断する。根拠が弱いものを欠陥として断定しない。
 - PMD 標準 `ApexDoc` は `reportProperty=true` がこのリポジトリのプロパティコメント規約と衝突するため、`Recommended` タグを外し、`reportProperty=false` の `ApexDocWithoutProperties` へ置き換える。

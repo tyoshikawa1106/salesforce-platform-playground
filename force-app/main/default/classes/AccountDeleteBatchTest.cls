@@ -6,7 +6,7 @@ private with sharing class AccountDeleteBatchTest {
 
     @IsTest
     static void deletesThroughBatchExecution() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             TestDataFactory.createAccount('削除対象', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -21,7 +21,7 @@ private with sharing class AccountDeleteBatchTest {
 
     @IsTest
     static void directLaunchStillChecksPermission() {
-        User denied = createDeniedUser();
+        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
         System.runAs(denied) {
             TestDataFactory.createAccount('保護対象', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -33,7 +33,7 @@ private with sharing class AccountDeleteBatchTest {
 
     @IsTest
     static void executeRejectsWithoutPermission() {
-        User denied = createDeniedUser();
+        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
         System.runAs(denied) {
             Account account = TestDataFactory.createAccount('削除直前の拒否', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -52,7 +52,7 @@ private with sharing class AccountDeleteBatchTest {
 
     @IsTest
     static void preservesCountsAcrossSerializedScopes() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -74,38 +74,5 @@ private with sharing class AccountDeleteBatchTest {
             Assert.areEqual(0, ((Map<String, Object>) state.get('service')).size(), 'Serviceには状態を保持しない');
             Assert.areEqual(0, [SELECT COUNT() FROM Account], '成功した削除結果を維持');
         }
-    }
-
-    private static void grantAccess() {
-        Id permissionId = [SELECT Id FROM PermissionSet WHERE Name = 'AccountDelete' LIMIT 1].Id;
-        if (
-            [
-                SELECT COUNT()
-                FROM PermissionSetAssignment
-                WHERE AssigneeId = :UserInfo.getUserId() AND PermissionSetId = :permissionId
-            ] == 0
-        ) {
-            insert new PermissionSetAssignment(AssigneeId = UserInfo.getUserId(), PermissionSetId = permissionId);
-        }
-    }
-
-    private static User createDeniedUser() {
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'deltest',
-            LastName = 'Delete permission test',
-            Email = 'delete-test@example.invalid',
-            Username = 'delete-test.' +
-                UserInfo.getOrganizationId() +
-                '.' +
-                System.now().getTime() +
-                '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert denied;
-        return denied;
     }
 }

@@ -7,7 +7,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void clearsPreviousErrorWhenExecutionIsAllowed() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
             current.failureCount = 2;
@@ -23,7 +23,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void preservesPartialSuccess() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             Account good = TestDataFactory.createAccount('成功', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -54,7 +54,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void accumulatesOnlyProvidedState() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account second = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -75,7 +75,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void deletesTwoThousandAccounts() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer i = 0; i < 2000; i++) {
@@ -178,7 +178,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void limitsRecordDetailsWithoutLosingFailureCounts() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer index = 0; index < 201; index++) {
@@ -202,7 +202,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void deletesPersonAndBusinessAccountsTogether() {
-        grantAccess();
+        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
         System.runAs(testUser) {
             Boolean enabled = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
                 .fields.getMap()
@@ -273,19 +273,6 @@ private with sharing class AccountDeleteBatchServiceTest {
             String reason = detail.substringAfter('理由:\n');
             Assert.areEqual(1000, reason.length(), '理由全体の文字数を制限');
             Assert.isTrue(reason.endsWith('...'), '省略を示す');
-        }
-    }
-
-    private static void grantAccess() {
-        Id permissionId = [SELECT Id FROM PermissionSet WHERE Name = 'AccountDelete' LIMIT 1].Id;
-        if (
-            [
-                SELECT COUNT()
-                FROM PermissionSetAssignment
-                WHERE AssigneeId = :UserInfo.getUserId() AND PermissionSetId = :permissionId
-            ] == 0
-        ) {
-            insert new PermissionSetAssignment(AssigneeId = UserInfo.getUserId(), PermissionSetId = permissionId);
         }
     }
 

@@ -31,6 +31,50 @@ public with sharing class TestDataFactory {
     }
 
     /**
+     * 現在のプロファイルを持つ権限セット未割当ユーザーを作成
+     * @param lastName テストユーザーの姓
+     * @param saveOption 作成したユーザーの保存方法
+     * @return 作成したユーザー
+     */
+    public static User createUser(String lastName, SaveMode saveOption) {
+        User userRecord = new User();
+        userRecord.ProfileId = UserInfo.getProfileId();
+        userRecord.Alias = 'testuser';
+        userRecord.LastName = lastName;
+        userRecord.Email = 'test-user@example.invalid';
+        userRecord.Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid';
+        userRecord.TimeZoneSidKey = 'Asia/Tokyo';
+        userRecord.LocaleSidKey = 'ja_JP';
+        userRecord.EmailEncodingKey = 'UTF-8';
+        userRecord.LanguageLocaleKey = 'ja';
+        if (saveOption == SaveMode.INSERT_RECORD) {
+            insert userRecord;
+        }
+        return userRecord;
+    }
+
+    /**
+     * 指定ユーザーへ未割当の権限セットを割り当て
+     * @param userId 割当対象のユーザーID
+     * @param permissionSetName 権限セットのAPI名
+     */
+    public static void assignPermissionSet(Id userId, String permissionSetName) {
+        List<PermissionSet> permissionSets = [SELECT Id FROM PermissionSet WHERE Name = :permissionSetName LIMIT 1];
+        Assert.areEqual(1, permissionSets.size(), '指定した権限セットが存在する必要あり');
+        Id permissionSetId = permissionSets[0].Id;
+        Integer assignmentCount = [
+            SELECT COUNT() FROM PermissionSetAssignment
+            WHERE AssigneeId = :userId AND PermissionSetId = :permissionSetId
+        ];
+        if (assignmentCount == 0) {
+            PermissionSetAssignment assignment = new PermissionSetAssignment();
+            assignment.AssigneeId = userId;
+            assignment.PermissionSetId = permissionSetId;
+            insert assignment;
+        }
+    }
+
+    /**
      * データ品質スキャン権限を持つテストユーザーを作成
      * @param userMarker テストクラスごとに識別する姓
      */
