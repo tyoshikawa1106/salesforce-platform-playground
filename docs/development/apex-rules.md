@@ -2,16 +2,6 @@
 
 Apex クラス、トリガー、Apex テストを追加・更新するときの実務ルールです。
 
-## 読み方
-
-迷ったときは、次の順で確認します。
-
-1. 実装の形は、[Controller / Service / Selector / Wrapper](#controller--service--selector--wrapper)、[Bulkification と Governor Limits](#bulkification-と-governor-limits)、[Trigger 構成](#trigger-構成) を見る。
-2. コメントの書き方は、[ApexDoc](#apexdoc) と [通常コメント](#通常コメント) を見る。
-3. テストデータ、`System.runAs`、`Test.startTest()` / `Test.stopTest()` は、[Apex テスト](#apex-テスト) を見る。
-4. 作業順序は、[開発手順](#開発手順) を見る。
-5. push 前の確認は、[push 前チェック](#push-前チェック) を見る。
-
 ## 開発手順
 
 Apex本体と関連テストを実装し、変更した振る舞いを確認します。実装を修正している途中は、変更対象に近いテストを必要に応じて実行し、最終的に関連クラス全体のテストとcoverageを確認します。
@@ -199,7 +189,8 @@ Controller、Batch、Scheduler、Trigger Handlerなどのメインクラスで�
 - `String.isNotEmpty(wrapper.errorMessage)`、`records.isEmpty()`など、取得済みの値に対する単純な空判定は条件式に書いてよい。業務判定やデータ取得の呼び出しと組み合わせない。
 - Wrapperを使う業務判定では、Serviceが業務上のエラーメッセージを`errorMessage`へ設定し、拒否理由、失敗件数などとともに新しいWrapperで返す。メインクラスのエラー分岐では、その業務処理を追加で行わない。
 - エラーがない場合の`errorMessage`は空文字とする。繰り返し呼ばれる判定では、前回のエラーメッセージをそのまま残さず、今回の判定結果で設定し直す。累積する件数や理由コードとは分けて扱う。
-- メインクラスは判定結果を受け取った直後にエラーを確認し、エラーがあれば後続処理へ進まず終了する。戻り値があるメソッドはWrapperなど契約上の戻り値を返し、`void`メソッドは`return;`で終了する。
+- メインクラスは判定結果を受け取った直後にエラーを確認し、エラーがあれば後続処理へ進まず終了する。戻り値があるメソッドはWrapperなど契約上の戻り値を返し、`void`メソッドは`return;`で終了する。`return`は現在のメソッドを終了するだけで、起点の保存・削除を拒否しない。
+- Triggerで保存・削除を拒否する業務条件を検出した場合は、Serviceの判定結果を受けたHandlerが対象のTriggerレコードへ`addError()`を付与してから終了する。後続処理をスキップするだけの場合は、通常の早期returnを使用する。
 - `else`を伴わず、処理が単一の`return`または`throw`だけのガード節は、波括弧を付けず1行で書く。例: `if (String.isNotEmpty(wrapper.errorMessage)) return wrapper;`、`if (!sent) throw new EmailException('結果メールを送信できませんでした。');`。複数の文を実行する分岐には波括弧を付ける。
 - メール送信の受付結果など、処理の成否を返すBooleanも、先に変数へ代入してから判定する。例外として扱う必要がある失敗はメインクラスで処理する。
 
