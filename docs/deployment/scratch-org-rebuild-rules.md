@@ -253,12 +253,7 @@ git status
 git diff
 ```
 
-Salesforce 組織へ反映する場合も、同じ作業対象 manifest で dry-run してから deploy します。
-
-```sh
-sf project deploy start --dry-run --manifest manifest/scratch-work.xml --target-org <target-org-alias> --wait 30
-sf project deploy start --manifest manifest/scratch-work.xml --target-org <target-org-alias> --wait 30
-```
+Salesforce 組織へ反映する場合も、同じ作業対象 manifest を使います。対象組織に応じた検証方法、テストレベル、deploy の承認条件と実行手順は[組織操作ルール](org-operation-rules.md)に従います。
 
 `manifest/scratch-work.xml` は作業単位の manifest です。
 必要に応じてファイル名を作業内容に合わせます。
