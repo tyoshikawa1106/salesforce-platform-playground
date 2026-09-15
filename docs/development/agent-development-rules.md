@@ -7,18 +7,18 @@ Apex、メタデータ、GitHub、デプロイなどの詳細は該当するル�
 
 この文書を共通の作業順序として使用し、変更内容に応じて次の詳細ルールを併用します。
 
-| 作業内容                                           | 詳細ルール                                                           |
-| -------------------------------------------------- | -------------------------------------------------------------------- |
-| Apex クラス、Trigger、Apex test                    | [Apex 開発ルール](apex-rules.md)                                     |
-| metadata の取得、編集、Git 管理                    | [メタデータ管理ルール](metadata-rules.md)                            |
-| docs の追加、変更、配置、記載粒度                  | [ドキュメント配置ルール](documentation-rules.md)                     |
-| 機能の振る舞い変更、機能仕様書の追加・更新・棚卸し | [機能仕様書ルール](specification-rules.md)                           |
-| ブランチ、コミット、PR、マージ                     | [GitHub 運用ルール](github-rules.md)                                 |
-| Issue、Project、Milestone、Release、CI             | [リポジトリ固有 GitHub 運用ルール](github-repository-rules.md)       |
-| validate、deploy、retrieve、test                   | [組織操作ルール](../deployment/org-operation-rules.md)               |
-| metadata の削除                                    | [メタデータ削除ルール](../deployment/metadata-deletion-rules.md)     |
-| Scratch Org の作成、再現                           | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md) |
-| テストデータ投入                                   | [テストデータ投入手順](../deployment/test-data-import.md)            |
+| 作業内容                                                                                                          | 詳細ルール                                                           |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Apex クラス、Trigger、Apex test                                                                                   | [Apex 開発ルール](apex-rules.md)                                     |
+| metadata の取得、編集、Git 管理                                                                                   | [メタデータ管理ルール](metadata-rules.md)                            |
+| docs の追加、変更、配置、記載粒度                                                                                 | [ドキュメント配置ルール](documentation-rules.md)                     |
+| 機能の振る舞い変更、機能仕様書の追加・更新・棚卸し                                                                | [機能仕様書ルール](specification-rules.md)                           |
+| ブランチ、コミット、PR、マージ                                                                                    | [GitHub 運用ルール](github-rules.md)                                 |
+| Issue、Project、Milestone、Release、CI                                                                            | [リポジトリ固有 GitHub 運用ルール](github-repository-rules.md)       |
+| Salesforce 実装・metadata 変更時の組織検証要否判断、push 前の組織検証、validate・deploy・retrieve・組織上のテスト | [組織操作ルール](../deployment/org-operation-rules.md)               |
+| metadata の削除                                                                                                   | [メタデータ削除ルール](../deployment/metadata-deletion-rules.md)     |
+| Scratch Org の作成、再現                                                                                          | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md) |
+| テストデータ投入                                                                                                  | [テストデータ投入手順](../deployment/test-data-import.md)            |
 
 複数の作業内容に該当する場合は、関連するルールをすべて適用します。詳細ルール間で判断が分かれる場合は、より対象を限定した文書を優先し、解消できない場合は変更前に確認します。
 

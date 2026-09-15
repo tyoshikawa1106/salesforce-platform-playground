@@ -6,7 +6,8 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 基本方針
 
-- 独自に定義する権限セット、カスタムタブ、カスタム権限のAPI名は、単語の先頭を大文字にして連結し、アンダースコアで区切らない。Salesforceやパッケージが管理する名前空間、カスタムオブジェクト・項目の`__c`などプラットフォーム所定の接尾辞は維持する。
+- 独自に定義する権限セット、自由にAPI名を定義できるカスタムタブ、カスタム権限のAPI名は、単語の先頭を大文字にして連結し、アンダースコアで区切らない。Salesforceやパッケージが管理する名前空間、カスタムオブジェクト・項目の`__c`などプラットフォーム所定の接尾辞は維持する。
+- カスタムオブジェクトタブのAPI名は、対象オブジェクトのAPI名と一致させる。この命名規則に合わせる目的で、既存オブジェクトのAPI名を変更しない。
 - `manifest/retrieve-profile.xml` は、Profileの権限設定を取得するため、Profileと関連メタデータを同じretrieve要求に含める専用scopeとして扱う。
 - applicationとorganizationのメタデータは、1回のretrieveが10,000ファイルを超えないよう、責務別のretrieve用manifestに分ける。分割manifestを取得定義の正本とし、実行順は`scripts/metadata/retrieve/retrieve.js`を基準にする。
 - `npm run sf:retrieve` は、orgへ接続する前に、すべての分割manifestが存在して取得対象を持ち、API versionが`sfdx-project.json`と一致することをローカルで確認する。
