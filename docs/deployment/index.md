@@ -11,3 +11,5 @@ Salesforce 組織へ操作を行う前に参照するルールと手順をまと
 | [Scratch Org 再現の前提と設定](scratch-org-rebuild-reference.md)                 | Installed Package、alias、Scratch definition |
 | [Scratch Org manifest 運用ルール](scratch-org-manifest-rules.md)                 | Scratch Org の retrieve / deploy scope       |
 | [Scratch Org definition feature ルール](scratch-org-definition-feature-rules.md) | Scratch Org 作成時の features / settings     |
+
+- [テストデータ一括削除手順](test-data-delete.md)

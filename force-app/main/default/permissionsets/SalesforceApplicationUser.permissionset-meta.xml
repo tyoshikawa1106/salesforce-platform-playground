@@ -27,11 +27,23 @@
         <enabled>true</enabled>
     </pageAccesses>
     <tabSettings>
+        <tab>AccountDelete</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>TestDataDelete</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>standard-Account</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
         <tab>standard-Contact</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-Pricebook2</tab>
         <visibility>Visible</visibility>
     </tabSettings>
 </PermissionSet>

@@ -1,0 +1,70 @@
+<template>
+    <lightning-card title="テストデータ一括削除">
+        <div class="slds-p-around_medium">
+            <p>対象組織: {view.organizationName}</p>
+            <p>一覧のオブジェクトの全レコードを、表示順に削除します。手動作成したデータも対象です。</p>
+            <p>
+                実行ユーザーが照会できるファイルを、全バージョンまとめて削除します。標準価格表・ユーザー・権限セットなどの設定は削除しません。
+            </p>
+            <template lwc:if={view.blockMessage}>
+                <p role="alert" class="slds-m-top_small">{view.blockMessage}</p>
+            </template>
+            <template lwc:if={errorMessage}>
+                <p role="alert" class="slds-m-top_small">{errorMessage}</p>
+            </template>
+            <div class="slds-m-vertical_medium">
+                <lightning-button
+                    label="全件削除"
+                    variant="destructive"
+                    onclick={handleExecute}
+                    disabled={isExecuteDisabled}
+                ></lightning-button>
+                <lightning-button
+                    label="実行状況・残件数を確認"
+                    class="slds-m-left_small"
+                    onclick={handleRefresh}
+                    disabled={isBusy}
+                ></lightning-button>
+            </div>
+            <template lwc:if={isBusy}>
+                <lightning-spinner alternative-text="実行条件・件数を確認中" size="small"></lightning-spinner>
+            </template>
+            <div aria-live="polite" class="slds-m-bottom_medium">
+                <p>現在の状態: {view.status}</p>
+                <template lwc:if={acceptedJobId}>
+                    <p>受付ジョブID: {acceptedJobId}</p>
+                    <p>{view.jobStatus}</p>
+                    <p>受付ジョブの終了は一連の削除完了を意味しません。全対象の残件数を確認してください。</p>
+                </template>
+            </div>
+            <div class="slds-scrollable_x">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                    <caption class="slds-p-bottom_small">
+                        削除順序と残件数（各行の照会時点。自動更新なし）
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">順序</th>
+                            <th scope="col">オブジェクト</th>
+                            <th scope="col">API名</th>
+                            <th scope="col">残件数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={view.rows} for:item="row">
+                            <tr key={row.name}>
+                                <td>{row.order}</td>
+                                <th scope="row">{row.label}</th>
+                                <td>{row.name}</td>
+                                <td>{row.remaining}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            <p class="slds-m-top_small">
+                処理中はデータ投入・編集を止めてください。削除失敗時は後続を停止します。詳細は設定のApexジョブで確認できます。
+            </p>
+        </div>
+    </lightning-card>
+</template>

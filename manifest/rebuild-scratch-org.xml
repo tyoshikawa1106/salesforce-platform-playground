@@ -95,6 +95,22 @@
         <members>OrgEnvironmentTest</members>
         <members>StringUtil</members>
         <members>StringUtilTest</members>
+        <members>TestDataDeleteBatch</members>
+        <members>TestDataDeleteBatchSelector</members>
+        <members>TestDataDeleteBatchSelectorTest</members>
+        <members>TestDataDeleteBatchService</members>
+        <members>TestDataDeleteBatchServiceTest</members>
+        <members>TestDataDeleteBatchTest</members>
+        <members>TestDataDeleteBatchWrapper</members>
+        <members>TestDataDeleteBatchWrapperTest</members>
+        <members>TestDataDeleteController</members>
+        <members>TestDataDeleteControllerTest</members>
+        <members>TestDataDeleteSelector</members>
+        <members>TestDataDeleteSelectorTest</members>
+        <members>TestDataDeleteService</members>
+        <members>TestDataDeleteServiceTest</members>
+        <members>TestDataDeleteWrapper</members>
+        <members>TestDataDeleteWrapperTest</members>
         <members>TestDataFactory</members>
         <members>TestDataFactoryTest</members>
         <name>ApexClass</name>
@@ -820,6 +836,7 @@
         <members>objectMetricsOverview</members>
         <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>
+        <members>testDataDelete</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
@@ -1164,6 +1181,7 @@
     </types>
     <types>
         <members>AccountDelete</members>
+        <members>TestDataDelete</members>
         <name>CustomTab</name>
     </types>
     <version>67.0</version>
