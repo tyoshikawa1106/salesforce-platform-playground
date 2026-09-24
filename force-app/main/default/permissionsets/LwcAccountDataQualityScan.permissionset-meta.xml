@@ -117,7 +117,7 @@
         <readable>true</readable>
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>取引先データ品質スキャン</label>
+    <label>LWC：取引先データ品質スキャン</label>
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>

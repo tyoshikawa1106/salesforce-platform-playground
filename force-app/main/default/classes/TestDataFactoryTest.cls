@@ -74,10 +74,10 @@ private with sharing class TestDataFactoryTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            TestDataFactory.assignPermissionSet(target.Id, 'AccountDelete');
-            TestDataFactory.assignPermissionSet(target.Id, 'AccountDelete');
+            TestDataFactory.assignPermissionSet(target.Id, 'LwcAccountDelete');
+            TestDataFactory.assignPermissionSet(target.Id, 'LwcAccountDelete');
             Test.stopTest();
-            Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :target.Id AND PermissionSet.Name = 'AccountDelete'], '再呼び出しでも指定権限セットを一度だけ付与');
+            Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :target.Id AND PermissionSet.Name = 'LwcAccountDelete'], '再呼び出しでも指定権限セットを一度だけ付与');
         }
     }
 

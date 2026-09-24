@@ -6,7 +6,7 @@ private with sharing class AccountDeleteSelectorTest {
 
     @IsTest
     static void selectsOnlyOwnLatestJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
         System.runAs(testUser) {
             Test.startTest();

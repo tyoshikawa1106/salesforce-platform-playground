@@ -906,8 +906,8 @@
         <name>ListView</name>
     </types>
     <types>
-        <members>AccountDataQualityScan</members>
-        <members>AccountDelete</members>
+        <members>LwcAccountDataQualityScan</members>
+        <members>LwcAccountDelete</members>
         <members>SalesforceAPIPlaygroundIntegration</members>
         <members>SalesforceApplicationUser</members>
         <members>sfdcInternalInt__sfdc_scrt2</members>

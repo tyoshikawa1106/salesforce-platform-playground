@@ -6,7 +6,7 @@ private with sharing class AccountDeleteControllerTest {
 
     @IsTest
     static void readsAndStarts() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             Assert.areEqual('', AccountDeleteController.getView(null).blockMessage, '実行を許可');
@@ -35,7 +35,7 @@ private with sharing class AccountDeleteControllerTest {
 
     @IsTest
     static void rejectsDuplicateJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteWrapper first = AccountDeleteController.startRun();

@@ -6,7 +6,7 @@ private with sharing class AccountDeleteServiceTest {
 
     @IsTest
     static void displaysStandardJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteWrapper response = new AccountDeleteService()
@@ -22,7 +22,7 @@ private with sharing class AccountDeleteServiceTest {
 
     @IsTest
     static void rejectsRegisteredJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteWrapper response = new AccountDeleteService()

@@ -12,6 +12,7 @@
 
 - `testDataDelete`: Lightning App Builder、ホームページ、Lightningタブへ配置する画面。
 - `TestDataDelete` CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。
+- `SalesforceApplicationUser` PermissionSet: Salesforceアプリと削除タブの表示設定。
 - `testDataDelete.js`: 実行条件・残件数の取得、確認ダイアログ、削除受付を制御。
 - `testDataDeleteLogic.js`: 対象行、状態、開始可否を生成。
 - `TestDataDeleteController`: 画面用の参照とバッチ登録。
@@ -40,7 +41,8 @@
 - `UserPermissionAccess.PermissionsModifyAllData`が有効であること。プロファイル名や単独の権限セット割当から推測しない。
 - `PermissionsQueryAllFiles`は実行条件に含めない。ファイルの削除と残件数確認は実行ユーザーが照会できる範囲に限られ、照会できないファイルの削除完了は保証しない。
 - 存在する対象オブジェクトの参照・クエリ・削除権限が必要。
-- LWCから呼ぶApexクラスへのアクセスが必要。専用権限セットの追加・既存権限の変更は行わない。
+- Salesforceアプリと`TestDataDelete`タブへのアクセスが必要。既存の`SalesforceApplicationUser`権限セットでアプリとタブを表示する。
+- LWCから呼ぶ`TestDataDeleteController`へのアクセスが必要。`SalesforceApplicationUser`はこのクラスへのアクセスや`Modify All Data`を付与しないため、プロファイルなどで実効権限を別途満たす。
 - 残件数が未確認、全件ゼロ、権限不足、処理中、受付不明の場合は開始できない。
 
 ## エラー処理
@@ -69,10 +71,10 @@
 ## 制約・注意事項
 
 - 各残件数はその行の照会時点の値で、全オブジェクトを同一トランザクションで集計したものではない。処理中のデータ投入・編集は停止する。
-- 画面再表示後も保存する削除成功・失敗の累計は持たない。画面は現在の残件数と標準ジョブ状態を示す。
+- 画面は現在の残件数と標準ジョブ状態を示し、削除成功・失敗の累計は表示しない。バッチ間で引き継いだ累計件数は結果メールで通知する。独自の履歴レコードとして保存せず、画面再表示時に過去の累計を復元する機能は持たない。通知する件数の範囲と送信条件は[バッチ仕様の結果メール](../../apex/batches/test-data-delete/index.md#結果メール)を参照する。
 - 画面を閉じても受け付けたバッチは継続する。匿名Apex用の起動スクリプトやSchedulerは提供しない。Apexを実行・変更できる管理者からの呼び出しを技術的に封鎖する仕組みではない。
-- `TestDataDelete` Lightningタブを「Salesforce」アプリのナビゲーションへ配置する。アクセスできる管理者が画面を開いて実行する。
+- `TestDataDelete` Lightningタブを「Salesforce」アプリのナビゲーション末尾に配置する。アクセスできる管理者が画面を開いて実行する。
 
 ## 既知の差異・確認事項
 
-画面の結果は残件数と標準ジョブ状態であり、当初検討した削除成功・失敗の正確な累計表示とは異なります。独自保存先を持たない方針との対応を機能管理者が確認する必要があります。
+なし。

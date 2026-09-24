@@ -6,7 +6,7 @@ private with sharing class AccountDeleteBatchSelectorTest {
 
     @IsTest
     static void selectsAccountsAndStandardJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             TestDataFactory.createAccount('対象', TestDataFactory.SaveMode.INSERT_RECORD);
             AccountDeleteBatchSelector selector = new AccountDeleteBatchSelector();

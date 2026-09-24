@@ -6,7 +6,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
 
     @IsTest
     static void startsScheduledBatch() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             System.schedule('Account delete schedule test', '0 0 0 1 1 ? 2099', new AccountDeleteBatchScheduler());
@@ -37,7 +37,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
 
     @IsTest
     static void rejectsRegisteredJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
