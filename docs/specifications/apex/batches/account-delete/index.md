@@ -15,7 +15,7 @@ Scratch Org、Developer Edition、Sandboxの検証用取引先を整理します
 - `AccountDeleteBatchSelector`: Accountと標準`AsyncApexJob`の検索
 - `AccountDeleteBatchWrapper`: 成功・失敗件数、レコードID別のエラーと中止理由、実行可否のエラーメッセージの受け渡し
 - `OrgEnvironment`: 組織種別の判定
-- `RunAccountDelete`、`AccountDelete`: 機能利用権限
+- `RunAccountDelete` CustomPermission、`LwcAccountDelete` PermissionSet: 機能利用権限
 
 カスタムオブジェクトへの実行履歴保存は行いません。画面側のクラス構成は[画面仕様](../../../lwc/account-delete/index.md)を参照してください。
 

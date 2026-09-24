@@ -7,7 +7,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void clearsPreviousErrorWhenExecutionIsAllowed() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
             current.failureCount = 2;
@@ -23,7 +23,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void preservesPartialSuccess() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Account good = TestDataFactory.createAccount('成功', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -54,7 +54,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void accumulatesOnlyProvidedState() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account second = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -75,7 +75,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void deletesTwoThousandAccounts() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer i = 0; i < 2000; i++) {
@@ -178,7 +178,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void limitsRecordDetailsWithoutLosingFailureCounts() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer index = 0; index < 201; index++) {
@@ -202,7 +202,7 @@ private with sharing class AccountDeleteBatchServiceTest {
 
     @IsTest
     static void deletesPersonAndBusinessAccountsTogether() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Boolean enabled = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
                 .fields.getMap()

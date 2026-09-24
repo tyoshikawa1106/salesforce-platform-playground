@@ -184,16 +184,16 @@ Scratch Org の作成ユーザーには、ユーザー作成アプリへのア�
 sf org assign permset --name SalesforceApplicationUser --target-org <scratch-org-alias>
 ```
 
-取引先一括削除を試す場合は、初期反映後に機能専用の`AccountDelete` Permission Setも割り当てます。通常のアプリ利用権限とは分けて付与します。
+取引先一括削除を試す場合は、初期反映後に機能専用の`LwcAccountDelete` Permission Set（表示ラベル: 「LWC：取引先一括削除」）も割り当てます。通常のアプリ利用権限とは分けて付与します。
 
 ```sh
-sf org assign permset --name AccountDelete --target-org <scratch-org-alias>
+sf org assign permset --name LwcAccountDelete --target-org <scratch-org-alias>
 ```
 
-取引先データ品質スキャンを利用する場合は、結果項目へのアクセスを含む`AccountDataQualityScan` Permission Setも割り当てます。
+取引先データ品質スキャンを利用する場合は、結果項目へのアクセスを含む`LwcAccountDataQualityScan` Permission Set（表示ラベル: 「LWC：取引先データ品質スキャン」）も割り当てます。
 
 ```sh
-sf org assign permset --name AccountDataQualityScan --target-org <scratch-org-alias>
+sf org assign permset --name LwcAccountDataQualityScan --target-org <scratch-org-alias>
 ```
 
 ### 反映対象 metadata

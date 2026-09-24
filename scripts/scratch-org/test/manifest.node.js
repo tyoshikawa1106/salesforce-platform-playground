@@ -87,7 +87,6 @@ const excludedSourceNames = {
         'UserAlt-User Profile Layout',
         'WorkPlan-Work Plan Layout'
     ]),
-    PermissionSet: new Set(['SalesforcePlatformPlaygroundUser']),
     ReportType: new Set(['flow_orchestration_work_item_ootb_crt_two_four_eight']),
     TopicsForObjects: new Set([
         'ChangeRequest',

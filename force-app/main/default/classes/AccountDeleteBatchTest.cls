@@ -6,7 +6,7 @@ private with sharing class AccountDeleteBatchTest {
 
     @IsTest
     static void deletesThroughBatchExecution() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             TestDataFactory.createAccount('削除対象', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -52,7 +52,7 @@ private with sharing class AccountDeleteBatchTest {
 
     @IsTest
     static void preservesCountsAcrossSerializedScopes() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'AccountDelete');
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);

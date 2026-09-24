@@ -42,7 +42,7 @@
     </customPermissions>
     <description>取引先一括削除の利用を許可します。取引先の参照・削除権限は既存の権限設定に従います。</description>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>取引先一括削除</label>
+    <label>LWC：取引先一括削除</label>
     <tabSettings>
         <tab>AccountDelete</tab>
         <visibility>Visible</visibility>

@@ -10,7 +10,7 @@
 
 ## 対象実装・メタデータ
 
-- `AccountDelete`: 取引先一括削除の専用タブ。`Salesforce`アプリのナビゲーションで「取引先」の直後に配置
+- `AccountDelete`: 取引先一括削除の専用タブ。`Salesforce`アプリのナビゲーションで末尾の「テストデータ一括削除」の直前に配置
 - `accountDelete`
 - `accountDelete.js`: 初期取得、確認モーダル、Apex受付、状態更新
 - `accountDeleteLogic.js`: 実行可否、標準ジョブ状態の表示モデル
@@ -20,6 +20,7 @@
 - `AccountDeleteService`: 画面の実行可否判定・応答生成
 - `AccountDeleteSelector`: 画面表示用の自身の標準ジョブの検索
 - `AccountDeleteWrapper`: 実行可否、受付結果と自身の標準ジョブ
+- `LwcAccountDelete` PermissionSet（表示ラベル: 「LWC：取引先一括削除」）: 専用タブ、関連Apexクラス、`RunAccountDelete`カスタム権限へのアクセス。Accountの参照・削除権限は付与しない
 - バッチ側の処理と設定は[バッチ仕様](../../apex/batches/account-delete/index.md)を参照
 
 Controllerが`Database.executeBatch(new AccountDeleteBatch(), 2000)`で直接バッチを登録します。画面用Service・Selectorはバッチ用クラスを呼びません。画面表示とジョブ検索は画面側のクラスだけで完結します。
@@ -42,7 +43,7 @@ Controllerが`Database.executeBatch(new AccountDeleteBatch(), 2000)`で直接バ
 
 ## 権限・実行条件
 
-`AccountDelete`と、既存のAccount参照・削除権限が必要です。画面の無効状態だけで保護せず、開始時および非同期の削除直前にもサーバーで検証します。
+`LwcAccountDelete`権限セットと、既存のAccount参照・削除権限が必要です。画面の無効状態だけで保護せず、開始時および非同期の削除直前にもサーバーで検証します。
 
 ## エラー処理
 
