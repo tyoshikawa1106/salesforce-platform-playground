@@ -12,3 +12,5 @@ Lightning Web Components で実装した機能の仕様書一覧です。
 | ケースメールメッセージ一覧     | `caseEmailMessageList`   | [ケースメールメッセージ一覧](case-email-message-list/index.md)  |
 
 - [取引先一括削除画面](account-delete/index.md)（`accountDelete`）
+
+- [テストデータ一括削除画面](test-data-delete/index.md)（`testDataDelete`）

@@ -28,6 +28,7 @@
     <tabs>standard-Event</tabs>
     <tabs>standard-Account</tabs>
     <tabs>AccountDelete</tabs>
+    <tabs>TestDataDelete</tabs>
     <tabs>standard-Contact</tabs>
     <tabs>standard-Lead</tabs>
     <tabs>standard-Opportunity</tabs>
