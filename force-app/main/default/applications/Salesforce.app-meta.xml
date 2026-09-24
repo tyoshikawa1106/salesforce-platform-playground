@@ -27,8 +27,6 @@
     <tabs>standard-Task</tabs>
     <tabs>standard-Event</tabs>
     <tabs>standard-Account</tabs>
-    <tabs>AccountDelete</tabs>
-    <tabs>TestDataDelete</tabs>
     <tabs>standard-Contact</tabs>
     <tabs>standard-Lead</tabs>
     <tabs>standard-Opportunity</tabs>
@@ -50,6 +48,8 @@
     <tabs>standard-ProcessInstanceWorkitem</tabs>
     <tabs>standard-DeleteEvent</tabs>
     <tabs>standard-LightningInstrumentation</tabs>
+    <tabs>AccountDelete</tabs>
+    <tabs>TestDataDelete</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>
