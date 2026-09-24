@@ -1,6 +1,55 @@
 /** 環境・権限・部分失敗・継続条件を検証 */
 @IsTest
 private with sharing class TestDataDeleteBatchServiceTest {
+    private static TestDataDeleteBatchService mailService = new TestDataDeleteBatchService();
+    private static User mailTestUser = TestDataFactory.getTestUser();
+
+    /** 価格の段階と次の対象をまたいでも全体件数を保持 */
+    @IsTest
+    static void preservesTotalsAcrossPricePhasesForFinalMail() {
+        System.runAs(mailTestUser) {
+            TestDataDeleteBatchWrapper current = new TestDataDeleteBatchWrapper();
+            current.position = current.objectNames.indexOf('PricebookEntry');
+            current.totalSuccessCount = 27;
+            current.totalFailureCount = 2;
+            Test.startTest();
+            TestDataDeleteBatchWrapper standard = mailService.createNext(current);
+            TestDataDeleteBatchWrapper product = mailService.createNext(standard);
+            Messaging.SingleEmailMessage mail = mailService.buildResultMail(
+                product,
+                '途中停止',
+                'PricebookEntry: 削除失敗'
+            );
+            Test.stopTest();
+            Assert.areEqual(27, product.totalSuccessCount, '全段階の成功件数を保持');
+            Assert.areEqual(2, product.totalFailureCount, '全段階の失敗件数を保持');
+            Assert.areEqual(0, product.successCount, '段階単位の集計は初期化');
+            Assert.areEqual('テストデータ一括削除: 途中停止', mail.getSubject(), '成功と停止を区別');
+            Assert.isTrue(mail.getPlainTextBody().contains('27件'), '全体の成功件数を通知');
+            Assert.isTrue(mail.getPlainTextBody().contains('2件'), '全体の失敗件数を通知');
+            Assert.isTrue(mail.getPlainTextBody().contains('PricebookEntry: 削除失敗'), '安全な停止理由を通知');
+            Assert.areEqual(mailTestUser.Id, mail.getTargetObjectId(), '実行ユーザーへ通知');
+        }
+    }
+
+    /** 正常終了の本文に停止扱いを含めない */
+    @IsTest
+    static void buildsCompletedMail() {
+        System.runAs(mailTestUser) {
+            TestDataDeleteBatchWrapper current = new TestDataDeleteBatchWrapper();
+            Test.startTest();
+            Messaging.SingleEmailMessage mail = mailService.buildResultMail(
+                current,
+                '完了',
+                '最後の対象まで処理を終了しました。'
+            );
+            Test.stopTest();
+            Assert.areEqual('テストデータ一括削除: 完了', mail.getSubject(), '正常終了を通知');
+            Assert.isFalse(mail.getPlainTextBody().contains('停止理由'), '正常終了に停止理由を含めない');
+            Assert.isFalse(mail.getSaveAsActivity(), '通知用の活動を作成しない');
+        }
+    }
+
     private static Organization organization(Boolean sandbox, String edition, Datetime expiration) {
         return (Organization) JSON.deserialize(
             JSON.serialize(
@@ -115,7 +164,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
     private static List<UserPermissionAccess> access(Boolean allowed) {
         return new List<UserPermissionAccess>{
             (UserPermissionAccess) JSON.deserialize(
-                '{"PermissionsModifyAllData":' + allowed + ',"PermissionsQueryAllFiles":true}',
+                '{"PermissionsModifyAllData":' + allowed + ',"PermissionsQueryAllFiles":false}',
                 UserPermissionAccess.class
             )
         };
@@ -163,6 +212,18 @@ private with sharing class TestDataDeleteBatchServiceTest {
             TestDataDeleteBatchWrapper result = new TestDataDeleteBatchService()
                 .checkExecution(plan, access(true), TestDataDeleteBatchWrapper.Environment.DEVELOPMENT);
             Assert.areEqual('', result.errorMessage, '適切な対象と権限を許可');
+        }
+    }
+    @IsTest
+    static void acceptsFilesWithoutQueryAllFiles() {
+        System.runAs(TestDataFactory.getTestUser()) {
+            TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
+            plan.position = plan.objectNames.indexOf('ContentDocument');
+            Test.startTest();
+            TestDataDeleteBatchWrapper result = new TestDataDeleteBatchService()
+                .checkExecution(plan, access(true), TestDataDeleteBatchWrapper.Environment.DEVELOPMENT);
+            Test.stopTest();
+            Assert.areEqual('', result.errorMessage, '全ファイル照会権限なしでもファイル処理を許可');
         }
     }
     @IsTest
@@ -217,5 +278,38 @@ private with sharing class TestDataDeleteBatchServiceTest {
             Assert.areEqual(0, next.successCount, '対象ごとの集計へ初期化');
             Assert.areEqual(0, first.position, '元の状態を変更しない');
         }
+    }
+
+    @IsTest
+    static void advancesFromCustomPricesToStandardPrices() {
+        System.runAs(TestDataFactory.getTestUser()) {
+            TestDataDeleteBatchWrapper current = new TestDataDeleteBatchWrapper();
+            current.position = current.objectNames.indexOf('PricebookEntry');
+            current.successCount = 3;
+            Test.startTest();
+            TestDataDeleteBatchWrapper next = new TestDataDeleteBatchService().createNext(current);
+            Test.stopTest();
+            Assert.areEqual(current.position, next.position, '同じ価格表エントリの段階を継続');
+            Assert.isTrue(next.standardPricePhase, 'カスタム価格の次に標準価格を処理');
+            Assert.isTrue(new TestDataDeleteBatchWrapper(next).standardPricePhase, 'バッチの状態複製で価格段階を保持');
+            Assert.areEqual(0, next.successCount, '段階ごとに集計を初期化');
+            Assert.isFalse(current.standardPricePhase, '元の計画を変更しない');
+        }
+
+    }
+
+    @IsTest
+    static void advancesFromStandardPricesToProducts() {
+        System.runAs(TestDataFactory.getTestUser()) {
+            TestDataDeleteBatchWrapper current = new TestDataDeleteBatchWrapper();
+            current.position = current.objectNames.indexOf('PricebookEntry');
+            current.standardPricePhase = true;
+            Test.startTest();
+            TestDataDeleteBatchWrapper next = new TestDataDeleteBatchService().createNext(current);
+            Test.stopTest();
+            Assert.areEqual('Product2', next.objectNames[next.position], '標準価格の完了後に商品へ進む');
+            Assert.isFalse(next.standardPricePhase, '次の対象へ価格段階を持ち越さない');
+        }
+
     }
 }

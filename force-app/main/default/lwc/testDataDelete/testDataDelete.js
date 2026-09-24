@@ -101,11 +101,11 @@ export default class TestDataDelete extends LightningElement {
         let requested = false;
         // 標準の確認ダイアログでキーボードとフォーカスを扱う
         try {
-            // 手動作成データと共有ファイルも削除対象であることを明示
+            // 手動作成データと照会可能なファイルの削除範囲を明示
             const confirmed = await LightningConfirm.open({
                 label: 'テストデータの全件削除',
                 message:
-                    '一覧のオブジェクトの全レコードを削除します。手動作成データ、全ファイルとその全バージョンも対象です。画面を閉じても処理は続きます。実行しますか？',
+                    '一覧のオブジェクトの全レコードを削除します。手動作成データ、実行ユーザーが照会できるファイルとその全バージョンも対象です。画面を閉じても処理は続きます。実行しますか？',
                 theme: 'error'
             });
             // キャンセル時は以前の追跡状態を維持

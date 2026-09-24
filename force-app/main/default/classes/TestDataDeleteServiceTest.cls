@@ -26,18 +26,21 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
     @IsTest
-    static void requiresAllFilesVisibility() {
+    static void allowsWithoutQueryAllFiles() {
         System.runAs(TestDataFactory.getTestUser()) {
             UserPermissionAccess permission = (UserPermissionAccess) JSON.deserialize(
                 '{"PermissionsModifyAllData":true,"PermissionsQueryAllFiles":false}',
                 UserPermissionAccess.class
             );
+            Test.startTest();
             TestDataDeleteWrapper result = new TestDataDeleteService()
                 .createView(
                     new List<UserPermissionAccess>{ permission },
                     TestDataDeleteBatchWrapper.Environment.DEVELOPMENT
                 );
-            Assert.isTrue(result.errorMessage.contains('ファイル'), '見えないファイルを削除済みと扱わない');
+            Test.stopTest();
+            Assert.isTrue(result.objectNames.contains('ContentDocument'), '全ファイル照会権限なしでも削除計画を生成');
+            Assert.isFalse(result.errorMessage.contains('すべてのファイルを照会'), '全ファイル照会権限を必須にしない');
         }
     }
     @IsTest

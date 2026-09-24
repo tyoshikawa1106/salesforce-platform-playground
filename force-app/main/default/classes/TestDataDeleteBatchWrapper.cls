@@ -8,6 +8,10 @@ public with sharing class TestDataDeleteBatchWrapper {
 
     public List<String> objectNames;
     public Integer position;
+    // カスタム価格の削除後だけ標準価格の段階へ進む
+    public Boolean standardPricePhase;
+    public Integer totalSuccessCount;
+    public Integer totalFailureCount;
     public Integer successCount;
     public Integer failureCount;
     public List<String> errorCodes;
@@ -44,6 +48,9 @@ public with sharing class TestDataDeleteBatchWrapper {
         };
         // 状態は独自レコードに保存せずバッチインスタンスで保持
         this.position = 0;
+        this.standardPricePhase = false;
+        this.totalSuccessCount = 0;
+        this.totalFailureCount = 0;
         this.successCount = 0;
         this.failureCount = 0;
         this.errorCodes = new List<String>();
@@ -58,6 +65,9 @@ public with sharing class TestDataDeleteBatchWrapper {
         // コレクションも複製しServiceから呼び出し元への副作用を防止
         this.objectNames = current.objectNames.clone();
         this.position = current.position;
+        this.standardPricePhase = current.standardPricePhase;
+        this.totalSuccessCount = current.totalSuccessCount;
+        this.totalFailureCount = current.totalFailureCount;
         this.successCount = current.successCount;
         this.failureCount = current.failureCount;
         this.errorCodes = current.errorCodes.clone();

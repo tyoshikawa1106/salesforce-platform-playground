@@ -63,3 +63,16 @@ describe('全件削除の表示状態', () => {
         expect(createView(data, { Account: 1, Contact: 0 }, busy, '', false).canStart).toBe(false);
     });
 });
+
+it('終了した受付ジョブだけで残存データを完了扱いしない', () => {
+    const view = createView(
+        { ...response, jobs: [{ Id: 'accepted', Status: 'Completed', NumberOfErrors: 1 }] },
+        { Account: 1, Contact: 0 },
+        false,
+        'accepted',
+        false
+    );
+    expect(view.status).toBe('削除停止・残件数あり');
+    expect(view.jobStatus).toBe('受付ジョブにエラーあり');
+    expect(view.canStart).toBe(true);
+});

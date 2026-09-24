@@ -21,11 +21,6 @@ public with sharing class TestDataDeleteService {
             wrapper.errorMessage = '「すべてのデータの編集」権限が必要です。';
             return wrapper;
         }
-        // 非共有ファイルを見落として全件削除と表示しない
-        if (permissions[0].PermissionsQueryAllFiles != true) {
-            wrapper.errorMessage = '全ファイルを対象にするため「すべてのファイルを照会」権限も必要です。';
-            return wrapper;
-        }
         // 許可済みユーザーにだけ対象一覧を構成
         return createTargets();
     }

@@ -4,7 +4,7 @@
             <p>対象組織: {view.organizationName}</p>
             <p>一覧のオブジェクトの全レコードを、表示順に削除します。手動作成したデータも対象です。</p>
             <p>
-                ファイルは共有先にかかわらず全バージョンを削除します。標準価格表・ユーザー・権限セットなどの設定は削除しません。
+                実行ユーザーが照会できるファイルを、全バージョンまとめて削除します。標準価格表・ユーザー・権限セットなどの設定は削除しません。
             </p>
             <template lwc:if={view.blockMessage}>
                 <p role="alert" class="slds-m-top_small">{view.blockMessage}</p>

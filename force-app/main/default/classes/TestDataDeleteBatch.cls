@@ -36,8 +36,8 @@ public with sharing class TestDataDeleteBatch implements Database.Batchable<SObj
         if (!exists) {
             return Database.getQueryLocator('SELECT Id FROM Account WHERE Id = null');
         }
-        // 個人取引先のContactだけは親の削除に委ねる
-        String recordFilter = this.service.getRecordFilter(objectName);
+        // 連動削除と価格の依存順序に対応する抽出条件を使用
+        String recordFilter = this.service.getStageRecordFilter(this.wrapper);
         return this.selector.getRecords(objectName, recordFilter);
     }
 
@@ -62,32 +62,52 @@ public with sharing class TestDataDeleteBatch implements Database.Batchable<SObj
      * @param context 現在の標準ジョブ
      */
     public void finish(Database.BatchableContext context) {
-        // 空オブジェクトの場合も継続前に実効権限を再確認
+        // 権限喪失時は対象レコードを再照会せず停止結果を通知
         this.wrapper = checkCurrentAccess();
         if (String.isNotEmpty(this.wrapper.errorMessage)) {
-            throw new DeleteRunException(this.wrapper.errorMessage);
+            sendResult('途中停止', this.wrapper.errorMessage);
+            return;
         }
         // 標準ジョブと残存件数の両方で親への継続を判定
         Id jobId = context.getJobId();
         List<AsyncApexJob> jobs = this.selector.getJob(jobId);
         String objectName = this.wrapper.objectNames[this.wrapper.position];
         Boolean exists = Schema.getGlobalDescribe().containsKey(objectName);
-        String recordFilter = this.service.getRecordFilter(objectName);
+        String recordFilter = this.service.getStageRecordFilter(this.wrapper);
         Integer remaining = 0;
         if (exists) {
             remaining = this.selector.getRemaining(objectName, recordFilter);
         }
         String stopReason = this.service.getStopReason(this.wrapper, jobs, remaining);
         if (String.isNotEmpty(stopReason)) {
-            throw new DeleteRunException(objectName + ': ' + stopReason);
-        }
-        // 最後の親の削除後は新しいジョブを作成しない
-        this.wrapper = this.service.createNext(this.wrapper);
-        if (this.wrapper.position >= this.wrapper.objectNames.size()) {
+            // 送信後に例外を投げず、メールの受付を確定させて連鎖を終了
+            sendResult('途中停止', objectName + ': ' + stopReason + ' 現在段階の残件数: ' + remaining + '件。');
             return;
         }
-        // バッチ起動はメインクラスに置き画面を閉じても順序を維持
+        // 最後の対象だけが全体の正常終了を通知
+        this.wrapper = this.service.createNext(this.wrapper);
+        if (this.wrapper.position >= this.wrapper.objectNames.size()) {
+            sendResult('完了', '最後の対象まで処理を終了しました。');
+            return;
+        }
+        // 途中段階ではメールを送らず次の段階だけを起動
         Database.executeBatch(new TestDataDeleteBatch(this.wrapper), 200);
+    }
+
+    /** メール送信の受付結果を確認
+     * @param outcome 完了または途中停止
+     * @param detail 終了結果の説明
+     */
+    private void sendResult(String outcome, String detail) {
+        // Serviceが組み立てた全体結果を一度だけ送信
+        Messaging.SingleEmailMessage mail = this.service.buildResultMail(this.wrapper, outcome, detail);
+        List<Messaging.SendEmailResult> results = Messaging.sendEmail(
+            new List<Messaging.SingleEmailMessage>{ mail },
+            false
+        );
+        if (!results[0].isSuccess()) {
+            throw new EmailException('削除結果メールを送信できませんでした。');
+        }
     }
 
     /** 各トランザクションの最新権限を取得して同じ実行条件を適用

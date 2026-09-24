@@ -14,7 +14,7 @@ public with sharing class TestDataDeleteBatchSelector {
     public List<UserPermissionAccess> getPermissions() {
         // プロファイル・権限セット・グループの合成結果を使用
         return [
-            SELECT PermissionsModifyAllData, PermissionsQueryAllFiles
+            SELECT PermissionsModifyAllData
             FROM UserPermissionAccess
             WITH SYSTEM_MODE
             LIMIT 1

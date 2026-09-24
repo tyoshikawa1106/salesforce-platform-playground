@@ -62,10 +62,18 @@ export function createView(response, counts, busy, acceptedJobId, acceptanceUnkn
               ? '削除処理中'
               : empty
                 ? '対象レコードなし（残件数確認済み）'
-                : allKnown
-                  ? '対象レコードあり'
-                  : '状態未確認',
-        jobStatus: job ? STATUS_LABELS[job.Status] || '状態未確認' : acceptedJobId ? '受付ジョブ確認中' : '',
+                : allKnown && job && ['Completed', 'Failed', 'Aborted'].includes(job.Status)
+                  ? '削除停止・残件数あり'
+                  : allKnown
+                    ? '対象レコードあり'
+                    : '状態未確認',
+        jobStatus: job
+            ? job.NumberOfErrors > 0
+                ? '受付ジョブにエラーあり'
+                : STATUS_LABELS[job.Status] || '状態未確認'
+            : acceptedJobId
+              ? '受付ジョブ確認中'
+              : '',
         allKnown
     };
 }

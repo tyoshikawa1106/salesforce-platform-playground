@@ -99,4 +99,21 @@ private with sharing class TestDataDeleteControllerTest {
             Assert.isTrue(response.jobs.isEmpty(), '未指定のジョブを推測しない');
         }
     }
+
+    @IsTest
+    static void countsValidPricebookEntriesWithoutExclusion() {
+        TestDataDeleteController.selector = new AllowedSelector();
+
+        System.runAs(TestDataFactory.getTestUser()) {
+            Product2 product = TestDataFactory.createProduct('通常の価格', TestDataFactory.SaveMode.INSERT_RECORD);
+            update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+            TestDataFactory.createPricebookEntry(product, TestDataFactory.SaveMode.INSERT_RECORD);
+            Test.startTest();
+            TestDataDeleteWrapper response = TestDataDeleteController.getRemaining('PricebookEntry');
+            Test.stopTest();
+            Assert.areEqual('', response.errorMessage, '件数の取得に成功');
+            Assert.areEqual(1, response.remaining, '通常の価格表エントリを残件数に含める');
+        }
+
+    }
 }

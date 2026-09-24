@@ -14,7 +14,7 @@ public virtual with sharing class TestDataDeleteSelector {
     public virtual List<UserPermissionAccess> getPermissions() {
         // 合成済み権限を使い期限切れやミュートされた割当を数えない
         return [
-            SELECT PermissionsModifyAllData, PermissionsQueryAllFiles
+            SELECT PermissionsModifyAllData
             FROM UserPermissionAccess
             WITH SYSTEM_MODE
             LIMIT 1

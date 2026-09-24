@@ -24,6 +24,30 @@ private with sharing class TestDataDeleteBatchTest {
         }
     }
 
+    /** 最後の段階は後続を作らずメールを一度だけ送る */
+    @IsTest
+    static void finalStageSendsOneMailWithoutNextJob() {
+        System.runAs(TestDataFactory.getTestUser()) {
+            TestDataDeleteBatchWrapper last = new TestDataDeleteBatchWrapper();
+            last.position = last.objectNames.indexOf('Account');
+            Test.startTest();
+            Id jobId = Database.executeBatch(new TestDataDeleteBatch(last), 200);
+            new TestDataDeleteBatch(last).finish(new Context(jobId));
+            Assert.areEqual(1, Limits.getEmailInvocations(), '全体終了で一通だけ送信');
+            Assert.areEqual(
+                1,
+                [
+                    SELECT COUNT()
+                    FROM AsyncApexJob
+                    WHERE ApexClass.Name = 'TestDataDeleteBatch' AND JobType = 'BatchApex'
+                ],
+                '後続は起動しない'
+            );
+            System.abortJob(jobId);
+            Test.stopTest();
+        }
+    }
+
     @IsTest
     static void finishEnqueuesExactlyOneNextStage() {
         System.runAs(TestDataFactory.getTestUser()) {
@@ -40,6 +64,7 @@ private with sharing class TestDataDeleteBatchTest {
                 WHERE ApexClass.Name = 'TestDataDeleteBatch' AND JobType = 'BatchApex' AND Id != :currentJob
             ];
             Assert.areEqual(1, next.size(), '次の親へ一ジョブだけ登録');
+            Assert.areEqual(0, Limits.getEmailInvocations(), '途中段階では通知しない');
             System.abortJob(currentJob);
             System.abortJob(next[0].Id);
             Test.stopTest();
@@ -56,12 +81,8 @@ private with sharing class TestDataDeleteBatchTest {
             current.position = current.objectNames.indexOf('Product2');
             Test.startTest();
             Id jobId = Database.executeBatch(new TestDataDeleteBatch(last), 200);
-            try {
-                new TestDataDeleteBatch(current).finish(new Context(jobId));
-                Assert.fail('子が残る場合は親へ進めない');
-            } catch (TestDataDeleteBatch.DeleteRunException expected) {
-                Assert.isTrue(expected.getMessage().contains('残って'), '残存による停止を通知');
-            }
+            new TestDataDeleteBatch(current).finish(new Context(jobId));
+            Assert.areEqual(1, Limits.getEmailInvocations(), '残件がある場合も一通だけ通知');
             Assert.areEqual(
                 1,
                 [
@@ -132,6 +153,7 @@ private with sharing class TestDataDeleteBatchTest {
             Map<String, Object> state = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(restored));
             Map<String, Object> result = (Map<String, Object>) state.get('wrapper');
             Assert.areEqual(251, result.get('successCount'), '200件と51件の集計を保持');
+            Assert.areEqual(251, result.get('totalSuccessCount'), '全体の通知件数も集計');
             Assert.areEqual(0, result.get('failureCount'), '全スコープ成功');
         }
     }
