@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <classAccesses>
         <apexClass>AccountMassUpdateController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description
-    >取引先一括更新画面を利用できます。データと項目の参照・更新権限および所有者変更権限は既存の設定に従います。</description>
+    <description>取引先一括更新画面を利用できます。データと項目の参照・更新権限および所有者変更権限は既存の設定に従います。</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：取引先一括更新</label>
     <tabSettings>
