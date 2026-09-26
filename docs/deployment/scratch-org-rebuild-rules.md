@@ -184,6 +184,14 @@ Scratch Org の作成ユーザーには、ユーザー作成アプリへのア�
 sf org assign permset --name SalesforceApplicationUser --target-org <scratch-org-alias>
 ```
 
+取引先一括更新を利用する場合は、初期反映後に機能専用の `LwcAccountMassUpdate` Permission Set（表示ラベル: 「LWC：取引先一括更新」）も作成ユーザーへ割り当てます。初期反映スクリプトによる `SalesforceApplicationUser` の割り当てだけでは、一括更新タブの表示・Apex入口の実行権限は付与されません。対象組織に権限セットが反映済みであることを確認して実行し、失敗した場合は対象組織と反映結果を確認してから再実行します。
+
+```sh
+sf org assign permset --name LwcAccountMassUpdate --target-org <scratch-org-alias>
+```
+
+割り当て結果の成功を確認します。必要なデータ権限と表示条件は[取引先一括更新の仕様](../specifications/lwc/account-mass-update/index.md#権限実行条件)を参照してください。
+
 取引先一括削除を試す場合は、初期反映後に機能専用の`LwcAccountDelete` Permission Set（表示ラベル: 「LWC：取引先一括削除」）も割り当てます。通常のアプリ利用権限とは分けて付与します。
 
 ```sh
