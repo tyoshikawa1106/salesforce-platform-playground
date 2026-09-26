@@ -48,9 +48,9 @@
     <tabs>standard-ProcessInstanceWorkitem</tabs>
     <tabs>standard-DeleteEvent</tabs>
     <tabs>standard-LightningInstrumentation</tabs>
+    <tabs>AccountMassUpdate</tabs>
     <tabs>AccountDelete</tabs>
     <tabs>TestDataDelete</tabs>
-    <tabs>AccountMassUpdate</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>
