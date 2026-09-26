@@ -48,6 +48,7 @@
     <tabs>standard-ProcessInstanceWorkitem</tabs>
     <tabs>standard-DeleteEvent</tabs>
     <tabs>standard-LightningInstrumentation</tabs>
+    <tabs>AccountMassUpdate</tabs>
     <tabs>AccountDelete</tabs>
     <tabs>TestDataDelete</tabs>
     <uiType>Lightning</uiType>
