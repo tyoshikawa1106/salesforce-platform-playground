@@ -1,5 +1,6 @@
 const { createLdsTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
 
 module.exports = {
-    getObjectInfo: createLdsTestWireAdapter(jest.fn())
+    getObjectInfo: createLdsTestWireAdapter(jest.fn()),
+    getPicklistValuesByRecordType: createLdsTestWireAdapter(jest.fn())
 };

@@ -1,0 +1,192 @@
+<template>
+    <lightning-card title="取引先一括更新" icon-name="standard:account">
+        <div class="slds-p-horizontal_medium">
+            <p>法人取引先を検索して、所有者・業種・種別・評価を行ごとに編集できます。1ページ最大200件です。</p>
+            <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <lightning-input
+                        data-search
+                        name="searchTerm"
+                        type="search"
+                        label="取引先名（部分一致）"
+                        value={filters.searchTerm}
+                        onchange={handleFilter}
+                        disabled={busy}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <lightning-input
+                        data-search
+                        name="startDate"
+                        type="date"
+                        label="作成日：開始日"
+                        value={filters.startDate}
+                        onchange={handleFilter}
+                        disabled={busy}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <lightning-input
+                        data-search
+                        name="endDate"
+                        type="date"
+                        label="作成日：終了日（当日を含む）"
+                        value={filters.endDate}
+                        onchange={handleFilter}
+                        disabled={busy}
+                    ></lightning-input>
+                </div>
+            </div>
+            <div class="slds-m-bottom_medium">
+                <lightning-button
+                    label="検索"
+                    variant="brand"
+                    onclick={handleSearch}
+                    disabled={navigationDisabled}
+                ></lightning-button>
+                <lightning-button
+                    class="slds-m-left_small"
+                    label="変更を保存"
+                    onclick={handleSave}
+                    disabled={saveDisabled}
+                ></lightning-button>
+                <lightning-button
+                    class="slds-m-left_small"
+                    label="変更を取り消す"
+                    onclick={handleCancel}
+                    disabled={saveDisabled}
+                ></lightning-button>
+            </div>
+            <p class="slds-m-bottom_small" role="status">未保存の変更：{changeCount}件</p>
+            <template lwc:if={errorMessage}
+                ><p class="slds-text-color_error slds-m-bottom_small" role="alert">{errorMessage}</p></template
+            >
+            <template lwc:if={message}><p class="slds-m-bottom_small" role="status">{message}</p></template>
+            <template lwc:if={busy}
+                ><lightning-spinner alternative-text="処理中" size="small"></lightning-spinner
+            ></template>
+            <template lwc:if={emptyResult}><p>条件に一致する法人取引先はありません。</p></template>
+            <template lwc:if={searched}>
+                <div class="table-container" tabindex="0" role="region" aria-label="法人取引先の編集一覧">
+                    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                        <caption class="slds-assistive-text">
+                            法人取引先の編集一覧。変更した行は保存するまで「変更あり」と表示されます。
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">取引先名</th>
+                                <th scope="col">所有者</th>
+                                <th scope="col">業種</th>
+                                <th scope="col">種別</th>
+                                <th scope="col">評価</th>
+                                <th scope="col">作成日時</th>
+                                <th scope="col">最終更新日時</th>
+                                <th scope="col">状態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={rows} for:item="row">
+                                <tr key={row.Id} class={row.rowClass}>
+                                    <th scope="row"><a href={row.url} target="_blank" rel="noopener">{row.Name}</a></th>
+                                    <td>
+                                        <lightning-record-picker
+                                            data-id={row.Id}
+                                            data-field="OwnerId"
+                                            label={row.ownerLabel}
+                                            variant="label-hidden"
+                                            object-api-name="User"
+                                            value={row.OwnerId}
+                                            filter={ownerFilter}
+                                            onchange={handleEdit}
+                                            disabled={row.ownerDisabled}
+                                            required
+                                        ></lightning-record-picker>
+                                    </td>
+                                    <td>
+                                        <lightning-combobox
+                                            data-id={row.Id}
+                                            data-field="Industry"
+                                            label={row.industryLabel}
+                                            variant="label-hidden"
+                                            value={row.industryValue}
+                                            options={row.industryOptions}
+                                            onchange={handleEdit}
+                                            disabled={row.industryDisabled}
+                                        ></lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <lightning-combobox
+                                            data-id={row.Id}
+                                            data-field="Type"
+                                            label={row.typeLabel}
+                                            variant="label-hidden"
+                                            value={row.typeValue}
+                                            options={row.typeOptions}
+                                            onchange={handleEdit}
+                                            disabled={row.typeDisabled}
+                                        ></lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <lightning-combobox
+                                            data-id={row.Id}
+                                            data-field="Rating"
+                                            label={row.ratingLabel}
+                                            variant="label-hidden"
+                                            value={row.ratingValue}
+                                            options={row.ratingOptions}
+                                            onchange={handleEdit}
+                                            disabled={row.ratingDisabled}
+                                        ></lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <lightning-formatted-date-time
+                                            value={row.CreatedDate}
+                                            time-zone={timeZone}
+                                            year="numeric"
+                                            month="2-digit"
+                                            day="2-digit"
+                                            hour="2-digit"
+                                            minute="2-digit"
+                                        ></lightning-formatted-date-time>
+                                    </td>
+                                    <td>
+                                        <lightning-formatted-date-time
+                                            value={row.LastModifiedDate}
+                                            time-zone={timeZone}
+                                            year="numeric"
+                                            month="2-digit"
+                                            day="2-digit"
+                                            hour="2-digit"
+                                            minute="2-digit"
+                                        ></lightning-formatted-date-time>
+                                    </td>
+                                    <td>
+                                        <span>{row.status}</span
+                                        ><template lwc:if={row.error}
+                                            ><p class="slds-text-color_error" role="alert">{row.error}</p></template
+                                        >
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="slds-m-top_medium">
+                    <lightning-button
+                        name="previous"
+                        label="前へ"
+                        onclick={handlePage}
+                        disabled={previousDisabled}
+                    ></lightning-button>
+                    <span class="slds-m-horizontal_medium">現在のページ：{pageNumber}</span>
+                    <lightning-button
+                        name="next"
+                        label="次へ"
+                        onclick={handlePage}
+                        disabled={nextDisabled}
+                    ></lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -14,3 +14,5 @@ Lightning Web Components で実装した機能の仕様書一覧です。
 - [取引先一括削除画面](account-delete/index.md)（`accountDelete`）
 
 - [テストデータ一括削除画面](test-data-delete/index.md)（`testDataDelete`）
+
+- [取引先一括更新](account-mass-update/index.md)（`accountMassUpdate`）
