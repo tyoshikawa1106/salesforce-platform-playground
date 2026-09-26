@@ -39,6 +39,8 @@
 
 ## 権限・実行条件
 
+- 利用ユーザーに `LwcAccountMassUpdate` 権限セットを割り当て、タブ表示と `AccountMassUpdateController` の実行権限を付与します。メタデータのデプロイだけではユーザーへの割り当ては行われません。
+- 「Salesforce」アプリへのアクセスも必要です。`SalesforceApplicationUser` はアプリへのアクセスを提供しますが、一括更新専用の `LwcAccountMassUpdate` の代わりにはなりません。
 - `LwcAccountMassUpdate` は画面へのアクセスだけを提供します。オブジェクト・項目権限や所有者移転権限は追加しません。
 - Apexは `with sharing` と、検索・DMLの `USER_MODE` を使用します。
 - 一覧に必要な項目を参照できない場合は検索が失敗します。編集権限のない項目は画面で無効にします。
