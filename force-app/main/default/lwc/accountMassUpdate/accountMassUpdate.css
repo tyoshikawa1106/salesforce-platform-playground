@@ -1,0 +1,13 @@
+.table-container {
+    overflow: auto;
+}
+
+th,
+td {
+    vertical-align: top;
+}
+
+.changed-row > th,
+.changed-row > td {
+    background-color: var(--slds-g-color-warning-container-1, #fff7d6);
+}
