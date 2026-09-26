@@ -50,6 +50,7 @@
     <tabs>standard-LightningInstrumentation</tabs>
     <tabs>AccountDelete</tabs>
     <tabs>TestDataDelete</tabs>
+    <tabs>AccountMassUpdate</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>
