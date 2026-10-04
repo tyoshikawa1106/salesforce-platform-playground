@@ -241,6 +241,7 @@
 | `scripts/setup/internal/`                                | フォルダ   | テストデータ投入scriptから読み込む内部処理を格納する。                      |
 | `scripts/setup/internal/import-test-data-core.js`        | ファイル   | import plan、CLI引数、Apex合成の検証可能なcoreを提供する。                  |
 | `scripts/setup/internal/import-test-data-runner.js`      | ファイル   | 準備済みentryのCLI実行、表示、一時ファイルの後始末を提供する。              |
+| `scripts/record-export/`                                 | フォルダ   | 最新レコードの縦型・横型CSV出力入口、共通処理、Node.js testを格納する。     |
 | `scripts/soql/`                                          | フォルダ   | 調査とテストデータ確認に使用するSOQLを格納する。                            |
 | `scripts/soql/object-queries/`                           | フォルダ   | Object別の調査用SOQLを格納する。                                            |
 | `scripts/soql/object-queries/**/*.soql`                  | ファイル群 | Account、Case、Opportunityの調査queryを提供する。                           |

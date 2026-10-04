@@ -8,6 +8,7 @@
 - `scripts/docs/`: Git管理対象と未追跡・非除外のMarkdownを自動検出し、ローカルリンク、見出し、ファイル名、索引到達性を確認するNodeスクリプト。処理内容は[文書検査スクリプト仕様](../docs/specifications/scripts/documentation-check/index.md)を参照する。
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。標準オブジェクトseedは共通preambleとobject固有処理を実行時に合成する。
 - `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを開始し、進捗と結果を取得するNodeスクリプト。処理内容は[組織テスト実行スクリプト仕様](../docs/specifications/scripts/org-tests/index.md)を参照する。
+- `scripts/record-export/`: 指定オブジェクトの最新レコードを縦型・横型CSVへ出力する。処理内容と実行方法は[最新レコードエクスポートスクリプト仕様](../docs/specifications/scripts/record-export/index.md)を参照する。
 - `scripts/soql/`: テストデータ確認用とオブジェクト別確認用の SOQL ファイル。
 - `scripts/metadata/destructive/`: Salesforce組織からメタデータを削除するNodeスクリプト。処理フローと表示は[メタデータ削除スクリプト仕様](../docs/specifications/scripts/metadata-deletion/index.md)を参照する。
 - `scripts/permissionset-conversion/`: Default Target Orgの認証済み組織情報を確認した後、ローカルProfile XMLと関連CustomField metadataだけを使用し、有効な付与権限をProfileごとのPermission Set metadataへ変換するNodeスクリプト。組織情報は変換内容へ使用せず、生成後のvalidate、dry-run、deploy、保存結果確認もDefault Target Orgを対象に手動実行する。処理内容は[Profile権限セット変換スクリプト仕様](../docs/specifications/scripts/permissionset-conversion/index.md)を参照する。

@@ -96,6 +96,41 @@ Default Target Org の Flow テストを開始し、完了まで監視して結�
 npm run sf:test:flow
 ```
 
+#### 最新レコードのエクスポートと項目定義の確認
+
+項目定義の `label`（ラベル）と `name`（API名）を確認します。
+
+```sh
+sf sobject describe --sobject Account
+```
+
+リポジトリ直下の `fields.txt` に、取得するAPI名を出力順に1行ずつ記載します。
+
+```text
+Id
+Name
+CreatedDate
+```
+
+最新1件の空欄を補完可能な項目だけ補完し、項目順の縦型CSVを `export-out/` に出力します。
+
+```sh
+npm run sf:export:record-fields-preview -- --object Account --fields fields.txt
+```
+
+最新から最大2,000件を、空欄を補完せず項目順の横型CSVとして `export-out/` に出力します。
+
+```sh
+npm run sf:export:records -- --object Account --fields fields.txt --record-limit 2000
+```
+
+個人取引先など、指定したレコードタイプだけを取得・補完の対象にします（`<ID>` を置き換え）。
+
+```sh
+npm run sf:export:record-fields-preview -- --object Account --fields fields.txt --record-type-id <ID>
+npm run sf:export:records -- --object Account --fields fields.txt --record-limit 2000 --record-type-id <ID>
+```
+
 #### テストデータ操作
 
 組織を操作せず、テストデータ投入の実行計画を表示します。
