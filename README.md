@@ -104,7 +104,7 @@ npm run sf:test:flow
 sf sobject describe --sobject Account
 ```
 
-リポジトリ直下の `fields.txt` に、取得するAPI名を出力順に1行ずつ記載します。
+`scripts/record-export/config/fields.txt` に、取得するAPI名を出力順に1行ずつ記載します。別ファイルは `--fields <パス>` で指定できます。
 
 ```text
 Id
@@ -115,20 +115,20 @@ CreatedDate
 最新1件の空欄を補完可能な項目だけ補完し、項目順の縦型CSVを `export-out/` に出力します。
 
 ```sh
-npm run sf:export:record-fields-preview -- --object Account --fields fields.txt
+npm run sf:export:record-fields-preview -- --object Account
 ```
 
 最新から最大2,000件を、空欄を補完せず項目順の横型CSVとして `export-out/` に出力します。
 
 ```sh
-npm run sf:export:records -- --object Account --fields fields.txt --record-limit 2000
+npm run sf:export:records -- --object Account --record-limit 2000
 ```
 
 個人取引先など、指定したレコードタイプだけを取得・補完の対象にします（`<ID>` を置き換え）。
 
 ```sh
-npm run sf:export:record-fields-preview -- --object Account --fields fields.txt --record-type-id <ID>
-npm run sf:export:records -- --object Account --fields fields.txt --record-limit 2000 --record-type-id <ID>
+npm run sf:export:record-fields-preview -- --object Account --record-type-id <ID>
+npm run sf:export:records -- --object Account --record-limit 2000 --record-type-id <ID>
 ```
 
 #### テストデータ操作

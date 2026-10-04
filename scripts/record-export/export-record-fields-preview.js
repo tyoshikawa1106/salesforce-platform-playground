@@ -1,4 +1,4 @@
-// 実行方法: npm run sf:export:record-fields-preview -- --object Account --fields fields.txt
+// 実行方法: npm run sf:export:record-fields-preview -- --object Account
 // 用途: 最新1件を基準に空欄を補完し、項目を指定順の縦型CSVに出力する。
 
 const { main } = require('./internal/export-runner');

@@ -62,7 +62,9 @@ async function collectRecords(definition, names, settings, query, writeLine) {
 // 既存のSOQL応答fixtureをCompositeのファイル応答へ変換する。
 async function main(args, dependencies) {
     const runner = dependencies.runner;
-    return runMain(args, {
+    // 各テストの入力は一時ディレクトリ内の明示ファイルに隔離する。
+    const inputArgs = args.includes('--fields') ? args : ['--fields', 'fields.txt', ...args];
+    return runMain(inputArgs, {
         ...dependencies,
         runner: async (command, ...rest) => {
             if (command[0] !== 'api') return runner(command, ...rest);
@@ -95,6 +97,15 @@ test('BOM・CRLF・コメント・大小文字の重複を除き入力順を保�
     ]);
     for (const input of ['', '# comment', 'Owner.Name', 'Name FROM Account', 'Name,Id']) {
         assert.throws(() => parseFields(input));
+    }
+});
+
+test('既定の項目設定はスクリプト配下を使い、別ファイルの明示指定も保持する', () => {
+    for (const mode of ['records', 'record-fields-preview']) {
+        const options = parseOptions([], mode);
+        assert.equal(options.fields, path.resolve(__dirname, '../config/fields.txt'));
+        assert.deepEqual(parseFields(fs.readFileSync(options.fields, 'utf8')), ['Id', 'Name', 'CreatedDate']);
+        assert.equal(parseOptions(['--fields', 'custom-fields.txt'], mode).fields, 'custom-fields.txt');
     }
 });
 

@@ -20,7 +20,8 @@ function parseOptions(args, mode = 'records') {
             'target-org': { type: 'string' },
             'record-type-id': { type: 'string' },
             object: { type: 'string', default: 'Account' },
-            fields: { type: 'string', default: 'fields.txt' },
+            // 実行ディレクトリに依存せず、スクリプト付属の項目設定を使う。
+            fields: { type: 'string', default: path.resolve(__dirname, '../config/fields.txt') },
             output: { type: 'string' },
             'check-auth': { type: 'boolean', default: false },
             ...(mode === 'records' ? { 'record-limit': { type: 'string', default: '2000' } } : {}),
@@ -81,7 +82,7 @@ function readFieldNames(filePath) {
         const messages = new Map([
             [
                 'ENOENT',
-                '項目ファイルが見つかりません。fields.txtを用意するか、--fieldsでファイルの場所を指定してください。'
+                '項目ファイルが見つかりません。scripts/record-export/config/fields.txtを用意するか、--fieldsでファイルの場所を指定してください。'
             ],
             ['ENOTDIR', '項目ファイルのパスが不正です。途中のフォルダー名と--fieldsの指定を確認してください。'],
             [
@@ -220,7 +221,7 @@ async function main(
     if (options.help) {
         // オプションと認証確認だけを行う使い方を案内する。
         writeLine(
-            `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields fields.txt] [--record-type-id ID] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth]`
+            `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields scripts/record-export/config/fields.txt] [--record-type-id ID] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth]`
         );
         // ヘルプ表示は正常終了する。
         return 0;
