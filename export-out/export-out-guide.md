@@ -4,6 +4,8 @@
 
 `sf data export bulk` で生成した CSV / JSON ファイルは Git 管理しません。このガイドだけを Git 管理し、出力先フォルダ名を `export-out/` に固定します。
 
+最新1件を基準に空欄を補完する縦型CSVと、最新から指定件数を補完せず取得する横型CSVもこのフォルダへ保存します。実行方法は[最新レコードエクスポートスクリプト仕様](../docs/specifications/scripts/record-export/index.md)を参照してください。
+
 ## CSV
 
 ```sh
