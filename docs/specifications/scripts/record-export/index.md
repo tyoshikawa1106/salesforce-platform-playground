@@ -38,7 +38,7 @@ ContactCustomField__pc
 | `--target-org`       | aliasまたはusername。省略時はdefault target org                                                          |
 | `--record-type-id`   | 両コマンドで使用可能。012で始まる15桁または18桁のID。省略時はレコードタイプで絞り込まない                |
 | `--object`           | 対象オブジェクトAPI名。既定`Account`                                                                     |
-| `--fields`           | 項目ファイル。既定`fields.txt`                                                                           |
+| `--fields`           | 項目ファイル。既定`scripts/record-export/config/fields.txt`（実行ディレクトリに依存しない）              |
 | `--record-limit`     | 横型のみ。既定2,000件、許容範囲1〜10,000。縦型は最新1件固定でこの引数を受け付けない                      |
 | `--fields-per-query` | 手動の項目数上限。省略時は全指定項目、指定時は1〜10,000。制限時はさらに自動分割                          |
 | `--output`           | 保存先。既定は`export-out/record-fields-preview-<実行時刻>.csv`または`export-out/records-<実行時刻>.csv` |
@@ -49,16 +49,16 @@ ContactCustomField__pc
 
 ```sh
 # 最新1件を基準に空欄を補完し、指定順の縦型CSVへ出力
-npm run sf:export:record-fields-preview -- --object Account --fields fields.txt
+npm run sf:export:record-fields-preview -- --object Account
 
 # 最新から指定件数を補完せず、指定列順の横型CSVへ出力
-npm run sf:export:records -- --object Account --fields fields.txt --record-limit 2000
+npm run sf:export:records -- --object Account --record-limit 2000
 
 # 指定レコードタイプだけから取得・補完（個人取引先のタイプを指定することも可能）
-npm run sf:export:record-fields-preview -- --target-org <alias> --object Account --fields export-out/fields.txt --record-type-id <ID>
+npm run sf:export:record-fields-preview -- --target-org <alias> --object Account --record-type-id <ID>
 
 # 別のオブジェクト
-npm run sf:export:records -- --object Contact --fields export-out/contact-fields.txt --record-limit 2000
+npm run sf:export:records -- --object Contact --fields scripts/record-export/config/contact-fields.txt --record-limit 2000
 
 # 接続・対象オブジェクトの確認のみ
 npm run sf:export:records -- --check-auth

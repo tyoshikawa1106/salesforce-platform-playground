@@ -1,4 +1,4 @@
-// 実行方法: npm run sf:export:records -- --object Account --fields fields.txt
+// 実行方法: npm run sf:export:records -- --object Account
 // 用途: 最新から指定件数のレコードを横型CSVに出力する。
 
 const { main } = require('./internal/export-runner');
