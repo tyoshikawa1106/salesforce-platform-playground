@@ -1,5 +1,7 @@
 // 用途: 空欄の補完候補をまとめて取得し、項目順の確定処理へ最新の実値だけを渡す。
 
+const { QUERY_TIMEOUT_CODES } = require('./error-definitions');
+
 // 出力量を限定し、値のない項目のために全レコードを走査しない。
 const RECENT_RECORD_LIMIT = 200;
 
@@ -66,8 +68,7 @@ function createPreviewResolver({ fields, record, scope, search, hasValue, canFil
                     'QUERY_LENGTH_LIMIT',
                     'QUERY_TOO_COMPLICATED',
                     'BUFFER_LIMIT',
-                    'QUERY_TIMEOUT',
-                    'REQUEST_RUNNING_TOO_LONG',
+                    ...QUERY_TIMEOUT_CODES,
                     'CLI_TIMEOUT'
                 ].includes(error.code);
                 // 一項目の失敗や通信障害は停止して再開記録を保持する。

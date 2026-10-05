@@ -358,13 +358,11 @@ async function collectRecords(
                 // 一項目の補完が終わるごとに再開位置を確定する。
                 for (const field of group) {
                     // WHERE不可の項目には追加検索を行わない。
-                    await supplementPreview({
-                        fields: [field],
+                    await supplementPreviewField({
+                        field,
                         resolvePreview,
                         record,
                         sources: chunkSources,
-                        scope,
-                        search,
                         writeLine,
                         updateLine,
                         fieldPositions,
@@ -437,9 +435,9 @@ async function collectRecords(
     };
 }
 
-// 最新1件の空欄だけを補完し、項目ごとの取得元を記録する。
-async function supplementPreview({
-    fields,
+// 一項目の空欄を補完し、結果と取得元を確定して次項目の保存へ進める。
+async function supplementPreviewField({
+    field,
     record,
     sources,
     resolvePreview,
@@ -448,66 +446,61 @@ async function supplementPreview({
     fieldPositions,
     totalFields
 }) {
-    // 指定順で全項目の処理結果を表示し、検索は空欄だけに限定する。
-    for (const field of fields) {
-        // 分割内の番号ではなく指定ファイル全体での番号を表示する。
-        const prefix = `[${fieldPositions.get(field.name)}/${totalFields}項目]\t${field.name}\t`;
-        // 未確認項目も指定順の位置で表示し、正常項目の進捗を先回りしない。
-        if (field.invalid) {
-            // エラー項目は検索せず空欄のまま保存する。
-            writeLine(`${prefix}取得不可：API名が存在しない、または項目参照権限がありません`);
-            // 補完不要・補完完了とは表示しない。
-            continue;
-        }
-        // falseと0を含め、基準レコードにある実値は保持する。
-        if (hasValue(record[field.name])) {
-            // 値そのものを含めず、補完不要だったことを示す。
-            writeLine(`${prefix}取得成功`);
-            // 非NULL検索を追加しない。
-            continue;
-        }
-        // 値がない項目に取得元を表示しない。
-        sources.set(field.name, '');
-        // WHEREで絞り込めない項目は全件探索せず、元の値を保持する。
-        if (!canFilterNonNull(field)) {
-            // 未検索と値なしを区別できるよう、スキップ理由を表示する。
-            writeLine(`${prefix}補完対象外：非NULL条件で検索不可・最新レコードの値を保持`);
-            // この項目への補完クエリは実行しない。
-            continue;
-        }
-        // 実値をログへ出さず、処理中の項目を知らせる。
-        updateLine(`${prefix}補完中`);
-        // 補完検索にかかった実時間を失敗した項目とともに残す。
-        const started = performance.now();
-        // 取得失敗を値なしとして処理しない。
-        let found;
-        // 非対話端末でも停止した項目を特定できるようにする。
-        try {
-            // まとめ取得済みなら追加検索せず、必要な残項目だけ検索する。
-            found = await resolvePreview(field);
-        } catch (error) {
-            // 実値や生本文を表示せず、固定形式のコードだけを案内する。
-            const code =
-                typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code)
-                    ? error.code
-                    : 'QUERY_FAILED';
-            // 一時表示が消えても項目番号と原因を残す。
-            writeLine(`${prefix}補完失敗：${code} / 経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`);
-            // 保存済み項目を保持する既存の停止・再開処理へ渡す。
-            throw error;
-        }
-        // 空の複合値などを補完成功と扱わず、実値だけ採用する。
-        if (found) {
-            // 空欄だった項目だけを補完する。
-            record[field.name] = found.value;
-            // CSVに表示する実際の取得元を保持する。
-            sources.set(field.name, found.source);
-            // 補完の完了を値を含めずに通知する。
-            writeLine(`${prefix}補完成功`);
-        } else {
-            // 未取得を補完成功と誤認させない。
-            writeLine(`${prefix}登録レコードなし`);
-        }
+    // 分割内の番号ではなく指定ファイル全体での番号を表示する。
+    const prefix = `[${fieldPositions.get(field.name)}/${totalFields}項目]\t${field.name}\t`;
+    // 未確認項目も指定順の位置で表示し、正常項目の進捗を先回りしない。
+    if (field.invalid) {
+        // エラー項目は検索せず空欄のまま保存する。
+        writeLine(`${prefix}取得不可：API名が存在しない、または項目参照権限がありません`);
+        // 補完不要・補完完了とは表示しない。
+        return;
+    }
+    // falseと0を含め、基準レコードにある実値は保持する。
+    if (hasValue(record[field.name])) {
+        // 値そのものを含めず、補完不要だったことを示す。
+        writeLine(`${prefix}取得成功`);
+        // 非NULL検索を追加しない。
+        return;
+    }
+    // 値がない項目に取得元を表示しない。
+    sources.set(field.name, '');
+    // WHEREで絞り込めない項目は全件探索せず、元の値を保持する。
+    if (!canFilterNonNull(field)) {
+        // 未検索と値なしを区別できるよう、スキップ理由を表示する。
+        writeLine(`${prefix}補完対象外：非NULL条件で検索不可・最新レコードの値を保持`);
+        // この項目への補完クエリは実行しない。
+        return;
+    }
+    // 実値をログへ出さず、処理中の項目を知らせる。
+    updateLine(`${prefix}補完中`);
+    // 補完検索にかかった実時間を失敗した項目とともに残す。
+    const started = performance.now();
+    // 取得失敗を値なしとして処理しない。
+    let found;
+    // 非対話端末でも停止した項目を特定できるようにする。
+    try {
+        // まとめ取得済みなら追加検索せず、必要な残項目だけ検索する。
+        found = await resolvePreview(field);
+    } catch (error) {
+        // 実値や生本文を表示せず、固定形式のコードだけを案内する。
+        const code =
+            typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code) ? error.code : 'QUERY_FAILED';
+        // 一時表示が消えても項目番号と原因を残す。
+        writeLine(`${prefix}補完失敗：${code} / 経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`);
+        // 保存済み項目を保持する既存の停止・再開処理へ渡す。
+        throw error;
+    }
+    // 空の複合値などを補完成功と扱わず、実値だけ採用する。
+    if (found) {
+        // 空欄だった項目だけを補完する。
+        record[field.name] = found.value;
+        // CSVに表示する実際の取得元を保持する。
+        sources.set(field.name, found.source);
+        // 補完の完了を値を含めずに通知する。
+        writeLine(`${prefix}補完成功`);
+    } else {
+        // 未取得を補完成功と誤認させない。
+        writeLine(`${prefix}登録レコードなし`);
     }
 }
 

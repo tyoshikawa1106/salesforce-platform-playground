@@ -7,6 +7,7 @@ const { parseArgs } = require('node:util');
 const { clearLine, cursorTo } = require('node:readline');
 const { createCsvSpool } = require('./csv-spool');
 const { openCheckpoint } = require('./checkpoint');
+const { CLI_TIMEOUT_MS, QUERY_ERROR_CODES } = require('./error-definitions');
 const { createQueryClient } = require('./query-client');
 const { runSfWithOutputAsync } = require('../../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo, orgTypes } = require('../../common/target-org');
@@ -152,16 +153,7 @@ function parseCliResponse(response, mode) {
         return body.result;
     }
     // 検索固有のエラーは、固定した識別子だけを表示する。
-    const queryCodes = [
-        'INVALID_FIELD',
-        'INSUFFICIENT_ACCESS',
-        'MALFORMED_QUERY',
-        'INVALID_QUERY_FILTER_OPERATOR',
-        'FUNCTIONALITY_NOT_ENABLED',
-        'QUERY_TIMEOUT',
-        'REQUEST_RUNNING_TOO_LONG',
-        'REQUEST_LIMIT_EXCEEDED'
-    ];
+    const queryCodes = [...QUERY_ERROR_CODES, 'FUNCTIONALITY_NOT_ENABLED'];
     // OSの既知のエラーコードを、表示可能な固定の識別子へ対応付ける。
     const processCodes = new Map([
         ['ENOBUFS', 'BUFFER_LIMIT'],
@@ -218,8 +210,11 @@ function parseCliResponse(response, mode) {
             'CLI_ACCESS_DENIED',
             'CLIを起動する権限がありません。実行ファイルと実行ディレクトリの権限を確認してください。'
         ],
-        ['CLI_TIMEOUT', 'スクリプトのCLI待機上限（120秒）を超えたため停止しました。'],
-        ['NETWORK_TIMEOUT', 'CLIの通信待ちがタイムアウトしました。スクリプトの120秒制限とは別のエラーです。'],
+        ['CLI_TIMEOUT', `スクリプトのCLI待機上限（${CLI_TIMEOUT_MS / 1000}秒）を超えたため停止しました。`],
+        [
+            'NETWORK_TIMEOUT',
+            `CLIの通信待ちがタイムアウトしました。スクリプトの${CLI_TIMEOUT_MS / 1000}秒制限とは別のエラーです。`
+        ],
         ['NETWORK_ERROR', 'CLIの通信に失敗しました。ネットワーク・プロキシの状態を確認してください。'],
         [
             'QUERY_TIMEOUT',
@@ -264,7 +259,7 @@ async function callSf(args, cwd, runner = runSfWithOutputAsync, mode = 'records'
     // システム時計の変更に影響されない経過時間を測る。
     const started = performance.now();
     // 生本文を含めない診断へ変換してから経過時間を付ける。
-    const response = await runner([...args, '--json'], cwd, undefined, 64 * 1024 * 1024, 120000);
+    const response = await runner([...args, '--json'], cwd, undefined, 64 * 1024 * 1024, CLI_TIMEOUT_MS);
     // 成功時には追加ログを出さない。
     try {
         // 各呼び出しに応答サイズと待ち時間の上限を設定する。
@@ -369,7 +364,7 @@ async function main(
         // 組織一覧と設定取得で、それぞれ必要な応答上限を維持する。
         const limit = command[0] === 'config' ? 1024 * 1024 : 16 * 1024 * 1024;
         // 共通の組織判定へ生のエラー応答を渡す前に検証する。
-        const response = await runner(command, directory, undefined, limit, 120000);
+        const response = await runner(command, directory, undefined, limit, CLI_TIMEOUT_MS);
         // 生本文を表示しない共通診断で、失敗時はここで停止する。
         parseCliResponse(response, mode);
         // 成功した応答だけを既存の組織判定へ渡す。
