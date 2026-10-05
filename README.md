@@ -98,13 +98,20 @@ npm run sf:test:flow
 
 #### 最新レコードのエクスポートと項目定義の確認
 
-項目定義の `label`（ラベル）と `name`（API名）を確認します。
+次のクエリで対象オブジェクトのラベルとAPI名を取得できる。
 
 ```sh
-sf sobject describe --sobject Account
+# テーブル形式表示
+sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName"
+# CSV形式表示
+sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv
+# CSV形式表示 (対象組織を指定)
+sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv --target-org <alias>
+# CSVファイルエクスポート
+sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv --output-file export-out/account-fields.csv
 ```
 
-`scripts/record-export/config/fields.txt` に、取得するAPI名を出力順に1行ずつ記載します。別ファイルは `--fields <パス>` で指定できます。
+`scripts/record-export/config/fields.txt` に、取得するAPI名を出力順に1行ずつ記載します。
 
 ```text
 Id
@@ -112,13 +119,16 @@ Name
 CreatedDate
 ```
 
-最新1件の空欄を補完可能な項目だけ補完し、項目順の縦型CSVを `export-out/` に出力します。
+項目の登録値をプレビュー用途で取得。空欄は非NULL条件で検索可能な項目だけ、他のレコードから取得して補完します。
+出力形式は `export-out/` に項目順の縦型CSVで出力します。
 
 ```sh
+# 項目の登録値をプレビュー用途で取得
 npm run sf:export:record-fields-preview -- --object Account
 ```
 
-最新から最大2,000件を、空欄を補完せず項目順の横型CSVとして `export-out/` に出力します。
+直近2000件のレコードを取得。空項目の値もそのまま表示。
+出力形式は `export-out/` に項目順の横型CSVで出力します。
 
 ```sh
 npm run sf:export:records -- --object Account --record-limit 2000
@@ -127,8 +137,21 @@ npm run sf:export:records -- --object Account --record-limit 2000
 個人取引先など、指定したレコードタイプだけを取得・補完の対象にします（`<ID>` を置き換え）。
 
 ```sh
+# 項目登録値のプレビュー用1レコード取得
 npm run sf:export:record-fields-preview -- --object Account --record-type-id <ID>
+# 直近レコードを取得
 npm run sf:export:records -- --object Account --record-limit 2000 --record-type-id <ID>
+```
+
+出力先を指定して実行します。縦型は項目ごと、横型は全項目が揃ったレコードごとに `.partial.csv` を更新します。
+
+```sh
+# 出力先を指定して実行
+npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv
+npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv
+# 途中停止時の再開 (--resumeを指定)
+npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv --resume
+npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv --resume
 ```
 
 #### テストデータ操作
