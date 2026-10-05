@@ -91,6 +91,33 @@ function parseOptions(args, mode = 'records') {
     };
 }
 
+// 既定値も明示し、別の端末でも同じ条件で再開できるコマンドにする。
+function buildResumeCommand(options, mode, targetOrg, output, cwd, platform = process.platform) {
+    // macOS/LinuxはPOSIX shell、WindowsはPowerShellの文字列規則で引用する。
+    const quote = (value) => "'" + String(value).replace(/'/g, platform === 'win32' ? "''" : "'\\''") + "'";
+    // 再開に必要な接続先・項目ファイル・出力を省略しない。
+    const args = [
+        '--target-org',
+        targetOrg,
+        '--object',
+        options.object,
+        '--fields',
+        path.relative(cwd, path.resolve(cwd, options.fields)),
+        '--output',
+        path.relative(cwd, output)
+    ];
+    // 指定した絞り込み条件は再開時も引き継ぐ。
+    if (options.recordTypeId) args.push('--record-type-id', options.recordTypeId);
+    // 人が入力した日付をそのままCLI引数へ戻す。
+    if (options.createdBeforeDate) args.push('--created-before', options.createdBeforeDate);
+    // 横型の取得件数は既定値も固定する。
+    if (mode === 'records') args.push('--record-limit', String(options.recordLimit));
+    // 手動分割を指定していた場合は同じ設定で再開する。
+    if (options.fieldsPerQuery) args.push('--fields-per-query', String(options.fieldsPerQuery));
+    // 値だけを引用し、引数名は読みやすい表示を維持する。
+    return `npm run sf:export:${mode} -- ${args.map((value, index) => (index % 2 ? quote(value) : value)).join(' ')} --resume`;
+}
+
 // 入力ファイルの障害を、修正方法が分かる診断へ変換する。
 function readFieldNames(filePath) {
     // 読み込みの失敗と、読み込んだAPI名の検証を分ける。
@@ -139,6 +166,8 @@ function readFieldNames(filePath) {
 function parseCliResponse(response, mode) {
     // JSON解析失敗も元の応答を表示せず扱う。
     let body;
+    // 空出力と不正JSONを区別し、本文を表示せず応答状態を記録する。
+    let jsonState = response.stdout?.trim() ? 'JSON' : '空';
     // CLIが非0で返した構造化エラーも解析する。
     try {
         // stdout以外の出力は値や接続情報を含み得るため利用しない。
@@ -146,6 +175,8 @@ function parseCliResponse(response, mode) {
     } catch {
         // 不正なJSONはCLI失敗として後段で停止する。
         body = {};
+        // CLIの形式違いを接続エラーと決めつけない。
+        jsonState = '不正JSON';
     }
     // プロセスとJSONの両方が成功した場合だけ結果を採用する。
     if (!response.error && response.status === 0 && body.status === 0 && body.result !== undefined) {
@@ -175,6 +206,10 @@ function parseCliResponse(response, mode) {
         'NoAuthorizationError',
         'AuthInfoCreationError'
     ]);
+    // ストリーム受信開始後の例外は、成功JSONとは別の標準エラーへ出る場合がある。
+    const stderrCode = /(?:^|\n)\s*(?:code|errorCode):\s*['"]([A-Z][A-Z0-9_]+)['"]/m.exec(response.stderr || '')?.[1];
+    // 自由文は転記せず、既知の通信コードだけを採用する。
+    const streamCode = processCodes.has(stderrCode) ? stderrCode : undefined;
     // OS側の失敗がある場合は、途中までのJSONより優先する。
     let code = 'CLI_FAILED';
     // 子プロセスを起動・完了できなかった原因を分類する。
@@ -186,6 +221,9 @@ function parseCliResponse(response, mode) {
             // タイマーで終了した非同期呼び出しも既存の診断へ揃える。
             code = 'CLI_TIMEOUT';
         }
+    } else if (response.status !== 0 && streamCode) {
+        // CLIの非正常終了が確認できた場合だけ標準エラーの通信コードを使う。
+        code = processCodes.get(streamCode);
     } else if (processCodes.has(body.code) || processCodes.has(body.name)) {
         // CLI自身が返した通信エラーも、親プロセスの待ち時間制限と区別する。
         code = processCodes.get(body.code) || processCodes.get(body.name);
@@ -231,12 +269,15 @@ function parseCliResponse(response, mode) {
         ]
     ]);
     // メッセージ本文やURLを除き、構造化された短い識別子だけを残す。
-    const identifiers = [body.name, body.code, body.errorCode, response.error?.code].filter(
+    const identifiers = [body.name, body.code, body.errorCode, response.error?.code, streamCode].filter(
         (value) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value)
     );
     // 未分類でも終了コードとCLI識別子から調査できるようにする。
     const details = [
-        Number.isInteger(response.status) ? `終了コード: ${response.status}` : '',
+        `終了コード: ${Number.isInteger(response.status) ? response.status : '情報なし'}`,
+        `応答形式: ${jsonState}`,
+        `標準エラー: ${response.stderr ? 'あり（本文非表示）' : 'なし'}`,
+        ...(identifiers.length ? [] : ['識別子: 情報なし']),
         ...[...new Set(identifiers)].map((value) => `識別子: ${value}`),
         ['SIGTERM', 'SIGKILL', 'SIGINT'].includes(response.signal || response.error?.signal)
             ? `シグナル: ${response.signal || response.error.signal}`
@@ -246,27 +287,41 @@ function parseCliResponse(response, mode) {
         .join(' / ');
     // エラー識別子以外のCLI本文をログやCSVへ含めない。
     const error = new Error(
-        `Salesforce CLIに失敗しました (${code})。${guidance.get(code) || '原因を分類できません。識別子と終了コードを確認してください。'}${details ? ` / ${details}` : ''}`
+        `Salesforce CLIに失敗しました (${code})。${guidance.get(code) || 'CLIの失敗原因を特定できません。以下の診断情報を確認してください。'}${details ? ` / ${details}` : ''}`
     );
-    // どのCLIエラーも全体失敗として扱い、呼び出し元で識別できるようにする。
-    Object.assign(error, { code });
+    // 呼び出し元が停止と補完スキップを区別できるよう原因を付与する。
+    Object.assign(error, { code, diagnostic: details });
     // 不完全なレコードを正常な出力として扱わず停止する。
     throw error;
 }
 
 // Describeと検索のCLI呼び出しに、上限と共通の診断を適用する。
-async function callSf(args, cwd, runner = runSfWithOutputAsync, mode = 'records') {
+async function callSf(args, cwd, runner = runSfWithOutputAsync, mode = 'records', controls = {}) {
     // システム時計の変更に影響されない経過時間を測る。
     const started = performance.now();
     // 生本文を含めない診断へ変換してから経過時間を付ける。
-    const response = await runner([...args, '--json'], cwd, undefined, 64 * 1024 * 1024, CLI_TIMEOUT_MS);
+    const timeout = Math.min(
+        CLI_TIMEOUT_MS,
+        controls.deadline === undefined ? CLI_TIMEOUT_MS : Math.ceil(controls.deadline - started)
+    );
+    // ページ送りや再分割で待機期限を延長しない。
+    if (timeout <= 0) throw Object.assign(new Error('補完の待機上限に達しました。'), { code: 'SUPPLEMENT_TIMEOUT' });
+    // CLIの終了を待ってから次の問い合わせへ進み、一時応答ファイルを競合させない。
+    const response = await runner([...args, '--json'], cwd, undefined, 64 * 1024 * 1024, timeout);
     // 成功時には追加ログを出さない。
     try {
         // 各呼び出しに応答サイズと待ち時間の上限を設定する。
         return parseCliResponse(response, mode);
     } catch (error) {
-        // 最後の進捗表示からではなく、CLI呼び出し開始からの時間を示す。
-        error.message += ` / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`;
+        // 補完専用の短い期限を共通の2分制限と混同しない。
+        if (error.code === 'CLI_TIMEOUT' && controls.deadline !== undefined) {
+            // 具体的な待機上限は呼び出し側の進捗表示に合わせる。
+            error.code = 'SUPPLEMENT_TIMEOUT';
+            // 既定の2分制限を示す本文は置き換える。
+            error.message = '補完の待機上限に達しました (SUPPLEMENT_TIMEOUT)。';
+        }
+        // 処理段階と経過時間を通知する。
+        error.message += ` / 処理: ${args[0] === 'api' ? 'レコード検索' : args[0] === 'sobject' ? '項目定義の取得' : 'CLI呼び出し'} / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`;
         // コードは維持して、分割や停止の既存判定へ渡す。
         throw error;
     }
@@ -478,7 +533,7 @@ async function main(
         const query = createQueryClient(
             temporaryDirectory,
             resolvedTargetOrg,
-            (command) => callSf(command, cwd, runner, mode),
+            (command, controls) => callSf(command, cwd, runner, mode, controls),
             describe.urls?.sobject
         );
         // 一時CSVは公開先と同じ親ディレクトリへ置く。
@@ -522,12 +577,30 @@ async function main(
         spoolDirectory = fs.mkdtempSync(path.join(path.dirname(output), '.record-export-'));
         // 値をメモリに蓄積せず、ID別に順次保存する。
         const spool = createCsvSpool(spoolDirectory, fields, mode, partialOutput);
+        // 再開済み範囲も含め、補完スキップ件数を重複なく集計する。
+        const skipped = new Set();
+        // 保留の空欄と縮小サイズだけを復元し、完了済みの実値はメモリへ溜めない。
+        const resumePending = new Map();
         // 保存済み断片からCSVを再構築し、前回の未確定書き込みは利用しない。
         await checkpoint.replay(async (...args) => {
+            // 保存済みのスキップを正常な空欄として数え直さない。
+            for (const [name, status] of args[5] || []) if (status.startsWith('SKIPPED_')) skipped.add(name);
+            // 再試行で置換済みの項目は保留から外す。
+            for (const field of args[1]) {
+                // チェックポイントの最新の状態だけを採用する。
+                resumePending.delete(field.name);
+                // 未完了の保留は元の空欄と再試行サイズを保持する。
+                if (args[5]?.get(field.name)?.startsWith('PENDING_RETRY_'))
+                    resumePending.set(field.name, {
+                        field,
+                        value: args[2][field.name],
+                        retryBatchSize: args[6].retryBatchSize
+                    });
+            }
             // 取得済みの値を再検索せずにそのまま保存する。
             await spool.append(...args);
             // 横型は完成したレコードだけを途中CSVへ表示する。
-            spool.publishPartial((checkpoint.selected || []).map((row) => row.Id));
+            if (mode === 'records') spool.publishPartial((checkpoint.selected || []).map((row) => row.Id));
         });
         // 復元できた場合だけ途中CSVを公開し、以降は順次追記する。
         spool.activatePartial();
@@ -537,6 +610,10 @@ async function main(
         options.resumeSelected = checkpoint.selected;
         // このMapは保存完了時に更新される。
         options.resumeOffsets = checkpoint.offsets;
+        // 基準値の取得を終えている保留項目も最後の再試行へ渡す。
+        options.resumePending = resumePending;
+        // 再試行範囲ごとに途中CSVの行をまとめて更新する。
+        options.onRetryBatch = () => spool.publishPartial(checkpoint.selected.map((row) => row.Id));
         // 対象IDを最初の値取得より前に確定する。
         options.onSelected = checkpoint.select;
         // 対象選択・適応分割・補完を共通の照合処理で実行する。
@@ -549,10 +626,12 @@ async function main(
             async (...args) => {
                 // 再開可能な断片を先に確定し、CSV書き込みエラーでも値を保持する。
                 checkpoint.append(...args);
+                // 保存成功後にだけ今回のスキップを集計する。
+                for (const [name, status] of args[5] || []) if (status.startsWith('SKIPPED_')) skipped.add(name);
                 // 既存の項目順検証を通してCSVを追記する。
                 await spool.append(...args);
                 // 全項目が揃った横型の行を順に公開する。
-                spool.publishPartial(checkpoint.selected.map((row) => row.Id));
+                if (!args[6]?.replace) spool.publishPartial(checkpoint.selected.map((row) => row.Id));
             },
             updateLine
         );
@@ -563,7 +642,7 @@ async function main(
         // 対象なしと成功件数を区別し、レコードの実値は表示しない。
         writeLine(
             result.recordCount
-                ? `取得完了: ${result.recordCount}レコード / ${result.fields.length}項目`
+                ? `${skipped.size ? '処理完了（補完スキップあり）' : '取得完了'}: ${result.recordCount}レコード / ${result.fields.length}項目`
                 : '対象レコードがありません。ヘッダーのみ出力しました。'
         );
         // 保存場所を利用者へ伝える。
@@ -573,8 +652,13 @@ async function main(
         // 修正対象数を表示し、正常な空欄と取得できなかった空欄を区別する。
         if (invalidCount)
             writeLine(`項目エラー: ${invalidCount}項目を空欄で出力しました。API名と項目参照権限を確認してください。`);
-        // CSVは保存するが、項目エラーは呼び出し元にも通知する。
-        return invalidCount ? 1 : 0;
+        // 補完を断念した項目も含めて全行を書き終えたことを知らせる。
+        if (skipped.size)
+            writeLine(
+                `補完スキップ: ${skipped.size}項目。CSVのStatusに理由を記録しました。全項目の処理と保存は完了しています。`
+            );
+        // 保存完了と全項目取得成功を区別し、未取得があれば警告終了とする。
+        return invalidCount || skipped.size ? 1 : 0;
     } finally {
         // 検索失敗時も一時表示を消し、後続のエラー表示を独立させる。
         clearProgress();
@@ -592,9 +676,9 @@ async function main(
                 // 異常終了ではロックだけを外し、再開データを保持する。
                 checkpoint.close();
                 // 元の条件を維持して再開する操作を案内する。
-                writeLine(
-                    `途中結果を保持しました。同じコマンドに --output "${path.relative(cwd, output)}" --resume を指定して再開してください。`
-                );
+                writeLine('途中結果を保持しました。再開コマンド:');
+                // 再開条件を手作業で組み直さず実行できるようにする。
+                writeLine(buildResumeCommand(options, mode, resolvedTargetOrg, output, cwd));
             }
         }
         // CSV作成用の作業領域は再開記録と別なので削除できる。
@@ -602,4 +686,4 @@ async function main(
     }
 }
 
-module.exports = { main, parseOptions, callSf };
+module.exports = { main, parseOptions, callSf, buildResumeCommand };

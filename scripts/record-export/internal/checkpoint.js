@@ -90,6 +90,8 @@ function openCheckpoint(directory, context, resume) {
     let sequence = 0;
     // レコードごとの保存済み項目数だけをメモリへ保持する。
     const offsets = new Map();
+    // 保留した項目だけを最後の再試行で置換可能にする。
+    const pending = new Set();
     // 対象IDは初回の選択を固定して使う。
     let selected = null;
     // 初期化中の失敗でも取得したロックを解放する。
@@ -156,7 +158,9 @@ function openCheckpoint(directory, context, resume) {
             // レコードIDと項目範囲を保存済みの取得条件で検証する。
             if (
                 !ids.has(chunk.id) ||
-                chunk.offset !== (offsets.get(chunk.id) || 0) ||
+                (!chunk.update?.replace && chunk.offset !== (offsets.get(chunk.id) || 0)) ||
+                !Number.isSafeInteger(chunk.offset) ||
+                chunk.offset < 0 ||
                 !Number.isSafeInteger(chunk.count) ||
                 chunk.count < 1 ||
                 chunk.offset + chunk.count > context.fields.length ||
@@ -170,18 +174,77 @@ function openCheckpoint(directory, context, resume) {
             // 欠落は空欄に変換しない。
             if (group.some((field) => !Object.hasOwn(chunk.record, field.name)))
                 throw new Error('再開用データに項目値の欠落があります。');
+            // 新形式の補完状態は項目範囲と固定形式を検査し、旧形式の省略は許可する。
+            if (
+                chunk.statuses !== undefined &&
+                (!Array.isArray(chunk.statuses) ||
+                    chunk.statuses.some(
+                        (entry) =>
+                            !Array.isArray(entry) ||
+                            entry.length !== 2 ||
+                            !group.some((field) => field.name === entry[0]) ||
+                            typeof entry[1] !== 'string' ||
+                            !/^(?:SKIPPED|PENDING_RETRY)_[A-Z][A-Z0-9_]{0,79}$/.test(entry[1])
+                    ))
+            )
+                throw new Error('再開用データの補完状態が不正です。');
+            // 後日追加された置換情報も検証し、完了項目を勝手に上書きしない。
+            if (
+                chunk.update &&
+                (typeof chunk.update !== 'object' ||
+                    (chunk.update.replace !== undefined && chunk.update.replace !== true) ||
+                    (chunk.update.retryBatchSize !== undefined &&
+                        (!Number.isSafeInteger(chunk.update.retryBatchSize) || chunk.update.retryBatchSize < 1)))
+            )
+                throw new Error('再開用データの再試行条件が不正です。');
+            // 置換はプレビューの保留済み一項目に限定する。
+            if (
+                chunk.update?.replace &&
+                (context.mode !== 'record-fields-preview' || group.length !== 1 || !pending.has(group[0].name))
+            )
+                throw new Error('再開用データの置換対象が不正です。');
+            // 保留状態には再試行サイズが必要になる。
+            if (
+                (chunk.statuses || []).some(([, status]) => status.startsWith('PENDING_RETRY_')) &&
+                !chunk.update?.retryBatchSize
+            )
+                throw new Error('再開用データの再試行サイズがありません。');
             // 元の項目順でCSVを再構築する。
-            await append(chunk.id, group, chunk.record, new Map(chunk.sources), selected[0]?.Id || '');
+            await append(
+                chunk.id,
+                group,
+                chunk.record,
+                new Map(chunk.sources),
+                selected[0]?.Id || '',
+                new Map(chunk.statuses || []),
+                chunk.update
+            );
             // 復元できた範囲だけを完了扱いにする。
-            offsets.set(chunk.id, chunk.offset + chunk.count);
+            if (!chunk.update?.replace) offsets.set(chunk.id, chunk.offset + chunk.count);
+            // 最新の確定状態に合わせて置換可能な項目を管理する。
+            for (const field of group) {
+                // 保留から成功・スキップへ変わった項目は再置換しない。
+                pending.delete(field.name);
+                // 未処理の保留だけを残す。
+                if (new Map(chunk.statuses || []).get(field.name)?.startsWith('PENDING_RETRY_'))
+                    pending.add(field.name);
+            }
             // 次の確定断片を確認する。
             sequence++;
         }
     }
     // 完了した取得範囲を一断片として保存する。
-    function append(id, group, record, sources) {
+    function append(id, group, record, sources, _latestId, statuses, update) {
         // 前の項目範囲との連続性を確認する。
-        const offset = offsets.get(id) || 0;
+        const offset = update?.replace
+            ? context.fields.findIndex((field) => field.name === group[0]?.name)
+            : offsets.get(id) || 0;
+        // 取得順の追記とは別に、保留済みプレビュー行の置換だけを許可する。
+        if (
+            update?.replace &&
+            (context.mode !== 'record-fields-preview' || group.length !== 1 || !pending.has(group[0].name))
+        )
+            throw new Error('再開用データの置換対象が不正です。');
         // 表示やクエリ応答順によらず指定位置を保持する。
         if (group.some((field, i) => context.fields[offset + i]?.name !== field.name))
             throw new Error('再開用データの項目順が一致しません。');
@@ -192,13 +255,25 @@ function openCheckpoint(directory, context, resume) {
         // ファイルが確定するまで完了位置を進めない。
         saveJson(path.join(directory, `chunk-${String(sequence).padStart(8, '0')}.json`), {
             id,
+            update,
             offset,
             count: group.length,
             record: values,
-            sources: group.map((field) => [field.name, sources?.get(field.name) || ''])
+            sources: group.map((field) => [field.name, sources?.get(field.name) || '']),
+            // 古い再開記録にない追加情報は省略可能にし、互換性を保つ。
+            statuses: group
+                .filter((field) => statuses?.has(field.name))
+                .map((field) => [field.name, statuses.get(field.name)])
         });
         // 再実行で同じ項目を取得しないための境界を更新する。
-        offsets.set(id, offset + group.length);
+        if (!update?.replace) offsets.set(id, offset + group.length);
+        // 途中停止しても、同じ保留行を重複して再処理しない。
+        for (const field of group) {
+            // 確定した再試行結果では保留を解除する。
+            pending.delete(field.name);
+            // 初回の保留だけを置換候補にする。
+            if (statuses?.get(field.name)?.startsWith('PENDING_RETRY_')) pending.add(field.name);
+        }
         // 次の断片は別ファイルに保存する。
         sequence++;
     }

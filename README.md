@@ -156,7 +156,7 @@ npm run sf:export:records -- --object Account --record-limit 2000 --record-type-
 # 出力先を指定して実行
 npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv
 npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv
-# 途中停止時の再開 (--resumeを指定)
+# 中断時は表示された再開コマンドを実行（以下は既定条件の例）
 npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv --resume
 npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv --resume
 ```

@@ -161,7 +161,7 @@ async function collectRecords(
         return `SELECT ${columns.join(',')} FROM ${describe.name}${conditions.length ? ` WHERE ${conditions.join(' AND ')}` : ''}${ordered ? order : ''} LIMIT ${limit}`;
     }
     // 不完全な応答を正常な取得として保存しない。
-    async function search(columns, conditions, limit, ordered = true) {
+    async function search(columns, conditions, limit, ordered = true, controls) {
         // 送信前にSOQL本文の上限を確認する。
         const soql = buildQuery(columns, conditions, limit, ordered);
         // 項目またはIDを分割できる呼び出し元へ制限を通知する。
@@ -171,10 +171,26 @@ async function collectRecords(
         }
         // 権限に関係する失敗では、取得対象項目の説明にも確認箇所を表示する。
         let result;
+        // 補完は専用の項目別表示があるため、通常取得だけここで進捗を知らせる。
+        const label = `値取得：最大${limit}件・${columns.length}列（${columns[0]}〜${columns.at(-1)}）`;
+        // 新しい問い合わせの開始を、実値を含めずに表示する。
+        if (!controls) writeLine(`検索状況: ${label}`);
+        // 通常取得も応答待ちで無表示にならないよう、経過時間を測る。
+        const started = performance.now();
+        // 補完のタイマーと二重表示しない。
+        const timer = controls
+            ? undefined
+            : setInterval(
+                  () =>
+                      writeLine(
+                          `検索状況: ${label} / 応答待ち：${((performance.now() - started) / 1000).toFixed(0)}秒経過`
+                      ),
+                  10000
+              );
         // 生のAPI本文を表示せず、確認できたエラーコードだけで案内する。
         try {
             // 元のクエリ回数と取得範囲を維持する。
-            result = await query(soql);
+            result = await query(soql, controls);
         } catch (error) {
             // 項目名の誤りと権限不足を断定せず、APIが示す原因候補を案内する。
             if (error.code === 'INVALID_FIELD' || error.code === 'INSUFFICIENT_ACCESS') {
@@ -186,8 +202,11 @@ async function collectRecords(
                     );
                 }
             }
-            // 権限不足を空欄として保存せず、従来どおり停止する。
+            // 呼び出し元が通常取得の停止と補完スキップを区別する。
             throw error;
+        } finally {
+            // 正常終了とエラーのどちらでも待機表示を解除する。
+            if (timer !== undefined) clearInterval(timer);
         }
         // API応答の完全性とIDの一意性を検証する。
         const records = recordsFrom(result, columns);
@@ -211,6 +230,10 @@ async function collectRecords(
     const byId = onChunk ? null : new Map(selected.map((row) => [row.Id, {}]));
     // プレビューの取得元を保持する。
     const sources = new Map();
+    // 補完を打ち切った結果を実際のNULLと区別し、CSVと再開記録へ渡す。
+    const statuses = new Map();
+    // 基準値の取得を終えてから再試行する項目だけを保持する。
+    const deferred = new Map(options.resumePending || []);
     // 成功した範囲を順次保存し、再試行した値を重複させない。
     async function readGroup(ids, group) {
         // 未確認項目をSOQLへ含めず、CSVの位置だけ保持する。
@@ -353,14 +376,20 @@ async function collectRecords(
                     scope,
                     search,
                     hasValue,
-                    canFilterNonNull
+                    canFilterNonNull,
+                    // 確定結果の行とは分け、現在項目の検索・再試行を通知する。
+                    report: (field, message) =>
+                        writeLine(
+                            `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message}`
+                        )
                 });
                 // 一項目の補完が終わるごとに再開位置を確定する。
                 for (const field of group) {
                     // WHERE不可の項目には追加検索を行わない。
-                    await supplementPreviewField({
+                    const retryState = await supplementPreviewField({
                         field,
                         resolvePreview,
+                        statuses,
                         record,
                         sources: chunkSources,
                         writeLine,
@@ -368,8 +397,24 @@ async function collectRecords(
                         fieldPositions,
                         totalFields: fields.length
                     });
+                    // 保留した空欄と再試行サイズを、実値のある後続項目とは別に保持する。
+                    if (retryState)
+                        deferred.set(field.name, {
+                            field,
+                            value: record[field.name],
+                            retryBatchSize: retryState.retryBatchSize
+                        });
                     // 次項目で失敗しても、完了した値を失わない。
-                    if (onChunk) await onChunk(record.Id, [field], record, chunkSources, selected[0]?.Id || '');
+                    if (onChunk)
+                        await onChunk(
+                            record.Id,
+                            [field],
+                            record,
+                            chunkSources,
+                            selected[0]?.Id || '',
+                            statuses,
+                            retryState
+                        );
                 }
             }
             // 実行入口はこの保存先を使って値を順次退避する。
@@ -410,6 +455,79 @@ async function collectRecords(
             await readGroup(ids, fields.slice(offset, offset + groupSize));
         }
     }
+    // 全項目の初回処理を終えた後だけ、保留分を指定順の小さなまとまりで再試行する。
+    const retryFields = fields.filter((field) => deferred.has(field.name));
+    // 保留なしの場合は追加クエリを実行しない。
+    if (retryFields.length)
+        writeLine(`最後の再試行: 保留${retryFields.length}項目・縮小した範囲を一巡・再失敗はスキップ`);
+    // 失敗した元の範囲より大きい一括検索へ戻さない。
+    for (let offset = 0; offset < retryFields.length;) {
+        // 先頭の保留項目に保存した縮小サイズを使う。
+        let count = deferred.get(retryFields[offset].name).retryBatchSize;
+        // 異なる失敗範囲をまとめる場合も、最も小さい上限を守る。
+        for (let index = offset; index < Math.min(retryFields.length, offset + count); index++)
+            count = Math.min(count, deferred.get(retryFields[index].name).retryBatchSize);
+        // 対象項目の順序は元の指定順を維持する。
+        const group = retryFields.slice(offset, offset + count);
+        // 元レコードの空欄だけを復元し、別項目の実値を再取得しない。
+        const record = {
+            Id: selected[0].Id,
+            ...Object.fromEntries(group.map((field) => [field.name, deferred.get(field.name).value]))
+        };
+        // 値を得られなかった項目には取得元を付けない。
+        const chunkSources = new Map();
+        // 最後の再試行は先読みを繰り返さず、残項目の非NULL検索だけを行う。
+        const resolvePreview = createPreviewResolver({
+            fields: group,
+            record,
+            scope,
+            search,
+            hasValue,
+            canFilterNonNull,
+            retry: true,
+            report: (field, message) =>
+                writeLine(
+                    `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message}`
+                )
+        });
+        // 再試行途中で中断しても、それまで確定した置換を途中CSVへ反映する。
+        try {
+            // 検索はまとめ、確定と保存は指定項目順に行う。
+            for (const field of group) {
+                // 再試行結果で保留状態を置き換える。
+                statuses.delete(field.name);
+                // 再失敗時は保留へ戻さず、理由を付けてスキップする。
+                await supplementPreviewField({
+                    field,
+                    record,
+                    sources: chunkSources,
+                    resolvePreview,
+                    statuses,
+                    writeLine,
+                    updateLine,
+                    fieldPositions,
+                    totalFields: fields.length
+                });
+                // 同じ項目の行を置き換え、CSVへ重複行を追加しない。
+                if (onChunk)
+                    await onChunk(record.Id, [field], record, chunkSources, selected[0].Id, statuses, {
+                        replace: true
+                    });
+                // テスト用のメモリ結果にも同じ置換を反映する。
+                else {
+                    // 他項目の値や別レコードは触らない。
+                    byId.get(record.Id)[field.name] = record[field.name];
+                    // 成功した補完元だけを反映する。
+                    sources.set(field.name, chunkSources.get(field.name));
+                }
+            }
+        } finally {
+            // 大きいCSVの全体再公開は範囲の終わりにまとめる。
+            await options.onRetryBatch?.();
+        }
+        // この範囲を再分割して繰り返すことはしない。
+        offset += group.length;
+    }
     // 横型は全レコードの取得後に、対象なしの場合も指定順で結果を通知する。
     if (options.mode !== 'record-fields-preview' || !selected.length) {
         // 分割回数やレコード数によって同じ項目を繰り返し列挙しない。
@@ -429,6 +547,7 @@ async function collectRecords(
         fields,
         records: byId ? selected.map((row) => byId.get(row.Id)) : [],
         sources,
+        statuses,
         latestId: selected[0]?.Id || '',
         ids: selected.map((row) => row.Id),
         recordCount: selected.length
@@ -441,6 +560,7 @@ async function supplementPreviewField({
     record,
     sources,
     resolvePreview,
+    statuses,
     writeLine,
     updateLine,
     fieldPositions,
@@ -490,6 +610,17 @@ async function supplementPreviewField({
         // 保存済み項目を保持する既存の停止・再開処理へ渡す。
         throw error;
     }
+    // タイムアウトや問い合わせ失敗を「登録レコードなし」に置き換えない。
+    if (found?.skipped) {
+        // 原因コードをCSVと再開記録の両方へ残す。
+        statuses.set(field.name, `${found.deferred ? 'PENDING_RETRY' : 'SKIPPED'}_${found.skipped}`);
+        // 次の項目へ進むことと、検索した範囲の打ち切りを明示する。
+        writeLine(
+            `${prefix}${found.deferred ? '補完保留・最後に再試行' : '補完スキップ'}：${found.skipped} / 検索経過: ${found.elapsedSeconds}秒・次へ進みます`
+        );
+        // 保留の場合だけ最後の再試行サイズを返し、再失敗では再登録しない。
+        return found.deferred ? { retryBatchSize: found.retryBatchSize } : undefined;
+    }
     // 空の複合値などを補完成功と扱わず、実値だけ採用する。
     if (found) {
         // 空欄だった項目だけを補完する。
@@ -522,15 +653,17 @@ function toCsv(result, mode) {
                   // 値の有無と補完元の違いを区別する。
                   const source = result.sources.get(field.name);
                   // 基準と補完をStatusで明示し、別レコードの値を同じレコードの実値と誤認させない。
-                  const status = field.invalid
-                      ? 'INVALID_FIELD'
-                      : !hasValue(result.records[0][field.name])
-                        ? canFilterNonNull(field)
-                            ? 'NO_VALUE_FOUND'
-                            : 'NOT_FILTERABLE'
-                        : source === result.latestId
-                          ? 'LATEST'
-                          : 'SUPPLEMENTED';
+                  const status =
+                      result.statuses?.get(field.name) ||
+                      (field.invalid
+                          ? 'INVALID_FIELD'
+                          : !hasValue(result.records[0][field.name])
+                            ? canFilterNonNull(field)
+                                ? 'NO_VALUE_FOUND'
+                                : 'NOT_FILTERABLE'
+                            : source === result.latestId
+                              ? 'LATEST'
+                              : 'SUPPLEMENTED');
                   // 指定された項目の順のまま属性と実値を出力する。
                   return [field.name, field.label, field.type, result.records[0][field.name], status, source]
                       .map(csv)

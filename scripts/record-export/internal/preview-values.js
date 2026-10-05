@@ -5,14 +5,44 @@ const { QUERY_TIMEOUT_CODES } = require('./error-definitions');
 // 出力量を限定し、値のない項目のために全レコードを走査しない。
 const RECENT_RECORD_LIMIT = 200;
 
+// 一項目の解決に複数のOR検索が必要でも、待ち時間を累積で制限する。
+const SUPPLEMENT_TIMEOUT_MS = 60000;
+
+// 補完だけの失敗は元レコードを保持して続行し、認証・API利用上限などは停止する。
+const SKIPPABLE_CODES = new Set([
+    ...QUERY_TIMEOUT_CODES,
+    'CLI_TIMEOUT',
+    'SUPPLEMENT_TIMEOUT',
+    'NETWORK_TIMEOUT',
+    'NETWORK_ERROR',
+    'CLI_FAILED',
+    'QUERY_FAILED',
+    'INVALID_FIELD',
+    'INSUFFICIENT_ACCESS',
+    'MALFORMED_QUERY',
+    'INVALID_QUERY_FILTER_OPERATOR',
+    'QUERY_LENGTH_LIMIT',
+    'QUERY_TOO_COMPLICATED',
+    'BUFFER_LIMIT'
+]);
+
 // 先読みした値と、利用者へ結果を確定する順序を分離する。
-function createPreviewResolver({ fields, record, scope, search, hasValue, canFilterNonNull }) {
+function createPreviewResolver({
+    fields,
+    record,
+    scope,
+    search,
+    hasValue,
+    canFilterNonNull,
+    report = () => {},
+    retry = false
+}) {
     // 補完しない項目や元から値のある項目を追加検索へ含めない。
     const missing = fields.filter(
         (field) => !field.invalid && !hasValue(record[field.name]) && canFilterNonNull(field)
     );
-    // 分割は指定順の連続範囲に限定する。
-    const groups = [{ fields: missing, sampled: missing.length < 2, limit: RECENT_RECORD_LIMIT }];
+    // この一括範囲で先読みを済ませたかを管理し、その場で細分化しない。
+    const group = { sampled: retry || missing.length < 2, limit: RECENT_RECORD_LIMIT };
     // 項目名ごとに最初に見つかった最新値だけを保持する。
     const resolved = new Map();
     // 元レコードや出力順は変更せず、候補だけを採用する。
@@ -27,64 +57,77 @@ function createPreviewResolver({ fields, record, scope, search, hasValue, canFil
             }
         }
     }
+    // 同じ一括範囲の問い合わせを通算し、後続項目で期限を延長しない。
+    let deadline;
     // 呼び出された項目が確定するまでだけ検索し、表示と保存は呼び出し元へ任せる。
     return async function resolve(field) {
+        // 分割・先読み・OR検索を通算した期限を固定する。
+        deadline ??= performance.now() + SUPPLEMENT_TIMEOUT_MS;
         // 後の項目を先に見つけても、この項目の順番になるまで返さない。
         while (!resolved.has(field.name)) {
-            // 未完了の現在項目を含む範囲だけを処理する。
-            const index = groups.findIndex((group) => group.fields.some((candidate) => candidate.name === field.name));
-            // 呼び出し元の補完条件との不一致を値なしとして隠さない。
-            if (index < 0) throw new Error('補完対象の項目範囲が一致しません。');
+            // 対象外の項目を誤って値なしとしない。
+            if (!missing.some((candidate) => candidate.name === field.name))
+                throw new Error('補完対象の項目範囲が一致しません。');
             // すでに値を確保した項目はSELECTとOR条件の両方から外す。
-            const group = groups[index];
-            // 配列の元の順序はfilter後も維持する。
-            const pending = group.fields.filter((candidate) => !resolved.has(candidate.name));
+            const pending = missing.filter((candidate) => !resolved.has(candidate.name));
             // 直近取得は非NULL条件を使わず、新しい範囲だけをまとめて読む。
             const recent = !group.sampled;
             // OR条件は括弧で囲み、レコードタイプ条件を全項目へ適用する。
             const predicate = pending.map((candidate) => `${candidate.name} != NULL`).join(' OR ');
             // 単一項目は従来と同じSOQLにする。
             const conditions = recent ? scope : [...scope, pending.length === 1 ? predicate : `(${predicate})`];
+            // 検索切り替え時に一括検索の対象範囲と待機上限を通知する。
+            report(
+                field,
+                `${retry ? '最後の再試行' : recent ? '一括補完候補の取得' : '一括補完の非NULL検索'}：対象${pending.length}項目・最大${recent ? group.limit : 1}レコード・残り上限${Math.max(0, Math.ceil((deadline - performance.now()) / 1000))}秒`
+            );
+            // 取得した行数とは別に、クエリの実測時間を記録する。
+            const started = performance.now();
+            // 応答待ち中にも対象項目と経過時間を表示する。
+            const timer = setInterval(
+                () =>
+                    report(
+                        field,
+                        `応答待ち：${((performance.now() - started) / 1000).toFixed(0)}秒経過・残り上限${Math.max(0, Math.ceil((deadline - performance.now()) / 1000))}秒`
+                    ),
+                10000
+            );
             // 制限による失敗だけを狭い範囲で再実行する。
             let rows;
             // 認証や通信の失敗を再分割して繰り返さない。
             try {
+                // キャッシュ探索や分割を含め、期限後に新しいCLIを起動しない。
+                if (performance.now() >= deadline)
+                    throw Object.assign(new Error('補完の待機上限に達しました。'), { code: 'SUPPLEMENT_TIMEOUT' });
                 // 取得順はすべて最新順、検索自体は逐次実行を維持する。
                 rows = await search(
                     ['Id', ...pending.map((candidate) => candidate.name)],
                     conditions,
-                    recent ? group.limit : 1
+                    recent ? group.limit : 1,
+                    true,
+                    { deadline }
                 );
             } catch (error) {
-                // 直近取得のサイズ超過時は、項目を分ける前に件数を縮める。
-                if (recent && error.code === 'BUFFER_LIMIT' && group.limit > 1) {
-                    // 成功するまで必ず応答量の上限を縮める。
-                    group.limit = Math.ceil(group.limit / 2);
-                    // 同じ順序のまま縮小した範囲を再取得する。
-                    continue;
-                }
-                // ORが大きすぎる場合は、連続する項目範囲へ分割する。
-                const splittable = [
-                    'QUERY_LENGTH_LIMIT',
-                    'QUERY_TOO_COMPLICATED',
-                    'BUFFER_LIMIT',
-                    ...QUERY_TIMEOUT_CODES,
-                    'CLI_TIMEOUT'
-                ].includes(error.code);
-                // 一項目の失敗や通信障害は停止して再開記録を保持する。
-                if (!splittable || pending.length < 2) throw error;
-                // 先頭側から処理できるよう分割順を固定する。
-                const middle = Math.ceil(pending.length / 2);
-                // 直近取得を済ませた範囲は、分割後に同じ先読みを繰り返さない。
-                groups.splice(
-                    index,
-                    1,
-                    { ...group, fields: pending.slice(0, middle) },
-                    { ...group, fields: pending.slice(middle) }
-                );
-                // 現在項目を含む範囲へ戻り、後続範囲を先に検索しない。
-                continue;
+                // 認証・保存など処理を続けられない障害は、保留で隠さない。
+                if (!SKIPPABLE_CODES.has(error.code)) throw error;
+                // 診断生成側で安全化した構造だけを通知する。
+                if (error.diagnostic) report(field, `${error.code} / ${error.diagnostic}`);
+                // 初回は後回しにし、最後の再試行で失敗した場合だけスキップを確定する。
+                for (const candidate of pending)
+                    resolved.set(candidate.name, {
+                        skipped: error.code,
+                        deferred: !retry,
+                        retryBatchSize: Math.max(1, Math.ceil(pending.length / 2)),
+                        elapsedSeconds: ((performance.now() - started) / 1000).toFixed(1)
+                    });
+                // その場で分割を繰り返さず、呼び出し元の保存と後続処理へ戻る。
+                break;
+            } finally {
+                // 成功・スキップ・例外のどの経路でも定期表示を解除する。
+                clearInterval(timer);
             }
+            // 応答が返ったことを結果の値を含めず通知する。
+            report(field, `検索完了：${rows.length}レコード・${((performance.now() - started) / 1000).toFixed(1)}秒`);
             // 応答から複数項目を補完しても、保存順は変更しない。
             adopt(rows, pending);
             // 最新順の限定取得は各範囲で一度だけ行う。
@@ -108,4 +151,4 @@ function createPreviewResolver({ fields, record, scope, search, hasValue, canFil
     };
 }
 
-module.exports = { createPreviewResolver, RECENT_RECORD_LIMIT };
+module.exports = { createPreviewResolver, RECENT_RECORD_LIMIT, SUPPLEMENT_TIMEOUT_MS };
