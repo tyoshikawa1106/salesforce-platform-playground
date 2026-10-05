@@ -21,6 +21,7 @@ function parseOptions(args, mode = 'records') {
         options: {
             'target-org': { type: 'string' },
             'record-type-id': { type: 'string' },
+            'created-before': { type: 'string' },
             object: { type: 'string', default: 'Account' },
             // 実行ディレクトリに依存せず、スクリプト付属の項目設定を使う。
             fields: { type: 'string', default: path.resolve(__dirname, '../config/fields.txt') },
@@ -47,6 +48,19 @@ function parseOptions(args, mode = 'records') {
         // 空文字・式・異なる種類のIDを組織への接続前に拒否する。
         throw new Error('--record-type-idには012で始まる15桁または18桁のレコードタイプIDを指定してください。');
     }
+    // 日付だけを受け付け、OSや接続ユーザーのタイムゾーンに依存させない。
+    const beforeDate = values['created-before'];
+    // 存在しない日付の自動繰り上がりを拒否する。
+    if (
+        beforeDate !== undefined &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(beforeDate) ||
+            Number(beforeDate.slice(0, 4)) < 1700 ||
+            !Number.isFinite(Date.parse(`${beforeDate}T00:00:00Z`)) ||
+            new Date(`${beforeDate}T00:00:00Z`).toISOString().slice(0, 10) !== beforeDate)
+    )
+        throw new Error(
+            '--created-beforeには1700年以降の実在する日付をYYYY-MM-DD形式で指定してください（日本時間・当日を含まない）。'
+        );
     // 件数は整数だけを許可し、極端なレスポンスサイズを防ぐ。
     for (const [key, maximum] of [
         ...(mode === 'records' ? [['record-limit', 10000]] : []),
@@ -62,6 +76,9 @@ function parseOptions(args, mode = 'records') {
     return {
         targetOrg: values['target-org'],
         recordTypeId: values['record-type-id'],
+        // 日本時間の午前0時をSOQLへ渡せるUTC境界へ変換する。
+        createdBefore: beforeDate === undefined ? undefined : new Date(`${beforeDate}T00:00:00+09:00`).toISOString(),
+        createdBeforeDate: beforeDate,
         object: values.object,
         fields: values.fields,
         output: values.output,
@@ -140,7 +157,10 @@ function parseCliResponse(response, mode) {
         'INSUFFICIENT_ACCESS',
         'MALFORMED_QUERY',
         'INVALID_QUERY_FILTER_OPERATOR',
-        'FUNCTIONALITY_NOT_ENABLED'
+        'FUNCTIONALITY_NOT_ENABLED',
+        'QUERY_TIMEOUT',
+        'REQUEST_RUNNING_TOO_LONG',
+        'REQUEST_LIMIT_EXCEEDED'
     ];
     // OSの既知のエラーコードを、表示可能な固定の識別子へ対応付ける。
     const processCodes = new Map([
@@ -149,7 +169,12 @@ function parseCliResponse(response, mode) {
         ['ENOENT', 'CLI_NOT_FOUND'],
         ['EACCES', 'CLI_ACCESS_DENIED'],
         ['EPERM', 'CLI_ACCESS_DENIED'],
-        ['ETIMEDOUT', 'CLI_TIMEOUT']
+        ['ETIMEDOUT', 'NETWORK_TIMEOUT'],
+        ['ESOCKETTIMEDOUT', 'NETWORK_TIMEOUT'],
+        ['ECONNRESET', 'NETWORK_ERROR'],
+        ['ECONNREFUSED', 'NETWORK_ERROR'],
+        ['ENOTFOUND', 'NETWORK_ERROR'],
+        ['EAI_AGAIN', 'NETWORK_ERROR']
     ]);
     // 認証に関する既知の識別子だけを判定し、メッセージから推測しない。
     const authCodes = new Set([
@@ -169,12 +194,19 @@ function parseCliResponse(response, mode) {
             // タイマーで終了した非同期呼び出しも既存の診断へ揃える。
             code = 'CLI_TIMEOUT';
         }
+    } else if (processCodes.has(body.code) || processCodes.has(body.name)) {
+        // CLI自身が返した通信エラーも、親プロセスの待ち時間制限と区別する。
+        code = processCodes.get(body.code) || processCodes.get(body.name);
     } else if (authCodes.has(body.name)) {
         // 認証失敗時は再試行せず、対象指定と既存認証の確認を促す。
         code = 'AUTH_FAILED';
-    } else if (queryCodes.includes(body.name)) {
+    } else if (
+        queryCodes.includes(body.name) ||
+        queryCodes.includes(body.errorCode) ||
+        queryCodes.includes(body.code)
+    ) {
         // 検索固有の診断を表示して、未完成のCSVの保存を防ぐ。
-        code = body.name;
+        code = [body.name, body.errorCode, body.code].find((candidate) => queryCodes.includes(candidate));
     }
     // 判別した原因に対して、認証操作を自動実行せず確認先を案内する。
     const guidance = new Map([
@@ -186,7 +218,15 @@ function parseCliResponse(response, mode) {
             'CLI_ACCESS_DENIED',
             'CLIを起動する権限がありません。実行ファイルと実行ディレクトリの権限を確認してください。'
         ],
-        ['CLI_TIMEOUT', 'CLIの応答待ちが制限時間を超えました。ネットワークと組織の稼働状況を確認してください。'],
+        ['CLI_TIMEOUT', 'スクリプトのCLI待機上限（120秒）を超えたため停止しました。'],
+        ['NETWORK_TIMEOUT', 'CLIの通信待ちがタイムアウトしました。スクリプトの120秒制限とは別のエラーです。'],
+        ['NETWORK_ERROR', 'CLIの通信に失敗しました。ネットワーク・プロキシの状態を確認してください。'],
+        [
+            'QUERY_TIMEOUT',
+            'Salesforce側で検索がタイムアウトしました。対象項目の検索条件・クエリプランを確認してください。'
+        ],
+        ['REQUEST_RUNNING_TOO_LONG', 'Salesforce側で処理時間の上限を超えました。検索条件を確認してください。'],
+        ['REQUEST_LIMIT_EXCEEDED', 'SalesforceのAPI利用上限に達しました。利用状況を確認してください。'],
         ['AUTH_FAILED', '対象組織の認証を利用できません。--target-orgの指定と既存認証の状態を確認してください。'],
         [
             'BUFFER_LIMIT',
@@ -195,9 +235,23 @@ function parseCliResponse(response, mode) {
                 : 'CLIの応答がサイズ上限を超えました。必要に応じて--record-limitや--fields-per-queryを小さくしてください。'
         ]
     ]);
+    // メッセージ本文やURLを除き、構造化された短い識別子だけを残す。
+    const identifiers = [body.name, body.code, body.errorCode, response.error?.code].filter(
+        (value) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value)
+    );
+    // 未分類でも終了コードとCLI識別子から調査できるようにする。
+    const details = [
+        Number.isInteger(response.status) ? `終了コード: ${response.status}` : '',
+        ...[...new Set(identifiers)].map((value) => `識別子: ${value}`),
+        ['SIGTERM', 'SIGKILL', 'SIGINT'].includes(response.signal || response.error?.signal)
+            ? `シグナル: ${response.signal || response.error.signal}`
+            : ''
+    ]
+        .filter(Boolean)
+        .join(' / ');
     // エラー識別子以外のCLI本文をログやCSVへ含めない。
     const error = new Error(
-        `Salesforce CLIに失敗しました (${code})。${guidance.get(code) || '接続・権限・CLIの状態を確認してください。'}`
+        `Salesforce CLIに失敗しました (${code})。${guidance.get(code) || '原因を分類できません。識別子と終了コードを確認してください。'}${details ? ` / ${details}` : ''}`
     );
     // どのCLIエラーも全体失敗として扱い、呼び出し元で識別できるようにする。
     Object.assign(error, { code });
@@ -207,8 +261,20 @@ function parseCliResponse(response, mode) {
 
 // Describeと検索のCLI呼び出しに、上限と共通の診断を適用する。
 async function callSf(args, cwd, runner = runSfWithOutputAsync, mode = 'records') {
-    // 各呼び出しに応答サイズと待ち時間の上限を設定する。
-    return parseCliResponse(await runner([...args, '--json'], cwd, undefined, 64 * 1024 * 1024, 120000), mode);
+    // システム時計の変更に影響されない経過時間を測る。
+    const started = performance.now();
+    // 生本文を含めない診断へ変換してから経過時間を付ける。
+    const response = await runner([...args, '--json'], cwd, undefined, 64 * 1024 * 1024, 120000);
+    // 成功時には追加ログを出さない。
+    try {
+        // 各呼び出しに応答サイズと待ち時間の上限を設定する。
+        return parseCliResponse(response, mode);
+    } catch (error) {
+        // 最後の進捗表示からではなく、CLI呼び出し開始からの時間を示す。
+        error.message += ` / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`;
+        // コードは維持して、分割や停止の既存判定へ渡す。
+        throw error;
+    }
 }
 
 // 入力検証、接続確認、収集、保存の順序を制御する。
@@ -277,7 +343,7 @@ async function main(
     if (options.help) {
         // オプションと認証確認だけを行う使い方を案内する。
         writeLine(
-            `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields scripts/record-export/config/fields.txt] [--record-type-id ID] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth] [--resume]`
+            `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields scripts/record-export/config/fields.txt] [--record-type-id ID] [--created-before YYYY-MM-DD] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth] [--resume]`
         );
         // ヘルプ表示は正常終了する。
         return 0;
@@ -337,6 +403,8 @@ async function main(
         // 無条件の補完によるレコードタイプ混在を防ぐ仕様を明示する。
         writeLine('取得対象とプレビューの補完元を、指定したレコードタイプだけに限定します。');
     }
+    // 確認前に日付境界とタイムゾーンを明示する。
+    if (options.createdBefore) writeLine(`作成日: ${options.createdBeforeDate}より前（日本時間・当日を含まない）`);
     // 接続確認専用ではデータの取得承認を求めない。
     if (!options.checkAuth) {
         // 件数・補完の有無・用途を一行で確認できるようにする。
@@ -443,6 +511,8 @@ async function main(
                 mode,
                 recordTypeId: options.recordTypeId || null,
                 recordLimit: options.recordLimit,
+                // 未指定では従来の再開記録と互換性を保つ。
+                ...(options.createdBefore ? { createdBefore: options.createdBefore } : {}),
                 fields: fields.map((field) => ({
                     name: field.name,
                     label: field.label,

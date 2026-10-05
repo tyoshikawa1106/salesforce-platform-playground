@@ -1,5 +1,7 @@
 // 用途: 最新レコードの対象を固定して取得し、指定順の縦型・横型CSVへ変換する。
 
+const { createPreviewResolver } = require('./preview-values');
+
 // RecordTypeのIDだけを許可し、空文字やSOQL式を受け付けない。
 const RECORD_TYPE_ID_PATTERN = /^012(?:[A-Za-z0-9]{12}|[A-Za-z0-9]{15})$/;
 
@@ -73,6 +75,14 @@ function validateDescribe(describe, names, options) {
         // 任意順へのフォールバックで「最新」と誤認させない。
         throw new Error('最新順の取得にはソート可能なCreatedDate・Idと検索可能なIdが必要です。');
     }
+    // 作成日指定時は境界形式とWHERE条件の対応可否を検証する。
+    if (
+        options.createdBefore !== undefined &&
+        (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(options.createdBefore) ||
+            !Number.isFinite(Date.parse(options.createdBefore)) ||
+            !definitions.get('createddate')?.filterable)
+    )
+        throw new Error('作成日の絞り込みには正しい日時と検索可能なCreatedDateが必要です。');
     // レコードタイプ指定時だけ、項目の検索可否とオブジェクトへの所属を確認する。
     if (options.recordTypeId !== undefined) {
         // 呼び出し元に依存せず、SOQLへ渡すIDの形式を検証する。
@@ -139,7 +149,10 @@ async function collectRecords(
     // 分割後も指定ファイル内の項目番号を維持する。
     const fieldPositions = new Map(fields.map((field, index) => [field.name, index + 1]));
     // レコードタイプ指定を選択・取得・補完で共有する。
-    const scope = options.recordTypeId ? [`RecordTypeId = '${options.recordTypeId}'`] : [];
+    const scope = [
+        ...(options.recordTypeId ? [`RecordTypeId = '${options.recordTypeId}'`] : []),
+        ...(options.createdBefore ? [`CreatedDate < ${options.createdBefore}`] : [])
+    ];
     // 同日時の場合も順序を固定する。
     const order = ' ORDER BY CreatedDate DESC NULLS LAST, Id DESC';
     // 実際のSOQL全体を使って文字数を計算する。
@@ -333,11 +346,21 @@ async function collectRecords(
             const chunkSources = new Map(group.map((field) => [field.name, field.invalid ? '' : record.Id]));
             // プレビューの空欄だけを補完する。
             if (options.mode === 'record-fields-preview') {
+                // 先読み候補を共有し、出力と保存だけは各項目の順番で行う。
+                const resolvePreview = createPreviewResolver({
+                    fields: group,
+                    record,
+                    scope,
+                    search,
+                    hasValue,
+                    canFilterNonNull
+                });
                 // 一項目の補完が終わるごとに再開位置を確定する。
                 for (const field of group) {
                     // WHERE不可の項目には追加検索を行わない。
                     await supplementPreview({
                         fields: [field],
+                        resolvePreview,
                         record,
                         sources: chunkSources,
                         scope,
@@ -419,8 +442,7 @@ async function supplementPreview({
     fields,
     record,
     sources,
-    scope,
-    search,
+    resolvePreview,
     writeLine,
     updateLine,
     fieldPositions,
@@ -455,14 +477,31 @@ async function supplementPreview({
         }
         // 実値をログへ出さず、処理中の項目を知らせる。
         updateLine(`${prefix}補完中`);
-        // レコードタイプ指定を維持し、日時の境界なしで最新1件を検索する。
-        const found = await search([...new Set(['Id', field.name])], [...scope, `${field.name} != NULL`], 1);
+        // 補完検索にかかった実時間を失敗した項目とともに残す。
+        const started = performance.now();
+        // 取得失敗を値なしとして処理しない。
+        let found;
+        // 非対話端末でも停止した項目を特定できるようにする。
+        try {
+            // まとめ取得済みなら追加検索せず、必要な残項目だけ検索する。
+            found = await resolvePreview(field);
+        } catch (error) {
+            // 実値や生本文を表示せず、固定形式のコードだけを案内する。
+            const code =
+                typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code)
+                    ? error.code
+                    : 'QUERY_FAILED';
+            // 一時表示が消えても項目番号と原因を残す。
+            writeLine(`${prefix}補完失敗：${code} / 経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`);
+            // 保存済み項目を保持する既存の停止・再開処理へ渡す。
+            throw error;
+        }
         // 空の複合値などを補完成功と扱わず、実値だけ採用する。
-        if (found.length && hasValue(found[0][field.name])) {
+        if (found) {
             // 空欄だった項目だけを補完する。
-            record[field.name] = found[0][field.name];
+            record[field.name] = found.value;
             // CSVに表示する実際の取得元を保持する。
-            sources.set(field.name, found[0].Id);
+            sources.set(field.name, found.source);
             // 補完の完了を値を含めずに通知する。
             writeLine(`${prefix}補完成功`);
         } else {
