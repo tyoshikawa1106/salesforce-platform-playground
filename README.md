@@ -119,7 +119,7 @@ Name
 CreatedDate
 ```
 
-項目の登録値をプレビュー用途で取得。空欄は新しいレコードからまとめて補完し、残りは検索可能な項目をOR条件で検索します。
+メール・電話/FAX・選択リスト・住所・位置情報はサンプル生成し、その他は最新1件を取得後に空欄だけ補完します。
 出力形式は `export-out/` に項目順の縦型CSVで出力します。
 
 ```sh
@@ -150,13 +150,13 @@ npm run sf:export:record-fields-preview -- --object Account --record-type-id <ID
 npm run sf:export:records -- --object Account --record-limit 2000 --record-type-id <ID>
 ```
 
-出力先を指定して実行します。縦型は項目ごと、横型は全項目が揃ったレコードごとに `.partial.csv` を更新します。
+出力先を指定して実行します。縦型は取得・補完のまとまりごと、横型は全項目が揃ったレコードごとに `.partial.csv` を更新します。
 
 ```sh
 # 出力先を指定して実行
 npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv
 npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv
-# 中断時は表示された再開コマンドを実行（以下は既定条件の例）
+# 中断時は表示された再開コマンドを実行（旧版プレビューの再開データは使用不可）
 npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv --resume
 npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv --resume
 ```

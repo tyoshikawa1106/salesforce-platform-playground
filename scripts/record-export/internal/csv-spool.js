@@ -54,7 +54,7 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
     // 通信がなくても更新が長時間見えない状態を避ける。
     let lastPublished = performance.now();
     // クエリの応答順と出力順を分離して保存する。
-    function append(id, group, record, sources, latestId, statuses, update) {
+    function append(id, group, record, sources, latestId, statuses, update, errorDetails) {
         // 各レコードで次に来る項目の位置を求める。
         const offset = update?.replace
             ? fields.findIndex((field) => field.name === group[0]?.name)
@@ -78,9 +78,9 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
             for (let index = 0; index < group.length; index++) {
                 // ステータスと補完元を含む一行だけを生成する。
                 const text = toCsv(
-                    { fields: [group[index]], records: [record], sources, latestId, statuses },
+                    { fields: [group[index]], records: [record], sources, latestId, statuses, errorDetails },
                     mode
-                ).slice('FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n'.length);
+                ).slice('FieldApiName,Label,Type,Value,Status,SourceRecordId,エラー詳細\r\n'.length);
                 // 利用者のAPI名をパスへ使わず指定位置だけを使う。
                 const file = path.join(directory, `field-${offset + index}.csv`);
                 // 完成ファイルはチェックポイントから復元可能な断片だけで組み立てる。
@@ -146,7 +146,7 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
                                     statuses: new Map([[fields[index].name, 'NOT_PROCESSED']])
                                 },
                                 mode
-                            ).slice('FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n'.length)
+                            ).slice('FieldApiName,Label,Type,Value,Status,SourceRecordId,エラー詳細\r\n'.length)
                         );
                 }
             } finally {

@@ -5,6 +5,75 @@ const { QUERY_TIMEOUT_CODES } = require('./error-definitions');
 // 応答のない一回の検索を制限し、成功が続く補完全体は時間だけで打ち切らない。
 const SUPPLEMENT_TIMEOUT_MS = 60000;
 
+// 実レコードを検索しないプレビューの保存位置であり、SOQLや取得元IDには使用しない。
+const GENERATED_RECORD_KEY = 'generated-preview';
+
+// 住所全体と構成項目で同じデモ用値を使い、元データを問い合わせない。
+const SAMPLE_ADDRESS = Object.freeze({
+    street: 'サンプル町1-2-3',
+    city: 'サンプル市',
+    state: '東京都',
+    stateCode: '13',
+    country: 'JP',
+    countryCode: 'JP',
+    postalCode: '000-0000',
+    latitude: 35.681236,
+    longitude: 139.767125,
+    geocodeAccuracy: 'Address'
+});
+
+// 項目名の推測ではなく、型と複合項目の所属から生成対象を決める。
+function sampleForField(field, definitions) {
+    // 指定項目が構成項目だけでも、Describe全体から親を確認する。
+    const parent = definitions.get(field.compoundFieldName?.toLowerCase());
+    // 住所・位置情報の構成項目を、通常の文字列・数値として検索しない。
+    if (parent && ['address', 'location'].includes(parent.type)) {
+        // カスタム複合項目は__cを外し、標準住所はAddressを外して構成名を求める。
+        const prefix = parent.name.endsWith('__c')
+            ? `${parent.name.slice(0, -3)}__`
+            : parent.name.replace(/Address$/, '');
+        // 標準位置情報は親名を持たないLatitude・Longitudeも構成項目として扱う。
+        const component =
+            parent.type === 'location' && ['Latitude', 'Longitude'].includes(field.name)
+                ? field.name
+                : field.name.startsWith(prefix)
+                  ? field.name.slice(prefix.length).replace(/__s$/, '')
+                  : '';
+        // RESTが返すプロパティ名に揃えて固定値を参照する。
+        const key = component.charAt(0).toLowerCase() + component.slice(1);
+        // 位置情報の親では緯度・経度以外を生成しない。
+        const value =
+            parent.type === 'address' || ['latitude', 'longitude'].includes(key) ? SAMPLE_ADDRESS[key] : undefined;
+        // 未知の構成項目は空欄と理由を残し、問い合わせによる漏れを防ぐ。
+        return value === undefined ? { value: null, status: 'NO_SAMPLE_VALUE' } : { value, status: 'GENERATED' };
+    }
+    // 候補はレコードタイプで絞らず、有効な既定値を優先する。
+    if (['picklist', 'multipicklist'].includes(field.type)) {
+        // 無効な候補と空文字をデモ用の有効値として扱わない。
+        const choices = (field.picklistValues || []).filter(
+            (item) => item.active && typeof item.value === 'string' && item.value !== ''
+        );
+        // 複数選択でも一つの候補だけを採用する。
+        const choice = choices.find((item) => item.defaultValue) || choices[0];
+        // 有効な候補がなくても実データを補完検索しない。
+        return choice ? { value: choice.value, status: 'GENERATED' } : { value: null, status: 'NO_PICKLIST_VALUE' };
+    }
+    // 一部分の伏字ではなく、元の値に依存しない固定値へ置き換える。
+    if (field.type === 'email') return { value: 'demo@example.com', status: 'GENERATED' };
+    // 電話とFAXは同じphone型として扱う。
+    if (field.type === 'phone') return { value: '000-0000-0000', status: 'GENERATED' };
+    // 複合住所はCSVの一セルに格納できるオブジェクトとして生成する。
+    if (field.type === 'address') return { value: { ...SAMPLE_ADDRESS }, status: 'GENERATED' };
+    // 単独の位置情報も住所内の座標と同じ値を使う。
+    if (field.type === 'location')
+        return {
+            value: { latitude: SAMPLE_ADDRESS.latitude, longitude: SAMPLE_ADDRESS.longitude },
+            status: 'GENERATED'
+        };
+    // それ以外の型だけが実値の取得対象になる。
+    return undefined;
+}
+
 // 補完だけの失敗は元レコードを保持して続行し、認証・API利用上限などは停止する。
 const SKIPPABLE_CODES = new Set([
     ...QUERY_TIMEOUT_CODES,
@@ -24,16 +93,7 @@ const SKIPPABLE_CODES = new Set([
 ]);
 
 // 取得した値と、利用者へ結果を確定する順序を分離する。
-function createPreviewResolver({
-    fields,
-    record,
-    scope,
-    searchBatch,
-    hasValue,
-    canFilterNonNull,
-    report = () => {},
-    retry = false
-}) {
+function createPreviewResolver({ fields, record, scope, searchBatch, hasValue, canFilterNonNull, report = () => {} }) {
     // 補完しない項目や元から値のある項目を追加検索へ含めない。
     const missing = fields.filter(
         (field) => !field.invalid && !hasValue(record[field.name]) && canFilterNonNull(field)
@@ -45,16 +105,16 @@ function createPreviewResolver({
         // 保留・値なし・値ありのいずれも確定後はキャッシュから返す。
         if (!resolved.has(field.name)) {
             // 未確定の対象だけを指定順で最大5項目に絞る。
-            const pending = missing.filter((candidate) => !resolved.has(candidate.name)).slice(0, retry ? 1 : 5);
+            const pending = missing.filter((candidate) => !resolved.has(candidate.name)).slice(0, 5);
             // 対象範囲外の呼び出しを値なしと誤認しない。
             if (!pending.some((candidate) => candidate.name === field.name))
                 throw new Error('補完対象の項目範囲が一致しません。');
-            // 応答のない通信を待ち続けず、失敗範囲は最後に個別再試行する。
+            // 応答のない通信を待ち続けず、時間超過は失敗として記録する。
             const started = performance.now();
             // 同じ通信に含まれる最大5検索の待ち時間を制限する。
             const deadline = started + SUPPLEMENT_TIMEOUT_MS;
             // 実行位置はサーバーから通知されないため、送信した対象項目を正確に表示する。
-            const label = `${retry ? '最後の再試行' : '個別非NULL検索'}：${pending.length}項目（${pending.map((item) => item.name).join(', ')}）・各最大1件`;
+            const label = `補完検索中: ${pending.map((item) => item.name).join(', ')}`;
             // 一項目だけを取得中と誤解させず、今回の送信対象を通知する。
             report(field, label);
             // 通信待ち中も経過時間を表示し、処理停止との区別を可能にする。
@@ -97,15 +157,17 @@ function createPreviewResolver({
                     // 生の本文を含めず、安全化された診断だけを表示する。
                     if (outcome.error.diagnostic && !reported.has(outcome.error)) {
                         // 詳細は一通信について一度だけ表示する。
-                        report(field, `${outcome.error.code} / ${outcome.error.diagnostic}`);
+                        report(
+                            candidate,
+                            `検索エラー: ${candidate.name} / ${outcome.error.code} / ${outcome.error.diagnostic}`
+                        );
                         // 同じ通信エラーが後続項目に出ても重複表示しない。
                         reported.add(outcome.error);
                     }
-                    // 失敗した項目だけを最後に個別で一度再試行する。
+                    // 検索失敗は確定して保存し、同じ項目を自動再試行しない。
                     resolved.set(candidate.name, {
                         skipped: outcome.error.code,
-                        deferred: !retry,
-                        retryBatchSize: 1,
+                        diagnostic: outcome.error.diagnostic || `分類コード: ${outcome.error.code} / 詳細情報なし`,
                         elapsedSeconds: ((performance.now() - started) / 1000).toFixed(1)
                     });
                     // エラーを正常な値なしに置き換えない。
@@ -123,8 +185,6 @@ function createPreviewResolver({
                 // ゼロ件の検索結果だけを値なしとして確定し、次回の対象から外す。
                 resolved.set(candidate.name, row ? { value: row[candidate.name], source: row.Id } : null);
             });
-            // 返された検索結果数を通知し、レコードの実値は表示しない。
-            report(field, `検索完了：${pending.length}項目・${((performance.now() - started) / 1000).toFixed(1)}秒`);
         }
         // 項目の指定順で失敗を通知し、それ以前の確定結果を保存できるようにする。
         const result = resolved.get(field.name);
@@ -135,4 +195,4 @@ function createPreviewResolver({
     };
 }
 
-module.exports = { createPreviewResolver, SUPPLEMENT_TIMEOUT_MS };
+module.exports = { createPreviewResolver, sampleForField, GENERATED_RECORD_KEY, SUPPLEMENT_TIMEOUT_MS };

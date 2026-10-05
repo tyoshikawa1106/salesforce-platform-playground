@@ -212,12 +212,12 @@ function parseCliResponse(response, mode) {
     const streamCode = processCodes.has(stderrCode) ? stderrCode : undefined;
     // CLIが例外を包んだ場合も、自由文ではなく構造化された原因コードを確認する。
     const causes = [body, body.cause, body.cause?.cause];
-    // 外側から順に既知の通信コードだけを採用する。
-    const transportCode = causes
-        .flatMap((cause) => [cause?.code, cause?.name])
-        .find((value) => processCodes.has(value));
     // 通常JSON受信でHTTP失敗が返った場合は、応答本文の固定コードだけを取り出す。
     const apiCode = Array.isArray(body.result?.body) ? body.result.body[0]?.errorCode : undefined;
+    // 原因コードの格納場所で分類が変わらないよう、既存の確認範囲を一度だけ展開する。
+    const causeCodes = [...causes.flatMap((cause) => [cause?.name, cause?.code, cause?.errorCode]), apiCode];
+    // 外側から順に既知の通信コードだけを採用する。
+    const transportCode = causeCodes.find((value) => processCodes.has(value));
     // OS側の失敗がある場合は、途中までのJSONより優先する。
     let code = 'CLI_FAILED';
     // 子プロセスを起動・完了できなかった原因を分類する。
@@ -235,17 +235,12 @@ function parseCliResponse(response, mode) {
     } else if (transportCode) {
         // CLI自身が返した通信エラーも、親プロセスの待ち時間制限と区別する。
         code = processCodes.get(transportCode);
-    } else if (authCodes.has(body.name) || apiCode === 'INVALID_SESSION_ID') {
+    } else if (causeCodes.some((value) => authCodes.has(value))) {
         // 認証失敗時は再試行せず、対象指定と既存認証の確認を促す。
         code = 'AUTH_FAILED';
-    } else if (
-        queryCodes.includes(body.name) ||
-        queryCodes.includes(body.errorCode) ||
-        queryCodes.includes(body.code) ||
-        queryCodes.includes(apiCode)
-    ) {
+    } else if (causeCodes.some((value) => queryCodes.includes(value))) {
         // 検索固有の診断を表示して、未完成のCSVの保存を防ぐ。
-        code = [body.name, body.errorCode, body.code, apiCode].find((candidate) => queryCodes.includes(candidate));
+        code = causeCodes.find((value) => queryCodes.includes(value));
     }
     // 判別した原因に対して、認証操作を自動実行せず確認先を案内する。
     const guidance = new Map([
@@ -278,7 +273,7 @@ function parseCliResponse(response, mode) {
         ]
     ]);
     // メッセージ本文やURLを除き、構造化された短い識別子だけを残す。
-    const identifiers = [body.name, body.code, body.errorCode, response.error?.code, streamCode, transportCode].filter(
+    const identifiers = [...causeCodes, response.error?.code, streamCode, transportCode].filter(
         (value) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value)
     );
     // 未分類でも終了コードとCLI識別子から調査できるようにする。
@@ -286,6 +281,7 @@ function parseCliResponse(response, mode) {
         `終了コード: ${Number.isInteger(response.status) ? response.status : '情報なし'}`,
         `応答形式: ${jsonState}`,
         `標準エラー: ${response.stderr ? 'あり（本文非表示）' : 'なし'}`,
+        ...(Number.isInteger(body.result?.statusCode) ? [`HTTP: ${body.result.statusCode}`] : []),
         ...(identifiers.length ? [] : ['識別子: 情報なし']),
         ...[...new Set(identifiers)].map((value) => `識別子: ${value}`),
         ['SIGTERM', 'SIGKILL', 'SIGINT'].includes(response.signal || response.error?.signal)
@@ -327,10 +323,14 @@ async function callSf(args, cwd, runner = runSfWithOutputAsync, mode = 'records'
             // 具体的な待機上限は呼び出し側の進捗表示に合わせる。
             error.code = 'SUPPLEMENT_TIMEOUT';
             // 既定の2分制限を示す本文は置き換える。
-            error.message = '補完の待機上限に達しました (SUPPLEMENT_TIMEOUT)。';
+            error.message = `補完の待機上限に達しました (SUPPLEMENT_TIMEOUT)。${error.diagnostic ? ` / ${error.diagnostic}` : ''}`;
         }
-        // 処理段階と経過時間を通知する。
-        error.message += ` / 処理: ${args[0] === 'api' ? 'レコード検索' : args[0] === 'sobject' ? '項目定義の取得' : 'CLI呼び出し'} / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`;
+        // CSVにも同じ実測時間と、この呼び出しに適用した上限を残す。
+        const timing = `処理: ${args[0] === 'api' ? 'レコード検索' : args[0] === 'sobject' ? '項目定義の取得' : 'CLI呼び出し'} / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒 / 待機上限: ${(timeout / 1000).toFixed(1)}秒`;
+        // 本文を除外して生成済みの診断へ実測情報を追加する。
+        error.diagnostic = [error.diagnostic, timing].filter(Boolean).join(' / ');
+        // 端末にも同じ実測情報を一度だけ追加する。
+        error.message += ` / ${timing}`;
         // コードは維持して、分割や停止の既存判定へ渡す。
         throw error;
     }
@@ -469,7 +469,7 @@ async function main(
         // 件数・補完の有無・用途を一行で確認できるようにする。
         writeLine(
             mode === 'record-fields-preview'
-                ? '取得: 最新1件＋可能な空欄を補完 / デモ用値・縦型'
+                ? '取得: 対応する型はサンプル生成・その他は最新1件＋空欄補完 / デモ用値・縦型'
                 : `取得: 最新から最大${options.recordLimit}件・補完なし / 実データ・横型`
         );
         // 項目ファイルと出力先を確認してから取得を開始できるようにする。
@@ -537,6 +537,11 @@ async function main(
         );
         // 定義・指定項目・検索条件を一度だけ検証し、正規化した項目を収集処理へ渡す。
         const fields = validateDescribe(describe, names, options);
+        // 生成対象だけならレコードの選択・値取得・補完をすべて省略する。
+        const generatedOnly =
+            mode === 'record-fields-preview' &&
+            fields.some((field) => field.sample) &&
+            fields.every((field) => field.invalid || field.sample);
         // 接続先の秘密情報を含めずに成功を知らせる。
         writeLine(`接続確認成功: ${describe.name} Describe取得済み`);
         // 接続確認だけの場合はレコードを検索しない。
@@ -545,28 +550,30 @@ async function main(
             return 0;
         }
         // 応答完了を待ってページごとに検証する読み取り専用クライアントを用意する。
-        const query = createQueryClient(
-            temporaryDirectory,
-            resolvedTargetOrg,
-            async (command, controls) => {
-                // 取得処理と同じ例外を返し、再試行やスキップの順序を変えない。
-                try {
-                    // レコード値や応答本文は診断へ保持しない。
-                    return await callSf(command, cwd, runner, mode, controls);
-                } catch (error) {
-                    // この入口で安全化した診断だけを集計し、同一の失敗を大量表示しない。
-                    if (error.diagnostic) {
-                        // コードと終了状態が同じ失敗は一行へまとめる。
-                        const detail = `${error.code} / ${error.diagnostic}`;
-                        // 最終表示では発生回数も通知する。
-                        cliFailures.set(detail, (cliFailures.get(detail) || 0) + 1);
-                    }
-                    // 値なしへ変換せず、既存の失敗処理へ渡す。
-                    throw error;
-                }
-            },
-            describe.urls?.sobject
-        );
+        const query = generatedOnly
+            ? undefined
+            : createQueryClient(
+                  temporaryDirectory,
+                  resolvedTargetOrg,
+                  async (command, controls) => {
+                      // 取得処理と同じ例外を返し、分割やスキップの順序を変えない。
+                      try {
+                          // レコード値や応答本文は診断へ保持しない。
+                          return await callSf(command, cwd, runner, mode, controls);
+                      } catch (error) {
+                          // この入口で安全化した診断だけを集計し、同一の失敗を大量表示しない。
+                          if (error.diagnostic) {
+                              // コードと終了状態が同じ失敗は一行へまとめる。
+                              const detail = `${error.code} / ${error.diagnostic}`;
+                              // 最終表示では発生回数も通知する。
+                              cliFailures.set(detail, (cliFailures.get(detail) || 0) + 1);
+                          }
+                          // 値なしへ変換せず、既存の失敗処理へ渡す。
+                          throw error;
+                      }
+                  },
+                  describe.urls?.sobject
+              );
         // 一時CSVは公開先と同じ親ディレクトリへ置く。
         fs.mkdirSync(path.dirname(output), { recursive: true });
         // 既存認証の一覧から組織IDを照合し、別組織での再開を拒否する。
@@ -585,7 +592,9 @@ async function main(
         checkpoint = openCheckpoint(
             checkpointDirectory,
             {
-                version: 1,
+                version: mode === 'record-fields-preview' ? 2 : 1,
+                // 実レコードなしの保存キーを許可する範囲を再開条件へ固定する。
+                ...(mode === 'record-fields-preview' ? { generatedOnly } : {}),
                 orgId,
                 username: resolvedTargetOrg,
                 object: options.object,
@@ -599,7 +608,9 @@ async function main(
                     label: field.label,
                     type: field.type,
                     filterable: !!field.filterable,
-                    invalid: !!field.invalid
+                    invalid: !!field.invalid,
+                    // 再開中の候補変更でサンプル値を混在させない。
+                    ...(field.sample ? { sample: field.sample } : {})
                 }))
             },
             options.resume
@@ -610,23 +621,19 @@ async function main(
         spool = createCsvSpool(spoolDirectory, fields, mode, partialOutput);
         // 再開済み範囲も含め、補完スキップ件数を重複なく集計する。
         const skipped = new Set();
-        // 保留の空欄と縮小サイズだけを復元し、完了済みの実値はメモリへ溜めない。
-        const resumePending = new Map();
+        // 初回取得済みで未検索の空欄だけを復元する。
+        const resumeSupplements = new Map();
         // 保存済み断片からCSVを再構築し、前回の未確定書き込みは利用しない。
         await checkpoint.replay(async (...args) => {
             // 保存済みのスキップを正常な空欄として数え直さない。
             for (const [name, status] of args[5] || []) if (status.startsWith('SKIPPED_')) skipped.add(name);
-            // 再試行で置換済みの項目は保留から外す。
+            // 補完で置換済みの項目は未検索一覧から外す。
             for (const field of args[1]) {
-                // チェックポイントの最新の状態だけを採用する。
-                resumePending.delete(field.name);
-                // 未完了の保留は元の空欄と再試行サイズを保持する。
-                if (args[5]?.get(field.name)?.startsWith('PENDING_RETRY_'))
-                    resumePending.set(field.name, {
-                        field,
-                        value: args[2][field.name],
-                        retryBatchSize: args[6].retryBatchSize
-                    });
+                // 補完済みの項目は初回補完の一覧へ戻さない。
+                resumeSupplements.delete(field.name);
+                // 未検索で保存した空欄だけを初回補完へ戻す。
+                if (args[5]?.get(field.name) === 'PENDING_SUPPLEMENT')
+                    resumeSupplements.set(field.name, { field, value: args[2][field.name] });
             }
             // 取得済みの値を再検索せずにそのまま保存する。
             await spool.append(...args);
@@ -643,10 +650,10 @@ async function main(
         options.resumeSelected = checkpoint.selected;
         // このMapは保存完了時に更新される。
         options.resumeOffsets = checkpoint.offsets;
-        // 基準値の取得を終えている保留項目も最後の再試行へ渡す。
-        options.resumePending = resumePending;
-        // 再試行範囲ごとに途中CSVの行をまとめて更新する。
-        options.onRetryBatch = () =>
+        // 初回取得の残りを終えた後だけ、未検索の空欄を補完する。
+        options.resumeSupplements = resumeSupplements;
+        // 補完範囲ごとに途中CSVの行をまとめて更新する。
+        options.onSupplementBatch = () =>
             spool.publishPartial(
                 checkpoint.selected.map((row) => row.Id),
                 true
@@ -684,9 +691,11 @@ async function main(
         completed = true;
         // 対象なしと成功件数を区別し、レコードの実値は表示しない。
         writeLine(
-            result.recordCount
-                ? `${skipped.size ? '処理完了（補完スキップあり）' : '取得完了'}: ${result.recordCount}レコード / ${result.fields.length}項目`
-                : '対象レコードがありません。ヘッダーのみ出力しました。'
+            result.generatedOnly
+                ? `プレビュー生成完了: ${result.fields.length}項目（レコード検索なし）`
+                : result.recordCount
+                  ? `${skipped.size ? '処理完了（補完スキップあり）' : '取得完了'}: ${result.recordCount}レコード / ${result.fields.length}項目`
+                  : '対象レコードがありません。ヘッダーのみ出力しました。'
         );
         // 保存場所を利用者へ伝える。
         writeLine(`出力: ${path.relative(cwd, output)}`);
