@@ -1056,7 +1056,7 @@ test('全項目が未確認でも余分な値検索をせず、対象なしで�
     }
 });
 
-test('残件数は対話端末の同じ行で更新し、検索対象と結果は重複せず残す', async (t) => {
+test('残件数は対話端末の同じ行で更新し、検索中の表示なしで結果を残す', async (t) => {
     const cwd = temporary(t);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Id\nName');
     for (const isTTY of [false, true]) {
@@ -1089,7 +1089,7 @@ test('残件数は対話端末の同じ行で更新し、検索対象と結果�
             if (fails) await assert.rejects(run, /mock failure/);
             else assert.equal(await run(), 0);
             assert.ok(messages.every((line) => !line.includes('補完中')));
-            assert.equal(messages.filter((line) => line.startsWith('補完検索中:')).length, 1);
+            assert.ok(messages.every((line) => !line.includes('補完検索中')));
             assert.ok(messages.every((line) => !line.includes('検索完了：')));
             const completed = messages.filter((line) => line.startsWith('[1/1項目]'));
             if (fails) {
@@ -1556,7 +1556,7 @@ test('CLIとSalesforceのタイムアウトを区別し、安全な診断と経�
     }
 });
 
-test('独立した非NULL検索を5本ずつ送信し、値なし・成功・一項目の失敗を混ぜない', async () => {
+test('独立した非NULL検索を一項目ずつ送信し、値なし・成功・一項目の失敗を混ぜない', async () => {
     const fields = Array.from({ length: 12 }, (_, i) => field(`F${i}`));
     const saved = [],
         batches = [];
@@ -1572,8 +1572,7 @@ test('独立した非NULL検索を5本ずつ送信し、値なし・成功・一
             const name = /^SELECT Id,(\w+) FROM/.exec(soql)[1];
             assert.ok(soql.includes(`WHERE ${name} != NULL ORDER BY`));
             if (name === 'F0') return { result: response([]) };
-            if (name === 'F1' && batches.length === 1)
-                return { error: Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' }) };
+            if (name === 'F1') return { error: Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' }) };
             return { result: response([{ Id: older.Id, [name]: name }]) };
         });
     };
@@ -1595,7 +1594,7 @@ test('独立した非NULL検索を5本ずつ送信し、値なし・成功・一
     );
     assert.deepEqual(
         batches.map((b) => b.length),
-        [5, 5, 2]
+        Array(12).fill(1)
     );
     assert.deepEqual(
         saved.slice(0, 12).map((r) => r.name),
@@ -1697,8 +1696,8 @@ test('両形式で作成日の条件を確認前に表示し、未指定時は�
     }
 });
 
-test('補完のCLI失敗・時間超過は再試行せずスキップしてCSVを完成させる', async (t) => {
-    for (const code of ['CLI_FAILED', 'QUERY_TIMEOUT', 'NETWORK_TIMEOUT', 'NETWORK_ERROR']) {
+test('補完のCLI失敗・時間超過を次項目へ波及させず、成功値をCSVへ保存する', async (t) => {
+    for (const code of ['CLI_FAILED', 'SUPPLEMENT_TIMEOUT', 'QUERY_TIMEOUT', 'NETWORK_TIMEOUT', 'NETWORK_ERROR']) {
         const cwd = temporary(t);
         fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
         const runner = runnerFor([{ ...newest, Name: null, Custom__pc: null }]);
@@ -1715,7 +1714,9 @@ test('補完のCLI失敗・時間超過は再試行せずスキップしてCSV�
                         const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
                         if (query.includes(' != NULL')) {
                             supplements++;
-                            throw Object.assign(new Error('mock'), { code });
+                            if (query.includes('Name != NULL')) throw Object.assign(new Error('mock'), { code });
+                            assert.ok(query.includes('Custom__pc != NULL'));
+                            return cli(response([{ Id: older.Id, Custom__pc: 'recovered' }]));
                         }
                     }
                     return runner(command);
@@ -1723,16 +1724,17 @@ test('補完のCLI失敗・時間超過は再試行せずスキップしてCSV�
             }),
             1
         );
-        assert.equal(supplements, 1);
+        assert.equal(supplements, 2);
         const csv = fs.readFileSync(path.join(cwd, 'skipped.csv'), 'utf8');
-        assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${code}`, 'g')) || []).length, 2);
+        assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${code}`, 'g')) || []).length, 1);
+        assert.match(csv, /"Custom__pc","Custom__pc","string","recovered","補完成功"/);
         assert.ok(!csv.includes('登録レコードなし'));
         assert.ok(messages.some((line) => line.includes('全項目の処理と保存は完了')));
         assert.ok(!fs.existsSync(path.join(cwd, 'skipped.csv.resume')));
     }
 });
 
-test('MasterRecordIdも特別扱いせず一括補完に含め、空欄と実値を通常どおり扱う', async () => {
+test('MasterRecordIdも特別扱いせず個別補完に含め、空欄と実値を通常どおり扱う', async () => {
     for (const masterValue of [null, older.Id]) {
         const queries = [];
         const result = await collectRecords(
@@ -1756,9 +1758,9 @@ test('MasterRecordIdも特別扱いせず一括補完に含め、空欄と実値
     }
 });
 
-test('補完待機の進捗と累積期限を検証し、成功・スキップ後にタイマーを残さない', async (t) => {
+test('補完検索中の表示と定期表示なしでも待機期限とスキップを維持する', async (t) => {
     const { createPreviewResolver, SUPPLEMENT_TIMEOUT_MS } = require('../internal/preview-values');
-    t.mock.timers.enable({ apis: ['setInterval'] });
+    t.mock.method(global, 'setInterval', () => assert.fail('補完の定期表示は不要'));
     let now = 0;
     t.mock.method(performance, 'now', () => now);
     const reports = [];
@@ -1770,10 +1772,8 @@ test('補完待機の進捗と累積期限を検証し、成功・スキップ�
         canFilterNonNull: () => true,
         report: (f, message) => reports.push([f.name, message]),
         searchBatch: async (_fields, _scope, controls) => {
-            assert.equal(controls.deadline, SUPPLEMENT_TIMEOUT_MS);
-            now = 10000;
-            t.mock.timers.tick(10000);
-            now = SUPPLEMENT_TIMEOUT_MS;
+            assert.equal(controls.deadline, now + SUPPLEMENT_TIMEOUT_MS);
+            now += SUPPLEMENT_TIMEOUT_MS;
             throw Object.assign(new Error('timeout'), { code: 'SUPPLEMENT_TIMEOUT' });
         }
     });
@@ -1787,10 +1787,7 @@ test('補完待機の進捗と累積期限を検証し、成功・スキップ�
         diagnostic: '分類コード: SUPPLEMENT_TIMEOUT / 詳細情報なし',
         elapsedSeconds: '60.0'
     });
-    assert.ok(reports.some(([name, text]) => name === 'A' && text.includes('応答待ち：10秒経過')));
-    const count = reports.length;
-    t.mock.timers.tick(20000);
-    assert.equal(reports.length, count);
+    assert.deepEqual(reports, []);
 });
 
 test('補完期限をCLI待機上限へ伝え、実際の子プロセス終了を待ってスキップ可能にする', async () => {
@@ -1837,6 +1834,60 @@ test('標準エラーだけの通信エラーを分類し、未知エラーも�
     }
 });
 
+test('標準エラーのJSON・色付き例外・未知コードから原因を残し、本文の実値は表示しない', async () => {
+    for (const [stderr, code, detail] of [
+        [
+            JSON.stringify({ name: 'RequestError', code: 'ETIMEDOUT', message: 'secret-value' }),
+            'NETWORK_TIMEOUT',
+            'ETIMEDOUT'
+        ],
+        [
+            "\u001b[31mTimeoutError: Timeout awaiting 'request' for 60000ms https://secret.invalid\u001b[0m",
+            'NETWORK_TIMEOUT',
+            "CLI原因: Timeout awaiting 'request' for 60000ms"
+        ],
+        ['Error: Request timed out. https://secret.invalid', 'NETWORK_TIMEOUT', 'CLI原因: Request timed out'],
+        ['Error: socket hang up\nsecret-value', 'NETWORK_ERROR', 'CLI原因: socket hang up'],
+        ['Error (UnexpectedCliError): secret-value', 'CLI_FAILED', 'UnexpectedCliError'],
+        ["RequestError: secret-value\n  code: 'UNKNOWN_TRANSPORT_ERROR'", 'CLI_FAILED', 'UNKNOWN_TRANSPORT_ERROR'],
+        [JSON.stringify({ name: 'INVALID_SESSION_ID', message: 'secret-value' }), 'AUTH_FAILED', 'INVALID_SESSION_ID']
+    ]) {
+        await assert.rejects(
+            () => callSf(['api'], '.', async () => ({ status: 1, stdout: '', stderr })),
+            (error) => {
+                assert.equal(error.code, code);
+                assert.ok(error.diagnostic.includes(detail), error.diagnostic);
+                assert.ok(!error.diagnostic.includes('secret'));
+                assert.ok(!error.message.includes('secret'));
+                return true;
+            }
+        );
+    }
+});
+
+test('CLIが時間切れのSIGTERMを捕捉して終了コード1を返しても補完期限として診断する', async () => {
+    const { runSfWithOutputAsync } = require('../../common/run-command');
+    // OS固有のシグナル処理に依存せず、数値終了時にexecFileが返す状態を再現する。
+    const runner = () =>
+        runSfWithOutputAsync([], '.', (_command, _args, _options, callback) => {
+            callback(
+                Object.assign(new Error('interrupted'), { code: 1, killed: true, signal: null }),
+                '',
+                'Error: interrupted'
+            );
+        });
+    await assert.rejects(
+        () => callSf(['api'], '.', runner, 'record-fields-preview', { deadline: performance.now() + 60000 }),
+        (error) => {
+            assert.equal(error.code, 'SUPPLEMENT_TIMEOUT');
+            assert.match(error.diagnostic, /終了コード: 1/);
+            assert.match(error.diagnostic, /応答形式: 空/);
+            assert.match(error.diagnostic, /標準エラー: あり/);
+            return true;
+        }
+    );
+});
+
 test('入れ子の通信エラーを分類し、補完スキップ後も診断を終了時に残す', async (t) => {
     for (const [causeCode, expected] of [
         ['ECONNRESET', 'NETWORK_ERROR'],
@@ -1870,7 +1921,7 @@ test('入れ子の通信エラーを分類し、補完スキップ後も診断�
             }
         });
         assert.equal(status, 1);
-        assert.match(messages.at(-1), new RegExp(`^CLI失敗の診断（1回）: ${expected} / 終了コード: 1`));
+        assert.match(messages.at(-1), new RegExp(`^CLI失敗の診断（2回）: ${expected} / 終了コード: 1`));
         assert.ok(!messages.join('\n').includes('secret-value'));
         const csv = fs.readFileSync(path.join(cwd, 'failed.csv'), 'utf8');
         assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${expected}`, 'g')) || []).length, 2);
@@ -1970,7 +2021,7 @@ test('検索失敗を確定した後に中断しても、再開時は未検索�
     assert.equal(csv.split('\r\n').length, 8);
 });
 
-test('1300項目中1200項目の空欄は240通信で検索し、各項目を一度だけ確定する', async () => {
+test('1300項目中1200項目の空欄を一項目ずつ検索し、各項目を一度だけ確定する', async () => {
     const fields = Array.from({ length: 1300 }, (_, i) => field(`F${String(i).padStart(36, '0')}__c`));
     const saved = [],
         queried = new Set();
@@ -1986,7 +2037,7 @@ test('1300項目中1200項目の空欄は240通信で検索し、各項目を一
     query.batch = async (soqls) => {
         assert.equal(saved.slice(0, 1300).length, 1300);
         batches++;
-        assert.equal(soqls.length, 5);
+        assert.equal(soqls.length, 1);
         return soqls.map((soql) => {
             const name = /^SELECT Id,(\w+) FROM/.exec(soql)[1];
             assert.ok(!queried.has(name));
@@ -2003,7 +2054,7 @@ test('1300項目中1200項目の空欄は240通信で検索し、各項目を一
         async (_id, group, record) => saved.push(...group.map((item) => [item.name, record[item.name]]))
     );
     assert.equal(baseCalls, 2);
-    assert.equal(batches, 240);
+    assert.equal(batches, 1200);
     assert.equal(queried.size, 1200);
     assert.deepEqual(
         saved.slice(0, 1300).map((r) => r[0]),
@@ -2069,16 +2120,23 @@ test('生成対象は初回・補完クエリから除外し、初回結果を�
                 { value: 'default', active: true, defaultValue: true }
             ]
         }),
-        field('Description', { type: 'textarea' })
+        field('ShortText', { type: 'textarea' }),
+        field('LongText', { type: 'textarea', filterable: false }),
+        field('RichText', { type: 'textarea', filterable: false, htmlFormatted: true }),
+        field('Description')
     );
     const settings = { mode: 'record-fields-preview', recordLimit: 1 };
-    const fields = validateDescribe(definition, ['Email', 'Fax', 'Choice', 'Description'], settings);
+    const fields = validateDescribe(
+        definition,
+        ['Email', 'Fax', 'Choice', 'ShortText', 'LongText', 'RichText', 'Description'],
+        settings
+    );
     const writes = [],
         queries = [],
         messages = [];
     const query = async (soql) => {
         queries.push(soql);
-        assert.ok(!/Email|Fax|Choice/.test(soql));
+        assert.ok(!/Email|Fax|Choice|ShortText|LongText|RichText/.test(soql));
         return soql.startsWith('SELECT Id,CreatedDate')
             ? response([newest])
             : response([{ Id: newest.Id, Description: null }]);
@@ -2114,6 +2172,15 @@ test('生成対象は初回・補完クエリから除外し、初回結果を�
     assert.equal(writes[0].record.Fax, '000-0000-0000');
     assert.equal(writes[0].record.Choice, 'default');
     assert.equal(writes[0].sources.get('Email'), '');
+    for (const [name, value] of [
+        ['ShortText', '(テキストエリアのサンプル)'],
+        ['LongText', '(ロングテキストのサンプル)'],
+        ['RichText', '(リッチテキストのサンプル)']
+    ]) {
+        assert.equal(writes[0].record[name], value);
+        assert.equal(writes[0].statuses.get(name), 'GENERATED');
+        assert.equal(writes[0].sources.get(name), '');
+    }
     assert.equal(writes[1].update.replace, true);
     assert.ok(messages.includes('[1/1項目]\tDescription\t補完成功'));
     assert.ok(messages.every((line) => !line.includes('再試行')));
@@ -2180,20 +2247,32 @@ test('生成対象だけのプレビューはレコード検索なしでCSVを�
     assert.equal(fs.readFileSync(path.join(cwd, 'generated.csv'), 'utf8'), partial);
 });
 
-test('横型ではメール・電話・選択リストも実値のまま取得する', async () => {
-    const definition = describe(field('Email', { type: 'email' }), field('Phone', { type: 'phone' }));
+test('横型ではメール・電話・テキストエリアも実値のまま取得する', async () => {
+    const definition = describe(
+        field('Email', { type: 'email' }),
+        field('Phone', { type: 'phone' }),
+        field('Description', { type: 'textarea', filterable: false })
+    );
     const result = await collectRecords(
         definition,
-        ['Email', 'Phone'],
+        ['Email', 'Phone', 'Description'],
         { mode: 'records', recordLimit: 1 },
         async (soql) => {
             if (soql.startsWith('SELECT Id,CreatedDate')) return response([newest]);
-            assert.ok(soql.includes('Email,Phone'));
-            return response([{ Id: newest.Id, Email: 'original@example.com', Phone: '0123456789' }]);
+            assert.ok(soql.includes('Email,Phone,Description'));
+            return response([
+                {
+                    Id: newest.Id,
+                    Email: 'original@example.com',
+                    Phone: '0123456789',
+                    Description: '元の説明文\n改行あり'
+                }
+            ]);
         },
         quiet
     );
     assert.equal(result.records[0].Email, 'original@example.com');
     assert.equal(result.records[0].Phone, '0123456789');
+    assert.equal(result.records[0].Description, '元の説明文\n改行あり');
     assert.equal(result.statuses.size, 0);
 });

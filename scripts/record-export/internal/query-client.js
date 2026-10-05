@@ -1,4 +1,4 @@
-// 用途: 既存認証のCLIでComposite Queryを実行し、応答完了と各ページの整合性を確認する。
+// 用途: 既存認証のCLIで一括取得と個別補完を実行し、応答完了と整合性を確認する。
 const fs = require('node:fs');
 const path = require('node:path');
 const { QUERY_ERROR_CODES, QUERY_TIMEOUT_CODES } = require('./error-definitions');
@@ -158,49 +158,38 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
             url = page.nextRecordsUrl;
         }
     }
-    // 補完専用の独立検索を最大5本まで送り、各検索の成功と失敗を分ける。
+    // 補完は通常のQuery APIへ一項目ずつ送り、Composite全体の失敗へ巻き込まない。
     query.batch = async (soqls, controls = {}) => {
-        // CompositeのQuery上限を送信前に強制する。
-        if (!Array.isArray(soqls) || !soqls.length || soqls.length > 5)
-            throw new Error('補完検索は一通信あたり1〜5項目で指定してください。');
-        // API名ではなく連番を識別子にし、項目名の形式に依存させない。
-        const requests = soqls.map((soql, index) => ({
-            method: 'GET',
-            url: `${apiPath}/query/?q=${encodeURIComponent(soql)}`,
-            referenceId: `field${index}`
-        }));
-        // 順序固定・非並列の一通信として送り、応答を要求IDで照合する。
-        const parts = await request(requests, controls);
-        // 一項目のSOQLエラーでも、他の項目で得られた結果は保持する。
-        return parts.map((part) => {
-            // エラー変換だけを捕捉し、取得値の検証は収集側へ任せる。
-            try {
-                // 失敗した項目の応答だけを安全なエラーへ変換する。
-                if (part.httpStatusCode !== 200)
-                    fail(
-                        part.body?.[0]?.errorCode,
-                        `検索HTTP: ${Number.isInteger(part.httpStatusCode) ? part.httpStatusCode : '情報なし'} / ${part.diagnosticContext}`
-                    );
-                // LIMIT 1の検索は一ページで完了するため、欠落や未完了を許可しない。
-                if (
-                    part.body?.done !== true ||
-                    ![0, 1].includes(part.body.totalSize) ||
-                    !Array.isArray(part.body.records) ||
-                    part.body.records.length !== part.body.totalSize
-                )
-                    throw Object.assign(new Error('補完検索の応答が不完全です。'), {
-                        code: 'INVALID_QUERY_RESPONSE',
-                        diagnostic: part.diagnosticContext
-                    });
-                // 正常応答にも完全性検証を適用できる形で返す。
-                return { result: part.body };
-            } catch (error) {
-                // 同じ通信の別項目に失敗を伝播させない。
-                return { error };
-            }
-        });
+        // 一項目の応答を保存してから次の項目を送る契約を維持する。
+        if (!Array.isArray(soqls) || soqls.length !== 1)
+            throw new Error('補完検索は一通信あたり1項目で指定してください。');
+        // SOQLをシェル引数へ展開せず、既存の一時ディレクトリへ保存する。
+        const file = path.join(directory, 'supplement-query.soql');
+        // 読み取り専用クエリだけを保存し、取得値は書き込まない。
+        fs.writeFileSync(file, soqls[0], { mode: 0o600 });
+        // 一項目のCLI失敗をその項目の結果として返す。
+        try {
+            // Describeと同じAPIバージョンを指定し、CLI標準のクエリ経路で取得する。
+            const result = await invoke(
+                ['data', 'query', '--file', file, '--target-org', targetOrg, '--api-version', apiPath.split('/v')[1]],
+                controls
+            );
+            // LIMIT 1の成功・ゼロ件だけを受け付け、不完全な応答は値なしにしない。
+            if (
+                result?.done !== true ||
+                ![0, 1].includes(result.totalSize) ||
+                !Array.isArray(result.records) ||
+                result.records.length !== result.totalSize
+            )
+                throw Object.assign(new Error('補完検索の応答が不完全です。'), { code: 'INVALID_QUERY_RESPONSE' });
+            // 取得元IDと項目値は収集側でも検証する。
+            return [{ result }];
+        } catch (error) {
+            // 次の項目を検索するか停止するかは、既存の原因別判定へ委ねる。
+            return [{ error }];
+        }
     };
-    // 通常取得と補完のバッチ取得で同じ送受信経路を使う。
+    // 一括取得と個別補完の入口を収集処理へ返す。
     return query;
 }
 

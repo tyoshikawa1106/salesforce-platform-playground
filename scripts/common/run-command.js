@@ -141,7 +141,14 @@ function runSfWithOutputAsync(args, workingDirectory, execCommand = execFile, ma
                 // CLIが返した非0終了はJSONを解析できるよう、終了コードとして保持する。
                 if (error && typeof error.code === 'number') {
                     // 標準出力を残し、呼び出し元がCLIのJSONエラーを判定できる形で返す。
-                    resolve({ signal: error.signal ?? null, status: error.code, stderr, stdout });
+                    resolve({
+                        signal: error.signal ?? null,
+                        status: error.code,
+                        stderr,
+                        stdout,
+                        // CLIがSIGTERMを捕捉して数値で終了しても、時間切れの情報を失わない。
+                        ...(error.killed ? { killed: true } : {})
+                    });
                     // 同じエラーを起動失敗として重複処理しない。
                     return;
                 }
