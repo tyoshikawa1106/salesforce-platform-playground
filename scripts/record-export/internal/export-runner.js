@@ -4,7 +4,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { parseArgs } = require('node:util');
+const { clearLine, cursorTo } = require('node:readline');
 const { createCsvSpool } = require('./csv-spool');
+const { openCheckpoint } = require('./checkpoint');
 const { createQueryClient } = require('./query-client');
 const { runSfWithOutputAsync } = require('../../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo, orgTypes } = require('../../common/target-org');
@@ -23,12 +25,18 @@ function parseOptions(args, mode = 'records') {
             // 実行ディレクトリに依存せず、スクリプト付属の項目設定を使う。
             fields: { type: 'string', default: path.resolve(__dirname, '../config/fields.txt') },
             output: { type: 'string' },
+            resume: { type: 'boolean', default: false },
             'check-auth': { type: 'boolean', default: false },
             ...(mode === 'records' ? { 'record-limit': { type: 'string', default: '2000' } } : {}),
             'fields-per-query': { type: 'string' },
             help: { type: 'boolean', default: false }
         }
     });
+    // 再開先を曖昧にせず、元の出力名を明示してもらう。
+    if (values.resume && (!values.output || values['check-auth'])) {
+        // 接続確認だけの実行では再開データへ触れない。
+        throw new Error('--resumeには元の--outputを指定してください。--check-authとは併用できません。');
+    }
     // SOQLのオブジェクト位置には単一のAPI名だけを許可する。
     if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(values.object)) {
         // 入力を直接SOQLの式として実行しない。
@@ -57,6 +65,7 @@ function parseOptions(args, mode = 'records') {
         object: values.object,
         fields: values.fields,
         output: values.output,
+        resume: values.resume,
         checkAuth: values['check-auth'],
         help: values.help,
         recordLimit: mode === 'record-fields-preview' ? 1 : Number(values['record-limit']),
@@ -128,6 +137,7 @@ function parseCliResponse(response, mode) {
     // 検索固有のエラーは、固定した識別子だけを表示する。
     const queryCodes = [
         'INVALID_FIELD',
+        'INSUFFICIENT_ACCESS',
         'MALFORMED_QUERY',
         'INVALID_QUERY_FILTER_OPERATOR',
         'FUNCTIONALITY_NOT_ENABLED'
@@ -210,18 +220,64 @@ async function main(
         runner = runSfWithOutputAsync,
         writeLine = console.log,
         createPrompt,
-        now = Date.now,
-        setIntervalCommand = setInterval,
-        clearIntervalCommand = clearInterval
+        progressOutput = writeLine === console.log ? process.stdout : undefined
     } = {}
 ) {
+    // 端末上の一時表示だけを追跡し、ログファイルには結果のみ残す。
+    let pendingLine = false;
+    // 確定表示や例外終了の前に、補完中の一行を消す。
+    function clearProgress() {
+        // 一時表示がなければ端末制御文字を送らない。
+        if (!pendingLine) return;
+        // 改行していない一時行の先頭へ戻る。
+        cursorTo(progressOutput, 0);
+        // 前の表示が長くても末尾を残さない。
+        clearLine(progressOutput, 0);
+        // 次の確定表示は通常の一行として扱う。
+        pendingLine = false;
+    }
+    // 項目の結果は、処理中表示と同じ行で確定する。
+    function writeResult(message) {
+        // 検索エラーや再分割の案内でも一時表示を残さない。
+        clearProgress();
+        // 既存の出力先へ結果を一度だけ書く。
+        writeLine(message);
+    }
+    // 補完中の項目はTTYだけで改行せず表示する。
+    function updateLine(message) {
+        // リダイレクト・非対話端末では結果行だけを記録する。
+        if (!progressOutput?.isTTY) return;
+        // 前の一時表示を置き換える。
+        clearProgress();
+        // 半角API名は1桁、日本語の状態表示は2桁として端末幅に収める。
+        const maxWidth = Math.max(0, (progressOutput.columns || 80) - 1);
+        // 表示幅を超える文字だけを切り詰め、折り返しによる二行表示を防ぐ。
+        let width = 0;
+        // 確定結果は省略せず、一時表示だけを端末幅に合わせる。
+        let text = '';
+        // API名と固定文言だけからなる進捗行を文字単位で確認する。
+        for (const character of message) {
+            // タブは次の8桁境界、日本語は2桁として折り返しを防ぐ。
+            const size = character === '\t' ? 8 - (width % 8) : character.codePointAt(0) <= 0x7f ? 1 : 2;
+            // 端末末尾で折り返す前に止める。
+            if (width + size > maxWidth) break;
+            // 表示できる部分だけを残す。
+            text += character;
+            // 次の文字の開始位置を更新する。
+            width += size;
+        }
+        // 結果が返るまで同じ行に残し、タイマーは使わない。
+        progressOutput.write(text);
+        // 次の結果または例外で消せるようにする。
+        pendingLine = true;
+    }
     // 不正なオプションはCLIを起動する前に拒否する。
     const options = { ...parseOptions(args, mode), mode };
     // ヘルプは入力ファイルや認証を必要としない。
     if (options.help) {
         // オプションと認証確認だけを行う使い方を案内する。
         writeLine(
-            `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields scripts/record-export/config/fields.txt] [--record-type-id ID] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth]`
+            `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields scripts/record-export/config/fields.txt] [--record-type-id ID] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth] [--resume]`
         );
         // ヘルプ表示は正常終了する。
         return 0;
@@ -230,51 +286,24 @@ async function main(
     const names = options.checkAuth ? [] : readFieldNames(path.resolve(cwd, options.fields));
     // 出力は既定でGit管理対象外のexport-outへ保存し、実行ごとに分ける。
     const output = path.resolve(cwd, options.output || `export-out/${mode}-${Date.now()}.csv`);
+    // 途中CSVと再開記録を完成CSVと明確に分ける。
+    const partialOutput = output.endsWith('.csv') ? `${output.slice(0, -4)}.partial.csv` : `${output}.partial.csv`;
+    // 元の出力名から再開フォルダを一意に決める。
+    const checkpointDirectory = `${output}.resume`;
+    // 初回は他の実行の途中結果を上書きしない。
+    if (!options.resume && !options.checkAuth && (fs.existsSync(partialOutput) || fs.existsSync(checkpointDirectory)))
+        throw new Error('途中結果が存在します。元の条件に--resumeを追加するか、別の--outputを指定してください。');
     // 既存の出力や入力ファイルを上書きしない。
     if (!options.checkAuth && fs.existsSync(output)) {
         // 誤上書きを避け、別の出力名を指定してもらう。
         throw new Error('出力ファイルが既に存在します。別の--outputを指定してください。');
-    }
-    // CLIの待機中もイベントループを動かし、追加APIを呼ばず定期表示する。
-    async function runWithProgress(command, directory, execCommand, maxBuffer, timeout) {
-        // 現在のCLI呼び出しの開始から経過時間を計測する。
-        const startedAt = now();
-        // 値や認証情報を表示せず、待機中の処理だけを識別する。
-        const operation = {
-            config: '組織設定の確認',
-            org: '接続組織の確認',
-            sobject: '項目定義の取得',
-            data: '項目値の検索',
-            api: '項目値の検索'
-        }[command[0]];
-        // リトリーブと同じ30秒間隔で、現在の処理の継続を知らせる。
-        const timer = setIntervalCommand(() => {
-            // 経過時間と現在日時を同じ時点から算出する。
-            const checkedAt = now();
-            // システム時刻が戻った場合も負の経過時間を出さない。
-            const elapsed = (Math.max(0, checkedAt - startedAt) / 1000).toFixed(1);
-            // 日時は実行環境のローカル時刻で表示する。
-            writeLine(
-                `・実行中: ${operation}｜${elapsed}秒経過｜${new Date(checkedAt).toLocaleString('ja-JP', { hour12: false })}`
-            );
-        }, 30000);
-        // 定期表示だけでプロセスが終了できなくなることを防ぐ。
-        timer?.unref?.();
-        // 成功・失敗・起動時の例外すべてで定期表示を終了する。
-        try {
-            // 逐次実行を維持し、応答待ちの間だけ他のイベントを処理する。
-            return await runner(command, directory, execCommand, maxBuffer, timeout);
-        } finally {
-            // 次の処理や確認入力へ移る前にタイマーを解除する。
-            clearIntervalCommand(timer);
-        }
     }
     // 組織情報取得の失敗も、Describe・検索と同じ診断へ揃える。
     const runOrgCommand = async (command, directory) => {
         // 組織一覧と設定取得で、それぞれ必要な応答上限を維持する。
         const limit = command[0] === 'config' ? 1024 * 1024 : 16 * 1024 * 1024;
         // 共通の組織判定へ生のエラー応答を渡す前に検証する。
-        const response = await runWithProgress(command, directory, undefined, limit, 120000);
+        const response = await runner(command, directory, undefined, limit, 120000);
         // 生本文を表示しない共通診断で、失敗時はここで停止する。
         parseCliResponse(response, mode);
         // 成功した応答だけを既存の組織判定へ渡す。
@@ -289,7 +318,7 @@ async function main(
         // 既定組織の有無・一意性の判定は共通実装を使用する。
         targetOrg = getDefaultTargetOrg({ repoRoot: cwd, runSfCommand: () => configResponse });
     }
-    // 一覧取得中も定期表示を継続し、組織への接続確認はDescribeで行う。
+    // 既存の組織一覧を取得し、API接続の確認はDescribeで行う。
     const orgResponse = await runOrgCommand(['org', 'list', '--json', '--skip-connection-status'], cwd);
     // 取得済み一覧を共通の組織種別・一意性の判定へ渡す。
     const orgInfo = getTargetOrgInfo({ repoRoot: cwd, targetOrg, runSfCommand: () => orgResponse });
@@ -297,6 +326,8 @@ async function main(
     printTargetOrgInfo(orgInfo, writeLine);
     // 確認中にaliasが変更されても、表示した実行ユーザーへ接続する。
     const resolvedTargetOrg = orgInfo.username;
+    // 接続組織の表示と実行条件の表示を区切る。
+    writeLine('');
     // 操作対象と明示的なレコードタイプの絞り込みだけを表示する。
     writeLine(
         `対象: ${options.object} / ${options.recordTypeId ? `レコードタイプID: ${options.recordTypeId}` : '参照可能な全レコード（レコードタイプ指定なし）'}`
@@ -308,20 +339,20 @@ async function main(
     }
     // 接続確認専用ではデータの取得承認を求めない。
     if (!options.checkAuth) {
-        // 項目ファイルと出力先を確認してから取得を開始できるようにする。
-        writeLine(`項目ファイル: ${path.resolve(cwd, options.fields)} / 指定項目数: ${names.length}`);
-        // 取得件数と並び順の既定動作を明示する。
-        writeLine(
-            `取得: 最新から最大${options.recordLimit}件 / ${options.fieldsPerQuery ? `${options.fieldsPerQuery}項目ずつ（手動上限）` : '全指定項目・制限時に自動分割'} / 出力: ${mode === 'record-fields-preview' ? 'レコードフィールドプレビュー（縦型）' : '横型'}`
-        );
-        // 形式によって補完の有無が異なることを、承認前に明示する。
+        // 件数・補完の有無・用途を一行で確認できるようにする。
         writeLine(
             mode === 'record-fields-preview'
-                ? 'レコードフィールドプレビュー（デモ用値・縦型）: 最新1件を基準に、空欄は非NULL条件で検索可能な項目だけ最新の非NULL値で補完します。検索不可の項目は元の値を保持します。項目の行は指定ファイル順です。'
-                : '横型: 各レコードの実際の値を出力します。空欄は補完しません。項目の列は指定ファイル順です。'
+                ? '取得: 最新1件＋可能な空欄を補完 / デモ用値・縦型'
+                : `取得: 最新から最大${options.recordLimit}件・補完なし / 実データ・横型`
+        );
+        // 項目ファイルと出力先を確認してから取得を開始できるようにする。
+        writeLine(
+            `項目ファイル: ${path.relative(cwd, path.resolve(cwd, options.fields))} / 指定項目数: ${names.length}`
         );
         // 実行時に作成するCSVの保存先を示す。
-        writeLine(`出力先: ${output}`);
+        writeLine(`出力先: ${path.relative(cwd, output)}`);
+        // 出力先の表示と確認入力の間を空ける。
+        writeLine('');
         // 共通の確認入力を使い、明示的なyまたはYだけを受け付ける。
         const prompt = createApprovalPrompt(createPrompt);
         // 中止や入力エラーでも端末の入力待ちを終了する。
@@ -358,13 +389,17 @@ async function main(
     const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-record-export-'));
     // CSV断片は出力先と同じファイルシステムへ保存する。
     let spoolDirectory;
+    // 正常終了した場合だけ再開データを片付ける。
+    let completed = false;
+    // エラー時もロックを解除し、再開記録は保持する。
+    let checkpoint;
     // 成功・失敗を問わず一時ファイルを削除する。
     try {
         // Describeの成功により実際のAPI接続と対象オブジェクトへのアクセスを確認する。
         const describe = await callSf(
             ['sobject', 'describe', '--sobject', options.object, '--target-org', resolvedTargetOrg],
             cwd,
-            runWithProgress,
+            runner,
             mode
         );
         // 定義・指定項目・検索条件を一度だけ検証し、正規化した項目を収集処理へ渡す。
@@ -380,19 +415,86 @@ async function main(
         const query = createQueryClient(
             temporaryDirectory,
             resolvedTargetOrg,
-            (command) => callSf(command, cwd, runWithProgress, mode),
+            (command) => callSf(command, cwd, runner, mode),
             describe.urls?.sobject
         );
         // 一時CSVは公開先と同じ親ディレクトリへ置く。
         fs.mkdirSync(path.dirname(output), { recursive: true });
+        // 既存認証の一覧から組織IDを照合し、別組織での再開を拒否する。
+        const orgList = parseCliResponse(orgResponse, mode);
+        // 同じusernameに対応する組織IDだけを使用する。
+        const identities = [
+            ...(orgList.nonScratchOrgs || []),
+            ...(orgList.scratchOrgs || []),
+            ...(orgList.sandboxes || [])
+        ];
+        // 再開データには認証トークンを含めない。
+        const orgId = identities.find((org) => org.username === resolvedTargetOrg)?.orgId;
+        // 識別できない組織で再開可能なデータを作らない。
+        if (!orgId) throw new Error('再開用データの接続組織を識別できません。');
+        // 取得結果に関係する条件だけを固定し、分割サイズは再開時に調整できる。
+        checkpoint = openCheckpoint(
+            checkpointDirectory,
+            {
+                version: 1,
+                orgId,
+                username: resolvedTargetOrg,
+                object: options.object,
+                mode,
+                recordTypeId: options.recordTypeId || null,
+                recordLimit: options.recordLimit,
+                fields: fields.map((field) => ({
+                    name: field.name,
+                    label: field.label,
+                    type: field.type,
+                    filterable: !!field.filterable,
+                    invalid: !!field.invalid
+                }))
+            },
+            options.resume
+        );
         // 完成前のデータを利用者の指定ファイル名で公開しない。
         spoolDirectory = fs.mkdtempSync(path.join(path.dirname(output), '.record-export-'));
         // 値をメモリに蓄積せず、ID別に順次保存する。
-        const spool = createCsvSpool(spoolDirectory, fields, mode);
+        const spool = createCsvSpool(spoolDirectory, fields, mode, partialOutput);
+        // 保存済み断片からCSVを再構築し、前回の未確定書き込みは利用しない。
+        await checkpoint.replay(async (...args) => {
+            // 取得済みの値を再検索せずにそのまま保存する。
+            await spool.append(...args);
+            // 横型は完成したレコードだけを途中CSVへ表示する。
+            spool.publishPartial((checkpoint.selected || []).map((row) => row.Id));
+        });
+        // 復元できた場合だけ途中CSVを公開し、以降は順次追記する。
+        spool.activatePartial();
+        // 中断した場合にも利用者が再開元を識別できるようにする。
+        writeLine(`途中保存: ${path.relative(cwd, partialOutput)}`);
+        // 保存済み項目を再取得しないための位置と固定対象を渡す。
+        options.resumeSelected = checkpoint.selected;
+        // このMapは保存完了時に更新される。
+        options.resumeOffsets = checkpoint.offsets;
+        // 対象IDを最初の値取得より前に確定する。
+        options.onSelected = checkpoint.select;
         // 対象選択・適応分割・補完を共通の照合処理で実行する。
-        const result = await collectRecords(describe, fields, options, query, writeLine, spool.append);
-        // 全項目と全レコードが揃った場合だけ完成ファイルを公開する。
+        const result = await collectRecords(
+            describe,
+            fields,
+            options,
+            query,
+            writeResult,
+            async (...args) => {
+                // 再開可能な断片を先に確定し、CSV書き込みエラーでも値を保持する。
+                checkpoint.append(...args);
+                // 既存の項目順検証を通してCSVを追記する。
+                await spool.append(...args);
+                // 全項目が揃った横型の行を順に公開する。
+                spool.publishPartial(checkpoint.selected.map((row) => row.Id));
+            },
+            updateLine
+        );
+        // 未確認項目の空セルも含め、指定位置がすべて揃ってから公開する。
         spool.finish(result.ids, output);
+        // 完成CSVの公開後だけ、途中データを削除してよい状態にする。
+        completed = true;
         // 対象なしと成功件数を区別し、レコードの実値は表示しない。
         writeLine(
             result.recordCount
@@ -400,13 +502,37 @@ async function main(
                 : '対象レコードがありません。ヘッダーのみ出力しました。'
         );
         // 保存場所を利用者へ伝える。
-        writeLine(`出力: ${output}`);
-        // 全レコード・全項目の取得と保存が完了した場合だけ成功を返す。
-        return 0;
+        writeLine(`出力: ${path.relative(cwd, output)}`);
+        // 保存できても未確認項目があれば完全成功とは区別する。
+        const invalidCount = fields.filter((field) => field.invalid).length;
+        // 修正対象数を表示し、正常な空欄と取得できなかった空欄を区別する。
+        if (invalidCount)
+            writeLine(`項目エラー: ${invalidCount}項目を空欄で出力しました。API名と項目参照権限を確認してください。`);
+        // CSVは保存するが、項目エラーは呼び出し元にも通知する。
+        return invalidCount ? 1 : 0;
     } finally {
+        // 検索失敗時も一時表示を消し、後続のエラー表示を独立させる。
+        clearProgress();
         // 認証失敗時にもSOQLの一時ファイルを残さない。
         fs.rmSync(temporaryDirectory, { recursive: true, force: true });
-        // 未完成または公開済みの一時CSVも通常終了・例外時に片付ける。
+        // 中断後も再開記録と途中CSVは保持し、ロックだけ解放する。
+        if (checkpoint) {
+            // 完成品の公開成功時だけ保存途中のファイルを片付ける。
+            if (completed) {
+                // 実行中ロックを残したまま削除し、後片付け中の再開を防ぐ。
+                fs.rmSync(checkpointDirectory, { recursive: true, force: true });
+                // 完成ファイルとの取り違えを防ぐ。
+                fs.rmSync(partialOutput, { force: true });
+            } else {
+                // 異常終了ではロックだけを外し、再開データを保持する。
+                checkpoint.close();
+                // 元の条件を維持して再開する操作を案内する。
+                writeLine(
+                    `途中結果を保持しました。同じコマンドに --output "${path.relative(cwd, output)}" --resume を指定して再開してください。`
+                );
+            }
+        }
+        // CSV作成用の作業領域は再開記録と別なので削除できる。
         if (spoolDirectory) fs.rmSync(spoolDirectory, { recursive: true, force: true });
     }
 }

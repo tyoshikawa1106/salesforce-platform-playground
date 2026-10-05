@@ -64,13 +64,6 @@ function validateDescribe(describe, names, options) {
     }
     // 指定順を変えずにAPI名を正規化するための索引を作る。
     const definitions = new Map(describe.fields.map((field) => [field.name.toLowerCase(), field]));
-    // 複数の無効項目を一度に案内する。
-    const invalid = names.filter((name) => !definitions.has(name.toLowerCase()));
-    // 無効項目を欠落列として出力せず、検索前に止める。
-    if (invalid.length) {
-        // 指定されたAPI名だけを案内する。
-        throw new Error(`Describeで確認できない項目があります: ${invalid.join(', ')}`);
-    }
     // 最新順の選択とIDによる照合に必須の項目を確認する。
     if (
         !definitions.get('createddate')?.sortable ||
@@ -105,8 +98,8 @@ function validateDescribe(describe, names, options) {
             throw new Error('指定したレコードタイプIDを対象オブジェクトのDescribeで確認できません。');
         }
     }
-    // 正規API名と属性を指定ファイルと同じ順で返す。
-    return names.map((name) => definitions.get(name.toLowerCase()));
+    // 未確認項目も位置を保持し、検索対象外であることを明示して返す。
+    return names.map((name) => definitions.get(name.toLowerCase()) || { name, label: '', type: '', invalid: true });
 }
 
 // 部分取得や必要項目の欠落を空欄と誤認しない。
@@ -134,7 +127,17 @@ function recordsFrom(result, fields) {
 }
 
 // 対象IDを固定し、成功した範囲だけを保存先へ渡して取得値を蓄積しない。
-async function collectRecords(describe, fields, options, query, writeLine = console.log, onChunk) {
+async function collectRecords(
+    describe,
+    fields,
+    options,
+    query,
+    writeLine = console.log,
+    onChunk,
+    updateLine = () => {}
+) {
+    // 分割後も指定ファイル内の項目番号を維持する。
+    const fieldPositions = new Map(fields.map((field, index) => [field.name, index + 1]));
     // レコードタイプ指定を選択・取得・補完で共有する。
     const scope = options.recordTypeId ? [`RecordTypeId = '${options.recordTypeId}'`] : [];
     // 同日時の場合も順序を固定する。
@@ -153,8 +156,28 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
             // 生のクエリはエラー本文に含めない。
             throw Object.assign(new Error('SOQLの文字数上限を超えました。'), { code: 'QUERY_LENGTH_LIMIT' });
         }
+        // 権限に関係する失敗では、取得対象項目の説明にも確認箇所を表示する。
+        let result;
+        // 生のAPI本文を表示せず、確認できたエラーコードだけで案内する。
+        try {
+            // 元のクエリ回数と取得範囲を維持する。
+            result = await query(soql);
+        } catch (error) {
+            // 項目名の誤りと権限不足を断定せず、APIが示す原因候補を案内する。
+            if (error.code === 'INVALID_FIELD' || error.code === 'INSUFFICIENT_ACCESS') {
+                // 一括検索では失敗した単一項目を特定できないため対象全体と明示する。
+                for (const name of columns.filter((name) => fieldPositions.has(name))) {
+                    // 項目番号を先頭に置き、補完状況と同じ説明形式に揃える。
+                    writeLine(
+                        `[${fieldPositions.get(name)}/${fields.length}項目]\t${name}\t検索失敗の対象：項目参照権限を確認してください。${error.code === 'INVALID_FIELD' ? 'API名が存在しない可能性もあります。' : 'オブジェクトの参照権限も確認してください。'}`
+                    );
+                }
+            }
+            // 権限不足を空欄として保存せず、従来どおり停止する。
+            throw error;
+        }
         // API応答の完全性とIDの一意性を検証する。
-        const records = recordsFrom(await query(soql), columns);
+        const records = recordsFrom(result, columns);
         // 指定件数を超える応答は受け付けない。
         if (records.length > limit) {
             // 条件違反を切り捨てて隠さない。
@@ -166,24 +189,28 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
     // 最初の対象選択では値を取得せずIDと順序を確定する。
     const limit = options.mode === 'record-fields-preview' ? 1 : options.recordLimit;
     // 選択中の件数を表示する。
-    writeLine(`対象選択: 最新から最大${limit}件`);
+    writeLine(`最新レコードを取得中（最大${limit}件）`);
     // 分割再取得でもこの集合を変えない。
-    const selected = await search(['Id', 'CreatedDate'], scope, limit);
+    const selected = options.resumeSelected ?? (await search(['Id', 'CreatedDate'], scope, limit));
+    // 初回の対象選択を、値の検索前に再開用データとして確定する。
+    await options.onSelected?.(selected);
     // テストや小規模の直接呼び出しだけがメモリ上に結果を保持する。
     const byId = onChunk ? null : new Map(selected.map((row) => [row.Id, {}]));
     // プレビューの取得元を保持する。
     const sources = new Map();
     // 成功した範囲を順次保存し、再試行した値を重複させない。
     async function readGroup(ids, group) {
+        // 未確認項目をSOQLへ含めず、CSVの位置だけ保持する。
+        const readable = group.filter((field) => !field.invalid);
         // 照合用IDを必ず取得する。
-        const columns = [...new Set(['Id', ...group.map((field) => field.name)])];
+        const columns = [...new Set(['Id', ...readable.map((field) => field.name)])];
         // 1件なら等価条件、複数件なら固定したID集合を指定する。
         const conditions = [
             ...scope,
             ids.length === 1 ? `Id = '${ids[0]}'` : `Id IN (${ids.map((id) => `'${id}'`).join(',')})`
         ];
         // 長さが原因なら、送信せず上限に収まる最大範囲を計算する。
-        if (buildQuery(columns, conditions, ids.length, false).length > 100000) {
+        if (readable.length && buildQuery(columns, conditions, ids.length, false).length > 100000) {
             // 項目が1レコードでも収まらない場合だけ、まず項目を分割する。
             const splitFields = buildQuery(columns, [...scope, `Id = '${ids[0]}'`], 1, false).length > 100000;
             // 二分探索で上限内の最大件数または項目数を求める。
@@ -196,7 +223,15 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
                 const middle = Math.ceil((low + high) / 2);
                 // 項目分割時は照合用Idを含める。
                 const trialColumns = splitFields
-                    ? [...new Set(['Id', ...group.slice(0, middle).map((field) => field.name)])]
+                    ? [
+                          ...new Set([
+                              'Id',
+                              ...group
+                                  .slice(0, middle)
+                                  .filter((field) => !field.invalid)
+                                  .map((field) => field.name)
+                          ])
+                      ]
                     : columns;
                 // 項目側の長さ計算は1ID、レコード側は候補ID集合で行う。
                 const trialIds = splitFields ? ids.slice(0, 1) : ids.slice(0, middle);
@@ -234,10 +269,10 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
         let records;
         // ディスク書き込みや補完の失敗を再分割で隠さない。
         try {
-            // 固定の100項目・200件分割をせず、指定された範囲を取得する。
-            writeLine(`値取得: ${ids.length}レコード・${group.length}項目`);
             // SOQL長と応答サイズの検証は共通の入口で行う。
-            records = await search(columns, conditions, ids.length, false);
+            records = readable.length
+                ? await search(columns, conditions, ids.length, false)
+                : ids.map((Id) => ({ Id }));
         } catch (error) {
             // サイズと複雑さ以外は再試行せず停止する。
             const sizeError = error.code === 'BUFFER_LIMIT';
@@ -289,18 +324,38 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
         }
         // 1応答分だけを保持し、項目グループ間では一時ファイルを使う。
         for (const record of records) {
-            // この範囲の取得元を基準レコードで初期化する。
-            const chunkSources = new Map(group.map((field) => [field.name, record.Id]));
+            // 未確認項目だけを明示的な空欄とし、取得成功した項目の欠落は許容しない。
+            for (const field of group.filter((field) => field.invalid)) {
+                // 指定位置の空セルを保存処理へ渡す。
+                record[field.name] = null;
+            }
+            // 未確認項目には取得元レコードを付けない。
+            const chunkSources = new Map(group.map((field) => [field.name, field.invalid ? '' : record.Id]));
             // プレビューの空欄だけを補完する。
             if (options.mode === 'record-fields-preview') {
-                // WHERE不可の項目には追加検索を行わない。
-                await supplementPreview({ fields: group, record, sources: chunkSources, scope, search, writeLine });
+                // 一項目の補完が終わるごとに再開位置を確定する。
+                for (const field of group) {
+                    // WHERE不可の項目には追加検索を行わない。
+                    await supplementPreview({
+                        fields: [field],
+                        record,
+                        sources: chunkSources,
+                        scope,
+                        search,
+                        writeLine,
+                        updateLine,
+                        fieldPositions,
+                        totalFields: fields.length
+                    });
+                    // 次項目で失敗しても、完了した値を失わない。
+                    if (onChunk) await onChunk(record.Id, [field], record, chunkSources, selected[0]?.Id || '');
+                }
             }
             // 実行入口はこの保存先を使って値を順次退避する。
-            if (onChunk) {
+            if (onChunk && options.mode !== 'record-fields-preview') {
                 // 保存完了を待ち、バックプレッシャーを維持する。
                 await onChunk(record.Id, group, record, chunkSources, selected[0]?.Id || '');
-            } else {
+            } else if (!onChunk) {
                 // 小規模テストでも同じ取得・検証処理を使う。
                 for (const field of group) {
                     // 内部照合用のIDは指定されている場合だけ含める。
@@ -313,15 +368,39 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
     }
     // 手動指定がある場合だけ項目数の上限を使う。
     const groupSize = options.fieldsPerQuery || fields.length;
-    // レコードがない場合はクエリを追加しない。
-    if (selected.length) {
-        // 指定順に連続した項目範囲を渡す。
-        for (let offset = 0; offset < fields.length; offset += groupSize) {
-            // すべての対象IDを最初はまとめて取得する。
-            await readGroup(
-                selected.map((row) => row.Id),
-                fields.slice(offset, offset + groupSize)
-            );
+    // 保存済みの項目数が同じレコードをまとめ、完了範囲を再取得しない。
+    const pending = new Map();
+    // 初回は全レコードが先頭項目から始まる。
+    for (const row of selected) {
+        // 保存が完了した項目境界からのみ再開する。
+        const start = options.resumeOffsets?.get(row.Id) || 0;
+        // 全項目完了のレコードは追加検索しない。
+        if (start >= fields.length) continue;
+        // 同じ開始位置のIDをまとめる。
+        if (!pending.has(start)) pending.set(start, []);
+        // 選択時の順序を維持して追加する。
+        pending.get(start).push(row.Id);
+    }
+    // 再開時も固定件数で細分化せず、未完了範囲をまとめて検索する。
+    for (const [start, ids] of pending) {
+        // 手動上限と適応分割は初回と同じ処理を使う。
+        for (let offset = start; offset < fields.length; offset += groupSize) {
+            // 保存済み列へ戻らず連続した未完了範囲だけを渡す。
+            await readGroup(ids, fields.slice(offset, offset + groupSize));
+        }
+    }
+    // 横型は全レコードの取得後に、対象なしの場合も指定順で結果を通知する。
+    if (options.mode !== 'record-fields-preview' || !selected.length) {
+        // 分割回数やレコード数によって同じ項目を繰り返し列挙しない。
+        for (const field of fields) {
+            // 未確認項目と、対象なし・取得成功を分けて表示する。
+            const explanation = field.invalid
+                ? '取得不可：API名が存在しない、または項目参照権限がありません'
+                : selected.length
+                  ? '取得成功・補完なし'
+                  : '対象レコードなし';
+            // 項目番号は指定ファイル全体に対する番号を維持する。
+            writeLine(`[${fieldPositions.get(field.name)}/${fields.length}項目]\t${field.name}\t${explanation}`);
         }
     }
     // 本番経路ではIDと件数だけを返し、値を再び読み込まない。
@@ -336,22 +415,46 @@ async function collectRecords(describe, fields, options, query, writeLine = cons
 }
 
 // 最新1件の空欄だけを補完し、項目ごとの取得元を記録する。
-async function supplementPreview({ fields, record, sources, scope, search, writeLine }) {
-    // 最新レコードに実値がある項目は補完しない。
-    const missing = fields.filter((field) => !hasValue(record[field.name]));
-    // 空欄の各項目について、検索可能な場合だけ最新の非NULL値を取得する。
-    for (const field of missing) {
+async function supplementPreview({
+    fields,
+    record,
+    sources,
+    scope,
+    search,
+    writeLine,
+    updateLine,
+    fieldPositions,
+    totalFields
+}) {
+    // 指定順で全項目の処理結果を表示し、検索は空欄だけに限定する。
+    for (const field of fields) {
+        // 分割内の番号ではなく指定ファイル全体での番号を表示する。
+        const prefix = `[${fieldPositions.get(field.name)}/${totalFields}項目]\t${field.name}\t`;
+        // 未確認項目も指定順の位置で表示し、正常項目の進捗を先回りしない。
+        if (field.invalid) {
+            // エラー項目は検索せず空欄のまま保存する。
+            writeLine(`${prefix}取得不可：API名が存在しない、または項目参照権限がありません`);
+            // 補完不要・補完完了とは表示しない。
+            continue;
+        }
+        // falseと0を含め、基準レコードにある実値は保持する。
+        if (hasValue(record[field.name])) {
+            // 値そのものを含めず、補完不要だったことを示す。
+            writeLine(`${prefix}取得成功`);
+            // 非NULL検索を追加しない。
+            continue;
+        }
         // 値がない項目に取得元を表示しない。
         sources.set(field.name, '');
         // WHEREで絞り込めない項目は全件探索せず、元の値を保持する。
         if (!canFilterNonNull(field)) {
             // 未検索と値なしを区別できるよう、スキップ理由を表示する。
-            writeLine(`補完対象外: ${field.name}（非NULL条件で検索不可・最新レコードの値を保持）`);
+            writeLine(`${prefix}補完対象外：非NULL条件で検索不可・最新レコードの値を保持`);
             // この項目への補完クエリは実行しない。
             continue;
         }
         // 実値をログへ出さず、処理中の項目を知らせる。
-        writeLine(`空欄補完: ${field.name}（最新の非NULL値を検索）`);
+        updateLine(`${prefix}補完中`);
         // レコードタイプ指定を維持し、日時の境界なしで最新1件を検索する。
         const found = await search([...new Set(['Id', field.name])], [...scope, `${field.name} != NULL`], 1);
         // 空の複合値などを補完成功と扱わず、実値だけ採用する。
@@ -360,6 +463,11 @@ async function supplementPreview({ fields, record, sources, scope, search, write
             record[field.name] = found[0][field.name];
             // CSVに表示する実際の取得元を保持する。
             sources.set(field.name, found[0].Id);
+            // 補完の完了を値を含めずに通知する。
+            writeLine(`${prefix}補完成功`);
+        } else {
+            // 未取得を補完成功と誤認させない。
+            writeLine(`${prefix}登録レコードなし`);
         }
     }
 }
@@ -382,13 +490,15 @@ function toCsv(result, mode) {
                   // 値の有無と補完元の違いを区別する。
                   const source = result.sources.get(field.name);
                   // 基準と補完をStatusで明示し、別レコードの値を同じレコードの実値と誤認させない。
-                  const status = !hasValue(result.records[0][field.name])
-                      ? canFilterNonNull(field)
-                          ? 'NO_VALUE_FOUND'
-                          : 'NOT_FILTERABLE'
-                      : source === result.latestId
-                        ? 'LATEST'
-                        : 'SUPPLEMENTED';
+                  const status = field.invalid
+                      ? 'INVALID_FIELD'
+                      : !hasValue(result.records[0][field.name])
+                        ? canFilterNonNull(field)
+                            ? 'NO_VALUE_FOUND'
+                            : 'NOT_FILTERABLE'
+                        : source === result.latestId
+                          ? 'LATEST'
+                          : 'SUPPLEMENTED';
                   // 指定された項目の順のまま属性と実値を出力する。
                   return [field.name, field.label, field.type, result.records[0][field.name], status, source]
                       .map(csv)

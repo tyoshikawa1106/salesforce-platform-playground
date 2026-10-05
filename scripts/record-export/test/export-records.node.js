@@ -104,7 +104,6 @@ test('既定の項目設定はスクリプト配下を使い、別ファイル�
     for (const mode of ['records', 'record-fields-preview']) {
         const options = parseOptions([], mode);
         assert.equal(options.fields, path.resolve(__dirname, '../config/fields.txt'));
-        assert.deepEqual(parseFields(fs.readFileSync(options.fields, 'utf8')), ['Id', 'Name', 'CreatedDate']);
         assert.equal(parseOptions(['--fields', 'custom-fields.txt'], mode).fields, 'custom-fields.txt');
     }
 });
@@ -400,12 +399,8 @@ test('対象なしではヘッダーのみで補完検索をしない', async ()
     }
 });
 
-test('無効項目・最新順不可・レコードタイプ不一致は検索前に停止する', async () => {
+test('最新順不可・レコードタイプ不一致は検索前に停止する', async () => {
     const noQuery = () => assert.fail('must not query');
-    await assert.rejects(
-        () => collectRecords(describe(field('Name')), ['Missing', 'AlsoMissing'], options, noQuery),
-        /Missing, AlsoMissing/
-    );
     await assert.rejects(
         () => collectRecords({ ...describe(), fields: [field('Id', { sortable: true })] }, ['Id'], options, noQuery),
         /CreatedDate/
@@ -512,14 +507,12 @@ test('両形式の確認前メッセージで補完の有無を明示し指定�
             createPrompt: () => ({
                 question: async () => {
                     assert.ok(
-                        messages.some((line) =>
-                            line.includes(
-                                mode === 'records'
-                                    ? '空欄は補完しません'
-                                    : '空欄は非NULL条件で検索可能な項目だけ最新の非NULL値で補完'
-                            )
-                        )
+                        messages.some((line) => line.includes(mode === 'records' ? '補完なし' : '可能な空欄を補完'))
                     );
+                    assert.equal(messages[messages.findIndex((line) => line.startsWith('対象:')) - 1], '');
+                    assert.equal(messages[messages.findIndex((line) => line.startsWith('出力先:')) + 1], '');
+                    assert.ok(messages.includes('項目ファイル: fields.txt / 指定項目数: 2'));
+                    assert.ok(messages.includes(`出力先: ${output}`));
                     return 'y';
                 },
                 close() {}
@@ -528,6 +521,8 @@ test('両形式の確認前メッセージで補完の有無を明示し指定�
         assert.equal(code, 0);
         assert.ok(queries.every((q) => !q.includes('IsPersonAccount') && !q.includes('RecordTypeId =')));
         assert.equal(queries.length, mode === 'records' ? 2 : 3);
+        assert.ok(messages.includes(`出力: ${output}`));
+        assert.ok(messages.every((line) => !line.includes(cwd)));
         const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
         assert.ok(
             csv.startsWith(
@@ -570,40 +565,22 @@ test('否認と本番の追加確認では検索・保存せず入力を閉じ�
     }
 });
 
-test('非同期待機中は30秒ごとに表示し成功・失敗時にタイマーを解除する', async (t) => {
+test('CLIの応答待ち中に定期メッセージ用タイマーを起動しない', async (t) => {
     const cwd = temporary(t);
-    for (const fails of [false, true]) {
-        const timers = new Set();
-        const messages = [];
-        let time = 0;
-        let calls = 0;
-        const dependencies = {
+    const messages = [];
+    t.mock.method(global, 'setInterval', () => assert.fail('定期表示タイマーは不要'));
+    assert.equal(
+        await main(['--check-auth'], {
             cwd,
             writeLine: (line) => messages.push(line),
-            now: () => time,
-            setIntervalCommand: (tick, delay) => {
-                assert.equal(delay, 30000);
-                const timer = { tick, unref() {} };
-                timers.add(timer);
-                return timer;
-            },
-            clearIntervalCommand: (timer) => assert.ok(timers.delete(timer)),
             runner: async (args) => {
-                calls++;
                 await new Promise((resolve) => setImmediate(resolve));
-                assert.equal(timers.size, 1);
-                time += 30000;
-                for (const timer of timers) timer.tick();
-                if (fails) throw new Error('test failure');
                 return runnerFor()(args);
             }
-        };
-        if (fails) await assert.rejects(() => main(['--check-auth'], dependencies), /test failure/);
-        else assert.equal(await main(['--check-auth'], dependencies), 0);
-        assert.equal(timers.size, 0);
-        assert.equal(messages.filter((line) => line.startsWith('・実行中:')).length, calls);
-        assert.ok(messages.filter((line) => line.startsWith('・実行中:')).every((line) => line.includes('30.0秒経過')));
-    }
+        }),
+        0
+    );
+    assert.ok(messages.every((line) => !line.includes('・実行中:')));
 });
 
 test('CLI障害の固定診断は生の本文を漏らさない', async () => {
@@ -654,10 +631,10 @@ test('サイズ超過時は両コマンドの各CLI段階で利用可能な引�
                     return true;
                 }
             );
-            assert.deepEqual(
-                fs.existsSync(path.join(cwd, 'export-out')) ? fs.readdirSync(path.join(cwd, 'export-out')) : [],
-                []
-            );
+            const outputs = fs.existsSync(path.join(cwd, 'export-out'))
+                ? fs.readdirSync(path.join(cwd, 'export-out'))
+                : [];
+            assert.ok(outputs.every((name) => name.endsWith('.partial.csv') || name.endsWith('.csv.resume')));
         }
     }
 });
@@ -733,10 +710,7 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
             );
             assert.equal(result.status, exitCode, result.stderr);
             assert.equal(fs.existsSync(output), label === 'yes');
-            assert.match(
-                result.stdout,
-                mode === 'records' ? /空欄は補完しません/ : /空欄は非NULL条件で検索可能な項目だけ最新の非NULL値で補完/
-            );
+            assert.match(result.stdout, mode === 'records' ? /補完なし/ : /可能な空欄を補完/);
             if (label === 'yes')
                 assert.ok(
                     fs
@@ -892,7 +866,7 @@ test('接続確認専用でもレコードタイプの所属を検証しレコ�
     assert.deepEqual(fs.readdirSync(cwd), []);
 });
 
-test('途中まで退避した後の取得失敗でも完成CSVと一時断片を残さない', async (t) => {
+test('途中まで取得した後の失敗でも途中CSVと再開記録を保持する', async (t) => {
     const cwd = temporary(t);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
     let queries = 0;
@@ -917,5 +891,534 @@ test('途中まで退避した後の取得失敗でも完成CSVと一時断片�
         (e) => e.code === 'INVALID_FIELD' && !e.message.includes('sensitive')
     );
     assert.equal(queries, 3);
-    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt']);
+    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', 'out.csv.resume', 'out.partial.csv']);
+    assert.ok(!fs.existsSync(path.join(cwd, 'out.csv')));
+    assert.ok(!fs.existsSync(path.join(cwd, 'out.csv.resume/lock.json')));
+});
+
+test('項目の分割後も全体の項目番号と補完状況を表示し、実値をログに含めない', async () => {
+    const messages = [];
+    const queries = [];
+    const fields = [field('Present'), field('Fill'), field('Long', { filterable: false }), field('Empty')];
+    await collectRecords(
+        describe(...fields),
+        fields.map((f) => f.name),
+        { ...options, mode: 'record-fields-preview', fieldsPerQuery: 1 },
+        async (query) => {
+            queries.push(query);
+            if (query.startsWith('SELECT Id,CreatedDate')) return response([newest]);
+            if (query.includes('Fill != NULL')) return response([{ Id: older.Id, Fill: 'secret-filled' }]);
+            if (query.includes('Empty != NULL')) return response([]);
+            const name = fields.find((f) => query.startsWith(`SELECT Id,${f.name} `)).name;
+            return response([{ Id: newest.Id, [name]: name === 'Present' ? 'secret-original' : null }]);
+        },
+        (line) => messages.push(line)
+    );
+    for (const line of [
+        '[1/4項目]\tPresent\t取得成功',
+        '[2/4項目]\tFill\t補完成功',
+        '[3/4項目]\tLong\t補完対象外：非NULL条件で検索不可・最新レコードの値を保持',
+        '[4/4項目]\tEmpty\t登録レコードなし'
+    ])
+        assert.ok(messages.includes(line), line);
+    assert.equal(messages.filter((line) => line.startsWith('最新レコードを取得中')).length, 1);
+    assert.ok(messages.every((line) => !line.includes('（値取得中）')));
+    assert.equal(queries.length, 7);
+    assert.ok(messages.every((line) => !/secret-|^空欄補完:|^補完対象外:/.test(line)));
+});
+
+test('権限に関係する検索失敗は項目番号と説明を表示し補完成功として扱わない', async () => {
+    for (const code of ['INVALID_FIELD', 'INSUFFICIENT_ACCESS']) {
+        const messages = [];
+        let calls = 0;
+        await assert.rejects(
+            () =>
+                collectRecords(
+                    describe(field('Name')),
+                    ['Name'],
+                    { ...options, mode: 'record-fields-preview' },
+                    async () => {
+                        calls++;
+                        if (calls === 1) return response([newest]);
+                        if (calls === 2) return response([{ Id: newest.Id, Name: null }]);
+                        throw Object.assign(new Error('安全な診断'), { code });
+                    },
+                    (line) => messages.push(line)
+                ),
+            (error) => error.code === code
+        );
+        assert.ok(messages.some((line) => line.startsWith('[1/1項目]\tName\t検索失敗の対象：項目参照権限を確認')));
+        assert.ok(messages.every((line) => !line.includes('補完成功')));
+        assert.equal(calls, 3);
+    }
+});
+
+test('未確認項目を検索から外し、両形式で空欄の指定位置を保持して保存する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Missing\nName\nAlsoMissing\nCustom__pc');
+    for (const mode of ['records', 'record-fields-preview']) {
+        for (const split of [false, true]) {
+            const messages = [];
+            const queries = [];
+            const runner = runnerFor(
+                mode === 'records'
+                    ? [
+                          { ...newest, Name: 'new', Custom__pc: null },
+                          { ...older, Name: 'old', Custom__pc: null }
+                      ]
+                    : [{ ...newest, Name: 'new', Custom__pc: null }]
+            );
+            const output = `${mode}-${split}.csv`;
+            const code = await main(['--output', output, ...(split ? ['--fields-per-query', '1'] : [])], {
+                cwd,
+                mode,
+                createPrompt: approve,
+                writeLine: (line) => messages.push(line),
+                runner: async (args) => {
+                    if (args[0] === 'data') queries.push(fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8'));
+                    return runner(args);
+                }
+            });
+            assert.equal(code, 1);
+            assert.ok(queries.every((query) => !query.includes('Missing')));
+            const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
+            if (mode === 'records') {
+                assert.equal(
+                    csv,
+                    '"Missing","Name","AlsoMissing","Custom__pc"\r\n"","new","",""\r\n"","old","",""\r\n'
+                );
+            } else {
+                const lines = csv.split('\r\n');
+                assert.equal(lines[1], '"Missing","","","","INVALID_FIELD",""');
+                assert.match(lines[2], /^"Name","Name","string","new","LATEST"/);
+                assert.equal(lines[3], '"AlsoMissing","","","","INVALID_FIELD",""');
+                assert.match(lines[4], /^"Custom__pc".*"NO_VALUE_FOUND"/);
+            }
+            assert.ok(messages.some((line) => line.startsWith('[1/4項目]\tMissing\t取得不可：')));
+            assert.ok(messages.some((line) => line.startsWith('[3/4項目]\tAlsoMissing\t取得不可：')));
+            assert.ok(messages.some((line) => line.includes('項目エラー: 2項目')));
+            const numbered = messages.filter((line) => /^\[\d+\/4項目\]/.test(line));
+            assert.equal(numbered.length, 4);
+            assert.ok(numbered.every((line) => line.split('\t').length === 3));
+            const positions = numbered.map((line) => Number(line.match(/^\[(\d+)/)[1]));
+            assert.deepEqual([...new Set(positions)], [1, 2, 3, 4]);
+            assert.ok(positions.every((value, index) => index === 0 || value >= positions[index - 1]));
+            assert.equal(numbered.filter((line) => line.startsWith('[1/4項目]')).length, 1);
+            assert.equal(numbered.filter((line) => line.startsWith('[3/4項目]')).length, 1);
+            assert.ok(
+                messages.indexOf(numbered[0]) > messages.findIndex((line) => line.startsWith('最新レコードを取得中'))
+            );
+            assert.ok(messages.every((line) => !line.includes('（値取得中）')));
+        }
+    }
+});
+
+test('全項目が未確認でも余分な値検索をせず、対象なしでも項目エラーを通知する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Missing');
+    for (const mode of ['records', 'record-fields-preview']) {
+        for (const empty of [false, true]) {
+            const messages = [];
+            let queries = 0;
+            const runner = runnerFor(empty ? [] : [{ ...newest }]);
+            const output = `${mode}-${empty}.csv`;
+            assert.equal(
+                await main(['--output', output], {
+                    cwd,
+                    mode,
+                    createPrompt: approve,
+                    writeLine: (line) => messages.push(line),
+                    runner: async (args) => {
+                        if (args[0] === 'data') queries++;
+                        return runner(args);
+                    }
+                }),
+                1
+            );
+            assert.equal(queries, 1);
+            const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
+            if (mode === 'records') assert.equal(csv, empty ? '"Missing"\r\n' : '"Missing"\r\n""\r\n');
+            else assert.equal(csv.includes('INVALID_FIELD'), !empty);
+            assert.ok(messages.some((line) => line.startsWith('[1/1項目]\tMissing\t取得不可：')));
+        }
+    }
+});
+
+test('対話端末だけ補完中の同じ行を更新し、成功・失敗後に一時表示を消す', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+    for (const isTTY of [false, true]) {
+        for (const fails of [false, true]) {
+            const output = `terminal-${isTTY}-${fails}.csv`;
+            const terminalWrites = [];
+            const messages = [];
+            const runner = runnerFor([{ ...newest, Name: null }]);
+            const run = () =>
+                main(['--output', output], {
+                    cwd,
+                    mode: 'record-fields-preview',
+                    createPrompt: approve,
+                    progressOutput: { isTTY, columns: 120, write: (text) => terminalWrites.push(text) },
+                    writeLine: (line) => messages.push(line),
+                    runner: async (args) => {
+                        if (args[0] === 'data') {
+                            const query = fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8');
+                            if (query.includes(' != NULL')) {
+                                assert.equal(
+                                    terminalWrites.some((text) => text.includes('補完中')),
+                                    isTTY
+                                );
+                                if (fails) throw new Error('mock failure');
+                            }
+                        }
+                        return runner(args);
+                    }
+                });
+            if (fails) await assert.rejects(run, /mock failure/);
+            else assert.equal(await run(), 0);
+            assert.ok(messages.every((line) => !line.includes('補完中')));
+            const completed = messages.filter((line) => line.startsWith('[1/1項目]'));
+            assert.deepEqual(completed, fails ? [] : ['[1/1項目]\tName\t登録レコードなし']);
+            if (isTTY) {
+                assert.ok(terminalWrites.some((text) => text.includes('補完中')));
+                assert.deepEqual(terminalWrites.slice(-2), ['\u001b[1G', '\u001b[2K']);
+            } else assert.deepEqual(terminalWrites, []);
+        }
+    }
+});
+
+test('補完途中で停止しても値を保存し、固定IDの未完了項目から再開する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+    const messages = [];
+    const args = ['--output', 'resume.csv'];
+    const mode = 'record-fields-preview';
+    const runner = runnerFor([{ ...newest, Name: 'before', Custom__pc: null }]);
+    await assert.rejects(
+        () =>
+            main(args, {
+                cwd,
+                mode,
+                createPrompt: approve,
+                writeLine: (line) => messages.push(line),
+                runner: async (command) => {
+                    if (command[0] === 'data') {
+                        const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                        if (query.includes(' != NULL'))
+                            throw Object.assign(new Error('timeout'), { code: 'CLI_TIMEOUT' });
+                    }
+                    return runner(command);
+                }
+            }),
+        /timeout/
+    );
+    const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
+    assert.match(partial, /"Name","Name","string","before","LATEST"/);
+    assert.ok(!partial.includes('"Custom__pc"'));
+    assert.ok(messages.some((line) => line.includes('--resume')));
+    const queries = [];
+    assert.equal(
+        await main([...args, '--resume'], {
+            cwd,
+            mode,
+            createPrompt: approve,
+            writeLine: quiet,
+            runner: async (command) => {
+                if (command[0] !== 'data') return runner(command);
+                const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                queries.push(query);
+                assert.ok(!query.includes('SELECT Id,CreatedDate'));
+                assert.ok(!query.includes('Name'));
+                if (query.includes(' != NULL')) return cli(response([{ Id: older.Id, Custom__pc: 'filled' }]));
+                assert.ok(query.includes(`Id = '${newest.Id}'`));
+                return cli(response([{ Id: newest.Id, Custom__pc: null }]));
+            }
+        }),
+        0
+    );
+    assert.equal(queries.length, 2);
+    const result = fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8');
+    assert.match(result, /"Name","Name","string","before","LATEST"/);
+    assert.match(result, /"Custom__pc","Custom__pc","string","filled","SUPPLEMENTED"/);
+    assert.equal(result.split('\r\n').length, 4);
+    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', 'resume.csv']);
+});
+
+test('横型は未完成行も再開記録へ保存し、再開後もレコードと列を混ぜない', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+    const args = ['--output', 'resume.csv', '--fields-per-query', '1'];
+    const records = [
+        { ...newest, Name: 'first' },
+        { ...older, Name: 'second' }
+    ];
+    const runner = runnerFor(records);
+    await assert.rejects(
+        () =>
+            main(args, {
+                cwd,
+                createPrompt: approve,
+                writeLine: quiet,
+                runner: async (command) => {
+                    if (command[0] === 'data') {
+                        const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                        if (query.includes('Custom__pc')) throw new Error('interrupted');
+                    }
+                    return runner(command);
+                }
+            }),
+        /interrupted/
+    );
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), '"Name","Custom__pc"\r\n');
+    assert.equal(
+        await main([...args, '--resume'], {
+            cwd,
+            createPrompt: approve,
+            writeLine: quiet,
+            runner: async (command) => {
+                if (command[0] !== 'data') return runner(command);
+                const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                assert.ok(query.startsWith('SELECT Id,Custom__pc'));
+                return cli(
+                    response([
+                        { Id: older.Id, Custom__pc: 'second-value' },
+                        { Id: newest.Id, Custom__pc: 'first-value' }
+                    ])
+                );
+            }
+        }),
+        0
+    );
+    assert.equal(
+        fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8'),
+        '"Name","Custom__pc"\r\n"first","first-value"\r\n"second","second-value"\r\n'
+    );
+});
+
+test('再開元と条件・ユーザー・項目順が異なる場合は検索せず途中結果を保持する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+    const args = ['--output', 'resume.csv', '--fields-per-query', '1'];
+    const runner = runnerFor([{ ...newest, Name: 'retained', Custom__pc: null }]);
+    await assert.rejects(
+        () =>
+            main(args, {
+                cwd,
+                createPrompt: approve,
+                writeLine: quiet,
+                runner: async (command) => {
+                    if (
+                        command[0] === 'data' &&
+                        fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8').includes('Custom__pc')
+                    )
+                        throw new Error('stop');
+                    return runner(command);
+                }
+            }),
+        /stop/
+    );
+    const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
+    for (const variant of ['count', 'fields', 'org']) {
+        fs.writeFileSync(path.join(cwd, 'fields.txt'), variant === 'fields' ? 'Custom__pc\nName' : 'Name\nCustom__pc');
+        await assert.rejects(
+            () =>
+                main([...args, '--resume', ...(variant === 'count' ? ['--record-limit', '3'] : [])], {
+                    cwd,
+                    createPrompt: approve,
+                    writeLine: quiet,
+                    runner: async (command) => {
+                        assert.notEqual(command[0], 'data');
+                        if (variant === 'org' && command[0] === 'org') {
+                            const list = orgList();
+                            list.nonScratchOrgs[0].orgId = 'different-org-id';
+                            return cli(list);
+                        }
+                        return runner(command);
+                    }
+                }),
+            /一致しません/
+        );
+        assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), partial);
+        assert.ok(!fs.existsSync(path.join(cwd, 'resume.csv.resume/lock.json')));
+    }
+});
+
+test('完成ファイルの公開失敗後は全項目を再検索せず保存だけを再開できる', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+    const args = ['--output', 'resume.csv'];
+    const runner = runnerFor();
+    const mock = t.mock.method(fs, 'linkSync', () => {
+        throw Object.assign(new Error('disk failure'), { code: 'ENOSPC' });
+    });
+    try {
+        await assert.rejects(
+            () => main(args, { cwd, runner, writeLine: quiet, createPrompt: approve }),
+            /disk failure/
+        );
+    } finally {
+        mock.mock.restore();
+    }
+    assert.match(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), /latest/);
+    assert.equal(
+        await main([...args, '--resume'], {
+            cwd,
+            writeLine: quiet,
+            createPrompt: approve,
+            runner: (command) => {
+                assert.notEqual(command[0], 'data');
+                return runner(command);
+            }
+        }),
+        0
+    );
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8'), '"Name"\r\n"latest"\r\n');
+});
+
+test('再開元の二重使用と確定断片の破損を拒否する', async (t) => {
+    const { openCheckpoint } = require('../internal/checkpoint');
+    const directory = path.join(temporary(t), 'session');
+    const context = { recordLimit: 1, fields: [field('Name')] };
+    const checkpoint = openCheckpoint(directory, context, false);
+    checkpoint.select([newest]);
+    checkpoint.append(newest.Id, context.fields, { Id: newest.Id, Name: 'saved' }, new Map([['Name', newest.Id]]));
+    assert.throws(() => openCheckpoint(directory, context, true), /使用中/);
+    checkpoint.close();
+    fs.writeFileSync(path.join(directory, 'chunk-00000000.json'), '{broken');
+    const resumed = openCheckpoint(directory, context, true);
+    try {
+        await assert.rejects(() => resumed.replay(() => assert.fail('破損断片を渡さない')), /読み込めません/);
+    } finally {
+        resumed.close();
+    }
+    assert.throws(() => parseOptions(['--resume']), /--output/);
+});
+
+test('レコード分割後の停止では完成行を途中公開し、未完了レコードだけ再開する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+    const args = ['--output', 'resume.csv'];
+    const runner = runnerFor([
+        { ...newest, Name: 'first' },
+        { ...older, Name: 'second' }
+    ]);
+    await assert.rejects(
+        () =>
+            main(args, {
+                cwd,
+                createPrompt: approve,
+                writeLine: quiet,
+                runner: async (command) => {
+                    if (command[0] !== 'data') return runner(command);
+                    const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                    if (query.startsWith('SELECT Id,CreatedDate')) return cli(response([newest, older]));
+                    if (query.includes(' IN ')) throw Object.assign(new Error('size'), { code: 'BUFFER_LIMIT' });
+                    if (query.includes(older.Id)) throw Object.assign(new Error('timeout'), { code: 'CLI_TIMEOUT' });
+                    return cli(response([{ Id: newest.Id, Name: 'first' }]));
+                }
+            }),
+        /timeout/
+    );
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), '"Name"\r\n"first"\r\n');
+    // 強制終了で残った未確定ファイルは再開時に確定断片として扱わない。
+    fs.writeFileSync(path.join(cwd, 'resume.csv.resume/chunk-00000001.json.tmp'), '{incomplete');
+    assert.equal(
+        await main([...args, '--resume'], {
+            cwd,
+            createPrompt: approve,
+            writeLine: quiet,
+            runner: async (command) => {
+                if (command[0] !== 'data') return runner(command);
+                const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                assert.ok(!query.includes(newest.Id));
+                assert.ok(query.includes(`Id = '${older.Id}'`));
+                return cli(response([{ Id: older.Id, Name: 'second' }]));
+            }
+        }),
+        0
+    );
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8'), '"Name"\r\n"first"\r\n"second"\r\n');
+});
+
+test('強制終了したプロセスの保存値を復元し、同時再開は一つだけ許可する', { timeout: 15000 }, async (t) => {
+    const { spawn } = require('node:child_process');
+    const { once } = require('node:events');
+    const directory = path.join(temporary(t), 'checkpoint');
+    const modulePath = require.resolve('../internal/checkpoint');
+    const worker = `
+        const { openCheckpoint } = require(process.argv[1]);
+        const context = { recordLimit: 1, fields: [{ name: 'Name' }] };
+        const id = '001000000000001AAA';
+        process.send({ state: 'ready' });
+        process.once('message', async () => {
+            try {
+                const checkpoint = openCheckpoint(process.argv[2], context, process.argv[3] === 'resume');
+                let value;
+                if (process.argv[3] === 'initial') {
+                    checkpoint.select([{ Id: id }]);
+                    checkpoint.append(id, context.fields, { Id: id, Name: 'fixture-value' });
+                } else {
+                    await checkpoint.replay((_id, _fields, record) => { value = record.Name; });
+                }
+                process.send({ state: 'acquired', offset: checkpoint.offsets.get(id), value });
+                process.once('message', () => { checkpoint.close(); process.exit(0); });
+            } catch (error) {
+                process.send({ state: 'rejected', message: error.message });
+                process.disconnect();
+            }
+        });
+    `;
+    async function start(mode) {
+        const child = spawn(process.execPath, ['-e', worker, modulePath, directory, mode], {
+            stdio: ['ignore', 'ignore', 'pipe', 'ipc']
+        });
+        t.after(() => {
+            if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+        });
+        assert.equal((await once(child, 'message'))[0].state, 'ready');
+        return child;
+    }
+    const first = await start('initial');
+    const acquired = once(first, 'message');
+    first.send('start');
+    assert.equal((await acquired)[0].state, 'acquired');
+    const exited = once(first, 'exit');
+    first.kill('SIGKILL');
+    await exited;
+    const contenders = await Promise.all([start('resume'), start('resume')]);
+    const results = contenders.map((child) => once(child, 'message'));
+    contenders.forEach((child) => child.send('start'));
+    const messages = (await Promise.all(results)).map(([message]) => message);
+    assert.equal(messages.filter((message) => message.state === 'acquired').length, 1);
+    assert.equal(messages.filter((message) => message.state === 'rejected').length, 1);
+    const winnerIndex = messages.findIndex((message) => message.state === 'acquired');
+    assert.equal(messages[winnerIndex].value, 'fixture-value');
+    assert.equal(messages[winnerIndex].offset, 1);
+    const winnerExit = once(contenders[winnerIndex], 'exit');
+    contenders[winnerIndex].send('close');
+    await winnerExit;
+});
+
+test('古いロックの削除中は別の再開によるロック回収を拒否する', (t) => {
+    const { openCheckpoint } = require('../internal/checkpoint');
+    const directory = path.join(temporary(t), 'checkpoint');
+    const context = { recordLimit: 1, fields: [field('Name')] };
+    openCheckpoint(directory, context, false).close();
+    fs.writeFileSync(path.join(directory, 'lock.json'), JSON.stringify({ host: os.hostname(), pid: 12345 }));
+    t.mock.method(process, 'kill', () => {
+        throw Object.assign(new Error('terminated'), { code: 'ESRCH' });
+    });
+    const unlink = fs.unlinkSync;
+    let guarded = false;
+    t.mock.method(fs, 'unlinkSync', (file) => {
+        if (!guarded && file === path.join(directory, 'lock.json')) {
+            guarded = true;
+            assert.throws(() => openCheckpoint(directory, context, true), /再開ロックを取得中/);
+        }
+        return unlink(file);
+    });
+    const checkpoint = openCheckpoint(directory, context, true);
+    assert.ok(guarded);
+    checkpoint.close();
+    assert.ok(!fs.existsSync(path.join(directory, 'lock-acquire')));
 });
