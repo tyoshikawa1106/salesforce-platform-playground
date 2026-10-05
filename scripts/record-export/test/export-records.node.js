@@ -586,7 +586,7 @@ test('CLIの応答待ち中に定期メッセージ用タイマーを起動し�
 test('CLI障害の固定診断は生の本文を漏らさない', async () => {
     for (const [error, code] of [
         [{ code: 'ENOENT' }, 'CLI_NOT_FOUND'],
-        [{ code: 'ETIMEDOUT' }, 'CLI_TIMEOUT'],
+        [{ code: 'ETIMEDOUT' }, 'NETWORK_TIMEOUT'],
         [{ code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' }, 'BUFFER_LIMIT'],
         [{ killed: true, signal: 'SIGTERM' }, 'CLI_TIMEOUT']
     ]) {
@@ -1078,7 +1078,10 @@ test('対話端末だけ補完中の同じ行を更新し、成功・失敗後�
             else assert.equal(await run(), 0);
             assert.ok(messages.every((line) => !line.includes('補完中')));
             const completed = messages.filter((line) => line.startsWith('[1/1項目]'));
-            assert.deepEqual(completed, fails ? [] : ['[1/1項目]\tName\t登録レコードなし']);
+            if (fails) {
+                assert.equal(completed.length, 1);
+                assert.match(completed[0], /^\[1\/1項目\]\tName\t補完失敗：QUERY_FAILED \/ 経過: \d+\.\d秒$/);
+            } else assert.deepEqual(completed, ['[1/1項目]\tName\t登録レコードなし']);
             if (isTTY) {
                 assert.ok(terminalWrites.some((text) => text.includes('補完中')));
                 assert.deepEqual(terminalWrites.slice(-2), ['\u001b[1G', '\u001b[2K']);
@@ -1218,24 +1221,32 @@ test('再開元と条件・ユーザー・項目順が異なる場合は検索�
         /stop/
     );
     const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
-    for (const variant of ['count', 'fields', 'org']) {
+    for (const variant of ['count', 'fields', 'org', 'date']) {
         fs.writeFileSync(path.join(cwd, 'fields.txt'), variant === 'fields' ? 'Custom__pc\nName' : 'Name\nCustom__pc');
         await assert.rejects(
             () =>
-                main([...args, '--resume', ...(variant === 'count' ? ['--record-limit', '3'] : [])], {
-                    cwd,
-                    createPrompt: approve,
-                    writeLine: quiet,
-                    runner: async (command) => {
-                        assert.notEqual(command[0], 'data');
-                        if (variant === 'org' && command[0] === 'org') {
-                            const list = orgList();
-                            list.nonScratchOrgs[0].orgId = 'different-org-id';
-                            return cli(list);
+                main(
+                    [
+                        ...args,
+                        '--resume',
+                        ...(variant === 'count' ? ['--record-limit', '3'] : []),
+                        ...(variant === 'date' ? ['--created-before', '2026-10-01'] : [])
+                    ],
+                    {
+                        cwd,
+                        createPrompt: approve,
+                        writeLine: quiet,
+                        runner: async (command) => {
+                            assert.notEqual(command[0], 'data');
+                            if (variant === 'org' && command[0] === 'org') {
+                                const list = orgList();
+                                list.nonScratchOrgs[0].orgId = 'different-org-id';
+                                return cli(list);
+                            }
+                            return runner(command);
                         }
-                        return runner(command);
                     }
-                }),
+                ),
             /一致しません/
         );
         assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), partial);
@@ -1421,4 +1432,389 @@ test('古いロックの削除中は別の再開によるロック回収を拒�
     assert.ok(guarded);
     checkpoint.close();
     assert.ok(!fs.existsSync(path.join(directory, 'lock-acquire')));
+});
+
+test('CLIとSalesforceのタイムアウトを区別し、安全な診断と経過時間を残す', async () => {
+    for (const [response, code] of [
+        [{ status: 1, stdout: JSON.stringify({ name: 'QUERY_TIMEOUT', message: 'secret-value' }) }, 'QUERY_TIMEOUT'],
+        [
+            { status: 1, stdout: JSON.stringify({ name: 'Error', code: 'ETIMEDOUT', message: 'secret-value' }) },
+            'NETWORK_TIMEOUT'
+        ],
+        [{ status: null, error: { killed: true, signal: 'SIGTERM' } }, 'CLI_TIMEOUT'],
+        [{ status: 1, stdout: JSON.stringify({ name: 'UnexpectedCliError', message: 'secret-value' }) }, 'CLI_FAILED'],
+        [
+            {
+                status: 1,
+                stdout: JSON.stringify({ name: 'https://private.invalid/secret-value', message: 'secret-value' })
+            },
+            'CLI_FAILED'
+        ]
+    ]) {
+        await assert.rejects(
+            () => callSf([], '.', async () => response),
+            (error) => {
+                assert.equal(error.code, code);
+                assert.match(error.message, /CLI経過: \d+\.\d秒/);
+                assert.ok(!error.message.includes('secret-value'));
+                if (response.stdout?.includes('UnexpectedCliError'))
+                    assert.match(error.message, /識別子: UnexpectedCliError/);
+                return true;
+            }
+        );
+    }
+});
+
+test('新しいレコードのまとめ取得で各項目の最新値を採用し、項目順に確定する', async () => {
+    const fields = [field('A'), field('B'), field('Empty'), field('Flag'), field('Long', { filterable: false })];
+    const queries = [];
+    const messages = [];
+    const saved = [];
+    const result = await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { ...options, mode: 'record-fields-preview', recordTypeId },
+        async (query) => {
+            queries.push(query);
+            assert.ok(query.includes(`RecordTypeId = '${recordTypeId}'`));
+            if (queries.length === 1) return response([newest]);
+            if (queries.length === 2)
+                return response([{ Id: newest.Id, A: null, B: null, Empty: null, Flag: false, Long: null }]);
+            assert.equal(
+                query,
+                `SELECT Id,A,B,Empty FROM Account WHERE RecordTypeId = '${recordTypeId}' ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 200`
+            );
+            return response([
+                { Id: newest.Id, A: null, B: 'new-b', Empty: null },
+                { Id: older.Id, A: 'older-a', B: 'older-b', Empty: null }
+            ]);
+        },
+        (line) => messages.push(line),
+        async (id, group, record, sources) => {
+            saved.push({ name: group[0].name, value: record[group[0].name], source: sources.get(group[0].name), id });
+        }
+    );
+    assert.equal(result.latestId, newest.Id);
+    assert.equal(queries.length, 3);
+    assert.deepEqual(
+        saved.map((row) => row.name),
+        fields.map((f) => f.name)
+    );
+    assert.deepEqual(
+        saved.map((row) => row.value),
+        ['older-a', 'new-b', null, false, null]
+    );
+    assert.deepEqual(
+        saved.slice(0, 2).map((row) => row.source),
+        [older.Id, newest.Id]
+    );
+    assert.ok(saved.every((row) => row.id === newest.Id));
+    assert.deepEqual(
+        messages.filter((line) => line.startsWith('[')).map((line) => line.split('\t')[1]),
+        fields.map((f) => f.name)
+    );
+});
+
+test('残項目はOR検索で確保済み項目を外し、後の項目が先に見つかっても確定順を保つ', async () => {
+    const fields = [field('A'), field('B'), field('C')];
+    const queries = [];
+    const saved = [];
+    await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { ...options, mode: 'record-fields-preview' },
+        async (query) => {
+            queries.push(query);
+            if (queries.length === 1) return response([newest]);
+            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null, C: null }]);
+            if (queries.length === 3)
+                return response(
+                    Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null, C: null }))
+                );
+            if (queries.length === 4) {
+                assert.match(
+                    query,
+                    /WHERE \(A != NULL OR B != NULL OR C != NULL\) ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 1$/
+                );
+                return response([{ Id: older.Id, A: null, B: 'b', C: null }]);
+            }
+            if (queries.length === 5) {
+                assert.match(query, /^SELECT Id,A,C FROM Account WHERE \(A != NULL OR C != NULL\)/);
+                assert.deepEqual(saved, []);
+                return response([{ Id: id(1), A: 'a', C: 'c' }]);
+            }
+            assert.fail('補完済み項目を再検索しない');
+        },
+        quiet,
+        async (_id, group, record) => saved.push([group[0].name, record[group[0].name]])
+    );
+    assert.deepEqual(saved, [
+        ['A', 'a'],
+        ['B', 'b'],
+        ['C', 'c']
+    ]);
+    assert.equal(queries.length, 5);
+});
+
+test('補完の複雑さによる分割も先頭側から逐次実行し、保存順を維持する', async () => {
+    const fields = [field('A'), field('B'), field('C'), field('D')];
+    const queries = [];
+    const saved = [];
+    let active = false;
+    await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { ...options, mode: 'record-fields-preview' },
+        async (query) => {
+            assert.equal(active, false);
+            active = true;
+            await new Promise((resolve) => setImmediate(resolve));
+            active = false;
+            queries.push(query);
+            if (queries.length === 1) return response([newest]);
+            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null, C: null, D: null }]);
+            if (queries.length === 3) throw Object.assign(new Error('complex'), { code: 'QUERY_TOO_COMPLICATED' });
+            if (queries.length === 4) {
+                assert.match(query, /^SELECT Id,A,B /);
+                return response([{ Id: older.Id, A: 'a', B: 'b' }]);
+            }
+            assert.match(query, /^SELECT Id,C,D /);
+            assert.deepEqual(saved, ['A', 'B']);
+            return response([{ Id: older.Id, C: 'c', D: 'd' }]);
+        },
+        quiet,
+        async (_id, group) => saved.push(group[0].name)
+    );
+    assert.deepEqual(saved, ['A', 'B', 'C', 'D']);
+    assert.equal(queries.length, 5);
+});
+
+test('まとめ補完は空欄100項目を1回の追加検索で埋める', async () => {
+    const fields = Array.from({ length: 100 }, (_, i) => field(`Value${i}__c`));
+    let count = 0;
+    const result = await collectRecords(
+        describe(...fields),
+        fields.map((f) => f.name),
+        { ...options, mode: 'record-fields-preview' },
+        async () => {
+            count++;
+            if (count === 1) return response([newest]);
+            return response([
+                {
+                    Id: count === 2 ? newest.Id : older.Id,
+                    ...Object.fromEntries(fields.map((f) => [f.name, count === 2 ? null : f.name]))
+                }
+            ]);
+        },
+        quiet
+    );
+    assert.equal(count, 3);
+    assert.deepEqual(
+        fields.map((f) => result.records[0][f.name]),
+        fields.map((f) => f.name)
+    );
+});
+
+test('OR検索が先の項目で停止しても、後で見つかった値を先に保存しない', async () => {
+    const fields = [field('Present'), field('A'), field('B')];
+    const saved = [];
+    let count = 0;
+    await assert.rejects(
+        () =>
+            collectValidatedRecords(
+                describe(...fields),
+                fields,
+                { ...options, mode: 'record-fields-preview' },
+                async () => {
+                    count++;
+                    if (count === 1) return response([newest]);
+                    if (count === 2) return response([{ Id: newest.Id, Present: 'keep', A: null, B: null }]);
+                    if (count === 3)
+                        return response(
+                            Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null }))
+                        );
+                    if (count === 4) return response([{ Id: older.Id, A: null, B: 'b' }]);
+                    throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
+                },
+                quiet,
+                async (_id, group) => saved.push(group[0].name)
+            ),
+        /timeout/
+    );
+    assert.deepEqual(saved, ['Present']);
+});
+
+test('1400項目のOR条件が文字数上限を超える場合も、上限内へ分割して指定順を保つ', async () => {
+    const fields = Array.from({ length: 1400 }, (_, i) => field(`F${String(i).padStart(36, '0')}__c`));
+    const saved = [];
+    const queries = [];
+    const nulls = Object.fromEntries(fields.map((f) => [f.name, null]));
+    await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { mode: 'record-fields-preview', recordLimit: 1 },
+        async (query) => {
+            assert.ok(query.length <= 100000);
+            queries.push(query);
+            if (queries.length === 1) return response([newest]);
+            if (queries.length === 2) return response([{ Id: newest.Id, ...nulls }]);
+            if (queries.length === 3)
+                return response(Array.from({ length: 200 }, (_, i) => ({ Id: id(2000 - i), ...nulls })));
+            assert.ok(query.includes(' OR '));
+            const names = query
+                .slice(7, query.indexOf(' FROM '))
+                .split(',')
+                .filter((name) => name !== 'Id');
+            if (queries.length === 4)
+                assert.deepEqual(
+                    names,
+                    fields.slice(0, 700).map((f) => f.name)
+                );
+            else {
+                assert.deepEqual(
+                    saved,
+                    fields.slice(0, 700).map((f) => f.name)
+                );
+                assert.deepEqual(
+                    names,
+                    fields.slice(700).map((f) => f.name)
+                );
+            }
+            return response([{ Id: older.Id, ...Object.fromEntries(names.map((name) => [name, 'filled'])) }]);
+        },
+        quiet,
+        async (_id, group) => saved.push(group[0].name)
+    );
+    assert.deepEqual(
+        saved,
+        fields.map((f) => f.name)
+    );
+    assert.equal(queries.length, 5);
+});
+
+test('先読みサイズ超過は件数を縮小し、ORのタイムアウトは項目順に分割する', async () => {
+    const fields = [field('A'), field('B')];
+    const queries = [];
+    const saved = [];
+    await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { ...options, mode: 'record-fields-preview' },
+        async (query) => {
+            queries.push(query);
+            if (queries.length === 1) return response([newest]);
+            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null }]);
+            if (queries.length === 3) {
+                assert.match(query, /LIMIT 200$/);
+                throw Object.assign(new Error('size'), { code: 'BUFFER_LIMIT' });
+            }
+            if (queries.length === 4) {
+                assert.match(query, /LIMIT 100$/);
+                return response(Array.from({ length: 100 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null })));
+            }
+            if (queries.length === 5) {
+                assert.match(query, /A != NULL OR B != NULL/);
+                throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
+            }
+            if (queries.length === 6) {
+                assert.match(query, /WHERE A != NULL /);
+                return response([{ Id: older.Id, A: 'a' }]);
+            }
+            assert.deepEqual(saved, ['A']);
+            assert.match(query, /WHERE B != NULL /);
+            return response([]);
+        },
+        quiet,
+        async (_id, group) => saved.push(group[0].name)
+    );
+    assert.deepEqual(saved, ['A', 'B']);
+    assert.equal(queries.length, 7);
+});
+
+test('作成日の指定は日本時間の当日午前0時より前とし、不正日付を拒否する', () => {
+    for (const mode of ['records', 'record-fields-preview']) {
+        assert.equal(parseOptions([], mode).createdBefore, undefined);
+        assert.equal(parseOptions(['--created-before', '2026-10-01'], mode).createdBefore, '2026-09-30T15:00:00.000Z');
+        assert.equal(parseOptions(['--created-before', '2024-02-29'], mode).createdBefore, '2024-02-28T15:00:00.000Z');
+        for (const value of [
+            '',
+            '2026-02-29',
+            '2026-04-31',
+            '2026-13-01',
+            '2026-1-01',
+            '2026-10-01T00:00:00Z',
+            '2026-10-01 OR Id != NULL'
+        ])
+            assert.throws(() => parseOptions(['--created-before', value], mode), /実在する日付/);
+    }
+});
+
+test('作成日条件を対象選択・値取得・先読み・OR補完へ同じ境界で適用する', async () => {
+    const fields = [field('A'), field('B')];
+    const queries = [];
+    const settings = {
+        ...parseOptions(['--created-before', '2026-10-01', '--record-type-id', recordTypeId], 'record-fields-preview'),
+        mode: 'record-fields-preview'
+    };
+    const result = await collectRecords(
+        describe(...fields),
+        ['A', 'B'],
+        settings,
+        async (query) => {
+            queries.push(query);
+            assert.ok(query.includes(`RecordTypeId = '${recordTypeId}' AND CreatedDate < 2026-09-30T15:00:00.000Z`));
+            if (queries.length === 1) return response([newest]);
+            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null }]);
+            if (queries.length === 3)
+                return response(Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null })));
+            assert.match(query, /AND \(A != NULL OR B != NULL\) ORDER BY/);
+            return response([{ Id: older.Id, A: 'a', B: 'b' }]);
+        },
+        quiet
+    );
+    assert.equal(queries.length, 4);
+    assert.deepEqual(result.records[0], { A: 'a', B: 'b' });
+    assert.throws(
+        () => validateDescribe(describe(field('CreatedDate', { sortable: true, filterable: false })), ['A'], settings),
+        /検索可能なCreatedDate/
+    );
+});
+
+test('両形式で作成日の条件を確認前に表示し、未指定時は日付条件を付けない', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+    for (const mode of ['records', 'record-fields-preview']) {
+        for (const specified of [false, true]) {
+            const messages = [];
+            const runner = runnerFor();
+            const args = [
+                '--output',
+                `${mode}-${specified}.csv`,
+                ...(specified ? ['--created-before', '2026-10-01'] : [])
+            ];
+            const status = await main(args, {
+                cwd,
+                mode,
+                writeLine: (line) => messages.push(line),
+                createPrompt: () => ({
+                    question: async () => {
+                        assert.equal(
+                            messages.some((line) => line === '作成日: 2026-10-01より前（日本時間・当日を含まない）'),
+                            specified
+                        );
+                        return 'y';
+                    },
+                    close: () => {}
+                }),
+                runner: async (command) => {
+                    if (command[0] === 'data') {
+                        const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                        assert.equal(query.includes('CreatedDate < 2026-09-30T15:00:00.000Z'), specified);
+                    }
+                    return runner(command);
+                }
+            });
+            assert.equal(status, 0);
+        }
+    }
 });

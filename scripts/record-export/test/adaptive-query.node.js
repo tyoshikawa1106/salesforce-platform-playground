@@ -122,6 +122,7 @@ test('CompositeのHTTPエラー・不正ページ・不正JSONは安全に停止
     const dir = temp(t);
     for (const body of [
         composite([{ errorCode: 'QUERY_TOO_COMPLICATED', message: 'sensitive' }], 400),
+        composite([{ errorCode: 'QUERY_TIMEOUT', message: 'sensitive' }], 400),
         composite([{ errorCode: 'OTHER', message: 'sensitive' }], 400),
         [{ errorCode: 'INVALID_SESSION_ID', message: 'sensitive' }],
         composite({ records: [data[0]], totalSize: 1, done: false, nextRecordsUrl: 'https://example.com' }),

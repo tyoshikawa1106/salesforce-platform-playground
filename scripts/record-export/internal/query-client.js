@@ -23,12 +23,21 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
             'INVALID_QUERY_FILTER_OPERATOR',
             'INSUFFICIENT_ACCESS',
             'REQUEST_LIMIT_EXCEEDED',
-            'INVALID_SESSION_ID'
+            'INVALID_SESSION_ID',
+            'QUERY_TIMEOUT',
+            'REQUEST_RUNNING_TOO_LONG'
         ];
         // 未知のエラー本文は表示しない。
         const safeCode = allowed.includes(code) ? code : 'QUERY_FAILED';
         // 呼び出し元は原因に応じて分割または停止する。
-        throw Object.assign(new Error(`検索に失敗しました (${safeCode})。`), { code: safeCode });
+        throw Object.assign(
+            new Error(
+                ['QUERY_TIMEOUT', 'REQUEST_RUNNING_TOO_LONG'].includes(safeCode)
+                    ? `Salesforce側で検索がタイムアウトしました (${safeCode})。検索条件・クエリプランを確認してください。`
+                    : `検索に失敗しました (${safeCode})。`
+            ),
+            { code: safeCode }
+        );
     }
     // クエリ全体の応答量に上限を設け、ページを無制限に蓄積しない。
     return async function query(soql) {

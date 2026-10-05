@@ -119,7 +119,7 @@ Name
 CreatedDate
 ```
 
-項目の登録値をプレビュー用途で取得。空欄は非NULL条件で検索可能な項目だけ、他のレコードから取得して補完します。
+項目の登録値をプレビュー用途で取得。空欄は新しいレコードからまとめて補完し、残りは検索可能な項目をOR条件で検索します。
 出力形式は `export-out/` に項目順の縦型CSVで出力します。
 
 ```sh
@@ -132,6 +132,13 @@ npm run sf:export:record-fields-preview -- --object Account
 
 ```sh
 npm run sf:export:records -- --object Account --record-limit 2000
+```
+
+指定日より前に作成されたレコードだけを取得・補完します（日本時間・当日を含まない。未指定は最新から取得）。
+
+```sh
+npm run sf:export:record-fields-preview -- --object Account --created-before 2026-10-01
+npm run sf:export:records -- --object Account --record-limit 2000 --created-before 2026-10-01
 ```
 
 個人取引先など、指定したレコードタイプだけを取得・補完の対象にします（`<ID>` を置き換え）。
