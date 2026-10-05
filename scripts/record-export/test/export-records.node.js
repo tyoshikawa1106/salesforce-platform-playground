@@ -3,12 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
-const {
-    collectRecords: collectValidatedRecords,
-    validateDescribe,
-    parseFields,
-    toCsv
-} = require('../internal/collector');
+const { collectRecords: collectCore, validateDescribe, parseFields, toCsv } = require('../internal/collector');
 const { main: runMain, parseOptions, callSf, buildResumeCommand } = require('../internal/export-runner');
 const field = (name, extra = {}) => ({ name, label: name, type: 'string', filterable: true, ...extra });
 const describe = (...fields) => ({
@@ -53,6 +48,22 @@ function temporary(t) {
     return dir;
 }
 
+// 収集テストでは各SOQLの応答を保ち、Compositeの送受信は別途検証する。
+async function collectValidatedRecords(definition, fields, settings, query, ...rest) {
+    query.batch ??= async (soqls, controls) => {
+        const results = [];
+        for (const soql of soqls) {
+            try {
+                results.push({ result: await query(soql, controls) });
+            } catch (error) {
+                results.push({ error });
+            }
+        }
+        return results;
+    };
+    return collectCore(definition, fields, settings, query, ...rest);
+}
+
 // 実行入口と同じく定義を検証してから、収集処理へ正規化した項目を渡す。
 async function collectRecords(definition, names, settings, query, writeLine) {
     const fields = validateDescribe(definition, names, settings);
@@ -70,20 +81,20 @@ async function main(args, dependencies) {
             if (command[0] !== 'api') return runner(command, ...rest);
             const requestFile = command[command.indexOf('--body') + 1].slice(1);
             const request = JSON.parse(fs.readFileSync(requestFile, 'utf8'));
-            const query = decodeURIComponent(request.compositeRequest[0].url.split('?q=')[1]);
-            const file = path.join(path.dirname(requestFile), 'fixture.soql');
-            fs.writeFileSync(file, query);
-            const response = await runner(['data', 'query', '--file', file], ...rest);
-            if (response.status === 0 && !response.error) {
-                const result = JSON.parse(response.stdout).result;
-                return cli({
-                    statusCode: 200,
-                    body: {
-                        compositeResponse: [{ referenceId: 'records', httpStatusCode: 200, body: result }]
-                    }
+            const compositeResponse = [];
+            for (const part of request.compositeRequest) {
+                const query = decodeURIComponent(part.url.split('?q=')[1]);
+                const file = path.join(path.dirname(requestFile), 'fixture.soql');
+                fs.writeFileSync(file, query);
+                const reply = await runner(['data', 'query', '--file', file], ...rest);
+                if (reply.status !== 0 || reply.error) return reply;
+                compositeResponse.push({
+                    referenceId: part.referenceId,
+                    httpStatusCode: 200,
+                    body: JSON.parse(reply.stdout).result
                 });
             }
-            return response;
+            return cli({ statusCode: 200, body: { compositeResponse } });
         }
     });
 }
@@ -1460,260 +1471,55 @@ test('CLIとSalesforceのタイムアウトを区別し、安全な診断と経�
     }
 });
 
-test('新しいレコードのまとめ取得で各項目の最新値を採用し、項目順に確定する', async () => {
-    const fields = [field('A'), field('B'), field('Empty'), field('Flag'), field('Long', { filterable: false })];
-    const queries = [];
-    const messages = [];
-    const saved = [];
-    const result = await collectValidatedRecords(
+test('独立した非NULL検索を5本ずつ送信し、値なし・成功・一項目の失敗を混ぜない', async () => {
+    const fields = Array.from({ length: 12 }, (_, i) => field(`F${i}`));
+    const saved = [],
+        batches = [];
+    const query = async (soql) =>
+        soql.startsWith('SELECT Id,CreatedDate')
+            ? response([newest])
+            : response([{ Id: newest.Id, ...Object.fromEntries(fields.map((f) => [f.name, null])) }]);
+    query.batch = async (soqls) => {
+        batches.push(soqls);
+        return soqls.map((soql) => {
+            assert.ok(!soql.includes(' OR '));
+            const name = /^SELECT Id,(\w+) FROM/.exec(soql)[1];
+            assert.ok(soql.includes(`WHERE ${name} != NULL ORDER BY`));
+            if (name === 'F0') return { result: response([]) };
+            if (name === 'F1' && batches.length === 1)
+                return { error: Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' }) };
+            return { result: response([{ Id: older.Id, [name]: name }]) };
+        });
+    };
+    await collectValidatedRecords(
         describe(...fields),
         fields,
-        { ...options, mode: 'record-fields-preview', recordTypeId },
-        async (query) => {
-            queries.push(query);
-            assert.ok(query.includes(`RecordTypeId = '${recordTypeId}'`));
-            if (queries.length === 1) return response([newest]);
-            if (queries.length === 2)
-                return response([{ Id: newest.Id, A: null, B: null, Empty: null, Flag: false, Long: null }]);
-            if (queries.length === 3) {
-                assert.equal(
-                    query,
-                    `SELECT Id,A,B,Empty FROM Account WHERE RecordTypeId = '${recordTypeId}' AND (A != NULL OR B != NULL OR Empty != NULL) ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 1`
-                );
-                return response([{ Id: newest.Id, A: null, B: 'new-b', Empty: null }]);
-            }
-            if (queries.length === 4) {
-                assert.ok(!query.includes('B != NULL'));
-                return response([{ Id: older.Id, A: 'older-a', Empty: null }]);
-            }
-            assert.match(query, /WHERE .*Empty != NULL ORDER BY/);
-            return response([]);
-        },
-        (line) => messages.push(line),
-        async (id, group, record, sources) => {
-            saved.push({ name: group[0].name, value: record[group[0].name], source: sources.get(group[0].name), id });
-        }
+        { ...options, mode: 'record-fields-preview' },
+        query,
+        quiet,
+        async (_id, group, record, _sources, _latest, statuses, update) =>
+            saved.push({
+                name: group[0].name,
+                value: record[group[0].name],
+                status: statuses.get(group[0].name),
+                replace: update?.replace
+            })
     );
-    assert.equal(result.latestId, newest.Id);
-    assert.equal(queries.length, 5);
     assert.deepEqual(
-        saved.map((row) => row.name),
+        batches.map((b) => b.length),
+        [5, 5, 2, 1]
+    );
+    assert.deepEqual(
+        saved.slice(0, 12).map((r) => r.name),
         fields.map((f) => f.name)
     );
-    assert.deepEqual(
-        saved.map((row) => row.value),
-        ['older-a', 'new-b', null, false, null]
-    );
-    assert.deepEqual(
-        saved.slice(0, 2).map((row) => row.source),
-        [older.Id, newest.Id]
-    );
-    assert.ok(saved.every((row) => row.id === newest.Id));
-    assert.deepEqual(
-        messages.filter((line) => line.startsWith('[')).map((line) => line.split('\t')[1]),
-        fields.map((f) => f.name)
-    );
-});
-
-test('残項目はOR検索で確保済み項目を外し、後の項目が先に見つかっても確定順を保つ', async () => {
-    const fields = [field('A'), field('B'), field('C')];
-    const queries = [];
-    const saved = [];
-    await collectValidatedRecords(
-        describe(...fields),
-        fields,
-        { ...options, mode: 'record-fields-preview' },
-        async (query) => {
-            queries.push(query);
-            if (queries.length === 1) return response([newest]);
-            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null, C: null }]);
-            if (queries.length === 3) {
-                assert.match(
-                    query,
-                    /WHERE \(A != NULL OR B != NULL OR C != NULL\) ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 1$/
-                );
-                return response([{ Id: older.Id, A: null, B: 'b', C: null }]);
-            }
-            if (queries.length === 4) {
-                assert.match(query, /^SELECT Id,A,C FROM Account WHERE \(A != NULL OR C != NULL\)/);
-                assert.deepEqual(saved, []);
-                return response([{ Id: id(1), A: 'a', C: 'c' }]);
-            }
-            assert.fail('補完済み項目を再検索しない');
-        },
-        quiet,
-        async (_id, group, record) => saved.push([group[0].name, record[group[0].name]])
-    );
-    assert.deepEqual(saved, [
-        ['A', 'a'],
-        ['B', 'b'],
-        ['C', 'c']
-    ]);
-    assert.equal(queries.length, 4);
-});
-
-test('補完の複雑さによる分割も先頭側から逐次実行し、保存順を維持する', async () => {
-    const fields = [field('A'), field('B'), field('C'), field('D')];
-    const queries = [];
-    const saved = [];
-    let active = false;
-    await collectValidatedRecords(
-        describe(...fields),
-        fields,
-        { ...options, mode: 'record-fields-preview' },
-        async (query) => {
-            assert.equal(active, false);
-            active = true;
-            await new Promise((resolve) => setImmediate(resolve));
-            active = false;
-            queries.push(query);
-            if (queries.length === 1) return response([newest]);
-            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null, C: null, D: null }]);
-            if (queries.length === 3) throw Object.assign(new Error('complex'), { code: 'QUERY_TOO_COMPLICATED' });
-            if (queries.length === 4) {
-                assert.match(query, /^SELECT Id,A,B /);
-                return response([{ Id: older.Id, A: 'a', B: 'b' }]);
-            }
-            assert.match(query, /^SELECT Id,C,D /);
-            assert.deepEqual(saved, ['A', 'B', 'C', 'D', 'A', 'B']);
-            return response([{ Id: older.Id, C: 'c', D: 'd' }]);
-        },
-        quiet,
-        async (_id, group) => saved.push(group[0].name)
-    );
-    assert.deepEqual(saved, ['A', 'B', 'C', 'D', 'A', 'B', 'C', 'D']);
-    assert.equal(queries.length, 5);
-});
-
-test('まとめ補完は空欄100項目を1回の追加検索で埋める', async () => {
-    const fields = Array.from({ length: 100 }, (_, i) => field(`Value${i}__c`));
-    let count = 0;
-    const result = await collectRecords(
-        describe(...fields),
-        fields.map((f) => f.name),
-        { ...options, mode: 'record-fields-preview' },
-        async () => {
-            count++;
-            if (count === 1) return response([newest]);
-            return response([
-                {
-                    Id: count === 2 ? newest.Id : older.Id,
-                    ...Object.fromEntries(fields.map((f) => [f.name, count === 2 ? null : f.name]))
-                }
-            ]);
-        },
-        quiet
-    );
-    assert.equal(count, 3);
-    assert.deepEqual(
-        fields.map((f) => result.records[0][f.name]),
-        fields.map((f) => f.name)
-    );
-});
-
-test('ORで後続項目の値を取得後にタイムアウトしても、取得値とスキップを指定順に保存する', async () => {
-    const fields = [field('Present'), field('A'), field('B')];
-    const saved = [];
-    let count = 0;
-    await collectValidatedRecords(
-        describe(...fields),
-        fields,
-        { ...options, mode: 'record-fields-preview' },
-        async () => {
-            count++;
-            if (count === 1) return response([newest]);
-            if (count === 2) return response([{ Id: newest.Id, Present: 'keep', A: null, B: null }]);
-            if (count === 3) return response([{ Id: older.Id, A: null, B: 'b' }]);
-            throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
-        },
-        quiet,
-        async (_id, group, record, _sources, _latestId, statuses) =>
-            saved.push([group[0].name, record[group[0].name], statuses.get(group[0].name)])
-    );
-    assert.deepEqual(saved, [
-        ['Present', 'keep', undefined],
-        ['A', null, 'PENDING_RETRY_QUERY_TIMEOUT'],
-        ['B', 'b', undefined],
-        ['A', null, 'SKIPPED_QUERY_TIMEOUT']
-    ]);
-    assert.equal(count, 5);
-});
-
-test('1400項目のOR条件が文字数上限を超える場合も、上限内へ分割して指定順を保つ', async () => {
-    const fields = Array.from({ length: 1400 }, (_, i) => field(`F${String(i).padStart(36, '0')}__c`));
-    const saved = [];
-    const queries = [];
-    const nulls = Object.fromEntries(fields.map((f) => [f.name, null]));
-    await collectValidatedRecords(
-        describe(...fields),
-        fields,
-        { mode: 'record-fields-preview', recordLimit: 1 },
-        async (query) => {
-            assert.ok(query.length <= 100000);
-            queries.push(query);
-            if (queries.length === 1) return response([newest]);
-            if (queries.length === 2) return response([{ Id: newest.Id, ...nulls }]);
-            assert.ok(query.includes(' OR '));
-            const names = query
-                .slice(7, query.indexOf(' FROM '))
-                .split(',')
-                .filter((name) => name !== 'Id');
-            if (queries.length === 3)
-                assert.deepEqual(
-                    names,
-                    fields.slice(0, 700).map((f) => f.name)
-                );
-            else {
-                assert.deepEqual(
-                    saved,
-                    [...fields, ...fields.slice(0, 700)].map((f) => f.name)
-                );
-                assert.deepEqual(
-                    names,
-                    fields.slice(700).map((f) => f.name)
-                );
-            }
-            return response([{ Id: older.Id, ...Object.fromEntries(names.map((name) => [name, 'filled'])) }]);
-        },
-        quiet,
-        async (_id, group) => saved.push(group[0].name)
-    );
-    assert.deepEqual(
-        saved,
-        [...fields, ...fields].map((f) => f.name)
-    );
-    assert.equal(queries.length, 4);
-});
-
-test('補完応答サイズ超過を保留し、最後にだけ縮小した非NULL検索を再試行する', async () => {
-    const fields = [field('A'), field('B')];
-    const queries = [];
-    const saved = [];
-    await collectValidatedRecords(
-        describe(...fields),
-        fields,
-        { ...options, mode: 'record-fields-preview' },
-        async (query) => {
-            queries.push(query);
-            if (queries.length === 1) return response([newest]);
-            if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null }]);
-            if (queries.length === 3) {
-                assert.match(query, /WHERE \(A != NULL OR B != NULL\).*LIMIT 1$/);
-                throw Object.assign(new Error('size'), { code: 'BUFFER_LIMIT' });
-            }
-            assert.deepEqual(saved.slice(0, 2), ['A', 'B']);
-            if (queries.length === 4) {
-                assert.match(query, /WHERE A != NULL /);
-                return response([{ Id: older.Id, A: 'a' }]);
-            }
-            assert.match(query, /WHERE B != NULL /);
-            return response([]);
-        },
-        quiet,
-        async (_id, group) => saved.push(group[0].name)
-    );
-    assert.deepEqual(saved, ['A', 'B', 'A', 'B']);
-    assert.equal(queries.length, 5);
+    assert.equal(saved[0].value, null);
+    assert.equal(saved[1].status, 'PENDING_RETRY_QUERY_TIMEOUT');
+    assert.equal(saved.at(-1).name, 'F1');
+    assert.equal(saved.at(-1).value, 'F1');
+    assert.equal(saved.at(-1).replace, true);
+    assert.equal(batches.flat().filter((q) => q.includes('F0 != NULL')).length, 1);
+    assert.equal(batches.flat().filter((q) => q.includes('F2 != NULL')).length, 1);
 });
 
 test('作成日の指定は日本時間の当日午前0時より前とし、不正日付を拒否する', () => {
@@ -1734,7 +1540,7 @@ test('作成日の指定は日本時間の当日午前0時より前とし、不�
     }
 });
 
-test('作成日条件を対象選択・値取得・OR補完へ同じ境界で適用する', async () => {
+test('作成日条件を対象選択・値取得・個別補完へ同じ境界で適用する', async () => {
     const fields = [field('A'), field('B')];
     const queries = [];
     const settings = {
@@ -1750,12 +1556,12 @@ test('作成日条件を対象選択・値取得・OR補完へ同じ境界で適
             assert.ok(query.includes(`RecordTypeId = '${recordTypeId}' AND CreatedDate < 2026-09-30T15:00:00.000Z`));
             if (queries.length === 1) return response([newest]);
             if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null }]);
-            assert.match(query, /AND \(A != NULL OR B != NULL\) ORDER BY/);
+            assert.match(query, /AND [AB] != NULL ORDER BY/);
             return response([{ Id: older.Id, A: 'a', B: 'b' }]);
         },
         quiet
     );
-    assert.equal(queries.length, 3);
+    assert.equal(queries.length, 4);
     assert.deepEqual(result.records[0], { A: 'a', B: 'b' });
     assert.throws(
         () => validateDescribe(describe(field('CreatedDate', { sortable: true, filterable: false })), ['A'], settings),
@@ -1848,16 +1654,14 @@ test('MasterRecordIdも特別扱いせず一括補完に含め、空欄と実値
                 queries.push(query);
                 if (queries.length === 1) return response([newest]);
                 if (queries.length === 2) return response([{ Id: newest.Id, MasterRecordId: null, Name: null }]);
-                if (queries.length === 4) {
-                    assert.match(query, /SELECT Id,MasterRecordId FROM Account WHERE MasterRecordId != NULL/);
-                    return response([]);
-                }
-                assert.match(query, /SELECT Id,MasterRecordId,Name/);
-                return response([{ Id: older.Id, MasterRecordId: masterValue, Name: 'demo' }]);
+                if (query.includes('MasterRecordId != NULL'))
+                    return response(masterValue === null ? [] : [{ Id: older.Id, MasterRecordId: masterValue }]);
+                assert.match(query, /SELECT Id,Name FROM Account WHERE Name != NULL/);
+                return response([{ Id: older.Id, Name: 'demo' }]);
             },
             quiet
         );
-        assert.equal(queries.length, masterValue === null ? 4 : 3);
+        assert.equal(queries.length, 4);
         assert.equal(result.records[0].MasterRecordId, masterValue);
         assert.equal(result.statuses.size, 0);
     }
@@ -1876,7 +1680,7 @@ test('補完待機の進捗と累積期限を検証し、成功・スキップ�
         hasValue: (value) => value != null,
         canFilterNonNull: () => true,
         report: (f, message) => reports.push([f.name, message]),
-        search: async (_columns, _scope, _limit, _ordered, controls) => {
+        searchBatch: async (_fields, _scope, controls) => {
             assert.equal(controls.deadline, SUPPLEMENT_TIMEOUT_MS);
             now = 10000;
             t.mock.timers.tick(10000);
@@ -2065,70 +1869,52 @@ test('保留後に中断しても、再開時は取得済み範囲を読み直�
     assert.equal(csv.split('\r\n').length, 4);
 });
 
-test('1300項目中1200項目が空欄でも、保留分を最後にまとめて取得し全行を指定順に完成する', async (t) => {
-    const { createCsvSpool } = require('../internal/csv-spool');
-    const cwd = temporary(t);
+test('1300項目中1200項目の空欄は240通信で検索し、各項目を一度だけ確定する', async () => {
     const fields = Array.from({ length: 1300 }, (_, i) => field(`F${String(i).padStart(36, '0')}__c`));
-    const mode = 'record-fields-preview';
-    const spool = createCsvSpool(cwd, fields, mode);
-    let calls = 0;
-    let initialSaved = 0;
-    const queryWidths = [];
+    const saved = [],
+        queried = new Set();
+    let batches = 0,
+        baseCalls = 0;
+    const query = async (soql) => {
+        baseCalls++;
+        if (soql.startsWith('SELECT Id,CreatedDate')) return response([newest]);
+        return response([
+            { Id: newest.Id, ...Object.fromEntries(fields.map((f, i) => [f.name, i < 100 ? 'base' : null])) }
+        ]);
+    };
+    query.batch = async (soqls) => {
+        batches++;
+        assert.equal(soqls.length, 5);
+        return soqls.map((soql) => {
+            const name = /^SELECT Id,(\w+) FROM/.exec(soql)[1];
+            assert.ok(!queried.has(name));
+            queried.add(name);
+            return { result: response([{ Id: older.Id, [name]: 'filled' }]) };
+        });
+    };
     await collectValidatedRecords(
         describe(...fields),
         fields,
-        { mode, recordLimit: 1 },
-        async (query) => {
-            calls++;
-            assert.ok(query.length <= 100000);
-            if (calls === 1) return response([newest]);
-            const names = query
-                .slice(7, query.indexOf(' FROM '))
-                .split(',')
-                .filter((name) => name !== 'Id');
-            if (calls === 2)
-                return response([
-                    {
-                        Id: newest.Id,
-                        ...Object.fromEntries(names.map((name, i) => [name, i < 100 ? `base-${i}` : null]))
-                    }
-                ]);
-            assert.equal(initialSaved, 1300, '全項目の初回保存より前に再試行してはいけない');
-            queryWidths.push(names.length);
-            // どの補完元レコードも、値のある項目は100個までにする。
-            return response([
-                {
-                    Id: id(10000 - calls),
-                    ...Object.fromEntries(names.map((name, i) => [name, i < 100 ? `value-${name}` : null]))
-                }
-            ]);
-        },
+        { mode: 'record-fields-preview', recordLimit: 1 },
+        query,
         quiet,
-        async (...args) => {
-            if (!args[6]?.replace) initialSaved++;
-            spool.append(...args);
-        }
+        async (_id, group, record) => saved.push([group[0].name, record[group[0].name]])
     );
-    const output = path.join(cwd, 'many-fields.csv');
-    spool.finish([newest.Id], output);
-    const csv = fs.readFileSync(output, 'utf8');
-    const lines = csv.trimEnd().split('\r\n').slice(1);
-    assert.equal(lines.length, 1300);
+    assert.equal(baseCalls, 2);
+    assert.equal(batches, 240);
+    assert.equal(queried.size, 1200);
     assert.deepEqual(
-        lines.map((line) => line.split(',')[0]),
-        fields.map((field) => `"${field.name}"`)
+        saved.map((r) => r[0]),
+        fields.map((f) => f.name)
     );
-    assert.equal((csv.match(/"LATEST"/g) || []).length, 100);
-    assert.equal((csv.match(/"SUPPLEMENTED"/g) || []).length, 1200);
-    assert.ok(!csv.includes('PENDING_RETRY'));
-    assert.deepEqual(queryWidths, [600, 500, 400, 300, 200, 100, 600, 500, 400, 300, 200, 100]);
-    assert.equal(calls, 14);
+    assert.ok(saved.every((r, i) => r[1] === (i < 100 ? 'base' : 'filled')));
 });
 
 test('最後の再試行中の中断でも置換済み行を復元し、同じ項目を二重検索・二重出力しない', async (t) => {
     const cwd = temporary(t);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), 'A\nB\nC\nD');
     let phase = 0;
+    let initialFailed = false;
     const queried = [];
     const runner = async (command) => {
         if (command[0] === 'config') return runnerFor()(command);
@@ -2139,9 +1925,11 @@ test('最後の再試行中の中断でも置換済み行を復元し、同じ�
         if (query.startsWith('SELECT Id,CreatedDate')) return cli(response([newest]));
         if (query.includes(`Id = '${newest.Id}'`))
             return cli(response([{ Id: newest.Id, A: null, B: null, C: null, D: null }]));
-        if (query.startsWith('SELECT Id,A,B,C,D ') && query.includes(' != NULL'))
+        if (!phase && !initialFailed && query.includes('B != NULL')) {
+            initialFailed = true;
             throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
-        if (!phase && query.startsWith('SELECT Id,A,B ')) return cli(response([{ Id: older.Id, A: 'a', B: null }]));
+        }
+        if (!phase && query.startsWith('SELECT Id,A ')) return cli(response([{ Id: older.Id, A: 'a' }]));
         if (!phase) throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
         assert.ok(!query.includes('Id,A'));
         const names = query.slice(7, query.indexOf(' FROM ')).split(',').slice(1);

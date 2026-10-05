@@ -218,6 +218,37 @@ async function collectRecords(
         // 検証した結果だけを利用する。
         return records;
     }
+    // 各項目の最新非NULL値を独立検索し、CLI起動だけを最大5項目で共有する。
+    async function searchBatch(pending, conditions, controls) {
+        // 一つの条件へORでまとめず、各項目にLIMIT 1を適用する。
+        const soqls = pending.map((field) =>
+            buildQuery(['Id', field.name], [...conditions, `${field.name} != NULL`], 1, true)
+        );
+        // 長い名前や条件でもサーバーへ不正な長さを送らない。
+        if (soqls.some((soql) => soql.length > 100000))
+            throw Object.assign(new Error('SOQLの文字数上限を超えました。'), { code: 'QUERY_LENGTH_LIMIT' });
+        // 個別検索の応答を要求順で受け取り、表示・保存の順序を維持する。
+        const outcomes = await query.batch(soqls, controls);
+        // 欠落した応答を別の項目へ割り当てない。
+        if (outcomes.length !== pending.length) throw new Error('補完検索の応答件数が一致しません。');
+        // エラーと結果を項目ごとに扱い、一つの失敗で成功した値を捨てない。
+        return outcomes.map((outcome, index) => {
+            // 通信先が返した安全化済みのエラーは、その項目だけへ渡す。
+            if (outcome.error) return outcome;
+            // 不完全なレコードも後続項目の結果と混ぜず、該当項目の順番で停止する。
+            try {
+                // 欠落・重複・取得件数を通常取得と同じ条件で検証する。
+                const rows = recordsFrom(outcome.result, ['Id', pending[index].name]);
+                // LIMIT 1を無視した応答は採用しない。
+                if (rows.length > 1) throw new Error('指定件数を超える補完クエリ応答です。');
+                // 呼び出し側はレコード配列から値ありと値なしを確定する。
+                return { rows };
+            } catch (error) {
+                // 前の項目を保存できるよう、例外も要求順で渡す。
+                return { error };
+            }
+        });
+    }
     // 最初の対象選択では値を取得せずIDと順序を確定する。
     const limit = options.mode === 'record-fields-preview' ? 1 : options.recordLimit;
     // 選択中の件数を表示する。
@@ -374,7 +405,7 @@ async function collectRecords(
                     fields: group,
                     record,
                     scope,
-                    search,
+                    searchBatch,
                     hasValue,
                     canFilterNonNull,
                     // 確定結果の行とは分け、現在項目の検索・再試行を通知する。
@@ -458,8 +489,7 @@ async function collectRecords(
     // 全項目の初回処理を終えた後だけ、保留分を指定順の小さなまとまりで再試行する。
     const retryFields = fields.filter((field) => deferred.has(field.name));
     // 保留なしの場合は追加クエリを実行しない。
-    if (retryFields.length)
-        writeLine(`最後の再試行: 保留${retryFields.length}項目・縮小した範囲を一巡・再失敗はスキップ`);
+    if (retryFields.length) writeLine(`最後の再試行: 保留${retryFields.length}項目・個別に一巡・再失敗はスキップ`);
     // 失敗した元の範囲より大きい一括検索へ戻さない。
     for (let offset = 0; offset < retryFields.length;) {
         // 先頭の保留項目に保存した縮小サイズを使う。
@@ -481,7 +511,7 @@ async function collectRecords(
             fields: group,
             record,
             scope,
-            search,
+            searchBatch,
             hasValue,
             canFilterNonNull,
             retry: true,
