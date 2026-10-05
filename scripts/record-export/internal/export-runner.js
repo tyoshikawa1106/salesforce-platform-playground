@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { parseArgs } = require('node:util');
+const { parseArgs, stripVTControlCharacters } = require('node:util');
 const { clearLine, cursorTo } = require('node:readline');
 const { createCsvSpool } = require('./csv-spool');
 const { openCheckpoint } = require('./checkpoint');
@@ -206,22 +206,55 @@ function parseCliResponse(response, mode) {
         'NoAuthorizationError',
         'AuthInfoCreationError'
     ]);
-    // ストリーム受信開始後の例外は、成功JSONとは別の標準エラーへ出る場合がある。
-    const stderrCode = /(?:^|\n)\s*(?:code|errorCode):\s*['"]([A-Z][A-Z0-9_]+)['"]/m.exec(response.stderr || '')?.[1];
-    // 自由文は転記せず、既知の通信コードだけを採用する。
-    const streamCode = processCodes.has(stderrCode) ? stderrCode : undefined;
+    // 色付きの例外や標準エラー側のJSONも解析し、本文全体の非表示で識別子を失わない。
+    const stderr = stripVTControlCharacters(response.stderr || '');
+    // 標準エラーは診断専用であり、成功した検索結果としては採用しない。
+    let stderrBody;
+    // JSON形式と通常の例外表示の両方を受け付ける。
+    try {
+        // レコード値や接続情報は転記せず、後段で識別子だけを取り出す。
+        stderrBody = JSON.parse(stderr);
+    } catch {
+        // 非JSONの場合は、コード・例外名・既知の原因文だけを解析する。
+        stderrBody = undefined;
+    }
+    // 通常の例外表示からキー付き識別子を取り出し、未知のコードも診断に残す。
+    const stderrCodes = [
+        ...stderr.matchAll(
+            /(?:^|[\n,{])\s*["']?(?:name|code|errorCode)["']?\s*:\s*["']([A-Za-z][A-Za-z0-9_]{0,79})["']/g
+        )
+    ].map((match) => match[1]);
+    // Error (識別子) と TimeoutError: のような例外見出しを認識する。
+    const stderrNames = [
+        ...stderr.matchAll(
+            /^\s*(?:Error\s*\(([A-Za-z][A-Za-z0-9_]{0,79})\)|([A-Za-z][A-Za-z0-9_]{0,74}Error|Error)(?:\s*\[[A-Z0-9_]+\])?)\s*:/gm
+        )
+    ].map((match) => match[1] || match[2]);
+    // 通信例外の既知の文言だけを表示し、後続のURL・要求本文は含めない。
+    const stderrReason =
+        /^\s*(?:[A-Za-z][A-Za-z0-9_]*Error|Error)(?:\s*\([^\r\n)]*\)|\s*\[[A-Z0-9_]+\])?\s*:\s*(Request timed out|Timeout awaiting ['"](?:request|response|connect|socket|lookup|secureConnect|send)['"] for \d+ms|socket hang up|Client network socket disconnected before secure TLS connection was established)(?=$|[\s.])/im.exec(
+            stderr
+        )?.[1];
     // CLIが例外を包んだ場合も、自由文ではなく構造化された原因コードを確認する。
-    const causes = [body, body.cause, body.cause?.cause];
+    const causes = [body, body.cause, body.cause?.cause, stderrBody, stderrBody?.cause, stderrBody?.cause?.cause];
     // 通常JSON受信でHTTP失敗が返った場合は、応答本文の固定コードだけを取り出す。
     const apiCode = Array.isArray(body.result?.body) ? body.result.body[0]?.errorCode : undefined;
     // 原因コードの格納場所で分類が変わらないよう、既存の確認範囲を一度だけ展開する。
-    const causeCodes = [...causes.flatMap((cause) => [cause?.name, cause?.code, cause?.errorCode]), apiCode];
+    const causeCodes = [
+        ...causes.flatMap((cause) => [cause?.name, cause?.code, cause?.errorCode]),
+        apiCode,
+        ...stderrCodes,
+        ...stderrNames
+    ];
     // 外側から順に既知の通信コードだけを採用する。
     const transportCode = causeCodes.find((value) => processCodes.has(value));
     // OS側の失敗がある場合は、途中までのJSONより優先する。
     let code = 'CLI_FAILED';
     // 子プロセスを起動・完了できなかった原因を分類する。
-    if (response.error) {
+    if (response.killed) {
+        // 時間切れのSIGTERMをCLIが捕捉して終了コード1を返しても、打ち切りの事実を維持する。
+        code = 'CLI_TIMEOUT';
+    } else if (response.error) {
         // 未知のOSエラーは全体失敗を維持する。
         code = processCodes.get(response.error.code) || 'CLI_FAILED';
         // execFileは既定の時間切れをSIGTERMによる強制終了として返す。
@@ -229,9 +262,6 @@ function parseCliResponse(response, mode) {
             // タイマーで終了した非同期呼び出しも既存の診断へ揃える。
             code = 'CLI_TIMEOUT';
         }
-    } else if (response.status !== 0 && streamCode) {
-        // CLIの非正常終了が確認できた場合だけ標準エラーの通信コードを使う。
-        code = processCodes.get(streamCode);
     } else if (transportCode) {
         // CLI自身が返した通信エラーも、親プロセスの待ち時間制限と区別する。
         code = processCodes.get(transportCode);
@@ -241,6 +271,9 @@ function parseCliResponse(response, mode) {
     } else if (causeCodes.some((value) => queryCodes.includes(value))) {
         // 検索固有の診断を表示して、未完成のCSVの保存を防ぐ。
         code = causeCodes.find((value) => queryCodes.includes(value));
+    } else if (stderrReason) {
+        // 経過時間から推測せず、CLIが明記した通信障害を分類する。
+        code = /timed out|Timeout awaiting/i.test(stderrReason) ? 'NETWORK_TIMEOUT' : 'NETWORK_ERROR';
     }
     // 判別した原因に対して、認証操作を自動実行せず確認先を案内する。
     const guidance = new Map([
@@ -273,14 +306,18 @@ function parseCliResponse(response, mode) {
         ]
     ]);
     // メッセージ本文やURLを除き、構造化された短い識別子だけを残す。
-    const identifiers = [...causeCodes, response.error?.code, streamCode, transportCode].filter(
+    const identifiers = [...causeCodes, response.error?.code, transportCode].filter(
         (value) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value)
     );
     // 未分類でも終了コードとCLI識別子から調査できるようにする。
     const details = [
         `終了コード: ${Number.isInteger(response.status) ? response.status : '情報なし'}`,
         `応答形式: ${jsonState}`,
-        `標準エラー: ${response.stderr ? 'あり（本文非表示）' : 'なし'}`,
+        `標準エラー: ${response.stderr ? 'あり' : 'なし'}`,
+        ...(stderrReason ? [`CLI原因: ${stderrReason}`] : []),
+        ...(response.stderr && !stderrReason && !stderrCodes.length && !stderrNames.length && !stderrBody
+            ? ['標準エラー診断: 安全に表示できる原因情報を抽出できませんでした']
+            : []),
         ...(Number.isInteger(body.result?.statusCode) ? [`HTTP: ${body.result.statusCode}`] : []),
         ...(identifiers.length ? [] : ['識別子: 情報なし']),
         ...[...new Set(identifiers)].map((value) => `識別子: ${value}`),
@@ -326,7 +363,7 @@ async function callSf(args, cwd, runner = runSfWithOutputAsync, mode = 'records'
             error.message = `補完の待機上限に達しました (SUPPLEMENT_TIMEOUT)。${error.diagnostic ? ` / ${error.diagnostic}` : ''}`;
         }
         // CSVにも同じ実測時間と、この呼び出しに適用した上限を残す。
-        const timing = `処理: ${args[0] === 'api' ? 'レコード検索' : args[0] === 'sobject' ? '項目定義の取得' : 'CLI呼び出し'} / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒 / 待機上限: ${(timeout / 1000).toFixed(1)}秒`;
+        const timing = `処理: ${['api', 'data'].includes(args[0]) ? 'レコード検索' : args[0] === 'sobject' ? '項目定義の取得' : 'CLI呼び出し'} / CLI経過: ${((performance.now() - started) / 1000).toFixed(1)}秒 / 待機上限: ${(timeout / 1000).toFixed(1)}秒`;
         // 本文を除外して生成済みの診断へ実測情報を追加する。
         error.diagnostic = [error.diagnostic, timing].filter(Boolean).join(' / ');
         // 端末にも同じ実測情報を一度だけ追加する。

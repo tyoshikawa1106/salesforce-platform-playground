@@ -231,7 +231,7 @@ async function collectRecords(
         // 検証した結果だけを利用する。
         return records;
     }
-    // 各項目の最新非NULL値を独立検索し、CLI起動だけを最大5項目で共有する。
+    // 各項目の最新非NULL値を独立検索し、一項目ずつ結果を確定する。
     async function searchBatch(pending, conditions, controls) {
         // 前回の取得値を途中CSVへ公開してから、次の通信待ちに入る。
         await options.beforeSupplementQuery?.();
@@ -528,7 +528,7 @@ async function collectRecords(
     const supplementPositions = new Map(pendingFields.map((field, index) => [field.name, index + 1]));
     // 対象がある場合だけ補完段階の開始を通知する。
     if (pendingFields.length) writeLine(`空欄補完を開始: ${pendingFields.length}項目`);
-    // Compositeのクエリ上限に合わせて最大5項目ずつ送り、同じ項目を自動再試行しない。
+    // 補完の作業メモリを小さく保ち、各範囲の中でも一項目ずつ検索・保存する。
     for (let offset = 0; offset < pendingFields.length; offset += 5) {
         // 初回取得の分割境界とは独立して空欄だけをまとめる。
         const group = pendingFields.slice(offset, offset + 5);
@@ -547,8 +547,8 @@ async function collectRecords(
             searchBatch,
             hasValue,
             canFilterNonNull,
-            // 残件数は未処理の補完対象数だけを表示する。
-            report: (_field, message) => writeLine(`${message} / 残り ${supplements.size}項目`)
+            // エラー診断を表示し、結果行と重複する残件数を付けない。
+            report: (_field, message) => writeLine(message)
         });
         // 致命的なエラーでも、この範囲で保存済みの結果は公開する。
         try {
@@ -600,7 +600,7 @@ async function collectRecords(
         }
     }
     // 補完を終えた場合だけ確定した終了行を残す。
-    if (pendingFields.length) writeLine('補完完了: 残り 0項目');
+    if (pendingFields.length) writeLine('補完完了');
     // 横型は全レコードの取得後に、対象なしの場合も指定順で結果を通知する。
     if (options.mode !== 'record-fields-preview' || !selected.length) {
         // 分割回数やレコード数によって同じ項目を繰り返し列挙しない。

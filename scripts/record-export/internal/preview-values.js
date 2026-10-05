@@ -1,4 +1,4 @@
-// 用途: 空欄の補完候補をまとめて取得し、項目順の確定処理へ最新の実値だけを渡す。
+// 用途: 型に応じたサンプルを生成し、実値が必要な空欄は一項目ずつ検索する。
 
 const { QUERY_TIMEOUT_CODES } = require('./error-definitions');
 
@@ -62,6 +62,17 @@ function sampleForField(field, definitions) {
     if (field.type === 'email') return { value: 'demo@example.com', status: 'GENERATED' };
     // 電話とFAXは同じphone型として扱う。
     if (field.type === 'phone') return { value: '000-0000-0000', status: 'GENERATED' };
+    // テキストエリア系は実値を検索せず、改行やHTMLを含まないデモ用の文面にする。
+    if (field.type === 'textarea') {
+        // DescribeのHTML形式と検索可否で、表示するサンプル文面の種類だけを区別する。
+        const value = field.htmlFormatted
+            ? '(リッチテキストのサンプル)'
+            : field.filterable === false
+              ? '(ロングテキストのサンプル)'
+              : '(テキストエリアのサンプル)';
+        // 既存の生成処理へ渡し、取得元IDは付けない。
+        return { value, status: 'GENERATED' };
+    }
     // 複合住所はCSVの一セルに格納できるオブジェクトとして生成する。
     if (field.type === 'address') return { value: { ...SAMPLE_ADDRESS }, status: 'GENERATED' };
     // 単独の位置情報も住所内の座標と同じ値を使う。
@@ -100,46 +111,30 @@ function createPreviewResolver({ fields, record, scope, searchBatch, hasValue, c
     );
     // 項目名ごとに最初に見つかった最新値だけを保持する。
     const resolved = new Map();
-    // 確定済み項目には再問い合わせせず、最大5項目の結果を共有する。
+    // 確定済み項目には再問い合わせせず、項目ごとの結果を保持する。
     return async function resolve(field) {
         // 保留・値なし・値ありのいずれも確定後はキャッシュから返す。
         if (!resolved.has(field.name)) {
-            // 未確定の対象だけを指定順で最大5項目に絞る。
-            const pending = missing.filter((candidate) => !resolved.has(candidate.name)).slice(0, 5);
+            // 未確定の対象だけを指定順で一項目に絞る。
+            const pending = missing.filter((candidate) => !resolved.has(candidate.name)).slice(0, 1);
             // 対象範囲外の呼び出しを値なしと誤認しない。
             if (!pending.some((candidate) => candidate.name === field.name))
                 throw new Error('補完対象の項目範囲が一致しません。');
             // 応答のない通信を待ち続けず、時間超過は失敗として記録する。
             const started = performance.now();
-            // 同じ通信に含まれる最大5検索の待ち時間を制限する。
+            // 一項目の検索の待ち時間を制限する。
             const deadline = started + SUPPLEMENT_TIMEOUT_MS;
-            // 実行位置はサーバーから通知されないため、送信した対象項目を正確に表示する。
-            const label = `補完検索中: ${pending.map((item) => item.name).join(', ')}`;
-            // 一項目だけを取得中と誤解させず、今回の送信対象を通知する。
-            report(field, label);
-            // 通信待ち中も経過時間を表示し、処理停止との区別を可能にする。
-            const timer = setInterval(
-                () =>
-                    report(
-                        field,
-                        `${label} / 応答待ち：${((performance.now() - started) / 1000).toFixed(0)}秒経過・残り上限${Math.max(0, Math.ceil((deadline - performance.now()) / 1000))}秒`
-                    ),
-                10000
-            );
             // 通信全体の失敗と、各検索が返した失敗を同じ項目別処理へ渡す。
             let outcomes;
             // 応答の取得が終わるまで次のグループを送らない。
             try {
-                // SOQLは独立させたまま、通信とCLI起動だけをまとめる。
+                // 一項目だけを検索し、結果確定後に次へ進む。
                 outcomes = await searchBatch(pending, scope, { deadline });
             } catch (error) {
                 // 通信失敗ではどの検索が完了したか不明なので、値なしと確定しない。
                 outcomes = pending.map(() => ({ error }));
-            } finally {
-                // 成功・失敗のどちらでも待機表示を終了する。
-                clearInterval(timer);
             }
-            // 診断済みの同一エラーを最大5回繰り返し表示しない。
+            // 同一エラーの診断を重複表示しない。
             const reported = new Set();
             // 他項目の成功・失敗を混ぜず、項目名をキーに確定結果を保存する。
             pending.forEach((candidate, index) => {

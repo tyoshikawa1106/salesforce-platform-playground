@@ -38,7 +38,7 @@ test('未知のAPIエラーでも元コードとHTTP診断を保持し、生本�
                     ? { statusCode: 503, body: errors }
                     : {
                           statusCode: 200,
-                          body: { compositeResponse: [{ referenceId: 'field0', httpStatusCode: 500, body: errors }] }
+                          body: composite(errors, 500)
                       };
             },
             '/services/data/v67.0/sobjects/Account'
@@ -53,8 +53,7 @@ test('未知のAPIエラーでも元コードとHTTP診断を保持し、生本�
             assert.ok(!error.diagnostic.includes('private-record-value'));
             return true;
         };
-        if (outerFailure) await assert.rejects(() => query.batch(['SELECT Id FROM Account LIMIT 1']), check);
-        else check((await query.batch(['SELECT Id FROM Account LIMIT 1']))[0].error);
+        await assert.rejects(() => query('SELECT Id FROM Account LIMIT 1'), check);
     }
 });
 
@@ -245,50 +244,41 @@ test('DescribeのAPIバージョンが不明・不正なら検索を開始しな
     }
 });
 
-test('5本の独立検索を順序固定で送り、逆順の応答と一項目エラーも参照IDで照合する', async (t) => {
+test('補完は通常クエリを一項目ずつ実行し、失敗を次の項目へ波及させない', async (t) => {
     const dir = temp(t);
     let calls = 0;
     const query = createQueryClient(
         dir,
         'test',
-        async (args) => {
-            calls++;
-            const body = JSON.parse(fs.readFileSync(args[args.indexOf('--body') + 1].slice(1), 'utf8'));
-            assert.equal(body.collateSubrequests, false);
-            assert.equal(body.allOrNone, false);
-            assert.equal(body.compositeRequest.length, 5);
-            return {
-                statusCode: 200,
-                body: {
-                    compositeResponse: body.compositeRequest
-                        .map((part, i) => ({
-                            referenceId: part.referenceId,
-                            httpStatusCode: i === 1 ? 400 : 200,
-                            body:
-                                i === 1
-                                    ? [{ errorCode: 'QUERY_TIMEOUT', message: 'private-value' }]
-                                    : {
-                                          records: i === 0 ? [] : [{ Id: String(i) }],
-                                          totalSize: i === 0 ? 0 : 1,
-                                          done: true
-                                      }
-                        }))
-                        .reverse()
-                }
-            };
+        async (args, controls) => {
+            const index = calls++;
+            assert.deepEqual(args.slice(0, 2), ['data', 'query']);
+            assert.equal(args[args.indexOf('--target-org') + 1], 'test');
+            assert.equal(args[args.indexOf('--api-version') + 1], '67.0');
+            assert.equal(controls.deadline, 12345 + index);
+            assert.equal(
+                fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8'),
+                `SELECT Id,F${index} FROM Account WHERE F${index} != NULL LIMIT 1`
+            );
+            if (index === 1) throw error('NETWORK_TIMEOUT');
+            return response(index === 0 ? [] : [{ Id: ids[0], [`F${index}`]: 'value' }]);
         },
         '/services/data/v67.0/sobjects/Account'
     );
-    const results = await query.batch(
-        Array.from({ length: 5 }, (_, i) => `SELECT Id,F${i} FROM Account WHERE F${i} != NULL LIMIT 1`)
-    );
-    assert.equal(calls, 1);
+    const results = [];
+    for (let i = 0; i < 5; i++) {
+        results.push(
+            (
+                await query.batch([`SELECT Id,F${i} FROM Account WHERE F${i} != NULL LIMIT 1`], { deadline: 12345 + i })
+            )[0]
+        );
+    }
+    assert.equal(calls, 5);
     assert.equal(results[0].result.totalSize, 0);
-    assert.equal(results[1].error.code, 'QUERY_TIMEOUT');
-    assert.ok(!results[1].error.message.includes('private-value'));
-    assert.equal(results[4].result.records[0].Id, '4');
-    await assert.rejects(() => query.batch(Array(6).fill('SELECT Id FROM Account LIMIT 1')));
-    assert.equal(calls, 1);
+    assert.equal(results[1].error.code, 'NETWORK_TIMEOUT');
+    assert.equal(results[4].result.records[0].F4, 'value');
+    await assert.rejects(() => query.batch(Array(2).fill('SELECT Id FROM Account LIMIT 1')));
+    assert.equal(calls, 5);
 });
 
 test('縦型の途中CSVは全項目の未処理行から始まり、保存した項目の行だけ更新する', (t) => {
