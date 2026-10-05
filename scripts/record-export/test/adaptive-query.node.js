@@ -213,3 +213,49 @@ test('DescribeのAPIバージョンが不明・不正なら検索を開始しな
         assert.throws(() => createQueryClient('', 'test', () => assert.fail(), url), /APIバージョン/);
     }
 });
+
+test('5本の独立検索を順序固定で送り、逆順の応答と一項目エラーも参照IDで照合する', async (t) => {
+    const dir = temp(t);
+    let calls = 0;
+    const query = createQueryClient(
+        dir,
+        'test',
+        async (args) => {
+            calls++;
+            const body = JSON.parse(fs.readFileSync(args[args.indexOf('--body') + 1].slice(1), 'utf8'));
+            assert.equal(body.collateSubrequests, false);
+            assert.equal(body.allOrNone, false);
+            assert.equal(body.compositeRequest.length, 5);
+            return {
+                statusCode: 200,
+                body: {
+                    compositeResponse: body.compositeRequest
+                        .map((part, i) => ({
+                            referenceId: part.referenceId,
+                            httpStatusCode: i === 1 ? 400 : 200,
+                            body:
+                                i === 1
+                                    ? [{ errorCode: 'QUERY_TIMEOUT', message: 'private-value' }]
+                                    : {
+                                          records: i === 0 ? [] : [{ Id: String(i) }],
+                                          totalSize: i === 0 ? 0 : 1,
+                                          done: true
+                                      }
+                        }))
+                        .reverse()
+                }
+            };
+        },
+        '/services/data/v67.0/sobjects/Account'
+    );
+    const results = await query.batch(
+        Array.from({ length: 5 }, (_, i) => `SELECT Id,F${i} FROM Account WHERE F${i} != NULL LIMIT 1`)
+    );
+    assert.equal(calls, 1);
+    assert.equal(results[0].result.totalSize, 0);
+    assert.equal(results[1].error.code, 'QUERY_TIMEOUT');
+    assert.ok(!results[1].error.message.includes('private-value'));
+    assert.equal(results[4].result.records[0].Id, '4');
+    await assert.rejects(() => query.batch(Array(6).fill('SELECT Id FROM Account LIMIT 1')));
+    assert.equal(calls, 1);
+});
