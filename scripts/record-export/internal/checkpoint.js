@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { GENERATED_RECORD_KEY } = require('./preview-values');
 
 // 未完成の書き込みを確定済みデータとして読み込ませない。
 function saveJson(file, value) {
@@ -90,7 +91,7 @@ function openCheckpoint(directory, context, resume) {
     let sequence = 0;
     // レコードごとの保存済み項目数だけをメモリへ保持する。
     const offsets = new Map();
-    // 保留した項目だけを最後の再試行で置換可能にする。
+    // 補完待ちの項目だけを後段で置換可能にする。
     const pending = new Set();
     // 対象IDは初回の選択を固定して使う。
     let selected = null;
@@ -101,7 +102,12 @@ function openCheckpoint(directory, context, resume) {
         // 同じオブジェクト・ユーザー・項目順・レコードタイプだけを許可する。
         if (resume) {
             // 条件を変えた再開による別データの混入を防ぐ。
-            if (JSON.stringify(readJson(metadata)) !== JSON.stringify(context))
+            const savedContext = readJson(metadata);
+            // 旧版の実値を新しいサンプル生成へ混在させない。
+            if (savedContext.version !== context.version)
+                throw new Error('この再開データは旧版の形式です。別の出力先で新規実行してください。');
+            // 同じ形式でも接続先や生成値が変わった再開は拒否する。
+            if (JSON.stringify(savedContext) !== JSON.stringify(context))
                 throw new Error(
                     '再開元と組織・実行ユーザー・取得条件・項目定義が一致しません。元の条件で再実行してください。'
                 );
@@ -119,7 +125,11 @@ function openCheckpoint(directory, context, resume) {
             if (
                 !Array.isArray(selected) ||
                 selected.length > context.recordLimit ||
-                selected.some((row) => !/^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/.test(row?.Id)) ||
+                selected.some(
+                    (row) =>
+                        !(context.generatedOnly && selected.length === 1 && row?.Id === GENERATED_RECORD_KEY) &&
+                        !/^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/.test(row?.Id)
+                ) ||
                 new Set(selected.map((row) => row.Id)).size !== selected.length
             )
                 throw new Error('再開用の対象レコード情報が不正です。');
@@ -184,31 +194,35 @@ function openCheckpoint(directory, context, resume) {
                             entry.length !== 2 ||
                             !group.some((field) => field.name === entry[0]) ||
                             typeof entry[1] !== 'string' ||
-                            !/^(?:SKIPPED|PENDING_RETRY)_[A-Z][A-Z0-9_]{0,79}$/.test(entry[1])
+                            !/^(?:PENDING_SUPPLEMENT|GENERATED|NO_PICKLIST_VALUE|NO_SAMPLE_VALUE|SKIPPED_[A-Z][A-Z0-9_]{0,79})$/.test(
+                                entry[1]
+                            )
                     ))
             )
                 throw new Error('再開用データの補完状態が不正です。');
-            // 後日追加された置換情報も検証し、完了項目を勝手に上書きしない。
+            // 診断は該当項目の短い文字列だけを許可し、旧形式の省略は許容する。
             if (
-                chunk.update &&
-                (typeof chunk.update !== 'object' ||
-                    (chunk.update.replace !== undefined && chunk.update.replace !== true) ||
-                    (chunk.update.retryBatchSize !== undefined &&
-                        (!Number.isSafeInteger(chunk.update.retryBatchSize) || chunk.update.retryBatchSize < 1)))
+                chunk.errorDetails !== undefined &&
+                (!Array.isArray(chunk.errorDetails) ||
+                    chunk.errorDetails.some(
+                        (entry) =>
+                            !Array.isArray(entry) ||
+                            entry.length !== 2 ||
+                            !group.some((field) => field.name === entry[0]) ||
+                            typeof entry[1] !== 'string' ||
+                            entry[1].length > 4096
+                    ))
             )
-                throw new Error('再開用データの再試行条件が不正です。');
+                throw new Error('再開用データのエラー詳細が不正です。');
+            // 後日追加された置換情報も検証し、完了項目を勝手に上書きしない。
+            if (chunk.update && (typeof chunk.update !== 'object' || chunk.update.replace !== true))
+                throw new Error('再開用データの更新条件が不正です。');
             // 置換はプレビューの保留済み一項目に限定する。
             if (
                 chunk.update?.replace &&
                 (context.mode !== 'record-fields-preview' || group.length !== 1 || !pending.has(group[0].name))
             )
                 throw new Error('再開用データの置換対象が不正です。');
-            // 保留状態には再試行サイズが必要になる。
-            if (
-                (chunk.statuses || []).some(([, status]) => status.startsWith('PENDING_RETRY_')) &&
-                !chunk.update?.retryBatchSize
-            )
-                throw new Error('再開用データの再試行サイズがありません。');
             // 元の項目順でCSVを再構築する。
             await append(
                 chunk.id,
@@ -217,7 +231,8 @@ function openCheckpoint(directory, context, resume) {
                 new Map(chunk.sources),
                 selected[0]?.Id || '',
                 new Map(chunk.statuses || []),
-                chunk.update
+                chunk.update,
+                new Map(chunk.errorDetails || [])
             );
             // 復元できた範囲だけを完了扱いにする。
             if (!chunk.update?.replace) offsets.set(chunk.id, chunk.offset + chunk.count);
@@ -226,15 +241,14 @@ function openCheckpoint(directory, context, resume) {
                 // 保留から成功・スキップへ変わった項目は再置換しない。
                 pending.delete(field.name);
                 // 未処理の保留だけを残す。
-                if (new Map(chunk.statuses || []).get(field.name)?.startsWith('PENDING_RETRY_'))
-                    pending.add(field.name);
+                if (new Map(chunk.statuses || []).get(field.name) === 'PENDING_SUPPLEMENT') pending.add(field.name);
             }
             // 次の確定断片を確認する。
             sequence++;
         }
     }
     // 完了した取得範囲を一断片として保存する。
-    function append(id, group, record, sources, _latestId, statuses, update) {
+    function append(id, group, record, sources, _latestId, statuses, update, errorDetails) {
         // 前の項目範囲との連続性を確認する。
         const offset = update?.replace
             ? context.fields.findIndex((field) => field.name === group[0]?.name)
@@ -263,16 +277,20 @@ function openCheckpoint(directory, context, resume) {
             // 古い再開記録にない追加情報は省略可能にし、互換性を保つ。
             statuses: group
                 .filter((field) => statuses?.has(field.name))
-                .map((field) => [field.name, statuses.get(field.name)])
+                .map((field) => [field.name, statuses.get(field.name)]),
+            // 診断を項目と紐付け、再開後も失敗理由をCSVへ復元する。
+            errorDetails: group
+                .filter((field) => errorDetails?.has(field.name))
+                .map((field) => [field.name, errorDetails.get(field.name)])
         });
         // 再実行で同じ項目を取得しないための境界を更新する。
         if (!update?.replace) offsets.set(id, offset + group.length);
         // 途中停止しても、同じ保留行を重複して再処理しない。
         for (const field of group) {
-            // 確定した再試行結果では保留を解除する。
+            // 確定した補完結果では保留を解除する。
             pending.delete(field.name);
-            // 初回の保留だけを置換候補にする。
-            if (statuses?.get(field.name)?.startsWith('PENDING_RETRY_')) pending.add(field.name);
+            // 補完待ちだけを置換候補にする。
+            if (statuses?.get(field.name) === 'PENDING_SUPPLEMENT') pending.add(field.name);
         }
         // 次の断片は別ファイルに保存する。
         sequence++;

@@ -1,6 +1,6 @@
 // 用途: 最新レコードの対象を固定して取得し、指定順の縦型・横型CSVへ変換する。
 
-const { createPreviewResolver } = require('./preview-values');
+const { createPreviewResolver, sampleForField, GENERATED_RECORD_KEY } = require('./preview-values');
 
 // RecordTypeのIDだけを許可し、空文字やSOQL式を受け付けない。
 const RECORD_TYPE_ID_PATTERN = /^012(?:[A-Za-z0-9]{12}|[A-Za-z0-9]{15})$/;
@@ -60,12 +60,25 @@ function canFilterNonNull(field) {
 // 指定項目と、最新順・IDによる分割取得の成立条件を確認する。
 function validateDescribe(describe, names, options) {
     // 未確認のオブジェクト名をSOQLへ含めない。
-    if (!describe?.queryable || !Array.isArray(describe.fields) || !/^[A-Za-z][A-Za-z0-9_]*$/.test(describe.name)) {
+    if (!Array.isArray(describe?.fields) || !/^[A-Za-z][A-Za-z0-9_]*$/.test(describe.name)) {
         // 検索できない定義では続行しない。
         throw new Error('対象オブジェクトの検索可能なDescribeを取得できませんでした。');
     }
     // 指定順を変えずにAPI名を正規化するための索引を作る。
     const definitions = new Map(describe.fields.map((field) => [field.name.toLowerCase(), field]));
+    // 横型は実値を保持し、プレビューだけに生成する値と判定結果を付ける。
+    const fields = names.map((name) => {
+        // 未確認の項目は型を推測せず、指定位置にエラー行を残す。
+        const field = definitions.get(name.toLowerCase()) || { name, label: '', type: '', invalid: true };
+        // 生成対象をクエリ組み立て前に確定する。
+        const sample = options.mode === 'record-fields-preview' ? sampleForField(field, definitions) : undefined;
+        // 元のDescribe定義を変更せず、今回の出力方針だけを付加する。
+        return sample ? { ...field, sample } : field;
+    });
+    // すべて生成可能ならレコード検索に必要な項目・レコードタイプを検証しない。
+    if (fields.some((field) => field.sample) && fields.every((field) => field.invalid || field.sample)) return fields;
+    // 実値を読む場合だけオブジェクトの検索可否を要求する。
+    if (!describe.queryable) throw new Error('対象オブジェクトを検索できません。');
     // 最新順の選択とIDによる照合に必須の項目を確認する。
     if (
         !definitions.get('createddate')?.sortable ||
@@ -109,7 +122,7 @@ function validateDescribe(describe, names, options) {
         }
     }
     // 未確認項目も位置を保持し、検索対象外であることを明示して返す。
-    return names.map((name) => definitions.get(name.toLowerCase()) || { name, label: '', type: '', invalid: true });
+    return fields;
 }
 
 // 部分取得や必要項目の欠落を空欄と誤認しない。
@@ -251,12 +264,19 @@ async function collectRecords(
             }
         });
     }
+    // 生成対象だけなら実レコードの存在確認も行わない。
+    const generatedOnly =
+        options.mode === 'record-fields-preview' &&
+        fields.some((field) => field.sample) &&
+        fields.every((field) => field.invalid || field.sample);
     // 最初の対象選択では値を取得せずIDと順序を確定する。
     const limit = options.mode === 'record-fields-preview' ? 1 : options.recordLimit;
     // 選択中の件数を表示する。
-    writeLine(`最新レコードを取得中（最大${limit}件）`);
+    writeLine(generatedOnly ? 'サンプル生成のみ（レコード検索なし）' : `最新レコードを取得中（最大${limit}件）`);
     // 分割再取得でもこの集合を変えない。
-    const selected = options.resumeSelected ?? (await search(['Id', 'CreatedDate'], scope, limit));
+    const selected =
+        options.resumeSelected ??
+        (generatedOnly ? [{ Id: GENERATED_RECORD_KEY }] : await search(['Id', 'CreatedDate'], scope, limit));
     // 初回の対象選択を、値の検索前に再開用データとして確定する。
     await options.onSelected?.(selected);
     // テストや小規模の直接呼び出しだけがメモリ上に結果を保持する。
@@ -265,45 +285,14 @@ async function collectRecords(
     const sources = new Map();
     // 補完を打ち切った結果を実際のNULLと区別し、CSVと再開記録へ渡す。
     const statuses = new Map();
-    // 基準値の取得を終えてから再試行する項目だけを保持する。
-    const deferred = new Map(options.resumePending || []);
-    // 再開済み範囲のうち、再試行待ち以外を判定完了として数える。
-    const settled = new Set(
-        fields
-            .slice(0, options.resumeOffsets?.get(selected[0]?.Id) || 0)
-            .filter((field) => !deferred.has(field.name))
-            .map((field) => field.name)
-    );
-    // 初回の一巡と再試行を表示で区別する。
-    let previewPhase = '初回処理';
-    // 進捗は最大5項目の保存単位で通知する。
-    let progressRows = 0;
-    // 保留を完了件数へ含めず、実際に判定が残っている項目数を示す。
-    function progressSummary() {
-        // 項目番号は処理位置であり、完了件数とは別に表示する。
-        return `判定済み ${settled.size}/${fields.length}項目 / 残り ${fields.length - settled.size}項目 / 再試行待ち ${deferred.size}項目`;
-    }
-    // 保存成功後の項目だけを進捗へ反映する。
-    function recordProgress(field, pendingRetry) {
-        // 保留行の保存を判定完了と数えない。
-        if (!pendingRetry) settled.add(field.name);
-        // 初回と再試行のどちらも、保存済み項目数を数える。
-        progressRows++;
-        // 最終項目の確定も必ず表示する。
-        if (progressRows >= 5 || settled.size === fields.length) {
-            // API呼び出しを増やさず保存済み状態だけで進捗を通知する。
-            writeLine(`進捗（${previewPhase}）: ${progressSummary()}`);
-            // 次の表示までの件数を数え直す。
-            progressRows = 0;
-        }
-    }
-    // プレビューの初期状態にも残件数を表示する。
-    if (options.mode === 'record-fields-preview' && selected.length)
-        writeLine(`進捗（${previewPhase}）: ${progressSummary()}`);
+    // 失敗した項目の診断だけを保持し、CSVと再開記録へ同じ内容を渡す。
+    const errorDetails = new Map();
+    // 初回取得済みで、まだ補完検索していない空欄だけを保持する。
+    const supplements = new Map(options.resumeSupplements || []);
     // 成功した範囲を順次保存し、再試行した値を重複させない。
     async function readGroup(ids, group) {
         // 未確認項目をSOQLへ含めず、CSVの位置だけ保持する。
-        const readable = group.filter((field) => !field.invalid);
+        const readable = group.filter((field) => !field.invalid && !field.sample);
         // 照合用IDを必ず取得する。
         const columns = [...new Set(['Id', ...readable.map((field) => field.name)])];
         // 1件なら等価条件、複数件なら固定したID集合を指定する。
@@ -330,7 +319,7 @@ async function collectRecords(
                               'Id',
                               ...group
                                   .slice(0, middle)
-                                  .filter((field) => !field.invalid)
+                                  .filter((field) => !field.invalid && !field.sample)
                                   .map((field) => field.name)
                           ])
                       ]
@@ -426,63 +415,66 @@ async function collectRecords(
         }
         // 1応答分だけを保持し、項目グループ間では一時ファイルを使う。
         for (const record of records) {
-            // 未確認項目だけを明示的な空欄とし、取得成功した項目の欠落は許容しない。
-            for (const field of group.filter((field) => field.invalid)) {
-                // 指定位置の空セルを保存処理へ渡す。
-                record[field.name] = null;
+            // 未確認項目と生成対象には、応答に含まれない値を明示して保存する。
+            for (const field of group) {
+                // 未確認の型から実値やダミー値を推測しない。
+                if (field.invalid) record[field.name] = null;
+                // 生成対象の元データはクエリへ含めず、固定値だけを保持する。
+                else if (field.sample) {
+                    // 住所などのオブジェクトも後続処理では変更しない。
+                    record[field.name] = field.sample.value;
+                    // 実レコードから取得した値と区別する。
+                    statuses.set(field.name, field.sample.status);
+                }
             }
-            // 未確認項目には取得元レコードを付けない。
-            const chunkSources = new Map(group.map((field) => [field.name, field.invalid ? '' : record.Id]));
-            // プレビューの空欄だけを補完する。
+            // 生成値と未確認項目には取得元レコードを付けない。
+            const chunkSources = new Map(
+                group.map((field) => [
+                    field.name,
+                    field.invalid || field.sample || !hasValue(record[field.name]) ? '' : record.Id
+                ])
+            );
+            // プレビューの初回取得では補完クエリを実行しない。
             if (options.mode === 'record-fields-preview') {
-                // 取得候補を共有し、出力と保存だけは各項目の順番で行う。
-                const resolvePreview = createPreviewResolver({
-                    fields: group,
-                    record,
-                    scope,
-                    searchBatch,
-                    hasValue,
-                    canFilterNonNull,
-                    // 確定結果の行とは分け、現在項目の検索・再試行を通知する。
-                    report: (field, message) =>
-                        writeLine(
-                            `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message} / ${progressSummary()}`
-                        )
-                });
-                // 一項目の補完が終わるごとに再開位置を確定する。
+                // 初回取得の結果と補完待ちを同じ取得範囲の断片へまとめる。
                 for (const field of group) {
-                    // WHERE不可の項目には追加検索を行わない。
-                    const retryState = await supplementPreviewField({
-                        field,
-                        resolvePreview,
-                        statuses,
-                        record,
-                        sources: chunkSources,
-                        writeLine,
-                        updateLine,
-                        fieldPositions,
-                        totalFields: fields.length
-                    });
-                    // 保留した空欄と再試行サイズを、実値のある後続項目とは別に保持する。
-                    if (retryState)
-                        deferred.set(field.name, {
-                            field,
-                            value: record[field.name],
-                            retryBatchSize: retryState.retryBatchSize
-                        });
-                    // 次項目で失敗しても、完了した値を失わない。
-                    if (onChunk)
-                        await onChunk(
-                            record.Id,
-                            [field],
-                            record,
-                            chunkSources,
-                            selected[0]?.Id || '',
-                            statuses,
-                            retryState
+                    // 生成対象は空欄でも補完しない。
+                    if (field.invalid || field.sample || hasValue(record[field.name]) || !canFilterNonNull(field))
+                        continue;
+                    // 未検索と登録レコードなしを区別して保存する。
+                    statuses.set(field.name, 'PENDING_SUPPLEMENT');
+                    // 空欄には取得元を付けない。
+                    chunkSources.set(field.name, '');
+                }
+                // fsyncと途中CSV更新を項目ごとに繰り返さず、取得範囲で一度だけ保存する。
+                if (onChunk) await onChunk(record.Id, group, record, chunkSources, selected[0]?.Id || '', statuses);
+                // 保存済みの初回結果を指定順に表示する。
+                for (const field of group) {
+                    // 初回取得の番号は全指定項目を分母にする。
+                    const prefix = `[${fieldPositions.get(field.name)}/${fields.length}項目]\t${field.name}\t`;
+                    // 検索可能な空欄は全項目の初回保存後に処理する。
+                    if (statuses.get(field.name) === 'PENDING_SUPPLEMENT') {
+                        // 実値ではなく空欄だけを後段へ保持する。
+                        supplements.set(field.name, { field, value: record[field.name] });
+                        // 再び全項目を処理するのではないことを明示する。
+                        writeLine(`${prefix}空欄・補完待ち`);
+                    } else if (field.sample) {
+                        // 候補なしの場合も、実データを検索した結果とは区別する。
+                        writeLine(
+                            `${prefix}${field.sample.status === 'GENERATED' ? 'サンプル生成' : field.sample.status === 'NO_PICKLIST_VALUE' ? 'サンプル未生成：有効な選択肢なし' : 'サンプル未生成：構成項目に対応する値なし'}`
                         );
-                    // 保存完了後に保留と判定済みの件数を更新する。
-                    recordProgress(field, retryState);
+                    } else {
+                        // 取得成功・未確認・検索不可の結果だけを通知し、検索は行わない。
+                        await supplementPreviewField({
+                            field,
+                            statuses,
+                            record,
+                            sources: chunkSources,
+                            writeLine,
+                            fieldPositions,
+                            totalFields: fields.length
+                        });
+                    }
                 }
             }
             // 実行入口はこの保存先を使って値を順次退避する。
@@ -523,34 +515,31 @@ async function collectRecords(
             await readGroup(ids, fields.slice(offset, offset + groupSize));
         }
     }
-    // 全項目の初回処理を終えた後だけ、保留分を指定順の小さなまとまりで再試行する。
-    const retryFields = fields.filter((field) => deferred.has(field.name));
-    // 保留なしの場合は追加クエリを実行しない。
-    if (retryFields.length) {
-        // 初回の項目番号が末尾でも、まだ未確定項目が残ることを明示する。
-        previewPhase = '再試行';
-        // 終了済み表示から残件数が増えたように見せない。
-        writeLine(`初回処理の一巡終了: ${progressSummary()}`);
-        // これから処理する件数と再試行回数の上限を示す。
-        writeLine(`最後の再試行: 残り${retryFields.length}項目・各一回・再失敗は取得失敗で確定`);
+    // 全項目の初回取得をCSVへ公開してから補完する。
+    if (options.mode === 'record-fields-preview' && selected.length) {
+        // 最後の取得範囲の端数も補完の通信前に公開する。
+        await options.beforeSupplementQuery?.();
+        // 完了した初回取得と、これから処理する空欄を区別する。
+        writeLine(`初回取得完了: ${fields.length}項目 / 補完待ち ${supplements.size}項目`);
     }
-    // 失敗した元の範囲より大きい一括検索へ戻さない。
-    for (let offset = 0; offset < retryFields.length;) {
-        // 先頭の保留項目に保存した縮小サイズを使う。
-        let count = deferred.get(retryFields[offset].name).retryBatchSize;
-        // 異なる失敗範囲をまとめる場合も、最も小さい上限を守る。
-        for (let index = offset; index < Math.min(retryFields.length, offset + count); index++)
-            count = Math.min(count, deferred.get(retryFields[index].name).retryBatchSize);
-        // 対象項目の順序は元の指定順を維持する。
-        const group = retryFields.slice(offset, offset + count);
-        // 元レコードの空欄だけを復元し、別項目の実値を再取得しない。
+    // 保存済みの成功・値なし・失敗を再検索せず、未処理の空欄だけを指定順に処理する。
+    const pendingFields = fields.filter((field) => supplements.has(field.name));
+    // 補完の進捗は補完対象だけを分母にする。
+    const supplementPositions = new Map(pendingFields.map((field, index) => [field.name, index + 1]));
+    // 対象がある場合だけ補完段階の開始を通知する。
+    if (pendingFields.length) writeLine(`空欄補完を開始: ${pendingFields.length}項目`);
+    // Compositeのクエリ上限に合わせて最大5項目ずつ送り、同じ項目を自動再試行しない。
+    for (let offset = 0; offset < pendingFields.length; offset += 5) {
+        // 初回取得の分割境界とは独立して空欄だけをまとめる。
+        const group = pendingFields.slice(offset, offset + 5);
+        // 保持する補完候補値を最大5項目に制限する。
         const record = {
             Id: selected[0].Id,
-            ...Object.fromEntries(group.map((field) => [field.name, deferred.get(field.name).value]))
+            ...Object.fromEntries(group.map((field) => [field.name, supplements.get(field.name).value]))
         };
-        // 値を得られなかった項目には取得元を付けない。
+        // 補完に成功した項目だけ取得元を記録する。
         const chunkSources = new Map();
-        // 最後の再試行も、残項目だけを非NULL検索する。
+        // 応答の有無と検索失敗を区別した結果を指定順で取り出す。
         const resolvePreview = createPreviewResolver({
             fields: group,
             record,
@@ -558,19 +547,16 @@ async function collectRecords(
             searchBatch,
             hasValue,
             canFilterNonNull,
-            retry: true,
-            report: (field, message) =>
-                writeLine(
-                    `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message} / ${progressSummary()}`
-                )
+            // 残件数は未処理の補完対象数だけを表示する。
+            report: (_field, message) => writeLine(`${message} / 残り ${supplements.size}項目`)
         });
-        // 再試行途中で中断しても、それまで確定した置換を途中CSVへ反映する。
+        // 致命的なエラーでも、この範囲で保存済みの結果は公開する。
         try {
-            // 検索はまとめ、確定と保存は指定項目順に行う。
+            // 取得した結果を元の項目順で一度だけ反映する。
             for (const field of group) {
-                // 再試行結果で保留状態を置き換える。
+                // 未検索の状態を今回の確定結果へ置き換える。
                 statuses.delete(field.name);
-                // 再失敗時は保留へ戻さず、理由を付けてスキップする。
+                // タイムアウトや検索エラーはスキップとして確定する。
                 await supplementPreviewField({
                     field,
                     record,
@@ -578,34 +564,43 @@ async function collectRecords(
                     resolvePreview,
                     statuses,
                     writeLine,
-                    updateLine,
-                    fieldPositions,
-                    totalFields: fields.length
+                    fieldPositions: supplementPositions,
+                    totalFields: pendingFields.length,
+                    errorDetails
                 });
-                // 同じ項目の行を置き換え、CSVへ重複行を追加しない。
+                // CSV上では初回取得済みの同じ行だけを置き換える。
                 if (onChunk)
-                    await onChunk(record.Id, [field], record, chunkSources, selected[0].Id, statuses, {
-                        replace: true
-                    });
-                // テスト用のメモリ結果にも同じ置換を反映する。
+                    await onChunk(
+                        record.Id,
+                        [field],
+                        record,
+                        chunkSources,
+                        selected[0].Id,
+                        statuses,
+                        {
+                            replace: true
+                        },
+                        errorDetails
+                    );
+                // 小規模の直接呼び出しも同じ項目だけを更新する。
                 else {
-                    // 他項目の値や別レコードは触らない。
+                    // 別項目の実値へ影響させない。
                     byId.get(record.Id)[field.name] = record[field.name];
-                    // 成功した補完元だけを反映する。
+                    // 補完した実際の取得元を返す。
                     sources.set(field.name, chunkSources.get(field.name));
                 }
-                // 再試行した項目は成功・失敗のどちらでも二度目の保留へ戻さない。
-                deferred.delete(field.name);
-                // 保存が終わった項目だけ残件数から引く。
-                recordProgress(field, false);
+                // 保存が成功した項目は、値なし・失敗でも今回の処理対象から外す。
+                supplements.delete(field.name);
+                // 同じ端末行で残件数を更新し、余分な進捗行を積み重ねない。
+                updateLine(`進捗（補完）: 残り ${supplements.size}項目`);
             }
         } finally {
-            // 大きいCSVの全体再公開は範囲の終わりにまとめる。
-            await options.onRetryBatch?.();
+            // 公開は最大5項目の反映後にまとめる。
+            await options.onSupplementBatch?.();
         }
-        // この範囲を再分割して繰り返すことはしない。
-        offset += group.length;
     }
+    // 補完を終えた場合だけ確定した終了行を残す。
+    if (pendingFields.length) writeLine('補完完了: 残り 0項目');
     // 横型は全レコードの取得後に、対象なしの場合も指定順で結果を通知する。
     if (options.mode !== 'record-fields-preview' || !selected.length) {
         // 分割回数やレコード数によって同じ項目を繰り返し列挙しない。
@@ -627,8 +622,10 @@ async function collectRecords(
         sources,
         statuses,
         latestId: selected[0]?.Id || '',
+        errorDetails,
         ids: selected.map((row) => row.Id),
-        recordCount: selected.length
+        recordCount: selected.length,
+        generatedOnly
     };
 }
 
@@ -640,11 +637,11 @@ async function supplementPreviewField({
     resolvePreview,
     statuses,
     writeLine,
-    updateLine,
     fieldPositions,
-    totalFields
+    totalFields,
+    errorDetails
 }) {
-    // 分割内の番号ではなく指定ファイル全体での番号を表示する。
+    // 呼び出し元の処理段階に対応する項目番号と件数を表示する。
     const prefix = `[${fieldPositions.get(field.name)}/${totalFields}項目]\t${field.name}\t`;
     // 未確認項目も指定順の位置で表示し、正常項目の進捗を先回りしない。
     if (field.invalid) {
@@ -669,8 +666,6 @@ async function supplementPreviewField({
         // この項目への補完クエリは実行しない。
         return;
     }
-    // 実値をログへ出さず、処理中の項目を知らせる。
-    updateLine(`${prefix}補完中`);
     // 補完検索にかかった実時間を失敗した項目とともに残す。
     const started = performance.now();
     // 取得失敗を値なしとして処理しない。
@@ -691,13 +686,13 @@ async function supplementPreviewField({
     // タイムアウトや問い合わせ失敗を「登録レコードなし」に置き換えない。
     if (found?.skipped) {
         // 原因コードをCSVと再開記録の両方へ残す。
-        statuses.set(field.name, `${found.deferred ? 'PENDING_RETRY' : 'SKIPPED'}_${found.skipped}`);
+        statuses.set(field.name, `SKIPPED_${found.skipped}`);
+        // 生本文を含まない診断を、該当する項目のCSV行と一緒に保存する。
+        errorDetails.set(field.name, `${found.diagnostic} / 補完経過: ${found.elapsedSeconds}秒`);
         // 次の項目へ進むことと、検索した範囲の打ち切りを明示する。
-        writeLine(
-            `${prefix}${found.deferred ? '補完保留・最後に再試行' : '補完スキップ'}：${found.skipped} / 検索経過: ${found.elapsedSeconds}秒・次へ進みます`
-        );
-        // 保留の場合だけ最後の再試行サイズを返し、再失敗では再登録しない。
-        return found.deferred ? { retryBatchSize: found.retryBatchSize } : undefined;
+        writeLine(`${prefix}補完スキップ：${found.skipped} / 検索経過: ${found.elapsedSeconds}秒`);
+        // 検索失敗は確定済みとして保存し、自動再試行しない。
+        return;
     }
     // 空の複合値などを補完成功と扱わず、実値だけ採用する。
     if (found) {
@@ -721,6 +716,52 @@ function csv(value) {
     return `"${text.replace(/"/g, '""')}"`;
 }
 
+// 再開用の内部コードは変えず、途中・完成CSVに共通の日本語を表示する。
+function csvStatus(status) {
+    // 成功・未処理・検索不可を区別し、端末の結果表示と用語を揃える。
+    const labels = {
+        NOT_PROCESSED: '未処理',
+        LATEST: '取得成功',
+        SUPPLEMENTED: '補完成功',
+        NO_VALUE_FOUND: '登録レコードなし',
+        NOT_FILTERABLE: '補完対象外：非NULL条件で検索不可',
+        INVALID_FIELD: '取得不可：API名が存在しない、または項目参照権限がありません',
+        PENDING_SUPPLEMENT: '補完待ち',
+        GENERATED: 'サンプル生成',
+        NO_PICKLIST_VALUE: 'サンプル未生成：有効な選択肢なし',
+        NO_SAMPLE_VALUE: 'サンプル未生成：構成項目に対応する値なし'
+    };
+    // 通常の結果は対応する日本語だけを出力する。
+    if (labels[status]) return labels[status];
+    // 補完失敗を値なしと混同せず、原因を日本語で示す。
+    if (status.startsWith('SKIPPED_')) {
+        // 原因コードは障害の切り分けに使えるよう併記する。
+        const code = status.slice('SKIPPED_'.length);
+        // CLI・通信・検索の失敗箇所を区別する。
+        const reasons = {
+            QUERY_TIMEOUT: '検索タイムアウト',
+            REQUEST_RUNNING_TOO_LONG: '検索タイムアウト',
+            CLI_TIMEOUT: 'CLI待機時間超過',
+            SUPPLEMENT_TIMEOUT: '補完待機時間超過',
+            NETWORK_TIMEOUT: '通信タイムアウト',
+            NETWORK_ERROR: '通信エラー',
+            CLI_FAILED: 'CLI実行失敗',
+            QUERY_FAILED: '検索失敗',
+            INVALID_FIELD: 'API名が存在しない、または項目参照権限がありません',
+            INSUFFICIENT_ACCESS: '参照権限がありません',
+            MALFORMED_QUERY: 'クエリが無効',
+            INVALID_QUERY_FILTER_OPERATOR: '検索条件が無効',
+            QUERY_LENGTH_LIMIT: 'クエリ長の上限超過',
+            QUERY_TOO_COMPLICATED: 'クエリの複雑さの上限超過',
+            BUFFER_LIMIT: '受信サイズの上限超過'
+        };
+        // 未分類でも失敗を隠さず、コードを保持する。
+        return `補完スキップ：${reasons[code] || '検索失敗'}（${code}）`;
+    }
+    // 想定外の状態も成功へ置き換えない。
+    return `状態不明（${status}）`;
+}
+
 // 項目順を変えず、縦型または横型のCSVに変換する。
 function toCsv(result, mode) {
     // 縦型は各項目の値・定義・補完元を1行にする。
@@ -742,14 +783,24 @@ function toCsv(result, mode) {
                             : source === result.latestId
                               ? 'LATEST'
                               : 'SUPPLEMENTED');
+                  // 生成値には実在する取得元がないため、取得元IDを空欄にする。
+                  const sourceLabel = status === 'GENERATED' ? '' : source;
                   // 指定された項目の順のまま属性と実値を出力する。
-                  return [field.name, field.label, field.type, result.records[0][field.name], status, source]
+                  return [
+                      field.name,
+                      field.label,
+                      field.type,
+                      result.records[0][field.name],
+                      csvStatus(status),
+                      sourceLabel,
+                      result.errorDetails?.get(field.name) || ''
+                  ]
                       .map(csv)
                       .join(',');
               })
             : [];
         // 縦型の固定列とCRLFを使用する。
-        return ['FieldApiName,Label,Type,Value,Status,SourceRecordId', ...rows, ''].join('\r\n');
+        return ['FieldApiName,Label,Type,Value,Status,SourceRecordId,エラー詳細', ...rows, ''].join('\r\n');
     }
     // 横型の列は指定API名だけに限定する。
     const header = result.fields.map((field) => csv(field.name)).join(',');

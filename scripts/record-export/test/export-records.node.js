@@ -356,10 +356,10 @@ test('縦型は空欄だけを非NULLの最新1件で補完し日時境界を付
     assert.equal(queries.length, 3);
     assert.equal(result.records[0].Name, 'latest');
     const csv = toCsv(result, 'record-fields-preview');
-    assert.match(csv.split('\r\n')[1], /^"Empty","Empty","string","filled","SUPPLEMENTED"/);
+    assert.match(csv.split('\r\n')[1], /^"Empty","Empty","string","filled","補完成功"/);
     assert.ok(csv.includes(`"${older.Id}"`));
-    assert.match(csv, /"Flag","Flag","string","false","LATEST"/);
-    assert.match(csv, /"Count","Count","string","0","LATEST"/);
+    assert.match(csv, /"Flag","Flag","string","false","取得成功"/);
+    assert.match(csv, /"Count","Count","string","0","取得成功"/);
 });
 
 test('検索不可の空欄は追加検索せず、検索した値なしと区別する', async () => {
@@ -385,9 +385,12 @@ test('検索不可の空欄は追加検索せず、検索した値なしと区�
     assert.equal(result.records[0].Long, null);
     assert.equal(result.records[0].Present, 'keep');
     assert.match(queries[2], /WHERE Empty != NULL ORDER BY/);
-    assert.match(toCsv(result, 'record-fields-preview'), /"Long","Long","string","","NOT_FILTERABLE",""/);
-    assert.match(toCsv(result, 'record-fields-preview'), /"Empty","Empty","string","","NO_VALUE_FOUND",""/);
-    assert.match(toCsv(result, 'record-fields-preview'), /"Present","Present","string","keep","LATEST"/);
+    assert.match(
+        toCsv(result, 'record-fields-preview'),
+        /"Long","Long","string","","補完対象外：非NULL条件で検索不可",""/
+    );
+    assert.match(toCsv(result, 'record-fields-preview'), /"Empty","Empty","string","","登録レコードなし",""/);
+    assert.match(toCsv(result, 'record-fields-preview'), /"Present","Present","string","keep","取得成功"/);
     assert.ok(messages.some((message) => message.includes('非NULL条件で検索不可')));
 });
 
@@ -517,7 +520,7 @@ test('両形式の確認前メッセージで補完の有無を明示し指定�
             createPrompt: () => ({
                 question: async () => {
                     assert.ok(
-                        messages.some((line) => line.includes(mode === 'records' ? '補完なし' : '可能な空欄を補完'))
+                        messages.some((line) => line.includes(mode === 'records' ? '補完なし' : '最新1件＋空欄補完'))
                     );
                     assert.equal(messages[messages.findIndex((line) => line.startsWith('対象:')) - 1], '');
                     assert.equal(messages[messages.findIndex((line) => line.startsWith('出力先:')) + 1], '');
@@ -538,7 +541,7 @@ test('両形式の確認前メッセージで補完の有無を明示し指定�
             csv.startsWith(
                 mode === 'records'
                     ? '"Custom__pc","Name"'
-                    : 'FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n"Custom__pc"'
+                    : 'FieldApiName,Label,Type,Value,Status,SourceRecordId,エラー詳細\r\n"Custom__pc"'
             )
         );
         await assert.rejects(
@@ -649,13 +652,7 @@ test('サイズ超過時は両コマンドの各CLI段階で利用可能な引�
     }
 });
 
-test('filterableな住所・位置情報の複合項目でも非NULL補完せず構成項目は補完する', async () => {
-    const replies = [
-        response([newest]),
-        response([{ Id: newest.Id, Address: { city: null }, Location: null, City: null }]),
-        response([{ Id: older.Id, City: 'Demo' }])
-    ];
-    const queries = [];
+test('住所・位置情報とその構成項目はクエリなしで整合するサンプルを生成する', async () => {
     const result = await collectRecords(
         describe(
             field('Address', { type: 'address' }),
@@ -664,18 +661,17 @@ test('filterableな住所・位置情報の複合項目でも非NULL補完せず
         ),
         ['Address', 'Location', 'City'],
         { ...options, mode: 'record-fields-preview' },
-        async (query) => {
-            queries.push(query);
-            assert.ok(replies.length);
-            return replies.shift();
-        },
+        async () => assert.fail('生成対象のクエリは禁止'),
         quiet
     );
-    assert.equal(queries.length, 3);
-    assert.match(queries[2], /WHERE City != NULL ORDER BY/);
+    assert.equal(result.generatedOnly, true);
+    assert.equal(result.records[0].Address.country, 'JP');
+    assert.equal(result.records[0].City, 'サンプル市');
+    assert.equal(result.records[0].Location.latitude, 35.681236);
+    assert.equal(result.records[0].Location.longitude, 139.767125);
     const csv = toCsv(result, 'record-fields-preview');
-    assert.equal((csv.match(/NOT_FILTERABLE/g) || []).length, 2);
-    assert.match(csv, /"City","City","string","Demo","SUPPLEMENTED"/);
+    assert.equal((csv.match(/サンプル生成/g) || []).length, 3);
+    assert.ok(!csv.includes('generated-preview'));
 });
 
 test('両方の実行入口が承認・否認・EOFを処理し指定形式で出力する', (t) => {
@@ -720,7 +716,10 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
             );
             assert.equal(result.status, exitCode, result.stderr);
             assert.equal(fs.existsSync(output), label === 'yes');
-            assert.match(result.stdout, mode === 'records' ? /補完なし/ : /可能な空欄を補完/);
+            assert.match(
+                result.stdout,
+                mode === 'records' ? /補完なし/ : /対応する型はサンプル生成・その他は最新1件＋空欄補完/
+            );
             if (label === 'yes')
                 assert.ok(
                     fs
@@ -728,7 +727,7 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
                         .startsWith(
                             mode === 'records'
                                 ? '"Name"\r\n'
-                                : 'FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n'
+                                : 'FieldApiName,Label,Type,Value,Status,SourceRecordId,エラー詳細\r\n'
                         )
                 );
         }
@@ -926,9 +925,9 @@ test('項目の分割後も全体の項目番号と補完状況を表示し、�
     );
     for (const line of [
         '[1/4項目]\tPresent\t取得成功',
-        '[2/4項目]\tFill\t補完成功',
+        '[1/2項目]\tFill\t補完成功',
         '[3/4項目]\tLong\t補完対象外：非NULL条件で検索不可・最新レコードの値を保持',
-        '[4/4項目]\tEmpty\t登録レコードなし'
+        '[2/2項目]\tEmpty\t登録レコードなし'
     ])
         assert.ok(messages.includes(line), line);
     assert.equal(messages.filter((line) => line.startsWith('最新レコードを取得中')).length, 1);
@@ -955,8 +954,8 @@ test('補完の権限エラーは取得成功や値なしとせず、理由を�
         );
         assert.ok(messages.some((line) => line.includes(`補完スキップ：${code}`)));
         assert.ok(messages.every((line) => !line.includes('補完成功')));
-        assert.match(toCsv(result, 'record-fields-preview'), new RegExp(`SKIPPED_${code}`));
-        assert.equal(calls, 4);
+        assert.match(toCsv(result, 'record-fields-preview'), new RegExp(`補完スキップ[^\r\n]*${code}`));
+        assert.equal(calls, 3);
     }
 });
 
@@ -996,10 +995,16 @@ test('未確認項目を検索から外し、両形式で空欄の指定位置�
                 );
             } else {
                 const lines = csv.split('\r\n');
-                assert.equal(lines[1], '"Missing","","","","INVALID_FIELD",""');
-                assert.match(lines[2], /^"Name","Name","string","new","LATEST"/);
-                assert.equal(lines[3], '"AlsoMissing","","","","INVALID_FIELD",""');
-                assert.match(lines[4], /^"Custom__pc".*"NO_VALUE_FOUND"/);
+                assert.equal(
+                    lines[1],
+                    '"Missing","","","","取得不可：API名が存在しない、または項目参照権限がありません","",""'
+                );
+                assert.match(lines[2], /^"Name","Name","string","new","取得成功"/);
+                assert.equal(
+                    lines[3],
+                    '"AlsoMissing","","","","取得不可：API名が存在しない、または項目参照権限がありません","",""'
+                );
+                assert.match(lines[4], /^"Custom__pc".*"登録レコードなし"/);
             }
             assert.ok(messages.some((line) => line.startsWith('[1/4項目]\tMissing\t取得不可：')));
             assert.ok(messages.some((line) => line.startsWith('[3/4項目]\tAlsoMissing\t取得不可：')));
@@ -1045,15 +1050,15 @@ test('全項目が未確認でも余分な値検索をせず、対象なしで�
             assert.equal(queries, 1);
             const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
             if (mode === 'records') assert.equal(csv, empty ? '"Missing"\r\n' : '"Missing"\r\n""\r\n');
-            else assert.equal(csv.includes('INVALID_FIELD'), !empty);
+            else assert.equal(csv.includes('取得不可：API名が存在しない、または項目参照権限がありません'), !empty);
             assert.ok(messages.some((line) => line.startsWith('[1/1項目]\tMissing\t取得不可：')));
         }
     }
 });
 
-test('対話端末だけ補完中の同じ行を更新し、成功・失敗後に一時表示を消す', async (t) => {
+test('残件数は対話端末の同じ行で更新し、検索対象と結果は重複せず残す', async (t) => {
     const cwd = temporary(t);
-    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Id\nName');
     for (const isTTY of [false, true]) {
         for (const fails of [false, true]) {
             const output = `terminal-${isTTY}-${fails}.csv`;
@@ -1072,8 +1077,8 @@ test('対話端末だけ補完中の同じ行を更新し、成功・失敗後�
                             const query = fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8');
                             if (query.includes(' != NULL')) {
                                 assert.equal(
-                                    terminalWrites.some((text) => text.includes('補完中')),
-                                    isTTY
+                                    messages.some((text) => text.includes('補完待ち 1項目')),
+                                    true
                                 );
                                 if (fails) throw new Error('mock failure');
                             }
@@ -1084,13 +1089,15 @@ test('対話端末だけ補完中の同じ行を更新し、成功・失敗後�
             if (fails) await assert.rejects(run, /mock failure/);
             else assert.equal(await run(), 0);
             assert.ok(messages.every((line) => !line.includes('補完中')));
+            assert.equal(messages.filter((line) => line.startsWith('補完検索中:')).length, 1);
+            assert.ok(messages.every((line) => !line.includes('検索完了：')));
             const completed = messages.filter((line) => line.startsWith('[1/1項目]'));
             if (fails) {
                 assert.equal(completed.length, 1);
                 assert.match(completed[0], /^\[1\/1項目\]\tName\t補完失敗：QUERY_FAILED \/ 経過: \d+\.\d秒$/);
             } else assert.deepEqual(completed, ['[1/1項目]\tName\t登録レコードなし']);
-            if (isTTY) {
-                assert.ok(terminalWrites.some((text) => text.includes('補完中')));
+            if (isTTY && !fails) {
+                assert.ok(terminalWrites.some((text) => text.includes('残り 0項目')));
                 assert.deepEqual(terminalWrites.slice(-2), ['\u001b[1G', '\u001b[2K']);
             } else assert.deepEqual(terminalWrites, []);
         }
@@ -1122,8 +1129,8 @@ test('補完途中で停止しても値を保存し、固定IDの未完了項目
         /auth/
     );
     const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
-    assert.match(partial, /"Name","Name","string","before","LATEST"/);
-    assert.match(partial, /"Custom__pc","Custom__pc","string","","NOT_PROCESSED",""/);
+    assert.match(partial, /"Name","Name","string","before","取得成功"/);
+    assert.match(partial, /"Custom__pc","Custom__pc","string","","補完待ち",""/);
     assert.ok(messages.some((line) => line.includes('--resume')));
     const queries = [];
     assert.equal(
@@ -1145,12 +1152,56 @@ test('補完途中で停止しても値を保存し、固定IDの未完了項目
         }),
         0
     );
-    assert.equal(queries.length, 2);
+    assert.equal(queries.length, 1);
+    assert.ok(queries[0].includes('Custom__pc != NULL'));
     const result = fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8');
-    assert.match(result, /"Name","Name","string","before","LATEST"/);
-    assert.match(result, /"Custom__pc","Custom__pc","string","filled","SUPPLEMENTED"/);
+    assert.match(result, /"Name","Name","string","before","取得成功"/);
+    assert.match(result, /"Custom__pc","Custom__pc","string","filled","補完成功"/);
     assert.equal(result.split('\r\n').length, 4);
     assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', 'resume.csv']);
+});
+
+test('初回の分割取得で中断しても、残りの取得とCSV反映を終えてから補完する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+    const args = ['--output', 'phases.csv', '--fields-per-query', '1'];
+    const base = runnerFor([{ ...newest, Name: null, Custom__pc: 'baseline' }]);
+    let resuming = false;
+    let supplements = 0;
+    const queries = [];
+    const runner = async (command) => {
+        if (command[0] !== 'data') return base(command);
+        const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+        queries.push([resuming, query]);
+        if (query.includes(' != NULL')) {
+            supplements++;
+            assert.ok(resuming);
+            const partial = fs.readFileSync(path.join(cwd, 'phases.partial.csv'), 'utf8');
+            assert.match(partial, /"Name","Name","string","","補完待ち",""/);
+            assert.match(partial, /"Custom__pc","Custom__pc","string","baseline","取得成功"/);
+            assert.ok(!partial.includes('未処理'));
+            return cli(response([{ Id: older.Id, Name: 'filled' }]));
+        }
+        if (!resuming && query.startsWith('SELECT Id,Custom__pc '))
+            throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
+        return base(command);
+    };
+    const settings = { cwd, mode: 'record-fields-preview', runner, createPrompt: approve, writeLine: quiet };
+    await assert.rejects(() => main(args, settings), /auth/);
+    assert.equal(supplements, 0);
+    const partial = fs.readFileSync(path.join(cwd, 'phases.partial.csv'), 'utf8');
+    assert.match(partial, /補完待ち/);
+    assert.match(partial, /未処理/);
+    resuming = true;
+    assert.equal(await main([...args, '--resume'], settings), 0);
+    const resumed = queries.filter(([resume]) => resume).map(([, query]) => query);
+    assert.equal(resumed.length, 2);
+    assert.ok(resumed[0].startsWith('SELECT Id,Custom__pc '));
+    assert.ok(resumed[1].includes('Name != NULL'));
+    assert.equal(supplements, 1);
+    const completed = fs.readFileSync(path.join(cwd, 'phases.csv'), 'utf8');
+    assert.match(completed, /"Name","Name","string","filled","補完成功"/);
+    assert.ok(!completed.includes('PENDING_'));
 });
 
 test('横型は未完成行も再開記録へ保存し、再開後もレコードと列を混ぜない', async (t) => {
@@ -1330,7 +1381,11 @@ test('レコード分割後の停止では完成行を途中公開し、未完�
                     const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
                     if (query.startsWith('SELECT Id,CreatedDate')) return cli(response([newest, older]));
                     if (query.includes(' IN ')) throw Object.assign(new Error('size'), { code: 'BUFFER_LIMIT' });
-                    if (query.includes(older.Id)) throw Object.assign(new Error('timeout'), { code: 'CLI_TIMEOUT' });
+                    if (query.includes(older.Id))
+                        throw Object.assign(new Error('timeout'), {
+                            code: 'CLI_TIMEOUT',
+                            diagnostic: '終了コード: 1 / 識別子: OriginalTimeout'
+                        });
                     return cli(response([{ Id: newest.Id, Name: 'first' }]));
                 }
             }),
@@ -1440,6 +1495,33 @@ test('古いロックの削除中は別の再開によるロック回収を拒�
     assert.ok(!fs.existsSync(path.join(directory, 'lock-acquire')));
 });
 
+test('既知の認証・検索エラーは格納場所によらず分類し、自由文から推測しない', async () => {
+    for (const code of ['INVALID_SESSION_ID', 'NoAuthorizationError', 'REQUEST_LIMIT_EXCEEDED']) {
+        for (const key of ['name', 'code', 'errorCode']) {
+            for (let depth = 0; depth <= 2; depth++) {
+                let body = { [key]: code };
+                for (let level = 0; level < depth; level++) body = { name: 'Error', cause: body };
+                await assert.rejects(
+                    () => callSf([], '.', async () => ({ status: 1, stdout: JSON.stringify(body) })),
+                    (error) => {
+                        assert.equal(error.code, code === 'REQUEST_LIMIT_EXCEEDED' ? code : 'AUTH_FAILED');
+                        assert.ok(error.diagnostic.includes(`識別子: ${code}`));
+                        return true;
+                    }
+                );
+            }
+        }
+    }
+    await assert.rejects(
+        () =>
+            callSf([], '.', async () => ({
+                status: 1,
+                stdout: JSON.stringify({ name: 'Error', message: 'INVALID_SESSION_ID' })
+            })),
+        (error) => error.code === 'CLI_FAILED'
+    );
+});
+
 test('CLIとSalesforceのタイムアウトを区別し、安全な診断と経過時間を残す', async () => {
     for (const [response, code] of [
         [{ status: 1, stdout: JSON.stringify({ name: 'QUERY_TIMEOUT', message: 'secret-value' }) }, 'QUERY_TIMEOUT'],
@@ -1462,6 +1544,9 @@ test('CLIとSalesforceのタイムアウトを区別し、安全な診断と経�
             (error) => {
                 assert.equal(error.code, code);
                 assert.match(error.message, /CLI経過: \d+\.\d秒/);
+                assert.match(error.diagnostic, /CLI経過: \d+\.\d秒/);
+                assert.match(error.diagnostic, /待機上限:/);
+                assert.ok(!error.diagnostic.includes('secret-value'));
                 assert.ok(!error.message.includes('secret-value'));
                 if (response.stdout?.includes('UnexpectedCliError'))
                     assert.match(error.message, /識別子: UnexpectedCliError/);
@@ -1480,6 +1565,7 @@ test('独立した非NULL検索を5本ずつ送信し、値なし・成功・一
             ? response([newest])
             : response([{ Id: newest.Id, ...Object.fromEntries(fields.map((f) => [f.name, null])) }]);
     query.batch = async (soqls) => {
+        assert.equal(saved.filter((row) => !row.replace).length, fields.length);
         batches.push(soqls);
         return soqls.map((soql) => {
             assert.ok(!soql.includes(' OR '));
@@ -1494,29 +1580,32 @@ test('独立した非NULL検索を5本ずつ送信し、値なし・成功・一
     await collectValidatedRecords(
         describe(...fields),
         fields,
-        { ...options, mode: 'record-fields-preview' },
+        { ...options, mode: 'record-fields-preview', fieldsPerQuery: 3 },
         query,
         quiet,
         async (_id, group, record, _sources, _latest, statuses, update) =>
-            saved.push({
-                name: group[0].name,
-                value: record[group[0].name],
-                status: statuses.get(group[0].name),
-                replace: update?.replace
-            })
+            saved.push(
+                ...group.map((item) => ({
+                    name: item.name,
+                    value: record[item.name],
+                    status: statuses.get(item.name),
+                    replace: update?.replace
+                }))
+            )
     );
     assert.deepEqual(
         batches.map((b) => b.length),
-        [5, 5, 2, 1]
+        [5, 5, 2]
     );
     assert.deepEqual(
         saved.slice(0, 12).map((r) => r.name),
         fields.map((f) => f.name)
     );
     assert.equal(saved[0].value, null);
-    assert.equal(saved[1].status, 'PENDING_RETRY_QUERY_TIMEOUT');
-    assert.equal(saved.at(-1).name, 'F1');
-    assert.equal(saved.at(-1).value, 'F1');
+    assert.ok(saved.slice(0, 12).every((r) => r.status === 'PENDING_SUPPLEMENT' && !r.replace));
+    assert.equal(saved[13].status, 'SKIPPED_QUERY_TIMEOUT');
+    assert.equal(saved.at(-1).name, 'F11');
+    assert.equal(saved.at(-1).value, 'F11');
     assert.equal(saved.at(-1).replace, true);
     assert.equal(batches.flat().filter((q) => q.includes('F0 != NULL')).length, 1);
     assert.equal(batches.flat().filter((q) => q.includes('F2 != NULL')).length, 1);
@@ -1608,7 +1697,7 @@ test('両形式で作成日の条件を確認前に表示し、未指定時は�
     }
 });
 
-test('補完のCLI失敗・時間超過は最後に一度再試行してからスキップしてCSVを完成させる', async (t) => {
+test('補完のCLI失敗・時間超過は再試行せずスキップしてCSVを完成させる', async (t) => {
     for (const code of ['CLI_FAILED', 'QUERY_TIMEOUT', 'NETWORK_TIMEOUT', 'NETWORK_ERROR']) {
         const cwd = temporary(t);
         fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
@@ -1634,10 +1723,10 @@ test('補完のCLI失敗・時間超過は最後に一度再試行してから�
             }),
             1
         );
-        assert.equal(supplements, 3);
+        assert.equal(supplements, 1);
         const csv = fs.readFileSync(path.join(cwd, 'skipped.csv'), 'utf8');
-        assert.equal((csv.match(new RegExp(`SKIPPED_${code}`, 'g')) || []).length, 2);
-        assert.ok(!csv.includes('NO_VALUE_FOUND'));
+        assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${code}`, 'g')) || []).length, 2);
+        assert.ok(!csv.includes('登録レコードなし'));
         assert.ok(messages.some((line) => line.includes('全項目の処理と保存は完了')));
         assert.ok(!fs.existsSync(path.join(cwd, 'skipped.csv.resume')));
     }
@@ -1690,15 +1779,13 @@ test('補完待機の進捗と累積期限を検証し、成功・スキップ�
     });
     assert.deepEqual(await resolve(field('A')), {
         skipped: 'SUPPLEMENT_TIMEOUT',
-        elapsedSeconds: '60.0',
-        deferred: true,
-        retryBatchSize: 1
+        diagnostic: '分類コード: SUPPLEMENT_TIMEOUT / 詳細情報なし',
+        elapsedSeconds: '60.0'
     });
     assert.deepEqual(await resolve(field('B')), {
         skipped: 'SUPPLEMENT_TIMEOUT',
-        elapsedSeconds: '60.0',
-        deferred: true,
-        retryBatchSize: 1
+        diagnostic: '分類コード: SUPPLEMENT_TIMEOUT / 詳細情報なし',
+        elapsedSeconds: '60.0'
     });
     assert.ok(reports.some(([name, text]) => name === 'A' && text.includes('応答待ち：10秒経過')));
     const count = reports.length;
@@ -1783,11 +1870,11 @@ test('入れ子の通信エラーを分類し、補完スキップ後も診断�
             }
         });
         assert.equal(status, 1);
-        assert.match(messages.at(-1), new RegExp(`^CLI失敗の診断（3回）: ${expected} / 終了コード: 1`));
+        assert.match(messages.at(-1), new RegExp(`^CLI失敗の診断（1回）: ${expected} / 終了コード: 1`));
         assert.ok(!messages.join('\n').includes('secret-value'));
         const csv = fs.readFileSync(path.join(cwd, 'failed.csv'), 'utf8');
-        assert.equal((csv.match(new RegExp(`SKIPPED_${expected}`, 'g')) || []).length, 2);
-        assert.ok(!csv.includes('NO_VALUE_FOUND'));
+        assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${expected}`, 'g')) || []).length, 2);
+        assert.ok(!csv.includes('登録レコードなし'));
     }
 });
 
@@ -1826,18 +1913,27 @@ test('再開コマンドは全条件と空白・引用符を保持してその�
     );
 });
 
-test('保留後に中断しても、再開時は取得済み範囲を読み直さず最後の再試行を行う', async (t) => {
+test('検索失敗を確定した後に中断しても、再開時は未検索項目だけを処理する', async (t) => {
     const cwd = temporary(t);
-    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
-    const base = runnerFor([{ ...newest, Name: null, Custom__pc: null }]);
+    const extras = ['F1', 'F2', 'F3', 'F4'];
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), ['Name', ...extras, 'Custom__pc'].join('\n'));
+    const base = runnerFor([
+        { ...newest, Name: null, Custom__pc: null, ...Object.fromEntries(extras.map((name) => [name, null])) }
+    ]);
     const args = ['--output', 'resume-deferred.csv', '--fields-per-query', '1'];
     let resuming = false;
     const queries = [];
     const runner = async (command) => {
+        if (command[0] === 'sobject')
+            return cli(describe(field('Name'), field('Custom__pc'), ...extras.map((name) => field(name))));
         if (command[0] === 'data') {
             const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
             queries.push([resuming, query]);
-            if (query.includes('Name != NULL')) throw Object.assign(new Error('timeout'), { code: 'CLI_TIMEOUT' });
+            if (query.includes('Name != NULL'))
+                throw Object.assign(new Error('timeout'), {
+                    code: 'CLI_TIMEOUT',
+                    diagnostic: '終了コード: 1 / 識別子: OriginalTimeout'
+                });
             if (query.includes('Custom__pc != NULL') && !resuming)
                 throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
         }
@@ -1847,7 +1943,10 @@ test('保留後に中断しても、再開時は取得済み範囲を読み直�
         () => main(args, { cwd, mode: 'record-fields-preview', runner, createPrompt: approve, writeLine: quiet }),
         /auth/
     );
-    assert.match(fs.readFileSync(path.join(cwd, 'resume-deferred.partial.csv'), 'utf8'), /PENDING_RETRY_CLI_TIMEOUT/);
+    assert.match(
+        fs.readFileSync(path.join(cwd, 'resume-deferred.partial.csv'), 'utf8'),
+        /補完スキップ：CLI待機時間超過（CLI_TIMEOUT）/
+    );
     resuming = true;
     assert.equal(
         await main([...args, '--resume'], {
@@ -1861,12 +1960,14 @@ test('保留後に中断しても、再開時は取得済み範囲を読み直�
     );
     const resumed = queries.filter(([state]) => state).map(([, query]) => query);
     assert.ok(resumed.every((query) => !query.startsWith('SELECT Id,CreatedDate')));
-    assert.equal(resumed.filter((query) => query.includes('Name')).length, 1);
-    assert.ok(resumed.at(-1).includes('Name != NULL'));
+    assert.equal(resumed.filter((query) => query.includes('Name')).length, 0);
+    assert.ok(resumed.at(-1).includes('Custom__pc != NULL'));
     const csv = fs.readFileSync(path.join(cwd, 'resume-deferred.csv'), 'utf8');
-    assert.match(csv, /SKIPPED_CLI_TIMEOUT/);
+    assert.match(csv, /補完スキップ：CLI待機時間超過（CLI_TIMEOUT）/);
+    assert.match(csv, /終了コード: 1 \/ 識別子: OriginalTimeout/);
+    assert.match(csv, /補完経過: \d+\.\d秒/);
     assert.ok(!csv.includes('PENDING_RETRY'));
-    assert.equal(csv.split('\r\n').length, 4);
+    assert.equal(csv.split('\r\n').length, 8);
 });
 
 test('1300項目中1200項目の空欄は240通信で検索し、各項目を一度だけ確定する', async () => {
@@ -1883,6 +1984,7 @@ test('1300項目中1200項目の空欄は240通信で検索し、各項目を一
         ]);
     };
     query.batch = async (soqls) => {
+        assert.equal(saved.slice(0, 1300).length, 1300);
         batches++;
         assert.equal(soqls.length, 5);
         return soqls.map((soql) => {
@@ -1898,40 +2000,40 @@ test('1300項目中1200項目の空欄は240通信で検索し、各項目を一
         { mode: 'record-fields-preview', recordLimit: 1 },
         query,
         quiet,
-        async (_id, group, record) => saved.push([group[0].name, record[group[0].name]])
+        async (_id, group, record) => saved.push(...group.map((item) => [item.name, record[item.name]]))
     );
     assert.equal(baseCalls, 2);
     assert.equal(batches, 240);
     assert.equal(queried.size, 1200);
     assert.deepEqual(
-        saved.map((r) => r[0]),
+        saved.slice(0, 1300).map((r) => r[0]),
         fields.map((f) => f.name)
     );
-    assert.ok(saved.every((r, i) => r[1] === (i < 100 ? 'base' : 'filled')));
+    assert.ok(saved.slice(0, 1300).every((r, i) => r[1] === (i < 100 ? 'base' : null)));
+    assert.deepEqual(
+        saved.slice(1300).map((r) => r[0]),
+        fields.slice(100).map((f) => f.name)
+    );
+    assert.ok(saved.slice(1300).every((r) => r[1] === 'filled'));
 });
 
-test('最後の再試行中の中断でも置換済み行を復元し、同じ項目を二重検索・二重出力しない', async (t) => {
+test('補完途中の中断でも置換済み行を復元し、同じ項目を二重検索・二重出力しない', async (t) => {
     const cwd = temporary(t);
-    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'A\nB\nC\nD');
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'A\nB\nC\nD\nE\nF');
     let phase = 0;
-    let initialFailed = false;
     const queried = [];
     const runner = async (command) => {
         if (command[0] === 'config') return runnerFor()(command);
         if (command[0] === 'org') return cli(orgList());
-        if (command[0] === 'sobject') return cli(describe(...['A', 'B', 'C', 'D'].map((name) => field(name))));
+        if (command[0] === 'sobject')
+            return cli(describe(...['A', 'B', 'C', 'D', 'E', 'F'].map((name) => field(name))));
         const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
         queried.push([phase, query]);
         if (query.startsWith('SELECT Id,CreatedDate')) return cli(response([newest]));
         if (query.includes(`Id = '${newest.Id}'`))
-            return cli(response([{ Id: newest.Id, A: null, B: null, C: null, D: null }]));
-        if (!phase && !initialFailed && query.includes('B != NULL')) {
-            initialFailed = true;
-            throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
-        }
-        if (!phase && query.startsWith('SELECT Id,A ')) return cli(response([{ Id: older.Id, A: 'a' }]));
-        if (!phase) throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
-        assert.ok(!query.includes('Id,A'));
+            return cli(response([{ Id: newest.Id, A: null, B: null, C: null, D: null, E: null, F: null }]));
+        if (!phase && query.includes('F != NULL')) throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
+        if (phase) assert.ok(query.includes('F != NULL'));
         const names = query.slice(7, query.indexOf(' FROM ')).split(',').slice(1);
         return cli(
             response([{ Id: older.Id, ...Object.fromEntries(names.map((name) => [name, name.toLowerCase()])) }])
@@ -1942,7 +2044,7 @@ test('最後の再試行中の中断でも置換済み行を復元し、同じ�
     phase = 1;
     assert.equal(await main(['--output', 'late.csv', '--resume'], settings), 0);
     const csv = fs.readFileSync(path.join(cwd, 'late.csv'), 'utf8');
-    assert.equal((csv.match(/SUPPLEMENTED/g) || []).length, 4);
+    assert.equal((csv.match(/補完成功/g) || []).length, 6);
     assert.ok(!csv.includes('PENDING_RETRY'));
     assert.deepEqual(
         csv
@@ -1950,7 +2052,148 @@ test('最後の再試行中の中断でも置換済み行を復元し、同じ�
             .split('\r\n')
             .slice(1)
             .map((line) => line.split(',')[0]),
-        ['"A"', '"B"', '"C"', '"D"']
+        ['"A"', '"B"', '"C"', '"D"', '"E"', '"F"']
     );
     assert.ok(queried.filter(([stage]) => stage).every(([, query]) => query.includes(' != NULL')));
+});
+
+test('生成対象は初回・補完クエリから除外し、初回結果を取得範囲ごとに一度保存する', async () => {
+    const definition = describe(
+        field('Email', { type: 'email' }),
+        field('Fax', { type: 'phone' }),
+        field('Choice', {
+            type: 'picklist',
+            picklistValues: [
+                { value: 'inactive', active: false, defaultValue: true },
+                { value: 'first', active: true },
+                { value: 'default', active: true, defaultValue: true }
+            ]
+        }),
+        field('Description', { type: 'textarea' })
+    );
+    const settings = { mode: 'record-fields-preview', recordLimit: 1 };
+    const fields = validateDescribe(definition, ['Email', 'Fax', 'Choice', 'Description'], settings);
+    const writes = [],
+        queries = [],
+        messages = [];
+    const query = async (soql) => {
+        queries.push(soql);
+        assert.ok(!/Email|Fax|Choice/.test(soql));
+        return soql.startsWith('SELECT Id,CreatedDate')
+            ? response([newest])
+            : response([{ Id: newest.Id, Description: null }]);
+    };
+    query.batch = async (soqls) => {
+        assert.equal(writes.length, 1);
+        assert.deepEqual(
+            writes[0].names,
+            fields.map((f) => f.name)
+        );
+        assert.equal(soqls.length, 1);
+        assert.ok(soqls[0].includes('Description != NULL'));
+        return [{ result: response([{ Id: older.Id, Description: 'demo text' }]) }];
+    };
+    await collectValidatedRecords(
+        definition,
+        fields,
+        settings,
+        query,
+        (line) => messages.push(line),
+        async (_id, group, record, sources, _latest, statuses, update) =>
+            writes.push({
+                names: group.map((f) => f.name),
+                record: { ...record },
+                sources: new Map(sources),
+                statuses: new Map(statuses),
+                update
+            })
+    );
+    assert.equal(queries.length, 2);
+    assert.equal(writes.length, 2);
+    assert.equal(writes[0].record.Email, 'demo@example.com');
+    assert.equal(writes[0].record.Fax, '000-0000-0000');
+    assert.equal(writes[0].record.Choice, 'default');
+    assert.equal(writes[0].sources.get('Email'), '');
+    assert.equal(writes[1].update.replace, true);
+    assert.ok(messages.includes('[1/1項目]\tDescription\t補完成功'));
+    assert.ok(messages.every((line) => !line.includes('再試行')));
+});
+
+test('カスタム住所と位置情報の構成項目・選択肢なしも検索せず生成状態を返す', () => {
+    const { sampleForField } = require('../internal/preview-values');
+    const definitions = new Map([
+        ['ns__address__c', field('ns__Address__c', { type: 'address' })],
+        ['ns__geo__c', field('ns__Geo__c', { type: 'location' })],
+        ['location', field('Location', { type: 'location' })]
+    ]);
+    for (const [name, parent, expected] of [
+        ['ns__Address__CountryCode__s', 'ns__Address__c', 'JP'],
+        ['ns__Address__Street__s', 'ns__Address__c', 'サンプル町1-2-3'],
+        ['ns__Address__Latitude__s', 'ns__Address__c', 35.681236],
+        ['ns__Geo__Longitude__s', 'ns__Geo__c', 139.767125],
+        ['Latitude', 'Location', 35.681236],
+        ['Longitude', 'Location', 139.767125]
+    ])
+        assert.deepEqual(sampleForField(field(name, { compoundFieldName: parent }), definitions), {
+            value: expected,
+            status: 'GENERATED'
+        });
+    assert.equal(sampleForField(field('MailAsText'), definitions), undefined);
+    assert.equal(sampleForField(field('Latitude', { type: 'double' }), definitions), undefined);
+    assert.deepEqual(
+        sampleForField(
+            field('EmptyChoice', { type: 'multipicklist', picklistValues: [{ value: 'old', active: false }] }),
+            definitions
+        ),
+        { value: null, status: 'NO_PICKLIST_VALUE' }
+    );
+    assert.deepEqual(
+        sampleForField(
+            field('Multi', { type: 'multipicklist', picklistValues: [{ value: 'first', active: true }] }),
+            definitions
+        ),
+        { value: 'first', status: 'GENERATED' }
+    );
+});
+
+test('生成対象だけのプレビューはレコード検索なしでCSVを作り、公開失敗後も検索せず再開する', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Email\nFax');
+    const base = runnerFor([]);
+    const args = ['--output', 'generated.csv'];
+    const runner = async (command) => {
+        if (command[0] === 'sobject')
+            return cli(describe(field('Email', { type: 'email' }), field('Fax', { type: 'phone' })));
+        if (command[0] === 'data' || command[0] === 'api') assert.fail('生成だけならレコード検索しない');
+        return base(command);
+    };
+    const settings = { cwd, mode: 'record-fields-preview', runner, writeLine: quiet, createPrompt: approve };
+    const link = t.mock.method(fs, 'linkSync', () => {
+        throw new Error('publish failed');
+    });
+    await assert.rejects(() => main(args, settings), /publish failed/);
+    link.mock.restore();
+    const partial = fs.readFileSync(path.join(cwd, 'generated.partial.csv'), 'utf8');
+    assert.match(partial, /"Email","Email","email","demo@example.com","サンプル生成",""/);
+    assert.ok(!partial.includes('generated-preview'));
+    assert.equal(await main([...args, '--resume'], settings), 0);
+    assert.equal(fs.readFileSync(path.join(cwd, 'generated.csv'), 'utf8'), partial);
+});
+
+test('横型ではメール・電話・選択リストも実値のまま取得する', async () => {
+    const definition = describe(field('Email', { type: 'email' }), field('Phone', { type: 'phone' }));
+    const result = await collectRecords(
+        definition,
+        ['Email', 'Phone'],
+        { mode: 'records', recordLimit: 1 },
+        async (soql) => {
+            if (soql.startsWith('SELECT Id,CreatedDate')) return response([newest]);
+            assert.ok(soql.includes('Email,Phone'));
+            return response([{ Id: newest.Id, Email: 'original@example.com', Phone: '0123456789' }]);
+        },
+        quiet
+    );
+    assert.equal(result.records[0].Email, 'original@example.com');
+    assert.equal(result.records[0].Phone, '0123456789');
+    assert.equal(result.statuses.size, 0);
 });

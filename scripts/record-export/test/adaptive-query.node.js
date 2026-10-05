@@ -27,6 +27,37 @@ function composite(body, status = 200) {
     return { compositeResponse: [{ referenceId: 'records', httpStatusCode: status, body }] };
 }
 
+test('未知のAPIエラーでも元コードとHTTP診断を保持し、生本文は出力しない', async (t) => {
+    for (const outerFailure of [false, true]) {
+        const query = createQueryClient(
+            temp(t),
+            'test',
+            async () => {
+                const errors = [{ errorCode: 'UNEXPECTED_SERVER_ERROR', message: 'private-record-value' }];
+                return outerFailure
+                    ? { statusCode: 503, body: errors }
+                    : {
+                          statusCode: 200,
+                          body: { compositeResponse: [{ referenceId: 'field0', httpStatusCode: 500, body: errors }] }
+                      };
+            },
+            '/services/data/v67.0/sobjects/Account'
+        );
+        const check = (error) => {
+            assert.equal(error.code, 'QUERY_FAILED');
+            assert.match(error.diagnostic, /元エラーコード: UNEXPECTED_SERVER_ERROR/);
+            assert.match(error.diagnostic, outerFailure ? /HTTP: 503/ : /検索HTTP: 500/);
+            assert.match(error.diagnostic, /CLI終了コード: 0/);
+            assert.match(error.diagnostic, /検索経過: \d+\.\d秒/);
+            assert.ok(!error.message.includes('private-record-value'));
+            assert.ok(!error.diagnostic.includes('private-record-value'));
+            return true;
+        };
+        if (outerFailure) await assert.rejects(() => query.batch(['SELECT Id FROM Account LIMIT 1']), check);
+        else check((await query.batch(['SELECT Id FROM Account LIMIT 1']))[0].error);
+    }
+});
+
 test('サイズ・複雑さによる再分割後もIDと項目順で完全なCSVを生成する', async (t) => {
     const dir = temp(t),
         spool = createCsvSpool(dir, fields, 'records');
@@ -266,12 +297,16 @@ test('縦型の途中CSVは全項目の未処理行から始まり、保存し�
     const spool = createCsvSpool(dir, fields, 'record-fields-preview', output);
     spool.activatePartial();
     const initial = fs.readFileSync(output, 'utf8');
-    assert.equal((initial.match(/NOT_PROCESSED/g) || []).length, fields.length);
+    assert.equal((initial.match(/"未処理"/g) || []).length, fields.length);
     spool.append(ids[0], [fields[0]], data[0], new Map([[fields[0].name, ids[0]]]), ids[0]);
     spool.publishPartial([ids[0]], true);
     const updated = fs.readFileSync(output, 'utf8');
-    assert.equal((updated.match(/NOT_PROCESSED/g) || []).length, fields.length - 1);
-    assert.equal(updated.trimEnd().split('\r\n').length, fields.length + 1);
-    assert.match(updated, /"LATEST"/);
+    assert.equal((updated.match(/"未処理"/g) || []).length, fields.length - 1);
+    // 値内の改行をCSVのレコード境界として数えず、項目行の順序を検証する。
+    assert.deepEqual(
+        [...updated.matchAll(/^"(Long|Name|Flag)",/gm)].map((match) => match[1]),
+        fields.map((field) => field.name)
+    );
+    assert.match(updated, /"取得成功"/);
     assert.throws(() => spool.finish([ids[0]], path.join(dir, 'complete.csv')), /揃って/);
 });
