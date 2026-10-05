@@ -47,8 +47,12 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
     const files = new Map();
     // 縦型は項目別断片を使い、最後の再試行で元の行だけ置き換える。
     const previewFiles = new Map();
-    // 途中CSVの再公開は再試行範囲の終わりにまとめる。
-    let previewDirty = false;
+    // 縦型は初回公開から未処理を含む全項目の行を並べる。
+    let previewDirty = mode === 'record-fields-preview';
+    // 大きいCSV全体の再コピーを一項目ごとに繰り返さない。
+    let pendingPreviewRows = 0;
+    // 通信がなくても更新が長時間見えない状態を避ける。
+    let lastPublished = performance.now();
     // クエリの応答順と出力順を分離して保存する。
     function append(id, group, record, sources, latestId, statuses, update) {
         // 各レコードで次に来る項目の位置を求める。
@@ -83,11 +87,11 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
                 fs.writeFileSync(file, text, { mode: 0o600, flag: update?.replace ? 'w' : 'wx' });
                 // 連結時に指定順で参照できるよう保持する。
                 previewFiles.set(offset + index, file);
-                // 初回の追記はすぐ公開し、置換は範囲完了時にまとめて公開する。
-                if (partialOutput && !update?.replace) fs.appendFileSync(currentPartial, text);
+                // 未処理の行へ結果を反映するため、次回公開時に全指定順で再構築する。
+                pendingPreviewRows++;
             }
-            // 最後の再試行で行を置換した場合だけ再構築を必要にする。
-            if (update?.replace) previewDirty = true;
+            // 初回取得・再試行のどちらも、CSV内の該当位置を更新する。
+            previewDirty = true;
         } else {
             // 横型は従来どおりレコード別に指定列を追記する。
             const text = `${offset ? ',' : ''}${group.map((field) => csv(record[field.name])).join(',')}`;
@@ -102,20 +106,22 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
         // 通常の一時退避だけを使う呼び出しでは何もしない。
         if (!partialOutput) return;
         // 復元失敗時に元の途中結果を上書きしない。
-        publishPartial([]);
+        publishPartial([], true);
         // 再構築した内容をまとめて公開する。
         fs.renameSync(currentPartial, partialOutput);
-        // 以降の取得結果は公開中の途中CSVへ追記する。
+        // 以降の取得結果はこの公開先へ反映する。
         currentPartial = partialOutput;
     }
-    // 横型は行の途中を公開せず、完成した連続範囲だけ途中CSVへ追加する。
-    function publishPartial(ids) {
-        // 縦型の部分公開は項目単位の追記で済んでいる。
+    // 縦型は全項目の行を更新し、横型は完成した連続レコードだけ追記する。
+    function publishPartial(ids, force = false) {
+        // 公開先が指定されていない内部保存では処理しない。
         if (!partialOutput) return;
         // 再試行した縦型の行は、一定サイズのバッファで指定順に再公開する。
         if (mode === 'record-fields-preview') {
             // 変更がなければ大きなCSVのコピーを繰り返さない。
             if (!previewDirty) return;
+            // 原則5項目で公開し、次の通信前・中断時・再開復元時は即時公開する。
+            if (!force && pendingPreviewRows < 5 && performance.now() - lastPublished < 1000) return;
             // 公開中のファイルを途中で切り詰めない。
             const staged = path.join(directory, 'partial-update.csv');
             // 更新後も同じ列定義を使う。
@@ -125,8 +131,24 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
             // コピー失敗時もハンドルを解放する。
             try {
                 // Mapへの挿入順に依存せず項目位置で連結する。
-                for (let index = 0; index < previewFiles.size; index++)
-                    copyContents(previewFiles.get(index), destination);
+                for (let index = 0; index < fields.length; index++) {
+                    // 確定した項目は実値と判定結果をそのままコピーする。
+                    if (previewFiles.has(index)) copyContents(previewFiles.get(index), destination);
+                    // 未取得の行も指定位置に置き、値なしや取得失敗とは区別する。
+                    else
+                        fs.writeFileSync(
+                            destination,
+                            toCsv(
+                                {
+                                    fields: [fields[index]],
+                                    records: [{}],
+                                    sources: new Map(),
+                                    statuses: new Map([[fields[index].name, 'NOT_PROCESSED']])
+                                },
+                                mode
+                            ).slice('FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n'.length)
+                        );
+                }
             } finally {
                 // 公開前に書き込みを終える。
                 fs.closeSync(destination);
@@ -135,6 +157,10 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
             fs.renameSync(staged, currentPartial);
             // 同じ内容を再度コピーしない。
             previewDirty = false;
+            // 次の更新単位を数え直す。
+            pendingPreviewRows = 0;
+            // 公開からの経過時間を次回の更新判断に使う。
+            lastPublished = performance.now();
             // 横型のレコード追記は実行しない。
             return;
         }

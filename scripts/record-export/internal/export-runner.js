@@ -516,6 +516,10 @@ async function main(
     const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-record-export-'));
     // CSV断片は出力先と同じファイルシステムへ保存する。
     let spoolDirectory;
+    // 中断時にも確定済み断片を途中CSVへ反映できるよう保持する。
+    let spool;
+    // 再開データの復元が失敗した場合は、以前の途中CSVを上書きしない。
+    let partialActive = false;
     // 正常終了した場合だけ再開データを片付ける。
     let completed = false;
     // エラー時もロックを解除し、再開記録は保持する。
@@ -603,7 +607,7 @@ async function main(
         // 完成前のデータを利用者の指定ファイル名で公開しない。
         spoolDirectory = fs.mkdtempSync(path.join(path.dirname(output), '.record-export-'));
         // 値をメモリに蓄積せず、ID別に順次保存する。
-        const spool = createCsvSpool(spoolDirectory, fields, mode, partialOutput);
+        spool = createCsvSpool(spoolDirectory, fields, mode, partialOutput);
         // 再開済み範囲も含め、補完スキップ件数を重複なく集計する。
         const skipped = new Set();
         // 保留の空欄と縮小サイズだけを復元し、完了済みの実値はメモリへ溜めない。
@@ -631,6 +635,8 @@ async function main(
         });
         // 復元できた場合だけ途中CSVを公開し、以降は順次追記する。
         spool.activatePartial();
+        // この実行の断片だけで途中CSVを更新できる状態になった。
+        partialActive = true;
         // 中断した場合にも利用者が再開元を識別できるようにする。
         writeLine(`途中保存: ${path.relative(cwd, partialOutput)}`);
         // 保存済み項目を再取得しないための位置と固定対象を渡す。
@@ -640,7 +646,17 @@ async function main(
         // 基準値の取得を終えている保留項目も最後の再試行へ渡す。
         options.resumePending = resumePending;
         // 再試行範囲ごとに途中CSVの行をまとめて更新する。
-        options.onRetryBatch = () => spool.publishPartial(checkpoint.selected.map((row) => row.Id));
+        options.onRetryBatch = () =>
+            spool.publishPartial(
+                checkpoint.selected.map((row) => row.Id),
+                true
+            );
+        // 次の通信待ちへ入る前に、直前までの取得結果を全行の途中CSVへ反映する。
+        options.beforeSupplementQuery = () =>
+            spool.publishPartial(
+                checkpoint.selected.map((row) => row.Id),
+                true
+            );
         // 対象IDを最初の値取得より前に確定する。
         options.onSelected = checkpoint.select;
         // 対象選択・適応分割・補完を共通の照合処理で実行する。
@@ -691,6 +707,20 @@ async function main(
         clearProgress();
         // 通常終了・補完スキップ・中断のいずれでも診断を改行付きで残す。
         for (const [detail, count] of cliFailures) writeLine(`CLI失敗の診断（${count}回）: ${detail}`);
+        // 復元完了後の中断では、最後の5項目未満の更新も途中CSVへ反映する。
+        if (!completed && partialActive) {
+            // 公開失敗でチェックポイントの解放や元の例外処理を妨げない。
+            try {
+                // 保存済み断片だけを公開し、未処理行は未処理のまま保持する。
+                spool.publishPartial(
+                    (checkpoint.selected || []).map((row) => row.Id),
+                    true
+                );
+            } catch {
+                // 元の途中CSVと再開用データは削除せず、公開に失敗した事実を伝える。
+                writeLine('途中CSVの更新に失敗しました。再開用データは保持しています。');
+            }
+        }
         // 認証失敗時にもSOQLの一時ファイルを残さない。
         fs.rmSync(temporaryDirectory, { recursive: true, force: true });
         // 中断後も再開記録と途中CSVは保持し、ロックだけ解放する。

@@ -259,3 +259,19 @@ test('5本の独立検索を順序固定で送り、逆順の応答と一項目�
     await assert.rejects(() => query.batch(Array(6).fill('SELECT Id FROM Account LIMIT 1')));
     assert.equal(calls, 1);
 });
+
+test('縦型の途中CSVは全項目の未処理行から始まり、保存した項目の行だけ更新する', (t) => {
+    const dir = temp(t),
+        output = path.join(dir, 'preview.partial.csv');
+    const spool = createCsvSpool(dir, fields, 'record-fields-preview', output);
+    spool.activatePartial();
+    const initial = fs.readFileSync(output, 'utf8');
+    assert.equal((initial.match(/NOT_PROCESSED/g) || []).length, fields.length);
+    spool.append(ids[0], [fields[0]], data[0], new Map([[fields[0].name, ids[0]]]), ids[0]);
+    spool.publishPartial([ids[0]], true);
+    const updated = fs.readFileSync(output, 'utf8');
+    assert.equal((updated.match(/NOT_PROCESSED/g) || []).length, fields.length - 1);
+    assert.equal(updated.trimEnd().split('\r\n').length, fields.length + 1);
+    assert.match(updated, /"LATEST"/);
+    assert.throws(() => spool.finish([ids[0]], path.join(dir, 'complete.csv')), /揃って/);
+});
