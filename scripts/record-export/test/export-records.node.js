@@ -1123,7 +1123,7 @@ test('補完途中で停止しても値を保存し、固定IDの未完了項目
     );
     const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
     assert.match(partial, /"Name","Name","string","before","LATEST"/);
-    assert.ok(!partial.includes('"Custom__pc"'));
+    assert.match(partial, /"Custom__pc","Custom__pc","string","","NOT_PROCESSED",""/);
     assert.ok(messages.some((line) => line.includes('--resume')));
     const queries = [];
     assert.equal(

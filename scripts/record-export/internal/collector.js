@@ -220,6 +220,8 @@ async function collectRecords(
     }
     // 各項目の最新非NULL値を独立検索し、CLI起動だけを最大5項目で共有する。
     async function searchBatch(pending, conditions, controls) {
+        // 前回の取得値を途中CSVへ公開してから、次の通信待ちに入る。
+        await options.beforeSupplementQuery?.();
         // 一つの条件へORでまとめず、各項目にLIMIT 1を適用する。
         const soqls = pending.map((field) =>
             buildQuery(['Id', field.name], [...conditions, `${field.name} != NULL`], 1, true)
@@ -265,6 +267,39 @@ async function collectRecords(
     const statuses = new Map();
     // 基準値の取得を終えてから再試行する項目だけを保持する。
     const deferred = new Map(options.resumePending || []);
+    // 再開済み範囲のうち、再試行待ち以外を判定完了として数える。
+    const settled = new Set(
+        fields
+            .slice(0, options.resumeOffsets?.get(selected[0]?.Id) || 0)
+            .filter((field) => !deferred.has(field.name))
+            .map((field) => field.name)
+    );
+    // 初回の一巡と再試行を表示で区別する。
+    let previewPhase = '初回処理';
+    // 進捗は最大5項目の保存単位で通知する。
+    let progressRows = 0;
+    // 保留を完了件数へ含めず、実際に判定が残っている項目数を示す。
+    function progressSummary() {
+        // 項目番号は処理位置であり、完了件数とは別に表示する。
+        return `判定済み ${settled.size}/${fields.length}項目 / 残り ${fields.length - settled.size}項目 / 再試行待ち ${deferred.size}項目`;
+    }
+    // 保存成功後の項目だけを進捗へ反映する。
+    function recordProgress(field, pendingRetry) {
+        // 保留行の保存を判定完了と数えない。
+        if (!pendingRetry) settled.add(field.name);
+        // 初回と再試行のどちらも、保存済み項目数を数える。
+        progressRows++;
+        // 最終項目の確定も必ず表示する。
+        if (progressRows >= 5 || settled.size === fields.length) {
+            // API呼び出しを増やさず保存済み状態だけで進捗を通知する。
+            writeLine(`進捗（${previewPhase}）: ${progressSummary()}`);
+            // 次の表示までの件数を数え直す。
+            progressRows = 0;
+        }
+    }
+    // プレビューの初期状態にも残件数を表示する。
+    if (options.mode === 'record-fields-preview' && selected.length)
+        writeLine(`進捗（${previewPhase}）: ${progressSummary()}`);
     // 成功した範囲を順次保存し、再試行した値を重複させない。
     async function readGroup(ids, group) {
         // 未確認項目をSOQLへ含めず、CSVの位置だけ保持する。
@@ -411,7 +446,7 @@ async function collectRecords(
                     // 確定結果の行とは分け、現在項目の検索・再試行を通知する。
                     report: (field, message) =>
                         writeLine(
-                            `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message}`
+                            `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message} / ${progressSummary()}`
                         )
                 });
                 // 一項目の補完が終わるごとに再開位置を確定する。
@@ -446,6 +481,8 @@ async function collectRecords(
                             statuses,
                             retryState
                         );
+                    // 保存完了後に保留と判定済みの件数を更新する。
+                    recordProgress(field, retryState);
                 }
             }
             // 実行入口はこの保存先を使って値を順次退避する。
@@ -489,7 +526,14 @@ async function collectRecords(
     // 全項目の初回処理を終えた後だけ、保留分を指定順の小さなまとまりで再試行する。
     const retryFields = fields.filter((field) => deferred.has(field.name));
     // 保留なしの場合は追加クエリを実行しない。
-    if (retryFields.length) writeLine(`最後の再試行: 保留${retryFields.length}項目・個別に一巡・再失敗はスキップ`);
+    if (retryFields.length) {
+        // 初回の項目番号が末尾でも、まだ未確定項目が残ることを明示する。
+        previewPhase = '再試行';
+        // 終了済み表示から残件数が増えたように見せない。
+        writeLine(`初回処理の一巡終了: ${progressSummary()}`);
+        // これから処理する件数と再試行回数の上限を示す。
+        writeLine(`最後の再試行: 残り${retryFields.length}項目・各一回・再失敗は取得失敗で確定`);
+    }
     // 失敗した元の範囲より大きい一括検索へ戻さない。
     for (let offset = 0; offset < retryFields.length;) {
         // 先頭の保留項目に保存した縮小サイズを使う。
@@ -517,7 +561,7 @@ async function collectRecords(
             retry: true,
             report: (field, message) =>
                 writeLine(
-                    `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message}`
+                    `検索状況: [${fieldPositions.get(field.name)}/${fields.length}項目] ${field.name} / ${message} / ${progressSummary()}`
                 )
         });
         // 再試行途中で中断しても、それまで確定した置換を途中CSVへ反映する。
@@ -550,6 +594,10 @@ async function collectRecords(
                     // 成功した補完元だけを反映する。
                     sources.set(field.name, chunkSources.get(field.name));
                 }
+                // 再試行した項目は成功・失敗のどちらでも二度目の保留へ戻さない。
+                deferred.delete(field.name);
+                // 保存が終わった項目だけ残件数から引く。
+                recordProgress(field, false);
             }
         } finally {
             // 大きいCSVの全体再公開は範囲の終わりにまとめる。
