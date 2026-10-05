@@ -31,7 +31,7 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
         );
     }
     // クエリ全体の応答量に上限を設け、ページを無制限に蓄積しない。
-    return async function query(soql) {
+    return async function query(soql, controls = {}) {
         // Query Moreも同じCompositeの読み取りサブリクエストとして送信する。
         let url = `${apiPath}/query/?q=${encodeURIComponent(soql)}`;
         // 全ページのレコードを上限内に限って保持する。
@@ -55,22 +55,25 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
             // ストリーム先の権限をCLI起動前に制限する。
             fs.writeFileSync(responseFile, '', { mode: 0o600, flag: 'wx' });
             // CLI自体にレスポンスをファイルへ流させ、stdoutには値をためない。
-            await invoke([
-                'api',
-                'request',
-                'rest',
-                `${apiPath}/composite`,
-                '--method',
-                'POST',
-                '--body',
-                `@${requestFile}`,
-                '--header',
-                'Content-Type:application/json',
-                '--stream-to-file',
-                responseFile,
-                '--target-org',
-                targetOrg
-            ]);
+            await invoke(
+                [
+                    'api',
+                    'request',
+                    'rest',
+                    `${apiPath}/composite`,
+                    '--method',
+                    'POST',
+                    '--body',
+                    `@${requestFile}`,
+                    '--header',
+                    'Content-Type:application/json',
+                    '--stream-to-file',
+                    responseFile,
+                    '--target-org',
+                    targetOrg
+                ],
+                controls
+            );
             // 読み込み前にファイルの実サイズを確認する。
             bytes += fs.statSync(responseFile).size;
             // 大きすぎる結果は破棄し、収集側でID集合や項目を縮小する。

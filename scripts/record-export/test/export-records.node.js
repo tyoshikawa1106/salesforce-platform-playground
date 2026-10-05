@@ -9,7 +9,7 @@ const {
     parseFields,
     toCsv
 } = require('../internal/collector');
-const { main: runMain, parseOptions, callSf } = require('../internal/export-runner');
+const { main: runMain, parseOptions, callSf, buildResumeCommand } = require('../internal/export-runner');
 const field = (name, extra = {}) => ({ name, label: name, type: 'string', filterable: true, ...extra });
 const describe = (...fields) => ({
     name: 'Account',
@@ -927,29 +927,26 @@ test('項目の分割後も全体の項目番号と補完状況を表示し、�
     assert.ok(messages.every((line) => !/secret-|^空欄補完:|^補完対象外:/.test(line)));
 });
 
-test('権限に関係する検索失敗は項目番号と説明を表示し補完成功として扱わない', async () => {
+test('補完の権限エラーは取得成功や値なしとせず、理由を保存して続行する', async () => {
     for (const code of ['INVALID_FIELD', 'INSUFFICIENT_ACCESS']) {
         const messages = [];
         let calls = 0;
-        await assert.rejects(
-            () =>
-                collectRecords(
-                    describe(field('Name')),
-                    ['Name'],
-                    { ...options, mode: 'record-fields-preview' },
-                    async () => {
-                        calls++;
-                        if (calls === 1) return response([newest]);
-                        if (calls === 2) return response([{ Id: newest.Id, Name: null }]);
-                        throw Object.assign(new Error('安全な診断'), { code });
-                    },
-                    (line) => messages.push(line)
-                ),
-            (error) => error.code === code
+        const result = await collectRecords(
+            describe(field('Name')),
+            ['Name'],
+            { ...options, mode: 'record-fields-preview' },
+            async () => {
+                calls++;
+                if (calls === 1) return response([newest]);
+                if (calls === 2) return response([{ Id: newest.Id, Name: null }]);
+                throw Object.assign(new Error('安全な診断'), { code });
+            },
+            (line) => messages.push(line)
         );
-        assert.ok(messages.some((line) => line.startsWith('[1/1項目]\tName\t検索失敗の対象：項目参照権限を確認')));
+        assert.ok(messages.some((line) => line.includes(`補完スキップ：${code}`)));
         assert.ok(messages.every((line) => !line.includes('補完成功')));
-        assert.equal(calls, 3);
+        assert.match(toCsv(result, 'record-fields-preview'), new RegExp(`SKIPPED_${code}`));
+        assert.equal(calls, 4);
     }
 });
 
@@ -1107,13 +1104,12 @@ test('補完途中で停止しても値を保存し、固定IDの未完了項目
                 runner: async (command) => {
                     if (command[0] === 'data') {
                         const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
-                        if (query.includes(' != NULL'))
-                            throw Object.assign(new Error('timeout'), { code: 'CLI_TIMEOUT' });
+                        if (query.includes(' != NULL')) throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
                     }
                     return runner(command);
                 }
             }),
-        /timeout/
+        /auth/
     );
     const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
     assert.match(partial, /"Name","Name","string","before","LATEST"/);
@@ -1579,13 +1575,13 @@ test('補完の複雑さによる分割も先頭側から逐次実行し、保�
                 return response([{ Id: older.Id, A: 'a', B: 'b' }]);
             }
             assert.match(query, /^SELECT Id,C,D /);
-            assert.deepEqual(saved, ['A', 'B']);
+            assert.deepEqual(saved, ['A', 'B', 'C', 'D', 'A', 'B']);
             return response([{ Id: older.Id, C: 'c', D: 'd' }]);
         },
         quiet,
         async (_id, group) => saved.push(group[0].name)
     );
-    assert.deepEqual(saved, ['A', 'B', 'C', 'D']);
+    assert.deepEqual(saved, ['A', 'B', 'C', 'D', 'A', 'B', 'C', 'D']);
     assert.equal(queries.length, 5);
 });
 
@@ -1615,33 +1611,34 @@ test('まとめ補完は空欄100項目を1回の追加検索で埋める', asyn
     );
 });
 
-test('OR検索が先の項目で停止しても、後で見つかった値を先に保存しない', async () => {
+test('ORで後続項目の値を取得後にタイムアウトしても、取得値とスキップを指定順に保存する', async () => {
     const fields = [field('Present'), field('A'), field('B')];
     const saved = [];
     let count = 0;
-    await assert.rejects(
-        () =>
-            collectValidatedRecords(
-                describe(...fields),
-                fields,
-                { ...options, mode: 'record-fields-preview' },
-                async () => {
-                    count++;
-                    if (count === 1) return response([newest]);
-                    if (count === 2) return response([{ Id: newest.Id, Present: 'keep', A: null, B: null }]);
-                    if (count === 3)
-                        return response(
-                            Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null }))
-                        );
-                    if (count === 4) return response([{ Id: older.Id, A: null, B: 'b' }]);
-                    throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
-                },
-                quiet,
-                async (_id, group) => saved.push(group[0].name)
-            ),
-        /timeout/
+    await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { ...options, mode: 'record-fields-preview' },
+        async () => {
+            count++;
+            if (count === 1) return response([newest]);
+            if (count === 2) return response([{ Id: newest.Id, Present: 'keep', A: null, B: null }]);
+            if (count === 3)
+                return response(Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null })));
+            if (count === 4) return response([{ Id: older.Id, A: null, B: 'b' }]);
+            throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
+        },
+        quiet,
+        async (_id, group, record, _sources, _latestId, statuses) =>
+            saved.push([group[0].name, record[group[0].name], statuses.get(group[0].name)])
     );
-    assert.deepEqual(saved, ['Present']);
+    assert.deepEqual(saved, [
+        ['Present', 'keep', undefined],
+        ['A', null, 'PENDING_RETRY_QUERY_TIMEOUT'],
+        ['B', 'b', undefined],
+        ['A', null, 'SKIPPED_QUERY_TIMEOUT']
+    ]);
+    assert.equal(count, 6);
 });
 
 test('1400項目のOR条件が文字数上限を超える場合も、上限内へ分割して指定順を保つ', async () => {
@@ -1673,7 +1670,7 @@ test('1400項目のOR条件が文字数上限を超える場合も、上限内�
             else {
                 assert.deepEqual(
                     saved,
-                    fields.slice(0, 700).map((f) => f.name)
+                    [...fields, ...fields.slice(0, 700)].map((f) => f.name)
                 );
                 assert.deepEqual(
                     names,
@@ -1687,12 +1684,12 @@ test('1400項目のOR条件が文字数上限を超える場合も、上限内�
     );
     assert.deepEqual(
         saved,
-        fields.map((f) => f.name)
+        [...fields, ...fields].map((f) => f.name)
     );
     assert.equal(queries.length, 5);
 });
 
-test('先読みサイズ超過は件数を縮小し、ORのタイムアウトは項目順に分割する', async () => {
+test('先読みサイズ超過を保留し、最後にだけ縮小した非NULL検索を再試行する', async () => {
     const fields = [field('A'), field('B')];
     const queries = [];
     const saved = [];
@@ -1708,27 +1705,19 @@ test('先読みサイズ超過は件数を縮小し、ORのタイムアウトは
                 assert.match(query, /LIMIT 200$/);
                 throw Object.assign(new Error('size'), { code: 'BUFFER_LIMIT' });
             }
+            assert.deepEqual(saved.slice(0, 2), ['A', 'B']);
             if (queries.length === 4) {
-                assert.match(query, /LIMIT 100$/);
-                return response(Array.from({ length: 100 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null })));
-            }
-            if (queries.length === 5) {
-                assert.match(query, /A != NULL OR B != NULL/);
-                throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
-            }
-            if (queries.length === 6) {
                 assert.match(query, /WHERE A != NULL /);
                 return response([{ Id: older.Id, A: 'a' }]);
             }
-            assert.deepEqual(saved, ['A']);
             assert.match(query, /WHERE B != NULL /);
             return response([]);
         },
         quiet,
         async (_id, group) => saved.push(group[0].name)
     );
-    assert.deepEqual(saved, ['A', 'B']);
-    assert.equal(queries.length, 7);
+    assert.deepEqual(saved, ['A', 'B', 'A', 'B']);
+    assert.equal(queries.length, 5);
 });
 
 test('作成日の指定は日本時間の当日午前0時より前とし、不正日付を拒否する', () => {
@@ -1817,4 +1806,332 @@ test('両形式で作成日の条件を確認前に表示し、未指定時は�
             assert.equal(status, 0);
         }
     }
+});
+
+test('補完のCLI失敗・時間超過は最後に一度再試行してからスキップしてCSVを完成させる', async (t) => {
+    for (const code of ['CLI_FAILED', 'QUERY_TIMEOUT', 'NETWORK_TIMEOUT', 'NETWORK_ERROR']) {
+        const cwd = temporary(t);
+        fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+        const runner = runnerFor([{ ...newest, Name: null, Custom__pc: null }]);
+        const messages = [];
+        let supplements = 0;
+        assert.equal(
+            await main(['--output', 'skipped.csv'], {
+                cwd,
+                mode: 'record-fields-preview',
+                createPrompt: approve,
+                writeLine: (line) => messages.push(line),
+                runner: async (command) => {
+                    if (command[0] === 'data') {
+                        const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                        if (query.includes('LIMIT 200') || query.includes(' != NULL')) {
+                            supplements++;
+                            throw Object.assign(new Error('mock'), { code });
+                        }
+                    }
+                    return runner(command);
+                }
+            }),
+            1
+        );
+        assert.equal(supplements, 3);
+        const csv = fs.readFileSync(path.join(cwd, 'skipped.csv'), 'utf8');
+        assert.equal((csv.match(new RegExp(`SKIPPED_${code}`, 'g')) || []).length, 2);
+        assert.ok(!csv.includes('NO_VALUE_FOUND'));
+        assert.ok(messages.some((line) => line.includes('全項目の処理と保存は完了')));
+        assert.ok(!fs.existsSync(path.join(cwd, 'skipped.csv.resume')));
+    }
+});
+
+test('MasterRecordIdも特別扱いせず一括補完に含め、空欄と実値を通常どおり扱う', async () => {
+    for (const masterValue of [null, older.Id]) {
+        const queries = [];
+        const result = await collectRecords(
+            describe(field('MasterRecordId'), field('Name')),
+            ['MasterRecordId', 'Name'],
+            { ...options, mode: 'record-fields-preview' },
+            async (query) => {
+                queries.push(query);
+                if (queries.length === 1) return response([newest]);
+                if (queries.length === 2) return response([{ Id: newest.Id, MasterRecordId: null, Name: null }]);
+                assert.match(query, /SELECT Id,MasterRecordId,Name/);
+                return response([{ Id: older.Id, MasterRecordId: masterValue, Name: 'demo' }]);
+            },
+            quiet
+        );
+        assert.equal(queries.length, 3);
+        assert.equal(result.records[0].MasterRecordId, masterValue);
+        assert.equal(result.statuses.size, 0);
+    }
+});
+
+test('補完待機の進捗と累積期限を検証し、成功・スキップ後にタイマーを残さない', async (t) => {
+    const { createPreviewResolver, SUPPLEMENT_TIMEOUT_MS } = require('../internal/preview-values');
+    t.mock.timers.enable({ apis: ['setInterval'] });
+    let now = 0;
+    t.mock.method(performance, 'now', () => now);
+    const reports = [];
+    const resolve = createPreviewResolver({
+        fields: [field('A'), field('B')],
+        record: { A: null, B: null },
+        scope: [],
+        hasValue: (value) => value != null,
+        canFilterNonNull: () => true,
+        report: (f, message) => reports.push([f.name, message]),
+        search: async (_columns, _scope, _limit, _ordered, controls) => {
+            assert.equal(controls.deadline, SUPPLEMENT_TIMEOUT_MS);
+            now = 10000;
+            t.mock.timers.tick(10000);
+            now = SUPPLEMENT_TIMEOUT_MS;
+            return Array.from({ length: 200 }, () => ({ Id: older.Id, A: null, B: null }));
+        }
+    });
+    assert.deepEqual(await resolve(field('A')), {
+        skipped: 'SUPPLEMENT_TIMEOUT',
+        elapsedSeconds: '0.0',
+        deferred: true,
+        retryBatchSize: 1
+    });
+    assert.deepEqual(await resolve(field('B')), {
+        skipped: 'SUPPLEMENT_TIMEOUT',
+        elapsedSeconds: '0.0',
+        deferred: true,
+        retryBatchSize: 1
+    });
+    assert.ok(reports.some(([name, text]) => name === 'A' && text.includes('応答待ち：10秒経過')));
+    const count = reports.length;
+    t.mock.timers.tick(20000);
+    assert.equal(reports.length, count);
+});
+
+test('補完期限をCLI待機上限へ伝え、実際の子プロセス終了を待ってスキップ可能にする', async () => {
+    const { runSfWithOutputAsync } = require('../../common/run-command');
+    const { execFile } = require('node:child_process');
+    await assert.rejects(
+        () =>
+            callSf(
+                ['api'],
+                '.',
+                (_args, cwd, _exec, maxBuffer, timeout) => {
+                    assert.ok(timeout > 0 && timeout <= 150);
+                    return runSfWithOutputAsync(
+                        [],
+                        cwd,
+                        (_command, _commandArgs, settings, callback) =>
+                            execFile(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], settings, callback),
+                        maxBuffer,
+                        timeout
+                    );
+                },
+                'record-fields-preview',
+                { deadline: performance.now() + 150 }
+            ),
+        (error) => error.code === 'SUPPLEMENT_TIMEOUT'
+    );
+});
+
+test('標準エラーだけの通信エラーを分類し、未知エラーも終了状態を表示する', async () => {
+    for (const [stderr, code] of [
+        ["code: 'ETIMEDOUT'\nprivate-value", 'NETWORK_TIMEOUT'],
+        ['private-value', 'CLI_FAILED']
+    ]) {
+        await assert.rejects(
+            () => callSf(['api'], '.', async () => ({ status: 1, stdout: '', stderr })),
+            (error) => {
+                assert.equal(error.code, code);
+                assert.match(error.message, /終了コード: 1/);
+                assert.match(error.message, /応答形式: 空/);
+                assert.ok(!error.message.includes('private-value'));
+                return true;
+            }
+        );
+    }
+});
+
+test('再開コマンドは全条件と空白・引用符を保持してそのまま実行できる', () => {
+    const { execFileSync } = require('node:child_process');
+    const settings = parseOptions([
+        '--object',
+        'Account',
+        '--fields',
+        "input a'b.txt",
+        '--record-type-id',
+        recordTypeId,
+        '--created-before',
+        '2026-10-01',
+        '--fields-per-query',
+        '10',
+        '--record-limit',
+        '20'
+    ]);
+    const command = buildResumeCommand(settings, 'records', 'example-org', "/tmp/a' $x.csv", '/tmp', 'darwin');
+    if (process.platform !== 'win32') {
+        const args = execFileSync('/bin/sh', ['-c', `set -- ${command}; printf '%s\\n' "$@"`], { encoding: 'utf8' })
+            .trim()
+            .split('\n');
+        assert.deepEqual(args.slice(0, 4), ['npm', 'run', 'sf:export:records', '--']);
+        assert.deepEqual(parseOptions(args.slice(4)), {
+            ...settings,
+            targetOrg: 'example-org',
+            output: "a' $x.csv",
+            resume: true
+        });
+    }
+    assert.match(
+        buildResumeCommand(settings, 'records', 'example-org', '/tmp/out.csv', '/tmp', 'win32'),
+        /input a''b.txt/
+    );
+});
+
+test('保留後に中断しても、再開時は取得済み範囲を読み直さず最後の再試行を行う', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+    const base = runnerFor([{ ...newest, Name: null, Custom__pc: null }]);
+    const args = ['--output', 'resume-deferred.csv', '--fields-per-query', '1'];
+    let resuming = false;
+    const queries = [];
+    const runner = async (command) => {
+        if (command[0] === 'data') {
+            const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+            queries.push([resuming, query]);
+            if (query.includes('Name != NULL')) throw Object.assign(new Error('timeout'), { code: 'CLI_TIMEOUT' });
+            if (query.includes('Custom__pc != NULL') && !resuming)
+                throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
+        }
+        return base(command);
+    };
+    await assert.rejects(
+        () => main(args, { cwd, mode: 'record-fields-preview', runner, createPrompt: approve, writeLine: quiet }),
+        /auth/
+    );
+    assert.match(fs.readFileSync(path.join(cwd, 'resume-deferred.partial.csv'), 'utf8'), /PENDING_RETRY_CLI_TIMEOUT/);
+    resuming = true;
+    assert.equal(
+        await main([...args, '--resume'], {
+            cwd,
+            mode: 'record-fields-preview',
+            runner,
+            createPrompt: approve,
+            writeLine: quiet
+        }),
+        1
+    );
+    const resumed = queries.filter(([state]) => state).map(([, query]) => query);
+    assert.ok(resumed.every((query) => !query.startsWith('SELECT Id,CreatedDate')));
+    assert.equal(resumed.filter((query) => query.includes('Name')).length, 1);
+    assert.ok(resumed.at(-1).includes('Name != NULL'));
+    const csv = fs.readFileSync(path.join(cwd, 'resume-deferred.csv'), 'utf8');
+    assert.match(csv, /SKIPPED_CLI_TIMEOUT/);
+    assert.ok(!csv.includes('PENDING_RETRY'));
+    assert.equal(csv.split('\r\n').length, 4);
+});
+
+test('1300項目中1200項目が空欄でも、保留分を最後にまとめて取得し全行を指定順に完成する', async (t) => {
+    const { createCsvSpool } = require('../internal/csv-spool');
+    const cwd = temporary(t);
+    const fields = Array.from({ length: 1300 }, (_, i) => field(`F${String(i).padStart(36, '0')}__c`));
+    const mode = 'record-fields-preview';
+    const spool = createCsvSpool(cwd, fields, mode);
+    let calls = 0;
+    let initialSaved = 0;
+    const queryWidths = [];
+    await collectValidatedRecords(
+        describe(...fields),
+        fields,
+        { mode, recordLimit: 1 },
+        async (query) => {
+            calls++;
+            assert.ok(query.length <= 100000);
+            if (calls === 1) return response([newest]);
+            const names = query
+                .slice(7, query.indexOf(' FROM '))
+                .split(',')
+                .filter((name) => name !== 'Id');
+            if (calls === 2)
+                return response([
+                    {
+                        Id: newest.Id,
+                        ...Object.fromEntries(names.map((name, i) => [name, i < 100 ? `base-${i}` : null]))
+                    }
+                ]);
+            if (calls === 3) {
+                assert.equal(names.length, 1200);
+                return response(
+                    Array.from({ length: 200 }, (_, i) => ({
+                        Id: id(1000 - i),
+                        ...Object.fromEntries(names.map((name) => [name, null]))
+                    }))
+                );
+            }
+            assert.equal(initialSaved, 1300, '全項目の初回保存より前に再試行してはいけない');
+            queryWidths.push(names.length);
+            // どの補完元レコードも、値のある項目は100個までにする。
+            return response([
+                {
+                    Id: id(10000 - calls),
+                    ...Object.fromEntries(names.map((name, i) => [name, i < 100 ? `value-${name}` : null]))
+                }
+            ]);
+        },
+        quiet,
+        async (...args) => {
+            if (!args[6]?.replace) initialSaved++;
+            spool.append(...args);
+        }
+    );
+    const output = path.join(cwd, 'many-fields.csv');
+    spool.finish([newest.Id], output);
+    const csv = fs.readFileSync(output, 'utf8');
+    const lines = csv.trimEnd().split('\r\n').slice(1);
+    assert.equal(lines.length, 1300);
+    assert.deepEqual(
+        lines.map((line) => line.split(',')[0]),
+        fields.map((field) => `"${field.name}"`)
+    );
+    assert.equal((csv.match(/"LATEST"/g) || []).length, 100);
+    assert.equal((csv.match(/"SUPPLEMENTED"/g) || []).length, 1200);
+    assert.ok(!csv.includes('PENDING_RETRY'));
+    assert.deepEqual(queryWidths, [600, 500, 400, 300, 200, 100, 600, 500, 400, 300, 200, 100]);
+    assert.equal(calls, 15);
+});
+
+test('最後の再試行中の中断でも置換済み行を復元し、同じ項目を二重検索・二重出力しない', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'A\nB\nC\nD');
+    let phase = 0;
+    const queried = [];
+    const runner = async (command) => {
+        if (command[0] === 'config') return runnerFor()(command);
+        if (command[0] === 'org') return cli(orgList());
+        if (command[0] === 'sobject') return cli(describe(...['A', 'B', 'C', 'D'].map((name) => field(name))));
+        const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+        queried.push([phase, query]);
+        if (query.startsWith('SELECT Id,CreatedDate')) return cli(response([newest]));
+        if (query.includes(`Id = '${newest.Id}'`))
+            return cli(response([{ Id: newest.Id, A: null, B: null, C: null, D: null }]));
+        if (query.endsWith('LIMIT 200')) throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
+        if (!phase && query.startsWith('SELECT Id,A,B ')) return cli(response([{ Id: older.Id, A: 'a', B: null }]));
+        if (!phase) throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
+        assert.ok(!query.includes('Id,A'));
+        const names = query.slice(7, query.indexOf(' FROM ')).split(',').slice(1);
+        return cli(
+            response([{ Id: older.Id, ...Object.fromEntries(names.map((name) => [name, name.toLowerCase()])) }])
+        );
+    };
+    const settings = { cwd, mode: 'record-fields-preview', runner, writeLine: quiet, createPrompt: approve };
+    await assert.rejects(() => main(['--output', 'late.csv'], settings), /auth/);
+    phase = 1;
+    assert.equal(await main(['--output', 'late.csv', '--resume'], settings), 0);
+    const csv = fs.readFileSync(path.join(cwd, 'late.csv'), 'utf8');
+    assert.equal((csv.match(/SUPPLEMENTED/g) || []).length, 4);
+    assert.ok(!csv.includes('PENDING_RETRY'));
+    assert.deepEqual(
+        csv
+            .trimEnd()
+            .split('\r\n')
+            .slice(1)
+            .map((line) => line.split(',')[0]),
+        ['"A"', '"B"', '"C"', '"D"']
+    );
+    assert.ok(queried.filter(([stage]) => stage).every(([, query]) => query.includes(' != NULL')));
 });

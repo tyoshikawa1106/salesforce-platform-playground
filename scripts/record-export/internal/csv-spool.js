@@ -45,10 +45,19 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
     const positions = new Map();
     // IDは収集処理で検証済みだが、ファイル名には連番だけを使う。
     const files = new Map();
+    // 縦型は項目別断片を使い、最後の再試行で元の行だけ置き換える。
+    const previewFiles = new Map();
+    // 途中CSVの再公開は再試行範囲の終わりにまとめる。
+    let previewDirty = false;
     // クエリの応答順と出力順を分離して保存する。
-    function append(id, group, record, sources, latestId) {
+    function append(id, group, record, sources, latestId, statuses, update) {
         // 各レコードで次に来る項目の位置を求める。
-        const offset = positions.get(id) || 0;
+        const offset = update?.replace
+            ? fields.findIndex((field) => field.name === group[0]?.name)
+            : positions.get(id) || 0;
+        // 置換は保存済みの縦型一項目に限定する。
+        if (update?.replace && (mode !== 'record-fields-preview' || group.length !== 1 || !previewFiles.has(offset)))
+            throw new Error('CSVの置換対象が不正です。');
         // 再分割の重複や欠落を誤ったCSVとして確定しない。
         if (group.some((field, index) => fields[offset + index]?.name !== field.name)) {
             // 値を含めず、順序違反として停止する。
@@ -59,25 +68,42 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
             // API由来の文字列をファイルパスに使用しない。
             files.set(id, path.join(directory, `row-${files.size}.csv`));
         }
-        // プレビューの固定列は既存のCSV変換と共通化する。
-        const text =
-            mode === 'record-fields-preview'
-                ? toCsv({ fields: group, records: [record], sources, latestId }, mode).slice(
-                      'FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n'.length
-                  )
-                : `${offset ? ',' : ''}${group.map((field) => csv(record[field.name])).join(',')}`;
-        // 初回は排他的に作成し、同じIDの後続項目だけを追記する。
-        fs.writeFileSync(files.get(id), text, { flag: offset ? 'a' : 'wx', mode: 0o600 });
-        // 保存成功後だけ進捗を確定する。
-        positions.set(id, offset + group.length);
-        // 縦型は一項目の保存完了ごとに結果を追記する。
-        if (partialOutput && mode === 'record-fields-preview') fs.appendFileSync(currentPartial, text);
+        // 縦型は元の指定位置をファイル名に使い、取得順と公開順を分離する。
+        if (mode === 'record-fields-preview') {
+            // テストや旧再開記録で複数項目の断片が渡されても、一項目ずつ保持する。
+            for (let index = 0; index < group.length; index++) {
+                // ステータスと補完元を含む一行だけを生成する。
+                const text = toCsv(
+                    { fields: [group[index]], records: [record], sources, latestId, statuses },
+                    mode
+                ).slice('FieldApiName,Label,Type,Value,Status,SourceRecordId\r\n'.length);
+                // 利用者のAPI名をパスへ使わず指定位置だけを使う。
+                const file = path.join(directory, `field-${offset + index}.csv`);
+                // 完成ファイルはチェックポイントから復元可能な断片だけで組み立てる。
+                fs.writeFileSync(file, text, { mode: 0o600, flag: update?.replace ? 'w' : 'wx' });
+                // 連結時に指定順で参照できるよう保持する。
+                previewFiles.set(offset + index, file);
+                // 初回の追記はすぐ公開し、置換は範囲完了時にまとめて公開する。
+                if (partialOutput && !update?.replace) fs.appendFileSync(currentPartial, text);
+            }
+            // 最後の再試行で行を置換した場合だけ再構築を必要にする。
+            if (update?.replace) previewDirty = true;
+        } else {
+            // 横型は従来どおりレコード別に指定列を追記する。
+            const text = `${offset ? ',' : ''}${group.map((field) => csv(record[field.name])).join(',')}`;
+            // 大量データを全件メモリへ蓄積しない。
+            fs.writeFileSync(files.get(id), text, { flag: offset ? 'a' : 'wx', mode: 0o600 });
+        }
+        // 置換では初回処理の完了位置を戻さない。
+        if (!update?.replace) positions.set(id, offset + group.length);
     }
     // 保存済み断片を完全に復元した後で、途中CSVの公開先へ切り替える。
     function activatePartial() {
         // 通常の一時退避だけを使う呼び出しでは何もしない。
         if (!partialOutput) return;
         // 復元失敗時に元の途中結果を上書きしない。
+        publishPartial([]);
+        // 再構築した内容をまとめて公開する。
         fs.renameSync(currentPartial, partialOutput);
         // 以降の取得結果は公開中の途中CSVへ追記する。
         currentPartial = partialOutput;
@@ -85,7 +111,33 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
     // 横型は行の途中を公開せず、完成した連続範囲だけ途中CSVへ追加する。
     function publishPartial(ids) {
         // 縦型の部分公開は項目単位の追記で済んでいる。
-        if (!partialOutput || mode !== 'records') return;
+        if (!partialOutput) return;
+        // 再試行した縦型の行は、一定サイズのバッファで指定順に再公開する。
+        if (mode === 'record-fields-preview') {
+            // 変更がなければ大きなCSVのコピーを繰り返さない。
+            if (!previewDirty) return;
+            // 公開中のファイルを途中で切り詰めない。
+            const staged = path.join(directory, 'partial-update.csv');
+            // 更新後も同じ列定義を使う。
+            fs.writeFileSync(staged, toCsv({ fields, records: [] }, mode), { mode: 0o600 });
+            // 一項目ずつコピーし、全値をメモリへ復元しない。
+            const destination = fs.openSync(staged, 'a');
+            // コピー失敗時もハンドルを解放する。
+            try {
+                // Mapへの挿入順に依存せず項目位置で連結する。
+                for (let index = 0; index < previewFiles.size; index++)
+                    copyContents(previewFiles.get(index), destination);
+            } finally {
+                // 公開前に書き込みを終える。
+                fs.closeSync(destination);
+            }
+            // 途中CSVを原子的に更新する。
+            fs.renameSync(staged, currentPartial);
+            // 同じ内容を再度コピーしない。
+            previewDirty = false;
+            // 横型のレコード追記は実行しない。
+            return;
+        }
         // 途中CSVを先頭から書き直さず、完成済み行だけ追記する。
         const destination = fs.openSync(currentPartial, 'a');
         // 読み書きエラー時も出力ハンドルを解放する。
@@ -122,7 +174,11 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
             // 最新順で確定したIDの順番に連結する。
             for (const id of ids) {
                 // 実値をメモリへまとめず断片をコピーする。
-                copyContents(files.get(id), destination);
+                if (mode === 'record-fields-preview') {
+                    // 後から置換した行も、元の項目位置で連結する。
+                    for (let index = 0; index < fields.length; index++)
+                        copyContents(previewFiles.get(index), destination);
+                } else copyContents(files.get(id), destination);
                 // 横型の各レコード末尾だけに行区切りを追加する。
                 if (mode === 'records') fs.writeFileSync(destination, '\r\n');
             }
