@@ -16,6 +16,7 @@
 - [collector.js](../../../../scripts/record-export/internal/collector.js): 項目検証、最新順の選択、IDによる値照合、縦型の空欄補完、CSV変換。
 - [query-client.js](../../../../scripts/record-export/internal/query-client.js): Composite APIによる読み取り、応答ファイル・APIページの検証。
 - [preview-values.js](../../../../scripts/record-export/internal/preview-values.js): 直近レコードの一括補完、残項目のOR検索、指定順を維持した候補管理。
+- [error-definitions.js](../../../../scripts/record-export/internal/error-definitions.js): 共通のCLI待機上限と検索エラー識別子。
 - [checkpoint.js](../../../../scripts/record-export/internal/checkpoint.js): 取得条件・対象ID・確定した値の保存、再開時の照合、同時実行の防止。
 - [csv-spool.js](../../../../scripts/record-export/internal/csv-spool.js): ID別一時CSVへの退避、指定順の結合、完成ファイルの公開。
 - [run-command.js](../../../../scripts/common/run-command.js): OS別の非同期CLI起動。

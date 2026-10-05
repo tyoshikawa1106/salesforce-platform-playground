@@ -1,6 +1,7 @@
 // 用途: 既存認証のCLIでComposite Queryを実行し、URL長と応答蓄積の制限を避ける。
 const fs = require('node:fs');
 const path = require('node:path');
+const { QUERY_ERROR_CODES, QUERY_TIMEOUT_CODES } = require('./error-definitions');
 const RESPONSE_LIMIT = 64 * 1024 * 1024;
 
 // 長いSOQLをURL引数ではなくPOST本文に格納し、読み取りだけを実行する。
@@ -16,23 +17,13 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
     // APIエラーは固定コードだけを表示し、レコード値や生本文を漏らさない。
     function fail(code) {
         // 自動分割してよい原因を明示的に分類する。
-        const allowed = [
-            'QUERY_TOO_COMPLICATED',
-            'INVALID_FIELD',
-            'MALFORMED_QUERY',
-            'INVALID_QUERY_FILTER_OPERATOR',
-            'INSUFFICIENT_ACCESS',
-            'REQUEST_LIMIT_EXCEEDED',
-            'INVALID_SESSION_ID',
-            'QUERY_TIMEOUT',
-            'REQUEST_RUNNING_TOO_LONG'
-        ];
+        const allowed = [...QUERY_ERROR_CODES, 'QUERY_TOO_COMPLICATED', 'INVALID_SESSION_ID'];
         // 未知のエラー本文は表示しない。
         const safeCode = allowed.includes(code) ? code : 'QUERY_FAILED';
         // 呼び出し元は原因に応じて分割または停止する。
         throw Object.assign(
             new Error(
-                ['QUERY_TIMEOUT', 'REQUEST_RUNNING_TOO_LONG'].includes(safeCode)
+                QUERY_TIMEOUT_CODES.includes(safeCode)
                     ? `Salesforce側で検索がタイムアウトしました (${safeCode})。検索条件・クエリプランを確認してください。`
                     : `検索に失敗しました (${safeCode})。`
             ),
