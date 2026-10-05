@@ -369,7 +369,7 @@ async function collectRecords(
             const chunkSources = new Map(group.map((field) => [field.name, field.invalid ? '' : record.Id]));
             // プレビューの空欄だけを補完する。
             if (options.mode === 'record-fields-preview') {
-                // 先読み候補を共有し、出力と保存だけは各項目の順番で行う。
+                // 取得候補を共有し、出力と保存だけは各項目の順番で行う。
                 const resolvePreview = createPreviewResolver({
                     fields: group,
                     record,
@@ -476,7 +476,7 @@ async function collectRecords(
         };
         // 値を得られなかった項目には取得元を付けない。
         const chunkSources = new Map();
-        // 最後の再試行は先読みを繰り返さず、残項目の非NULL検索だけを行う。
+        // 最後の再試行も、残項目だけを非NULL検索する。
         const resolvePreview = createPreviewResolver({
             fields: group,
             record,

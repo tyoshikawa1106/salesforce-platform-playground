@@ -106,7 +106,8 @@ test('CompositeのPOST本文で検索しQuery Moreを重複なく取得する', 
             assert.deepEqual(args.slice(0, 4), ['api', 'request', 'rest', '/services/data/v67.0/composite']);
             assert.equal(args[args.indexOf('--method') + 1], 'POST');
             requests.push(JSON.parse(fs.readFileSync(args[args.indexOf('--body') + 1].slice(1), 'utf8')));
-            fs.writeFileSync(args[args.indexOf('--stream-to-file') + 1], JSON.stringify(composite(pages.shift())));
+            assert.ok(!args.includes('--stream-to-file'));
+            return { statusCode: 200, body: composite(pages.shift()) };
         },
         '/services/data/v67.0/sobjects/Account'
     );
@@ -132,11 +133,7 @@ test('CompositeのHTTPエラー・不正ページ・不正JSONは安全に停止
         const query = createQueryClient(
             dir,
             'test',
-            async (args) =>
-                fs.writeFileSync(
-                    args[args.indexOf('--stream-to-file') + 1],
-                    typeof body === 'string' ? body : JSON.stringify(body)
-                ),
+            async () => ({ statusCode: 200, body }),
             '/services/data/v67.0/sobjects/Account'
         );
         await assert.rejects(
@@ -146,12 +143,22 @@ test('CompositeのHTTPエラー・不正ページ・不正JSONは安全に停止
     }
 });
 
-test('応答サイズをJSON読み込み前に判定する（疎ファイルで軽量に検証）', async (t) => {
+test('複数ページの合計サイズ超過を分割処理へ渡す', async (t) => {
     const dir = temp(t);
+    let calls = 0;
+    const text = 'a'.repeat(RESPONSE_LIMIT / 32);
     const query = createQueryClient(
         dir,
         'test',
-        async (args) => fs.truncateSync(args[args.indexOf('--stream-to-file') + 1], RESPONSE_LIMIT + 1),
+        async () => ({
+            statusCode: 200,
+            body: composite({
+                records: [{ Id: String(++calls), Long__c: text }],
+                totalSize: 33,
+                done: false,
+                nextRecordsUrl: `/services/data/v67.0/query/page-${calls}`
+            })
+        }),
         '/services/data/v67.0/sobjects/Account'
     );
     await assert.rejects(

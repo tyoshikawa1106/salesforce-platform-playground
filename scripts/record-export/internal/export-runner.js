@@ -210,6 +210,14 @@ function parseCliResponse(response, mode) {
     const stderrCode = /(?:^|\n)\s*(?:code|errorCode):\s*['"]([A-Z][A-Z0-9_]+)['"]/m.exec(response.stderr || '')?.[1];
     // 自由文は転記せず、既知の通信コードだけを採用する。
     const streamCode = processCodes.has(stderrCode) ? stderrCode : undefined;
+    // CLIが例外を包んだ場合も、自由文ではなく構造化された原因コードを確認する。
+    const causes = [body, body.cause, body.cause?.cause];
+    // 外側から順に既知の通信コードだけを採用する。
+    const transportCode = causes
+        .flatMap((cause) => [cause?.code, cause?.name])
+        .find((value) => processCodes.has(value));
+    // 通常JSON受信でHTTP失敗が返った場合は、応答本文の固定コードだけを取り出す。
+    const apiCode = Array.isArray(body.result?.body) ? body.result.body[0]?.errorCode : undefined;
     // OS側の失敗がある場合は、途中までのJSONより優先する。
     let code = 'CLI_FAILED';
     // 子プロセスを起動・完了できなかった原因を分類する。
@@ -224,19 +232,20 @@ function parseCliResponse(response, mode) {
     } else if (response.status !== 0 && streamCode) {
         // CLIの非正常終了が確認できた場合だけ標準エラーの通信コードを使う。
         code = processCodes.get(streamCode);
-    } else if (processCodes.has(body.code) || processCodes.has(body.name)) {
+    } else if (transportCode) {
         // CLI自身が返した通信エラーも、親プロセスの待ち時間制限と区別する。
-        code = processCodes.get(body.code) || processCodes.get(body.name);
-    } else if (authCodes.has(body.name)) {
+        code = processCodes.get(transportCode);
+    } else if (authCodes.has(body.name) || apiCode === 'INVALID_SESSION_ID') {
         // 認証失敗時は再試行せず、対象指定と既存認証の確認を促す。
         code = 'AUTH_FAILED';
     } else if (
         queryCodes.includes(body.name) ||
         queryCodes.includes(body.errorCode) ||
-        queryCodes.includes(body.code)
+        queryCodes.includes(body.code) ||
+        queryCodes.includes(apiCode)
     ) {
         // 検索固有の診断を表示して、未完成のCSVの保存を防ぐ。
-        code = [body.name, body.errorCode, body.code].find((candidate) => queryCodes.includes(candidate));
+        code = [body.name, body.errorCode, body.code, apiCode].find((candidate) => queryCodes.includes(candidate));
     }
     // 判別した原因に対して、認証操作を自動実行せず確認先を案内する。
     const guidance = new Map([
@@ -269,7 +278,7 @@ function parseCliResponse(response, mode) {
         ]
     ]);
     // メッセージ本文やURLを除き、構造化された短い識別子だけを残す。
-    const identifiers = [body.name, body.code, body.errorCode, response.error?.code, streamCode].filter(
+    const identifiers = [body.name, body.code, body.errorCode, response.error?.code, streamCode, transportCode].filter(
         (value) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value)
     );
     // 未分類でも終了コードとCLI識別子から調査できるようにする。
@@ -511,6 +520,8 @@ async function main(
     let completed = false;
     // エラー時もロックを解除し、再開記録は保持する。
     let checkpoint;
+    // 補完で続行したCLI失敗も、進捗に埋もれない終了時の診断として保持する。
+    const cliFailures = new Map();
     // 成功・失敗を問わず一時ファイルを削除する。
     try {
         // Describeの成功により実際のAPI接続と対象オブジェクトへのアクセスを確認する。
@@ -529,11 +540,27 @@ async function main(
             // 認証成功を終了コードで返す。
             return 0;
         }
-        // APIの応答を一時ファイルへ直接受信する読み取り専用クライアントを用意する。
+        // 応答完了を待ってページごとに検証する読み取り専用クライアントを用意する。
         const query = createQueryClient(
             temporaryDirectory,
             resolvedTargetOrg,
-            (command, controls) => callSf(command, cwd, runner, mode, controls),
+            async (command, controls) => {
+                // 取得処理と同じ例外を返し、再試行やスキップの順序を変えない。
+                try {
+                    // レコード値や応答本文は診断へ保持しない。
+                    return await callSf(command, cwd, runner, mode, controls);
+                } catch (error) {
+                    // この入口で安全化した診断だけを集計し、同一の失敗を大量表示しない。
+                    if (error.diagnostic) {
+                        // コードと終了状態が同じ失敗は一行へまとめる。
+                        const detail = `${error.code} / ${error.diagnostic}`;
+                        // 最終表示では発生回数も通知する。
+                        cliFailures.set(detail, (cliFailures.get(detail) || 0) + 1);
+                    }
+                    // 値なしへ変換せず、既存の失敗処理へ渡す。
+                    throw error;
+                }
+            },
             describe.urls?.sobject
         );
         // 一時CSVは公開先と同じ親ディレクトリへ置く。
@@ -662,6 +689,8 @@ async function main(
     } finally {
         // 検索失敗時も一時表示を消し、後続のエラー表示を独立させる。
         clearProgress();
+        // 通常終了・補完スキップ・中断のいずれでも診断を改行付きで残す。
+        for (const [detail, count] of cliFailures) writeLine(`CLI失敗の診断（${count}回）: ${detail}`);
         // 認証失敗時にもSOQLの一時ファイルを残さない。
         fs.rmSync(temporaryDirectory, { recursive: true, force: true });
         // 中断後も再開記録と途中CSVは保持し、ロックだけ解放する。
