@@ -76,13 +76,12 @@ async function main(args, dependencies) {
             const response = await runner(['data', 'query', '--file', file], ...rest);
             if (response.status === 0 && !response.error) {
                 const result = JSON.parse(response.stdout).result;
-                fs.writeFileSync(
-                    command[command.indexOf('--stream-to-file') + 1],
-                    JSON.stringify({
+                return cli({
+                    statusCode: 200,
+                    body: {
                         compositeResponse: [{ referenceId: 'records', httpStatusCode: 200, body: result }]
-                    })
-                );
-                return cli({ statusCode: 0 });
+                    }
+                });
             }
             return response;
         }
@@ -676,9 +675,9 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
     fs.writeFileSync(
         bootstrap,
         `require(${JSON.stringify(require.resolve('../../common/run-command'))}).runSfWithOutputAsync = async (args) => {
-        const result = args[0] === 'org' ? ${JSON.stringify(orgList())} : args[0] === 'sobject' ? ${JSON.stringify(describe(field('Name')))} : ${JSON.stringify(response([{ ...newest, Name: 'fixture' }]))};
+        let result = args[0] === 'org' ? ${JSON.stringify(orgList())} : args[0] === 'sobject' ? ${JSON.stringify(describe(field('Name')))} : ${JSON.stringify(response([{ ...newest, Name: 'fixture' }]))};
         if(args[0] === 'api') {
-            require('node:fs').writeFileSync(args[args.indexOf('--stream-to-file')+1], JSON.stringify({compositeResponse:[{referenceId:'records',httpStatusCode:200,body:result}]}));
+            result = {statusCode:200, body:{compositeResponse:[{referenceId:'records',httpStatusCode:200,body:result}]}};
         }
         return { status: 0, stdout: JSON.stringify({ status: 0, result }) };
     };`
@@ -1476,14 +1475,19 @@ test('新しいレコードのまとめ取得で各項目の最新値を採用�
             if (queries.length === 1) return response([newest]);
             if (queries.length === 2)
                 return response([{ Id: newest.Id, A: null, B: null, Empty: null, Flag: false, Long: null }]);
-            assert.equal(
-                query,
-                `SELECT Id,A,B,Empty FROM Account WHERE RecordTypeId = '${recordTypeId}' ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 200`
-            );
-            return response([
-                { Id: newest.Id, A: null, B: 'new-b', Empty: null },
-                { Id: older.Id, A: 'older-a', B: 'older-b', Empty: null }
-            ]);
+            if (queries.length === 3) {
+                assert.equal(
+                    query,
+                    `SELECT Id,A,B,Empty FROM Account WHERE RecordTypeId = '${recordTypeId}' AND (A != NULL OR B != NULL OR Empty != NULL) ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 1`
+                );
+                return response([{ Id: newest.Id, A: null, B: 'new-b', Empty: null }]);
+            }
+            if (queries.length === 4) {
+                assert.ok(!query.includes('B != NULL'));
+                return response([{ Id: older.Id, A: 'older-a', Empty: null }]);
+            }
+            assert.match(query, /WHERE .*Empty != NULL ORDER BY/);
+            return response([]);
         },
         (line) => messages.push(line),
         async (id, group, record, sources) => {
@@ -1491,7 +1495,7 @@ test('新しいレコードのまとめ取得で各項目の最新値を採用�
         }
     );
     assert.equal(result.latestId, newest.Id);
-    assert.equal(queries.length, 3);
+    assert.equal(queries.length, 5);
     assert.deepEqual(
         saved.map((row) => row.name),
         fields.map((f) => f.name)
@@ -1523,18 +1527,14 @@ test('残項目はOR検索で確保済み項目を外し、後の項目が先に
             queries.push(query);
             if (queries.length === 1) return response([newest]);
             if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null, C: null }]);
-            if (queries.length === 3)
-                return response(
-                    Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null, C: null }))
-                );
-            if (queries.length === 4) {
+            if (queries.length === 3) {
                 assert.match(
                     query,
                     /WHERE \(A != NULL OR B != NULL OR C != NULL\) ORDER BY CreatedDate DESC NULLS LAST, Id DESC LIMIT 1$/
                 );
                 return response([{ Id: older.Id, A: null, B: 'b', C: null }]);
             }
-            if (queries.length === 5) {
+            if (queries.length === 4) {
                 assert.match(query, /^SELECT Id,A,C FROM Account WHERE \(A != NULL OR C != NULL\)/);
                 assert.deepEqual(saved, []);
                 return response([{ Id: id(1), A: 'a', C: 'c' }]);
@@ -1549,7 +1549,7 @@ test('残項目はOR検索で確保済み項目を外し、後の項目が先に
         ['B', 'b'],
         ['C', 'c']
     ]);
-    assert.equal(queries.length, 5);
+    assert.equal(queries.length, 4);
 });
 
 test('補完の複雑さによる分割も先頭側から逐次実行し、保存順を維持する', async () => {
@@ -1623,9 +1623,7 @@ test('ORで後続項目の値を取得後にタイムアウトしても、取得
             count++;
             if (count === 1) return response([newest]);
             if (count === 2) return response([{ Id: newest.Id, Present: 'keep', A: null, B: null }]);
-            if (count === 3)
-                return response(Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null })));
-            if (count === 4) return response([{ Id: older.Id, A: null, B: 'b' }]);
+            if (count === 3) return response([{ Id: older.Id, A: null, B: 'b' }]);
             throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
         },
         quiet,
@@ -1638,7 +1636,7 @@ test('ORで後続項目の値を取得後にタイムアウトしても、取得
         ['B', 'b', undefined],
         ['A', null, 'SKIPPED_QUERY_TIMEOUT']
     ]);
-    assert.equal(count, 6);
+    assert.equal(count, 5);
 });
 
 test('1400項目のOR条件が文字数上限を超える場合も、上限内へ分割して指定順を保つ', async () => {
@@ -1655,14 +1653,12 @@ test('1400項目のOR条件が文字数上限を超える場合も、上限内�
             queries.push(query);
             if (queries.length === 1) return response([newest]);
             if (queries.length === 2) return response([{ Id: newest.Id, ...nulls }]);
-            if (queries.length === 3)
-                return response(Array.from({ length: 200 }, (_, i) => ({ Id: id(2000 - i), ...nulls })));
             assert.ok(query.includes(' OR '));
             const names = query
                 .slice(7, query.indexOf(' FROM '))
                 .split(',')
                 .filter((name) => name !== 'Id');
-            if (queries.length === 4)
+            if (queries.length === 3)
                 assert.deepEqual(
                     names,
                     fields.slice(0, 700).map((f) => f.name)
@@ -1686,10 +1682,10 @@ test('1400項目のOR条件が文字数上限を超える場合も、上限内�
         saved,
         [...fields, ...fields].map((f) => f.name)
     );
-    assert.equal(queries.length, 5);
+    assert.equal(queries.length, 4);
 });
 
-test('先読みサイズ超過を保留し、最後にだけ縮小した非NULL検索を再試行する', async () => {
+test('補完応答サイズ超過を保留し、最後にだけ縮小した非NULL検索を再試行する', async () => {
     const fields = [field('A'), field('B')];
     const queries = [];
     const saved = [];
@@ -1702,7 +1698,7 @@ test('先読みサイズ超過を保留し、最後にだけ縮小した非NULL�
             if (queries.length === 1) return response([newest]);
             if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null }]);
             if (queries.length === 3) {
-                assert.match(query, /LIMIT 200$/);
+                assert.match(query, /WHERE \(A != NULL OR B != NULL\).*LIMIT 1$/);
                 throw Object.assign(new Error('size'), { code: 'BUFFER_LIMIT' });
             }
             assert.deepEqual(saved.slice(0, 2), ['A', 'B']);
@@ -1738,7 +1734,7 @@ test('作成日の指定は日本時間の当日午前0時より前とし、不�
     }
 });
 
-test('作成日条件を対象選択・値取得・先読み・OR補完へ同じ境界で適用する', async () => {
+test('作成日条件を対象選択・値取得・OR補完へ同じ境界で適用する', async () => {
     const fields = [field('A'), field('B')];
     const queries = [];
     const settings = {
@@ -1754,14 +1750,12 @@ test('作成日条件を対象選択・値取得・先読み・OR補完へ同じ
             assert.ok(query.includes(`RecordTypeId = '${recordTypeId}' AND CreatedDate < 2026-09-30T15:00:00.000Z`));
             if (queries.length === 1) return response([newest]);
             if (queries.length === 2) return response([{ Id: newest.Id, A: null, B: null }]);
-            if (queries.length === 3)
-                return response(Array.from({ length: 200 }, (_, i) => ({ Id: id(1000 - i), A: null, B: null })));
             assert.match(query, /AND \(A != NULL OR B != NULL\) ORDER BY/);
             return response([{ Id: older.Id, A: 'a', B: 'b' }]);
         },
         quiet
     );
-    assert.equal(queries.length, 4);
+    assert.equal(queries.length, 3);
     assert.deepEqual(result.records[0], { A: 'a', B: 'b' });
     assert.throws(
         () => validateDescribe(describe(field('CreatedDate', { sortable: true, filterable: false })), ['A'], settings),
@@ -1824,7 +1818,7 @@ test('補完のCLI失敗・時間超過は最後に一度再試行してから�
                 runner: async (command) => {
                     if (command[0] === 'data') {
                         const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
-                        if (query.includes('LIMIT 200') || query.includes(' != NULL')) {
+                        if (query.includes(' != NULL')) {
                             supplements++;
                             throw Object.assign(new Error('mock'), { code });
                         }
@@ -1854,12 +1848,16 @@ test('MasterRecordIdも特別扱いせず一括補完に含め、空欄と実値
                 queries.push(query);
                 if (queries.length === 1) return response([newest]);
                 if (queries.length === 2) return response([{ Id: newest.Id, MasterRecordId: null, Name: null }]);
+                if (queries.length === 4) {
+                    assert.match(query, /SELECT Id,MasterRecordId FROM Account WHERE MasterRecordId != NULL/);
+                    return response([]);
+                }
                 assert.match(query, /SELECT Id,MasterRecordId,Name/);
                 return response([{ Id: older.Id, MasterRecordId: masterValue, Name: 'demo' }]);
             },
             quiet
         );
-        assert.equal(queries.length, 3);
+        assert.equal(queries.length, masterValue === null ? 4 : 3);
         assert.equal(result.records[0].MasterRecordId, masterValue);
         assert.equal(result.statuses.size, 0);
     }
@@ -1883,18 +1881,18 @@ test('補完待機の進捗と累積期限を検証し、成功・スキップ�
             now = 10000;
             t.mock.timers.tick(10000);
             now = SUPPLEMENT_TIMEOUT_MS;
-            return Array.from({ length: 200 }, () => ({ Id: older.Id, A: null, B: null }));
+            throw Object.assign(new Error('timeout'), { code: 'SUPPLEMENT_TIMEOUT' });
         }
     });
     assert.deepEqual(await resolve(field('A')), {
         skipped: 'SUPPLEMENT_TIMEOUT',
-        elapsedSeconds: '0.0',
+        elapsedSeconds: '60.0',
         deferred: true,
         retryBatchSize: 1
     });
     assert.deepEqual(await resolve(field('B')), {
         skipped: 'SUPPLEMENT_TIMEOUT',
-        elapsedSeconds: '0.0',
+        elapsedSeconds: '60.0',
         deferred: true,
         retryBatchSize: 1
     });
@@ -1945,6 +1943,47 @@ test('標準エラーだけの通信エラーを分類し、未知エラーも�
                 return true;
             }
         );
+    }
+});
+
+test('入れ子の通信エラーを分類し、補完スキップ後も診断を終了時に残す', async (t) => {
+    for (const [causeCode, expected] of [
+        ['ECONNRESET', 'NETWORK_ERROR'],
+        ['ETIMEDOUT', 'NETWORK_TIMEOUT'],
+        ['UnknownError', 'CLI_FAILED']
+    ]) {
+        const cwd = temporary(t);
+        fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name\nCustom__pc');
+        const runner = runnerFor([{ ...newest, Name: null, Custom__pc: null }]);
+        const messages = [];
+        const status = await main(['--output', 'failed.csv'], {
+            cwd,
+            mode: 'record-fields-preview',
+            createPrompt: approve,
+            writeLine: (message) => messages.push(message),
+            runner: async (command) => {
+                if (command[0] === 'data') {
+                    const query = fs.readFileSync(command[command.indexOf('--file') + 1], 'utf8');
+                    if (query.includes(' != NULL')) {
+                        return {
+                            status: 1,
+                            stdout: JSON.stringify({
+                                status: 1,
+                                name: 'Error',
+                                cause: { cause: { code: causeCode, message: 'secret-value' } }
+                            })
+                        };
+                    }
+                }
+                return runner(command);
+            }
+        });
+        assert.equal(status, 1);
+        assert.match(messages.at(-1), new RegExp(`^CLI失敗の診断（3回）: ${expected} / 終了コード: 1`));
+        assert.ok(!messages.join('\n').includes('secret-value'));
+        const csv = fs.readFileSync(path.join(cwd, 'failed.csv'), 'utf8');
+        assert.equal((csv.match(new RegExp(`SKIPPED_${expected}`, 'g')) || []).length, 2);
+        assert.ok(!csv.includes('NO_VALUE_FOUND'));
     }
 });
 
@@ -2054,15 +2093,6 @@ test('1300項目中1200項目が空欄でも、保留分を最後にまとめて
                         ...Object.fromEntries(names.map((name, i) => [name, i < 100 ? `base-${i}` : null]))
                     }
                 ]);
-            if (calls === 3) {
-                assert.equal(names.length, 1200);
-                return response(
-                    Array.from({ length: 200 }, (_, i) => ({
-                        Id: id(1000 - i),
-                        ...Object.fromEntries(names.map((name) => [name, null]))
-                    }))
-                );
-            }
             assert.equal(initialSaved, 1300, '全項目の初回保存より前に再試行してはいけない');
             queryWidths.push(names.length);
             // どの補完元レコードも、値のある項目は100個までにする。
@@ -2092,7 +2122,7 @@ test('1300項目中1200項目が空欄でも、保留分を最後にまとめて
     assert.equal((csv.match(/"SUPPLEMENTED"/g) || []).length, 1200);
     assert.ok(!csv.includes('PENDING_RETRY'));
     assert.deepEqual(queryWidths, [600, 500, 400, 300, 200, 100, 600, 500, 400, 300, 200, 100]);
-    assert.equal(calls, 15);
+    assert.equal(calls, 14);
 });
 
 test('最後の再試行中の中断でも置換済み行を復元し、同じ項目を二重検索・二重出力しない', async (t) => {
@@ -2109,7 +2139,8 @@ test('最後の再試行中の中断でも置換済み行を復元し、同じ�
         if (query.startsWith('SELECT Id,CreatedDate')) return cli(response([newest]));
         if (query.includes(`Id = '${newest.Id}'`))
             return cli(response([{ Id: newest.Id, A: null, B: null, C: null, D: null }]));
-        if (query.endsWith('LIMIT 200')) throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
+        if (query.startsWith('SELECT Id,A,B,C,D ') && query.includes(' != NULL'))
+            throw Object.assign(new Error('timeout'), { code: 'QUERY_TIMEOUT' });
         if (!phase && query.startsWith('SELECT Id,A,B ')) return cli(response([{ Id: older.Id, A: 'a', B: null }]));
         if (!phase) throw Object.assign(new Error('auth'), { code: 'AUTH_FAILED' });
         assert.ok(!query.includes('Id,A'));

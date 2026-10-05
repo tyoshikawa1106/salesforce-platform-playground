@@ -2,10 +2,7 @@
 
 const { QUERY_TIMEOUT_CODES } = require('./error-definitions');
 
-// 出力量を限定し、値のない項目のために全レコードを走査しない。
-const RECENT_RECORD_LIMIT = 200;
-
-// 一項目の解決に複数のOR検索が必要でも、待ち時間を累積で制限する。
+// 応答のない一回の検索を制限し、成功が続く補完全体は時間だけで打ち切らない。
 const SUPPLEMENT_TIMEOUT_MS = 60000;
 
 // 補完だけの失敗は元レコードを保持して続行し、認証・API利用上限などは停止する。
@@ -26,7 +23,7 @@ const SKIPPABLE_CODES = new Set([
     'BUFFER_LIMIT'
 ]);
 
-// 先読みした値と、利用者へ結果を確定する順序を分離する。
+// 取得した値と、利用者へ結果を確定する順序を分離する。
 function createPreviewResolver({
     fields,
     record,
@@ -41,8 +38,6 @@ function createPreviewResolver({
     const missing = fields.filter(
         (field) => !field.invalid && !hasValue(record[field.name]) && canFilterNonNull(field)
     );
-    // この一括範囲で先読みを済ませたかを管理し、その場で細分化しない。
-    const group = { sampled: retry || missing.length < 2, limit: RECENT_RECORD_LIMIT };
     // 項目名ごとに最初に見つかった最新値だけを保持する。
     const resolved = new Map();
     // 元レコードや出力順は変更せず、候補だけを採用する。
@@ -57,12 +52,8 @@ function createPreviewResolver({
             }
         }
     }
-    // 同じ一括範囲の問い合わせを通算し、後続項目で期限を延長しない。
-    let deadline;
     // 呼び出された項目が確定するまでだけ検索し、表示と保存は呼び出し元へ任せる。
     return async function resolve(field) {
-        // 分割・先読み・OR検索を通算した期限を固定する。
-        deadline ??= performance.now() + SUPPLEMENT_TIMEOUT_MS;
         // 後の項目を先に見つけても、この項目の順番になるまで返さない。
         while (!resolved.has(field.name)) {
             // 対象外の項目を誤って値なしとしない。
@@ -70,16 +61,16 @@ function createPreviewResolver({
                 throw new Error('補完対象の項目範囲が一致しません。');
             // すでに値を確保した項目はSELECTとOR条件の両方から外す。
             const pending = missing.filter((candidate) => !resolved.has(candidate.name));
-            // 直近取得は非NULL条件を使わず、新しい範囲だけをまとめて読む。
-            const recent = !group.sampled;
             // OR条件は括弧で囲み、レコードタイプ条件を全項目へ適用する。
             const predicate = pending.map((candidate) => `${candidate.name} != NULL`).join(' OR ');
             // 単一項目は従来と同じSOQLにする。
-            const conditions = recent ? scope : [...scope, pending.length === 1 ? predicate : `(${predicate})`];
+            const conditions = [...scope, pending.length === 1 ? predicate : `(${predicate})`];
+            // 項目が減るたびに新しい検索とし、その検索のページ取得だけで期限を共有する。
+            const deadline = performance.now() + SUPPLEMENT_TIMEOUT_MS;
             // 検索切り替え時に一括検索の対象範囲と待機上限を通知する。
             report(
                 field,
-                `${retry ? '最後の再試行' : recent ? '一括補完候補の取得' : '一括補完の非NULL検索'}：対象${pending.length}項目・最大${recent ? group.limit : 1}レコード・残り上限${Math.max(0, Math.ceil((deadline - performance.now()) / 1000))}秒`
+                `${retry ? '最後の再試行' : '空欄項目の一括非NULL検索'}：対象${pending.length}項目・最大1レコード・残り上限${Math.max(0, Math.ceil((deadline - performance.now()) / 1000))}秒`
             );
             // 取得した行数とは別に、クエリの実測時間を記録する。
             const started = performance.now();
@@ -100,13 +91,9 @@ function createPreviewResolver({
                 if (performance.now() >= deadline)
                     throw Object.assign(new Error('補完の待機上限に達しました。'), { code: 'SUPPLEMENT_TIMEOUT' });
                 // 取得順はすべて最新順、検索自体は逐次実行を維持する。
-                rows = await search(
-                    ['Id', ...pending.map((candidate) => candidate.name)],
-                    conditions,
-                    recent ? group.limit : 1,
-                    true,
-                    { deadline }
-                );
+                rows = await search(['Id', ...pending.map((candidate) => candidate.name)], conditions, 1, true, {
+                    deadline
+                });
             } catch (error) {
                 // 認証・保存など処理を続けられない障害は、保留で隠さない。
                 if (!SKIPPABLE_CODES.has(error.code)) throw error;
@@ -130,15 +117,8 @@ function createPreviewResolver({
             report(field, `検索完了：${rows.length}レコード・${((performance.now() - started) / 1000).toFixed(1)}秒`);
             // 応答から複数項目を補完しても、保存順は変更しない。
             adopt(rows, pending);
-            // 最新順の限定取得は各範囲で一度だけ行う。
-            if (recent) {
-                // 次は残項目だけをOR検索する。
-                group.sampled = true;
-                // 上限未満なら参照可能な全行を確認済みなので追加検索は不要。
-                if (rows.length < group.limit)
-                    for (const candidate of pending)
-                        if (!resolved.has(candidate.name)) resolved.set(candidate.name, null);
-            } else if (!rows.length) {
+            // 検索結果ゼロの場合だけ、残項目を値なしと確定する。
+            if (!rows.length) {
                 // OR条件でゼロ件なら残った全項目に非NULL値がない。
                 for (const candidate of pending) resolved.set(candidate.name, null);
             } else if (!pending.some((candidate) => resolved.has(candidate.name))) {
@@ -151,4 +131,4 @@ function createPreviewResolver({
     };
 }
 
-module.exports = { createPreviewResolver, RECENT_RECORD_LIMIT, SUPPLEMENT_TIMEOUT_MS };
+module.exports = { createPreviewResolver, SUPPLEMENT_TIMEOUT_MS };

@@ -1,4 +1,4 @@
-// 用途: 既存認証のCLIでComposite Queryを実行し、URL長と応答蓄積の制限を避ける。
+// 用途: 既存認証のCLIでComposite Queryを実行し、応答完了と各ページの整合性を確認する。
 const fs = require('node:fs');
 const path = require('node:path');
 const { QUERY_ERROR_CODES, QUERY_TIMEOUT_CODES } = require('./error-definitions');
@@ -12,8 +12,6 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
     if (!apiPath) throw new Error('Describeから検索用APIバージョンを確認できませんでした。');
     // 逐次実行専用のリクエストとレスポンスの保存先を固定する。
     const requestFile = path.join(directory, 'query-request.json');
-    // 取得値は権限を制限した一時ディレクトリ内だけへ保存する。
-    const responseFile = path.join(directory, 'query-response.json');
     // APIエラーは固定コードだけを表示し、レコード値や生本文を漏らさない。
     function fail(code) {
         // 自動分割してよい原因を明示的に分類する。
@@ -50,12 +48,8 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
                 JSON.stringify({ compositeRequest: [{ method: 'GET', url, referenceId: 'records' }] }),
                 { mode: 0o600 }
             );
-            // 前回の結果を誤って再利用しない。
-            fs.rmSync(responseFile, { force: true });
-            // ストリーム先の権限をCLI起動前に制限する。
-            fs.writeFileSync(responseFile, '', { mode: 0o600, flag: 'wx' });
-            // CLI自体にレスポンスをファイルへ流させ、stdoutには値をためない。
-            await invoke(
+            // ストリーム専用経路を使わず、CLIが受信完了または通信失敗を返すまで待つ。
+            const response = await invoke(
                 [
                     'api',
                     'request',
@@ -67,30 +61,22 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
                     `@${requestFile}`,
                     '--header',
                     'Content-Type:application/json',
-                    '--stream-to-file',
-                    responseFile,
                     '--target-org',
                     targetOrg
                 ],
                 controls
             );
-            // 読み込み前にファイルの実サイズを確認する。
-            bytes += fs.statSync(responseFile).size;
-            // 大きすぎる結果は破棄し、収集側でID集合や項目を縮小する。
-            if (bytes > RESPONSE_LIMIT) {
-                // サイズ制限だけを再分割対象として通知する。
+            // CLIの標準出力上限に加え、ページをまたいだ保持量も制限する。
+            const body = response?.body;
+            // 正常なHTTP応答でも空本文や文字列を検索成功としない。
+            if (!body || typeof body !== 'object') fail();
+            // CLIはページ単位で返すため、全件の自動蓄積は行わない。
+            bytes += Buffer.byteLength(JSON.stringify(body), 'utf8');
+            // 合計サイズ超過は既存の分割処理へ渡す。
+            if (bytes > RESPONSE_LIMIT)
                 throw Object.assign(new Error('検索結果が応答サイズ上限を超えました。'), { code: 'BUFFER_LIMIT' });
-            }
-            // 不正なJSONでも本文を例外に含めない。
-            let body;
-            // JSONパーサーの例外に実値が含まれることを防ぐ。
-            try {
-                // 上限を満たすページだけを解析する。
-                body = JSON.parse(fs.readFileSync(responseFile, 'utf8'));
-            } catch {
-                // 構造化されていない応答は成功扱いしない。
-                fail();
-            }
+            // HTTPエラーを正常なページとして処理しない。
+            if (response.statusCode !== 200) fail(Array.isArray(body) ? body[0]?.errorCode : undefined);
             // Composite自体のAPIエラーを確認する。
             if (Array.isArray(body)) fail(body[0]?.errorCode);
             // 必ず要求した単一の応答を受け取る。
