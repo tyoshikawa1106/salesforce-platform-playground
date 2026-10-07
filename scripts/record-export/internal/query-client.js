@@ -158,36 +158,30 @@ function createQueryClient(directory, targetOrg, invoke, sobjectUrl) {
             url = page.nextRecordsUrl;
         }
     }
-    // 補完は通常のQuery APIへ一項目ずつ送り、Composite全体の失敗へ巻き込まない。
-    query.batch = async (soqls, controls = {}) => {
-        // 一項目の応答を保存してから次の項目を送る契約を維持する。
-        if (!Array.isArray(soqls) || soqls.length !== 1)
-            throw new Error('補完検索は一通信あたり1項目で指定してください。');
+    // 補完は通常のQuery APIへ一項目分だけ送り、結果または例外を直接返す。
+    query.supplement = async (soql, controls = {}) => {
+        // 複数検索の配列や空のクエリを送信しない。
+        if (typeof soql !== 'string' || !soql.trim())
+            throw new Error('補完検索には一項目分のSOQL文字列を指定してください。');
         // SOQLをシェル引数へ展開せず、既存の一時ディレクトリへ保存する。
         const file = path.join(directory, 'supplement-query.soql');
         // 読み取り専用クエリだけを保存し、取得値は書き込まない。
-        fs.writeFileSync(file, soqls[0], { mode: 0o600 });
-        // 一項目のCLI失敗をその項目の結果として返す。
-        try {
-            // Describeと同じAPIバージョンを指定し、CLI標準のクエリ経路で取得する。
-            const result = await invoke(
-                ['data', 'query', '--file', file, '--target-org', targetOrg, '--api-version', apiPath.split('/v')[1]],
-                controls
-            );
-            // LIMIT 1の成功・ゼロ件だけを受け付け、不完全な応答は値なしにしない。
-            if (
-                result?.done !== true ||
-                ![0, 1].includes(result.totalSize) ||
-                !Array.isArray(result.records) ||
-                result.records.length !== result.totalSize
-            )
-                throw Object.assign(new Error('補完検索の応答が不完全です。'), { code: 'INVALID_QUERY_RESPONSE' });
-            // 取得元IDと項目値は収集側でも検証する。
-            return [{ result }];
-        } catch (error) {
-            // 次の項目を検索するか停止するかは、既存の原因別判定へ委ねる。
-            return [{ error }];
-        }
+        fs.writeFileSync(file, soql, { mode: 0o600 });
+        // Describeと同じAPIバージョンを指定し、CLI標準のクエリ経路で取得する。
+        const result = await invoke(
+            ['data', 'query', '--file', file, '--target-org', targetOrg, '--api-version', apiPath.split('/v')[1]],
+            controls
+        );
+        // LIMIT 1の成功・ゼロ件だけを受け付け、不完全な応答は値なしにしない。
+        if (
+            result?.done !== true ||
+            ![0, 1].includes(result.totalSize) ||
+            !Array.isArray(result.records) ||
+            result.records.length !== result.totalSize
+        )
+            throw Object.assign(new Error('補完検索の応答が不完全です。'), { code: 'INVALID_QUERY_RESPONSE' });
+        // 取得元IDと項目値は収集側でも検証する。
+        return result;
     };
     // 一括取得と個別補完の入口を収集処理へ返す。
     return query;

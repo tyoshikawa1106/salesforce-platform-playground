@@ -5,6 +5,9 @@ const { QUERY_TIMEOUT_CODES } = require('./error-definitions');
 // 応答のない一回の検索を制限し、成功が続く補完全体は時間だけで打ち切らない。
 const SUPPLEMENT_TIMEOUT_MS = 60000;
 
+// 個別補完の前に、新しいレコードから値を探す件数を固定する。
+const PREVIEW_RECORD_LIMIT = 200;
+
 // 実レコードを検索しないプレビューの保存位置であり、SOQLや取得元IDには使用しない。
 const GENERATED_RECORD_KEY = 'generated-preview';
 
@@ -103,91 +106,38 @@ const SKIPPABLE_CODES = new Set([
     'BUFFER_LIMIT'
 ]);
 
-// 取得した値と、利用者へ結果を確定する順序を分離する。
-function createPreviewResolver({ fields, record, scope, searchBatch, hasValue, canFilterNonNull, report = () => {} }) {
-    // 補完しない項目や元から値のある項目を追加検索へ含めない。
-    const missing = fields.filter(
-        (field) => !field.invalid && !hasValue(record[field.name]) && canFilterNonNull(field)
-    );
-    // 項目名ごとに最初に見つかった最新値だけを保持する。
-    const resolved = new Map();
-    // 確定済み項目には再問い合わせせず、項目ごとの結果を保持する。
-    return async function resolve(field) {
-        // 保留・値なし・値ありのいずれも確定後はキャッシュから返す。
-        if (!resolved.has(field.name)) {
-            // 未確定の対象だけを指定順で一項目に絞る。
-            const pending = missing.filter((candidate) => !resolved.has(candidate.name)).slice(0, 1);
-            // 対象範囲外の呼び出しを値なしと誤認しない。
-            if (!pending.some((candidate) => candidate.name === field.name))
-                throw new Error('補完対象の項目範囲が一致しません。');
-            // 応答のない通信を待ち続けず、時間超過は失敗として記録する。
-            const started = performance.now();
-            // 一項目の検索の待ち時間を制限する。
-            const deadline = started + SUPPLEMENT_TIMEOUT_MS;
-            // 通信全体の失敗と、各検索が返した失敗を同じ項目別処理へ渡す。
-            let outcomes;
-            // 応答の取得が終わるまで次のグループを送らない。
-            try {
-                // 一項目だけを検索し、結果確定後に次へ進む。
-                outcomes = await searchBatch(pending, scope, { deadline });
-            } catch (error) {
-                // 通信失敗ではどの検索が完了したか不明なので、値なしと確定しない。
-                outcomes = pending.map(() => ({ error }));
-            }
-            // 同一エラーの診断を重複表示しない。
-            const reported = new Set();
-            // 他項目の成功・失敗を混ぜず、項目名をキーに確定結果を保存する。
-            pending.forEach((candidate, index) => {
-                // 各応答は収集側で件数・ID・項目の完全性を検証済み。
-                const outcome = outcomes[index];
-                // 個別エラーがあっても正常な他項目の値を保持する。
-                if (outcome.error) {
-                    // 認証・保存・不正応答などの致命的な失敗は該当項目の順番で停止する。
-                    if (!SKIPPABLE_CODES.has(outcome.error.code)) {
-                        // 項目順で保存済みの結果までを再開可能な状態へ残す。
-                        resolved.set(candidate.name, { error: outcome.error });
-                        // スキップ可能な失敗へ変換しない。
-                        return;
-                    }
-                    // 生の本文を含めず、安全化された診断だけを表示する。
-                    if (outcome.error.diagnostic && !reported.has(outcome.error)) {
-                        // 詳細は一通信について一度だけ表示する。
-                        report(
-                            candidate,
-                            `検索エラー: ${candidate.name} / ${outcome.error.code} / ${outcome.error.diagnostic}`
-                        );
-                        // 同じ通信エラーが後続項目に出ても重複表示しない。
-                        reported.add(outcome.error);
-                    }
-                    // 検索失敗は確定して保存し、同じ項目を自動再試行しない。
-                    resolved.set(candidate.name, {
-                        skipped: outcome.error.code,
-                        diagnostic: outcome.error.diagnostic || `分類コード: ${outcome.error.code} / 詳細情報なし`,
-                        elapsedSeconds: ((performance.now() - started) / 1000).toFixed(1)
-                    });
-                    // エラーを正常な値なしに置き換えない。
-                    return;
-                }
-                // 非NULL条件に一致した先頭レコードだけを採用する。
-                const row = outcome.rows[0];
-                // レコードがあるのに値がない応答を正常扱いしない。
-                if (row && !hasValue(row[candidate.name])) {
-                    // 矛盾した応答は再問い合わせせず、再開情報を残して停止する。
-                    resolved.set(candidate.name, { error: new Error('非NULL検索の応答に補完可能な値がありません。') });
-                    // 未確認の値をCSVへ入れない。
-                    return;
-                }
-                // ゼロ件の検索結果だけを値なしとして確定し、次回の対象から外す。
-                resolved.set(candidate.name, row ? { value: row[candidate.name], source: row.Id } : null);
-            });
-        }
-        // 項目の指定順で失敗を通知し、それ以前の確定結果を保存できるようにする。
-        const result = resolved.get(field.name);
-        // 全体停止が必要な失敗をスキップで隠さない。
-        if (result?.error) throw result.error;
-        // 空欄はnull、実値があれば値と取得元IDを返す。
-        return result;
-    };
+// 一項目を検索し、値あり・値なし・スキップを確定する。検索順と再開位置は収集側で管理する。
+async function resolvePreviewValue({ field, scope, searchSupplement, hasValue }) {
+    // 検索の待機期限と結果表示で同じ開始時刻を使う。
+    const started = performance.now();
+    // 一項目の応答待ちだけを制限する。
+    const deadline = started + SUPPLEMENT_TIMEOUT_MS;
+    // 検索失敗を値なしと誤認せず、続行できる原因だけをスキップへ変換する。
+    try {
+        // 応答の完全性を検証した先頭レコード、またはゼロ件の結果を受け取る。
+        const row = await searchSupplement(field, scope, { deadline });
+        // 非NULL条件と矛盾する値を補完成功として保存しない。
+        if (row && !hasValue(row[field.name])) throw new Error('非NULL検索の応答に補完可能な値がありません。');
+        // 検索成功のゼロ件だけを値なしとし、実値には取得元IDを付ける。
+        return row ? { value: row[field.name], source: row.Id } : null;
+    } catch (error) {
+        // 認証・保存・不正応答などは停止し、収集側で保存済み範囲を保持する。
+        if (!SKIPPABLE_CODES.has(error.code)) throw error;
+        // 同じ項目を再試行せず、失敗理由をCSVと再開記録へ渡す。
+        return {
+            skipped: error.code,
+            diagnostic: error.diagnostic || `分類コード: ${error.code} / 詳細情報なし`,
+            // 原因文がある場合だけ項目結果の直後へ表示する。
+            ...(error.causeMessage ? { causeMessage: error.causeMessage } : {}),
+            elapsedSeconds: ((performance.now() - started) / 1000).toFixed(1)
+        };
+    }
 }
 
-module.exports = { createPreviewResolver, sampleForField, GENERATED_RECORD_KEY, SUPPLEMENT_TIMEOUT_MS };
+module.exports = {
+    resolvePreviewValue,
+    sampleForField,
+    GENERATED_RECORD_KEY,
+    SUPPLEMENT_TIMEOUT_MS,
+    PREVIEW_RECORD_LIMIT
+};

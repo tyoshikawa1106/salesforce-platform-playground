@@ -1,6 +1,7 @@
 // 用途: 最新レコードの対象を固定して取得し、指定順の縦型・横型CSVへ変換する。
 
-const { createPreviewResolver, sampleForField, GENERATED_RECORD_KEY } = require('./preview-values');
+const { resolvePreviewValue, sampleForField, GENERATED_RECORD_KEY, PREVIEW_RECORD_LIMIT } = require('./preview-values');
+const { errorReason } = require('./error-definitions');
 
 // RecordTypeのIDだけを許可し、空文字やSOQL式を受け付けない。
 const RECORD_TYPE_ID_PATTERN = /^012(?:[A-Za-z0-9]{12}|[A-Za-z0-9]{15})$/;
@@ -231,38 +232,23 @@ async function collectRecords(
         // 検証した結果だけを利用する。
         return records;
     }
-    // 各項目の最新非NULL値を独立検索し、一項目ずつ結果を確定する。
-    async function searchBatch(pending, conditions, controls) {
-        // 前回の取得値を途中CSVへ公開してから、次の通信待ちに入る。
+    // 一項目の最新非NULL値を検索し、検証済みのレコードを返す。
+    async function searchSupplement(field, conditions, controls) {
+        // 前の項目の結果を公開してから、次の通信待ちに入る。
         await options.beforeSupplementQuery?.();
-        // 一つの条件へORでまとめず、各項目にLIMIT 1を適用する。
-        const soqls = pending.map((field) =>
-            buildQuery(['Id', field.name], [...conditions, `${field.name} != NULL`], 1, true)
-        );
-        // 長い名前や条件でもサーバーへ不正な長さを送らない。
-        if (soqls.some((soql) => soql.length > 100000))
+        // 対象項目だけの独立した検索に最新順とLIMIT 1を適用する。
+        const soql = buildQuery(['Id', field.name], [...conditions, `${field.name} != NULL`], 1, true);
+        // 不正な長さのクエリをサーバーへ送らない。
+        if (soql.length > 100000)
             throw Object.assign(new Error('SOQLの文字数上限を超えました。'), { code: 'QUERY_LENGTH_LIMIT' });
-        // 個別検索の応答を要求順で受け取り、表示・保存の順序を維持する。
-        const outcomes = await query.batch(soqls, controls);
-        // 欠落した応答を別の項目へ割り当てない。
-        if (outcomes.length !== pending.length) throw new Error('補完検索の応答件数が一致しません。');
-        // エラーと結果を項目ごとに扱い、一つの失敗で成功した値を捨てない。
-        return outcomes.map((outcome, index) => {
-            // 通信先が返した安全化済みのエラーは、その項目だけへ渡す。
-            if (outcome.error) return outcome;
-            // 不完全なレコードも後続項目の結果と混ぜず、該当項目の順番で停止する。
-            try {
-                // 欠落・重複・取得件数を通常取得と同じ条件で検証する。
-                const rows = recordsFrom(outcome.result, ['Id', pending[index].name]);
-                // LIMIT 1を無視した応答は採用しない。
-                if (rows.length > 1) throw new Error('指定件数を超える補完クエリ応答です。');
-                // 呼び出し側はレコード配列から値ありと値なしを確定する。
-                return { rows };
-            } catch (error) {
-                // 前の項目を保存できるよう、例外も要求順で渡す。
-                return { error };
-            }
-        });
+        // 通信の失敗はそのまま補完の原因別判定へ渡す。
+        const result = await query.supplement(soql, controls);
+        // 欠落・重複・ID形式を通常取得と同じ条件で検証する。
+        const rows = recordsFrom(result, ['Id', field.name]);
+        // LIMIT 1を無視した応答を切り捨てて隠さない。
+        if (rows.length > 1) throw new Error('指定件数を超える補完クエリ応答です。');
+        // ゼロ件の場合だけ値なしを返す。
+        return rows[0] || null;
     }
     // 生成対象だけなら実レコードの存在確認も行わない。
     const generatedOnly =
@@ -270,7 +256,7 @@ async function collectRecords(
         fields.some((field) => field.sample) &&
         fields.every((field) => field.invalid || field.sample);
     // 最初の対象選択では値を取得せずIDと順序を確定する。
-    const limit = options.mode === 'record-fields-preview' ? 1 : options.recordLimit;
+    const limit = options.mode === 'record-fields-preview' ? PREVIEW_RECORD_LIMIT : options.recordLimit;
     // 選択中の件数を表示する。
     writeLine(generatedOnly ? 'サンプル生成のみ（レコード検索なし）' : `最新レコードを取得中（最大${limit}件）`);
     // 分割再取得でもこの集合を変えない。
@@ -279,8 +265,12 @@ async function collectRecords(
         (generatedOnly ? [{ Id: GENERATED_RECORD_KEY }] : await search(['Id', 'CreatedDate'], scope, limit));
     // 初回の対象選択を、値の検索前に再開用データとして確定する。
     await options.onSelected?.(selected);
+    // プレビューは候補を複数取得しても、最新レコードの保存位置へ一件分だけ集約する。
+    const outputSelected = options.mode === 'record-fields-preview' ? selected.slice(0, 1) : selected;
+    // 分割された応答が順不同でも、選択時の最新順で値を比較できるようにする。
+    const selectedOrder = new Map(selected.map((row, index) => [row.Id, index]));
     // テストや小規模の直接呼び出しだけがメモリ上に結果を保持する。
-    const byId = onChunk ? null : new Map(selected.map((row) => [row.Id, {}]));
+    const byId = onChunk ? null : new Map(outputSelected.map((row) => [row.Id, {}]));
     // プレビューの取得元を保持する。
     const sources = new Map();
     // 補完を打ち切った結果を実際のNULLと区別し、CSVと再開記録へ渡す。
@@ -290,7 +280,7 @@ async function collectRecords(
     // 初回取得済みで、まだ補完検索していない空欄だけを保持する。
     const supplements = new Map(options.resumeSupplements || []);
     // 成功した範囲を順次保存し、再試行した値を重複させない。
-    async function readGroup(ids, group) {
+    async function readGroup(ids, group, receive) {
         // 未確認項目をSOQLへ含めず、CSVの位置だけ保持する。
         const readable = group.filter((field) => !field.invalid && !field.sample);
         // 照合用IDを必ず取得する。
@@ -350,7 +340,8 @@ async function collectRecords(
                 // 両方の軸が長い場合も、再帰先で再計算する。
                 await readGroup(
                     splitFields ? ids : ids.slice(offset, offset + low),
-                    splitFields ? group.slice(offset, offset + low) : group
+                    splitFields ? group.slice(offset, offset + low) : group,
+                    receive
                 );
             }
             // 上限超過の元クエリは送信しない。
@@ -376,9 +367,9 @@ async function collectRecords(
                 // 値を含めず再分割理由を表示する。
                 writeLine(`再分割: ${error.code}・レコード数を縮小`);
                 // 前半の成功を保存してから後半へ進む。
-                await readGroup(ids.slice(0, middle), group);
+                await readGroup(ids.slice(0, middle), group, receive);
                 // 元のID集合を過不足なく取得する。
-                await readGroup(ids.slice(middle), group);
+                await readGroup(ids.slice(middle), group, receive);
                 // 元の失敗範囲を重ねて保存しない。
                 return;
             }
@@ -389,9 +380,9 @@ async function collectRecords(
                 // 再分割は自動で行い、引数の再調整を求めない。
                 writeLine(`再分割: ${error.code}・項目数を縮小`);
                 // 前半の項目を取得する。
-                await readGroup(ids, group.slice(0, middle));
+                await readGroup(ids, group.slice(0, middle), receive);
                 // 後半も同じID集合で照合する。
-                await readGroup(ids, group.slice(middle));
+                await readGroup(ids, group.slice(middle), receive);
                 // 元の失敗範囲を保存しない。
                 return;
             }
@@ -413,6 +404,13 @@ async function collectRecords(
             // 途中で消失したレコードを空欄へ置き換えない。
             throw new Error('取得中に対象レコードが変化したか、応答に欠落があります。再実行してください。');
         }
+        // プレビューは複数の取得元を集約してから保存し、横型は各レコードをそのまま保存する。
+        if (receive) await receive(records, group);
+        // 横型の保存単位とID照合は既存どおり維持する。
+        else await storeRecords(records, group);
+    }
+    // 取得元を確定した値だけを指定項目順で保存し、生成値を一度だけ反映する。
+    async function storeRecords(records, group, previewSources) {
         // 1応答分だけを保持し、項目グループ間では一時ファイルを使う。
         for (const record of records) {
             // 未確認項目と生成対象には、応答に含まれない値を明示して保存する。
@@ -431,7 +429,9 @@ async function collectRecords(
             const chunkSources = new Map(
                 group.map((field) => [
                     field.name,
-                    field.invalid || field.sample || !hasValue(record[field.name]) ? '' : record.Id
+                    field.invalid || field.sample || !hasValue(record[field.name])
+                        ? ''
+                        : previewSources?.get(field.name) || record.Id
                 ])
             );
             // プレビューの初回取得では補完クエリを実行しない。
@@ -463,6 +463,9 @@ async function collectRecords(
                         writeLine(
                             `${prefix}${field.sample.status === 'GENERATED' ? 'サンプル生成' : field.sample.status === 'NO_PICKLIST_VALUE' ? 'サンプル未生成：有効な選択肢なし' : 'サンプル未生成：構成項目に対応する値なし'}`
                         );
+                    } else if (chunkSources.get(field.name) && chunkSources.get(field.name) !== selected[0].Id) {
+                        // 最新レコード以外から見つけた値は、個別検索なしでも補完成功として知らせる。
+                        writeLine(`${prefix}補完成功`);
                     } else {
                         // 取得成功・未確認・検索不可の結果だけを通知し、検索は行わない。
                         await supplementPreviewField({
@@ -492,12 +495,78 @@ async function collectRecords(
             }
         }
     }
+    // 最初の候補群から空欄でない最新値を採用し、個別検索へ残す項目を減らす。
+    async function readPreviewGroup(group) {
+        // 指定項目だけを保持し、集約後の保存キーは最新レコードのIDへ固定する。
+        const record = { ...Object.fromEntries(group.map((field) => [field.name, null])), Id: selected[0].Id };
+        // 項目ごとに実際に値を採用したレコードを保持する。
+        const previewSources = new Map();
+        // 生成対象と未確認項目は、実レコードの探索へ含めない。
+        const missing = new Set(group.filter((field) => !field.invalid && !field.sample).map((field) => field.name));
+        // 値が見つかった項目も、全候補の取得確認が終わるまで確定保存しない。
+        const checked = new Map([...missing].map((name) => [name, 0]));
+        // 分割後に完成した先頭の項目範囲だけを順次確定する。
+        let saved = 0;
+        // 後半の取得が失敗しても、保存済みの前半を再開時に再検索しない。
+        async function saveReady() {
+            // 生成対象・未確認項目はレコード候補の検査を必要としない。
+            let end = saved;
+            // CSVの連続した項目順を保ち、未完了項目を飛ばさない。
+            while (
+                end < group.length &&
+                (!checked.has(group[end].name) || checked.get(group[end].name) === selected.length)
+            )
+                end++;
+            // 全候補を確認した一件分だけを保存し、残った空欄は後段の個別検索へ渡す。
+            if (end > saved) await storeRecords([record], group.slice(saved, end), previewSources);
+            // 保存に成功した境界だけを進める。
+            saved = end;
+        }
+        // 生成だけの範囲はクエリも候補レコードのループも省略する。
+        if (missing.size) {
+            // サイズ制限による分割時も、固定された候補IDの範囲だけを検索する。
+            await readGroup(
+                selected.map((row) => row.Id),
+                group,
+                async (rows, part) => {
+                    // 応答順に依存せず、新しいレコードから確認する。
+                    rows.sort((a, b) => selectedOrder.get(a.Id) - selectedOrder.get(b.Id));
+                    // 分割範囲内で未取得の項目だけを残す。
+                    const pending = new Set(part.map((field) => field.name).filter((name) => missing.has(name)));
+                    // 各項目の値が見つかったら以降のレコードでは調べない。
+                    for (const row of rows) {
+                        // falseと0を空欄として捨てない。
+                        for (const name of pending) {
+                            // 空欄は次の候補を確認する。
+                            if (!hasValue(row[name])) continue;
+                            // 分割前に確定した最新順に従い、最初に見つかった値だけを使う。
+                            record[name] = row[name];
+                            // 値の出自をCSVへ残す。
+                            previewSources.set(name, row.Id);
+                            // 同じ項目を残りの候補でも検査しない。
+                            pending.delete(name);
+                            // レコード分割後の古い範囲でも取得済み値を上書きしない。
+                            missing.delete(name);
+                        }
+                        // この範囲の値がすべて揃ったら探索を終える。
+                        if (!pending.size) break;
+                    }
+                    // 分割されたレコード範囲の確認件数を、各項目へ加算する。
+                    for (const field of part)
+                        if (checked.has(field.name)) checked.set(field.name, checked.get(field.name) + rows.length);
+                    // 項目分割の前半が揃った時点でも途中保存できるようにする。
+                    await saveReady();
+                }
+            );
+            // 生成対象だけの範囲も、項目ごとではなく一度にまとめて保存する。
+        } else await saveReady();
+    }
     // 手動指定がある場合だけ項目数の上限を使う。
     const groupSize = options.fieldsPerQuery || fields.length;
     // 保存済みの項目数が同じレコードをまとめ、完了範囲を再取得しない。
     const pending = new Map();
     // 初回は全レコードが先頭項目から始まる。
-    for (const row of selected) {
+    for (const row of outputSelected) {
         // 保存が完了した項目境界からのみ再開する。
         const start = options.resumeOffsets?.get(row.Id) || 0;
         // 全項目完了のレコードは追加検索しない。
@@ -512,7 +581,11 @@ async function collectRecords(
         // 手動上限と適応分割は初回と同じ処理を使う。
         for (let offset = start; offset < fields.length; offset += groupSize) {
             // 保存済み列へ戻らず連続した未完了範囲だけを渡す。
-            await readGroup(ids, fields.slice(offset, offset + groupSize));
+            const group = fields.slice(offset, offset + groupSize);
+            // プレビューだけ候補群を集約し、横型では別レコードの値を混ぜない。
+            if (options.mode === 'record-fields-preview') await readPreviewGroup(group);
+            // 横型は各レコードの保存済み位置から取得する。
+            else await readGroup(ids, group);
         }
     }
     // 全項目の初回取得をCSVへ公開してから補完する。
@@ -539,17 +612,6 @@ async function collectRecords(
         };
         // 補完に成功した項目だけ取得元を記録する。
         const chunkSources = new Map();
-        // 応答の有無と検索失敗を区別した結果を指定順で取り出す。
-        const resolvePreview = createPreviewResolver({
-            fields: group,
-            record,
-            scope,
-            searchBatch,
-            hasValue,
-            canFilterNonNull,
-            // エラー診断を表示し、結果行と重複する残件数を付けない。
-            report: (_field, message) => writeLine(message)
-        });
         // 致命的なエラーでも、この範囲で保存済みの結果は公開する。
         try {
             // 取得した結果を元の項目順で一度だけ反映する。
@@ -561,7 +623,8 @@ async function collectRecords(
                     field,
                     record,
                     sources: chunkSources,
-                    resolvePreview,
+                    searchSupplement,
+                    scope,
                     statuses,
                     writeLine,
                     fieldPositions: supplementPositions,
@@ -618,13 +681,13 @@ async function collectRecords(
     // 本番経路ではIDと件数だけを返し、値を再び読み込まない。
     return {
         fields,
-        records: byId ? selected.map((row) => byId.get(row.Id)) : [],
+        records: byId ? outputSelected.map((row) => byId.get(row.Id)) : [],
         sources,
         statuses,
         latestId: selected[0]?.Id || '',
         errorDetails,
-        ids: selected.map((row) => row.Id),
-        recordCount: selected.length,
+        ids: outputSelected.map((row) => row.Id),
+        recordCount: outputSelected.length,
         generatedOnly
     };
 }
@@ -634,7 +697,8 @@ async function supplementPreviewField({
     field,
     record,
     sources,
-    resolvePreview,
+    searchSupplement,
+    scope,
     statuses,
     writeLine,
     fieldPositions,
@@ -672,14 +736,16 @@ async function supplementPreviewField({
     let found;
     // 非対話端末でも停止した項目を特定できるようにする。
     try {
-        // まとめ取得済みなら追加検索せず、必要な残項目だけ検索する。
-        found = await resolvePreview(field);
+        // 初回取得で埋まらなかった一項目だけを検索する。
+        found = await resolvePreviewValue({ field, scope, searchSupplement, hasValue });
     } catch (error) {
         // 実値や生本文を表示せず、固定形式のコードだけを案内する。
         const code =
             typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(error.code) ? error.code : 'QUERY_FAILED';
         // 一時表示が消えても項目番号と原因を残す。
-        writeLine(`${prefix}補完失敗：${code} / 経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`);
+        writeLine(
+            `${prefix}補完失敗：${errorReason(code)} / 経過: ${((performance.now() - started) / 1000).toFixed(1)}秒`
+        );
         // 保存済み項目を保持する既存の停止・再開処理へ渡す。
         throw error;
     }
@@ -690,7 +756,9 @@ async function supplementPreviewField({
         // 生本文を含まない診断を、該当する項目のCSV行と一緒に保存する。
         errorDetails.set(field.name, `${found.diagnostic} / 補完経過: ${found.elapsedSeconds}秒`);
         // 次の項目へ進むことと、検索した範囲の打ち切りを明示する。
-        writeLine(`${prefix}補完スキップ：${found.skipped} / 検索経過: ${found.elapsedSeconds}秒`);
+        writeLine(`${prefix}補完スキップ：${errorReason(found.skipped)} / 検索経過: ${found.elapsedSeconds}秒`);
+        // CLIが原因文を返した場合だけ項目行の直後に表示し、診断属性の羅列はCSVに残す。
+        if (found.causeMessage) writeLine(`CLIエラー内容: ${found.causeMessage}`);
         // 検索失敗は確定済みとして保存し、自動再試行しない。
         return;
     }
@@ -737,26 +805,8 @@ function csvStatus(status) {
     if (status.startsWith('SKIPPED_')) {
         // 原因コードは障害の切り分けに使えるよう併記する。
         const code = status.slice('SKIPPED_'.length);
-        // CLI・通信・検索の失敗箇所を区別する。
-        const reasons = {
-            QUERY_TIMEOUT: '検索タイムアウト',
-            REQUEST_RUNNING_TOO_LONG: '検索タイムアウト',
-            CLI_TIMEOUT: 'CLI待機時間超過',
-            SUPPLEMENT_TIMEOUT: '補完待機時間超過',
-            NETWORK_TIMEOUT: '通信タイムアウト',
-            NETWORK_ERROR: '通信エラー',
-            CLI_FAILED: 'CLI実行失敗',
-            QUERY_FAILED: '検索失敗',
-            INVALID_FIELD: 'API名が存在しない、または項目参照権限がありません',
-            INSUFFICIENT_ACCESS: '参照権限がありません',
-            MALFORMED_QUERY: 'クエリが無効',
-            INVALID_QUERY_FILTER_OPERATOR: '検索条件が無効',
-            QUERY_LENGTH_LIMIT: 'クエリ長の上限超過',
-            QUERY_TOO_COMPLICATED: 'クエリの複雑さの上限超過',
-            BUFFER_LIMIT: '受信サイズの上限超過'
-        };
         // 未分類でも失敗を隠さず、コードを保持する。
-        return `補完スキップ：${reasons[code] || '検索失敗'}（${code}）`;
+        return `補完スキップ：${errorReason(code)}（${code}）`;
     }
     // 想定外の状態も成功へ置き換えない。
     return `状態不明（${status}）`;

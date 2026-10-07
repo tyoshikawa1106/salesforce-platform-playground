@@ -9,6 +9,7 @@ const { createCsvSpool } = require('./csv-spool');
 const { openCheckpoint } = require('./checkpoint');
 const { CLI_TIMEOUT_MS, QUERY_ERROR_CODES } = require('./error-definitions');
 const { createQueryClient } = require('./query-client');
+const { PREVIEW_RECORD_LIMIT } = require('./preview-values');
 const { runSfWithOutputAsync } = require('../../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, printTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
@@ -162,7 +163,33 @@ function readFieldNames(filePath) {
     return parseFields(content);
 }
 
-// CLIの生のエラー本文や認証情報を出力せず、安全な識別子へ変換する。
+// 未分類の失敗も原因文を残し、認証情報や接続先を診断へ転記しない。
+function redactCliMessage(message) {
+    // 端末制御文字を除き、秘密鍵・認証値・要求本文を先に伏せる。
+    const text = stripVTControlCharacters(message)
+        .replace(/-----BEGIN[^\r\n]*PRIVATE KEY-----[\s\S]*?(?:-----END[^\r\n]*PRIVATE KEY-----|$)/g, '[秘密鍵]')
+        .replace(/\b(?:authorization|proxy-authorization|cookie|set-cookie)\s*["']?\s*[:=][^\r\n]*/gi, '[認証ヘッダー]')
+        .replace(
+            /\b(?:access[_-]?token|refresh[_-]?token|client[_-]?secret|password|passwd|session[_-]?id|username)\s*["']?\s*[:=]\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;}]+)/gi,
+            '[認証情報]'
+        )
+        .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [認証情報]')
+        .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[認証情報]')
+        .replace(/\b00D[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?![A-Za-z0-9._-]+/g, '[認証情報]')
+        .replace(/\bSELECT\s+[\s\S]*?\bFROM\s+[A-Za-z][A-Za-z0-9_]*[^\r\n]*/gi, '[SOQL]')
+        .replace(/https?:\/\/[^\s<>"']+/gi, '[URL]')
+        .replace(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[メールアドレス]')
+        .replace(/\b(?=[A-Za-z0-9]*\d)(?:[A-Za-z0-9]{18}|[A-Za-z0-9]{15})\b/g, '[ID]')
+        .replace(/(?:[A-Za-z]:[\\/]|\/Users\/|\/home\/|\/private\/|\/tmp\/)[^\r\n"']*/g, '[ローカルパス]')
+        .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '[引用値]')
+        .trim();
+    // 診断を一行に収め、長いスタックや繰り返しでCSVを膨らませない。
+    const singleLine = text.replace(/[\r\n]+/g, ' / ');
+    // 原因の先頭を残し、省略があることも明示する。
+    return singleLine.length > 2000 ? `${singleLine.slice(0, 2000)}…（以降省略）` : singleLine;
+}
+
+// CLIの原因コードと、機密形式を伏せた未分類エラーの文面を診断へ変換する。
 function parseCliResponse(response, mode) {
     // JSON解析失敗も元の応答を表示せず扱う。
     let body;
@@ -309,15 +336,19 @@ function parseCliResponse(response, mode) {
     const identifiers = [...causeCodes, response.error?.code, transportCode].filter(
         (value) => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(value)
     );
+    // 未分類の場合は既知の文言への一致を要求せず、元の原因文を残す。
+    const messages = causes.map((cause) => cause?.message).filter((message) => typeof message === 'string');
+    // JSONはmessageだけを採用し、検索結果や認証設定のオブジェクト全体を表示しない。
+    const originalMessage = messages.length ? messages.join('\n') : !stderrBody ? stderr : '';
+    // 分類済みの識別子・既知の原因文は従来どおり使い、未知の文面だけ追加する。
+    const unclassifiedMessage = code === 'CLI_FAILED' ? redactCliMessage(originalMessage) : '';
     // 未分類でも終了コードとCLI識別子から調査できるようにする。
     const details = [
         `終了コード: ${Number.isInteger(response.status) ? response.status : '情報なし'}`,
         `応答形式: ${jsonState}`,
         `標準エラー: ${response.stderr ? 'あり' : 'なし'}`,
         ...(stderrReason ? [`CLI原因: ${stderrReason}`] : []),
-        ...(response.stderr && !stderrReason && !stderrCodes.length && !stderrNames.length && !stderrBody
-            ? ['標準エラー診断: 安全に表示できる原因情報を抽出できませんでした']
-            : []),
+        ...(unclassifiedMessage ? [`CLIエラー内容: ${unclassifiedMessage}`] : []),
         ...(Number.isInteger(body.result?.statusCode) ? [`HTTP: ${body.result.statusCode}`] : []),
         ...(identifiers.length ? [] : ['識別子: 情報なし']),
         ...[...new Set(identifiers)].map((value) => `識別子: ${value}`),
@@ -327,12 +358,12 @@ function parseCliResponse(response, mode) {
     ]
         .filter(Boolean)
         .join(' / ');
-    // エラー識別子以外のCLI本文をログやCSVへ含めない。
+    // 元エラーを一般的な案内だけに置き換えず、診断へ付けた内容も表示する。
     const error = new Error(
         `Salesforce CLIに失敗しました (${code})。${guidance.get(code) || 'CLIの失敗原因を特定できません。以下の診断情報を確認してください。'}${details ? ` / ${details}` : ''}`
     );
     // 呼び出し元が停止と補完スキップを区別できるよう原因を付与する。
-    Object.assign(error, { code, diagnostic: details });
+    Object.assign(error, { code, diagnostic: details, causeMessage: stderrReason || unclassifiedMessage });
     // 不完全なレコードを正常な出力として扱わず停止する。
     throw error;
 }
@@ -506,7 +537,7 @@ async function main(
         // 件数・補完の有無・用途を一行で確認できるようにする。
         writeLine(
             mode === 'record-fields-preview'
-                ? '取得: 対応する型はサンプル生成・その他は最新1件＋空欄補完 / デモ用値・縦型'
+                ? `取得: 対応する型はサンプル生成・その他は最新${PREVIEW_RECORD_LIMIT}件から値を採用し空欄補完 / デモ用値・縦型`
                 : `取得: 最新から最大${options.recordLimit}件・補完なし / 実データ・横型`
         );
         // 項目ファイルと出力先を確認してから取得を開始できるようにする。
@@ -561,8 +592,6 @@ async function main(
     let completed = false;
     // エラー時もロックを解除し、再開記録は保持する。
     let checkpoint;
-    // 補完で続行したCLI失敗も、進捗に埋もれない終了時の診断として保持する。
-    const cliFailures = new Map();
     // 成功・失敗を問わず一時ファイルを削除する。
     try {
         // Describeの成功により実際のAPI接続と対象オブジェクトへのアクセスを確認する。
@@ -592,23 +621,7 @@ async function main(
             : createQueryClient(
                   temporaryDirectory,
                   resolvedTargetOrg,
-                  async (command, controls) => {
-                      // 取得処理と同じ例外を返し、分割やスキップの順序を変えない。
-                      try {
-                          // レコード値や応答本文は診断へ保持しない。
-                          return await callSf(command, cwd, runner, mode, controls);
-                      } catch (error) {
-                          // この入口で安全化した診断だけを集計し、同一の失敗を大量表示しない。
-                          if (error.diagnostic) {
-                              // コードと終了状態が同じ失敗は一行へまとめる。
-                              const detail = `${error.code} / ${error.diagnostic}`;
-                              // 最終表示では発生回数も通知する。
-                              cliFailures.set(detail, (cliFailures.get(detail) || 0) + 1);
-                          }
-                          // 値なしへ変換せず、既存の失敗処理へ渡す。
-                          throw error;
-                      }
-                  },
+                  (command, controls) => callSf(command, cwd, runner, mode, controls),
                   describe.urls?.sobject
               );
         // 一時CSVは公開先と同じ親ディレクトリへ置く。
@@ -637,7 +650,8 @@ async function main(
                 object: options.object,
                 mode,
                 recordTypeId: options.recordTypeId || null,
-                recordLimit: options.recordLimit,
+                // プレビューも初回候補の全IDを保存し、再開時に新しい候補へ入れ替えない。
+                recordLimit: mode === 'record-fields-preview' ? PREVIEW_RECORD_LIMIT : options.recordLimit,
                 // 未指定では従来の再開記録と互換性を保つ。
                 ...(options.createdBefore ? { createdBefore: options.createdBefore } : {}),
                 fields: fields.map((field) => ({
@@ -751,8 +765,6 @@ async function main(
     } finally {
         // 検索失敗時も一時表示を消し、後続のエラー表示を独立させる。
         clearProgress();
-        // 通常終了・補完スキップ・中断のいずれでも診断を改行付きで残す。
-        for (const [detail, count] of cliFailures) writeLine(`CLI失敗の診断（${count}回）: ${detail}`);
         // 復元完了後の中断では、最後の5項目未満の更新も途中CSVへ反映する。
         if (!completed && partialActive) {
             // 公開失敗でチェックポイントの解放や元の例外処理を妨げない。

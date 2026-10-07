@@ -267,17 +267,16 @@ test('補完は通常クエリを一項目ずつ実行し、失敗を次の項�
     );
     const results = [];
     for (let i = 0; i < 5; i++) {
-        results.push(
-            (
-                await query.batch([`SELECT Id,F${i} FROM Account WHERE F${i} != NULL LIMIT 1`], { deadline: 12345 + i })
-            )[0]
-        );
+        const run = () =>
+            query.supplement(`SELECT Id,F${i} FROM Account WHERE F${i} != NULL LIMIT 1`, { deadline: 12345 + i });
+        if (i === 1) await assert.rejects(run, (e) => e.code === 'NETWORK_TIMEOUT');
+        else results.push(await run());
     }
     assert.equal(calls, 5);
-    assert.equal(results[0].result.totalSize, 0);
-    assert.equal(results[1].error.code, 'NETWORK_TIMEOUT');
-    assert.equal(results[4].result.records[0].F4, 'value');
-    await assert.rejects(() => query.batch(Array(2).fill('SELECT Id FROM Account LIMIT 1')));
+    assert.equal(results[0].totalSize, 0);
+    assert.equal(results[3].records[0].F4, 'value');
+    for (const invalid of [[], ['SELECT Id FROM Account LIMIT 1'], '', null])
+        await assert.rejects(() => query.supplement(invalid));
     assert.equal(calls, 5);
 });
 
