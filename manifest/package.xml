@@ -47,5 +47,5 @@
         <name>Flow</name>
     </types>
     <!-- API バージョン (Summer'26) -->
-    <version>67.0</version>
+    <version>68.0</version>
 </Package>

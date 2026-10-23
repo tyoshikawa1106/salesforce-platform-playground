@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>68.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>ケース取引先責任者プロフィール</masterLabel>
     <description>ケースの問い合わせ元となる取引先責任者と会社の連絡先情報を表示します。</description>
