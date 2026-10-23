@@ -20,6 +20,10 @@
         <apexClass>ObjectRecordSearchController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>OrgExplorerController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Salesforce Application User</label>
     <pageAccesses>
@@ -28,6 +32,10 @@
     </pageAccesses>
     <tabSettings>
         <tab>AccountDelete</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>OrgExplorer</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>

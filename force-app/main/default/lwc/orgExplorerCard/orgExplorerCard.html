@@ -1,0 +1,28 @@
+<template>
+    <article class={node.cardClass}>
+        <button
+            class="c-select"
+            type="button"
+            aria-label={node.ariaLabel}
+            aria-pressed={node.selected}
+            onpointerdown={handlePointerDown}
+            onclick={handleSelect}
+        >
+            <span class="c-avatar" aria-hidden="true">{node.initials}</span>
+            <span class="c-caption">
+                <strong class="c-name" title={node.label}>{node.label}</strong>
+                <template lwc:if={node.managerCard}>
+                    <span lwc:if={node.showDepartment} class="c-subtitle" title={node.departmentText}
+                        >{node.departmentLabel}：{node.departmentText}</span
+                    >
+                    <span lwc:if={node.showTitle} class="c-subtitle" title={node.titleText}
+                        >{node.titleLabel}：{node.titleText}</span
+                    >
+                    <span lwc:if={node.showRole} class="c-subtitle" title={node.roleText}>{node.roleLabel}：{node.roleText}</span>
+                </template>
+                <span lwc:else class="c-subtitle" title={node.titleText}>{node.titleText}</span>
+                <span class="c-status">{node.memberCountText}</span>
+            </span>
+        </button>
+    </article>
+</template>

@@ -1,0 +1,17 @@
+:host {
+    display: block;
+}
+.c-form {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}
+.c-lookup {
+    flex: 1;
+    min-width: 0;
+}
+
+.c-candidate-line {
+    display: block;
+}

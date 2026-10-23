@@ -113,6 +113,30 @@
         <members>TestDataDeleteWrapperTest</members>
         <members>TestDataFactory</members>
         <members>TestDataFactoryTest</members>
+        <members>OrgExplorerAccessPolicy</members>
+        <members>OrgExplorerAccessPolicyTest</members>
+        <members>OrgExplorerCapabilitiesResponse</members>
+        <members>OrgExplorerCapabilitiesResponseTest</members>
+        <members>OrgExplorerController</members>
+        <members>OrgExplorerControllerTest</members>
+        <members>OrgExplorerCursorCodec</members>
+        <members>OrgExplorerCursorCodecTest</members>
+        <members>OrgExplorerError</members>
+        <members>OrgExplorerErrorTest</members>
+        <members>OrgExplorerMemberService</members>
+        <members>OrgExplorerMemberServiceTest</members>
+        <members>OrgExplorerPageRequest</members>
+        <members>OrgExplorerPageRequestTest</members>
+        <members>OrgExplorerPageResponse</members>
+        <members>OrgExplorerPageResponseTest</members>
+        <members>OrgExplorerRequestService</members>
+        <members>OrgExplorerRequestServiceTest</members>
+        <members>OrgExplorerSearchRequest</members>
+        <members>OrgExplorerSearchRequestTest</members>
+        <members>OrgExplorerSelector</members>
+        <members>OrgExplorerSelectorTest</members>
+        <members>OrgExplorerService</members>
+        <members>OrgExplorerServiceTest</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -837,6 +861,12 @@
         <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>
         <members>testDataDelete</members>
+        <members>orgExplorer</members>
+        <members>orgExplorerCanvas</members>
+        <members>orgExplorerCard</members>
+        <members>orgExplorerDatatable</members>
+        <members>orgExplorerDetails</members>
+        <members>orgExplorerSearch</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
@@ -1182,6 +1212,7 @@
     <types>
         <members>AccountDelete</members>
         <members>TestDataDelete</members>
+        <members>OrgExplorer</members>
         <name>CustomTab</name>
     </types>
     <version>67.0</version>

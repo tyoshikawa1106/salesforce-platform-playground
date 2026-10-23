@@ -1,0 +1,115 @@
+<template>
+    <main>
+        <header>
+            <h1>組織エクスプローラー</h1>
+            <div class="c-controls" aria-label="表示条件">
+                <button
+                    type="button"
+                    data-mode="ROLE"
+                    aria-pressed={roleSelected}
+                    disabled={roleDisabled}
+                    onclick={handleMode}
+                >
+                    ロール階層
+                </button>
+                <button
+                    type="button"
+                    data-mode="MANAGER"
+                    aria-pressed={managerSelected}
+                    disabled={managerDisabled}
+                    onclick={handleMode}
+                >
+                    上司階層
+                </button>
+                <button
+                    type="button"
+                    class="c-toggle"
+                    role="switch"
+                    aria-label="無効ユーザーを表示"
+                    aria-checked={includeInactive}
+                    onclick={handleInactive}
+                >
+                    <span>無効ユーザーを表示</span>
+                    <span class="c-toggle-track" aria-hidden="true"><span class="c-toggle-knob"></span></span>
+                </button>
+            </div>
+        </header>
+        <template lwc:if={error}><p role="alert" class="c-error">{error}</p></template>
+        <div class="c-layout">
+            <section class="c-panel c-chart" aria-label="組織図">
+                <h2>組織図</h2>
+                <template lwc:if={busy}>
+                    <div class="c-loading" role="status" aria-live="polite">
+                        <span class="c-spinner" aria-hidden="true"></span>
+                        <span class="slds-assistive-text">読み込み中…</span>
+                    </div>
+                </template>
+                <div class="c-toolbar">
+                    <div class="c-controls c-zoom" aria-label="組織図の表示操作">
+                        <button type="button" data-action="out" aria-label="縮小" onclick={handleViewport}>－</button>
+                        <button type="button" data-action="in" aria-label="拡大" onclick={handleViewport}>＋</button>
+                        <button
+                            type="button"
+                            data-action="reset"
+                            aria-label="ズームを100%に戻す"
+                            onclick={handleViewport}
+                        >
+                            100%
+                        </button>
+                        <button type="button" data-action="fit" onclick={handleViewport}>全体を表示</button>
+                    </div>
+                    <section class="c-role-lookup" aria-label={lookupSectionLabel}>
+                        <c-org-explorer-search
+                            mode={mode}
+                            term={term}
+                            selected-target={candidateTarget}
+                            results={results}
+                            has-more={lookupHasMore}
+                            searched={searched}
+                            loading={searching}
+                            onlookupopen={handleLookupOpen}
+                            onsearchchange={handleSearchChange}
+                            ontargetpick={handleTargetPick}
+                        ></c-org-explorer-search>
+                    </section>
+                </div>
+                <c-org-explorer-canvas model={model} onnodeselect={handleSelect}></c-org-explorer-canvas>
+            </section>
+            <section class="c-panel" aria-label={memberListLabel}>
+                <c-org-explorer-details
+                    mode={mode}
+                    target-label={memberTargetLabel}
+                    rows={memberRows}
+                    row-number-offset={memberRowNumberOffset}
+                    columns={memberColumns}
+                    loading={memberLoading}
+                    error={memberError}
+                ></c-org-explorer-details>
+                <template lwc:if={memberNotice}>
+                    <p class="slds-text-body_small slds-text-color_weak" role="status">{memberNotice}</p>
+                </template>
+                <template lwc:if={hasMemberRows}>
+                    <div class="c-controls c-member-pages" aria-label={memberPagingLabel}>
+                        <button
+                            type="button"
+                            data-direction="previous"
+                            disabled={memberPreviousDisabled}
+                            onclick={handleMemberPage}
+                        >
+                            前へ
+                        </button>
+                        <span>{memberPageLabel}</span>
+                        <button
+                            type="button"
+                            data-direction="next"
+                            disabled={memberNextDisabled}
+                            onclick={handleMemberPage}
+                        >
+                            次へ
+                        </button>
+                    </div>
+                </template>
+            </section>
+        </div>
+    </main>
+</template>

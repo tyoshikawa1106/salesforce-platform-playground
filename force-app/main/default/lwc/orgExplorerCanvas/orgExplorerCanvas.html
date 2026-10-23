@@ -1,0 +1,25 @@
+<template>
+    <div
+        class="c-viewport"
+        onpointerdown={handlePointerDown}
+        onpointermove={handlePointerMove}
+        onpointerup={handlePointerUp}
+        onpointercancel={handlePointerUp}
+        onwheel={handleWheel}
+    >
+        <div class="c-plane" style={planeStyle}>
+            <svg class="c-lines" width={model.width} height={model.height} aria-hidden="true">
+                <template for:each={model.edges} for:item="edge"><path key={edge.key} d={edge.d}></path></template>
+            </svg>
+            <template for:each={model.rows} for:item="node"
+                ><c-org-explorer-card
+                    key={node.key}
+                    class="c-position"
+                    style={node.style}
+                    node={node}
+                ></c-org-explorer-card
+            ></template>
+        </div>
+    </div>
+    <p class="c-caption">{model.countText} ｜ ズーム {zoomLabel}</p>
+</template>

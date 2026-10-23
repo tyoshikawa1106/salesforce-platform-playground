@@ -1,0 +1,152 @@
+<template>
+    <div class="c-form">
+        <div class="c-lookup slds-form-element" onfocusout={handleBlur}>
+            <span id="role-label" class="slds-assistive-text">{lookupLabel}</span>
+            <div class="slds-form-element__control">
+                <div class={containerClass}>
+                    <div class={comboboxClass}>
+                        <template lwc:if={selectedTarget}>
+                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right">
+                                <span class="slds-icon_container slds-combobox__input-entity-icon">
+                                    <lightning-icon
+                                        icon-name={lookupIcon}
+                                        size="x-small"
+                                        alternative-text={entityLabel}
+                                    ></lightning-icon>
+                                </span>
+                                <input
+                                    id="selected-role"
+                                    class="slds-input slds-combobox__input slds-combobox__input-value"
+                                    type="text"
+                                    readonly
+                                    role="combobox"
+                                    value={selectedTarget.label}
+                                    aria-labelledby="role-label"
+                                    aria-haspopup="listbox"
+                                    aria-expanded={showDropdown}
+                                    aria-controls={listboxId}
+                                    aria-activedescendant={activeOptionId}
+                                    aria-readonly="true"
+                                    onfocus={handleSelectedOpen}
+                                    onclick={handleSelectedOpen}
+                                    onkeydown={handleKeyDown}
+                                />
+                                <button
+                                    class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                    type="button"
+                                    aria-label={clearLabel}
+                                    title="選択を解除"
+                                    onclick={handleClear}
+                                >
+                                    <lightning-icon
+                                        icon-name="utility:close"
+                                        size="x-small"
+                                        alternative-text="選択を解除"
+                                    ></lightning-icon>
+                                </button>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                                <input
+                                    id="role-search"
+                                    class="slds-input slds-combobox__input"
+                                    type="text"
+                                    role="combobox"
+                                    value={term}
+                                    maxlength="80"
+                                    autocomplete="off"
+                                    aria-autocomplete="list"
+                                    aria-labelledby="role-label"
+                                    aria-describedby="role-help"
+                                    aria-haspopup="listbox"
+                                    aria-expanded={showDropdown}
+                                    aria-controls={listboxId}
+                                    aria-activedescendant={activeOptionId}
+                                    oninput={handleChange}
+                                    onfocus={handleInputFocus}
+                                    onclick={handleInputFocus}
+                                    onkeydown={handleKeyDown}
+                                    placeholder={lookupPlaceholder}
+                                />
+                                <lightning-icon
+                                    class="slds-input__icon slds-input__icon_right"
+                                    icon-name="utility:search"
+                                    size="x-small"
+                                    alternative-text={searchLabel}
+                                ></lightning-icon>
+                            </div>
+                        </template>
+                        <template lwc:if={loading}>
+                            <span class="slds-assistive-text" role="status">{loadingLabel}</span>
+                        </template>
+                        <template lwc:if={showDropdown}>
+                            <div class="slds-dropdown slds-dropdown_fluid slds-dropdown_length-5">
+                                <ul
+                                    id="role-options"
+                                    role="listbox"
+                                    aria-label={candidatesLabel}
+                                    class="slds-listbox slds-listbox_vertical"
+                                    onmousedown={handleOptionMouseDown}
+                                >
+                                    <template for:each={options} for:item="hit">
+                                        <li key={hit.roleId} role="presentation">
+                                            <div
+                                                id={hit.domId}
+                                                class={hit.optionClass}
+                                                role="option"
+                                                tabindex="-1"
+                                                aria-selected={hit.selected}
+                                                data-id={hit.roleId}
+                                                onclick={handlePick}
+                                            >
+                                                <span class="slds-media__figure"
+                                                    ><lightning-icon
+                                                        icon-name={lookupIcon}
+                                                        size="small"
+                                                        alternative-text={entityLabel}
+                                                    ></lightning-icon
+                                                ></span>
+                                                <span class="slds-media__body">
+                                                    <span
+                                                        class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate"
+                                                        title={hit.label}
+                                                        >{hit.label}</span
+                                                    >
+                                                    <template lwc:if={hit.description}>
+                                                        <span
+                                                            class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-text-body_small slds-text-color_weak"
+                                                            title={hit.description}
+                                                            >{hit.description}</span
+                                                        >
+                                                    </template>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                                <template lwc:if={empty}>
+                                    <p
+                                        class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                        role="status"
+                                    >
+                                        {emptyLabel}
+                                    </p>
+                                </template>
+                                <template lwc:if={hasMore}>
+                                    <p
+                                        class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                        role="status"
+                                    >
+                                        {moreLabel}
+                                    </p>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <span id="role-help" class="slds-assistive-text">{lookupHelp}</span>
+        </div>
+    </div>
+</template>

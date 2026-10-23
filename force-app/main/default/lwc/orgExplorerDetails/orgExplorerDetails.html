@@ -1,0 +1,21 @@
+<template>
+    <section aria-label={listLabel}>
+        <h2>{heading}</h2>
+        <template lwc:if={targetLabel}>
+            <template lwc:if={loading}><p role="status">所属ユーザーを読み込み中…</p></template>
+            <template lwc:elseif={error}><p role="alert">{error}</p></template>
+            <template lwc:elseif={hasRows}>
+                <c-org-explorer-datatable
+                    key-field="recordId"
+                    data={rows}
+                    columns={columns}
+                    show-row-number-column
+                    row-number-offset={rowNumberOffset}
+                    hide-checkbox-column
+                ></c-org-explorer-datatable>
+            </template>
+            <template lwc:else><p>{emptyMessage}</p></template>
+        </template>
+        <template lwc:else><p>{selectionMessage}</p></template>
+    </section>
+</template>
