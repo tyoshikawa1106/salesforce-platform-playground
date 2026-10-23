@@ -4,6 +4,7 @@
     <enableConcealPersonalInfo>true</enableConcealPersonalInfo>
     <enableContactlessExternalIdentityUsers>false</enableContactlessExternalIdentityUsers>
     <enableEnhancedConcealPersonalInfo>false</enableEnhancedConcealPersonalInfo>
+    <enableEnhancedConcealPersonalInfoForGuest>false</enableEnhancedConcealPersonalInfoForGuest>
     <enableEnhancedPermsetMgmt>false</enableEnhancedPermsetMgmt>
     <enableEnhancedProfileMgmt>true</enableEnhancedProfileMgmt>
     <enableEnhcUiUserAccessPolicies>false</enableEnhcUiUserAccessPolicies>
