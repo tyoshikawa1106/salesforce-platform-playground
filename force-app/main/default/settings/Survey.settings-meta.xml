@@ -5,4 +5,5 @@
     <enableSurvey>true</enableSurvey>
     <enableSurveyInvLinkWithoutAppExtension>false</enableSurveyInvLinkWithoutAppExtension>
     <enableSurveyOwnerCanManageResponse>false</enableSurveyOwnerCanManageResponse>
+    <enableSurveyScrt2Api>false</enableSurveyScrt2Api>
 </SurveySettings>
