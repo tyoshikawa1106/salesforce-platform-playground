@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Scratch Org初期反映の管理ユーザーがTransactionSecurityPolicyを反映するための権限</description>
+    <label>Scratch Org Metadata Deployer</label>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ModifyTransactionSecurityPolicies</name>
+    </userPermissions>
+</PermissionSet>

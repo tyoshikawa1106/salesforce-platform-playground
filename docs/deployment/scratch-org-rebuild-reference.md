@@ -33,10 +33,13 @@ sf package install --package 04tXXXXXXXXXXXXXXX --target-org <scratch-org-alias>
 ```text
 1. Scratch Org 作成
 2. 必要 package install
-3. manifest/rebuild-scratch-org.xml deploy
-4. Scratch Org ユーザー用 Permission Set assign
-5. Apex test
+3. 反映実行者用 Permission Set deploy / assign
+4. manifest/rebuild-scratch-org.xml deploy
+5. Scratch Org ユーザー用 Permission Set assign
+6. Apex test
 ```
+
+`node scripts/scratch-org/steps/deploy.js --alias <scratch-org-alias>`は、Scratch Orgであることを確認して反映実行者の権限を準備してから、manifestを反映します。権限の範囲、割り当てが残ること、失敗時の停止条件は[Scratch Org管理スクリプト](../specifications/scripts/scratch-org-management/index.md)を参照してください。
 
 ## alias ルール
 

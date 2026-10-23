@@ -25,6 +25,74 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 // 再構築対象外の組織ではdeploy前に停止する。
                 throw new Error('再構築用deployはScratch Orgだけに実行できます。');
             }
+            // ポリシーを含む初期反映より先に、反映実行者用の最小権限だけを用意する。
+            const permissionStatus = runSfCommand(
+                [
+                    'project',
+                    'deploy',
+                    'start',
+                    '--metadata',
+                    `PermissionSet:${scratchOrg.deploymentPermissionSet}`,
+                    '--target-org',
+                    orgInfo.username,
+                    '--test-level',
+                    'NoTestRun',
+                    '--wait',
+                    String(scratchOrg.waitMinutes)
+                ],
+                repoRoot
+            );
+            // 権限セットの反映に失敗した状態では、割り当てや本体反映へ進まない。
+            if (permissionStatus !== 0) return permissionStatus;
+            // 再実行で重複割り当てエラーにならないよう、実行者への割り当てを確認する。
+            const assignmentQuery = runSfQuery(
+                [
+                    'data',
+                    'query',
+                    '--target-org',
+                    orgInfo.username,
+                    '--query',
+                    `SELECT Id FROM PermissionSetAssignment WHERE Assignee.Username = '${orgInfo.username.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}' AND PermissionSet.Name = '${scratchOrg.deploymentPermissionSet}'`,
+                    '--json'
+                ],
+                repoRoot
+            );
+            // 確認できない状態では権限割り当てや本体反映へ進まない。
+            if (assignmentQuery.status !== 0) throw new Error('反映実行者の権限割り当てを確認できません。');
+            // CLIの応答を解析し、件数とレコードが矛盾する応答も拒否する。
+            const assignmentResponse = JSON.parse(assignmentQuery.stdout);
+            // 割り当ては実行者と権限セットの組み合わせで一意になる。
+            if (
+                assignmentResponse.status !== 0 ||
+                ![0, 1].includes(assignmentResponse.result?.totalSize) ||
+                !Array.isArray(assignmentResponse.result.records) ||
+                assignmentResponse.result.records.length !== assignmentResponse.result.totalSize ||
+                !assignmentResponse.result.records.every(
+                    (record) => typeof record.Id === 'string' && record.Id.length > 0
+                )
+            ) {
+                // 不完全な応答を割り当て済みまたは未割り当てと解釈しない。
+                throw new Error('反映実行者の権限割り当て応答が不正です。');
+            }
+            // 未割り当ての場合だけ、検証済みの反映実行ユーザーへ付与する。
+            if (assignmentResponse.result.totalSize === 0) {
+                // 利用者向けのアプリ権限とは分け、検証済みの反映実行ユーザーだけへ付与する。
+                const assignmentStatus = runSfCommand(
+                    [
+                        'org',
+                        'assign',
+                        'permset',
+                        '--name',
+                        scratchOrg.deploymentPermissionSet,
+                        '--target-org',
+                        orgInfo.username,
+                        '--json'
+                    ],
+                    repoRoot
+                );
+                // 必須権限を用意できなければ、同じ権限不足で本体反映を失敗させない。
+                if (assignmentStatus !== 0) return assignmentStatus;
+            }
             // 再構築専用manifestを指定Scratch OrgへRunLocalTests付きで反映する。
             return runSfCommand(
                 [
