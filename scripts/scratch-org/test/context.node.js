@@ -18,3 +18,15 @@ test('リポジトリルートとScratch Org設定の参照先を解決できる
         assert.ok(fs.existsSync(targetPath), `${configKey}の参照先がありません: ${targetPath}`);
     }
 });
+
+test('反映実行者の権限セットはポリシー反映に必要な権限だけを含む', () => {
+    const { XMLParser } = require('fast-xml-parser');
+    const file = path.join(
+        repoRoot,
+        'force-app/main/default/permissionsets',
+        `${scratchOrg.deploymentPermissionSet}.permissionset-meta.xml`
+    );
+    const { PermissionSet: permissionSet } = new XMLParser().parse(fs.readFileSync(file, 'utf8'));
+    assert.deepEqual(Object.keys(permissionSet).sort(), ['description', 'label', 'userPermissions']);
+    assert.deepEqual(permissionSet.userPermissions, { enabled: true, name: 'ModifyTransactionSecurityPolicies' });
+});

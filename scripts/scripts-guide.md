@@ -4,7 +4,7 @@
 
 - `scripts/common/`: 複数の実行スクリプトから読み込む共通処理。Node.js testは`test/`に格納する。
 - `scripts/ci/`: GitHub Actionsの定期品質チェック結果をIssueへ記録するNodeスクリプト。処理内容は[定期品質チェック結果報告スクリプト仕様](../docs/specifications/scripts/ci-quality-reporting/index.md)を参照する。
-- `scripts/setup/`: テストデータ投入用のNode実行入口と内部処理。実行計画は`plans/`に格納する。処理内容は[テストデータ投入スクリプト仕様](../docs/specifications/scripts/test-data-import/index.md)を参照する。
+- `scripts/setup/`: テストデータ投入用のNode実行入口と内部処理。実行計画は`plans/`に格納する。組織エクスプローラーの専用seedは[デモデータ作成スクリプト仕様](../docs/specifications/scripts/org-explorer-demo/index.md)を参照する。標準seedの処理内容は[テストデータ投入スクリプト仕様](../docs/specifications/scripts/test-data-import/index.md)を参照する。
 - `scripts/docs/`: Git管理対象と未追跡・非除外のMarkdownを自動検出し、ローカルリンク、見出し、ファイル名、索引到達性を確認するNodeスクリプト。処理内容は[文書検査スクリプト仕様](../docs/specifications/scripts/documentation-check/index.md)を参照する。
 - `scripts/apex/`: 用途別に整理した anonymous Apex スクリプト。標準オブジェクトseedは共通preambleとobject固有処理を実行時に合成する。
 - `scripts/org-tests/`: Default Target Orgを確認し、本番環境では追加確認を行ってからApexテストまたはFlowテストを開始し、進捗と結果を取得するNodeスクリプト。処理内容は[組織テスト実行スクリプト仕様](../docs/specifications/scripts/org-tests/index.md)を参照する。

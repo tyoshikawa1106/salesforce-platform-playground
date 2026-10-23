@@ -1,6 +1,7 @@
 {
     "alias": "scratch-org",
     "definitionFile": "config/project-scratch-def.json",
+    "deploymentPermissionSet": "ScratchOrgMetadataDeployer",
     "durationDays": 7,
     "importPlan": "scripts/setup/plans/import-test-data-plan.json",
     "manifest": "manifest/rebuild-scratch-org.xml",

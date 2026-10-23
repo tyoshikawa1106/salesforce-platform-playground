@@ -1,0 +1,9 @@
+:host {
+    display: block;
+}
+h2 {
+    font-size: var(--slds-g-font-scale-2, 1rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+    overflow-wrap: anywhere;
+}

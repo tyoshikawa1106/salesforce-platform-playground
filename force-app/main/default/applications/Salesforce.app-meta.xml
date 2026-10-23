@@ -51,6 +51,7 @@
     <tabs>AccountMassUpdate</tabs>
     <tabs>AccountDelete</tabs>
     <tabs>TestDataDelete</tabs>
+    <tabs>OrgExplorer</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>

@@ -120,6 +120,18 @@ sf data query --file scripts/soql/test-data-check-queries/cases.soql --target-or
 
 `Knowledge`, `Report`, `Dashboard`, `User` は画面上の集計対象に含まれていても、この DML seed では作成しません。Knowledge article sObject は org の機能状態に依存し、Report / Dashboard は metadata-backed、追加 User はライセンスとプロファイル設計が必要なためです。
 
+## 組織エクスプローラーのロール・ユーザー
+
+標準オブジェクトseedとは別に、スクラッチ組織専用の[デモデータ作成スクリプト](../specifications/scripts/org-explorer-demo/index.md)を実行します。登録内容は[データ定義](../../scripts/setup/plans/org-explorer-demo.json)を参照してください。
+
+```sh
+npm run setup:org-explorer -- --dry-run
+npm run setup:org-explorer
+npm run setup:org-explorer -- --verify
+```
+
+投入時に接続組織を確認します。ユーザーは無効で作成し、再実行時は識別用メールとロール識別名で既存データをスキップし、不足分だけを作成します。既存データの項目・所属・上司関係は更新しません。Scratch Org作成時の投入stepでは、標準データの投入成功後に同じ組織へロールとユーザーを投入します。追加投入の前にも接続先と作成可否を確認します。標準データの投入を中止・失敗した場合は追加投入へ進みません。通常の`npm run setup:data`では自動実行しません。停止条件と再実行・後始末の扱いは専用仕様を参照してください。
+
 ## データ追加時の注意
 
 - 実在の個人情報、顧客情報、秘密情報を入れない。

@@ -1,0 +1,32 @@
+:host {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    min-block-size: 0;
+}
+.c-viewport {
+    position: relative;
+    min-block-size: 0;
+    overflow: hidden;
+    touch-action: none;
+    background: var(--slds-g-color-surface-2, #f3f3f3);
+    color: var(--slds-g-color-on-surface-2, #181818);
+    border-radius: var(--slds-g-radius-border-2, 0.25rem);
+}
+.c-plane {
+    position: absolute;
+    transform-origin: 0 0;
+}
+.c-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    fill: none;
+    stroke: var(--slds-g-color-border-base-1, #c9c9c9);
+    stroke-width: 1.5px;
+}
+.c-position {
+    position: absolute;
+}
+.c-caption {
+    margin: var(--slds-g-spacing-2, 0.5rem) 0 0;
+}

@@ -21,6 +21,7 @@
         "data:bulk:results": "cd logs/data-bulk-results && sf data bulk results",
         "setup:data": "node scripts/setup/import-test-data.js",
         "setup:data:dry-run": "node scripts/setup/import-test-data.js --dry-run",
+        "setup:org-explorer": "node scripts/setup/seed-org-explorer.js",
         "sf:destructive": "node scripts/metadata/destructive/destructive.js",
         "sf:retrieve": "node scripts/metadata/retrieve/retrieve.js",
         "sf:test:apex": "node scripts/org-tests/run-apex-tests.js",
