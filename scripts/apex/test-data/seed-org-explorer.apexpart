@@ -1,0 +1,152 @@
+// 対象組織とデモ定義を、呼び出し側で検証したJSONから復元
+Map<String, Object> plan = (Map<String, Object>) JSON.deserializeUntyped(EncodingUtil.base64Decode('__PAYLOAD__').toString());
+// CLIの対象組織とサーバーの実行組織が同一であることをDML前に確認
+Assert.areEqual(Id.valueOf((String) plan.get('orgId')), UserInfo.getOrganizationId(), '対象組織が変わっています');
+// プロファイルはローカライズ名の候補とSalesforceライセンスで限定
+Set<String> profileNames = new Set<String>();
+for (Object name : (List<Object>) plan.get('profileNames')) {
+    profileNames.add((String) name);
+}
+// 管理者や別ライセンスのプロファイルへ代替しない
+List<Profile> profiles = [SELECT Id FROM Profile WHERE Name IN :profileNames AND UserLicense.Name = 'Salesforce' AND PermissionsModifyAllData = false];
+Assert.areEqual(1, profiles.size(), 'Salesforce標準ユーザープロファイルを一意に取得できません');
+// 定義に列挙した新旧API名だけで既存ロールを特定
+List<Object> roleDefinitions = (List<Object>) plan.get('roles');
+Set<String> lookupRoleKeys = new Set<String>();
+for (Object value : roleDefinitions) {
+    List<Object> row = (List<Object>) value;
+    lookupRoleKeys.add((String) row[0]);
+    if (row[3] != null) {
+        lookupRoleKeys.add((String) row[3]);
+    }
+}
+Map<String, UserRole> foundRoles = new Map<String, UserRole>();
+for (UserRole record : [SELECT Id, DeveloperName, Name, ParentRoleId FROM UserRole WHERE DeveloperName IN :lookupRoleKeys]) {
+    foundRoles.put(record.DeveloperName, record);
+}
+// 新旧両方のAPI名が存在する場合は、重複ロールを勝手に選ばず停止
+Map<String, UserRole> rolesByKey = new Map<String, UserRole>();
+for (Object value : roleDefinitions) {
+    List<Object> row = (List<Object>) value;
+    String key = (String) row[0];
+    String previousKey = (String) row[3];
+    Assert.isFalse(foundRoles.containsKey(key) && foundRoles.containsKey(previousKey), '新旧ロールが重複しています');
+    UserRole record = foundRoles.get(key) ?? foundRoles.get(previousKey);
+    if (record != null) {
+        rolesByKey.put(key, record);
+    }
+}
+// 同名でも定義の会社ツリー外にあるロールは使用しない
+for (Object value : roleDefinitions) {
+    List<Object> row = (List<Object>) value;
+    UserRole record = rolesByKey.get((String) row[0]);
+    if (record != null) {
+        String parent = (String) row[2];
+        UserRole parentRole = rolesByKey.get(parent);
+        Assert.isTrue(parent == null ? record.ParentRoleId == null : parentRole != null && record.ParentRoleId == parentRole.Id, '同じAPI名の対象外ロールがあります');
+    }
+}
+// 使用中のデモロールを別のユーザーへ影響させない
+Set<Id> existingRoleIds = new Set<Id>();
+for (UserRole record : rolesByKey.values()) {
+    existingRoleIds.add(record.Id);
+}
+// ユーザー定義のメールを管理対象の照合キーにする
+List<Object> userDefinitions = (List<Object>) plan.get('users');
+Set<String> expectedEmails = new Set<String>();
+for (Object key : (List<Object>) plan.get('userEmailKeys')) {
+    expectedEmails.add('orgexplorer.seed.' + (String) key + '@example.com');
+}
+// 識別用ロールに対象外のユーザーが所属していれば作成前に停止
+Assert.areEqual(0, [SELECT COUNT() FROM User WHERE UserRoleId IN :existingRoleIds AND Email NOT IN :expectedEmails], 'デモロールに対象外ユーザーが所属しています');
+// 対象外の子ロールもデモ階層へ巻き込まない
+Assert.areEqual(0, [SELECT COUNT() FROM UserRole WHERE ParentRoleId IN :existingRoleIds AND DeveloperName NOT IN :lookupRoleKeys], 'デモロールに対象外の子ロールがあります');
+// 同じメールが複数ある場合は既存対象を選ばず停止
+Map<String, User> usersByEmail = new Map<String, User>();
+for (User record : [SELECT Id, Email, IsActive, ProfileId FROM User WHERE Email LIKE 'orgexplorer.seed.%@example.com']) {
+    Assert.isTrue(expectedEmails.contains(record.Email), '定義外のデモユーザーがあります');
+    Assert.isFalse(usersByEmail.containsKey(record.Email), 'デモメールが重複しています');
+    Assert.isFalse(record.IsActive, '有効なユーザーを無効化する操作は行いません');
+    Assert.areNotEqual(UserInfo.getUserId(), record.Id, '実行ユーザーは変更しません');
+    Assert.areEqual(profiles[0].Id, record.ProfileId, '既存ユーザーのプロファイルが異なります');
+    usersByEmail.put(record.Email, record);
+}
+// 既存ロールは変更せず、親IDの参照先として使用
+Set<String> completedRoles = new Set<String>(rolesByKey.keySet());
+Integer rolesCreated = 0;
+while (completedRoles.size() < roleDefinitions.size()) {
+    List<UserRole> pending = new List<UserRole>();
+    List<String> pendingKeys = new List<String>();
+    for (Object value : roleDefinitions) {
+        List<Object> row = (List<Object>) value;
+        String key = (String) row[0];
+        String parent = (String) row[2];
+        if (!completedRoles.contains(key) && (parent == null || completedRoles.contains(parent))) {
+            // 不足ロールだけを定義の親へ接続
+            UserRole record = new UserRole(DeveloperName = key, Name = (String) row[1], ParentRoleId = parent == null ? null : rolesByKey.get(parent).Id);
+            rolesCreated++;
+            pending.add(record);
+            pendingKeys.add(key);
+        }
+    }
+    // 不完全な定義でループを継続しない
+    Assert.isFalse(pending.isEmpty(), 'ロール階層に参照漏れまたは循環があります');
+    // この階層で不足していたロールだけを作成
+    insert pending;
+    for (Integer index = 0; index < pending.size(); index++) {
+        rolesByKey.put(pendingKeys[index], pending[index]);
+        completedRoles.add(pendingKeys[index]);
+    }
+}
+// ユーザーは初回作成時から無効にし、先に全IDを確定
+List<String> userFields = new List<String>{'FirstName', 'LastName', 'Alias', 'Email', 'Department', 'Title', 'Phone', 'MobilePhone', 'EmployeeNumber'};
+Map<String, Object> settings = (Map<String, Object>) plan.get('userSettings');
+List<User> pendingUsers = new List<User>();
+Integer usersCreated = 0;
+for (Object value : userDefinitions) {
+    List<Object> row = (List<Object>) value;
+    String email = (String) row[3];
+    // 既存ユーザーは項目・所属・上司をすべて維持
+    if (usersByEmail.containsKey(email)) {
+        continue;
+    }
+    // 新規ユーザー名は組織ごとに分離
+    User record = new User(Username = email.substringBefore('@') + '.' + UserInfo.getOrganizationId() + '@example.com', ProfileId = profiles[0].Id, IsActive = false);
+    usersCreated++;
+    // 新規作成する項目だけを固定
+    for (Integer index = 0; index < userFields.size(); index++) {
+        record.put(userFields[index], (String) row[index]);
+    }
+    for (String field : settings.keySet()) {
+        record.put(field, settings.get(field));
+    }
+    record.UserRoleId = rolesByKey.get((String) row[userFields.size()]).Id;
+    pendingUsers.add(record);
+}
+// 不足ユーザーがある場合だけ一括作成し、部分成功は許可しない
+if (!pendingUsers.isEmpty()) {
+    insert pendingUsers;
+}
+for (User record : pendingUsers) {
+    usersByEmail.put(record.Email, record);
+}
+// 作成用のUsernameなどを再送せず、上司項目だけを更新
+List<User> managerUpdates = new List<User>();
+// 今回作成したユーザーだけに、確定済みIDで上司を設定
+Map<String, String> managers = new Map<String, String>();
+for (Object value : userDefinitions) {
+    List<Object> row = (List<Object>) value;
+    managers.put((String) row[3], (String) row[userFields.size() + 1]);
+}
+for (User record : pendingUsers) {
+    String manager = managers.get(record.Email);
+    if (manager != null) {
+        managerUpdates.add(new User(Id = record.Id, ManagerId = usersByEmail.get(manager).Id));
+    }
+}
+// 既存ユーザーと上司未指定の新規ユーザーにはDMLを実行しない
+if (!managerUpdates.isEmpty()) {
+    update managerUpdates;
+}
+// 呼び出し元へ件数だけを返し、個人項目や組織固有IDをログへ出さない
+System.debug(LoggingLevel.ERROR, 'ORG_EXPLORER_SEED rolesCreated=' + rolesCreated + ' rolesSkipped=' + (roleDefinitions.size() - rolesCreated) + ' usersCreated=' + usersCreated + ' usersSkipped=' + (userDefinitions.size() - usersCreated));

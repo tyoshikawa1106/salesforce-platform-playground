@@ -44,7 +44,7 @@ node scripts/scratch-org/delete.js --alias <alias>
 1. `sf org create scratch`でScratch定義、alias、有効日数を指定して作成する。
 2. CLIの認証済み組織一覧で対象が一意のScratch Orgであることを確認し、そのusernameを接続先に固定して`manifest/rebuild-scratch-org.xml`を`RunLocalTests`と設定済み待機時間でdeployする。
 3. 設定済みPermission SetをScratch Orgユーザーへ割り当てる。
-4. 共通のテストデータ投入スクリプトへ作成済みalias、import plan、投入stepで定義した繰り返し回数を渡す。
+4. 共通のテストデータ投入スクリプトへ作成済みalias、import plan、投入stepで定義した繰り返し回数を渡す。標準データの投入が成功し、対象がScratch Orgと確認できた場合は、同じ組織の確認済みユーザーをロール・ユーザーデータ作成処理へ内部的に引き継ぐ。追加投入でも種別を再判定し、接続先を表示して作成確認を求める。
 
 各stepは子Node.jsプロセスとして順番に実行し、非0終了した時点で後続stepを実行しません。テストデータ投入stepでは接続組織を表示し、利用者の承認後に投入します。
 

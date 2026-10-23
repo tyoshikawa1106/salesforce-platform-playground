@@ -9,6 +9,7 @@ const { runSfWithOutput } = require('../common/run-command');
 const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = require('../common/target-org');
 const { defaultPlan, parseArgs, prepareEntries, readPlan } = require('./internal/import-test-data-core');
 const { runPreparedEntries } = require('./internal/import-test-data-runner');
+const { main: seedOrgExplorer } = require('./seed-org-explorer');
 
 // planとApexファイルを常にリポジトリ基準で解決する。
 const repoRoot = path.resolve(__dirname, '../..');
@@ -41,7 +42,8 @@ async function run({
     runSfCommand = runSfWithOutput,
     stderr = process.stderr,
     stdout = process.stdout,
-    targetOrg: internalTargetOrg
+    targetOrg: internalTargetOrg,
+    runOrgExplorerSeedCommand = seedOrgExplorer
 } = {}) {
     // 組織操作やファイル読込より前に、CLI引数を確定する。
     const args = parseArgs(argv);
@@ -73,6 +75,8 @@ async function run({
 
     // dry-runでは組織設定を読まないため、表示専用のtarget org名を使用する。
     let targetOrg = '<default-target-org>';
+    // Scratch Org作成時の追加投入先だけを、確認済みユーザーで保持する。
+    let orgExplorerTargetOrg;
 
     // 実投入時だけ接続先の確定と利用者承認を行う。
     if (!args.dryRun) {
@@ -88,6 +92,12 @@ async function run({
         // 本番相当の組織には承認を求めず、禁止条件として直ちに停止する。
         if (orgInfo.type === orgTypes.PRODUCTION) {
             throw new Error('本番環境へのテストデータ投入は許可されていません。');
+        }
+
+        // 通常投入へ追加せず、Scratch Org準備処理から指定されたScratchだけを対象とする。
+        if (internalTargetOrg && orgInfo.type === orgTypes.SCRATCH) {
+            // 後続処理でdefault target orgやaliasが変わっても接続先を維持する。
+            orgExplorerTargetOrg = orgInfo.username;
         }
 
         // 表示された接続組織を実行者が承認した場合だけ実投入へ進む。
@@ -124,6 +134,24 @@ async function run({
         stdout,
         targetOrg
     });
+
+    // 標準データの投入が成功したScratch Org準備処理だけで追加のテストデータを投入する。
+    if (orgExplorerTargetOrg) {
+        // Scratch限定判定と作成前確認を持つ既存入口を再利用する。
+        const status = await runOrgExplorerSeedCommand({
+            argv: [],
+            targetOrg: orgExplorerTargetOrg,
+            createPrompt,
+            runSfCommand,
+            stdout,
+            stderr
+        });
+        // データ作成・照合の失敗をScratch Orgの準備失敗として通知する。
+        if (status !== 0) {
+            // 準備全体を成功として報告しない。
+            throw new Error('テスト用ロール・ユーザーデータの作成に失敗しました。');
+        }
+    }
 }
 
 // 利用者が修正すべき内容だけを簡潔に表示し、CLIへ失敗を返す。

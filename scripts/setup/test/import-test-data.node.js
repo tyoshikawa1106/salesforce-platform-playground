@@ -8,7 +8,7 @@ const { run } = require('../import-test-data');
 // 組織情報や実行予定をテストログへ出さず、入口処理だけを検証する。
 function runTest(options) {
     const silentOutput = { write() {} };
-    return run({ stderr: silentOutput, stdout: silentOutput, ...options });
+    return run({ stderr: silentOutput, stdout: silentOutput, runOrgExplorerSeedCommand: async () => 0, ...options });
 }
 
 // 確認への回答を順番に返し、最後にcloseされたことを記録する。
@@ -239,4 +239,100 @@ test('Scratch Orgセットアップでは内部指定されたaliasを使用す�
 
     assert.equal(configGetCount, 0);
     assert.equal(apexArgs[apexArgs.indexOf('--target-org') + 1], 'test-org');
+});
+
+test('Scratch Org準備では標準データ成功後に確認済みユーザーへロールとユーザーを投入する', async () => {
+    const events = [];
+    const prompt = createPrompt(['y']);
+    await runTest({
+        argv: ['--only', 'standard-objects-accounts'],
+        targetOrg: 'test-org',
+        createPrompt: () => prompt.prompt,
+        runSfCommand: createRunSfCommand(() => {
+            events.push('standard');
+            return { status: 0, stdout: '', stderr: '' };
+        }, 'scratch'),
+        async runOrgExplorerSeedCommand(options) {
+            events.push('org-explorer');
+            assert.equal(options.targetOrg, 'user@example.com');
+            assert.deepEqual(options.argv, []);
+            assert.equal(typeof options.createPrompt, 'function');
+            return 0;
+        }
+    });
+    assert.deepEqual(events, ['standard', 'org-explorer']);
+});
+
+for (const type of ['sandbox', 'developer']) {
+    test(`${type}ではロールとユーザーの追加投入を行わない`, async () => {
+        let seedCount = 0;
+        const prompt = createPrompt(['y']);
+        await runTest({
+            argv: ['--only', 'standard-objects-accounts'],
+            targetOrg: 'test-org',
+            createPrompt: () => prompt.prompt,
+            runSfCommand: createRunSfCommand(() => ({ status: 0, stdout: '', stderr: '' }), type),
+            async runOrgExplorerSeedCommand() {
+                seedCount++;
+                return 0;
+            }
+        });
+        assert.equal(seedCount, 0);
+    });
+}
+
+for (const outcome of ['cancel', 'failure', 'dry-run']) {
+    test(`標準データ投入が${outcome}なら追加投入を行わない`, async () => {
+        let seedCount = 0;
+        const prompt = createPrompt([outcome === 'cancel' ? 'n' : 'y']);
+        const operation = () =>
+            runTest({
+                argv: ['--only', 'standard-objects-accounts', ...(outcome === 'dry-run' ? ['--dry-run'] : [])],
+                targetOrg: 'test-org',
+                createPrompt: () => prompt.prompt,
+                runSfCommand: createRunSfCommand(
+                    () => ({ status: outcome === 'failure' ? 1 : 0, stdout: '', stderr: '' }),
+                    'scratch'
+                ),
+                async runOrgExplorerSeedCommand() {
+                    seedCount++;
+                    return 0;
+                }
+            });
+        if (outcome === 'failure') await assert.rejects(operation, /sfコマンドが失敗/);
+        else await operation();
+        assert.equal(seedCount, 0);
+    });
+}
+
+test('追加データ作成の失敗を準備失敗として伝える', async () => {
+    const prompt = createPrompt(['y']);
+    await assert.rejects(
+        () =>
+            runTest({
+                argv: ['--only', 'standard-objects-accounts'],
+                targetOrg: 'test-org',
+                createPrompt: () => prompt.prompt,
+                runSfCommand: createRunSfCommand(() => ({ status: 0, stdout: '', stderr: '' }), 'scratch'),
+                async runOrgExplorerSeedCommand() {
+                    return 1;
+                }
+            }),
+        /テスト用ロール・ユーザーデータの作成に失敗/
+    );
+});
+
+test('通常のsetup:dataにはロールとユーザーの自動投入を追加しない', async () => {
+    let seedCount = 0;
+    const prompt = createPrompt(['y']);
+    await runTest({
+        argv: ['--only', 'standard-objects-accounts'],
+        createPrompt: () => prompt.prompt,
+        runSfCommand: createRunSfCommand(() => ({ status: 0, stdout: '', stderr: '' }), 'scratch'),
+        async runOrgExplorerSeedCommand() {
+            seedCount++;
+            return 0;
+        }
+    });
+    assert.equal(seedCount, 0);
 });
