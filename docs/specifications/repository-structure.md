@@ -187,66 +187,66 @@
 
 ## scripts
 
-| パス                                                     | 種別       | 用途                                                                        |
-| -------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `scripts/apex/`                                          | フォルダ   | ローカルから実行するanonymous Apexを格納する。                              |
-| `scripts/apex/test-data/`                                | フォルダ   | 合成テストデータの作成処理を格納する。                                      |
-| `scripts/apex/test-data/seed-standard-preamble.apexpart` | ファイル   | 標準Object seedに実行時合成する共通変数と関数の断片を定義する。             |
-| `scripts/apex/test-data/seed-standard-*.apexpart`        | ファイル群 | 標準Object seedに実行時合成するobject固有処理の断片を定義する。             |
-| `scripts/apex/test-data/*.apex`                          | ファイル群 | 標準Objectと対象機能の合成テストデータを操作する。                          |
-| `scripts/ci/`                                            | フォルダ   | 定期品質チェックの障害検知Issue管理scriptとNode.js testを格納する。         |
-| `scripts/ci/report-quality-check.js`                     | ファイル   | チェック失敗時のIssue作成・更新と復旧時のクローズを実行する。               |
-| `scripts/docs/`                                          | フォルダ   | Markdownの検証scriptを格納する。                                            |
-| `scripts/docs/check-docs.js`                             | ファイル   | Markdown構造、索引、内部リンクを検証する。                                  |
-| `scripts/docs/internal/`                                 | フォルダ   | docs検証scriptから読み込む内部処理を格納する。                              |
-| `scripts/docs/internal/validate-markdown.js`             | ファイル   | 単一Markdownの構造、ファイル名、危険なコマンド例を検証する。                |
-| `scripts/docs/internal/validate-docs.js`                 | ファイル   | 文書間リンクとdocs索引からの到達性を検証する。                              |
-| `scripts/docs/internal/markdown-files.js`                | ファイル   | 検証対象のMarkdownファイルを列挙する。                                      |
-| `scripts/docs/test/`                                     | フォルダ   | docs検証scriptのNode.js testを格納する。                                    |
-| `scripts/docs/test/*.node.js`                            | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
-| `scripts/metadata/`                                      | フォルダ   | Salesforce metadata操作scriptを格納する。                                   |
-| `scripts/common/`                                        | フォルダ   | 複数領域のscriptから読み込む共通処理を格納する。                            |
-| `scripts/common/approval.js`                             | ファイル   | ターミナルの確認入力作成と承認判定を共通化する。                            |
-| `scripts/common/run-command.js`                          | ファイル   | macOSとWindowsから外部CLIを実行する共通処理を提供する。                     |
-| `scripts/common/target-org.js`                           | ファイル   | 対象組織を認証済み組織一覧と照合し、安全確認用の情報と種別を返す。          |
-| `scripts/common/test/`                                   | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
-| `scripts/common/test/*.node.js`                          | ファイル群 | 承認判定、外部CLI実行、対象組織判定の振る舞いを確認する。                   |
-| `scripts/metadata/destructive/`                          | フォルダ   | metadata削除scriptを格納する。                                              |
-| `scripts/metadata/destructive/destructive.js`            | ファイル   | 接続組織を確認し、dry-run成功後にメタデータを削除する。                     |
-| `scripts/metadata/destructive/internal/deploy-runner.js` | ファイル   | deployを監視し、実行方法別にjob完了結果を検証する。                         |
-| `scripts/metadata/destructive/test/`                     | フォルダ   | metadata削除scriptとdeploy監視処理のNode.js testを格納する。                |
-| `scripts/metadata/retrieve/`                             | フォルダ   | metadata retrieve scriptを格納する。                                        |
-| `scripts/metadata/retrieve/retrieve.js`                  | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
-| `scripts/org-tests/`                                     | フォルダ   | 接続組織のApexテストとFlowテストを実行するscriptを格納する。                |
-| `scripts/org-tests/run-apex-tests.js`                    | ファイル   | 接続先を確認してローカルApexテストを全件開始する。                          |
-| `scripts/org-tests/run-flow-tests.js`                    | ファイル   | 接続先を確認してローカルFlowテストを全件開始する。                          |
-| `scripts/org-tests/internal/`                            | フォルダ   | 組織テストの非同期開始、進捗監視、結果取得処理を格納する。                  |
-| `scripts/org-tests/internal/run-org-test.js`             | ファイル   | ApexとFlowに共通する接続先確認とテスト開始処理を提供する。                  |
-| `scripts/org-tests/internal/test-progress.js`            | ファイル   | 組織テストの進捗取得、終了判定、表示処理を提供する。                        |
-| `scripts/org-tests/internal/test-runner.js`              | ファイル   | ApexテストとFlowテストの開始、監視、結果取得を共通化する。                  |
-| `scripts/org-tests/test/`                                | フォルダ   | 組織テスト実行scriptのNode.js testを格納する。                              |
-| `scripts/scratch-org/`                                   | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
-| `scripts/scratch-org/setup.js`                           | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
-| `scripts/scratch-org/delete.js`                          | ファイル   | `--alias`で指定されたScratch Orgを削除する。                                |
-| `scripts/scratch-org/scratch-org.json`                   | ファイル   | Scratch Org scriptのalias、期間、manifest、Permission Set、waitを定義する。 |
-| `scripts/scratch-org/internal/`                          | フォルダ   | Scratch Org scriptから読み込む共通処理を格納する。                          |
-| `scripts/scratch-org/steps/`                             | フォルダ   | setupから子プロセスとして実行する各手順を格納する。                         |
-| `scripts/scratch-org/steps/deploy.js`                    | ファイル   | Scratch Org初期metadataをRunLocalTests付きで反映する。                      |
-| `scripts/scratch-org/test/`                              | フォルダ   | Scratch Org scriptのNode.js testを格納する。                                |
-| `scripts/scratch-org/test/*.node.js`                     | ファイル群 | Scratch Org scriptのcommand生成と実行制御を確認する。                       |
-| `scripts/setup/`                                         | フォルダ   | テストデータ投入のplanと実行scriptを格納する。                              |
-| `scripts/setup/plans/`                                   | フォルダ   | テストデータ投入の実行計画を格納する。                                      |
-| `scripts/setup/plans/import-test-data-plan.json`         | ファイル   | anonymous Apexの実行順序と反復回数を定義する。                              |
-| `scripts/setup/import-test-data.js`                      | ファイル   | import planに従って合成テストデータを投入する。                             |
-| `scripts/setup/internal/`                                | フォルダ   | テストデータ投入scriptから読み込む内部処理を格納する。                      |
-| `scripts/setup/internal/import-test-data-core.js`        | ファイル   | import plan、CLI引数、Apex合成の検証可能なcoreを提供する。                  |
-| `scripts/setup/internal/import-test-data-runner.js`      | ファイル   | 準備済みentryのCLI実行、表示、一時ファイルの後始末を提供する。              |
-| `scripts/record-export/`                                 | フォルダ   | 最新レコードの縦型・横型CSV出力入口、共通処理、Node.js testを格納する。     |
-| `scripts/soql/`                                          | フォルダ   | 調査とテストデータ確認に使用するSOQLを格納する。                            |
-| `scripts/soql/object-queries/`                           | フォルダ   | Object別の調査用SOQLを格納する。                                            |
-| `scripts/soql/object-queries/**/*.soql`                  | ファイル群 | Account、Case、Opportunityの調査queryを提供する。                           |
-| `scripts/soql/test-data-check-queries/`                  | フォルダ   | 合成テストデータの確認用SOQLを格納する。                                    |
-| `scripts/soql/test-data-check-queries/*.soql`            | ファイル群 | Objectごとの投入結果を確認する。                                            |
-| `scripts/scripts-guide.md`                               | ファイル   | scripts配下の用途と実行方法を案内する。                                     |
-| `scripts/permissionset-conversion/`                      | フォルダ   | ProfileからPermission Setを生成・検証する。                                 |
-| `scripts/permissionset-conversion/internal/`             | フォルダ   | Profile解決、権限変換、検証、設定検査を行う。                               |
+| パス                                                        | 種別       | 用途                                                                        |
+| ----------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| `scripts/apex/`                                             | フォルダ   | ローカルから実行するanonymous Apexを格納する。                              |
+| `scripts/apex/test-data/`                                   | フォルダ   | 合成テストデータの作成処理を格納する。                                      |
+| `scripts/apex/test-data/seed-standard-preamble.apexpart`    | ファイル   | 標準Object seedに実行時合成する共通変数と関数の断片を定義する。             |
+| `scripts/apex/test-data/seed-standard-*.apexpart`           | ファイル群 | 標準Object seedに実行時合成するobject固有処理の断片を定義する。             |
+| `scripts/apex/test-data/*.apex`                             | ファイル群 | 標準Objectと対象機能の合成テストデータを操作する。                          |
+| `scripts/ci/`                                               | フォルダ   | 定期品質チェックの障害検知Issue管理scriptとNode.js testを格納する。         |
+| `scripts/ci/report-quality-check.js`                        | ファイル   | チェック失敗時のIssue作成・更新と復旧時のクローズを実行する。               |
+| `scripts/documentation-check/`                              | フォルダ   | Markdownの検証scriptを格納する。                                            |
+| `scripts/documentation-check/check-docs.js`                 | ファイル   | Markdown構造、索引、内部リンクを検証する。                                  |
+| `scripts/documentation-check/internal/`                     | フォルダ   | docs検証scriptから読み込む内部処理を格納する。                              |
+| `scripts/documentation-check/internal/validate-markdown.js` | ファイル   | 単一Markdownの構造、ファイル名、危険なコマンド例を検証する。                |
+| `scripts/documentation-check/internal/validate-docs.js`     | ファイル   | 文書間リンクとdocs索引からの到達性を検証する。                              |
+| `scripts/documentation-check/internal/markdown-files.js`    | ファイル   | 検証対象のMarkdownファイルを列挙する。                                      |
+| `scripts/documentation-check/test/`                         | フォルダ   | docs検証scriptのNode.js testを格納する。                                    |
+| `scripts/documentation-check/test/*.node.js`                | ファイル群 | docs検証scriptの振る舞いを確認する。                                        |
+| `scripts/metadata/`                                         | フォルダ   | Salesforce metadata操作scriptを格納する。                                   |
+| `scripts/common/`                                           | フォルダ   | 複数領域のscriptから読み込む共通処理を格納する。                            |
+| `scripts/common/approval.js`                                | ファイル   | ターミナルの確認入力作成と承認判定を共通化する。                            |
+| `scripts/common/run-command.js`                             | ファイル   | macOSとWindowsから外部CLIを実行する共通処理を提供する。                     |
+| `scripts/common/target-org.js`                              | ファイル   | 対象組織を認証済み組織一覧と照合し、安全確認用の情報と種別を返す。          |
+| `scripts/common/test/`                                      | フォルダ   | scripts全体で共有する処理のNode.js testを格納する。                         |
+| `scripts/common/test/*.node.js`                             | ファイル群 | 承認判定、外部CLI実行、対象組織判定の振る舞いを確認する。                   |
+| `scripts/metadata/destructive/`                             | フォルダ   | metadata削除scriptを格納する。                                              |
+| `scripts/metadata/destructive/destructive.js`               | ファイル   | 接続組織を確認し、dry-run成功後にメタデータを削除する。                     |
+| `scripts/metadata/destructive/internal/deploy-runner.js`    | ファイル   | deployを監視し、実行方法別にjob完了結果を検証する。                         |
+| `scripts/metadata/destructive/test/`                        | フォルダ   | metadata削除scriptとdeploy監視処理のNode.js testを格納する。                |
+| `scripts/metadata/retrieve/`                                | フォルダ   | metadata retrieve scriptを格納する。                                        |
+| `scripts/metadata/retrieve/retrieve.js`                     | ファイル   | 責務別manifestを順に使用してmetadataを取得する。                            |
+| `scripts/org-tests/`                                        | フォルダ   | 接続組織のApexテストとFlowテストを実行するscriptを格納する。                |
+| `scripts/org-tests/run-apex-tests.js`                       | ファイル   | 接続先を確認してローカルApexテストを全件開始する。                          |
+| `scripts/org-tests/run-flow-tests.js`                       | ファイル   | 接続先を確認してローカルFlowテストを全件開始する。                          |
+| `scripts/org-tests/internal/`                               | フォルダ   | 組織テストの非同期開始、進捗監視、結果取得処理を格納する。                  |
+| `scripts/org-tests/internal/run-org-test.js`                | ファイル   | ApexとFlowに共通する接続先確認とテスト開始処理を提供する。                  |
+| `scripts/org-tests/internal/test-progress.js`               | ファイル   | 組織テストの進捗取得、終了判定、表示処理を提供する。                        |
+| `scripts/org-tests/internal/test-runner.js`                 | ファイル   | ApexテストとFlowテストの開始、監視、結果取得を共通化する。                  |
+| `scripts/org-tests/test/`                                   | フォルダ   | 組織テスト実行scriptのNode.js testを格納する。                              |
+| `scripts/scratch-org/`                                      | フォルダ   | Scratch Orgの作成、初期化、削除処理を格納する。                             |
+| `scripts/scratch-org/setup.js`                              | ファイル   | Scratch Org作成からmetadata反映、権限、データ投入までを実行する。           |
+| `scripts/scratch-org/delete.js`                             | ファイル   | `--alias`で指定されたScratch Orgを削除する。                                |
+| `scripts/scratch-org/scratch-org.json`                      | ファイル   | Scratch Org scriptのalias、期間、manifest、Permission Set、waitを定義する。 |
+| `scripts/scratch-org/internal/`                             | フォルダ   | Scratch Org scriptから読み込む共通処理を格納する。                          |
+| `scripts/scratch-org/steps/`                                | フォルダ   | setupから子プロセスとして実行する各手順を格納する。                         |
+| `scripts/scratch-org/steps/deploy.js`                       | ファイル   | Scratch Org初期metadataをRunLocalTests付きで反映する。                      |
+| `scripts/scratch-org/test/`                                 | フォルダ   | Scratch Org scriptのNode.js testを格納する。                                |
+| `scripts/scratch-org/test/*.node.js`                        | ファイル群 | Scratch Org scriptのcommand生成と実行制御を確認する。                       |
+| `scripts/setup/`                                            | フォルダ   | テストデータ投入のplanと実行scriptを格納する。                              |
+| `scripts/setup/plans/`                                      | フォルダ   | テストデータ投入の実行計画を格納する。                                      |
+| `scripts/setup/plans/import-test-data-plan.json`            | ファイル   | anonymous Apexの実行順序と反復回数を定義する。                              |
+| `scripts/setup/import-test-data.js`                         | ファイル   | import planに従って合成テストデータを投入する。                             |
+| `scripts/setup/internal/`                                   | フォルダ   | テストデータ投入scriptから読み込む内部処理を格納する。                      |
+| `scripts/setup/internal/import-test-data-core.js`           | ファイル   | import plan、CLI引数、Apex合成の検証可能なcoreを提供する。                  |
+| `scripts/setup/internal/import-test-data-runner.js`         | ファイル   | 準備済みentryのCLI実行、表示、一時ファイルの後始末を提供する。              |
+| `scripts/record-export/`                                    | フォルダ   | 最新レコードの縦型・横型CSV出力入口、共通処理、Node.js testを格納する。     |
+| `scripts/soql/`                                             | フォルダ   | 調査とテストデータ確認に使用するSOQLを格納する。                            |
+| `scripts/soql/object-queries/`                              | フォルダ   | Object別の調査用SOQLを格納する。                                            |
+| `scripts/soql/object-queries/**/*.soql`                     | ファイル群 | Account、Case、Opportunityの調査queryを提供する。                           |
+| `scripts/soql/test-data-check-queries/`                     | フォルダ   | 合成テストデータの確認用SOQLを格納する。                                    |
+| `scripts/soql/test-data-check-queries/*.soql`               | ファイル群 | Objectごとの投入結果を確認する。                                            |
+| `scripts/scripts-guide.md`                                  | ファイル   | scripts配下の用途と実行方法を案内する。                                     |
+| `scripts/permissionset-conversion/`                         | フォルダ   | ProfileからPermission Setを生成・検証する。                                 |
+| `scripts/permissionset-conversion/internal/`                | フォルダ   | Profile解決、権限変換、検証、設定検査を行う。                               |
