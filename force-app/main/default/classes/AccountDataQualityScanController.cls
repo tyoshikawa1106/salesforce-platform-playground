@@ -36,7 +36,7 @@ public with sharing class AccountDataQualityScanController {
             // 取得したスキャンを画面表示値へ変換
             return service.createViewModel(latestScan);
         } catch (Exception e) {
-            throw createAuraHandledException('スキャン状態を取得できませんでした。時間をおいてもう一度お試しください。');
+            throw createAuraHandledException('スキャン状態を取得できませんでした。権限設定を確認してください。');
         }
     }
 

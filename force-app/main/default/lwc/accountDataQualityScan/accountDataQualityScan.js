@@ -12,7 +12,7 @@ const START_SUCCESS_TITLE = 'スキャンを開始しました';
 const START_ERROR_TITLE = 'スキャンを開始できません';
 // 状態取得失敗時の代替文言
 const LOAD_ERROR_MESSAGE =
-    'スキャン状態を読み込めませんでした。時間をおいてもう一度お試しください。';
+    'スキャン状態を取得できませんでした。権限設定を確認してください。';
 
 // 取引先データ品質スキャンの開始と状態表示を管理
 export default class AccountDataQualityScan extends LightningElement {
