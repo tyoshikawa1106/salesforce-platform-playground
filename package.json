@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "description": "Salesforce App",
     "engines": {
-        "node": ">=24 <25"
+        "node": ">=24.22.1 <25"
     },
     "scripts": {
         "lint": "eslint \"**/{aura,lwc}/**/*.js\" \"scripts/**/*.js\" --no-error-on-unmatched-pattern",

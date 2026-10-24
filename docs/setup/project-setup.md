@@ -9,7 +9,7 @@
 
 | 対象           | 現在の採用値                                                            | 設定の起点                         | 変更時に揃える範囲                                 |
 | -------------- | ----------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------- |
-| Node.js        | 24                                                                      | `.node-version`、`package.json`    | CI の `node-version`、README、setup docs           |
+| Node.js        | 24.22.1以上、25未満                                                     | `.node-version`、`package.json`    | CI の `node-version`、README、setup docs           |
 | npm scripts    | `package.json` の `scripts` と `lint-staged`                            | `package.json`                     | CI、pre-commit、各 docs に記載したコマンド         |
 | Prettier       | 4 spaces、single quote、trailing comma なし、120文字、Apex / XML plugin | `.prettierrc`、`package.json`      | `lint-staged`、整形対象、初回整形差分、setup docs  |
 | 参考にした構成 | DreamHouse、E-Bikes、LWC Recipes、Apex Recipes の formatter 関連設定    | `.prettierrc` に採用した現在の設定 | 参考元ではなく、対象プロジェクトで必要な設定を優先 |
@@ -17,8 +17,10 @@
 ## 前提
 
 - Salesforce CLI が使えること
-- Node.js 24 / npm が使えること
+- Node.js 24.22.1以上、25未満 / npm が使えること
 - Salesforce 開発組織へログインできること
+
+`package.json`の`engines.node`で許容範囲を指定し、`.node-version`にはその範囲内の基準バージョンを記載します。CIは許容範囲内のNode.jsを選択します。`engines`は通常のnpm設定では警告として扱われるため、ローカルでも`node --version`で要件を満たすことを確認します。
 
 ## 初期セットアップ
 

@@ -95,7 +95,7 @@ where.exe java
 
 ## 4. Node.js / npm
 
-このリポジトリの npm scripts と CI は Node.js 24 を前提にします。
+このリポジトリの npm scripts と CI は Node.js 24.22.1以上、25未満を前提にします。
 
 Node.js は Salesforce CLI の付属物ではなく、開発環境の前提として明示的に管理します。
 winget の `OpenJS.NodeJS` には統一せず、Node.js / npm は Volta で管理します。
@@ -114,7 +114,7 @@ volta --version
 where.exe volta
 ```
 
-Node.js 24 をインストールします。
+Node.js 24系の最新版をインストールします。
 
 ```text
 volta install node@24
@@ -130,7 +130,7 @@ npm --version
 volta list
 ```
 
-`node --version` は `v24.x` であることを確認します。
+`node --version` は24.22.1以上、25未満であることを確認します。要件を満たさない場合は後続のセットアップを止め、Node.jsを更新してから再確認します。
 
 ## 5. Python 3.13
 
