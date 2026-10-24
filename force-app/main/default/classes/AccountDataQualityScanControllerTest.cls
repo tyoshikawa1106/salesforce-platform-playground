@@ -163,7 +163,7 @@ private with sharing class AccountDataQualityScanControllerTest {
                 AccountDataQualityScanController.getLatestScan();
                 Assert.fail('状態取得失敗はAuraHandledExceptionへ変換する必要あり');
             } catch (AuraHandledException e) {
-                Assert.isTrue(e.getMessage().contains('スキャン状態を取得できませんでした'), '利用者向けの安全な文言を返す必要あり');
+                Assert.isTrue(e.getMessage().contains('スキャン状態を取得できませんでした。権限設定を確認してください。'), '利用者向けの安全な文言を返す必要あり');
             }
             Test.stopTest();
         }

@@ -29,18 +29,17 @@
             </div>
         </template>
         <template lwc:elseif={errorMessage}>
-            <div
-                class="slds-notify slds-notify_alert slds-alert_error slds-m-around_medium"
-                role="alert"
-            >
-                <lightning-icon
-                    alternative-text="エラー"
-                    class="slds-m-right_x-small"
-                    icon-name="utility:error"
-                    size="x-small"
-                    variant="inverse"
-                ></lightning-icon>
-                <span>{errorMessage}</span>
+            <div class="slds-m-around_medium">
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <lightning-icon
+                        alternative-text="エラー"
+                        class="slds-m-right_x-small"
+                        icon-name="utility:error"
+                        size="x-small"
+                        variant="inverse"
+                    ></lightning-icon>
+                    <span>{errorMessage}</span>
+                </div>
             </div>
         </template>
         <template lwc:elseif={hasScan}>

@@ -173,7 +173,7 @@ describe('c-account-data-quality-scan', () => {
 
         expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
         expect(element.shadowRoot.textContent).toContain(
-            'スキャン状態を読み込めませんでした。時間をおいてもう一度お試しください。'
+            'スキャン状態を取得できませんでした。権限設定を確認してください。'
         );
         await expect(element).toBeAccessible();
     });
