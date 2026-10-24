@@ -177,32 +177,26 @@ Scratch Org で External Client App まで検証する必要が出た場合は�
 
 ### Permission Set 割り当て
 
-Scratch Org の作成ユーザーには、ユーザー作成アプリへのアクセス権として `SalesforceApplicationUser` Permission Set を割り当てます。
-スクリプトでは metadata deploy 後に自動実行します。
+Scratch Org の作成ユーザーには、次のPermission Setを割り当てます。
+
+- `SalesforceApplicationUser`: ユーザー作成アプリへのアクセス
+- `LwcAccountDataQualityScan`: 取引先データ品質スキャンの状態取得と実行
+- `LwcAccountDelete`: 取引先一括削除の専用カスタム権限 `RunAccountDelete`
+- `LwcAccountMassUpdate`: 取引先一括更新タブの表示とApex入口の実行
+
+自動割り当ての対象は `scripts/scratch-org/scratch-org.json` の `permissionSets` で管理し、スクリプトでは metadata deploy 後にまとめて割り当てます。一部でも失敗した場合は後続のテストデータ投入へ進みません。手動で個別実行する場合も同じ権限セットを割り当てます。
 
 ```sh
-sf org assign permset --name SalesforceApplicationUser --target-org <scratch-org-alias>
+sf org assign permset \
+    --name SalesforceApplicationUser \
+    --name LwcAccountDataQualityScan \
+    --name LwcAccountDelete \
+    --name LwcAccountMassUpdate \
+    --target-org <scratch-org-alias> \
+    --json
 ```
 
-取引先一括更新を利用する場合は、初期反映後に機能専用の `LwcAccountMassUpdate` Permission Set（表示ラベル: 「LWC：取引先一括更新」）も作成ユーザーへ割り当てます。初期反映スクリプトによる `SalesforceApplicationUser` の割り当てだけでは、一括更新タブの表示・Apex入口の実行権限は付与されません。対象組織に権限セットが反映済みであることを確認して実行し、失敗した場合は対象組織と反映結果を確認してから再実行します。
-
-```sh
-sf org assign permset --name LwcAccountMassUpdate --target-org <scratch-org-alias>
-```
-
-割り当て結果の成功を確認します。必要なデータ権限と表示条件は[取引先一括更新の仕様](../specifications/lwc/account-mass-update/index.md#権限実行条件)を参照してください。
-
-取引先一括削除を試す場合は、初期反映後に機能専用の`LwcAccountDelete` Permission Set（表示ラベル: 「LWC：取引先一括削除」）も割り当てます。通常のアプリ利用権限とは分けて付与します。
-
-```sh
-sf org assign permset --name LwcAccountDelete --target-org <scratch-org-alias>
-```
-
-取引先データ品質スキャンを利用する場合は、結果項目へのアクセスを含む`LwcAccountDataQualityScan` Permission Set（表示ラベル: 「LWC：取引先データ品質スキャン」）も割り当てます。
-
-```sh
-sf org assign permset --name LwcAccountDataQualityScan --target-org <scratch-org-alias>
-```
+割り当て結果の成功を確認します。取引先一括削除・一括更新のデータ権限は既存の設定に従い、権限セットの割り当てだけで更新・削除処理は開始しません。必要なデータ権限と表示条件は[取引先一括更新の仕様](../specifications/lwc/account-mass-update/index.md#権限実行条件)を参照してください。
 
 ### 反映対象 metadata
 
