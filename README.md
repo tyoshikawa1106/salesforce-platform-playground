@@ -31,7 +31,7 @@
 
 - Salesforce DX
 - Salesforce CLI
-- Node.js 24.22.1以上、25未満
+- Node.js 24
 - Prettier
 - ESLint
 - SLDS Linter
@@ -45,7 +45,7 @@
 - Salesforce 開発組織
 - Salesforce CLI
 - Git
-- Node.js 24.22.1以上、25未満
+- Node.js 24
 - npm
 - OpenJDK
 - Python 3.10 以上
