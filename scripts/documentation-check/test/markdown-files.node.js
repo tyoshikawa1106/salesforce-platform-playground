@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/docs/test/markdown-files.node.js
+// 実行コマンド: node --test scripts/documentation-check/test/markdown-files.node.js
 // 用途: 文書検証の対象と除外対象がリポジトリルールに一致することを検証する。
 
 const test = require('node:test');

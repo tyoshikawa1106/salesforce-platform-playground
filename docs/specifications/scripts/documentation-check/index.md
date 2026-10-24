@@ -10,14 +10,14 @@
 
 ## 対象実装・メタデータ
 
-| 種別             | パス                                         | 役割                                               |
-| ---------------- | -------------------------------------------- | -------------------------------------------------- |
-| npm script       | `docs:check`                                 | 利用者とCIが実行する入口                           |
-| Node.js script   | `scripts/docs/check-docs.js`                 | 検査対象を読み込み、問題一覧と終了状態を出力する   |
-| Node.js module   | `scripts/docs/internal/markdown-files.js`    | Gitの状態から対象Markdownと除外対象を決定する      |
-| Node.js module   | `scripts/docs/internal/validate-docs.js`     | 文書間リンクと索引到達性を検証する                 |
-| Node.js module   | `scripts/docs/internal/validate-markdown.js` | Markdown単体の構造、名前、コマンド例を検証する     |
-| テストスクリプト | `scripts/docs/test/*.node.js`                | 対象抽出、構造、リンク、安全ルールの分岐を検証する |
+| 種別             | パス                                                        | 役割                                               |
+| ---------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| npm script       | `docs:check`                                                | 利用者とCIが実行する入口                           |
+| Node.js script   | `scripts/documentation-check/check-docs.js`                 | 検査対象を読み込み、問題一覧と終了状態を出力する   |
+| Node.js module   | `scripts/documentation-check/internal/markdown-files.js`    | Gitの状態から対象Markdownと除外対象を決定する      |
+| Node.js module   | `scripts/documentation-check/internal/validate-docs.js`     | 文書間リンクと索引到達性を検証する                 |
+| Node.js module   | `scripts/documentation-check/internal/validate-markdown.js` | Markdown単体の構造、名前、コマンド例を検証する     |
+| テストスクリプト | `scripts/documentation-check/test/*.node.js`                | 対象抽出、構造、リンク、安全ルールの分岐を検証する |
 
 ## 入力
 
@@ -63,7 +63,7 @@
 
 ## テスト・確認観点
 
-`npm run test:scripts`に含まれる`scripts/docs/test/*.node.js`で、Git管理対象と未追跡・非除外の列挙条件、削除済み文書の除外、対象分類、H1、見出し、コードフェンス、リンク、URLエンコード、アンカー、索引到達性、安全でないコマンド例を確認します。
+`npm run test:scripts`に含まれる`scripts/documentation-check/test/*.node.js`で、Git管理対象と未追跡・非除外の列挙条件、削除済み文書の除外、対象分類、H1、見出し、コードフェンス、リンク、URLエンコード、アンカー、索引到達性、安全でないコマンド例を確認します。
 
 文書変更後は次を実行します。
 

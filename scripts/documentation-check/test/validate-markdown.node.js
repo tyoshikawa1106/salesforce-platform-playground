@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/docs/test/validate-markdown.node.js
+// 実行コマンド: node --test scripts/documentation-check/test/validate-markdown.node.js
 // 用途: 1つのMarkdownの解析、構造、危険なコマンド例を検証する。
 
 const test = require('node:test');

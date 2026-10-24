@@ -1,4 +1,4 @@
-// 実行コマンド: node --test scripts/docs/test/validate-docs.node.js
+// 実行コマンド: node --test scripts/documentation-check/test/validate-docs.node.js
 // 用途: 文書間リンクとdocs索引からの到達性を検証する。
 
 const test = require('node:test');
