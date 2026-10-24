@@ -16,9 +16,21 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
         defaultAlias: scratchOrg.alias,
         usage,
         execute(alias) {
-            // 設定済みPermission Setを指定Scratch Orgの実行ユーザーへ割り当てる。
+            // 機能専用権限も同じ作成ユーザーへ付与できるようCLI引数を組み立てる。
+            const permissionSetArgs = scratchOrg.permissionSets.flatMap((name) => ['--name', name]);
+            // 一部の割り当て失敗も終了状態へ反映し、後続のデータ投入を停止する。
             return runSfCommand(
-                ['org', 'assign', 'permset', '--name', scratchOrg.permissionSet, '--target-org', alias],
+                [
+                    'org',
+                    'assign',
+                    'permset',
+                    // 設定済みの利用権限をまとめて指定する。
+                    ...permissionSetArgs,
+                    // 呼び出し元から受け取った組織へ割り当て先を限定する。
+                    '--target-org',
+                    alias,
+                    '--json'
+                ],
                 repoRoot
             );
         }

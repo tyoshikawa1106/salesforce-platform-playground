@@ -125,9 +125,16 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         'assign',
         'permset',
         '--name',
-        scratchOrg.permissionSet,
+        'SalesforceApplicationUser',
+        '--name',
+        'LwcAccountDataQualityScan',
+        '--name',
+        'LwcAccountDelete',
+        '--name',
+        'LwcAccountMassUpdate',
         '--target-org',
-        'test-scratch-org'
+        'test-scratch-org',
+        '--json'
     ]);
 });
 

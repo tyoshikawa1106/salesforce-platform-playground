@@ -44,7 +44,7 @@ node scripts/scratch-org/delete.js --alias <alias>
 
 1. `sf org create scratch`でScratch定義、alias、有効日数を指定して作成する。
 2. CLIの認証済み組織一覧で対象が一意のScratch Orgであることを確認し、そのusernameを接続先に固定する。`deploymentPermissionSet`に指定した権限セットだけを`NoTestRun`でdeployし、同じ実行者への割り当てを確認し、未割り当ての場合だけ付与してから、`manifest/rebuild-scratch-org.xml`を`RunLocalTests`と設定済み待機時間でdeployする。
-3. 設定済みPermission SetをScratch Orgユーザーへ割り当てる。
+3. `scratch-org.json`の`permissionSets`に列挙したPermission Setを、同じScratch Orgの作成ユーザーへまとめて割り当てる。アプリ入口用の`SalesforceApplicationUser`に加え、ホーム画面のスキャン状態取得・実行に必要な`LwcAccountDataQualityScan`と、取引先一括削除の専用利用権限を付与する`LwcAccountDelete`、取引先一括更新のタブとApex入口を利用する`LwcAccountMassUpdate`を含める。Accountの参照・削除権限は既存の権限設定に従い、この割り当てだけで削除処理は開始しない。CLIへ`--name`を繰り返し指定し、`--json`で結果を表示する。一部でも割り当てに失敗した場合は非0終了し、後続のテストデータ投入を実行しない。
 4. 共通のテストデータ投入スクリプトへ作成済みalias、import plan、投入stepで定義した繰り返し回数を渡す。標準データの投入が成功し、対象がScratch Orgと確認できた場合は、同じ組織の確認済みユーザーをロール・ユーザーデータ作成処理へ内部的に引き継ぐ。追加投入でも種別を再判定し、接続先を表示して作成確認を求める。
 
 各stepは子Node.jsプロセスとして順番に実行し、非0終了した時点で後続stepを実行しません。テストデータ投入stepでは接続組織を表示し、利用者の承認後に投入します。
