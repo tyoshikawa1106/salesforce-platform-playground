@@ -12,18 +12,18 @@
 
 本機能のApex本体・テストとLWCはWinter ’27のAPI 68.0を使用します。
 
-| 責務                     | 実装                                                                                                                                                                                                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 公開画面と状態管理       | [orgExplorer](../../../../force-app/main/default/lwc/orgExplorer/orgExplorer.js)、[画面ロジック](../../../../force-app/main/default/lwc/orgExplorer/orgExplorerLogic.js)                                                                                                                                |
-| カードと接続線、表示位置 | [orgExplorerCanvas](../../../../force-app/main/default/lwc/orgExplorerCanvas/orgExplorerCanvas.js)、[座標計算](../../../../force-app/main/default/lwc/orgExplorerCanvas/orgExplorerCanvasLogic.js)、[orgExplorerCard](../../../../force-app/main/default/lwc/orgExplorerCard/orgExplorerCard.js)        |
-| 所属ユーザー一覧・検索   | [orgExplorerDetails](../../../../force-app/main/default/lwc/orgExplorerDetails/orgExplorerDetails.js)、[orgExplorerSearch](../../../../force-app/main/default/lwc/orgExplorerSearch/orgExplorerSearch.js)                                                                                               |
-| 公開API                  | [OrgExplorerController](../../../../force-app/main/default/classes/OrgExplorerController.cls)                                                                                                                                                                                                           |
-| 入力検証・応答整形       | [OrgExplorerRequestService](../../../../force-app/main/default/classes/OrgExplorerRequestService.cls)、[OrgExplorerService](../../../../force-app/main/default/classes/OrgExplorerService.cls)、[OrgExplorerMemberService](../../../../force-app/main/default/classes/OrgExplorerMemberService.cls)     |
-| 利用可否・照会           | [OrgExplorerAccessPolicy](../../../../force-app/main/default/classes/OrgExplorerAccessPolicy.cls)、[OrgExplorerSelector](../../../../force-app/main/default/classes/OrgExplorerSelector.cls)                                                                                                            |
-| 構造のページ継続位置     | [OrgExplorerCursorCodec](../../../../force-app/main/default/classes/OrgExplorerCursorCodec.cls)                                                                                                                                                                                                         |
-| タブ・アプリ・入口の権限 | [OrgExplorer](../../../../force-app/main/default/tabs/OrgExplorer.tab-meta.xml)、[Salesforce](../../../../force-app/main/default/applications/Salesforce.app-meta.xml)、[SalesforceApplicationUser](../../../../force-app/main/default/permissionsets/SalesforceApplicationUser.permissionset-meta.xml) |
+| 責務                     | 実装                                                                                                                                                                                                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 公開画面と状態管理       | [orgExplorer](../../../../force-app/main/default/lwc/orgExplorer/orgExplorer.js)、[画面ロジック](../../../../force-app/main/default/lwc/orgExplorer/orgExplorerLogic.js)                                                                                                                            |
+| カードと接続線、表示位置 | [orgExplorerCanvas](../../../../force-app/main/default/lwc/orgExplorerCanvas/orgExplorerCanvas.js)、[座標計算](../../../../force-app/main/default/lwc/orgExplorerCanvas/orgExplorerCanvasLogic.js)、[orgExplorerCard](../../../../force-app/main/default/lwc/orgExplorerCard/orgExplorerCard.js)    |
+| 所属ユーザー一覧・検索   | [orgExplorerDetails](../../../../force-app/main/default/lwc/orgExplorerDetails/orgExplorerDetails.js)、[orgExplorerSearch](../../../../force-app/main/default/lwc/orgExplorerSearch/orgExplorerSearch.js)                                                                                           |
+| 公開API                  | [OrgExplorerController](../../../../force-app/main/default/classes/OrgExplorerController.cls)                                                                                                                                                                                                       |
+| 入力検証・応答整形       | [OrgExplorerRequestService](../../../../force-app/main/default/classes/OrgExplorerRequestService.cls)、[OrgExplorerService](../../../../force-app/main/default/classes/OrgExplorerService.cls)、[OrgExplorerMemberService](../../../../force-app/main/default/classes/OrgExplorerMemberService.cls) |
+| 利用可否・照会           | [OrgExplorerAccessPolicy](../../../../force-app/main/default/classes/OrgExplorerAccessPolicy.cls)、[OrgExplorerSelector](../../../../force-app/main/default/classes/OrgExplorerSelector.cls)                                                                                                        |
+| 構造のページ継続位置     | [OrgExplorerCursorCodec](../../../../force-app/main/default/classes/OrgExplorerCursorCodec.cls)                                                                                                                                                                                                     |
+| タブ・アプリ・入口の権限 | [OrgExplorer](../../../../force-app/main/default/tabs/OrgExplorer.tab-meta.xml)、[Salesforce](../../../../force-app/main/default/applications/Salesforce.app-meta.xml)、[LwcOrgExplorer](../../../../force-app/main/default/permissionsets/LwcOrgExplorer.permissionset-meta.xml)                   |
 
-新しいオブジェクト、項目、権限セット、カスタム権限は作成しません。標準のユーザーやロールを更新しません。
+新しいオブジェクト、項目、カスタム権限は作成しません。標準のユーザーやロールを更新しません。
 
 ## 入力
 
@@ -93,7 +93,7 @@ Salesforceレコードの更新、DML、外部コールアウト、個人情報�
 
 ## 権限・実行条件
 
-入口クラスとタブは既存の`SalesforceApplicationUser`で公開します。入口へのアクセスだけでデータ参照権限を拡大しません。
+入口クラスとタブは既存の`LwcOrgExplorer`で公開します。入口へのアクセスだけでデータ参照権限を拡大しません。
 
 Apexは`with sharing`とUSER_MODEで照会し、オブジェクトと必要項目の参照可否を要求ごとに確認します。任意項目は権限がなければSELECTから除外します。上司候補ではManagerIdとUserRoleIdを取得せず、ロール側メンバー一覧では表示に不要なUserRoleIdをSELECTへ含めません。上司側メンバー一覧ではロール名の表示に必要なUserRoleIdだけを権限確認後に取得します。Userの参照とロール構造・ロール所属の参照可否は独立して扱います。親の参照を確認してから子を取得し、関連先のID・氏名は別途可視確認するまで応答へ含めません。
 

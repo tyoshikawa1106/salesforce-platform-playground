@@ -9,7 +9,14 @@
         "SalesforceApplicationUser",
         "LwcAccountDataQualityScan",
         "LwcAccountDelete",
-        "LwcAccountMassUpdate"
+        "LwcAccountMassUpdate",
+        "LwcAccountPdfExport",
+        "LwcCaseEmailMessageList",
+        "LwcObjectExplorer",
+        "LwcObjectMetricsOverview",
+        "LwcObjectRecordSearch",
+        "LwcOrgExplorer",
+        "LwcTestDataDelete"
     ],
     "waitMinutes": 30
 }

@@ -145,6 +145,24 @@
         <members>OrgExplorerSelectorTest</members>
         <members>OrgExplorerService</members>
         <members>OrgExplorerServiceTest</members>
+        <members>ObjectExplorerController</members>
+        <members>ObjectExplorerControllerTest</members>
+        <members>ObjectExplorerSelector</members>
+        <members>ObjectExplorerSelectorTest</members>
+        <members>ObjectExplorerClassificationService</members>
+        <members>ObjectExplorerClassificationServiceTest</members>
+        <members>ObjectExplorerOwnerService</members>
+        <members>ObjectExplorerOwnerServiceTest</members>
+        <members>ObjectExplorerAccessPolicy</members>
+        <members>ObjectExplorerAccessPolicyTest</members>
+        <members>MetadataApiIntegrationClient</members>
+        <members>MetadataApiIntegrationClientTest</members>
+        <members>MetadataApiSoapCodec</members>
+        <members>MetadataApiSoapCodecTest</members>
+        <members>ObjectExplorerService</members>
+        <members>ObjectExplorerServiceTest</members>
+        <members>ObjectExplorerFieldService</members>
+        <members>ObjectExplorerFieldServiceTest</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -764,6 +782,8 @@
         <members>WorkOrderLineItem.TotalPrice</members>
         <members>WorkOrderLineItem.UnitPrice</members>
         <members>WorkOrderLineItem.WorkOrderId</members>
+        <members>MetadataApiIntegrationSetting__mdt.ConsumerKey__c</members>
+        <members>MetadataApiIntegrationSetting__mdt.NamedCredentialName__c</members>
         <name>CustomField</name>
     </types>
     <types>
@@ -810,6 +830,7 @@
         <members>WorkPlan</members>
         <members>WorkPlanTemplate</members>
         <members>WorkStep</members>
+        <members>MetadataApiIntegrationSetting__mdt</members>
         <name>CustomObject</name>
     </types>
     <types>
@@ -876,6 +897,7 @@
         <members>orgExplorerDatatable</members>
         <members>orgExplorerDetails</members>
         <members>orgExplorerSearch</members>
+        <members>objectExplorer</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
@@ -948,6 +970,13 @@
         <members>LwcAccountDataQualityScan</members>
         <members>LwcAccountDelete</members>
         <members>LwcAccountMassUpdate</members>
+        <members>LwcAccountPdfExport</members>
+        <members>LwcCaseEmailMessageList</members>
+        <members>LwcObjectExplorer</members>
+        <members>LwcObjectMetricsOverview</members>
+        <members>LwcObjectRecordSearch</members>
+        <members>LwcOrgExplorer</members>
+        <members>LwcTestDataDelete</members>
         <members>SalesforceAPIPlaygroundIntegration</members>
         <members>SalesforceApplicationUser</members>
         <members>ScratchOrgMetadataDeployer</members>
@@ -1221,6 +1250,7 @@
     </types>
     <types>
         <members>RunAccountDelete</members>
+        <members>ManageObjectFieldClassification</members>
         <name>CustomPermission</name>
     </types>
     <types>
@@ -1228,6 +1258,7 @@
         <members>AccountMassUpdate</members>
         <members>TestDataDelete</members>
         <members>OrgExplorer</members>
+        <members>ObjectExplorer</members>
         <name>CustomTab</name>
     </types>
     <version>68.0</version>

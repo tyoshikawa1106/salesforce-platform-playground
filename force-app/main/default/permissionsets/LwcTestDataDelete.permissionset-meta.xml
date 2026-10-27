@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>TestDataDeleteController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>LWC：テストデータ一括削除の利用に必要な入口権限。データ参照・更新権限やオブジェクトのカスタマイズ権限は付与しません。</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>LWC：テストデータ一括削除</label>
+    <tabSettings>
+        <tab>TestDataDelete</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
