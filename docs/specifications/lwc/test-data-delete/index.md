@@ -12,7 +12,7 @@
 
 - `testDataDelete`: Lightning App Builder、ホームページ、Lightningタブへ配置する画面。
 - `TestDataDelete` CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。
-- `SalesforceApplicationUser` PermissionSet: Salesforceアプリと削除タブの表示設定。
+- `LwcTestDataDelete` PermissionSet: 削除タブの表示とControllerの実行権限。
 - `testDataDelete.js`: 実行条件・残件数の取得、確認ダイアログ、削除受付を制御。
 - `testDataDeleteLogic.js`: 対象行、状態、開始可否を生成。
 - `TestDataDeleteController`: 画面用の参照とバッチ登録。
@@ -41,8 +41,8 @@
 - `UserPermissionAccess.PermissionsModifyAllData`が有効であること。プロファイル名や単独の権限セット割当から推測しない。
 - `PermissionsQueryAllFiles`は実行条件に含めない。ファイルの削除と残件数確認は実行ユーザーが照会できる範囲に限られ、照会できないファイルの削除完了は保証しない。
 - 存在する対象オブジェクトの参照・クエリ・削除権限が必要。
-- Salesforceアプリと`TestDataDelete`タブへのアクセスが必要。既存の`SalesforceApplicationUser`権限セットでアプリとタブを表示する。
-- LWCから呼ぶ`TestDataDeleteController`へのアクセスが必要。`SalesforceApplicationUser`はこのクラスへのアクセスや`Modify All Data`を付与しないため、プロファイルなどで実効権限を別途満たす。
+- Salesforceアプリと`TestDataDelete`タブへのアクセスが必要。`SalesforceApplicationUser`でアプリを、`LwcTestDataDelete`でタブを表示する。
+- LWCから呼ぶ`TestDataDeleteController`へのアクセスが必要。`LwcTestDataDelete`でControllerの実行権限を付与する。`Modify All Data`は付与しないため、プロファイルなどで実効権限を別途満たす。
 - 残件数が未確認、全件ゼロ、権限不足、処理中、受付不明の場合は開始できない。
 
 ## エラー処理

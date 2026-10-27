@@ -34,7 +34,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ### 設定・権限
 
-- `SalesforceApplicationUser`: `ObjectMetricsOverviewController`のApexクラス実行権限
+- `LwcObjectMetricsOverview`: `ObjectMetricsOverviewController`のApexクラス実行権限
 
 ## 入力
 
@@ -63,7 +63,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ## 権限・実行条件
 
-- `SalesforceApplicationUser` Permission Setで、LWCから直接呼び出す`ObjectMetricsOverviewController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
+- `LwcObjectMetricsOverview` Permission Setで、LWCから直接呼び出す`ObjectMetricsOverviewController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトの参照権限が必要です。参照できないオブジェクトは0件として扱います。
 - `with sharing` と `WITH USER_MODE` により、利用者の共有設定と参照権限を適用します。
 - LWCは `lightning__HomePage` に公開されています。
@@ -107,3 +107,5 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 - 状態: 現行実装確認済み、承認済み要求との差異は未判定
 - 現行実装は `objectMetricsOverview`、関連Apexクラス、Apexテスト、Jestテストから確認しています。
 - 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
+
+権限セットには、件数サマリーの入口と、配下のレコード検索で使う`ObjectRecordSearchController`へのアクセスを含めます。オブジェクト・項目の参照や更新権限は付与しません。
