@@ -782,6 +782,8 @@
         <members>WorkOrderLineItem.TotalPrice</members>
         <members>WorkOrderLineItem.UnitPrice</members>
         <members>WorkOrderLineItem.WorkOrderId</members>
+        <members>MetadataApiIntegrationSetting__mdt.ConsumerKey__c</members>
+        <members>MetadataApiIntegrationSetting__mdt.NamedCredentialName__c</members>
         <name>CustomField</name>
     </types>
     <types>
