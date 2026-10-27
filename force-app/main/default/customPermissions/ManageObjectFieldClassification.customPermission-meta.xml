@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="UTF-8"?><CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata"><description>オブジェクトエクスプローラーから項目データ分類を編集する。</description><label>項目データ分類の管理</label></CustomPermission>

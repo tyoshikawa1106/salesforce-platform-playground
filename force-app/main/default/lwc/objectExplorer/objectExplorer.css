@@ -1,0 +1,105 @@
+:host { display: block; color: var(--slds-g-color-on-surface-1, #181818); }
+main { padding: var(--slds-g-spacing-4, 1rem); background: var(--slds-g-color-surface-2, #f3f3f3); }
+header, .oe-heading, .oe-toolbar, .oe-paging { display: flex; align-items: center; justify-content: space-between; gap: var(--slds-g-spacing-3, .75rem); flex-wrap: wrap; }
+header { margin-bottom: var(--slds-g-spacing-4, 1rem); }
+h1 { font-size: var(--slds-g-font-scale-4, 1.25rem); font-weight: var(--slds-g-font-weight-7, 700); }
+h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font-weight-7, 700); }
+.oe-panel { padding: var(--slds-g-spacing-4, 1rem); background: var(--slds-g-color-surface-1, #fff); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); margin-bottom: var(--slds-g-spacing-4, 1rem); }
+.oe-toolbar { align-items: flex-end; margin: var(--slds-g-spacing-3, .75rem) 0; }
+.oe-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--slds-g-spacing-2, .5rem); }
+.oe-toolbar-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--slds-g-spacing-4, 1rem); }
+.oe-lookup { margin-inline-start: auto; width: min(100%, 38rem); }
+.oe-hint, .oe-api { color: var(--slds-g-color-on-surface-2, #444); font-size: var(--slds-g-font-scale-neg-1, .75rem); }
+.oe-node.oe-selected { background: var(--slds-g-color-info-container-1, #d8e6fe); color: var(--slds-g-color-on-info-1, #0b5cab); }
+.oe-node:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-2, #0250d9); outline-offset: -2px; }
+.oe-filters { margin: var(--slds-g-spacing-4, 1rem) 0; }
+.oe-filters > * { min-width: var(--slds-g-sizing-14, 15rem); }
+.oe-table-scroll { overflow: auto; max-height: 60vh; }
+/* 縦横スクロール中も列見出しを一覧の上端へ固定 */
+.oe-table-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--slds-g-color-surface-2, #f3f3f3); color: var(--slds-g-color-on-surface-2, #444); }
+.oe-paging { justify-content: center; margin-top: var(--slds-g-spacing-4, 1rem); }
+
+.oe-card-field { font-size: var(--slds-g-font-scale-neg-1, .75rem); }
+.oe-selected-relation { margin-top: var(--slds-g-spacing-4, 1rem); overflow-wrap: anywhere; }
+.oe-selected-relation h3 { font-weight: var(--slds-g-font-weight-7, 700); }
+.oe-selected-relation ul { list-style: disc; padding-left: var(--slds-g-spacing-5, 1.5rem); }
+
+.oe-object-search { position: relative; min-width: 0; }
+.oe-candidate-line { display: block; }
+
+.oe-detail-title { scroll-margin-top: 10rem; margin-block-end: var(--slds-g-spacing-2, .5rem); }
+
+.oe-mode { display: block; margin-bottom: var(--slds-g-spacing-4, 1rem); }
+.oe-save-bar { display: flex; align-items: center; gap: var(--slds-g-spacing-4, 1rem); flex-wrap: wrap; margin: var(--slds-g-spacing-4, 1rem) 0; }
+.oe-classification-notice { margin-block-end: var(--slds-g-spacing-3, .75rem); padding: var(--slds-g-spacing-3, .75rem); background: var(--slds-g-color-surface-2, #f3f3f3); white-space: normal; }
+.oe-classification-cell { min-width: var(--slds-g-sizing-14, 15rem); vertical-align: middle; }
+.oe-save-bar { justify-content: flex-end; }
+
+/* 図以外の読み込みも標準スピナーで通知 */
+
+/* 候補の総数に関係なくスクロール領域を一定に保持 */
+.oe-option-scroll { max-height: var(--slds-g-sizing-15, 20rem); overflow-y: auto; }
+/* 行の高さは候補ウィンドウの座標モデルで指定 */
+.oe-object-option { align-items: center; }
+
+/* 選択中カードのAPI名も組織エクスプローラーと同じ文字色に揃える */
+.oe-node.oe-selected .oe-api { color: inherit; }
+
+/* 中央の起点を維持し、左右は読める大きさの二列一覧にする */
+.oe-viewport { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .5fr) minmax(0, 1fr); gap: var(--slds-g-spacing-5, 1rem); min-height: var(--slds-g-sizing-16, 30rem); padding: var(--slds-g-spacing-3, .75rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); background: var(--slds-g-color-surface-2, #f3f3f3); }
+.oe-relation-column, .oe-origin-column { min-width: 0; }
+.oe-origin-column { display: flex; flex-direction: column; }
+.oe-column-heading { min-height: var(--slds-g-sizing-8, 2rem); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--slds-g-spacing-2, .5rem); margin-block-end: var(--slds-g-spacing-2, .5rem); font-weight: var(--slds-g-font-weight-7, 700); }
+.oe-card-scroll { height: min(55vh, 36rem); overflow-y: auto; scrollbar-gutter: stable; margin-block-start: var(--slds-g-spacing-3, .75rem); padding: var(--slds-g-spacing-2, .5rem); }
+.oe-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--slds-g-spacing-2, .5rem); align-items: start; }
+.oe-node { box-sizing: border-box; position: relative; min-width: 0; min-height: calc(var(--slds-g-spacing-4, 1rem) * 6 + 1lh); text-align: left; padding: var(--slds-g-spacing-2, .5rem); font-size: var(--slds-g-font-scale-neg-1, .75rem); line-height: var(--slds-g-font-lineheight-2, 1.25); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #181818); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); cursor: pointer; display: flex; flex-direction: column; gap: var(--slds-g-spacing-1, .25rem); overflow-wrap: anywhere; }
+.oe-node { padding-block-end: calc(var(--slds-g-spacing-2, .5rem) + 1lh); }
+/* 長い名称や関連項目は一行の省略表示にする */
+.oe-node > strong, .oe-node > span, .oe-node > small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.oe-node strong { font-weight: var(--slds-g-font-weight-7, 700); }
+.oe-origin-column .oe-node { margin-block-start: var(--slds-g-spacing-3, .75rem); }
+.oe-card-scroll:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-2, #0176d3); }
+.oe-card-grid_narrow { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 42rem) { .oe-viewport { grid-template-columns: minmax(0, 1fr); } .oe-origin-column { grid-row: 1; } }
+
+/* 未保存の変更は列を増やさず行全体で示す */
+.slds-table tr.oe-classification-changed > th, .slds-table tr.oe-classification-changed > td { background: var(--slds-g-color-warning-container-1, #fff7d6); }
+/* 空欄でも標準入力と同じ最低高さを維持し、候補だけを重ねて表示 */
+.oe-compliance { position: relative; inline-size: var(--slds-g-sizing-14, 15rem); }
+.oe-compliance-input { min-height: var(--slds-g-sizing-9, 2rem); display: flex; align-items: center; justify-content: space-between; gap: var(--slds-g-spacing-2, .5rem); text-align: left; }
+.oe-compliance-value { min-width: 0; flex: 1; }
+.oe-compliance-options { z-index: 1; max-height: var(--slds-g-sizing-14, 15rem); overflow-y: auto; padding: var(--slds-g-spacing-2, .5rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); white-space: normal; }
+
+/* ユーザーと公開グループを同じ検索欄から選択 */
+.oe-owner-lookup { position: relative; min-width: var(--slds-g-sizing-14, 15rem); }
+.oe-owner-options { max-height: var(--slds-g-sizing-14, 15rem); overflow-y: auto; }
+.oe-owner-options [role="option"] { cursor: pointer; white-space: normal; }
+
+
+/* 少ない検索結果でも分類候補を固定ヘッダーの裏へ追い込まない */
+.oe-table-scroll:has(.oe-compliance-options), .oe-table-scroll:has(lightning-combobox:focus-within), .oe-table-scroll:has(.oe-owner-options) { min-height: min(var(--slds-g-sizing-15, 20rem), 60vh); }
+
+/* 分類設定モードの取得・保存中を見出し横で通知 */
+.oe-loading { position: relative; width: var(--slds-g-sizing-8, 2rem); height: var(--slds-g-sizing-8, 2rem); }
+
+/* 選択済みの二重線はSLDS標準に任せ、未選択の検索欄だけを統一 */
+.oe-lookup-input { padding-inline-start: var(--slds-g-spacing-3, .75rem); }
+.oe-lookup-input:not([readonly]) { border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); box-shadow: none; }
+.oe-lookup-input:not([readonly]):focus { border-color: var(--slds-g-color-accent-1, #0176d3); box-shadow: 0 0 3px var(--slds-g-color-accent-1, #0176d3); outline: 0; }
+
+/* CSV操作を一覧の上へまとめ、エラー全件を独立した領域で確認 */
+.oe-filter-toolbar { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: var(--slds-g-spacing-4, 1rem); margin-block: var(--slds-g-spacing-4, 1rem); }
+.oe-filter-toolbar .oe-filters { margin: 0; flex: 1; min-width: 0; flex-wrap: nowrap; }
+.oe-csv-tools { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: var(--slds-g-spacing-3, .75rem); margin-inline-start: auto; }
+.oe-csv-import { min-width: 0; }
+.oe-csv-label { display: flex; align-items: center; gap: var(--slds-g-spacing-1, .25rem); }
+.oe-csv-errors { max-height: var(--slds-g-sizing-14, 15rem); overflow: auto; overflow-wrap: anywhere; margin-block-end: var(--slds-g-spacing-3, .75rem); padding: var(--slds-g-spacing-3, .75rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); }
+
+/* 検索欄を短めにし、CSV操作と同じ行へ収める */
+.oe-filters > .oe-field-search { flex: 0 1 var(--slds-g-sizing-15, 18rem); min-width: 0; }
+
+/* 日時とユーザー名をカンマ区切りで同じ行に表示 */
+.oe-audit-value { white-space: nowrap; }
+
+/* 作成日・最終更新日のユーザーリンクだけ本文と同じ黒色にする */
+.oe-audit-value a { color: inherit; text-decoration: underline; }

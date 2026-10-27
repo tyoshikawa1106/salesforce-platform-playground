@@ -18,3 +18,5 @@ Lightning Web Components で実装した機能の仕様書一覧です。
 - [取引先一括更新](account-mass-update/index.md)（`accountMassUpdate`）
 
 - [組織エクスプローラー](org-explorer/index.md)（`orgExplorer`）
+
+- [オブジェクトエクスプローラー](object-explorer/index.md)（`objectExplorer`）

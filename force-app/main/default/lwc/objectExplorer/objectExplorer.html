@@ -1,0 +1,697 @@
+<template>
+    <main>
+        <header><h1>オブジェクトエクスプローラー</h1></header>
+        <lightning-radio-group
+            class="oe-mode"
+            label="表示モード"
+            options={modeOptions}
+            value={mode}
+            type="button"
+            onchange={handleMode}
+            disabled={busy}
+        ></lightning-radio-group>
+        <template lwc:if={error}>
+            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{error}</div>
+        </template>
+        <section class="oe-panel" aria-label={modeLabel}>
+            <div class="oe-heading">
+                <h2>{modeLabel}</h2>
+                <template lwc:if={showClassificationSpinner}>
+                    <div class="oe-loading">
+                        <lightning-spinner alternative-text="処理中…" size="small"></lightning-spinner>
+                    </div>
+                </template>
+            </div>
+            <div class="oe-toolbar">
+                <div class="oe-toolbar-filters">
+                    <div class="slds-form-element">
+                        <span class="slds-form-element__label">種別</span>
+                        <lightning-helptext content="対象オブジェクトの候補を標準／カスタムで絞り込みます。切り替えると対象オブジェクトの選択を解除します。"></lightning-helptext>
+                        <lightning-radio-group
+                            label="種別"
+                            variant="label-hidden"
+                            options={scopeOptions}
+                            value={objectScope}
+                            type="button"
+                            onchange={handleScope}
+                            disabled={busy}
+                        ></lightning-radio-group>
+                    </div>
+                    <template lwc:if={isReference}>
+                        <div class="slds-form-element">
+                            <span class="slds-form-element__label">参照元の種類</span>
+                            <lightning-helptext content="通常の参照は参照先が1種類の項目、多態参照は参照先が複数種類ある項目による関連を表示します。参照元だけに適用され、参照先は絞り込みません。"></lightning-helptext>
+                            <lightning-radio-group
+                                label="参照元の種類"
+                                variant="label-hidden"
+                                options={incomingKindOptions}
+                                value={incomingKind}
+                                type="button"
+                                onchange={handleIncomingKind}
+                                disabled={busy}
+                            ></lightning-radio-group>
+                        </div>
+                    </template>
+                </div>
+                <div class="oe-lookup">
+                    <div class="oe-object-search slds-form-element" onfocusout={handleSearchBlur}>
+                        <span id="object-label" class="slds-form-element__label">対象オブジェクト</span>
+                        <lightning-helptext content="ラベルまたはAPI名を入力して対象オブジェクトを検索します。選び直す場合は×で選択を解除してください。↑↓で候補へ移動、Enterで選択、Escで閉じます。"></lightning-helptext>
+                        <div class="slds-form-element__control">
+                            <div class={lookupContainerClass}>
+                                <div class={lookupComboboxClass}>
+                                    <template lwc:if={root}>
+                                        <div
+                                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                        >
+                                            <input
+                                                class="oe-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
+                                                type="text"
+                                                readonly
+                                                role="combobox"
+                                                value={selectedObjectLabel}
+                                                aria-labelledby="object-label"
+                                                aria-haspopup="listbox"
+                                                aria-expanded="false"
+                                                aria-readonly="true"
+                                                aria-required="true"
+                                                disabled={busy}
+                                            />
+                                            <button
+                                                class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                                type="button"
+                                                aria-label="対象オブジェクトの選択を解除"
+                                                title="選択を解除"
+                                                onclick={handleClearObject}
+                                                disabled={busy}
+                                            >
+                                                <lightning-icon
+                                                    icon-name="utility:close"
+                                                    size="x-small"
+                                                    alternative-text="選択を解除"
+                                                ></lightning-icon>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <template lwc:else>
+                                        <div
+                                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                        >
+                                            <input
+                                                class="oe-lookup-input slds-input slds-combobox__input"
+                                                type="text"
+                                                role="combobox"
+                                                value={objectTerm}
+                                                autocomplete="off"
+                                                aria-autocomplete="list"
+                                                aria-labelledby="object-label"
+                                                aria-haspopup="listbox"
+                                                aria-expanded={candidatesOpen}
+                                                aria-controls={objectListboxId}
+                                                aria-activedescendant={activeObjectOptionId}
+                                                aria-required="true"
+                                                placeholder="ラベルまたはAPI名で検索"
+                                                oninput={handleSearch}
+                                                onclick={handleSearchClick}
+                                                onkeydown={handleSearchKey}
+                                                disabled={busy}
+                                            />
+                                            <lightning-icon
+                                                class="slds-input__icon slds-input__icon_right"
+                                                icon-name="utility:search"
+                                                size="x-small"
+                                                alternative-text="オブジェクト検索"
+                                            ></lightning-icon>
+                                        </div>
+                                    </template>
+                                    <template lwc:if={candidatesOpen}>
+                                        <div class="slds-dropdown slds-dropdown_fluid">
+                                            <ul
+                                                id="object-options"
+                                                class="oe-option-scroll slds-listbox slds-listbox_vertical"
+                                                role="listbox"
+                                                aria-label="対象オブジェクトの検索候補"
+                                                onmousedown={handleOptionMouseDown}
+                                                onscroll={handleCandidateScroll}
+                                            >
+                                                <li
+                                                    role="presentation"
+                                                    aria-hidden="true"
+                                                    style={candidateTopStyle}
+                                                ></li>
+                                                <template for:each={lookupOptions} for:item="option">
+                                                    <li key={option.value} role="presentation">
+                                                        <div
+                                                            id={option.domId}
+                                                            class={option.className}
+                                                            role="option"
+                                                            style={option.style}
+                                                            tabindex="-1"
+                                                            aria-selected={option.selected}
+                                                            aria-posinset={option.position}
+                                                            aria-setsize={option.total}
+                                                            data-name={option.value}
+                                                            onclick={handleCandidate}
+                                                        >
+                                                            <span class="slds-media__body">
+                                                                <span
+                                                                    class="oe-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate"
+                                                                >
+                                                                    {option.label}
+                                                                </span>
+                                                                <span
+                                                                    class="oe-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate"
+                                                                >
+                                                                    {option.value}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                                <li
+                                                    role="presentation"
+                                                    aria-hidden="true"
+                                                    style={candidateBottomStyle}
+                                                ></li>
+                                            </ul>
+                                            <template lwc:if={candidatesBusy}>
+                                                <p
+                                                    class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                                    role="status"
+                                                >
+                                                    候補を検索中…
+                                                </p>
+                                            </template>
+                                            <template lwc:if={noCandidates}>
+                                                <p
+                                                    class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                                    role="status"
+                                                >
+                                                    候補がありません。検索語や範囲を確認してください。
+                                                </p>
+                                            </template>
+                                            <p
+                                                class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                            >
+                                                最大2000件。名前で絞り込めます。
+                                            </p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <template lwc:if={isReference}>
+                <div class="oe-viewport" aria-label="オブジェクトの関連" aria-busy={busy}>
+                    <template lwc:if={rootLoading}>
+                        <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
+                    </template>
+                    <template lwc:elseif={root}>
+                        <template lwc:if={busy}>
+                            <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
+                        </template>
+                        <section class="oe-relation-column" aria-label="参照元">
+                            <div class="oe-column-heading">
+                                <h3>参照元</h3>
+                                <span class="oe-hint">{incomingCount}</span>
+                            </div>
+                            <lightning-input
+                                type="search"
+                                name="incoming"
+                                label="参照元を検索"
+                                variant="label-hidden"
+                                placeholder="参照元を検索"
+                                value={incomingTerm}
+                                onchange={handleRelationFilter}
+                            ></lightning-input>
+                            <div class="oe-card-scroll" role="region" aria-label="参照元のカード一覧" tabindex="0">
+                                <div class={cardGridClass}>
+                                    <template for:each={board.incoming} for:item="node">
+                                        <button
+                                            key={node.key}
+                                            type="button"
+                                            class={node.className}
+                                            data-name={node.apiName}
+                                            data-key={node.key}
+                                            onpointerdown={handleCardPointerDown}
+                                            onclick={handleCard}
+                                            disabled={busy}
+                                            aria-pressed={node.selected}
+                                        >
+                                            <strong title={node.label}>{node.label}</strong>
+                                            <span class="oe-api" title={node.apiName}>{node.apiName}</span>
+                                            <small>{node.count}</small>
+                                            <template for:each={node.links} for:item="link">
+                                                <span key={link.key} class="oe-card-field" title={link.text}>
+                                                    {link.text}
+                                                </span>
+                                            </template>
+                                            <template lwc:if={node.more}><small>{node.more}</small></template>
+                                        </button>
+                                    </template>
+                                </div>
+                                <template lwc:if={noIncoming}>
+                                    <p class="oe-hint slds-p-around_small">該当する参照元はありません。</p>
+                                </template>
+                            </div>
+                        </section>
+                        <section class="oe-origin-column" aria-label="対象オブジェクト">
+                            <div class="oe-column-heading"><h3>対象オブジェクト</h3></div>
+                            <button
+                                type="button"
+                                class={board.root.className}
+                                data-name={board.root.apiName}
+                                data-key={board.root.key}
+                                onpointerdown={handleCardPointerDown}
+                                onclick={handleCard}
+                                disabled={busy}
+                                aria-pressed={board.root.selected}
+                            >
+                                <strong title={board.root.label}>{board.root.label}</strong>
+                                <span class="oe-api" title={board.root.apiName}>{board.root.apiName}</span>
+                            </button>
+                        </section>
+                        <section class="oe-relation-column" aria-label="参照先">
+                            <div class="oe-column-heading">
+                                <h3>参照先</h3>
+                                <span class="oe-hint">{outgoingCount}</span>
+                            </div>
+                            <lightning-input
+                                type="search"
+                                name="outgoing"
+                                label="参照先を検索"
+                                variant="label-hidden"
+                                placeholder="参照先を検索"
+                                value={outgoingTerm}
+                                onchange={handleRelationFilter}
+                            ></lightning-input>
+                            <div class="oe-card-scroll" role="region" aria-label="参照先のカード一覧" tabindex="0">
+                                <div class={cardGridClass}>
+                                    <template for:each={board.outgoing} for:item="node">
+                                        <button
+                                            key={node.key}
+                                            type="button"
+                                            class={node.className}
+                                            data-name={node.apiName}
+                                            data-key={node.key}
+                                            onpointerdown={handleCardPointerDown}
+                                            onclick={handleCard}
+                                            disabled={busy}
+                                            aria-pressed={node.selected}
+                                        >
+                                            <strong title={node.label}>{node.label}</strong>
+                                            <span class="oe-api" title={node.apiName}>{node.apiName}</span>
+                                            <small>{node.count}</small>
+                                            <template for:each={node.links} for:item="link">
+                                                <span key={link.key} class="oe-card-field" title={link.text}>
+                                                    {link.text}
+                                                </span>
+                                            </template>
+                                            <template lwc:if={node.more}><small>{node.more}</small></template>
+                                        </button>
+                                    </template>
+                                </div>
+                                <template lwc:if={noOutgoing}>
+                                    <p class="oe-hint slds-p-around_small">該当する参照先はありません。</p>
+                                </template>
+                            </div>
+                        </section>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-p-around_medium" role="status">対象オブジェクトを選択してください。</p>
+                    </template>
+                </div>
+            </template>
+        </section>
+        <template lwc:if={detail}>
+            <section class="oe-panel details" aria-label="オブジェクト詳細">
+                <div class="oe-heading">
+                    <div>
+                        <h2 class="oe-detail-title" tabindex="-1">【{modeLabel}】{detail.label} ({detail.apiName})</h2>
+                    </div>
+                    <template lwc:if={isReference}>
+                        <lightning-button
+                            label="このオブジェクトを中心に表示"
+                            disabled={centerDisabled}
+                            onclick={handleCenter}
+                        ></lightning-button>
+                    </template>
+                </div>
+                <template lwc:if={selectedRelation}>
+                    <div class="oe-selected-relation">
+                        <h3>関連項目：{selectedRelation.title}</h3>
+                        <ul>
+                            <template for:each={selectedRelation.links} for:item="link">
+                                <li key={link.field}>{link.text}</li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+                <div class="oe-filter-toolbar">
+                    <div class="oe-filters">
+                        <lightning-combobox
+                            name="type"
+                            label="データ型"
+                            value={fieldType}
+                            options={typeOptions}
+                            onchange={handleFilter}
+                            disabled={busy}
+                        ></lightning-combobox>
+                        <lightning-input
+                            class="oe-field-search"
+                            name="fieldSearch"
+                            type="search"
+                            label="項目名"
+                            placeholder="ラベルまたはAPI名で検索"
+                            value={fieldSearch}
+                            onchange={handleFilter}
+                            disabled={busy}
+                        ></lightning-input>
+                    </div>
+                    <template lwc:if={isReference}>
+                        <div class="oe-csv-tools">
+                            <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
+                        </div>
+                    </template>
+                    <template lwc:if={isClassification}>
+                        <div class="oe-csv-tools">
+                            <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
+                            <template lwc:if={canEditClassifications}>
+                                <div class="oe-csv-import">
+                                    <div class="oe-csv-label">
+                                        <span class="slds-form-element__label">CSVインポート</span>
+                                        <lightning-helptext content={csvHelp}></lightning-helptext>
+                                    </div>
+                                    <lightning-input type="file" variant="label-hidden" label="CSVインポート" accept=".csv" onchange={handleImportCsv} disabled={csvDisabled}></lightning-input>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <template lwc:if={isClassification}>
+                    <p class="oe-classification-notice" role="status">{classificationNotice}</p>
+                    <template lwc:if={hasCsvErrors}>
+                        <ul class="oe-csv-errors" aria-label="CSVの検証エラー" role="alert">
+                            <template for:each={csvErrors} for:item="error">
+                                <li key={error.line}>{error.line}行目：{error.message}</li>
+                            </template>
+                        </ul>
+                    </template>
+                </template>
+                <template lwc:if={auditNotice}>
+                    <p class="oe-classification-notice" role="status">{auditNotice}</p>
+                </template>
+                <div class="oe-table-scroll">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                        <caption class="slds-assistive-text">選択したオブジェクトの項目一覧</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">項目ラベル</th>
+                                <th scope="col">API名</th>
+                                <th scope="col">データ型</th>
+                                <th scope="col">カスタム</th>
+                                <template lwc:if={isReference}>
+                                    <th scope="col">作成日</th>
+                                    <th scope="col">最終更新日</th>
+                                </template>
+                                <template lwc:if={isClassification}>
+                                    <th scope="col">コンプライアンス分類</th>
+                                    <th scope="col">データ機密度</th>
+                                    <th scope="col">項目の利用状況</th>
+                                    <th scope="col">データ所有者</th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={fieldRows} for:item="field">
+                                <tr key={field.apiName} class={field.rowClass}>
+                                    <th scope="row" title={field.help}>
+                                        {field.label}
+                                        <template lwc:if={isClassification}>
+                                            <template lwc:if={field.changed}>
+                                                <span class="slds-assistive-text">（変更あり）</span>
+                                            </template>
+                                            <p class="oe-hint">{field.reason}</p>
+                                            <p class="slds-text-color_error">{field.error}</p>
+                                        </template>
+                                    </th>
+                                    <td>{field.apiName}</td>
+                                    <td>{field.typeLabel}</td>
+                                    <td>
+                                        <lightning-input type="checkbox" label="カスタム" variant="label-hidden" checked={field.custom} disabled></lightning-input>
+                                    </td>
+                                    <template lwc:if={isReference}>
+                                        <td class="oe-audit-value">
+                                            <span>{field.createdAudit.prefix}</span><template lwc:if={field.createdAudit.userName}><template lwc:if={field.createdAudit.url}><a href={field.createdAudit.url}>{field.createdAudit.userName}</a></template><template lwc:else><span>{field.createdAudit.userName}</span></template></template>
+                                        </td>
+                                        <td class="oe-audit-value">
+                                            <span>{field.modifiedAudit.prefix}</span><template lwc:if={field.modifiedAudit.userName}><template lwc:if={field.modifiedAudit.url}><a href={field.modifiedAudit.url}>{field.modifiedAudit.userName}</a></template><template lwc:else><span>{field.modifiedAudit.userName}</span></template></template>
+                                        </td>
+                                    </template>
+                                    <template lwc:if={isClassification}>
+                                        <td class="oe-classification-cell" aria-disabled={field.unavailable}>
+                                            <template lwc:if={field.editing}>
+                                                <div
+                                                    class="oe-compliance"
+                                                    data-field={field.apiName}
+                                                    onfocusout={handleComplianceBlur}
+                                                    onkeydown={handleComplianceKeydown}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        class="slds-input oe-compliance-input"
+                                                        aria-label="コンプライアンス分類"
+                                                        aria-haspopup="dialog"
+                                                        aria-expanded={field.complianceOpen}
+                                                        aria-controls={field.compliancePopupId}
+                                                        title={field.complianceLabel}
+                                                        data-field={field.apiName}
+                                                        onclick={handleComplianceToggle}
+                                                        disabled={busy}
+                                                    >
+                                                        <span class="slds-truncate oe-compliance-value">
+                                                            {field.complianceLabel}
+                                                        </span>
+                                                        <lightning-icon
+                                                            icon-name="utility:down"
+                                                            alternative-text="候補を開く"
+                                                            size="xx-small"
+                                                        ></lightning-icon>
+                                                    </button>
+                                                    <template lwc:if={field.complianceOpen}>
+                                                        <div
+                                                            class={field.compliancePopupClass}
+                                                            onmousedown={handleCompliancePointerDown}
+                                                            id={field.compliancePopupId}
+                                                            role="dialog"
+                                                            aria-label="コンプライアンス分類の選択"
+                                                        >
+                                                            <lightning-checkbox-group
+                                                                label="コンプライアンス分類"
+                                                                options={field.complianceOptions}
+                                                                value={field.complianceValues}
+                                                                data-field={field.apiName}
+                                                                data-property="complianceGroup"
+                                                                onchange={handleClassificationChange}
+                                                                disabled={busy}
+                                                            ></lightning-checkbox-group>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            <template lwc:else>{field.complianceLabel}</template>
+                                        </td>
+                                        <td class="oe-classification-cell" aria-disabled={field.unavailable}>
+                                            <template lwc:if={field.editing}>
+                                                <lightning-combobox
+                                                    variant="label-hidden"
+                                                    placeholder=" "
+                                                    label="データ機密度"
+                                                    dropdown-alignment="auto"
+                                                    options={field.securityOptions}
+                                                    value={field.securityInputValue}
+                                                    data-field={field.apiName}
+                                                    data-property="securityClassification"
+                                                    onchange={handleClassificationChange}
+                                                    disabled={busy}
+                                                ></lightning-combobox>
+                                            </template>
+                                            <template lwc:else>{field.securityLabel}</template>
+                                        </td>
+                                        <td class="oe-classification-cell" aria-disabled={field.unavailable}>
+                                            <template lwc:if={field.editing}>
+                                                <lightning-combobox
+                                                    variant="label-hidden"
+                                                    placeholder=" "
+                                                    label="項目の利用状況"
+                                                    dropdown-alignment="auto"
+                                                    options={field.businessOptions}
+                                                    value={field.businessInputValue}
+                                                    data-field={field.apiName}
+                                                    data-property="businessStatus"
+                                                    onchange={handleClassificationChange}
+                                                    disabled={busy}
+                                                ></lightning-combobox>
+                                            </template>
+                                            <template lwc:else>{field.businessLabel}</template>
+                                        </td>
+                                        <td class="oe-classification-cell" aria-disabled={field.unavailable}>
+                                            <template lwc:if={field.editing}>
+                                                <div
+                                                    class="oe-owner-lookup"
+                                                    data-field={field.apiName}
+                                                    onfocusout={handleOwnerBlur}
+                                                >
+                                                    <div class={field.ownerContainerClass}>
+                                                        <div
+                                                            class={field.ownerComboboxClass}
+                                                        >
+                                                            <div
+                                                                class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                                            >
+                                                                <template lwc:if={field.ownerSelected}>
+                                                                    <input
+                                                                        class="oe-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
+                                                                        type="text"
+                                                                        readonly
+                                                                        role="combobox"
+                                                                        aria-readonly="true"
+                                                                        aria-label="データ所有者"
+                                                                        aria-expanded="false"
+                                                                        aria-haspopup="listbox"
+                                                                        value={field.ownerLabel}
+                                                                        disabled={busy}
+                                                                    />
+                                                                    <button
+                                                                        class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                                                        type="button"
+                                                                        aria-label="データ所有者の選択を解除"
+                                                                        title="選択を解除"
+                                                                        data-field={field.apiName}
+                                                                        onclick={handleOwnerClear}
+                                                                        disabled={busy}
+                                                                    >
+                                                                        <lightning-icon
+                                                                            icon-name="utility:close"
+                                                                            size="x-small"
+                                                                            alternative-text="選択を解除"
+                                                                        ></lightning-icon>
+                                                                    </button>
+                                                                </template>
+                                                                <template lwc:else>
+                                                                    <input
+                                                                        class="oe-lookup-input slds-input slds-combobox__input"
+                                                                        type="text"
+                                                                        role="combobox"
+                                                                        aria-label="データ所有者"
+                                                                        aria-autocomplete="list"
+                                                                        aria-expanded={field.ownerOpen}
+                                                                        aria-haspopup="listbox"
+                                                                        aria-controls={field.ownerListId}
+                                                                        aria-activedescendant={field.ownerActiveId}
+                                                                        autocomplete="off"
+                                                                        value={field.ownerSearch}
+                                                                        data-field={field.apiName}
+                                                                        oninput={handleOwnerSearch}
+                                                                        onclick={handleOwnerSearch}
+                                                                        onkeydown={handleOwnerKeydown}
+                                                                        disabled={busy}
+                                                                    />
+                                                                </template>
+                                                            </div>
+                                                            <template lwc:if={field.ownerOpen}>
+                                                                <div
+                                                                    class="slds-dropdown slds-dropdown_fluid oe-owner-options"
+                                                                    role="listbox"
+                                                                    id={field.ownerListId}
+                                                                    aria-label="所有者候補"
+                                                                >
+                                                                    <ul
+                                                                        class="slds-listbox slds-listbox_vertical"
+                                                                        role="presentation"
+                                                                    >
+                                                                        <template
+                                                                            for:each={field.ownerCandidates}
+                                                                            for:item="owner"
+                                                                        >
+                                                                            <li key={owner.value} role="presentation">
+                                                                                <div
+                                                                                    class={owner.optionClass}
+                                                                                    role="option"
+                                                                                    id={owner.id}
+                                                                                    aria-selected={owner.selected}
+                                                                                    data-field={field.apiName}
+                                                                                    data-value={owner.value}
+                                                                                    onmousedown={handleOwnerPointerDown}
+                                                                                    onclick={handleOwnerSelect}
+                                                                                >
+                                                                                    <span class="slds-media__body">
+                                                                                        <span class="oe-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate" title={owner.label}>{owner.label}</span>
+                                                                                        <span class="oe-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate" title={owner.description}>{owner.description}</span>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </li>
+                                                                        </template>
+                                                                    </ul>
+                                                                    <template
+                                                                        lwc:if={field.ownerCandidates.length}
+                                                                    ></template>
+                                                                    <template lwc:else>
+                                                                        <p class="slds-p-around_small" role="status">
+                                                                            候補がありません。名前を入力してください。
+                                                                        </p>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template lwc:else>{field.ownerLabel}</template>
+                                        </td>
+                                    </template>
+                                </tr>
+                            </template>
+                            <template lwc:if={noFields}>
+                                <tr>
+                                    <td colspan={fieldColumnCount}>
+                                        条件に一致する項目がありません。検索条件を変更してください。
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="oe-paging">
+                    <lightning-button
+                        label="前へ"
+                        data-step="-1"
+                        disabled={previousDisabled}
+                        onclick={handlePage}
+                    ></lightning-button>
+                    <span>{pageLabel}</span>
+                    <lightning-button
+                        label="次へ"
+                        data-step="1"
+                        disabled={nextDisabled}
+                        onclick={handlePage}
+                    ></lightning-button>
+                </div>
+                <template lwc:if={isClassification}>
+                    <template lwc:if={canEditClassifications}>
+                        <div class="oe-save-bar">
+                            <lightning-button
+                                variant="brand"
+                                label="保存"
+                                onclick={handleSaveClassifications}
+                                disabled={saveDisabled}
+                            ></lightning-button>
+                        </div>
+                    </template>
+                </template>
+            </section>
+        </template>
+    </main>
+</template>
