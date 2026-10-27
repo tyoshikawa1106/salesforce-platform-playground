@@ -6,12 +6,16 @@ public with sharing class MetadataApiIntegrationClient {
     private static final Long REQUEST_BUDGET_MS = 100000;
     private static final Long DEADLINE = DateTime.now().getTime() + REQUEST_BUDGET_MS;
 
+    /** テスト内で生成した設定レコードで通常の生成経路も検証するため差し替え可能 */
+    @TestVisible
+    private static MetadataApiIntegrationSetting__mdt integrationSetting = MetadataApiIntegrationSetting__mdt.getInstance('Default');
+
     private final String credentialName;
 
     /** 組織の連携設定を使用する通常のクライアント */
     public MetadataApiIntegrationClient() {
         // 通常の呼び出しでは組織設定を生成時に確定
-        this(MetadataApiIntegrationSetting__mdt.getInstance('Default')?.NamedCredentialName__c);
+        this(integrationSetting?.NamedCredentialName__c);
     }
 
     /**

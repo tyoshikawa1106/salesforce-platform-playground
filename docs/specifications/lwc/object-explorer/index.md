@@ -51,7 +51,7 @@ Schema Describeで取得し、オブジェクト・項目の参照可否を確�
 
 ## テスト・確認観点
 
-Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
+Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。連携設定はテストクラス内でカスタムメタデータのレコードをメモリ上に生成し、既存の`Default`レコードに依存しません。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
 
 - 起点・モード・種別の変更、カード選択、関連検索、項目フィルター、ページをまたぐ編集保持。
 - CSVの出力と読取の往復、引用符・BOM・空行、列ずれ・重複・別対象・空欄による解除。
@@ -82,7 +82,7 @@ Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とと
 
 `MetadataApiIntegrationSetting__mdt`には公開識別子の`ConsumerKey__c`と、接続先設定の参照名`NamedCredentialName__c`を定義します。Consumer Secretやアクセストークンは格納しません。実組織の設定レコードはソース管理せず、組織ごとに設定します。秘密値はExternal Credential側で管理し、ApexはNamed Credentialを参照する構成とします。認証値はConnect REST APIの`/named-credentials/credential`へ登録し、初回作成はPOST、既存の認証値の更新はPUTを使用します。CLIプロセスの終了コードだけで成功を判断せず、API応答のエラーとNamed Credential経由の実際の接続を確認します。
 
-接続設定型・参照機能・分類処理クラスはScratch Org再構築manifestに含めます。組織固有の認証設定と、それに依存する分類編集用権限セットの適用は再構築manifestから分離します。
+接続設定型・参照機能・分類処理クラスはScratch Org再構築manifestに含めます。`LwcObjectExplorer`も再構築manifestに含めます。組織固有の認証設定とExternal Credentialプリンシパルの利用権限は初期反映に含めず、認証設定の作成後に組織側で追加します。
 
 アプリケーション定義の連絡先メールは開発用の例示値です。実運用前に連絡先を設定し、利用する認証方式のコールバックURLと実行ユーザーの権限を確認してください。資格情報フローで利用しないコールバックURLにも、Salesforceの検証を満たす初期値を設定しています。
 
@@ -90,7 +90,7 @@ Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とと
 
 分類一覧と選択肢は`FieldDefinition`をUSER_MODEで取得します。コンプライアンス分類は複数値、データ機密度と利用状況は組織の有効な選択肢を使用します。所有者は有効ユーザーと公開グループを表示名で検索します。標準項目も編集対象です。管理パッケージ・設定用項目、および分類取得不能な項目は編集しません。
 
-分類の参照と編集は同じ`LwcObjectExplorer`に統合します。LWCは標準の`CustomizeApplication`を参照し、権限を持たない利用者には編集・保存操作を表示しません。編集の開始・保存・所有者検索はサーバーでも`ManageObjectFieldClassification`と現在ユーザーの`UserPermissionAccess.PermissionsCustomizeApplication`を必須にします。権限セット自体は`CustomizeApplication`を付与しません。API認証のプリンシパル利用権限は`MetadataApiIntegration-MetadataPrincipal`です。権限セットの割り当てと接続先の権限は別々に必要です。
+分類の参照と編集は同じ`LwcObjectExplorer`に統合します。LWCは標準の`CustomizeApplication`を参照し、権限を持たない利用者には編集・保存操作を表示しません。編集の開始・保存・所有者検索はサーバーでも`ManageObjectFieldClassification`と現在ユーザーの`UserPermissionAccess.PermissionsCustomizeApplication`を必須にします。権限セット自体は`CustomizeApplication`を付与しません。API認証のプリンシパル利用権限は`MetadataApiIntegration-MetadataPrincipal`です。Git管理する`LwcObjectExplorer`にはこの組織固有の参照を含めず、External Credentialの作成後に組織側で追加します。権限セットの割り当てと接続先の権限は別々に必要です。
 
 Apexは`MetadataApiIntegrationSetting__mdt.Default`の`NamedCredentialName__c`からNamed Credentialを選択します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
 
@@ -146,7 +146,7 @@ CSVはUTF-8（BOMあり・なし）を使用し、5MiB以下、データ10000行
 3. OAuthクライアント資格情報方式のExternal Credentialを作成し、Named Principalを`MetadataPrincipal`として構成します。Consumer Key・Consumer Secretを組織の資格情報管理へ登録します。
 4. 現在の組織を接続先とするNamed Credentialを`MetadataApiIntegration`として作成し、External Credentialへ関連付け、「HTTP 本文の数式を許可」を有効にします。
 5. カスタムメタデータの`Default`レコードへConsumer KeyとNamed Credentialの参照名を設定します。秘密値は登録しません。
-6. 依存するExternal Credentialの作成後に`LwcObjectExplorer`権限セットを反映し、分類編集を許可する利用者へ割り当てます。
+6. 初期反映済みの`LwcObjectExplorer`へ、設定画面からExternal Credentialの`MetadataPrincipal`を利用できる権限を追加します。分類編集を許可する利用者へ同セットを割り当てます。Gitの権限セットを再反映した場合は、組織側のプリンシパル利用権限も再確認します。
 7. Named Credential経由の接続、分類入力、保存・再取得を確認します。認証設定を含む自動再現は現時点では行いません。
 
 項目検索は「項目名」の1入力欄とし、どちらかに部分一致する項目を表示します。検索は前後空白・大文字小文字を区別せず、データ型の条件と組み合わせます。

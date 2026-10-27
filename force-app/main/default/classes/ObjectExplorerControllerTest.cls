@@ -2,11 +2,13 @@
 @IsTest
 private with sharing class ObjectExplorerControllerTest {
     private static User testUser = TestDataFactory.getTestUser();
+    private static MetadataApiIntegrationSetting__mdt integrationSetting = createIntegrationSetting();
 
     /** カスタム項目日時取得と不要な通信の省略 */
     @IsTest
     static void returnsCustomFieldAudit() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             Test.startTest();
             AuditMock mock = new AuditMock();
             Test.setMock(HttpCalloutMock.class, mock);
@@ -32,6 +34,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void rejectsCustomUpdateTransportFailure() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'customError');
@@ -55,6 +58,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void readsStructureAndClassification() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             Map<String, Object> structure = (Map<String, Object>) JSON.deserializeUntyped(
@@ -84,6 +88,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void resolvesOwnersById() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             Map<String, Object> owners = (Map<String, Object>) JSON.deserializeUntyped(
@@ -103,6 +108,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void savesStandardFieldAndVerifies() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
@@ -126,6 +132,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void skipsUnchangedWrites() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
@@ -146,6 +153,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void preservesPerFieldRejection() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name', 'Phone' }, 'rejectPhone');
@@ -167,6 +175,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void doesNotConfirmUnverifiedSave() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'stale');
@@ -187,6 +196,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void isolatesPreparationAndTransportFailures() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'conflict');
@@ -208,6 +218,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void savesCustomFieldWithoutDroppingMetadata() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'success');
@@ -231,6 +242,7 @@ private with sharing class ObjectExplorerControllerTest {
     @IsTest
     static void rejectsSoapTransportFailure() {
         System.runAs(testUser) {
+            MetadataApiIntegrationClient.integrationSetting = integrationSetting;
             TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'soapError');
@@ -242,6 +254,17 @@ private with sharing class ObjectExplorerControllerTest {
             Assert.areEqual(1, mock.reads, '失敗確定後は再取得しない');
             Test.stopTest();
         }
+    }
+
+    /**
+     * 既存の認証設定を参照しないテスト用レコード
+     * @return メモリ上の連携設定
+     */
+    private static MetadataApiIntegrationSetting__mdt createIntegrationSetting() {
+        MetadataApiIntegrationSetting__mdt setting = new MetadataApiIntegrationSetting__mdt();
+        setting.DeveloperName = 'Default';
+        setting.NamedCredentialName__c = 'TestCredential';
+        return setting;
     }
 
     /**
@@ -297,6 +320,7 @@ private with sharing class ObjectExplorerControllerTest {
          * @return 模擬応答
          */
         public HttpResponse respond(HttpRequest request) {
+            Assert.isTrue(request.getEndpoint().startsWith('callout:TestCredential/'), 'テスト内で生成した設定を使用');
             HttpResponse response = new HttpResponse();
             response.setStatusCode(200);
             String endpoint = request.getEndpoint();
@@ -428,6 +452,7 @@ private with sharing class ObjectExplorerControllerTest {
          * @return 完了したクエリ応答
          */
         public HttpResponse respond(HttpRequest request) {
+            Assert.isTrue(request.getEndpoint().startsWith('callout:TestCredential/'), 'テスト内で生成した設定を使用');
             calls++;
             List<Object> rows = new List<Object>();
             if (request.getEndpoint().endsWith('query/?q=SELECT+Id+FROM+Organization')) {
