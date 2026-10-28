@@ -1,6 +1,9 @@
 /** バッチによる全件削除、部分失敗、対象外保護を検証 */
 @IsTest
 private with sharing class TestDataDeleteBatchTest {
+
+    private static User testUser = TestDataFactory.getTestUser();
+
     /** テスト内の標準ジョブをfinishへ渡すコンテキスト */
     private class Context implements Database.BatchableContext {
         private Id jobId;
@@ -27,7 +30,8 @@ private with sharing class TestDataDeleteBatchTest {
     /** 最後の段階は後続を作らずメールを一度だけ送る */
     @IsTest
     static void finalStageSendsOneMailWithoutNextJob() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             TestDataDeleteBatchWrapper last = new TestDataDeleteBatchWrapper();
             last.position = last.objectNames.indexOf('Account');
             Test.startTest();
@@ -48,9 +52,11 @@ private with sharing class TestDataDeleteBatchTest {
         }
     }
 
+    /** 完了後に次の段階を一つだけ登録 */
     @IsTest
     static void finishEnqueuesExactlyOneNextStage() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             TestDataDeleteBatchWrapper last = new TestDataDeleteBatchWrapper();
             last.position = last.objectNames.indexOf('Account');
             TestDataDeleteBatchWrapper current = new TestDataDeleteBatchWrapper();
@@ -71,9 +77,11 @@ private with sharing class TestDataDeleteBatchTest {
         }
     }
 
+    /** 子レコード残存時は親の削除を開始しない */
     @IsTest
     static void remainingChildPreventsParentLaunch() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             insert new Product2(Name = '残存商品');
             TestDataDeleteBatchWrapper last = new TestDataDeleteBatchWrapper();
             last.position = last.objectNames.indexOf('Account');
@@ -96,9 +104,12 @@ private with sharing class TestDataDeleteBatchTest {
             Test.stopTest();
         }
     }
+
+    /** 一スコープで全取引先を削除 */
     @IsTest
     static void deletesAllAccountsInSingleScope() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer index = 0; index < 251; index++) {
                 accounts.add(
@@ -117,9 +128,12 @@ private with sharing class TestDataDeleteBatchTest {
             Assert.areEqual(0, jobs[0].NumberOfErrors, 'スコープ例外なし');
         }
     }
+
+    /** 子を分割削除しても親を保持 */
     @IsTest
     static void deletesTwoScopesAndPreservesParentUntilChildrenAreGone() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             Account parent = TestDataFactory.createAccount('親の保持確認', TestDataFactory.SaveMode.INSERT_RECORD);
             List<Contact> contacts = new List<Contact>();
             List<SObject> firstScope = new List<SObject>();
@@ -158,9 +172,11 @@ private with sharing class TestDataDeleteBatchTest {
         }
     }
 
+    /** 部分失敗をスコープ間で保持 */
     @IsTest
     static void preservesPartialFailureAcrossScopes() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('既削除', TestDataFactory.SaveMode.INSERT_RECORD);
             Account last = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -182,9 +198,12 @@ private with sharing class TestDataDeleteBatchTest {
             Assert.areEqual(1, result.get('failureCount'), '前スコープの失敗を保持');
         }
     }
+
+    /** 不正な削除計画ではDMLを実行しない */
     @IsTest
     static void rejectsInvalidPlanBeforeDml() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             Account account = TestDataFactory.createAccount('保持', TestDataFactory.SaveMode.INSERT_RECORD);
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.objectNames[0] = 'User';

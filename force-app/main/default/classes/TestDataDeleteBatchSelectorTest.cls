@@ -1,21 +1,27 @@
 /** バッチの対象カーソルと権限照会を検証 */
 @IsTest
 private with sharing class TestDataDeleteBatchSelectorTest {
+
+    private static TestDataDeleteBatchSelector selector = new TestDataDeleteBatchSelector();
+    private static TestDataDeleteBatchService service = new TestDataDeleteBatchService();
+
+    private static User testUser = TestDataFactory.getTestUser();
+
     private static void verifyEmptyTarget(String objectName) {
         if (!Schema.getGlobalDescribe().containsKey(objectName)) {
             return;
         }
-        TestDataDeleteBatchSelector selector = new TestDataDeleteBatchSelector();
-        TestDataDeleteBatchService service = new TestDataDeleteBatchService();
         String filter = service.getRecordFilter(objectName);
         Assert.areEqual(0, selector.getRemaining(objectName, filter), objectName + 'の空状態を照会');
         Database.QueryLocator records = selector.getRecords(objectName, filter);
         Assert.isFalse(records.iterator().hasNext(), objectName + 'の削除対象は空');
     }
 
+    /** 投入対象オブジェクトの取得クエリを検証 */
     @IsTest
     static void validatesQueriesForEveryImportedObject() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             Test.startTest();
             verifyEmptyTarget('ContentDocument');
             verifyEmptyTarget('EmailMessage');
@@ -42,20 +48,22 @@ private with sharing class TestDataDeleteBatchSelectorTest {
             verifyEmptyTarget('Product2');
             Assert.areEqual(
                 0,
-                new TestDataDeleteBatchSelector().getRemaining('Account', 'IsDeleted = false'),
+                selector.getRemaining('Account', 'IsDeleted = false'),
                 '取引先の空状態を確認'
             );
             Test.stopTest();
         }
     }
+
+    /** ごみ箱を除いた残存レコードを取得 */
     @IsTest
     static void countsOnlyRemainingRecords() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             Account account = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
             TestDataFactory.createAccount('残存', TestDataFactory.SaveMode.INSERT_RECORD);
             delete account;
             Test.startTest();
-            TestDataDeleteBatchSelector selector = new TestDataDeleteBatchSelector();
             Integer remaining = selector.getRemaining('Account', 'IsDeleted = false');
             Database.QueryLocator records = selector.getRecords('Account', 'IsDeleted = false');
             List<UserPermissionAccess> permissions = selector.getPermissions();
@@ -66,9 +74,11 @@ private with sharing class TestDataDeleteBatchSelectorTest {
         }
     }
 
+    /** 標準価格と無効なカスタム価格を削除 */
     @IsTest
     static void deletesStandardAndInactiveCustomPrices() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
             Product2 product = TestDataFactory.createProduct(
                 '価格表の削除検証',
                 TestDataFactory.SaveMode.INSERT_RECORD
@@ -84,9 +94,7 @@ private with sharing class TestDataDeleteBatchSelectorTest {
                 UnitPrice = 100,
                 IsActive = false
             );
-            TestDataDeleteBatchService service = new TestDataDeleteBatchService();
-            TestDataDeleteBatchSelector selector = new TestDataDeleteBatchSelector();
-            TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
+                    TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.position = plan.objectNames.indexOf('PricebookEntry');
             Test.startTest();
             String filter = service.getRecordFilter('PricebookEntry');
