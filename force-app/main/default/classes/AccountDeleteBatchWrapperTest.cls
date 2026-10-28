@@ -4,8 +4,10 @@ private with sharing class AccountDeleteBatchWrapperTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 空の結果を初期化 */
     @IsTest
     static void initializesEmptyResult() {
+
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper();
@@ -17,8 +19,10 @@ private with sharing class AccountDeleteBatchWrapperTest {
         }
     }
 
+    /** 可変状態を共有せず複製 */
     @IsTest
     static void copiesWithoutSharingMutableState() {
+
         System.runAs(testUser) {
             AccountDeleteBatchWrapper source = new AccountDeleteBatchWrapper();
             source.successCount = 2;

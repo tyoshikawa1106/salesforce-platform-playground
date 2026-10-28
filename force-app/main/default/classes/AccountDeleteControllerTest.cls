@@ -4,9 +4,11 @@ private with sharing class AccountDeleteControllerTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 実行状態の取得と削除受付 */
     @IsTest
     static void readsAndStarts() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Test.startTest();
             Assert.areEqual('', AccountDeleteController.getView(null).blockMessage, '実行を許可');
@@ -22,9 +24,11 @@ private with sharing class AccountDeleteControllerTest {
         }
     }
 
+    /** 権限不足で開始を拒否 */
     @IsTest
     static void rejectsWithoutPermission() {
         User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+
         System.runAs(denied) {
             Test.startTest();
             Assert.isTrue(AccountDeleteController.getView(null).blockMessage.contains('利用権限'), '表示を拒否');
@@ -33,9 +37,11 @@ private with sharing class AccountDeleteControllerTest {
         }
     }
 
+    /** 実行中ジョブとの重複を拒否 */
     @IsTest
     static void rejectsDuplicateJob() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteWrapper first = AccountDeleteController.startRun();

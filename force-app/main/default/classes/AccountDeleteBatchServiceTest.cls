@@ -5,9 +5,11 @@ private with sharing class AccountDeleteBatchServiceTest {
     private static AccountDeleteBatchService service = new AccountDeleteBatchService();
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 実行可能時に前回の拒否理由を解除 */
     @IsTest
     static void clearsPreviousErrorWhenExecutionIsAllowed() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
             current.failureCount = 2;
@@ -21,9 +23,11 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 部分成功を集計 */
     @IsTest
     static void preservesPartialSuccess() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Account good = TestDataFactory.createAccount('成功', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -52,9 +56,11 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 引数の集計値だけを累積 */
     @IsTest
     static void accumulatesOnlyProvidedState() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account second = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -73,9 +79,11 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 大量の取引先を一括削除 */
     @IsTest
     static void deletesTwoThousandAccounts() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer i = 0; i < 2000; i++) {
@@ -92,8 +100,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 対象なしの完了結果を通知 */
     @IsTest
     static void notifiesZeroCountDuringFinish() {
+
         System.runAs(testUser) {
             AsyncApexJob job = (AsyncApexJob) JSON.deserialize('{"Status":"Processing","NumberOfErrors":0}', AsyncApexJob.class);
             AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper();
@@ -114,8 +124,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** nullのジョブ一覧では通知不可 */
     @IsTest
     static void rejectsNotificationForNullJobs() {
+
         System.runAs(testUser) {
             AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper();
             Test.startTest();
@@ -126,8 +138,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 空のジョブ一覧では通知不可 */
     @IsTest
     static void rejectsNotificationForEmptyJobs() {
+
         System.runAs(testUser) {
             AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper();
             Test.startTest();
@@ -138,8 +152,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 未処理レコード件数を推測せず障害を通知 */
     @IsTest
     static void reportsJobFailureWithoutGuessingRecordCount() {
+
         System.runAs(testUser) {
             AsyncApexJob job = (AsyncApexJob) JSON.deserialize('{"Status":"Processing","NumberOfErrors":1}', AsyncApexJob.class);
             AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper();
@@ -157,8 +173,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 実行拒否したスコープを失敗へ加算 */
     @IsTest
     static void countsBlockedScopeAsFailures() {
+
         System.runAs(testUser) {
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
             current.successCount = 2;
@@ -176,9 +194,11 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 詳細の表示上限を超えても失敗件数を保持 */
     @IsTest
     static void limitsRecordDetailsWithoutLosingFailureCounts() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer index = 0; index < 201; index++) {
@@ -200,9 +220,11 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 法人取引先と個人取引先を一緒に削除 */
     @IsTest
     static void deletesPersonAndBusinessAccountsTogether() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Boolean enabled = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
                 .fields.getMap()
@@ -242,8 +264,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 取引先名の重複を除き理由を箇条書き表示 */
     @IsTest
     static void formatsRecordNameOnceAndListsReasons() {
+
         System.runAs(testUser) {
             String name = '通知形式の確認';
             List<String> messages = new List<String>{
@@ -263,8 +287,10 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
+    /** 結合した理由の文字数を制限 */
     @IsTest
     static void limitsCombinedReasonLength() {
+
         System.runAs(testUser) {
             String longMessage = '理由'.repeat(600);
             Test.startTest();

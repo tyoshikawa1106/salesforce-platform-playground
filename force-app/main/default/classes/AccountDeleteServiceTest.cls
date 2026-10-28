@@ -4,9 +4,11 @@ private with sharing class AccountDeleteServiceTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 標準ジョブを画面応答へ反映 */
     @IsTest
     static void displaysStandardJob() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteWrapper response = new AccountDeleteService()
@@ -20,9 +22,11 @@ private with sharing class AccountDeleteServiceTest {
         }
     }
 
+    /** 登録済みジョブがあれば開始を拒否 */
     @IsTest
     static void rejectsRegisteredJob() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Test.startTest();
             AccountDeleteWrapper response = new AccountDeleteService()
