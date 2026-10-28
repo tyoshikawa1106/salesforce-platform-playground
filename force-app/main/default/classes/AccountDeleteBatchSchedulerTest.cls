@@ -4,9 +4,11 @@ private with sharing class AccountDeleteBatchSchedulerTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 定期実行からバッチを起動 */
     @IsTest
     static void startsScheduledBatch() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Test.startTest();
             System.schedule('Account delete schedule test', '0 0 0 1 1 ? 2099', new AccountDeleteBatchScheduler());
@@ -19,9 +21,11 @@ private with sharing class AccountDeleteBatchSchedulerTest {
         }
     }
 
+    /** 開始拒否を通知 */
     @IsTest
     static void notifiesRejectedStart() {
         User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+
         System.runAs(denied) {
             Test.startTest();
             new AccountDeleteBatchScheduler().execute(null);
@@ -35,9 +39,11 @@ private with sharing class AccountDeleteBatchSchedulerTest {
         }
     }
 
+    /** 登録済みジョブとの重複を拒否 */
     @IsTest
     static void rejectsRegisteredJob() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);

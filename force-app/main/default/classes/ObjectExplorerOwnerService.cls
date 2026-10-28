@@ -2,6 +2,16 @@
 public with sharing class ObjectExplorerOwnerService {
 
     /**
+     * 所有者の検索語を候補検索用に正規化
+     * @param term 検索語、nullを許容
+     * @return 前後空白を除いた検索語、未入力は空文字
+     */
+    public String normalizeSearchTerm(String term) {
+        // 空入力を候補全体の検索へ統一
+        return term?.trim() ?? '';
+    }
+
+    /**
      * 取得したユーザーとグループを検索候補へ変換
      * @param users 可視な有効ユーザー
      * @param groups 可視な公開グループ

@@ -4,9 +4,11 @@ private with sharing class AccountDeleteBatchTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** バッチ実行で取引先を削除 */
     @IsTest
     static void deletesThroughBatchExecution() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             TestDataFactory.createAccount('削除対象', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -19,9 +21,11 @@ private with sharing class AccountDeleteBatchTest {
         }
     }
 
+    /** 直接起動時も権限を確認 */
     @IsTest
     static void directLaunchStillChecksPermission() {
         User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+
         System.runAs(denied) {
             TestDataFactory.createAccount('保護対象', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -31,9 +35,11 @@ private with sharing class AccountDeleteBatchTest {
         }
     }
 
+    /** 権限不足でスコープの削除を拒否 */
     @IsTest
     static void executeRejectsWithoutPermission() {
         User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+
         System.runAs(denied) {
             Account account = TestDataFactory.createAccount('削除直前の拒否', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -50,9 +56,11 @@ private with sharing class AccountDeleteBatchTest {
         }
     }
 
+    /** 直列化したスコープ間で件数を保持 */
     @IsTest
     static void preservesCountsAcrossSerializedScopes() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
             Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);

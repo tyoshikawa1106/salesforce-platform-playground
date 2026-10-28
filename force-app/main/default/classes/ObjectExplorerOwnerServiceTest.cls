@@ -1,6 +1,7 @@
 /** 所有者IDの厳密照合とCSV候補 */
 @IsTest
 private with sharing class ObjectExplorerOwnerServiceTest {
+
     private static ObjectExplorerOwnerService service = new ObjectExplorerOwnerService();
     private static ObjectExplorerOwnerService.CsvOwners csv = new ObjectExplorerOwnerService.CsvOwners();
 
@@ -9,6 +10,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
     /** 候補・API参照値を同じ所有者IDへ対応 */
     @IsTest
     static void keepsIdsNamesAndIdentifiersTogether() {
+
         System.runAs(testUser) {
             Test.startTest();
             User owner = new User(
@@ -70,9 +72,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** 所有者集約と無効な現在値の保持 */
     @IsTest
     static void collectsOriginalAndDraftOwners() {
+
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Map<String, Object>> rows = new Map<String, Map<String, Object>>{
@@ -97,9 +101,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** 別のIDを同じ所有者として扱わない */
     @IsTest
     static void rejectsDifferentOwner() {
+
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -122,9 +128,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** 無効ユーザーの新規指定を拒否 */
     @IsTest
     static void rejectsNewInactiveOwner() {
+
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -142,9 +150,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** 表示名でAPI識別子を代用しない */
     @IsTest
     static void rejectsMissingIdentifier() {
+
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -159,9 +169,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** 解除値と候補の不整合を拒否 */
     @IsTest
     static void rejectsRecordForEmptyOwner() {
+
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -173,9 +185,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** CSV所有者の種別を確認 */
     @IsTest
     static void rejectsMalformedCsvIds() {
+
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -187,9 +201,11 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
     /** CSV照合の上限を確認 */
     @IsTest
     static void rejectsTooManyCsvIds() {
+
         System.runAs(testUser) {
             Test.startTest();
             List<String> ids = new List<String>();
@@ -205,4 +221,29 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             Test.stopTest();
         }
     }
+
+    /** 所有者候補の検索語の前後空白を除去 */
+    @IsTest
+    static void normalizesOwnerSearchTerm() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            String term = service.normalizeSearchTerm('  候補  ');
+            Test.stopTest();
+            Assert.areEqual('候補', term, '検索語の意味を保ち前後空白だけを除く');
+        }
+    }
+
+    /** nullの所有者検索語を空文字へ変換 */
+    @IsTest
+    static void normalizesNullOwnerSearchTerm() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            String term = service.normalizeSearchTerm(null);
+            Test.stopTest();
+            Assert.areEqual('', term, '未指定を空文字へ統一');
+        }
+    }
+
 }

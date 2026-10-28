@@ -4,6 +4,9 @@
 @IsTest
 private with sharing class ObjectRecordSearchSelectorTest {
 
+    private static ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+    private static ObjectRecordSearchService service = new ObjectRecordSearchService();
+
     private static User testUser = TestDataFactory.getTestUser();
 
     @TestSetup
@@ -35,14 +38,27 @@ private with sharing class ObjectRecordSearchSelectorTest {
         insert accounts;
     }
 
+    /** 名称条件をbindして標準カーソルから取得 */
     @IsTest
     static void shouldUseBoundSearchWithStandardCursor() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
             input.metricKey = 'accounts';
             input.searchTerm = ' Selector Alpha ';
-            ObjectRecordSearchResultWrapper page = ObjectRecordSearchController.searchRecords(input);
+            ObjectRecordSearchService.SearchContextResult context = service.resolveSearchContext(input.metricKey);
+            ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context.context, input);
+            ObjectRecordSearchService.SearchQueryRequestResult prepared = service.createSearchQueryRequest(context.context, input, sortSpec);
+            ObjectRecordSearchQueryPlan.SearchQueryRequest request = prepared.searchQueryRequest;
+            Database.PaginationCursor cursor = selector.createPaginationCursor(request);
+            Assert.isNull(request.paginationCursor, 'カーソル作成は入力を書き換えない必要あり');
+            request.paginationCursor = cursor;
+            Database.PaginationCursor reused = selector.createPaginationCursor(request);
+            Assert.areEqual(cursor, reused, '継続取得では同じ結果集合を再利用する必要あり');
+            Database.CursorFetchResult fetched = selector.searchRecords(request);
+            ObjectRecordSearchResultWrapper page = service.createSearchResult(request, fetched);
+            Assert.areEqual(cursor, request.paginationCursor, 'ページ取得は入力のカーソルを置換しない必要あり');
             Test.stopTest();
             Assert.areEqual(1, page.records.size(), '名称検索が標準カーソルにも適用される必要あり');
             Assert.areEqual('Selector Alpha', page.records[0].name, '前後空白を正規化する必要あり');
@@ -50,14 +66,27 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
     }
 
+    /** 対象なしの検索結果を空ページとして返却 */
     @IsTest
     static void shouldReturnEmptyPage() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
             input.metricKey = 'accounts';
             input.searchTerm = 'No matching records';
-            ObjectRecordSearchResultWrapper page = ObjectRecordSearchController.searchRecords(input);
+            ObjectRecordSearchService.SearchContextResult context = service.resolveSearchContext(input.metricKey);
+            ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context.context, input);
+            ObjectRecordSearchService.SearchQueryRequestResult prepared = service.createSearchQueryRequest(context.context, input, sortSpec);
+            ObjectRecordSearchQueryPlan.SearchQueryRequest request = prepared.searchQueryRequest;
+            Database.PaginationCursor cursor = selector.createPaginationCursor(request);
+            Assert.isNull(request.paginationCursor, 'カーソル作成は入力を書き換えない必要あり');
+            request.paginationCursor = cursor;
+            Database.PaginationCursor reused = selector.createPaginationCursor(request);
+            Assert.areEqual(cursor, reused, '継続取得では同じ結果集合を再利用する必要あり');
+            Database.CursorFetchResult fetched = selector.searchRecords(request);
+            ObjectRecordSearchResultWrapper page = service.createSearchResult(request, fetched);
+            Assert.areEqual(cursor, request.paginationCursor, 'ページ取得は入力のカーソルを置換しない必要あり');
             Test.stopTest();
             Assert.areEqual(0, page.records.size(), '対象なしは空一覧となる必要あり');
             Assert.isFalse(page.hasNextPage, '対象なしで次ページを作らない必要あり');
@@ -75,7 +104,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             WHERE Name = 'Selector Delete One'
             LIMIT 1
         ];
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<SObject> records;
 
         System.runAs(testUser) {
@@ -106,7 +134,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldReturnEmptyListWhenIdsAreNull() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<SObject> records;
 
         System.runAs(testUser) {
@@ -129,7 +156,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldReturnEmptyListWhenIdsAreEmpty() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<SObject> records;
 
         System.runAs(testUser) {
@@ -163,7 +189,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             'Selector Contact',
             TestDataFactory.SaveMode.INSERT_RECORD
         );
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
         List<SObject> records;
 
         System.runAs(testUser) {
@@ -189,7 +214,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldRejectUnsupportedObjectWithEmptyIds() {
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
         System.runAs(testUser) {
             Test.startTest();
@@ -207,6 +231,28 @@ private with sharing class ObjectRecordSearchSelectorTest {
                 );
             }
 
+            Test.stopTest();
+        }
+    }
+
+
+    /** ページ取得のカーソル不足を暗黙の初回取得にしない */
+    @IsTest
+    static void rejectsMissingFetchCursor() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
+            input.metricKey = 'accounts';
+            ObjectRecordSearchService.SearchContextResult context = service.resolveSearchContext(input.metricKey);
+            ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context.context, input);
+            ObjectRecordSearchService.SearchQueryRequestResult prepared = service.createSearchQueryRequest(context.context, input, sortSpec);
+            try {
+                selector.searchRecords(prepared.searchQueryRequest);
+                Assert.fail('カーソルなしの取得要求は拒否する必要あり');
+            } catch (IllegalArgumentException e) {
+                Assert.isTrue(e.getMessage().contains('カーソル'), '不足している取得条件を示す必要あり');
+            }
             Test.stopTest();
         }
     }

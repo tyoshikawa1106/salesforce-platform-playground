@@ -6,8 +6,10 @@ private with sharing class OrgExplorerCapabilitiesResponseTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 未設定の機能応答を初期化 */
     @IsTest
     static void initializesUnassignedState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerCapabilitiesResponse value = new OrgExplorerCapabilitiesResponse();

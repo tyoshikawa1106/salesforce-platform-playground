@@ -12,6 +12,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsExpiredAndCrossPurposeCursors() {
+
         System.runAs(testUser) {
             OrgExplorerCursorCodec.Cursor expected = new OrgExplorerCursorCodec.Cursor();
             expected.purpose = 'PAGE';
@@ -38,6 +39,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsExtendedCursorLifetime() {
+
         System.runAs(testUser) {
             OrgExplorerCursorCodec.Cursor actual = new OrgExplorerCursorCodec.Cursor();
             actual.viewerId = testUser.Id;
@@ -55,6 +57,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsFutureIssuedCursor() {
+
         System.runAs(testUser) {
             OrgExplorerCursorCodec.Cursor actual = new OrgExplorerCursorCodec.Cursor();
             actual.viewerId = testUser.Id;
@@ -73,6 +76,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsCursorWithoutMatchingViewer() {
+
         System.runAs(testUser) {
             OrgExplorerCursorCodec.Cursor actual = new OrgExplorerCursorCodec.Cursor();
             actual.viewerId = null;
@@ -89,6 +93,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsCursorWithWrongRecordType() {
+
         System.runAs(testUser) {
             OrgExplorerPageRequest request = new OrgExplorerPageRequest();
             request.requestId = 'cursor-type';
@@ -110,6 +115,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsUnknownCursorProperties() {
+
         System.runAs(testUser) {
             OrgExplorerPageRequest request = new OrgExplorerPageRequest();
             request.requestId = 'cursor-unknown';
@@ -133,6 +139,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void validatesStructureCursorBindings() {
+
         System.runAs(testUser) {
             OrgExplorerPageRequest request = new OrgExplorerPageRequest();
             request.requestId = 'manager-cursor';
@@ -177,6 +184,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void rejectsMissingCursor() {
+
         System.runAs(testUser) {
             Test.startTest();
             Boolean valid = codec.matches(null, new OrgExplorerCursorCodec.Cursor());
@@ -190,6 +198,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void preservesExistingCursorJson() {
+
         System.runAs(testUser) {
             String legacyJson = '{"v":1,"purpose":"PAGE","viewerId":null,"mode":"ROLE",' +
                 '"scope":"ROLE_STRUCTURE","parentId":null,"includeInactive":true,"lastId":null,' +
@@ -201,8 +210,11 @@ private with sharing class OrgExplorerCursorCodecTest {
             Assert.areEqual(JSON.deserializeUntyped(legacyJson), JSON.deserializeUntyped(actualJson), '内部クラス化で継続情報の項目名・型・値を変えない');
         }
     }
+
+    /** 未発行の継続位置を初期化 */
     @IsTest
     static void initializesUnassignedState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerCursorCodec.Cursor value = new OrgExplorerCursorCodec.Cursor();
@@ -223,6 +235,7 @@ private with sharing class OrgExplorerCursorCodecTest {
      */
     @IsTest
     static void derivesCursorExpiryFromIssuedTime() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerCursorCodec.Cursor cursor = new OrgExplorerCursorCodec.Cursor();

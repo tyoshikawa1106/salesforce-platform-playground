@@ -6,8 +6,10 @@ private with sharing class OrgExplorerPageRequestTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 未設定のページ要求を初期化 */
     @IsTest
     static void initializesUnassignedState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerPageRequest value = new OrgExplorerPageRequest();

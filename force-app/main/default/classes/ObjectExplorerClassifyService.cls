@@ -30,8 +30,10 @@ public with sharing class ObjectExplorerClassifyService {
      * @param allowed 許可する分類属性
      */
     private void validateEditValues(Map<String, Object> original, Map<String, Object> draft, Set<String> allowed) {
-        if (original == null || draft == null) { throw ObjectExplorerAccessPolicy.createException('分類の編集内容が不正です。'); }
-        if (original.keySet() != allowed || draft.keySet() != allowed) { throw ObjectExplorerAccessPolicy.createException('分類の編集内容が不正です。'); }
+        // nullを含む入力の欠落と許可外属性を同じ契約で拒否
+        if (original?.keySet() != allowed || draft?.keySet() != allowed) {
+            throw ObjectExplorerAccessPolicy.createException('分類の編集内容が不正です。');
+        }
     }
 
     /**
@@ -58,6 +60,7 @@ public with sharing class ObjectExplorerClassifyService {
         }
         return updated;
     }
+
     /** 同じ項目の入力・現在値・期待値・確定結果を保持する内部DTO */
     public class FieldContext {
         public String objectName;
@@ -140,6 +143,7 @@ public with sharing class ObjectExplorerClassifyService {
             this.result = source.result;
         }
     }
+
     /** 同じ項目の最新分類・所有者と編集値を照合して保存定義を生成 */
     public class Preparation {
         private ObjectExplorerClassifyService service = new ObjectExplorerClassifyService();
@@ -295,6 +299,27 @@ public with sharing class ObjectExplorerClassifyService {
 
     /** 項目別の確定結果と未確定結果を入力順で管理 */
     public class SaveResults {
+
+        /**
+         * カスタム項目の個別更新が必要な位置を入力順で選択
+         * @param contexts 事前検証済みの項目状態
+         * @return 未確定かつ変更があるカスタム項目の位置
+         */
+        public List<Integer> getCustomUpdateIndexes(List<FieldContext> contexts) {
+            // 入力と同じ順序で通信対象を選択
+            List<Integer> indexes = new List<Integer>();
+            // 状態の書き換えを行わず更新要否だけを判定
+            for (Integer index = 0; index < contexts.size(); index++) {
+                // 確定済み・変更なし・標準項目は個別更新から除外
+                FieldContext context = contexts[index];
+                // カスタム更新が必要な位置だけを返却
+                if (!context.completed && context.original != context.expected && context.customField) {
+                    indexes.add(index);
+                }
+            }
+            // 呼び出し元で通信順を組み立てられる位置一覧を返却
+            return indexes;
+        }
 
         /**
          * 一括送信する標準項目だけを完全名で選択

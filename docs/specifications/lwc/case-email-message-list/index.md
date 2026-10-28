@@ -94,7 +94,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 - 追加取得中のケース切り替え、元のケースへの往復、古い追加取得の成功・失敗を確認し、新しい一覧とカーソル、操作中状態が維持されること
 
 - [CaseEmailMessageControllerTest](../../../../force-app/main/default/classes/CaseEmailMessageControllerTest.cls) で Case ID、null、Case 以外の ID、件数、Cursor直接取得、ページ応答を確認します。
-- [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls) で入力検証、初回取得位置、不正な取得位置、空ページを確認します。
+- [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls) で入力検証、初回取得位置、不正な取得位置、空ページ、問い合わせ条件を変更しないことを確認します。
 - [CaseEmailMessageSelectorTest](../../../../force-app/main/default/classes/CaseEmailMessageSelectorTest.cls) で件数、ページ境界の直前・一致・直後、複数ページの重複防止、送信日時がないメール、Cursor作成後の削除行を確認します。
 - [CaseEmailMessagePageWrapperTest](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapperTest.cls) で空ページと次ページ情報を確認します。
 - `caseEmailMessageList.test.js` でCOUNT後のCursor直接取得と命令的な初回ページ取得、活動タイムライン構造、曜日表示、送受信別のアイコンと補足文、本文の常時表示、空状態、エラー、再読み込み時の新しいCursor取得、下部ボタンからの追加読み込み、追加ページ境界の区切りを確認します。

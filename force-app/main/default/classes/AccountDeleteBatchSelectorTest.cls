@@ -4,9 +4,11 @@ private with sharing class AccountDeleteBatchSelectorTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 削除対象と標準ジョブを取得 */
     @IsTest
     static void selectsAccountsAndStandardJob() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
+
         System.runAs(testUser) {
             TestDataFactory.createAccount('対象', TestDataFactory.SaveMode.INSERT_RECORD);
             AccountDeleteBatchSelector selector = new AccountDeleteBatchSelector();

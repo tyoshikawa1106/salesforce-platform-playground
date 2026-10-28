@@ -6,8 +6,10 @@ private with sharing class OrgExplorerAccessPolicyTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 参照できない任意項目を除外 */
     @IsTest
     static void excludesUnavailableOptionalFields() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.usersEnabled = true;
@@ -31,8 +33,10 @@ private with sharing class OrgExplorerAccessPolicyTest {
         }
     }
 
+    /** 非公開の連絡先項目をノード検索から除外 */
     @IsTest
     static void keepsPrivateContactFieldsOutOfNodeQueries() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.usersEnabled = true;
@@ -94,8 +98,10 @@ private with sharing class OrgExplorerAccessPolicyTest {
         }
     }
 
+    /** 範囲に必要な項目とロール列だけを選択 */
     @IsTest
     static void selectsOnlyFieldsAndRoleColumnsNeededByScope() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.usersEnabled = true;
@@ -131,8 +137,10 @@ private with sharing class OrgExplorerAccessPolicyTest {
         }
     }
 
+    /** ユーザー参照不可では表示列を空にする */
     @IsTest
     static void omitsAllColumnsWithoutUserAccess() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.usersEnabled = false;

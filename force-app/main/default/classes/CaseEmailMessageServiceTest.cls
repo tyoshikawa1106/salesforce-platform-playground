@@ -3,6 +3,9 @@
  */
 @IsTest
 private with sharing class CaseEmailMessageServiceTest {
+
+    private static CaseEmailMessageService service = new CaseEmailMessageService();
+
     private static User testUser = TestDataFactory.getTestUser();
 
     /**
@@ -16,7 +19,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().validateCaseId(caseRecord.Id);
+            result = service.validateCaseId(caseRecord.Id);
 
             Test.stopTest();
         }
@@ -36,7 +39,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().validateCaseId(null);
+            result = service.validateCaseId(null);
 
             Test.stopTest();
         }
@@ -61,7 +64,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().validateCaseId(accountRecord.Id);
+            result = service.validateCaseId(accountRecord.Id);
 
             Test.stopTest();
         }
@@ -88,7 +91,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().createPageQuery(caseRecord.Id, null, null);
+            result = service.createPageQuery(caseRecord.Id, null, null);
 
             Test.stopTest();
         }
@@ -111,7 +114,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().createPageQuery(null, null, -1);
+            result = service.createPageQuery(null, null, -1);
 
             Test.stopTest();
         }
@@ -131,7 +134,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().createPageQuery(null, null, 50);
+            result = service.createPageQuery(null, null, 50);
 
             Test.stopTest();
         }
@@ -151,7 +154,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().createPage(null, null);
+            result = service.createPage(null, null);
 
             Test.stopTest();
         }
@@ -178,7 +181,6 @@ private with sharing class CaseEmailMessageServiceTest {
             Incoming = true,
             Status = '0'
         );
-        CaseEmailMessageService service = new CaseEmailMessageService();
         CaseEmailMessageService.PageQueryResult pageQueryResult = service.createPageQuery(caseRecord.Id, null, 0);
         CaseEmailMessageService.PageQuery pageQuery = pageQueryResult.pageQuery;
         Database.PaginationCursor paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(caseRecord.Id);
@@ -192,6 +194,8 @@ private with sharing class CaseEmailMessageServiceTest {
             Test.stopTest();
         }
 
+        Assert.areEqual(50, pageQuery.fetchSize, '入力の取得上限を変更しない必要あり');
+        Assert.isNull(pageQuery.paginationCursor, '入力へカーソルを書き込まない必要あり');
         Assert.areEqual(1, result.fetchSize, '残り1件では取得件数を1件へ縮小する必要あり');
         Assert.areEqual(paginationCursor, result.paginationCursor, '取得に使う Cursor を保持する必要あり');
     }
@@ -206,7 +210,7 @@ private with sharing class CaseEmailMessageServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageService().preparePageFetch(null, null);
+            result = service.preparePageFetch(null, null);
 
             Test.stopTest();
         }
@@ -233,7 +237,6 @@ private with sharing class CaseEmailMessageServiceTest {
             Incoming = true,
             Status = '0'
         );
-        CaseEmailMessageService service = new CaseEmailMessageService();
         CaseEmailMessageService.PageQuery pageQuery = service.createPageQuery(
                 caseRecord.Id,
                 null,
@@ -256,4 +259,20 @@ private with sharing class CaseEmailMessageServiceTest {
 
         Assert.areEqual(0, result.fetchSize, 'Cursor の終端では追加取得しない必要あり');
     }
+
+    /** カーソルなしでも入力の問い合わせ条件を変更しない */
+    @IsTest
+    static void preservesQueryWithoutCursor() {
+        CaseEmailMessageService.PageQuery source = new CaseEmailMessageService.PageQuery();
+        source.fetchSize = 50;
+
+        System.runAs(testUser) {
+            Test.startTest();
+            CaseEmailMessageService.PageQuery prepared = service.preparePageFetch(source, null);
+            Test.stopTest();
+            Assert.areEqual(50, source.fetchSize, '入力の取得上限を維持する必要あり');
+            Assert.areEqual(0, prepared.fetchSize, 'カーソルなしでは取得を短絡する必要あり');
+        }
+    }
+
 }

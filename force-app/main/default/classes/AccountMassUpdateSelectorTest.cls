@@ -4,8 +4,10 @@ private with sharing class AccountMassUpdateSelectorTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 作成日時が同じ行を重複せずページ取得 */
     @IsTest
     static void pagesEqualCreatedDatesWithoutDuplicates() {
+
         System.runAs(testUser) {
             List<Account> records = new List<Account>();
             for (Integer position = 0; position < 205; position++) {
@@ -50,8 +52,10 @@ private with sharing class AccountMassUpdateSelectorTest {
         }
     }
 
+    /** 検索の制御文字をエスケープし空IDを短絡 */
     @IsTest
     static void escapesWildcardsAndShortCircuitsEmptyIds() {
+
         System.runAs(testUser) {
             TestDataFactory.createAccount('法人_100%', TestDataFactory.SaveMode.INSERT_RECORD);
             TestDataFactory.createAccount('法人A100X', TestDataFactory.SaveMode.INSERT_RECORD);
@@ -74,8 +78,10 @@ private with sharing class AccountMassUpdateSelectorTest {
         }
     }
 
+    /** 個人取引先を検索とロックから除外 */
     @IsTest
     static void excludesPersonAccountsFromSearchAndLock() {
+
         System.runAs(testUser) {
             List<RecordType> personTypes = new List<RecordType>();
             if (Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).fields.getMap().containsKey('IsPersonAccount')) {

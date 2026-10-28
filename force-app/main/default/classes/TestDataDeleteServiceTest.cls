@@ -5,9 +5,12 @@ private with sharing class TestDataDeleteServiceTest {
     private static TestDataDeleteService service = new TestDataDeleteService();
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** すべてのデータの編集権限がなければ拒否 */
     @IsTest
     static void rejectsWithoutModifyAllData() {
+
         System.runAs(testUser) {
+            Test.startTest();
             UserPermissionAccess permission = (UserPermissionAccess) JSON.deserialize(
                 '{"PermissionsModifyAllData":false}',
                 UserPermissionAccess.class
@@ -18,20 +21,29 @@ private with sharing class TestDataDeleteServiceTest {
             );
             Assert.isTrue(result.errorMessage.contains('すべてのデータの編集'), '権限名を案内');
             Assert.isTrue(result.objectNames.isEmpty(), '未許可なら対象を取得しない');
+            Test.stopTest();
         }
     }
+
+    /** 本番環境を拒否 */
     @IsTest
     static void rejectsProduction() {
+
         System.runAs(testUser) {
+            Test.startTest();
             TestDataDeleteWrapper result = service.createView(
                 new List<UserPermissionAccess>(),
                 TestDataDeleteService.Environment.DISALLOWED
             );
             Assert.isTrue(result.errorMessage.contains('開発組織'), '本番を拒否');
+            Test.stopTest();
         }
     }
+
+    /** 全ファイル照会権限を必須にしない */
     @IsTest
     static void allowsWithoutQueryAllFiles() {
+
         System.runAs(testUser) {
             UserPermissionAccess permission = (UserPermissionAccess) JSON.deserialize(
                 '{"PermissionsModifyAllData":true,"PermissionsQueryAllFiles":false}',
@@ -47,30 +59,44 @@ private with sharing class TestDataDeleteServiceTest {
             Assert.isFalse(result.errorMessage.contains('すべてのファイルを照会'), '全ファイル照会権限を必須にしない');
         }
     }
+
+    /** 固定計画外のオブジェクトを拒否 */
     @IsTest
     static void rejectsObjectOutsidePlan() {
+
         System.runAs(testUser) {
+            Test.startTest();
             TestDataDeleteWrapper initial = new TestDataDeleteWrapper();
             initial.objectNames.add('Account');
             TestDataDeleteWrapper result = service.checkObject(initial, 'User');
             Assert.isTrue(result.errorMessage.contains('対象では'), '任意のAPI名で検索しない');
             Assert.areEqual('', initial.errorMessage, '入力に副作用なし');
+            Test.stopTest();
         }
     }
+
+    /** 未確認の削除要求を拒否 */
     @IsTest
     static void rejectsUnconfirmedRequest() {
+
         System.runAs(testUser) {
+            Test.startTest();
             TestDataDeleteWrapper result = service.checkStart(
                 new TestDataDeleteWrapper(),
                 new List<AsyncApexJob>(),
                 ''
             );
             Assert.isTrue(result.errorMessage.contains('確認'), '画面での確認が必須');
+            Test.stopTest();
         }
     }
+
+    /** 実行中ジョブがあれば拒否 */
     @IsTest
     static void rejectsActiveJob() {
+
         System.runAs(testUser) {
+            Test.startTest();
             TestDataDeleteWrapper result = service.checkStart(
                 new TestDataDeleteWrapper(),
                 new List<AsyncApexJob>{ new AsyncApexJob() },
@@ -78,11 +104,16 @@ private with sharing class TestDataDeleteServiceTest {
             );
             Assert.areEqual('RUNNING', result.executionState, '実行中を明示');
             Assert.isTrue(result.errorMessage.contains('実行中'), '重複開始を拒否');
+            Test.stopTest();
         }
     }
+
+    /** 実効権限から削除計画と表示名を生成 */
     @IsTest
     static void buildsPlanFromEffectivePermission() {
+
         System.runAs(testUser) {
+            Test.startTest();
             UserPermissionAccess permission = (UserPermissionAccess) JSON.deserialize(
                 '{"PermissionsModifyAllData":true,"PermissionsQueryAllFiles":true}',
                 UserPermissionAccess.class
@@ -93,12 +124,14 @@ private with sharing class TestDataDeleteServiceTest {
             );
             Assert.isTrue(result.objectNames.contains('Account'), '対象一覧を生成');
             Assert.isTrue(result.labels.containsKey('Account'), '表示名を生成');
+            Test.stopTest();
         }
     }
 
     /** 対象一覧の編集で別の要求の計画を変更しない */
     @IsTest
     static void preservesIndependentDependencyOrder() {
+
         System.runAs(testUser) {
             Test.startTest();
             List<String> first = service.getObjectNames();
@@ -126,8 +159,10 @@ private with sharing class TestDataDeleteServiceTest {
         );
     }
 
+    /** Developer Editionを許可 */
     @IsTest
     static void permitsDeveloperEdition() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(
@@ -138,8 +173,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** 有効期限内のScratch Orgを許可 */
     @IsTest
     static void permitsUnexpiredScratch() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(
@@ -150,8 +187,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** Developer Editionでも一般Sandboxを拒否 */
     @IsTest
     static void deniesSandboxEvenWithDeveloperEdition() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(
@@ -162,8 +201,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** 本番組織を拒否 */
     @IsTest
     static void deniesProductionOrganization() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(
@@ -174,8 +215,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** 有効期限だけでTrial組織を許可しない */
     @IsTest
     static void deniesTrialOrganization() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(
@@ -190,8 +233,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** 期限切れScratch Orgを拒否 */
     @IsTest
     static void deniesExpiredScratch() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(
@@ -202,8 +247,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** 組織情報の欠落を拒否 */
     @IsTest
     static void deniesMissingOrganization() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(new List<Organization>());
@@ -212,8 +259,10 @@ private with sharing class TestDataDeleteServiceTest {
         }
     }
 
+    /** nullの組織情報を拒否 */
     @IsTest
     static void deniesNullOrganizationResult() {
+
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteService.Environment actual = service.getEnvironment(null);

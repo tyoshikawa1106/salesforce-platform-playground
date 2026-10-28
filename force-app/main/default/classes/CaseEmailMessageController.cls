@@ -57,7 +57,9 @@ public with sharing class CaseEmailMessageController {
             // 確定済みの位置と件数で未加工の Cursor ページを取得
             Database.CursorFetchResult cursorFetchResult = SELECTOR.getByCaseId(pageQuery);
             // Cursor 取得結果を LWC 返却用ページへ変換
-            return SERVICE.createPage(pageQuery.paginationCursor, cursorFetchResult);
+            CaseEmailMessagePageWrapper page = SERVICE.createPage(pageQuery.paginationCursor, cursorFetchResult);
+            // 作成したページ応答を返却
+            return page;
         } catch (Exception e) {
             throw createHandledException(LOAD_ERROR_MESSAGE);
         }

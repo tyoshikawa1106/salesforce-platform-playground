@@ -4,8 +4,10 @@ private with sharing class AccountMassUpdateControllerTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 異なる変更値を一括保存 */
     @IsTest
     static void savesTwoHundredDifferentChanges() {
+
         System.runAs(testUser) {
             List<Account> records = new List<Account>();
             for (Integer position = 0; position < 200; position++) {
@@ -37,8 +39,10 @@ private with sharing class AccountMassUpdateControllerTest {
         }
     }
 
+    /** 部分成功と項目の空欄解除を反映 */
     @IsTest
     static void preservesPartialSuccessAndClearsValue() {
+
         System.runAs(testUser) {
             Account first = TestDataFactory.createAccount('成功対象', TestDataFactory.SaveMode.DO_NOT_INSERT);
             first.Rating = 'Hot';
@@ -65,8 +69,10 @@ private with sharing class AccountMassUpdateControllerTest {
         }
     }
 
+    /** 競合と許可外項目の更新を拒否 */
     @IsTest
     static void rejectsStaleAndForbiddenUpdates() {
+
         System.runAs(testUser) {
             Account record = TestDataFactory.createAccount('変更禁止', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -88,8 +94,10 @@ private with sharing class AccountMassUpdateControllerTest {
         }
     }
 
+    /** 法人取引先を検索し日付逆転を拒否 */
     @IsTest
     static void searchesBusinessAccountsAndRejectsReverseDates() {
+
         System.runAs(testUser) {
             TestDataFactory.createAccount('検索テスト', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();

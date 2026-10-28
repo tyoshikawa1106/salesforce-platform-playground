@@ -4,15 +4,19 @@
 public with sharing class ObjectRecordSearchSelector {
 
     /**
-     * 検証済み条件から標準PaginationCursorを作成
+     * 検証済み条件の標準PaginationCursorを取得、初回だけ作成
      *
      * @param searchQueryRequest 検索対象、検索語、ソート、ページングを持つ問い合わせ条件
-     * @return 利用者権限のソート済み標準カーソル
+     * @return 既存または利用者権限で新規作成したソート済み標準カーソル
      * @throws IllegalArgumentException 内部で組み立てた問い合わせ条件が契約を満たさない場合
      */
     public Database.PaginationCursor createPaginationCursor(ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest) {
         // 許可された検索条件だけで結果集合を作成
         ObjectRecordSearchQueryPlan.SearchQueryRequest request = ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(searchQueryRequest);
+        // 継続取得では入力を書き換えず既存の結果集合を返却
+        if (request.paginationCursor != null) {
+            return request.paginationCursor;
+        }
         // 名称検索は従来どおりbindで渡し、ページ境界のWHEREは作らない
         Map<String, Object> bindValues = createSearchBindValues(request);
         // ソート済み結果集合の管理をSalesforceに委譲
@@ -23,13 +27,14 @@ public with sharing class ObjectRecordSearchSelector {
      * 標準カーソルの指定位置から最大50件を取得
      * @param request 検証済み検索条件と標準カーソル
      * @return 標準の取得結果、残件数がない場合はnull
+     * @throws IllegalArgumentException 検証済み条件または取得用カーソルがない場合
      */
     public Database.CursorFetchResult searchRecords(ObjectRecordSearchQueryPlan.SearchQueryRequest request) {
         // 不正な識別子を含む内部要求を拒否
         ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(request);
-        // 初回だけ結果集合を作成し、後続ページでは標準カーソルを再利用
+        // カーソルの作成は入口で完了し、渡された条件を変更しない
         if (request.paginationCursor == null) {
-            request.paginationCursor = createPaginationCursor(request);
+            throw new IllegalArgumentException('ページ取得用のカーソルが必要です。');
         }
         // 0件と最終ページの範囲外をfetchPageへ渡さない
         Integer remaining = request.paginationCursor.getNumRecords() - request.startIndex;

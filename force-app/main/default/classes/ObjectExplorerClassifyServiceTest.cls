@@ -1,6 +1,7 @@
 /** 分類の競合検出・更新準備・保存結果 */
 @IsTest
 private with sharing class ObjectExplorerClassifyServiceTest {
+
     private static ObjectExplorerClassifyService service = new ObjectExplorerClassifyService();
     private static ObjectExplorerClassifyService.Preparation preparation = new ObjectExplorerClassifyService.Preparation();
     private static ObjectExplorerClassifyService.SaveResults results = new ObjectExplorerClassifyService.SaveResults();
@@ -10,6 +11,7 @@ private with sharing class ObjectExplorerClassifyServiceTest {
     /** 送信成功は再取得による確認まで保留 */
     @IsTest
     static void keepsSuccessfulResultsPendingVerification() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext source = context(false);
@@ -24,9 +26,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 複数値の比較と分類以外の保持 */
     @IsTest
     static void normalizesAndPreservesMetadata() {
+
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> current = new Map<String, Object>{
@@ -45,9 +49,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 編集中の分類変更を拒否 */
     @IsTest
     static void rejectsConcurrentClassify() {
+
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> original = service.snapshot(new Map<String, Object>());
@@ -60,9 +66,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** ユーザーとグループの同時指定を拒否 */
     @IsTest
     static void rejectsTwoOwners() {
+
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> original = service.snapshot(new Map<String, Object>());
@@ -78,9 +86,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 標準項目の更新準備と保存後照合 */
     @IsTest
     static void preparesAndVerifiesStandardField() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext source = context(false);
@@ -107,9 +117,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** カスタム項目の非分類属性を保持 */
     @IsTest
     static void preservesCustomDefinition() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext prepared = preparation.prepareField(
@@ -131,9 +143,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** API応答の別項目へのマッピングを拒否 */
     @IsTest
     static void rejectsDifferentDefinition() {
+
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> row = nativeRow();
@@ -147,9 +161,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 所有者の競合を拒否 */
     @IsTest
     static void rejectsChangedOwner() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext source = context(false);
@@ -163,9 +179,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 更新後の値不一致を拒否 */
     @IsTest
     static void rejectsVerificationMismatch() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext source = preparation.prepareField(
@@ -184,9 +202,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 部分結果の保持と例外の安全な公開 */
     @IsTest
     static void keepsPartialResultsAndSafeErrors() {
+
         System.runAs(testUser) {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext pending = context(false);
@@ -221,9 +241,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.stopTest();
         }
     }
+
     /** 結果未確定を拒否 */
     @IsTest
     static void rejectsUnfinishedResult() {
+
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -265,4 +287,65 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             'BusinessOwnerId' => null
         };
     }
+
+    /** 個別更新が必要なカスタム項目だけを入力順で選択 */
+    @IsTest
+    static void selectsOnlyChangedPendingCustomFields() {
+        ObjectExplorerClassifyService.FieldContext changed = context(true);
+        changed.expected = new Map<String, Object>{ 'businessStatus' => 'Active' };
+        ObjectExplorerClassifyService.FieldContext completed = new ObjectExplorerClassifyService.FieldContext(changed);
+        completed.completed = true;
+        ObjectExplorerClassifyService.FieldContext unchanged = context(true);
+        unchanged.expected = unchanged.original;
+        ObjectExplorerClassifyService.FieldContext standard = new ObjectExplorerClassifyService.FieldContext(changed);
+        standard.customField = false;
+        List<ObjectExplorerClassifyService.FieldContext> contexts = new List<ObjectExplorerClassifyService.FieldContext>{
+            changed, completed, unchanged, standard, new ObjectExplorerClassifyService.FieldContext(changed)
+        };
+
+        System.runAs(testUser) {
+            Test.startTest();
+            List<Integer> indexes = results.getCustomUpdateIndexes(contexts);
+            Test.stopTest();
+            Assert.areEqual(new List<Integer>{ 0, 4 }, indexes, '未確定かつ変更のあるカスタム項目だけを入力順で選択');
+            Assert.isFalse(changed.sent, '選択だけでは送信状態を変更しない');
+            Assert.areEqual(5, contexts.size(), '入力の項目一覧を変更しない');
+        }
+    }
+
+
+    /** 編集開始時の分類がnullなら保存準備を拒否 */
+    @IsTest
+    static void rejectsMissingOriginalClassification() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, Object> baseline = service.snapshot(new Map<String, Object>());
+            try {
+                service.prepareUpdate(new Map<String, Object>(), null, baseline);
+                Assert.fail('編集開始時の分類がなければ拒否');
+            } catch (AuraHandledException e) {
+                Assert.isTrue(e.getMessage().contains('不正'), '入力不正を明示');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 編集後の分類がnullなら保存準備を拒否 */
+    @IsTest
+    static void rejectsMissingDraftClassification() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, Object> baseline = service.snapshot(new Map<String, Object>());
+            try {
+                service.prepareUpdate(new Map<String, Object>(), baseline, null);
+                Assert.fail('編集後の分類がなければ拒否');
+            } catch (AuraHandledException e) {
+                Assert.isTrue(e.getMessage().contains('不正'), '入力不正を明示');
+            }
+            Test.stopTest();
+        }
+    }
+
 }

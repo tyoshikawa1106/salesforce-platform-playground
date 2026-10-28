@@ -1,9 +1,15 @@
 /** 削除計画の依存順序と状態分離を検証 */
 @IsTest
 private with sharing class TestDataDeleteBatchWrapperTest {
+
+    private static User testUser = TestDataFactory.getTestUser();
+
+    /** 子から親の削除順序を維持 */
     @IsTest
     static void ordersChildrenBeforeParents() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
+            Test.startTest();
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             List<String> names = plan.objectNames;
             Assert.isTrue(names.indexOf('WorkOrderLineItem') < names.indexOf('WorkOrder'), '作業指示明細を先に削除');
@@ -23,11 +29,16 @@ private with sharing class TestDataDeleteBatchWrapperTest {
             Assert.isFalse(names.contains('User'), 'ユーザーを削除しない');
             Assert.isFalse(names.contains('PermissionSet'), '権限セットを削除しない');
             Assert.isFalse(names.contains('Pricebook2'), '標準価格表を削除しない');
+            Test.stopTest();
         }
     }
+
+    /** 複製した状態の変更が元へ影響しない */
     @IsTest
     static void copiesStateWithoutAliasing() {
-        System.runAs(TestDataFactory.getTestUser()) {
+
+        System.runAs(testUser) {
+            Test.startTest();
             TestDataDeleteBatchWrapper first = new TestDataDeleteBatchWrapper();
             first.errorCodes.add('ERROR');
             TestDataDeleteBatchWrapper second = new TestDataDeleteBatchWrapper(first);
@@ -35,6 +46,7 @@ private with sharing class TestDataDeleteBatchWrapperTest {
             second.objectNames.clear();
             Assert.areEqual(1, first.errorCodes.size(), 'エラー一覧を複製');
             Assert.isFalse(first.objectNames.isEmpty(), '削除計画を複製');
+            Test.stopTest();
         }
     }
 }
