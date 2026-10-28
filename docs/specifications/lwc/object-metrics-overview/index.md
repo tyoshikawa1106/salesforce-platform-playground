@@ -12,20 +12,16 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-### LWC
+### 画面・JavaScript
 
-| 種別           | API 名                          | 役割                                               |
-| -------------- | ------------------------------- | -------------------------------------------------- |
-| LWC            | `objectMetricsOverview`         | 件数カードの表示、再読み込み、検索画面への切り替え |
-| LWC            | `objectRecordSearch`            | 選択したカードのレコード一覧表示                   |
-| LWC            | `errorUtils`                    | Apex エラーの画面表示用メッセージ変換              |
-| LWC JavaScript | `objectMetricsOverview.js`      | 件数取得と画面状態の制御                           |
-| LWC JavaScript | `objectMetricsOverviewLogic.js` | 件数応答とカード表示モデルの生成                   |
-| LWC JavaScript | `errorUtils.js`                 | Apex エラーの画面表示用メッセージ変換              |
-
-### 設定・権限
-
-- `LwcObjectMetricsOverview`: [ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)のApexクラス実行権限
+| 種別       | 実装・設定                                                                                                                  | 役割                                               |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| LWC        | [objectMetricsOverview](../../../../force-app/main/default/lwc/objectMetricsOverview/objectMetricsOverview.js)              | 件数カードの表示、再読み込み、検索画面への切り替え |
+| LWC        | [objectRecordSearch](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearch.js)                       | 選択したカードのレコード一覧表示                   |
+| LWC        | [errorUtils](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                               | Apex エラーの画面表示用メッセージ変換              |
+| JavaScript | [objectMetricsOverview.js](../../../../force-app/main/default/lwc/objectMetricsOverview/objectMetricsOverview.js)           | 件数取得と画面状態の制御                           |
+| JavaScript | [objectMetricsOverviewLogic.js](../../../../force-app/main/default/lwc/objectMetricsOverview/objectMetricsOverviewLogic.js) | 件数応答とカード表示モデルの生成                   |
+| JavaScript | [errorUtils.js](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                            | Apex エラーの画面表示用メッセージ変換              |
 
 ### Apexコードと対応テスト
 
@@ -40,6 +36,12 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls)                                 | データボードで扱うオブジェクト定義一元管理                         | [ObjectMetricCatalogTest](../../../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)                                 |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定                 | 役割                                                                                                                                  |
+| ------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| PermissionSet | `LwcObjectMetricsOverview` | [ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)のApexクラス実行権限 |
 
 ## 入力
 

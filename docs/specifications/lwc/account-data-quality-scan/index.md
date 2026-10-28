@@ -12,35 +12,13 @@
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-### 入口・LWC
+### 画面・JavaScript
 
-- `HomeFlexiPage`: Salesforceアプリのホームページ下部左側へLWCを配置
-- `accountDataQualityScan`
-- `accountDataQualityScan.js`
-- `accountDataQualityScanLogic.js`
-
-### 設定・権限
-
-- `DataQualityScan__c`: スキャン状態、進捗、集計結果、最終エラーを保持
-- `DataQualityScan__c.Active_Key__c`: Accountスキャンの同時実行を防ぐ一意キー
-- `DataQualityScan__c.Status__c`: `Pending`、`Running`、`Completed`、`Failed`を保持
-- `DataQualityScan__c.Target_Object__c`: MVPでは`Account`を保持
-- `DataQualityScan__c.Total_Count__c`
-- `DataQualityScan__c.Processed_Count__c`
-- `DataQualityScan__c.Missing_Phone_Count__c`
-- `DataQualityScan__c.Missing_Industry_Count__c`
-- `DataQualityScan__c.Missing_Address_Count__c`
-- `DataQualityScan__c.Missing_Website_Count__c`
-- `DataQualityScan__c.Missing_Account_Number_Count__c`
-- `DataQualityScan__c.Started_At__c`
-- `DataQualityScan__c.Completed_At__c`
-- `DataQualityScan__c.Error_Message__c`
-- `DataQualityScan__c.Requested_By__c`
-- `DataQualityScan__c-データ品質スキャンレイアウト`: Name、Owner、監査項目を表示する標準レイアウト
-- `DataQualityScan__c-en_US`: 英語ロケールでオブジェクト名を表示する翻訳
-- `DataQualityScan__c` Sharing Rules: 共有ルールなし
-- `DataQualityScan__c` Topics for Objects: トピック無効
-- `LwcAccountDataQualityScan` PermissionSet（表示ラベル: 「LWC：取引先データ品質スキャン」）: Account・Contact参照、スキャン対象項目の参照、スキャン管理データの読み書き、関連Apexクラスへのアクセス
+| 種別       | 実装・設定                                                                                                                     | 役割                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| LWC        | [accountDataQualityScan](../../../../force-app/main/default/lwc/accountDataQualityScan/accountDataQualityScan.js)              | 品質スキャンの開始・状態・集計結果を表示       |
+| JavaScript | [accountDataQualityScan.js](../../../../force-app/main/default/lwc/accountDataQualityScan/accountDataQualityScan.js)           | 初期取得・スキャン受付・状態更新を制御         |
+| JavaScript | [accountDataQualityScanLogic.js](../../../../force-app/main/default/lwc/accountDataQualityScan/accountDataQualityScanLogic.js) | スキャン状態・進捗・操作可否の表示モデルを生成 |
 
 ### Apexコードと対応テスト
 
@@ -53,6 +31,36 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountDataQualityScanWrapper](../../../../force-app/main/default/classes/AccountDataQualityScanWrapper.cls)       | 取引先データ品質スキャンの画面表示値                     | [AccountDataQualityScanWrapperTest](../../../../force-app/main/default/classes/AccountDataQualityScanWrapperTest.cls)       |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別                   | 実装・設定                                           | 役割                                                                                                                                                                   |
+| ---------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FlexiPage              | `HomeFlexiPage`                                      | Salesforceアプリのホームページ下部左側へLWCを配置                                                                                                                      |
+| CustomObject・関連設定 | `DataQualityScan__c`                                 | スキャン状態、進捗、集計結果、最終エラーを保持                                                                                                                         |
+| CustomField            | `DataQualityScan__c.Active_Key__c`                   | Accountスキャンの同時実行を防ぐ一意キー                                                                                                                                |
+| CustomField            | `DataQualityScan__c.Status__c`                       | `Pending`、`Running`、`Completed`、`Failed`を保持                                                                                                                      |
+| CustomField            | `DataQualityScan__c.Target_Object__c`                | MVPでは`Account`を保持                                                                                                                                                 |
+| CustomField            | `DataQualityScan__c.Total_Count__c`                  | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Processed_Count__c`              | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Phone_Count__c`          | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Industry_Count__c`       | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Address_Count__c`        | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Website_Count__c`        | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Account_Number_Count__c` | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Started_At__c`                   | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Completed_At__c`                 | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Error_Message__c`                | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Requested_By__c`                 | スキャン管理項目                                                                                                                                                       |
+| Layout                 | `DataQualityScan__c-データ品質スキャンレイアウト`    | Name、Owner、監査項目を表示する標準レイアウト                                                                                                                          |
+| 設定                   | `DataQualityScan__c-en_US`                           | 英語ロケールでオブジェクト名を表示する翻訳                                                                                                                             |
+| CustomObject・関連設定 | `DataQualityScan__c`                                 | Sharing Rules: 共有ルールなし                                                                                                                                          |
+| CustomObject・関連設定 | `DataQualityScan__c`                                 | Topics for Objects: トピック無効                                                                                                                                       |
+| PermissionSet          | `LwcAccountDataQualityScan`                          | PermissionSet（表示ラベル: 「LWC：取引先データ品質スキャン」）: Account・Contact参照、スキャン対象項目の参照、スキャン管理データの読み書き、関連Apexクラスへのアクセス |
+
+### 構成上の補足
+
+状態レコードのinsert・updateはControllerとQueueableがUSER_MODEで実行します。Serviceは保存対象の生成と判定・集計に限定し、区間集計と失敗判定では元のレコードを変更せず新しい状態を返します。Controllerは公開入口から検証し、テストのためのService・Selectorの差し替え用フィールドは持ちません。
 
 ## 入力
 
@@ -152,10 +160,6 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 - 過去のスキャン管理レコードを自動削除しません。
 - 複数オブジェクト、CSV出力、自動修正、任意項目設定には対応しません。
 - Cursorはガバナ制限を回避する機能ではなく、各`fetch()`と取得行はSOQL関連の制限へ加算されます。
-
-## 実装上の責務
-
-状態レコードのinsert・updateはControllerとQueueableがUSER_MODEで実行します。Serviceは保存対象の生成と判定・集計に限定し、区間集計と失敗判定では元のレコードを変更せず新しい状態を返します。Controllerは公開入口から検証し、テストのためのService・Selectorの差し替え用フィールドは持ちません。
 
 ## 既知の差異・確認事項
 

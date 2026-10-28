@@ -12,25 +12,21 @@
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-### LWC
+### 画面・JavaScript
 
-| 種別           | API 名・ファイル名                | 役割                                            |
-| -------------- | --------------------------------- | ----------------------------------------------- |
-| LWC            | `objectRecordSearch`              | 検索条件、一覧、ページング、作成、編集、削除 UI |
-| LWC            | `objectRecordFormModal`           | 標準モーダル内のレコード保存・アップロード      |
-| LWC JavaScript | `objectRecordFormModalLogic.js`   | 保存・アップロード結果とエラー表示値の生成      |
-| LWC            | `errorUtils`                      | Apex と UI API エラーのメッセージ変換           |
-| LWC JavaScript | `objectRecordSearch.js`           | 画面操作と Apex、UI API 呼び出しの統括          |
-| LWC JavaScript | `objectRecordSearchLogic.js`      | 画面単位の検索、一覧、フォーム状態生成          |
-| LWC JavaScript | `errorUtils.js`                   | Apex と UI API エラーのメッセージ変換           |
-| LWC JavaScript | `objectRecordSearchDisplay.js`    | 一覧列と表示行の組み立て                        |
-| LWC JavaScript | `objectRecordSearchForm.js`       | レコードフォームとレイアウトの組み立て          |
-| LWC JavaScript | `objectRecordSearchFormPolicy.js` | オブジェクト別のフォーム対応方針                |
-| LWC JavaScript | `objectRecordSearchState.js`      | 検索、ソート、ページング状態の管理              |
-
-### 設定・権限
-
-- `LwcObjectRecordSearch`: [ObjectRecordSearchController](../../../../force-app/main/default/classes/ObjectRecordSearchController.cls)のApexクラス実行権限
+| 種別       | 実装・設定                                                                                                                   | 役割                                            |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| LWC        | [objectRecordSearch](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearch.js)                        | 検索条件、一覧、ページング、作成、編集、削除 UI |
+| LWC        | [objectRecordFormModal](../../../../force-app/main/default/lwc/objectRecordFormModal/objectRecordFormModal.js)               | 標準モーダル内のレコード保存・アップロード      |
+| JavaScript | [objectRecordFormModalLogic.js](../../../../force-app/main/default/lwc/objectRecordFormModal/objectRecordFormModalLogic.js)  | 保存・アップロード結果とエラー表示値の生成      |
+| LWC        | [errorUtils](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                                | Apex と UI API エラーのメッセージ変換           |
+| JavaScript | [objectRecordSearch.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearch.js)                     | 画面操作と Apex、UI API 呼び出しの統括          |
+| JavaScript | [objectRecordSearchLogic.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchLogic.js)           | 画面単位の検索、一覧、フォーム状態生成          |
+| JavaScript | [errorUtils.js](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                             | Apex と UI API エラーのメッセージ変換           |
+| JavaScript | [objectRecordSearchDisplay.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchDisplay.js)       | 一覧列と表示行の組み立て                        |
+| JavaScript | [objectRecordSearchForm.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchForm.js)             | レコードフォームとレイアウトの組み立て          |
+| JavaScript | [objectRecordSearchFormPolicy.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchFormPolicy.js) | オブジェクト別のフォーム対応方針                |
+| JavaScript | [objectRecordSearchState.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchState.js)           | 検索、ソート、ページング状態の管理              |
 
 ### Apexコードと対応テスト
 
@@ -52,6 +48,12 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls)                           | データボードで扱うオブジェクト定義一元管理                 | [ObjectMetricCatalogTest](../../../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)                           |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定              | 役割                                                                                                                            |
+| ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| PermissionSet | `LwcObjectRecordSearch` | [ObjectRecordSearchController](../../../../force-app/main/default/classes/ObjectRecordSearchController.cls)のApexクラス実行権限 |
 
 ## 入力
 

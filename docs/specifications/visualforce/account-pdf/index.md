@@ -14,20 +14,12 @@ Lightning Experienceの取引先レコードページから、取引先の主要
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-### 入口・画面
+### 画面・JavaScript
 
-- `Account.PdfExport`: 「PDF出力」取引先クイックアクション
-- `accountPdfExport.js`: 対象取引先IDを含むVisualforce URLの生成と新しいタブの起動
-- `accountPdfExportLogic.js`: 取引先ID判定とVisualforce PageReferenceの組み立て
-- `AccountPdf`: 取引先情報をPDFとしてレンダリングするVisualforce Page
-- `Account-Account Layout`: 「PDF出力」アクションを表示する標準取引先レイアウト
-- `Account-Account (Marketing) Layout`: 「PDF出力」アクションを表示するマーケティング用取引先レイアウト
-- `Account-Account (Sales) Layout`: 「PDF出力」アクションを表示する営業用取引先レイアウト
-- `Account-Account (Support) Layout`: 「PDF出力」アクションを表示するサポート用取引先レイアウト
-
-### 設定・権限
-
-- `LwcAccountPdfExport`: [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls)と`AccountPdf`へのアクセス
+| 種別       | 実装・設定                                                                                                   | 役割                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| JavaScript | [accountPdfExport.js](../../../../force-app/main/default/lwc/accountPdfExport/accountPdfExport.js)           | 対象取引先IDを含むVisualforce URLの生成と新しいタブの起動 |
+| JavaScript | [accountPdfExportLogic.js](../../../../force-app/main/default/lwc/accountPdfExport/accountPdfExportLogic.js) | 取引先ID判定とVisualforce PageReferenceの組み立て         |
 
 ### Apexコードと対応テスト
 
@@ -39,6 +31,18 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountPdfViewModel](../../../../force-app/main/default/classes/AccountPdfViewModel.cls)   | 取引先 PDF に表示する文字列            | [AccountPdfViewModelTest](../../../../force-app/main/default/classes/AccountPdfViewModelTest.cls)   |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定                           | 役割                                                                                                                  |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| QuickAction   | `Account.PdfExport`                  | 「PDF出力」取引先クイックアクション                                                                                   |
+| Visualforce   | `AccountPdf`                         | 取引先情報をPDFとしてレンダリングするVisualforce Page                                                                 |
+| Layout        | `Account-Account Layout`             | 「PDF出力」アクションを表示する標準取引先レイアウト                                                                   |
+| Layout        | `Account-Account (Marketing) Layout` | 「PDF出力」アクションを表示するマーケティング用取引先レイアウト                                                       |
+| Layout        | `Account-Account (Sales) Layout`     | 「PDF出力」アクションを表示する営業用取引先レイアウト                                                                 |
+| Layout        | `Account-Account (Support) Layout`   | 「PDF出力」アクションを表示するサポート用取引先レイアウト                                                             |
+| PermissionSet | `LwcAccountPdfExport`                | [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls)と`AccountPdf`へのアクセス |
 
 ## 入力
 

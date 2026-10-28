@@ -12,12 +12,12 @@
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-| 種別          | 名前                        | 責務                                           |
-| ------------- | --------------------------- | ---------------------------------------------- |
-| LWC           | `accountMassUpdate`         | 検索、編集、保存、取消、ページ移動の制御       |
-| JavaScript    | `accountMassUpdateLogic.js` | 差分判定、入力検証、表示モデルと保存要求の生成 |
-| CustomTab     | `AccountMassUpdate`         | 画面の入口                                     |
-| PermissionSet | `LwcAccountMassUpdate`      | Apex入口の実行権限とタブ表示                   |
+### 画面・JavaScript
+
+| 種別       | 実装・設定                                                                                                      | 役割                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| LWC        | [accountMassUpdate](../../../../force-app/main/default/lwc/accountMassUpdate/accountMassUpdate.js)              | 検索、編集、保存、取消、ページ移動の制御       |
+| JavaScript | [accountMassUpdateLogic.js](../../../../force-app/main/default/lwc/accountMassUpdate/accountMassUpdateLogic.js) | 差分判定、入力検証、表示モデルと保存要求の生成 |
 
 ### Apexコードと対応テスト
 
@@ -29,6 +29,13 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountMassUpdateWrapper](../../../../force-app/main/default/classes/AccountMassUpdateWrapper.cls)       | 法人取引先の検索条件・更新判定・画面応答    | [AccountMassUpdateWrapperTest](../../../../force-app/main/default/classes/AccountMassUpdateWrapperTest.cls)       |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定             | 役割                         |
+| ------------- | ---------------------- | ---------------------------- |
+| CustomTab     | `AccountMassUpdate`    | 画面の入口                   |
+| PermissionSet | `LwcAccountMassUpdate` | Apex入口の実行権限とタブ表示 |
 
 ## 入力
 

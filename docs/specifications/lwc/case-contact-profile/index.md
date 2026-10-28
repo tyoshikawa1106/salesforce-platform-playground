@@ -12,16 +12,23 @@ Caseを確認する利用者が、問い合わせ元の連絡先、所属会社�
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-| 種別           | API名・ファイル名            | 役割                                     |
-| -------------- | ---------------------------- | ---------------------------------------- |
-| LWC            | `caseContactProfile`         | 問い合わせ元のプロフィールを取得・表示   |
-| LWC JavaScript | `caseContactProfile.js`      | UI API取得、画面状態、Navigationの統括   |
-| LWC JavaScript | `caseContactProfileLogic.js` | プロフィール表示モデルと件数表示値の生成 |
-| FlexiPage      | `CaseFlexiPage`              | Caseレコードページ左領域への配置         |
+### 画面・JavaScript
+
+| 種別       | 実装・設定                                                                                                         | 役割                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| LWC        | [caseContactProfile](../../../../force-app/main/default/lwc/caseContactProfile/caseContactProfile.js)              | 問い合わせ元のプロフィールを取得・表示   |
+| JavaScript | [caseContactProfile.js](../../../../force-app/main/default/lwc/caseContactProfile/caseContactProfile.js)           | UI API取得、画面状態、Navigationの統括   |
+| JavaScript | [caseContactProfileLogic.js](../../../../force-app/main/default/lwc/caseContactProfile/caseContactProfileLogic.js) | プロフィール表示モデルと件数表示値の生成 |
 
 ### Apexコードと対応テスト
 
 専用Apexはありません。[caseContactProfile.js](../../../../force-app/main/default/lwc/caseContactProfile/caseContactProfile.js)の`lightning/uiRecordApi`・`lightning/uiRelatedListApi`による取得と、同BundleのLogic・Jestを確認してください。
+
+### 設定・権限
+
+| 種別      | 実装・設定      | 役割                             |
+| --------- | --------------- | -------------------------------- |
+| FlexiPage | `CaseFlexiPage` | Caseレコードページ左領域への配置 |
 
 ## 入力
 

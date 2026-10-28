@@ -12,13 +12,13 @@
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-| 種別           | API 名・ファイル名             | 役割                                        |
-| -------------- | ------------------------------ | ------------------------------------------- |
-| LWC            | `caseEmailMessageList`         | メールメッセージ一覧と追加読み込み UI       |
-| LWC JavaScript | `caseEmailMessageList.js`      | Apex取得、追加読み込み、画面状態の統括      |
-| LWC JavaScript | `caseEmailMessageListLogic.js` | 表示行、タイトル、ページ状態の生成          |
-| Permission Set | `LwcCaseEmailMessageList`      | Apex Controller の実行権限                  |
-| FlexiPage      | `CaseFlexiPage`                | Case レコードページのメールログタブへの配置 |
+### 画面・JavaScript
+
+| 種別       | 実装・設定                                                                                                               | 役割                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| LWC        | [caseEmailMessageList](../../../../force-app/main/default/lwc/caseEmailMessageList/caseEmailMessageList.js)              | メールメッセージ一覧と追加読み込み UI  |
+| JavaScript | [caseEmailMessageList.js](../../../../force-app/main/default/lwc/caseEmailMessageList/caseEmailMessageList.js)           | Apex取得、追加読み込み、画面状態の統括 |
+| JavaScript | [caseEmailMessageListLogic.js](../../../../force-app/main/default/lwc/caseEmailMessageList/caseEmailMessageListLogic.js) | 表示行、タイトル、ページ状態の生成     |
 
 ### Apexコードと対応テスト
 
@@ -30,6 +30,13 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [CaseEmailMessageService](../../../../force-app/main/default/classes/CaseEmailMessageService.cls)         | ケースメールメッセージ一覧の入力値検証             | [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls)         |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定                | 役割                                        |
+| ------------- | ------------------------- | ------------------------------------------- |
+| PermissionSet | `LwcCaseEmailMessageList` | Apex Controller の実行権限                  |
+| FlexiPage     | `CaseFlexiPage`           | Case レコードページのメールログタブへの配置 |
 
 ## 入力
 

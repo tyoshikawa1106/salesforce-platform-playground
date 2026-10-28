@@ -12,11 +12,13 @@
 
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-- `testDataDelete`: Lightning App Builder、ホームページ、Lightningタブへ配置する画面。
-- `TestDataDelete` CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。
-- `LwcTestDataDelete` PermissionSet: 削除タブの表示とControllerの実行権限。
-- `testDataDelete.js`: 実行条件・残件数の取得、確認ダイアログ、削除受付を制御。
-- `testDataDeleteLogic.js`: 対象行、状態、開始可否を生成。
+### 画面・JavaScript
+
+| 種別       | 実装・設定                                                                                             | 役割                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| LWC        | [testDataDelete](../../../../force-app/main/default/lwc/testDataDelete/testDataDelete.js)              | Lightning App Builder、ホームページ、Lightningタブへ配置する画面。 |
+| JavaScript | [testDataDelete.js](../../../../force-app/main/default/lwc/testDataDelete/testDataDelete.js)           | 実行条件・残件数の取得、確認ダイアログ、削除受付を制御。           |
+| JavaScript | [testDataDeleteLogic.js](../../../../force-app/main/default/lwc/testDataDelete/testDataDeleteLogic.js) | 対象行、状態、開始可否を生成。                                     |
 
 ### Apexコードと対応テスト
 
@@ -32,6 +34,13 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [TestDataDeleteWrapper](../../../../force-app/main/default/classes/TestDataDeleteWrapper.cls)             | 削除画面に返す実行条件、対象一覧、残件数、標準ジョブ             | [TestDataDeleteWrapperTest](../../../../force-app/main/default/classes/TestDataDeleteWrapperTest.cls)             |
 
 テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定          | 役割                                                                               |
+| ------------- | ------------------- | ---------------------------------------------------------------------------------- |
+| 設定          | `TestDataDelete`    | CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。 |
+| PermissionSet | `LwcTestDataDelete` | PermissionSet: 削除タブの表示とControllerの実行権限。                              |
 
 ## 入力
 
