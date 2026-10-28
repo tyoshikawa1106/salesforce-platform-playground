@@ -169,7 +169,7 @@ public with sharing class OrgExplorerController {
         // ロールごとの照会を避けて一括集計
         List<AggregateResult> counts = selector.countRoleMembers(roleIds, request);
         // 個別ユーザーを応答へ含めず人数だけを反映
-        response.roleMemberCounts = service.createRoleMemberCounts(roleIds, counts);
+        response.memberCounts = service.createRoleMemberCounts(roleIds, counts);
         // 所属情報を読めない場合もロール構造は返す
         return response;
     }

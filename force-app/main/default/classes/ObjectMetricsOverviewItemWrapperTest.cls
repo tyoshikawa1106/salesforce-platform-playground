@@ -21,7 +21,7 @@ private with sharing class ObjectMetricsOverviewItemWrapperTest {
 
             wrapper = new ObjectMetricsOverviewItemWrapper(
                 definition,
-                ObjectMetricsOverviewService.createCount(50000)
+                new ObjectMetricsOverviewService.ObjectMetricCount(50000)
             );
 
             Test.stopTest();

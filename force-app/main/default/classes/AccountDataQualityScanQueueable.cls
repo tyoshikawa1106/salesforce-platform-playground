@@ -76,7 +76,7 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
         Integer nextPosition = Math.min(this.position + this.fetchSize, this.accountCursor.getNumRecords());
         DataQualityScan__c updatedScan = this.service.applyChunk(scanRecord, accounts, nextPosition);
         // 区間処理後の進捗と集計値を利用者権限で保存
-        this.service.updateScan(updatedScan);
+        update as user updatedScan;
 
         Boolean completed = this.service.isCompleted(updatedScan);
         if (!completed) {
@@ -107,7 +107,7 @@ public with sharing class AccountDataQualityScanQueueable implements Queueable, 
         DataQualityScan__c failedScan = this.service.markFailed(scanRecord, AccountDataQualityScanService.SAFE_FAILURE_MESSAGE);
         // 保存済みスキャンがある場合だけ失敗状態を永続化
         if (failedScan.Id != null) {
-            this.service.updateScan(failedScan);
+            update as user failedScan;
         }
     }
 }

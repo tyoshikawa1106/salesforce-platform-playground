@@ -3,10 +3,8 @@
  */
 public with sharing class ObjectMetricsOverviewController {
 
-    @TestVisible
     private static ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
-    @TestVisible
-    private static ObjectMetricsOverviewQueryCoordinator queryCoordinator = new ObjectMetricsOverviewQueryCoordinator();
+    private static ObjectMetricsOverviewQueryRunner queryCoordinator = new ObjectMetricsOverviewQueryRunner();
 
     /**
      * 現在のユーザーが参照できる各オブジェクトの件数取得
@@ -21,7 +19,7 @@ public with sharing class ObjectMetricsOverviewController {
             // 固定カタログから権限確認済みの件数取得計画を作成
             List<ObjectMetricsOverviewService.CountQuery> countQueries = service.createCountQueries(definitions);
             // 専用 Coordinator で異なる SObject の件数取得を実行
-            List<Integer> visibleRecordCounts = queryCoordinator.execute(countQueries);
+            List<ObjectMetricsOverviewService.ObjectMetricCount> visibleRecordCounts = queryCoordinator.execute(countQueries);
             // 未加工の取得結果を表示上限付きのメトリクス値へ集計
             Map<String, ObjectMetricsOverviewService.ObjectMetricCount> metricValues = service.createMetricValues(
                 countQueries,

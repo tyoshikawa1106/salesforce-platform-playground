@@ -27,6 +27,10 @@ public with sharing class ObjectMetricsOverviewItemWrapper {
     @AuraEnabled
     public Boolean capped { get; private set; }
 
+    // 取得不能と正常なゼロ件を区別
+    @AuraEnabled
+    public Boolean available { get; private set; }
+
     /**
      * Service の件数結果から LWC 用の件数項目を作成
      *
@@ -44,6 +48,8 @@ public with sharing class ObjectMetricsOverviewItemWrapper {
         this.iconName = definition.iconName;
         // 件数が取れないカードもゼロ件として LWC に返す
         this.value = metricCount?.value ?? 0;
+        // 結果がないカードは取得不能として表示
+        this.available = metricCount?.available == true;
         // 上限到達状態を画面表示へ渡す
         this.capped = metricCount?.capped ?? false;
     }

@@ -5,7 +5,7 @@
  * 作成した最大 50 件の計画に限り、残りの SOQL 枠を確認して Selector を順次呼び出す。
  * 通常の Selector として再利用せず、複数問い合わせの実行境界だけを担当する。
  */
-public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
+public with sharing class ObjectMetricsOverviewQueryRunner {
 
     // 検証済みの単一件数 SOQL 実行を Selector へ委譲
     private ObjectMetricsOverviewSelector selector;
@@ -13,7 +13,7 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
     /**
      * 本番用 Selector で Coordinator を初期化
      */
-    public ObjectMetricsOverviewQueryCoordinator() {
+    public ObjectMetricsOverviewQueryRunner() {
         // 固定カタログの件数取得に使う Selector を設定
         this.selector = new ObjectMetricsOverviewSelector();
     }
@@ -22,10 +22,10 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
      * 固定カタログの件数取得計画を明示上限内で実行
      *
      * @param countQueries Service が許可リストから作成した最大 50 件の取得計画
-     * @return 取得計画と同じ順序の未加工件数
+     * @return 取得計画と同じ順序の取得状態付き件数
      * @throws IllegalArgumentException SOQL の残り枠を超える場合
      */
-    public virtual List<Integer> execute(
+    public List<ObjectMetricsOverviewService.ObjectMetricCount> execute(
         List<ObjectMetricsOverviewService.CountQuery> countQueries
     ) {
         // null の取得計画は空の一覧へ正規化
@@ -48,18 +48,30 @@ public virtual with sharing class ObjectMetricsOverviewQueryCoordinator {
                 'オブジェクト件数の取得に必要な SOQL 枠が不足しています。'
             );
         }
-        // 取得計画と同じ順序の未加工件数を保持
-        List<Integer> visibleRecordCounts = new List<Integer>();
+        // 取得計画と同じ順序の取得状態付き件数を保持
+        List<ObjectMetricsOverviewService.ObjectMetricCount> visibleRecordCounts = new List<ObjectMetricsOverviewService.ObjectMetricCount>();
         // 異なる SObject の COUNT は統合できないため専用境界で順次実行
         for (ObjectMetricsOverviewService.CountQuery countQuery : safeCountQueries) {
-            // null の取得計画は SOQL を実行せずゼロ件として扱う
+            // null の取得計画は SOQL を実行せず未取得として扱う
             String query = countQuery == null ? '' : countQuery.query;
-            // Selector で検証済みの単一件数 SOQL を実行
-            Integer visibleRecordCount = selector.countVisibleRecords(query);
-            // Service が集計できるよう取得順に未加工件数を追加
-            visibleRecordCounts.add(visibleRecordCount);
+            // 計画なしと取得失敗は正常なゼロ件から分離
+            ObjectMetricsOverviewService.ObjectMetricCount result = new ObjectMetricsOverviewService.ObjectMetricCount();
+            // 権限や機能が利用可能な問い合わせだけを実行
+            if (String.isNotBlank(query)) {
+                try {
+                    // 取得に成功した件数を保持
+                    Integer value = this.selector.countVisibleRecords(query);
+                    // 既存の件数型で取得状態と表示上限を確定
+                    result = new ObjectMetricsOverviewService.ObjectMetricCount(value);
+                } catch (QueryException e) {
+                    // 他のカードの取得を継続し、このカードだけ取得不能を通知
+                    result.available = false;
+                }
+            }
+            // 計画と同じ順序で取得状態を返却
+            visibleRecordCounts.add(result);
         }
-        // 取得計画と位置対応する未加工件数を返却
+        // 取得計画と位置対応する取得状態付き件数を返却
         return visibleRecordCounts;
     }
 

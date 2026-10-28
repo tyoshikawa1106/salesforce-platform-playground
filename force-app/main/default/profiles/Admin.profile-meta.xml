@@ -382,11 +382,11 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectExplorerClassificationService</apexClass>
+        <apexClass>ObjectExplorerClassifyService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectExplorerClassificationServiceTest</apexClass>
+        <apexClass>ObjectExplorerClassifyServiceTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -450,7 +450,7 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectMetricsOverviewQueryCoordinator</apexClass>
+        <apexClass>ObjectMetricsOverviewQueryRunner</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -478,7 +478,7 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectMetricsQueryCoordinatorTest</apexClass>
+        <apexClass>ObjectMetricsOverviewQueryRunnerTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -502,10 +502,6 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectRecordSearchControllerErrorTest</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>ObjectRecordSearchControllerTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -518,7 +514,7 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectRecordSearchDisplayFieldCatalog</apexClass>
+        <apexClass>ObjectRecordSearchFieldCatalog</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -527,10 +523,6 @@
     </classAccesses>
     <classAccesses>
         <apexClass>ObjectRecordSearchFieldWrapperTest</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>ObjectRecordSearchPaginationTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>

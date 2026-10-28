@@ -10,11 +10,16 @@ Scratch Org、Developer Edition、Sandboxの検証用取引先を整理します
 
 ## 対象実装・メタデータ
 
-- `AccountDeleteBatch`: 分割実行、削除DML、`Database.Stateful`による集計状態の保持
-- `AccountDeleteBatchService`: 環境・権限判定、削除結果の集計、メール通知
-- `AccountDeleteBatchSelector`: Accountと標準`AsyncApexJob`の検索
-- `AccountDeleteBatchWrapper`: 成功・失敗件数、レコードID別のエラーと中止理由、実行可否のエラーメッセージの受け渡し
-- `OrgEnvironment`: 組織種別の判定
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                   | 役割                                                                                 | 同名Test                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| [AccountDeleteBatch](../../../../../force-app/main/default/classes/AccountDeleteBatch.cls)                 | 分割実行、削除DML、`Database.Stateful`による集計状態の保持                           | [AccountDeleteBatchTest](../../../../../force-app/main/default/classes/AccountDeleteBatchTest.cls)                 |
+| [AccountDeleteBatchService](../../../../../force-app/main/default/classes/AccountDeleteBatchService.cls)   | 環境・権限判定、削除結果の集計、メール通知                                           | [AccountDeleteBatchServiceTest](../../../../../force-app/main/default/classes/AccountDeleteBatchServiceTest.cls)   |
+| [AccountDeleteBatchSelector](../../../../../force-app/main/default/classes/AccountDeleteBatchSelector.cls) | Accountと標準`AsyncApexJob`の検索                                                    | [AccountDeleteBatchSelectorTest](../../../../../force-app/main/default/classes/AccountDeleteBatchSelectorTest.cls) |
+| [AccountDeleteBatchWrapper](../../../../../force-app/main/default/classes/AccountDeleteBatchWrapper.cls)   | 成功・失敗件数、レコードID別のエラーと中止理由、実行可否のエラーメッセージの受け渡し | [AccountDeleteBatchWrapperTest](../../../../../force-app/main/default/classes/AccountDeleteBatchWrapperTest.cls)   |
+| [OrgEnvironment](../../../../../force-app/main/default/classes/OrgEnvironment.cls)                         | 組織種別の判定                                                                       | [OrgEnvironmentTest](../../../../../force-app/main/default/classes/OrgEnvironmentTest.cls)                         |
+
 - `RunAccountDelete` CustomPermission、`LwcAccountDelete` PermissionSet: 機能利用権限
 
 カスタムオブジェクトへの実行履歴保存は行いません。画面側のクラス構成は[画面仕様](../../../lwc/account-delete/index.md)を参照してください。

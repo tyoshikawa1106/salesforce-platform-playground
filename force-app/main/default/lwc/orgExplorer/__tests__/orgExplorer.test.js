@@ -127,7 +127,7 @@ it('候補の選択で指定した部分木へ自動で表示を切り替える'
     searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
     jest.advanceTimersByTime(300);
     await flush();
-    search.dispatchEvent(new CustomEvent('targetpick', { detail: { roleId: 'sales' } }));
+    search.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'sales' } }));
     await flush();
     const rows = element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows;
     expect(rows.map((row) => row.key)).toEqual(['ROLE:sales']);
@@ -238,7 +238,7 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
 
         if (request.scope === 'ROLE_STRUCTURE') {
             response.nodes = [root, child];
-            response.roleMemberCounts = { child: 51 };
+            response.memberCounts = { child: 51 };
         }
         if (request.scope === 'ROLE_MEMBERS' && request.parentId === 'child') {
             response = request.startIndex
@@ -427,7 +427,7 @@ it('入力変更後に完了した旧ロール候補を表示しない', async (
     await flush();
     resolveOld({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
     await flush();
-    expect(search.results.map((item) => item.roleId)).toEqual(['accounting']);
+    expect(search.results.map((item) => item.targetId)).toEqual(['accounting']);
     expect(search.loading).toBe(false);
 });
 it('候補選択後に起点が参照できなくなった場合は配下を取得しない', async () => {
@@ -471,7 +471,7 @@ it('未入力で開くと最上位の候補だけを一回取得する', async (
     search.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await Array.from({ length: 5 }).reduce((chain) => chain.then(flush), Promise.resolve());
     expect(search.results).toHaveLength(2);
-    expect(search.results.slice(0, 2).map((item) => item.roleId)).toEqual(['company', 'ceo']);
+    expect(search.results.slice(0, 2).map((item) => item.targetId)).toEqual(['company', 'ceo']);
     expect(searchRoles).toHaveBeenLastCalledWith({
         request: expect.objectContaining({ term: '' })
     });
@@ -488,7 +488,7 @@ it('一文字目から前方一致で候補を取得する', async () => {
     jest.advanceTimersByTime(300);
     await flush();
     expect(searchRoles).toHaveBeenLastCalledWith({ request: expect.objectContaining({ term: '営' }) });
-    expect(search.results[0].roleId).toBe('sales');
+    expect(search.results[0].targetId).toBe('sales');
 });
 
 it('100段のロール構造を一回で取得し、再展開でも通信しない', async () => {
@@ -500,7 +500,7 @@ it('100段のロール構造を一回で取得し、再展開でも通信しな�
         parentKey: i === 0 ? '' : `ROLE:chain${i - 1}`
     }));
     searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'chain0', label: '階層0' }], hasMore: false });
-    rolePages.mockResolvedValue({ ok: true, nodes: chain, roleMemberCounts: { chain0: 8 }, hasMore: false });
+    rolePages.mockResolvedValue({ ok: true, nodes: chain, memberCounts: { chain0: 8 }, hasMore: false });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -580,7 +580,7 @@ it.each(['ROLE', 'MANAGER'])('選択した表示対象が構造に存在しな�
         lookup.dispatchEvent(new CustomEvent('lookupopen'));
     }
     await flush();
-    lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { roleId: mode === 'ROLE' ? 'root' : 'self' } }));
+    lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: mode === 'ROLE' ? 'root' : 'self' } }));
     await flush();
     expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(
         mode === 'MANAGER' ? '指定した上司を表示できません' : '指定したロールを表示できません'
@@ -638,7 +638,7 @@ it('候補選択の直後に解除した場合、遅れて届いた選択範囲�
         }
         return Promise.resolve({ ok: true, nodes: [rootTarget, other], hasMore: false });
     });
-    search.dispatchEvent(new CustomEvent('targetpick', { detail: { roleId: 'sales' } }));
+    search.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'sales' } }));
     await flush();
     expect(resolveSelected).toBeDefined();
     search.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '' } }));
@@ -661,7 +661,7 @@ it('上司に切り替えて構造とメンバーを取得しロールの起点�
                 ? {
                       ok: true,
                       nodes: [manager, child],
-                      roleMemberCounts: { boss: 12, 'child-manager': 3 },
+                      memberCounts: { boss: 12, 'child-manager': 3 },
                       hasMore: false
                   }
                 : {
@@ -703,7 +703,7 @@ it('上司に切り替えて構造とメンバーを取得しロールの起点�
     expect(details.columns[2].label).toBe('ロール');
     element.shadowRoot.querySelector('[data-mode="ROLE"]').click();
     await flush();
-    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.roleId).toBe('root');
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.targetId).toBe('root');
     expect(details.rows).toEqual([]);
     expect(details.columns).toEqual([]);
     await expect(element).toBeAccessible();
@@ -721,7 +721,7 @@ it.each([
         action.mockImplementation(({ request }) =>
             Promise.resolve(
                 request.scope.endsWith('_STRUCTURE')
-                    ? { ok: true, nodes: [target], roleMemberCounts: { [target.recordId]: structureCount } }
+                    ? { ok: true, nodes: [target], memberCounts: { [target.recordId]: structureCount } }
                     : { ok: true, nodes: [user], memberTotalCount: totalCount, hasMore, nextIndex: hasMore ? 50 : 0 }
             )
         );
@@ -952,22 +952,22 @@ it('上司の未入力候補は全ページの上位20人を通信せず表示�
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
     expect(lookup.results).toHaveLength(20);
-    expect(lookup.results[0]).toEqual({ roleId: 'boss', label: '本社', description: '本社部門 • 代表' });
+    expect(lookup.results[0]).toEqual({ targetId: 'boss', label: '本社', description: '本社部門 • 代表' });
     expect(lookup.hasMore).toBe(true);
     expect(searchManagers).not.toHaveBeenCalled();
     expect(managerPages).toHaveBeenCalledTimes(2);
-    lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { roleId: 'child0' } }));
+    lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'child0' } }));
     await flush();
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
-    expect(lookup.results[0].roleId).toBe('boss');
+    expect(lookup.results[0].targetId).toBe('boss');
     expect(searchManagers).not.toHaveBeenCalled();
     managerPages.mockResolvedValue({ ok: true, nodes: [boss, children[0]], hasMore: false });
     element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
-    expect(lookup.results.map((item) => item.roleId)).toEqual(['boss', 'child0']);
+    expect(lookup.results.map((item) => item.targetId)).toEqual(['boss', 'child0']);
     expect(lookup.hasMore).toBe(false);
     expect(searchManagers).not.toHaveBeenCalled();
     searchManagers.mockResolvedValue({ ok: true, nodes: [{ ...boss, label: '部門長' }], hasMore: false });
@@ -1005,7 +1005,7 @@ it('読み込み中に開いた未入力候補は全構造の取得完了後に�
     await flush();
     expect(lookup.loading).toBe(false);
     expect(lookup.searched).toBe(true);
-    expect(lookup.results.map((hit) => hit.roleId)).toEqual(['boss', user.recordId]);
+    expect(lookup.results.map((hit) => hit.targetId)).toEqual(['boss', user.recordId]);
     expect(managerPages).toHaveBeenCalledTimes(2);
     expect(searchManagers).not.toHaveBeenCalled();
     await expect(element).toBeAccessible();
@@ -1155,14 +1155,14 @@ it.each([
     expect(lookup.loading).toBe(false);
     expect(lookup.shadowRoot.querySelector('[role="listbox"]')).toBeNull();
     const pageCalls = getPage.mock.calls.length;
-    lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { roleId: 'previous' } }));
+    lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'previous' } }));
     await flush();
     expect(getPage).toHaveBeenCalledTimes(pageCalls);
     search.mockResolvedValueOnce({ ok: true, nodes: [{ recordId: 'current', label: '候補B' }], hasMore: false });
     input.click();
     await flush();
     expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
-    expect(lookup.results.map((hit) => hit.roleId)).toEqual(['current']);
+    expect(lookup.results.map((hit) => hit.targetId)).toEqual(['current']);
     expect(lookup.shadowRoot.querySelector('[data-id="current"]')).not.toBeNull();
     expect(lookup.loading).toBe(false);
     await expect(element).toBeAccessible();
@@ -1193,7 +1193,7 @@ it('前の入力の失敗が遅れて届いても新しい入力の候補を破�
     await flush();
     rejectPrevious(new Error('古い要求の通信エラー'));
     await flush();
-    expect(lookup.results.map((hit) => hit.roleId)).toEqual(['current']);
+    expect(lookup.results.map((hit) => hit.targetId)).toEqual(['current']);
     expect(lookup.hasMore).toBe(true);
     expect(lookup.searched).toBe(true);
     expect(lookup.loading).toBe(false);

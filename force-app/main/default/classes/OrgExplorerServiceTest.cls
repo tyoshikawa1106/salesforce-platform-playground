@@ -13,18 +13,18 @@ private with sharing class OrgExplorerServiceTest {
     @IsTest
     static void hidesInaccessibleCardFields() {
         System.runAs(testUser) {
-            Id roleId = Id.valueOf(
+            Id targetId = Id.valueOf(
                 UserRole.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'
             );
             User manager = new User(
                 Id = testUser.Id,
                 IsActive = false,
-                UserRoleId = roleId,
+                UserRoleId = targetId,
                 Title = '課長',
                 Department = '試験部署'
             );
             List<User> records = new List<User>{ manager };
-            List<UserRole> roles = new List<UserRole>{ new UserRole(Id = roleId, Name = '試験ロール') };
+            List<UserRole> roles = new List<UserRole>{ new UserRole(Id = targetId, Name = '試験ロール') };
             OrgExplorerService.ManagerPageData wrapper = new OrgExplorerService.ManagerPageData(
                 new List<AggregateResult>(),
                 records
@@ -149,8 +149,8 @@ private with sharing class OrgExplorerServiceTest {
             Assert.isTrue(response.ok, '可視な継続境界のある構造を返す');
             Assert.isTrue(response.hasMore, '境界を超えた集計の続きを通知');
             Assert.areEqual(1, response.nodes.size(), '可視確認済みの上司だけを公開');
-            Assert.areEqual(1, response.roleMemberCounts.size(), '非可視上司の人数を公開しない');
-            Assert.areEqual(1, response.roleMemberCounts.get(wrapper.records[0].Id), '直属部下数を対応');
+            Assert.areEqual(1, response.memberCounts.size(), '非可視上司の人数を公開しない');
+            Assert.areEqual(1, response.memberCounts.get(wrapper.records[0].Id), '直属部下数を対応');
             Assert.areEqual(wrapper.records[0].Id, cursor.lastId, '先読みでなく公開した上司を継続境界にする');
             Assert.areEqual(testUser.Id, cursor.viewerId, '現在の閲覧者へ継続値を固定');
             Assert.areEqual(request.scope, cursor.scope, '同じ構造用途の継続値を発行');
@@ -197,7 +197,7 @@ private with sharing class OrgExplorerServiceTest {
             Assert.isFalse(response.ok, '未完了の集計を空の成功応答にしない');
             Assert.areEqual('ACCESS_DENIED', response.error.code, '可視な境界なしを安全に拒否');
             Assert.isTrue(response.nodes.isEmpty(), '非可視上司を公開しない');
-            Assert.isTrue(response.roleMemberCounts.isEmpty(), '非可視上司の人数を公開しない');
+            Assert.isTrue(response.memberCounts.isEmpty(), '非可視上司の人数を公開しない');
             Assert.isFalse(response.hasMore, '非可視IDからの継続を案内しない');
             Assert.isTrue(String.isBlank(response.nextCursor), '非可視IDを継続値へ含めない');
         }
@@ -273,7 +273,7 @@ private with sharing class OrgExplorerServiceTest {
     static void boundsStructurePageAndVerifiesParents() {
         System.runAs(testUser) {
             List<UserRole> records = syntheticRoles(4);
-            Id outsideId = roleId(9);
+            Id outsideId = targetId(9);
             records[0].ParentRoleId = outsideId;
             records[1].ParentRoleId = records[0].Id;
             OrgExplorerPageRequest request = structureRequest(outsideId);
@@ -315,12 +315,12 @@ private with sharing class OrgExplorerServiceTest {
     private static List<UserRole> syntheticRoles(Integer count) {
         List<UserRole> records = new List<UserRole>();
         for (Integer index = 1; index <= count; index++) {
-            records.add(new UserRole(Id = roleId(index), Name = '構造部門' + index));
+            records.add(new UserRole(Id = targetId(index), Name = '構造部門' + index));
         }
         return records;
     }
 
-    private static Id roleId(Integer value) {
+    private static Id targetId(Integer value) {
         return Id.valueOf('00E' + String.valueOf(value).leftPad(12, '0'));
     }
 
@@ -334,7 +334,7 @@ private with sharing class OrgExplorerServiceTest {
             access.membershipEnabled = false;
             OrgExplorerPageResponse response = new OrgExplorerPageResponse();
             OrgExplorerPageResponse.Node node = new OrgExplorerPageResponse.Node();
-            node.recordId = roleId(1);
+            node.recordId = targetId(1);
             response.nodes.add(node);
             Test.startTest();
             Set<Id> ids = service.getMemberCountRoleIds(response, access);
@@ -349,8 +349,8 @@ private with sharing class OrgExplorerServiceTest {
     @IsTest
     static void initializesCountsOnlyForVisibleRoles() {
         System.runAs(testUser) {
-            Id visibleId = roleId(1);
-            Id hiddenId = roleId(2);
+            Id visibleId = targetId(1);
+            Id hiddenId = targetId(2);
             Test.startTest();
             Map<Id, Integer> counts = service.createRoleMemberCounts(
                 new Set<Id>{ visibleId },
@@ -393,7 +393,7 @@ private with sharing class OrgExplorerServiceTest {
             insert role;
             testUser.UserRoleId = role.Id;
             update testUser;
-            List<AggregateResult> groups = [SELECT UserRoleId roleId, COUNT(Id) memberCount FROM User WHERE Id = :testUser.Id GROUP BY UserRoleId];
+            List<AggregateResult> groups = [SELECT UserRoleId targetId, COUNT(Id) memberCount FROM User WHERE Id = :testUser.Id GROUP BY UserRoleId];
             Test.startTest();
             Map<Id, Integer> counts = service.createRoleMemberCounts(new Set<Id>{ role.Id }, groups);
             Test.stopTest();

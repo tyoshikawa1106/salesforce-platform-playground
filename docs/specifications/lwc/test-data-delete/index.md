@@ -10,15 +10,37 @@
 
 ## 対象実装・メタデータ
 
-- `testDataDelete`: Lightning App Builder、ホームページ、Lightningタブへ配置する画面。
-- `TestDataDelete` CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。
-- `LwcTestDataDelete` PermissionSet: 削除タブの表示とControllerの実行権限。
-- `testDataDelete.js`: 実行条件・残件数の取得、確認ダイアログ、削除受付を制御。
-- `testDataDeleteLogic.js`: 対象行、状態、開始可否を生成。
-- `TestDataDeleteController`: 画面用の参照とバッチ登録。
-- `TestDataDeleteService`: 実効権限、対象範囲、確認と重複の判定。
-- `TestDataDeleteSelector`: 実効権限、残件数、標準ジョブの取得。
-- `TestDataDeleteWrapper`: 組織名、実行条件、対象一覧、照会時点の件数とジョブ。
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+
+### 画面・JavaScript
+
+| 種別       | 実装・設定                                                                                             | 役割                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| LWC        | [testDataDelete](../../../../force-app/main/default/lwc/testDataDelete/testDataDelete.js)              | Lightning App Builder、ホームページ、Lightningタブへ配置する画面。 |
+| JavaScript | [testDataDelete.js](../../../../force-app/main/default/lwc/testDataDelete/testDataDelete.js)           | 実行条件・残件数の取得、確認ダイアログ、削除受付を制御。           |
+| JavaScript | [testDataDeleteLogic.js](../../../../force-app/main/default/lwc/testDataDelete/testDataDeleteLogic.js) | 対象行、状態、開始可否を生成。                                     |
+
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                  | 役割                                                             | 同名Test                                                                                                          |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [TestDataDeleteBatch](../../../../force-app/main/default/classes/TestDataDeleteBatch.cls)                 | 対象オブジェクト全件を子から親へ直列削除                         | [TestDataDeleteBatchTest](../../../../force-app/main/default/classes/TestDataDeleteBatchTest.cls)                 |
+| [TestDataDeleteBatchSelector](../../../../force-app/main/default/classes/TestDataDeleteBatchSelector.cls) | バッチの実効権限、削除対象、標準ジョブを取得                     | [TestDataDeleteBatchSelectorTest](../../../../force-app/main/default/classes/TestDataDeleteBatchSelectorTest.cls) |
+| [TestDataDeleteBatchService](../../../../force-app/main/default/classes/TestDataDeleteBatchService.cls)   | オブジェクト単位の削除可否、結果集計、次の処理への継続条件を判定 | [TestDataDeleteBatchServiceTest](../../../../force-app/main/default/classes/TestDataDeleteBatchServiceTest.cls)   |
+| [TestDataDeleteBatchWrapper](../../../../force-app/main/default/classes/TestDataDeleteBatchWrapper.cls)   | テストデータ削除の固定対象とバッチ間で受け渡す集計値             | [TestDataDeleteBatchWrapperTest](../../../../force-app/main/default/classes/TestDataDeleteBatchWrapperTest.cls)   |
+| [TestDataDeleteController](../../../../force-app/main/default/classes/TestDataDeleteController.cls)       | テストデータ一括削除画面の参照と実行受付                         | [TestDataDeleteControllerTest](../../../../force-app/main/default/classes/TestDataDeleteControllerTest.cls)       |
+| [TestDataDeleteSelector](../../../../force-app/main/default/classes/TestDataDeleteSelector.cls)           | 削除画面の実効権限、残件数、標準ジョブを検索                     | [TestDataDeleteSelectorTest](../../../../force-app/main/default/classes/TestDataDeleteSelectorTest.cls)           |
+| [TestDataDeleteService](../../../../force-app/main/default/classes/TestDataDeleteService.cls)             | テストデータ削除の共通定義・実行条件と画面応答                   | [TestDataDeleteServiceTest](../../../../force-app/main/default/classes/TestDataDeleteServiceTest.cls)             |
+| [TestDataDeleteWrapper](../../../../force-app/main/default/classes/TestDataDeleteWrapper.cls)             | 削除画面に返す実行条件、対象一覧、残件数、標準ジョブ             | [TestDataDeleteWrapperTest](../../../../force-app/main/default/classes/TestDataDeleteWrapperTest.cls)             |
+
+テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定          | 役割                                                                               |
+| ------------- | ------------------- | ---------------------------------------------------------------------------------- |
+| 設定          | `TestDataDelete`    | CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。 |
+| PermissionSet | `LwcTestDataDelete` | PermissionSet: 削除タブの表示とControllerの実行権限。                              |
 
 ## 入力
 
@@ -42,7 +64,7 @@
 - `PermissionsQueryAllFiles`は実行条件に含めない。ファイルの削除と残件数確認は実行ユーザーが照会できる範囲に限られ、照会できないファイルの削除完了は保証しない。
 - 存在する対象オブジェクトの参照・クエリ・削除権限が必要。
 - Salesforceアプリと`TestDataDelete`タブへのアクセスが必要。`SalesforceApplicationUser`でアプリを、`LwcTestDataDelete`でタブを表示する。
-- LWCから呼ぶ`TestDataDeleteController`へのアクセスが必要。`LwcTestDataDelete`でControllerの実行権限を付与する。`Modify All Data`は付与しないため、プロファイルなどで実効権限を別途満たす。
+- LWCから呼ぶ[TestDataDeleteController](../../../../force-app/main/default/classes/TestDataDeleteController.cls)へのアクセスが必要。`LwcTestDataDelete`でControllerの実行権限を付与する。`Modify All Data`は付与しないため、プロファイルなどで実効権限を別途満たす。
 - 残件数が未確認、全件ゼロ、権限不足、処理中、受付不明の場合は開始できない。
 
 ## エラー処理
@@ -51,20 +73,22 @@
 
 受付したジョブはIDで追跡し、最新ジョブへ置き換えません。受付ジョブは連続実行の最初の一件なので、その終了を全体完了と表示しません。受付ジョブ終了後に通常データが残る場合は「削除停止・残件数あり」と表示し、後続の停止理由は結果メールで確認し、想定外のエラーや中断は設定のApexジョブでも確認します。
 
+対象一覧・依存順序と許可する開発環境の判定は[TestDataDeleteService](../../../../force-app/main/default/classes/TestDataDeleteService.cls)で画面・バッチから共用します。画面はバッチ用Service・状態Wrapperへ依存しません。バッチも共通定義の参照に同じServiceを使用し、集計・継続判定はBatchServiceが担当します。[TestDataDeleteBatchWrapper](../../../../force-app/main/default/classes/TestDataDeleteBatchWrapper.cls)はバッチ間の位置・集計状態だけを保持します。一般Sandboxを許可しない既存の環境条件は維持します。
+
 ## 関連コンポーネント
 
 - [テストデータ削除バッチ](../../apex/batches/test-data-delete/index.md)
 - [テストデータ投入](../../scripts/test-data-import/index.md)
 - [削除手順](../../../deployment/test-data-delete.md)
-- `TestDataDeleteBatchService.getEnvironment`: dev・Scratchに限定する共通の判定。
+- `TestDataDeleteService.getEnvironment`: dev・Scratchに限定する共通の判定。
 - `UserPermissionAccess`: 現在ユーザーの合成済み実効権限。
 - `AsyncApexJob`: 削除処理の標準ジョブ。
 
 ## テスト・確認観点
 
-- `TestDataDeleteControllerTest`: 実効権限による拒否、確認なしの拒否、正規受付、重複起動、指定ジョブの取得。
-- `TestDataDeleteServiceTest`: 対象外照会、全ファイル照会権限なしでの計画生成、実行環境。
-- `TestDataDeleteSelectorTest`: 削除済みを除く件数、未指定IDの検索抑止。
+- [TestDataDeleteControllerTest](../../../../force-app/main/default/classes/TestDataDeleteControllerTest.cls): 実効権限による拒否、確認なしの拒否、正規受付、重複起動、指定ジョブの取得。
+- [TestDataDeleteServiceTest](../../../../force-app/main/default/classes/TestDataDeleteServiceTest.cls): 対象外照会、全ファイル照会権限なしでの計画生成、実行環境。
+- [TestDataDeleteSelectorTest](../../../../force-app/main/default/classes/TestDataDeleteSelectorTest.cls): 削除済みを除く件数、未指定IDの検索抑止。
 - `testDataDelete.test.js`: 確認キャンセル、二重起動、権限・通信失敗、受付不明、アクセシビリティ。
 - `testDataDeleteLogic.test.js`: 未確認とゼロ件の区別、別ジョブとの混同防止、全体状態。
 

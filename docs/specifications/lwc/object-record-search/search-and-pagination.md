@@ -4,6 +4,10 @@
 
 `objectRecordSearch` の一覧を、Apex標準の `Database.PaginationCursor` でページ取得します。
 
+### 関連情報
+
+- [Apex Developer Guide: Pagination Cursors](https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf/salesforce_apex_developer_guide.pdf)
+
 ## 入力
 
 - `metricKey`: `ObjectMetricCatalog` に定義されたカードキー
@@ -52,7 +56,7 @@ Boolean、数値、日付、日時、nullは元の型を保持します。日時
 
 ## テスト・確認観点
 
-- `ObjectRecordSearchPaginationTest` で設定順と字句順が異なる商談フェーズ、Booleanの両値、同値のページ境界、nullを含む一覧を検証します。
+- `ObjectRecordSearchControllerTest` で設定順と字句順が異なる商談フェーズ、Booleanの両値、同値のページ境界、nullを含む一覧を検証します。
 - 全ページを連結したIDと順序を同じORDER BYの結果と比較します。標準カーソルのJSON往復と先頭ページへの復帰も確認します。
 - Controller、Service、Selector、QueryPlan、SortSupportの関連テストで検索語、権限、ソート指定、不正な取得位置と空結果を確認します。
 - LWCテストでサーバーへのソート指定、前後ページ、検索条件変更、再読み込み、日時表示、操作待機と失敗後の復帰を確認します。
@@ -64,10 +68,6 @@ Boolean、数値、日付、日時、nullは元の型を保持します。日時
 - ページ番号は表示用であり、取得位置の計算には使いません。
 - 標準カーソルの有効期間とAPI制限に従います。データ変更後は再読み込みが必要です。
 - ソート不可項目を直接Apexへ指定した場合は、Name相当項目へフォールバックします。
-
-## 関連情報
-
-- [Apex Developer Guide: Pagination Cursors](https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf/salesforce_apex_developer_guide.pdf)
 
 ## 既知の差異・確認事項
 

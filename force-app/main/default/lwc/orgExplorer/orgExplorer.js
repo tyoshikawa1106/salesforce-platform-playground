@@ -316,7 +316,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             requestId: this.requestId(),
             mode: this.mode,
             scope: this.mode === 'ROLE' ? 'ROLE_STRUCTURE' : 'MANAGER_STRUCTURE',
-            parentId: this.rootTarget?.roleId || null,
+            parentId: this.rootTarget?.targetId || null,
             includeInactive: this.includeInactive,
             cursor
         });
@@ -337,7 +337,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // 表示用の部分木へ絞る前に全階層の上位候補だけを確定する。
         if (this.mode === 'MANAGER') this._managerBrowse = managerBrowseCandidates(state.nodes);
         // 指定時は配下、未指定時は全ロールの親子を接続する。
-        const graph = createStructureGraph(state.nodes, this.rootTarget?.roleId, this.mode === 'ROLE' ? 'ROLE' : 'USER');
+        const graph = createStructureGraph(state.nodes, this.rootTarget?.targetId, this.mode === 'ROLE' ? 'ROLE' : 'USER');
         if (!graph) {
             this.error =
                 this.mode === 'ROLE'
@@ -650,7 +650,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     // 可視な候補の確定と同時に表示範囲を切り替える。
     handleTargetPick(event) {
         // 可視な候補以外のIDを受け付けない。
-        const target = this.results.find((item) => item.roleId === event.detail.roleId);
+        const target = this.results.find((item) => item.targetId === event.detail.targetId);
         // 古い候補の操作を捨てる。
         if (!target) return;
         // 選択したIDと名称を保持する。

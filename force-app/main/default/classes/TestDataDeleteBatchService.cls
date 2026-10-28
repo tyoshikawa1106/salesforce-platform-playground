@@ -1,25 +1,5 @@
 /** オブジェクト単位の削除可否、結果集計、次の処理への継続条件を判定 */
 public with sharing class TestDataDeleteBatchService {
-    /** Developer Editionまたは有効なScratchだけを許可
-     * @param organizations 現在組織の種別と有効期限
-     * @return 削除機能専用の環境判定
-     */
-    public static TestDataDeleteBatchWrapper.Environment getEnvironment(List<Organization> organizations) {
-        // 情報が取れない場合は削除を許可しない
-        if (organizations == null || organizations.isEmpty()) {
-            return TestDataDeleteBatchWrapper.Environment.DISALLOWED;
-        }
-        // SandboxのEditionだけを見てDeveloper Editionと誤認しない
-        Organization organization = organizations[0];
-        // 組織区分に対応する条件だけを評価し、通常Sandboxを拒否
-        Boolean allowed = organization.IsSandbox == true
-            ? organization.TrialExpirationDate != null && organization.TrialExpirationDate > System.now()
-            : organization.IsSandbox == false && organization.OrganizationType == 'Developer Edition';
-        return allowed
-            ? TestDataDeleteBatchWrapper.Environment.DEVELOPMENT
-            : TestDataDeleteBatchWrapper.Environment.DISALLOWED;
-    }
-
     /**
      * 実効権限と処理対象を検証
      * @param current 現在の削除計画
@@ -30,7 +10,7 @@ public with sharing class TestDataDeleteBatchService {
     public TestDataDeleteBatchWrapper checkExecution(
         TestDataDeleteBatchWrapper current,
         List<UserPermissionAccess> permissions,
-        TestDataDeleteBatchWrapper.Environment environment
+        TestDataDeleteService.Environment environment
     ) {
         // 前のスコープで停止した場合も拒否状態を維持
         TestDataDeleteBatchWrapper wrapper = new TestDataDeleteBatchWrapper(current);
@@ -39,7 +19,7 @@ public with sharing class TestDataDeleteBatchService {
         }
         // 組織・実効権限を各非同期トランザクションで再確認
         if (
-            environment != TestDataDeleteBatchWrapper.Environment.DEVELOPMENT ||
+            environment != TestDataDeleteService.Environment.DEVELOPMENT ||
             permissions.isEmpty() ||
             permissions[0].PermissionsModifyAllData != true
         ) {

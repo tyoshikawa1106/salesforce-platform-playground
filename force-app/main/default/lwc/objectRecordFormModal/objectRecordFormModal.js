@@ -10,6 +10,8 @@ export default class ObjectRecordFormModal extends LightningModal {
     @api objectLabel;
     // 編集時だけ対象レコードを指定
     @api recordId;
+    // 親が権限を確認した対象レコードタイプ
+    @api recordTypeId;
     // 親がレイアウトと項目権限から構築した項目を受け取る
     @api formSections = [];
     // ContentDocumentでは標準アップロードへ切り替える

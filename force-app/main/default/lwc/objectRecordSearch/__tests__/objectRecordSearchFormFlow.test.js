@@ -83,6 +83,37 @@ describe('c-object-record-search form flows', () => {
         expect(table.columns.some((column) => column.type === 'action')).toBe(true);
     });
 
+    it('編集対象のレコードタイプへ切り替え、対応レイアウトの確定後に開く', async () => {
+        const element = await createRecordFormReadyComponent();
+        const record = { ...searchResponse.records[0], recordTypeId: '012000000000001AAA' };
+        searchRecords.emit({ ...searchResponse, records: [record] });
+        await flushPromises();
+        const table = element.shadowRoot.querySelector('lightning-datatable');
+        table.dispatchEvent(new CustomEvent('rowaction', { detail: { action: { name: 'edit' }, row: record } }));
+        await flushPromises();
+        expect(getModal()).toBeNull();
+        emitObjectInfo({ Type: { custom: false, createable: true, updateable: true } });
+        await flushPromises();
+        emitLayout({ mode: 'Edit', recordTypeId: record.recordTypeId, fields: ['Name', 'Type'] });
+        await flushPromises();
+        await flushPromises();
+        expect(getModalRoot().querySelector('lightning-record-edit-form').recordTypeId).toBe(record.recordTypeId);
+        expect(getInputFieldNames()).toContain('Type');
+        expect(getModal().recordTypeId).toBe(record.recordTypeId);
+    });
+
+    it('別レコードタイプのレイアウト待機中に離脱した場合はフォームを開かない', async () => {
+        const element = await createRecordFormReadyComponent();
+        const record = { ...searchResponse.records[0], recordTypeId: '012000000000001AAA' };
+        searchRecords.emit({ ...searchResponse, records: [record] });
+        await flushPromises();
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(new CustomEvent('rowaction', { detail: { action: { name: 'edit' }, row: record } }));
+        await flushPromises();
+        element.remove();
+        await flushPromises();
+        expect(getModal()).toBeNull();
+    });
+
     it('opens a create form for the target object', async () => {
         const element = await createRecordFormReadyComponent();
 

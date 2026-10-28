@@ -10,7 +10,7 @@ export function structurePageNodes(response) {
     const nodes = {};
     response.nodes.forEach((node) => {
         // 未集計の人数をゼロと推定しない。
-        const memberCount = response.roleMemberCounts?.[node.recordId];
+        const memberCount = response.memberCounts?.[node.recordId];
         // 同じページで可視確認した所属ロールだけをカードへ対応させる。
         const role = response.cardRoles?.[node.recordId];
         // 構造以外の応答へカード専用の関連先を混入させない。
@@ -60,7 +60,7 @@ export function lookupCandidate(node) {
     // 未登録や参照不能の役職を補足表示へ変換しない。
     const title = node.titleState === 'VALUE' ? node.title : '';
     // 未入力候補と氏名検索で同じ表示契約を使用する。
-    return { roleId: node.recordId, label: node.label, description: [department, title].filter(Boolean).join(' • ') };
+    return { targetId: node.recordId, label: node.label, description: [department, title].filter(Boolean).join(' • ') };
 }
 
 // 取得済みの全上司構造から階層順の未入力候補を作る。

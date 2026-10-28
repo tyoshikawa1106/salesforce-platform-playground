@@ -1,0 +1,8 @@
+:host { display: block; }
+.oe-object-search { position: relative; min-width: 0; }
+.oe-candidate-line { display: block; }
+.oe-option-scroll { max-height: var(--slds-g-sizing-15, 20rem); overflow-y: auto; }
+.oe-object-option { align-items: center; }
+.oe-lookup-input { padding-inline-start: var(--slds-g-spacing-3, .75rem); }
+.oe-lookup-input:not([readonly]) { border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); box-shadow: none; }
+.oe-lookup-input:not([readonly]):focus { border-color: var(--slds-g-color-accent-1, #0176d3); box-shadow: 0 0 3px var(--slds-g-color-accent-1, #0176d3); outline: 0; }

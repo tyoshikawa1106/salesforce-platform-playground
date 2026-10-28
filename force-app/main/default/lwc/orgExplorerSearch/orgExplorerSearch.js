@@ -167,7 +167,7 @@ export default class OrgExplorerSearch extends LightningElement {
             // Enterでは選択中の候補だけを確定する。
             event.preventDefault();
             // キーボードで指した可視候補を確定する。
-            this.pickTarget(this.results[this._activeIndex]?.roleId);
+            this.pickTarget(this.results[this._activeIndex]?.targetId);
         }
     }
 
@@ -178,15 +178,15 @@ export default class OrgExplorerSearch extends LightningElement {
     }
 
     // 表示候補の選択だけを通知する。
-    pickTarget(roleId) {
+    pickTarget(targetId) {
         // 更新前の候補や不明なIDの操作を拒否する。
-        if (!this.results.some((item) => item.roleId === roleId)) return;
+        if (!this.results.some((item) => item.targetId === targetId)) return;
         // 選択後は入力候補を閉じる。
         this._open = false;
         // 次の検索へ選択位置を引き継がない。
         this._activeIndex = -1;
         // 確定した候補の表示と検索は親へ委ねる。
-        this.dispatchEvent(new CustomEvent('targetpick', { detail: { roleId } }));
+        this.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId } }));
     }
 
     // 選択を解除し、候補を閉じた未入力状態へ戻す。
@@ -206,7 +206,7 @@ export default class OrgExplorerSearch extends LightningElement {
         // 候補のIDと読み上げ対象を同じ値に揃える。
         return this.results.map((hit, index) => ({
             ...hit,
-            domId: `role-option-${hit.roleId}`,
+            domId: `role-option-${hit.targetId}`,
             selected: index === this._activeIndex,
             optionClass: `slds-media slds-listbox__option ${hit.description ? 'slds-listbox__option_entity slds-listbox__option_has-meta' : 'slds-listbox__option_plain'}${index === this._activeIndex ? ' slds-has-focus' : ''}`
         }));
@@ -240,7 +240,7 @@ export default class OrgExplorerSearch extends LightningElement {
     get activeOptionId() {
         // 閉じた候補や更新前の位置を参照しない。
         return this.showDropdown && this.results[this._activeIndex]
-            ? `role-option-${this.results[this._activeIndex].roleId}`
+            ? `role-option-${this.results[this._activeIndex].targetId}`
             : null;
     }
 

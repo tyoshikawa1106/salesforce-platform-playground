@@ -7,12 +7,12 @@ private with sharing class ObjectExplorerServiceTest {
 
     /** 取得範囲ごとの項目定義と関連有無 */
     @IsTest
-    static void fieldsAndClassificationKeepDefinitions() {
+    static void fieldsAndClassifyKeepDefinitions() {
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> full = service.getObjectInfo('Account', 'reference');
             Map<String, Object> fields = service.getObjectInfo('Account', 'fields');
-            Map<String, Object> classified = service.getObjectInfo('Account', 'classification');
+            Map<String, Object> classified = service.getObjectInfo('Account', 'classify');
             Assert.areEqual(full.get('fields'), fields.get('fields'), '項目のみ取得でも定義を維持');
             Assert.areEqual(full.get('fields'), classified.get('fields'), '分類モードでも定義を維持');
             Assert.isTrue(

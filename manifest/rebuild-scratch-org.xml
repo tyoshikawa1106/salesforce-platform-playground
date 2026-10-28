@@ -60,31 +60,31 @@
         <members>DateTimeUtil</members>
         <members>DateTimeUtilTest</members>
         <members>ObjectMetricCatalog</members>
+        <members>ObjectMetricCatalogTest</members>
         <members>ObjectMetricsOverviewController</members>
         <members>ObjectMetricsOverviewControllerTest</members>
         <members>ObjectMetricsOverviewItemWrapper</members>
         <members>ObjectMetricsOverviewItemWrapperTest</members>
-        <members>ObjectMetricsOverviewQueryCoordinator</members>
+        <members>ObjectMetricsOverviewQueryRunner</members>
         <members>ObjectMetricsOverviewSelector</members>
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
         <members>ObjectMetricsOverviewServiceTest</members>
         <members>ObjectMetricsOverviewSummaryWrapper</members>
         <members>ObjectMetricsOverviewSummaryWrapperTest</members>
-        <members>ObjectMetricsQueryCoordinatorTest</members>
+        <members>ObjectMetricsOverviewQueryRunnerTest</members>
         <members>ObjectRecordSearchConfigWrapper</members>
         <members>ObjectRecordSearchConfigWrapperTest</members>
         <members>ObjectRecordSearchContext</members>
         <members>ObjectRecordSearchContextTest</members>
         <members>ObjectRecordSearchController</members>
-        <members>ObjectRecordSearchControllerErrorTest</members>
         <members>ObjectRecordSearchControllerTest</members>
         <members>ObjectRecordSearchDeleteWrapper</members>
         <members>ObjectRecordSearchDeleteWrapperTest</members>
-        <members>ObjectRecordSearchDisplayFieldCatalog</members>
+        <members>ObjectRecordSearchFieldCatalog</members>
+        <members>ObjectRecordSearchFieldCatalogTest</members>
         <members>ObjectRecordSearchFieldWrapper</members>
         <members>ObjectRecordSearchFieldWrapperTest</members>
-        <members>ObjectRecordSearchPaginationTest</members>
         <members>ObjectRecordSearchQueryPlan</members>
         <members>ObjectRecordSearchQueryPlanTest</members>
         <members>ObjectRecordSearchRequestWrapper</members>
@@ -149,8 +149,8 @@
         <members>ObjectExplorerControllerTest</members>
         <members>ObjectExplorerSelector</members>
         <members>ObjectExplorerSelectorTest</members>
-        <members>ObjectExplorerClassificationService</members>
-        <members>ObjectExplorerClassificationServiceTest</members>
+        <members>ObjectExplorerClassifyService</members>
+        <members>ObjectExplorerClassifyServiceTest</members>
         <members>ObjectExplorerOwnerService</members>
         <members>ObjectExplorerOwnerServiceTest</members>
         <members>ObjectExplorerAccessPolicy</members>
@@ -895,6 +895,7 @@
         <members>orgExplorerDetails</members>
         <members>orgExplorerSearch</members>
         <members>objectExplorer</members>
+        <members>objectExplorerLookup</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>

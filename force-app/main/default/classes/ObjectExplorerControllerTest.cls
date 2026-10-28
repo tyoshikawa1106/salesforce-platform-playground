@@ -1,6 +1,12 @@
-/** 公開入口から取得・保存・照合までの接続 */
+/** ObjectExplorerControllerの公開操作と外部境界テスト */
 @IsTest
 private with sharing class ObjectExplorerControllerTest {
+    /** 分類要求の変更状態 */
+    public enum ChangeMode {
+        UNCHANGED,
+        CHANGE_STATUS
+    }
+
     private static User testUser = TestDataFactory.getTestUser();
 
     /** カスタム項目日時取得と不要な通信の省略 */
@@ -11,7 +17,7 @@ private with sharing class ObjectExplorerControllerTest {
             AuditMock mock = new AuditMock();
             Test.setMock(HttpCalloutMock.class, mock);
             Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.getFieldAudit('DataQualityScan__c')
+                JSON.serialize(ObjectExplorerController.getFieldAudit('DataQualityScan__c'))
             );
             Assert.isTrue(result.containsKey('Error_Message__c'), 'カスタム項目の日時を返す');
             Map<String, Object> field = (Map<String, Object>) result.get('Error_Message__c');
@@ -20,7 +26,9 @@ private with sharing class ObjectExplorerControllerTest {
             Assert.areEqual(2, mock.calls, '接続先確認と日時の一括取得');
             Integer beforeCalls = Limits.getCallouts();
             Assert.isTrue(
-                ((Map<String, Object>) JSON.deserializeUntyped(ObjectExplorerController.getFieldAudit('Organization')))
+                ((Map<String, Object>) JSON.deserializeUntyped(
+                        JSON.serialize(ObjectExplorerController.getFieldAudit('Organization'))
+                    ))
                     .isEmpty(),
                 'カスタム項目のない対象は空'
             );
@@ -28,50 +36,29 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
-    /** カスタム更新の通信失敗を同じ項目へ反映 */
-    @IsTest
-    static void rejectsCustomUpdateTransportFailure() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
 
-        System.runAs(testUser) {
-            Test.startTest();
-            SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'customError');
-            Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> result = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications(
-                    'DataQualityScan__c',
-                    changes(new List<String>{ 'Error_Message__c' }, true)
-                )
-            );
-            Assert.areEqual(
-                false,
-                ((Map<String, Object>) result[0]).get('success'),
-                'カスタム項目の通信失敗を保存結果へ反映'
-            );
-            Assert.areEqual(1, mock.writes, '一回の更新要求が失敗');
-            Test.stopTest();
-        }
-    }
     /** 構造・項目・分類一覧の公開契約 */
     @IsTest
-    static void readsStructureAndClassification() {
+    static void readsStructureAndClassify() {
         TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
 
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> structure = (Map<String, Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.getObjectInfo('Account', 'classification')
+                JSON.serialize(ObjectExplorerController.getObjectInfo('Account', 'classify'))
             );
             Assert.areEqual('Account', structure.get('apiName'), '指定対象を返す');
             Assert.isTrue(((List<Object>) structure.get('relations')).isEmpty(), '分類画面で関連を探索しない');
             Assert.isFalse(((List<Object>) structure.get('fields')).isEmpty(), '項目定義を返す');
             Assert.isFalse(
-                ((List<Object>) JSON.deserializeUntyped(ObjectExplorerController.searchObjects('Account', 'standard')))
+                ((List<Object>) JSON.deserializeUntyped(
+                        JSON.serialize(ObjectExplorerController.searchObjects('Account', 'standard'))
+                    ))
                     .isEmpty(),
                 '検索を公開'
             );
             Map<String, Object> classified = (Map<String, Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.getClassifications('Account')
+                JSON.serialize(ObjectExplorerController.getClassifyData('Account'))
             );
             Assert.isTrue(((Map<String, Object>) classified.get('rows')).containsKey('Name'), '同じ項目名で分類を返す');
             Assert.isTrue(
@@ -90,11 +77,15 @@ private with sharing class ObjectExplorerControllerTest {
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> owners = (Map<String, Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.resolveClassificationOwners(JSON.serialize(new List<Id>{ testUser.Id }))
+                JSON.serialize(
+                    ObjectExplorerController.resolveClassifyOwners(JSON.serialize(new List<Id>{ testUser.Id }))
+                )
             );
             Assert.isTrue(owners.containsKey(String.valueOf(testUser.Id)), '要求したIDの所有者を返す');
             Assert.isFalse(
-                ((List<Object>) JSON.deserializeUntyped(ObjectExplorerController.searchClassificationOwners(null)))
+                ((List<Object>) JSON.deserializeUntyped(
+                        JSON.serialize(ObjectExplorerController.searchClassifyOwners(null))
+                    ))
                     .isEmpty(),
                 '空検索語でも候補を返す'
             );
@@ -102,6 +93,49 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
+
+    /** 入力の構文エラーで解析詳細を利用者へ公開しない */
+    @IsTest
+    static void hidesMalformedOwnerJsonDetails() {
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                ObjectExplorerController.resolveClassifyOwners('{');
+                Assert.fail('所有者要求の不正な構文を拒否');
+            } catch (AuraHandledException error) {
+                Assert.areEqual(
+                    'CSVの所有者ID要求が不正です。配列で指定してください。',
+                    error.getMessage(),
+                    'JSON本文や解析情報を公開しない'
+                );
+            }
+            Test.stopTest();
+        }
+    }
+    /** カスタム更新の通信失敗を同じ項目へ反映 */
+    @IsTest
+    static void rejectsCustomUpdateTransportFailure() {
+        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
+
+        System.runAs(testUser) {
+            Test.startTest();
+            SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'customError');
+            Test.setMock(HttpCalloutMock.class, mock);
+            List<Object> result = ObjectExplorerController.saveClassifyData(
+                'DataQualityScan__c',
+                changes(new List<String>{ 'Error_Message__c' }, ChangeMode.CHANGE_STATUS)
+            );
+            Assert.areEqual(
+                false,
+                ((Map<String, Object>) result[0]).get('success'),
+                'カスタム項目の通信失敗を保存結果へ反映'
+            );
+            Assert.areEqual(1, mock.writes, '一回の更新要求が失敗');
+            Test.stopTest();
+        }
+    }
+
     /** 標準項目の保存と再取得の接続 */
     @IsTest
     static void savesStandardFieldAndVerifies() {
@@ -111,8 +145,9 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications('Account', changes(new List<String>{ 'Name' }, true))
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Map<String, Object> result = (Map<String, Object>) results[0];
             Assert.areEqual(
@@ -126,6 +161,7 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
+
     /** 変更なしで更新要求を省略 */
     @IsTest
     static void skipsUnchangedWrites() {
@@ -135,8 +171,9 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications('Account', changes(new List<String>{ 'Name' }, false))
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Name' }, ChangeMode.UNCHANGED)
             );
             Assert.areEqual(
                 true,
@@ -147,6 +184,7 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
+
     /** 応答順に依存せず個別拒否を維持 */
     @IsTest
     static void preservesPerFieldRejection() {
@@ -156,11 +194,9 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name', 'Phone' }, 'rejectPhone');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications(
-                    'Account',
-                    changes(new List<String>{ 'Phone', 'Name' }, true)
-                )
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Phone', 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual('Phone', ((Map<String, Object>) results[0]).get('apiName'), '入力順を保持');
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '拒否された項目だけ失敗');
@@ -169,6 +205,7 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
+
     /** 保存後の不一致を成功扱いしない */
     @IsTest
     static void doesNotConfirmUnverifiedSave() {
@@ -178,8 +215,9 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'stale');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications('Account', changes(new List<String>{ 'Name' }, true))
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(
                 false,
@@ -190,6 +228,7 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
+
     /** 更新前の競合と通信失敗の接続 */
     @IsTest
     static void isolatesPreparationAndTransportFailures() {
@@ -199,19 +238,22 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'conflict');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications('Account', changes(new List<String>{ 'Name' }, true))
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '編集基準不一致は失敗');
             Assert.areEqual(0, mock.writes, '競合した項目を送信しない');
             Test.setMock(HttpCalloutMock.class, new SaveMock('Account', new Set<String>{ 'Name' }, 'connectionError'));
-            results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications('Account', changes(new List<String>{ 'Name' }, true))
+            results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '組織確認失敗を結果へ返す');
             Test.stopTest();
         }
     }
+
     /** カスタム定義の取得と保持更新の接続 */
     @IsTest
     static void savesCustomFieldWithoutDroppingMetadata() {
@@ -221,11 +263,9 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'success');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications(
-                    'DataQualityScan__c',
-                    changes(new List<String>{ 'Error_Message__c' }, true)
-                )
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'DataQualityScan__c',
+                changes(new List<String>{ 'Error_Message__c' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(
                 true,
@@ -236,6 +276,7 @@ private with sharing class ObjectExplorerControllerTest {
             Test.stopTest();
         }
     }
+
     /** 標準項目の通信失敗を結果へ反映 */
     @IsTest
     static void rejectsSoapTransportFailure() {
@@ -245,8 +286,9 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'soapError');
             Test.setMock(HttpCalloutMock.class, mock);
-            List<Object> results = (List<Object>) JSON.deserializeUntyped(
-                ObjectExplorerController.saveClassifications('Account', changes(new List<String>{ 'Name' }, true))
+            List<Object> results = ObjectExplorerController.saveClassifyData(
+                'Account',
+                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), 'SOAP通信失敗を成功にしない');
             Assert.areEqual(1, mock.reads, '失敗確定後は再取得しない');
@@ -257,10 +299,10 @@ private with sharing class ObjectExplorerControllerTest {
     /**
      * 画面と同じ四属性の変更要求
      * @param names 更新対象の項目名
-     * @param changed 分類を変更するか
+     * @param requestedMode 分類要求の変更状態
      * @return 画面契約のJSON
      */
-    private static String changes(List<String> names, Boolean changed) {
+    public static String changes(List<String> names, ChangeMode requestedMode) {
         List<Object> result = new List<Object>();
         for (String name : names) {
             Map<String, Object> original = new Map<String, Object>{
@@ -270,7 +312,7 @@ private with sharing class ObjectExplorerControllerTest {
                 'ownerId' => ''
             };
             Map<String, Object> draft = original.clone();
-            if (changed) {
+            if (requestedMode == ChangeMode.CHANGE_STATUS) {
                 draft.put('businessStatus', 'Active');
             }
             result.add(new Map<String, Object>{ 'apiName' => name, 'original' => original, 'draft' => draft });
@@ -279,12 +321,12 @@ private with sharing class ObjectExplorerControllerTest {
     }
 
     /** 永続データを変更せず取得・更新・再取得を再現 */
-    private class SaveMock implements HttpCalloutMock {
+    public class SaveMock implements HttpCalloutMock {
         private String objectName;
         private String scenario;
         private Map<String, String> durableIds = new Map<String, String>();
-        Integer reads = 0;
-        Integer writes = 0;
+        public Integer reads = 0;
+        public Integer writes = 0;
 
         /**
          * 更新対象の実在する定義と模擬応答を対応付け
@@ -292,7 +334,7 @@ private with sharing class ObjectExplorerControllerTest {
          * @param names 更新対象の項目名
          * @param scenario 再現する保存結果
          */
-        SaveMock(String objectName, Set<String> names, String scenario) {
+        public SaveMock(String objectName, Set<String> names, String scenario) {
             this.objectName = objectName;
             this.scenario = scenario;
             for (FieldDefinition field : new ObjectExplorerSelector().selectFieldsByNames(objectName, names)) {
@@ -307,7 +349,10 @@ private with sharing class ObjectExplorerControllerTest {
          * @return 模擬応答
          */
         public HttpResponse respond(HttpRequest request) {
-            Assert.isTrue(request.getEndpoint().startsWith('callout:MetadataApiIntegration/'), '指定ログイン情報の固定名を使用');
+            Assert.isTrue(
+                request.getEndpoint().startsWith('callout:MetadataApiIntegration/'),
+                '指定ログイン情報の固定名を使用'
+            );
             HttpResponse response = new HttpResponse();
             response.setStatusCode(200);
             String endpoint = request.getEndpoint();
@@ -329,7 +374,7 @@ private with sharing class ObjectExplorerControllerTest {
             } else if (endpoint.contains('tooling/sobjects/CustomField/')) {
                 respondCustom(request, response);
             } else {
-                respondClassification(endpoint, response);
+                respondClassify(endpoint, response);
             }
             return response;
         }
@@ -402,7 +447,7 @@ private with sharing class ObjectExplorerControllerTest {
          * @param endpoint 要求先のAPIパス
          * @param response 返却する模擬応答
          */
-        private void respondClassification(String endpoint, HttpResponse response) {
+        private void respondClassify(String endpoint, HttpResponse response) {
             Assert.isTrue(endpoint.contains('/query/?q='), '分類クエリのみを許可');
             reads++;
             String query = EncodingUtil.urlDecode(endpoint.substringAfter('?q='), 'UTF-8');
@@ -428,10 +473,10 @@ private with sharing class ObjectExplorerControllerTest {
     }
 
     /** カスタム項目の日時だけを返すHTTPモック */
-    private class AuditMock implements HttpCalloutMock {
+    public class AuditMock implements HttpCalloutMock {
         private List<FieldDefinition> definitions = new ObjectExplorerSelector()
             .selectFieldAuditTargets('DataQualityScan__c');
-        Integer calls = 0;
+        public Integer calls = 0;
 
         /**
          * 対象IDの日時と人物を返す
@@ -439,7 +484,10 @@ private with sharing class ObjectExplorerControllerTest {
          * @return 完了したクエリ応答
          */
         public HttpResponse respond(HttpRequest request) {
-            Assert.isTrue(request.getEndpoint().startsWith('callout:MetadataApiIntegration/'), '指定ログイン情報の固定名を使用');
+            Assert.isTrue(
+                request.getEndpoint().startsWith('callout:MetadataApiIntegration/'),
+                '指定ログイン情報の固定名を使用'
+            );
             calls++;
             List<Object> rows = new List<Object>();
             if (request.getEndpoint().endsWith('query/?q=SELECT+Id+FROM+Organization')) {

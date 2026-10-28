@@ -86,7 +86,13 @@ export function emitObjectInfo(fieldOverrides = {}) {
     });
 }
 
-export function emitLayout({ objectApiName = 'Account', mode, fields = ['Name', 'Industry'], sections } = {}) {
+export function emitLayout({
+    objectApiName = 'Account',
+    mode,
+    recordTypeId,
+    fields = ['Name', 'Industry'],
+    sections
+} = {}) {
     const layoutSections = (sections ?? [{ heading: '基本情報', fields }]).map((section) => ({
         heading: section.heading,
         layoutRows: [
@@ -117,7 +123,7 @@ export function emitLayout({ objectApiName = 'Account', mode, fields = ['Name', 
                     }
                 }
             },
-            (config) => config.mode === targetMode
+            (config) => config.mode === targetMode && (!recordTypeId || config.recordTypeId === recordTypeId)
         );
     }
 }

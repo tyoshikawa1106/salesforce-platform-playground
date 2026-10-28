@@ -433,4 +433,185 @@ private with sharing class ObjectRecordSearchControllerTest {
         request.searchTerm = searchTerm;
         return request;
     }
+
+    /**
+     * 設定取得の未対応メトリクスはカード選択用メッセージへ変換
+     */
+    @IsTest
+    static void shouldReturnUnsupportedMetricMessageForConfig() {
+        String errorMessage;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            errorMessage = getConfigErrorMessage('unknown');
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'このカードのレコード一覧は表示できません。別のカードを選択してください。',
+            errorMessage,
+            '設定取得の未対応メトリクスは別カードの選択を案内する必要あり'
+        );
+    }
+
+    /**
+     * 削除の未対応メトリクスはカード選択用メッセージへ変換
+     */
+    @IsTest
+    static void shouldReturnUnsupportedMetricMessageForDelete() {
+        String errorMessage;
+
+        System.runAs(testUser) {
+            Test.startTest();
+
+            errorMessage = getDeleteErrorMessage('unknown');
+
+            Test.stopTest();
+        }
+
+        Assert.areEqual(
+            'このカードのレコード一覧は表示できません。別のカードを選択してください。',
+            errorMessage,
+            '削除の未対応メトリクスは別カードの選択を案内する必要あり'
+        );
+    }
+
+    private static String getConfigErrorMessage(String metricKey) {
+        try {
+            ObjectRecordSearchController.getObjectConfig(metricKey);
+            return null;
+        } catch (AuraHandledException e) {
+            return e.getMessage();
+        }
+    }
+
+    private static String getDeleteErrorMessage(String metricKey) {
+        try {
+            ObjectRecordSearchController.deleteRecords(
+                metricKey,
+                new List<Id>{ UserInfo.getUserId() }
+            );
+            return null;
+        } catch (AuraHandledException e) {
+            return e.getMessage();
+        }
+    }
+
+    /** 選択リストの昇順で全ページを取得 */
+    @IsTest
+    static void shouldPagePicklistsAscending() {
+        System.runAs(testUser) {
+            TestDataFactory.createSearchPaginationRecords();
+            List<Id> expected = recordIds([SELECT Id FROM Opportunity ORDER BY StageName ASC NULLS LAST, Id ASC]);
+            Test.startTest();
+            List<Id> actual = readPages('opportunities', 'StageName', 'asc');
+            Test.stopTest();
+            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
+        }
+    }
+
+    /** 選択リストの降順で全ページを取得 */
+    @IsTest
+    static void shouldPagePicklistsDescending() {
+        System.runAs(testUser) {
+            TestDataFactory.createSearchPaginationRecords();
+            List<Id> expected = recordIds([SELECT Id FROM Opportunity ORDER BY StageName DESC NULLS LAST, Id ASC]);
+            Test.startTest();
+            List<Id> actual = readPages('opportunities', 'StageName', 'desc');
+            Test.stopTest();
+            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
+        }
+    }
+
+    /** Booleanの昇順で全ページを取得 */
+    @IsTest
+    static void shouldPageBooleansAscending() {
+        System.runAs(testUser) {
+            TestDataFactory.createSearchPaginationRecords();
+            List<Id> expected = recordIds([SELECT Id FROM Product2 ORDER BY IsActive ASC NULLS LAST, Id ASC]);
+            Test.startTest();
+            List<Id> actual = readPages('products', 'IsActive', 'asc');
+            Test.stopTest();
+            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
+        }
+    }
+
+    /** Booleanの降順で全ページを取得 */
+    @IsTest
+    static void shouldPageBooleansDescending() {
+        System.runAs(testUser) {
+            TestDataFactory.createSearchPaginationRecords();
+            List<Id> expected = recordIds([SELECT Id FROM Product2 ORDER BY IsActive DESC NULLS LAST, Id ASC]);
+            Test.startTest();
+            List<Id> actual = readPages('products', 'IsActive', 'desc');
+            Test.stopTest();
+            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
+        }
+    }
+
+    /** nullを含む選択リストで全ページを取得 */
+    @IsTest
+    static void shouldPageNullablePicklists() {
+        System.runAs(testUser) {
+            TestDataFactory.createSearchPaginationRecords();
+            List<Id> expected = recordIds([SELECT Id FROM Account ORDER BY Industry ASC NULLS LAST, Id ASC]);
+            Test.startTest();
+            List<Id> actual = readPages('accounts', 'Industry', 'asc');
+            Test.stopTest();
+            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
+        }
+    }
+
+    private static List<Id> recordIds(List<SObject> records) {
+        List<Id> ids = new List<Id>();
+        for (SObject record : records) {
+            ids.add(record.Id);
+        }
+        return ids;
+    }
+
+    private static List<Id> readPages(String key, String field, String direction) {
+        List<Id> actualIds = new List<Id>();
+        ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
+        request.metricKey = key;
+        request.sortBy = field;
+        request.sortDirection = direction;
+        Boolean hasNext = true;
+        while (hasNext && request.pageNumber <= 10) {
+            ObjectRecordSearchResultWrapper page = ObjectRecordSearchController.searchRecords(request);
+            for (ObjectRecordSearchRowWrapper row : page.records) {
+                actualIds.add(row.id);
+            }
+            hasNext = page.hasNextPage;
+            request.paginationCursor = page.paginationCursor;
+            request.startIndex = page.nextIndex;
+            request.pageNumber++;
+            // LWCとの往復で標準カーソルをそのまま復元できることも検証
+            request = (ObjectRecordSearchRequestWrapper) JSON.deserialize(JSON.serialize(request), ObjectRecordSearchRequestWrapper.class);
+        }
+        Assert.isFalse(hasNext, '全ページを上限内に読み切る必要あり');
+        return actualIds;
+    }
+
+    /** 同じカーソルで先頭ページへ戻る */
+    @IsTest
+    static void shouldReturnToFirstPageUsingSameCursor() {
+        System.runAs(testUser) {
+            TestDataFactory.createSearchPaginationRecords();
+            Test.startTest();
+            ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
+            request.metricKey = 'accounts';
+            ObjectRecordSearchResultWrapper first = ObjectRecordSearchController.searchRecords(request);
+            request.paginationCursor = first.paginationCursor;
+            request.startIndex = first.nextIndex;
+            ObjectRecordSearchController.searchRecords(request);
+            request.startIndex = 0;
+            ObjectRecordSearchResultWrapper previous = ObjectRecordSearchController.searchRecords(request);
+            Test.stopTest();
+            Assert.areEqual(first.records[0].id, previous.records[0].id, '同じカーソルの先頭へ戻れる必要あり');
+            Assert.areEqual(first.records.size(), previous.records.size(), '前ページの件数を保持する必要あり');
+        }
+    }
 }

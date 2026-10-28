@@ -156,6 +156,7 @@ const countResponse = {
         { key: 'users', label: 'ユーザー', iconName: 'standard:user', value: 1 }
     ]
 };
+countResponse.metrics = countResponse.metrics.map((metric) => ({ ...metric, available: true }));
 
 function createComponent() {
     const element = createElement('c-object-metrics-overview', {

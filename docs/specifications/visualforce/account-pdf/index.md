@@ -12,27 +12,37 @@ Lightning Experienceの取引先レコードページから、取引先の主要
 
 ## 対象実装・メタデータ
 
-### 入口・画面
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
-- `Account.PdfExport`: 「PDF出力」取引先クイックアクション
-- `accountPdfExport.js`: 対象取引先IDを含むVisualforce URLの生成と新しいタブの起動
-- `accountPdfExportLogic.js`: 取引先ID判定とVisualforce PageReferenceの組み立て
-- `AccountPdf`: 取引先情報をPDFとしてレンダリングするVisualforce Page
-- `Account-Account Layout`: 「PDF出力」アクションを表示する標準取引先レイアウト
-- `Account-Account (Marketing) Layout`: 「PDF出力」アクションを表示するマーケティング用取引先レイアウト
-- `Account-Account (Sales) Layout`: 「PDF出力」アクションを表示する営業用取引先レイアウト
-- `Account-Account (Support) Layout`: 「PDF出力」アクションを表示するサポート用取引先レイアウト
+### 画面・JavaScript
 
-### Apex
+| 種別       | 実装・設定                                                                                                   | 役割                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| JavaScript | [accountPdfExport.js](../../../../force-app/main/default/lwc/accountPdfExport/accountPdfExport.js)           | 対象取引先IDを含むVisualforce URLの生成と新しいタブの起動 |
+| JavaScript | [accountPdfExportLogic.js](../../../../force-app/main/default/lwc/accountPdfExport/accountPdfExportLogic.js) | 取引先ID判定とVisualforce PageReferenceの組み立て         |
 
-- `AccountPdfController`: Visualforceからの入力受付と処理順序の制御
-- `AccountPdfService`: 取引先ID検証、空値、住所、表示文字列の組み立て
-- `AccountPdfSelector`: 利用者権限による取引先情報の取得
-- `AccountPdfViewModel`: Visualforceへ公開する表示文字列
+### Apexコードと対応テスト
+
+| Apex本体                                                                                    | 役割                                   | 同名Test                                                                                            |
+| ------------------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls) | 取引先 PDF を表示する Visualforce 入口 | [AccountPdfControllerTest](../../../../force-app/main/default/classes/AccountPdfControllerTest.cls) |
+| [AccountPdfSelector](../../../../force-app/main/default/classes/AccountPdfSelector.cls)     | 取引先 PDF の取引先問い合わせ          | [AccountPdfSelectorTest](../../../../force-app/main/default/classes/AccountPdfSelectorTest.cls)     |
+| [AccountPdfService](../../../../force-app/main/default/classes/AccountPdfService.cls)       | 取引先 PDF の入力検証と表示値作成      | [AccountPdfServiceTest](../../../../force-app/main/default/classes/AccountPdfServiceTest.cls)       |
+| [AccountPdfViewModel](../../../../force-app/main/default/classes/AccountPdfViewModel.cls)   | 取引先 PDF に表示する文字列            | [AccountPdfViewModelTest](../../../../force-app/main/default/classes/AccountPdfViewModelTest.cls)   |
+
+テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
 
 ### 設定・権限
 
-- `LwcAccountPdfExport`: `AccountPdfController`と`AccountPdf`へのアクセス
+| 種別          | 実装・設定                           | 役割                                                                                                                  |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| QuickAction   | `Account.PdfExport`                  | 「PDF出力」取引先クイックアクション                                                                                   |
+| Visualforce   | `AccountPdf`                         | 取引先情報をPDFとしてレンダリングするVisualforce Page                                                                 |
+| Layout        | `Account-Account Layout`             | 「PDF出力」アクションを表示する標準取引先レイアウト                                                                   |
+| Layout        | `Account-Account (Marketing) Layout` | 「PDF出力」アクションを表示するマーケティング用取引先レイアウト                                                       |
+| Layout        | `Account-Account (Sales) Layout`     | 「PDF出力」アクションを表示する営業用取引先レイアウト                                                                 |
+| Layout        | `Account-Account (Support) Layout`   | 「PDF出力」アクションを表示するサポート用取引先レイアウト                                                             |
+| PermissionSet | `LwcAccountPdfExport`                | [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls)と`AccountPdf`へのアクセス |
 
 ## 入力
 
@@ -46,9 +56,9 @@ Lightning Experienceの取引先レコードページから、取引先の主要
 1. 「PDF出力」ヘッドレスクイックアクションが取引先レコードIDを受け取る。
 2. LWCがNavigation Serviceで`/apex/AccountPdf?accountId=<取引先ID>`のURLを生成する。
 3. LWCが生成URLを新しいタブで開く。同じアクションの処理中は二重実行しない。
-4. `AccountPdfController`がURL parameterを検証する。
-5. `AccountPdfSelector`が共有、CRUD、FLSを含む利用者権限で取引先を取得する。
-6. `AccountPdfService`が空項目を`―`へ統一し、住所を複数行の表示文字列へ変換する。
+4. [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls)がURL parameterを検証する。
+5. [AccountPdfSelector](../../../../force-app/main/default/classes/AccountPdfSelector.cls)が共有、CRUD、FLSを含む利用者権限で取引先を取得する。
+6. [AccountPdfService](../../../../force-app/main/default/classes/AccountPdfService.cls)が空項目を`―`へ統一し、住所を複数行の表示文字列へ変換する。
 7. Visualforceが基本情報、住所、詳細をPDFとして表示する。
 
 ### 出力項目
@@ -73,7 +83,7 @@ Salesforce Files、取引先、その他のレコードへPDFや履歴を保存�
 - Lightning Experienceの取引先レコードページで実行する。
 - `LwcAccountPdfExport`によるVisualforce PageとApex Controllerへのアクセスが必要。
 - 対象取引先の参照権限と、全出力項目の項目参照権限が必要。
-- `AccountPdfController`と`AccountPdfSelector`は`with sharing`で実行する。
+- [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls)と[AccountPdfSelector](../../../../force-app/main/default/classes/AccountPdfSelector.cls)は`with sharing`で実行する。
 - SOQLは`WITH USER_MODE`を使用し、共有、CRUD、FLSを利用者権限で適用する。
 - Business Accountを対象とする。Person Account固有の項目とラベルは扱わない。
 
@@ -93,10 +103,10 @@ Salesforce Files、取引先、その他のレコードへPDFや履歴を保存�
 
 ## テスト・確認観点
 
-- `AccountPdfControllerTest`: 正常な取引先、parameter未指定、不正ID、別SObject ID、不存在レコード、安全なエラー
-- `AccountPdfServiceTest`: ID検証、空項目、住所改行、日本語、HTMLに見える文字列、説明の複数行
-- `AccountPdfSelectorTest`: 利用者権限による出力項目取得、null、不存在レコード
-- `AccountPdfViewModelTest`: 空項目の代替表示
+- [AccountPdfControllerTest](../../../../force-app/main/default/classes/AccountPdfControllerTest.cls): 正常な取引先、parameter未指定、不正ID、別SObject ID、不存在レコード、安全なエラー
+- [AccountPdfServiceTest](../../../../force-app/main/default/classes/AccountPdfServiceTest.cls): ID検証、空項目、住所改行、日本語、HTMLに見える文字列、説明の複数行
+- [AccountPdfSelectorTest](../../../../force-app/main/default/classes/AccountPdfSelectorTest.cls): 利用者権限による出力項目取得、null、不存在レコード
+- [AccountPdfViewModelTest](../../../../force-app/main/default/classes/AccountPdfViewModelTest.cls): 空項目の代替表示
 - `accountPdfExport.test.js`: URL生成、新しいタブ、IDエラー、二重実行防止、起動失敗Toast
 - `accountPdfExportLogic.test.js`: 15桁・18桁の取引先ID判定とVisualforce URL encoding
 - 接続org: Lightningからの起動、日本語、空項目、長いURL、複数行と空行、改ページ、権限不足、PDFの表示・ダウンロード・印刷

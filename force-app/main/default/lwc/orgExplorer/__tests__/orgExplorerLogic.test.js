@@ -67,7 +67,7 @@ it('深い部分木と循環をノード順に依存せず一度ずつ探索す�
 it('構造ページの可視ロールだけに人数を対応し、未集計とゼロを区別する', () => {
     const root = { key: 'ROLE:root', recordId: 'root', kind: 'ROLE', label: '会社' };
     const child = { key: 'ROLE:child', recordId: 'child', kind: 'ROLE', label: '営業部', parentKey: root.key };
-    const index = mergePages({}, { nodes: [root, child], roleMemberCounts: { root: 3, child: 0, hidden: 8 } });
+    const index = mergePages({}, { nodes: [root, child], memberCounts: { root: 3, child: 0, hidden: 8 } });
     const view = buildView(createStructureGraph(index), 'ROLE');
     expect(view.countText).toBe('表示ロール数：2');
     expect(view.rows.map((row) => row.memberCountText)).toEqual(['メンバー 3人', 'メンバー 0人']);
@@ -101,13 +101,13 @@ it('別の深さの空き列を共有し、三段の七人を三列で配置す�
 
 it('構造索引を到着順に依存せず結合し、起点以外の枝をキャッシュへ残さない', () => {
     const child = { key: 'ROLE:child', recordId: 'child', kind: 'ROLE', label: '部門', parentKey: 'ROLE:root' };
-    const first = mergePages({}, { nodes: [child], roleMemberCounts: { child: 0 } });
+    const first = mergePages({}, { nodes: [child], memberCounts: { child: 0 } });
     const index = mergePages(first, {
         nodes: [
             { key: 'ROLE:root', recordId: 'root', kind: 'ROLE', label: '会社', parentKey: 'ROLE:outside' },
             { key: 'ROLE:outside', recordId: 'outside', kind: 'ROLE', label: '別の枝' }
         ],
-        roleMemberCounts: { root: 9 }
+        memberCounts: { root: 9 }
     });
     const graph = createStructureGraph(index, 'root');
     expect(Object.keys(graph.nodes)).toEqual(['ROLE:root', 'ROLE:child']);
@@ -337,10 +337,10 @@ it('上司カードの所属ロールを同じ応答の可視ノードへ対応�
     const user = { kind: 'USER', key: 'USER:manager', recordId: 'manager', label: '試験上司' };
     const result = mergePages(
         {},
-        { nodes: [user], roleMemberCounts: {}, cardRoles: { manager: { name: '営業ロール', state: 'VALUE' } } }
+        { nodes: [user], memberCounts: {}, cardRoles: { manager: { name: '営業ロール', state: 'VALUE' } } }
     );
     expect(result[user.key].role).toEqual({ name: '営業ロール', state: 'VALUE' });
-    const withoutRole = mergePages(result, { nodes: [user], roleMemberCounts: {} });
+    const withoutRole = mergePages(result, { nodes: [user], memberCounts: {} });
     expect(withoutRole[user.key].role).toBeUndefined();
 });
 
@@ -353,7 +353,7 @@ it('未入力の上司候補は全構造から階層順・同階層氏名順に�
     const grandchild = { ...node('grandchild', children[0].key), label: 'A課' };
     const index = Object.fromEntries([grandchild, ...children.slice().reverse(), root].map((item) => [item.key, item]));
     const result = managerBrowseCandidates(index);
-    expect(result.results.map((item) => item.roleId)).toEqual([
+    expect(result.results.map((item) => item.targetId)).toEqual([
         'root',
         ...children.slice(0, 19).map((item) => item.recordId)
     ]);
@@ -371,7 +371,7 @@ it('上司候補は親をまたいで同じ階層を氏名順にし、不可視�
         { ...node('role'), kind: 'ROLE' }
     ];
     const result = managerBrowseCandidates(Object.fromEntries(records.map((item) => [item.key, item])));
-    expect(result.results.map((item) => item.roleId)).toEqual(['a', 'b', 'd', 'c', 'z']);
+    expect(result.results.map((item) => item.targetId)).toEqual(['a', 'b', 'd', 'c', 'z']);
     const reversed = Object.fromEntries([...records].reverse().map((item) => [item.key, item]));
     expect(managerBrowseCandidates(reversed)).toEqual(result);
     expect(result.hasMore).toBe(false);
@@ -468,7 +468,7 @@ it.each([
 
 it('構造ページの変換は現在ページだけを返し、元のノードと応答を変更しない', () => {
     const current = Object.freeze({ ...node('current'), memberCount: 99 });
-    const response = Object.freeze({ nodes: Object.freeze([current]), roleMemberCounts: Object.freeze({ current: 2 }) });
+    const response = Object.freeze({ nodes: Object.freeze([current]), memberCounts: Object.freeze({ current: 2 }) });
     const result = structurePageNodes(response);
     expect(Object.keys(result)).toEqual(['USER:current']);
     expect(result['USER:current'].memberCount).toBe(2);
@@ -486,7 +486,7 @@ it('配置の数値と描画スタイルは同じ座標を使用する', () => {
 
 it('ロールの共通ノードをルックアップ候補へ変換し、親情報を含めない', () => {
     expect(lookupCandidate({ recordId: 'role', label: '営業部', kind: 'ROLE', parentKey: 'ROLE:company' })).toEqual({
-        roleId: 'role', label: '営業部', description: ''
+        targetId: 'role', label: '営業部', description: ''
     });
 });
 

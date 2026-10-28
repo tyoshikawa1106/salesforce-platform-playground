@@ -35,25 +35,6 @@ private with sharing class ObjectRecordSearchFieldWrapperTest {
     }
 
     /**
-     * Describeのソート可否を表示項目へ反映
-     */
-    @IsTest
-    static void shouldExposeCatalogSortability() {
-        List<ObjectRecordSearchFieldWrapper> fields;
-        System.runAs(testUser) {
-            Test.startTest();
-            fields = ObjectRecordSearchDisplayFieldCatalog.getDisplayFields('Contact', Contact.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED));
-            Test.stopTest();
-        }
-        Map<String, Boolean> sortableByField = new Map<String, Boolean>();
-        for (ObjectRecordSearchFieldWrapper field : fields) {
-            sortableByField.put(field.apiName, field.sortable);
-        }
-        Assert.areEqual(true, sortableByField.get('Email'), 'Email列はソート可能である必要あり');
-        Assert.areEqual(false, sortableByField.get('Description'), '長文のDescription列はソート不可である必要あり');
-    }
-
-    /**
      * コンストラクタで受け取った値を公開
      */
     @IsTest

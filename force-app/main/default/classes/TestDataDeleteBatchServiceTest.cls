@@ -50,117 +50,6 @@ private with sharing class TestDataDeleteBatchServiceTest {
         }
     }
 
-    private static Organization organization(Boolean sandbox, String edition, Datetime expiration) {
-        return (Organization) JSON.deserialize(
-            JSON.serialize(
-                new Map<String, Object>{
-                    'IsSandbox' => sandbox,
-                    'OrganizationType' => edition,
-                    'TrialExpirationDate' => expiration
-                }
-            ),
-            Organization.class
-        );
-    }
-
-    @IsTest
-    static void permitsDeveloperEdition() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>{ organization(false, 'Developer Edition', null) }
-            );
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DEVELOPMENT, actual, 'devを許可');
-        }
-    }
-
-    @IsTest
-    static void permitsUnexpiredScratch() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>{ organization(true, 'Enterprise Edition', System.now().addDays(1)) }
-            );
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DEVELOPMENT, actual, 'EditionによらずScratchを許可');
-        }
-    }
-
-    @IsTest
-    static void deniesSandboxEvenWithDeveloperEdition() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>{ organization(true, 'Developer Edition', null) }
-            );
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DISALLOWED, actual, '一般Sandboxを拒否');
-        }
-    }
-
-    @IsTest
-    static void deniesProductionOrganization() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>{ organization(false, 'Enterprise Edition', null) }
-            );
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DISALLOWED, actual, '本番を拒否');
-        }
-    }
-
-    @IsTest
-    static void deniesTrialOrganization() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>{ organization(false, 'Enterprise Edition', System.now().addDays(1)) }
-            );
-            Test.stopTest();
-            Assert.areEqual(
-                TestDataDeleteBatchWrapper.Environment.DISALLOWED,
-                actual,
-                '有効期限だけでTrialをScratchと誤認しない'
-            );
-        }
-    }
-
-    @IsTest
-    static void deniesExpiredScratch() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>{ organization(true, 'Developer Edition', System.now().addDays(-1)) }
-            );
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DISALLOWED, actual, '期限切れScratchを拒否');
-        }
-    }
-
-    @IsTest
-    static void deniesMissingOrganization() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(
-                new List<Organization>()
-            );
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DISALLOWED, actual, '取得失敗時は拒否');
-        }
-    }
-
-    @IsTest
-    static void deniesNullOrganizationResult() {
-        System.runAs(TestDataFactory.getTestUser()) {
-            Test.startTest();
-            TestDataDeleteBatchWrapper.Environment actual = TestDataDeleteBatchService.getEnvironment(null);
-            Test.stopTest();
-            Assert.areEqual(TestDataDeleteBatchWrapper.Environment.DISALLOWED, actual, '未取得時は拒否');
-        }
-    }
-
     private static List<UserPermissionAccess> access(Boolean allowed) {
         return new List<UserPermissionAccess>{
             (UserPermissionAccess) JSON.deserialize(
@@ -176,7 +65,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
                 .checkExecution(
                     new TestDataDeleteBatchWrapper(),
                     access(true),
-                    TestDataDeleteBatchWrapper.Environment.DISALLOWED
+                    TestDataDeleteService.Environment.DISALLOWED
                 );
             Assert.isNotNull(result.errorMessage, '本番の停止理由');
             Assert.isTrue(result.errorMessage.contains('開発組織'), '環境を拒否');
@@ -189,7 +78,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
                 .checkExecution(
                     new TestDataDeleteBatchWrapper(),
                     access(false),
-                    TestDataDeleteBatchWrapper.Environment.DEVELOPMENT
+                    TestDataDeleteService.Environment.DEVELOPMENT
                 );
             Assert.isTrue(result.errorMessage.contains('権限'), '実効権限なしを拒否');
         }
@@ -200,7 +89,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.objectNames[0] = 'User';
             TestDataDeleteBatchWrapper result = new TestDataDeleteBatchService()
-                .checkExecution(plan, access(true), TestDataDeleteBatchWrapper.Environment.DEVELOPMENT);
+                .checkExecution(plan, access(true), TestDataDeleteService.Environment.DEVELOPMENT);
             Assert.isTrue(result.errorMessage.contains('不正'), '許可外オブジェクトを拒否');
         }
     }
@@ -210,7 +99,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.position = plan.objectNames.indexOf('Account');
             TestDataDeleteBatchWrapper result = new TestDataDeleteBatchService()
-                .checkExecution(plan, access(true), TestDataDeleteBatchWrapper.Environment.DEVELOPMENT);
+                .checkExecution(plan, access(true), TestDataDeleteService.Environment.DEVELOPMENT);
             Assert.areEqual('', result.errorMessage, '適切な対象と権限を許可');
         }
     }
@@ -221,7 +110,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
             plan.position = plan.objectNames.indexOf('ContentDocument');
             Test.startTest();
             TestDataDeleteBatchWrapper result = new TestDataDeleteBatchService()
-                .checkExecution(plan, access(true), TestDataDeleteBatchWrapper.Environment.DEVELOPMENT);
+                .checkExecution(plan, access(true), TestDataDeleteService.Environment.DEVELOPMENT);
             Test.stopTest();
             Assert.areEqual('', result.errorMessage, '全ファイル照会権限なしでもファイル処理を許可');
         }

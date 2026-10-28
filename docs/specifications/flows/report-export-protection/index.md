@@ -10,10 +10,10 @@
 
 ## 対象実装・メタデータ
 
-| 種別                        | API 名                                      | 役割                                                                             |
-| --------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| Flow                        | `sfdc_default_ReportExport_Protection_Flow` | レポート操作イベント（`ReportEvent`）を評価するトランザクションセキュリティ Flow |
-| Transaction Security Policy | `sfdc_default_ReportExport_Protection`      | Flowを参照し、Step-Up Authenticationを要求するアクティブなポリシー               |
+| 種別                        | API 名                                                                                                                                                                         | 役割                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Flow                        | [sfdc_default_ReportExport_Protection_Flow](../../../../force-app/main/default/flows/sfdc_default_ReportExport_Protection_Flow.flow-meta.xml)                                  | レポート操作イベント（`ReportEvent`）を評価するトランザクションセキュリティ Flow |
+| Transaction Security Policy | [sfdc_default_ReportExport_Protection](../../../../force-app/main/default/transactionSecurityPolicies/sfdc_default_ReportExport_Protection.transactionSecurityPolicy-meta.xml) | Flowを参照し、Step-Up Authenticationを要求するアクティブなポリシー               |
 
 ## 入力
 

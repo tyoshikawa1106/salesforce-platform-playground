@@ -67,7 +67,7 @@ private with sharing class ObjectExplorerFieldServiceTest {
     }
     /** 分類と所有者を項目名で対応 */
     @IsTest
-    static void mapsClassificationOwnersById() {
+    static void mapsClassifyOwnersById() {
         System.runAs(testUser) {
             Test.startTest();
             List<FieldDefinition> records = (List<FieldDefinition>) JSON.deserialize(

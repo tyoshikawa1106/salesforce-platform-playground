@@ -1,7 +1,7 @@
 /**
  * 汎用レコード検索画面の判定と Wrapper 組み立て提供
  */
-public virtual with sharing class ObjectRecordSearchService {
+public with sharing class ObjectRecordSearchService {
 
     private static final Integer PAGE_FETCH_SIZE = ObjectRecordSearchQueryPlan.SEARCH_FETCH_SIZE;
     private static final String DELETE_ROW_ERROR_MESSAGE = '削除できないレコードがありました。権限や関連データを確認してください。';
@@ -67,7 +67,7 @@ public virtual with sharing class ObjectRecordSearchService {
      * @param metricKey データボードカードの表示キー
      * @return 検索状態または利用できない理由
      */
-    public virtual SearchContextResult resolveSearchContext(String metricKey) {
+    public SearchContextResult resolveSearchContext(String metricKey) {
         SearchContextResult result = new SearchContextResult();
         // 表示キーを固定カタログの検索対象へ変換
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
@@ -124,7 +124,7 @@ public virtual with sharing class ObjectRecordSearchService {
         }
 
         // 画面へ返す固定表示項目を参照権限で絞り込み
-        List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchDisplayFieldCatalog.getDisplayFields(
+        List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchFieldCatalog.getDisplayFields(
             definition.objectApiName,
             objectDescribe
         );
@@ -142,23 +142,6 @@ public virtual with sharing class ObjectRecordSearchService {
         );
         result.errorCode = ErrorCode.NONE;
         return result;
-    }
-
-    /**
-     * 指定レコードを利用者権限で削除
-     *
-     * @param recordsToDelete 削除対象レコード
-     * @return 行ごとの DML 削除結果
-     */
-    public List<Database.DeleteResult> deleteRecords(List<SObject> recordsToDelete) {
-        // null の削除対象を空の List として扱えるよう正規化
-        List<SObject> safeRecordsToDelete = recordsToDelete ?? new List<SObject>();
-        // 削除対象がない場合は DML を実行せず空結果へ短絡
-        if (safeRecordsToDelete.isEmpty()) {
-            return new List<Database.DeleteResult>();
-        }
-        // 画面利用者の権限で部分成功を許容して削除
-        return Database.delete(safeRecordsToDelete, false, AccessLevel.USER_MODE);
     }
 
     /**

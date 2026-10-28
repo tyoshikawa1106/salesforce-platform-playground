@@ -234,12 +234,12 @@ private with sharing class OrgExplorerMemberServiceTest {
     @IsTest
     static void exposesRoleNamesOnlyForVisibleManagerMembers() {
         System.runAs(testUser) {
-            Id roleId = Id.valueOf(UserRole.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
-            User member = new User(Id = testUser.Id, UserRoleId = roleId);
+            Id targetId = Id.valueOf(UserRole.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
+            User member = new User(Id = testUser.Id, UserRoleId = targetId);
             OrgExplorerMemberService.MemberPageData data = new OrgExplorerMemberService.MemberPageData(
                 new List<User>{ member }, new List<User>(), new List<Profile>()
             );
-            data.roles.put(roleId, new UserRole(Id = roleId, Name = '営業担当'));
+            data.roles.put(targetId, new UserRole(Id = targetId, Name = '営業担当'));
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.membershipEnabled = true;
             access.rolesEnabled = true;
@@ -250,8 +250,8 @@ private with sharing class OrgExplorerMemberServiceTest {
             OrgExplorerPageResponse hidden = service.createMemberPage(data, request, access);
             member.UserRoleId = null;
             OrgExplorerPageResponse unassigned = service.createMemberPage(data, request, access);
-            data.roles.put(roleId, new UserRole(Id = roleId, Name = '非公開ロール'));
-            member.UserRoleId = roleId;
+            data.roles.put(targetId, new UserRole(Id = targetId, Name = '非公開ロール'));
+            member.UserRoleId = targetId;
             access.membershipEnabled = false;
             OrgExplorerPageResponse denied = service.createMemberPage(data, request, access);
             access.membershipEnabled = true;

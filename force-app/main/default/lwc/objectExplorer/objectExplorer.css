@@ -31,8 +31,8 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 
 .oe-mode { display: block; margin-bottom: var(--slds-g-spacing-4, 1rem); }
 .oe-save-bar { display: flex; align-items: center; gap: var(--slds-g-spacing-4, 1rem); flex-wrap: wrap; margin: var(--slds-g-spacing-4, 1rem) 0; }
-.oe-classification-notice { margin-block-end: var(--slds-g-spacing-3, .75rem); padding: var(--slds-g-spacing-3, .75rem); background: var(--slds-g-color-surface-2, #f3f3f3); white-space: normal; }
-.oe-classification-cell { min-width: var(--slds-g-sizing-14, 15rem); vertical-align: middle; }
+.oe-classify-notice { margin-block-end: var(--slds-g-spacing-3, .75rem); padding: var(--slds-g-spacing-3, .75rem); background: var(--slds-g-color-surface-2, #f3f3f3); white-space: normal; }
+.oe-classify-cell { min-width: var(--slds-g-sizing-14, 15rem); vertical-align: middle; }
 .oe-save-bar { justify-content: flex-end; }
 
 /* 図以外の読み込みも標準スピナーで通知 */
@@ -63,7 +63,7 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 @media (max-width: 42rem) { .oe-viewport { grid-template-columns: minmax(0, 1fr); } .oe-origin-column { grid-row: 1; } }
 
 /* 未保存の変更は列を増やさず行全体で示す */
-.slds-table tr.oe-classification-changed > th, .slds-table tr.oe-classification-changed > td { background: var(--slds-g-color-warning-container-1, #fff7d6); }
+.slds-table tr.oe-classify-changed > th, .slds-table tr.oe-classify-changed > td { background: var(--slds-g-color-warning-container-1, #fff7d6); }
 /* 空欄でも標準入力と同じ最低高さを維持し、候補だけを重ねて表示 */
 .oe-compliance { position: relative; inline-size: var(--slds-g-sizing-14, 15rem); }
 .oe-compliance-input { min-height: var(--slds-g-sizing-9, 2rem); display: flex; align-items: center; justify-content: space-between; gap: var(--slds-g-spacing-2, .5rem); text-align: left; }

@@ -1,7 +1,7 @@
 /**
  * 取引先データ品質の判定とスキャン状態遷移
  */
-public virtual with sharing class AccountDataQualityScanService {
+public with sharing class AccountDataQualityScanService {
 
     // 新規スキャンが非同期実行を待つ状態
     public static final String STATUS_PENDING = 'Pending';
@@ -23,7 +23,7 @@ public virtual with sharing class AccountDataQualityScanService {
      *
      * @return 両オブジェクトを参照できる場合はtrue
      */
-    public virtual Boolean canReadScan() {
+    public Boolean canReadScan() {
         // 参照権限だけを確認し、関連定義の一括読み込みを避ける
         return Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible()
             && DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible();
@@ -71,39 +71,6 @@ public virtual with sharing class AccountDataQualityScanService {
     }
 
     /**
-     * 新しいスキャン管理レコードを利用者権限で保存
-     *
-     * @param scanRecord 保存するスキャン管理レコード
-     * @return ID が設定されたスキャン管理レコード
-     * @throws ScanException 保存対象がない場合
-     */
-    public DataQualityScan__c insertScan(DataQualityScan__c scanRecord) {
-        // 保存対象がない DML を明示的に拒否
-        if (scanRecord == null) {
-            throw new ScanException('保存するスキャン管理レコードがありません。');
-        }
-        // 画面利用者の権限で新しいスキャン管理レコードを保存
-        insert as user scanRecord;
-        // 採番された ID を持つスキャン管理レコードを返却
-        return scanRecord;
-    }
-
-    /**
-     * スキャン進捗と集計結果を利用者権限で保存
-     *
-     * @param scanRecord 更新するスキャン管理レコード
-     * @throws ScanException 更新対象がない場合
-     */
-    public void updateScan(DataQualityScan__c scanRecord) {
-        // 更新対象がない DML を明示的に拒否
-        if (scanRecord?.Id == null) {
-            throw new ScanException('更新するスキャン管理レコードがありません。');
-        }
-        // 画面利用者の権限で進捗と集計結果を保存
-        update as user scanRecord;
-    }
-
-    /**
      * 新しいスキャンを開始できるかを判定
      *
      * @param activeScan 現在の実行中スキャン、存在しない場合は空のスキャン管理レコード
@@ -125,23 +92,25 @@ public virtual with sharing class AccountDataQualityScanService {
      */
     public DataQualityScan__c applyChunk(DataQualityScan__c scanRecord, List<Account> accounts, Integer nextPosition) {
         validateProcessableScan(scanRecord);
+        // 入力の管理レコードを保持して次区間の状態を生成
+        DataQualityScan__c updatedScan = scanRecord.clone(true, false, false, false);
         List<Account> safeAccounts = accounts ?? new List<Account>();
         ChunkCounts chunkCounts = countMissingValues(safeAccounts);
         Integer safeNextPosition = Math.max(nextPosition ?? 0, 0);
         Integer totalCount = toInteger(scanRecord.Total_Count__c);
 
-        scanRecord.Status__c = STATUS_RUNNING;
-        scanRecord.Processed_Count__c = Math.min(safeNextPosition, totalCount);
-        scanRecord.Missing_Phone_Count__c = toInteger(scanRecord.Missing_Phone_Count__c) + chunkCounts.missingPhoneCount;
-        scanRecord.Missing_Industry_Count__c = toInteger(scanRecord.Missing_Industry_Count__c) + chunkCounts.missingIndustryCount;
-        scanRecord.Missing_Address_Count__c = toInteger(scanRecord.Missing_Address_Count__c) + chunkCounts.missingAddressCount;
-        scanRecord.Missing_Website_Count__c = toInteger(scanRecord.Missing_Website_Count__c) + chunkCounts.missingWebsiteCount;
-        scanRecord.Missing_Account_Number_Count__c = toInteger(scanRecord.Missing_Account_Number_Count__c) + chunkCounts.missingAccountNumberCount;
+        updatedScan.Status__c = STATUS_RUNNING;
+        updatedScan.Processed_Count__c = Math.min(safeNextPosition, totalCount);
+        updatedScan.Missing_Phone_Count__c = toInteger(scanRecord.Missing_Phone_Count__c) + chunkCounts.missingPhoneCount;
+        updatedScan.Missing_Industry_Count__c = toInteger(scanRecord.Missing_Industry_Count__c) + chunkCounts.missingIndustryCount;
+        updatedScan.Missing_Address_Count__c = toInteger(scanRecord.Missing_Address_Count__c) + chunkCounts.missingAddressCount;
+        updatedScan.Missing_Website_Count__c = toInteger(scanRecord.Missing_Website_Count__c) + chunkCounts.missingWebsiteCount;
+        updatedScan.Missing_Account_Number_Count__c = toInteger(scanRecord.Missing_Account_Number_Count__c) + chunkCounts.missingAccountNumberCount;
 
         if (safeNextPosition >= totalCount) {
-            completeScan(scanRecord);
+            completeScan(updatedScan);
         }
-        return scanRecord;
+        return updatedScan;
     }
 
     /**
@@ -157,15 +126,17 @@ public virtual with sharing class AccountDataQualityScanService {
             return new DataQualityScan__c();
         }
         // 再実行可能な失敗状態へ遷移
-        scanRecord.Status__c = STATUS_FAILED;
+        // 入力の状態を変更せず失敗後の保存対象を生成
+        DataQualityScan__c failedScan = scanRecord.clone(true, false, false, false);
+        failedScan.Status__c = STATUS_FAILED;
         // 失敗を確定した時刻を記録
-        scanRecord.Completed_At__c = System.now();
+        failedScan.Completed_At__c = System.now();
         // 内部情報を含まない利用者向け文言へ統一
-        scanRecord.Error_Message__c = String.isBlank(errorMessage) ? SAFE_FAILURE_MESSAGE : errorMessage;
+        failedScan.Error_Message__c = String.isBlank(errorMessage) ? SAFE_FAILURE_MESSAGE : errorMessage;
         // 後続の再実行を許可するため重複防止キーを解放
-        scanRecord.Active_Key__c = null;
+        failedScan.Active_Key__c = null;
         // 失敗状態を反映したスキャン管理レコードを返却
-        return scanRecord;
+        return failedScan;
     }
 
     /**

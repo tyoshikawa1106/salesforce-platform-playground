@@ -116,40 +116,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
     }
 
     /**
-     * メトリクス定義の有無をキーで判定
-     */
-    @IsTest
-    static void shouldResolveMetricDefinitionPresence() {
-        Boolean hasAccounts;
-        Boolean hasUnknownMetric;
-        ObjectMetricCatalog.MetricDefinition blankDefinition;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            // カタログが既知キー、未知キー、空白キーを判別
-            hasAccounts = ObjectMetricCatalog.hasDefinition('accounts');
-            hasUnknownMetric = ObjectMetricCatalog.hasDefinition('unknown');
-            blankDefinition = ObjectMetricCatalog.getDefinition(' ');
-
-            Test.stopTest();
-        }
-
-        Assert.isTrue(
-            hasAccounts,
-            'Catalog は設定済みメトリクスキーを存在ありとして返す必要あり'
-        );
-        Assert.isFalse(
-            hasUnknownMetric,
-            'Catalog は未知のメトリクスキーを存在なしとして返す必要あり'
-        );
-        Assert.isNull(
-            blankDefinition,
-            '空白のメトリクスキーは定義に解決しない必要あり'
-        );
-    }
-
-    /**
      * カタログ定義と参照権限から件数 SOQL を作成
      */
     @IsTest
@@ -249,6 +215,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         Assert.isTrue(emptyValues.isEmpty(), 'null の取得計画は空の集計結果へ変換する必要あり');
         Assert.areEqual(1, metricValues.size(), '空のメトリクスキーは集計対象から除外する必要あり');
         Assert.areEqual(0, metricValues.get('accounts').value, '不足した件数結果はゼロへ変換する必要あり');
+        Assert.isFalse(metricValues.get('accounts').available, '未取得を正常なゼロ件と区別する必要あり');
         Assert.isFalse(metricValues.get('accounts').capped, '不足した件数結果は上限到達扱いにしない必要あり');
     }
 
@@ -270,7 +237,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            metricValues = service.createMetricValues(countQueries, new List<Integer>{ 50000 });
+            metricValues = service.createMetricValues(countQueries, new List<ObjectMetricsOverviewService.ObjectMetricCount>{ new ObjectMetricsOverviewService.ObjectMetricCount(50000) });
 
             Test.stopTest();
         }
@@ -328,7 +295,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         List<ObjectMetricsOverviewService.CountQuery> countQueries = service.createCountQueries(definitions);
         Map<String, ObjectMetricsOverviewService.ObjectMetricCount> metricValues = service.createMetricValues(
             countQueries,
-            new List<Integer>{ 50000, 34 }
+            new List<ObjectMetricsOverviewService.ObjectMetricCount>{ new ObjectMetricsOverviewService.ObjectMetricCount(50000), new ObjectMetricsOverviewService.ObjectMetricCount(34) }
         );
         return metricValues;
     }

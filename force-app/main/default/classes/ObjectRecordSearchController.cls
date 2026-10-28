@@ -31,11 +31,7 @@ public with sharing class ObjectRecordSearchController {
         ObjectRecordSearchService.ErrorCode.INVALID_PAGE_POSITION => INVALID_PAGE_POSITION_MESSAGE
     };
 
-    // 公開APIを通した例外境界テストで Service の失敗を再現
-    @TestVisible
-    private static ObjectRecordSearchService testService;
-
-    private ObjectRecordSearchService service = testService ?? new ObjectRecordSearchService();
+    private ObjectRecordSearchService service = new ObjectRecordSearchService();
     private ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
     /**
@@ -185,9 +181,7 @@ public with sharing class ObjectRecordSearchController {
                 recordIdsToDelete
             );
             // 部分成功を許容した DML 結果を画面向け結果へ変換
-            List<Database.DeleteResult> deleteResults = this.service.deleteRecords(
-                recordsToDelete
-            );
+            List<Database.DeleteResult> deleteResults = Database.delete(recordsToDelete, false, AccessLevel.USER_MODE);
             ObjectRecordSearchDeleteWrapper result = this.service.createDeleteResult(
                 recordIds,
                 deleteResults

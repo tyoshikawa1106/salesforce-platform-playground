@@ -1,10 +1,5 @@
 /** テストデータ削除の固定対象とバッチ間で受け渡す集計値 */
 public with sharing class TestDataDeleteBatchWrapper {
-    /** 削除を許可する開発環境と対象外環境の区分 */
-    public enum Environment {
-        DEVELOPMENT,
-        DISALLOWED
-    }
 
     public List<String> objectNames;
     public Integer position;
@@ -20,32 +15,7 @@ public with sharing class TestDataDeleteBatchWrapper {
     /** 子から親への削除計画と未実行の集計値を初期化 */
     public TestDataDeleteBatchWrapper() {
         // ファイルは全バージョンを含むContentDocument単位で削除
-        this.objectNames = new List<String>{
-            'ContentDocument',
-            'EmailMessage',
-            'Task',
-            'Event',
-            'WorkOrderLineItem',
-            'WorkOrder',
-            'Case',
-            'Entitlement',
-            'ContractLineItem',
-            'ServiceContract',
-            'OrderItem',
-            'Order',
-            'OpportunityContactRole',
-            'OpportunityLineItem',
-            'Opportunity',
-            'Contract',
-            'Asset',
-            'CampaignMember',
-            'Campaign',
-            'Lead',
-            'Contact',
-            'PricebookEntry',
-            'Product2',
-            'Account'
-        };
+        this.objectNames = new TestDataDeleteService().getObjectNames();
         // 状態は独自レコードに保存せずバッチインスタンスで保持
         this.position = 0;
         this.standardPricePhase = false;

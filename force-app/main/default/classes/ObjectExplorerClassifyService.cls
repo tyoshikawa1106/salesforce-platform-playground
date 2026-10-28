@@ -1,5 +1,5 @@
 /** 分類編集の権限・入力・競合と表示モデルの生成 */
-public with sharing class ObjectExplorerClassificationService {
+public with sharing class ObjectExplorerClassifyService {
 
     private ObjectExplorerAccessPolicy access = new ObjectExplorerAccessPolicy();
 
@@ -142,7 +142,7 @@ public with sharing class ObjectExplorerClassificationService {
     }
     /** 同じ項目の最新分類・所有者と編集値を照合して保存定義を生成 */
     public class Preparation {
-        private ObjectExplorerClassificationService service = new ObjectExplorerClassificationService();
+        private ObjectExplorerClassifyService service = new ObjectExplorerClassifyService();
         private ObjectExplorerOwnerService ownerService = new ObjectExplorerOwnerService();
         private ObjectExplorerAccessPolicy.RequestValidator requests = new ObjectExplorerAccessPolicy.RequestValidator();
 
@@ -419,11 +419,11 @@ public with sharing class ObjectExplorerClassificationService {
      * @param contexts 検証済みの保存対象
      * @return 項目API名の集合
      */
-    public Set<String> getFieldNames(List<ObjectExplorerClassificationService.FieldContext> contexts) {
+    public Set<String> getFieldNames(List<ObjectExplorerClassifyService.FieldContext> contexts) {
         // 検証済みの項目だけを取得要求へ渡す
         Set<String> names = new Set<String>();
         // 同じ対象ごとの結果を入力順で処理
-        for (ObjectExplorerClassificationService.FieldContext context : contexts) { names.add(context.fieldName); }
+        for (ObjectExplorerClassifyService.FieldContext context : contexts) { names.add(context.fieldName); }
         // 照合済みの項目名集合を返却
         return names;
     }

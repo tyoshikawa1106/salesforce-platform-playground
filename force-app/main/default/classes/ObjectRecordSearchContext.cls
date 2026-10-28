@@ -9,6 +9,7 @@ public with sharing class ObjectRecordSearchContext {
     public ObjectRecordSearchConfigWrapper config { get; private set; }
 
     private Map<String, Schema.DescribeFieldResult> allowedFieldDescribesByApiName;
+    private Boolean recordTypeReadable = false;
 
     /**
      * 検索画面の内部処理状態を作成
@@ -19,6 +20,9 @@ public with sharing class ObjectRecordSearchContext {
      */
     public ObjectRecordSearchContext(ObjectRecordSearchConfigWrapper config, Schema.DescribeFieldResult nameFieldDescribe, Schema.DescribeSObjectResult objectDescribe) {
         this.config = config;
+        // 編集対象のレコードタイプを権限がある場合だけ取得
+        Schema.SObjectField recordTypeField = objectDescribe.fields.getMap().get('RecordTypeId');
+        this.recordTypeReadable = recordTypeField?.getDescribe().isAccessible() == true;
         // Name 相当項目は検索・表示・ソートで常に許可
         allowedFieldDescribesByApiName = new Map<String, Schema.DescribeFieldResult>{
             config.nameFieldApiName => nameFieldDescribe
@@ -34,6 +38,8 @@ public with sharing class ObjectRecordSearchContext {
     public List<String> getQueryFieldApiNames() {
         // 動的 SOQL の SELECT 対象を許可済み項目だけに限定
         Set<String> allowedFieldApiNames = getAllowedFieldApiNames();
+        // レコードタイプは表示・ソート項目とは分けてフォームに使用
+        if (this.recordTypeReadable) { allowedFieldApiNames.add('RecordTypeId'); }
         return new List<String>(allowedFieldApiNames);
     }
 

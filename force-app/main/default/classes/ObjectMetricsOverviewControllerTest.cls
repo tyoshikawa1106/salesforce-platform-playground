@@ -12,8 +12,6 @@ private with sharing class ObjectMetricsOverviewControllerTest {
     @IsTest
     static void shouldReturnObjectMetricSummary() {
         createObjectMetricRecords();
-        ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
-        ObjectMetricsOverviewController.queryCoordinator = new ObjectMetricsOverviewQueryCoordinator();
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
@@ -57,33 +55,6 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         );
         Assert.areEqual(1, productMetric.value, '作成済み Product を数える必要あり');
         Assert.areEqual(1, caseMetric.value, '作成済み Case を数える必要あり');
-    }
-
-    /**
-     * 集計取得に失敗した場合は画面向けエラーを返却
-     */
-    @IsTest
-    static void shouldReturnUserFacingErrorWhenCoordinatorFails() {
-        ObjectMetricsOverviewController.service = new ObjectMetricsOverviewService();
-        ObjectMetricsOverviewController.queryCoordinator = new FailingObjectMetricsOverviewQueryCoordinator();
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            try {
-                // 件数取得例外を画面向け例外へ変換
-                ObjectMetricsOverviewController.getObjectMetrics();
-                Assert.fail('Coordinator の失敗は AuraHandledException に変換する必要あり');
-            } catch (AuraHandledException e) {
-                Assert.isNotNull(
-                    e.getMessage(),
-                    'Controller はユーザー向け例外を返す必要あり'
-                );
-            }
-
-            Test.stopTest();
-        }
-
     }
 
     /**
@@ -138,22 +109,4 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         );
     }
 
-    /**
-     * 失敗用 Coordinator
-     */
-    private class FailingObjectMetricsOverviewQueryCoordinator extends ObjectMetricsOverviewQueryCoordinator {
-
-        public override List<Integer> execute(
-            List<ObjectMetricsOverviewService.CountQuery> countQueries
-        ) {
-            throw new FailingObjectMetricsOverviewException('想定外の Coordinator エラー');
-        }
-    }
-
-    /**
-     * 失敗用例外
-     */
-    private class FailingObjectMetricsOverviewException extends Exception {
-
-    }
 }

@@ -1,5 +1,5 @@
 /** 削除画面の実効権限、残件数、標準ジョブを検索 */
-public virtual with sharing class TestDataDeleteSelector {
+public with sharing class TestDataDeleteSelector {
     /** 現在組織の削除許可判定に必要な情報を取得
      * @return 組織種別とScratchの有効期限
      */
@@ -11,7 +11,7 @@ public virtual with sharing class TestDataDeleteSelector {
     /** 現在のユーザーの実効権限を取得
      * @return 合成済み実効権限
      */
-    public virtual List<UserPermissionAccess> getPermissions() {
+    public List<UserPermissionAccess> getPermissions() {
         // 合成済み権限を使い期限切れやミュートされた割当を数えない
         return [
             SELECT PermissionsModifyAllData

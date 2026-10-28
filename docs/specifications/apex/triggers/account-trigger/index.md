@@ -10,11 +10,18 @@
 
 ## 対象実装・メタデータ
 
-| 種別         | API 名                  | 役割                                       |
-| ------------ | ----------------------- | ------------------------------------------ |
-| Apex Trigger | `AccountTrigger`        | 作成前、更新前の処理振り分け               |
-| Apex Class   | `AccountTriggerHandler` | トリガー実行情報をサービスクラスへ引き渡す |
-| Apex Class   | `AccountTriggerService` | 取引先名の変更判定と法人格の正規化         |
+| 種別         | API 名                                                                                           | 役割                                       |
+| ------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| Apex Trigger | [AccountTrigger](../../../../../force-app/main/default/triggers/AccountTrigger.trigger)          | 作成前、更新前の処理振り分け               |
+| Apex Class   | [AccountTriggerHandler](../../../../../force-app/main/default/classes/AccountTriggerHandler.cls) | トリガー実行情報をサービスクラスへ引き渡す |
+| Apex Class   | [AccountTriggerService](../../../../../force-app/main/default/classes/AccountTriggerService.cls) | 取引先名の変更判定と法人格の正規化         |
+
+### 対応テスト
+
+| Apex本体                | 同名Test                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `AccountTriggerHandler` | [AccountTriggerHandlerTest](../../../../../force-app/main/default/classes/AccountTriggerHandlerTest.cls) |
+| `AccountTriggerService` | [AccountTriggerServiceTest](../../../../../force-app/main/default/classes/AccountTriggerServiceTest.cls) |
 
 ## 入力
 

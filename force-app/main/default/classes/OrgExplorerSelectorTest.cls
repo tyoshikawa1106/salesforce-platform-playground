@@ -176,7 +176,7 @@ private with sharing class OrgExplorerSelectorTest {
     private static Map<Id, Integer> countMap(List<AggregateResult> groups) {
         Map<Id, Integer> result = new Map<Id, Integer>();
         for (AggregateResult groupRecord : groups) {
-            result.put((Id) groupRecord.get('roleId'), (Integer) groupRecord.get('memberCount'));
+            result.put((Id) groupRecord.get('targetId'), (Integer) groupRecord.get('memberCount'));
         }
         return result;
     }

@@ -30,14 +30,14 @@ private with sharing class OrgExplorerPageResponseTest {
             first.nodes.add(new OrgExplorerPageResponse.Node());
             first.memberColumns.add('label');
             first.memberColumnLabels.put('label', '氏名');
-            first.roleMemberCounts.put(UserInfo.getUserId(), 1);
+            first.memberCounts.put(UserInfo.getUserId(), 1);
             first.cardRoles.put(UserInfo.getUserId(), new Map<String, String>{ 'name' => '試験ロール' });
             OrgExplorerPageResponse second = new OrgExplorerPageResponse();
             Test.stopTest();
             Assert.isTrue(second.nodes.isEmpty(), '前の応答のユーザーを引き継がない');
             Assert.isTrue(second.memberColumns.isEmpty(), '前の応答の列権限を引き継がない');
             Assert.isTrue(second.memberColumnLabels.isEmpty(), '前の応答の列ラベルを引き継がない');
-            Assert.isTrue(second.roleMemberCounts.isEmpty(), '前の応答の人数を引き継がない');
+            Assert.isTrue(second.memberCounts.isEmpty(), '前の応答の人数を引き継がない');
             Assert.isTrue(second.cardRoles.isEmpty(), '前の応答の所属情報を引き継がない');
         }
     }

@@ -81,7 +81,7 @@ public with sharing class OrgExplorerSelector {
             return new List<AggregateResult>();
         }
         // 個別ユーザーを読み込まずCOUNTだけを使用
-        String query = 'SELECT UserRoleId roleId, COUNT(Id) memberCount FROM User WHERE UserRoleId IN :roleIds';
+        String query = 'SELECT UserRoleId targetId, COUNT(Id) memberCount FROM User WHERE UserRoleId IN :roleIds';
         // 一覧と同じ有効状態の条件を適用
         if (request.includeInactive != true) {
             query += ' AND IsActive = true';

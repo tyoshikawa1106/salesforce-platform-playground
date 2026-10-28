@@ -329,7 +329,7 @@ private with sharing class OrgExplorerRequestServiceTest {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             Test.startTest();
             Assert.areEqual('INVALID_REQUEST', requestService.validatePage(request, access), 'Userを起点にしない');
-            request.parentId = roleId(2000);
+            request.parentId = targetId(2000);
             access.rolesEnabled = false;
             Assert.areEqual('ACCESS_DENIED', requestService.validatePage(request, access), '構造権限なしを拒否');
             request.parentId = null;
@@ -350,7 +350,7 @@ private with sharing class OrgExplorerRequestServiceTest {
         return request;
     }
 
-    private static Id roleId(Integer value) {
+    private static Id targetId(Integer value) {
         return Id.valueOf('00E' + String.valueOf(value).leftPad(12, '0'));
     }
 

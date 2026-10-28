@@ -1,7 +1,6 @@
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getEmailMessageCount from '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount';
-import getEmailMessagePaginationCursor from '@salesforce/apex/CaseEmailMessageController.getEmailMessagePaginationCursor';
 import getEmailMessages from '@salesforce/apex/CaseEmailMessageController.getEmailMessages';
 import { reduceErrors } from 'c/errorUtils';
 import {
@@ -138,14 +137,10 @@ export default class CaseEmailMessageList extends LightningElement {
         this.isLoadingInitialPage = true;
 
         try {
-            // AuraEnabled応答として新しいPaginationCursorを直接取得
-            const paginationCursor = await getEmailMessagePaginationCursor({
-                caseId: targetRecordId
-            });
-            // 取得したカーソルと先頭位置で初期ページを取得
+            // 初回カーソル作成と先頭ページ取得を同じ要求で実行
             const page = await getEmailMessages({
                 caseId: targetRecordId,
-                paginationCursor,
+                paginationCursor: null,
                 startIndex: 0
             });
             // 表示対象が変わった場合は古いCaseの応答を反映しない
@@ -154,7 +149,7 @@ export default class CaseEmailMessageList extends LightningElement {
                 return;
             }
             // 行変換と次ページ状態更新をまとめて実行
-            this.applyInitialPage(page, paginationCursor);
+            this.applyInitialPage(page, page.paginationCursor);
             // 初期ページを反映したCase IDを記録
             this.loadedRecordId = targetRecordId;
             // 再取得成功時は以前の全体エラーを解除

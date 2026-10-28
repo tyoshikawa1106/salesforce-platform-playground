@@ -192,7 +192,7 @@ public with sharing class ObjectExplorerAccessPolicy {
          * @param changes 件数・形式確認済みの編集要求
          * @return 入力順を維持した同じ項目の状態
          */
-        public List<ObjectExplorerClassificationService.FieldContext> createFieldContexts(Schema.DescribeSObjectResult info, List<Object> changes) {
+        public List<ObjectExplorerClassifyService.FieldContext> createFieldContexts(Schema.DescribeSObjectResult info, List<Object> changes) {
             // 全項目で同じ検証済み対象の正式名を使用
             String objectName = info.getName();
             // オブジェクトの項目Mapは保存要求につき一度だけ取得
@@ -200,7 +200,7 @@ public with sharing class ObjectExplorerAccessPolicy {
             // 要求内で同じ項目を重複させない
             Set<String> names = new Set<String>();
             // 入力順を照合用の状態へ維持
-            List<ObjectExplorerClassificationService.FieldContext> contexts = new List<ObjectExplorerClassificationService.FieldContext>();
+            List<ObjectExplorerClassifyService.FieldContext> contexts = new List<ObjectExplorerClassifyService.FieldContext>();
             // 全対象を更新前に確定
             for (Object item : changes) {
                 // 一項目の要求だけを取り出す
@@ -214,7 +214,7 @@ public with sharing class ObjectExplorerAccessPolicy {
                 // 編集後の所有者も同じ入力契約で確認
                 validateOwnerDraft((Map<String, Object>)change.get('draft'));
                 // 検証した対象と入力を同じ状態へ格納
-                ObjectExplorerClassificationService.FieldContext context = new ObjectExplorerClassificationService.FieldContext();
+                ObjectExplorerClassifyService.FieldContext context = new ObjectExplorerClassifyService.FieldContext();
                 // 検証済みの対象オブジェクトを固定
                 context.objectName = objectName;
                 // 正式な項目名を固定
@@ -237,7 +237,7 @@ public with sharing class ObjectExplorerAccessPolicy {
          * @param records 一括取得した項目定義
          * @return 完全な識別子を保持した新しい状態
          */
-        public List<ObjectExplorerClassificationService.FieldContext> bindDefinitions(List<ObjectExplorerClassificationService.FieldContext> contexts, List<FieldDefinition> records) {
+        public List<ObjectExplorerClassifyService.FieldContext> bindDefinitions(List<ObjectExplorerClassifyService.FieldContext> contexts, List<FieldDefinition> records) {
             // レコードの重複を索引化で隠さない
             Map<String, FieldDefinition> definitions = new Map<String, FieldDefinition>();
             for (FieldDefinition record : records) {
@@ -249,13 +249,13 @@ public with sharing class ObjectExplorerAccessPolicy {
             // 別項目や不足した定義を採用しない
             Set<String> names = new Set<String>();
             // 検証済みの入力対象を定義の集合へ照合
-            for (ObjectExplorerClassificationService.FieldContext context : contexts) { names.add(context.fieldName); }
+            for (ObjectExplorerClassifyService.FieldContext context : contexts) { names.add(context.fieldName); }
             if (definitions.keySet() != names) { throw ObjectExplorerAccessPolicy.createException('項目定義を一意に取得できません。'); }
             // 入力された状態を変更せず照合済みの新しい状態を返す
-            List<ObjectExplorerClassificationService.FieldContext> result = new List<ObjectExplorerClassificationService.FieldContext>();
-            for (ObjectExplorerClassificationService.FieldContext source : contexts) {
+            List<ObjectExplorerClassifyService.FieldContext> result = new List<ObjectExplorerClassifyService.FieldContext>();
+            for (ObjectExplorerClassifyService.FieldContext source : contexts) {
                 // 同じ項目の完全IDだけを引き継ぐ
-                ObjectExplorerClassificationService.FieldContext context = new ObjectExplorerClassificationService.FieldContext(source);
+                ObjectExplorerClassifyService.FieldContext context = new ObjectExplorerClassifyService.FieldContext(source);
                 // 同じAPI名の完全IDを関連付け
                 context.definition = definitions.get(context.fieldName);
                 // 入力順で新しい状態を追加

@@ -10,16 +10,32 @@
 
 ## 対象実装・メタデータ
 
-| 種別          | 名前                          | 責務                                                 |
-| ------------- | ----------------------------- | ---------------------------------------------------- |
-| LWC           | `accountMassUpdate`           | 検索、編集、保存、取消、ページ移動の制御             |
-| JavaScript    | `accountMassUpdateLogic.js`   | 差分判定、入力検証、表示モデルと保存要求の生成       |
-| Apex          | `AccountMassUpdateController` | 公開入口、問い合わせと判定の調整、DML                |
-| Apex          | `AccountMassUpdateService`    | 条件の正規化、更新項目と権限の検証、差分と結果の生成 |
-| Apex          | `AccountMassUpdateSelector`   | ページ検索、更新対象のロック取得                     |
-| Apex          | `AccountMassUpdateWrapper`    | 検索条件、処理状態、画面応答                         |
-| CustomTab     | `AccountMassUpdate`           | 画面の入口                                           |
-| PermissionSet | `LwcAccountMassUpdate`        | Apex入口の実行権限とタブ表示                         |
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+
+### 画面・JavaScript
+
+| 種別       | 実装・設定                                                                                                      | 役割                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| LWC        | [accountMassUpdate](../../../../force-app/main/default/lwc/accountMassUpdate/accountMassUpdate.js)              | 検索、編集、保存、取消、ページ移動の制御       |
+| JavaScript | [accountMassUpdateLogic.js](../../../../force-app/main/default/lwc/accountMassUpdate/accountMassUpdateLogic.js) | 差分判定、入力検証、表示モデルと保存要求の生成 |
+
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                  | 役割                                        | 同名Test                                                                                                          |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [AccountMassUpdateController](../../../../force-app/main/default/classes/AccountMassUpdateController.cls) | 法人取引先の検索と最大200件の一括更新の入口 | [AccountMassUpdateControllerTest](../../../../force-app/main/default/classes/AccountMassUpdateControllerTest.cls) |
+| [AccountMassUpdateSelector](../../../../force-app/main/default/classes/AccountMassUpdateSelector.cls)     | 法人取引先のページ取得と保存対象のロック    | [AccountMassUpdateSelectorTest](../../../../force-app/main/default/classes/AccountMassUpdateSelectorTest.cls)     |
+| [AccountMassUpdateService](../../../../force-app/main/default/classes/AccountMassUpdateService.cls)       | 法人取引先一括更新の入力検証と応答生成      | [AccountMassUpdateServiceTest](../../../../force-app/main/default/classes/AccountMassUpdateServiceTest.cls)       |
+| [AccountMassUpdateWrapper](../../../../force-app/main/default/classes/AccountMassUpdateWrapper.cls)       | 法人取引先の検索条件・更新判定・画面応答    | [AccountMassUpdateWrapperTest](../../../../force-app/main/default/classes/AccountMassUpdateWrapperTest.cls)       |
+
+テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+
+### 設定・権限
+
+| 種別          | 実装・設定             | 役割                         |
+| ------------- | ---------------------- | ---------------------------- |
+| CustomTab     | `AccountMassUpdate`    | 画面の入口                   |
+| PermissionSet | `LwcAccountMassUpdate` | Apex入口の実行権限とタブ表示 |
 
 ## 入力
 
@@ -39,7 +55,7 @@
 
 ## 権限・実行条件
 
-- 利用ユーザーに `LwcAccountMassUpdate` 権限セットを割り当て、タブ表示と `AccountMassUpdateController` の実行権限を付与します。メタデータのデプロイだけではユーザーへの割り当ては行われません。
+- 利用ユーザーに `LwcAccountMassUpdate` 権限セットを割り当て、タブ表示と [AccountMassUpdateController](../../../../force-app/main/default/classes/AccountMassUpdateController.cls) の実行権限を付与します。メタデータのデプロイだけではユーザーへの割り当ては行われません。
 - 「Salesforce」アプリへのアクセスも必要です。`SalesforceApplicationUser` はアプリへのアクセスを提供しますが、一括更新専用の `LwcAccountMassUpdate` の代わりにはなりません。
 - `LwcAccountMassUpdate` は画面へのアクセスだけを提供します。オブジェクト・項目権限や所有者移転権限は追加しません。
 - Apexは `with sharing` と、検索・DMLの `USER_MODE` を使用します。
@@ -61,10 +77,10 @@
 
 - `accountMassUpdate.test.js`: 画面操作、ハイライト、保存・再取得、移動の取消、アクセシビリティ。
 - `accountMassUpdateLogic.test.js`: 差分、クリア、保存件数、表示モデル。
-- `AccountMassUpdateControllerTest`: 更新上限、行別の値、部分成功、改ざん・競合拒否。
-- `AccountMassUpdateServiceTest`: 条件と要求の検証、差分生成。
-- `AccountMassUpdateSelectorTest`: ページ境界、個人取引先除外、検索条件。
-- `AccountMassUpdateWrapperTest`: 応答の初期状態。
+- [AccountMassUpdateControllerTest](../../../../force-app/main/default/classes/AccountMassUpdateControllerTest.cls): 更新上限、行別の値、部分成功、改ざん・競合拒否。
+- [AccountMassUpdateServiceTest](../../../../force-app/main/default/classes/AccountMassUpdateServiceTest.cls): 条件と要求の検証、差分生成。
+- [AccountMassUpdateSelectorTest](../../../../force-app/main/default/classes/AccountMassUpdateSelectorTest.cls): ページ境界、個人取引先除外、検索条件。
+- [AccountMassUpdateWrapperTest](../../../../force-app/main/default/classes/AccountMassUpdateWrapperTest.cls): 応答の初期状態。
 
 ## 制約・注意事項
 

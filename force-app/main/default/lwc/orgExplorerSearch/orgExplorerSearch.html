@@ -90,14 +90,14 @@
                                     onmousedown={handleOptionMouseDown}
                                 >
                                     <template for:each={options} for:item="hit">
-                                        <li key={hit.roleId} role="presentation">
+                                        <li key={hit.targetId} role="presentation">
                                             <div
                                                 id={hit.domId}
                                                 class={hit.optionClass}
                                                 role="option"
                                                 tabindex="-1"
                                                 aria-selected={hit.selected}
-                                                data-id={hit.roleId}
+                                                data-id={hit.targetId}
                                                 onclick={handlePick}
                                             >
                                                 <span class="slds-media__figure"

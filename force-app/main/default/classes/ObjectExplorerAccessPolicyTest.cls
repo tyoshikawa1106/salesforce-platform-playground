@@ -132,7 +132,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
                     }
                 )
             );
-            List<ObjectExplorerClassificationService.FieldContext> contexts = validator.createFieldContexts(
+            List<ObjectExplorerClassifyService.FieldContext> contexts = validator.createFieldContexts(
                 Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
                 changes
             );
@@ -141,7 +141,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
                 '{"QualifiedApiName":"Name","DurableId":"Account.Name"}',
                 FieldDefinition.class
             );
-            List<ObjectExplorerClassificationService.FieldContext> bound = validator.bindDefinitions(
+            List<ObjectExplorerClassifyService.FieldContext> bound = validator.bindDefinitions(
                 contexts,
                 new List<FieldDefinition>{ definition }
             );

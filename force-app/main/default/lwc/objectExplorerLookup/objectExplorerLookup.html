@@ -1,0 +1,149 @@
+<template>
+                    <div class="oe-object-search slds-form-element" onfocusout={handleSearchBlur}>
+                        <span id="object-label" class="slds-form-element__label">対象オブジェクト</span>
+                        <lightning-helptext content="ラベルまたはAPI名を入力して対象オブジェクトを検索します。選び直す場合は×で選択を解除してください。↑↓で候補へ移動、Enterで選択、Escで閉じます。"></lightning-helptext>
+                        <div class="slds-form-element__control">
+                            <div class={lookupContainerClass}>
+                                <div class={lookupComboboxClass}>
+                                    <template lwc:if={selected}>
+                                        <div
+                                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                        >
+                                            <input
+                                                class="oe-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
+                                                type="text"
+                                                readonly
+                                                role="combobox"
+                                                value={selectedLabel}
+                                                aria-labelledby="object-label"
+                                                aria-haspopup="listbox"
+                                                aria-expanded="false"
+                                                aria-readonly="true"
+                                                aria-required="true"
+                                                disabled={disabled}
+                                            />
+                                            <button
+                                                class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                                type="button"
+                                                aria-label="対象オブジェクトの選択を解除"
+                                                title="選択を解除"
+                                                onclick={handleClearObject}
+                                                disabled={disabled}
+                                            >
+                                                <lightning-icon
+                                                    icon-name="utility:close"
+                                                    size="x-small"
+                                                    alternative-text="選択を解除"
+                                                ></lightning-icon>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <template lwc:else>
+                                        <div
+                                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                        >
+                                            <input
+                                                class="oe-lookup-input slds-input slds-combobox__input"
+                                                type="text"
+                                                role="combobox"
+                                                value={term}
+                                                autocomplete="off"
+                                                aria-autocomplete="list"
+                                                aria-labelledby="object-label"
+                                                aria-haspopup="listbox"
+                                                aria-expanded={candidatesOpen}
+                                                aria-controls={objectListboxId}
+                                                aria-activedescendant={activeObjectOptionId}
+                                                aria-required="true"
+                                                placeholder="ラベルまたはAPI名で検索"
+                                                oninput={handleSearch}
+                                                onclick={handleSearchClick}
+                                                onkeydown={handleSearchKey}
+                                                disabled={disabled}
+                                            />
+                                            <lightning-icon
+                                                class="slds-input__icon slds-input__icon_right"
+                                                icon-name="utility:search"
+                                                size="x-small"
+                                                alternative-text="オブジェクト検索"
+                                            ></lightning-icon>
+                                        </div>
+                                    </template>
+                                    <template lwc:if={candidatesOpen}>
+                                        <div class="slds-dropdown slds-dropdown_fluid">
+                                            <ul
+                                                id="object-options"
+                                                class="oe-option-scroll slds-listbox slds-listbox_vertical"
+                                                role="listbox"
+                                                aria-label="対象オブジェクトの検索候補"
+                                                onmousedown={handleOptionMouseDown}
+                                                onscroll={handleCandidateScroll}
+                                            >
+                                                <li
+                                                    role="presentation"
+                                                    aria-hidden="true"
+                                                    style={candidateTopStyle}
+                                                ></li>
+                                                <template for:each={lookupOptions} for:item="option">
+                                                    <li key={option.value} role="presentation">
+                                                        <div
+                                                            id={option.domId}
+                                                            class={option.className}
+                                                            role="option"
+                                                            style={option.style}
+                                                            tabindex="-1"
+                                                            aria-selected={option.selected}
+                                                            aria-posinset={option.position}
+                                                            aria-setsize={option.total}
+                                                            data-name={option.value}
+                                                            onclick={handleCandidate}
+                                                        >
+                                                            <span class="slds-media__body">
+                                                                <span
+                                                                    class="oe-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate"
+                                                                >
+                                                                    {option.label}
+                                                                </span>
+                                                                <span
+                                                                    class="oe-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate"
+                                                                >
+                                                                    {option.value}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                                <li
+                                                    role="presentation"
+                                                    aria-hidden="true"
+                                                    style={candidateBottomStyle}
+                                                ></li>
+                                            </ul>
+                                            <template lwc:if={loading}>
+                                                <p
+                                                    class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                                    role="status"
+                                                >
+                                                    候補を検索中…
+                                                </p>
+                                            </template>
+                                            <template lwc:if={noCandidates}>
+                                                <p
+                                                    class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                                    role="status"
+                                                >
+                                                    候補がありません。検索語や範囲を確認してください。
+                                                </p>
+                                            </template>
+                                            <p
+                                                class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                            >
+                                                最大2000件。名前で絞り込めます。
+                                            </p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+</template>
