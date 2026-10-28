@@ -3,6 +3,7 @@
  */
 @IsTest
 private with sharing class CaseEmailMessageControllerTest {
+
     private static User testUser = TestDataFactory.getTestUser();
 
     /**
@@ -205,4 +206,5 @@ private with sharing class CaseEmailMessageControllerTest {
             TextBody = 'テスト用メール本文'
         );
     }
+
 }

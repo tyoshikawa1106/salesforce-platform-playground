@@ -69,24 +69,24 @@ public with sharing class CaseEmailMessageService {
         if (pageQuery == null) {
             return new PageQuery();
         }
-        // 初回または継続ページで使用する Cursor を問い合わせ条件へ設定
-        pageQuery.paginationCursor = paginationCursor;
-        // Cursor がない場合は Selector のページ取得を短絡する件数へ設定
+        // 呼び出し元の条件を保持し、今回の取得条件だけを生成
+        PageQuery prepared = new PageQuery();
+        // 検証済みの問い合わせ対象を引き継ぐ
+        prepared.caseId = pageQuery.caseId;
+        // 同じ開始位置から取得
+        prepared.startIndex = pageQuery.startIndex;
+        // 初回または継続取得のカーソルを返却値へ設定
+        prepared.paginationCursor = paginationCursor;
+        // カーソルなしは取得しない条件として返却
         if (paginationCursor == null) {
-            pageQuery.fetchSize = 0;
-            return pageQuery;
+            return prepared;
         }
-        // 現在位置以降に残るレコード件数を算出
-        Integer remainingRecords = paginationCursor.getNumRecords() - pageQuery.startIndex;
-        // 残件数がない場合は Selector のページ取得を短絡する件数へ設定
-        if (remainingRecords <= 0) {
-            pageQuery.fetchSize = 0;
-            return pageQuery;
-        }
-        // 既定ページサイズと残件数の小さい方を取得件数へ確定
-        pageQuery.fetchSize = Math.min(pageQuery.fetchSize, remainingRecords);
-        // Selector がそのまま実行できる問い合わせ条件を返却
-        return pageQuery;
+        // 残件数を超えず、終端では取得を短絡
+        Integer remainingRecords = Math.max(0, paginationCursor.getNumRecords() - prepared.startIndex);
+        // 入力の上限を維持して今回の件数だけを縮小
+        prepared.fetchSize = Math.min(pageQuery.fetchSize, remainingRecords);
+        // 入力を変更せず確定した問い合わせ条件を返却
+        return prepared;
     }
 
     /**
