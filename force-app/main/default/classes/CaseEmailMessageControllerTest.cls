@@ -72,70 +72,6 @@ private with sharing class CaseEmailMessageControllerTest {
     }
 
     /**
-     * ケースに紐づく PaginationCursor を返却
-     */
-    @IsTest
-    static void shouldReturnPaginationCursorForCase() {
-        Case caseRecord = TestDataFactory.createCase(
-            'PaginationCursor Controller テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        insert createEmailMessage(caseRecord.Id, 'Cursor 取得対象', System.now());
-        Database.PaginationCursor result;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            result = CaseEmailMessageController.getEmailMessagePaginationCursor(caseRecord.Id);
-
-            Test.stopTest();
-        }
-
-        Assert.isNotNull(result, 'LWCへ直接返す PaginationCursor を作成する必要あり');
-        Assert.areEqual(1, result.getNumRecords(), '対象ケースのメール件数を Cursor に保持する必要あり');
-    }
-
-    /**
-     * null のケース ID は PaginationCursor を作成しない
-     */
-    @IsTest
-    static void shouldReturnNullCursorWhenCaseIdIsNull() {
-        Database.PaginationCursor result;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            result = CaseEmailMessageController.getEmailMessagePaginationCursor(null);
-
-            Test.stopTest();
-        }
-
-        Assert.isNull(result, 'ケース ID が null の場合は Cursor を返さない必要あり');
-    }
-
-    /**
-     * Case 以外の ID による PaginationCursor 作成を拒否
-     */
-    @IsTest
-    static void shouldRejectNonCaseIdForPaginationCursor() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'PaginationCursor Case 以外 ID テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                CaseEmailMessageController.getEmailMessagePaginationCursor(accountRecord.Id);
-                Assert.fail('Case 以外の ID は AuraHandledException にする必要あり');
-            } catch (AuraHandledException e) {
-                Assert.isNotNull(e, 'Case 以外の ID は利用者向け例外に変換する必要あり');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /**
      * ケースに紐づくメールメッセージを返却
      */
     @IsTest
@@ -155,7 +91,7 @@ private with sharing class CaseEmailMessageControllerTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            paginationCursor = CaseEmailMessageController.getEmailMessagePaginationCursor(caseRecord.Id);
+            paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(caseRecord.Id);
             result = CaseEmailMessageController.getEmailMessages(caseRecord.Id, paginationCursor, 0);
 
             Test.stopTest();
@@ -213,7 +149,7 @@ private with sharing class CaseEmailMessageControllerTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            paginationCursor = CaseEmailMessageController.getEmailMessagePaginationCursor(
+            paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(
                 caseRecord.Id
             );
             result = CaseEmailMessageController.getEmailMessages(null, paginationCursor, 0);

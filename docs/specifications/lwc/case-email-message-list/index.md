@@ -30,7 +30,7 @@
 
 1. `recordId` が Case の ID であることを Service で確認します。
 2. LWC は最初にキャッシュ可能なCOUNT用 Apexをwireで呼び出し、`EmailMessage.ParentId` が Case ID と一致する総件数を利用者権限で取得します。
-3. 総件数の取得後、LWC はCursor取得用 Apexを命令的に呼び出します。Apex は `MessageDate`、`CreatedDate`、`Id` の昇順と `LIMIT 100000` を指定し、`Database.getPaginationCursorWithBinds()` で利用者権限の `Database.PaginationCursor` を作成して直接返します。LWC は受け取ったCursorを保持し、そのCursorと先頭位置をページ取得用 Apex へ渡します。送信日時がないメールは末尾に表示し、表示対象の Case が取得中に変わった場合は古い Case の応答を反映しません。
+3. 総件数の取得後、LWCは初回ページ取得用Apexへカーソル未指定で要求します。同じ要求の中で`Database.PaginationCursor`を作成し、先頭ページとカーソル・次位置を返します。LWCは応答のカーソルを保持して後続ページで再利用します。対象は`MessageDate`、`CreatedDate`、`Id`の昇順で、送信日時なしは末尾です。別のCaseへ切り替えた場合は古い応答を反映しません。
 4. `fetchPage`へ開始位置と、ページサイズ・残件数の小さい方を渡し、最も古いメールから取得します。`CursorFetchResult.getNextIndex()` が 0 より大きく、かつ `PaginationCursor.getNumRecords()` より小さい場合だけ次ページありと判定します。`CursorFetchResult.isDone()` 単独では判定しません。
 5. 次ページがある場合、活動タイムラインの一番下に「次のメールを読み込む」を表示します。選択すると LWC から同じ `PaginationCursor` と次の `startIndex` を Apex へ渡し、既存のタイムラインの末尾へ次ページを追加します。追加ページの直前には区切り線と取得範囲を表示し、ページ境界をタイムライン内に残します。
 6. カードタイトルを「メールログ」とし、COUNTで取得した総件数を併記します。各メールを SLDS の活動タイムラインとして古い順に表示します。受信と送信でSLDSアイコンを切り替え、補足行にも送受信の方向を表示します。差出人と宛先は実アドレスがある場合だけメール作成用リンクとして表示します。null、空文字、空白のみの場合は「(差出人なし)」「(宛先なし)」のテキストを表示し、リンクを作成しません。

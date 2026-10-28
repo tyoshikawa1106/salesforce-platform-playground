@@ -2,7 +2,6 @@ import { createElement } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import CaseEmailMessageList from 'c/caseEmailMessageList';
 import getEmailMessageCount from '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount';
-import getEmailMessagePaginationCursor from '@salesforce/apex/CaseEmailMessageController.getEmailMessagePaginationCursor';
 import getEmailMessages from '@salesforce/apex/CaseEmailMessageController.getEmailMessages';
 
 jest.mock(
@@ -21,12 +20,6 @@ jest.mock(
     () => ({
         refreshApex: jest.fn()
     }),
-    { virtual: true }
-);
-
-jest.mock(
-    '@salesforce/apex/CaseEmailMessageController.getEmailMessagePaginationCursor',
-    () => ({ default: jest.fn() }),
     { virtual: true }
 );
 
@@ -60,6 +53,7 @@ const emailMessages = [
 ];
 
 const initialPage = {
+    paginationCursor,
     emailMessages,
     hasNextPage: true,
     nextIndex: 50
@@ -104,7 +98,7 @@ async function flushPromises() {
 }
 
 async function emitCountAndPage(count, page) {
-    getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
     getEmailMessages.mockResolvedValueOnce(page);
     getEmailMessageCount.emit(count);
     await flushPromises();
@@ -120,7 +114,7 @@ describe('c-case-email-message-list', () => {
         let finishPage;
         getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishPage = resolve; }));
         if (phase === 'initial') {
-            getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
             getEmailMessageCount.emit(100);
         } else {
             element.shadowRoot.querySelector('lightning-button').click();
@@ -140,7 +134,7 @@ describe('c-case-email-message-list', () => {
         expect(element.shadowRoot.querySelector('lightning-button-icon').disabled).toBe(false);
 
         refreshApex.mockImplementationOnce(async () => { getEmailMessageCount.emit(0); });
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
         getEmailMessages.mockResolvedValueOnce(emptyPage);
         element.shadowRoot.querySelector('lightning-button-icon').click();
         await flushPromises();
@@ -153,13 +147,13 @@ describe('c-case-email-message-list', () => {
     it('waits for an invalidated initial page before loading a recovered count', async () => {
         const element = createComponent();
         let finishPage;
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
         getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishPage = resolve; }));
         getEmailMessageCount.emit(100);
         await flushPromises();
         getEmailMessageCount.error({ message: '件数取得失敗' });
         await flushPromises();
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
         getEmailMessages.mockResolvedValueOnce(emptyPage);
         getEmailMessageCount.emit(0);
         await flushPromises();
@@ -188,7 +182,7 @@ describe('c-case-email-message-list', () => {
         await emitCountAndPage(100, initialPage);
         await flushPromises();
         refreshApex.mockResolvedValue();
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
         let finishOldRequest;
         getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishOldRequest = resolve; }));
         element.shadowRoot.querySelector('lightning-button-icon').click();
@@ -197,13 +191,13 @@ describe('c-case-email-message-list', () => {
 
         element.recordId = '500000000000002AAA';
         await flushPromises();
-        getEmailMessagePaginationCursor.mockResolvedValueOnce({ cursorId: 'new-case' });
+
         getEmailMessages.mockResolvedValueOnce(emptyPage);
         getEmailMessageCount.emit(0);
         finishOldRequest(initialPage);
         await flushPromises();
         await flushPromises();
-        expect(getEmailMessages).toHaveBeenLastCalledWith({ caseId: '500000000000002AAA', paginationCursor: { cursorId: 'new-case' }, startIndex: 0 });
+        expect(getEmailMessages).toHaveBeenLastCalledWith({ caseId: '500000000000002AAA', paginationCursor: null, startIndex: 0 });
         expect(element.shadowRoot.querySelector('lightning-spinner')).toBeNull();
         expect(element.shadowRoot.textContent).toContain('このケースに紐づくメールメッセージはありません。');
     });
@@ -222,8 +216,8 @@ describe('c-case-email-message-list', () => {
         element.recordId = '500000000000002AAA';
         await flushPromises();
         const newCursor = { cursorId: 'new-case-cursor' };
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(newCursor);
-        getEmailMessages.mockResolvedValueOnce({ emailMessages: [{ Id: '02s000000000004AAA', Subject: '新しいケース' }], hasNextPage: true, nextIndex: 50 });
+
+        getEmailMessages.mockResolvedValueOnce({ paginationCursor: newCursor, emailMessages: [{ Id: '02s000000000004AAA', Subject: '新しいケース' }], hasNextPage: true, nextIndex: 50 });
         getEmailMessageCount.emit(60);
         await flushPromises();
         await flushPromises();
@@ -280,13 +274,9 @@ describe('c-case-email-message-list', () => {
         const element = createComponent();
 
         await emitCountAndPage(3, initialPage);
-
-        expect(getEmailMessagePaginationCursor).toHaveBeenCalledWith({
-            caseId: '500000000000001AAA'
-        });
         expect(getEmailMessages).toHaveBeenCalledWith({
             caseId: '500000000000001AAA',
-            paginationCursor,
+            paginationCursor: null,
             startIndex: 0
         });
 
@@ -361,7 +351,6 @@ describe('c-case-email-message-list', () => {
     it('renders an accessible error when Apex loading fails', async () => {
         const element = createComponent();
 
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
         getEmailMessages.mockRejectedValueOnce({
             body: { message: 'メールメッセージを取得できません。' }
         });
@@ -379,7 +368,7 @@ describe('c-case-email-message-list', () => {
         refreshApex.mockResolvedValue();
         const element = createComponent();
         await emitCountAndPage(3, initialPage);
-        getEmailMessagePaginationCursor.mockResolvedValueOnce(paginationCursor);
+
         getEmailMessages.mockResolvedValueOnce(initialPage);
 
         const refreshButton = [...element.shadowRoot.querySelectorAll('lightning-button-icon')].find(
@@ -390,7 +379,7 @@ describe('c-case-email-message-list', () => {
         await flushPromises();
 
         expect(refreshApex).toHaveBeenCalledTimes(1);
-        expect(getEmailMessagePaginationCursor).toHaveBeenCalledTimes(2);
+
         expect(getEmailMessages).toHaveBeenCalledTimes(2);
     });
 
