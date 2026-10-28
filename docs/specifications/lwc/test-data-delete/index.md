@@ -51,12 +51,14 @@
 
 受付したジョブはIDで追跡し、最新ジョブへ置き換えません。受付ジョブは連続実行の最初の一件なので、その終了を全体完了と表示しません。受付ジョブ終了後に通常データが残る場合は「削除停止・残件数あり」と表示し、後続の停止理由は結果メールで確認し、想定外のエラーや中断は設定のApexジョブでも確認します。
 
+対象一覧・依存順序と許可する開発環境の判定は`TestDataDeleteService`で画面・バッチから共用します。画面はバッチ用Service・状態Wrapperへ依存しません。バッチも共通定義の参照に同じServiceを使用し、集計・継続判定はBatchServiceが担当します。`TestDataDeleteBatchWrapper`はバッチ間の位置・集計状態だけを保持します。一般Sandboxを許可しない既存の環境条件は維持します。
+
 ## 関連コンポーネント
 
 - [テストデータ削除バッチ](../../apex/batches/test-data-delete/index.md)
 - [テストデータ投入](../../scripts/test-data-import/index.md)
 - [削除手順](../../../deployment/test-data-delete.md)
-- `TestDataDeleteBatchService.getEnvironment`: dev・Scratchに限定する共通の判定。
+- `TestDataDeleteService.getEnvironment`: dev・Scratchに限定する共通の判定。
 - `UserPermissionAccess`: 現在ユーザーの合成済み実効権限。
 - `AsyncApexJob`: 削除処理の標準ジョブ。
 

@@ -1,5 +1,6 @@
 /** 対象オブジェクト全件を子から親へ直列削除 */
 public with sharing class TestDataDeleteBatch implements Database.Batchable<SObject>, Database.Stateful {
+    private TestDataDeleteService definitionService = new TestDataDeleteService();
     private TestDataDeleteBatchService service = new TestDataDeleteBatchService();
     private TestDataDeleteBatchSelector selector = new TestDataDeleteBatchSelector();
     private TestDataDeleteBatchWrapper wrapper;
@@ -118,7 +119,7 @@ public with sharing class TestDataDeleteBatch implements Database.Batchable<SObj
         List<UserPermissionAccess> permissions = this.selector.getPermissions();
         // 各トランザクションで通常Sandboxを拒否
         List<Organization> organizations = this.selector.getOrganizations();
-        TestDataDeleteBatchWrapper.Environment environment = TestDataDeleteBatchService.getEnvironment(organizations);
+        TestDataDeleteService.Environment environment = this.definitionService.getEnvironment(organizations);
         // 判定の戻り値を入口でバッチ状態へ反映
         TestDataDeleteBatchWrapper result = this.service.checkExecution(this.wrapper, permissions, environment);
         return result;

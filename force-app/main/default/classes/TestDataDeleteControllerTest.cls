@@ -21,24 +21,8 @@ private with sharing class TestDataDeleteControllerTest {
             Assert.isTrue(response.errorMessage.contains('すべてのデータの編集'), '必要権限を案内');
         }
     }
-    /** プロビジョニングに依存せず許可済みの実効権限境界を再現 */
-    private class AllowedSelector extends TestDataDeleteSelector {
-        /** 合成済みの権限応答を再現
-         * @return 許可済みの実効権限
-         */
-        public override List<UserPermissionAccess> getPermissions() {
-            return new List<UserPermissionAccess>{
-                (UserPermissionAccess) JSON.deserialize(
-                    '{"PermissionsModifyAllData":true,"PermissionsQueryAllFiles":true}',
-                    UserPermissionAccess.class
-                )
-            };
-        }
-    }
-
     @IsTest
     static void acceptsOnlyConfirmedRequestAndTracksSameJob() {
-        TestDataDeleteController.selector = new AllowedSelector();
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
             TestDataDeleteWrapper accepted = TestDataDeleteController.startRun('DELETE_ALL');
@@ -56,7 +40,6 @@ private with sharing class TestDataDeleteControllerTest {
 
     @IsTest
     static void readsRemainingWithEffectivePermission() {
-        TestDataDeleteController.selector = new AllowedSelector();
         System.runAs(new User(Id = UserInfo.getUserId())) {
             TestDataFactory.createAccount('任意の名称', TestDataFactory.SaveMode.INSERT_RECORD);
             Test.startTest();
@@ -102,7 +85,6 @@ private with sharing class TestDataDeleteControllerTest {
 
     @IsTest
     static void countsValidPricebookEntriesWithoutExclusion() {
-        TestDataDeleteController.selector = new AllowedSelector();
 
         System.runAs(TestDataFactory.getTestUser()) {
             Product2 product = TestDataFactory.createProduct('通常の価格', TestDataFactory.SaveMode.INSERT_RECORD);

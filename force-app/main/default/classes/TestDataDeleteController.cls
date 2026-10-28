@@ -1,7 +1,6 @@
 /** テストデータ一括削除画面の参照と実行受付 */
 public with sharing class TestDataDeleteController {
     private static TestDataDeleteService service = new TestDataDeleteService();
-    @TestVisible
     private static TestDataDeleteSelector selector = new TestDataDeleteSelector();
 
     /**
@@ -16,7 +15,7 @@ public with sharing class TestDataDeleteController {
             List<UserPermissionAccess> permissions = selector.getPermissions();
             List<Organization> organizations = selector.getOrganizations();
             // 一般Sandboxを許可しない削除専用の環境判定
-            TestDataDeleteBatchWrapper.Environment environment = TestDataDeleteBatchService.getEnvironment(
+            TestDataDeleteService.Environment environment = service.getEnvironment(
                 organizations
             );
             TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
@@ -46,7 +45,7 @@ public with sharing class TestDataDeleteController {
             List<UserPermissionAccess> permissions = selector.getPermissions();
             List<Organization> organizations = selector.getOrganizations();
             // 一般Sandboxを許可しない削除専用の環境判定
-            TestDataDeleteBatchWrapper.Environment environment = TestDataDeleteBatchService.getEnvironment(
+            TestDataDeleteService.Environment environment = service.getEnvironment(
                 organizations
             );
             TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
@@ -77,7 +76,7 @@ public with sharing class TestDataDeleteController {
             List<UserPermissionAccess> permissions = selector.getPermissions();
             List<Organization> organizations = selector.getOrganizations();
             // 一般Sandboxを許可しない削除専用の環境判定
-            TestDataDeleteBatchWrapper.Environment environment = TestDataDeleteBatchService.getEnvironment(
+            TestDataDeleteService.Environment environment = service.getEnvironment(
                 organizations
             );
             TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
