@@ -117,6 +117,8 @@ public with sharing class ObjectRecordSearchController {
                 throw createHandledException(errorMessage);
             }
             ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
+            // カーソルの取得結果を入口で保持し、Selectorへ副作用を要求しない
+            searchQueryRequest.paginationCursor = this.selector.createPaginationCursor(searchQueryRequest);
             // 既存カーソルの位置からページを取得
             Database.CursorFetchResult records = this.selector.searchRecords(searchQueryRequest);
             // 検索結果を LWC 返却用の行とページ状態へ変換
