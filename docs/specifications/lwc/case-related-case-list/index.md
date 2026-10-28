@@ -10,12 +10,18 @@ Caseレコードの顧客または会社に紐づく現在Caseと直近の別ケ
 
 ## 対象実装・メタデータ
 
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+
 | 種別           | API名・ファイル名             | 役割                                           |
 | -------------- | ----------------------------- | ---------------------------------------------- |
 | LWC            | `caseRelatedCaseList`         | 関連ケースの取得、タブ表示、レコードリンク生成 |
 | LWC JavaScript | `caseRelatedCaseList.js`      | UI API取得、タブ状態、Navigationの統括         |
 | LWC JavaScript | `caseRelatedCaseListLogic.js` | 関連ケース選択とカード表示モデルの生成         |
 | FlexiPage      | `CaseFlexiPage`               | `caseContactProfile`直下の左サイドバー配置     |
+
+### Apexコードと対応テスト
+
+専用Apexはありません。[caseRelatedCaseList.js](../../../../force-app/main/default/lwc/caseRelatedCaseList/caseRelatedCaseList.js)の`lightning/uiRecordApi`・`lightning/uiRelatedListApi`による取得と、同BundleのLogic・Jestを確認してください。
 
 ## 入力
 

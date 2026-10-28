@@ -10,6 +10,8 @@
 
 ## 対象実装・メタデータ
 
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+
 ### LWC
 
 | 種別           | API 名・ファイル名                | 役割                                            |
@@ -26,32 +28,34 @@
 | LWC JavaScript | `objectRecordSearchFormPolicy.js` | オブジェクト別のフォーム対応方針                |
 | LWC JavaScript | `objectRecordSearchState.js`      | 検索、ソート、ページング状態の管理              |
 
-### Apex
-
-| 種別       | API 名                             | 役割                                           |
-| ---------- | ---------------------------------- | ---------------------------------------------- |
-| Apex Class | `ObjectRecordSearchController`     | 検索と削除の Apex 入口                         |
-| Apex Class | `ObjectRecordSearchSelector`       | 動的 SOQL・bind 組み立てと USER_MODE 検索      |
-| Apex Class | `ObjectRecordSearchService`        | 設定、検索結果、削除結果の組み立て             |
-| Apex Class | `ObjectRecordSearchQueryPlan`      | Selector と Service で共有する検証済み検索条件 |
-| Apex Class | `ObjectRecordSearchSortSupport`    | ソート条件の検証                               |
-| Apex Class | `ObjectRecordSearchFieldCatalog`   | オブジェクト別の追加表示項目定義               |
-| Apex Class | `ObjectMetricCatalog`              | カードキーと対象オブジェクトの許可リスト       |
-| Apex Class | `ObjectRecordSearchConfigWrapper`  | 検索画面の設定情報                             |
-| Apex Class | `ObjectRecordSearchContext`        | 内部検索状態                                   |
-| Apex Class | `ObjectRecordSearchDeleteWrapper`  | 削除要求と削除結果                             |
-| Apex Class | `ObjectRecordSearchFieldWrapper`   | 表示項目情報                                   |
-| Apex Class | `ObjectRecordSearchRequestWrapper` | 検索要求                                       |
-| Apex Class | `ObjectRecordSearchResultWrapper`  | 検索結果                                       |
-| Apex Class | `ObjectRecordSearchRowWrapper`     | 一覧の行情報                                   |
-
 ### 設定・権限
 
-- `LwcObjectRecordSearch`: `ObjectRecordSearchController`のApexクラス実行権限
+- `LwcObjectRecordSearch`: [ObjectRecordSearchController](../../../../force-app/main/default/classes/ObjectRecordSearchController.cls)のApexクラス実行権限
+
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                            | 役割                                                       | 同名Test                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [ObjectRecordSearchConfigWrapper](../../../../force-app/main/default/classes/ObjectRecordSearchConfigWrapper.cls)   | 汎用レコード検索画面の設定を LWC に返す Wrapper            | [ObjectRecordSearchConfigWrapperTest](../../../../force-app/main/default/classes/ObjectRecordSearchConfigWrapperTest.cls)   |
+| [ObjectRecordSearchContext](../../../../force-app/main/default/classes/ObjectRecordSearchContext.cls)               | 汎用レコード検索の Apex 内部処理で共有する状態             | [ObjectRecordSearchContextTest](../../../../force-app/main/default/classes/ObjectRecordSearchContextTest.cls)               |
+| [ObjectRecordSearchController](../../../../force-app/main/default/classes/ObjectRecordSearchController.cls)         | データボードから遷移する汎用レコード検索画面の Apex 入口   | [ObjectRecordSearchControllerTest](../../../../force-app/main/default/classes/ObjectRecordSearchControllerTest.cls)         |
+| [ObjectRecordSearchDeleteWrapper](../../../../force-app/main/default/classes/ObjectRecordSearchDeleteWrapper.cls)   | 汎用レコード検索画面に返す削除結果 Wrapper                 | [ObjectRecordSearchDeleteWrapperTest](../../../../force-app/main/default/classes/ObjectRecordSearchDeleteWrapperTest.cls)   |
+| [ObjectRecordSearchFieldCatalog](../../../../force-app/main/default/classes/ObjectRecordSearchFieldCatalog.cls)     | 汎用レコード検索の一覧に追加表示する固定項目管理           | [ObjectRecordSearchFieldCatalogTest](../../../../force-app/main/default/classes/ObjectRecordSearchFieldCatalogTest.cls)     |
+| [ObjectRecordSearchFieldWrapper](../../../../force-app/main/default/classes/ObjectRecordSearchFieldWrapper.cls)     | 汎用レコード検索画面の一覧に表示する固定項目の Wrapper     | [ObjectRecordSearchFieldWrapperTest](../../../../force-app/main/default/classes/ObjectRecordSearchFieldWrapperTest.cls)     |
+| [ObjectRecordSearchQueryPlan](../../../../force-app/main/default/classes/ObjectRecordSearchQueryPlan.cls)           | 汎用レコード検索で共有する問い合わせ条件の保持と検証       | [ObjectRecordSearchQueryPlanTest](../../../../force-app/main/default/classes/ObjectRecordSearchQueryPlanTest.cls)           |
+| [ObjectRecordSearchRequestWrapper](../../../../force-app/main/default/classes/ObjectRecordSearchRequestWrapper.cls) | 汎用レコード検索画面から Apex に渡す検索リクエスト Wrapper | [ObjectRecordSearchRequestWrapperTest](../../../../force-app/main/default/classes/ObjectRecordSearchRequestWrapperTest.cls) |
+| [ObjectRecordSearchResultWrapper](../../../../force-app/main/default/classes/ObjectRecordSearchResultWrapper.cls)   | 汎用レコード検索画面に返す検索結果 Wrapper                 | [ObjectRecordSearchResultWrapperTest](../../../../force-app/main/default/classes/ObjectRecordSearchResultWrapperTest.cls)   |
+| [ObjectRecordSearchRowWrapper](../../../../force-app/main/default/classes/ObjectRecordSearchRowWrapper.cls)         | 汎用レコード検索画面の一覧行 Wrapper                       | [ObjectRecordSearchRowWrapperTest](../../../../force-app/main/default/classes/ObjectRecordSearchRowWrapperTest.cls)         |
+| [ObjectRecordSearchSelector](../../../../force-app/main/default/classes/ObjectRecordSearchSelector.cls)             | 汎用レコード検索画面で使う Salesforce レコード問い合わせ   | [ObjectRecordSearchSelectorTest](../../../../force-app/main/default/classes/ObjectRecordSearchSelectorTest.cls)             |
+| [ObjectRecordSearchService](../../../../force-app/main/default/classes/ObjectRecordSearchService.cls)               | 汎用レコード検索画面の判定と Wrapper 組み立て提供          | [ObjectRecordSearchServiceTest](../../../../force-app/main/default/classes/ObjectRecordSearchServiceTest.cls)               |
+| [ObjectRecordSearchSortSupport](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupport.cls)       | 汎用レコード検索のソート条件とページングカーソル取り扱い   | [ObjectRecordSearchSortSupportTest](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupportTest.cls)       |
+| [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls)                           | データボードで扱うオブジェクト定義一元管理                 | [ObjectMetricCatalogTest](../../../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)                           |
+
+テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
 
 ## 入力
 
-- `metricKey`: `ObjectMetricCatalog` に定義されたデータボードカードキー
+- `metricKey`: [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls) に定義されたデータボードカードキー
 - 検索語: 対象オブジェクトの `Name` 相当項目に対する部分一致条件
 - ソート項目と昇順、降順
 - ページ番号、標準PaginationCursorと取得位置
@@ -77,7 +81,7 @@
 ## 権限・実行条件
 
 - 親の `objectMetricsOverview` から有効な `metricKey` が渡されることを前提とします。
-- `LwcObjectRecordSearch` Permission Setで、LWCから直接呼び出す`ObjectRecordSearchController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
+- `LwcObjectRecordSearch` Permission Setで、LWCから直接呼び出す[ObjectRecordSearchController](../../../../force-app/main/default/classes/ObjectRecordSearchController.cls)のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
 - 対象オブジェクトが参照可能かつクエリ可能で、`Name` 相当項目を参照できる必要があります。
 - 一覧取得と削除は `with sharing`、`AccessLevel.USER_MODE` で利用者の権限を適用します。
 - 検索語は任意フィルターとして扱い、空の場合も許可済みオブジェクトと項目、決定的なソート、[検索・ページング仕様](search-and-pagination.md#制約注意事項)の取得上限で初期一覧を取得します。
@@ -103,17 +107,17 @@
 
 ## テスト・確認観点
 
-- `ObjectRecordSearchFieldCatalogTest`で、固定表示列の順序、表示型、ソート可否、未定義オブジェクトの扱いを確認すること
+- [ObjectRecordSearchFieldCatalogTest](../../../../force-app/main/default/classes/ObjectRecordSearchFieldCatalogTest.cls)で、固定表示列の順序、表示型、ソート可否、未定義オブジェクトの扱いを確認すること
 
-- `ObjectRecordSearchControllerTest`、`ObjectRecordSearchSelectorTest`、`ObjectRecordSearchServiceTest` で、設定取得、検索語の正規化、任意フィルターなしの初期一覧、ページング、削除、不正入力を確認すること
-- `ObjectRecordSearchSelectorTest`、`ObjectRecordSearchQueryPlanTest`、`ObjectRecordSearchSortSupportTest` で、動的 SOQL と bind、許可済み検索条件、固定取得件数、昇順・降順ソート、カーソル、不正ページ取得位置を確認すること
+- [ObjectRecordSearchControllerTest](../../../../force-app/main/default/classes/ObjectRecordSearchControllerTest.cls)、[ObjectRecordSearchSelectorTest](../../../../force-app/main/default/classes/ObjectRecordSearchSelectorTest.cls)、[ObjectRecordSearchServiceTest](../../../../force-app/main/default/classes/ObjectRecordSearchServiceTest.cls) で、設定取得、検索語の正規化、任意フィルターなしの初期一覧、ページング、削除、不正入力を確認すること
+- [ObjectRecordSearchSelectorTest](../../../../force-app/main/default/classes/ObjectRecordSearchSelectorTest.cls)、[ObjectRecordSearchQueryPlanTest](../../../../force-app/main/default/classes/ObjectRecordSearchQueryPlanTest.cls)、[ObjectRecordSearchSortSupportTest](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupportTest.cls) で、動的 SOQL と bind、許可済み検索条件、固定取得件数、昇順・降順ソート、カーソル、不正ページ取得位置を確認すること
 - `objectRecordSearch.test.js`、`objectRecordSearchPaging.test.js`、`objectRecordSearchFormFlow.test.js` で、一覧表示、検索、ページ移動、レコード操作、権限メッセージ、エラー、親イベント通知を確認すること
 - 対応する各オブジェクトで `Name` 相当項目と追加表示項目が正しく表示されることを確認します。
 - 権限の異なるユーザーでボタン状態、表示列、検索、各 DML を確認します。
 
 ## 制約・注意事項
 
-- 検索対象は `ObjectMetricCatalog` に定義されたオブジェクトだけです。
+- 検索対象は [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls) に定義されたオブジェクトだけです。
 - 検索とページングの制約は [検索・ソート・ページング](search-and-pagination.md) に記載します。
 - 作成、編集、削除、ファイルアップロードの制約は [レコード操作](record-operations.md) に記載します。
 

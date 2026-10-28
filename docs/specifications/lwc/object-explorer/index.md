@@ -10,16 +10,32 @@
 
 ## 対象実装・メタデータ
 
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+
 - `objectExplorer` LWCと同BundleのLogic・CSV・分類入力・項目整形モジュール、HTML・CSS
 - `objectExplorerLookup` LWC（対象候補の表示と値だけの操作通知）
-- `ObjectExplorerController`、`ObjectExplorerService`、`ObjectExplorerFieldService`、`ObjectExplorerSelector`
 - `ObjectExplorer`タブ、`Salesforce`アプリ、`SalesforceApplicationUser`権限セット
 - `MetadataApiIntegration`外部クライアントアプリケーションとOAuth設定
-- `ObjectExplorerClassifyService`、`ObjectExplorerOwnerService`、`ObjectExplorerAccessPolicy`、`MetadataApiIntegrationClient`、`MetadataApiSoapCodec`
 - `ManageObjectFieldClassification`カスタム権限、`LwcObjectExplorer`権限セット
 - Scratch Org再構築manifest
 
-所有者IDの照合・候補表示・Metadata API参照値への変換は`ObjectExplorerOwnerService`に集約し、権限・要求検証と分類値の競合・更新処理から分離します。分類Serviceの内部状態に編集対象・分類基準値・所有者・送信状態・確定結果をまとめ、入力状態を変更せず次段の状態を返します。ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答検証は`MetadataApiSoapCodec`、HTTP認証・待ち時間は`MetadataApiIntegrationClient`に分離します。一覧と保存には共通のオブジェクト参照権限チェックを適用します。
+所有者IDの照合・候補表示・Metadata API参照値への変換は[ObjectExplorerOwnerService](../../../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)に集約し、権限・要求検証と分類値の競合・更新処理から分離します。分類Serviceの内部状態に編集対象・分類基準値・所有者・送信状態・確定結果をまとめ、入力状態を変更せず次段の状態を返します。ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答検証は[MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)、HTTP認証・待ち時間は[MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)に分離します。一覧と保存には共通のオブジェクト参照権限チェックを適用します。
+
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                      | 役割                                                     | 同名Test                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)       | データ分類操作の権限と参照対象を検証                     | [ObjectExplorerAccessPolicyTest](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicyTest.cls)       |
+| [ObjectExplorerClassifyService](../../../../force-app/main/default/classes/ObjectExplorerClassifyService.cls) | 分類編集の権限・入力・競合と表示モデルの生成             | [ObjectExplorerClassifyServiceTest](../../../../force-app/main/default/classes/ObjectExplorerClassifyServiceTest.cls) |
+| [ObjectExplorerController](../../../../force-app/main/default/classes/ObjectExplorerController.cls)           | オブジェクト構造探索と項目分類の参照・保存の入口         | [ObjectExplorerControllerTest](../../../../force-app/main/default/classes/ObjectExplorerControllerTest.cls)           |
+| [ObjectExplorerFieldService](../../../../force-app/main/default/classes/ObjectExplorerFieldService.cls)       | 項目定義の型・分類・作成更新情報の可視表示モデル         | [ObjectExplorerFieldServiceTest](../../../../force-app/main/default/classes/ObjectExplorerFieldServiceTest.cls)       |
+| [ObjectExplorerOwnerService](../../../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)       | データ分類の所有者ID照合・候補表示・API参照値の生成      | [ObjectExplorerOwnerServiceTest](../../../../force-app/main/default/classes/ObjectExplorerOwnerServiceTest.cls)       |
+| [ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)               | 項目定義・分類と所有者候補の読み取り                     | [ObjectExplorerSelectorTest](../../../../force-app/main/default/classes/ObjectExplorerSelectorTest.cls)               |
+| [ObjectExplorerService](../../../../force-app/main/default/classes/ObjectExplorerService.cls)                 | Describeに基づくオブジェクト・項目・直接参照の表示モデル | [ObjectExplorerServiceTest](../../../../force-app/main/default/classes/ObjectExplorerServiceTest.cls)                 |
+| [MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)   | Named Credential経由の項目メタデータ読み取り・更新       | [MetadataApiIntegrationClientTest](../../../../force-app/main/default/classes/MetadataApiIntegrationClientTest.cls)   |
+| [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証     | [MetadataApiSoapCodecTest](../../../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)                   |
+
+テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
 
 ## 入力
 
@@ -178,19 +194,19 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 ## クラス構成
 
-公開入口は構造・分類の参照と分類保存を一つの`ObjectExplorerController`へ集約します。照会は`ObjectExplorerSelector`、表示と業務判定はステートレスなServiceで扱い、Controllerで処理順序を追える構成とします。
+公開入口は構造・分類の参照と分類保存を一つの[ObjectExplorerController](../../../../force-app/main/default/classes/ObjectExplorerController.cls)へ集約します。照会は[ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)、表示と業務判定はステートレスなServiceで扱い、Controllerで処理順序を追える構成とします。
 
-| クラス                          | 責務                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------- |
-| `ObjectExplorerController`      | 対象候補・構造・分類・所有者・項目型・作成更新情報の取得と分類保存の処理順序 |
-| `ObjectExplorerService`         | 対象候補と直接関連の構造モデル                                               |
-| `ObjectExplorerFieldService`    | 項目の型表記・分類一覧・作成更新情報と可視Userの対応付け                     |
-| `ObjectExplorerSelector`        | 項目定義・User・Group・実効権限をUSER_MODEで照会                             |
-| `ObjectExplorerClassifyService` | 分類編集の基準値・競合判定・更新値・項目別結果                               |
-| `ObjectExplorerAccessPolicy`    | 機能権限・カスタマイズ権限・項目編集可否                                     |
-| `ObjectExplorerOwnerService`    | 所有者候補・ID照合・Metadata API用の所有者参照値                             |
-| `MetadataApiIntegrationClient`  | Named CredentialによるHTTP通信と同一組織確認                                 |
-| `MetadataApiSoapCodec`          | SOAP XML生成と項目完全名による応答照合                                       |
+| クラス                                                                                                        | 責務                                                                         |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [ObjectExplorerController](../../../../force-app/main/default/classes/ObjectExplorerController.cls)           | 対象候補・構造・分類・所有者・項目型・作成更新情報の取得と分類保存の処理順序 |
+| [ObjectExplorerService](../../../../force-app/main/default/classes/ObjectExplorerService.cls)                 | 対象候補と直接関連の構造モデル                                               |
+| [ObjectExplorerFieldService](../../../../force-app/main/default/classes/ObjectExplorerFieldService.cls)       | 項目の型表記・分類一覧・作成更新情報と可視Userの対応付け                     |
+| [ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)               | 項目定義・User・Group・実効権限をUSER_MODEで照会                             |
+| [ObjectExplorerClassifyService](../../../../force-app/main/default/classes/ObjectExplorerClassifyService.cls) | 分類編集の基準値・競合判定・更新値・項目別結果                               |
+| [ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)       | 機能権限・カスタマイズ権限・項目編集可否                                     |
+| [ObjectExplorerOwnerService](../../../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)       | 所有者候補・ID照合・Metadata API用の所有者参照値                             |
+| [MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)   | Named CredentialによるHTTP通信と同一組織確認                                 |
+| [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | SOAP XML生成と項目完全名による応答照合                                       |
 
 作成・最終更新の日時は同じ組織のTooling APIから取得し、人物名とリンクは実行ユーザーが参照できるUserのID・Nameだけから生成します。不可視の人物は名前・IDを返さず日時だけを表示します。保存要求・CSV所有者要求は入力サイズ・JSON配列形式を共通の境界で確認し、JSON解析の詳細や入力本文を例外へ含めません。桁数・必須・参照先の廃止済み表示専用値は返却しません。
 
@@ -212,7 +228,7 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 作成者・最終更新者の関連はApexで項目名を判別した時点で除外し、参照先・相手オブジェクトの追加Describeと関連モデルの生成・集約・転送を省略します。標準項目の`CreatedById`と`LastModifiedById`だけが対象で、所有者と業務上のユーザー参照は維持します。項目一覧の監査項目と作成・更新情報は従来どおり取得します。LWCでは監査関連の再除外を行わず、参照元の通常参照・多態参照を切り替えます。
 
-構造と分類一覧はServiceが組み立てたMapを直接返し、属性を持ち直すためだけのWrapperは設けません。候補・日時・保存結果は構造化したListまたはMapを返し、LWCはJSON文字列の再解析を行いません。保存要求とCSV所有者要求のJSON配列は`ObjectExplorerAccessPolicy`が大きさ・構文・型を検証し、編集行の属性・対象項目・項目定義の完全IDは、既存の`ObjectExplorerAccessPolicy.RequestValidator`が確認します。分類候補のDescribeと既存値保持・選択値検証は既存の`ObjectExplorerAccessPolicy`が担当します。
+構造と分類一覧はServiceが組み立てたMapを直接返し、属性を持ち直すためだけのWrapperは設けません。候補・日時・保存結果は構造化したListまたはMapを返し、LWCはJSON文字列の再解析を行いません。保存要求とCSV所有者要求のJSON配列は[ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)が大きさ・構文・型を検証し、編集行の属性・対象項目・項目定義の完全IDは、既存の`ObjectExplorerAccessPolicy.RequestValidator`が確認します。分類候補のDescribeと既存値保持・選択値検証は既存の[ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)が担当します。
 
 分類の公開参照と保存には、権限セット`LwcObjectExplorer`から各入口クラスへの実行権限を付与します。内部Service・Codec・Wrapperへの個別の実行権限は追加しません。入力・権限の案内とAPI接続のエラーは、既存のAccessPolicy・Clientの境界で処理します。
 

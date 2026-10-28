@@ -10,17 +10,26 @@
 
 ## 対象実装・メタデータ
 
+Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+
 | 種別           | API 名・ファイル名             | 役割                                        |
 | -------------- | ------------------------------ | ------------------------------------------- |
 | LWC            | `caseEmailMessageList`         | メールメッセージ一覧と追加読み込み UI       |
 | LWC JavaScript | `caseEmailMessageList.js`      | Apex取得、追加読み込み、画面状態の統括      |
 | LWC JavaScript | `caseEmailMessageListLogic.js` | 表示行、タイトル、ページ状態の生成          |
-| Apex Class     | `CaseEmailMessageController`   | COUNT、Cursor、ページ取得の Apex 入口       |
-| Apex Class     | `CaseEmailMessageService`      | 入力検証、取得位置、次ページ状態の組み立て  |
-| Apex Class     | `CaseEmailMessageSelector`     | USER_MODE の PaginationCursor 問い合わせ    |
-| Apex Class     | `CaseEmailMessagePageWrapper`  | 取得結果、次の取得位置、終端状態の応答 DTO  |
 | Permission Set | `LwcCaseEmailMessageList`      | Apex Controller の実行権限                  |
 | FlexiPage      | `CaseFlexiPage`                | Case レコードページのメールログタブへの配置 |
+
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                  | 役割                                               | 同名Test                                                                                                          |
+| --------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls)   | ケースに紐づくメールメッセージ一覧の Apex 入口     | [CaseEmailMessageControllerTest](../../../../force-app/main/default/classes/CaseEmailMessageControllerTest.cls)   |
+| [CaseEmailMessagePageWrapper](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapper.cls) | ケースメールメッセージ一覧に返すページ情報 Wrapper | [CaseEmailMessagePageWrapperTest](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapperTest.cls) |
+| [CaseEmailMessageSelector](../../../../force-app/main/default/classes/CaseEmailMessageSelector.cls)       | ケースに紐づくメールメッセージ問い合わせ           | [CaseEmailMessageSelectorTest](../../../../force-app/main/default/classes/CaseEmailMessageSelectorTest.cls)       |
+| [CaseEmailMessageService](../../../../force-app/main/default/classes/CaseEmailMessageService.cls)         | ケースメールメッセージ一覧の入力値検証             | [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls)         |
+
+テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
 
 ## 入力
 
@@ -51,7 +60,7 @@
 ## 権限・実行条件
 
 - `caseEmailMessageList` は Case の Lightning レコードページだけに配置できます。
-- `LwcCaseEmailMessageList` 権限セットで `CaseEmailMessageController` の実行権限を付与します。
+- `LwcCaseEmailMessageList` 権限セットで [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls) の実行権限を付与します。
 - 一覧取得は `with sharing` と `WITH USER_MODE` で利用者の共有ルール、オブジェクト権限、項目権限を適用します。
 
 ## エラー処理
@@ -77,10 +86,10 @@
 
 - 追加取得中のケース切り替え、元のケースへの往復、古い追加取得の成功・失敗を確認し、新しい一覧とカーソル、操作中状態が維持されること
 
-- `CaseEmailMessageControllerTest` で Case ID、null、Case 以外の ID、件数、Cursor直接取得、ページ応答を確認します。
-- `CaseEmailMessageServiceTest` で入力検証、初回取得位置、不正な取得位置、空ページを確認します。
-- `CaseEmailMessageSelectorTest` で件数、ページ境界の直前・一致・直後、複数ページの重複防止、送信日時がないメール、Cursor作成後の削除行を確認します。
-- `CaseEmailMessagePageWrapperTest` で空ページと次ページ情報を確認します。
+- [CaseEmailMessageControllerTest](../../../../force-app/main/default/classes/CaseEmailMessageControllerTest.cls) で Case ID、null、Case 以外の ID、件数、Cursor直接取得、ページ応答を確認します。
+- [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls) で入力検証、初回取得位置、不正な取得位置、空ページを確認します。
+- [CaseEmailMessageSelectorTest](../../../../force-app/main/default/classes/CaseEmailMessageSelectorTest.cls) で件数、ページ境界の直前・一致・直後、複数ページの重複防止、送信日時がないメール、Cursor作成後の削除行を確認します。
+- [CaseEmailMessagePageWrapperTest](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapperTest.cls) で空ページと次ページ情報を確認します。
 - `caseEmailMessageList.test.js` でCOUNT後のCursor直接取得と命令的な初回ページ取得、活動タイムライン構造、曜日表示、送受信別のアイコンと補足文、本文の常時表示、空状態、エラー、再読み込み時の新しいCursor取得、下部ボタンからの追加読み込み、追加ページ境界の区切りを確認します。
 
 ## 制約・注意事項
