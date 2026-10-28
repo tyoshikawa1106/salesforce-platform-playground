@@ -502,10 +502,6 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectRecordSearchControllerErrorTest</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>ObjectRecordSearchControllerTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
@@ -518,7 +514,7 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectRecordSearchDisplayFieldCatalog</apexClass>
+        <apexClass>ObjectRecordSearchFieldCatalog</apexClass>
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
@@ -527,10 +523,6 @@
     </classAccesses>
     <classAccesses>
         <apexClass>ObjectRecordSearchFieldWrapperTest</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>ObjectRecordSearchPaginationTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>

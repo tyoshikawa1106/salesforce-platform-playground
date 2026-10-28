@@ -1,7 +1,7 @@
 /**
  * 汎用レコード検索画面で使う Salesforce レコード問い合わせ
  */
-public virtual with sharing class ObjectRecordSearchSelector {
+public with sharing class ObjectRecordSearchSelector {
 
     /**
      * 検証済み条件から標準PaginationCursorを作成
@@ -10,7 +10,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 利用者権限のソート済み標準カーソル
      * @throws IllegalArgumentException 内部で組み立てた問い合わせ条件が契約を満たさない場合
      */
-    public virtual Database.PaginationCursor createPaginationCursor(ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest) {
+    public Database.PaginationCursor createPaginationCursor(ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest) {
         // 許可された検索条件だけで結果集合を作成
         ObjectRecordSearchQueryPlan.SearchQueryRequest request = ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(searchQueryRequest);
         // 名称検索は従来どおりbindで渡し、ページ境界のWHEREは作らない
@@ -24,7 +24,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @param request 検証済み検索条件と標準カーソル
      * @return 標準の取得結果、残件数がない場合はnull
      */
-    public virtual Database.CursorFetchResult searchRecords(ObjectRecordSearchQueryPlan.SearchQueryRequest request) {
+    public Database.CursorFetchResult searchRecords(ObjectRecordSearchQueryPlan.SearchQueryRequest request) {
         // 不正な識別子を含む内部要求を拒否
         ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(request);
         // 初回だけ結果集合を作成し、後続ページでは標準カーソルを再利用
@@ -48,7 +48,7 @@ public virtual with sharing class ObjectRecordSearchSelector {
      * @return 削除対象 SObject
      * @throws IllegalArgumentException 許可されていないオブジェクトが指定された場合
      */
-    public virtual List<SObject> getRecordsById(String objectApiName, Set<Id> recordIds) {
+    public List<SObject> getRecordsById(String objectApiName, Set<Id> recordIds) {
         // FROM 句に使うオブジェクトを固定カタログに限定
         Boolean isSupportedObject = ObjectMetricCatalog.hasObjectApiName(objectApiName);
         // 許可リスト外の識別子は ID の有無に関わらず拒否

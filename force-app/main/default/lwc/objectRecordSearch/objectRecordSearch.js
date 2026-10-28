@@ -68,6 +68,8 @@ export default class ObjectRecordSearch extends LightningElement {
     isSearchPending = false;
     // 編集フォームで開くレコードIDを保持
     formRecordId;
+    // 編集レイアウトの確定を待つ呼び出し
+    pendingEditLayout;
     // 作成、編集、アップロード画面の表示状態を保持
     showRecordForm = false;
     // refreshApexへ渡す検索wireレスポンスを保持
@@ -90,6 +92,14 @@ export default class ObjectRecordSearch extends LightningElement {
     });
 
     // 検索条件、ソート、ページ境界に応じてApex検索を実行
+    // 画面離脱時にレイアウト待機を終了
+    disconnectedCallback() {
+        // 待機後の接続確認でモーダル表示を中止
+        this.pendingEditLayout?.();
+        // 待機の参照を解放
+        this.pendingEditLayout = undefined;
+    }
+
     @wire(searchRecords, {
         request: '$searchRequest'
     })
@@ -157,11 +167,18 @@ export default class ObjectRecordSearch extends LightningElement {
         objectApiName: '$layoutObjectApiName',
         layoutType: 'Full',
         mode: 'Edit',
-        recordTypeId: '$defaultRecordTypeId'
+        recordTypeId: '$editRecordTypeId'
     })
     wiredEditLayout(result) {
         // 編集用応答だけを保存して作成用応答と混在させない
         this.editLayoutResult = result;
+        // 編集対象に対応するレイアウトが確定してからフォームを開く
+        if ((result.data || result.error) && this.pendingEditLayout) {
+            // 呼び出し側へ取得完了を通知
+            this.pendingEditLayout();
+            // 終了した待機を解放
+            this.pendingEditLayout = undefined;
+        }
         // 編集項目と行アクションの可否を更新
         this.updateFormState();
     }
@@ -302,6 +319,12 @@ export default class ObjectRecordSearch extends LightningElement {
     }
 
     // オブジェクト固有の新規操作ボタンラベルを返却
+    // 編集対象のレコードタイプを新規作成の既定値から分離
+    get editRecordTypeId() {
+        // 一覧で参照可能だった同じレコードの値を使用
+        return this.rows.find((row) => row.id === this.formRecordId)?.recordTypeId || this.defaultRecordTypeId;
+    }
+
     get newButtonLabel() {
         // Logicが生成したオブジェクト別の操作ラベルを返却
         return this.formViewState.newButtonLabel;
@@ -618,7 +641,9 @@ export default class ObjectRecordSearch extends LightningElement {
         if (this.showRecordForm) {
             return;
         }
-        // レコードIDの有無でフォームの作成・編集モードを選択
+        // 切り替え前のレコードタイプを保持
+        const previousRecordTypeId = this.editRecordTypeId;
+        // 編集対象を確定
         this.formRecordId = recordId;
         // 選択モードの項目と見出しを構築
         this.updateFormState();
@@ -626,6 +651,16 @@ export default class ObjectRecordSearch extends LightningElement {
         this.showRecordForm = true;
         // キーボード操作とフォーカス管理をLightningModalへ委譲
         try {
+            // 別レコードタイプの編集では新しいレイアウトの応答を待機
+            if (recordId && previousRecordTypeId !== this.editRecordTypeId) {
+                // 古いレイアウトで項目と必須条件を決めない
+                await new Promise((resolve) => { this.pendingEditLayout = resolve; });
+                // 確定した編集レイアウトを表示モデルへ反映
+                this.updateFormState();
+            }
+            // 画面離脱後にモーダルを開かない
+            if (!this.isConnected) { return; }
+
             // フォーム表示時点の設定を独立したモーダルへ渡す
             const result = await ObjectRecordFormModal.open({
                 size: 'large',
@@ -633,6 +668,7 @@ export default class ObjectRecordSearch extends LightningElement {
                 objectApiName: this.config.objectApiName,
                 objectLabel: this.config.objectLabel,
                 recordId,
+                recordTypeId: recordId ? this.editRecordTypeId : this.defaultRecordTypeId,
                 formSections: this.formSections,
                 isFileUpload: this.formViewState.isFileUploadObject
             });

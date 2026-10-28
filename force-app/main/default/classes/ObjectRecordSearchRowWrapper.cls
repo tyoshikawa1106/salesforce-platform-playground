@@ -19,6 +19,10 @@ public with sharing class ObjectRecordSearchRowWrapper {
     @AuraEnabled
     public Map<String, Object> fieldValues { get; private set; }
 
+    // 編集レイアウトを選ぶための参照可能なレコードタイプ
+    @AuraEnabled
+    public Id recordTypeId { get; private set; }
+
     /**
      * 検索結果 SObject から一覧行を作成
      *
@@ -29,6 +33,8 @@ public with sharing class ObjectRecordSearchRowWrapper {
     public ObjectRecordSearchRowWrapper(SObject record, String nameFieldApiName, List<ObjectRecordSearchFieldWrapper> displayFields) {
         // 行操作と詳細遷移に使うレコード ID を保持
         this.id = (Id) record.get('Id');
+        // 未対応または参照不可のオブジェクトでは値なしを維持
+        this.recordTypeId = (Id)record.getPopulatedFieldsAsMap().get('RecordTypeId');
         // Name が空の場合でも行リンクを識別できる表示名を確保
         Object rawName = record.get(nameFieldApiName);
         this.name = rawName == null ? String.valueOf(this.id) : String.valueOf(rawName);

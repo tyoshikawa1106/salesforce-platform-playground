@@ -1,7 +1,7 @@
 /**
  * 汎用レコード検索の一覧に追加表示する固定項目管理
  */
-public with sharing class ObjectRecordSearchDisplayFieldCatalog {
+public with sharing class ObjectRecordSearchFieldCatalog {
 
     private static final Map<String, List<String>> DISPLAY_FIELDS_BY_OBJECT = new Map<String, List<String>>{
         'Account' => new List<String>{

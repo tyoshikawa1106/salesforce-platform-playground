@@ -386,52 +386,6 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
-     * 指定レコードを利用者権限で削除
-     */
-    @IsTest
-    static void shouldDeleteSuppliedRows() {
-        List<Account> deleteTargets = [
-            SELECT Id
-            FROM Account
-            WHERE Name LIKE 'Service%'
-            ORDER BY Name
-        ];
-        List<SObject> recordsToDelete = new List<SObject>();
-        recordsToDelete.addAll(deleteTargets);
-        List<Database.DeleteResult> deleteResults;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            deleteResults = service.deleteRecords(recordsToDelete);
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(2, deleteResults.size(), '指定行ごとの DML 結果を返す必要あり');
-        Assert.isTrue(deleteResults[0].isSuccess(), '1件目を削除する必要あり');
-        Assert.isTrue(deleteResults[1].isSuccess(), '2件目を削除する必要あり');
-    }
-
-    /**
-     * null の削除対象を空の DML 結果へ変換
-     */
-    @IsTest
-    static void shouldReturnEmptyDeleteResultsWhenRowsAreNull() {
-        List<Database.DeleteResult> deleteResults;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            deleteResults = new ObjectRecordSearchService().deleteRecords(null);
-
-            Test.stopTest();
-        }
-
-        Assert.isTrue(deleteResults.isEmpty(), 'null の削除対象では DML を実行しない必要あり');
-    }
-
-    /**
      * DML 失敗結果を利用者向けエラーへ変換
      */
     @IsTest
@@ -446,9 +400,7 @@ private with sharing class ObjectRecordSearchServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            List<Database.DeleteResult> deleteResults = new ObjectRecordSearchService().deleteRecords(
-                new List<SObject>{ target }
-            );
+            List<Database.DeleteResult> deleteResults = Database.delete(new List<SObject>{ target }, false, AccessLevel.USER_MODE);
             result = new ObjectRecordSearchService().createDeleteResult(
                 new List<Id>{ target.Id },
                 deleteResults
