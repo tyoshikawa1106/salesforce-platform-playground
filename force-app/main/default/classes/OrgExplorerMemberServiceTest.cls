@@ -12,6 +12,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void distinguishesEmptyAndUnavailableFields() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             User record = new User(Id = testUser.Id, IsActive = true, Title = '非公開役職', Department = '非公開部署');
@@ -37,6 +38,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void omitsUnreadableMemberFields() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.emailEnabled = false;
@@ -97,6 +99,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void returnsMemberFieldLabelsWithoutQueries() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.usersEnabled = true;
@@ -139,6 +142,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void exposesOnlyVisibleMemberManager() {
+
         System.runAs(testUser) {
             List<User> managers = [SELECT Id, Name FROM User WHERE Id = :testUser.Id];
             Assert.areEqual(1, managers.size(), '上司の参照前提を確認');
@@ -189,6 +193,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void limitsMemberNodesToRequestedPageSize() {
+
         System.runAs(testUser) {
             OrgExplorerMemberService.MemberPageData wrapper = new OrgExplorerMemberService.MemberPageData(
                 new List<User>{ new User(Id = testUser.Id, LastName = '先頭'), new User(LastName = '先読み') },
@@ -208,8 +213,10 @@ private with sharing class OrgExplorerMemberServiceTest {
         }
     }
 
+    /** 参照できない関連先と空カーソルを除外 */
     @IsTest
     static void skipsUnreadableRelationsAndEmptyCursor() {
+
         System.runAs(testUser) {
             List<User> records = [SELECT Id FROM User WHERE Id = :testUser.Id];
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
@@ -231,8 +238,10 @@ private with sharing class OrgExplorerMemberServiceTest {
         }
     }
 
+    /** 可視な上司メンバーのロール名だけを公開 */
     @IsTest
     static void exposesRoleNamesOnlyForVisibleManagerMembers() {
+
         System.runAs(testUser) {
             Id targetId = Id.valueOf(UserRole.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
             User member = new User(Id = testUser.Id, UserRoleId = targetId);
@@ -274,6 +283,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void exposesEmployeeNumbersForBothMemberLists() {
+
         System.runAs(testUser) {
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             access.employeeNumberEnabled = true;
@@ -310,6 +320,7 @@ private with sharing class OrgExplorerMemberServiceTest {
      */
     @IsTest
     static void buildsMemberPageFromSingleCursorRecord() {
+
         System.runAs(testUser) {
             List<User> records = [SELECT Id, Name, IsActive, Email, Title, Department, EmployeeNumber, ProfileId FROM User WHERE Id = :testUser.Id];
             User member = records[0];

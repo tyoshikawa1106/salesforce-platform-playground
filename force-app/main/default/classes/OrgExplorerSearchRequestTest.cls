@@ -6,8 +6,10 @@ private with sharing class OrgExplorerSearchRequestTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 未設定の検索要求を初期化 */
     @IsTest
     static void initializesUnassignedState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerSearchRequest value = new OrgExplorerSearchRequest();

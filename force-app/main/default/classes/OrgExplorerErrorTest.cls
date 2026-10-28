@@ -6,8 +6,10 @@ private with sharing class OrgExplorerErrorTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 未設定のエラーを初期化 */
     @IsTest
     static void initializesUnassignedState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerError value = new OrgExplorerError();

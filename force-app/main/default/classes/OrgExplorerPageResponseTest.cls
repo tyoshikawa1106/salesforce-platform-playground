@@ -6,8 +6,10 @@ private with sharing class OrgExplorerPageResponseTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 未設定のページ応答を初期化 */
     @IsTest
     static void initializesUnassignedState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerPageResponse value = new OrgExplorerPageResponse();
@@ -22,8 +24,10 @@ private with sharing class OrgExplorerPageResponseTest {
         }
     }
 
+    /** 応答間でコレクションを共有しない */
     @IsTest
     static void keepsCollectionsIndependentBetweenResponses() {
+
         System.runAs(testUser) {
             OrgExplorerPageResponse first = new OrgExplorerPageResponse();
             Test.startTest();
@@ -41,8 +45,11 @@ private with sharing class OrgExplorerPageResponseTest {
             Assert.isTrue(second.cardRoles.isEmpty(), '前の応答の所属情報を引き継がない');
         }
     }
+
+    /** ノードの未設定状態を初期化 */
     @IsTest
     static void initializesNodeState() {
+
         System.runAs(testUser) {
             Test.startTest();
             OrgExplorerPageResponse.Node value = new OrgExplorerPageResponse.Node();
