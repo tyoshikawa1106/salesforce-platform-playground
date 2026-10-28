@@ -382,11 +382,11 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectExplorerClassificationService</apexClass>
+        <apexClass>ObjectExplorerClassifyService</apexClass>
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectExplorerClassificationServiceTest</apexClass>
+        <apexClass>ObjectExplorerClassifyServiceTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>

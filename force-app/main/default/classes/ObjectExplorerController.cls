@@ -3,15 +3,15 @@ public with sharing class ObjectExplorerController {
 
     private ObjectExplorerFieldService fieldService = new ObjectExplorerFieldService();
     private ObjectExplorerService structureService = new ObjectExplorerService();
-    private ObjectExplorerClassificationService classificationService = new ObjectExplorerClassificationService();
+    private ObjectExplorerClassifyService classifyService = new ObjectExplorerClassifyService();
     private ObjectExplorerSelector selector = new ObjectExplorerSelector();
     private MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
     private ObjectExplorerOwnerService ownerService = new ObjectExplorerOwnerService();
     private ObjectExplorerOwnerService.CsvOwners csvOwners = new ObjectExplorerOwnerService.CsvOwners();
     private ObjectExplorerAccessPolicy access = new ObjectExplorerAccessPolicy();
     private ObjectExplorerAccessPolicy.RequestValidator requests = new ObjectExplorerAccessPolicy.RequestValidator();
-    private ObjectExplorerClassificationService.Preparation preparation = new ObjectExplorerClassificationService.Preparation();
-    private ObjectExplorerClassificationService.SaveResults results = new ObjectExplorerClassificationService.SaveResults();
+    private ObjectExplorerClassifyService.Preparation preparation = new ObjectExplorerClassifyService.Preparation();
+    private ObjectExplorerClassifyService.SaveResults results = new ObjectExplorerClassifyService.SaveResults();
 
     /**
      * 分類一覧と組織の分類候補を取得
@@ -19,13 +19,13 @@ public with sharing class ObjectExplorerController {
      * @return 項目API名をキーとする分類情報
      */
     @AuraEnabled
-    public static String getClassifications(String objectName) {
+    public static Map<String, Object> getClassifyData(String objectName) {
         // 公開入口から取得順序を持つ同じControllerへ委譲
         ObjectExplorerController controller = new ObjectExplorerController();
-        // 検証済みの一覧だけをシリアライズ
-        Map<String, Object> data = controller.readClassificationView(objectName);
+        // 検証済みの一覧を構造化した応答として保持
+        Map<String, Object> data = controller.readClassifyView(objectName);
         // 内部状態を公開せず画面用の値だけを返却
-        return JSON.serialize(data);
+        return data;
     }
 
     /**
@@ -35,7 +35,7 @@ public with sharing class ObjectExplorerController {
      * @return 成功・失敗・再取得状態
      */
     @AuraEnabled
-    public static String saveClassifications(String objectName, String changesJson) {
+    public static List<Object> saveClassifyData(String objectName, String changesJson) {
         // 公開入口では要求ごとに処理状態を分離
         ObjectExplorerController controller = new ObjectExplorerController();
         // 入力を解釈する前に実効権限を確認
@@ -45,16 +45,16 @@ public with sharing class ObjectExplorerController {
         // 保存対象と結果の順序を同じ処理で管理
         List<Object> results = controller.saveFields(objectName, changes);
         // 確認済みの結果だけを画面へ返却
-        return JSON.serialize(results);
+        return results;
     }
 
     /**
      * 分類の所有者候補をユーザー・公開グループから検索
      * @param term 所有者の表示名検索語
-     * @return 所有者候補のJSON
+     * @return 所有者候補の一覧
      */
     @AuraEnabled
-    public static String searchClassificationOwners(String term) {
+    public static List<Object> searchClassifyOwners(String term) {
         // 所有者の検索も分類変更を許可された利用者に限定
         ObjectExplorerController controller = new ObjectExplorerController();
         // UIの有効状態に依存せず実効権限を確認
@@ -68,16 +68,16 @@ public with sharing class ObjectExplorerController {
         // 候補への変換は同じ所有者のIDと表示名を扱うServiceへ委譲
         List<Object> rows = controller.ownerService.createOwnerChoices(users, groups);
         // 検索結果だけを画面へ返却
-        return JSON.serialize(rows);
+        return rows;
     }
 
     /**
      * CSVの所有者IDを可視なユーザー・公開グループへ照合
      * @param idsJson 18桁の所有者ID配列
-     * @return 同じIDの候補だけを含むJSON
+     * @return 同じIDの候補だけを含む索引
      */
     @AuraEnabled
-    public static String resolveClassificationOwners(String idsJson) {
+    public static Map<String, Object> resolveClassifyOwners(String idsJson) {
         // 通常の分類編集と同じ権限境界を使用
         ObjectExplorerController controller = new ObjectExplorerController();
         // CSV経由でもカスタマイズ権限を必須にする
@@ -91,7 +91,7 @@ public with sharing class ObjectExplorerController {
         // 返却するID・表示名・有効状態は同じ実レコードから生成
         Map<String, Object> owners = controller.csvOwners.createChoices(users, groups);
         // この入口では分類の更新もMetadata API呼出しも行わない
-        return JSON.serialize(owners);
+        return owners;
     }
 
     /**
@@ -99,7 +99,7 @@ public with sharing class ObjectExplorerController {
      * @param objectName Describeで検証する対象
      * @return 可視な分類と組織の選択肢
      */
-    private Map<String, Object> readClassificationView(String objectName) {
+    private Map<String, Object> readClassifyView(String objectName) {
         // 一覧にも機能の利用権限を適用
         this.access.requireAccess();
         // 保存と共通のオブジェクト参照条件を適用
@@ -138,9 +138,9 @@ public with sharing class ObjectExplorerController {
         // API要求には確認済みの正式名だけを使用
         String canonicalName = info.getName();
         // 業務入力の確認は通信開始より前に完了
-        List<ObjectExplorerClassificationService.FieldContext> contexts = this.requests.createFieldContexts(info, changes);
+        List<ObjectExplorerClassifyService.FieldContext> contexts = this.requests.createFieldContexts(info, changes);
         // 一括問い合わせの対象を同じ項目から生成
-        Set<String> names = this.classificationService.getFieldNames(contexts);
+        Set<String> names = this.classifyService.getFieldNames(contexts);
         // 定義はSelectorから未加工で取得
         List<FieldDefinition> definitions = this.selector.selectFieldsByNames(canonicalName, names);
         // 完全な項目識別子との照合はServiceへ委譲
@@ -149,7 +149,7 @@ public with sharing class ObjectExplorerController {
             // 認証先と更新対象組織の一致を要求単位で確認
             this.client.verifyOrganization();
             // 保存前の分類を別API要求で一括取得
-            Map<String, Map<String, Object>> rows = this.client.readClassifications(canonicalName, names);
+            Map<String, Map<String, Object>> rows = this.client.readClassifyData(canonicalName, names);
             // 所有者は現在値と選択値をまとめて取得
             Map<Id, SObject> owners = readOwners(rows, changes);
             // 項目ごとの事前確認失敗を分離
@@ -194,14 +194,14 @@ public with sharing class ObjectExplorerController {
      * @param owners IDで照合済みの所有者
      * @return 項目別の確認結果
      */
-    private List<ObjectExplorerClassificationService.FieldContext> prepareFields(List<ObjectExplorerClassificationService.FieldContext> contexts, Map<String, Map<String, Object>> rows, Map<Id, SObject> owners) {
+    private List<ObjectExplorerClassifyService.FieldContext> prepareFields(List<ObjectExplorerClassifyService.FieldContext> contexts, Map<String, Map<String, Object>> rows, Map<Id, SObject> owners) {
         // 取得前の入力を変更せず次段の状態を生成
-        List<ObjectExplorerClassificationService.FieldContext> prepared = new List<ObjectExplorerClassificationService.FieldContext>();
+        List<ObjectExplorerClassifyService.FieldContext> prepared = new List<ObjectExplorerClassifyService.FieldContext>();
         // 一項目の失敗で他の入力を破棄しない
-        for (ObjectExplorerClassificationService.FieldContext source : contexts) {
+        for (ObjectExplorerClassifyService.FieldContext source : contexts) {
             try {
                 // 同じ項目の現在値と編集基準を照合
-                ObjectExplorerClassificationService.FieldContext context = this.preparation.prepareField(source, rows.get(source.fieldName), owners);
+                ObjectExplorerClassifyService.FieldContext context = this.preparation.prepareField(source, rows.get(source.fieldName), owners);
                 // カスタム定義だけは他属性を保持するため追加取得
                 if (context.customField) {
                     // 通信はControllerの処理順序に残す
@@ -213,7 +213,7 @@ public with sharing class ObjectExplorerController {
                 prepared.add(context);
             } catch (Exception error) {
                 // 事前確認の失敗は未送信のまま保持
-                ObjectExplorerClassificationService.FieldContext failed = this.results.failField(source, error);
+                ObjectExplorerClassifyService.FieldContext failed = this.results.failField(source, error);
                 // 入力順で同じ対象の失敗状態を追加
                 prepared.add(failed);
             }
@@ -227,11 +227,11 @@ public with sharing class ObjectExplorerController {
      * @param contexts 事前確認結果
      * @return 送信状態と個別拒否を反映した結果
      */
-    private List<ObjectExplorerClassificationService.FieldContext> updateFields(List<ObjectExplorerClassificationService.FieldContext> contexts) {
+    private List<ObjectExplorerClassifyService.FieldContext> updateFields(List<ObjectExplorerClassifyService.FieldContext> contexts) {
         // カスタム更新の例外を一項目ずつ捕捉
         for (Integer index = 0; index < contexts.size(); index++) {
             // 更新要否はServiceが確定した結果を使用
-            ObjectExplorerClassificationService.FieldContext context = contexts[index];
+            ObjectExplorerClassifyService.FieldContext context = contexts[index];
             // 標準項目と失敗済み・変更不要の項目は個別通信しない
             if (context.completed || context.original == context.expected || !context.customField) { continue; }
             // 送信後の確認不能と明示拒否を区別
@@ -253,9 +253,9 @@ public with sharing class ObjectExplorerController {
      * @param contexts 事前確認とカスタム更新の結果
      * @return 標準項目の送信状態を反映した結果
      */
-    private List<ObjectExplorerClassificationService.FieldContext> updateStandardFields(List<ObjectExplorerClassificationService.FieldContext> contexts) {
+    private List<ObjectExplorerClassifyService.FieldContext> updateStandardFields(List<ObjectExplorerClassifyService.FieldContext> contexts) {
         // 標準項目はまとめて同じ要求へ送信
-        Map<String, ObjectExplorerClassificationService.FieldContext> standard = this.results.selectStandardUpdates(contexts);
+        Map<String, ObjectExplorerClassifyService.FieldContext> standard = this.results.selectStandardUpdates(contexts);
         // 変更がないときはSOAP要求を省略
         if (standard.isEmpty()) { return contexts; }
         // HTTPクライアントに渡す定義だけを抽出
@@ -271,14 +271,14 @@ public with sharing class ObjectExplorerController {
             // 接続クライアントで応答の件数と完全名を検証
             Map<String, String> results = this.client.updateStandardFields(fields);
             // 明示的に拒否された対象だけを失敗へ変更
-            List<ObjectExplorerClassificationService.FieldContext> updated = this.results.applyStandardResults(contexts, results);
+            List<ObjectExplorerClassifyService.FieldContext> updated = this.results.applyStandardResults(contexts, results);
             // 結果照合済みの状態だけを次段へ渡す
             return updated;
         } catch (Exception error) {
             // カスタム項目の結果へ標準項目の通信失敗を混在させない
             for (Integer index = 0; index < contexts.size(); index++) {
                 // 今回送信した標準項目だけを選択
-                ObjectExplorerClassificationService.FieldContext context = contexts[index];
+                ObjectExplorerClassifyService.FieldContext context = contexts[index];
                 // 確認済みの失敗やカスタム項目を保持
                 if (!context.completed && context.original != context.expected && !context.customField) { contexts[index] = this.results.failField(context, error); }
             }
@@ -293,19 +293,19 @@ public with sharing class ObjectExplorerController {
      * @param contexts 保存対象
      * @return 保存後の確認結果
      */
-    private List<ObjectExplorerClassificationService.FieldContext> verifyFields(String objectName, List<ObjectExplorerClassificationService.FieldContext> contexts) {
+    private List<ObjectExplorerClassifyService.FieldContext> verifyFields(String objectName, List<ObjectExplorerClassifyService.FieldContext> contexts) {
         // 個別拒否済みの対象を成功へ戻さない
         Set<String> names = this.results.getVerificationNames(contexts);
         // 全項目が失敗確定なら追加通信しない
         if (names.isEmpty()) { return contexts; }
         // ネイティブIDを含む最新分類を別APIで確認
-        Map<String, Map<String, Object>> rows = this.client.readClassifications(objectName, names);
+        Map<String, Map<String, Object>> rows = this.client.readClassifyData(objectName, names);
         // 保存後の所有者も新しいID集合で取得
         Map<Id, SObject> owners = readOwners(rows, new List<Object>());
         // 元の入力順で同じ対象だけを確認
         for (Integer index = 0; index < contexts.size(); index++) {
             // 確認済み項目の結果は上書きしない
-            ObjectExplorerClassificationService.FieldContext context = contexts[index];
+            ObjectExplorerClassifyService.FieldContext context = contexts[index];
             // 再取得が不要な対象を除外
             if (context.completed) { continue; }
             try {
@@ -334,16 +334,16 @@ public with sharing class ObjectExplorerController {
      * 参照可能なオブジェクトをラベルとAPI名で検索
      * @param term 部分一致の検索語
      * @param scope standard、customの検索範囲
-     * @return 候補一覧のJSON
+     * @return 候補の一覧
      */
     @AuraEnabled
-    public static String searchObjects(String term, String scope) {
+    public static List<Map<String, Object>> searchObjects(String term, String scope) {
         // 公開入口のstaticを下位の業務処理へ持ち込まない
         ObjectExplorerController controller = new ObjectExplorerController();
         // 検索条件と参照可否を同じServiceで確認
         List<Map<String, Object>> rows = controller.structureService.searchObjects(term, scope);
         // 候補だけを画面へ返却
-        return JSON.serialize(rows);
+        return rows;
     }
 
     /**
@@ -352,7 +352,7 @@ public with sharing class ObjectExplorerController {
      * @return 可視な項目API名ごとの日時とユーザー名
      */
     @AuraEnabled
-    public static String getFieldAudit(String objectName) {
+    public static Map<String, Object> getFieldAudit(String objectName) {
         // 日時専用Serviceとネイティブ定義を同じ要求で使用
         ObjectExplorerController controller = new ObjectExplorerController();
         // 構造探索と日時情報の対応付けを分離
@@ -393,17 +393,17 @@ public with sharing class ObjectExplorerController {
         // 同じ項目の日時と可視な人物だけを表示モデルへ変換
         Map<String, Object> result = service.createAuditView(targets, records, users);
         // 検証済みの可視項目だけを返却
-        return JSON.serialize(result);
+        return result;
     }
 
     /**
      * 起点の項目と直接の参照関係を取得
      * @param objectName Describeで検証する起点API名
-     * @param mode referenceは関連探索を含め、classification・fieldsは項目のみ取得。nullはreference
-     * @return オブジェクト概要・項目・関連のJSON
+     * @param mode referenceは関連探索を含め、classify・fieldsは項目のみ取得。nullはreference
+     * @return オブジェクト概要・項目・関連のMap
      */
     @AuraEnabled
-    public static String getObjectInfo(String objectName, String mode) {
+    public static Map<String, Object> getObjectInfo(String objectName, String mode) {
         // ServiceとSelectorを同じ要求内で使用
         ObjectExplorerController controller = new ObjectExplorerController();
         // オブジェクトと項目の参照可否をDescribeで検証
@@ -413,6 +413,6 @@ public with sharing class ObjectExplorerController {
         // API用の型と表示用の表記を分離
         Map<String, Object> result = controller.fieldService.createFieldTypeView(data, types);
         // 表示モデルだけを画面へ返却
-        return JSON.serialize(result);
+        return result;
     }
 }

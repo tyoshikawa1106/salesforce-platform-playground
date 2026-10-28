@@ -10,11 +10,12 @@
 
 ## 対象実装・メタデータ
 
-- `objectExplorer` LWCと同BundleのLogic・HTML・CSS
+- `objectExplorer` LWCと同BundleのLogic・CSV・分類入力・項目整形モジュール、HTML・CSS
+- `objectExplorerLookup` LWC（対象候補の表示と値だけの操作通知）
 - `ObjectExplorerController`、`ObjectExplorerService`、`ObjectExplorerFieldService`、`ObjectExplorerSelector`
 - `ObjectExplorer`タブ、`Salesforce`アプリ、`SalesforceApplicationUser`権限セット
 - `MetadataApiIntegration`外部クライアントアプリケーションとOAuth設定
-- `ObjectExplorerClassificationService`、`ObjectExplorerOwnerService`、`ObjectExplorerAccessPolicy`、`MetadataApiIntegrationClient`、`MetadataApiSoapCodec`
+- `ObjectExplorerClassifyService`、`ObjectExplorerOwnerService`、`ObjectExplorerAccessPolicy`、`MetadataApiIntegrationClient`、`MetadataApiSoapCodec`
 - `ManageObjectFieldClassification`カスタム権限、`LwcObjectExplorer`権限セット
 - Scratch Org再構築manifest
 
@@ -38,7 +39,7 @@ Schema Describeで取得し、オブジェクト・項目の参照可否を確�
 
 ## 権限・実行条件
 
-`LwcObjectExplorer`からタブと両Controllerの実行を許可します。共通アプリのアクセスは`SalesforceApplicationUser`で提供します。Describeの参照可否を超えた構造情報は返しません。ユーザーが参照可能な通常オブジェクトを候補にします。
+`LwcObjectExplorer`からタブとControllerの実行を許可します。共通アプリのアクセスは`SalesforceApplicationUser`で提供します。Describeの参照可否を超えた構造情報は返しません。ユーザーが参照可能な通常オブジェクトを候補にします。
 
 ## エラー処理
 
@@ -124,7 +125,7 @@ CSVはUTF-8（BOMあり・なし）を使用し、5MiB以下、データ10000行
 
 ファイルの読取・形式検証はブラウザ内で行い、Salesforce FilesなどへCSV自体を保存しません。CSV操作はデータ型・項目ラベル／API名の共通検索と同じ行の右側に配置し、ファイルの上限・空欄・複数分類・所有者IDの説明は「CSVインポート」ラベルの隣のヘルプアイコンへまとめます。
 
-新しく指定した所有者IDは`ObjectExplorerController.resolveClassificationOwners`から、既存SelectorのID条件・利用者権限・公開グループ条件を用いて最大500件ずつ順番に取得します。一つでも照合できないバッチがあれば入力へ反映しません。サーバーの一要求上限はCSV全体の行数とは分離します。`ObjectExplorerOwnerService.CsvOwners`が要求の形式・件数と候補表示を担当し、同じレコードのID・表示名・有効状態を返します。新規の無効ユーザー指定、取得できないID、要求と異なるIDの応答は反映しません。CSV取り込みでも分類編集と同じ機能権限・オブジェクトのカスタマイズ権限を必須にします。
+新しく指定した所有者IDは`ObjectExplorerController.resolveClassifyOwners`から、既存SelectorのID条件・利用者権限・公開グループ条件を用いて最大500件ずつ順番に取得します。一つでも照合できないバッチがあれば入力へ反映しません。サーバーの一要求上限はCSV全体の行数とは分離します。`ObjectExplorerOwnerService.CsvOwners`が要求の形式・件数と候補表示を担当し、同じレコードのID・表示名・有効状態を返します。新規の無効ユーザー指定、取得できないID、要求と異なるIDの応答は反映しません。CSV取り込みでも分類編集と同じ機能権限・オブジェクトのカスタマイズ権限を必須にします。
 
 全行の検証が完了するまで、一件も既存の入力を変更しません。エラーはCSVレコード番号と理由を一覧表示します。既存の未保存入力がある場合は、CSV対象項目の入力を置き換える前に確認します。対象変更・画面終了前のファイル読取や所有者取得応答は採用しません。
 
@@ -173,27 +174,27 @@ ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、�
 
 両モードの項目一覧はデータ型の右に「カスタム」列を設け、DescribeのisCustom()の値を無効化した参照専用チェックボックスで表示します。項目API名の末尾からは推測しません。構造CSVは同じ位置にカスタム列を追加し、チェックありを「True」、なしを「false」で出力します。分類CSVの入力用列は維持します。
 
-CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`または`オブジェクトAPI名-classification-YYYYMMDDHHmmss.csv`とします。日時は確認ダイアログでOKを選択した後の出力時点を、Salesforce利用者のタイムゾーンで秒単位まで使用します。
+CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`または`オブジェクトAPI名-classify-YYYYMMDDHHmmss.csv`とします。日時は確認ダイアログでOKを選択した後の出力時点を、Salesforce利用者のタイムゾーンで秒単位まで使用します。
 
 ## クラス構成
 
-公開入口は`ObjectExplorerController`に集約します。照会は`ObjectExplorerSelector`、表示と業務判定はステートレスなServiceで扱い、Controllerで処理順序を追える構成とします。
+公開入口は構造・分類の参照と分類保存を一つの`ObjectExplorerController`へ集約します。照会は`ObjectExplorerSelector`、表示と業務判定はステートレスなServiceで扱い、Controllerで処理順序を追える構成とします。
 
-| クラス                                | 責務                                                           |
-| ------------------------------------- | -------------------------------------------------------------- |
-| `ObjectExplorerController`            | 構造・分類・所有者の公開操作、権限確認、照会・通信・保存の順序 |
-| `ObjectExplorerService`               | 対象候補と直接関連の構造モデル                                 |
-| `ObjectExplorerFieldService`          | 項目の型表記・分類一覧・作成更新情報と可視Userの対応付け       |
-| `ObjectExplorerSelector`              | 項目定義・User・Group・実効権限をUSER_MODEで照会               |
-| `ObjectExplorerClassificationService` | 分類編集の基準値・競合判定・更新値・項目別結果                 |
-| `ObjectExplorerAccessPolicy`          | 機能権限・カスタマイズ権限・項目編集可否とJSON入力契約         |
-| `ObjectExplorerOwnerService`          | 所有者候補・ID照合・Metadata API用の所有者参照値               |
-| `MetadataApiIntegrationClient`        | Named CredentialによるHTTP通信と同一組織確認                   |
-| `MetadataApiSoapCodec`                | SOAP XML生成と項目完全名による応答照合                         |
+| クラス                          | 責務                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------- |
+| `ObjectExplorerController`      | 対象候補・構造・分類・所有者・項目型・作成更新情報の取得と分類保存の処理順序 |
+| `ObjectExplorerService`         | 対象候補と直接関連の構造モデル                                               |
+| `ObjectExplorerFieldService`    | 項目の型表記・分類一覧・作成更新情報と可視Userの対応付け                     |
+| `ObjectExplorerSelector`        | 項目定義・User・Group・実効権限をUSER_MODEで照会                             |
+| `ObjectExplorerClassifyService` | 分類編集の基準値・競合判定・更新値・項目別結果                               |
+| `ObjectExplorerAccessPolicy`    | 機能権限・カスタマイズ権限・項目編集可否                                     |
+| `ObjectExplorerOwnerService`    | 所有者候補・ID照合・Metadata API用の所有者参照値                             |
+| `MetadataApiIntegrationClient`  | Named CredentialによるHTTP通信と同一組織確認                                 |
+| `MetadataApiSoapCodec`          | SOAP XML生成と項目完全名による応答照合                                       |
 
 作成・最終更新の日時は同じ組織のTooling APIから取得し、人物名とリンクは実行ユーザーが参照できるUserのID・Nameだけから生成します。不可視の人物は名前・IDを返さず日時だけを表示します。保存要求・CSV所有者要求は入力サイズ・JSON配列形式を共通の境界で確認し、JSON解析の詳細や入力本文を例外へ含めません。桁数・必須・参照先の廃止済み表示専用値は返却しません。
 
-オブジェクト詳細の取得要求には表示モードを渡します。`reference`は項目と直接参照関係を取得し、`classification`とカード選択用の`fields`は項目だけを取得して参照元・参照先の探索とモデル生成を省略します。モード省略時は構造表示と同じ範囲にし、不明なモードは拒否します。項目の参照可否と型表示は各取得範囲で共通です。カード選択時も作成・更新情報は取得し、「このオブジェクトを中心に表示」では関連情報を改めて取得します。
+オブジェクト詳細の取得要求には表示モードを渡します。`reference`は項目と直接参照関係を取得し、`classify`とカード選択用の`fields`は項目だけを取得して参照元・参照先の探索とモデル生成を省略します。モード省略時は構造表示と同じ範囲にし、不明なモードは拒否します。項目の参照可否と型表示は各取得範囲で共通です。カード選択時も作成・更新情報は取得し、「このオブジェクトを中心に表示」では関連情報を改めて取得します。
 
 保存結果の反映では、編集状態と保存済み分類の全体コピーをバッチごとに一度だけ作ります。API名・所有者IDを行ごとに照合し、全結果の検証が終わった場合だけ返却します。途中の照合エラーでは元の状態を変更しません。
 
@@ -207,6 +208,12 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 分類を閲覧できるユーザーは、オブジェクトのカスタマイズ権限がなくてもCSVをダウンロードできます。CSVインポートと保存は同権限を引き続き必須とします。所有者検索の失敗時は検索済み状態を解除し、入力値を変えずにクリックで再試行できます。古い要求の失敗では現在の候補を閉じません。
 
-対象オブジェクトの読み込み中状態と分類の初期化は`loadRoot`が管理し、分類取得の成否によらず同じ終了処理で操作を再開します。`loadClassifications`は分類取得と結果・エラー表示を担当します。保存確認前に送信内容を固定し、確認中から保存終了まで編集を禁止します。確認後は対象の有効性を確認して固定済みの内容を送信し、同じ編集内容の再生成・JSON比較は行いません。
+対象オブジェクトの読み込み中状態と分類の初期化は`loadRoot`が管理し、分類取得の成否によらず同じ終了処理で操作を再開します。`loadClassifyData`は分類取得と結果・エラー表示を担当します。保存確認前に送信内容を固定し、確認中から保存終了まで編集を禁止します。確認後は対象の有効性を確認して固定済みの内容を送信し、同じ編集内容の再生成・JSON比較は行いません。
 
 作成者・最終更新者の関連はApexで項目名を判別した時点で除外し、参照先・相手オブジェクトの追加Describeと関連モデルの生成・集約・転送を省略します。標準項目の`CreatedById`と`LastModifiedById`だけが対象で、所有者と業務上のユーザー参照は維持します。項目一覧の監査項目と作成・更新情報は従来どおり取得します。LWCでは監査関連の再除外を行わず、参照元の通常参照・多態参照を切り替えます。
+
+構造と分類一覧はServiceが組み立てたMapを直接返し、属性を持ち直すためだけのWrapperは設けません。候補・日時・保存結果は構造化したListまたはMapを返し、LWCはJSON文字列の再解析を行いません。保存要求とCSV所有者要求のJSON配列は`ObjectExplorerAccessPolicy`が大きさ・構文・型を検証し、編集行の属性・対象項目・項目定義の完全IDは、既存の`ObjectExplorerAccessPolicy.RequestValidator`が確認します。分類候補のDescribeと既存値保持・選択値検証は既存の`ObjectExplorerAccessPolicy`が担当します。
+
+分類の公開参照と保存には、権限セット`LwcObjectExplorer`から各入口クラスへの実行権限を付与します。内部Service・Codec・Wrapperへの個別の実行権限は追加しません。入力・権限の案内とAPI接続のエラーは、既存のAccessPolicy・Clientの境界で処理します。
+
+対象ルックアップは`objectExplorerLookup`がSLDS表示、フォーカスとスクロールのDOM操作を担当します。親は対象候補の照会・要求世代・選択後の画面遷移を管理し、子との受け渡しには候補のAPI名と座標などの値だけを使用します。CSVの解析・反映は`objectExplorerCsv.js`、分類入力の検証は`objectExplorerClassifyLogic.js`、項目型と日時の整形は`objectExplorerFieldLogic.js`に置き、`objectExplorerLogic.js`が画面単位の表示・変更・保存結果を組み立てます。

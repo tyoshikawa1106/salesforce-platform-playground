@@ -1,9 +1,9 @@
 /** 分類の競合検出・更新準備・保存結果 */
 @IsTest
-private with sharing class ObjectExplorerClassificationServiceTest {
-    private static ObjectExplorerClassificationService service = new ObjectExplorerClassificationService();
-    private static ObjectExplorerClassificationService.Preparation preparation = new ObjectExplorerClassificationService.Preparation();
-    private static ObjectExplorerClassificationService.SaveResults results = new ObjectExplorerClassificationService.SaveResults();
+private with sharing class ObjectExplorerClassifyServiceTest {
+    private static ObjectExplorerClassifyService service = new ObjectExplorerClassifyService();
+    private static ObjectExplorerClassifyService.Preparation preparation = new ObjectExplorerClassifyService.Preparation();
+    private static ObjectExplorerClassifyService.SaveResults results = new ObjectExplorerClassifyService.SaveResults();
 
     private static User testUser = TestDataFactory.getTestUser();
 
@@ -12,10 +12,10 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     static void keepsSuccessfulResultsPendingVerification() {
         System.runAs(testUser) {
             Test.startTest();
-            ObjectExplorerClassificationService.FieldContext source = context(false);
+            ObjectExplorerClassifyService.FieldContext source = context(false);
             source.sent = true;
-            List<ObjectExplorerClassificationService.FieldContext> updated = results.applyStandardResults(
-                new List<ObjectExplorerClassificationService.FieldContext>{ source },
+            List<ObjectExplorerClassifyService.FieldContext> updated = results.applyStandardResults(
+                new List<ObjectExplorerClassifyService.FieldContext>{ source },
                 new Map<String, String>{ 'Account.Name' => '' }
             );
             Assert.areEqual(false, updated[0].completed, '送信成功だけで保存完了にしない');
@@ -47,7 +47,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     }
     /** 編集中の分類変更を拒否 */
     @IsTest
-    static void rejectsConcurrentClassification() {
+    static void rejectsConcurrentClassify() {
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> original = service.snapshot(new Map<String, Object>());
@@ -83,8 +83,8 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     static void preparesAndVerifiesStandardField() {
         System.runAs(testUser) {
             Test.startTest();
-            ObjectExplorerClassificationService.FieldContext source = context(false);
-            ObjectExplorerClassificationService.FieldContext prepared = preparation.prepareField(
+            ObjectExplorerClassifyService.FieldContext source = context(false);
+            ObjectExplorerClassifyService.FieldContext prepared = preparation.prepareField(
                 source,
                 nativeRow(),
                 new Map<Id, SObject>()
@@ -92,7 +92,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
             Assert.areEqual('Account.Name', prepared.metadata.get('fullName'), '標準項目の完全名を固定');
             Assert.areEqual('', prepared.expected.get('complianceGroup'), '未設定を保持');
             Assert.isTrue(source.metadata.isEmpty(), '入力状態を変更しない');
-            ObjectExplorerClassificationService.FieldContext verified = preparation.verifyField(
+            ObjectExplorerClassifyService.FieldContext verified = preparation.verifyField(
                 prepared,
                 nativeRow(),
                 new Map<Id, SObject>()
@@ -101,7 +101,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
             Assert.isFalse(prepared.completed, '前段の状態を変更しない');
             Assert.areEqual(
                 new Set<String>{ 'Name' },
-                service.getFieldNames(new List<ObjectExplorerClassificationService.FieldContext>{ source }),
+                service.getFieldNames(new List<ObjectExplorerClassifyService.FieldContext>{ source }),
                 '取得対象は項目名で集約'
             );
             Test.stopTest();
@@ -112,7 +112,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     static void preservesCustomDefinition() {
         System.runAs(testUser) {
             Test.startTest();
-            ObjectExplorerClassificationService.FieldContext prepared = preparation.prepareField(
+            ObjectExplorerClassifyService.FieldContext prepared = preparation.prepareField(
                 context(true),
                 nativeRow(),
                 new Map<Id, SObject>()
@@ -122,7 +122,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
                 'label' => '維持',
                 'length' => 80
             };
-            ObjectExplorerClassificationService.FieldContext custom = preparation.prepareCustomField(
+            ObjectExplorerClassifyService.FieldContext custom = preparation.prepareCustomField(
                 prepared,
                 new Map<String, Object>{ 'FullName' => 'Account.Name', 'Metadata' => metadata }
             );
@@ -152,7 +152,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     static void rejectsChangedOwner() {
         System.runAs(testUser) {
             Test.startTest();
-            ObjectExplorerClassificationService.FieldContext source = context(false);
+            ObjectExplorerClassifyService.FieldContext source = context(false);
             ((Map<String, Object>) source.change.get('original')).put('ownerId', String.valueOf(testUser.Id));
             try {
                 preparation.prepareField(source, nativeRow(), new Map<Id, SObject>());
@@ -168,7 +168,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     static void rejectsVerificationMismatch() {
         System.runAs(testUser) {
             Test.startTest();
-            ObjectExplorerClassificationService.FieldContext source = preparation.prepareField(
+            ObjectExplorerClassifyService.FieldContext source = preparation.prepareField(
                 context(false),
                 nativeRow(),
                 new Map<Id, SObject>()
@@ -189,30 +189,30 @@ private with sharing class ObjectExplorerClassificationServiceTest {
     static void keepsPartialResultsAndSafeErrors() {
         System.runAs(testUser) {
             Test.startTest();
-            ObjectExplorerClassificationService.FieldContext pending = context(false);
+            ObjectExplorerClassifyService.FieldContext pending = context(false);
             pending.original.put('complianceGroup', '');
             pending.expected.put('complianceGroup', 'PII');
             pending.sent = true;
             Assert.areEqual(
                 new Set<String>{ 'Account.Name' },
-                results.selectStandardUpdates(new List<ObjectExplorerClassificationService.FieldContext>{ pending })
+                results.selectStandardUpdates(new List<ObjectExplorerClassifyService.FieldContext>{ pending })
                     .keySet(),
                 '標準の変更行だけ選ぶ'
             );
-            List<ObjectExplorerClassificationService.FieldContext> rejected = results.applyStandardResults(
-                new List<ObjectExplorerClassificationService.FieldContext>{ pending },
+            List<ObjectExplorerClassifyService.FieldContext> rejected = results.applyStandardResults(
+                new List<ObjectExplorerClassifyService.FieldContext>{ pending },
                 new Map<String, String>{ 'Account.Name' => '拒否' }
             );
             Assert.areEqual('拒否', rejected[0].result.get('message'), '明示拒否は確認不能と区別');
             Assert.isFalse(pending.completed, '元の状態を変更しない');
-            List<ObjectExplorerClassificationService.FieldContext> unchanged = results.failPendingFields(
+            List<ObjectExplorerClassifyService.FieldContext> unchanged = results.failPendingFields(
                 rejected,
                 new MetadataApiIntegrationClient.IntegrationException('後続失敗')
             );
             Assert.areEqual('拒否', unchanged[0].result.get('message'), '確定済み結果を上書きしない');
             Assert.isTrue(results.getVerificationNames(unchanged).isEmpty(), '確定行を再取得しない');
             Assert.areEqual(1, results.createSaveResults(unchanged).size(), '入力順の結果を返す');
-            ObjectExplorerClassificationService.FieldContext unknown = results.failField(
+            ObjectExplorerClassifyService.FieldContext unknown = results.failField(
                 pending,
                 new IllegalArgumentException('内部情報')
             );
@@ -227,7 +227,7 @@ private with sharing class ObjectExplorerClassificationServiceTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                results.createSaveResults(new List<ObjectExplorerClassificationService.FieldContext>{ context(false) });
+                results.createSaveResults(new List<ObjectExplorerClassifyService.FieldContext>{ context(false) });
                 Assert.fail('未確定を成功扱いしない');
             } catch (MetadataApiIntegrationClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('確認'), '未確定を通知');
@@ -243,8 +243,8 @@ private with sharing class ObjectExplorerClassificationServiceTest {
             'ownerId' => ''
         };
     }
-    private static ObjectExplorerClassificationService.FieldContext context(Boolean custom) {
-        ObjectExplorerClassificationService.FieldContext value = new ObjectExplorerClassificationService.FieldContext();
+    private static ObjectExplorerClassifyService.FieldContext context(Boolean custom) {
+        ObjectExplorerClassifyService.FieldContext value = new ObjectExplorerClassifyService.FieldContext();
         value.objectName = 'Account';
         value.fieldName = 'Name';
         value.customField = custom;

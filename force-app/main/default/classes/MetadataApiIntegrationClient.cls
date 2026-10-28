@@ -121,7 +121,7 @@ public with sharing class MetadataApiIntegrationClient {
      * @param fieldNames 検証済み項目名、最大10件
      * @return 項目API名で一意に照合した応答
      */
-    public Map<String, Map<String, Object>> readClassifications(String objectName, Set<String> fieldNames) {
+    public Map<String, Map<String, Object>> readClassifyData(String objectName, Set<String> fieldNames) {
         if (fieldNames.isEmpty() || fieldNames.size() > 10) { throw new IntegrationException('分類の取得は1～10項目で指定してください。'); }
         List<String> names = new List<String>();
         for (String name : fieldNames) { requireFullName(objectName + '.' + name); names.add('\'' + name + '\''); }
@@ -129,7 +129,7 @@ public with sharing class MetadataApiIntegrationClient {
             + String.escapeSingleQuotes(objectName) + '\' AND QualifiedApiName IN (' + String.join(names, ',') + ')';
         Map<String, Object> response = request('query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'), 'GET', null);
         // 件数・属性・項目名の照合を通信処理から分離
-        return new RecordReader().readClassifications(response, fieldNames);
+        return new RecordReader().readClassifyData(response, fieldNames);
     }
 
     /**
@@ -187,10 +187,10 @@ public with sharing class MetadataApiIntegrationClient {
          * @param fieldNames 取得を要求した項目API名
          * @return 件数・属性・項目名を確認した分類
          */
-        public Map<String, Map<String, Object>> readClassifications(Map<String, Object> response, Set<String> fieldNames) {
+        public Map<String, Map<String, Object>> readClassifyData(Map<String, Object> response, Set<String> fieldNames) {
             List<Object> records = (List<Object>)response.get('records');
             if (records?.size() != fieldNames.size() || response.get('done') != true) { throw new IntegrationException('分類の取得結果に不足があります。'); }
-            return indexClassifications(records, fieldNames);
+            return indexClassifyData(records, fieldNames);
         }
 
         /**
@@ -199,7 +199,7 @@ public with sharing class MetadataApiIntegrationClient {
          * @param fieldNames 期待する項目名
          * @return 項目API名の索引
          */
-        private Map<String, Map<String, Object>> indexClassifications(List<Object> records, Set<String> fieldNames) {
+        private Map<String, Map<String, Object>> indexClassifyData(List<Object> records, Set<String> fieldNames) {
             Map<String, Map<String, Object>> rows = new Map<String, Map<String, Object>>();
             Set<String> required = new Set<String>{'DurableId', 'QualifiedApiName', 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus', 'BusinessOwnerId'};
             for (Object item : records) {

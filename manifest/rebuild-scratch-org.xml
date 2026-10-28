@@ -149,8 +149,8 @@
         <members>ObjectExplorerControllerTest</members>
         <members>ObjectExplorerSelector</members>
         <members>ObjectExplorerSelectorTest</members>
-        <members>ObjectExplorerClassificationService</members>
-        <members>ObjectExplorerClassificationServiceTest</members>
+        <members>ObjectExplorerClassifyService</members>
+        <members>ObjectExplorerClassifyServiceTest</members>
         <members>ObjectExplorerOwnerService</members>
         <members>ObjectExplorerOwnerServiceTest</members>
         <members>ObjectExplorerAccessPolicy</members>
@@ -895,6 +895,7 @@
         <members>orgExplorerDetails</members>
         <members>orgExplorerSearch</members>
         <members>objectExplorer</members>
+        <members>objectExplorerLookup</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>

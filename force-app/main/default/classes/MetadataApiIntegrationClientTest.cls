@@ -8,13 +8,13 @@ private with sharing class MetadataApiIntegrationClientTest {
 
     /** 組織照合と分類クエリの接続 */
     @IsTest
-    static void readsOrganizationAndClassifications() {
+    static void readsOrganizationAndClassifyData() {
         System.runAs(testUser) {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new ResponseMock('organization'));
             client.verifyOrganization();
-            Test.setMock(HttpCalloutMock.class, new ResponseMock('classification'));
-            Map<String, Map<String, Object>> rows = client.readClassifications('Account', new Set<String>{ 'Name' });
+            Test.setMock(HttpCalloutMock.class, new ResponseMock('classify'));
+            Map<String, Map<String, Object>> rows = client.readClassifyData('Account', new Set<String>{ 'Name' });
             Assert.areEqual('Account.Name', rows.get('Name').get('DurableId'), '要求した定義を同じ名前へ返す');
             Test.stopTest();
         }
@@ -112,13 +112,13 @@ private with sharing class MetadataApiIntegrationClientTest {
                 }
             }
             try {
-                client.readClassifications('Account', new Set<String>());
+                client.readClassifyData('Account', new Set<String>());
                 Assert.fail('空件数を拒否');
             } catch (MetadataApiIntegrationClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('1～10'), '件数制限を通知');
             }
             try {
-                client.readClassifications('Account', new Set<String>{ 'Name/invalid' });
+                client.readClassifyData('Account', new Set<String>{ 'Name/invalid' });
                 Assert.fail('識別子以外を拒否');
             } catch (MetadataApiIntegrationClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('不正'), 'クエリ断片を拒否');
@@ -132,13 +132,13 @@ private with sharing class MetadataApiIntegrationClientTest {
     static void rejectsIncompleteAndMismatchedRows() {
         System.runAs(testUser) {
             Test.startTest();
-            Map<String, Object> row = classificationRow();
+            Map<String, Object> row = classifyRow();
             Map<String, Object> response = new Map<String, Object>{
                 'done' => false,
                 'records' => new List<Object>{ row }
             };
             try {
-                reader.readClassifications(response, new Set<String>{ 'Name' });
+                reader.readClassifyData(response, new Set<String>{ 'Name' });
                 Assert.fail('未完了を拒否');
             } catch (MetadataApiIntegrationClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('不足'), '未完了を通知');
@@ -146,14 +146,14 @@ private with sharing class MetadataApiIntegrationClientTest {
             response.put('done', true);
             row.remove('BusinessOwnerId');
             try {
-                reader.readClassifications(response, new Set<String>{ 'Name' });
+                reader.readClassifyData(response, new Set<String>{ 'Name' });
                 Assert.fail('属性欠落を拒否');
             } catch (MetadataApiIntegrationClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('属性'), '欠落を通知');
             }
-            response.put('records', new List<Object>{ classificationRow(), classificationRow() });
+            response.put('records', new List<Object>{ classifyRow(), classifyRow() });
             try {
-                reader.readClassifications(response, new Set<String>{ 'Name', 'Phone' });
+                reader.readClassifyData(response, new Set<String>{ 'Name', 'Phone' });
                 Assert.fail('重複行を拒否');
             } catch (MetadataApiIntegrationClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('一致'), '重複を通知');
@@ -192,7 +192,7 @@ private with sharing class MetadataApiIntegrationClientTest {
      * 分類応答の必須属性を用意
      * @return 未設定の分類応答
      */
-    private static Map<String, Object> classificationRow() {
+    private static Map<String, Object> classifyRow() {
         return new Map<String, Object>{
             'DurableId' => 'Account.Name',
             'QualifiedApiName' => 'Name',
@@ -226,7 +226,7 @@ private with sharing class MetadataApiIntegrationClientTest {
             );
             HttpResponse response = new HttpResponse();
             response.setStatusCode(200);
-            if (new Set<String>{ 'organization', 'classification', 'customRead' }.contains(scenario)) {
+            if (new Set<String>{ 'organization', 'classify', 'customRead' }.contains(scenario)) {
                 respondRead(request, response);
             } else {
                 respondWrite(request, response);
@@ -254,7 +254,7 @@ private with sharing class MetadataApiIntegrationClientTest {
                         }
                     )
                 );
-            } else if (scenario == 'classification') {
+            } else if (scenario == 'classify') {
                 String query = EncodingUtil.urlDecode(request.getEndpoint().substringAfter('?q='), 'UTF-8');
                 Assert.isTrue(
                     query.contains('EntityDefinition.QualifiedApiName = \'Account\''),
@@ -263,7 +263,7 @@ private with sharing class MetadataApiIntegrationClientTest {
                 Assert.isTrue(query.contains('QualifiedApiName IN (\'Name\')'), '対象項目を限定');
                 response.setBody(
                     JSON.serialize(
-                        new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ classificationRow() } }
+                        new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ classifyRow() } }
                     )
                 );
             } else if (scenario == 'customRead') {

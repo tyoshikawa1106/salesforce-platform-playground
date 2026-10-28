@@ -63,7 +63,7 @@ public with sharing class ObjectExplorerService {
     /**
      * 指定オブジェクトの参照可能な構造を取得
      * @param objectName 必須のオブジェクトAPI名
-     * @param mode referenceは関連探索を含め、classification・fieldsは項目のみ取得。nullはreference
+     * @param mode referenceは関連探索を含め、classify・fieldsは項目のみ取得。nullはreference
      * @return 詳細と直接の参照関係
      */
     public Map<String, Object> getObjectInfo(String objectName, String mode) {
@@ -72,7 +72,7 @@ public with sharing class ObjectExplorerService {
         // 項目だけの取得では子関係を遅延評価のままにする
         Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
         // 省略を含む許可済みの取得範囲だけを受け付ける
-        if (!new Set<String>{null, 'reference', 'classification', 'fields'}.contains(mode)) { throw new AuraHandledException('表示モードを選択してください。'); }
+        if (!new Set<String>{null, 'reference', 'classify', 'fields'}.contains(mode)) { throw new AuraHandledException('表示モードを選択してください。'); }
         // 省略時は従来の構造表示を維持
         Boolean withRelations = mode == null || mode == 'reference';
         List<Map<String, Object>> fields = new List<Map<String, Object>>();

@@ -3,14 +3,14 @@ import locale from '@salesforce/i18n/locale';
 import timeZone from '@salesforce/i18n/timeZone';
 import hasCustomizeApplication from '@salesforce/userPermission/CustomizeApplication';
 import LightningConfirm from 'lightning/confirm';
-import getClassifications from '@salesforce/apex/ObjectExplorerController.getClassifications';
-import saveClassifications from '@salesforce/apex/ObjectExplorerController.saveClassifications';
-import searchClassificationOwners from '@salesforce/apex/ObjectExplorerController.searchClassificationOwners';
-import resolveClassificationOwners from '@salesforce/apex/ObjectExplorerController.resolveClassificationOwners';
+import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
+import saveClassifyData from '@salesforce/apex/ObjectExplorerController.saveClassifyData';
+import searchClassifyOwners from '@salesforce/apex/ObjectExplorerController.searchClassifyOwners';
+import resolveClassifyOwners from '@salesforce/apex/ObjectExplorerController.resolveClassifyOwners';
 import searchObjects from '@salesforce/apex/ObjectExplorerController.searchObjects';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
 import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAudit';
-import { CLASSIFICATION_CSV_LIMITS, classificationOwnerBatches, mergeClassificationOwners, classificationCsv, structureCsv, structureFieldView, csvFileName, readClassificationCsv, applyClassificationCsv, fieldListView, classificationSummary, visibleRelations, buildRelationBoard, classificationBatches, applyClassificationBatch, classificationFieldView, createClassificationEdits, classificationChanges, createOwnerOptions, classificationInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
+import { CLASSIFY_CSV_LIMITS, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
 
 // 固定ヘッダー内で一度に表示する項目数
 const FIELD_PAGE_SIZE = 400;
@@ -20,7 +20,7 @@ export default class ObjectExplorer extends LightningElement {
     // 初期状態は参照専用
     mode = 'reference';
     // オブジェクト選択を共用する二つの作業モード
-    modeOptions = [{ label: 'オブジェクト構造', value: 'reference' }, { label: 'データ分類設定', value: 'classification' }];
+    modeOptions = [{ label: 'オブジェクト構造', value: 'reference' }, { label: 'データ分類設定', value: 'classify' }];
     // 編集変更時だけ算出する件数を保持
     changeCount = 0;
     // 確定できない入力がある間は保存を許可しない
@@ -30,15 +30,15 @@ export default class ObjectExplorer extends LightningElement {
     // 構造の日時・ユーザー名は条件変更時だけ整形して保持
     structureView;
     // 分類の元データを項目API名で保持
-    classifications = {};
+    classifyData = {};
     // ページや検索条件を変えても編集値を保持
-    classificationState = {};
+    classifyState = {};
     // 分類の表示モデルは現在のページに限定して保持
-    classificationView;
+    classifyView;
     // 分類候補は組織の定義から取得
-    classificationOptions = { ComplianceGroup: [], SecurityClassification: [], BusinessStatus: [] };
+    classifyOptions = { ComplianceGroup: [], SecurityClassification: [], BusinessStatus: [] };
     // 未取得や失敗時は分類を編集できないようにする
-    classificationsReady = false;
+    classifyDataReady = false;
     // 保存処理中は編集と画面遷移を固定
     saving = false;
     // 保存要求ごとの確認済み成功数
@@ -46,11 +46,11 @@ export default class ObjectExplorer extends LightningElement {
     // 保存要求ごとの確認済み失敗数
     saveFailureCount = 0;
     // 処理結果と進捗の案内
-    classificationNotice = '';
+    classifyNotice = '';
     // CSVの検証エラーは既存の編集値と分けて保持
     csvErrors = [];
     // 古い分類読取の反映を抑止
-    classificationSequence = 0;
+    classifySequence = 0;
     // 古い所有者検索の反映を抑止
     ownerSequence = 0;
     // 必須の起点と詳細を別々に保持
@@ -86,8 +86,6 @@ export default class ObjectExplorer extends LightningElement {
     candidateScrollTop = 0;
     // 候補の余白と行のモデルを入力変更時だけ生成
     candidateView = objectOptionWindow([], -1, 0);
-    // キーボードで移動した候補だけを表示範囲へ収める
-    scrollActiveCandidate = false;
     // 候補取得中と該当なしを区別
     candidatesBusy = false;
     // 検索範囲の選択肢を固定
@@ -124,15 +122,6 @@ export default class ObjectExplorer extends LightningElement {
     cardHeightWidth;
     // 描画後に表示領域のサイズ変更を監視
     renderedCallback() {
-        // 入力フォーカスを保ったまま強調した候補を見える位置へ移動
-        if (this.scrollActiveCandidate) {
-            // 通常の再描画でスクロールを繰り返さない
-            this.scrollActiveCandidate = false;
-            // 描画済みの候補だけを表示範囲へ収める
-            const list = this.template.querySelector('.oe-option-scroll');
-            // 描画範囲を更新した後で実際のスクロール位置を同期
-            if (list) { list.scrollTop = this.candidateScrollTop; }
-        }
         // 選択先の一覧がDOMへ反映された後に移動
         if (this.revealFields && this.detail) {
             // 再描画のたびに画面を移動しない
@@ -221,7 +210,7 @@ export default class ObjectExplorer extends LightningElement {
         // 遅延した詳細取得を無効化
         this.detailSequence += 1;
         // 前の対象の分類読取も破棄
-        this.classificationSequence += 1;
+        this.classifySequence += 1;
         // 古い検索応答と候補リストを閉じる
         this.closeCandidates();
         // 変更前の対象と項目一覧を読み込み開始時にクリア
@@ -237,11 +226,11 @@ export default class ObjectExplorer extends LightningElement {
         // 旧対象の候補を選択できない状態にする
         this.options = [];
         // 次の取得成功まで分類を未取得として扱う
-        this.classifications = {};
+        this.classifyData = {};
         // 新しい対象の分類を取得するまで編集させない
-        this.classificationsReady = false;
+        this.classifyDataReady = false;
         // 前の対象の処理結果を持ち越さない
-        this.classificationNotice = '';
+        this.classifyNotice = '';
         // 前の対象のCSVエラーを持ち越さない
         this.csvErrors = [];
         // 古い関連と派生一覧・件数・型候補をクリア
@@ -274,7 +263,7 @@ export default class ObjectExplorer extends LightningElement {
             // 関連カードと項目一覧を再構築
             this.rebuild();
             // 分類モードでは選択先の分類も取得
-            if (!this.isReference) { await this.loadClassifications(); }
+            if (!this.isReference) { await this.loadClassifyData(); }
         } catch (error) {
             // Apexの公開メッセージだけを表示
             this.error = error.body?.message || 'オブジェクト構造を取得できませんでした。';
@@ -288,12 +277,12 @@ export default class ObjectExplorer extends LightningElement {
     // 構造モードだけで項目定義の作成・更新情報を取得
     async readObjectInfo(name, scope = this.mode) {
         // 構造と参照可否を従来の取得元で確定
-        const data = JSON.parse(await getObjectInfo({ objectName: name, mode: scope }));
+        const data = await getObjectInfo({ objectName: name, mode: scope });
         // 分類モードと可視カスタム項目がない場合は日時取得のApex要求を省略
         if (!this.isReference || !data.fields.some((field) => field.custom)) { return data; }
         try {
             // 日時とユーザー名は項目API名に対応する同じ応答から取得
-            const audit = JSON.parse(await getFieldAudit({ objectName: data.apiName }));
+            const audit = await getFieldAudit({ objectName: data.apiName });
             // 表示対象の項目へだけ取得値を合成
             return { ...data, fields: data.fields.map((field) => ({ ...field, ...(Object.hasOwn(audit, field.apiName) ? audit[field.apiName] : {}) })) };
         } catch (error) {
@@ -327,7 +316,7 @@ export default class ObjectExplorer extends LightningElement {
         // 入力語を保持し、起点の選択は候補の確定まで変えない
         if (this.root || this.busy) { return; }
         // 検索語は未選択時の入力だけから受け取る
-        this.objectTerm = event.target.value;
+        this.objectTerm = event.detail.value;
         // 検索条件に合う候補を開く
         this.searchCandidates();
     }
@@ -359,53 +348,50 @@ export default class ObjectExplorer extends LightningElement {
     // 入力フォーカスを残してSLDS候補の移動・確定を制御
     handleSearchKey(event) {
         // IME変換中や読み込み中の操作で選択を確定しない
-        if (this.root || event.isComposing || this.busy) { return; }
+        if (this.root || event.detail.isComposing || this.busy) { return; }
         // Escapeは候補だけを閉じる
-        if (event.key === 'Escape') { event.preventDefault(); this.closeCandidates(); return; }
+        if (event.detail.key === 'Escape') {  this.closeCandidates(); return; }
         // 閉じた候補は矢印操作で取得
-        if (!this.candidatesOpen && ['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); this.searchCandidates(); return; }
+        if (!this.candidatesOpen && ['ArrowDown', 'ArrowUp'].includes(event.detail.key)) {  this.searchCandidates(); return; }
         // 未取得の候補へ位置を対応づけない
         if (!this.candidatesOpen || !this.options.length) { return; }
         // Enterでは強調した候補、または唯一の候補だけを選択
-        if (event.key === 'Enter') {
+        if (event.detail.key === 'Enter') {
             // 選択対象を現在の候補配列から特定
             const option = this.options[this.activeCandidateIndex] || (this.options.length === 1 ? this.options[0] : undefined);
             // 未選択の複数候補は推測せず入力を維持
             if (!option) { return; }
             // 入力の送信より候補確定を優先
-            event.preventDefault();
+
             // 候補のAPI名で起点を変更
             this.loadRoot(option.value);
             // 他のキー処理を続けない
             return;
         }
         // 矢印以外は通常の入力操作へ委ねる
-        if (!['ArrowDown', 'ArrowUp'].includes(event.key)) { return; }
+        if (!['ArrowDown', 'ArrowUp'].includes(event.detail.key)) { return; }
         // スクロールの代わりに候補を強調
-        event.preventDefault();
+
         // 上方向の初回操作は末尾、下方向は先頭へ移動
-        const step = event.key === 'ArrowDown' ? 1 : -1;
+        const step = event.detail.key === 'ArrowDown' ? 1 : -1;
         // 候補配列の範囲内で循環
         this.activeCandidateIndex = this.activeCandidateIndex < 0 ? (step > 0 ? 0 : this.options.length - 1) : (this.activeCandidateIndex + step + this.options.length) % this.options.length;
         // 現在の表示枠に合わせ、末尾への移動でも全件を描画しない
-        const list = this.template.querySelector('.oe-option-scroll');
         // DOMの座標計算を候補の純粋な変換処理から分離
-        this.candidateScrollTop = objectOptionScrollTop(this.activeCandidateIndex, list?.scrollTop ?? this.candidateScrollTop, list?.clientHeight || 280);
+        this.candidateScrollTop = objectOptionScrollTop(this.activeCandidateIndex, event.detail.scrollTop ?? this.candidateScrollTop, event.detail.height || 280);
         // 行と上下余白を一つのモデルへ確定
         this.refreshCandidateWindow();
-        // 描画後に強調した候補を見える位置へ移動
-        this.scrollActiveCandidate = true;
     }
     // スクロールに合わせて表示位置付近の候補だけを描画
     handleCandidateScroll(event) {
         // 通常スクロールでもキーボード移動でも同じ座標を保持
-        const top = event.currentTarget.scrollTop;
+        const top = event.detail.top;
         // 同じ位置の通知では再描画しない
         if (top === this.candidateScrollTop) { return; }
         // 描画範囲内でも表示枠から外れた候補は確定対象から外す
         const active = this.activeCandidateIndex;
         // キーボード移動と同じ座標基準で可視性を確認
-        const selectedVisible = active >= 0 && objectOptionScrollTop(active, top, event.currentTarget.clientHeight || 280) === top;
+        const selectedVisible = active >= 0 && objectOptionScrollTop(active, top, event.detail.height || 280) === top;
         // 非表示の選択を推測して保持しない
         const nextActive = selectedVisible ? active : -1;
         // 候補行を作り直す前に範囲の変更を確認
@@ -421,12 +407,6 @@ export default class ObjectExplorer extends LightningElement {
         // 表示行と余白を同時に反映
         this.candidateView = window;
     }
-    // 候補クリックより先に入力フォーカスが外れるのを防止
-    handleOptionMouseDown(event) {
-        // 候補の確定はclickへ任せ、スクロールバーの操作は妨げない
-        if (event.target.closest('[role="option"]')) { event.preventDefault(); }
-    }
-    // 必須の対象選択を解除して未選択の入力へ戻す
     async handleClearObject() {
         // 取得や保存の途中では適用対象を変更しない
         if (this.busy) { return false; }
@@ -437,7 +417,7 @@ export default class ObjectExplorer extends LightningElement {
         // 遅延した詳細・分類の応答を未選択状態へ反映しない
         this.detailSequence += 1;
         // 分類取得の対象世代も切り替える
-        this.classificationSequence += 1;
+        this.classifySequence += 1;
         // 検索候補の応答と開閉状態を破棄
         this.closeCandidates();
         // 対象必須のため全オブジェクト表示には切り替えない
@@ -455,11 +435,11 @@ export default class ObjectExplorer extends LightningElement {
         // 前の候補を新しい入力へ持ち越さない
         this.options = [];
         // 前の対象の分類データを破棄
-        this.classifications = {};
+        this.classifyData = {};
         // 再選択・取得が終わるまで分類編集を拒否
-        this.classificationsReady = false;
+        this.classifyDataReady = false;
         // 前の処理案内を残さない
-        this.classificationNotice = '';
+        this.classifyNotice = '';
         // 前の対象のCSVエラーを持ち越さない
         this.csvErrors = [];
         // 検索・ページ条件も対象と同時に解除
@@ -515,13 +495,11 @@ export default class ObjectExplorer extends LightningElement {
         // 候補取得の失敗を画面へ通知
         try {
             // ラベル・API名と検索範囲で候補を取得
-            const rows = JSON.parse(await searchObjects({ term: this.objectTerm, scope: this.objectScope }));
+            const rows = await searchObjects({ term: this.objectTerm, scope: this.objectScope });
             // 別の検索や起点変更後に届いた結果を破棄
             if (sequence !== this.searchSequence) { return; }
             // キーボードでも選択できる候補ボタンへ変換
             this.options = rows.map((row) => ({ label: row.label, value: row.apiName }));
-            // 検索結果の総数が減った場合もスクロールを先頭へ同期
-            this.scrollActiveCandidate = true;
         } catch {
             // 古い失敗で現在の検索状態を上書きしない
             if (sequence !== this.searchSequence) { return; }
@@ -535,7 +513,7 @@ export default class ObjectExplorer extends LightningElement {
     // 候補をクリックまたはEnterで確定
     handleCandidate(event) {
         // 候補ボタンから起点を切り替える
-        const name = event.currentTarget.dataset.name;
+        const name = event.detail.apiName;
         // 現在の可視候補以外は選択として受け付けない
         if (!this.busy && this.options.some((option) => option.value === name)) { this.loadRoot(name); }
     }
@@ -683,7 +661,7 @@ export default class ObjectExplorer extends LightningElement {
         // 押された方向へ移動
         this.fieldPage += Number(event.currentTarget.dataset.step);
         // ページ内の分類行だけを生成し、以前のページのキャッシュを解放
-        this.refreshClassificationRows();
+        this.refreshClassifyRows();
     }
     // 取得済み定義から表示用一覧を生成
     refreshFields() {
@@ -700,41 +678,41 @@ export default class ObjectExplorer extends LightningElement {
         // 検索条件だけの変更では型候補を再生成しない
         this.typeOptions = this.fieldView.typeOptions;
         // 検索・項目定義・保存結果の変更を表示中の分類行へ同期
-        this.refreshClassificationRows();
+        this.refreshClassifyRows();
     }
     // 編集・検索・候補開閉のすべてで同じ行単位の再生成経路を使用
-    set classificationEdits(value) {
+    set classifyEdits(value) {
         // 表示用の状態は集計要否によらず更新
-        this.classificationState = value;
+        this.classifyState = value;
         // 入力した行だけのモデル更新を候補の開閉にも適用
-        this.refreshClassificationRows();
+        this.refreshClassifyRows();
     }
     // 保存用の状態と表示用キャッシュを分離
-    get classificationEdits() { return this.classificationState; }
+    get classifyEdits() { return this.classifyState; }
     // 値の変更・取得・保存結果の反映からだけ件数を同期
-    refreshClassificationSummary() {
+    refreshClassifySummary() {
         // 候補操作や検索条件の変更では呼び出さない
-        const summary = classificationSummary(this.classificationEdits);
+        const summary = classifySummary(this.classifyEdits);
         // 保存と未保存確認に必要な変更件数を確定
         this.changeCount = summary.changeCount;
         // 未確定入力が残る間は保存を許可しない
         this.inputErrorCount = summary.inputErrorCount;
     }
     // 分類は表示ページの必要な行だけ再生成
-    refreshClassificationRows() {
+    refreshClassifyRows() {
         // 構造モードでは分類の表示モデルを保持しない
-        this.classificationView = this.isReference ? undefined : classificationFieldView({
+        this.classifyView = this.isReference ? undefined : classifyFieldView({
             fields: this.filtered.slice((this.fieldPage - 1) * FIELD_PAGE_SIZE, this.fieldPage * FIELD_PAGE_SIZE),
-            classifications: this.classifications, edits: this.classificationEdits,
-            options: this.classificationOptions, canEdit: this.canEditClassifications
-        }, this.classificationView);
+            classifyData: this.classifyData, edits: this.classifyEdits,
+            options: this.classifyOptions, canEdit: this.canEditClassifyData
+        }, this.classifyView);
     }
     // 条件に一致する項目がない場合の案内を表示
     get noFields() { return !this.filtered.length; }
     // ページに必要な行だけを描画
     get fieldRows() {
         // 分類の入力・開閉では変更された行だけを事前に再生成済み
-        if (!this.isReference) { return this.classificationView?.rows || []; }
+        if (!this.isReference) { return this.classifyView?.rows || []; }
         // 構造のページ移動では整形済みの必要な行を切り出すだけにする
         return (this.structureView?.rows || []).slice((this.fieldPage - 1) * FIELD_PAGE_SIZE, this.fieldPage * FIELD_PAGE_SIZE);
     }
@@ -765,11 +743,11 @@ export default class ObjectExplorer extends LightningElement {
         // 保存処理中は変更件数が減っても移動させない
         if (this.saving) { return false; }
         // 変更がなければ確認せず遷移
-        if (!this.changeCount && !this.inputErrorCount) { this.classificationEdits = {}; return true; }
+        if (!this.changeCount && !this.inputErrorCount) { this.classifyEdits = {}; return true; }
         // 破棄を明示的に選んだ場合だけ移動
         const confirmed = await LightningConfirm.open({ message: '未保存のデータ分類があります。変更を破棄して移動しますか？', label: '未保存の変更', theme: 'warning' });
         // キャンセル時は入力を維持
-        if (confirmed) { this.classificationEdits = {}; this.refreshClassificationSummary(); }
+        if (confirmed) { this.classifyEdits = {}; this.refreshClassifySummary(); }
         // 呼び出し元で遷移を判断
         return confirmed;
     }
@@ -790,7 +768,7 @@ export default class ObjectExplorer extends LightningElement {
         // 参照元の絞り込みも初期値へ戻す
         this.incomingKind = 'standard';
         // 前の対象の分類候補を持ち越さない
-        this.classificationOptions = { ComplianceGroup: [], SecurityClassification: [], BusinessStatus: [] };
+        this.classifyOptions = { ComplianceGroup: [], SecurityClassification: [], BusinessStatus: [] };
         // 前の保存結果を初期状態へ戻す
         this.saveSuccessCount = 0;
         // 前の失敗件数を持ち越さない
@@ -801,31 +779,31 @@ export default class ObjectExplorer extends LightningElement {
         this.mode = next;
     }
     // 分類読取を参照モードのDescribe処理から分離
-    async loadClassifications() {
+    async loadClassifyData() {
         // 未選択や読み取りモードでは通信しない
         if (this.isReference || !this.detail) { return; }
         // 新しい要求の世代を固定
-        const sequence = ++this.classificationSequence;
+        const sequence = ++this.classifySequence;
         // 分類読取の失敗を画面へ通知
         try {
             // 組織の分類値と選択肢を一括で取得
-            const result = JSON.parse(await getClassifications({ objectName: this.detail.apiName }));
+            const result = await getClassifyData({ objectName: this.detail.apiName });
             // 別の対象へ切り替わった応答を採用しない
-            if (sequence !== this.classificationSequence) { return; }
+            if (sequence !== this.classifySequence) { return; }
             // 項目API名の索引を保持
-            this.classifications = result.rows;
+            this.classifyData = result.rows;
             // API名と表示ラベルを分けた選択肢を保持
-            this.classificationOptions = result.options;
-            this.classificationEdits = this.canEditClassifications ? createClassificationEdits(result.rows) : {};
+            this.classifyOptions = result.options;
+            this.classifyEdits = this.canEditClassifyData ? createClassifyEdits(result.rows) : {};
             // 値または入力エラーの変更を保存可否へ反映
-            this.refreshClassificationSummary();
+            this.refreshClassifySummary();
             // 読み取り完了後だけ編集開始を許可
-            this.classificationsReady = true;
+            this.classifyDataReady = true;
             // 保存前の案内を表示
-            this.classificationNotice = this.canEditClassifications ? '分類を変更すると行がハイライトされます。「保存」で変更した項目をまとめて保存します。' : 'データ分類は参照のみです。変更には「オブジェクトのカスタマイズ」権限が必要です。';
+            this.classifyNotice = this.canEditClassifyData ? '分類を変更すると行がハイライトされます。「保存」で変更した項目をまとめて保存します。' : 'データ分類は参照のみです。変更には「オブジェクトのカスタマイズ」権限が必要です。';
         } catch (error) {
             // 取得できなかった情報を未設定値として扱わない
-            this.classificationNotice = error.body?.message || 'データ分類を取得できませんでした。';
+            this.classifyNotice = error.body?.message || 'データ分類を取得できませんでした。';
         }
     }
     // 選択候補を行の高さに影響しない領域へ表示
@@ -833,9 +811,9 @@ export default class ObjectExplorer extends LightningElement {
         // 項目API名で選択状態と表示状態を同じ行へ結び付ける
         const apiName = event.currentTarget.dataset.field;
         // 保存中や参照専用の入力は開かない
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 取得済みで権限のある行だけ操作
-        if (!this.canEditClassifications || this.busy || !state) { return; }
+        if (!this.canEditClassifyData || this.busy || !state) { return; }
         // 一覧の下端で候補が切れないよう開く方向を決める
         const rect = event.currentTarget.getBoundingClientRect();
         // 固定ヘッダーを含むスクロール領域を基準にする
@@ -843,13 +821,13 @@ export default class ObjectExplorer extends LightningElement {
         // 固定ヘッダーへ重ならない範囲だけを上側の余白として扱う
         const headerHeight = event.currentTarget.closest('table').querySelector('thead').getBoundingClientRect().height;
         // 既存の非アクティブ値も含めた候補数から必要な高さを見積もる
-        const optionCount = new Set([...this.classificationOptions.ComplianceGroup.map((option) => option.value), ...(state.original.complianceGroup || '').split(';').filter(Boolean)]).size;
+        const optionCount = new Set([...this.classifyOptions.ComplianceGroup.map((option) => option.value), ...(state.original.complianceGroup || '').split(';').filter(Boolean)]).size;
         // 下端の行では十分な余白のある上側だけに開く
         const popupHeight = Math.min(240, optionCount * 24 + 48);
         // 狭い一覧の先頭行で固定ヘッダーの裏へ候補を出さない
         const above = area.bottom - rect.bottom < popupHeight && rect.top - area.top - headerHeight >= popupHeight;
         // 分類値は変更せず候補の開閉だけ反映
-        this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, complianceOpen: !state.complianceOpen, complianceAbove: above } };
+        this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, complianceOpen: !state.complianceOpen, complianceAbove: above } };
     }
     // マウスで候補を押す間はフォーカス離脱で選択を中断させない
     handleCompliancePointerDown(event) { event.preventDefault(); }
@@ -860,9 +838,9 @@ export default class ObjectExplorer extends LightningElement {
         // 表示中の行だけ更新
         const apiName = event.currentTarget.dataset.field;
         // ページ切り替え後の遅延イベントを無視
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 選んだ分類は閉じても保持
-        if (state) { this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, complianceOpen: false } }; }
+        if (state) { this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, complianceOpen: false } }; }
     }
     // Escapeで候補を閉じて元の選択欄へ戻す
     handleComplianceKeydown(event) {
@@ -873,37 +851,37 @@ export default class ObjectExplorer extends LightningElement {
         // 開閉処理と同じ行を使用
         const apiName = event.currentTarget.dataset.field;
         // 現在の入力値を保持
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 編集状態が残る場合だけ閉じる
-        if (state) { this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, complianceOpen: false } }; }
+        if (state) { this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, complianceOpen: false } }; }
         // 閉じた候補にフォーカスを残さない
         event.currentTarget.querySelector('button').focus();
     }
     // 個々の設定変更を元の値と比較できる状態で保存
-    handleClassificationChange(event) {
+    handleClassifyChange(event) {
         // 項目API名からページ外でも同じ編集行を特定
         const apiName = event.target.dataset.field;
         // 変更する分類属性を限定
         const key = event.target.dataset.property;
         // 未取得の行は編集させない
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 保存中の値変更を拒否
-        if (!this.canEditClassifications || !state || this.saving) { return; }
+        if (!this.canEditClassifyData || !state || this.saving) { return; }
         // 候補に対応することを確認した値だけを反映
-        const input = classificationInput(key, event.detail.value, this.classificationOptions, state.original);
+        const input = classifyInput(key, event.detail.value, this.classifyOptions, state.original);
         // 不明な入力を空値や以前の選択として保存させない
         if (!input.valid) {
             // 修正されるまで該当行と保存を入力エラーとして扱う
-            this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, inputErrors: { ...state.inputErrors, [key]: input.message } } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, inputErrors: { ...state.inputErrors, [key]: input.message } } };
             // 値または入力エラーの変更を保存可否へ反映
-            this.refreshClassificationSummary();
+            this.refreshClassifySummary();
             // 確認できない値は変更しない
             return;
         }
         // 他の行の入力は保持して、確定した値とエラー解除を反映
-        this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, draft: { ...state.draft, [key]: input.value }, inputErrors: { ...state.inputErrors, [key]: '' }, error: '' } };
+        this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, draft: { ...state.draft, [key]: input.value }, inputErrors: { ...state.inputErrors, [key]: '' }, error: '' } };
         // 値または入力エラーの変更を保存可否へ反映
-        this.refreshClassificationSummary();
+        this.refreshClassifySummary();
     }
     // 入力または欄を開く操作で所有者候補を検索
     handleOwnerSearch(event) {
@@ -912,9 +890,9 @@ export default class ObjectExplorer extends LightningElement {
         // 後続の応答でも同じ検索語を使用
         const term = event.target.value;
         // 編集中の行だけを検索対象にする
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 保存中や参照専用の操作では通信しない
-        if (!this.canEditClassifications || this.busy || !state || state.owner.value) { return; }
+        if (!this.canEditClassifyData || this.busy || !state || state.owner.value) { return; }
         // 入力を空に戻した場合は候補を閉じ、クリック時だけ空欄検索
         const open = Boolean(term.trim()) || event.type === 'click';
         // 同じ候補を開いている間のクリックによる二重検索を防ぐ
@@ -922,37 +900,37 @@ export default class ObjectExplorer extends LightningElement {
         // 行ごとの最新要求だけを採用
         const sequence = ++this.ownerSequence;
         // 所有者IDを維持して古い検索候補だけを外す
-        this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, ownerSearch: term, ownerQuery: open ? term : undefined, ownerRequest: sequence, ownerOpen: open, ownerActive: -1, ownerOptions: createOwnerOptions([], state.owner) } };
+        this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerSearch: term, ownerQuery: open ? term : undefined, ownerRequest: sequence, ownerOpen: open, ownerActive: -1, ownerOptions: createOwnerOptions([], state.owner) } };
         // フォーカス移動を待たず入力時に通信を開始
         if (open) { this.searchOwnerCandidates(apiName, term, sequence); }
     }
     // 確定した検索語の候補を取得し、同じ行の最新要求だけへ反映
     async searchOwnerCandidates(apiName, term, sequence) {
         // 破棄済み・選択済みの行や画面終了後には通信しない
-        if (!this.isConnected || sequence !== this.classificationEdits[apiName]?.ownerRequest || this.saving) { return; }
+        if (!this.isConnected || sequence !== this.classifyEdits[apiName]?.ownerRequest || this.saving) { return; }
         // 最新結果だけを行へ設定
         try {
             // 所有者候補の取得は表示名で検索
-            const options = JSON.parse(await searchClassificationOwners({ term }));
+            const options = await searchClassifyOwners({ term });
             // 削除済み行や古い応答へ反映しない
-            if (!this.isConnected || this.saving || sequence !== this.classificationEdits[apiName]?.ownerRequest) { return; }
+            if (!this.isConnected || this.saving || sequence !== this.classifyEdits[apiName]?.ownerRequest) { return; }
             // 応答待ちに変更された選択も検索結果から消さない
-            const state = this.classificationEdits[apiName];
+            const state = this.classifyEdits[apiName];
             // 同じIDの最新候補があればIDと表示名の組として差し替える
             const owner = options.find((option) => option.value === state.owner.value) || state.owner;
             // 現在の選択値を検索結果と一緒に保持
-            this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, owner, ownerSearch: term, ownerOptions: createOwnerOptions(options, owner) } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, owner, ownerSearch: term, ownerOptions: createOwnerOptions(options, owner) } };
             // 検索が完了したことと該当件数を明示
-            this.classificationNotice = `所有者候補を${options.length}件取得しました。`;
+            this.classifyNotice = `所有者候補を${options.length}件取得しました。`;
         } catch (error) {
             // 終了済みの編集から失敗通知を戻さない
-            if (!this.isConnected || this.saving || sequence !== this.classificationEdits[apiName]?.ownerRequest) { return; }
+            if (!this.isConnected || this.saving || sequence !== this.classifyEdits[apiName]?.ownerRequest) { return; }
             // 同じ検索語のクリックを重複要求として拒否しない
-            const state = this.classificationEdits[apiName];
+            const state = this.classifyEdits[apiName];
             // 入力と選択値は維持し、失敗した候補の状態だけを解除
-            this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, ownerQuery: undefined, ownerOpen: false, ownerActive: -1 } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerQuery: undefined, ownerOpen: false, ownerActive: -1 } };
             // 検索に失敗した理由を通知
-            this.classificationNotice = error.body?.message || '所有者候補を取得できませんでした。';
+            this.classifyNotice = error.body?.message || '所有者候補を取得できませんでした。';
         }
     }
     // 候補を押しても検索入力からフォーカスを失わせない
@@ -964,20 +942,20 @@ export default class ObjectExplorer extends LightningElement {
         // 他の行の入力状態は変えない
         const apiName = event.currentTarget.dataset.field;
         // ページ切り替えで消えた行への通知を無視
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 未確定の検索結果を再表示しない
-        if (state) { this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, ownerOpen: false, ownerRequest: ++this.ownerSequence } }; }
+        if (state) { this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerOpen: false, ownerRequest: ++this.ownerSequence } }; }
     }
     // 選択解除も所有者IDの明示的な変更として保持
     handleOwnerClear(event) {
         // 操作した行だけを特定
         const apiName = event.currentTarget.dataset.field;
         // 保存中と権限不足の操作は受け付けない
-        if (!this.canEditClassifications || this.busy || !this.classificationEdits[apiName]) { return; }
+        if (!this.canEditClassifyData || this.busy || !this.classifyEdits[apiName]) { return; }
         // IDと表示名を一緒に解除して古い検索応答を無効化
-        this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...this.classificationEdits[apiName], owner: { value: '', label: '' }, ownerSearch: '', ownerOpen: false, ownerActive: -1, ownerRequest: ++this.ownerSequence, inputErrors: { ...this.classificationEdits[apiName].inputErrors, owner: '' }, error: '' } };
+        this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...this.classifyEdits[apiName], owner: { value: '', label: '' }, ownerSearch: '', ownerOpen: false, ownerActive: -1, ownerRequest: ++this.ownerSequence, inputErrors: { ...this.classifyEdits[apiName].inputErrors, owner: '' }, error: '' } };
         // 値または入力エラーの変更を保存可否へ反映
-        this.refreshClassificationSummary();
+        this.refreshClassifySummary();
     }
     // 検索入力へフォーカスを残したまま候補を選ぶ
     handleOwnerKeydown(event) {
@@ -986,13 +964,13 @@ export default class ObjectExplorer extends LightningElement {
         // 別の行の候補へ選択を流用しない
         const apiName = event.currentTarget.dataset.field;
         // 保存中はキーボード操作も拒否
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 選択済みの所有者は解除ボタンで選び直す
         if (!state || state.owner.value || this.busy) { return; }
         // 空値を含まない表示候補と同じ順番を使用
         const options = state.ownerOptions.filter((option) => option.value);
         // Escapeは値を変えず候補だけ閉じる
-        if (event.key === 'Escape') { event.preventDefault(); this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, ownerOpen: false, ownerRequest: ++this.ownerSequence } }; return; }
+        if (event.key === 'Escape') { event.preventDefault(); this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerOpen: false, ownerRequest: ++this.ownerSequence } }; return; }
         // 対象オブジェクトと同じく、検索語がある場合だけ上下キーで候補を開く
         if (!state.ownerOpen && ['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); this.handleOwnerSearch(event); return; }
         // 閉じた候補をEnterで確定しない
@@ -1013,7 +991,7 @@ export default class ObjectExplorer extends LightningElement {
             // 未選択から上キーなら末尾へ移動
             const active = state.ownerActive ?? -1;
             // 表示行にだけ選択位置を保持
-            this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, ownerOpen: true, ownerActive: event.key === 'ArrowDown' ? (active + 1) % options.length : (active <= 0 ? options.length : active) - 1 } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerOpen: true, ownerActive: event.key === 'ArrowDown' ? (active + 1) % options.length : (active <= 0 ? options.length : active) - 1 } };
         }
     }
     // 所有者の種類と識別名を二つの属性へ排他的に反映
@@ -1021,19 +999,19 @@ export default class ObjectExplorer extends LightningElement {
         // 入力対象の行を固定
         const apiName = event.currentTarget.dataset.field;
         // 保存中は値を固定
-        if (!this.canEditClassifications || this.saving) { return; }
+        if (!this.canEditClassifyData || this.saving) { return; }
         // 保存用のIDは選択肢に存在する候補からだけ採用
-        const state = this.classificationEdits[apiName];
+        const state = this.classifyEdits[apiName];
         // 取り消した行へ遅延したイベントを反映しない
         if (!state) { return; }
         // IDと表示名が結び付いた候補をそのまま選択
         const owner = state.ownerOptions.find((option) => option.value === event.currentTarget.dataset.value);
         // 対応がない値を未設定や別の候補へ置き換えない
-        if (!owner) { this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, inputErrors: { ...state.inputErrors, owner: '有効な所有者候補から選択してください。入力が確定するまで保存できません。' } } }; this.refreshClassificationSummary(); return; }
+        if (!owner) { this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, inputErrors: { ...state.inputErrors, owner: '有効な所有者候補から選択してください。入力が確定するまで保存できません。' } } }; this.refreshClassifySummary(); return; }
         // Metadata APIの識別名はクライアントでは生成しない
-        this.classificationEdits = { ...this.classificationEdits, [apiName]: { ...state, owner, ownerOpen: false, ownerActive: -1, ownerSearch: '', ownerRequest: ++this.ownerSequence, inputErrors: { ...state.inputErrors, owner: '' }, error: '' } };
+        this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, owner, ownerOpen: false, ownerActive: -1, ownerSearch: '', ownerRequest: ++this.ownerSequence, inputErrors: { ...state.inputErrors, owner: '' }, error: '' } };
         // 値または入力エラーの変更を保存可否へ反映
-        this.refreshClassificationSummary();
+        this.refreshClassifySummary();
     }
     // モードごとの全項目CSVを確認後に出力
     async handleExportCsv() {
@@ -1048,7 +1026,7 @@ export default class ObjectExplorer extends LightningElement {
         // キャンセル・対象変更・保存開始時は出力を中止
         if (!confirmed || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
         // 項目定義と分類で出力列を分け、どちらも一覧の全件を対象にする
-        const text = this.isReference ? structureCsv(detail.fields, locale, timeZone) : classificationCsv(detail.apiName, detail.fields, this.classifications, this.classificationEdits);
+        const text = this.isReference ? structureCsv(detail.fields, locale, timeZone) : classifyCsv(detail.apiName, detail.fields, this.classifyData, this.classifyEdits);
         // CSVはSalesforce Filesへアップロードせずローカルへ保存
         const blob = new Blob([text], { type: 'text/plain' });
         // メモリ上のファイルだけをダウンロード対象へ指定
@@ -1082,16 +1060,16 @@ export default class ObjectExplorer extends LightningElement {
         // 読取中に対象が変わった場合の結果反映を抑止
         const detail = this.detail;
         // 分類の取得世代と同じ境界でCSVを照合
-        const sequence = this.classificationSequence;
+        const sequence = this.classifySequence;
         // ファイル読取と候補確認の間は編集・対象変更を抑止
         this.busy = true;
         // 前回のCSVエラーだけを解除
         this.csvErrors = [];
         // ファイルを読む段階も処理中と通知
-        this.classificationNotice = 'CSVを確認しています…';
+        this.classifyNotice = 'CSVを確認しています…';
         try {
             // 過大なファイルをブラウザの状態へ展開しない
-            if (!/\.csv$/iu.test(file.name) || file.size > CLASSIFICATION_CSV_LIMITS.bytes) { throw new Error(`${CLASSIFICATION_CSV_LIMITS.bytes / (1024 * 1024)}MiB以下のUTF-8 CSVファイルを選択してください。`); }
+            if (!/\.csv$/iu.test(file.name) || file.size > CLASSIFY_CSV_LIMITS.bytes) { throw new Error(`${CLASSIFY_CSV_LIMITS.bytes / (1024 * 1024)}MiB以下のUTF-8 CSVファイルを選択してください。`); }
             // ファイル読取はLWCのControllerに残す
             const text = await new Promise((resolve, reject) => {
                 // 利用者が選択したローカルファイルだけを読み取る
@@ -1104,71 +1082,71 @@ export default class ObjectExplorer extends LightningElement {
                 reader.readAsText(file, 'UTF-8');
             });
             // 別の画面・対象の分類へ読取結果を対応付けない
-            if (!this.isConnected || this.detail !== detail || this.classificationSequence !== sequence) { return; }
+            if (!this.isConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
             // CSVの列・項目・候補値を既存の入力規則で確認
-            const parsed = readClassificationCsv(text, detail.apiName, this.classificationEdits, this.classificationOptions, this.classifications);
+            const parsed = readClassifyCsv(text, detail.apiName, this.classifyEdits, this.classifyOptions, this.classifyData);
             // 行エラーがあれば所有者検索も入力反映も行わない
-            if (parsed.errors.length) { this.csvErrors = parsed.errors; this.classificationNotice = 'CSVにエラーがあります。入力内容は変更していません。'; return; }
+            if (parsed.errors.length) { this.csvErrors = parsed.errors; this.classifyNotice = 'CSVにエラーがあります。入力内容は変更していません。'; return; }
             // 追加確認が必要な所有者IDだけをまとめて照合
-            const batches = classificationOwnerBatches(parsed.ownerIds);
+            const batches = classifyOwnerBatches(parsed.ownerIds);
             // 分割照合の途中で入力を反映せず、すべての結果を待つ
             const owners = await batches.reduce((pending, batch) => pending.then(async (known) => {
                 // 別の画面・対象へ移った後は追加要求を送らない
-                if (!this.isConnected || this.detail !== detail || this.classificationSequence !== sequence) { return known; }
+                if (!this.isConnected || this.detail !== detail || this.classifySequence !== sequence) { return known; }
                 // 所有者の読取だけを小分けに実行
-                const response = JSON.parse(await resolveClassificationOwners({ idsJson: JSON.stringify(batch) }));
+                const response = await resolveClassifyOwners({ idsJson: JSON.stringify(batch) });
                 // 各バッチのID対応を検証してから集約
-                return mergeClassificationOwners(batch, response, known);
+                return mergeClassifyOwners(batch, response, known);
             }), Promise.resolve({}));
             // 所有者確認中の画面変更を採用しない
-            if (!this.isConnected || this.detail !== detail || this.classificationSequence !== sequence) { return; }
+            if (!this.isConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
             // 対象外の手入力は維持し、CSVの同じ行だけへ合成
-            const result = applyClassificationCsv(parsed.rows, owners, this.classificationEdits, ++this.ownerSequence);
+            const result = applyClassifyCsv(parsed.rows, owners, this.classifyEdits, ++this.ownerSequence);
             // IDの不足や無効ユーザーも全体を反映しない
-            if (result.errors.length) { this.csvErrors = result.errors; this.classificationNotice = 'CSVの所有者を確認してください。入力内容は変更していません。'; return; }
+            if (result.errors.length) { this.csvErrors = result.errors; this.classifyNotice = 'CSVの所有者を確認してください。入力内容は変更していません。'; return; }
             // 既存の未保存変更をCSVで置き換える前だけ確認
             if (this.changeCount || this.inputErrorCount) {
                 // 保存は行わず画面の未保存入力だけを置き換える
                 const confirmed = await LightningConfirm.open({ label: 'CSVの反映', message: 'CSVに含まれる項目の未保存変更を置き換えますか？CSVにない項目の変更は保持します。', theme: 'warning' });
                 // キャンセルでは入力と保存基準を維持
-                if (!confirmed) { this.classificationNotice = 'CSVの反映を中止しました。入力内容は変更していません。'; return; }
+                if (!confirmed) { this.classifyNotice = 'CSVの反映を中止しました。入力内容は変更していません。'; return; }
             }
             // 確認ダイアログの待機中も同じ対象であることを確認
-            if (!this.isConnected || this.detail !== detail || this.classificationSequence !== sequence) { return; }
+            if (!this.isConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
             // 全件の検証後だけ既存の編集状態へ適用
-            this.classificationEdits = result.edits;
+            this.classifyEdits = result.edits;
             // 値または入力エラーの変更を保存可否へ反映
-            this.refreshClassificationSummary();
+            this.refreshClassifySummary();
             // この段階では分類を更新していないことを通知
-            this.classificationNotice = `CSVから${parsed.rows.length}項目を入力欄へ反映しました。変更内容を確認して「保存」を押してください。`;
+            this.classifyNotice = `CSVから${parsed.rows.length}項目を入力欄へ反映しました。変更内容を確認して「保存」を押してください。`;
         } catch (error) {
             // エラー本文へファイル全体や内部例外を含めない
             this.csvErrors = [{ line: 1, message: error.body?.message || error.message || 'CSVを確認できませんでした。' }];
             // 読取・照合失敗では元の入力をそのまま保持
-            this.classificationNotice = 'CSVを取り込めませんでした。入力内容は変更していません。';
+            this.classifyNotice = 'CSVを取り込めませんでした。入力内容は変更していません。';
         } finally {
             // 元の要求の対象だけ操作を再開
-            if (this.detail === detail && this.classificationSequence === sequence) { this.busy = false; }
+            if (this.detail === detail && this.classifySequence === sequence) { this.busy = false; }
         }
     }
     // CSVの上限と空値の意味は操作横のヘルプへ集約
-    get csvHelp() { return `UTF-8・${CLASSIFICATION_CSV_LIMITS.bytes / (1024 * 1024)}MiB・${CLASSIFICATION_CSV_LIMITS.rows.toLocaleString('ja-JP')}行以内のCSVを使用します。空欄は未設定、複数のコンプライアンス分類は ; 区切りです。所有者は18桁IDを指定します。読み込み後に「保存」で更新します。`; }
+    get csvHelp() { return `UTF-8・${CLASSIFY_CSV_LIMITS.bytes / (1024 * 1024)}MiB・${CLASSIFY_CSV_LIMITS.rows.toLocaleString('ja-JP')}行以内のCSVを使用します。空欄は未設定、複数のコンプライアンス分類は ; 区切りです。所有者は18桁IDを指定します。読み込み後に「保存」で更新します。`; }
     // 分類取得済みの編集利用者だけCSVを操作
-    get csvDisabled() { return !this.canEditClassifications || this.busy || !this.classificationsReady || !this.detail; }
+    get csvDisabled() { return !this.canEditClassifyData || this.busy || !this.classifyDataReady || !this.detail; }
     // 未確定の入力をCSVの確定値として出力しない
-    get csvExportDisabled() { return this.busy || !this.detail || (this.isClassification && (!this.classificationsReady || this.hasInputErrors)); }
+    get csvExportDisabled() { return this.busy || !this.detail || (this.isClassify && (!this.classifyDataReady || this.hasInputErrors)); }
     // エラー一覧は空の場合に描画しない
     get hasCsvErrors() { return this.csvErrors.length > 0; }
     // 変更内容を確認して少数ずつ保存
-    async handleSaveClassifications() {
+    async handleSaveClassifyData() {
         // 未取得・処理中・画面離脱後の保存を受け付けない
         if (!this.isConnected || !this.detail || this.saveDisabled) { return; }
         // 確認開始時の対象と編集内容を一組で固定
         const detail = this.detail;
         // 対象を再取得した場合も以前の確認を採用しない
-        const sequence = this.classificationSequence;
+        const sequence = this.classifySequence;
         // 確認後に画面から保存内容を取り直さない
-        const changes = classificationChanges(this.classificationEdits);
+        const changes = classifyChanges(this.classifyEdits);
         // 確認中から入力変更・対象変更・二重保存を抑止
         this.saving = true;
         // 既存のスピナーと操作要素の無効化を共用
@@ -1182,14 +1160,14 @@ export default class ObjectExplorer extends LightningElement {
             // 確認画面には更新する項目数だけを案内
             const confirmed = await LightningConfirm.open({ label: '保存の確認', message: `${changes.length}項目のデータ分類を保存しますか？`, theme: 'warning' });
             // 確認した対象が有効な間だけ更新を開始
-            if (!confirmed || !this.isConnected || this.detail !== detail || this.classificationSequence !== sequence) { return; }
+            if (!confirmed || !this.isConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
             // 固定したオブジェクトと変更内容を少数ずつ順に処理
-            await this.saveClassificationRows(detail.apiName, changes);
+            await this.saveClassifyRows(detail.apiName, changes);
             // 完了時には成功・失敗を混同せず表示
-            this.classificationNotice = this.saveFailureCount ? `保存結果：成功${this.saveSuccessCount}件・失敗${this.saveFailureCount}件。失敗した項目の編集内容は保持しています。` : `${this.saveSuccessCount}項目のデータ分類を保存しました。`;
+            this.classifyNotice = this.saveFailureCount ? `保存結果：成功${this.saveSuccessCount}件・失敗${this.saveFailureCount}件。失敗した項目の編集内容は保持しています。` : `${this.saveSuccessCount}項目のデータ分類を保存しました。`;
         } catch (error) {
             // 通信切断時は未確認の入力を残し自動再実行しない
-            this.classificationNotice = `成功確認済み${this.saveSuccessCount}件。処理を中断しました。${error.body?.message || '最新状態を確認してから再操作してください。'}`;
+            this.classifyNotice = `成功確認済み${this.saveSuccessCount}件。処理を中断しました。${error.body?.message || '最新状態を確認してから再操作してください。'}`;
         } finally {
             // 保存処理の操作ロックを解除
             this.saving = false;
@@ -1198,27 +1176,27 @@ export default class ObjectExplorer extends LightningElement {
         }
     }
     // 一括結果を確定してから次の要求へ進む
-    async saveClassificationRows(objectName, changes) {
+    async saveClassifyRows(objectName, changes) {
         // 内部の保存処理を直接呼ばれた場合も標準権限を必須にする
-        if (!this.canEditClassifications) { throw new Error('データ分類の変更には「オブジェクトのカスタマイズ」権限が必要です。'); }
+        if (!this.canEditClassifyData) { throw new Error('データ分類の変更には「オブジェクトのカスタマイズ」権限が必要です。'); }
         // API上限に合わせた保存単位を作成
-        const batches = classificationBatches(changes);
+        const batches = classifyBatches(changes);
         // 確認済み項目数だけを進捗として表示
         let processed = 0;
         // 前の一括保存の確認後に次へ進み、同時送信しない
         await batches.reduce((pending, batch) => pending.then(async () => {
             // 未確定の項目を処理済みに数えない
-            this.classificationNotice = `${processed} / ${changes.length}項目を処理済み…`;
+            this.classifyNotice = `${processed} / ${changes.length}項目を処理済み…`;
             // 各行の対象・基準値・編集値を同じ要求へまとめる
-            const results = JSON.parse(await saveClassifications({ objectName, changesJson: JSON.stringify(batch) }));
+            const results = await saveClassifyData({ objectName, changesJson: JSON.stringify(batch) });
             // 応答順に依存せずAPI名と所有者IDを照合
-            const updated = applyClassificationBatch(batch, this.classificationEdits, this.classifications, results);
+            const updated = applyClassifyBatch(batch, this.classifyEdits, this.classifyData, results);
             // 表示行を更新する前に成功項目の保存値を揃える
-            this.classifications = updated.classifications;
+            this.classifyData = updated.classifyData;
             // 編集値と保存値が揃った状態で件数と表示行を一度だけ更新
-            this.classificationEdits = updated.edits;
+            this.classifyEdits = updated.edits;
             // 値または入力エラーの変更を保存可否へ反映
-            this.refreshClassificationSummary();
+            this.refreshClassifySummary();
             // 失敗項目の入力は維持して成否を集計
             this.saveSuccessCount += updated.successCount;
             // 更新拒否と確認不能を失敗件数に含める
@@ -1230,17 +1208,17 @@ export default class ObjectExplorer extends LightningElement {
     // 空状態のセルを表示モードの列数へ合わせる
     get fieldColumnCount() { return this.isReference ? 6 : 7; }
     // 分類の取得・保存中だけ見出し右側へ処理中を表示
-    get showClassificationSpinner() { return this.isClassification && this.busy; }
+    get showClassifySpinner() { return this.isClassify && this.busy; }
     // 選択肢と画面見出しで同じモード名を使用
     get modeLabel() { return this.modeOptions.find((option) => option.value === this.mode)?.label || ''; }
     // 読取モードでは編集列を描画しない
     get isReference() { return this.mode === 'reference'; }
     // 空の参照モード分岐を挟まず分類専用UIを描画
-    get isClassification() { return !this.isReference; }
+    get isClassify() { return !this.isReference; }
     // オブジェクトのカスタマイズ権限は付与せず実効権限だけを参照
-    get canEditClassifications() { return hasCustomizeApplication === true; }
+    get canEditClassifyData() { return hasCustomizeApplication === true; }
     // 操作中や変更なしの場合は保存を無効化
-    get saveDisabled() { return !this.canEditClassifications || this.busy || !this.classificationsReady || !this.changeCount || this.hasInputErrors; }
+    get saveDisabled() { return !this.canEditClassifyData || this.busy || !this.classifyDataReady || !this.changeCount || this.hasInputErrors; }
     // 入力確認が必要な行を常に案内
     get hasInputErrors() { return this.inputErrorCount > 0; }
 }
