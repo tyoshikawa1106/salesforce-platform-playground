@@ -60,7 +60,7 @@ public with sharing class ObjectExplorerController {
         // UIの有効状態に依存せず実効権限を確認
         controller.requireEditAccess();
         // 検索語の未入力を候補全体の検索へ揃える
-        String searchTerm = term == null ? '' : term.trim();
+        String searchTerm = controller.ownerService.normalizeSearchTerm(term);
         // 所有者候補は現在の利用者が参照可能な範囲から取得
         List<User> users = controller.selector.selectUsers(searchTerm);
         // 公開グループも同じ検索条件で取得
@@ -228,12 +228,12 @@ public with sharing class ObjectExplorerController {
      * @return 送信状態と個別拒否を反映した結果
      */
     private List<ObjectExplorerClassifyService.FieldContext> updateFields(List<ObjectExplorerClassifyService.FieldContext> contexts) {
-        // カスタム更新の例外を一項目ずつ捕捉
-        for (Integer index = 0; index < contexts.size(); index++) {
+        // 更新要否は事前確認済みの状態からServiceで判定
+        List<Integer> indexes = this.results.getCustomUpdateIndexes(contexts);
+        // 選択された対象だけを入力順で通信
+        for (Integer index : indexes) {
             // 更新要否はServiceが確定した結果を使用
             ObjectExplorerClassifyService.FieldContext context = contexts[index];
-            // 標準項目と失敗済み・変更不要の項目は個別通信しない
-            if (context.completed || context.original == context.expected || !context.customField) { continue; }
             // 送信後の確認不能と明示拒否を区別
             context.sent = true;
             try {
