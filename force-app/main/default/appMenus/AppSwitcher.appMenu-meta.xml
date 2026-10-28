@@ -116,4 +116,8 @@
         <name>Postman_MCP_Client</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
+    <appMenuItems>
+        <name>MetadataApiIntegration</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
 </AppMenu>

@@ -13,6 +13,10 @@
         <name>AccountMassUpdate</name>
     </customTabs>
     <customTabs>
+        <label><!-- オブジェクトエクスプローラー --></label>
+        <name>ObjectExplorer</name>
+    </customTabs>
+    <customTabs>
         <label><!-- 組織エクスプローラー --></label>
         <name>OrgExplorer</name>
     </customTabs>

@@ -55,12 +55,12 @@ private with sharing class ObjectExplorerAccessPolicyTest {
                     .getName(),
                 '同じ項目を検証'
             );
-            Assert.isFalse(
+            Assert.isTrue(
                 ObjectExplorerAccessPolicy.isEditable(
-                    MetadataApiIntegrationSetting__mdt.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
-                    MetadataApiIntegrationSetting__mdt.ConsumerKey__c.getDescribe()
+                    Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
+                    Account.Name.getDescribe()
                 ),
-                '設定用項目は編集しない'
+                '標準項目も分類の編集対象'
             );
             Assert.areEqual(
                 new Set<String>{ 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus' },

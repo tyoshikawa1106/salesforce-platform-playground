@@ -1,32 +1,11 @@
 /** Named Credential経由の項目メタデータ読み取り・更新 */
 public with sharing class MetadataApiIntegrationClient {
 
+    private static final String NAMED_CREDENTIAL = 'MetadataApiIntegration';
     private static final String API_VERSION = '68.0';
     private static final Integer REQUEST_TIMEOUT_MS = 30000;
     private static final Long REQUEST_BUDGET_MS = 100000;
     private static final Long DEADLINE = DateTime.now().getTime() + REQUEST_BUDGET_MS;
-
-    /** テスト内で生成した設定レコードで通常の生成経路も検証するため差し替え可能 */
-    @TestVisible
-    private static MetadataApiIntegrationSetting__mdt integrationSetting = MetadataApiIntegrationSetting__mdt.getInstance('Default');
-
-    private final String credentialName;
-
-    /** 組織の連携設定を使用する通常のクライアント */
-    public MetadataApiIntegrationClient() {
-        // 通常の呼び出しでは組織設定を生成時に確定
-        this(integrationSetting?.NamedCredentialName__c);
-    }
-
-    /**
-     * 組織設定を変更せず設定値の検証と通信を確認する内部生成口
-     * @param credentialName Named CredentialのAPI名、未設定も同じ検証処理で拒否
-     */
-    @TestVisible
-    private MetadataApiIntegrationClient(String credentialName) {
-        // テストから設定値だけを渡し、通常実行と同じ通信処理を使用
-        this.credentialName = credentialName;
-    }
 
     /**
      * Named Credentialで認証したAPIを呼び出す
@@ -54,10 +33,8 @@ public with sharing class MetadataApiIntegrationClient {
      */
     private HttpResponse sendRequest(String path, String method, String body) {
         HttpRequest request = new HttpRequest();
-        if (!Pattern.matches('[A-Za-z][A-Za-z0-9_]*', credentialName ?? '')) {
-            throw new IntegrationException('メタデータAPI連携設定のNamed Credential API名を設定してください。');
-        }
-        request.setEndpoint('callout:' + credentialName + path);
+        // 組織ごとの認証情報は共通名の指定ログイン情報で管理
+        request.setEndpoint('callout:' + NAMED_CREDENTIAL + path);
         request.setMethod(method);
         Boolean soap = path.startsWith('/services/Soap/');
         request.setHeader('Content-Type', soap ? 'text/xml; charset=UTF-8' : 'application/json');
