@@ -450,7 +450,7 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectMetricsOverviewQueryCoordinator</apexClass>
+        <apexClass>ObjectMetricsOverviewQueryRunner</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -478,7 +478,7 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>ObjectMetricsQueryCoordinatorTest</apexClass>
+        <apexClass>ObjectMetricsOverviewQueryRunnerTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>

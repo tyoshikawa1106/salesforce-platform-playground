@@ -60,18 +60,19 @@
         <members>DateTimeUtil</members>
         <members>DateTimeUtilTest</members>
         <members>ObjectMetricCatalog</members>
+        <members>ObjectMetricCatalogTest</members>
         <members>ObjectMetricsOverviewController</members>
         <members>ObjectMetricsOverviewControllerTest</members>
         <members>ObjectMetricsOverviewItemWrapper</members>
         <members>ObjectMetricsOverviewItemWrapperTest</members>
-        <members>ObjectMetricsOverviewQueryCoordinator</members>
+        <members>ObjectMetricsOverviewQueryRunner</members>
         <members>ObjectMetricsOverviewSelector</members>
         <members>ObjectMetricsOverviewSelectorTest</members>
         <members>ObjectMetricsOverviewService</members>
         <members>ObjectMetricsOverviewServiceTest</members>
         <members>ObjectMetricsOverviewSummaryWrapper</members>
         <members>ObjectMetricsOverviewSummaryWrapperTest</members>
-        <members>ObjectMetricsQueryCoordinatorTest</members>
+        <members>ObjectMetricsOverviewQueryRunnerTest</members>
         <members>ObjectRecordSearchConfigWrapper</members>
         <members>ObjectRecordSearchConfigWrapperTest</members>
         <members>ObjectRecordSearchContext</members>

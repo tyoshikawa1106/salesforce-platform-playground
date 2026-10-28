@@ -15,6 +15,8 @@ export function normalizeMetricItems(metrics = []) {
         value: metricItem.value,
         // 件数上限到達状態を真偽値へ正規化
         capped: metricItem.capped ?? false,
+        // 明示された取得成功だけを件数表示へ反映
+        available: metricItem.available === true,
         // カタログの表示ラベルを保持
         label: metricItem.label
     }));
@@ -25,7 +27,7 @@ export function createCountCards(metricItems = [], loading = false) {
     // 最新の読込状態を各カードへ反映
     return metricItems.map((metricItem) => {
         // 上限到達時は整形済み件数へプラス記号を付加
-        const formattedValue = `${NUMBER_FORMATTER.format(metricItem.value)}${metricItem.capped ? '+' : ''}`;
+        const formattedValue = metricItem.available !== true ? '取得できません' : `${NUMBER_FORMATTER.format(metricItem.value)}${metricItem.capped ? '+' : ''}`;
         // ラベル未取得時もカードキーで識別可能にする
         const label = metricItem.label ?? metricItem.key;
         // テンプレートとアクセシビリティ属性に必要な値を生成
@@ -37,7 +39,7 @@ export function createCountCards(metricItems = [], loading = false) {
             // 画面上のオブジェクト名を表示
             label,
             // 件数全体を読み上げ可能なタイトルへ整形
-            countTitle: `${formattedValue} 件`,
+            countTitle: metricItem.available !== true ? '権限と利用可能な機能を確認してください' : `${formattedValue} 件`,
             // カード本体へ表示する件数文字列を設定
             formattedValue,
             // 初回取得と再取得中はカード操作を抑止

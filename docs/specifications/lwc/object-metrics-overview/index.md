@@ -26,7 +26,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 | 種別         | API 名                                                                    | 役割                                                 |
 | ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------- |
 | Apex Class   | `ObjectMetricsOverviewController`                                         | LWC からの件数取得要求の入口                         |
-| Apex Class   | `ObjectMetricsOverviewQueryCoordinator`                                   | 固定カタログ内の複数件数クエリの実行調整             |
+| Apex Class   | `ObjectMetricsOverviewQueryRunner`                                        | 固定カタログ内の複数件数クエリの実行調整             |
 | Apex Class   | `ObjectMetricsOverviewSelector`                                           | 利用者が参照できるレコードの件数取得                 |
 | Apex Class   | `ObjectMetricsOverviewService`                                            | 件数取得計画とカタログ順サマリの組み立て             |
 | Apex Class   | `ObjectMetricCatalog`                                                     | カードキー、対象オブジェクト、ラベル、アイコンの定義 |
@@ -64,7 +64,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 ## 権限・実行条件
 
 - `LwcObjectMetricsOverview` Permission Setで、LWCから直接呼び出す`ObjectMetricsOverviewController`のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
-- 対象オブジェクトの参照権限が必要です。参照できないオブジェクトは0件として扱います。
+- 対象オブジェクトの参照権限が必要です。参照できないオブジェクトは件数を取得不能として扱います。
 - `with sharing` と `WITH USER_MODE` により、利用者の共有設定と参照権限を適用します。
 - LWCは `lightning__HomePage` に公開されています。
 
@@ -72,7 +72,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 手動更新と子の `recordschanged` 通知は同じ再取得処理を使用します。再取得失敗はデータボードに表示し、子の保存・削除の成功とは区別します。次の再取得成功時にエラーを解除します。
 
-- 個別オブジェクトのCOUNTでQueryExceptionが発生した場合は、そのオブジェクトを0件として処理を継続します。
+- 個別オブジェクトのCOUNTでQueryExceptionが発生した場合は、Coordinatorがそのカードだけを取得不能として処理を継続します。Selectorは例外を捕捉・変換しません。
 - 件数取得全体で例外が発生した場合は、Apexが一般化したメッセージを返し、LWCがエラーアラートを表示します。
 - 再読み込みに失敗した場合も、画面上にエラーメッセージを表示します。
 
@@ -83,7 +83,9 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 
 ## テスト・確認観点
 
-- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsQueryCoordinatorTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、集計上限の境界を確認すること
+- `ObjectMetricCatalogTest`で、カード定義の順序、キーとオブジェクトの対応、許可対象、返却一覧の独立性を確認すること
+
+- `ObjectMetricsOverviewControllerTest`、`ObjectMetricsOverviewQueryRunnerTest`、`ObjectMetricsOverviewServiceTest`、`ObjectMetricsOverviewSelectorTest` で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、集計上限の境界を確認すること
 - `objectMetricsOverview.test.js` で、初期表示、読込中、件数表示、上限表示、エラー、再読み込み、カード選択、検索画面からの復帰を確認すること
 - ホームページ上でカードの表示順、ラベル、アイコン、レスポンシブ表示を確認します。
 - 利用権限の異なるユーザーで件数とエラー表示を確認します。
@@ -93,7 +95,7 @@ Lightningホームページで、主要データの件数を俯瞰し、確認�
 - 対象オブジェクトと表示順は `ObjectMetricCatalog` の固定定義です。
 - 件数取得計画は最大50件です。固定カタログの対象数または現在トランザクションの残りSOQL数が上限を満たさない場合は、個別取得を始める前に全体をエラーとして返します。
 - 件数は表示上限で打ち切るため、上限以上の正確な総数は表示しません。
-- 参照できないオブジェクトと実際に0件のオブジェクトは、どちらも0件表示になります。
+- 取得に成功した0件は「0」、参照不可・機能なし・個別の取得失敗は「取得できません」と表示します。取得状態は件数と別の`available`で返します。
 - 対象オブジェクト数に応じてCOUNTクエリを個別に実行します。
 
 ### 大量データと性能

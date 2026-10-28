@@ -57,19 +57,20 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
      * 組織で実行できない件数 SOQL は画面を止めず 0 件へ変換
      */
     @IsTest
-    static void shouldReturnZeroWhenCountQueryFails() {
-        Integer result;
+    static void propagatesFailedCountQuery() {
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new ObjectMetricsOverviewSelector().countVisibleRecords(
-                'SELECT COUNT() FROM UnknownObject__c WITH USER_MODE LIMIT 50000'
-            );
+            try {
+                new ObjectMetricsOverviewSelector().countVisibleRecords('SELECT COUNT() FROM UnknownObject__c WITH USER_MODE LIMIT 50000');
+                Assert.fail('失敗した問い合わせをゼロ件へ変換しない');
+            } catch (QueryException e) {
+                Assert.isNotNull(e, '取得失敗を呼び出し元へ伝播');
+            }
 
             Test.stopTest();
         }
 
-        Assert.areEqual(0, result, '実行できない件数 SOQL は 0 件を返す必要あり');
     }
 }
