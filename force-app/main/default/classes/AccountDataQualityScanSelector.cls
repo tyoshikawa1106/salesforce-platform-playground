@@ -1,7 +1,7 @@
 /**
  * 取引先Cursorとスキャン管理レコードのデータアクセス
  */
-public virtual with sharing class AccountDataQualityScanSelector {
+public with sharing class AccountDataQualityScanSelector {
 
     // 品質判定に必要な取引先項目だけを固定順で取得するSOQL
     private static final String ACCOUNT_CURSOR_QUERY =
@@ -14,7 +14,7 @@ public virtual with sharing class AccountDataQualityScanSelector {
      *
      * @return ID順に固定された取引先Cursor
      */
-    public virtual Database.Cursor createAccountCursor() {
+    public Database.Cursor createAccountCursor() {
         return Database.getCursor(ACCOUNT_CURSOR_QUERY, AccessLevel.USER_MODE);
     }
 
@@ -26,7 +26,7 @@ public virtual with sharing class AccountDataQualityScanSelector {
      * @param fetchSize 1トランザクションの取得件数
      * @return 品質判定対象の取引先
      */
-    public virtual List<Account> fetchAccounts(Database.Cursor accountCursor, Integer position, Integer fetchSize) {
+    public List<Account> fetchAccounts(Database.Cursor accountCursor, Integer position, Integer fetchSize) {
         if (accountCursor == null || position == null || position < 0 || fetchSize == null || fetchSize <= 0) {
             return new List<Account>();
         }
@@ -42,7 +42,7 @@ public virtual with sharing class AccountDataQualityScanSelector {
      *
      * @return 実行中スキャン一覧、存在しない場合は空の List
      */
-    public virtual List<DataQualityScan__c> getActiveScans() {
+    public List<DataQualityScan__c> getActiveScans() {
         // Account を対象にした実行中スキャンだけを取得
         return [
             SELECT Id, Status__c
@@ -58,7 +58,7 @@ public virtual with sharing class AccountDataQualityScanSelector {
      *
      * @return 作成日時が最新のスキャン一覧、存在しない場合は空の List
      */
-    public virtual List<DataQualityScan__c> getLatestScans() {
+    public List<DataQualityScan__c> getLatestScans() {
         // 利用者が参照できる直近スキャンだけを取得
         return [
             SELECT Id, Status__c, Total_Count__c, Processed_Count__c,
@@ -79,7 +79,7 @@ public virtual with sharing class AccountDataQualityScanSelector {
      * @param scanId 取得対象のスキャン管理レコードID
      * @return 指定スキャン一覧、存在しない場合は空の List
      */
-    public virtual List<DataQualityScan__c> getScansById(Id scanId) {
+    public List<DataQualityScan__c> getScansById(Id scanId) {
         // スキャン ID 未指定時は SOQL を実行せず空結果へ短絡
         if (scanId == null) {
             return new List<DataQualityScan__c>();

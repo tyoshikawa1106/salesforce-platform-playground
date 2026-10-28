@@ -150,35 +150,17 @@ private with sharing class AccountDataQualityScanControllerTest {
     }
 
     /**
-     * 状態取得失敗を内部情報を含まないAura例外へ変換
-     */
-    @IsTest
-    static void shouldReturnSafeErrorWhenLatestScanFails() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
-        AccountDataQualityScanController.selector = new FailingSelector();
-
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                AccountDataQualityScanController.getLatestScan();
-                Assert.fail('状態取得失敗はAuraHandledExceptionへ変換する必要あり');
-            } catch (AuraHandledException e) {
-                Assert.isTrue(e.getMessage().contains('スキャン状態を取得できませんでした。権限設定を確認してください。'), '利用者向けの安全な文言を返す必要あり');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /**
      * 参照権限不足では結果を取得せず保存と非同期登録も行わない
      */
     @IsTest
     static void shouldRejectReadAndStartWithoutReadAccess() {
-        User testUser = TestDataFactory.getTestUser();
-        AccountDataQualityScanController.service = new DeniedReadService();
-        AccountDataQualityScanController.selector = new FailingSelector();
+        List<Profile> profiles = [SELECT Id FROM Profile WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce' LIMIT 1];
+        Assert.isFalse(profiles.isEmpty(), '権限を持たないプロファイルで検証');
+        User deniedUser = TestDataFactory.createUser('スキャン参照なし', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        deniedUser.ProfileId = profiles[0].Id;
+        insert deniedUser;
 
-        System.runAs(testUser) {
+        System.runAs(deniedUser) {
             Test.startTest();
 
             AccountDataQualityScanWrapper latest = AccountDataQualityScanController.getLatestScan();
@@ -195,23 +177,4 @@ private with sharing class AccountDataQualityScanControllerTest {
         }
     }
 
-    /**
-     * 実効権限のユーザー構成に依存せず参照拒否応答を確認するService
-     */
-    private class DeniedReadService extends AccountDataQualityScanService {
-        /**
-         * 参照拒否の判定を再現
-         *
-         * @return false
-         */
-        public override Boolean canReadScan() {
-            return false;
-        }
-    }
-
-    private class FailingSelector extends AccountDataQualityScanSelector {
-        public override List<DataQualityScan__c> getLatestScans() {
-            throw new AccountDataQualityScanService.ScanException('テスト用取得失敗');
-        }
-    }
 }

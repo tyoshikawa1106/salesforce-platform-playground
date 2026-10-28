@@ -10,9 +10,7 @@ public with sharing class AccountDataQualityScanController {
     private static final String READ_ACCESS_MESSAGE =
         '取引先またはスキャン結果の参照権限がありません。管理者に権限を確認してください。';
 
-    @TestVisible
     private static AccountDataQualityScanService service = new AccountDataQualityScanService();
-    @TestVisible
     private static AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();
 
     /**
@@ -25,7 +23,9 @@ public with sharing class AccountDataQualityScanController {
     @AuraEnabled(cacheable=true)
     public static AccountDataQualityScanWrapper getLatestScan() {
         // 結果の取得前に両オブジェクトの参照権限を確認
-        if (!service.canReadScan()) {
+        Boolean canReadScan = service.canReadScan();
+        // 参照可否を確定してから後続処理へ進む
+        if (!canReadScan) {
             return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
         }
         try {
@@ -34,7 +34,9 @@ public with sharing class AccountDataQualityScanController {
             // 単一スキャンへの変換を Service へ委譲
             DataQualityScan__c latestScan = service.getFirstScan(latestScans);
             // 取得したスキャンを画面表示値へ変換
-            return service.createViewModel(latestScan);
+            AccountDataQualityScanWrapper wrapper = service.createViewModel(latestScan);
+            // 判定済みの表示値を返却
+            return wrapper;
         } catch (Exception e) {
             throw createAuraHandledException('スキャン状態を取得できませんでした。権限設定を確認してください。');
         }
@@ -48,7 +50,9 @@ public with sharing class AccountDataQualityScanController {
     @AuraEnabled
     public static AccountDataQualityScanWrapper startScan() {
         // 画面表示後に権限が変わった場合も保存や非同期登録の前に拒否
-        if (!service.canReadScan()) {
+        Boolean canReadScan = service.canReadScan();
+        // 参照可否を確定してから後続処理へ進む
+        if (!canReadScan) {
             return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
         }
         assertCanStartScan();
@@ -59,18 +63,20 @@ public with sharing class AccountDataQualityScanController {
             // Cursor 件数を初期値にした待機中スキャンを作成
             scanRecord = service.createPendingScan(accountCursor.getNumRecords(), UserInfo.getUserId());
             // 待機中スキャンを利用者権限で保存
-            service.insertScan(scanRecord);
+            insert as user scanRecord;
             // Cursor 分割処理を非同期キューへ登録
             new AccountDataQualityScanQueueable(accountCursor, 0, scanRecord.Id).enqueueInitialJob();
             // 非同期登録直後の待機状態を画面へ返却
-            return service.createViewModel(scanRecord);
+            AccountDataQualityScanWrapper wrapper = service.createViewModel(scanRecord);
+            // 受付した同じスキャンを返却
+            return wrapper;
         } catch (AccountDataQualityScanService.ScanException e) {
             throw createAuraHandledException(e.getMessage());
         } catch (Exception e) {
             if (scanRecord != null && scanRecord.Id != null) {
                 DataQualityScan__c failedScan = service.markFailed(scanRecord, AccountDataQualityScanService.SAFE_FAILURE_MESSAGE);
                 // 開始途中の失敗状態を利用者権限で保存
-                service.updateScan(failedScan);
+                update as user failedScan;
             }
             throw createAuraHandledException('スキャンを開始できませんでした。権限を確認してもう一度お試しください。');
         }
@@ -87,7 +93,9 @@ public with sharing class AccountDataQualityScanController {
             throw createAuraHandledException('スキャンを開始できませんでした。権限を確認してもう一度お試しください。');
         }
         // 保存済みの実行中スキャンがある場合は利用者向けエラーへ変換
-        if (!service.canStartScan(activeScan)) {
+        Boolean canStart = service.canStartScan(activeScan);
+        // 取得済みの実行中状態から開始を拒否
+        if (!canStart) {
             throw createAuraHandledException(ACTIVE_SCAN_MESSAGE);
         }
     }
