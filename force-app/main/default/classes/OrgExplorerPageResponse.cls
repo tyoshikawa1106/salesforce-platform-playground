@@ -16,7 +16,7 @@ public with sharing class OrgExplorerPageResponse {
     public List<Node> nodes { get; set; }
     // 可視ロールへ直接所属する参照可能ユーザー数、未集計は未登録
     @AuraEnabled
-    public Map<Id, Integer> roleMemberCounts { get; set; }
+    public Map<Id, Integer> memberCounts { get; set; }
     // 上司カードの所属ロール名と参照状態、可視ユーザーIDのみをキーにする
     @AuraEnabled
     public Map<Id, Map<String, String>> cardRoles { get; set; }
@@ -63,7 +63,7 @@ public with sharing class OrgExplorerPageResponse {
         // 列の権限と同じ応答だけに項目ラベルを保持
         this.memberColumnLabels = new Map<String, String>();
         // 未集計をゼロ件と混同しない空の対応表
-        this.roleMemberCounts = new Map<Id, Integer>();
+        this.memberCounts = new Map<Id, Integer>();
         // カードの関連先情報を応答間で引き継がない
         this.cardRoles = new Map<Id, Map<String, String>>();
         // 後続ページがあるかどうかを初期化

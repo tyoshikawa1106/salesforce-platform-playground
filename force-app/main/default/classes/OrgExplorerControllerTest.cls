@@ -232,7 +232,7 @@ private with sharing class OrgExplorerControllerTest {
             Assert.isTrue(nodes.containsKey(team[1].Id), '部下を持つ下位管理者を表示');
             Assert.isFalse(nodes.containsKey(team[2].Id), '一般メンバーは構造へ含めない');
             Assert.areEqual('USER:' + team[0].Id, nodes.get(team[1].Id).parentKey, 'ManagerIdで接続');
-            Assert.areEqual(2, response.roleMemberCounts.get(team[1].Id), '子孫でなく直属部下を集計');
+            Assert.areEqual(2, response.memberCounts.get(team[1].Id), '子孫でなく直属部下を集計');
             Assert.areEqual('試験営業部', nodes.get(team[1].Id).department, '部署を取得');
             Assert.areEqual('試験課長', nodes.get(team[1].Id).title, '役職を取得');
             Assert.areEqual(
@@ -368,8 +368,8 @@ private with sharing class OrgExplorerControllerTest {
             Test.stopTest();
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(activeUsers.nodes);
             Assert.isTrue(allUsers.ok && activeUsers.ok && candidates.ok, '表示条件ごとの取得が成功');
-            Assert.areEqual(2, allUsers.roleMemberCounts.get(team[1].Id), '全ユーザーでは無効の部下も集計');
-            Assert.areEqual(1, activeUsers.roleMemberCounts.get(team[1].Id), '有効な直属部下だけを集計');
+            Assert.areEqual(2, allUsers.memberCounts.get(team[1].Id), '全ユーザーでは無効の部下も集計');
+            Assert.areEqual(1, activeUsers.memberCounts.get(team[1].Id), '有効な直属部下だけを集計');
             Assert.isFalse(nodes.containsKey(team[0].Id), '無効な上司を構造へ表示しない');
             Set<Id> groupedManagerIds = new Set<Id>();
             for (AggregateResult groupRecord : activeGroups) {

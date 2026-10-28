@@ -194,7 +194,7 @@ public with sharing class OrgExplorerService {
             // 可視ユーザーだけを構造へ追加
             response.nodes.add(node);
             // 直属部下の集計を公開ノードへ対応
-            response.roleMemberCounts.put(record.Id, counts.get(record.Id));
+            response.memberCounts.put(record.Id, counts.get(record.Id));
         }
         // 先読みがあり可視な境界を公開できる場合だけ継続
         response.hasMore = hasMore;
@@ -363,12 +363,12 @@ public with sharing class OrgExplorerService {
      */
     public Map<Id, Integer> createRoleMemberCounts(Set<Id> roleIds, List<AggregateResult> counts) {
         // 集計値の読み取りを上司構造と共用
-        Map<Id, Integer> totals = getMemberCounts(counts, 'roleId');
+        Map<Id, Integer> totals = getMemberCounts(counts, 'targetId');
         // 応答対象のロールだけに絞った新しい対応表
         Map<Id, Integer> memberCounts = new Map<Id, Integer>();
         // 取得済みで集計行のないロールだけゼロ件にする
-        for (Id roleId : roleIds) {
-            memberCounts.put(roleId, totals.get(roleId) ?? 0);
+        for (Id targetId : roleIds) {
+            memberCounts.put(targetId, totals.get(targetId) ?? 0);
         }
         // 未取得のロールやその人数は公開しない
         return memberCounts;

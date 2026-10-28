@@ -1,8 +1,8 @@
 import { createElement } from 'lwc';
 import OrgExplorerSearch from 'c/orgExplorerSearch';
 const roles = [
-    { roleId: 'accounting', label: '経理部' },
-    { roleId: 'finance', label: '経理部 財務課' }
+    { targetId: 'accounting', label: '経理部' },
+    { targetId: 'finance', label: '経理部 財務課' }
 ];
 const flush = async () => {
     await Promise.resolve();
@@ -34,7 +34,7 @@ it('候補を標準ルックアップのドロップダウンに表示してク�
     expect(input.getAttribute('aria-expanded')).toBe('true');
     expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(2);
     element.shadowRoot.querySelector('[data-id="finance"]').click();
-    expect(picked.mock.calls[0][0].detail).toEqual({ roleId: 'finance' });
+    expect(picked.mock.calls[0][0].detail).toEqual({ targetId: 'finance' });
     await flush();
     expect(input.getAttribute('aria-expanded')).toBe('false');
 });
@@ -52,7 +52,7 @@ it('上下キーとEnterで候補を一度だけ確定する', async () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true }));
     await flush();
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
-    expect(picked.mock.calls[0][0].detail.roleId).toBe('accounting');
+    expect(picked.mock.calls[0][0].detail.targetId).toBe('accounting');
     expect(picked).toHaveBeenCalledTimes(1);
 });
 it.each(['ROLE', 'MANAGER'])('IME変換中のキー操作は候補に反映せず、変換後は選択できる: %s', async (mode) => {
@@ -84,7 +84,7 @@ it.each(['ROLE', 'MANAGER'])('IME変換中のキー操作は候補に反映せ�
     expect(input.getAttribute('aria-activedescendant')).toBe(activeId);
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
     expect(picked).toHaveBeenCalledTimes(1);
-    expect(picked.mock.calls[0][0].detail.roleId).toBe('accounting');
+    expect(picked.mock.calls[0][0].detail.targetId).toBe('accounting');
 });
 it('Escapeで候補を閉じて選択済みの起点を変更しない', async () => {
     const element = lookup();
@@ -184,8 +184,8 @@ it('上司候補はSLDSの補足行に部署と役職を表示し、補足なし
     const element = lookup();
     element.mode = 'MANAGER';
     element.results = [
-        { roleId: 'boss', label: '試験 上司', description: '営業部 • 部長' },
-        { roleId: 'empty', label: '試験 管理者', description: '' }
+        { targetId: 'boss', label: '試験 上司', description: '営業部 • 部長' },
+        { targetId: 'empty', label: '試験 管理者', description: '' }
     ];
     element.shadowRoot.querySelector('input').focus();
     await flush();
@@ -225,7 +225,7 @@ it.each([
     const element = lookup();
     element.mode = mode;
     element.hasMore = true;
-    element.results = [{ roleId: 'candidate', label: '試験候補' }];
+    element.results = [{ targetId: 'candidate', label: '試験候補' }];
     element.shadowRoot.querySelector('input').focus();
     await flush();
     expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(1);

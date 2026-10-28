@@ -56,7 +56,6 @@ public with sharing class OrgExplorerCursorCodec {
         }
     }
 
-
     /**
      * 継続値をBase64へ変換
      * @param cursor 可視確認済みIDだけを含む継続情報
