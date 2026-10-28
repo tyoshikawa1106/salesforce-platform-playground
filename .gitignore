@@ -15,12 +15,14 @@ force-app/main/default/autoResponseRules/
 force-app/main/default/cleanDataServices/
 force-app/main/default/escalationRules/
 force-app/main/default/externalClientApps/
+force-app/main/default/externalCredentials/
 force-app/main/default/extlClntAppGlobalOauthSets/
 force-app/main/default/extlClntAppOauthPolicies/
 force-app/main/default/extlClntAppOauthSecuritySettings/
 force-app/main/default/extlClntAppOauthSettings/
 force-app/main/default/extlClntAppPolicies/
 force-app/main/default/installedPackages/
+force-app/main/default/namedCredentials/
 force-app/main/default/objects/*/listViews/
 force-app/main/default/profilePasswordPolicies/
 force-app/main/default/profileSessionSettings/
