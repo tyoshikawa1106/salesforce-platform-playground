@@ -32,7 +32,7 @@ Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから
 ```text
 # 1行に1つ指定
 force-app/main/default/profiles/Admin.profile-meta.xml
-force-app/main/default/profiles/Custom%3A Sales Profile.profile-meta.xml
+force-app/main/default/profiles/Standard.profile-meta.xml
 ```
 
 空行と、前後空白を除いた後に`#`で始まる行は無視します。パスはリポジトリルートからの相対パスとし、`force-app/main/default/profiles`配下の`.profile-meta.xml`だけを受け付けます。
