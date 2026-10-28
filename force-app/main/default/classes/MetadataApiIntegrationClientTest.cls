@@ -1,70 +1,10 @@
 /** メタデータ通信と応答の識別子照合 */
 @IsTest
 private with sharing class MetadataApiIntegrationClientTest {
-    private static MetadataApiIntegrationClient client = createClient();
+    private static MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
     private static MetadataApiIntegrationClient.RecordReader reader = new MetadataApiIntegrationClient.RecordReader();
 
     private static User testUser = TestDataFactory.getTestUser();
-
-    /** テストで用意した設定レコードを通常生成で使用 */
-    @IsTest
-    static void usesOrganizationSettingByDefault() {
-        System.runAs(testUser) {
-            Test.startTest();
-            Test.setMock(HttpCalloutMock.class, new ResponseMock('organization'));
-            MetadataApiIntegrationSetting__mdt setting = new MetadataApiIntegrationSetting__mdt();
-            setting.DeveloperName = 'Default';
-            setting.NamedCredentialName__c = 'TestCredential';
-            MetadataApiIntegrationClient.integrationSetting = setting;
-            new MetadataApiIntegrationClient().verifyOrganization();
-            Assert.areEqual(1, Limits.getCallouts(), '通常の生成でも組織照合を実行');
-            Test.stopTest();
-        }
-    }
-
-    /** 未設定・不正な設定名はHTTP要求を送信せず拒否 */
-    @IsTest
-    static void rejectsInvalidCredentialNames() {
-        System.runAs(testUser) {
-            Test.startTest();
-            for (String name : new List<String>{ null, '', 'invalid/name' }) {
-                MetadataApiIntegrationSetting__mdt setting = new MetadataApiIntegrationSetting__mdt();
-                setting.DeveloperName = 'Default';
-                setting.NamedCredentialName__c = name;
-                MetadataApiIntegrationClient.integrationSetting = setting;
-                MetadataApiIntegrationClient invalidClient = new MetadataApiIntegrationClient();
-                try {
-                    invalidClient.verifyOrganization();
-                    Assert.fail('不正な設定名を許可しない');
-                } catch (MetadataApiIntegrationClient.IntegrationException error) {
-                    Assert.areEqual(
-                        'メタデータAPI連携設定のNamed Credential API名を設定してください。',
-                        error.getMessage(),
-                        '設定不備を明示'
-                    );
-                }
-            }
-            Assert.areEqual(0, Limits.getCallouts(), '設定不備は通信前に拒否');
-            Test.stopTest();
-        }
-    }
-
-    /** 設定レコード自体が存在しなくても通信前に拒否 */
-    @IsTest
-    static void rejectsMissingSettingRecord() {
-        System.runAs(testUser) {
-            Test.startTest();
-            MetadataApiIntegrationClient.integrationSetting = null;
-            try {
-                new MetadataApiIntegrationClient().verifyOrganization();
-                Assert.fail('設定レコードの欠落を許可しない');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('Named Credential API名'), '不足している設定を通知');
-            }
-            Assert.areEqual(0, Limits.getCallouts(), '設定レコードなしで通信しない');
-            Test.stopTest();
-        }
-    }
 
     /** 組織照合と分類クエリの接続 */
     @IsTest
@@ -249,18 +189,6 @@ private with sharing class MetadataApiIntegrationClientTest {
     }
 
     /**
-     * 組織の設定に依存しないクライアントを準備
-     * @return テスト内の設定レコードを使用するクライアント
-     */
-    private static MetadataApiIntegrationClient createClient() {
-        MetadataApiIntegrationSetting__mdt setting = new MetadataApiIntegrationSetting__mdt();
-        setting.DeveloperName = 'Default';
-        setting.NamedCredentialName__c = 'TestCredential';
-        MetadataApiIntegrationClient.integrationSetting = setting;
-        return new MetadataApiIntegrationClient();
-    }
-
-    /**
      * 分類応答の必須属性を用意
      * @return 未設定の分類応答
      */
@@ -293,8 +221,8 @@ private with sharing class MetadataApiIntegrationClientTest {
          */
         public HttpResponse respond(HttpRequest request) {
             Assert.isTrue(
-                request.getEndpoint().startsWith('callout:TestCredential/'),
-                'テスト内の設定レコードのNamed Credentialを使用'
+                request.getEndpoint().startsWith('callout:MetadataApiIntegration/'),
+                '指定ログイン情報の固定名を使用'
             );
             HttpResponse response = new HttpResponse();
             response.setStatusCode(200);
