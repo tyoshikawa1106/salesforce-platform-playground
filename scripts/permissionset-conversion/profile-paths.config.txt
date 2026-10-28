@@ -8,15 +8,11 @@ force-app/main/default/profiles/Admin.profile-meta.xml
 force-app/main/default/profiles/Analytics Cloud Integration User.profile-meta.xml
 force-app/main/default/profiles/Analytics Cloud Security User.profile-meta.xml
 force-app/main/default/profiles/Authenticated Website.profile-meta.xml
-force-app/main/default/profiles/B2B Reordering Portal Buyer Profile.profile-meta.xml
 force-app/main/default/profiles/Chatter External User.profile-meta.xml
 force-app/main/default/profiles/Chatter Free User.profile-meta.xml
 force-app/main/default/profiles/Chatter Moderator User.profile-meta.xml
 force-app/main/default/profiles/ContractManager.profile-meta.xml
 force-app/main/default/profiles/Cross Org Data Proxy User.profile-meta.xml
-force-app/main/default/profiles/Custom%3A Marketing Profile.profile-meta.xml
-force-app/main/default/profiles/Custom%3A Sales Profile.profile-meta.xml
-force-app/main/default/profiles/Custom%3A Support Profile.profile-meta.xml
 force-app/main/default/profiles/Customer Community Login User.profile-meta.xml
 force-app/main/default/profiles/Customer Community Plus Login User.profile-meta.xml
 force-app/main/default/profiles/Customer Community Plus User.profile-meta.xml
@@ -38,8 +34,6 @@ force-app/main/default/profiles/Partner App Subscription User.profile-meta.xml
 force-app/main/default/profiles/Partner Community Login User.profile-meta.xml
 force-app/main/default/profiles/Partner Community User.profile-meta.xml
 force-app/main/default/profiles/PlatformPortal.profile-meta.xml
-force-app/main/default/profiles/Read Only.profile-meta.xml
-force-app/main/default/profiles/Salesforce API Only System Integrations.profile-meta.xml
 force-app/main/default/profiles/Silver Partner User.profile-meta.xml
 force-app/main/default/profiles/SolutionManager.profile-meta.xml
 force-app/main/default/profiles/Standard.profile-meta.xml

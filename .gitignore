@@ -26,7 +26,6 @@ force-app/main/default/namedCredentials/
 force-app/main/default/objects/*/listViews/
 force-app/main/default/profilePasswordPolicies/
 force-app/main/default/profileSessionSettings/
-force-app/main/default/profiles/
 force-app/main/default/roles/
 force-app/main/default/samlssoconfigs/
 force-app/main/default/settings/Case.settings-meta.xml
