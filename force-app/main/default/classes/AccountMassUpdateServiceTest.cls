@@ -4,8 +4,10 @@ private with sharing class AccountMassUpdateServiceTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 日付境界を正規化し不完全なページ境界を拒否 */
     @IsTest
     static void normalizesInclusiveDatesAndRejectsInvalidAnchors() {
+
         System.runAs(testUser) {
             Date day = Date.newInstance(2026, 9, 24);
             AccountMassUpdateService service = new AccountMassUpdateService();
@@ -40,8 +42,10 @@ private with sharing class AccountMassUpdateServiceTest {
         }
     }
 
+    /** 欠落・重複・上限超過の保存要求を拒否 */
     @IsTest
     static void rejectsMissingDuplicateAndOversizedRequests() {
+
         System.runAs(testUser) {
             Account record = TestDataFactory.createAccount('件数検証', TestDataFactory.SaveMode.INSERT_RECORD);
             AccountMassUpdateService service = new AccountMassUpdateService();
@@ -69,8 +73,10 @@ private with sharing class AccountMassUpdateServiceTest {
         }
     }
 
+    /** 入力を変更せず変更なし・取得不可・変更行を判定 */
     @IsTest
     static void handlesUnchangedMissingAndChangedRowsWithoutMutatingInput() {
+
         System.runAs(testUser) {
             Account record = TestDataFactory.createAccount('差分検証', TestDataFactory.SaveMode.INSERT_RECORD);
             List<Account> current = [
@@ -98,8 +104,10 @@ private with sharing class AccountMassUpdateServiceTest {
         }
     }
 
+    /** 入力を変更せず表示件数を制限 */
     @IsTest
     static void boundsPageWithoutChangingInput() {
+
         System.runAs(testUser) {
             List<Account> records = new List<Account>();
             for (Integer position = 0; position < 201; position++) {

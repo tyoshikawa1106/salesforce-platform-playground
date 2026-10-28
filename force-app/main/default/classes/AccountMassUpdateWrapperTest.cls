@@ -4,8 +4,10 @@ private with sharing class AccountMassUpdateWrapperTest {
 
     private static User testUser = TestDataFactory.getTestUser();
 
+    /** 空の応答を初期化 */
     @IsTest
     static void initializesEmptyResponse() {
+
         System.runAs(testUser) {
             Test.startTest();
             AccountMassUpdateWrapper wrapper = new AccountMassUpdateWrapper();
