@@ -10,10 +10,15 @@
 
 ## 対象実装・メタデータ
 
-- `TestDataDeleteBatch`: `start`の取得、`execute`の削除、`finish`の停止判定と次バッチ登録。
-- `TestDataDeleteBatchService`: 実行条件、削除結果の集計、抽出条件、継続可否の判定。
-- `TestDataDeleteBatchSelector`: 実効権限、QueryLocator、残存件数、標準ジョブの検索。
-- `TestDataDeleteBatchWrapper`: 固定対象と順序、処理位置、スコープ間集計。
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                     | 役割                                                               | 同名Test                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| [TestDataDeleteBatch](../../../../../force-app/main/default/classes/TestDataDeleteBatch.cls)                 | `start`の取得、`execute`の削除、`finish`の停止判定と次バッチ登録。 | [TestDataDeleteBatchTest](../../../../../force-app/main/default/classes/TestDataDeleteBatchTest.cls)                 |
+| [TestDataDeleteBatchService](../../../../../force-app/main/default/classes/TestDataDeleteBatchService.cls)   | 実行条件、削除結果の集計、抽出条件、継続可否の判定。               | [TestDataDeleteBatchServiceTest](../../../../../force-app/main/default/classes/TestDataDeleteBatchServiceTest.cls)   |
+| [TestDataDeleteBatchSelector](../../../../../force-app/main/default/classes/TestDataDeleteBatchSelector.cls) | 実効権限、QueryLocator、残存件数、標準ジョブの検索。               | [TestDataDeleteBatchSelectorTest](../../../../../force-app/main/default/classes/TestDataDeleteBatchSelectorTest.cls) |
+| [TestDataDeleteBatchWrapper](../../../../../force-app/main/default/classes/TestDataDeleteBatchWrapper.cls)   | 固定計画の保持、処理位置、スコープ間集計。                         | [TestDataDeleteBatchWrapperTest](../../../../../force-app/main/default/classes/TestDataDeleteBatchWrapperTest.cls)   |
+| [TestDataDeleteService](../../../../../force-app/main/default/classes/TestDataDeleteService.cls)             | 固定対象と順序、削除機能専用の環境判定。                           | [TestDataDeleteServiceTest](../../../../../force-app/main/default/classes/TestDataDeleteServiceTest.cls)             |
 
 ## 入力
 
@@ -23,7 +28,7 @@
 
 ### 対象と順序
 
-正本は`TestDataDeleteBatchWrapper`の`objectNames`です。ファイルと活動を先に処理し、作業指示明細→作業指示→ケース、権利→契約明細→サービス契約、注文明細→注文、商談関連→商談などの順序を守ります。商品・担当者などの参照元を先に削除し、取引先は最後に処理します。
+固定対象と順序の正本は`TestDataDeleteService.getObjectNames`です。`TestDataDeleteBatchWrapper`の`objectNames`へ取得して保持します。ファイルと活動を先に処理し、作業指示明細→作業指示→ケース、権利→契約明細→サービス契約、注文明細→注文、商談関連→商談などの順序を守ります。商品・担当者などの参照元を先に削除し、取引先は最後に処理します。
 
 `ContentVersion`の投入データは`ContentDocument`単位で全バージョン・関連共有を含めて削除します。標準価格表本体、営業時間、ユーザー、レポート・ダッシュボードなどのメタデータは対象に含めません。価格表エントリと商品は対象です。
 
@@ -37,21 +42,27 @@
 
 個人取引先のContactは直接削除できないため、通常のContactを先に削除し、個人取引先に対応するContactはAccount削除に委ねます。アーカイブされた活動も含み、ごみ箱内のレコードは除きます。
 
+### 価格表エントリの削除順序
+
+カスタム価格と標準価格は別バッチで削除します。カスタム価格が正常に完了してから標準価格を削除し、その後に商品へ進みます。標準価格の削除に伴うカスタム価格への連動処理と、同時削除の競合を避けるためです。参照先不明のエントリは除外せず、標準価格以外の段階で削除を試みます。失敗した場合は後続を停止します。
+
 ## 出力・更新対象
 
 固定対象のレコードを通常削除します。完全削除やごみ箱の空化は行いません。標準の連動削除やTrigger・Flowによる副作用は発生します。途中で成功した削除は後続の失敗でロールバックされません。
 
 オブジェクトごとの標準Apexジョブを生成します。独自の履歴レコードや投入ID台帳は作成しません。
 
+### 結果メール
+
+最後の段階が正常終了した場合、または`finish`で停止を判定した場合に、実行ユーザーへ全体の結果を1通送信します。途中段階の正常終了では送信しません。件名で完了と途中停止を区別し、本文には全段階の直接削除成功件数・DML失敗件数を記載します。連動削除と未処理スコープは件数に含みません。停止時には対象・停止理由・取得できた現在段階の残件数を記載します。内部例外の詳細やレコード内容は含めません。
+
+通知用の独自レコードや活動は作成しません。送信受付が失敗した場合は標準ジョブをエラーにします。メール送信受付と実際の受信は異なり、組織のメール設定や配信制限に依存します。開始処理の異常終了、手動中止、`finish`自体の想定外例外などは通知を保証しません。
+
 ## 権限・実行条件
 
 画面と同じ開発環境・実効権限を、開始時・スコープ処理前・次のバッチ登録前に確認します。全件削除は`Modify All Data`を持つユーザーでユーザーモードの参照・削除として実施します。ファイルは実行ユーザーが参照できる範囲を対象にします。
 
 受付時と非同期の開始時に同機能の別ジョブを確認します。同時受付が競合した場合も、競合したジョブを削除前に拒否します。競合時に必ずどちらか一方が成功する保証はありません。
-
-## 価格表エントリの削除順序
-
-カスタム価格と標準価格は別バッチで削除します。カスタム価格が正常に完了してから標準価格を削除し、その後に商品へ進みます。標準価格の削除に伴うカスタム価格への連動処理と、同時削除の競合を避けるためです。参照先不明のエントリは除外せず、標準価格以外の段階で削除を試みます。失敗した場合は後続を停止します。
 
 ## エラー処理
 
@@ -85,9 +96,3 @@
 ## 既知の差異・確認事項
 
 環境判定は削除機能専用です。SandboxではないDeveloper Edition、または`IsSandbox=true`かつ`TrialExpirationDate`が未来のScratch Orgだけを許可します。通常のSandbox、本番、期限切れScratchは拒否します。組織固有の自動化・自己参照・追加参照を含む全件削除の成立は、対象組織の管理者が確認します。
-
-## 結果メール
-
-最後の段階が正常終了した場合、または`finish`で停止を判定した場合に、実行ユーザーへ全体の結果を1通送信します。途中段階の正常終了では送信しません。件名で完了と途中停止を区別し、本文には全段階の直接削除成功件数・DML失敗件数を記載します。連動削除と未処理スコープは件数に含みません。停止時には対象・停止理由・取得できた現在段階の残件数を記載します。内部例外の詳細やレコード内容は含めません。
-
-通知用の独自レコードや活動は作成しません。送信受付が失敗した場合は標準ジョブをエラーにします。メール送信受付と実際の受信は異なり、組織のメール設定や配信制限に依存します。開始処理の異常終了、手動中止、`finish`自体の想定外例外などは通知を保証しません。

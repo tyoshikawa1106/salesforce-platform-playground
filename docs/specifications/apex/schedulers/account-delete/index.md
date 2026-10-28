@@ -10,7 +10,12 @@
 
 ## 対象実装・メタデータ
 
-- `AccountDeleteBatchScheduler`
+### Apexコードと対応テスト
+
+| Apex本体                                                                                                     | 役割                       | 同名Test                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| [AccountDeleteBatchScheduler](../../../../../force-app/main/default/classes/AccountDeleteBatchScheduler.cls) | 定期起動の受付とバッチ登録 | [AccountDeleteBatchSchedulerTest](../../../../../force-app/main/default/classes/AccountDeleteBatchSchedulerTest.cls) |
+
 - 削除・通知の実装は[取引先一括削除バッチ](../../batches/account-delete/index.md)を参照
 
 ## 入力
