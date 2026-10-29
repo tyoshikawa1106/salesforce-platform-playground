@@ -14,7 +14,8 @@ jest.mock('@salesforce/apex/ObjectExplorerController.getClassifyData', () => ({ 
 jest.mock('@salesforce/apex/ObjectExplorerController.searchClassifyOwners', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/ObjectExplorerController.resolveClassifyOwners', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/ObjectExplorerController.saveClassifyData', () => ({ default: jest.fn() }), { virtual: true });
-jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ default: true }), { virtual: true });
+jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ __esModule: true, default: false }), { virtual: true });
+jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ __esModule: true, default: true }), { virtual: true });
 jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
 
 const flush = () => Array.from({ length: 30 }).reduce((p) => p.then(() => Promise.resolve()), Promise.resolve());
@@ -40,6 +41,8 @@ async function editClassify(element) {
     await flush();
 }
 beforeEach(() => {
+    require('@salesforce/userPermission/ModifyDataClassification').default = false;
+    require('@salesforce/userPermission/CustomizeApplication').default = true;
     global.ResizeObserver = class { observe() {} disconnect() {} };
     searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }]);
     getObjectInfo.mockResolvedValue(objectInfo);
@@ -119,3 +122,26 @@ it('破棄確認のキャンセルでは対象と分類の入力を維持する'
     expect(element.shadowRoot.querySelector('c-object-explorer-lookup').selectedLabel).toBe('取引先');
     expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
 });
+
+it.each([[true, false, true], [false, true, true], [false, false, false]])(
+    '分類変更=%s、カスタマイズ=%sで編集表示=%s', async (modify, customize, editable) => {
+        let element;
+        const lwcRuntime = jest.requireActual('lwc');
+        jest.doMock('lwc', () => lwcRuntime);
+        jest.isolateModules(() => {
+            require('@salesforce/userPermission/ModifyDataClassification').default = modify;
+            require('@salesforce/userPermission/CustomizeApplication').default = customize;
+            require('@salesforce/apex/ObjectExplorerController.searchObjects').default.mockResolvedValue([{ apiName: 'Account', label: '取引先' }]);
+            require('@salesforce/apex/ObjectExplorerController.getObjectInfo').default.mockResolvedValue(objectInfo);
+            require('@salesforce/apex/ObjectExplorerController.getClassifyData').default.mockResolvedValue(classify);
+            const component = require('c/objectExplorer').default;
+            element = require('lwc').createElement('c-object-explorer', { is: component });
+            document.body.appendChild(element);
+        });
+        element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+        await flush();
+        await pickAccount(element);
+        expect(Boolean(element.shadowRoot.querySelector('[data-property="businessStatus"]'))).toBe(editable);
+        await expect(element).toBeAccessible();
+    }
+);

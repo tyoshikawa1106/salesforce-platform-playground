@@ -123,7 +123,7 @@ public inherited sharing class ObjectExplorerSelector {
      */
     public List<UserPermissionAccess> selectCurrentPermissions() {
         // 実効権限はプラットフォームの現在ユーザー用オブジェクトから取得
-        List<UserPermissionAccess> records = [SELECT PermissionsCustomizeApplication FROM UserPermissionAccess WITH USER_MODE LIMIT 1];
+        List<UserPermissionAccess> records = [SELECT PermissionsModifyDataClassification, PermissionsCustomizeApplication FROM UserPermissionAccess WITH USER_MODE LIMIT 1];
         // 個別の権限セットやプロファイルの合成を独自実装しない
         return records;
     }

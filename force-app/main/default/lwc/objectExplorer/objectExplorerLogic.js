@@ -179,7 +179,7 @@ function classifyRow(field, context) {
     const inputErrors = Object.values(edit?.inputErrors || {}).filter(Boolean);
     // ラベル・型と分類の表示状態をまとめる
     return { ...field, ...values, editing: Boolean(edit),
-        reason: !canEdit && info?.editable ? '変更には「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason || (info ? '' : '分類情報を設定できない項目です。'),
+        reason: !canEdit && info?.editable ? '変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason || (info ? '' : '分類情報を設定できない項目です。'),
         rowClass: changed || inputErrors.length ? 'oe-classify-changed' : '', changed, complianceValues: compliance, unavailable: !info,
         complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-dropdown slds-dropdown_fluid slds-dropdown_bottom oe-compliance-options' : 'slds-dropdown slds-dropdown_fluid oe-compliance-options',
         complianceOptions: includeCurrentOptions(options.ComplianceGroup, (original.complianceGroup || '').split(';')),

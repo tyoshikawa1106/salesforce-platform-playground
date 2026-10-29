@@ -40,8 +40,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 構造・項目・分類一覧の公開契約 */
     @IsTest
     static void readsStructureAndClassify() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> structure = (Map<String, Object>) JSON.deserializeUntyped(
@@ -72,8 +70,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 検索とCSV所有者照合の接続 */
     @IsTest
     static void resolvesOwnersById() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             Map<String, Object> owners = (Map<String, Object>) JSON.deserializeUntyped(
@@ -97,7 +93,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 入力の構文エラーで解析詳細を利用者へ公開しない */
     @IsTest
     static void hidesMalformedOwnerJsonDetails() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
         System.runAs(testUser) {
             Test.startTest();
             try {
@@ -116,8 +111,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** カスタム更新の通信失敗を同じ項目へ反映 */
     @IsTest
     static void rejectsCustomUpdateTransportFailure() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'customError');
@@ -139,8 +132,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 標準項目の保存と再取得の接続 */
     @IsTest
     static void savesStandardFieldAndVerifies() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
@@ -165,8 +156,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 変更なしで更新要求を省略 */
     @IsTest
     static void skipsUnchangedWrites() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
@@ -188,8 +177,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 応答順に依存せず個別拒否を維持 */
     @IsTest
     static void preservesPerFieldRejection() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name', 'Phone' }, 'rejectPhone');
@@ -209,8 +196,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 保存後の不一致を成功扱いしない */
     @IsTest
     static void doesNotConfirmUnverifiedSave() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'stale');
@@ -232,8 +217,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 更新前の競合と通信失敗の接続 */
     @IsTest
     static void isolatesPreparationAndTransportFailures() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'conflict');
@@ -257,8 +240,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** カスタム定義の取得と保持更新の接続 */
     @IsTest
     static void savesCustomFieldWithoutDroppingMetadata() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'success');
@@ -280,8 +261,6 @@ private with sharing class ObjectExplorerControllerTest {
     /** 標準項目の通信失敗を結果へ反映 */
     @IsTest
     static void rejectsSoapTransportFailure() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcObjectExplorer');
-
         System.runAs(testUser) {
             Test.startTest();
             SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'soapError');
