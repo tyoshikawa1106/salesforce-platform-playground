@@ -1,4 +1,5 @@
 <template>
+    <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
     <lightning-card title={title} icon-name="utility:table">
         <div slot="actions" class="actions">
             <lightning-button-icon

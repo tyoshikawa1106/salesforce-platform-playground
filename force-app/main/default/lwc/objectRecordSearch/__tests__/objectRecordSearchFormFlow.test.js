@@ -1,5 +1,7 @@
+import { createElement } from 'lwc';
 import { getModal, getModalRoot, mockModalOpen } from '../../../../../test/jest-utils/objectRecordSearch/objectRecordFormModalMock';
 import '../../../../../test/jest-utils/objectRecordSearch/objectRecordSearchApexMocks';
+import ObjectRecordSearch from 'c/objectRecordSearch';
 import { refreshApex } from '@salesforce/apex';
 import ObjectRecordFormModal from 'c/objectRecordFormModal';
 import { getLayout } from 'lightning/uiLayoutApi';
@@ -22,6 +24,24 @@ describe('c-object-record-search form flows', () => {
         }
         jest.clearAllMocks();
         jest.restoreAllMocks();
+    });
+
+    it('isConnectedが公開されない環境でも接続中は作成モーダルを開く', async () => {
+        class RuntimeWithoutIsConnected extends ObjectRecordSearch {
+            get isConnected() { return undefined; }
+        }
+        const element = createElement('c-object-record-search', { is: RuntimeWithoutIsConnected });
+        element.metricKey = 'accounts';
+        document.body.appendChild(element);
+        searchRecords.emit(searchResponse);
+        await flushPromises();
+        emitObjectInfo();
+        await flushPromises();
+        emitLayout({ mode: 'Create', fields: ['Name'] });
+        await flushPromises();
+        findButton(element, '新規').click();
+        await flushPromises();
+        expect(getModalRoot().querySelector('lightning-record-edit-form')).not.toBeNull();
     });
 
     it('作成可能項目がなくても更新可能なレコードを編集できる', async () => {
