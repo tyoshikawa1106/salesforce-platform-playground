@@ -5,7 +5,7 @@
 private with sharing class OrgExplorerCursorCodecTest {
 
     private static OrgExplorerCursorCodec codec = new OrgExplorerCursorCodec();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 継続値の期限・利用者・目的を毎回照合

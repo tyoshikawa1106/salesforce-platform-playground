@@ -5,7 +5,7 @@
 private with sharing class OrgExplorerMemberServiceTest {
 
     private static OrgExplorerMemberService service = new OrgExplorerMemberService();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 項目の未登録と参照不可を混同しない
