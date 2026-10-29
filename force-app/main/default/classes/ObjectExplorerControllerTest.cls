@@ -17,10 +17,10 @@ private with sharing class ObjectExplorerControllerTest {
             AuditMock mock = new AuditMock();
             Test.setMock(HttpCalloutMock.class, mock);
             Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(
-                JSON.serialize(ObjectExplorerController.getFieldAudit('DataQualityScan__c'))
+                JSON.serialize(ObjectExplorerController.getFieldAudit('Account'))
             );
-            Assert.isTrue(result.containsKey('Error_Message__c'), 'カスタム項目の日時を返す');
-            Map<String, Object> field = (Map<String, Object>) result.get('Error_Message__c');
+            Assert.isTrue(result.containsKey('Active__c'), 'カスタム項目の日時を返す');
+            Map<String, Object> field = (Map<String, Object>) result.get('Active__c');
             Assert.areEqual('2026-01-01T00:00:00.000Z', field.get('createdDate'), '作成日時を同じ項目へ対応');
             Assert.areEqual(String.valueOf(testUser.Id), field.get('createdById'), '可視な人物を同じIDで対応');
             Assert.areEqual(2, mock.calls, '接続先確認と日時の一括取得');
@@ -113,11 +113,11 @@ private with sharing class ObjectExplorerControllerTest {
     static void rejectsCustomUpdateTransportFailure() {
         System.runAs(testUser) {
             Test.startTest();
-            SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'customError');
+            SaveMock mock = new SaveMock('Account', new Set<String>{ 'Active__c' }, 'customError');
             Test.setMock(HttpCalloutMock.class, mock);
             List<Object> result = ObjectExplorerController.saveClassifyData(
-                'DataQualityScan__c',
-                changes(new List<String>{ 'Error_Message__c' }, ChangeMode.CHANGE_STATUS)
+                'Account',
+                changes(new List<String>{ 'Active__c' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(
                 false,
@@ -242,11 +242,11 @@ private with sharing class ObjectExplorerControllerTest {
     static void savesCustomFieldWithoutDroppingMetadata() {
         System.runAs(testUser) {
             Test.startTest();
-            SaveMock mock = new SaveMock('DataQualityScan__c', new Set<String>{ 'Error_Message__c' }, 'success');
+            SaveMock mock = new SaveMock('Account', new Set<String>{ 'Active__c' }, 'success');
             Test.setMock(HttpCalloutMock.class, mock);
             List<Object> results = ObjectExplorerController.saveClassifyData(
-                'DataQualityScan__c',
-                changes(new List<String>{ 'Error_Message__c' }, ChangeMode.CHANGE_STATUS)
+                'Account',
+                changes(new List<String>{ 'Active__c' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(
                 true,
@@ -454,7 +454,7 @@ private with sharing class ObjectExplorerControllerTest {
     /** カスタム項目の日時だけを返すHTTPモック */
     public class AuditMock implements HttpCalloutMock {
         private List<FieldDefinition> definitions = new ObjectExplorerSelector()
-            .selectFieldAuditTargets('DataQualityScan__c');
+            .selectFieldAuditTargets('Account');
         public Integer calls = 0;
 
         /**
