@@ -4,11 +4,11 @@
         <apexClass>ObjectExplorerController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <customPermissions>
-        <enabled>true</enabled>
-        <name>ManageObjectFieldClassification</name>
-    </customPermissions>
     <description>LWC：オブジェクトエクスプローラーの利用に必要な入口権限。データ参照・更新権限やオブジェクトのカスタマイズ権限は付与しません。</description>
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal>MetadataApiIntegration-MetadataPrincipal</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：オブジェクトエクスプローラー</label>
     <tabSettings>

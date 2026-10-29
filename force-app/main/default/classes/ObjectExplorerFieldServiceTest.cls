@@ -15,23 +15,23 @@ private with sharing class ObjectExplorerFieldServiceTest {
                 JSON.serialize(
                     new List<Object>{
                         new Map<String, Object>{
-                            'QualifiedApiName' => 'Error_Message__c',
-                            'DurableId' => 'DataQualityScan__c.' + fieldId
+                            'QualifiedApiName' => 'Active__c',
+                            'DurableId' => 'Account.' + fieldId
                         },
                         new Map<String, Object>{
-                            'QualifiedApiName' => 'Status__c',
-                            'DurableId' => 'DataQualityScan__c.invalid'
+                            'QualifiedApiName' => 'Unused__c',
+                            'DurableId' => 'Account.invalid'
                         }
                     }
                 ),
                 List<FieldDefinition>.class
             );
             Map<Id, String> targets = service.createAuditTargets(
-                DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
+                Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
                 definitions
             );
             Assert.areEqual(
-                new Map<Id, String>{ fieldId => 'Error_Message__c' },
+                new Map<Id, String>{ fieldId => 'Active__c' },
                 targets,
                 '実在するカスタム項目を検証したIDだけへ対応付け'
             );
