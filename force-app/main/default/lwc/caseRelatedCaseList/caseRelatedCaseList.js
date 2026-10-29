@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { getFieldValue, getRecord } from 'lightning/uiRecordApi';
@@ -54,9 +55,9 @@ const RELATED_CASE_PAGE_SIZE = 20;
 const RELATED_CASE_SORT = ['-Case.CreatedDate'];
 
 // Caseレコードページに関連問い合わせ一覧を提供
-export default class CaseRelatedCaseList extends NavigationMixin(
+export default class CaseRelatedCaseList extends withUiErrorBoundary(NavigationMixin(
     LightningElement
-) {
+), 'caseRelatedCaseList') {
     // レコードページから表示中CaseのIDを受け取る
     @api recordId;
 
@@ -94,39 +95,47 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         optionalFields: CASE_OPTIONAL_FIELDS
     })
     wiredCase({ data, error }) {
-        // 取得成功時は関連先の変更を判定して表示状態を更新
-        if (data) {
-            // 更新前のContactを保持して関連リストの切り替えを判定
-            const previousContactId = this.contactId;
-            // 更新前のAccountを保持して関連リストの切り替えを判定
-            const previousAccountId = this.accountId;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 取得成功時は関連先の変更を判定して表示状態を更新
+            if (data) {
+                // 更新前のContactを保持して関連リストの切り替えを判定
+                const previousContactId = this.contactId;
+                // 更新前のAccountを保持して関連リストの切り替えを判定
+                const previousAccountId = this.accountId;
 
-            // 最新のCaseレスポンスを参照元として保存
-            this.caseRecord = data;
-            // Case取得完了後に全体ローディングを終了
-            this.caseHasLoaded = true;
-            // 再取得成功時は以前のエラー表示を解除
-            this.caseErrorMessage = undefined;
-            // 関連先が変わったタブだけ古い取得状態を破棄
-            this.resetRelatedCasesWhenParentChanges(
-                previousContactId,
-                previousAccountId
-            );
-            // 関連先が同じでも現在ケースの表示値とバッジを更新
-            this.updateContactCases();
-            // 会社タブも現在ケースの変更を反映
-            this.updateAccountCases();
-        // 取得失敗時は関連一覧を残さずコンポーネント全体をエラー表示
-        } else if (error) {
-            // 取得失敗したCaseレスポンスを参照しないよう破棄
-            this.caseRecord = undefined;
-            // エラー状態を描画するためCase取得を完了扱いに変更
-            this.caseHasLoaded = true;
-            // 詳細エラーを露出せず利用者向けメッセージへ統一
-            this.caseErrorMessage =
-                '関連する問い合わせを読み込めませんでした。時間をおいてもう一度お試しください。';
-            // 親Caseを特定できないため両タブの関連一覧を初期化
-            this.resetRelatedCases();
+                // 最新のCaseレスポンスを参照元として保存
+                this.caseRecord = data;
+                // Case取得完了後に全体ローディングを終了
+                this.caseHasLoaded = true;
+                // 再取得成功時は以前のエラー表示を解除
+                this.caseErrorMessage = undefined;
+                // 関連先が変わったタブだけ古い取得状態を破棄
+                this.resetRelatedCasesWhenParentChanges(
+                    previousContactId,
+                    previousAccountId
+                );
+                // 関連先が同じでも現在ケースの表示値とバッジを更新
+                this.updateContactCases();
+                // 会社タブも現在ケースの変更を反映
+                this.updateAccountCases();
+            // 取得失敗時は関連一覧を残さずコンポーネント全体をエラー表示
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredCase', 'wire');
+                // 取得失敗したCaseレスポンスを参照しないよう破棄
+                this.caseRecord = undefined;
+                // エラー状態を描画するためCase取得を完了扱いに変更
+                this.caseHasLoaded = true;
+                // 詳細エラーを露出せず利用者向けメッセージへ統一
+                this.caseErrorMessage =
+                    '関連する問い合わせを読み込めませんでした。時間をおいてもう一度お試しください。';
+                // 親Caseを特定できないため両タブの関連一覧を初期化
+                this.resetRelatedCases();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredCase', 'wire');
         }
     }
 
@@ -140,50 +149,64 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         sortBy: RELATED_CASE_SORT
     })
     async wiredContactCases({ data, error }) {
-        // 関連リスト取得成功時は再生成に使う元データを保持
-        if (data) {
-            // 現在ケースの変更時にも使えるよう未加工レコードを保存
-            this.contactCaseRecords = data.records;
-            // 現在ケースと最新関連リストからカードを作成
-            await this.updateContactCases();
-        } else if (error) {
-            // 進行中の古いカード変換を無効化
-            this.contactCasesRequestId++;
-            // 取得失敗した元データを再利用しない
-            this.contactCaseRecords = undefined;
-            // 古いカードを表示から除去
-            this.contactCases = [];
-            // エラーを表示できる取得済み状態にする
-            this.contactCasesHaveLoaded = true;
-            // この関連リストだけにエラーを表示
-            this.contactCasesHaveError = true;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 関連リスト取得成功時は再生成に使う元データを保持
+            if (data) {
+                // 現在ケースの変更時にも使えるよう未加工レコードを保存
+                this.contactCaseRecords = data.records;
+                // 現在ケースと最新関連リストからカードを作成
+                await this.updateContactCases();
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredContactCases', 'wire');
+                // 進行中の古いカード変換を無効化
+                this.contactCasesRequestId++;
+                // 取得失敗した元データを再利用しない
+                this.contactCaseRecords = undefined;
+                // 古いカードを表示から除去
+                this.contactCases = [];
+                // エラーを表示できる取得済み状態にする
+                this.contactCasesHaveLoaded = true;
+                // この関連リストだけにエラーを表示
+                this.contactCasesHaveError = true;
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredContactCases', 'wire');
         }
     }
 
     // 現在ケースと保持した関連レコードから顧客カードを再生成
     async updateContactCases() {
-        // 対象関連先の初回応答がまだなければ再生成しない
-        if (!this.contactCaseRecords) {
-            // 未取得または取得失敗の状態を維持
-            return;
+        // 呼び出し元が待機しない非同期処理もこの画面で捕捉
+        try {
+            // 対象関連先の初回応答がまだなければ再生成しない
+            if (!this.contactCaseRecords) {
+                // 未取得または取得失敗の状態を維持
+                return;
+            }
+            // 同じ関連先の再生成でも以前の変換結果を無効化
+            const requestId = ++this.contactCasesRequestId;
+            // 非同期変換の対象ケースを固定
+            const recordId = this.recordId;
+            // URL生成を含めたカード表示を作成
+            const cases = await this.createCaseCards(this.contactCaseRecords);
+            // 後続の応答またはケース変更があれば古い結果を破棄
+            if (requestId !== this.contactCasesRequestId || recordId !== this.recordId) {
+                // 最新の表示状態を維持
+                return;
+            }
+            // 現在ケースを反映したカードを表示
+            this.contactCases = cases;
+            // 初回表示のローディングを終了
+            this.contactCasesHaveLoaded = true;
+            // 正常取得後のエラー表示を解除
+            this.contactCasesHaveError = false;
+        } catch (error) {
+            // 未処理のPromise拒否を画面外へ伝播させない
+            this.reportClientError(error, 'updateContactCases', 'async-operation');
         }
-        // 同じ関連先の再生成でも以前の変換結果を無効化
-        const requestId = ++this.contactCasesRequestId;
-        // 非同期変換の対象ケースを固定
-        const recordId = this.recordId;
-        // URL生成を含めたカード表示を作成
-        const cases = await this.createCaseCards(this.contactCaseRecords);
-        // 後続の応答またはケース変更があれば古い結果を破棄
-        if (requestId !== this.contactCasesRequestId || recordId !== this.recordId) {
-            // 最新の表示状態を維持
-            return;
-        }
-        // 現在ケースを反映したカードを表示
-        this.contactCases = cases;
-        // 初回表示のローディングを終了
-        this.contactCasesHaveLoaded = true;
-        // 正常取得後のエラー表示を解除
-        this.contactCasesHaveError = false;
     }
 
     // 会社タブ用に同じAccountへ紐づくケースを取得
@@ -196,50 +219,64 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         sortBy: RELATED_CASE_SORT
     })
     async wiredAccountCases({ data, error }) {
-        // 関連リスト取得成功時は再生成に使う元データを保持
-        if (data) {
-            // 現在ケースの変更時にも使えるよう未加工レコードを保存
-            this.accountCaseRecords = data.records;
-            // 現在ケースと最新関連リストからカードを作成
-            await this.updateAccountCases();
-        } else if (error) {
-            // 進行中の古いカード変換を無効化
-            this.accountCasesRequestId++;
-            // 取得失敗した元データを再利用しない
-            this.accountCaseRecords = undefined;
-            // 古いカードを表示から除去
-            this.accountCases = [];
-            // エラーを表示できる取得済み状態にする
-            this.accountCasesHaveLoaded = true;
-            // この関連リストだけにエラーを表示
-            this.accountCasesHaveError = true;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 関連リスト取得成功時は再生成に使う元データを保持
+            if (data) {
+                // 現在ケースの変更時にも使えるよう未加工レコードを保存
+                this.accountCaseRecords = data.records;
+                // 現在ケースと最新関連リストからカードを作成
+                await this.updateAccountCases();
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredAccountCases', 'wire');
+                // 進行中の古いカード変換を無効化
+                this.accountCasesRequestId++;
+                // 取得失敗した元データを再利用しない
+                this.accountCaseRecords = undefined;
+                // 古いカードを表示から除去
+                this.accountCases = [];
+                // エラーを表示できる取得済み状態にする
+                this.accountCasesHaveLoaded = true;
+                // この関連リストだけにエラーを表示
+                this.accountCasesHaveError = true;
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredAccountCases', 'wire');
         }
     }
 
     // 現在ケースと保持した関連レコードから会社カードを再生成
     async updateAccountCases() {
-        // 対象関連先の初回応答がまだなければ再生成しない
-        if (!this.accountCaseRecords) {
-            // 未取得または取得失敗の状態を維持
-            return;
+        // 呼び出し元が待機しない非同期処理もこの画面で捕捉
+        try {
+            // 対象関連先の初回応答がまだなければ再生成しない
+            if (!this.accountCaseRecords) {
+                // 未取得または取得失敗の状態を維持
+                return;
+            }
+            // 同じ関連先の再生成でも以前の変換結果を無効化
+            const requestId = ++this.accountCasesRequestId;
+            // 非同期変換の対象ケースを固定
+            const recordId = this.recordId;
+            // URL生成を含めたカード表示を作成
+            const cases = await this.createCaseCards(this.accountCaseRecords);
+            // 後続の応答またはケース変更があれば古い結果を破棄
+            if (requestId !== this.accountCasesRequestId || recordId !== this.recordId) {
+                // 最新の表示状態を維持
+                return;
+            }
+            // 現在ケースを反映したカードを表示
+            this.accountCases = cases;
+            // 初回表示のローディングを終了
+            this.accountCasesHaveLoaded = true;
+            // 正常取得後のエラー表示を解除
+            this.accountCasesHaveError = false;
+        } catch (error) {
+            // 未処理のPromise拒否を画面外へ伝播させない
+            this.reportClientError(error, 'updateAccountCases', 'async-operation');
         }
-        // 同じ関連先の再生成でも以前の変換結果を無効化
-        const requestId = ++this.accountCasesRequestId;
-        // 非同期変換の対象ケースを固定
-        const recordId = this.recordId;
-        // URL生成を含めたカード表示を作成
-        const cases = await this.createCaseCards(this.accountCaseRecords);
-        // 後続の応答またはケース変更があれば古い結果を破棄
-        if (requestId !== this.accountCasesRequestId || recordId !== this.recordId) {
-            // 最新の表示状態を維持
-            return;
-        }
-        // 現在ケースを反映したカードを表示
-        this.accountCases = cases;
-        // 初回表示のローディングを終了
-        this.accountCasesHaveLoaded = true;
-        // 正常取得後のエラー表示を解除
-        this.accountCasesHaveError = false;
     }
 
     // Caseの初回レスポンス前だけ全体ローディングを有効化
@@ -414,7 +451,14 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                 // 対象レコードの参照画面を開く
                 actionName: 'view'
             }
-        }).catch(() => undefined);
+        }).catch((error) => {
+            // URLを作れない場合はリンクを表示せず、失敗箇所を通知
+            // 表示対象が変わった後の古いURL生成失敗は表示しない
+            if ([...(this.contactCaseRecords || []), ...(this.accountCaseRecords || [])].some((record) => record.id === recordId)) {
+                this.reportClientError(error, 'generateRecordUrl', 'navigation');
+            }
+            return undefined;
+        });
     }
 
     // ContactまたはAccount変更時に該当タブの状態だけを初期化

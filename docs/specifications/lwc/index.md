@@ -15,3 +15,5 @@ Lightning Web Componentsで実装した機能の仕様書一覧です。Apex本�
 | 取引先一括更新                 | `accountMassUpdate`      | [取引先一括更新](account-mass-update/index.md)                  |
 | 組織エクスプローラー           | `orgExplorer`            | [組織エクスプローラー](org-explorer/index.md)                   |
 | オブジェクトエクスプローラー   | `objectExplorer`         | [オブジェクトエクスプローラー](object-explorer/index.md)        |
+
+共通の例外境界と表示部品は[画面内の共通エラー表示](ui-error-boundary/index.md)を参照してください。

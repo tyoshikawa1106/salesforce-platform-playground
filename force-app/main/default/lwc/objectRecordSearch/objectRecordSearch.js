@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -26,7 +27,7 @@ import {
 const INITIAL_SEARCH_STATE = createInitialSearchState();
 
 // 権限に応じた汎用レコード検索と標準レコード操作を管理
-export default class ObjectRecordSearch extends LightningElement {
+export default class ObjectRecordSearch extends withUiErrorBoundary(LightningElement, 'objectRecordSearch') {
     // 親データボードから検索対象のカタログキーを受け取る
     @api metricKey;
 
@@ -91,61 +92,99 @@ export default class ObjectRecordSearch extends LightningElement {
         formWireState: this.formWireState
     });
 
-    // 検索条件、ソート、ページ境界に応じてApex検索を実行
+    // DOMプロパティの公開状態に依存せず、モーダル起動時の接続を判定
+    componentConnected = false;
+
+    // 再接続した画面からの明示操作を受け付ける
+    connectedCallback() {
+        // 接続時の状態初期化も画面の例外境界内で扱う
+        try {
+            // 接続状態はLWC標準のコールバックで確定
+            this.componentConnected = true;
+        } catch (boundaryError) {
+            // 初期化失敗を画面内に表示して未処理の例外にしない
+            this.reportClientError(boundaryError, 'connectedCallback', 'lifecycle');
+        }
+    }
+
     // 画面離脱時にレイアウト待機を終了
     disconnectedCallback() {
-        // 待機後の接続確認でモーダル表示を中止
-        this.pendingEditLayout?.();
-        // 待機の参照を解放
-        this.pendingEditLayout = undefined;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 待機解除より先に離脱を記録し、モーダル起動を防ぐ
+            this.componentConnected = false;
+            // 待機後の接続確認でモーダル表示を中止
+            this.pendingEditLayout?.();
+            // 待機の参照を解放
+            this.pendingEditLayout = undefined;
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'disconnectedCallback', 'lifecycle');
+        }
     }
 
     @wire(searchRecords, {
         request: '$searchRequest'
     })
     wiredRecords(result) {
-        // 手動再読み込みに使えるwireレスポンスを保存
-        this.wiredSearchResult = result;
-        // 成功データとエラーを排他的に参照
-        const { data, error } = result;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 手動再読み込みに使えるwireレスポンスを保存
+            this.wiredSearchResult = result;
+            // 成功データとエラーを排他的に参照
+            const { data, error } = result;
 
-        // 失敗応答も保持し、再試行で以前の検索条件を更新しない
-        if (!this.currentPagePosition && (data || error)) {
-            // 現在の先頭ページ要求を再読み込みの対象にする
-            this.firstPageWireResult = result;
-        }
+            // 失敗応答も保持し、再試行で以前の検索条件を更新しない
+            if (!this.currentPagePosition && (data || error)) {
+                // 現在の先頭ページ要求を再読み込みの対象にする
+                this.firstPageWireResult = result;
+            }
 
-        // 取得成功時は設定、行、ページング状態をまとめて更新
-        if (data) {
-            // 取得上限に達した応答を全件表示と区別
-            this.isResultLimitReached = Boolean(data.isResultLimitReached);
-            // 検索成功応答でページ操作の抑止を解除
-            this.isSearchPending = false;
-            // 検索応答からLogicが生成した画面状態をまとめて反映
-            Object.assign(
-                this,
-                createSearchSuccessState(data, this.pageSize)
-            );
-            // 対象オブジェクト変更をフォーム状態へ反映
-            this.updateFormState();
-        // 取得失敗時は古い一覧を残さずエラー状態へ移行
-        } else if (error) {
-            // 取得失敗時に前回の上限案内を残さない
-            this.isResultLimitReached = false;
-            // 検索失敗後も再検索を許可
-            this.isSearchPending = false;
-            // 検索エラーからLogicが生成した画面状態をまとめて反映
-            Object.assign(this, createSearchFailureState(error));
+            // 取得成功時は設定、行、ページング状態をまとめて更新
+            if (data) {
+                // 取得上限に達した応答を全件表示と区別
+                this.isResultLimitReached = Boolean(data.isResultLimitReached);
+                // 検索成功応答でページ操作の抑止を解除
+                this.isSearchPending = false;
+                // 検索応答からLogicが生成した画面状態をまとめて反映
+                Object.assign(
+                    this,
+                    createSearchSuccessState(data, this.pageSize)
+                );
+                // 対象オブジェクト変更をフォーム状態へ反映
+                this.updateFormState();
+            // 取得失敗時は古い一覧を残さずエラー状態へ移行
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredRecords', 'wire');
+                // 取得失敗時に前回の上限案内を残さない
+                this.isResultLimitReached = false;
+                // 検索失敗後も再検索を許可
+                this.isSearchPending = false;
+                // 検索エラーからLogicが生成した画面状態をまとめて反映
+                Object.assign(this, createSearchFailureState(error));
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredRecords', 'wire');
         }
     }
 
     // 対象オブジェクトの項目属性と既定レコードタイプを取得
     @wire(getObjectInfo, { objectApiName: '$layoutObjectApiName' })
     wiredObjectInfo(result) {
-        // フォーム構築と権限判定に応答全体を保存
-        this.objectInfoResult = result;
-        // 既定レコードタイプと項目権限をフォーム状態へ反映
-        this.updateFormState();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // フォーム構築と権限判定に応答全体を保存
+            this.objectInfoResult = result;
+            // 権限・レイアウト取得の失敗を処理場所付きで通知
+            if (result.error) { this.reportClientError(result.error, 'wiredObjectInfo', 'wire'); }
+            // 既定レコードタイプと項目権限をフォーム状態へ反映
+            this.updateFormState();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredObjectInfo', 'wire');
+        }
     }
 
     // 一覧表示時から作成用のFullページレイアウトを取得
@@ -156,10 +195,18 @@ export default class ObjectRecordSearch extends LightningElement {
         recordTypeId: '$defaultRecordTypeId'
     })
     wiredCreateLayout(result) {
-        // 作成用応答だけを保存して編集用応答と混在させない
-        this.createLayoutResult = result;
-        // 作成項目と新規ボタンの可否を更新
-        this.updateFormState();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 作成用応答だけを保存して編集用応答と混在させない
+            this.createLayoutResult = result;
+            // 作成レイアウトの取得失敗を編集レイアウトと区別
+            if (result.error) { this.reportClientError(result.error, 'wiredCreateLayout', 'wire'); }
+            // 作成項目と新規ボタンの可否を更新
+            this.updateFormState();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredCreateLayout', 'wire');
+        }
     }
 
     // 作成権限に依存せず編集用のFullページレイアウトを取得
@@ -170,17 +217,25 @@ export default class ObjectRecordSearch extends LightningElement {
         recordTypeId: '$editRecordTypeId'
     })
     wiredEditLayout(result) {
-        // 編集用応答だけを保存して作成用応答と混在させない
-        this.editLayoutResult = result;
-        // 編集対象に対応するレイアウトが確定してからフォームを開く
-        if ((result.data || result.error) && this.pendingEditLayout) {
-            // 呼び出し側へ取得完了を通知
-            this.pendingEditLayout();
-            // 終了した待機を解放
-            this.pendingEditLayout = undefined;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 編集用応答だけを保存して作成用応答と混在させない
+            this.editLayoutResult = result;
+            // 編集レイアウトの取得失敗を作成レイアウトと区別
+            if (result.error) { this.reportClientError(result.error, 'wiredEditLayout', 'wire'); }
+            // 編集対象に対応するレイアウトが確定してからフォームを開く
+            if ((result.data || result.error) && this.pendingEditLayout) {
+                // 呼び出し側へ取得完了を通知
+                this.pendingEditLayout();
+                // 終了した待機を解放
+                this.pendingEditLayout = undefined;
+            }
+            // 編集項目と行アクションの可否を更新
+            this.updateFormState();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredEditLayout', 'wire');
         }
-        // 編集項目と行アクションの可否を更新
-        this.updateFormState();
     }
 
     // 検索対象オブジェクトを含む画面タイトルを返却
@@ -367,102 +422,150 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 親データボードへ戻る操作を通知
     handleBack() {
-        // 親コンポーネントへ画面切り替えイベントを送信
-        this.dispatchEvent(new CustomEvent('back'));
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 親コンポーネントへ画面切り替えイベントを送信
+            this.dispatchEvent(new CustomEvent('back'));
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleBack', 'ui-event');
+        }
     }
 
     // 利用者操作で現在の検索結果を再取得
     async handleRefresh() {
-        // wire未取得または別操作中の重複更新を拒否
-        if (!this.wiredSearchResult || this.isBusy) {
-            // 現在の処理が完了するまで状態を維持
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // wire未取得または別操作中の重複更新を拒否
+            if (!this.wiredSearchResult || this.isBusy) {
+                // 現在の処理が完了するまで状態を維持
+                return;
+            }
+            // 再取得固有のエラー処理と操作抑止を適用
+            await this.refreshRecords();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRefresh', 'ui-event');
         }
-        // 再取得固有のエラー処理と操作抑止を適用
-        await this.refreshRecords();
     }
 
     // 検索入力値を未確定状態として保持
     handleSearchInput(event) {
-        // 入力のたびにApexを呼ばずローカル状態だけを更新
-        this.draftSearchTerm = event.target.value;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 入力のたびにApexを呼ばずローカル状態だけを更新
+            this.draftSearchTerm = event.target.value;
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSearchInput', 'ui-event');
+        }
     }
 
     // 検索入力上のEnterキーを検索実行へ変換
     handleSearchKeyUp(event) {
-        // Enter以外のキー操作では検索を開始しない
-        if (event.key === 'Enter') {
-            // 検索ボタンと同じ確定処理を呼び出す
-            this.handleSearch();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // Enter以外のキー操作では検索を開始しない
+            if (event.key === 'Enter') {
+                // 検索ボタンと同じ確定処理を呼び出す
+                this.handleSearch();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSearchKeyUp', 'ui-event');
         }
     }
 
     // 入力中の検索語を確定して1ページ目から検索
     handleSearch() {
-        // 進行中の検索や保存に重なる検索要求を拒否
-        if (this.isBusy) {
-            // 現在の要求が完了するまで条件を維持
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 進行中の検索や保存に重なる検索要求を拒否
+            if (this.isBusy) {
+                // 現在の要求が完了するまで条件を維持
+                return;
+            }
+            // 検索語確定とページング初期化を1つの画面状態として反映
+            this.applySearchState(
+                createSearchCriteriaState(this.draftSearchTerm)
+            );
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSearch', 'ui-event');
         }
-        // 検索語確定とページング初期化を1つの画面状態として反映
-        this.applySearchState(
-            createSearchCriteriaState(this.draftSearchTerm)
-        );
     }
 
     // 取得位置の履歴を使って1つ前のページへ戻る
     handlePreviousPage() {
-        // 処理中または1ページ目では状態を変更しない
-        if (this.previousDisabled) {
-            // 現在ページを維持して操作を終了
-            return;
-        }
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 処理中または1ページ目では状態を変更しない
+            if (this.previousDisabled) {
+                // 現在ページを維持して操作を終了
+                return;
+            }
 
-        // 現在状態からLogicが生成した前ページ検索状態を反映
-        this.applySearchState(
-            createPreviousSearchState({
-                // 現在ページ番号から1つ戻す基準を渡す
-                pageNumber: this.pageNumber,
-                // 前ページ境界を解決する履歴を渡す
-                pagePositionHistory: this.pagePositionHistory
-            })
-        );
+            // 現在状態からLogicが生成した前ページ検索状態を反映
+            this.applySearchState(
+                createPreviousSearchState({
+                    // 現在ページ番号から1つ戻す基準を渡す
+                    pageNumber: this.pageNumber,
+                    // 前ページ境界を解決する履歴を渡す
+                    pagePositionHistory: this.pagePositionHistory
+                })
+            );
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handlePreviousPage', 'ui-event');
+        }
     }
 
     // Apex応答の次ページ取得位置を使って先へ進む
     handleNextPage() {
-        // 処理中または次ページなしでは状態を変更しない
-        if (this.nextDisabled) {
-            // 現在ページを維持して操作を終了
-            return;
-        }
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 処理中または次ページなしでは状態を変更しない
+            if (this.nextDisabled) {
+                // 現在ページを維持して操作を終了
+                return;
+            }
 
-        // 現在状態からLogicが生成した次ページ検索状態を反映
-        this.applySearchState(
-            createNextSearchState({
-                // 現在ページ番号から1つ進める基準を渡す
-                pageNumber: this.pageNumber,
-                // 現在境界を履歴へ追加するため既存履歴を渡す
-                pagePositionHistory: this.pagePositionHistory,
-                // Apex応答の次ページ境界を渡す
-                nextPagePosition: this.nextPagePosition
-            })
-        );
+            // 現在状態からLogicが生成した次ページ検索状態を反映
+            this.applySearchState(
+                createNextSearchState({
+                    // 現在ページ番号から1つ進める基準を渡す
+                    pageNumber: this.pageNumber,
+                    // 現在境界を履歴へ追加するため既存履歴を渡す
+                    pagePositionHistory: this.pagePositionHistory,
+                    // Apex応答の次ページ境界を渡す
+                    nextPagePosition: this.nextPagePosition
+                })
+            );
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleNextPage', 'ui-event');
+        }
     }
 
     // datatableのソート変更をApex検索条件へ反映
     handleSort(event) {
-        // 応答待ちや保存中のソート変更を拒否
-        if (this.isBusy) {
-            // 現在のソート条件を維持
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 応答待ちや保存中のソート変更を拒否
+            if (this.isBusy) {
+                // 現在のソート条件を維持
+                return;
+            }
+            // 選択列とソート方向をイベントから取得
+            const { fieldName, sortDirection } = event.detail;
+            // ソート条件とページング初期化を1つの画面状態として反映
+            this.applySearchState(
+                createSortSearchState({ fieldName, sortDirection })
+            );
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSort', 'ui-event');
         }
-        // 選択列とソート方向をイベントから取得
-        const { fieldName, sortDirection } = event.detail;
-        // ソート条件とページング初期化を1つの画面状態として反映
-        this.applySearchState(
-            createSortSearchState({ fieldName, sortDirection })
-        );
     }
 
     // 問い合わせ条件が変わる場合だけ応答待ちを開始
@@ -492,94 +595,120 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // datatableの現在選択行を一括削除対象へ反映
     handleRowSelection(event) {
-        // Wrapper行からレコードIDだけを抽出して保持
-        this.selectedRowIds = event.detail.selectedRows.map((row) => row.id);
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // Wrapper行からレコードIDだけを抽出して保持
+            this.selectedRowIds = event.detail.selectedRows.map((row) => row.id);
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRowSelection', 'ui-event');
+        }
     }
 
     // datatableの行アクションから編集フォームを開く
     handleRowAction(event) {
-        // 編集以外の操作または編集不可状態では処理しない
-        if (event.detail.action.name !== 'edit' || this.editDisabled) {
-            // 現在一覧を維持して行操作を終了
-            return;
-        }
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 編集以外の操作または編集不可状態では処理しない
+            if (event.detail.action.name !== 'edit' || this.editDisabled) {
+                // 現在一覧を維持して行操作を終了
+                return;
+            }
 
-        // 選択行のIDを編集対象として共通フォーム表示処理へ渡す
-        this.openRecordForm(event.detail.row.id);
+            // 選択行のIDを編集対象として共通フォーム表示処理へ渡す
+            this.openRecordForm(event.detail.row.id);
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRowAction', 'ui-event');
+        }
     }
 
     // 新規作成またはファイルアップロード画面を開く
     handleNewRecord() {
-        // 作成不可または処理中の場合は画面を切り替えない
-        if (this.createDisabled) {
-            // 現在一覧を維持して新規操作を終了
-            return;
-        }
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 作成不可または処理中の場合は画面を切り替えない
+            if (this.createDisabled) {
+                // 現在一覧を維持して新規操作を終了
+                return;
+            }
 
-        // レコードIDなしで共通フォーム表示処理を呼び出す
-        this.openRecordForm();
+            // レコードIDなしで共通フォーム表示処理を呼び出す
+            this.openRecordForm();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleNewRecord', 'ui-event');
+        }
     }
 
     // 選択されたレコードをUSER_MODE Apexで一括削除
     async handleDeleteSelected() {
-        // 権限なし、未選択、処理中の場合は削除を開始しない
-        if (this.deleteDisabled) {
-            // 現在一覧を維持して削除操作を終了
-            return;
-        }
-
-        // 削除完了まで重複操作を抑止
-        this.isDeleting = true;
-        // Apex削除、結果通知、一覧更新を1つの処理単位で実行
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // カタログキーと選択IDをApex削除処理へ渡す
-            const result = await deleteRecords({
-                // 許可された対象オブジェクトを解決するキーを指定
-                metricKey: this.metricKey,
-                // 現在選択中のレコードID一覧を指定
-                recordIds: this.selectedRowIds
-            });
-            // 1件以上削除できた場合だけ成功件数を利用者へ通知
-            if (result.deletedCount > 0) {
-                // 成功件数と要求件数を利用者へ通知
-                this.showToast(
-                    '削除しました',
-                    `${result.deletedCount} / ${result.requestedCount} 件を削除しました。`,
-                    'success'
-                );
+            // 権限なし、未選択、処理中の場合は削除を開始しない
+            if (this.deleteDisabled) {
+                // 現在一覧を維持して削除操作を終了
+                return;
             }
-            // 削除失敗がある場合は成功件数に応じた見出しで警告
-            if (result.errors?.length) {
-                // 全件失敗を部分失敗と誤認させない警告見出しを選択
-                const warningTitle =
-                    result.deletedCount > 0
-                        ? '一部削除できませんでした'
-                        : '削除できませんでした';
-                // 行単位エラーを改行区切りのトーストへ変換
-                this.showToast(
-                    warningTitle,
-                    createToastMessage(
-                        result.errors,
-                        '一部のレコードを削除できませんでした。'
-                    ),
-                    'warning'
+
+            // 削除完了まで重複操作を抑止
+            this.isDeleting = true;
+            // Apex削除、結果通知、一覧更新を1つの処理単位で実行
+            try {
+                // カタログキーと選択IDをApex削除処理へ渡す
+                const result = await deleteRecords({
+                    // 許可された対象オブジェクトを解決するキーを指定
+                    metricKey: this.metricKey,
+                    // 現在選択中のレコードID一覧を指定
+                    recordIds: this.selectedRowIds
+                });
+                // 1件以上削除できた場合だけ成功件数を利用者へ通知
+                if (result.deletedCount > 0) {
+                    // 成功件数と要求件数を利用者へ通知
+                    this.showToast(
+                        '削除しました',
+                        `${result.deletedCount} / ${result.requestedCount} 件を削除しました。`,
+                        'success'
+                    );
+                }
+                // 削除失敗がある場合は成功件数に応じた見出しで警告
+                if (result.errors?.length) {
+                    // 全件失敗を部分失敗と誤認させない警告見出しを選択
+                    const warningTitle =
+                        result.deletedCount > 0
+                            ? '一部削除できませんでした'
+                            : '削除できませんでした';
+                    // 行単位エラーを改行区切りのトーストへ変換
+                    this.showToast(
+                        warningTitle,
+                        createToastMessage(
+                            result.errors,
+                            '一部のレコードを削除できませんでした。'
+                        ),
+                        'warning'
+                    );
+                }
+                // 削除後の一覧を再取得して親件数を更新
+                await this.refreshRecordsAndNotifyChange();
+            // Apex削除失敗時は一覧をエラー状態へ移行
+            } catch (error) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'handleDeleteSelected', 'processing');
+                // 削除処理全体の失敗を画面上のエラーへ反映
+                this.errorMessage = reduceErrors(
+                    error,
+                    'レコード一覧を読み込めませんでした。'
                 );
+                // 同じ利用者向け文言をトーストでも通知
+                this.showToast('削除に失敗しました', this.errorMessage, 'error');
+            // 成否にかかわらず削除操作の抑止を解除
+            } finally {
+                // 成否にかかわらず削除中状態を解除
+                this.isDeleting = false;
             }
-            // 削除後の一覧を再取得して親件数を更新
-            await this.refreshRecordsAndNotifyChange();
-        // Apex削除失敗時は一覧をエラー状態へ移行
-        } catch (error) {
-            // 削除処理全体の失敗を画面上のエラーへ反映
-            this.errorMessage = reduceErrors(
-                error,
-                'レコード一覧を読み込めませんでした。'
-            );
-            // 同じ利用者向け文言をトーストでも通知
-            this.showToast('削除に失敗しました', this.errorMessage, 'error');
-        // 成否にかかわらず削除操作の抑止を解除
-        } finally {
-            // 成否にかかわらず削除中状態を解除
-            this.isDeleting = false;
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleDeleteSelected', 'ui-event');
         }
     }
 
@@ -610,6 +739,8 @@ export default class ObjectRecordSearch extends LightningElement {
             // 正常に再取得できたことを画面へ反映
             this.errorMessage = undefined;
         } catch (error) {
+            // 例外本文を記録せず、失敗した処理だけを通知
+            this.reportClientError(error, 'refreshRecords', 'processing');
             // 先頭ページへの遷移中に失敗しても利用者が再試行できるようにする
             this.isSearchPending = false;
             // 古い一覧と選択を破棄して再取得の失敗を案内
@@ -637,62 +768,70 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 標準モーダルへフォームを渡し、確定した変更だけ一覧へ反映
     async openRecordForm(recordId) {
-        // 二重起動を拒否し、標準モーダルが戻すフォーカス先のボタンは保持
-        if (this.showRecordForm) {
-            return;
-        }
-        // 切り替え前のレコードタイプを保持
-        const previousRecordTypeId = this.editRecordTypeId;
-        // 編集対象を確定
-        this.formRecordId = recordId;
-        // 選択モードの項目と見出しを構築
-        this.updateFormState();
-        // モーダルの終了まで同じ画面の再起動を抑止
-        this.showRecordForm = true;
-        // キーボード操作とフォーカス管理をLightningModalへ委譲
+        // 呼び出し元が待機しない非同期処理もこの画面で捕捉
         try {
-            // 別レコードタイプの編集では新しいレイアウトの応答を待機
-            if (recordId && previousRecordTypeId !== this.editRecordTypeId) {
-                // 古いレイアウトで項目と必須条件を決めない
-                await new Promise((resolve) => { this.pendingEditLayout = resolve; });
-                // 確定した編集レイアウトを表示モデルへ反映
+            // 二重起動を拒否し、標準モーダルが戻すフォーカス先のボタンは保持
+            if (this.showRecordForm) {
+                return;
+            }
+            // 切り替え前のレコードタイプを保持
+            const previousRecordTypeId = this.editRecordTypeId;
+            // 編集対象を確定
+            this.formRecordId = recordId;
+            // 選択モードの項目と見出しを構築
+            this.updateFormState();
+            // モーダルの終了まで同じ画面の再起動を抑止
+            this.showRecordForm = true;
+            // キーボード操作とフォーカス管理をLightningModalへ委譲
+            try {
+                // 別レコードタイプの編集では新しいレイアウトの応答を待機
+                if (recordId && previousRecordTypeId !== this.editRecordTypeId) {
+                    // 古いレイアウトで項目と必須条件を決めない
+                    await new Promise((resolve) => { this.pendingEditLayout = resolve; });
+                    // 確定した編集レイアウトを表示モデルへ反映
+                    this.updateFormState();
+                }
+                // 画面離脱後にモーダルを開かない
+                if (!this.componentConnected) { return; }
+
+                // フォーム表示時点の設定を独立したモーダルへ渡す
+                const result = await ObjectRecordFormModal.open({
+                    size: 'large',
+                    label: this.formTitle,
+                    objectApiName: this.config.objectApiName,
+                    objectLabel: this.config.objectLabel,
+                    recordId,
+                    recordTypeId: recordId ? this.editRecordTypeId : this.defaultRecordTypeId,
+                    formSections: this.formSections,
+                    isFileUpload: this.formViewState.isFileUploadObject
+                });
+                // キャンセルや標準の閉じる操作では一覧を再取得しない
+                if (result) {
+                    // 保存・アップロードの確定結果を通知
+                    this.showToast(result.title, result.message, 'success');
+                    // 再取得の失敗と保存結果を分けて親へ変更を通知
+                    await this.refreshRecordsAndNotifyChange();
+                }
+            } catch (error) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'openRecordForm', 'processing');
+                // モーダル起動に失敗しても利用者が再試行できるようにする
+                this.showToast(
+                    'フォームを開けませんでした',
+                    reduceErrors(error, '時間をおいて再度お試しください。'),
+                    'error'
+                );
+            } finally {
+                // 閉じたフォームの編集対象を次の操作へ持ち越さない
+                this.formRecordId = undefined;
+                // 派生状態の再生成が失敗しても再起動を可能にしておく
+                this.showRecordForm = false;
+                // 作成モードの派生状態へ戻す
                 this.updateFormState();
             }
-            // 画面離脱後にモーダルを開かない
-            if (!this.isConnected) { return; }
-
-            // フォーム表示時点の設定を独立したモーダルへ渡す
-            const result = await ObjectRecordFormModal.open({
-                size: 'large',
-                label: this.formTitle,
-                objectApiName: this.config.objectApiName,
-                objectLabel: this.config.objectLabel,
-                recordId,
-                recordTypeId: recordId ? this.editRecordTypeId : this.defaultRecordTypeId,
-                formSections: this.formSections,
-                isFileUpload: this.formViewState.isFileUploadObject
-            });
-            // キャンセルや標準の閉じる操作では一覧を再取得しない
-            if (result) {
-                // 保存・アップロードの確定結果を通知
-                this.showToast(result.title, result.message, 'success');
-                // 再取得の失敗と保存結果を分けて親へ変更を通知
-                await this.refreshRecordsAndNotifyChange();
-            }
         } catch (error) {
-            // モーダル起動に失敗しても利用者が再試行できるようにする
-            this.showToast(
-                'フォームを開けませんでした',
-                reduceErrors(error, '時間をおいて再度お試しください。'),
-                'error'
-            );
-        } finally {
-            // 閉じたフォームの編集対象を次の操作へ持ち越さない
-            this.formRecordId = undefined;
-            // 作成モードの派生状態へ戻す
-            this.updateFormState();
-            // 成否にかかわらず再起動を許可
-            this.showRecordForm = false;
+            // 未処理のPromise拒否を画面外へ伝播させない
+            this.reportClientError(error, 'openRecordForm', 'async-operation');
         }
     }
 

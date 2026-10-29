@@ -1,6 +1,7 @@
 <template>
     <lightning-modal-header label={label}></lightning-modal-header>
     <lightning-modal-body>
+        <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
         <template lwc:if={isFileUpload}>
             <lightning-file-upload
                 label="ファイル"

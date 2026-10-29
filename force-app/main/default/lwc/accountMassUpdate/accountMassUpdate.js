@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, wire } from 'lwc';
 import LightningConfirm from 'lightning/confirm';
 import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
@@ -8,7 +9,7 @@ import searchAccounts from '@salesforce/apex/AccountMassUpdateController.searchA
 import saveAccounts from '@salesforce/apex/AccountMassUpdateController.saveAccounts';
 import { applyEdit, buildRows, buildSaveRequest, retainFailedChanges, validateSearch } from './accountMassUpdateLogic';
 
-export default class AccountMassUpdate extends LightningElement {
+export default class AccountMassUpdate extends withUiErrorBoundary(LightningElement, 'accountMassUpdate') {
     // 日付範囲の解釈と一覧の日時表示を同じ利用者設定へ揃える
     timeZone = TIME_ZONE;
     // 入力中の条件は現在の検索結果の条件から分離
@@ -52,33 +53,49 @@ export default class AccountMassUpdate extends LightningElement {
 
     @wire(getObjectInfo, { objectApiName: ACCOUNT_OBJECT })
     handleObjectInfo({ data, error }) {
-        // レコードタイプ未指定の行で使う既定値を取得
-        if (data) {
-            // 組織で利用可能な既定レコードタイプを保持
-            this.defaultRecordTypeId = data.defaultRecordTypeId;
-            // 表示中の行に必要な選択肢を取得
-            this.loadNextPicklist();
-        } else if (error) {
-            // 項目情報が使えない場合は編集を有効化しない
-            this.errorMessage = '取引先の項目情報を取得できませんでした。権限を確認してください。';
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // レコードタイプ未指定の行で使う既定値を取得
+            if (data) {
+                // 組織で利用可能な既定レコードタイプを保持
+                this.defaultRecordTypeId = data.defaultRecordTypeId;
+                // 表示中の行に必要な選択肢を取得
+                this.loadNextPicklist();
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'handleObjectInfo', 'wire');
+                // 項目情報が使えない場合は編集を有効化しない
+                this.errorMessage = '取引先の項目情報を取得できませんでした。権限を確認してください。';
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleObjectInfo', 'wire');
         }
     }
 
     @wire(getPicklistValuesByRecordType, { objectApiName: ACCOUNT_OBJECT, recordTypeId: '$activeRecordTypeId' })
     handlePicklists({ data, error }) {
-        // 選択肢は取得中のレコードタイプへ対応させる
-        if (data || error) {
-            // 取得失敗も記録して無限再取得を防ぐ
-            this.picklists = { ...this.picklists, [this.activeRecordTypeId]: data?.picklistFieldValues || {} };
-            // 選択肢を取得できない項目を読取専用にする
-            if (error) {
-                // 選択肢が不明な項目を編集できない理由を表示
-                this.errorMessage = '一部の選択肢を取得できませんでした。該当する項目は編集できません。';
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 選択肢は取得中のレコードタイプへ対応させる
+            if (data || error) {
+                // 取得失敗も記録して無限再取得を防ぐ
+                this.picklists = { ...this.picklists, [this.activeRecordTypeId]: data?.picklistFieldValues || {} };
+                // 選択肢を取得できない項目を読取専用にする
+                if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'handlePicklists', 'wire');
+                    // 選択肢が不明な項目を編集できない理由を表示
+                    this.errorMessage = '一部の選択肢を取得できませんでした。該当する項目は編集できません。';
+                }
+                // 同一画面の別レコードタイプを順番に取得
+                this.loadNextPicklist();
+                // 入力値と変更状態を一覧へ反映
+                this.refreshRows();
             }
-            // 同一画面の別レコードタイプを順番に取得
-            this.loadNextPicklist();
-            // 入力値と変更状態を一覧へ反映
-            this.refreshRows();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handlePicklists', 'wire');
         }
     }
 
@@ -118,189 +135,231 @@ export default class AccountMassUpdate extends LightningElement {
     }
 
     handleFilter(event) {
-        // 条件変更だけでは現在の入力内容を破棄しない
-        this.filters = { ...this.filters, [event.target.name]: event.target.value };
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 条件変更だけでは現在の入力内容を破棄しない
+            this.filters = { ...this.filters, [event.target.name]: event.target.value };
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleFilter', 'ui-event');
+        }
     }
 
     handleEdit(event) {
-        // 処理中に遅れて届いたイベントを無視
-        if (this.busy) {
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 処理中に遅れて届いたイベントを無視
+            if (this.busy) {
+                return;
+            }
+            // 行と項目をイベント発生元から特定
+            const { id, field } = event.target.dataset;
+            // 所有者検索と選択リストの値形式を揃える
+            const value = field === 'OwnerId' ? event.detail.recordId : event.detail.value;
+            // 権限がない項目のイベントを反映しない
+            if (!this.editableFields.includes(field)) {
+                return;
+            }
+            // 元の値との差分だけを保持
+            this.changes = applyEdit(this.records, this.changes, id, field, value);
+            // 編集し直した行の古いエラーを解除
+            this.errors = { ...this.errors, [id]: '' };
+            // 前の保存結果の案内を解除
+            this.message = '';
+            // 入力値と変更状態を一覧へ反映
+            this.refreshRows();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleEdit', 'ui-event');
         }
-        // 行と項目をイベント発生元から特定
-        const { id, field } = event.target.dataset;
-        // 所有者検索と選択リストの値形式を揃える
-        const value = field === 'OwnerId' ? event.detail.recordId : event.detail.value;
-        // 権限がない項目のイベントを反映しない
-        if (!this.editableFields.includes(field)) {
-            return;
-        }
-        // 元の値との差分だけを保持
-        this.changes = applyEdit(this.records, this.changes, id, field, value);
-        // 編集し直した行の古いエラーを解除
-        this.errors = { ...this.errors, [id]: '' };
-        // 前の保存結果の案内を解除
-        this.message = '';
-        // 入力値と変更状態を一覧へ反映
-        this.refreshRows();
     }
 
     async handleSearch() {
-        // 処理中の連打を抑止
-        if (this.navigationDisabled) {
-            return;
-        }
-        // 入力要素の妥当性と期間の前後関係を確認
-        const valid = [...this.template.querySelectorAll('[data-search]')].reduce((result, input) => {
-            // 入力エラーの表示と真偽値の取得を分ける
-            input.reportValidity();
-            // reportValidityの戻り値に依存しない
-            return input.checkValidity() && result;
-        }, true);
-        // 無効な条件で既存の変更を破棄しない
-        this.errorMessage = validateSearch(this.filters);
-        if (!valid || this.errorMessage) {
-            return;
-        }
-        // 確認モーダル中も二重操作を防止
-        this.busy = true;
-        // 入力値と変更状態を一覧へ反映
-        this.refreshRows();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 未保存の変更があるときだけ破棄を確認
-            if (
-                this.changeCount &&
-                !(await LightningConfirm.open({
-                    message: '未保存の変更を破棄して再検索しますか？',
-                    label: '変更の破棄を確認',
-                    variant: 'header'
-                }))
-            ) {
+            // 処理中の連打を抑止
+            if (this.navigationDisabled) {
                 return;
             }
-            // 応答成功までは現在の結果を保持
-            await this.fetchPage(0, null, { ...this.filters });
-        } catch {
-            // 現在の編集内容を維持して再試行を案内
-            this.errorMessage = '検索できませんでした。条件と権限を確認して再実行してください。';
-        } finally {
-            // 失敗や取消でも操作可能へ戻す
-            this.busy = false;
+            // 入力要素の妥当性と期間の前後関係を確認
+            const valid = [...this.template.querySelectorAll('[data-search]')].reduce((result, input) => {
+                // 入力エラーの表示と真偽値の取得を分ける
+                input.reportValidity();
+                // reportValidityの戻り値に依存しない
+                return input.checkValidity() && result;
+            }, true);
+            // 無効な条件で既存の変更を破棄しない
+            this.errorMessage = validateSearch(this.filters);
+            if (!valid || this.errorMessage) {
+                return;
+            }
+            // 確認モーダル中も二重操作を防止
+            this.busy = true;
             // 入力値と変更状態を一覧へ反映
             this.refreshRows();
+            try {
+                // 未保存の変更があるときだけ破棄を確認
+                if (
+                    this.changeCount &&
+                    !(await LightningConfirm.open({
+                        message: '未保存の変更を破棄して再検索しますか？',
+                        label: '変更の破棄を確認',
+                        variant: 'header'
+                    }))
+                ) {
+                    return;
+                }
+                // 応答成功までは現在の結果を保持
+                await this.fetchPage(0, null, { ...this.filters });
+            } catch (caughtError) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(caughtError, 'handleSearch', 'processing');
+                // 現在の編集内容を維持して再試行を案内
+                this.errorMessage = '検索できませんでした。条件と権限を確認して再実行してください。';
+            } finally {
+                // 失敗や取消でも操作可能へ戻す
+                this.busy = false;
+                // 入力値と変更状態を一覧へ反映
+                this.refreshRows();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSearch', 'ui-event');
         }
     }
 
     async handlePage(event) {
-        // 処理中はページ境界を変更しない
-        if (this.navigationDisabled) {
-            return;
-        }
-        // 前後のボタンから目的ページを決定
-        const next = event.target.name === 'next';
-        // 境界外の操作を拒否
-        if ((next && !this.hasNext) || (!next && this.pageIndex === 0)) {
-            return;
-        }
-        // 確認中も画面操作を停止
-        this.busy = true;
-        // 入力値と変更状態を一覧へ反映
-        this.refreshRows();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 同意がなければ現在ページの変更を維持
-            if (
-                this.changeCount &&
-                !(await LightningConfirm.open({
-                    message: '未保存の変更を破棄してページを移動しますか？',
-                    label: '変更の破棄を確認',
-                    variant: 'header'
-                }))
-            ) {
+            // 処理中はページ境界を変更しない
+            if (this.navigationDisabled) {
                 return;
             }
-            // 次ページは保持済みの末尾境界、前ページは履歴を使用
-            const target = this.pageIndex + (next ? 1 : -1);
-            // 保存後に末尾行の参照権限がなくなっても移動できる
-            const anchor = next ? this.nextAnchor : this.anchors[target];
-            await this.fetchPage(target, anchor, this.appliedFilters);
-        } catch {
-            // ページ移動失敗では編集内容を残す
-            this.errorMessage = 'ページを取得できませんでした。再実行してください。';
-        } finally {
-            // すべての終了経路で操作を再開
-            this.busy = false;
+            // 前後のボタンから目的ページを決定
+            const next = event.target.name === 'next';
+            // 境界外の操作を拒否
+            if ((next && !this.hasNext) || (!next && this.pageIndex === 0)) {
+                return;
+            }
+            // 確認中も画面操作を停止
+            this.busy = true;
             // 入力値と変更状態を一覧へ反映
             this.refreshRows();
+            try {
+                // 同意がなければ現在ページの変更を維持
+                if (
+                    this.changeCount &&
+                    !(await LightningConfirm.open({
+                        message: '未保存の変更を破棄してページを移動しますか？',
+                        label: '変更の破棄を確認',
+                        variant: 'header'
+                    }))
+                ) {
+                    return;
+                }
+                // 次ページは保持済みの末尾境界、前ページは履歴を使用
+                const target = this.pageIndex + (next ? 1 : -1);
+                // 保存後に末尾行の参照権限がなくなっても移動できる
+                const anchor = next ? this.nextAnchor : this.anchors[target];
+                await this.fetchPage(target, anchor, this.appliedFilters);
+            } catch (caughtError) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(caughtError, 'handlePage', 'processing');
+                // ページ移動失敗では編集内容を残す
+                this.errorMessage = 'ページを取得できませんでした。再実行してください。';
+            } finally {
+                // すべての終了経路で操作を再開
+                this.busy = false;
+                // 入力値と変更状態を一覧へ反映
+                this.refreshRows();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handlePage', 'ui-event');
         }
     }
 
     handleCancel() {
-        // 保存中は取消しない
-        if (this.busy) {
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 保存中は取消しない
+            if (this.busy) {
+                return;
+            }
+            // 検索時の元データへ戻す
+            this.changes = {};
+            // 元の値へ戻る行の保存エラーを解除
+            this.errors = {};
+            // 前の保存結果の案内を解除
+            this.message = '';
+            // 入力値と変更状態を一覧へ反映
+            this.refreshRows();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleCancel', 'ui-event');
         }
-        // 検索時の元データへ戻す
-        this.changes = {};
-        // 元の値へ戻る行の保存エラーを解除
-        this.errors = {};
-        // 前の保存結果の案内を解除
-        this.message = '';
-        // 入力値と変更状態を一覧へ反映
-        this.refreshRows();
     }
 
     async handleSave() {
-        // 空更新と二重保存を防止
-        if (this.saveDisabled) {
-            return;
-        }
-        // 所有者や選択欄の入力エラーを表示
-        const valid = [...this.template.querySelectorAll('[data-field]')].reduce((result, input) => {
-            // 入力エラーの表示と真偽値の取得を分ける
-            input.reportValidity();
-            // reportValidityの戻り値に依存しない
-            return input.checkValidity() && result;
-        }, true);
-        // 入力が正しいときだけサーバーへ送る
-        if (!valid) {
-            return;
-        }
-        // 保存中の編集を止める
-        this.busy = true;
-        // 前の操作のエラーを解除
-        this.errorMessage = '';
-        // 前の保存結果の案内を解除
-        this.message = '';
-        // 入力値と変更状態を一覧へ反映
-        this.refreshRows();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 変更項目と検索時の日時を送信
-            const request = buildSaveRequest(this.records, this.changes);
-            // 一回の要求で最大200件を保存
-            const result = await saveAccounts(request);
-            // サーバー側の検証拒否を画面へ表示
-            if (result.errorMessage) {
-                // サーバーで判定した拒否理由を表示
-                this.errorMessage = result.errorMessage;
+            // 空更新と二重保存を防止
+            if (this.saveDisabled) {
                 return;
             }
-            // 成功した行を再保存しないよう即座に除外
-            this.changes = retainFailedChanges(this.changes, result.successIds);
-            // 失敗した行へ保存結果を対応
-            this.errors = result.errors || {};
-            // 成功件数と失敗件数を区別して案内
-            this.message = `${result.successIds.length}件を保存しました。${Object.keys(this.errors).length}件は保存できませんでした。`;
-            // 保存と再取得の失敗を区別して案内
-            await this.refreshAfterSave(result.successIds);
-        } catch (error) {
-            // 不確実な応答では入力を保持し再検索を案内
-            this.errorMessage =
-                error.message || '保存結果を確認できませんでした。再検索して現在の値を確認してください。';
-        } finally {
-            // 部分失敗でも残りの編集を再開
-            this.busy = false;
+            // 所有者や選択欄の入力エラーを表示
+            const valid = [...this.template.querySelectorAll('[data-field]')].reduce((result, input) => {
+                // 入力エラーの表示と真偽値の取得を分ける
+                input.reportValidity();
+                // reportValidityの戻り値に依存しない
+                return input.checkValidity() && result;
+            }, true);
+            // 入力が正しいときだけサーバーへ送る
+            if (!valid) {
+                return;
+            }
+            // 保存中の編集を止める
+            this.busy = true;
+            // 前の操作のエラーを解除
+            this.errorMessage = '';
+            // 前の保存結果の案内を解除
+            this.message = '';
             // 入力値と変更状態を一覧へ反映
             this.refreshRows();
+            try {
+                // 変更項目と検索時の日時を送信
+                const request = buildSaveRequest(this.records, this.changes);
+                // 一回の要求で最大200件を保存
+                const result = await saveAccounts(request);
+                // サーバー側の検証拒否を画面へ表示
+                if (result.errorMessage) {
+                    // サーバーで判定した拒否理由を表示
+                    this.errorMessage = result.errorMessage;
+                    return;
+                }
+                // 成功した行を再保存しないよう即座に除外
+                this.changes = retainFailedChanges(this.changes, result.successIds);
+                // 失敗した行へ保存結果を対応
+                this.errors = result.errors || {};
+                // 成功件数と失敗件数を区別して案内
+                this.message = `${result.successIds.length}件を保存しました。${Object.keys(this.errors).length}件は保存できませんでした。`;
+                // 保存と再取得の失敗を区別して案内
+                await this.refreshAfterSave(result.successIds);
+            } catch (error) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'handleSave', 'processing');
+                // 不確実な応答では入力を保持し再検索を案内
+                this.errorMessage =
+                    error.message || '保存結果を確認できませんでした。再検索して現在の値を確認してください。';
+            } finally {
+                // 部分失敗でも残りの編集を再開
+                this.busy = false;
+                // 入力値と変更状態を一覧へ反映
+                this.refreshRows();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSave', 'ui-event');
         }
     }
 
@@ -339,7 +398,9 @@ export default class AccountMassUpdate extends LightningElement {
             this.editableFields = result.editableFields;
             // 表示する行のレコードタイプ別選択肢を準備
             this.loadNextPicklist();
-        } catch {
+        } catch (caughtError) {
+            // 例外本文を記録せず、失敗した処理だけを通知
+            this.reportClientError(caughtError, 'refreshAfterSave', 'processing');
             // 成功行の変更を復元せず再取得だけを案内
             this.errorMessage =
                 '保存処理は完了しましたが一覧の再取得に失敗しました。未保存の行を確認後、再検索してください。';

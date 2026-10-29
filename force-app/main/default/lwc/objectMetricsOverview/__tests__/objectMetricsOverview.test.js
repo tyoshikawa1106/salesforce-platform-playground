@@ -376,3 +376,40 @@ describe('c-object-metrics-overview', () => {
     });
 
 });
+
+
+describe('処理場所付きエラー表示', () => {
+    afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
+    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+        const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const element = createElement('c-objectMetricsOverview', { is: ObjectMetricsOverview });
+        document.body.appendChild(element);
+        await Promise.resolve();
+        getObjectMetrics.error({ message: 'private-value' });
+        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
+        expect(panel.details.location).toContain('objectMetricsOverview.js / wiredObjectMetrics');
+        expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
+        panel.dispatchEvent(new CustomEvent('dismiss'));
+        await Promise.resolve();
+        expect(panel.details).toBeUndefined();
+        expect(element.isConnected).toBe(true);
+        await expect(element).toBeAccessible();
+    });
+});
+
+it('画面切替後のスクロール例外を未処理のPromise拒否にしない', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(window, 'scrollTo').mockImplementation(() => { throw new TypeError('private'); });
+    const element = createElement('c-object-metrics-overview', { is: ObjectMetricsOverview });
+    document.body.appendChild(element);
+    getObjectMetrics.emit(countResponse);
+    await Promise.resolve();
+    const card = element.shadowRoot.querySelector('[data-key]');
+    card.click();
+    await Array.from({ length: 15 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+    expect(element.shadowRoot.querySelector('c-ui-error-panel').details.location).toContain('scrollToTop');
+    document.body.replaceChildren();
+    jest.restoreAllMocks();
+});

@@ -89,6 +89,8 @@ Salesforce Files、取引先、その他のレコードへPDFや履歴を保存�
 
 ## エラー処理
 
+起動LWCの`accountPdfExport`は[画面内の共通エラー表示](../../lwc/ui-error-boundary/index.md)の`uiErrorBoundary.js`と`errorUtils.js`を使用します。画面を持たないため処理場所・例外種別はエラー時のトーストに含め、成功ログは生成しません。
+
 - LWCが取引先IDを受け取れない場合、元のLightning画面へエラーToastを表示する。
 - URL生成または新しいタブの起動処理で例外が発生した場合、元のLightning画面へ再試行を案内するエラーToastを表示する。
 - URL parameterが未指定、不正形式、または取引先以外の場合、Visualforce PDFに安全な入力エラーを表示する。

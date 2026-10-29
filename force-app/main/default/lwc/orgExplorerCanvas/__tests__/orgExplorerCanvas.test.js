@@ -1,5 +1,6 @@
 import { createElement } from 'lwc';
 import OrgExplorerCanvas from 'c/orgExplorerCanvas';
+import * as canvasLogic from '../orgExplorerCanvasLogic';
 
 function mockFrames() {
     const scheduled = new Map();
@@ -228,6 +229,26 @@ it.each(['reset', 'fit', 'zoom', 'wheel'])('描画待ちのドラッグを終了
         expect(element.shadowRoot.querySelector('.c-plane').getAttribute('style')).toBe(settled);
     } finally {
         document.body.replaceChildren();
+        frames.restore();
+    }
+});
+
+it('非同期フレームの例外は本文なしの診断で親へ通知し、予約を解放する', async () => {
+    const frames = mockFrames();
+    const { element, viewport } = await createDraggableCanvas();
+    const failure = jest.fn();
+    element.addEventListener('clienterror', failure);
+    const position = new Proxy({}, { ownKeys() { throw new TypeError('private-value'); } });
+    const pan = jest.spyOn(canvasLogic, 'panTo').mockReturnValue(position);
+    try {
+        viewport.dispatchEvent(pointerEvent('pointerdown', 10, 10));
+        viewport.dispatchEvent(pointerEvent('pointermove', 20, 20));
+        expect(() => [...frames.scheduled.values()][0]()).not.toThrow();
+        expect(failure).toHaveBeenCalledTimes(1);
+        expect(failure.mock.calls[0][0].detail.location).toBe('orgExplorerCanvas.js / handlePointerMove / animation-frame');
+        expect(JSON.stringify(failure.mock.calls[0][0].detail)).not.toContain('private-value');
+    } finally {
+        pan.mockRestore();
         frames.restore();
     }
 });

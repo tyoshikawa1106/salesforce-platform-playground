@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -15,7 +16,7 @@ const LOAD_ERROR_MESSAGE =
     'スキャン状態を取得できませんでした。権限設定を確認してください。';
 
 // 取引先データ品質スキャンの開始と状態表示を管理
-export default class AccountDataQualityScan extends LightningElement {
+export default class AccountDataQualityScan extends withUiErrorBoundary(LightningElement, 'accountDataQualityScan') {
     // Apexから取得した直近スキャンを保持
     scan;
     // 状態取得または開始失敗時の利用者向け文言を保持
@@ -32,19 +33,27 @@ export default class AccountDataQualityScan extends LightningElement {
     // Apexから直近スキャンを取得して画面状態へ反映
     @wire(getLatestScan)
     wiredLatestScan(result) {
-        // 後続の手動更新に使えるwireレスポンスを保存
-        this.wiredLatestScanResult = result;
-        // 成功データとエラーを排他的に参照
-        const { data, error } = result;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 後続の手動更新に使えるwireレスポンスを保存
+            this.wiredLatestScanResult = result;
+            // 成功データとエラーを排他的に参照
+            const { data, error } = result;
 
-        // nullを含む取得成功時は最新状態へ置き換え
-        if (data !== undefined) {
-            // 権限不足と通常のスキャン取得を同じ応答契約で反映
-            this.applyScanResponse(data);
-        // 取得失敗時は確認済みの実行状態を保持してエラーへ移行
-        } else if (error) {
-            // 確認済みの実行状態を保持し、再取得の失敗だけを表示
-            this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
+            // nullを含む取得成功時は最新状態へ置き換え
+            if (data !== undefined) {
+                // 権限不足と通常のスキャン取得を同じ応答契約で反映
+                this.applyScanResponse(data);
+            // 取得失敗時は確認済みの実行状態を保持してエラーへ移行
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredLatestScan', 'wire');
+                // 確認済みの実行状態を保持し、再取得の失敗だけを表示
+                this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredLatestScan', 'wire');
         }
     }
 
@@ -105,80 +114,94 @@ export default class AccountDataQualityScan extends LightningElement {
 
     // 利用者操作から新しいスキャンを開始
     async handleStart() {
-        // 現在状態で開始できない要求は処理しない
-        if (this.isStartDisabled) {
-            // 表示状態を変えず開始処理を終了
-            return;
-        }
-
-        // 開始完了まで操作を抑止
-        this.isStarting = true;
-        // 新しい操作前に以前のエラーを解除
-        this.errorMessage = undefined;
-        // 非同期登録と最新状態の再取得を順番に実行
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // Apexへ取引先スキャン開始を要求
-            this.applyScanResponse(await startScan());
-            // 権限不足の応答では開始成功を通知しない
-            if (this.accessErrorMessage) {
-                // 権限回復後の状態更新まで開始を抑止
+            // 現在状態で開始できない要求は処理しない
+            if (this.isStartDisabled) {
+                // 表示状態を変えず開始処理を終了
                 return;
             }
-            // 開始受付を成功トーストで通知
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    // 成功内容を示す見出しを設定
-                    title: START_SUCCESS_TITLE,
-                    // 次の操作を案内する文言を設定
-                    message: '状態を更新して進捗を確認してください。',
-                    // 成功トーストとして表示
-                    variant: 'success'
-                })
-            );
-            // 非同期登録直後の待機状態を画面へ反映
-            await this.refreshLatestScan();
-        // 開始失敗時は画面とトーストの両方へ理由を表示
-        } catch (error) {
-            // Salesforceエラーを利用者向け文言へ変換
-            this.errorMessage = reduceErrors(
-                error,
-                'スキャンを開始できませんでした。'
-            );
-            // 開始失敗をエラートーストで通知
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    // 失敗内容を示す見出しを設定
-                    title: START_ERROR_TITLE,
-                    // 画面と同じ安全なエラー文言を設定
-                    message: this.errorMessage,
-                    // エラートーストとして表示
-                    variant: 'error'
-                })
-            );
-        // 成否にかかわらず開始操作を再び許可
-        } finally {
-            // 開始中状態を解除
-            this.isStarting = false;
+
+            // 開始完了まで操作を抑止
+            this.isStarting = true;
+            // 新しい操作前に以前のエラーを解除
+            this.errorMessage = undefined;
+            // 非同期登録と最新状態の再取得を順番に実行
+            try {
+                // Apexへ取引先スキャン開始を要求
+                this.applyScanResponse(await startScan());
+                // 権限不足の応答では開始成功を通知しない
+                if (this.accessErrorMessage) {
+                    // 権限回復後の状態更新まで開始を抑止
+                    return;
+                }
+                // 開始受付を成功トーストで通知
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        // 成功内容を示す見出しを設定
+                        title: START_SUCCESS_TITLE,
+                        // 次の操作を案内する文言を設定
+                        message: '状態を更新して進捗を確認してください。',
+                        // 成功トーストとして表示
+                        variant: 'success'
+                    })
+                );
+                // 非同期登録直後の待機状態を画面へ反映
+                await this.refreshLatestScan();
+            // 開始失敗時は画面とトーストの両方へ理由を表示
+            } catch (error) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'handleStart', 'processing');
+                // Salesforceエラーを利用者向け文言へ変換
+                this.errorMessage = reduceErrors(
+                    error,
+                    'スキャンを開始できませんでした。'
+                );
+                // 開始失敗をエラートーストで通知
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        // 失敗内容を示す見出しを設定
+                        title: START_ERROR_TITLE,
+                        // 画面と同じ安全なエラー文言を設定
+                        message: this.errorMessage,
+                        // エラートーストとして表示
+                        variant: 'error'
+                    })
+                );
+            // 成否にかかわらず開始操作を再び許可
+            } finally {
+                // 開始中状態を解除
+                this.isStarting = false;
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleStart', 'ui-event');
         }
     }
 
     // 利用者操作から最新の進捗を再取得
     async handleRefresh() {
-        // wire初期化前または操作中の更新要求は処理しない
-        if (!this.wiredLatestScanResult || this.isBusy) {
-            // 現在表示を維持して更新処理を終了
-            return;
-        }
-
-        // 更新完了まで操作を抑止
-        this.isRefreshing = true;
-        // 取得エラーは再取得処理の中で画面へ反映
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 保存済みの最新状態を再取得
-            await this.refreshLatestScan();
-        } finally {
-            // 更新後の手動操作を許可
-            this.isRefreshing = false;
+            // wire初期化前または操作中の更新要求は処理しない
+            if (!this.wiredLatestScanResult || this.isBusy) {
+                // 現在表示を維持して更新処理を終了
+                return;
+            }
+
+            // 更新完了まで操作を抑止
+            this.isRefreshing = true;
+            // 取得エラーは再取得処理の中で画面へ反映
+            try {
+                // 保存済みの最新状態を再取得
+                await this.refreshLatestScan();
+            } finally {
+                // 更新後の手動操作を許可
+                this.isRefreshing = false;
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRefresh', 'ui-event');
         }
     }
 
@@ -196,6 +219,8 @@ export default class AccountDataQualityScan extends LightningElement {
             // 通信エラーは解除し、最新応答の権限不足は表示し続ける
             this.errorMessage = this.accessErrorMessage;
         } catch (error) {
+            // 例外本文を記録せず、失敗した処理だけを通知
+            this.reportClientError(error, 'refreshLatestScan', 'processing');
             // 開始成功を取り消さず再取得だけの失敗を表示
             this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
         }

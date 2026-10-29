@@ -94,10 +94,11 @@ describe('c-account-pdf-export', () => {
         await element.invoke();
 
         expect(toastHandler).toHaveBeenCalledTimes(1);
+        expect(toastHandler.mock.calls[0][0].detail.message).toContain('accountPdfExport.js / invoke');
         expect(toastHandler.mock.calls[0][0].detail).toEqual({
             title: 'PDFを出力できません',
             message:
-                'PDFを開けませんでした。時間をおいてもう一度お試しください。',
+                expect.stringContaining('PDFを開けませんでした。時間をおいてもう一度お試しください。'),
             variant: 'error'
         });
     });

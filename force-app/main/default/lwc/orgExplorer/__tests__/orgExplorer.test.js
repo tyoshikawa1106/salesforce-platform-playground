@@ -1281,3 +1281,52 @@ it('所属一覧の通信失敗をリンク生成失敗と誤表示せず、内�
     expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
     await expect(element).toBeAccessible();
 });
+
+
+describe('処理場所付きエラー表示', () => {
+    afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
+    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+        const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+        getCapabilities.mockRejectedValueOnce(new Error('private-value'));
+        const element = createElement('c-orgExplorer', { is: OrgExplorer });
+        document.body.appendChild(element);
+        await Promise.resolve();
+
+        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
+        expect(panel.details.location).toContain('orgExplorer.js / loadContext');
+        expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
+        panel.dispatchEvent(new CustomEvent('dismiss'));
+        await Promise.resolve();
+        expect(panel.details).toBeUndefined();
+        expect(element.isConnected).toBe(true);
+        await expect(element).toBeAccessible();
+    });
+});
+
+it('子の描画例外を親の境界で受け止め、画面内へ表示する', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+        const element = createElement('c-org-explorer', { is: OrgExplorer });
+        document.body.appendChild(element);
+        await flush();
+        element.shadowRoot.querySelector('c-org-explorer-canvas').model = null;
+        await flush();
+        const details = element.shadowRoot.querySelector('c-ui-error-panel').details;
+        expect(details.location).toBe('orgExplorer.js / errorCallback / child-component');
+        expect(details.errorType).toBe('TypeError');
+        expect(element.shadowRoot.querySelector('h1')).not.toBeNull();
+    } finally { log.mockRestore(); }
+});
+it('子のフレーム失敗通知は固定の処理名で安全に表示する', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+        const element = createElement('c-org-explorer', { is: OrgExplorer });
+        document.body.appendChild(element);
+        await flush();
+        element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('clienterror', { detail: { errorType: 'TypeError', frames: ['https://private.example/orgExplorerCanvas.js:10:3'] } }));
+        await flush();
+        expect(element.shadowRoot.querySelector('c-ui-error-panel').details.location).toContain('orgExplorerCanvas.handlePointerMove');
+        expect(JSON.stringify(log.mock.calls)).not.toContain('private.example');
+    } finally { log.mockRestore(); }
+});

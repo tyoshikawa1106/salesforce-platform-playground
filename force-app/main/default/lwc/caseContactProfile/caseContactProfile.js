@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { getFieldValue, getRecord } from 'lightning/uiRecordApi';
@@ -57,9 +58,9 @@ const CASES_RELATED_LIST_ID = 'Cases';
 const RELATED_LIST_MAX_COUNT = 1999;
 
 // Caseレコードページに顧客と会社のプロフィールを表示
-export default class CaseContactProfile extends NavigationMixin(
+export default class CaseContactProfile extends withUiErrorBoundary(NavigationMixin(
     LightningElement
-) {
+), 'caseContactProfile') {
     // レコードページから表示中CaseのIDを受け取る
     @api recordId;
 
@@ -89,41 +90,49 @@ export default class CaseContactProfile extends NavigationMixin(
         optionalFields: OPTIONAL_FIELDS
     })
     wiredCase({ data, error }) {
-        // 取得成功時は関連先の変更を判定して表示を更新
-        if (data) {
-            // 更新前のContact IDを件数リセット判定用に保持
-            const previousContactId = this.contactId;
-            // 更新前のAccount IDを件数リセット判定用に保持
-            const previousAccountId = this.accountId;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 取得成功時は関連先の変更を判定して表示を更新
+            if (data) {
+                // 更新前のContact IDを件数リセット判定用に保持
+                const previousContactId = this.contactId;
+                // 更新前のAccount IDを件数リセット判定用に保持
+                const previousAccountId = this.accountId;
 
-            // 初回ローディングを終了
-            this.hasLoaded = true;
-            // 最新CaseのUI API項目をプロフィール表示状態へ変換
-            this.profile = this.createProfileFromRecord(data);
-            // 再取得成功時は以前のエラー表示を解除
-            this.errorMessage = undefined;
-            // 親レコードが変わった件数とリンクを未取得状態へ戻す
-            this.resetRelatedStateWhenParentChanges(
-                previousContactId,
-                previousAccountId
-            );
-            // 最新のContactとAccountに対応するURLを非同期生成
-            this.updateRecordUrls();
-        // 取得失敗時はプロフィール全体をエラー状態へ移行
-        } else if (error) {
-            // エラー表示へ切り替えるため初回取得を完了扱いにする
-            this.hasLoaded = true;
-            // 以前取得したプロフィール値を空状態へ戻す
-            this.profile = createProfile();
-            // 古いContactへのリンクを破棄
-            this.contactRecordUrl = undefined;
-            // 古いAccountへのリンクを破棄
-            this.accountRecordUrl = undefined;
-            // 親を特定できないため両方の件数状態を初期化
-            this.resetCaseCounts();
-            // 詳細を露出しない利用者向け文言へ統一
-            this.errorMessage =
-                '取引先責任者のプロフィールを読み込めませんでした。時間をおいてもう一度お試しください。';
+                // 初回ローディングを終了
+                this.hasLoaded = true;
+                // 最新CaseのUI API項目をプロフィール表示状態へ変換
+                this.profile = this.createProfileFromRecord(data);
+                // 再取得成功時は以前のエラー表示を解除
+                this.errorMessage = undefined;
+                // 親レコードが変わった件数とリンクを未取得状態へ戻す
+                this.resetRelatedStateWhenParentChanges(
+                    previousContactId,
+                    previousAccountId
+                );
+                // 最新のContactとAccountに対応するURLを非同期生成
+                this.updateRecordUrls();
+            // 取得失敗時はプロフィール全体をエラー状態へ移行
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredCase', 'wire');
+                // エラー表示へ切り替えるため初回取得を完了扱いにする
+                this.hasLoaded = true;
+                // 以前取得したプロフィール値を空状態へ戻す
+                this.profile = createProfile();
+                // 古いContactへのリンクを破棄
+                this.contactRecordUrl = undefined;
+                // 古いAccountへのリンクを破棄
+                this.accountRecordUrl = undefined;
+                // 親を特定できないため両方の件数状態を初期化
+                this.resetCaseCounts();
+                // 詳細を露出しない利用者向け文言へ統一
+                this.errorMessage =
+                    '取引先責任者のプロフィールを読み込めませんでした。時間をおいてもう一度お試しください。';
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredCase', 'wire');
         }
     }
 
@@ -134,16 +143,24 @@ export default class CaseContactProfile extends NavigationMixin(
         maxCount: RELATED_LIST_MAX_COUNT
     })
     wiredContactCaseCount({ data, error }) {
-        // 取得成功時は件数と上限超過状態を反映
-        if (data) {
-            // Contactタブに表示する正確な件数を保存
-            this.contactCaseCount = data.count;
-            // 上限より多い場合のプラス表示を制御
-            this.contactCaseCountHasMore = data.hasMore === true;
-        // 取得失敗時はプロフィールを残し件数だけ未取得へ戻す
-        } else if (error) {
-            // Contact件数の表示状態を共通処理で初期化
-            this.resetContactCaseCount();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 取得成功時は件数と上限超過状態を反映
+            if (data) {
+                // Contactタブに表示する正確な件数を保存
+                this.contactCaseCount = data.count;
+                // 上限より多い場合のプラス表示を制御
+                this.contactCaseCountHasMore = data.hasMore === true;
+            // 取得失敗時はプロフィールを残し件数だけ未取得へ戻す
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredContactCaseCount', 'wire');
+                // Contact件数の表示状態を共通処理で初期化
+                this.resetContactCaseCount();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredContactCaseCount', 'wire');
         }
     }
 
@@ -154,16 +171,24 @@ export default class CaseContactProfile extends NavigationMixin(
         maxCount: RELATED_LIST_MAX_COUNT
     })
     wiredAccountCaseCount({ data, error }) {
-        // 取得成功時は件数と上限超過状態を反映
-        if (data) {
-            // Accountタブに表示する正確な件数を保存
-            this.accountCaseCount = data.count;
-            // 上限より多い場合のプラス表示を制御
-            this.accountCaseCountHasMore = data.hasMore === true;
-        // 取得失敗時はプロフィールを残し件数だけ未取得へ戻す
-        } else if (error) {
-            // Account件数の表示状態を共通処理で初期化
-            this.resetAccountCaseCount();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 取得成功時は件数と上限超過状態を反映
+            if (data) {
+                // Accountタブに表示する正確な件数を保存
+                this.accountCaseCount = data.count;
+                // 上限より多い場合のプラス表示を制御
+                this.accountCaseCountHasMore = data.hasMore === true;
+            // 取得失敗時はプロフィールを残し件数だけ未取得へ戻す
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredAccountCaseCount', 'wire');
+                // Account件数の表示状態を共通処理で初期化
+                this.resetAccountCaseCount();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredAccountCaseCount', 'wire');
         }
     }
 
@@ -416,22 +441,28 @@ export default class CaseContactProfile extends NavigationMixin(
 
     // 最新のContactとAccountに対応するレコードURLを更新
     async updateRecordUrls() {
-        // 非同期処理開始時点のContact IDを保持
-        const contactId = this.contactId;
-        // 非同期処理開始時点のAccount IDを保持
-        const accountId = this.accountId;
-        // 両方のURLを並行して生成
-        const [contactRecordUrl, accountRecordUrl] = await Promise.all([
-            this.generateRecordUrl(contactId, CONTACT_OBJECT_API_NAME),
-            this.generateRecordUrl(accountId, ACCOUNT_OBJECT_API_NAME)
-        ]);
+        // 呼び出し元が待機しない非同期処理もこの画面で捕捉
+        try {
+            // 非同期処理開始時点のContact IDを保持
+            const contactId = this.contactId;
+            // 非同期処理開始時点のAccount IDを保持
+            const accountId = this.accountId;
+            // 両方のURLを並行して生成
+            const [contactRecordUrl, accountRecordUrl] = await Promise.all([
+                this.generateRecordUrl(contactId, CONTACT_OBJECT_API_NAME),
+                this.generateRecordUrl(accountId, ACCOUNT_OBJECT_API_NAME)
+            ]);
 
-        // URL生成中に親レコードが変わっていない場合だけ反映
-        if (contactId === this.contactId && accountId === this.accountId) {
-            // 最新Contactの詳細ページURLを保存
-            this.contactRecordUrl = contactRecordUrl;
-            // 最新Accountの詳細ページURLを保存
-            this.accountRecordUrl = accountRecordUrl;
+            // URL生成中に親レコードが変わっていない場合だけ反映
+            if (contactId === this.contactId && accountId === this.accountId) {
+                // 最新Contactの詳細ページURLを保存
+                this.contactRecordUrl = contactRecordUrl;
+                // 最新Accountの詳細ページURLを保存
+                this.accountRecordUrl = accountRecordUrl;
+            }
+        } catch (error) {
+            // 未処理のPromise拒否を画面外へ伝播させない
+            this.reportClientError(error, 'updateRecordUrls', 'async-operation');
         }
     }
 
@@ -456,6 +487,13 @@ export default class CaseContactProfile extends NavigationMixin(
                 actionName: 'view'
             }
         // URL生成失敗時もプロフィール表示を継続
-        }).catch(() => undefined);
+        }).catch((error) => {
+            // URLを作れない場合はリンクを表示せず、失敗箇所を通知
+            // 表示対象が変わった後の古いURL生成失敗は表示しない
+            if (recordId === this.contactId || recordId === this.accountId) {
+                this.reportClientError(error, 'generateRecordUrl', 'navigation');
+            }
+            return undefined;
+        });
     }
 }
