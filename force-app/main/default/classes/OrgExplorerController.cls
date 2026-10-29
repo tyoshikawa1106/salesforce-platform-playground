@@ -17,18 +17,13 @@ public with sharing class OrgExplorerController {
      */
     @AuraEnabled
     public static OrgExplorerCapabilitiesResponse getCapabilities(String request) {
-        // 応答を要求ごとに初期化
-        OrgExplorerCapabilitiesResponse response = new OrgExplorerCapabilitiesResponse();
         // 想定外の例外を外部へ公開しない
         try {
             // 形式を検証してからデータを照会
             String code = requestService.validateEnvelope(request, request);
             // 不正要求では起点を取得しない
-            if (String.isNotEmpty(code)) {
-                response.ok = false;
-                response.error = service.createError(code);
-                return response;
-            }
+            OrgExplorerAccessPolicy.requireValidRequest(code);
+            OrgExplorerCapabilitiesResponse response = new OrgExplorerCapabilitiesResponse();
             // Describeは各要求で再評価
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             // カードの項目ラベルを既存応答へまとめる
@@ -39,13 +34,11 @@ public with sharing class OrgExplorerController {
             response.roleModeEnabled = access.rolesEnabled;
             // ロールのUser一覧には両方の権限が必要
             response.roleMembersEnabled = access.membershipEnabled && access.rolesEnabled;
-        } catch (Exception e) {
-            // 生の例外・個人情報・SOQLを公開しない
-            response.ok = false;
-            response.error = service.createError('SERVER_ERROR');
+            return response;
+        } catch (Exception error) {
+            // 既知の公開例外は保持し、内部エラーだけを安全な固定文へ変換
+            throw OrgExplorerAccessPolicy.toPublicException(error);
         }
-        // 機能情報を返却
-        return response;
     }
 
     /**
@@ -62,12 +55,10 @@ public with sharing class OrgExplorerController {
             // モードとscope、親の型を同じ契約で検証
             String code = requestService.validatePage(request, access);
             // 不正要求で対象や関連先を照会しない
-            if (String.isNotEmpty(code)) {
-                return failure(code);
-            }
+            OrgExplorerAccessPolicy.requireValidRequest(code);
             // IDだけを知っている対象から配下を列挙させない
             if (!isParentVisible(request)) {
-                return failure('NOT_FOUND_OR_UNAVAILABLE');
+                throw OrgExplorerAccessPolicy.createException('NOT_FOUND_OR_UNAVAILABLE');
             }
             // 両モードのユーザー一覧は同じ標準ページングを利用
             if (request.scope == 'ROLE_MEMBERS' || request.scope == 'MANAGER_MEMBERS') {
@@ -75,15 +66,9 @@ public with sharing class OrgExplorerController {
             }
             // 構造取得だけ独自の継続境界を使用
             return loadStructurePage(request, access);
-        } catch (System.FatalCursorException e) {
-            // 失効した標準カーソルの内部情報を公開しない
-            return failure('INVALID_CURSOR');
-        } catch (QueryException e) {
-            // ユーザーモードによる参照拒否を安全な失敗へ変換
-            return failure('ACCESS_DENIED');
-        } catch (Exception e) {
-            // 生の例外や検索条件を公開しない
-            return failure('SERVER_ERROR');
+        } catch (Exception error) {
+            // 既知の公開例外は保持し、内部エラーだけを安全な固定文へ変換
+            throw OrgExplorerAccessPolicy.toPublicException(error);
         }
     }
 
@@ -93,9 +78,9 @@ public with sharing class OrgExplorerController {
         OrgExplorerAccessPolicy access
     ) {
         // ユーザー一覧の標準カーソルを構造取得へ流用させない
-        if (request.paginationCursor != null || (request.startIndex != null && request.startIndex != 0)) {
-            return failure('INVALID_CURSOR');
-        }
+        OrgExplorerAccessPolicy.requireValidRequest(
+            request.paginationCursor != null || (request.startIndex != null && request.startIndex != 0) ? 'INVALID_CURSOR' : null
+        );
         // 閲覧者と現在の表示条件へ継続境界を固定
         OrgExplorerCursorCodec.Cursor expected = service.createPageCursor(request);
         // 不正な継続値を初回として扱わない
@@ -106,7 +91,7 @@ public with sharing class OrgExplorerController {
         Schema.SObjectType recordType = request.mode == 'MANAGER' ? User.SObjectType : UserRole.SObjectType;
         // 不正な境界から後続の構造を照会しない
         if (!codec.isPagePositionValid(request.cursor, cursor, recordType)) {
-            return failure('INVALID_CURSOR');
+            throw OrgExplorerAccessPolicy.createException('INVALID_CURSOR');
         }
         // モード固有の照会順だけを分け、継続検証は共用
         return request.mode == 'MANAGER'
@@ -121,8 +106,6 @@ public with sharing class OrgExplorerController {
      */
     @AuraEnabled
     public static OrgExplorerPageResponse searchRoles(OrgExplorerSearchRequest request) {
-        // 要求ごとに候補応答を初期化
-        OrgExplorerPageResponse response = new OrgExplorerPageResponse();
         // 検索語や内部例外を公開しない境界
         try {
             // ロール参照可否を現在の利用者で評価
@@ -130,11 +113,7 @@ public with sharing class OrgExplorerController {
             // 名前とAPI名の検索を排他的に検証
             String code = requestService.validateSearch(request, access);
             // 不正入力では検索しない
-            if (String.isNotEmpty(code)) {
-                response.ok = false;
-                response.error = service.createError(code);
-                return response;
-            }
+            OrgExplorerAccessPolicy.requireValidRequest(code);
             // 正規化後の条件だけをSelectorへ渡す
             String term = requestService.normalizeSearchTerm(request.term);
             // 初期API名も前後空白を除去
@@ -142,18 +121,11 @@ public with sharing class OrgExplorerController {
             // 未入力は最上位、入力時は名称またはAPI名で可視候補を取得
             List<UserRole> records = selector.searchRoles(term, developerName);
             // 未公開の親IDを含まない候補へ変換
-            response = service.createRoleSearchResults(records);
-        } catch (QueryException e) {
-            // USER_MODEによる拒否を通知
-            response.ok = false;
-            response.error = service.createError('ACCESS_DENIED');
-        } catch (Exception e) {
-            // 検索語や生の例外を公開しない
-            response.ok = false;
-            response.error = service.createError('SERVER_ERROR');
+            return service.createRoleSearchResults(records);
+        } catch (Exception error) {
+            // 既知の公開例外は保持し、内部エラーだけを安全な固定文へ変換
+            throw OrgExplorerAccessPolicy.toPublicException(error);
         }
-        // 候補上限の有無と可視候補を返却
-        return response;
     }
 
     // 可視確認済みのロールページに直接所属人数を付加
@@ -196,12 +168,9 @@ public with sharing class OrgExplorerController {
         }
         // 上司本人の可視性も部下の参照可否から推定しない
         if (request.mode == 'MANAGER') {
-            // 取得したListをServiceで確認し、Controllerでレコードを加工しない
             List<User> parents = selector.selectManagerParentUser(request.parentId);
-            // 非存在と非可視を同じ判定にする
-            Boolean visible = service.canReadManagerParent(request, parents);
-            // 可視判定の結果だけを呼び出し元へ返却
-            return visible;
+            // ロールと同じく、参照できた親がある場合だけ取得を続ける
+            return !parents.isEmpty();
         }
         // IDを知っているだけでは関連する一覧を公開しない
         List<UserRole> roles = selector.selectRoles(new Set<Id>{ request.parentId }, new List<String>{ 'Id' });
@@ -223,8 +192,8 @@ public with sharing class OrgExplorerController {
         String code = requestService.validateMemberPosition(request);
         // 旧形式の継続値もユーザー一覧へ混入させない
         if (String.isNotEmpty(code)) {
-            // 既存の共通応答で不正位置を通知
-            return failure(code);
+            // 不正な位置を公開例外で通知
+            throw OrgExplorerAccessPolicy.createException(code);
         }
         // 前後ページでは受け取った標準カーソルを再利用
         Database.PaginationCursor paginationCursor = request.paginationCursor;
@@ -247,8 +216,8 @@ public with sharing class OrgExplorerController {
         List<User> records = memberService.orderMemberRecords(fetched, visibleRecords);
         // 所属や共有が変わったページを部分的な成功として公開しない
         if (records.size() != ids.size()) {
-            // 同じ安全なエラー契約で再取得を案内
-            return failure('INVALID_CURSOR');
+            // 固定の公開メッセージで再取得を案内
+            throw OrgExplorerAccessPolicy.createException('INVALID_CURSOR');
         }
         // 参照可能なマネージャーIDを重複排除
         Set<Id> managerIds = memberService.getManagerIds(records, access);
@@ -290,9 +259,7 @@ public with sharing class OrgExplorerController {
             // 上司候補の要求に対応した検証結果を取得
             String code = requestService.validateManagerSearch(request, access);
             // 入力不正や権限不足で候補を照会しない
-            if (String.isNotEmpty(code)) {
-                return failure(code);
-            }
+            OrgExplorerAccessPolicy.requireValidRequest(code);
             // 検索語の意味を確定してからSelectorへ渡す
             request.term = requestService.normalizeSearchTerm(request.term);
             // 部下を持つ上司の候補を一括取得
@@ -309,12 +276,9 @@ public with sharing class OrgExplorerController {
             OrgExplorerPageResponse response = service.createManagerSearchResults(wrapper, access);
             // 参照可能な候補だけを返却
             return response;
-        } catch (QueryException e) {
-            // 照会拒否でユーザーの存在を公開しない
-            return failure('ACCESS_DENIED');
-        } catch (Exception e) {
-            // 生の検索条件や例外を公開しない
-            return failure('SERVER_ERROR');
+        } catch (Exception error) {
+            // 既知の公開例外は保持し、内部エラーだけを安全な固定文へ変換
+            throw OrgExplorerAccessPolicy.toPublicException(error);
         }
     }
 
@@ -350,15 +314,4 @@ public with sharing class OrgExplorerController {
         return response;
     }
 
-    // 内部の例外や存在確認結果を公開しない安全な応答
-    private static OrgExplorerPageResponse failure(String code) {
-        // 公開応答を要求ごとに初期化
-        OrgExplorerPageResponse response = new OrgExplorerPageResponse();
-        // 成功応答と失敗を区別
-        response.ok = false;
-        // 固定のエラー契約で内部情報を隠す
-        response.error = service.createError(code);
-        // 公開可能な応答だけを呼び出し元へ返却
-        return response;
-    }
 }

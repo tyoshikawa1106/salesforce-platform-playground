@@ -22,20 +22,19 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### Apexコードと対応テスト
 
-| Apex本体                                                                                                          | 役割                                                     | 同名Test                                                                                                                  |
-| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [OrgExplorerAccessPolicy](../../../../force-app/main/default/classes/OrgExplorerAccessPolicy.cls)                 | 組織探索のモードと任意項目の参照可否                     | [OrgExplorerAccessPolicyTest](../../../../force-app/main/default/classes/OrgExplorerAccessPolicyTest.cls)                 |
-| [OrgExplorerCapabilitiesResponse](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponse.cls) | 利用可能な階層モードと制御値                             | [OrgExplorerCapabilitiesResponseTest](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponseTest.cls) |
-| [OrgExplorerController](../../../../force-app/main/default/classes/OrgExplorerController.cls)                     | 読み取り専用の組織エクスプローラー公開API                | [OrgExplorerControllerTest](../../../../force-app/main/default/classes/OrgExplorerControllerTest.cls)                     |
-| [OrgExplorerCursorCodec](../../../../force-app/main/default/classes/OrgExplorerCursorCodec.cls)                   | 権限を与えないページ継続位置の厳密な変換                 | [OrgExplorerCursorCodecTest](../../../../force-app/main/default/classes/OrgExplorerCursorCodecTest.cls)                   |
-| [OrgExplorerError](../../../../force-app/main/default/classes/OrgExplorerError.cls)                               | 利用者へ公開できるエラー                                 | [OrgExplorerErrorTest](../../../../force-app/main/default/classes/OrgExplorerErrorTest.cls)                               |
-| [OrgExplorerMemberService](../../../../force-app/main/default/classes/OrgExplorerMemberService.cls)               | 組織探索のユーザーノード・メンバー一覧・関連先の変換     | [OrgExplorerMemberServiceTest](../../../../force-app/main/default/classes/OrgExplorerMemberServiceTest.cls)               |
-| [OrgExplorerPageRequest](../../../../force-app/main/default/classes/OrgExplorerPageRequest.cls)                   | 固定範囲の階層一覧要求                                   | [OrgExplorerPageRequestTest](../../../../force-app/main/default/classes/OrgExplorerPageRequestTest.cls)                   |
-| [OrgExplorerPageResponse](../../../../force-app/main/default/classes/OrgExplorerPageResponse.cls)                 | 階層・メンバー一覧・検索候補の共通応答                   | [OrgExplorerPageResponseTest](../../../../force-app/main/default/classes/OrgExplorerPageResponseTest.cls)                 |
-| [OrgExplorerRequestService](../../../../force-app/main/default/classes/OrgExplorerRequestService.cls)             | 組織探索の一覧要求・継続位置・候補検索の検証             | [OrgExplorerRequestServiceTest](../../../../force-app/main/default/classes/OrgExplorerRequestServiceTest.cls)             |
-| [OrgExplorerSearchRequest](../../../../force-app/main/default/classes/OrgExplorerSearchRequest.cls)               | ロール・上司の候補検索要求                               | [OrgExplorerSearchRequestTest](../../../../force-app/main/default/classes/OrgExplorerSearchRequestTest.cls)               |
-| [OrgExplorerSelector](../../../../force-app/main/default/classes/OrgExplorerSelector.cls)                         | 利用者権限を適用したUserとUserRoleの限定照会             | [OrgExplorerSelectorTest](../../../../force-app/main/default/classes/OrgExplorerSelectorTest.cls)                         |
-| [OrgExplorerService](../../../../force-app/main/default/classes/OrgExplorerService.cls)                           | 組織探索のロール・上司構造と候補・人数・公開エラーの生成 | [OrgExplorerServiceTest](../../../../force-app/main/default/classes/OrgExplorerServiceTest.cls)                           |
+| Apex本体                                                                                                          | 役割                                                 | 同名Test                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [OrgExplorerAccessPolicy](../../../../force-app/main/default/classes/OrgExplorerAccessPolicy.cls)                 | 組織探索の参照可否と公開例外の生成                   | [OrgExplorerAccessPolicyTest](../../../../force-app/main/default/classes/OrgExplorerAccessPolicyTest.cls)                 |
+| [OrgExplorerCapabilitiesResponse](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponse.cls) | 利用可能な階層モードと制御値                         | [OrgExplorerCapabilitiesResponseTest](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponseTest.cls) |
+| [OrgExplorerController](../../../../force-app/main/default/classes/OrgExplorerController.cls)                     | 読み取り専用の組織エクスプローラー公開API            | [OrgExplorerControllerTest](../../../../force-app/main/default/classes/OrgExplorerControllerTest.cls)                     |
+| [OrgExplorerCursorCodec](../../../../force-app/main/default/classes/OrgExplorerCursorCodec.cls)                   | 権限を与えないページ継続位置の厳密な変換             | [OrgExplorerCursorCodecTest](../../../../force-app/main/default/classes/OrgExplorerCursorCodecTest.cls)                   |
+| [OrgExplorerMemberService](../../../../force-app/main/default/classes/OrgExplorerMemberService.cls)               | 組織探索のユーザーノード・メンバー一覧・関連先の変換 | [OrgExplorerMemberServiceTest](../../../../force-app/main/default/classes/OrgExplorerMemberServiceTest.cls)               |
+| [OrgExplorerPageRequest](../../../../force-app/main/default/classes/OrgExplorerPageRequest.cls)                   | 固定範囲の階層一覧要求                               | [OrgExplorerPageRequestTest](../../../../force-app/main/default/classes/OrgExplorerPageRequestTest.cls)                   |
+| [OrgExplorerPageResponse](../../../../force-app/main/default/classes/OrgExplorerPageResponse.cls)                 | 階層・メンバー一覧・検索候補の共通応答               | [OrgExplorerPageResponseTest](../../../../force-app/main/default/classes/OrgExplorerPageResponseTest.cls)                 |
+| [OrgExplorerRequestService](../../../../force-app/main/default/classes/OrgExplorerRequestService.cls)             | 組織探索の一覧要求・継続位置・候補検索の検証         | [OrgExplorerRequestServiceTest](../../../../force-app/main/default/classes/OrgExplorerRequestServiceTest.cls)             |
+| [OrgExplorerSearchRequest](../../../../force-app/main/default/classes/OrgExplorerSearchRequest.cls)               | ロール・上司の候補検索要求                           | [OrgExplorerSearchRequestTest](../../../../force-app/main/default/classes/OrgExplorerSearchRequestTest.cls)               |
+| [OrgExplorerSelector](../../../../force-app/main/default/classes/OrgExplorerSelector.cls)                         | 利用者権限を適用したUserとUserRoleの限定照会         | [OrgExplorerSelectorTest](../../../../force-app/main/default/classes/OrgExplorerSelectorTest.cls)                         |
+| [OrgExplorerService](../../../../force-app/main/default/classes/OrgExplorerService.cls)                           | 組織探索のロール・上司構造と候補・人数の生成         | [OrgExplorerServiceTest](../../../../force-app/main/default/classes/OrgExplorerServiceTest.cls)                           |
 
 テストでは現在の実行ユーザーを直接取得し、階層検証用ユーザーはテストクラス内で作成します。共通の`TestDataFactory`には依存しません。
 
@@ -49,7 +48,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 本機能のApex本体・テストとLWCはWinter ’27のAPI 68.0を使用します。
 
-要求・応答の型は[OrgExplorerCapabilitiesResponse](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponse.cls)、[OrgExplorerPageRequest](../../../../force-app/main/default/classes/OrgExplorerPageRequest.cls)、[OrgExplorerPageResponse](../../../../force-app/main/default/classes/OrgExplorerPageResponse.cls)、[OrgExplorerSearchRequest](../../../../force-app/main/default/classes/OrgExplorerSearchRequest.cls)、[OrgExplorerError](../../../../force-app/main/default/classes/OrgExplorerError.cls)です。
+要求・応答の型は[OrgExplorerCapabilitiesResponse](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponse.cls)、[OrgExplorerPageRequest](../../../../force-app/main/default/classes/OrgExplorerPageRequest.cls)、[OrgExplorerPageResponse](../../../../force-app/main/default/classes/OrgExplorerPageResponse.cls)、[OrgExplorerSearchRequest](../../../../force-app/main/default/classes/OrgExplorerSearchRequest.cls)です。
 
 メンバー一覧の内部セルは`orgExplorerDatatable`と同Bundleの読取専用メール・チェックボックス用テンプレートで表示します。
 
@@ -169,7 +168,9 @@ Apexは`with sharing`とUSER_MODEで照会し、オブジェクトと必要項�
 
 所属一覧の失敗は一覧内だけに表示し、再試行の成功で解除します。候補取得の失敗時は前回の候補と上限案内を破棄し、古い候補を選択できない状態にします。失敗を正常な候補ゼロ件としては表示せず、次の候補取得の成功でエラーを解除します。古い要求の失敗は新しい候補を消しません。候補検索の成功・失敗で、構造取得の失敗表示を消したり置き換えたりしません。
 
-入力不正、権限不足、参照不能、不正な継続値、内部失敗を固定コードと日本語メッセージで返します。参照不能と存在しない対象を区別しません。生の例外、SOQL、検索語、非可視なIDや名前は利用者向けエラーに含めません。
+入力不正、権限不足、参照不能、不正な継続値、内部失敗は`AuraHandledException`で通知し、固定の日本語メッセージをLWCで表示します。成功時の応答に`ok`・`error`は持たせず、エラー専用の返却クラスも使用しません。参照不能と存在しない対象を区別しません。生の例外、SOQL、検索語、非可視なIDや名前は利用者向けエラーに含めません。
+
+公開例外の生成と内部例外の分類は`OrgExplorerAccessPolicy`に集約します。Controllerは4つの公開APIで同じ変換を使い、RequestServiceは入力条件の検証、Serviceは構造・人数・候補の生成を担当します。上司とロールの親の可視性は、ControllerがUSER_MODEで取得した親の有無で同じように判定します。
 
 構造取得用の継続値はBase64化した位置情報で、署名や暗号化による権限証明ではありません。用途・閲覧者・条件・有効期間を照合し、改変可能であることを前提に現在の可視性を照会します。構造用の有効期間は最大10分です。ユーザー一覧は標準カーソルの有効期間に従い、失効時は一覧を消して同じカードの再選択による再取得を案内します。モード・対象カード・表示条件の変更時は標準カーソルを破棄します。1カーソルの対象は最大100,000件で、上限到達時は案内を表示し、ページ数もその範囲に限定します。不正・期限切れを黙って初回へ変換せず、更新による条件リセットを案内します。
 
@@ -210,11 +211,11 @@ LWCのJestで構造ページの統合・部分木・配置・選択・権限状�
 
 公開DTOのBooleanプロパティはLWCとの入出力契約を保つため、自動getter・setterを維持しています。PMDの`AvoidBooleanMethodParameters`が自動setterの引数も検出するため、現実装では下記のプロパティに限って理由付きの`@SuppressWarnings('PMD.AvoidBooleanMethodParameters')`を指定しています。クラス全体や解析設定での除外は行っていません。
 
-| 対象ファイル                                                                                                          | 対象プロパティ                                                      |
-| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [OrgExplorerPageRequest.cls](../../../../force-app/main/default/classes/OrgExplorerPageRequest.cls)                   | `includeInactive`                                                   |
-| [OrgExplorerPageResponse.cls](../../../../force-app/main/default/classes/OrgExplorerPageResponse.cls)                 | `ok`, `hasMore`, 内部Nodeの`isActive`                               |
-| [OrgExplorerCapabilitiesResponse.cls](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponse.cls) | `ok`, `managerModeEnabled`, `roleModeEnabled`, `roleMembersEnabled` |
+| 対象ファイル                                                                                                          | 対象プロパティ                                                |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [OrgExplorerPageRequest.cls](../../../../force-app/main/default/classes/OrgExplorerPageRequest.cls)                   | `includeInactive`                                             |
+| [OrgExplorerPageResponse.cls](../../../../force-app/main/default/classes/OrgExplorerPageResponse.cls)                 | `hasMore`, 内部Nodeの`isActive`                               |
+| [OrgExplorerCapabilitiesResponse.cls](../../../../force-app/main/default/classes/OrgExplorerCapabilitiesResponse.cls) | `managerModeEnabled`, `roleModeEnabled`, `roleMembersEnabled` |
 
 ## 制約・注意事項
 

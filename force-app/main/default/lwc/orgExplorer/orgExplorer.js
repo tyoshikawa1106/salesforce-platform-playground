@@ -155,9 +155,9 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // 要求を作成した表示条件を固定する。
         const generation = this._generation;
         // 待機中にも呼び出し元が結果を待てるようにする。
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // リクエスト全体を待機列へ登録する。
-            this._queue.push({ scope, action, payload, sequence, generation, resolve });
+            this._queue.push({ scope, action, payload, sequence, generation, resolve, reject });
             // 空きがある要求だけを送信する。
             this.pump();
         });
@@ -184,16 +184,17 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             // APIの失敗も同じ完了処理へ流す。
             Promise.resolve()
                 .then(() => task.action({ request: task.payload }))
-                .catch(() => ({ ok: false, error: { message: '通信に失敗しました。更新してお試しください。' } }))
-                .then((response) => {
-                    // 最新の範囲と世代だけが状態を更新できる。
-                    const current =
-                        !this._disposed &&
-                        task.generation === this._generation &&
-                        task.sequence === this._sequences.get(task.scope);
-                    // 古い応答のDTOを呼び出し元へ渡さない。
-                    task.resolve(current ? response : null);
-                })
+                .then(
+                    (response) => {
+                        // 古い応答を呼び出し元へ渡さない。
+                        task.resolve(this.isCurrentRequest(task) ? response : null);
+                    },
+                    (error) => {
+                        // Apexの公開例外は現在の要求だけに通知する。
+                        if (this.isCurrentRequest(task)) task.reject(error);
+                        else task.resolve(null);
+                    }
+                )
                 .finally(() => {
                     // 世代変更では送信枠を早期解放しない。
                     this._active -= 1;
@@ -202,29 +203,24 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
                 });
         }
     }
-    // 安全なサーバーメッセージだけを通知する。
+    // 成功と失敗で同じ世代・送信順の条件を適用する。
+    isCurrentRequest(task) {
+        return !this._disposed && task.generation === this._generation && task.sequence === this._sequences.get(task.scope);
+    }
+    // Apexが公開したメッセージだけを取得元に対応付けて表示する。
+    showRequestError(error, source = 'structure') {
+        // 候補検索の失敗で構造取得の失敗を上書きしない。
+        if (source === 'lookup' && this.error && this._errorSource !== 'lookup') return;
+        this._errorSource = source;
+        this.error = `${error?.body?.message || '通信に失敗しました。更新してお試しください。'} 表示条件を切り替えて再取得してください。`;
+    }
+    // 現在の成功応答だけを反映し、同じ取得元の失敗を解除する。
     accepted(response, source = 'structure') {
-        // 古い要求には画面上の副作用を与えない。
         if (!response) return false;
-        // 権限エラーや不正カーソルを自動再取得で隠さない。
-        if (!response.ok) {
-            // 構造の失敗は候補検索の失敗で上書きしない。
-            if (source === 'lookup' && this.error && this._errorSource !== 'lookup') return false;
-            // 復旧を判断するため、失敗した取得先を保持する。
-            this._errorSource = source;
-            // 対応できる操作を固定文で案内する。
-            this.error = `${response.error?.message || '取得できませんでした。'} 表示条件を切り替えて再取得してください。`;
-            // 失敗のDTOを表示モデルへ流さない。
-            return false;
-        }
-        // 同じ取得先が復旧した場合だけ失敗表示を解除する。
         if (this._errorSource === source) {
-            // 別の取得先の失敗は残す。
             this.error = '';
-            // 復旧済みのエラー元を破棄する。
             this._errorSource = '';
         }
-        // 成功した応答だけを反映する。
         return true;
     }
     // 初期化と更新では権限を再評価する。
@@ -240,26 +236,31 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 権限と初期値の解決後に、現在の表示条件の構造を取得する。
     async loadContext() {
-        // 相関キーだけを送り、各モードの利用可否を取得する。
-        const response = await this.request('capabilities', getCapabilities, this.requestId());
-        // 読み取り権限を確認できた場合だけ表示を進める。
-        if (!this.accepted(response)) return;
-        // 現在の権限を画面操作へ反映する。
-        this.capabilities = response;
-        // 選択中のモードを利用できない場合は構造取得へ進めない。
-        if (this.mode === 'ROLE' ? !response.roleModeEnabled : !response.managerModeEnabled) {
-            // 別のモードへ自動で切り替えて権限不足を隠さない。
-            this.error =
-                this.mode === 'ROLE'
-                    ? 'ロールを表示するための参照権限がありません。'
-                    : '上司階層を表示するための参照権限がありません。';
-            // 許可のない構造照会を行わない。
-            return;
+        const generation = this._generation;
+        try {
+            // 相関キーだけを送り、各モードの利用可否を取得する。
+            const response = await this.request('capabilities', getCapabilities, this.requestId());
+            // 読み取り権限を確認できた場合だけ表示を進める。
+            if (!this.accepted(response)) return;
+            // 現在の権限を画面操作へ反映する。
+            this.capabilities = response;
+            // 選択中のモードを利用できない場合は構造取得へ進めない。
+            if (this.mode === 'ROLE' ? !response.roleModeEnabled : !response.managerModeEnabled) {
+                // 別のモードへ自動で切り替えて権限不足を隠さない。
+                this.error =
+                    this.mode === 'ROLE'
+                        ? 'ロールを表示するための参照権限がありません。'
+                        : '上司階層を表示するための参照権限がありません。';
+                // 許可のない構造照会を行わない。
+                return;
+            }
+            // 初期値の解決に失敗した場合は、構造取得へ進まない。
+            if (this.mode === 'ROLE' && !this._rootInitialized && !(await this.initializeDefaultRole())) return;
+            // 選択済みの起点だけを再検証して表示する。
+            await this.loadStructure();
+        } catch (error) {
+            if (generation === this._generation && !this._disposed) this.showRequestError(error);
         }
-        // 初期値の解決に失敗した場合は、構造取得へ進まない。
-        if (this.mode === 'ROLE' && !this._rootInitialized && !(await this.initializeDefaultRole())) return;
-        // 選択済みの起点だけを再検証して表示する。
-        await this.loadStructure();
     }
     // 設定された初期ロールを一度だけ選択し、未設定・未存在なら空欄で開始する。
     async initializeDefaultRole() {
@@ -303,6 +304,8 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         try {
             // 深さや末端数によらず件数単位で取得する。
             await this.loadStructurePage(state, '');
+        } catch (error) {
+            if (this._structureToken === token && state.generation === this._generation && !this._disposed) this.showRequestError(error);
         } finally {
             // 古い要求から新しいスピナーを解除しない。
             if (this._structureToken === token) this._structureToken = null;
@@ -420,9 +423,10 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // 失敗や読み込み中に前の上限案内を残さない。
         this.memberNotice = '';
         // 失敗した場合も現在の要求だけを終了する。
+        let response;
         try {
             // サーバーはロールと利用者権限を毎回確認する。
-            const response = await this.request('members', getPage, {
+            response = await this.request('members', getPage, {
                 requestId: this.requestId(),
                 mode: this.mode,
                 scope: this.mode === 'ROLE' ? 'ROLE_MEMBERS' : 'MANAGER_MEMBERS',
@@ -435,15 +439,6 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             if (this._memberToken !== token || this.memberTarget?.key !== role.key) return;
             // 失敗をゼロ件として表示しない。
             if (!response) return;
-            // 所属一覧の失敗は構造取得のエラーと分離する。
-            if (!response.ok) {
-                // サーバーが公開した安全なメッセージを一覧内だけへ表示する。
-                this.memberError = response.error?.message || '所属ユーザーを取得できませんでした。';
-                // 古い継続位置で再試行しない。
-                this.memberNextIndex = 0;
-                // 失敗したページは適用しない。
-                return;
-            }
             // 可視確認済みのIDだけから標準URLを生成する。
             const urls = await this.createMemberUrls(response.nodes);
             // URL生成中のロール変更や画面終了後の応答を適用しない。
@@ -464,11 +459,13 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             this.memberNotice = response.memberNotice || '';
             // 続きがある場合だけ次へ操作を可能にする。
             this.memberNextIndex = response.hasMore ? response.nextIndex : 0;
-        } catch {
-            // 旧ロールのリンク生成失敗を新しい一覧へ表示しない。
-            if (this._memberToken === token) {
+        } catch (error) {
+            // 旧ロールの失敗を新しい一覧へ表示しない。
+            if (this._memberToken === token && !this._disposed) {
                 // 生のナビゲーションエラーを公開しない。
-                this.memberError = 'メンバーのリンクを生成できませんでした。対象を選択し直してください。';
+                this.memberError = error?.body?.message || (response
+                    ? 'メンバーのリンクを生成できませんでした。対象を選択し直してください。'
+                    : '所属ユーザーを取得できませんでした。通信状態を確認して再試行してください。');
                 // 前のページ境界を再利用しない。
                 this.memberNextIndex = 0;
             }
@@ -595,6 +592,11 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         try {
             // 空欄は最上位だけ、入力時は全階層の名称候補を一回で取得する。
             await this.loadLookupCandidates({ term, generation, token });
+        } catch (error) {
+            if (generation === this._generation && this._lookupToken === token && !this._disposed) {
+                this.showRequestError(error, 'lookup');
+                this.resetLookup();
+            }
         } finally {
             // 古い探索で新しい要求のスピナーを解除しない。
             if (this._lookupToken === token) this.searching = false;
@@ -634,12 +636,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         );
         // 入力変更・モード変更・後続要求後の結果を使用しない。
         if (generation !== this._generation || this._lookupToken !== token || !response) return;
-        // 失敗後は前回の候補を破棄し、正常な空結果とは区別する。
-        if (!this.accepted(response, 'lookup')) {
-            // 候補と上限案内をまとめて解除し、エラー表示は保持する。
-            this.resetLookup();
-            return;
-        }
+        this.accepted(response, 'lookup');
         // 空欄時の子階層探索を行わず、一回の応答をそのまま候補にする。
         this.results = response.nodes.map(lookupCandidate);
         // 候補が上限を超えた場合は名前の入力を促す。

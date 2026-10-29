@@ -129,8 +129,6 @@
         <members>OrgExplorerControllerTest</members>
         <members>OrgExplorerCursorCodec</members>
         <members>OrgExplorerCursorCodecTest</members>
-        <members>OrgExplorerError</members>
-        <members>OrgExplorerErrorTest</members>
         <members>OrgExplorerMemberService</members>
         <members>OrgExplorerMemberServiceTest</members>
         <members>OrgExplorerPageRequest</members>

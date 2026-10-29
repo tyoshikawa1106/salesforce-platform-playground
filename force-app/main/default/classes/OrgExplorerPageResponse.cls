@@ -3,14 +3,6 @@
  */
 public with sharing class OrgExplorerPageResponse {
 
-    // 要求の成功状態
-    // 公開DTOの自動setterであり、処理を切り替えるBoolean引数には該当しない
-    @SuppressWarnings('PMD.AvoidBooleanMethodParameters')
-    @AuraEnabled
-    public Boolean ok { get; set; }
-    // 公開可能な失敗情報、成功時は未設定
-    @AuraEnabled
-    public OrgExplorerError error { get; set; }
     // 表示可能なノード
     @AuraEnabled
     public List<Node> nodes { get; set; }
@@ -52,10 +44,6 @@ public with sharing class OrgExplorerPageResponse {
      * 一覧と候補を空のページで初期化
      */
     public OrgExplorerPageResponse() {
-        // 要求の成功状態を初期化
-        this.ok = true;
-        // 公開可能な失敗情報、成功時は未設定を初期化
-        this.error = null;
         // 表示可能なノードを初期化
         this.nodes = new List<Node>();
         // 応答間で列の権限を引き継がない

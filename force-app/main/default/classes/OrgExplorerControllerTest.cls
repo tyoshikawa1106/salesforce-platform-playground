@@ -27,13 +27,11 @@ private with sharing class OrgExplorerControllerTest {
             request.developerName = 'LiteralRole';
             OrgExplorerPageResponse initial = OrgExplorerController.searchRoles(request);
             request.term = '探索';
-            OrgExplorerPageResponse mixed = OrgExplorerController.searchRoles(request);
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('ROLES', request), '固定の公開例外で要求を拒否');
             Test.stopTest();
-            Assert.isTrue(literal.ok, '特殊文字を通常のロール名として検索');
             Assert.areEqual(1, literal.nodes.size(), 'ワイルドカードで検索範囲を拡大しない');
             Assert.areEqual(roles[0].Id, literal.nodes[0].recordId, '名称が一致した候補だけを返す');
             Assert.areEqual(roles[0].Id, initial.nodes[0].recordId, 'API名完全一致で初期候補を解決');
-            Assert.areEqual('INVALID_REQUEST', mixed.error.code, '名称とAPI名の同時指定を拒否');
         }
     }
 
@@ -51,14 +49,12 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageResponse shortName = OrgExplorerController.searchRoles(request);
             request.term = '';
             request.developerName = 'Invalid%Name';
-            OrgExplorerPageResponse invalidApi = OrgExplorerController.searchRoles(request);
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('ROLES', request), '固定の公開例外で要求を拒否');
             request.developerName = 'MissingRoleForExplorerTest';
             OrgExplorerPageResponse missing = OrgExplorerController.searchRoles(request);
             Test.stopTest();
-            Assert.isTrue(empty.ok, '未入力は最上位候補の取得として受け付ける');
-            Assert.isTrue(shortName.ok, '一文字目から前方一致の候補を取得');
-            Assert.areEqual('INVALID_REQUEST', invalidApi.error.code, 'API名の制御文字を拒否');
-            Assert.isTrue(missing.ok, '存在しないAPI名は空候補として扱う');
+            Assert.isNotNull(empty.nodes, '未入力も正常な候補一覧として返す');
+            Assert.isNotNull(shortName.nodes, '一文字の検索も正常な候補一覧として返す');
             Assert.areEqual(0, missing.nodes.size(), '他のロールで初期値を補わない');
         }
     }
@@ -84,10 +80,8 @@ private with sharing class OrgExplorerControllerTest {
             for (OrgExplorerPageResponse.Node item : roots.nodes) {
                 rootIds.add(item.recordId);
             }
-            Assert.isTrue(roots.ok, '最上位候補を取得');
             Assert.isTrue(rootIds.contains(parent.Id), '親ロールを候補に含める');
             Assert.isFalse(rootIds.contains(child.Id), '未入力では下位を含めない');
-            Assert.isTrue(matches.ok, '入力時は下位も名称で検索');
             Assert.areEqual(child.Id, matches.nodes[0].recordId, '名称が一致した下位を返す');
         }
     }
@@ -103,28 +97,20 @@ private with sharing class OrgExplorerControllerTest {
             page.mode = 'MANAGER';
             page.scope = 'ROLE_STRUCTURE';
             Test.startTest();
-            OrgExplorerCapabilitiesResponse missing = OrgExplorerController.getCapabilities(null);
-            OrgExplorerCapabilitiesResponse empty = OrgExplorerController.getCapabilities('');
-            OrgExplorerCapabilitiesResponse malformed = OrgExplorerController.getCapabilities('invalid*key');
-            OrgExplorerPageResponse scopeMismatch = OrgExplorerController.getPage(page);
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('CAPABILITIES', null), '固定の公開例外で要求を拒否');
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('CAPABILITIES', ''), '固定の公開例外で要求を拒否');
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('CAPABILITIES', 'invalid*key'), '固定の公開例外で要求を拒否');
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('PAGE', page), '固定の公開例外で要求を拒否');
             page.mode = 'ROLE';
             page.parentId = testUser.Id;
-            OrgExplorerPageResponse wrongType = OrgExplorerController.getPage(page);
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('PAGE', page), '固定の公開例外で要求を拒否');
             page.parentId = null;
             page.cursor = 'invalid-base64';
-            OrgExplorerPageResponse invalidCursor = OrgExplorerController.getPage(page);
-            OrgExplorerPageResponse missingSearch = OrgExplorerController.searchRoles(null);
-            OrgExplorerPageResponse missingPage = OrgExplorerController.getPage(null);
+            Assert.areEqual('ページの有効期限または条件が変わりました。再読込してください。', getFailureMessage('PAGE', page), '固定の公開例外で要求を拒否');
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('ROLES', null), '固定の公開例外で要求を拒否');
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('PAGE', null), '固定の公開例外で要求を拒否');
             Integer queries = Limits.getQueries();
             Test.stopTest();
-            Assert.areEqual('INVALID_REQUEST', missing.error.code, 'null要求を拒否');
-            Assert.areEqual('INVALID_REQUEST', empty.error.code, '空の相関キーを拒否');
-            Assert.areEqual('INVALID_REQUEST', malformed.error.code, '不正な相関キーを拒否');
-            Assert.areEqual('INVALID_REQUEST', scopeMismatch.error.code, 'モードとscopeの不一致を拒否');
-            Assert.areEqual('INVALID_REQUEST', wrongType.error.code, '異種IDを拒否');
-            Assert.areEqual('INVALID_CURSOR', invalidCursor.error.code, '壊れた継続値を拒否');
-            Assert.areEqual('INVALID_REQUEST', missingSearch.error.code, 'null検索を拒否');
-            Assert.areEqual('INVALID_REQUEST', missingPage.error.code, 'null一覧を拒否');
             Assert.areEqual(0, queries, '不正要求ではSOQLを実行しない');
         }
     }
@@ -169,7 +155,6 @@ private with sharing class OrgExplorerControllerTest {
             Assert.areEqual(2, revisited.nodes.size(), '先頭復帰でも表示件数を維持');
             OrgExplorerPageResponse second = readNextPage(request, first);
             Test.stopTest();
-            Assert.isTrue(first.ok, '所属一覧の最初の取得が成功');
             assertMemberPages(new List<OrgExplorerPageResponse>{ first, second }, expected);
         }
 
@@ -186,7 +171,6 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerCapabilitiesResponse response = OrgExplorerController.getCapabilities(request);
             Integer queries = Limits.getQueries();
             Test.stopTest();
-            Assert.isTrue(response.ok, '機能情報の取得が成功');
             Assert.areEqual(new OrgExplorerAccessPolicy().getCardFieldLabels(), response.cardFieldLabels, '機能情報に参照可能な項目ラベルを含める');
             Assert.areEqual(0, queries, '自分表示用のユーザー照会を実行しない');
             Assert.isFalse(JSON.serialize(response).contains('currentUserNode'), '廃止した起点を応答しない');
@@ -201,11 +185,8 @@ private with sharing class OrgExplorerControllerTest {
         System.runAs(testUser) {
             OrgExplorerPageRequest request = managerRequest('MANAGER_MEMBERS', fakeId(User.SObjectType));
             Test.startTest();
-            OrgExplorerPageResponse unavailable = OrgExplorerController.getPage(request);
+            Assert.areEqual('対象を表示できません。検索または再読込をお試しください。', getFailureMessage('PAGE', request), '固定の公開例外で要求を拒否');
             Test.stopTest();
-            Assert.isFalse(unavailable.ok, '存在しない上司の部下を列挙しない');
-            Assert.areEqual('NOT_FOUND_OR_UNAVAILABLE', unavailable.error.code, '非存在と非可視を区別しない');
-            Assert.isTrue(unavailable.nodes.isEmpty(), 'ユーザー情報を失敗応答に残さない');
         }
     }
 
@@ -223,8 +204,6 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageResponse response = OrgExplorerController.getPage(request);
             OrgExplorerPageResponse members = OrgExplorerController.getPage(managerRequest('MANAGER_MEMBERS', team[0].Id));
             Test.stopTest();
-            Assert.isTrue(response.ok, '上司構造を取得できる');
-            Assert.isTrue(members.ok, '上司のメンバー一覧を取得できる');
             Assert.areEqual(role.Name, members.nodes[0].roleName, '一覧にも可視ロール名を取得する');
             Assert.isTrue(members.memberColumns.contains('roleName'), '上司の一覧だけにロール列を提供する');
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(response.nodes);
@@ -258,13 +237,10 @@ private with sharing class OrgExplorerControllerTest {
             Assert.areEqual(1, targets.size(), '検索対象の氏名を取得');
             User target = targets[0];
             Test.startTest();
-            OrgExplorerPageResponse roots = OrgExplorerController.searchManagers(request);
+            Assert.areEqual('入力内容を確認してください。', getFailureMessage('MANAGERS', request), '固定の公開例外で要求を拒否');
             request.term = target.Name;
             OrgExplorerPageResponse names = OrgExplorerController.searchManagers(request);
             Test.stopTest();
-            Assert.isFalse(roots.ok, '未入力候補は構造から生成し、空欄のAPI検索を拒否');
-            Assert.areEqual('INVALID_REQUEST', roots.error.code, '未入力を全件検索へ変換しない');
-            Assert.isTrue(names.ok, '氏名前方一致の候補検索が成功');
             Assert.areEqual(team[1].Id, names.nodes[0].recordId, '入力で下位の上司も探せる');
         }
     }
@@ -294,30 +270,20 @@ private with sharing class OrgExplorerControllerTest {
             request.startIndex = first.nextIndex;
             OrgExplorerPageResponse second = OrgExplorerController.getPage(request);
             request.includeInactive = false;
-            OrgExplorerPageResponse changed = OrgExplorerController.getPage(request);
+            Assert.areEqual('ページの有効期限または条件が変わりました。再読込してください。', getFailureMessage('PAGE', request), '固定の公開例外で要求を拒否');
             request.paginationCursor = null;
             request.startIndex = 0;
             OrgExplorerPageResponse active = OrgExplorerController.getPage(request);
             Test.stopTest();
-            Assert.isTrue(first.ok && second.ok, '氏名順の継続が成功');
             Assert.areEqual(1, first.nodes.size(), '引数で一ページ1件に制御');
             Assert.areEqual(2, first.memberTotalCount, '直属部下のカーソル件数を提供');
             Assert.areEqual(first.memberTotalCount, second.memberTotalCount, '継続時も同じ一覧の件数を提供');
             Assert.areEqual(1, second.nodes.size(), '次のページに残りを表示');
-            Set<Id> ids = new Set<Id>();
-            for (OrgExplorerPageResponse.Node node : first.nodes) {
-                ids.add(node.recordId);
-            }
-            for (OrgExplorerPageResponse.Node node : second.nodes) {
-                Assert.isTrue(ids.add(node.recordId), '重複なし');
-            }
-            Assert.areEqual(2, ids.size(), '欠落なし');
-            Assert.isTrue(active.ok, '有効ユーザーのみの条件でも取得成功');
+            Assert.areNotEqual(first.nodes[0].recordId, second.nodes[0].recordId, '二ページの所属ユーザーに重複なし');
             Assert.isTrue(active.nodes.isEmpty(), '無効メンバーを除外');
             Assert.isTrue(first.memberColumns.contains('isActive'), '有効状態の列を維持');
             Assert.areEqual(manager.Id, first.nodes[0].managerId, '上司プロフィールへのリンクを維持');
             Assert.isFalse(second.hasMore, '最終ページで継続を終了');
-            Assert.areEqual('INVALID_CURSOR', changed.error.code, '別の表示条件へカーソルを流用しない');
         }
     }
 
@@ -336,7 +302,6 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageResponse next = OrgExplorerController.getPage(request);
             Test.stopTest();
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(next.nodes);
-            Assert.isTrue(next.ok, '有効な構造境界から取得を継続');
             Assert.isFalse(nodes.containsKey(team[0].Id), '取得済みの上司を再取得しない');
             Assert.isTrue(nodes.containsKey(team[1].Id), '次の上司を欠落させない');
             Assert.areEqual('USER:' + team[0].Id, nodes.get(team[1].Id).parentKey, '別ページの可視な親との接続を保持');
@@ -367,7 +332,6 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageResponse candidates = OrgExplorerController.searchManagers(search);
             Test.stopTest();
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(activeUsers.nodes);
-            Assert.isTrue(allUsers.ok && activeUsers.ok && candidates.ok, '表示条件ごとの取得が成功');
             Assert.areEqual(2, allUsers.memberCounts.get(team[1].Id), '全ユーザーでは無効の部下も集計');
             Assert.areEqual(1, activeUsers.memberCounts.get(team[1].Id), '有効な直属部下だけを集計');
             Assert.isFalse(nodes.containsKey(team[0].Id), '無効な上司を構造へ表示しない');
@@ -402,14 +366,12 @@ private with sharing class OrgExplorerControllerTest {
             page.scope = 'ROLE_MEMBERS';
             OrgExplorerPageResponse members = OrgExplorerController.getPage(page);
             Test.stopTest();
-            Assert.isTrue(structure.ok, '構造の取得が成功');
             Map<Id, OrgExplorerPageResponse.Node> nodes = new Map<Id, OrgExplorerPageResponse.Node>();
             for (OrgExplorerPageResponse.Node node : structure.nodes) {
                 nodes.put(node.recordId, node);
                 Assert.areEqual('ROLE', node.kind, '実ロールだけを返却');
             }
             Assert.areEqual('ROLE:' + root.Id, nodes.get(child.Id).parentKey, '可視な親へ接続');
-            Assert.isTrue(members.ok, '所属一覧を独立取得');
             Assert.areEqual(0, members.nodes.size(), '所属のないロールは空一覧');
         }
     }
@@ -431,7 +393,6 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageResponse response = OrgExplorerController.getPage(request);
             Integer queryCost = Limits.getQueries() - beforeQueries;
             Test.stopTest();
-            Assert.isTrue(response.ok, '起点なしで構造を取得できる');
             Assert.areEqual(2, queryCost, '起点確認なしで構造と人数だけを照会');
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(response.nodes);
             Assert.isTrue(nodes.containsKey(first.Id), '一つ目のルートを含む');
@@ -466,7 +427,6 @@ private with sharing class OrgExplorerControllerTest {
         Set<Id> actual = new Set<Id>();
         List<Id> actualOrder = new List<Id>();
         for (OrgExplorerPageResponse page : pages) {
-            Assert.isTrue(page.ok, '各ページの取得が成功');
             Assert.isFalse(page.memberColumns.contains('roleName'), 'ロール側の一覧にはロール列を追加しない');
             Assert.areEqual(expected.size(), page.memberTotalCount, '一覧カーソルの総件数を全ページで提供');
             for (OrgExplorerPageResponse.Node node : page.nodes) {
@@ -572,12 +532,9 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageRequest request = managerRequest('MANAGER_STRUCTURE', null);
             request.startIndex = 5;
             Test.startTest();
-            OrgExplorerPageResponse response = OrgExplorerController.getPage(request);
+            Assert.areEqual('ページの有効期限または条件が変わりました。再読込してください。', getFailureMessage('PAGE', request), '固定の公開例外で要求を拒否');
             Integer queries = Limits.getQueries();
             Test.stopTest();
-            Assert.isFalse(response.ok, '構造要求へ一覧の取得位置を混ぜない');
-            Assert.areEqual('INVALID_CURSOR', response.error.code, '位置の流用を継続値エラーに統一');
-            Assert.isTrue(response.nodes.isEmpty(), '不正位置でノードを返さない');
             Assert.areEqual(0, queries, '不正な位置から構造を照会しない');
         }
     }
@@ -591,12 +548,8 @@ private with sharing class OrgExplorerControllerTest {
             OrgExplorerPageRequest request = managerRequest('MANAGER_MEMBERS', testUser.Id);
             request.startIndex = -1;
             Test.startTest();
-            OrgExplorerPageResponse response = OrgExplorerController.getPage(request);
+            Assert.areEqual('ページの有効期限または条件が変わりました。再読込してください。', getFailureMessage('PAGE', request), '固定の公開例外で要求を拒否');
             Test.stopTest();
-            Assert.isFalse(response.ok, '可視な親でも負の取得位置を拒否');
-            Assert.areEqual('INVALID_CURSOR', response.error.code, '標準位置のエラーを安全に通知');
-            Assert.isTrue(response.nodes.isEmpty(), '失敗応答に所属ユーザーを残さない');
-            Assert.isNull(response.paginationCursor, '不正要求で標準カーソルを作成しない');
         }
     }
 
@@ -613,5 +566,21 @@ private with sharing class OrgExplorerControllerTest {
             EmailEncodingKey = 'UTF-8',
             LanguageLocaleKey = 'ja'
         );
+    }
+
+    // 成功応答を返さず、安全な公開例外で通知することを確認
+    private static String getFailureMessage(String action, Object request) {
+        try {
+            switch on action {
+                when 'CAPABILITIES' { OrgExplorerController.getCapabilities((String) request); }
+                when 'ROLES' { OrgExplorerController.searchRoles((OrgExplorerSearchRequest) request); }
+                when 'MANAGERS' { OrgExplorerController.searchManagers((OrgExplorerSearchRequest) request); }
+                when else { OrgExplorerController.getPage((OrgExplorerPageRequest) request); }
+            }
+            Assert.fail('不正な要求は公開例外で拒否する');
+        } catch (AuraHandledException error) {
+            return error.getMessage();
+        }
+        return null;
     }
 }

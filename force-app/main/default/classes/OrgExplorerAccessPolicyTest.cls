@@ -152,4 +152,74 @@ private with sharing class OrgExplorerAccessPolicyTest {
             Assert.isTrue(labels.isEmpty(), 'ユーザーを参照できなければ一覧ラベルも公開しない');
         }
     }
+    /**
+     * 内部失敗を固定の公開エラーへ変換
+     */
+    @IsTest
+    static void createsSafeServerError() {
+        System.runAs(testUser) {
+            Test.startTest();
+            OrgExplorerAccessPolicy.requireValidRequest(null);
+            OrgExplorerAccessPolicy.requireValidRequest('');
+            AuraHandledException error = OrgExplorerAccessPolicy.createException('SERVER_ERROR');
+            Test.stopTest();
+            Assert.areEqual(
+                '取得できませんでした。時間をおいて再試行してください。',
+                error.getMessage(),
+                '固定文言だけを返す'
+            );
+        }
+    }
+
+    /**
+     * 参照拒否を内部の照会情報なしで通知
+     */
+    @IsTest
+    static void createsSafeAccessError() {
+        System.runAs(testUser) {
+            Test.startTest();
+            AuraHandledException error = OrgExplorerAccessPolicy.createException('ACCESS_DENIED');
+            Test.stopTest();
+            Assert.areEqual(
+                '必要な参照権限がありません。管理者へ確認してください。',
+                error.getMessage(),
+                '固定文言だけを返す'
+            );
+        }
+    }
+
+    /** 検証失敗を空の成功応答に変換しない */
+    @IsTest
+    static void throwsForInvalidRequest() {
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                OrgExplorerAccessPolicy.requireValidRequest('INVALID_REQUEST');
+                Assert.fail('不正要求を拒否する');
+            } catch (AuraHandledException error) {
+                Assert.areEqual('入力内容を確認してください。', error.getMessage(), '検証失敗は固定の公開メッセージで通知');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 内部例外を固定メッセージへ変換し、公開済み例外を保持 */
+    @IsTest
+    static void convertsInternalErrorsWithoutDetails() {
+        System.runAs(testUser) {
+            AuraHandledException published = OrgExplorerAccessPolicy.createException('NOT_FOUND_OR_UNAVAILABLE');
+            Test.startTest();
+            AuraHandledException retained = OrgExplorerAccessPolicy.toPublicException(published);
+            AuraHandledException queryFailure = OrgExplorerAccessPolicy.toPublicException(new QueryException('非公開の検索語'));
+            AuraHandledException cursorFailure = OrgExplorerAccessPolicy.toPublicException(new System.FatalCursorException('非公開の継続位置'));
+            AuraHandledException unknown = OrgExplorerAccessPolicy.toPublicException(new IllegalArgumentException('非公開の引数'));
+            AuraHandledException fallback = OrgExplorerAccessPolicy.createException('UNKNOWN');
+            Test.stopTest();
+            Assert.areEqual(published, retained, '公開済み例外を一般エラーで上書きしない');
+            Assert.areEqual('必要な参照権限がありません。管理者へ確認してください。', queryFailure.getMessage(), '照会の内部情報を公開しない');
+            Assert.areEqual('ページの有効期限または条件が変わりました。再読込してください。', cursorFailure.getMessage(), '標準カーソル失効を固定文で通知');
+            Assert.areEqual('取得できませんでした。時間をおいて再試行してください。', unknown.getMessage(), '内部例外は固定文に限定');
+            Assert.areEqual(unknown.getMessage(), fallback.getMessage(), '未知のコードも一般エラーに統一');
+        }
+    }
 }
