@@ -7,7 +7,7 @@ private with sharing class ObjectExplorerControllerTest {
         CHANGE_STATUS
     }
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** カスタム項目日時取得と不要な通信の省略 */
     @IsTest

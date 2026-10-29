@@ -3,7 +3,7 @@
 private with sharing class ObjectExplorerSelectorTest {
     private static ObjectExplorerSelector selector = new ObjectExplorerSelector();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 必須条件なしで照会しない */
     @IsTest

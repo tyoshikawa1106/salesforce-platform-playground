@@ -4,7 +4,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     private static ObjectExplorerAccessPolicy access = new ObjectExplorerAccessPolicy();
     private static ObjectExplorerAccessPolicy.RequestValidator validator = new ObjectExplorerAccessPolicy.RequestValidator();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** JSON構文・型・長さの不正を拒否 */
     @IsTest

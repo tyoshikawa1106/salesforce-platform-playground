@@ -3,7 +3,7 @@
 private with sharing class MetadataApiSoapCodecTest {
     private static MetadataApiSoapCodec codec = new MetadataApiSoapCodec();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 分類属性と認証欄のXMLを生成 */
     @IsTest

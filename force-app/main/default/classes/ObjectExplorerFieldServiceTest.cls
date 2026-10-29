@@ -3,7 +3,7 @@
 private with sharing class ObjectExplorerFieldServiceTest {
     private static ObjectExplorerFieldService service = new ObjectExplorerFieldService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 可視なカスタム項目と正しい識別子を照合 */
     @IsTest

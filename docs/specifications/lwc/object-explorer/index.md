@@ -33,7 +33,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)   | Named Credential経由の項目メタデータ読み取り・更新。Named CredentialによるHTTP通信と同一組織確認                               | [MetadataApiIntegrationClientTest](../../../../force-app/main/default/classes/MetadataApiIntegrationClientTest.cls)   |
 | [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証。SOAP XML生成と項目完全名による応答照合                                   | [MetadataApiSoapCodecTest](../../../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)                   |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストでは現在の実行ユーザーを直接取得し、共通の`TestDataFactory`には依存しません。
 
 ### 設定・権限
 
