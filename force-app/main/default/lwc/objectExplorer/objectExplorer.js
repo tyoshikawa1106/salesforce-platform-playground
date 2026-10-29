@@ -1298,8 +1298,26 @@ export default class ObjectExplorer extends LightningElement {
             const confirmed = await LightningConfirm.open({ label: 'CSVダウンロード', message: `${detail.label} (${detail.apiName})の全項目をCSV出力しますか？`, theme: 'info' });
             // キャンセル・対象変更・保存開始時は出力を中止
             if (!confirmed || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
+            // 構造CSVには出力時点の保存済み分類を追加
+            let classification = this.classifyData;
+            // 閲覧用の分類取得を使い、編集権限や未保存の入力へ依存しない
+            if (mode === 'reference') {
+                // 分類取得中の重複操作と対象変更を防ぐ
+                this.busy = true;
+                try {
+                    // 取得失敗時は外側の例外処理へ渡し、不完全なCSVをダウンロードしない
+                    const result = await getClassifyData({ objectName: detail.apiName });
+                    // 分類一覧の編集状態とは分けて保存済み値を保持
+                    classification = result.rows;
+                } finally {
+                    // 取得成功・失敗とも操作を再開
+                    this.busy = false;
+                }
+                // 非同期取得中に終了した画面や別対象の結果を出力しない
+                if (!this.componentConnected || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
+            }
             // 項目定義と分類で出力列を分け、どちらも一覧の全件を対象にする
-            const text = this.isReference ? structureCsv(detail.fields, locale, timeZone) : classifyCsv(detail.apiName, detail.fields, this.classifyData, this.classifyEdits, detail.label);
+            const text = this.isReference ? structureCsv(detail.fields, locale, timeZone, classification) : classifyCsv(detail.apiName, detail.fields, this.classifyData, this.classifyEdits, detail.label);
             // CSVはSalesforce Filesへアップロードせずローカルへ保存
             const blob = new Blob([text], { type: 'text/plain' });
             // メモリ上のファイルだけをダウンロード対象へ指定

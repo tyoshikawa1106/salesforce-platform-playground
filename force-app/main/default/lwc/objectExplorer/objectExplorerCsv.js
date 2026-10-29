@@ -8,12 +8,17 @@ const CLASSIFY_CSV_LABELS = ['オブジェクトラベル', 'オブジェクトA
 // ブラウザの入力検証とDOMのエラー表示を一定の規模へ制限
 export const CLASSIFY_CSV_LIMITS = Object.freeze({ rows: 10000, bytes: 5 * 1024 * 1024, owners: 500 });
 
-// 構造CSVは画面と同じ6列・表示値で全件出力
-export function structureCsv(fields, locale, timeZone) {
+// 構造CSVは項目定義6列に保存済み分類4列を加えて全件出力
+export function structureCsv(fields, locale, timeZone, classifyData = {}) {
     // 項目定義を同じ表示モデルへ変換
-    const rows = structureRows(fields, locale, timeZone).map((field) => [field.label, field.apiName, field.typeLabel, field.custom ? 'True' : 'false', field.createdAudit.text, field.modifiedAudit.text]);
-    // オブジェクト名はファイル名に保持し、画面にない列は出力しない
-    return encodeCsv([['項目ラベル', 'API名', 'データ型', 'カスタム', '作成日', '最終更新日'], ...rows]);
+    const rows = structureRows(fields, locale, timeZone).map((field) => {
+        // 編集可否では除外せず、取得できた保存済みの分類を同じ項目へ対応付ける
+        const info = classifyData[field.apiName] || {};
+        // 分類未取得の項目も行を保持し、分類欄は空欄で出力
+        return [field.label, field.apiName, field.typeLabel, field.custom ? 'True' : 'false', field.createdAudit.text, field.modifiedAudit.text, info.complianceGroup, info.securityClassification, info.businessStatus, info.ownerId];
+    });
+    // オブジェクト名はファイル名に保持し、分類列は分類CSVと同じAPI値を使用
+    return encodeCsv([['項目ラベル', 'API名', 'データ型', 'カスタム', '作成日', '最終更新日', 'コンプライアンス分類', 'データ機密度', '項目の利用状況', 'データ所有者ID'], ...rows]);
 }
 
 // Salesforce利用者のタイムゾーンで出力日時をファイル名へ付加

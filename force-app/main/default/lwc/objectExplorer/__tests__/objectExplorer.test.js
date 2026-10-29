@@ -358,3 +358,48 @@ it('分類は編集不可・未取得を一覧から除外し、件数を揃え�
     expect(element.shadowRoot.querySelector('tbody').textContent).not.toContain('Unavailable__c');
     expect(element.shadowRoot.textContent).toContain('1項目');
 });
+
+it('構造CSVは分類取得失敗時にダウンロードせず処理場所を表示する', async () => {
+    const element = createComponent();
+    await pickAccount(element);
+    getClassifyData.mockRejectedValueOnce({ body: { message: '分類取得失敗' } });
+    const exportButton = [...element.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'CSVダウンロード');
+    exportButton.click();
+    await flush();
+    expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
+    expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('handleExportCsv');
+    expect(exportButton.disabled).toBe(false);
+});
+
+it('構造CSVの確認後に保存済み分類を取得して出力する', async () => {
+    const createUrl = URL.createObjectURL;
+    const revokeUrl = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:test');
+    URL.revokeObjectURL = jest.fn();
+    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+        const element = createComponent();
+        await pickAccount(element);
+        expect(getClassifyData).not.toHaveBeenCalled();
+        const button = [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === 'CSVダウンロード');
+        LightningConfirm.open.mockResolvedValueOnce(false);
+        button.click();
+        await flush();
+        expect(getClassifyData).not.toHaveBeenCalled();
+        button.click();
+        await flush();
+        expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+        const text = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
+        });
+        expect(text).toContain('データ所有者ID');
+        expect(text).toContain('名前');
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    } finally {
+        URL.createObjectURL = createUrl;
+        URL.revokeObjectURL = revokeUrl;
+    }
+});

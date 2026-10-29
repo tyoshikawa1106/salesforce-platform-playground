@@ -134,6 +134,15 @@ describe('分類CSVの読取と反映', () => {
         expect(applied.edits).toBe(edits);
         expect(applied.errors).toHaveLength(1);
     });
+    it('構造CSVは分類4列を追加し、編集不可・未取得の項目も保持する', () => {
+        const all = [...fields, { apiName: 'Missing__c', label: '未取得', type: 'STRING' }];
+        const data = { Name: { editable: false, complianceGroup: 'PII;HIPAA', securityClassification: 'Restricted', businessStatus: 'Active', ownerId: '005000000000001AAA' } };
+        const lines = structureCsv(all, 'ja-JP', 'Asia/Tokyo', data).split('\r\n');
+        expect(lines).toHaveLength(4);
+        expect(lines[0]).toContain('"コンプライアンス分類","データ機密度","項目の利用状況","データ所有者ID"');
+        expect(lines.find((line) => line.includes('"Name"'))).toContain('"PII;HIPAA","Restricted","Active","005000000000001AAA"');
+        expect(lines.find((line) => line.includes('"Missing__c"'))).toMatch(/,"","","",""$/u);
+    });
     it('構造CSVは表示順と同じ項目整形を使用する', () => {
         const csv = structureCsv([{ ...fields[1], label: '名前,"確認"' }], 'ja-JP', 'Asia/Tokyo');
         expect(csv).toContain('"名前,""確認"""');
