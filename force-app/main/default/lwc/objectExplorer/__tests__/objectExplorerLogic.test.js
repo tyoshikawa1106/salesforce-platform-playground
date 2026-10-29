@@ -53,6 +53,17 @@ describe('オブジェクトエクスプローラーの表示・分類契約', (
         expect(after.rows[0]).toBe(before.rows[0]);
         expect(after.rows[1]).toBe(before.rows[1]);
     });
+    it('参照専用でも保存済み分類を表示し、編集状態を混在させない', () => {
+        const data = { Name: { editable: true, complianceGroup: 'PII', securityClassification: 'Restricted', businessStatus: 'Active', ownerId: '005000000000001AAA', ownerLabel: '分類所有者' } };
+        const choices = { ...options, SecurityClassification: [{ label: '制限', value: 'Restricted' }] };
+        const edits = createClassifyEdits(data);
+        edits.Name.draft.businessStatus = '';
+        const view = classifyFieldView({ fields: [fields[1]], classifyData: data, edits, options: choices, canEdit: false });
+        expect(view.rows[0]).toMatchObject({ editing: false, complianceLabel: '個人情報', securityLabel: '制限', businessLabel: '使用中', ownerLabel: '分類所有者', changed: false });
+        expect(view.rows[0].reason).toContain('権限が必要');
+        const empty = classifyFieldView({ fields: [fields[1]], classifyData, edits: {}, options, canEdit: false });
+        expect(empty.rows[0]).toMatchObject({ complianceLabel: '', securityLabel: '', businessLabel: '', ownerLabel: '' });
+    });
     it('保存結果をAPI名で照合し、失敗行の入力を保持する', () => {
         const edits = changedEdits();
         const changes = classifyChanges(edits);

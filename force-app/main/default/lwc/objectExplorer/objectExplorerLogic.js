@@ -192,8 +192,8 @@ function classifyRow(field, context) {
         complianceLabel: compliance.length ? compliance.map((value) => choiceLabel(value, options.ComplianceGroup)).join(',') : '',
         securityLabel: choiceLabel(values.securityClassification, options.SecurityClassification), businessLabel: choiceLabel(values.businessStatus, options.BusinessStatus),
         ...ownerLookupView(field.apiName, edit, info),
-        // 編集不可の分類欄は空値と区別して同じ文言で表示
-        ...(!edit ? { complianceLabel: '設定不可', securityLabel: '設定不可', businessLabel: '設定不可', ownerLabel: '設定不可' } : {}), error: inputErrors.join(' / ') || edit?.error || '' };
+        // 項目自体が編集対象外のときだけ設定不可とし、権限による参照専用は保存値を維持
+        ...(!info?.editable ? { complianceLabel: '設定不可', securityLabel: '設定不可', businessLabel: '設定不可', ownerLabel: '設定不可' } : {}), error: inputErrors.join(' / ') || edit?.error || '' };
 }
 // 表示中のページだけ保持し、変更のない分類行は選択肢と所有者表示を再利用
 export function classifyFieldView(context, previous) {

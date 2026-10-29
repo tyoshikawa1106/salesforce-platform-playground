@@ -403,3 +403,23 @@ it('構造CSVの確認後に保存済み分類を取得して出力する', asyn
         URL.revokeObjectURL = revokeUrl;
     }
 });
+
+
+it.each(['reference', 'classify'])('0件時の案内は一覧の全列に広がる（%s）', async (mode) => {
+    const element = createComponent();
+    if (mode === 'classify') {
+        element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: mode } }));
+        await flush();
+    }
+    await pickAccount(element);
+    const search = element.shadowRoot.querySelector('.oe-field-search');
+    search.value = '一致しない項目';
+    search.dispatchEvent(new CustomEvent('change'));
+    await flush();
+    const headers = element.shadowRoot.querySelectorAll('thead th');
+    const empty = element.shadowRoot.querySelector('tbody td[colspan]');
+    expect(headers).toHaveLength(mode === 'reference' ? 6 : 8);
+    expect(empty.colSpan).toBe(headers.length);
+    expect(empty.textContent).toContain('条件に一致する項目がありません');
+    await expect(element).toBeAccessible();
+});
