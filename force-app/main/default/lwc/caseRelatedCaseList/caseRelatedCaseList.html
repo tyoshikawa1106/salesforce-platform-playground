@@ -1,4 +1,5 @@
 <template>
+    <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
     <lightning-card title="最近の問い合わせ" icon-name="standard:case">
         <template lwc:if={isLoadingCase}>
             <div class="slds-is-relative slds-p-around_medium">
