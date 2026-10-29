@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getEmailMessageCount from '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount';
@@ -12,7 +13,7 @@ import {
 } from './caseEmailMessageListLogic';
 
 // Caseレコードページにメールログをカーソルページングで表示
-export default class CaseEmailMessageList extends LightningElement {
+export default class CaseEmailMessageList extends withUiErrorBoundary(LightningElement, 'caseEmailMessageList') {
     // レコードページから表示中CaseのIDを受け取る
     _recordId;
     // ケース切り替えと初期ページ再取得を識別する世代
@@ -27,27 +28,33 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // ケース変更時に処理中の追加ページを無効化
     set recordId(value) {
-        // 同じケースの再設定では取得状態を維持
-        if (value === this._recordId) {
-            // 不要な世代更新を省略
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 同じケースの再設定では取得状態を維持
+            if (value === this._recordId) {
+                // 不要な世代更新を省略
+                return;
+            }
+            // 以前のケース向け応答を無効化
+            this.paginationGeneration++;
+            // 新しいケースをwireへ渡す
+            this._recordId = value;
+            // 新しいケースで以前の一覧とカーソルを使用しない
+            Object.assign(this, createEmptyPaginationState());
+            // 同じケースへ戻った場合も初期ページを取り直す
+            this.loadedRecordId = undefined;
+            // 新しいケースの初期ページが届くまで操作を待つ
+            this.hasLoadedInitialPage = false;
+            // 前のケースの全体エラーを破棄
+            this.errorMessage = undefined;
+            // 前のケースの追加取得エラーを破棄
+            this.loadMoreErrorMessage = undefined;
+            // 古い追加取得の完了を待たず新しいケースを操作可能にする
+            this.isLoadingMore = false;
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'recordId', 'ui-event');
         }
-        // 以前のケース向け応答を無効化
-        this.paginationGeneration++;
-        // 新しいケースをwireへ渡す
-        this._recordId = value;
-        // 新しいケースで以前の一覧とカーソルを使用しない
-        Object.assign(this, createEmptyPaginationState());
-        // 同じケースへ戻った場合も初期ページを取り直す
-        this.loadedRecordId = undefined;
-        // 新しいケースの初期ページが届くまで操作を待つ
-        this.hasLoadedInitialPage = false;
-        // 前のケースの全体エラーを破棄
-        this.errorMessage = undefined;
-        // 前のケースの追加取得エラーを破棄
-        this.loadMoreErrorMessage = undefined;
-        // 古い追加取得の完了を待たず新しいケースを操作可能にする
-        this.isLoadingMore = false;
     }
 
     // 取得済みメールを表示順に保持
@@ -80,42 +87,50 @@ export default class CaseEmailMessageList extends LightningElement {
     // 初期ページより先にCaseのメール総件数を取得
     @wire(getEmailMessageCount, { caseId: '$recordId' })
     wiredEmailMessageCount(result) {
-        // 手動再読み込みに使えるwireレスポンスを保存
-        this.wiredEmailMessageCountResult = result;
-        // 成功データとエラーを排他的に参照
-        const { data, error } = result;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 手動再読み込みに使えるwireレスポンスを保存
+            this.wiredEmailMessageCountResult = result;
+            // 成功データとエラーを排他的に参照
+            const { data, error } = result;
 
-        // 0件を含む取得成功時は初期ページを命令的に取得
-        if (data !== undefined) {
-            // Apexの整数値をJavaScript数値へ統一
-            this.totalEmailMessageCount = Number(data);
-            // 再取得成功時は以前の全体エラーを解除
-            this.errorMessage = undefined;
-            // 手動再読み込み以外で未取得のCaseだけ初期ページを読み込む
-            if (!this.isRefreshing && this.loadedRecordId !== this.recordId) {
-                // 別Caseの一覧とページング状態を表示前に破棄
+            // 0件を含む取得成功時は初期ページを命令的に取得
+            if (data !== undefined) {
+                // Apexの整数値をJavaScript数値へ統一
+                this.totalEmailMessageCount = Number(data);
+                // 再取得成功時は以前の全体エラーを解除
+                this.errorMessage = undefined;
+                // 手動再読み込み以外で未取得のCaseだけ初期ページを読み込む
+                if (!this.isRefreshing && this.loadedRecordId !== this.recordId) {
+                    // 別Caseの一覧とページング状態を表示前に破棄
+                    Object.assign(this, createEmptyPaginationState());
+                    // 新しいCaseの初期ページを待つ状態へ戻す
+                    this.hasLoadedInitialPage = false;
+                    // AuraEnabled応答としてPaginationCursorを受け取る
+                    this.loadInitialPage();
+                }
+                // 件数取得失敗時は一覧を表示せず全体エラーへ移行
+            } else if (error) {
+                // Salesforceから返った失敗の取得元を診断表示
+                this.reportClientError(error, 'wiredEmailMessageCount', 'wire');
+                // 件数取得失敗前に開始したページ応答を無効化
+                this.paginationGeneration++;
+                // 無効化した追加取得の完了を待たず操作状態を解除
+                this.isLoadingMore = false;
+                // 件数を安全な0件へ戻す
+                this.totalEmailMessageCount = 0;
+                // 以前の一覧とページング状態を共通処理で破棄
                 Object.assign(this, createEmptyPaginationState());
-                // 新しいCaseの初期ページを待つ状態へ戻す
-                this.hasLoadedInitialPage = false;
-                // AuraEnabled応答としてPaginationCursorを受け取る
-                this.loadInitialPage();
+                // 件数取得が復旧した場合は同じCaseの初期ページも再取得
+                this.loadedRecordId = undefined;
+                // エラー応答を初期取得の完了として記録
+                this.hasLoadedInitialPage = true;
+                // Salesforceエラーを利用者向け文言へ変換
+                this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
             }
-            // 件数取得失敗時は一覧を表示せず全体エラーへ移行
-        } else if (error) {
-            // 件数取得失敗前に開始したページ応答を無効化
-            this.paginationGeneration++;
-            // 無効化した追加取得の完了を待たず操作状態を解除
-            this.isLoadingMore = false;
-            // 件数を安全な0件へ戻す
-            this.totalEmailMessageCount = 0;
-            // 以前の一覧とページング状態を共通処理で破棄
-            Object.assign(this, createEmptyPaginationState());
-            // 件数取得が復旧した場合は同じCaseの初期ページも再取得
-            this.loadedRecordId = undefined;
-            // エラー応答を初期取得の完了として記録
-            this.hasLoadedInitialPage = true;
-            // Salesforceエラーを利用者向け文言へ変換
-            this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'wiredEmailMessageCount', 'wire');
         }
     }
 
@@ -161,6 +176,8 @@ export default class CaseEmailMessageList extends LightningElement {
                 // 新しいCaseの取得へ処理を引き継ぐ
                 return;
             }
+            // 例外本文を記録せず、失敗した処理だけを通知
+            this.reportClientError(error, 'loadInitialPage', 'processing');
             // 以前の一覧とページング状態を共通処理で破棄
             Object.assign(this, createEmptyPaginationState());
             // 同じCaseで自動再試行し続けないよう取得済み対象を記録
@@ -222,109 +239,125 @@ export default class CaseEmailMessageList extends LightningElement {
 
     // 利用者操作で総件数と初期ページを再取得
     async handleRefresh() {
-        // 件数wireの初期化前は整合した再取得を開始しない
-        if (!this.wiredEmailMessageCountResult || this.isBusy) {
-            // wire応答が届くまで再読み込みを終了
-            return;
-        }
-
-        // 件数再取得の応答先を表示ケースと世代で固定
-        const targetRecordId = this.recordId;
-        // ケース変更後に件数取得のエラーを反映しないため世代を保持
-        const generation = this.paginationGeneration;
-        // 再取得完了まで操作を抑止
-        this.isRefreshing = true;
-        // 新しい再取得開始時に追加取得エラーを解除
-        this.loadMoreErrorMessage = undefined;
-        // 総件数と初期ページを順番に再取得
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 先に総件数を最新化
-            await refreshApex(this.wiredEmailMessageCountResult);
-            // 続けて初期ページと新しいPaginationCursorを取得
-            await this.loadInitialPage();
-            // 再取得失敗時はカード全体をエラー状態へ移行
-        } catch (error) {
-            // ケース変更後は以前の件数取得エラーを破棄
-            if (targetRecordId !== this.recordId || generation !== this.paginationGeneration) {
-                // 現在ケースの取得状態を維持
+            // 件数wireの初期化前は整合した再取得を開始しない
+            if (!this.wiredEmailMessageCountResult || this.isBusy) {
+                // wire応答が届くまで再読み込みを終了
                 return;
             }
-            // どちらかの失敗をカード全体のエラーへ反映
-            this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
-            // 成否にかかわらず操作抑止を解除
-        } finally {
-            // 成否にかかわらず再読み込み状態を解除
-            this.isRefreshing = false;
-            // 再取得中に切り替わったケースの初期ページ取得を引き継ぐ
-            if (this.loadedRecordId !== this.recordId && !this.isLoadingInitialPage) {
-                // 最新ケースの一覧が未取得なら初期ページを要求
-                this.loadInitialPage();
+
+            // 件数再取得の応答先を表示ケースと世代で固定
+            const targetRecordId = this.recordId;
+            // ケース変更後に件数取得のエラーを反映しないため世代を保持
+            const generation = this.paginationGeneration;
+            // 再取得完了まで操作を抑止
+            this.isRefreshing = true;
+            // 新しい再取得開始時に追加取得エラーを解除
+            this.loadMoreErrorMessage = undefined;
+            // 総件数と初期ページを順番に再取得
+            try {
+                // 先に総件数を最新化
+                await refreshApex(this.wiredEmailMessageCountResult);
+                // 続けて初期ページと新しいPaginationCursorを取得
+                await this.loadInitialPage();
+                // 再取得失敗時はカード全体をエラー状態へ移行
+            } catch (error) {
+                // ケース変更後は以前の件数取得エラーを破棄
+                if (targetRecordId !== this.recordId || generation !== this.paginationGeneration) {
+                    // 現在ケースの取得状態を維持
+                    return;
+                }
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'handleRefresh', 'processing');
+                // どちらかの失敗をカード全体のエラーへ反映
+                this.errorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
+                // 成否にかかわらず操作抑止を解除
+            } finally {
+                // 成否にかかわらず再読み込み状態を解除
+                this.isRefreshing = false;
+                // 再取得中に切り替わったケースの初期ページ取得を引き継ぐ
+                if (this.loadedRecordId !== this.recordId && !this.isLoadingInitialPage) {
+                    // 最新ケースの一覧が未取得なら初期ページを要求
+                    this.loadInitialPage();
+                }
             }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRefresh', 'ui-event');
         }
     }
 
     // PaginationCursorと次indexを使ってメール一覧を追加取得
     async handleLoadMore() {
-        // 次ページなしまたは処理中の場合は重複取得しない
-        if (!this.hasNextPage || this.isBusy) {
-            // 現在一覧を維持して追加取得を終了
-            return;
-        }
-
-        // 応答先となるケースと一覧の世代を固定
-        const generation = this.paginationGeneration;
-        // 取得開始時のケースを保持
-        const targetRecordId = this.recordId;
-        // 取得開始時のカーソルを保持
-        const paginationCursor = this.paginationCursor;
-        // 追加取得完了まで操作を抑止
-        this.isLoadingMore = true;
-        // 再試行開始時は以前の追加取得エラーを解除
-        this.loadMoreErrorMessage = undefined;
-        // 次ページ取得と一覧追加を1つの処理単位で実行
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 現在のPaginationCursorと次indexでApexを命令的に呼び出す
-            const page = await getEmailMessages({
-                // 表示中Caseだけを検索対象に指定
-                caseId: targetRecordId,
-                // 前回応答のPaginationCursorを引き継ぐ
-                paginationCursor,
-                // 前回応答の次indexから取得を再開
-                startIndex: this.nextIndex
-            });
-            // 別ケースまたは再取得後の一覧には古い応答を反映しない
-            if (generation !== this.paginationGeneration || targetRecordId !== this.recordId) {
-                // 現在の一覧とページ位置を維持
+            // 次ページなしまたは処理中の場合は重複取得しない
+            if (!this.hasNextPage || this.isBusy) {
+                // 現在一覧を維持して追加取得を終了
                 return;
             }
-            // 追加ページを既存一覧へ連結した次状態をまとめて反映
-            Object.assign(
-                this,
-                createNextPageState({
-                    // Apexが返した追加ページを渡す
-                    page,
-                    // 現在表示中の一覧を渡す
-                    emailMessages: this.emailMessages,
-                    // 初回に直接取得したPaginationCursorを維持
-                    paginationCursor
-                })
-            );
-            // 追加取得失敗時は現在一覧を維持してエラーだけを表示
-        } catch (error) {
-            // 古い取得の失敗で現在の一覧へエラーを出さない
-            if (generation !== this.paginationGeneration || targetRecordId !== this.recordId) {
-                // 新しい取得の状態を維持
-                return;
+
+            // 応答先となるケースと一覧の世代を固定
+            const generation = this.paginationGeneration;
+            // 取得開始時のケースを保持
+            const targetRecordId = this.recordId;
+            // 取得開始時のカーソルを保持
+            const paginationCursor = this.paginationCursor;
+            // 追加取得完了まで操作を抑止
+            this.isLoadingMore = true;
+            // 再試行開始時は以前の追加取得エラーを解除
+            this.loadMoreErrorMessage = undefined;
+            // 次ページ取得と一覧追加を1つの処理単位で実行
+            try {
+                // 現在のPaginationCursorと次indexでApexを命令的に呼び出す
+                const page = await getEmailMessages({
+                    // 表示中Caseだけを検索対象に指定
+                    caseId: targetRecordId,
+                    // 前回応答のPaginationCursorを引き継ぐ
+                    paginationCursor,
+                    // 前回応答の次indexから取得を再開
+                    startIndex: this.nextIndex
+                });
+                // 別ケースまたは再取得後の一覧には古い応答を反映しない
+                if (generation !== this.paginationGeneration || targetRecordId !== this.recordId) {
+                    // 現在の一覧とページ位置を維持
+                    return;
+                }
+                // 追加ページを既存一覧へ連結した次状態をまとめて反映
+                Object.assign(
+                    this,
+                    createNextPageState({
+                        // Apexが返した追加ページを渡す
+                        page,
+                        // 現在表示中の一覧を渡す
+                        emailMessages: this.emailMessages,
+                        // 初回に直接取得したPaginationCursorを維持
+                        paginationCursor
+                    })
+                );
+                // 追加取得失敗時は現在一覧を維持してエラーだけを表示
+            } catch (error) {
+                // 古い取得の失敗で現在の一覧へエラーを出さない
+                if (generation !== this.paginationGeneration || targetRecordId !== this.recordId) {
+                    // 新しい取得の状態を維持
+                    return;
+                }
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'handleLoadMore', 'processing');
+                // 初期一覧を残したまま追加取得エラーだけを表示
+                this.loadMoreErrorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
+                // 成否にかかわらず追加取得の操作抑止を解除
+            } finally {
+                // 成否にかかわらず追加取得状態を解除
+                if (generation === this.paginationGeneration) {
+                    // 現在世代の追加取得だけ操作抑止を解除
+                    this.isLoadingMore = false;
+                }
             }
-            // 初期一覧を残したまま追加取得エラーだけを表示
-            this.loadMoreErrorMessage = reduceErrors(error, LOAD_ERROR_MESSAGE);
-            // 成否にかかわらず追加取得の操作抑止を解除
-        } finally {
-            // 成否にかかわらず追加取得状態を解除
-            if (generation === this.paginationGeneration) {
-                // 現在世代の追加取得だけ操作抑止を解除
-                this.isLoadingMore = false;
-            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleLoadMore', 'ui-event');
         }
     }
 

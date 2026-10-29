@@ -428,3 +428,25 @@ describe('c-case-email-message-list', () => {
         expect(timelineItems).toHaveLength(2);
     });
 });
+
+
+describe('処理場所付きエラー表示', () => {
+    afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
+    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+        const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        const element = createElement('c-caseEmailMessageList', { is: CaseEmailMessageList });
+        document.body.appendChild(element);
+        await Promise.resolve();
+        getEmailMessageCount.error({ message: 'private-value' });
+        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
+        expect(panel.details.location).toContain('caseEmailMessageList.js / wiredEmailMessageCount');
+        expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
+        panel.dispatchEvent(new CustomEvent('dismiss'));
+        await Promise.resolve();
+        expect(panel.details).toBeUndefined();
+        expect(element.isConnected).toBe(true);
+        await expect(element).toBeAccessible();
+    });
+});
