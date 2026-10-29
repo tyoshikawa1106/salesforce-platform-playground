@@ -52,6 +52,7 @@ beforeEach(() => {
 afterEach(() => {
     document.body.replaceChildren();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
 });
 it('未選択の初期表示では照会せず、候補選択後に同じ対象を表示する', async () => {
     const element = createComponent();
@@ -145,3 +146,53 @@ it.each([[true, false, true], [false, true, true], [false, false, false]])(
         await expect(element).toBeAccessible();
     }
 );
+
+it.each([undefined, {}, () => {}])('サイズ監視APIが使えなくても表示・幅変更・監視解除ができる (%p)', async (observer) => {
+    global.ResizeObserver = observer;
+    const add = jest.spyOn(window, 'addEventListener');
+    const remove = jest.spyOn(window, 'removeEventListener');
+    const element = createComponent();
+    await pickAccount(element);
+    expect(element.shadowRoot.querySelector('.oe-detail-title').textContent).toContain('取引先');
+    const registrationsBeforeResize = add.mock.calls.filter(([type]) => type === 'resize');
+    const viewport = element.shadowRoot.querySelector('.oe-viewport');
+    let width = 900;
+    Object.defineProperty(viewport, 'clientWidth', { get: () => width, configurable: true });
+    window.dispatchEvent(new CustomEvent('resize'));
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-card-grid_narrow')).not.toBeNull();
+    width = 1400;
+    window.dispatchEvent(new CustomEvent('resize'));
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-card-grid_narrow')).toBeNull();
+    const listeners = add.mock.calls.filter(([type]) => type === 'resize');
+    expect(listeners).toHaveLength(registrationsBeforeResize.length);
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    expect(remove).toHaveBeenCalledWith('resize', listeners[listeners.length - 1][1]);
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'reference' } }));
+    await flush();
+    const renewed = add.mock.calls.filter(([type]) => type === 'resize');
+    expect(renewed).toHaveLength(listeners.length + 1);
+    element.remove();
+    expect(remove).toHaveBeenCalledWith('resize', renewed[renewed.length - 1][1]);
+});
+it('対応環境では要素のサイズ変更を監視し画面破棄時に解除する', async () => {
+    let notify;
+    const observe = jest.fn();
+    const disconnect = jest.fn();
+    global.ResizeObserver = jest.fn((callback) => { notify = callback; return { observe, disconnect }; });
+    const add = jest.spyOn(window, 'addEventListener');
+    const element = createComponent();
+    await pickAccount(element);
+    expect(observe).toHaveBeenCalledWith(element.shadowRoot.querySelector('.oe-viewport'));
+    notify([{ contentRect: { width: 900 } }]);
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-card-grid_narrow')).not.toBeNull();
+    notify([{ contentRect: { width: 1400 } }]);
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-card-grid_narrow')).toBeNull();
+    expect(add.mock.calls.filter(([type]) => type === 'resize')).toHaveLength(0);
+    element.remove();
+    expect(disconnect).toHaveBeenCalled();
+});
