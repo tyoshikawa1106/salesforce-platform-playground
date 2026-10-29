@@ -1,5 +1,5 @@
 import {
-    applyClassifyBatch, applyClassifyCsv, buildRelationBoard,
+    applyClassifyBatch, applyClassifyCsv, buildRelationBoard, clientErrorDetails,
     classifyBatches, classifyChanges, classifyCsv, classifyFieldView,
     classifyInput, classifySummary, createClassifyEdits,
     fieldListView, objectOptionWindow, readClassifyCsv, structureCsv, visibleRelations
@@ -74,11 +74,39 @@ describe('オブジェクトエクスプローラーの表示・分類契約', (
 });
 
 describe('分類CSVの読取と反映', () => {
+    it('オブジェクトと項目のラベルを出力し、照合ではラベルに依存しない', () => {
+        const edits = changedEdits();
+        const csv = classifyCsv('Account', fields, classifyData, edits, '取引先');
+        expect(csv.split('\r\n')[0]).toContain('"オブジェクトラベル","オブジェクトAPI名","項目ラベル","項目API名"');
+        expect(csv).toContain('"取引先","Account","名前","Name"');
+        const changedLabels = csv.replaceAll('取引先', '別の表示名').replace('"名前"', '"変更ラベル"');
+        expect(readClassifyCsv(changedLabels, 'Account', edits, options, classifyData, fields).errors).toEqual([]);
+        const legacy = csv.split('\r\n').map((line) => line.split(',').filter((_, i) => i !== 0 && i !== 2).join(',')).join('\r\n');
+        expect(readClassifyCsv(legacy, 'Account', edits, options, classifyData, fields).errors).toEqual([]);
+    });
+
+    it('分類の画面とCSVは編集可能な項目だけを含め、構造側は全項目を維持する', () => {
+        const data = { ...classifyData, Phone: { editable: false } };
+        const all = [...fields, { apiName: 'UnknownType__c', label: '未取得' }];
+        const edits = createClassifyEdits(data);
+        const csv = classifyCsv('Account', all, data, edits);
+        expect(csv.split('\r\n')).toHaveLength(2);
+        expect(csv).not.toContain('Phone');
+        expect(csv).not.toContain('UnknownType__c');
+        expect(readClassifyCsv(csv, 'Account', edits, options, data, all).errors).toEqual([]);
+        const initial = fieldListView(all, '', '', undefined, {});
+        expect(initial.rows).toEqual([]);
+        const view = fieldListView(all, '', '', initial, data);
+        expect(view.rows.map((field) => field.apiName)).toEqual(['Name']);
+        expect(fieldListView(all, '', '', view, data)).toBe(view);
+        expect(fieldListView(all, '', '', view).rows).toHaveLength(3);
+    });
+
     it('日本語ヘッダーと引用符を往復し、未保存の変更だけを反映する', () => {
         const edits = changedEdits();
         const csv = classifyCsv('Account', fields, classifyData, edits);
         const baseline = createClassifyEdits(classifyData);
-        const parsed = readClassifyCsv(csv, 'Account', baseline, options, classifyData);
+        const parsed = readClassifyCsv(csv, 'Account', baseline, options, classifyData, fields);
         expect(parsed.errors).toEqual([]);
         const applied = applyClassifyCsv(parsed.rows, {}, baseline, 1);
         expect(applied.errors).toEqual([]);
@@ -91,14 +119,14 @@ describe('分類CSVの読取と反映', () => {
         const csv = classifyCsv('Account', fields, classifyData, changedEdits());
         expect(readClassifyCsv(csv, 'Contact', edits, options).errors[0].message).toContain('一致');
         const lines = csv.split('\r\n');
-        expect(readClassifyCsv([...lines, lines[1]].join('\r\n'), 'Account', edits, options).errors[0].message).toContain('重複');
+        expect(readClassifyCsv([...lines, lines[1]].join('\r\n'), 'Account', edits, options, classifyData, fields).errors[0].message).toContain('重複');
         const ownerCsv = csv.replace(/,""$/u, ',"任意の名前"');
-        expect(readClassifyCsv(ownerCsv, 'Account', edits, options).errors[0].message).toContain('18桁');
+        expect(readClassifyCsv(ownerCsv, 'Account', edits, options, classifyData, fields).errors[0].message).toContain('18桁');
     });
     it('閉じていない引用符と未知の分類値を拒否する', () => {
         expect(() => readClassifyCsv('"未閉鎖', 'Account', {}, options)).toThrow('引用符');
         const csv = classifyCsv('Account', fields, classifyData, changedEdits()).replace('Active', 'Unknown');
-        expect(readClassifyCsv(csv, 'Account', createClassifyEdits(classifyData), options).errors[0].message).toContain('有効な候補');
+        expect(readClassifyCsv(csv, 'Account', createClassifyEdits(classifyData), options, classifyData, fields).errors[0].message).toContain('有効な候補');
     });
     it('所有者の照合失敗では他の行も反映せず元の入力を返す', () => {
         const edits = createClassifyEdits(classifyData);
@@ -112,4 +140,17 @@ describe('分類CSVの読取と反映', () => {
         expect(csv).toContain('"API名"');
         expect(csv).toContain('"false"');
     });
+});
+
+it('エラー位置から組織URL・端末パス・入力値・応答本文を除外する', () => {
+    const error = { name: 'TypeError', message: 'sensitive value', body: { accessToken: 'secret-token' }, stack: 'TypeError: sensitive value\n    at save (https://private.example/modules/c/objectExplorer.js:123:7)\n    at caller (/Users/private/project/helper.js:45:9)' };
+    const details = clientErrorDetails(error, 'handleSaveClassifyData', 'confirmation');
+    expect(details.location).toBe('objectExplorer.js / handleSaveClassifyData / confirmation');
+    expect(details.errorType).toBe('TypeError');
+    expect(details.frames).toEqual(['objectExplorer.js:123:7', 'helper.js:45:9']);
+    const log = JSON.stringify(details);
+    for (const privateValue of ['private.example', '/Users/', 'sensitive value', 'secret-token']) { expect(log).not.toContain(privateValue); }
+});
+it('スタックのないAPIエラーでも処理名と種別を表示する', () => {
+    expect(clientErrorDetails({ body: { message: 'server value' } }, 'readObjectInfo', 'field-audit')).toEqual({ location: 'objectExplorer.js / readObjectInfo / field-audit', errorType: 'SalesforceError', frames: [], frame: '' });
 });

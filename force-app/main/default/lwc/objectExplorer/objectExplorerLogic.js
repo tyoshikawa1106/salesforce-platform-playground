@@ -10,20 +10,22 @@ function indexFields(fields) {
     }));
 }
 // 対象と検索条件が同じなら整列済みの結果と型候補を再利用
-export function fieldListView(fields, search, type, previous) {
+export function fieldListView(fields, search, type, previous, classifyData) {
     // 分類値の変更では項目定義と検索条件は変わらない
-    if (previous?.source === fields && previous.search === search && previous.type === type) { return previous; }
+    if (previous?.source === fields && previous.search === search && previous.type === type && previous.classifyData === classifyData) { return previous; }
     // 入力のたびに全項目を整列・加工せず取得時の索引を共有
-    const index = previous?.source === fields ? previous.index : indexFields(fields);
+    const reusable = previous?.source === fields && previous.classifyData === classifyData;
+    // 分類モードでは項目自体が編集可能な定義だけを一覧へ含める
+    const index = reusable ? previous.index : indexFields(classifyData ? fields.filter((field) => classifyData[field.apiName]?.editable) : fields);
     // 型候補も加工済みの索引から一度だけ生成
-    const typeOptions = previous?.source === fields ? previous.typeOptions : [{ label: 'すべてのデータ型', value: '' },
+    const typeOptions = reusable ? previous.typeOptions : [{ label: 'すべてのデータ型', value: '' },
         ...[...new Set(index.map((entry) => entry.type))].sort((a, b) => a.localeCompare(b, 'ja')).map((value) => ({ label: value, value }))];
     // 検索語は各項目の比較前に一度だけ正規化
     const needle = (search || '').trim().toLowerCase();
     // 絞り込みでも整列済みの順序と項目モデルを維持
     const rows = index.filter((entry) => (!type || entry.type === type) && (entry.label.includes(needle) || entry.apiName.includes(needle))).map((entry) => entry.field);
     // 依存元と索引を同じモデルで管理し、別オブジェクトの値を持ち越さない
-    return { source: fields, search, type, index, rows, typeOptions };
+    return { source: fields, search, type, index, rows, typeOptions, classifyData };
 }
 
 // 保存可否と未保存確認に必要な件数を一回の走査で集計
@@ -179,7 +181,7 @@ function classifyRow(field, context) {
     const inputErrors = Object.values(edit?.inputErrors || {}).filter(Boolean);
     // ラベル・型と分類の表示状態をまとめる
     return { ...field, ...values, editing: Boolean(edit),
-        reason: !canEdit && info?.editable ? '変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason || (info ? '' : '分類情報を設定できない項目です。'),
+        reason: !canEdit && info?.editable ? '変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason === '分類情報を設定できない項目です。' ? '' : info?.reason || '',
         rowClass: changed || inputErrors.length ? 'oe-classify-changed' : '', changed, complianceValues: compliance, unavailable: !info,
         complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-dropdown slds-dropdown_fluid slds-dropdown_bottom oe-compliance-options' : 'slds-dropdown slds-dropdown_fluid oe-compliance-options',
         complianceOptions: includeCurrentOptions(options.ComplianceGroup, (original.complianceGroup || '').split(';')),
@@ -189,7 +191,9 @@ function classifyRow(field, context) {
         securityInputValue: values.securityClassification || undefined, businessInputValue: values.businessStatus || undefined,
         complianceLabel: compliance.length ? compliance.map((value) => choiceLabel(value, options.ComplianceGroup)).join(',') : '',
         securityLabel: choiceLabel(values.securityClassification, options.SecurityClassification), businessLabel: choiceLabel(values.businessStatus, options.BusinessStatus),
-        ...ownerLookupView(field.apiName, edit, info), error: inputErrors.join(' / ') || edit?.error || '' };
+        ...ownerLookupView(field.apiName, edit, info),
+        // 編集不可の分類欄は空値と区別して同じ文言で表示
+        ...(!edit ? { complianceLabel: '設定不可', securityLabel: '設定不可', businessLabel: '設定不可', ownerLabel: '設定不可' } : {}), error: inputErrors.join(' / ') || edit?.error || '' };
 }
 // 表示中のページだけ保持し、変更のない分類行は選択肢と所有者表示を再利用
 export function classifyFieldView(context, previous) {
@@ -316,3 +320,12 @@ export function applyClassifyBatch(changes, edits, classifyData, results) {
 export { classifyInput, normalizeClassify, createOwnerOptions };
 export { structureFieldView } from './objectExplorerFieldLogic';
 export { CLASSIFY_CSV_LIMITS, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv } from './objectExplorerCsv';
+// エラーの位置だけを抽出し、URL・入力値・API応答本文を診断情報へ含めない
+export function clientErrorDetails(error, operation, phase) {
+    // 例外種別は通常のError名だけを採用
+    const name = typeof error?.name === 'string' && /^(?:Error|[A-Za-z]+Error)$/.test(error.name) ? error.name : (error?.body ? 'SalesforceError' : 'Error');
+    // メッセージやURLから推測せず、スタック上のJSファイル名と行・列だけを抽出
+    const frames = typeof error?.stack === 'string' ? [...new Set(error.stack.split('\n').slice(1).flatMap((line) => line.match(/[A-Za-z0-9_$.-]+\.m?js:\d+:\d+/g) || []))].slice(0, 8) : [];
+    // 処理場所は呼び出し側が指定する固定の処理名と段階で識別
+    return { location: `objectExplorer.js / ${operation} / ${phase}`, errorType: name, frames, frame: frames[0] || '' };
+}

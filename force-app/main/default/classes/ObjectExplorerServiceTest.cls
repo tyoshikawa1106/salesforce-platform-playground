@@ -63,12 +63,12 @@ private with sharing class ObjectExplorerServiceTest {
             Test.stopTest();
         }
     }
-    /** 候補の種別と検索条件 */
+    /** 参照可能な候補と検索条件 */
     @IsTest
-    static void searchesNamesAndScope() {
+    static void searchesAccessibleNames() {
         System.runAs(testUser) {
             Test.startTest();
-            List<Map<String, Object>> found = service.searchObjects('Account', null);
+            List<Map<String, Object>> found = service.searchObjects('Account');
             Assert.isFalse(found.isEmpty(), '標準オブジェクトをAPI名で検索');
             for (Map<String, Object> candidate : found) {
                 Assert.isTrue(
@@ -77,35 +77,21 @@ private with sharing class ObjectExplorerServiceTest {
                     '表示名かAPI名で一致'
                 );
             }
-            List<Map<String, Object>> customs = service.searchObjects('', 'custom');
+            List<Map<String, Object>> candidates = service.searchObjects('');
             Map<String, Schema.SObjectType> objectTypes = Schema.getGlobalDescribe();
-            for (Map<String, Object> candidate : customs) {
+            for (Map<String, Object> candidate : candidates) {
                 Assert.isTrue(
                     objectTypes.get((String) candidate.get('apiName'))
                         .getDescribe(SObjectDescribeOptions.DEFERRED)
-                        .isCustom(),
-                    'カスタムだけを返す'
+                        .isAccessible(),
+                    '標準・カスタムを区別せず参照可能な候補を返す'
                 );
             }
             Assert.isTrue(
-                service.searchObjects('__MISSING LABEL__', 'standard').isEmpty(),
+                service.searchObjects('__MISSING LABEL__').isEmpty(),
                 '欠落メッセージは検索語として使わない'
             );
-            Assert.isTrue(service.searchObjects('NoSuchExplorerObjectXYZ', 'standard').isEmpty(), '一致なしは空候補');
-            Test.stopTest();
-        }
-    }
-    /** 不明な候補範囲を拒否 */
-    @IsTest
-    static void rejectsUnknownScope() {
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                service.searchObjects('', 'invalid');
-                Assert.fail('不正範囲を拒否');
-            } catch (AuraHandledException error) {
-                Assert.isNotNull(error, '入力エラー');
-            }
+            Assert.isTrue(service.searchObjects('NoSuchExplorerObjectXYZ').isEmpty(), '一致なしは空候補');
             Test.stopTest();
         }
     }

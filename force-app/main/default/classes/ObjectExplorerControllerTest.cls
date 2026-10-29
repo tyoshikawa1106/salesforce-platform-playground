@@ -50,7 +50,7 @@ private with sharing class ObjectExplorerControllerTest {
             Assert.isFalse(((List<Object>) structure.get('fields')).isEmpty(), '項目定義を返す');
             Assert.isFalse(
                 ((List<Object>) JSON.deserializeUntyped(
-                        JSON.serialize(ObjectExplorerController.searchObjects('Account', 'standard'))
+                        JSON.serialize(ObjectExplorerController.searchObjects('Account'))
                     ))
                     .isEmpty(),
                 '検索を公開'
@@ -78,12 +78,12 @@ private with sharing class ObjectExplorerControllerTest {
                 )
             );
             Assert.isTrue(owners.containsKey(String.valueOf(testUser.Id)), '要求したIDの所有者を返す');
-            Assert.isFalse(
+            Assert.isTrue(
                 ((List<Object>) JSON.deserializeUntyped(
                         JSON.serialize(ObjectExplorerController.searchClassifyOwners(null))
                     ))
                     .isEmpty(),
-                '空検索語でも候補を返す'
+                '空検索語では候補を取得しない'
             );
             Assert.areEqual(0, Limits.getCallouts(), '所有者の検索に外部APIを使わない');
             Test.stopTest();

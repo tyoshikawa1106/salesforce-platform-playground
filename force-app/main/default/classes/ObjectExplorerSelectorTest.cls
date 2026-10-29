@@ -11,6 +11,8 @@ private with sharing class ObjectExplorerSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
             Integer beforeQueries = Limits.getQueries();
+            Assert.isTrue(selector.selectUsers(null).isEmpty(), '未入力ではユーザーを検索しない');
+            Assert.isTrue(selector.selectGroups('  ').isEmpty(), '空白ではグループを検索しない');
             Assert.isTrue(selector.selectFields(null).isEmpty(), '対象なしは分類を取得しない');
             Assert.isTrue(selector.selectFieldTypes('').isEmpty(), '対象なしは型を取得しない');
             Assert.isTrue(selector.selectFieldAuditTargets(' ').isEmpty(), '空白は日時対象を取得しない');
@@ -64,8 +66,25 @@ private with sharing class ObjectExplorerSelectorTest {
             List<Group> groups = selector.selectOwnerGroups(new Set<Id>{ groupRecord.Id, queue.Id });
             Assert.areEqual(1, groups.size(), '公開グループだけを取得');
             Assert.areEqual(groupRecord.Id, groups[0].Id, 'キューを所有者候補へ含めない');
-            Assert.areEqual(1, selector.selectGroups('Explorer Public').size(), '名前で公開グループを検索');
+            Assert.areEqual(1, selector.selectGroups('Explorer Public').size(), '名前で公開グループを前方一致検索');
+            Assert.isTrue(selector.selectGroups('Public Group').isEmpty(), '途中一致の公開グループを除外');
             Assert.isTrue(selector.selectUsers('NoSuchExplorerUserXYZ').isEmpty(), '未一致のユーザーは空');
+            Test.stopTest();
+        }
+    }
+    /** 氏名とメールを前方一致で検索し、途中一致やワイルドカードを除外 */
+    @IsTest
+    static void searchesOwnerPrefixes() {
+        User owner = new User(Id = UserInfo.getUserId(), FirstName = null, LastName = 'ExplorerPrefixUser', Email = 'explorer.prefix@example.invalid');
+        update owner;
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.isTrue(new Map<Id, User>(selector.selectUsers('ExplorerPrefix')).containsKey(owner.Id), '氏名の前方一致');
+            Assert.isTrue(new Map<Id, User>(selector.selectUsers('explorer.prefix@')).containsKey(owner.Id), 'メールの前方一致');
+            Assert.isFalse(new Map<Id, User>(selector.selectUsers('PrefixUser')).containsKey(owner.Id), '氏名の途中一致を除外');
+            Assert.isFalse(new Map<Id, User>(selector.selectUsers('prefix@example')).containsKey(owner.Id), 'メールの途中一致を除外');
+            Assert.isTrue(selector.selectUsers('%').isEmpty(), 'パーセントを全件検索として解釈しない');
+            Assert.isTrue(selector.selectUsers('_').isEmpty(), 'アンダースコアを任意文字として解釈しない');
             Test.stopTest();
         }
     }

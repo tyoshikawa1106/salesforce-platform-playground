@@ -13,6 +13,14 @@
         <template lwc:if={error}>
             <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{error}</div>
         </template>
+        <template lwc:if={clientError}>
+            <div class="slds-notify slds-notify_alert slds-alert_error oe-client-error" role="alert">
+                <p>画面処理でエラーが発生しました。</p>
+                <p>処理場所：{clientError.location}</p>
+                <p>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.frame}><p>検出位置：{clientError.frame}</p></template>
+            </div>
+        </template>
         <section class="oe-panel" aria-label={modeLabel}>
             <div class="oe-heading">
                 <h2>{modeLabel}</h2>
@@ -23,36 +31,6 @@
                 </template>
             </div>
             <div class="oe-toolbar">
-                <div class="oe-toolbar-filters">
-                    <div class="slds-form-element">
-                        <span class="slds-form-element__label">種別</span>
-                        <lightning-helptext content="対象オブジェクトの候補を標準／カスタムで絞り込みます。切り替えると対象オブジェクトの選択を解除します。"></lightning-helptext>
-                        <lightning-radio-group
-                            label="種別"
-                            variant="label-hidden"
-                            options={scopeOptions}
-                            value={objectScope}
-                            type="button"
-                            onchange={handleScope}
-                            disabled={busy}
-                        ></lightning-radio-group>
-                    </div>
-                    <template lwc:if={isReference}>
-                        <div class="slds-form-element">
-                            <span class="slds-form-element__label">参照元の種類</span>
-                            <lightning-helptext content="通常の参照は参照先が1種類の項目、多態参照は参照先が複数種類ある項目による関連を表示します。参照元だけに適用され、参照先は絞り込みません。"></lightning-helptext>
-                            <lightning-radio-group
-                                label="参照元の種類"
-                                variant="label-hidden"
-                                options={incomingKindOptions}
-                                value={incomingKind}
-                                type="button"
-                                onchange={handleIncomingKind}
-                                disabled={busy}
-                            ></lightning-radio-group>
-                        </div>
-                    </template>
-                </div>
                 <div class="oe-lookup">
                     <c-object-explorer-lookup
                         selected={root}
@@ -72,6 +50,23 @@
                         onlookupclose={closeCandidates}
                         oncandidatescroll={handleCandidateScroll}
                     ></c-object-explorer-lookup>
+                </div>
+                <div class="oe-toolbar-filters">
+                    <template lwc:if={isReference}>
+                        <div class="slds-form-element">
+                            <span class="slds-form-element__label">参照元の種類</span>
+                            <lightning-helptext content="通常の参照は参照先が1種類の項目、多態参照は参照先が複数種類ある項目による関連を表示します。参照元だけに適用され、参照先は絞り込みません。"></lightning-helptext>
+                            <lightning-radio-group
+                                label="参照元の種類"
+                                variant="label-hidden"
+                                options={incomingKindOptions}
+                                value={incomingKind}
+                                type="button"
+                                onchange={handleIncomingKind}
+                                disabled={busy}
+                            ></lightning-radio-group>
+                        </div>
+                    </template>
                 </div>
             </div>
             <template lwc:if={isReference}>
@@ -311,7 +306,10 @@
                                     <td>{field.apiName}</td>
                                     <td>{field.typeLabel}</td>
                                     <td>
-                                        <lightning-input type="checkbox" label="カスタム" variant="label-hidden" checked={field.custom} disabled></lightning-input>
+                                        <template lwc:if={field.custom}>
+                                            <lightning-icon icon-name="utility:check" size="x-small" alternative-text="カスタム項目"></lightning-icon>
+                                        </template>
+                                        <template lwc:else><span class="slds-assistive-text">標準項目</span></template>
                                     </td>
                                     <template lwc:if={isReference}>
                                         <td class="oe-audit-value">
@@ -464,12 +462,19 @@
                                                                         aria-activedescendant={field.ownerActiveId}
                                                                         autocomplete="off"
                                                                         value={field.ownerSearch}
+                                                                        placeholder="氏名・メールアドレス・グループ名で検索"
                                                                         data-field={field.apiName}
                                                                         oninput={handleOwnerSearch}
                                                                         onclick={handleOwnerSearch}
                                                                         onkeydown={handleOwnerKeydown}
                                                                         disabled={busy}
                                                                     />
+                                                                    <lightning-icon
+                                                                        class="slds-input__icon slds-input__icon_right"
+                                                                        icon-name="utility:search"
+                                                                        size="x-small"
+                                                                        alternative-text="検索"
+                                                                    ></lightning-icon>
                                                                 </template>
                                                             </div>
                                                             <template lwc:if={field.ownerOpen}>
