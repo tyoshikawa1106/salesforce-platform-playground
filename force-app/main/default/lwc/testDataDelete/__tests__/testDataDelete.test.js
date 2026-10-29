@@ -112,3 +112,25 @@ describe('削除の確認と受付', () => {
         expect(element.shadowRoot.textContent).toContain('権限が変更されました');
     });
 });
+
+
+describe('処理場所付きエラー表示', () => {
+    afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
+    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+        const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+        getView.mockRejectedValueOnce(new Error('private-value'));
+        const element = createElement('c-testDataDelete', { is: TestDataDelete });
+        document.body.appendChild(element);
+        await Promise.resolve();
+
+        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
+        expect(panel.details.location).toContain('testDataDelete.js / loadView');
+        expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
+        panel.dispatchEvent(new CustomEvent('dismiss'));
+        await Promise.resolve();
+        expect(panel.details).toBeUndefined();
+        expect(element.isConnected).toBe(true);
+        await expect(element).toBeAccessible();
+    });
+});

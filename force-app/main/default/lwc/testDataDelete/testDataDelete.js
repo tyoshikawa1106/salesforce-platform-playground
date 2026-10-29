@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement } from 'lwc';
 import LightningConfirm from 'lightning/confirm';
 import getView from '@salesforce/apex/TestDataDeleteController.getView';
@@ -6,7 +7,7 @@ import startRun from '@salesforce/apex/TestDataDeleteController.startRun';
 import { createView, getAvailableObjectNames } from './testDataDeleteLogic';
 
 // 全件削除の確認、受付、残件数の再取得を制御
-export default class TestDataDelete extends LightningElement {
+export default class TestDataDelete extends withUiErrorBoundary(LightningElement, 'testDataDelete') {
     // 最新の実行条件と受付ジョブを保持
     response;
     // 取得した残件数をオブジェクト別に保持
@@ -22,8 +23,14 @@ export default class TestDataDelete extends LightningElement {
 
     // 配置時に現在の実行条件と残件数を確認
     connectedCallback() {
-        // 初期状態では全件削除を開始しない
-        this.loadView();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 初期状態では全件削除を開始しない
+            this.loadView();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'connectedCallback', 'lifecycle');
+        }
     }
 
     // 入力状態から表示とボタンの可否をまとめる
@@ -75,7 +82,9 @@ export default class TestDataDelete extends LightningElement {
             }
             // 件数確認中に始まったジョブも最後に再確認
             this.response = await getView({ jobId: this.acceptedJobId || null });
-        } catch {
+        } catch (caughtError) {
+            // 例外本文を記録せず、失敗した処理だけを通知
+            this.reportClientError(caughtError, 'loadView', 'processing');
             // 組織の例外やレコード内容を表示しない
             this.errorMessage = '状態を取得できませんでした。「実行状況・残件数を確認」で再確認してください。';
             // 通信失敗後は開始不可にする
@@ -88,62 +97,76 @@ export default class TestDataDelete extends LightningElement {
 
     // 最終確認後に一度だけ削除を受付
     async handleExecute() {
-        // 連打や無効な状態でのイベントを無視
-        if (!this.view.canStart) {
-            // サーバーへ要求しない
-            return;
-        }
-        // 確認ダイアログの重複も抑止
-        this.isBusy = true;
-        // 前の通信エラーを解除
-        this.errorMessage = '';
-        // 確認のキャンセルと受付応答の欠落を区別
-        let requested = false;
-        // 標準の確認ダイアログでキーボードとフォーカスを扱う
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 手動作成データと照会可能なファイルの削除範囲を明示
-            const confirmed = await LightningConfirm.open({
-                label: 'テストデータの全件削除',
-                message:
-                    '一覧のオブジェクトの全レコードを削除します。手動作成データ、実行ユーザーが照会できるファイルとその全バージョンも対象です。画面を閉じても処理は続きます。実行しますか？',
-                theme: 'error'
-            });
-            // キャンセル時は以前の追跡状態を維持
-            if (!confirmed) {
-                // 削除要求を送らない
+            // 連打や無効な状態でのイベントを無視
+            if (!this.view.canStart) {
+                // サーバーへ要求しない
                 return;
             }
-            // 新しい受付を過去のジョブで完了扱いしない
-            this.acceptedJobId = '';
-            // 要求送信後の通信失敗は受付不明にする
-            requested = true;
-            // サーバーで実効権限・環境・重複を再確認
-            this.response = await startRun({ confirmation: 'DELETE_ALL' });
-            // 正常な拒否応答は受付不明にしない
-            this.acceptedJobId = this.response.jobId || '';
-            // 削除中の件数は再取得するまで表示しない
-            this.counts = {};
-        } catch {
-            // ダイアログだけの失敗で受付不明にしない
-            this.acceptanceUnknown = requested;
-            // 不明な受付は自動で再送しない
-            this.response = undefined;
-            // ジョブ確認後に画面を開き直して明示的に再確認
-            this.errorMessage = requested
-                ? '受付結果が不明です。設定のApexジョブで実行状況を確認してください。自動再実行は行いません。'
-                : '削除確認を表示できませんでした。再確認してください。';
-        } finally {
-            // 結果照会を可能にする
-            this.isBusy = false;
+            // 確認ダイアログの重複も抑止
+            this.isBusy = true;
+            // 前の通信エラーを解除
+            this.errorMessage = '';
+            // 確認のキャンセルと受付応答の欠落を区別
+            let requested = false;
+            // 標準の確認ダイアログでキーボードとフォーカスを扱う
+            try {
+                // 手動作成データと照会可能なファイルの削除範囲を明示
+                const confirmed = await LightningConfirm.open({
+                    label: 'テストデータの全件削除',
+                    message:
+                        '一覧のオブジェクトの全レコードを削除します。手動作成データ、実行ユーザーが照会できるファイルとその全バージョンも対象です。画面を閉じても処理は続きます。実行しますか？',
+                    theme: 'error'
+                });
+                // キャンセル時は以前の追跡状態を維持
+                if (!confirmed) {
+                    // 削除要求を送らない
+                    return;
+                }
+                // 新しい受付を過去のジョブで完了扱いしない
+                this.acceptedJobId = '';
+                // 要求送信後の通信失敗は受付不明にする
+                requested = true;
+                // サーバーで実効権限・環境・重複を再確認
+                this.response = await startRun({ confirmation: 'DELETE_ALL' });
+                // 正常な拒否応答は受付不明にしない
+                this.acceptedJobId = this.response.jobId || '';
+                // 削除中の件数は再取得するまで表示しない
+                this.counts = {};
+            } catch (caughtError) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(caughtError, 'handleExecute', 'processing');
+                // ダイアログだけの失敗で受付不明にしない
+                this.acceptanceUnknown = requested;
+                // 不明な受付は自動で再送しない
+                this.response = undefined;
+                // ジョブ確認後に画面を開き直して明示的に再確認
+                this.errorMessage = requested
+                    ? '受付結果が不明です。設定のApexジョブで実行状況を確認してください。自動再実行は行いません。'
+                    : '削除確認を表示できませんでした。再確認してください。';
+            } finally {
+                // 結果照会を可能にする
+                this.isBusy = false;
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleExecute', 'ui-event');
         }
     }
 
     // 利用者の操作で標準ジョブと残件数を更新
     handleRefresh() {
-        // 進行中のリクエストを重ねない
-        if (!this.isBusy) {
-            // 新規削除を開始せず状態だけを照会
-            this.loadView();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 進行中のリクエストを重ねない
+            if (!this.isBusy) {
+                // 新規削除を開始せず状態だけを照会
+                this.loadView();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRefresh', 'ui-event');
         }
     }
 }
