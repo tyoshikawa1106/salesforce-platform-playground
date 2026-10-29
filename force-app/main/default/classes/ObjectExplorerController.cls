@@ -50,7 +50,7 @@ public with sharing class ObjectExplorerController {
 
     /**
      * 分類の所有者候補をユーザー・公開グループから検索
-     * @param term 所有者の表示名検索語
+     * @param term 所有者の氏名・メールアドレスまたは公開グループ名の前方一致検索語
      * @return 所有者候補の一覧
      */
     @AuraEnabled
@@ -59,7 +59,7 @@ public with sharing class ObjectExplorerController {
         ObjectExplorerController controller = new ObjectExplorerController();
         // UIの有効状態に依存せず実効権限を確認
         controller.requireEditAccess();
-        // 検索語の未入力を候補全体の検索へ揃える
+        // 検索語の前後空白を除き、空欄はSelectorで照会しない
         String searchTerm = controller.ownerService.normalizeSearchTerm(term);
         // 所有者候補は現在の利用者が参照可能な範囲から取得
         List<User> users = controller.selector.selectUsers(searchTerm);
@@ -329,15 +329,14 @@ public with sharing class ObjectExplorerController {
     /**
      * 参照可能なオブジェクトをラベルとAPI名で検索
      * @param term 部分一致の検索語
-     * @param scope standard、customの検索範囲
      * @return 候補の一覧
      */
     @AuraEnabled
-    public static List<Map<String, Object>> searchObjects(String term, String scope) {
+    public static List<Map<String, Object>> searchObjects(String term) {
         // 公開入口のstaticを下位の業務処理へ持ち込まない
         ObjectExplorerController controller = new ObjectExplorerController();
         // 検索条件と参照可否を同じServiceで確認
-        List<Map<String, Object>> rows = controller.structureService.searchObjects(term, scope);
+        List<Map<String, Object>> rows = controller.structureService.searchObjects(term);
         // 候補だけを画面へ返却
         return rows;
     }

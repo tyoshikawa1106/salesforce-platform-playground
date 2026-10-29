@@ -9,23 +9,18 @@ public with sharing class ObjectExplorerService {
     /**
      * ラベルとAPI名で参照可能な通常オブジェクトを検索
      * @param term 部分一致の検索語
-     * @param scope standard、custom。未指定時はstandard
      * @return API名順の先頭候補
      */
-    public List<Map<String, Object>> searchObjects(String term, String scope) {
-        // 未指定時は標準オブジェクトから選択
-        String selectedScope = String.isBlank(scope) ? 'standard' : scope;
+    public List<Map<String, Object>> searchObjects(String term) {
         String needle = (term ?? '').trim().toLowerCase();
         Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
-        // 標準とカスタム以外の範囲は受け付けない
-        if (!new Set<String>{'standard', 'custom'}.contains(selectedScope)) { throw new AuraHandledException('候補の種類を選択してください。'); }
         // 主要オブジェクトの固定一覧を使わず組織の定義から候補を作成
         List<String> names = new List<String>(types.keySet());
         names.sort();
         List<Map<String, Object>> results = new List<Map<String, Object>>();
         for (String name : names) {
             Schema.DescribeSObjectResult info = types.get(name).getDescribe(SObjectDescribeOptions.DEFERRED);
-            if (!isSearchMatch(info, selectedScope, needle)) { continue; }
+            if (!isSearchMatch(info, needle)) { continue; }
             // 候補と詳細で同じオブジェクト名を表示
             results.add(new Map<String, Object>{'apiName' => info.getName(), 'label' => getObjectLabel(info)});
             if (results.size() >= CANDIDATE_LIMIT) { break; }
@@ -34,16 +29,13 @@ public with sharing class ObjectExplorerService {
     }
 
     /**
-     * 検索範囲・参照可否・部分一致を一つの候補条件へまとめる
+     * 参照可否・部分一致を一つの候補条件へまとめる
      * @param info 候補オブジェクトの定義
-     * @param scope 選択した検索範囲
      * @param needle 正規化した検索語
      * @return 候補に含める場合true
      */
-    private Boolean isSearchMatch(Schema.DescribeSObjectResult info, String scope, String needle) {
+    private Boolean isSearchMatch(Schema.DescribeSObjectResult info, String needle) {
         if (!info.isAccessible() || !info.isQueryable() || info.isCustomSetting()) { return false; }
-        // 両方の候補に同じオブジェクトを混在させない
-        if (info.isCustom() != (scope == 'custom')) { return false; }
         // 表示していない欠落メッセージでは検索に一致させない
         return info.getName().toLowerCase().contains(needle) || getObjectLabel(info).toLowerCase().contains(needle);
     }

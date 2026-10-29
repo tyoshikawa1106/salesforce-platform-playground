@@ -6,6 +6,8 @@ import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAud
 import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
 import saveClassifyData from '@salesforce/apex/ObjectExplorerController.saveClassifyData';
 import LightningConfirm from 'lightning/confirm';
+import searchClassifyOwners from '@salesforce/apex/ObjectExplorerController.searchClassifyOwners';
+import * as objectExplorerLogic from '../objectExplorerLogic';
 
 jest.mock('@salesforce/apex/ObjectExplorerController.getObjectInfo', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/ObjectExplorerController.searchObjects', () => ({ default: jest.fn() }), { virtual: true });
@@ -41,6 +43,7 @@ async function editClassify(element) {
     await flush();
 }
 beforeEach(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     require('@salesforce/userPermission/ModifyDataClassification').default = false;
     require('@salesforce/userPermission/CustomizeApplication').default = true;
     global.ResizeObserver = class { observe() {} disconnect() {} };
@@ -195,4 +198,208 @@ it('対応環境では要素のサイズ変更を監視し画面破棄時に解�
     expect(add.mock.calls.filter(([type]) => type === 'resize')).toHaveLength(0);
     element.remove();
     expect(disconnect).toHaveBeenCalled();
+});
+
+it('接続状態のDOMプロパティが未公開でも保存確認を表示する', async () => {
+    class LegacyObjectExplorer extends ObjectExplorer {
+        get isConnected() { return undefined; }
+    }
+    const element = createElement('c-object-explorer', { is: LegacyObjectExplorer });
+    document.body.appendChild(element);
+    await editClassify(element);
+    LightningConfirm.open.mockResolvedValueOnce(false);
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(LightningConfirm.open).toHaveBeenCalledWith(expect.objectContaining({ label: '保存の確認', message: '1項目のデータ分類を保存しますか？' }));
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+});
+it('保存確認を待つ間に画面を閉じた場合は保存しない', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    let confirm;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    element.remove();
+    confirm(true);
+    await flush();
+    expect(saveClassifyData).not.toHaveBeenCalled();
+});
+
+it('保存内容の準備でJS例外が起きても未実行を表示して再操作できる', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(objectExplorerLogic, 'classifyChanges').mockImplementationOnce(() => { throw new TypeError('sensitive input'); });
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('保存内容の準備に失敗しました（TypeError）。保存は実行していません。');
+    expect(LightningConfirm.open).not.toHaveBeenCalled();
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+    expect(JSON.stringify(log.mock.calls)).not.toContain('sensitive input');
+});
+it('保存確認の表示失敗を保存APIの失敗と区別してロックを解除する', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    LightningConfirm.open.mockRejectedValueOnce(new TypeError('sensitive modal detail'));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('保存確認画面の表示に失敗しました（TypeError）。保存は実行していません。');
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+    expect(JSON.stringify(log.mock.calls)).not.toContain('sensitive modal detail');
+});
+
+it('両モードで種別の絞り込みを表示せず標準とカスタムを同じ候補で検索する', async () => {
+    searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }, { apiName: 'ExplorerProbe__c', label: '検証対象' }]);
+    const element = createComponent();
+    await flush();
+    const toolbar = element.shadowRoot.querySelector('.oe-toolbar');
+    expect(toolbar.firstElementChild.className).toBe('oe-lookup');
+    expect([...element.shadowRoot.querySelectorAll('lightning-radio-group')].map((control) => control.label)).not.toContain('種別');
+    expect([...element.shadowRoot.querySelectorAll('lightning-radio-group')].map((control) => control.label)).toContain('参照元の種類');
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    lookup.dispatchEvent(new CustomEvent('lookupopen'));
+    await flush();
+    expect(searchObjects).toHaveBeenLastCalledWith({ term: '' });
+    expect(lookup.candidateView.items.map((item) => item.value)).toEqual(['Account', 'ExplorerProbe__c']);
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    expect([...element.shadowRoot.querySelectorAll('lightning-radio-group')].map((control) => control.label)).not.toContain('種別');
+    expect([...element.shadowRoot.querySelectorAll('lightning-radio-group')].map((control) => control.label)).not.toContain('参照元の種類');
+    lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: 'Probe' } }));
+    await flush();
+    expect(searchObjects).toHaveBeenLastCalledWith({ term: 'Probe' });
+});
+
+it('画面イベントのJS例外は標準エラーページへ伝播させず場所を表示する', async () => {
+    const element = createComponent();
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    lookup.dispatchEvent(new CustomEvent('searchchange', { detail: null }));
+    await flush();
+    const alert = element.shadowRoot.querySelector('.oe-client-error');
+    expect(alert.textContent).toContain('objectExplorer.js / handleSearch / ui-event');
+    expect(alert.textContent).toContain('TypeError');
+    expect(element.shadowRoot.querySelector('h1').textContent).toBe('オブジェクトエクスプローラー');
+    expect(searchObjects).not.toHaveBeenCalled();
+});
+it('正常な検索・保存確認では診断ログも診断表示も出さない', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    LightningConfirm.open.mockResolvedValueOnce(false);
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(console.error).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-client-error')).toBeNull();
+    expect(element.shadowRoot.textContent).not.toContain('保存の確認画面を開いています');
+});
+
+it.each(['reference', 'classify'])('カスタム列は枠なしのチェックを表示する（%s）', async (mode) => {
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields: [...objectInfo.fields, { apiName: 'Flag__c', label: '独自項目', type: 'BOOLEAN', custom: true }] });
+    getClassifyData.mockResolvedValue({ ...classify, rows: { ...classify.rows, Flag__c: { ...classify.rows.Name } } });
+    const element = createComponent();
+    if (mode === 'classify') {
+        element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: mode } }));
+        await flush();
+    }
+    await pickAccount(element);
+    const icons = [...element.shadowRoot.querySelectorAll('tbody lightning-icon')].filter((icon) => icon.iconName === 'utility:check');
+    expect(icons).toHaveLength(1);
+    expect(icons[0].alternativeText).toBe('カスタム項目');
+    expect(element.shadowRoot.querySelector('tbody lightning-input[type="checkbox"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('tbody').textContent).toContain('標準項目');
+    await expect(element).toBeAccessible();
+});
+
+it('所有者の空欄クリック・空白入力では検索せず、文字入力後だけ検索する', async () => {
+    searchClassifyOwners.mockResolvedValue([]);
+    const element = createComponent();
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    const input = element.shadowRoot.querySelector('input[data-field="Name"]');
+    expect(input.placeholder).toBe('氏名・メールアドレス・グループ名で検索');
+    const searchIcon = [...input.parentElement.querySelectorAll('lightning-icon')].find((icon) => icon.iconName === 'utility:search');
+    expect(searchIcon.alternativeText).toBe('検索');
+    expect(searchIcon.classList.contains('slds-input__icon_right')).toBe(true);
+    input.click();
+    input.value = ' 　';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    expect(searchClassifyOwners).not.toHaveBeenCalled();
+    input.value = '検索氏名';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    expect(searchClassifyOwners).toHaveBeenCalledWith({ term: '検索氏名' });
+    searchClassifyOwners.mockClear();
+    const current = element.shadowRoot.querySelector('input[data-field="Name"]');
+    current.value = '';
+    current.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    expect(searchClassifyOwners).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-owner-options')).toBeNull();
+});
+
+it('分類は編集不可・未取得を一覧から除外し、件数を揃える', async () => {
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields: [...objectInfo.fields,
+        { apiName: 'ReadOnly__c', label: '編集不可', type: 'BOOLEAN' },
+        { apiName: 'Unavailable__c', label: '未取得', type: 'BOOLEAN' }] });
+    getClassifyData.mockResolvedValue({ ...classify, rows: { ...classify.rows, ReadOnly__c: { editable: false } } });
+    const element = createComponent();
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    expect(element.shadowRoot.querySelector('tbody').textContent).toContain('Name');
+    expect(element.shadowRoot.querySelector('tbody').textContent).not.toContain('ReadOnly__c');
+    expect(element.shadowRoot.querySelector('tbody').textContent).not.toContain('Unavailable__c');
+    expect(element.shadowRoot.textContent).toContain('1項目');
+});
+
+it('構造CSVは分類取得失敗時にダウンロードせず処理場所を表示する', async () => {
+    const element = createComponent();
+    await pickAccount(element);
+    getClassifyData.mockRejectedValueOnce({ body: { message: '分類取得失敗' } });
+    const exportButton = [...element.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'CSVダウンロード');
+    exportButton.click();
+    await flush();
+    expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
+    expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('handleExportCsv');
+    expect(exportButton.disabled).toBe(false);
+});
+
+it('構造CSVの確認後に保存済み分類を取得して出力する', async () => {
+    const createUrl = URL.createObjectURL;
+    const revokeUrl = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:test');
+    URL.revokeObjectURL = jest.fn();
+    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+        const element = createComponent();
+        await pickAccount(element);
+        expect(getClassifyData).not.toHaveBeenCalled();
+        const button = [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === 'CSVダウンロード');
+        LightningConfirm.open.mockResolvedValueOnce(false);
+        button.click();
+        await flush();
+        expect(getClassifyData).not.toHaveBeenCalled();
+        button.click();
+        await flush();
+        expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+        const text = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
+        });
+        expect(text).toContain('データ所有者ID');
+        expect(text).toContain('名前');
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    } finally {
+        URL.createObjectURL = createUrl;
+        URL.revokeObjectURL = revokeUrl;
+    }
 });

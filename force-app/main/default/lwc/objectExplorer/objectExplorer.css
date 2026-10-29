@@ -1,5 +1,5 @@
 :host { display: block; color: var(--slds-g-color-on-surface-1, #181818); }
-main { padding: var(--slds-g-spacing-4, 1rem); background: var(--slds-g-color-surface-2, #f3f3f3); }
+main { padding: var(--slds-g-spacing-4, 1rem); background: transparent; }
 header, .oe-heading, .oe-toolbar, .oe-paging { display: flex; align-items: center; justify-content: space-between; gap: var(--slds-g-spacing-3, .75rem); flex-wrap: wrap; }
 header { margin-bottom: var(--slds-g-spacing-4, 1rem); }
 h1 { font-size: var(--slds-g-font-scale-4, 1.25rem); font-weight: var(--slds-g-font-weight-7, 700); }
@@ -7,8 +7,8 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .oe-panel { padding: var(--slds-g-spacing-4, 1rem); background: var(--slds-g-color-surface-1, #fff); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); margin-bottom: var(--slds-g-spacing-4, 1rem); }
 .oe-toolbar { align-items: flex-end; margin: var(--slds-g-spacing-3, .75rem) 0; }
 .oe-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--slds-g-spacing-2, .5rem); }
-.oe-toolbar-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--slds-g-spacing-4, 1rem); }
-.oe-lookup { margin-inline-start: auto; width: min(100%, 38rem); }
+.oe-toolbar-filters { margin-inline-start: auto; display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--slds-g-spacing-4, 1rem); }
+.oe-lookup { width: min(100%, 38rem); }
 .oe-hint, .oe-api { color: var(--slds-g-color-on-surface-2, #444); font-size: var(--slds-g-font-scale-neg-1, .75rem); }
 .oe-node.oe-selected { background: var(--slds-g-color-info-container-1, #d8e6fe); color: var(--slds-g-color-on-info-1, #0b5cab); }
 .oe-node:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-2, #0250d9); outline-offset: -2px; }
@@ -89,17 +89,18 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 
 /* CSV操作を一覧の上へまとめ、エラー全件を独立した領域で確認 */
 .oe-filter-toolbar { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: var(--slds-g-spacing-4, 1rem); margin-block: var(--slds-g-spacing-4, 1rem); }
-.oe-filter-toolbar .oe-filters { margin: 0; flex: 1; min-width: 0; flex-wrap: nowrap; }
+.oe-filter-toolbar .oe-filters { margin: 0; flex: 0 1 var(--slds-g-sizing-15, 18rem); min-width: 0; flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
 .oe-csv-tools { display: flex; align-items: flex-end; flex-wrap: nowrap; gap: var(--slds-g-spacing-3, .75rem); margin-inline-start: auto; }
 .oe-csv-import { min-width: 0; }
 .oe-csv-label { display: flex; align-items: center; gap: var(--slds-g-spacing-1, .25rem); }
 .oe-csv-errors { max-height: var(--slds-g-sizing-14, 15rem); overflow: auto; overflow-wrap: anywhere; margin-block-end: var(--slds-g-spacing-3, .75rem); padding: var(--slds-g-spacing-3, .75rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); }
 
 /* 検索欄を短めにし、CSV操作と同じ行へ収める */
-.oe-filters > .oe-field-search { flex: 0 1 var(--slds-g-sizing-15, 18rem); min-width: 0; }
+.oe-filters > .oe-field-search { flex: 0 1 auto; min-width: 0; }
 
 /* 日時とユーザー名をカンマ区切りで同じ行に表示 */
 .oe-audit-value { white-space: nowrap; }
 
 /* 作成日・最終更新日のユーザーリンクだけ本文と同じ黒色にする */
 .oe-audit-value a { color: inherit; text-decoration: underline; }
+.oe-client-error { display: block; overflow-wrap: anywhere; margin-block-end: var(--slds-g-spacing-3, .75rem); }

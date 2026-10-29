@@ -2,18 +2,23 @@ import { classifyInput, normalizeClassify, createOwnerOptions } from './objectEx
 import { compareFieldLabels, structureRows } from './objectExplorerFieldLogic';
 
 // 出力と読取で同じ列名・順序を使用し、表示ラベルで項目を推測しない
-const CLASSIFY_CSV_COLUMNS = ['ObjectApiName', 'FieldApiName', 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus', 'BusinessOwnerId'];
+const CLASSIFY_CSV_COLUMNS = ['ObjectLabel', 'ObjectApiName', 'FieldLabel', 'FieldApiName', 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus', 'BusinessOwnerId'];
 // 出力用の日本語列と内部のAPI列を同じ位置で対応付ける
-const CLASSIFY_CSV_LABELS = ['オブジェクトAPI名', '項目API名', 'コンプライアンス分類', 'データ機密度', '項目の利用状況', 'データ所有者ID'];
+const CLASSIFY_CSV_LABELS = ['オブジェクトラベル', 'オブジェクトAPI名', '項目ラベル', '項目API名', 'コンプライアンス分類', 'データ機密度', '項目の利用状況', 'データ所有者ID'];
 // ブラウザの入力検証とDOMのエラー表示を一定の規模へ制限
 export const CLASSIFY_CSV_LIMITS = Object.freeze({ rows: 10000, bytes: 5 * 1024 * 1024, owners: 500 });
 
-// 構造CSVは画面と同じ6列・表示値で全件出力
-export function structureCsv(fields, locale, timeZone) {
+// 構造CSVは項目定義6列に保存済み分類4列を加えて全件出力
+export function structureCsv(fields, locale, timeZone, classifyData = {}) {
     // 項目定義を同じ表示モデルへ変換
-    const rows = structureRows(fields, locale, timeZone).map((field) => [field.label, field.apiName, field.typeLabel, field.custom ? 'True' : 'false', field.createdAudit.text, field.modifiedAudit.text]);
-    // オブジェクト名はファイル名に保持し、画面にない列は出力しない
-    return encodeCsv([['項目ラベル', 'API名', 'データ型', 'カスタム', '作成日', '最終更新日'], ...rows]);
+    const rows = structureRows(fields, locale, timeZone).map((field) => {
+        // 編集可否では除外せず、取得できた保存済みの分類を同じ項目へ対応付ける
+        const info = classifyData[field.apiName] || {};
+        // 分類未取得の項目も行を保持し、分類欄は空欄で出力
+        return [field.label, field.apiName, field.typeLabel, field.custom ? 'True' : 'false', field.createdAudit.text, field.modifiedAudit.text, info.complianceGroup, info.securityClassification, info.businessStatus, info.ownerId];
+    });
+    // オブジェクト名はファイル名に保持し、分類列は分類CSVと同じAPI値を使用
+    return encodeCsv([['項目ラベル', 'API名', 'データ型', 'カスタム', '作成日', '最終更新日', 'コンプライアンス分類', 'データ機密度', '項目の利用状況', 'データ所有者ID'], ...rows]);
 }
 
 // Salesforce利用者のタイムゾーンで出力日時をファイル名へ付加
@@ -32,18 +37,18 @@ function encodeCsv(rows) {
     return '\uFEFF' + rows.map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
 }
 
-// 分類を取得済みの全項目を、編集可否やページ・絞り込みから独立して出力
-export function classifyCsv(objectName, fields, classifyData, edits) {
-    // 分類情報がない項目だけを除外し、読取専用の項目も含める
-    const rows = fields.filter((field) => Object.hasOwn(classifyData, field.apiName) && classifyData[field.apiName]).sort(compareFieldLabels).map((field) => {
+// 編集可能な項目をページ・検索条件から独立して出力
+export function classifyCsv(objectName, fields, classifyData, edits, objectLabel = objectName) {
+    // 一覧と同じ編集可否で分類未取得・編集不可を除外
+    const rows = fields.filter((field) => classifyData[field.apiName]?.editable).sort(compareFieldLabels).map((field) => {
         // 同じAPI名の取得済み分類を出力の基準にする
         const info = classifyData[field.apiName];
-        // 編集中の行は入力値、読取専用の行は取得値を使用
+        // 編集中の行は入力値、それ以外は取得値を使用
         const values = edits[field.apiName]?.draft || info;
         // 所有者の表示名ではなく同じ行のIDを出力
         const ownerId = edits[field.apiName]?.owner.value ?? info.ownerId ?? '';
         // 項目一覧にある全対象をAPI名のまま保持
-        return [objectName, field.apiName, values.complianceGroup, values.securityClassification, values.businessStatus, ownerId];
+        return [objectLabel, objectName, field.label || field.apiName, field.apiName, values.complianceGroup, values.securityClassification, values.businessStatus, ownerId];
     });
     // Excelでも文字コードとセル境界を維持できるようBOMと引用符を付与
     return encodeCsv([CLASSIFY_CSV_LABELS, ...rows]);
@@ -132,7 +137,7 @@ function parseClassifyCsv(text) {
 }
 
 // CSV全体を先に検証し、別の対象・重複・未知の値は一件も反映しない
-export function readClassifyCsv(text, objectName, edits, options, classifyData = {}) {
+export function readClassifyCsv(text, objectName, edits, options, classifyData = {}, fields = []) {
     // ファイル形式の不正は行データへ補完しない
     const parsed = parseClassifyCsv(text);
     // 日本語ヘッダーと既存のAPIヘッダーを固定対応で正規化
@@ -144,8 +149,10 @@ export function readClassifyCsv(text, objectName, edits, options, classifyData =
         // 重複は正規化後に検出し、後勝ちで対応付けない
         return index < 0 ? name : CLASSIFY_CSV_COLUMNS[index];
     });
-    // 列不足・余分な列・重複列を拒否
-    if (header.length !== CLASSIFY_CSV_COLUMNS.length || new Set(header).size !== header.length || CLASSIFY_CSV_COLUMNS.some((name) => !header.includes(name))) { throw new Error(`CSVの列は ${CLASSIFY_CSV_LABELS.join(', ')} にしてください。`); }
+    // 表示用ラベル列は省略可能とし、既存の6列CSVも受け付ける
+    const required = CLASSIFY_CSV_COLUMNS.filter((name) => !['ObjectLabel', 'FieldLabel'].includes(name));
+    // 未知の列・重複列・更新に必要な列の不足を拒否
+    if (new Set(header).size !== header.length || header.some((name) => !CLASSIFY_CSV_COLUMNS.includes(name)) || required.some((name) => !header.includes(name))) { throw new Error(`CSVの列は ${CLASSIFY_CSV_LABELS.join(', ')} にしてください。`); }
     // 同じ項目の二重指定を後勝ちで処理しない
     const seen = new Set();
     // 所有者解決を行う前に全行の形式を検証
@@ -176,7 +183,10 @@ export function readClassifyCsv(text, objectName, edits, options, classifyData =
         if (!edit) {
             // 未取得の行へ空の分類を補完しない
             const info = Object.hasOwn(classifyData, apiName) ? classifyData[apiName] : undefined;
-            // 出力した読取専用行を再入力しても更新対象にはしない
+            // 既知の設定不可項目だけ表示用の値を読み飛ばす
+            const known = Boolean(info) || fields.some((field) => field.apiName === apiName);
+            if (known && !info?.editable && CLASSIFY_CSV_COLUMNS.slice(4).every((key) => values[key] === '設定不可')) { return; }
+            // 旧形式の取得値を含むCSVとの互換性を維持
             if (info && !info.editable && unchangedReadOnlyCsv(values, info)) { return; }
             // 読取専用行の変更や未取得の行はファイル全体のエラー
             errors.push({ line, message: `${apiName}：編集対象外の項目です。読取専用行は変更しないでください。` });

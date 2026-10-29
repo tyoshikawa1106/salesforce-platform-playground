@@ -83,8 +83,11 @@ public inherited sharing class ObjectExplorerSelector {
      * @return 可視ユーザーの候補
      */
     public List<User> selectUsers(String term) {
-        String pattern = '%' + term + '%';
-        List<User> records = [SELECT Id, Name, Username FROM User WHERE IsActive = true AND Name LIKE :pattern
+        // 空欄から全件検索を開始しない
+        if (String.isBlank(term)) { return new List<User>(); }
+        // ワイルドカードを検索文字として扱い、前方一致に限定
+        String pattern = term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%';
+        List<User> records = [SELECT Id, Name, Username FROM User WHERE IsActive = true AND (Name LIKE :pattern OR Email LIKE :pattern)
             WITH USER_MODE ORDER BY Name, Id LIMIT 20];
         return records;
     }
@@ -95,7 +98,10 @@ public inherited sharing class ObjectExplorerSelector {
      * @return 可視グループの候補
      */
     public List<Group> selectGroups(String term) {
-        String pattern = '%' + term + '%';
+        // 空欄から全件検索を開始しない
+        if (String.isBlank(term)) { return new List<Group>(); }
+        // 公開グループ名も同じ前方一致で検索
+        String pattern = term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%';
         List<Group> records = [SELECT Id, Name, DeveloperName FROM Group WHERE Type = 'Regular' AND Name LIKE :pattern
             WITH USER_MODE ORDER BY Name, Id LIMIT 20];
         return records;
