@@ -1,4 +1,5 @@
 <template>
+    <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
     <lightning-card title="取引先一括更新" icon-name="standard:account">
         <div class="slds-p-horizontal_medium">
             <p>法人取引先を検索して、所有者・業種・種別・評価を行ごとに編集できます。1ページ最大200件です。</p>
