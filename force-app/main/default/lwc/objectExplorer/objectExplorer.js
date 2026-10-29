@@ -1545,7 +1545,7 @@ export default class ObjectExplorer extends LightningElement {
         }), Promise.resolve());
     }
     // 空状態のセルを表示モードの列数へ合わせる
-    get fieldColumnCount() { return this.isReference ? 6 : 7; }
+    get fieldColumnCount() { return this.isReference ? 6 : 8; }
     // 分類の取得・保存中だけ見出し右側へ処理中を表示
     get showClassifySpinner() { return this.isClassify && this.busy; }
     // 選択肢と画面見出しで同じモード名を使用
