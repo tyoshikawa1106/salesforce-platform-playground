@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement } from 'lwc';
 import getView from '@salesforce/apex/AccountDeleteController.getView';
 import startRun from '@salesforce/apex/AccountDeleteController.startRun';
@@ -5,7 +6,7 @@ import AccountDeleteConfirm from 'c/accountDeleteConfirm';
 import { createDeleteView } from './accountDeleteLogic';
 
 // 取引先一括削除の確認・受付・結果表示を管理
-export default class AccountDelete extends LightningElement {
+export default class AccountDelete extends withUiErrorBoundary(LightningElement, 'accountDelete') {
     // 最新のサーバー応答を保持
     response;
     // 初回読み込みを含む通信中の操作を抑止
@@ -17,8 +18,14 @@ export default class AccountDelete extends LightningElement {
 
     // 配置時に現在の権限とジョブを確認
     connectedCallback() {
-        // 初期画面を取得結果から構成
-        this.loadView();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 初期画面を取得結果から構成
+            this.loadView();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'connectedCallback', 'lifecycle');
+        }
     }
 
     // Apex応答を表示と操作可否へまとめる
@@ -47,7 +54,9 @@ export default class AccountDelete extends LightningElement {
             if (!this.acceptedJobId && this.view.hasRun) {
                 this.acceptedJobId = this.view.jobId;
             }
-        } catch {
+        } catch (caughtError) {
+            // 例外本文を記録せず、失敗した処理だけを通知
+            this.reportClientError(caughtError, 'loadView', 'processing');
             // 内部の例外内容を画面へ転記しない
             this.errorMessage = '実行状態を取得できませんでした。権限を確認し、「実行状況を確認」を押してください。';
             // 不明な権限状態で開始を許可しない
@@ -60,45 +69,59 @@ export default class AccountDelete extends LightningElement {
 
     // 確認モーダルを経由して削除を受付
     async handleExecute() {
-        // 無効な状態のイベントや連打を無視
-        if (!this.view.canStart) {
-            // 現在の画面を保持
-            return;
-        }
-        // モーダルを重複して開かない
-        this.isBusy = true;
-        // 新しい操作のエラーだけを表示
-        this.errorMessage = '';
-        // 確認と開始要求を順に実行
+        // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 標準モーダルのフォーカス・Escape処理を利用
-            const confirmed = await AccountDeleteConfirm.open({ size: 'small', label: '取引先の削除確認' });
-            // キャンセルや閉じる操作ではApexを呼び出さない
-            if (confirmed !== true) {
-                // 状態変更なしで元の画面へ戻る
+            // 無効な状態のイベントや連打を無視
+            if (!this.view.canStart) {
+                // 現在の画面を保持
                 return;
             }
-            // 最終的な環境・権限・重複判定をApexへ委譲
-            this.response = await startRun();
-            // ジョブIDがある場合だけ受付済みとして扱う
-            this.acceptedJobId = this.response?.jobId || '';
-        } catch {
-            // 受付の成否を断定せず再確認を案内
-            this.errorMessage = '受付結果を確認できませんでした。「実行状況を確認」を押し、Apexジョブを確認してください。';
-            // 応答欠落時に無条件で再実行を許可しない
-            this.response = undefined;
-        } finally {
-            // 通信終了後の状態更新を許可
-            this.isBusy = false;
+            // モーダルを重複して開かない
+            this.isBusy = true;
+            // 新しい操作のエラーだけを表示
+            this.errorMessage = '';
+            // 確認と開始要求を順に実行
+            try {
+                // 標準モーダルのフォーカス・Escape処理を利用
+                const confirmed = await AccountDeleteConfirm.open({ size: 'small', label: '取引先の削除確認' });
+                // キャンセルや閉じる操作ではApexを呼び出さない
+                if (confirmed !== true) {
+                    // 状態変更なしで元の画面へ戻る
+                    return;
+                }
+                // 最終的な環境・権限・重複判定をApexへ委譲
+                this.response = await startRun();
+                // ジョブIDがある場合だけ受付済みとして扱う
+                this.acceptedJobId = this.response?.jobId || '';
+            } catch (caughtError) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(caughtError, 'handleExecute', 'processing');
+                // 受付の成否を断定せず再確認を案内
+                this.errorMessage = '受付結果を確認できませんでした。「実行状況を確認」を押し、Apexジョブを確認してください。';
+                // 応答欠落時に無条件で再実行を許可しない
+                this.response = undefined;
+            } finally {
+                // 通信終了後の状態更新を許可
+                this.isBusy = false;
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleExecute', 'ui-event');
         }
     }
 
     // 手動操作で実行結果を再取得
     handleRefresh() {
-        // 進行中の要求を重ねない
-        if (!this.isBusy) {
-            // 画面の権限とジョブをまとめて更新
-            this.loadView();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 進行中の要求を重ねない
+            if (!this.isBusy) {
+                // 画面の権限とジョブをまとめて更新
+                this.loadView();
+            }
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleRefresh', 'ui-event');
         }
     }
 }

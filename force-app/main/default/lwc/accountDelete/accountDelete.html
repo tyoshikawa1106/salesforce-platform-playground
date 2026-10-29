@@ -1,4 +1,5 @@
 <template>
+    <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
     <lightning-card title="取引先一括削除">
         <div class="slds-p-around_medium">
             <p>実行ユーザーが参照できる取引先を、削除権限に従って一括削除します。個人取引先も対象です。</p>
