@@ -1,5 +1,5 @@
 /**
- * 組織探索のロール・上司構造と候補・人数・公開エラーの生成
+ * 組織探索のロール・上司構造と候補・人数の生成
  */
 public with sharing class OrgExplorerService {
 
@@ -78,29 +78,6 @@ public with sharing class OrgExplorerService {
     }
 
     /**
-     * 安全なエラー情報を生成
-     * @param code 公開可能な固定エラーコード
-     * @return 内部例外や非可視IDを含まないエラー
-     */
-    public OrgExplorerError createError(String code) {
-        // エラーの全文をサーバー定義から選択
-        Map<String, String> messages = new Map<String, String>{
-            'INVALID_REQUEST' => '入力内容を確認してください。',
-            'ACCESS_DENIED' => '必要な参照権限がありません。管理者へ確認してください。',
-            'NOT_FOUND_OR_UNAVAILABLE' => '対象を表示できません。検索または再読込をお試しください。',
-            'INVALID_CURSOR' => 'ページの有効期限または条件が変わりました。再読込してください。',
-            'SERVER_ERROR' => '取得できませんでした。時間をおいて再試行してください。'
-        };
-        // 任意の例外メッセージを含めない
-        OrgExplorerError error = new OrgExplorerError();
-        // 未定義のコードは安全な一般エラーへ統一
-        error.code = messages.containsKey(code) ? code : 'SERVER_ERROR';
-        // 固定の説明を設定
-        error.message = messages.get(error.code);
-        // 安全な失敗情報を返却
-        return error;
-    }
-    /**
      * 構造ページと可視性確認済みの関連先を受け渡す照会結果
      */
     public class ManagerPageData {
@@ -164,14 +141,8 @@ public with sharing class OrgExplorerService {
         Boolean hasMore = groups.size() > structurePageSize;
         // 非公開IDをカーソルに含めず、部分的な構造の完了を偽らない
         if (records.isEmpty() && hasMore) {
-            // 部分構造を成功として返さない独立した応答を生成
-            OrgExplorerPageResponse unavailable = new OrgExplorerPageResponse();
-            // 参照不能な集計ページを取得失敗とする
-            unavailable.ok = false;
-            // 不可視の上司IDを含まないエラーを設定
-            unavailable.error = createError('ACCESS_DENIED');
-            // 継続位置の公開を止めて呼び出し元へ通知
-            return unavailable;
+            // 非可視のIDや途中の構造を返さず、公開例外として通知
+            throw OrgExplorerAccessPolicy.createException('ACCESS_DENIED');
         }
         // 親の可視性は上司本人の参照とは別に確認
         Set<Id> visibleParents = new Map<Id, User>(wrapper.parents).keySet();
@@ -229,17 +200,6 @@ public with sharing class OrgExplorerService {
         UserRole role = roleMap.get(record.UserRoleId);
         // 可視名称とその参照状態を同時に返却
         return new Map<String, String>{ 'name' => role?.Name ?? '', 'state' => role == null ? 'UNAVAILABLE' : 'VALUE' };
-    }
-
-    /**
-     * 指定された上司の可視性を照会結果から確認
-     * @param request 検証済みのページ要求
-     * @param records 指定上司の可視性を再確認した結果
-     * @return 起点未指定または指定上司が可視の場合にtrue
-     */
-    public Boolean canReadManagerParent(OrgExplorerPageRequest request, List<User> records) {
-        // 非存在と非可視を同じ結果にする
-        return request.parentId == null || !records.isEmpty();
     }
 
     /**

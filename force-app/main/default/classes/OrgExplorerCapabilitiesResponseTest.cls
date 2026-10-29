@@ -14,8 +14,6 @@ private with sharing class OrgExplorerCapabilitiesResponseTest {
             Test.startTest();
             OrgExplorerCapabilitiesResponse value = new OrgExplorerCapabilitiesResponse();
             Test.stopTest();
-            Assert.areEqual(true, value.ok, 'okの初期契約を維持');
-            Assert.isNull(value.error, 'errorを未設定として扱う');
             Assert.isTrue(value.cardFieldLabels.isEmpty(), '参照確認前にラベルを公開しない');
             Assert.areEqual(false, value.managerModeEnabled, 'managerModeEnabledの初期契約を維持');
             Assert.areEqual(false, value.roleModeEnabled, 'roleModeEnabledの初期契約を維持');

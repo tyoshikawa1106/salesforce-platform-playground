@@ -14,8 +14,6 @@ private with sharing class OrgExplorerPageResponseTest {
             Test.startTest();
             OrgExplorerPageResponse value = new OrgExplorerPageResponse();
             Test.stopTest();
-            Assert.areEqual(true, value.ok, 'okの初期契約を維持');
-            Assert.isNull(value.error, 'errorを未設定として扱う');
             Assert.areEqual(false, value.hasMore, 'hasMoreの初期契約を維持');
             Assert.isNull(value.paginationCursor, 'paginationCursorを未設定として扱う');
             Assert.isNull(value.memberTotalCount, 'memberTotalCountを未設定として扱う');

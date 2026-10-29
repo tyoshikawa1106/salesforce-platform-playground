@@ -37,7 +37,6 @@ const user = {
     departmentState: 'EMPTY'
 };
 const caps = {
-    ok: true,
     managerModeEnabled: true,
     roleModeEnabled: true,
     roleMembersEnabled: true,
@@ -47,10 +46,12 @@ const rootTarget = { key: 'ROLE:root', recordId: 'root', kind: 'ROLE', label: '�
 
 async function openPendingManagerLookup() {
     let resolveStructure;
+    let rejectStructure;
     managerPages.mockImplementationOnce(
         () =>
-            new Promise((resolve) => {
+            new Promise((resolve, reject) => {
                 resolveStructure = resolve;
+                rejectStructure = reject;
             })
     );
     const element = createElement('c-org-explorer', { is: OrgExplorer });
@@ -61,17 +62,16 @@ async function openPendingManagerLookup() {
     const lookup = element.shadowRoot.querySelector('c-org-explorer-search');
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
-    return { element, lookup, resolveStructure };
+    return { element, lookup, resolveStructure, rejectStructure };
 }
 beforeEach(() => {
     getPage.mockImplementation((input) => (input.request.mode === 'MANAGER' ? managerPages(input) : rolePages(input)));
     mockGenerateUrl.mockImplementation((reference) => Promise.resolve(`/profile/${reference.attributes.recordId}`));
     getCapabilities.mockResolvedValue(caps);
-    managerPages.mockResolvedValue({ ok: true, nodes: [], hasMore: false });
-    searchManagers.mockResolvedValue({ ok: true, nodes: [], hasMore: false });
+    managerPages.mockResolvedValue({ nodes: [], hasMore: false });
+    searchManagers.mockResolvedValue({ nodes: [], hasMore: false });
     rolePages.mockImplementation(({ request }) =>
         Promise.resolve({
-            ok: true,
             nodes:
                 request.scope === 'ROLE_STRUCTURE'
                     ? [{ ...rootTarget, key: `ROLE:${request.parentId}`, recordId: request.parentId }]
@@ -79,7 +79,7 @@ beforeEach(() => {
             hasMore: false
         })
     );
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'root', label: '本部' }], hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'root', label: '本部' }], hasMore: false });
 });
 afterEach(() => {
     while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
@@ -109,7 +109,7 @@ it('指定した起点から始め、無効ユーザーを初期表示に含め�
     await expect(element).toBeAccessible();
 });
 it('サーバー失敗を表示し、前の人物の詳細で補わない', async () => {
-    getCapabilities.mockResolvedValue({ ok: false, error: { message: '参照権限がありません。' } });
+    getCapabilities.mockRejectedValue({ body: { message: '参照権限がありません。' } });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -124,7 +124,7 @@ it('候補の選択で指定した部分木へ自動で表示を切り替える'
     await flush();
     const search = element.shadowRoot.querySelector('c-org-explorer-search');
     search.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '営業' } }));
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
     jest.advanceTimersByTime(300);
     await flush();
     search.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'sales' } }));
@@ -157,7 +157,7 @@ it('表示条件変更前の遅延応答を反映しない', async () => {
     expect(rolePages).toHaveBeenLastCalledWith({
         request: expect.objectContaining({ mode: 'ROLE', scope: 'ROLE_STRUCTURE', includeInactive: false })
     });
-    resolveOld({ ok: true, hasMore: false, nodes: [{ ...user, label: '古い対象' }] });
+    resolveOld({ hasMore: false, nodes: [{ ...user, label: '古い対象' }] });
     await flush();
     expect(
         element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows.some((row) => row.label === '古い対象')
@@ -175,8 +175,8 @@ it('表示条件を繰り返し変えても送信中のAPIは二つまでに抑�
                 active -= 1;
                 resolve(
                     request.scope === 'ROLE_STRUCTURE'
-                        ? { ok: true, nodes: [rootTarget], hasMore: false }
-                        : { ok: true, nodes: [], hasMore: false }
+                        ? { nodes: [rootTarget], hasMore: false }
+                        : { nodes: [], hasMore: false }
                 );
             })
         );
@@ -224,7 +224,7 @@ it('取得中はスピナーを表示し、取得完了で消す', async () => {
     document.body.appendChild(element);
     await flush();
     expect(element.shadowRoot.querySelector('.c-spinner')).not.toBeNull();
-    resolvePage({ ok: true, nodes: [], hasMore: false });
+    resolvePage({ nodes: [], hasMore: false });
     await flush();
     expect(element.shadowRoot.querySelector('.c-spinner')).toBeNull();
 });
@@ -234,7 +234,7 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
     const first = { ...user, key: 'USER:first', recordId: 'first', parentKey: child.key };
     const second = { ...user, key: 'USER:second', recordId: 'second', parentKey: child.key };
     rolePages.mockImplementation(({ request }) => {
-        let response = { ok: true, nodes: [], hasMore: false };
+        let response = { nodes: [], hasMore: false };
 
         if (request.scope === 'ROLE_STRUCTURE') {
             response.nodes = [root, child];
@@ -242,8 +242,8 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
         }
         if (request.scope === 'ROLE_MEMBERS' && request.parentId === 'child') {
             response = request.startIndex
-                ? { ok: true, nodes: [second], hasMore: false, paginationCursor: { token: 'members' }, nextIndex: 52 }
-                : { ok: true, nodes: [first], hasMore: true, paginationCursor: { token: 'members' }, nextIndex: 51 };
+                ? { nodes: [second], hasMore: false, paginationCursor: { token: 'members' }, nextIndex: 52 }
+                : { nodes: [first], hasMore: true, paginationCursor: { token: 'members' }, nextIndex: 51 };
             response.memberTotalCount = 51;
         }
         return Promise.resolve(response);
@@ -316,11 +316,10 @@ it('200件を超えるロールも表示モデルから除外しない', async (
         parentKey: 'ROLE:root'
     }));
     rolePages.mockImplementation(({ request }) => {
-        if (request.scope !== 'ROLE_STRUCTURE') return Promise.resolve({ ok: true, nodes: [], hasMore: false });
+        if (request.scope !== 'ROLE_STRUCTURE') return Promise.resolve({ nodes: [], hasMore: false });
         const start = Number(request.cursor || 0);
         const end = Math.min(roots.length, start + 1000);
         return Promise.resolve({
-            ok: true,
             nodes: [rootTarget, ...roots.slice(start, end)],
             hasMore: end < roots.length,
             nextCursor: end < roots.length ? String(end) : ''
@@ -346,7 +345,7 @@ it.each(['', '   ', null, undefined])('初期ロール設定が空なら照会�
     await expect(element).toBeAccessible();
 });
 it('初期ロールが見つからなければ空欄で全ロールを表示し、再取得でも初期値を再照会しない', async () => {
-    searchRoles.mockResolvedValue({ ok: true, nodes: [], hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [], hasMore: false });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -368,7 +367,7 @@ it('初期ロールはAPI名の前後空白を除いて解決する', async () =
     expect(rolePages).toHaveBeenCalledWith({ request: expect.objectContaining({ parentId: 'root' }) });
 });
 it('初期ロールの照会失敗では全ロール取得へ進まずエラーを表示する', async () => {
-    searchRoles.mockResolvedValue({ ok: false, error: { message: '初期ロールの照会に失敗しました。' } });
+    searchRoles.mockRejectedValue({ body: { message: '初期ロールの照会に失敗しました。' } });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -422,16 +421,16 @@ it('入力変更後に完了した旧ロール候補を表示しない', async (
     jest.advanceTimersByTime(300);
     await flush();
     search.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '経理' } }));
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'accounting', label: '経理部' }], hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'accounting', label: '経理部' }], hasMore: false });
     jest.advanceTimersByTime(300);
     await flush();
-    resolveOld({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
+    resolveOld({ nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
     await flush();
     expect(search.results.map((item) => item.targetId)).toEqual(['accounting']);
     expect(search.loading).toBe(false);
 });
 it('候補選択後に起点が参照できなくなった場合は配下を取得しない', async () => {
-    rolePages.mockResolvedValue({ ok: false, error: { message: '対象を表示できません。' } });
+    rolePages.mockRejectedValue({ body: { message: '対象を表示できません。' } });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -444,7 +443,7 @@ it('表示条件変更時に前の候補上限の案内を残さない', async (
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: true });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: true });
     const search = element.shadowRoot.querySelector('c-org-explorer-search');
     search.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '営業' } }));
     jest.advanceTimersByTime(300);
@@ -460,7 +459,6 @@ it('未入力で開くと最上位の候補だけを一回取得する', async (
     document.body.appendChild(element);
     await flush();
     searchRoles.mockResolvedValue({
-        ok: true,
         nodes: [
             { recordId: 'company', label: '会社' },
             { recordId: 'ceo', label: 'CEO' }
@@ -482,7 +480,7 @@ it('一文字目から前方一致で候補を取得する', async () => {
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
     const search = element.shadowRoot.querySelector('c-org-explorer-search');
     search.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '営' } }));
     jest.advanceTimersByTime(300);
@@ -499,8 +497,8 @@ it('100段のロール構造を一回で取得し、再展開でも通信しな�
         label: `階層${i}`,
         parentKey: i === 0 ? '' : `ROLE:chain${i - 1}`
     }));
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'chain0', label: '階層0' }], hasMore: false });
-    rolePages.mockResolvedValue({ ok: true, nodes: chain, memberCounts: { chain0: 8 }, hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'chain0', label: '階層0' }], hasMore: false });
+    rolePages.mockResolvedValue({ nodes: chain, memberCounts: { chain0: 8 }, hasMore: false });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -519,7 +517,7 @@ it('1000件境界を自動取得し、後のページにある起点へ接続し
         parentKey: 'ROLE:root'
     }));
     rolePages
-        .mockResolvedValueOnce({ ok: true, nodes: children, hasMore: true, nextCursor: 'structure-next' })
+        .mockResolvedValueOnce({ nodes: children, hasMore: true, nextCursor: 'structure-next' })
         .mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
@@ -530,7 +528,7 @@ it('1000件境界を自動取得し、後のページにある起点へ接続し
     document.body.appendChild(element);
     await flush();
     expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows).toHaveLength(0);
-    finish({ ok: true, nodes: [rootTarget, { ...rootTarget, key: 'ROLE:outside', recordId: 'outside' }], hasMore: false });
+    finish({ nodes: [rootTarget, { ...rootTarget, key: 'ROLE:outside', recordId: 'outside' }], hasMore: false });
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(2);
     expect(rolePages).toHaveBeenLastCalledWith({
@@ -541,7 +539,7 @@ it('1000件境界を自動取得し、後のページにある起点へ接続し
     expect(rows.some((row) => row.key === 'ROLE:outside')).toBe(false);
 });
 it('不正な構造カーソルを繰り返し取得しない', async () => {
-    rolePages.mockResolvedValue({ ok: true, nodes: [rootTarget], hasMore: true, nextCursor: 'repeat' });
+    rolePages.mockResolvedValue({ nodes: [rootTarget], hasMore: true, nextCursor: 'repeat' });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -550,7 +548,7 @@ it('不正な構造カーソルを繰り返し取得しない', async () => {
 });
 
 it('上司構造の不正な継続位置をロールと案内しない', async () => {
-    managerPages.mockResolvedValue({ ok: true, nodes: [user], hasMore: true, nextCursor: 'repeat' });
+    managerPages.mockResolvedValue({ nodes: [user], hasMore: true, nextCursor: 'repeat' });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -567,9 +565,9 @@ it.each(['ROLE', 'MANAGER'])('選択した表示対象が構造に存在しな�
     if (mode === 'MANAGER') {
         element.shadowRoot.querySelector('[data-mode="MANAGER"]').click();
         await flush();
-        searchManagers.mockResolvedValue({ ok: true, nodes: [user], hasMore: false });
+        searchManagers.mockResolvedValue({ nodes: [user], hasMore: false });
     } else {
-        rolePages.mockResolvedValue({ ok: true, nodes: [], hasMore: false });
+        rolePages.mockResolvedValue({ nodes: [], hasMore: false });
     }
     const lookup = element.shadowRoot.querySelector('c-org-explorer-search');
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: mode === 'ROLE' } }));
@@ -596,7 +594,6 @@ it('空の起点で全ロールをページ取得し、表示条件変更でも�
     const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '部門', parentKey: rootTarget.key };
     rolePages.mockImplementation(({ request }) =>
         Promise.resolve({
-            ok: true,
             nodes: request.cursor ? [other, child] : [rootTarget],
             hasMore: !request.cursor,
             nextCursor: request.cursor ? '' : 'all-next'
@@ -625,7 +622,7 @@ it('候補選択の直後に解除した場合、遅れて届いた選択範囲�
     document.body.appendChild(element);
     await flush();
     const search = element.shadowRoot.querySelector('c-org-explorer-search');
-    searchRoles.mockResolvedValue({ ok: true, nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
+    searchRoles.mockResolvedValue({ nodes: [{ recordId: 'sales', label: '営業部' }], hasMore: false });
     search.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
     let resolveSelected;
@@ -636,7 +633,7 @@ it('候補選択の直後に解除した場合、遅れて届いた選択範囲�
                 resolveSelected = resolve;
             });
         }
-        return Promise.resolve({ ok: true, nodes: [rootTarget, other], hasMore: false });
+        return Promise.resolve({ nodes: [rootTarget, other], hasMore: false });
     });
     search.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'sales' } }));
     await flush();
@@ -646,7 +643,7 @@ it('候補選択の直後に解除した場合、遅れて届いた選択範囲�
     const currentKeys = () =>
         element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows.map((row) => row.key);
     expect(currentKeys()).toEqual([rootTarget.key, other.key]);
-    resolveSelected({ ok: true, nodes: [{ ...rootTarget, key: 'ROLE:sales', recordId: 'sales' }], hasMore: false });
+    resolveSelected({ nodes: [{ ...rootTarget, key: 'ROLE:sales', recordId: 'sales' }], hasMore: false });
     await flush();
     expect(currentKeys()).toEqual([rootTarget.key, other.key]);
     expect(search.selectedTarget).toBeNull();
@@ -659,13 +656,11 @@ it('上司に切り替えて構造とメンバーを取得しロールの起点�
         Promise.resolve(
             request.scope === 'MANAGER_STRUCTURE'
                 ? {
-                      ok: true,
                       nodes: [manager, child],
                       memberCounts: { boss: 12, 'child-manager': 3 },
                       hasMore: false
                   }
                 : {
-                      ok: true,
                       nodes: [{ ...user, profileName: '標準ユーザー', roleName: '営業担当' }],
                       memberColumns: ['label', 'profileName', 'roleName'],
                       memberColumnLabels: { label: '氏名' },
@@ -721,8 +716,8 @@ it.each([
         action.mockImplementation(({ request }) =>
             Promise.resolve(
                 request.scope.endsWith('_STRUCTURE')
-                    ? { ok: true, nodes: [target], memberCounts: { [target.recordId]: structureCount } }
-                    : { ok: true, nodes: [user], memberTotalCount: totalCount, hasMore, nextIndex: hasMore ? 50 : 0 }
+                    ? { nodes: [target], memberCounts: { [target.recordId]: structureCount } }
+                    : { nodes: [user], memberTotalCount: totalCount, hasMore, nextIndex: hasMore ? 50 : 0 }
             )
         );
         const element = createElement('c-org-explorer', { is: OrgExplorer });
@@ -763,13 +758,12 @@ it('所属一覧の古い応答で選択ロール名とユーザーを上書き�
     const other = { ...rootTarget, key: 'ROLE:other', recordId: 'other', parentKey: rootTarget.key, label: '経理部' };
     let resolveOld;
     rolePages.mockImplementation(({ request }) => {
-        if (request.scope === 'ROLE_STRUCTURE') return Promise.resolve({ ok: true, nodes: [rootTarget, other] });
+        if (request.scope === 'ROLE_STRUCTURE') return Promise.resolve({ nodes: [rootTarget, other] });
         if (request.parentId === 'root')
             return new Promise((resolve) => {
                 resolveOld = resolve;
             });
         return Promise.resolve({
-            ok: true,
             nodes: [{ ...user, label: '現在のユーザー' }],
             memberColumns: ['label'],
             memberColumnLabels: { label: '氏名' }
@@ -784,7 +778,6 @@ it('所属一覧の古い応答で選択ロール名とユーザーを上書き�
     canvas.dispatchEvent(new CustomEvent('nodeselect', { detail: { key: other.key } }));
     await flush();
     resolveOld({
-        ok: true,
         nodes: [{ ...user, label: '古いユーザー' }],
         memberColumns: ['label', 'email'],
         memberColumnLabels: { label: '古い氏名', email: '古いメール' }
@@ -800,7 +793,7 @@ it('所属一覧取得の失敗をユーザーゼロ件と区別する', async (
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    rolePages.mockResolvedValue({ ok: false, error: { message: '所属ユーザーを参照できません。' } });
+    rolePages.mockRejectedValue({ body: { message: '所属ユーザーを参照できません。' } });
     element.shadowRoot
         .querySelector('c-org-explorer-canvas')
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: rootTarget.key } }));
@@ -817,7 +810,6 @@ it('氏名と上司を標準Userページへ対応させ、同じ上司のURLを
     document.body.appendChild(element);
     await flush();
     rolePages.mockResolvedValue({
-        ok: true,
         nodes: [
             { ...user, managerId: 'manager', managerName: '上司' },
             { ...user, recordId: 'other', managerId: 'manager', managerName: '上司' }
@@ -846,12 +838,11 @@ it.each(['ROLE', 'MANAGER'])('URL生成に失敗した場合は取得中を終�
     document.body.appendChild(element);
     await flush();
     if (mode === 'MANAGER') {
-        managerPages.mockResolvedValue({ ok: true, nodes: [user], hasMore: false });
+        managerPages.mockResolvedValue({ nodes: [user], hasMore: false });
         element.shadowRoot.querySelector('[data-mode="MANAGER"]').click();
         await flush();
     }
     rolePages.mockResolvedValue({
-        ok: true,
         nodes: [user],
         memberColumns: ['label'],
         memberColumnLabels: { label: '氏名' }
@@ -872,7 +863,6 @@ it('リンク生成を待つ間に別ロールへ移った場合は古い一覧�
     const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', parentKey: rootTarget.key, label: '別部署' };
     rolePages.mockImplementation(({ request }) =>
         Promise.resolve({
-            ok: true,
             nodes: request.scope === 'ROLE_STRUCTURE' ? [rootTarget, child] : [{ ...user, recordId: request.parentId }],
             memberColumns: ['label'],
             memberColumnLabels: { label: '氏名' }
@@ -936,7 +926,6 @@ it('上司の未入力候補は全ページの上位20人を通信せず表示�
     }));
     managerPages.mockImplementation(({ request }) =>
         Promise.resolve({
-            ok: true,
             nodes: request.cursor ? [boss] : children,
             hasMore: !request.cursor,
             nextCursor: request.cursor ? '' : 'manager-next'
@@ -962,7 +951,7 @@ it('上司の未入力候補は全ページの上位20人を通信せず表示�
     await flush();
     expect(lookup.results[0].targetId).toBe('boss');
     expect(searchManagers).not.toHaveBeenCalled();
-    managerPages.mockResolvedValue({ ok: true, nodes: [boss, children[0]], hasMore: false });
+    managerPages.mockResolvedValue({ nodes: [boss, children[0]], hasMore: false });
     element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
@@ -970,7 +959,7 @@ it('上司の未入力候補は全ページの上位20人を通信せず表示�
     expect(lookup.results.map((item) => item.targetId)).toEqual(['boss', 'child0']);
     expect(lookup.hasMore).toBe(false);
     expect(searchManagers).not.toHaveBeenCalled();
-    searchManagers.mockResolvedValue({ ok: true, nodes: [{ ...boss, label: '部門長' }], hasMore: false });
+    searchManagers.mockResolvedValue({ nodes: [{ ...boss, label: '部門長' }], hasMore: false });
     lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '部' } }));
     await jest.advanceTimersByTimeAsync(300);
     await flush();
@@ -996,12 +985,12 @@ it('読み込み中に開いた未入力候補は全構造の取得完了後に�
     );
     const boss = { ...user, key: 'USER:boss', recordId: 'boss', label: '上位上司' };
     const child = { ...user, parentKey: boss.key };
-    resolveStructure({ ok: true, nodes: [child], hasMore: true, nextCursor: 'next' });
+    resolveStructure({ nodes: [child], hasMore: true, nextCursor: 'next' });
     await flush();
     expect(lookup.loading).toBe(true);
     expect(lookup.searched).toBe(false);
     expect(lookup.results).toEqual([]);
-    resolveNext({ ok: true, nodes: [boss], hasMore: false });
+    resolveNext({ nodes: [boss], hasMore: false });
     await flush();
     expect(lookup.loading).toBe(false);
     expect(lookup.searched).toBe(true);
@@ -1014,12 +1003,12 @@ it('読み込み中に開いた未入力候補は全構造の取得完了後に�
 it('構造待機中に氏名を入力したら後着の未入力候補で検索結果を上書きしない', async () => {
     jest.useFakeTimers();
     const { lookup, resolveStructure } = await openPendingManagerLookup();
-    searchManagers.mockResolvedValue({ ok: true, nodes: [{ ...user, label: '検索対象' }], hasMore: false });
+    searchManagers.mockResolvedValue({ nodes: [{ ...user, label: '検索対象' }], hasMore: false });
     lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '検索' } }));
     await jest.advanceTimersByTimeAsync(300);
     await flush();
     expect(lookup.results.map((hit) => hit.label)).toEqual(['検索対象']);
-    resolveStructure({ ok: true, nodes: [{ ...user, label: '上位候補' }], hasMore: false });
+    resolveStructure({ nodes: [{ ...user, label: '上位候補' }], hasMore: false });
     await flush();
     expect(lookup.results.map((hit) => hit.label)).toEqual(['検索対象']);
     expect(lookup.loading).toBe(false);
@@ -1032,7 +1021,7 @@ it.each(['mode', 'clear', 'inactive'])('構造待機中の%s操作で古い候�
     else if (action === 'clear') lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '' } }));
     else element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
-    resolveStructure({ ok: true, nodes: [{ ...user, label: '古い上司' }], hasMore: false });
+    resolveStructure({ nodes: [{ ...user, label: '古い上司' }], hasMore: false });
     await flush();
     expect(lookup.results).toEqual([]);
     expect(lookup.searched).toBe(false);
@@ -1041,8 +1030,8 @@ it.each(['mode', 'clear', 'inactive'])('構造待機中の%s操作で古い候�
 });
 
 it('構造取得失敗を候補なしと誤表示せず検索中状態を終了する', async () => {
-    const { element, lookup, resolveStructure } = await openPendingManagerLookup();
-    resolveStructure({ ok: false, error: { message: '構造を取得できません。' } });
+    const { element, lookup, rejectStructure } = await openPendingManagerLookup();
+    rejectStructure({ body: { message: '構造を取得できません。' } });
     await flush();
     expect(lookup.results).toEqual([]);
     expect(lookup.searched).toBe(false);
@@ -1052,7 +1041,7 @@ it('構造取得失敗を候補なしと誤表示せず検索中状態を終了�
 
 it('構造取得が成功して上司がゼロ件の場合だけ候補なしを確定する', async () => {
     const { lookup, resolveStructure } = await openPendingManagerLookup();
-    resolveStructure({ ok: true, nodes: [], hasMore: false });
+    resolveStructure({ nodes: [], hasMore: false });
     await flush();
     expect(lookup.results).toEqual([]);
     expect(lookup.searched).toBe(true);
@@ -1064,8 +1053,8 @@ it('カード選択と所属一覧のページ移動で配置済みの接続線�
     rolePages.mockImplementation(({ request }) =>
         Promise.resolve(
             request.scope === 'ROLE_STRUCTURE'
-                ? { ok: true, nodes: [rootTarget, child], hasMore: false }
-                : { ok: true, nodes: [user], hasMore: true, paginationCursor: { token: 'direct' }, nextIndex: 50 }
+                ? { nodes: [rootTarget, child], hasMore: false }
+                : { nodes: [user], hasMore: true, paginationCursor: { token: 'direct' }, nextIndex: 50 }
         )
     );
     const element = createElement('c-org-explorer', { is: OrgExplorer });
@@ -1093,8 +1082,8 @@ it('同じカードの取得中クリックは照会を増やさず、失敗後�
     let complete;
     rolePages.mockImplementation(
         () =>
-            new Promise((resolve) => {
-                complete = resolve;
+            new Promise((resolve, reject) => {
+                complete = reject;
             })
     );
     const canvas = element.shadowRoot.querySelector('c-org-explorer-canvas');
@@ -1105,12 +1094,12 @@ it('同じカードの取得中クリックは照会を増やさず、失敗後�
     select();
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(count);
-    complete({ ok: false, error: { message: '所属一覧の一時的な失敗' } });
+    complete({ body: { message: '所属一覧の一時的な失敗' } });
     await flush();
     const details = element.shadowRoot.querySelector('c-org-explorer-details');
     expect(details.error).toContain('一時的な失敗');
     expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
-    rolePages.mockResolvedValue({ ok: true, nodes: [user], memberColumns: ['label'], hasMore: false });
+    rolePages.mockResolvedValue({ nodes: [user], memberColumns: ['label'], hasMore: false });
     select();
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(count + 1);
@@ -1134,7 +1123,7 @@ it.each([
     const lookup = element.shadowRoot.querySelector('c-org-explorer-search');
     const input = lookup.shadowRoot.querySelector('input');
     const search = mode === 'ROLE' ? searchRoles : searchManagers;
-    search.mockResolvedValueOnce({ ok: true, nodes: [{ recordId: 'previous', label: '候補A' }], hasMore: true });
+    search.mockResolvedValueOnce({ nodes: [{ recordId: 'previous', label: '候補A' }], hasMore: true });
     input.value = '候補';
     input.dispatchEvent(new CustomEvent('input'));
     input.click();
@@ -1143,7 +1132,7 @@ it.each([
     expect(lookup.hasMore).toBe(true);
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     if (failure === 'network') search.mockRejectedValueOnce(new Error('一時的な通信エラー'));
-    else search.mockResolvedValueOnce({ ok: false, error: { code: 'ACCESS_DENIED', message: '参照権限なし' } });
+    else search.mockRejectedValueOnce({ body: { message: '参照権限なし' } });
     input.click();
     await flush();
     expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(
@@ -1158,7 +1147,7 @@ it.each([
     lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: 'previous' } }));
     await flush();
     expect(getPage).toHaveBeenCalledTimes(pageCalls);
-    search.mockResolvedValueOnce({ ok: true, nodes: [{ recordId: 'current', label: '候補B' }], hasMore: false });
+    search.mockResolvedValueOnce({ nodes: [{ recordId: 'current', label: '候補B' }], hasMore: false });
     input.click();
     await flush();
     expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
@@ -1186,7 +1175,7 @@ it('前の入力の失敗が遅れて届いても新しい入力の候補を破�
     input.dispatchEvent(new CustomEvent('input'));
     input.click();
     await flush();
-    searchRoles.mockResolvedValueOnce({ ok: true, nodes: [{ recordId: 'current', label: '新候補' }], hasMore: true });
+    searchRoles.mockResolvedValueOnce({ nodes: [{ recordId: 'current', label: '新候補' }], hasMore: true });
     input.value = '新';
     input.dispatchEvent(new CustomEvent('input'));
     input.click();
@@ -1201,7 +1190,7 @@ it('前の入力の失敗が遅れて届いても新しい入力の候補を破�
 });
 
 it('候補検索が成功しても構造取得の失敗は消さない', async () => {
-    rolePages.mockResolvedValue({ ok: false, error: { message: '構造取得に失敗' } });
+    rolePages.mockRejectedValue({ body: { message: '構造取得に失敗' } });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
@@ -1209,7 +1198,7 @@ it('候補検索が成功しても構造取得の失敗は消さない', async (
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
     expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('構造取得に失敗');
-    searchRoles.mockResolvedValueOnce({ ok: false, error: { message: '候補取得に失敗' } });
+    searchRoles.mockRejectedValueOnce({ body: { message: '候補取得に失敗' } });
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
     expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('構造取得に失敗');
@@ -1218,13 +1207,10 @@ it('候補検索が成功しても構造取得の失敗は消さない', async (
 it('標準カーソル失効時は古い一覧を消し、同じカードの再選択で先頭から取得し直す', async () => {
     const cursor = { token: 'standard-members' };
     rolePages.mockImplementation(({ request }) => {
-        if (request.scope === 'ROLE_STRUCTURE') return Promise.resolve({ ok: true, nodes: [rootTarget] });
+        if (request.scope === 'ROLE_STRUCTURE') return Promise.resolve({ nodes: [rootTarget] });
         if (request.startIndex > 0)
-            return Promise.resolve({
-                ok: false,
-                error: { code: 'INVALID_CURSOR', message: 'ページを再取得してください。' }
-            });
-        return Promise.resolve({ ok: true, nodes: [user], paginationCursor: cursor, nextIndex: 53, hasMore: true });
+            return Promise.reject({ body: { message: 'ページを再取得してください。' } });
+        return Promise.resolve({ nodes: [user], paginationCursor: cursor, nextIndex: 53, hasMore: true });
     });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
@@ -1255,9 +1241,8 @@ it('標準カーソルの上限案内は成功した一覧だけに表示し、�
     rolePages.mockImplementation(({ request }) =>
         Promise.resolve(
             request.scope === 'ROLE_STRUCTURE'
-                ? { ok: true, nodes: [rootTarget] }
+                ? { nodes: [rootTarget] }
                 : {
-                      ok: true,
                       nodes: [user],
                       hasMore: false,
                       paginationCursor: { token: 'limited' },
@@ -1277,4 +1262,22 @@ it('標準カーソルの上限案内は成功した一覧だけに表示し、�
     await flush();
     expect(element.shadowRoot.querySelector('.c-panel > p[role="status"]')).toBeNull();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows).toEqual([]);
+});
+
+
+it('所属一覧の通信失敗をリンク生成失敗と誤表示せず、内部情報も公開しない', async () => {
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    rolePages.mockRejectedValueOnce(new Error('内部の通信詳細'));
+    element.shadowRoot.querySelector('c-org-explorer-canvas')
+        .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: rootTarget.key } }));
+    await flush();
+    const details = element.shadowRoot.querySelector('c-org-explorer-details');
+    expect(details.error).toContain('所属ユーザーを取得できませんでした');
+    expect(details.error).not.toContain('リンク');
+    expect(details.error).not.toContain('内部の通信詳細');
+    expect(details.rows).toEqual([]);
+    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    await expect(element).toBeAccessible();
 });

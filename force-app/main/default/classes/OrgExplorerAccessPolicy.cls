@@ -1,5 +1,5 @@
 /**
- * 組織探索のモードと任意項目の参照可否
+ * 組織探索の参照可否と公開例外の生成
  */
 public with sharing class OrgExplorerAccessPolicy {
 
@@ -219,5 +219,54 @@ public with sharing class OrgExplorerAccessPolicy {
     private Boolean canRead(Map<String, Schema.SObjectField> fields, String name) {
         // Describeで取得可能な項目だけを許可
         return fields.containsKey(name) && fields.get(name).getDescribe().isAccessible();
+    }
+    /**
+     * 要求の検証エラーを公開例外として通知
+     * @param code 検証結果、nullまたは空文字は成功
+     */
+    public static void requireValidRequest(String code) {
+        if (String.isNotEmpty(code)) {
+            throw createException(code);
+        }
+    }
+
+    /**
+     * 公開APIの失敗を内部情報を含まない例外へ変換
+     * @param error 公開APIで捕捉した例外
+     * @return 公開済みの例外、または固定メッセージの例外
+     */
+    public static AuraHandledException toPublicException(Exception error) {
+        if (error instanceof AuraHandledException) {
+            return (AuraHandledException) error;
+        }
+        String code = 'SERVER_ERROR';
+        if (error instanceof QueryException) {
+            code = 'ACCESS_DENIED';
+        } else if (error instanceof System.FatalCursorException) {
+            code = 'INVALID_CURSOR';
+        }
+        return createException(code);
+    }
+
+    /**
+     * 安全な公開例外を生成
+     * @param code 公開可能な固定エラーコード
+     * @return 内部例外や非可視IDを含まないエラー
+     */
+    public static AuraHandledException createException(String code) {
+        // エラーの全文をサーバー定義から選択
+        Map<String, String> messages = new Map<String, String>{
+            'INVALID_REQUEST' => '入力内容を確認してください。',
+            'ACCESS_DENIED' => '必要な参照権限がありません。管理者へ確認してください。',
+            'NOT_FOUND_OR_UNAVAILABLE' => '対象を表示できません。検索または再読込をお試しください。',
+            'INVALID_CURSOR' => 'ページの有効期限または条件が変わりました。再読込してください。',
+            'SERVER_ERROR' => '取得できませんでした。時間をおいて再試行してください。'
+        };
+        // 未定義コードも固定の一般メッセージへ統一
+        String message = messages.get(messages.containsKey(code) ? code : 'SERVER_ERROR');
+        // クライアントとApexテストで同じ公開メッセージを参照
+        AuraHandledException error = new AuraHandledException(message);
+        error.setMessage(message);
+        return error;
     }
 }

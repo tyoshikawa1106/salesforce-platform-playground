@@ -1,5 +1,5 @@
 /**
- * ロール・上司構造と候補・人数・公開エラーの変換
+ * ロール・上司構造と候補・人数の変換
  */
 @IsTest
 private with sharing class OrgExplorerServiceTest {
@@ -68,42 +68,6 @@ private with sharing class OrgExplorerServiceTest {
         }
     }
 
-    /**
-     * 内部失敗を固定の公開エラーへ変換
-     */
-    @IsTest
-    static void createsSafeServerError() {
-        System.runAs(testUser) {
-            Test.startTest();
-            OrgExplorerError error = service.createError('SERVER_ERROR');
-            Test.stopTest();
-            Assert.areEqual('SERVER_ERROR', error.code, '内部失敗を公開コードへ限定');
-            Assert.areEqual(
-                '取得できませんでした。時間をおいて再試行してください。',
-                error.message,
-                '固定文言だけを返す'
-            );
-        }
-    }
-
-    /**
-     * 参照拒否を内部の照会情報なしで通知
-     */
-    @IsTest
-    static void createsSafeAccessError() {
-        System.runAs(testUser) {
-            Test.startTest();
-            OrgExplorerError error = service.createError('ACCESS_DENIED');
-            Test.stopTest();
-            Assert.areEqual('ACCESS_DENIED', error.code, '参照拒否を公開コードへ限定');
-            Assert.areEqual(
-                '必要な参照権限がありません。管理者へ確認してください。',
-                error.message,
-                '固定文言だけを返す'
-            );
-        }
-    }
-
     private static OrgExplorerPageRequest managerRequest(String scope, Id parentId) {
         OrgExplorerPageRequest request = new OrgExplorerPageRequest();
         request.requestId = 'manager-page';
@@ -112,25 +76,6 @@ private with sharing class OrgExplorerServiceTest {
         request.parentId = parentId;
         request.includeInactive = true;
         return request;
-    }
-
-    /**
-     * 非可視な上司を起点にせず、未指定の構造要求だけを許可
-     */
-    @IsTest
-    static void checksManagerParentVisibility() {
-        System.runAs(testUser) {
-            OrgExplorerPageRequest request = managerRequest('MANAGER_MEMBERS', UserInfo.getUserId());
-            Test.startTest();
-            Boolean hidden = service.canReadManagerParent(request, new List<User>());
-            Boolean unspecified = service.canReadManagerParent(
-                managerRequest('MANAGER_STRUCTURE', null),
-                new List<User>()
-            );
-            Test.stopTest();
-            Assert.isFalse(hidden, '非可視の上司を起点にしない');
-            Assert.isTrue(unspecified, '起点未指定を許可');
-        }
     }
 
     /**
@@ -146,7 +91,6 @@ private with sharing class OrgExplorerServiceTest {
                 .createManagerStructure(wrapper, request, new OrgExplorerAccessPolicy());
             OrgExplorerCursorCodec.Cursor cursor = new OrgExplorerCursorCodec().decode(response.nextCursor);
             Test.stopTest();
-            Assert.isTrue(response.ok, '可視な継続境界のある構造を返す');
             Assert.isTrue(response.hasMore, '境界を超えた集計の続きを通知');
             Assert.areEqual(1, response.nodes.size(), '可視確認済みの上司だけを公開');
             Assert.areEqual(1, response.memberCounts.size(), '非可視上司の人数を公開しない');
@@ -172,7 +116,6 @@ private with sharing class OrgExplorerServiceTest {
                     new OrgExplorerAccessPolicy()
                 );
             Test.stopTest();
-            Assert.isTrue(response.ok, '上限と同じ件数でも構造取得が成功');
             Assert.areEqual(2, response.nodes.size(), '確認済みの上司をすべて公開');
             Assert.isFalse(response.hasMore, '上限ちょうどでは次ページを要求しない');
             Assert.isTrue(String.isBlank(response.nextCursor), '最終ページに継続値を発行しない');
@@ -187,19 +130,18 @@ private with sharing class OrgExplorerServiceTest {
         System.runAs(testUser) {
             OrgExplorerService.ManagerPageData wrapper = createManagerPage(0);
             Test.startTest();
-            OrgExplorerPageResponse response = new OrgExplorerService(1, 50)
-                .createManagerStructure(
-                    wrapper,
-                    managerRequest('MANAGER_STRUCTURE', null),
-                    new OrgExplorerAccessPolicy()
-                );
+            try {
+                new OrgExplorerService(1, 50)
+                    .createManagerStructure(
+                        wrapper,
+                        managerRequest('MANAGER_STRUCTURE', null),
+                        new OrgExplorerAccessPolicy()
+                    );
+                Assert.fail('非可視の途中構造を返さない');
+            } catch (AuraHandledException error) {
+                Assert.areEqual('必要な参照権限がありません。管理者へ確認してください。', error.getMessage(), '安全な公開例外で拒否');
+            }
             Test.stopTest();
-            Assert.isFalse(response.ok, '未完了の集計を空の成功応答にしない');
-            Assert.areEqual('ACCESS_DENIED', response.error.code, '可視な境界なしを安全に拒否');
-            Assert.isTrue(response.nodes.isEmpty(), '非可視上司を公開しない');
-            Assert.isTrue(response.memberCounts.isEmpty(), '非可視上司の人数を公開しない');
-            Assert.isFalse(response.hasMore, '非可視IDからの継続を案内しない');
-            Assert.isTrue(String.isBlank(response.nextCursor), '非可視IDを継続値へ含めない');
         }
     }
 
@@ -233,19 +175,17 @@ private with sharing class OrgExplorerServiceTest {
     }
 
     /**
-     * 未保存のロールと未定義エラーを直接変換
+     * 未保存のロールを直接変換
      */
     @IsTest
-    static void createsRoleNodeAndNormalizesError() {
+    static void createsRoleNode() {
         System.runAs(testUser) {
             UserRole role = new UserRole(Id = (Id) (UserRole.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'), Name = '試験部門');
             Test.startTest();
             OrgExplorerPageResponse.Node node = service.createRoleNode(role);
-            OrgExplorerError error = service.createError('UNKNOWN');
             Test.stopTest();
             Assert.areEqual('ROLE:' + role.Id, node.key, 'ロールの種別とIDを維持');
             Assert.areEqual(role.Name, node.label, 'ロール名を返す');
-            Assert.areEqual('SERVER_ERROR', error.code, '未定義コードを安全な失敗へ統一する');
         }
     }
 
@@ -415,7 +355,6 @@ private with sharing class OrgExplorerServiceTest {
             Test.startTest();
             OrgExplorerPageResponse response = limitedService.createRoleSearchResults(roles);
             Test.stopTest();
-            Assert.isTrue(response.ok, '可視ロールの候補照会が成功');
             Assert.areEqual(1, response.nodes.size(), '指定した候補上限まで返す');
             Assert.areEqual(roles[0].Name, response.nodes[0].label, '先読み候補を表示へ混ぜない');
             Assert.isTrue(response.hasMore, 'さらに名前を絞る必要があると通知');
@@ -433,7 +372,6 @@ private with sharing class OrgExplorerServiceTest {
             Test.startTest();
             OrgExplorerPageResponse response = limitedService.createRoleSearchResults(roles);
             Test.stopTest();
-            Assert.isTrue(response.ok, '上限ちょうどの候補取得が成功');
             Assert.areEqual(1, response.nodes.size(), 'すべての候補を返す');
             Assert.isFalse(response.hasMore, '先読みがなければ追加の絞り込みを要求しない');
         }
@@ -453,4 +391,5 @@ private with sharing class OrgExplorerServiceTest {
             LanguageLocaleKey = 'ja'
         );
     }
+
 }
