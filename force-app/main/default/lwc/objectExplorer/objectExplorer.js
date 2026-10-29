@@ -115,6 +115,13 @@ export default class ObjectExplorer extends LightningElement {
     typeOptions = [{ label: 'すべてのデータ型', value: '' }];
     // 画面幅の変化を監視し、配置だけを更新する
     resizeObserver;
+    // 標準APIを利用できない環境だけウィンドウの幅変更を監視
+    resizeFallbackAttached = false;
+    // 解除時も同じ関数を指定できるようにイベントハンドラーを保持
+    handleViewportResize = () => {
+        // 画面外の要素を参照せず、現在の表示領域だけを測定
+        this.syncViewportLayout(this.template.querySelector('.oe-viewport')?.clientWidth);
+    };
     // 実際の表示領域に合わせて左右の列数を切り替える
     narrowRelations = false;
     // カード内容と検索条件が同じ場合は全カードの再測定を省く
@@ -135,27 +142,62 @@ export default class ObjectExplorer extends LightningElement {
             heading?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         // 分類モードや起点取得中は表示幅の監視を解除
-        if (!this.isReference || this.rootLoading) { this.resizeObserver?.disconnect(); this.resizeObserver = undefined; return; }
-        // 描画済みの参照元・起点・参照先を最も高いカードへ揃える
-        this.syncCardHeights();
-        if (this.resizeObserver) { return; }
-        this.resizeObserver = new ResizeObserver((entries) => {
-            // 列数を変える場合は再描画後のDOMで測定
-            const narrow = entries[0].contentRect.width < 1152;
-            // 変更前の列幅を次の測定結果として保存しない
-            if (this.narrowRelations !== narrow) {
-                // 同じカードでも新しい列幅で測定し直す
-                this.cardHeightSource = undefined;
-                // 列数変更の描画を先に完了させる
-                this.narrowRelations = narrow;
-                // 描画後の共通経路で高さを揃える
-                return;
-            }
-            // 列数が変わらない幅変更も高さへ反映
-            this.syncCardHeights();
-        });
+        if (!this.isReference || this.rootLoading) { this.stopViewportObservation(); return; }
+        // 描画されていない表示領域へ監視を登録しない
         const viewport = this.template.querySelector('.oe-viewport');
-        if (viewport) { this.resizeObserver.observe(viewport); }
+        // 対象解除でDOMが消えた場合も以前の監視を残さない
+        if (!viewport) { this.stopViewportObservation(); return; }
+        // 再描画でも現在の表示幅とカード内容を反映
+        this.syncViewportLayout(viewport.clientWidth);
+        // 同じ表示領域へ監視を重複登録しない
+        if (this.resizeObserver || this.resizeFallbackAttached) { return; }
+        // 対応環境では要素単位のサイズ変更を監視
+        if (typeof ResizeObserver === 'function') {
+            // 関数として公開されても生成が制限される環境を考慮
+            try {
+                // 初回通知と幅変更を再描画と同じレイアウト処理へ渡す
+                this.resizeObserver = new ResizeObserver((entries) => {
+                    // 通知に含まれる現在の表示幅を反映
+                    this.syncViewportLayout(entries[0]?.contentRect.width);
+                });
+            } catch (error) {
+                // コンストラクターの利用不可だけを代替処理へ切り替える
+                if (error.name !== 'TypeError') { throw error; }
+            }
+        }
+        // 生成できた場合は現在の関連カード領域だけを監視
+        if (this.resizeObserver) { this.resizeObserver.observe(viewport); return; }
+        // 標準APIを利用できない環境ではウィンドウの幅変更を検知
+        window.addEventListener('resize', this.handleViewportResize);
+        // 再描画によるイベントの重複登録を防止
+        this.resizeFallbackAttached = true;
+    }
+    // 表示幅に応じた列数とカード高さを同期
+    syncViewportLayout(width) {
+        // 非表示や未測定の幅でレイアウトを切り替えない
+        const narrow = width > 0 ? width < 1152 : this.narrowRelations;
+        // 列数を変える場合は再描画後のDOMで高さを測定
+        if (this.narrowRelations !== narrow) {
+            // 列幅の異なる測定結果を再利用しない
+            this.cardHeightSource = undefined;
+            // 列数変更を描画へ反映
+            this.narrowRelations = narrow;
+            // 次の描画完了後にカード高さを測定
+            return;
+        }
+        // 列数が変わらない幅変更と内容変更も高さへ反映
+        this.syncCardHeights();
+    }
+    // モード切り替えと画面破棄で両方の監視方式を解除
+    stopViewportObservation() {
+        // 対応環境の要素監視を解除
+        this.resizeObserver?.disconnect();
+        // 次の表示では新しいDOMへ登録し直す
+        this.resizeObserver = undefined;
+        // 非対応環境のウィンドウ監視を解除
+        if (this.resizeFallbackAttached) { window.removeEventListener('resize', this.handleViewportResize); }
+        // 同じコンポーネントの再表示時に監視を再登録できる状態へ戻す
+        this.resizeFallbackAttached = false;
     }
     // 全カードの自然な高さを測り、最大値へ統一
     syncCardHeights() {
@@ -180,8 +222,8 @@ export default class ObjectExplorer extends LightningElement {
     }
     // 画面を離れた後に監視を残さない
     disconnectedCallback() {
-        this.resizeObserver?.disconnect();
-        this.resizeObserver = undefined;
+        // DOMが破棄された後へサイズ変更の通知を残さない
+        this.stopViewportObservation();
     }
     // 方向別のカードモデルを検索条件と選択状態へ同期
     layoutBoard() {
