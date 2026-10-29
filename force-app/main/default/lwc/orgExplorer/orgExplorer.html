@@ -1,4 +1,5 @@
 <template>
+    <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
     <main>
         <header>
             <h1>組織エクスプローラー</h1>
@@ -73,7 +74,7 @@
                         ></c-org-explorer-search>
                     </section>
                 </div>
-                <c-org-explorer-canvas model={model} onnodeselect={handleSelect}></c-org-explorer-canvas>
+                <c-org-explorer-canvas model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
             </section>
             <section class="c-panel" aria-label={memberListLabel}>
                 <c-org-explorer-details

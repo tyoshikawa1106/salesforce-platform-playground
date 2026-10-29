@@ -1,3 +1,4 @@
+import { createClientErrorDetails } from 'c/errorUtils';
 import { LightningElement, api } from 'lwc';
 import { BASE_SCALE, alignRoot, zoomAt, panTo, clamp } from './orgExplorerCanvasLogic';
 
@@ -121,10 +122,19 @@ export default class OrgExplorerCanvas extends LightningElement {
         // 過剰な再描画を避ける。
         // eslint-disable-next-line @lwc/lwc/no-async-operation -- ドラッグ描画をフレーム単位にまとめ、次の移動・破棄時に解除する
         this.frame = requestAnimationFrame(() => {
-            // 有限の表示位置へ反映する。
-            this.viewport = { ...this.viewport, ...position };
-            // 処理済みフレームを解放する。
-            this.frame = null;
+            // 非同期の描画失敗は親のerrorCallbackへ自動伝播しないため明示的に捕捉
+            try {
+                // 有限の表示位置へ反映する。
+                this.viewport = { ...this.viewport, ...position };
+            } catch (error) {
+                // 本文を含まない診断だけを作成
+                const details = createClientErrorDetails(error, 'orgExplorerCanvas', 'handlePointerMove', 'animation-frame');
+                // DOMツリーを越えて公開せず、直接の親画面へ失敗を通知
+                this.dispatchEvent(new CustomEvent('clienterror', { detail: details }));
+            } finally {
+                // 成功・失敗とも次の描画予約を可能にする
+                this.frame = null;
+            }
         });
     }
 

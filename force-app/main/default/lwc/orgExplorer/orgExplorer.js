@@ -1,3 +1,4 @@
+import { withUiErrorBoundary } from 'c/uiErrorBoundary';
 import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getCapabilities from '@salesforce/apex/OrgExplorerController.getCapabilities';
@@ -21,7 +22,7 @@ import {
 } from './orgExplorerLogic';
 
 // 画面操作、非同期要求、選択同期を一つの入口で調整する。
-export default class OrgExplorer extends NavigationMixin(LightningElement) {
+export default class OrgExplorer extends withUiErrorBoundary(NavigationMixin(LightningElement), 'orgExplorer') {
     // [初期値設定] 初期ロールのAPI名。空文字なら未選択で全ロールを表示する。
     @api defaultRootRoleApiName = 'SampleCompany';
     // [初期値設定] 無効ユーザー表示の初期状態。trueでON、falseでOFFにする。
@@ -106,21 +107,33 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
 
     // 最初の表示だけ権限と起点を確認する。
     connectedCallback() {
-        // 同じ要素の再接続でも新しい要求を受け付ける。
-        this._disposed = false;
-        // 既存の認証状態で初期表示を読み込む。
-        this.initialize();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 同じ要素の再接続でも新しい要求を受け付ける。
+            this._disposed = false;
+            // 既存の認証状態で初期表示を読み込む。
+            this.initialize();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'connectedCallback', 'lifecycle');
+        }
     }
     // 保留検索を画面終了後に送らない。
     disconnectedCallback() {
-        // 遅延処理を停止する。
-        clearTimeout(this._searchTimer);
-        // 実行済み要求の応答を無効にする。
-        this._disposed = true;
-        // すべての範囲を古い世代にする。
-        this._generation += 1;
-        // 未送信の要求を解放する。
-        this.pump();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 遅延処理を停止する。
+            clearTimeout(this._searchTimer);
+            // 実行済み要求の応答を無効にする。
+            this._disposed = true;
+            // すべての範囲を古い世代にする。
+            this._generation += 1;
+            // 未送信の要求を解放する。
+            this.pump();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'disconnectedCallback', 'lifecycle');
+        }
     }
     // 要求の対応をログイン情報なしで識別する。
     requestId() {
@@ -259,7 +272,11 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             // 選択済みの起点だけを再検証して表示する。
             await this.loadStructure();
         } catch (error) {
-            if (generation === this._generation && !this._disposed) this.showRequestError(error);
+            if (generation === this._generation && !this._disposed) {
+                // 現在の要求の失敗だけを診断表示
+                this.reportClientError(error, 'loadContext', 'processing');
+                this.showRequestError(error);
+            }
         }
     }
     // 設定された初期ロールを一度だけ選択し、未設定・未存在なら空欄で開始する。
@@ -305,7 +322,11 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             // 深さや末端数によらず件数単位で取得する。
             await this.loadStructurePage(state, '');
         } catch (error) {
-            if (this._structureToken === token && state.generation === this._generation && !this._disposed) this.showRequestError(error);
+            if (this._structureToken === token && state.generation === this._generation && !this._disposed) {
+                // 現在の要求の失敗だけを診断表示
+                this.reportClientError(error, 'loadStructure', 'processing');
+                this.showRequestError(error);
+            }
         } finally {
             // 古い要求から新しいスピナーを解除しない。
             if (this._structureToken === token) this._structureToken = null;
@@ -353,27 +374,33 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // カードの選択を一か所で更新する。
     handleSelect(event) {
-        // 選択キーを表示集合から確認する。
-        const key = event.detail.key;
-        // イベントから未知のノードを追加しない。
-        if (!this.graph.nodes[key]) return;
-        // 同じ対象の再クリックではページ位置を維持し、失敗時だけ再試行を許可する。
-        if (this.graph.selectedKey === key && this.memberTarget?.key === key && !this.memberError) return;
-        // 選択だけでは構造の配置をやり直さず、表示中の座標と線を維持する。
-        this.graph = { ...this.graph, selectedKey: key };
-        // 新旧の選択カードのハイライトと読み上げ情報だけを更新する。
-        this.model = selectView(this.model, key);
-        // 前の対象に属する一覧と未完了の応答を破棄する。
-        this.resetMembers();
-        // ユーザー一覧の起点を選択したロールへ切り替える。
-        this.memberTarget =
-            this.graph.nodes[key].kind === 'ROLE' || (this.mode === 'MANAGER' && this.graph.nodes[key].kind === 'USER')
-                ? this.graph.nodes[key]
-                : null;
-        // 権限不足をユーザーなしと誤認させない。
-        this.memberError = this.membersEnabled ? '' : 'ユーザー一覧を参照する権限がありません。';
-        // ユーザー参照が可能な場合だけ所属一覧を照会する。
-        if (this.memberTarget && this.membersEnabled) this.loadMemberPage(0, 0);
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 選択キーを表示集合から確認する。
+            const key = event.detail.key;
+            // イベントから未知のノードを追加しない。
+            if (!this.graph.nodes[key]) return;
+            // 同じ対象の再クリックではページ位置を維持し、失敗時だけ再試行を許可する。
+            if (this.graph.selectedKey === key && this.memberTarget?.key === key && !this.memberError) return;
+            // 選択だけでは構造の配置をやり直さず、表示中の座標と線を維持する。
+            this.graph = { ...this.graph, selectedKey: key };
+            // 新旧の選択カードのハイライトと読み上げ情報だけを更新する。
+            this.model = selectView(this.model, key);
+            // 前の対象に属する一覧と未完了の応答を破棄する。
+            this.resetMembers();
+            // ユーザー一覧の起点を選択したロールへ切り替える。
+            this.memberTarget =
+                this.graph.nodes[key].kind === 'ROLE' || (this.mode === 'MANAGER' && this.graph.nodes[key].kind === 'USER')
+                    ? this.graph.nodes[key]
+                    : null;
+            // 権限不足をユーザーなしと誤認させない。
+            this.memberError = this.membersEnabled ? '' : 'ユーザー一覧を参照する権限がありません。';
+            // ユーザー参照が可能な場合だけ所属一覧を照会する。
+            if (this.memberTarget && this.membersEnabled) this.loadMemberPage(0, 0);
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSelect', 'ui-event');
+        }
     }
     // 表示条件変更とカード選択で同じメンバー初期状態へ戻す。
     resetMembers() {
@@ -462,6 +489,8 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         } catch (error) {
             // 旧ロールの失敗を新しい一覧へ表示しない。
             if (this._memberToken === token && !this._disposed) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'loadMemberPage', 'processing');
                 // 生のナビゲーションエラーを公開しない。
                 this.memberError = error?.body?.message || (response
                     ? 'メンバーのリンクを生成できませんでした。対象を選択し直してください。'
@@ -490,14 +519,20 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 一覧の前後移動は現在のロール内だけで行う。
     handleMemberPage(event) {
-        // 固定された方向だけを受け付ける。
-        const next = event.currentTarget.dataset.direction === 'next';
-        // 取得前の画面番号は変更しない。
-        const index = this.memberIndex + (next ? 1 : -1);
-        // 初回より前や続きなしの操作を送らない。
-        if (index < 0 || (next && !this.memberNextIndex)) return;
-        // 戻る際も一覧情報を再取得する。
-        this.loadMemberPage(next ? this.memberNextIndex : this.memberPositions[index], index);
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 固定された方向だけを受け付ける。
+            const next = event.currentTarget.dataset.direction === 'next';
+            // 取得前の画面番号は変更しない。
+            const index = this.memberIndex + (next ? 1 : -1);
+            // 初回より前や続きなしの操作を送らない。
+            if (index < 0 || (next && !this.memberNextIndex)) return;
+            // 戻る際も一覧情報を再取得する。
+            this.loadMemberPage(next ? this.memberNextIndex : this.memberPositions[index], index);
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleMemberPage', 'ui-event');
+        }
     }
     // 一覧の見出しに現在の選択対象と参照可能な役職を表示する。
     get memberTargetLabel() {
@@ -548,27 +583,39 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 名前で候補を絞り、空欄への変更は全体表示へ反映する。
     handleSearchChange(event) {
-        // 未確定の入力を適用済みの起点から分離する。
-        this.term = event.detail.value;
-        // 手入力した名称だけでは起点として扱わない。
-        this.candidateTarget = null;
-        // 空欄への変更は表示条件の初期化と一緒に候補を取り消す。
-        if (!this.term.trim()) {
-            this.applyTargetSelection();
-            return;
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 未確定の入力を適用済みの起点から分離する。
+            this.term = event.detail.value;
+            // 手入力した名称だけでは起点として扱わない。
+            this.candidateTarget = null;
+            // 空欄への変更は表示条件の初期化と一緒に候補を取り消す。
+            if (!this.term.trim()) {
+                this.applyTargetSelection();
+                return;
+            }
+            // 同じ表示範囲でも旧入力に属する要求と結果を破棄する。
+            this.resetLookup();
+            // 入力が確定するまで候補検索をまとめる。
+            // eslint-disable-next-line @lwc/lwc/no-async-operation -- 入力確定を300ms待ち、入力変更・破棄時に解除する
+            this._searchTimer = setTimeout(() => this.lookupTargets(), 300);
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleSearchChange', 'ui-event');
         }
-        // 同じ表示範囲でも旧入力に属する要求と結果を破棄する。
-        this.resetLookup();
-        // 入力が確定するまで候補検索をまとめる。
-        // eslint-disable-next-line @lwc/lwc/no-async-operation -- 入力確定を300ms待ち、入力変更・破棄時に解除する
-        this._searchTimer = setTimeout(() => this.lookupTargets(), 300);
     }
     // クリック時は入力状態に応じた候補をすぐに取得する。
     handleLookupOpen(event) {
-        // 選択解除時のデバウンスとフォーカス要求を重複させない。
-        clearTimeout(this._searchTimer);
-        // 同じ候補を取得中は二重送信しない。
-        if (!this.searching) this.lookupTargets(event.detail?.browse ? '' : this.term.trim());
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 選択解除時のデバウンスとフォーカス要求を重複させない。
+            clearTimeout(this._searchTimer);
+            // 同じ候補を取得中は二重送信しない。
+            if (!this.searching) this.lookupTargets(event.detail?.browse ? '' : this.term.trim());
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleLookupOpen', 'ui-event');
+        }
     }
     // 未入力は上位階層から、入力時は名称の前方一致で候補を取得する。
     async lookupTargets(searchTerm = this.term) {
@@ -594,6 +641,8 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             await this.loadLookupCandidates({ term, generation, token });
         } catch (error) {
             if (generation === this._generation && this._lookupToken === token && !this._disposed) {
+                // 例外本文を記録せず、失敗した処理だけを通知
+                this.reportClientError(error, 'lookupTargets', 'processing');
                 this.showRequestError(error, 'lookup');
                 this.resetLookup();
             }
@@ -646,16 +695,22 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 可視な候補の確定と同時に表示範囲を切り替える。
     handleTargetPick(event) {
-        // 可視な候補以外のIDを受け付けない。
-        const target = this.results.find((item) => item.targetId === event.detail.targetId);
-        // 古い候補の操作を捨てる。
-        if (!target) return;
-        // 選択したIDと名称を保持する。
-        this.candidateTarget = target;
-        // 確定した名称を入力へ表示する。
-        this.term = target.label;
-        // 選択された値をそのまま表示範囲へ適用する。
-        this.applyTargetSelection();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 可視な候補以外のIDを受け付けない。
+            const target = this.results.find((item) => item.targetId === event.detail.targetId);
+            // 古い候補の操作を捨てる。
+            if (!target) return;
+            // 選択したIDと名称を保持する。
+            this.candidateTarget = target;
+            // 確定した名称を入力へ表示する。
+            this.term = target.label;
+            // 選択された値をそのまま表示範囲へ適用する。
+            this.applyTargetSelection();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleTargetPick', 'ui-event');
+        }
     }
     // 候補の選択と解除から、確定した表示範囲を適用する。
     applyTargetSelection() {
@@ -669,31 +724,37 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // モードごとの起点を維持し、旧モードの応答を引き継がない。
     handleMode(event) {
-        // 固定された二つのモードだけを受け付ける。
-        const mode = event.currentTarget.dataset.mode;
-        // 選択済みのモードへ重複照会しない。
-        if (mode === this.mode || !['ROLE', 'MANAGER'].includes(mode)) return;
-        // 現在の選択をモードごとに退避する。
-        this._modeSelections[this.mode] = {
-            rootTarget: this.rootTarget,
-            candidateTarget: this.candidateTarget,
-            term: this.term,
-            initialized: this._rootInitialized
-        };
-        // 新しいモードの初期値はログインユーザーに固定しない。
-        const saved = this._modeSelections[mode];
-        // 全体の表示条件を切り替える。
-        this.mode = mode;
-        // 前モードの候補を起点として使用しない。
-        this.rootTarget = saved?.rootTarget || null;
-        // 選択済みのルックアップ表示を復元する。
-        this.candidateTarget = saved?.candidateTarget || null;
-        // 名称入力もモードごとに維持する。
-        this.term = saved?.term || '';
-        // 上司階層には初期ロールの解決処理を適用しない。
-        this._rootInitialized = mode === 'MANAGER' || Boolean(saved?.initialized);
-        // 取得と描画を新しい世代で開始する。
-        this.initialize();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 固定された二つのモードだけを受け付ける。
+            const mode = event.currentTarget.dataset.mode;
+            // 選択済みのモードへ重複照会しない。
+            if (mode === this.mode || !['ROLE', 'MANAGER'].includes(mode)) return;
+            // 現在の選択をモードごとに退避する。
+            this._modeSelections[this.mode] = {
+                rootTarget: this.rootTarget,
+                candidateTarget: this.candidateTarget,
+                term: this.term,
+                initialized: this._rootInitialized
+            };
+            // 新しいモードの初期値はログインユーザーに固定しない。
+            const saved = this._modeSelections[mode];
+            // 全体の表示条件を切り替える。
+            this.mode = mode;
+            // 前モードの候補を起点として使用しない。
+            this.rootTarget = saved?.rootTarget || null;
+            // 選択済みのルックアップ表示を復元する。
+            this.candidateTarget = saved?.candidateTarget || null;
+            // 名称入力もモードごとに維持する。
+            this.term = saved?.term || '';
+            // 上司階層には初期ロールの解決処理を適用しない。
+            this._rootInitialized = mode === 'MANAGER' || Boolean(saved?.initialized);
+            // 取得と描画を新しい世代で開始する。
+            this.initialize();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleMode', 'ui-event');
+        }
     }
     // モードに応じたユーザー一覧の権限を確認する。
     get membersEnabled() {
@@ -727,27 +788,39 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 表示条件の切り替えでも適用済みの起点を維持する。
     handleInactive() {
-        // 有効条件を反転する。
-        this.includeInactive = !this.includeInactive;
-        // 同じ起点で構造と所属一覧を再取得可能にする。
-        this.initialize();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // 有効条件を反転する。
+            this.includeInactive = !this.includeInactive;
+            // 同じ起点で構造と所属一覧を再取得可能にする。
+            this.initialize();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleInactive', 'ui-event');
+        }
     }
     // 表示の拡大縮小と等倍復帰はCanvasへ委ねる。
     handleViewport(event) {
-        // DOM操作をLogicへ渡さない。
-        const canvas = this.template.querySelector('c-org-explorer-canvas');
-        // 描画されてから操作する。
-        if (!canvas) return;
-        // 固定された操作だけを受け付ける。
-        const action = event.currentTarget.dataset.action;
-        // 中央を保って倍率を上げる。
-        if (action === 'in') canvas.adjustZoom(0.15);
-        // 中央を保って倍率を下げる。
-        else if (action === 'out') canvas.adjustZoom(-0.15);
-        // 可視集合全体を表示枠へ収める。
-        else if (action === 'fit') canvas.fit();
-        // 最上位ロールを上部中央へ配置して等倍へ戻す。
-        else if (action === 'reset') canvas.resetZoom();
+        // 操作・取得・描画の入口で自画面の例外を捕捉
+        try {
+            // DOM操作をLogicへ渡さない。
+            const canvas = this.template.querySelector('c-org-explorer-canvas');
+            // 描画されてから操作する。
+            if (!canvas) return;
+            // 固定された操作だけを受け付ける。
+            const action = event.currentTarget.dataset.action;
+            // 中央を保って倍率を上げる。
+            if (action === 'in') canvas.adjustZoom(0.15);
+            // 中央を保って倍率を下げる。
+            else if (action === 'out') canvas.adjustZoom(-0.15);
+            // 可視集合全体を表示枠へ収める。
+            else if (action === 'fit') canvas.fit();
+            // 最上位ロールを上部中央へ配置して等倍へ戻す。
+            else if (action === 'reset') canvas.resetZoom();
+        } catch (boundaryError) {
+            // 利用者の入力や応答本文を含めず処理場所を表示
+            this.reportClientError(boundaryError, 'handleViewport', 'ui-event');
+        }
     }
     // 送信済みの処理があることを通知する。
     get busy() {
@@ -763,5 +836,18 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     get roleDisabled() {
         // User参照だけではロールモードを有効化しない。
         return !this.capabilities?.roleModeEnabled;
+    }
+    // 子の非同期描画は例外境界へ自動伝播しないため、診断だけを受け取る
+    handleCanvasError(event) {
+        // DOMイベントの内容をそのまま記録せず、固定処理名で再構成
+        try {
+            // 位置情報は共通処理で再抽出して本文やURLの混入を防ぐ
+            const error = { name: event.detail?.errorType, stack: `Error\n${(event.detail?.frames || []).join('\n')}` };
+            // 子の処理名を固定値で示して親画面内へ表示
+            this.reportClientError(error, 'orgExplorerCanvas.handlePointerMove', 'animation-frame');
+        } catch (boundaryError) {
+            // 不正な通知形式も画面内で捕捉
+            this.reportClientError(boundaryError, 'handleCanvasError', 'child-component');
+        }
     }
 }
