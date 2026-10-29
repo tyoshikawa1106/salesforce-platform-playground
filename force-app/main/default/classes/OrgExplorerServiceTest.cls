@@ -5,7 +5,7 @@
 private with sharing class OrgExplorerServiceTest {
 
     private static OrgExplorerService service = new OrgExplorerService();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 任意項目と関連ロールの参照不足でカード情報を公開しない
@@ -205,11 +205,11 @@ private with sharing class OrgExplorerServiceTest {
 
     // 新規ユーザー2件から、上司ごとに異なる実際の集計結果を作成
     private static OrgExplorerService.ManagerPageData createManagerPage(Integer visibleCount) {
-        User manager = TestDataFactory.createUser('境界検証上司', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        User manager = createUser('境界検証上司');
         manager.IsActive = false;
         manager.ManagerId = testUser.Id;
         insert manager;
-        User member = TestDataFactory.createUser('境界検証部下', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        User member = createUser('境界検証部下');
         member.IsActive = false;
         member.ManagerId = manager.Id;
         insert member;
@@ -439,4 +439,18 @@ private with sharing class OrgExplorerServiceTest {
         }
     }
 
+    // 階層・所属の検証用ユーザーを未保存で用意
+    private static User createUser(String lastName) {
+        return new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = lastName,
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
+    }
 }

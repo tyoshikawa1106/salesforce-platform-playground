@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class OrgExplorerSearchRequestTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 未設定の検索要求を初期化 */
     @IsTest

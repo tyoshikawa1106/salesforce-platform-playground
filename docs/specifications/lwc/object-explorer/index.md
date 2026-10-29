@@ -23,7 +23,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 | Apex本体                                                                                                      | 役割                                                                                                                           | 同名Test                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| [ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)       | データ分類操作の権限と参照対象を検証。機能権限・カスタマイズ権限・項目編集可否                                                 | [ObjectExplorerAccessPolicyTest](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicyTest.cls)       |
+| [ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)       | データ分類操作の権限と参照対象を検証。標準の分類変更・カスタマイズ権限・項目編集可否                                           | [ObjectExplorerAccessPolicyTest](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicyTest.cls)       |
 | [ObjectExplorerClassifyService](../../../../force-app/main/default/classes/ObjectExplorerClassifyService.cls) | 分類編集の権限・入力・競合と表示モデルの生成。分類編集の基準値・競合判定・更新値・項目別結果                                   | [ObjectExplorerClassifyServiceTest](../../../../force-app/main/default/classes/ObjectExplorerClassifyServiceTest.cls) |
 | [ObjectExplorerController](../../../../force-app/main/default/classes/ObjectExplorerController.cls)           | オブジェクト構造探索と項目分類の参照・保存の入口。対象候補・構造・分類・所有者・項目型・作成更新情報の取得と分類保存の処理順序 | [ObjectExplorerControllerTest](../../../../force-app/main/default/classes/ObjectExplorerControllerTest.cls)           |
 | [ObjectExplorerFieldService](../../../../force-app/main/default/classes/ObjectExplorerFieldService.cls)       | 項目定義の型・分類・作成更新情報の可視表示モデル。項目の型表記・分類一覧・作成更新情報と可視Userの対応付け                     | [ObjectExplorerFieldServiceTest](../../../../force-app/main/default/classes/ObjectExplorerFieldServiceTest.cls)       |
@@ -33,7 +33,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)   | Named Credential経由の項目メタデータ読み取り・更新。Named CredentialによるHTTP通信と同一組織確認                               | [MetadataApiIntegrationClientTest](../../../../force-app/main/default/classes/MetadataApiIntegrationClientTest.cls)   |
 | [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証。SOAP XML生成と項目完全名による応答照合                                   | [MetadataApiSoapCodecTest](../../../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)                   |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストでは現在の実行ユーザーを直接取得し、共通の`TestDataFactory`には依存しません。
 
 ### 設定・権限
 
@@ -41,7 +41,6 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | -------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | 設定     | `ObjectExplorer`                                                          | タブ、`Salesforce`アプリ、`SalesforceApplicationUser`権限セット |
 | 設定     | `MetadataApiIntegration`                                                  | 外部クライアントアプリケーションとOAuth設定                     |
-| 設定     | `ManageObjectFieldClassification`                                         | カスタム権限、`LwcObjectExplorer`権限セット                     |
 | Manifest | [Scratch Org再構築manifest](../../../../manifest/rebuild-scratch-org.xml) | 機能構成の再現                                                  |
 
 ### 構成上の補足
@@ -66,7 +65,7 @@ ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答
 
 候補の開閉・検索語・所有者表示名だけの更新では、変更件数と入力エラー件数を再集計しません。再集計の要否を判定するための全項目比較は行いません。所有者検索は入力とクリックで同じ処理を使用し、候補の解除と検索開始を一度の状態更新で反映します。空欄への入力変更では古い要求を無効化して候補を閉じ、空欄のクリックでは検索します。
 
-分類を閲覧できるユーザーは、オブジェクトのカスタマイズ権限がなくてもCSVをダウンロードできます。CSVインポートと保存は同権限を引き続き必須とします。所有者検索の失敗時は検索済み状態を解除し、入力値を変えずにクリックで再試行できます。古い要求の失敗では現在の候補を閉じません。
+分類を閲覧できるユーザーは、オブジェクトのカスタマイズ権限がなくてもCSVをダウンロードできます。CSVインポートと保存は標準の分類変更またはカスタマイズ権限を必須とします。所有者検索の失敗時は検索済み状態を解除し、入力値を変えずにクリックで再試行できます。古い要求の失敗では現在の候補を閉じません。
 
 対象オブジェクトの読み込み中状態と分類の初期化は`loadRoot`が管理し、分類取得の成否によらず同じ終了処理で操作を再開します。`loadClassifyData`は分類取得と結果・エラー表示を担当します。保存確認前に送信内容を固定し、確認中から保存終了まで編集を禁止します。確認後は対象の有効性を確認して固定済みの内容を送信し、同じ編集内容の再生成・JSON比較は行いません。
 
@@ -76,7 +75,7 @@ ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答
 
 分類候補のDescribeと既存値保持・選択値検証は既存の[ObjectExplorerAccessPolicy](../../../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)が担当します。
 
-分類の公開参照と保存には、権限セット`LwcObjectExplorer`から各入口クラスへの実行権限を付与します。内部Service・Codec・Wrapperへの個別の実行権限は追加しません。入力・権限の案内とAPI接続のエラーは、既存のAccessPolicy・Clientの境界で処理します。
+利用者のApex入口クラスへの実行アクセスは導入先で設定します。特定の権限セットの割り当ては機能の利用条件にしません。入力・権限の案内とAPI接続のエラーは、既存のAccessPolicy・Clientの境界で処理します。
 
 対象ルックアップは`objectExplorerLookup`がSLDS表示、フォーカスとスクロールのDOM操作を担当します。親は対象候補の照会・要求世代・選択後の画面遷移を管理し、子との受け渡しには候補のAPI名と座標などの値だけを使用します。CSVの解析・反映は`objectExplorerCsv.js`、分類入力の検証は`objectExplorerClassifyLogic.js`、項目型と日時の整形は`objectExplorerFieldLogic.js`に置き、`objectExplorerLogic.js`が画面単位の表示・変更・保存結果を組み立てます。
 
@@ -108,9 +107,9 @@ Schema Describeで取得し、オブジェクト・項目の参照可否を確�
 
 分類一覧と選択肢は`FieldDefinition`をUSER_MODEで取得します。コンプライアンス分類は複数値、データ機密度と利用状況は組織の有効な選択肢を使用します。所有者は有効ユーザーと公開グループを表示名で検索します。標準項目も編集対象です。管理パッケージ・設定用項目、および分類取得不能な項目は編集しません。
 
-分類の参照と編集は同じ`LwcObjectExplorer`に統合します。LWCは標準の`CustomizeApplication`を参照し、権限を持たない利用者には編集・保存操作を表示しません。編集の開始・保存・所有者検索はサーバーでも`ManageObjectFieldClassification`と現在ユーザーの`UserPermissionAccess.PermissionsCustomizeApplication`を必須にします。権限セット自体は`CustomizeApplication`を付与しません。API認証のプリンシパル利用権限は`MetadataApiIntegration-MetadataPrincipal`です。
+分類編集・CSVインポート・所有者検索・保存は、標準の「データ分類の変更」または「オブジェクトのカスタマイズ」の実効権限を画面とApexの両方で確認します。Apexは現在ユーザーのUserPermissionAccessを参照し、カスタム権限や特定の権限セット割り当ては判定に使いません。分類参照は対象のオブジェクト・項目の参照権限に従います。
 
-Git管理する`LwcObjectExplorer`にはこの組織固有の参照を含めず、External Credentialの作成後に組織側で追加します。権限セットの割り当てと接続先の権限は別々に必要です。
+API認証のプリンシパル利用権限は、External Credentialの作成後に導入先で設定します。現在ユーザーの操作権限とAPI接続先の実行ユーザーの権限は別々に必要です。
 
 Apexは固定名`MetadataApiIntegration`でNamed Credentialを参照します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
 
@@ -145,7 +144,7 @@ CSVはUTF-8（BOMあり・なし）を使用し、5MiB以下、データ10000行
 
 ファイルの読取・形式検証はブラウザ内で行い、Salesforce FilesなどへCSV自体を保存しません。CSV操作はデータ型・項目ラベル／API名の共通検索と同じ行の右側に配置し、ファイルの上限・空欄・複数分類・所有者IDの説明は「CSVインポート」ラベルの隣のヘルプアイコンへまとめます。
 
-新しく指定した所有者IDは`ObjectExplorerController.resolveClassifyOwners`から、既存SelectorのID条件・利用者権限・公開グループ条件を用いて最大500件ずつ順番に取得します。一つでも照合できないバッチがあれば入力へ反映しません。サーバーの一要求上限はCSV全体の行数とは分離します。`ObjectExplorerOwnerService.CsvOwners`が要求の形式・件数と候補表示を担当し、同じレコードのID・表示名・有効状態を返します。新規の無効ユーザー指定、取得できないID、要求と異なるIDの応答は反映しません。CSV取り込みでも分類編集と同じ機能権限・オブジェクトのカスタマイズ権限を必須にします。
+新しく指定した所有者IDは`ObjectExplorerController.resolveClassifyOwners`から、既存SelectorのID条件・利用者権限・公開グループ条件を用いて最大500件ずつ順番に取得します。一つでも照合できないバッチがあれば入力へ反映しません。サーバーの一要求上限はCSV全体の行数とは分離します。`ObjectExplorerOwnerService.CsvOwners`が要求の形式・件数と候補表示を担当し、同じレコードのID・表示名・有効状態を返します。新規の無効ユーザー指定、取得できないID、要求と異なるIDの応答は反映しません。CSV取り込みでも分類編集と同じ標準の分類変更またはカスタマイズ権限を必須にします。
 
 全行の検証が完了するまで、一件も既存の入力を変更しません。エラーはCSVレコード番号と理由を一覧表示します。既存の未保存入力がある場合は、CSV対象項目の入力を置き換える前に確認します。対象変更・画面終了前のファイル読取や所有者取得応答は採用しません。
 
@@ -183,7 +182,7 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 ## 権限・実行条件
 
-`LwcObjectExplorer`からタブとControllerの実行を許可します。共通アプリのアクセスは`SalesforceApplicationUser`で提供します。Describeの参照可否を超えた構造情報は返しません。ユーザーが参照可能な通常オブジェクトを候補にします。
+タブとControllerへのアクセスは導入先で設定します。共通アプリのアクセスは`SalesforceApplicationUser`で提供します。Describeの参照可否を超えた構造情報は返しません。ユーザーが参照可能な通常オブジェクトを候補にします。
 
 ### Metadata API連携の準備
 
@@ -191,17 +190,17 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 Consumer KeyとConsumer SecretはExternal Credential側で管理し、ApexはNamed Credentialを参照する構成とします。認証値はConnect REST APIの`/named-credentials/credential`へ登録し、初回作成はPOST、既存の認証値の更新はPUTを使用します。CLIプロセスの終了コードだけで成功を判断せず、API応答のエラーとNamed Credential経由の実際の接続を確認します。
 
-参照機能・分類処理クラスはScratch Org再構築manifestに含めます。`LwcObjectExplorer`も再構築manifestに含めます。組織固有の認証設定とExternal Credentialプリンシパルの利用権限は初期反映に含めず、認証設定の作成後に組織側で追加します。
+参照機能・分類処理クラスはScratch Org再構築manifestに含めます。機能専用の権限セットとカスタム権限は用意しません。組織固有の認証設定とExternal Credentialプリンシパルの利用権限は初期反映に含めず、認証設定の作成後に組織側で追加します。
 
 アプリケーション定義の連絡先メールは開発用の例示値です。実運用前に連絡先を設定し、利用する認証方式のコールバックURLと実行ユーザーの権限を確認してください。資格情報フローで利用しないコールバックURLにも、Salesforceの検証を満たす初期値を設定しています。
 
 ### 新しい組織への設定順序
 
-1. 再構築manifestで参照機能・分類処理・カスタム権限を反映します。
+1. 参照機能・分類処理・タブだけを列挙した限定scopeで反映します。
 2. 外部クライアントアプリケーションを作成し、APIスコープとクライアント資格情報フローを設定します。OAuthポリシーには必要なメタデータ更新権限を持つ実行ユーザーを指定します。
 3. OAuthクライアント資格情報方式のExternal Credentialを作成し、Named Principalを`MetadataPrincipal`として構成します。Consumer Key・Consumer Secretを組織の資格情報管理へ登録します。
 4. 現在の組織を接続先とするNamed Credentialを`MetadataApiIntegration`として作成し、External Credentialへ関連付け、「HTTP 本文の数式を許可」を有効にします。
-5. 初期反映済みの`LwcObjectExplorer`へ、設定画面からExternal Credentialの`MetadataPrincipal`を利用できる権限を追加します。分類編集を許可する利用者へ同セットを割り当てます。Gitの権限セットを再反映した場合は、組織側のプリンシパル利用権限も再確認します。
+5. 導入先でタブ・Apex入口・External Credentialの`MetadataPrincipal`へのアクセスを設定します。分類編集者には標準の分類変更またはカスタマイズ権限が必要です。
 6. Named Credential経由の接続、分類入力、保存・再取得を確認します。認証設定を含む自動再現は現時点では行いません。
 
 項目検索は「項目名」の1入力欄とし、どちらかに部分一致する項目を表示します。検索は前後空白・大文字小文字を区別せず、データ型の条件と組み合わせます。
@@ -223,6 +222,8 @@ ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、�
 組織エクスプローラーの画面構成を参考にした独立したLWCです。
 
 ## テスト・確認観点
+
+Apexテストはシステム管理者プロファイルの現在ユーザーで実行します。テストのための権限セット割り当てや権限不足ユーザー作成は行いません。標準権限の分岐はメモリ上の実効権限レコードで確認します。
 
 Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。HTTPモックで指定ログイン情報`MetadataApiIntegration`への接続先を検証し、認証情報には依存しません。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
 

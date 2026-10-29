@@ -3,7 +3,7 @@
 private with sharing class ObjectExplorerServiceTest {
     private static ObjectExplorerService service = new ObjectExplorerService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 取得範囲ごとの項目定義と関連有無 */
     @IsTest

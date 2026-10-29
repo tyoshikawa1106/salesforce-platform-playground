@@ -2,15 +2,6 @@
 public with sharing class ObjectExplorerAccessPolicy {
 
     /**
-     * 分類編集専用の権限を必須にする
-     */
-    public void requireAccess() {
-        if (!FeatureManagement.checkPermission('ManageObjectFieldClassification')) {
-            throw ObjectExplorerAccessPolicy.createException('データ分類設定には権限セット「LWC：オブジェクトエクスプローラー」が必要です。');
-        }
-    }
-
-    /**
      * 参照可否確認済みの対象から項目の参照・編集可否を検証
      * @param info 同じ要求で参照可否を確認したオブジェクト定義
      * @param token その定義の項目Mapから取得した項目、未存在はnull
@@ -80,13 +71,13 @@ public with sharing class ObjectExplorerAccessPolicy {
     }
 
     /**
-     * 分類の変更操作には標準のオブジェクトカスタマイズ権限を必須にする
+     * 分類の変更操作には標準の分類変更権限またはカスタマイズ権限を必須にする
      * @param records 実行ユーザー自身の実効権限
      */
-    public void requireCustomization(List<UserPermissionAccess> records) {
+    public void requireClassificationEditAccess(List<UserPermissionAccess> records) {
         // 権限の取得不足と権限なしはどちらも更新させない
-        if (records?.size() != 1 || records[0].PermissionsCustomizeApplication != true) {
-            throw createException('データ分類の変更には「オブジェクトのカスタマイズ」権限が必要です。');
+        if (records?.size() != 1 || (records[0].PermissionsModifyDataClassification != true && records[0].PermissionsCustomizeApplication != true)) {
+            throw createException('データ分類の変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。');
         }
     }
     /**

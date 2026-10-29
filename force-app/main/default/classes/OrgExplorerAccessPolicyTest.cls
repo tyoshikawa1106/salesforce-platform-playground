@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class OrgExplorerAccessPolicyTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 参照できない任意項目を除外 */
     @IsTest

@@ -5,7 +5,7 @@
 private with sharing class OrgExplorerRequestServiceTest {
 
     private static OrgExplorerRequestService requestService = new OrgExplorerRequestService();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * ロール構造と検索を参照権限に従って停止

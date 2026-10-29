@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class OrgExplorerCapabilitiesResponseTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 未設定の機能応答を初期化 */
     @IsTest

@@ -100,8 +100,6 @@ public with sharing class ObjectExplorerController {
      * @return 可視な分類と組織の選択肢
      */
     private Map<String, Object> readClassifyView(String objectName) {
-        // 一覧にも機能の利用権限を適用
-        this.access.requireAccess();
         // 保存と共通のオブジェクト参照条件を適用
         Schema.SObjectType objectType = this.access.requireObject(objectName);
         // 正式名で同じオブジェクトの分類を取得
@@ -320,14 +318,12 @@ public with sharing class ObjectExplorerController {
         return contexts;
     }
 
-    /** 分類変更の入口で機能権限と標準権限を確認 */
+    /** 分類変更の入口で標準の実効権限を確認 */
     private void requireEditAccess() {
-        // LWC用セットで公開した機能だけを実行
-        this.access.requireAccess();
         // 現在ユーザーの標準権限を取得してから判定
         List<UserPermissionAccess> permissions = this.selector.selectCurrentPermissions();
         // 不明な権限を許可として扱わない
-        this.access.requireCustomization(permissions);
+        this.access.requireClassificationEditAccess(permissions);
     }
 
     /**

@@ -1,6 +1,7 @@
 import { LightningElement } from 'lwc';
 import locale from '@salesforce/i18n/locale';
 import timeZone from '@salesforce/i18n/timeZone';
+import hasModifyDataClassification from '@salesforce/userPermission/ModifyDataClassification';
 import hasCustomizeApplication from '@salesforce/userPermission/CustomizeApplication';
 import LightningConfirm from 'lightning/confirm';
 import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
@@ -800,7 +801,7 @@ export default class ObjectExplorer extends LightningElement {
             // 読み取り完了後だけ編集開始を許可
             this.classifyDataReady = true;
             // 保存前の案内を表示
-            this.classifyNotice = this.canEditClassifyData ? '分類を変更すると行がハイライトされます。「保存」で変更した項目をまとめて保存します。' : 'データ分類は参照のみです。変更には「オブジェクトのカスタマイズ」権限が必要です。';
+            this.classifyNotice = this.canEditClassifyData ? '分類を変更すると行がハイライトされます。「保存」で変更した項目をまとめて保存します。' : 'データ分類は参照のみです。変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。';
         } catch (error) {
             // 取得できなかった情報を未設定値として扱わない
             this.classifyNotice = error.body?.message || 'データ分類を取得できませんでした。';
@@ -1178,7 +1179,7 @@ export default class ObjectExplorer extends LightningElement {
     // 一括結果を確定してから次の要求へ進む
     async saveClassifyRows(objectName, changes) {
         // 内部の保存処理を直接呼ばれた場合も標準権限を必須にする
-        if (!this.canEditClassifyData) { throw new Error('データ分類の変更には「オブジェクトのカスタマイズ」権限が必要です。'); }
+        if (!this.canEditClassifyData) { throw new Error('データ分類の変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。'); }
         // API上限に合わせた保存単位を作成
         const batches = classifyBatches(changes);
         // 確認済み項目数だけを進捗として表示
@@ -1215,8 +1216,8 @@ export default class ObjectExplorer extends LightningElement {
     get isReference() { return this.mode === 'reference'; }
     // 空の参照モード分岐を挟まず分類専用UIを描画
     get isClassify() { return !this.isReference; }
-    // オブジェクトのカスタマイズ権限は付与せず実効権限だけを参照
-    get canEditClassifyData() { return hasCustomizeApplication === true; }
+    // 分類変更またはカスタマイズの標準実効権限を参照
+    get canEditClassifyData() { return hasModifyDataClassification === true || hasCustomizeApplication === true; }
     // 操作中や変更なしの場合は保存を無効化
     get saveDisabled() { return !this.canEditClassifyData || this.busy || !this.classifyDataReady || !this.changeCount || this.hasInputErrors; }
     // 入力確認が必要な行を常に案内

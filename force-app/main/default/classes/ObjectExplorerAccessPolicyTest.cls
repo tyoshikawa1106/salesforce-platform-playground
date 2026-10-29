@@ -4,7 +4,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     private static ObjectExplorerAccessPolicy access = new ObjectExplorerAccessPolicy();
     private static ObjectExplorerAccessPolicy.RequestValidator validator = new ObjectExplorerAccessPolicy.RequestValidator();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** JSON構文・型・長さの不正を拒否 */
     @IsTest
@@ -67,7 +67,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
                 access.getOptions().keySet(),
                 '分類の候補を取得'
             );
-            access.requireCustomization(
+            access.requireClassificationEditAccess(
                 (List<UserPermissionAccess>) JSON.deserialize(
                     '[{"PermissionsCustomizeApplication":true}]',
                     List<UserPermissionAccess>.class
@@ -77,6 +77,40 @@ private with sharing class ObjectExplorerAccessPolicyTest {
             Test.stopTest();
         }
     }
+    /** 標準のデータ分類変更権限だけでも編集を許可 */
+    @IsTest
+    static void acceptsModifyDataClassification() {
+        System.runAs(testUser) {
+            Test.startTest();
+            List<UserPermissionAccess> permissions = (List<UserPermissionAccess>) JSON.deserialize(
+                '[{"PermissionsModifyDataClassification":true,"PermissionsCustomizeApplication":false}]',
+                List<UserPermissionAccess>.class
+            );
+            access.requireClassificationEditAccess(permissions);
+            Assert.isTrue(permissions[0].PermissionsModifyDataClassification, '分類変更権限のみで正常終了');
+            Test.stopTest();
+        }
+    }
+
+    /** 標準権限がどちらも無効なら編集を拒否 */
+    @IsTest
+    static void rejectsMissingClassificationPermissions() {
+        System.runAs(testUser) {
+            Test.startTest();
+            List<UserPermissionAccess> permissions = (List<UserPermissionAccess>) JSON.deserialize(
+                '[{"PermissionsModifyDataClassification":false,"PermissionsCustomizeApplication":false}]',
+                List<UserPermissionAccess>.class
+            );
+            try {
+                access.requireClassificationEditAccess(permissions);
+                Assert.fail('標準権限なしでの変更を拒否');
+            } catch (AuraHandledException error) {
+                Assert.isTrue(error.getMessage().contains('データ分類の変更'), '標準権限を案内');
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 存在しない対象を拒否 */
     @IsTest
     static void rejectsUnknownObject() {
@@ -111,7 +145,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                access.requireCustomization(new List<UserPermissionAccess>());
+                access.requireClassificationEditAccess(new List<UserPermissionAccess>());
                 Assert.fail('権限未取得を拒否');
             } catch (AuraHandledException error) {
                 Assert.isTrue(error.getMessage().contains('カスタマイズ'), '必要権限を通知');
@@ -205,28 +239,6 @@ private with sharing class ObjectExplorerAccessPolicyTest {
             } catch (AuraHandledException error) {
                 Assert.isTrue(error.getMessage().contains('不正'), '過剰な属性を拒否');
             }
-            Test.stopTest();
-        }
-    }
-    /** 機能権限の有無で利用可否を分ける */
-    @IsTest
-    static void requiresFeaturePermission() {
-        System.runAs(testUser) {
-            Test.startTest();
-            User deniedUser = TestDataFactory.createUser('ExplorerDenied', TestDataFactory.SaveMode.INSERT_RECORD);
-            System.runAs(deniedUser) {
-                try {
-                    access.requireAccess();
-                    Assert.fail('機能権限なしを拒否');
-                } catch (AuraHandledException error) {
-                    Assert.isTrue(error.getMessage().contains('権限セット'), '必要権限を通知');
-                }
-            }
-            TestDataFactory.assignPermissionSet(deniedUser.Id, 'LwcObjectExplorer');
-            System.runAs(deniedUser) {
-                access.requireAccess();
-            }
-            Assert.isNotNull(deniedUser.Id, '機能権限付与後は利用可能');
             Test.stopTest();
         }
     }

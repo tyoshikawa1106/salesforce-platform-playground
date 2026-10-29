@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class OrgExplorerSelectorTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
     private static OrgExplorerSelector selector = new OrgExplorerSelector();
 
     /**
@@ -81,7 +81,7 @@ private with sharing class OrgExplorerSelectorTest {
         System.runAs(testUser) {
             UserRole role = new UserRole(Name = '一括試験ロール');
             insert role;
-            User root = TestDataFactory.createUser('一括試験最上位', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User root = createUser('一括試験最上位');
             root.IsActive = false;
             insert root;
             Map<String, List<User>> team = createManagerTeam(root, role);
@@ -138,7 +138,7 @@ private with sharing class OrgExplorerSelectorTest {
             update testUser;
             List<User> users = new List<User>();
             for (Integer index = 0; index < 3; index++) {
-                User record = TestDataFactory.createUser('人数集計' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
+                User record = createUser('人数集計' + index);
                 record.IsActive = false;
                 record.UserRoleId = roles[index == 2 ? 2 : 0].Id;
                 users.add(record);
@@ -200,7 +200,7 @@ private with sharing class OrgExplorerSelectorTest {
                 new UserRole(Name = '構造試験部門B', ParentRoleId = root.Id)
             };
             insert roles;
-            User inactive = TestDataFactory.createUser('構造人数試験', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User inactive = createUser('構造人数試験');
             inactive.IsActive = false;
             inactive.UserRoleId = roles[0].Id;
             insert inactive;
@@ -234,7 +234,7 @@ private with sharing class OrgExplorerSelectorTest {
     private static Map<String, List<User>> createManagerTeam(User root, UserRole role) {
         List<User> managers = new List<User>();
         for (Integer index = 0; index < 2; index++) {
-            User manager = TestDataFactory.createUser('一括上司' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User manager = createUser('一括上司' + index);
             manager.IsActive = false;
             manager.ManagerId = root.Id;
             manager.UserRoleId = role.Id;
@@ -243,7 +243,7 @@ private with sharing class OrgExplorerSelectorTest {
         insert managers;
         List<User> members = new List<User>();
         for (User manager : managers) {
-            User member = TestDataFactory.createUser('一括部下', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User member = createUser('一括部下');
             member.IsActive = false;
             member.ManagerId = manager.Id;
             members.add(member);
@@ -260,7 +260,7 @@ private with sharing class OrgExplorerSelectorTest {
         System.runAs(testUser) {
             UserRole role = new UserRole(Name = '単体候補', DeveloperName = 'UnitCandidate');
             insert role;
-            User member = TestDataFactory.createUser('単体メンバー', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User member = createUser('単体メンバー');
             member.IsActive = false;
             member.UserRoleId = role.Id;
             member.ManagerId = testUser.Id;
@@ -296,5 +296,20 @@ private with sharing class OrgExplorerSelectorTest {
             Assert.isTrue(selector.selectManagers(ids, new List<String>{ 'Id' }, 'ACTIVE').isEmpty(), '無効ユーザーを取得しない');
             Test.stopTest();
         }
+    }
+
+    // 階層・所属の検証用ユーザーを未保存で用意
+    private static User createUser(String lastName) {
+        return new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = lastName,
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
     }
 }

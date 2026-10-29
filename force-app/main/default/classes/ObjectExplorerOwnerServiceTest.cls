@@ -5,7 +5,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
     private static ObjectExplorerOwnerService service = new ObjectExplorerOwnerService();
     private static ObjectExplorerOwnerService.CsvOwners csv = new ObjectExplorerOwnerService.CsvOwners();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 候補・API参照値を同じ所有者IDへ対応 */
     @IsTest

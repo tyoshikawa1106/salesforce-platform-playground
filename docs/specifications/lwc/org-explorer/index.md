@@ -37,7 +37,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [OrgExplorerSelector](../../../../force-app/main/default/classes/OrgExplorerSelector.cls)                         | 利用者権限を適用したUserとUserRoleの限定照会             | [OrgExplorerSelectorTest](../../../../force-app/main/default/classes/OrgExplorerSelectorTest.cls)                         |
 | [OrgExplorerService](../../../../force-app/main/default/classes/OrgExplorerService.cls)                           | 組織探索のロール・上司構造と候補・人数・公開エラーの生成 | [OrgExplorerServiceTest](../../../../force-app/main/default/classes/OrgExplorerServiceTest.cls)                           |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストでは現在の実行ユーザーを直接取得し、階層検証用ユーザーはテストクラス内で作成します。共通の`TestDataFactory`には依存しません。
 
 ### 設定・権限
 

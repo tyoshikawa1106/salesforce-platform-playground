@@ -4,7 +4,7 @@ private with sharing class MetadataApiIntegrationClientTest {
     private static MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
     private static MetadataApiIntegrationClient.RecordReader reader = new MetadataApiIntegrationClient.RecordReader();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 組織照合と分類クエリの接続 */
     @IsTest

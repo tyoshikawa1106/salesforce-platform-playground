@@ -5,7 +5,7 @@
 private with sharing class OrgExplorerControllerTest {
 
     private static OrgExplorerSelector selector = new OrgExplorerSelector();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * ロール名の制御文字と初期API名を区別して照合
@@ -275,7 +275,7 @@ private with sharing class OrgExplorerControllerTest {
     @IsTest
     static void paginatesDirectMembersWithoutDuplicates() {
         System.runAs(testUser) {
-            User manager = TestDataFactory.createUser('ページ上司', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User manager = createUser('ページ上司');
             manager.IsActive = false;
             insert manager;
             List<User> members = createInactiveUsers(2);
@@ -504,7 +504,7 @@ private with sharing class OrgExplorerControllerTest {
     private static List<User> createInactiveUsers(Integer count) {
         List<User> users = new List<User>();
         for (Integer index = 0; index < count; index++) {
-            User record = TestDataFactory.createUser('探索試験' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User record = createUser('探索試験' + index);
             record.IsActive = false;
             record.ManagerId = testUser.Id;
             users.add(record);
@@ -528,12 +528,12 @@ private with sharing class OrgExplorerControllerTest {
 
     // 検証に必要な部下数と所属ロールだけを作成対象にする
     private static List<User> createTeam(Integer memberCount, UserRole role) {
-        User root = TestDataFactory.createUser('上司検証A', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        User root = createUser('上司検証A');
         root.IsActive = false;
         root.ManagerId = null;
         root.UserRoleId = null;
         insert root;
-        User manager = TestDataFactory.createUser('上司検証B', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        User manager = createUser('上司検証B');
         manager.IsActive = false;
         manager.ManagerId = root.Id;
         manager.Title = '試験課長';
@@ -542,7 +542,7 @@ private with sharing class OrgExplorerControllerTest {
         insert manager;
         List<User> members = new List<User>();
         for (Integer index = 0; index < memberCount; index++) {
-            User member = TestDataFactory.createUser('直属検証' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
+            User member = createUser('直属検証' + index);
             member.IsActive = false;
             member.ManagerId = manager.Id;
             members.add(member);
@@ -598,5 +598,20 @@ private with sharing class OrgExplorerControllerTest {
             Assert.isTrue(response.nodes.isEmpty(), '失敗応答に所属ユーザーを残さない');
             Assert.isNull(response.paginationCursor, '不正要求で標準カーソルを作成しない');
         }
+    }
+
+    // 階層・所属の検証用ユーザーを未保存で用意
+    private static User createUser(String lastName) {
+        return new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = lastName,
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
     }
 }

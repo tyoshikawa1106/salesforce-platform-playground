@@ -6,7 +6,7 @@ private with sharing class ObjectExplorerClassifyServiceTest {
     private static ObjectExplorerClassifyService.Preparation preparation = new ObjectExplorerClassifyService.Preparation();
     private static ObjectExplorerClassifyService.SaveResults results = new ObjectExplorerClassifyService.SaveResults();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 送信成功は再取得による確認まで保留 */
     @IsTest
@@ -312,7 +312,6 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Assert.areEqual(5, contexts.size(), '入力の項目一覧を変更しない');
         }
     }
-
 
     /** 編集開始時の分類がnullなら保存準備を拒否 */
     @IsTest
