@@ -1347,3 +1347,20 @@ it('子のドラッグ開始エラーを移動描画エラーへ置き換えず�
         await expect(element).toBeAccessible();
     } finally { log.mockRestore(); }
 });
+
+it('子からの未知コードや自由文を診断理由とログへ採用しない', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+        const element = createElement('c-org-explorer', { is: OrgExplorer });
+        document.body.appendChild(element);
+        await flush();
+        element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('clienterror', {
+            detail: { location: 'orgExplorerCanvas.js / handlePointerDown / pointer-event', code: 'PRIVATE_CODE', reason: 'PRIVATE_VALUE', errorType: 'TypeError', frames: [] }
+        }));
+        await flush();
+        const details = element.shadowRoot.querySelector('c-ui-error-panel').details;
+        expect(details.code).toBe('ORG-JS-UNEXPECTED');
+        expect(JSON.stringify(details)).not.toContain('PRIVATE');
+        expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE');
+    } finally { log.mockRestore(); }
+});

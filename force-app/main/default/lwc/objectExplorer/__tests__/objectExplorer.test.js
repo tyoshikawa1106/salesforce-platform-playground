@@ -466,3 +466,14 @@ it('監査APIの成功後に表示データの加工が失敗した場合は認�
     expect(alert.textContent).toContain('OE-JS-AUDIT-DATA');
     expect(alert.textContent).not.toContain('API連携設定と権限を確認');
 });
+
+it('APIの固定コードは画面に表示し、公開メッセージ本文はログに含めない', async () => {
+    const message = 'API接続：[OE-AUTH-401] APIが認証を拒否しました。';
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
+    getFieldAudit.mockRejectedValueOnce({ body: { message } });
+    const element = createComponent();
+    await pickAccount(element);
+    expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('エラーコード：OE-AUTH-401');
+    expect(JSON.stringify(console.error.mock.calls)).toContain('OE-AUTH-401');
+    expect(JSON.stringify(console.error.mock.calls)).not.toContain(message);
+});

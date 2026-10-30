@@ -114,6 +114,57 @@ private with sharing class MetadataApiIntegrationClientTest {
         }
     }
 
+    /** 更新要求のHTTP拒否を結果不明と区別 */
+    @IsTest
+    static void distinguishesRejectedPatch() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(403, 'PRIVATE_VALUE', null));
+            try {
+                client.request('example', 'PATCH', '{}');
+                Assert.fail('更新拒否を成功にしない');
+            } catch (MetadataApiIntegrationClient.RejectedUpdateException error) {
+                Assert.isTrue(error.getMessage().contains('HTTP 403'), '更新の明示拒否として通知');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), 'API本文を公開しない');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** サーバー失敗を未保存と断定しない */
+    @IsTest
+    static void keepsPatchServerFailureUnconfirmed() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(503, 'PRIVATE_VALUE', null));
+            try {
+                client.request('example', 'PATCH', '{}');
+                Assert.fail('更新結果を正常と扱わない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('HTTP 503'), '明示拒否と異なる連携エラーで返す');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), 'API本文を公開しない');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** SOAPの認証拒否をXML解析エラーと混同しない */
+    @IsTest
+    static void distinguishesSoapAuthenticationRejection() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(401, 'PRIVATE_VALUE', null));
+            try {
+                client.updateStandardFields(new Map<String, Map<String, Object>>{'Account.Name' => new Map<String, Object>{'fullName' => 'Account.Name', 'businessStatus' => 'Active'}});
+                Assert.fail('認証拒否を成功にしない');
+            } catch (MetadataApiIntegrationClient.RejectedUpdateException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-AUTH-401]'), 'API認証拒否として通知');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '本文を公開しない');
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 組織照合と分類クエリの接続 */
     @IsTest
     static void readsOrganizationAndClassifyData() {
