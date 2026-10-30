@@ -45,3 +45,9 @@ export function alignRoot(node, bounds) {
         y: 24 - layout.y * BASE_SCALE
     };
 }
+
+// 描画前に必要な値の型と有限性だけを確認する
+export function isCanvasModel(model) {
+    // 内容や個人情報は診断へ含めない
+    return Boolean(model && Array.isArray(model.rows) && Array.isArray(model.edges) && Number.isFinite(model.width) && model.width > 0 && Number.isFinite(model.height) && model.height > 0 && model.rows.every((row) => row && typeof row === 'object' && typeof row.key === 'string' && row.key.length > 0) && model.edges.every((edge) => edge && typeof edge.key === 'string' && typeof edge.d === 'string'));
+}
