@@ -16,9 +16,10 @@
         <template lwc:if={clientError}>
             <div class="slds-notify slds-notify_alert slds-alert_error oe-client-error" role="alert">
                 <p>画面処理でエラーが発生しました。</p>
+                <p>エラーコード：{clientError.code}</p>
                 <p>処理場所：{clientError.location}</p>
                 <p>エラー種別：{clientError.errorType}</p>
-                <template lwc:if={clientError.frame}><p>検出位置：{clientError.frame}</p></template>
+                <template lwc:if={clientError.message}><p>理由：{clientError.message}</p></template>
             </div>
         </template>
         <section class="oe-panel" aria-label={modeLabel}>
@@ -266,6 +267,16 @@
                         </ul>
                     </template>
                 </template>
+                <template lwc:if={hasSaveErrors}>
+                    <section class="slds-text-color_error" role="alert" aria-label="保存失敗の詳細">
+                        <p>保存できなかった項目</p>
+                        <ul>
+                            <template for:each={saveErrors} for:item="failure">
+                                <li key={failure.apiName}>{failure.label}（{failure.apiName}）：{failure.message}</li>
+                            </template>
+                        </ul>
+                    </section>
+                </template>
                 <template lwc:if={auditNotice}>
                     <p class="oe-classify-notice" role="status">{auditNotice}</p>
                 </template>
@@ -462,7 +473,7 @@
                                                                         aria-activedescendant={field.ownerActiveId}
                                                                         autocomplete="off"
                                                                         value={field.ownerSearch}
-                                                                        placeholder="氏名・メールアドレス・グループ名で検索"
+                                                                        placeholder="検索"
                                                                         data-field={field.apiName}
                                                                         oninput={handleOwnerSearch}
                                                                         onclick={handleOwnerSearch}

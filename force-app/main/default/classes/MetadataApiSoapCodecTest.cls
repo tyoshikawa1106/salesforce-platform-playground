@@ -158,7 +158,7 @@ private with sharing class MetadataApiSoapCodecTest {
             Test.stopTest();
         }
     }
-    /** SOAP Faultを明示拒否として扱う */
+    /** 不明なSOAP Faultを未保存と断定しない */
     @IsTest
     static void rejectsSoapFault() {
         System.runAs(testUser) {
@@ -171,8 +171,8 @@ private with sharing class MetadataApiSoapCodecTest {
             try {
                 codec.readUpdateResults(raw, new Set<String>{ 'Account.Name' });
                 Assert.fail('Faultを拒否');
-            } catch (MetadataApiIntegrationClient.RejectedUpdateException error) {
-                Assert.isTrue(error.getMessage().contains('拒否'), '明示拒否として扱う');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-SAVE-UNCONFIRMED]'), '結果不明を明示拒否と区別');
             }
             Test.stopTest();
         }

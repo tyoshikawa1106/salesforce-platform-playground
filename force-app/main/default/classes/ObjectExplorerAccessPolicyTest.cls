@@ -6,6 +6,28 @@ private with sharing class ObjectExplorerAccessPolicyTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 未制御の例外本文を公開不可とする */
+    @IsTest
+    static void classifiesInternalFailure() {
+        System.runAs(testUser) {
+            Test.startTest();
+            MetadataApiProtocol.Publication result = ObjectExplorerAccessPolicy.errorPublication(new QueryException('PRIVATE_VALUE'));
+            Test.stopTest();
+            Assert.areEqual(MetadataApiProtocol.Publication.INTERNAL, result, '内部のSQL等を公開しない');
+        }
+    }
+
+    /** 制御したAPI診断だけを公開対象とする */
+    @IsTest
+    static void classifiesControlledFailure() {
+        System.runAs(testUser) {
+            Test.startTest();
+            MetadataApiProtocol.Publication result = ObjectExplorerAccessPolicy.errorPublication(new MetadataApiIntegrationClient.IntegrationException('HTTP 401'));
+            Test.stopTest();
+            Assert.areEqual(MetadataApiProtocol.Publication.CONTROLLED, result, '固定診断の公開可否を区別');
+        }
+    }
+
     /** JSON構文・型・長さの不正を拒否 */
     @IsTest
     static void rejectsMalformedJson() {

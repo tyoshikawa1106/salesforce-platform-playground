@@ -2,9 +2,10 @@
     <template lwc:if={details}>
         <div class="slds-box slds-m-bottom_small" role="alert">
             <p>画面処理でエラーが発生しました。</p>
+            <template lwc:if={details.code}><p>エラーコード：{details.code}</p></template>
             <p>処理場所：{details.location}</p>
             <p>エラー種別：{details.errorType}</p>
-            <template lwc:if={details.frame}><p>検出位置：{details.frame}</p></template>
+            <template lwc:if={details.reason}><p>理由：{details.reason}</p></template>
             <lightning-button label="エラー詳細を閉じる" onclick={handleDismiss}></lightning-button>
         </div>
     </template>

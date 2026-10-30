@@ -37,6 +37,98 @@ private with sharing class ObjectExplorerControllerTest {
         }
     }
 
+    /** 日時取得のconnectionを公開メッセージで確認 */
+    @IsTest
+    static void reportsAuditConnectionFailure() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('connection'));
+            String message = auditFailureMessage();
+            Assert.isTrue(message.contains('API接続・接続先組織の確認：[OE-API-CONNECTION]'), '失敗した段階と公開可能な理由を返す');
+            Assert.isFalse(message.contains('PRIVATE_RESPONSE'), '内部の応答本文を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 日時取得のunauthorizedを公開メッセージで確認 */
+    @IsTest
+    static void reportsAuditAuthenticationRejection() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('unauthorized'));
+            String message = auditFailureMessage();
+            Assert.isTrue(message.contains('API接続・接続先組織の確認：[OE-AUTH-401]'), '失敗した段階と公開可能な理由を返す');
+            Assert.isFalse(message.contains('PRIVATE_RESPONSE'), '内部の応答本文を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 日時取得のwrongOrgを公開メッセージで確認 */
+    @IsTest
+    static void reportsAuditWrongOrganization() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('wrongOrg'));
+            String message = auditFailureMessage();
+            Assert.isTrue(message.contains('API接続・接続先組織の確認：[OE-ORG-MISMATCH]'), '失敗した段階と公開可能な理由を返す');
+            Assert.isFalse(message.contains('PRIVATE_RESPONSE'), '内部の応答本文を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 日時取得のtoolingForbiddenを公開メッセージで確認 */
+    @IsTest
+    static void reportsAuditToolingRejection() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('toolingForbidden'));
+            String message = auditFailureMessage();
+            Assert.isTrue(message.contains('項目の作成・更新情報のAPI取得：[OE-API-HTTP-403]'), '失敗した段階と公開可能な理由を返す');
+            Assert.isFalse(message.contains('PRIVATE_RESPONSE'), '内部の応答本文を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 日時取得のincompleteを公開メッセージで確認 */
+    @IsTest
+    static void reportsIncompleteAudit() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('incomplete'));
+            String message = auditFailureMessage();
+            Assert.isTrue(message.contains('項目の作成・更新情報のAPI取得：項目の作成・更新情報をすべて取得できませんでした。'), '失敗した段階と公開可能な理由を返す');
+            Assert.isFalse(message.contains('PRIVATE_RESPONSE'), '内部の応答本文を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 日時取得のmalformedを公開メッセージで確認 */
+    @IsTest
+    static void hidesUnexpectedAuditResponse() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('malformed'));
+            String message = auditFailureMessage();
+            Assert.isTrue(message.contains('項目の作成・更新情報のAPI取得：[OE-API-RESPONSE]'), '失敗した段階と公開可能な理由を返す');
+            Assert.isFalse(message.contains('PRIVATE_RESPONSE'), '内部の応答本文を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /**
+     * 日時取得の公開例外だけを取り出して比較可能にする
+     * @return 画面へ公開されるエラーメッセージ
+     */
+    private static String auditFailureMessage() {
+        try {
+            ObjectExplorerController.getFieldAudit('Account');
+            Assert.fail('失敗を正常応答にしない');
+        } catch (AuraHandledException error) {
+            return error.getMessage();
+        }
+        return '';
+    }
+
     /** 構造・項目・分類一覧の公開契約 */
     @IsTest
     static void readsStructureAndClassify() {
@@ -233,6 +325,7 @@ private with sharing class ObjectExplorerControllerTest {
                 changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '組織確認失敗を結果へ返す');
+            Assert.isTrue(String.valueOf(((Map<String, Object>) results[0]).get('message')).contains('API接続・接続先組織の確認'), '項目別の失敗にも段階を返す');
             Test.stopTest();
         }
     }
@@ -449,6 +542,49 @@ private with sharing class ObjectExplorerControllerTest {
             }
             response.setBody(JSON.serialize(new Map<String, Object>{ 'done' => true, 'records' => rows }));
         }
+    }
+
+    /** 日時取得の接続と応答異常を再現するHTTPモック */
+    public class AuditFailureMock implements HttpCalloutMock {
+        private String mode;
+
+        /**
+         * 再現する失敗段階を指定
+         * @param mode 接続またはAPI応答の異常種別
+         */
+        public AuditFailureMock(String mode) {
+            this.mode = mode;
+        }
+
+        /**
+         * 認証先確認と項目照会を区別して模擬応答を生成
+         * @param request 日時取得のHTTP要求
+         * @return 指定した段階のHTTP応答
+         */
+        public HttpResponse respond(HttpRequest request) {
+            Boolean organization = request.getEndpoint().endsWith('query/?q=SELECT+Id+FROM+Organization');
+            if (this.mode == 'connection') { throw new CalloutException('PRIVATE_RESPONSE'); }
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(200);
+            if (this.mode == 'unauthorized' || (!organization && this.mode == 'toolingForbidden')) {
+                response.setStatusCode(this.mode == 'unauthorized' ? 401 : 403);
+                response.setBody('PRIVATE_RESPONSE');
+            } else if (organization) {
+                response.setBody(JSON.serialize(new Map<String, Object>{'done' => true, 'records' => new List<Object>{new Map<String, Object>{'Id' => this.mode == 'wrongOrg' ? '' : UserInfo.getOrganizationId()}}}));
+            } else {
+                response.setBody(this.auditBody());
+            }
+            return response;
+        }
+
+        /**
+         * 日時照会の不完全応答と不正形式を分離
+         * @return 指定した異常応答の本文
+         */
+        private String auditBody() {
+            return this.mode == 'incomplete' ? '{"done":false,"records":[]}' : 'PRIVATE_RESPONSE';
+        }
+
     }
 
     /** カスタム項目の日時だけを返すHTTPモック */

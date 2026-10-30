@@ -1,5 +1,6 @@
 /** 項目定義の型・分類・作成更新情報の可視表示モデル */
 public with sharing class ObjectExplorerFieldService {
+
     /**
      * 可視なカスタム項目の正確なIDとAPI名を対応付け
      * @param info 参照可否確認済みのオブジェクト定義
@@ -45,7 +46,7 @@ public with sharing class ObjectExplorerFieldService {
             // 検証済み項目IDからAPI名を解決
             String apiName = targets.get((Id)String.valueOf(record.get('Id')));
             // 別項目と重複した応答を拒否
-            if (apiName == null || result.containsKey(apiName)) { throw new AuraHandledException('項目の作成・更新情報の対応を確認できませんでした。'); }
+            if (apiName == null || result.containsKey(apiName)) { throw ObjectExplorerAccessPolicy.createException('項目の作成・更新情報の対応を確認できませんでした。'); }
             // 更新者・作成者を名前ではなく応答のIDで照合
             User creator = visibleUsers.get((Id)(String)record.get('CreatedById'));
             // 閲覧できないUserのIDや名前を公開しない
@@ -59,7 +60,7 @@ public with sharing class ObjectExplorerFieldService {
                 'lastModifiedByName' => modifier?.Name});
         }
         // 未取得の項目を未設定として扱わない
-        if (result.size() != targets.size()) { throw new AuraHandledException('項目の作成・更新情報をすべて取得できませんでした。'); }
+        if (result.size() != targets.size()) { throw ObjectExplorerAccessPolicy.createException('項目の作成・更新情報をすべて取得できませんでした。'); }
         // 全件を照合した表示値だけを返却
         return result;
     }
@@ -97,7 +98,7 @@ public with sharing class ObjectExplorerFieldService {
         // 型付きIDを照会単位へ分割
         for (Id fieldId : ids) {
             // カスタム項目以外のIDを拒否
-            if (!String.valueOf(fieldId).startsWith('00N')) { throw new AuraHandledException('カスタム項目の識別子を確認してください。'); }
+            if (!String.valueOf(fieldId).startsWith('00N')) { throw ObjectExplorerAccessPolicy.createException('カスタム項目の識別子を確認してください。'); }
             // 200件に達した場合だけ次の要求を作成
             if (batches.isEmpty() || batches[batches.size() - 1].size() == 200) { batches.add(new Set<Id>()); }
             // 同じIDを一回だけ要求
@@ -127,7 +128,7 @@ public with sharing class ObjectExplorerFieldService {
      */
     public List<Map<String, Object>> readAuditRecords(Map<String, Object> response) {
         // 未完了の一部応答を全件取得として扱わない
-        if (response.get('done') != true || !(response.get('records') instanceof List<Object>)) { throw new AuraHandledException('項目の作成・更新情報をすべて取得できませんでした。'); }
+        if (response.get('done') != true || !(response.get('records') instanceof List<Object>)) { throw ObjectExplorerAccessPolicy.createException('項目の作成・更新情報をすべて取得できませんでした。'); }
         // 後で要求ID・重複・欠落を確認できる形で保持
         List<Map<String, Object>> records = new List<Map<String, Object>>();
         // レコードの識別子を保ったまま型を統一

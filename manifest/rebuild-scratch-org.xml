@@ -155,6 +155,8 @@
         <members>ObjectExplorerAccessPolicyTest</members>
         <members>MetadataApiIntegrationClient</members>
         <members>MetadataApiIntegrationClientTest</members>
+        <members>MetadataApiProtocol</members>
+        <members>MetadataApiProtocolTest</members>
         <members>MetadataApiSoapCodec</members>
         <members>MetadataApiSoapCodecTest</members>
         <members>ObjectExplorerService</members>

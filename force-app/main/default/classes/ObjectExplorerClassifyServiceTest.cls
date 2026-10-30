@@ -223,13 +223,13 @@ private with sharing class ObjectExplorerClassifyServiceTest {
                 new List<ObjectExplorerClassifyService.FieldContext>{ pending },
                 new Map<String, String>{ 'Account.Name' => '拒否' }
             );
-            Assert.areEqual('拒否', rejected[0].result.get('message'), '明示拒否は確認不能と区別');
+            Assert.areEqual('[OE-SAVE-REJECTED] APIによる更新拒否：拒否', rejected[0].result.get('message'), '明示拒否は確認不能と区別');
             Assert.isFalse(pending.completed, '元の状態を変更しない');
             List<ObjectExplorerClassifyService.FieldContext> unchanged = results.failPendingFields(
                 rejected,
                 new MetadataApiIntegrationClient.IntegrationException('後続失敗')
             );
-            Assert.areEqual('拒否', unchanged[0].result.get('message'), '確定済み結果を上書きしない');
+            Assert.areEqual('[OE-SAVE-REJECTED] APIによる更新拒否：拒否', unchanged[0].result.get('message'), '確定済み結果を上書きしない');
             Assert.isTrue(results.getVerificationNames(unchanged).isEmpty(), '確定行を再取得しない');
             Assert.areEqual(1, results.createSaveResults(unchanged).size(), '入力順の結果を返す');
             ObjectExplorerClassifyService.FieldContext unknown = results.failField(

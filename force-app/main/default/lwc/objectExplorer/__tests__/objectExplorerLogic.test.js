@@ -174,3 +174,23 @@ it('エラー位置から組織URL・端末パス・入力値・応答本文を�
 it('スタックのないAPIエラーでも処理名と種別を表示する', () => {
     expect(clientErrorDetails({ body: { message: 'server value' } }, 'readObjectInfo', 'field-audit')).toEqual({ location: 'objectExplorer.js / readObjectInfo / field-audit', errorType: 'SalesforceError', frames: [], frame: '' });
 });
+
+
+it('保存失敗一覧は編集入力を変更せずAPI名と表示ラベルを対応付ける', () => {
+    const { classifySaveErrors } = require('../objectExplorerLogic');
+    const edits = Object.freeze({ Name: Object.freeze({ error: 'HTTP 403' }), Other__c: Object.freeze({ error: '競合' }), Success__c: Object.freeze({ error: '' }) });
+    expect(classifySaveErrors(edits, [{ apiName: 'Name', label: '名前' }])).toEqual([
+        { apiName: 'Name', label: '名前', message: 'HTTP 403' },
+        { apiName: 'Other__c', label: 'Other__c', message: '競合' }
+    ]);
+    expect(classifySaveErrors()).toEqual([]);
+});
+
+
+it('公開API診断は固定書式の許可されたコードだけを抽出する', () => {
+    const { apiDiagnosticCode } = require('../objectExplorerLogic');
+    expect(apiDiagnosticCode('API接続：[OE-AUTH-401] APIが認証を拒否しました。')).toBe('OE-AUTH-401');
+    expect(apiDiagnosticCode('[OE-API-HTTP-403] 拒否')).toBe('OE-API-HTTP-403');
+    expect(apiDiagnosticCode('[OE-ORG-MISMATCH] 不一致')).toBe('OE-ORG-MISMATCH');
+    for (const value of [null, { code: 'PRIVATE' }, '[OE-API-HTTP-999]', '[PRIVATE_TOKEN]']) expect(apiDiagnosticCode(value)).toBe('');
+});

@@ -2,9 +2,117 @@
 @IsTest
 private with sharing class MetadataApiIntegrationClientTest {
     private static MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
-    private static MetadataApiIntegrationClient.RecordReader reader = new MetadataApiIntegrationClient.RecordReader();
+    private static MetadataApiProtocol.RecordReader reader = new MetadataApiProtocol.RecordReader();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
+
+    /** 固定診断コードと内部情報の非公開を確認 */
+    @IsTest
+    static void reportsAuthenticationCode() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(401, '[{"errorCode":"INVALID_SESSION_ID","message":"PRIVATE_VALUE"}]', null));
+            try {
+                client.request('example', 'GET', null);
+                Assert.fail('失敗を成功として返さない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-AUTH-401]'), '失敗の種類を固定コードで識別');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
+                Assert.isTrue(error.getMessage().contains('Salesforceコード：INVALID_SESSION_ID'), '許可済みコードを表示');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 固定診断コードと内部情報の非公開を確認 */
+    @IsTest
+    static void hidesUnknownApiCode() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(403, '[{"errorCode":"PRIVATE_CODE","message":"PRIVATE_VALUE"}]', null));
+            try {
+                client.request('example', 'GET', null);
+                Assert.fail('失敗を成功として返さない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-403]'), '失敗の種類を固定コードで識別');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
+
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 固定診断コードと内部情報の非公開を確認 */
+    @IsTest
+    static void preservesHttpStatusForMalformedBody() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(503, 'PRIVATE_VALUE', null));
+            try {
+                client.request('example', 'GET', null);
+                Assert.fail('失敗を成功として返さない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-503]'), '失敗の種類を固定コードで識別');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
+
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 固定診断コードと内部情報の非公開を確認 */
+    @IsTest
+    static void reportsResponseTimeout() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, '', 'Read timed out PRIVATE_VALUE'));
+            try {
+                client.request('example', 'GET', null);
+                Assert.fail('失敗を成功として返さない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-API-TIMEOUT]'), '失敗の種類を固定コードで識別');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
+
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 固定診断コードと内部情報の非公開を確認 */
+    @IsTest
+    static void reportsUnclassifiedConnectionFailure() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, '', 'PRIVATE_VALUE'));
+            try {
+                client.request('example', 'GET', null);
+                Assert.fail('失敗を成功として返さない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-API-CONNECTION]'), '失敗の種類を固定コードで識別');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
+
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 固定診断コードと内部情報の非公開を確認 */
+    @IsTest
+    static void reportsMalformedSuccessfulResponse() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, 'PRIVATE_VALUE', null));
+            try {
+                client.request('example', 'GET', null);
+                Assert.fail('失敗を成功として返さない');
+            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().contains('[OE-API-RESPONSE]'), '失敗の種類を固定コードで識別');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
+
+            }
+            Test.stopTest();
+        }
+    }
 
     /** 組織照合と分類クエリの接続 */
     @IsTest
@@ -201,6 +309,38 @@ private with sharing class MetadataApiIntegrationClientTest {
             'BusinessStatus' => null,
             'BusinessOwnerId' => null
         };
+    }
+
+    /** 認証・HTTP・形式不正を再現する診断用モック */
+    private class DiagnosticMock implements HttpCalloutMock {
+        private Integer status;
+        private String body;
+        private String exceptionMessage;
+
+        /**
+         * 模擬応答と接続失敗の種類を指定
+         * @param status HTTP番号
+         * @param body 模擬API本文
+         * @param exceptionMessage 接続例外、nullは通常の応答
+         */
+        DiagnosticMock(Integer status, String body, String exceptionMessage) {
+            this.status = status;
+            this.body = body;
+            this.exceptionMessage = exceptionMessage;
+        }
+
+        /**
+         * 実通信をせず指定した応答だけを返す
+         * @param request 模擬するHTTP要求
+         * @return 指定したHTTP応答
+         */
+        public HttpResponse respond(HttpRequest request) {
+            if (this.exceptionMessage != null) { throw new CalloutException(this.exceptionMessage); }
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(this.status);
+            response.setBody(this.body);
+            return response;
+        }
     }
 
     /** 実通信せずHTTP契約を検証 */

@@ -1,4 +1,5 @@
 import { LightningElement } from 'lwc';
+import { safeClientDiagnostic } from 'c/errorUtils';
 import locale from '@salesforce/i18n/locale';
 import timeZone from '@salesforce/i18n/timeZone';
 import hasModifyDataClassification from '@salesforce/userPermission/ModifyDataClassification';
@@ -11,7 +12,7 @@ import resolveClassifyOwners from '@salesforce/apex/ObjectExplorerController.res
 import searchObjects from '@salesforce/apex/ObjectExplorerController.searchObjects';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
 import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAudit';
-import { CLASSIFY_CSV_LIMITS, clientErrorDetails, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
+import { CLASSIFY_CSV_LIMITS, apiDiagnosticCode, classifySaveErrors, clientErrorDetails, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
 
 // 固定ヘッダー内で一度に表示する項目数
 const FIELD_PAGE_SIZE = 400;
@@ -21,15 +22,19 @@ export default class ObjectExplorer extends LightningElement {
     // エラー時だけ処理場所を表示し、通常の操作では診断表示を出さない
     clientError;
     // 捕捉した例外をコンポーネント内の案内と安全なコンソール情報へ変換
-    reportClientError(error, operation, phase) {
-        // ファイル名・処理名・段階・例外種別だけを構造化
-        const details = clientErrorDetails(error, operation, phase);
+    reportClientError(error, operation, phase, message = '', code = '') {
+        // 処理位置と種類に、呼出元で指定した公開可能な理由を添付
+        const apiCode = apiDiagnosticCode(message);
+        // JSは固定理由を使用し、APIの公開理由と混同しない
+        const diagnostic = safeClientDiagnostic(code || 'OE-JS-UNEXPECTED');
+        // APIコードがある場合も本文を診断ログへ含めない
+        const details = { ...clientErrorDetails(error, operation, phase), code: apiCode || (error?.body ? 'OE-API-UNCLASSIFIED' : diagnostic.code), message: message || diagnostic.reason };
         // 描画失敗による再描画ループと同じエラーの連続記録を防ぐ
-        if (this.clientError?.location === details.location && this.clientError.errorType === details.errorType && this.clientError.frames.join('|') === details.frames.join('|')) { return; }
+        if (this.clientError?.location === details.location && this.clientError.errorType === details.errorType && this.clientError.frames.join('|') === details.frames.join('|') && this.clientError.message === details.message && this.clientError.code === details.code) { return; }
         // 標準エラーページへ投げ直さず、この画面内へ表示
         this.clientError = details;
         // 成功ログや入力値・認証情報・API応答本文は出力しない
-        console.error('ObjectExplorer: 画面処理でエラーが発生しました。', { location: details.location, errorType: details.errorType, frames: details.frames });
+        console.error('ObjectExplorer: 画面処理でエラーが発生しました。', { location: details.location, errorType: details.errorType, code: details.code, frames: details.frames });
     }
     // 子コンポーネントの描画・宣言的イベントで起きた例外を画面内へ収める
     errorCallback(error) {
@@ -373,16 +378,34 @@ export default class ObjectExplorer extends LightningElement {
         const data = await getObjectInfo({ objectName: name, mode: scope });
         // 分類モードと可視カスタム項目がない場合は日時取得のApex要求を省略
         if (!this.isReference || !data.fields.some((field) => field.custom)) { return data; }
+        // API取得とJSでの表示データ加工の失敗を混同しない
+        let audit;
         try {
             // 日時とユーザー名は項目API名に対応する同じ応答から取得
-            const audit = await getFieldAudit({ objectName: data.apiName });
-            // 表示対象の項目へだけ取得値を合成
-            return { ...data, fields: data.fields.map((field) => ({ ...field, ...(Object.hasOwn(audit, field.apiName) ? audit[field.apiName] : {}) })) };
+            audit = await getFieldAudit({ objectName: data.apiName });
         } catch (error) {
             // 認証・監査情報の取得箇所を識別
-            this.reportClientError(error, 'readObjectInfo', 'field-audit');
+            const message = error.body?.message || '項目の作成・更新情報を取得できませんでした。API連携設定と権限を確認してください。';
+            // 項目一覧を開いていなくても安全な失敗理由を表示
+            this.reportClientError(error, 'readObjectInfo', 'field-audit', message);
             // 構造の閲覧は継続し、情報未取得を成功と見せない
-            return { ...data, auditNotice: error.body?.message || '項目の作成・更新情報を取得できませんでした。API連携設定と権限を確認してください。' };
+            return { ...data, auditNotice: message };
+        }
+        try {
+            // 失敗理由を推測せず、必要なAPI応答の型を使用直前に検証する
+            if (audit === null || typeof audit !== 'object' || Array.isArray(audit)) {
+                this.reportClientError(new TypeError(), 'readObjectInfo', 'field-audit-view', safeClientDiagnostic('OE-JS-AUDIT-DATA').reason, 'OE-JS-AUDIT-DATA');
+                return { ...data, auditNotice: safeClientDiagnostic('OE-JS-AUDIT-DATA').reason };
+            }
+            // 表示対象の項目へだけ取得値を合成するJS処理
+            return { ...data, fields: data.fields.map((field) => ({ ...field, ...(Object.prototype.hasOwnProperty.call(audit, field.apiName) ? audit[field.apiName] : {}) })) };
+        } catch (error) {
+            // API認証が失敗したと誤認させず表示データ加工の失敗として通知
+            const message = '項目の作成・更新情報を表示用に組み立てられませんでした。';
+            // JS側の例外種別と処理位置を表示し、構造の閲覧は継続
+            this.reportClientError(error, 'readObjectInfo', 'field-audit-view', message, 'OE-JS-AUDIT-VIEW');
+            // 不完全な日時情報を正常な取得結果として扱わない
+            return { ...data, auditNotice: message };
         }
     }
     // 項目の日時取得に失敗した場合だけ構造一覧へ案内
@@ -1544,6 +1567,10 @@ export default class ObjectExplorer extends LightningElement {
             processed += batch.length;
         }), Promise.resolve());
     }
+    // 非表示行も含む保存失敗の理由を一覧へ公開
+    get saveErrors() { return this.isClassify ? classifySaveErrors(this.classifyEdits, this.detail?.fields) : []; }
+    // エラーがあるときだけ一覧を表示
+    get hasSaveErrors() { return this.saveErrors.length > 0; }
     // 空状態のセルを表示モードの列数へ合わせる
     get fieldColumnCount() { return this.isReference ? 6 : 8; }
     // 分類の取得・保存中だけ見出し右側へ処理中を表示

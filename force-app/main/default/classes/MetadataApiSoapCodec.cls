@@ -99,7 +99,7 @@ public with sharing class MetadataApiSoapCodec {
             Dom.Document doc = new Dom.Document(); doc.load(response.getBody());
             body = doc.getRootElement().getChildElement('Body', SOAP_NS);
         } catch (Exception error) { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
-        if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new MetadataApiIntegrationClient.RejectedUpdateException('Metadata APIが更新要求を拒否しました。認証・権限・入力値を確認してください。'); }
+        if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new MetadataApiIntegrationClient.IntegrationException('[OE-SAVE-UNCONFIRMED] Metadata APIがSOAP Faultを返したため、更新結果を確認できませんでした。最新状態を再取得してください。'); }
         Dom.XmlNode operation = body?.getChildElement('updateMetadataResponse', METADATA_NS);
         if (response.getStatusCode() != 200 || operation == null) { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの更新応答を確認できませんでした。最新状態を再取得してください。'); }
         return operation;
@@ -112,7 +112,7 @@ public with sharing class MetadataApiSoapCodec {
      */
     private String readUpdateError(Dom.XmlNode result) {
         String code = result.getChildElement('errors', METADATA_NS)?.getChildElement('statusCode', METADATA_NS)?.getText();
-        String safeCode = Pattern.matches('[A-Z_]+', code ?? '') ? code : 'UNKNOWN_ERROR';
+        String safeCode = MetadataApiProtocol.safeCode(code);
         return 'Metadata APIが更新を拒否しました（' + safeCode + '）。設定値・権限を確認してください。';
     }
 }
