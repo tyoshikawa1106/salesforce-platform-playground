@@ -31,6 +31,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)               | 項目定義・分類と所有者候補の読み取り。項目定義・User・Group・実効権限をUSER_MODEで照会                                         | [ObjectExplorerSelectorTest](../../../../force-app/main/default/classes/ObjectExplorerSelectorTest.cls)               |
 | [ObjectExplorerService](../../../../force-app/main/default/classes/ObjectExplorerService.cls)                 | Describeに基づくオブジェクト・項目・直接参照の表示モデル。対象候補と直接関連の構造モデル                                       | [ObjectExplorerServiceTest](../../../../force-app/main/default/classes/ObjectExplorerServiceTest.cls)                 |
 | [MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)   | Named Credential経由の項目メタデータ読み取り・更新。Named CredentialによるHTTP通信と同一組織確認                               | [MetadataApiIntegrationClientTest](../../../../force-app/main/default/classes/MetadataApiIntegrationClientTest.cls)   |
+| [MetadataApiProtocol](../../../../force-app/main/default/classes/MetadataApiProtocol.cls)                     | API要求・応答の検証、固定診断、公開コードの許可一覧                                                                            | [MetadataApiProtocolTest](../../../../force-app/main/default/classes/MetadataApiProtocolTest.cls)                     |
 | [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証。SOAP XML生成と項目完全名による応答照合                                   | [MetadataApiSoapCodecTest](../../../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)                   |
 
 テストでは現在の実行ユーザーを直接取得し、共通の`TestDataFactory`には依存しません。
@@ -231,6 +232,10 @@ ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、�
 
 取得に失敗した場合は画面上へ案内を表示します。古い詳細・検索の応答を新しい選択へ反映しません。
 
+項目の作成・更新情報の取得失敗は、対象確認・API接続先確認・項目情報取得・人物参照と照合の段階と、安全に公開できる理由を上部へ表示します。共通APIクライアントの例外は公開入口でAuraHandledExceptionへ変換し、想定外の例外本文は固定メッセージへ置き換えます。構造の閲覧は継続します。
+
+分類の保存失敗は、集計に加え項目ラベル・API名・理由を一覧表示します。検索・ページ位置で失敗行が非表示でも理由を確認でき、失敗項目の入力は保持します。所有者検索欄のプレースホルダーは「検索」とし、検索対象を列挙する説明は表示しません。
+
 ## 関連コンポーネント
 
 組織エクスプローラーの画面構成を参考にした独立したLWCです。
@@ -271,3 +276,5 @@ Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とと
 ## 既知の差異・確認事項
 
 承認済みの試作範囲を対象とします。大規模組織でのDescribe応答時間、複雑な多態参照・管理パッケージの表示は実対象での確認が必要です。
+
+API失敗には固定の診断コードとHTTP番号を表示し、Salesforceのエラーコードは許可一覧に含まれるものだけを公開します。HTTP応答前の接続失敗は認証失敗と断定せず、既知のタイムアウトは別コードにします。API取得後のJS加工は応答の型を検証し、API認証と区別します。保存結果は更新前確認・明示拒否・送信後の結果未確認を区別し、不明な結果を未保存と断定しません。

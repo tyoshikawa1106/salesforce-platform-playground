@@ -69,3 +69,18 @@ export function createClientErrorDetails(error, component, operation, phase) {
     // 値やレコード名を含まない固定の呼び出し位置で表示を構成
     return { location: `${component}.js / ${operation} / ${phase}`, errorType, frames, frame: frames[0] || '' };
 }
+
+// 診断イベントの任意文字列を表示せず、既知コードを固定理由へ変換
+export function safeClientDiagnostic(code) {
+    // レコード値・URL・例外本文を含まない固定の表示だけを許可
+    const reasons = {
+        'OE-JS-AUDIT-DATA': 'API応答の項目監査情報がオブジェクト形式ではありません。',
+        'OE-JS-AUDIT-VIEW': '取得済みの項目監査情報を表示用に加工できませんでした。',
+        'OE-JS-UNEXPECTED': '画面処理で想定外の値または機能が使用されました。処理場所とエラーコードを確認してください。',
+        'ORG-JS-DOM-TARGET': 'ドラッグの操作対象でDOMのclosest機能を利用できません。',
+        'ORG-JS-MODEL': '組織図の描画データが不正です。rowsは配列、各行のkeyは空でない文字列、edgesは描画用配列、widthとheightは正の有限数値である必要があります。',
+        'ORG-JS-UNEXPECTED': '組織図の操作中に想定外の値または機能が使用されました。'
+    };
+    // 未知のコードやオブジェクト由来のプロパティ名を採用しない
+    return typeof code === 'string' && Object.prototype.hasOwnProperty.call(reasons, code) ? { code, reason: reasons[code] } : { code: 'OE-JS-UNEXPECTED', reason: reasons['OE-JS-UNEXPECTED'] };
+}

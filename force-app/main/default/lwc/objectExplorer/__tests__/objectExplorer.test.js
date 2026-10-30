@@ -322,7 +322,7 @@ it('所有者の空欄クリック・空白入力では検索せず、文字入�
     await flush();
     await pickAccount(element);
     const input = element.shadowRoot.querySelector('input[data-field="Name"]');
-    expect(input.placeholder).toBe('氏名・メールアドレス・グループ名で検索');
+    expect(input.placeholder).toBe('検索');
     const searchIcon = [...input.parentElement.querySelectorAll('lightning-icon')].find((icon) => icon.iconName === 'utility:search');
     expect(searchIcon.alternativeText).toBe('検索');
     expect(searchIcon.classList.contains('slds-input__icon_right')).toBe(true);
@@ -422,4 +422,58 @@ it.each(['reference', 'classify'])('0件時の案内は一覧の全列に広が�
     expect(empty.colSpan).toBe(headers.length);
     expect(empty.textContent).toContain('条件に一致する項目がありません');
     await expect(element).toBeAccessible();
+});
+
+
+it('監査情報の取得失敗は項目一覧を開く前から理由を表示して構造の閲覧を継続する', async () => {
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
+    getFieldAudit.mockRejectedValueOnce({ body: { message: 'API接続・接続先組織の確認：HTTP 401' } });
+    const element = createComponent();
+    await pickAccount(element);
+    const alert = element.shadowRoot.querySelector('.oe-client-error');
+    expect(alert.textContent).toContain('readObjectInfo / field-audit');
+    expect(alert.textContent).toContain('理由：API接続・接続先組織の確認：HTTP 401');
+    expect(element.shadowRoot.querySelector('.oe-detail-title')).not.toBeNull();
+    await expect(element).toBeAccessible();
+});
+
+it('保存失敗の詳細は項目一覧の検索で行が非表示になっても残す', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    saveClassifyData.mockResolvedValueOnce([{ apiName: 'Name', success: false, message: 'API接続・接続先組織の確認：HTTP 403' }]);
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    const search = element.shadowRoot.querySelector('.oe-field-search');
+    search.value = '存在しない項目';
+    search.dispatchEvent(new CustomEvent('change'));
+    await flush();
+    expect(element.shadowRoot.querySelectorAll('tbody [data-property="businessStatus"]')).toHaveLength(0);
+    const detail = element.shadowRoot.querySelector('[aria-label="保存失敗の詳細"]');
+    expect(detail.textContent).toContain('名前（Name）：API接続・接続先組織の確認：HTTP 403');
+    await expect(element).toBeAccessible();
+});
+
+
+it('監査APIの成功後に表示データの加工が失敗した場合は認証失敗と区別する', async () => {
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
+    getFieldAudit.mockResolvedValueOnce(null);
+    const element = createComponent();
+    await pickAccount(element);
+    const alert = element.shadowRoot.querySelector('.oe-client-error');
+    expect(alert.textContent).toContain('readObjectInfo / field-audit-view');
+    expect(alert.textContent).toContain('TypeError');
+    expect(alert.textContent).toContain('API応答の項目監査情報がオブジェクト形式ではありません');
+    expect(alert.textContent).toContain('OE-JS-AUDIT-DATA');
+    expect(alert.textContent).not.toContain('API連携設定と権限を確認');
+});
+
+it('APIの固定コードは画面に表示し、公開メッセージ本文はログに含めない', async () => {
+    const message = 'API接続：[OE-AUTH-401] APIが認証を拒否しました。';
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
+    getFieldAudit.mockRejectedValueOnce({ body: { message } });
+    const element = createComponent();
+    await pickAccount(element);
+    expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('エラーコード：OE-AUTH-401');
+    expect(JSON.stringify(console.error.mock.calls)).toContain('OE-AUTH-401');
+    expect(JSON.stringify(console.error.mock.calls)).not.toContain(message);
 });

@@ -55,3 +55,14 @@ describe('c-error-utils', () => {
         );
     });
 });
+
+
+it('固定診断は未知コードやオブジェクトから自由文を公開しない', () => {
+    const { safeClientDiagnostic } = require('../errorUtils');
+    expect(safeClientDiagnostic('ORG-JS-DOM-TARGET')).toEqual({ code: 'ORG-JS-DOM-TARGET', reason: 'ドラッグの操作対象でDOMのclosest機能を利用できません。' });
+    for (const value of ['__proto__', 'PRIVATE_TOKEN', { toString() { throw new Error('PRIVATE_VALUE'); } }]) {
+        const result = safeClientDiagnostic(value);
+        expect(result.code).toBe('OE-JS-UNEXPECTED');
+        expect(JSON.stringify(result)).not.toContain('PRIVATE');
+    }
+});

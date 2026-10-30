@@ -56,6 +56,16 @@ public with sharing class ObjectExplorerAccessPolicy {
     }
 
     /**
+     * 制御済みの例外だけを公開可能と判定
+     * @param error 公開境界で捕捉した例外
+     * @return 元の本文を公開できる区分
+     */
+    public static MetadataApiProtocol.Publication errorPublication(Exception error) {
+        Set<String> allowed = new Set<String>{AuraHandledException.class.getName(), MetadataApiIntegrationClient.IntegrationException.class.getName()};
+        return allowed.contains(error?.getTypeName()) ? MetadataApiProtocol.Publication.CONTROLLED : MetadataApiProtocol.Publication.INTERNAL;
+    }
+
+    /**
      * 変更した分類が組織の有効な選択肢に含まれることを確認
      * @param key 分類属性名
      * @param value 編集後の値

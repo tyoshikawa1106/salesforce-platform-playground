@@ -19,9 +19,18 @@ public with sharing class MetadataApiIntegrationClient {
         String jsonBody = body?.replace('{!', '\\u007b!');
         HttpResponse response = sendRequest('/services/data/v' + API_VERSION + '/' + path, method, jsonBody);
         if (response.getStatusCode() / 100 != 2) {
-            throw new IntegrationException('項目メタデータAPIが要求を受け付けませんでした（HTTP ' + response.getStatusCode() + '）。API実行権限・設定値を確認してください。');
+            IntegrationException failure = new IntegrationException(MetadataApiProtocol.httpMessage(response));
+            // 更新要求の明示的な拒否だけを、結果不明と区別する
+            if (method == 'PATCH' && new Set<Integer>{400, 401, 403, 404, 409, 422, 429}.contains(response.getStatusCode())) { throw new RejectedUpdateException(failure.getMessage()); }
+            throw failure;
         }
-        return String.isBlank(response.getBody()) ? new Map<String, Object>() : (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+        try {
+            // HTTP成功とJSON形式の正常性を別々に確認する
+            return String.isBlank(response.getBody()) ? new Map<String, Object>() : (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+        } catch (Exception error) {
+            // 応答本文は公開せず形式不正だけを通知する
+            throw new IntegrationException('[OE-API-RESPONSE] API応答をオブジェクト形式で読み取れませんでした。');
+        }
     }
 
     /**
@@ -40,12 +49,13 @@ public with sharing class MetadataApiIntegrationClient {
         request.setHeader('Content-Type', soap ? 'text/xml; charset=UTF-8' : 'application/json');
         if (soap) { request.setHeader('SOAPAction', 'updateMetadata'); }
         Long remaining = DEADLINE - DateTime.now().getTime();
-        if (remaining <= 0) { throw new IntegrationException('API待ち時間の上限に達しました。最新状態を再取得してください。'); }
+        if (remaining <= 0) { throw new IntegrationException('[OE-API-BUDGET] API待ち時間の上限に達しました。最新状態を再取得してください。'); }
         request.setTimeout(Math.min(REQUEST_TIMEOUT_MS, remaining.intValue()));
         request.setBody(body ?? '');
         try { return new Http().send(request); }
         catch (CalloutException error) {
-            throw new IntegrationException('API接続を確認できませんでした。認証設定を確認し、更新要求後の場合は最新状態を再取得してください。');
+            // 本文の判定と公開可能な理由の作成を純粋な変換へ委譲する
+            throw new IntegrationException(MetadataApiProtocol.connectionMessage(error.getMessage()));
         }
     }
 
@@ -55,7 +65,15 @@ public with sharing class MetadataApiIntegrationClient {
     public void verifyOrganization() {
         Map<String, Object> response = request('query/?q=SELECT+Id+FROM+Organization', 'GET', null);
         // 認証先の組織IDを応答検証へ渡す
-        new RecordReader().requireQueryRecord(response, 'Id', String.valueOf(UserInfo.getOrganizationId()));
+        try {
+            // 現在組織と認証先の識別子だけを比較する
+            new MetadataApiProtocol.RecordReader().requireQueryRecord(response, 'Id', String.valueOf(UserInfo.getOrganizationId()));
+        } catch (IntegrationException error) {
+            // 識別子不一致と応答不備を区別し、組織IDは公開しない
+            if (error.getMessage().startsWith('[OE-API-ID-MISMATCH]')) { throw new IntegrationException('[OE-ORG-MISMATCH] API接続先がこのSalesforce組織と一致しません。'); }
+            throw new IntegrationException('[OE-ORG-RESPONSE] API接続先の組織情報を確認できませんでした。');
+        }
+
     }
 
     /**
@@ -79,40 +97,11 @@ public with sharing class MetadataApiIntegrationClient {
         // カスタム項目以外のパスへ更新しない
         String path = customFieldPath(durableId);
         // 未設定の複合属性だけを除いて取得済みの値を保持
-        Map<String, Object> payload = (Map<String, Object>)cleanMetadata(metadata);
+        Map<String, Object> payload = (Map<String, Object>)MetadataApiProtocol.cleanMetadata(metadata);
         // 解除対象の分類属性は明示的なnullを維持
         for (String key : new List<String>{'businessOwnerUser', 'businessOwnerGroup', 'businessStatus', 'complianceGroup', 'securityClassification'}) { payload.put(key, metadata.get(key)); }
         // 検証済みの同じ項目へ定義を反映
         request(path, 'PATCH', JSON.serialize(new Map<String, Object>{'Metadata' => payload}));
-    }
-
-    /**
-     * Tooling APIで受理されない未設定の複合属性を送信対象から除外
-     * @param value 取得した定義、分類以外の設定済み値は維持
-     * @return null属性を除いた同じ定義
-     */
-    private Object cleanMetadata(Object value) {
-        if (value instanceof List<Object>) {
-            List<Object> result = new List<Object>();
-            for (Object item : (List<Object>)value) { result.add(cleanMetadata(item)); }
-            return result;
-        }
-        if (!(value instanceof Map<String, Object>)) { return value; }
-        return cleanMetadataObject((Map<String, Object>)value);
-    }
-
-    /**
-     * 設定済み属性だけを同じキーで再帰処理
-     * @param source 取得済み定義のオブジェクト
-     * @return null属性を除いたオブジェクト
-     */
-    private Map<String, Object> cleanMetadataObject(Map<String, Object> source) {
-        Map<String, Object> result = new Map<String, Object>();
-        for (String key : source.keySet()) {
-            if (source.get(key) == null) { continue; }
-            result.put(key, cleanMetadata(source.get(key)));
-        }
-        return result;
     }
 
     /**
@@ -129,7 +118,7 @@ public with sharing class MetadataApiIntegrationClient {
             + String.escapeSingleQuotes(objectName) + '\' AND QualifiedApiName IN (' + String.join(names, ',') + ')';
         Map<String, Object> response = request('query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'), 'GET', null);
         // 件数・属性・項目名の照合を通信処理から分離
-        return new RecordReader().readClassifyData(response, fieldNames);
+        return new MetadataApiProtocol.RecordReader().readClassifyData(response, fieldNames);
     }
 
     /**
@@ -174,57 +163,9 @@ public with sharing class MetadataApiIntegrationClient {
         String body = protocol.createUpdateRequest(fields);
         // HTTP認証・待ち時間・接続エラーは既存の通信経路を使用
         HttpResponse response = sendRequest('/services/Soap/m/' + API_VERSION, 'POST', body);
+        // 認証とアクセス拒否はSOAP解析より前に共通形式で通知する
+        if (new Set<Integer>{401, 403, 429}.contains(response.getStatusCode())) { throw new RejectedUpdateException(MetadataApiProtocol.httpMessage(response)); }
         // 応答順に依存せず同じ完全名へ照合
         return protocol.readUpdateResults(response, fields.keySet());
     }
-
-    /** REST応答の件数・必須属性・対象識別子を検証 */
-    public class RecordReader {
-
-        /**
-         * 完全に取得した分類だけを項目名へ索引化
-         * @param response 分類API応答
-         * @param fieldNames 取得を要求した項目API名
-         * @return 件数・属性・項目名を確認した分類
-         */
-        public Map<String, Map<String, Object>> readClassifyData(Map<String, Object> response, Set<String> fieldNames) {
-            List<Object> records = (List<Object>)response.get('records');
-            if (records?.size() != fieldNames.size() || response.get('done') != true) { throw new IntegrationException('分類の取得結果に不足があります。'); }
-            return indexClassifyData(records, fieldNames);
-        }
-
-        /**
-         * 取得項目の属性・重複・名前を検証して索引化
-         * @param records 完全件数を取得済みのAPI応答
-         * @param fieldNames 期待する項目名
-         * @return 項目API名の索引
-         */
-        private Map<String, Map<String, Object>> indexClassifyData(List<Object> records, Set<String> fieldNames) {
-            Map<String, Map<String, Object>> rows = new Map<String, Map<String, Object>>();
-            Set<String> required = new Set<String>{'DurableId', 'QualifiedApiName', 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus', 'BusinessOwnerId'};
-            for (Object item : records) {
-                Map<String, Object> row = (Map<String, Object>)item;
-                String name = (String)row.get('QualifiedApiName');
-                if (!fieldNames.contains(name) || rows.containsKey(name) || !row.keySet().containsAll(required)) { throw new IntegrationException('分類の取得対象または属性が一致しません。'); }
-                rows.put(name, row);
-            }
-            return rows;
-        }
-
-        /**
-         * APIクエリが期待した対象を一件だけ返したことを確認
-         * @param response クエリ応答
-         * @param idField 照合する識別子の属性名
-         * @param expectedId 呼び出し元で確定した対象識別子
-         * @return 対象の一致を確認した一件
-         */
-        public Map<String, Object> requireQueryRecord(Map<String, Object> response, String idField, String expectedId) {
-            List<Object> records = (List<Object>)response.get('records');
-            if (records?.size() != 1) { throw new IntegrationException('APIの確認対象を一意に取得できません。'); }
-            Map<String, Object> record = (Map<String, Object>)records[0];
-            if (String.valueOf(record.get(idField)) != expectedId) { throw new IntegrationException('API応答の識別子が確認対象と一致しません。'); }
-            return record;
-        }
-    }
-
 }

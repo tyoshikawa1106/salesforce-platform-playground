@@ -1,4 +1,4 @@
-import { createClientErrorDetails } from 'c/errorUtils';
+import { createClientErrorDetails, safeClientDiagnostic } from 'c/errorUtils';
 
 // 画面とモーダルで子の例外捕捉・診断状態・エラー時だけの記録を共用
 export function withUiErrorBoundary(Base, component) {
@@ -8,12 +8,12 @@ export function withUiErrorBoundary(Base, component) {
         clientError;
 
         // 明示的に捕捉した例外を本文なしの診断へ変換
-        reportClientError(error, operation, phase) {
+        reportClientError(error, operation, phase, diagnosticCode) {
             // 画面名は各利用元が固定値として渡す
-            const details = createClientErrorDetails(error, component, operation, phase);
+            const details = { ...createClientErrorDetails(error, component, operation, phase), ...(diagnosticCode ? safeClientDiagnostic(diagnosticCode) : {}) };
             // 同じ描画失敗の再通知で表示と記録を繰り返さない
             if (this.clientError?.location === details.location && this.clientError.errorType === details.errorType
-                && this.clientError.frames.join('|') === details.frames.join('|')) { return; }
+                && this.clientError.frames.join('|') === details.frames.join('|') && this.clientError.code === details.code) { return; }
             // 共通表示部品へ診断だけを渡す
             this.clientError = details;
             // 元のError・メッセージ・API応答・入力値をコンソールへ渡さない

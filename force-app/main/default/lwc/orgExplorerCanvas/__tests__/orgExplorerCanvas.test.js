@@ -252,3 +252,70 @@ it('非同期フレームの例外は本文なしの診断で親へ通知し、�
         frames.restore();
     }
 });
+
+
+it('pointer捕捉とフレーム予約が使えなくてもドラッグを継続し、領域外で終了する', async () => {
+    const frames = mockFrames();
+    frames.request.mockImplementation(() => { throw new TypeError('unsupported'); });
+    try {
+        const { element, viewport } = await createDraggableCanvas();
+        viewport.setPointerCapture = undefined;
+        viewport.dispatchEvent(pointerEvent('pointerdown', 10, 20));
+        viewport.dispatchEvent(pointerEvent('pointermove', 30, 50));
+        await Promise.resolve();
+        expect(readPosition(element)).toEqual({ x: 20, y: 30, scale: canvasLogic.BASE_SCALE });
+        viewport.dispatchEvent(pointerEvent('pointerleave', 30, 50));
+        viewport.dispatchEvent(pointerEvent('pointermove', 60, 80));
+        await Promise.resolve();
+        expect(readPosition(element)).toEqual({ x: 20, y: 30, scale: canvasLogic.BASE_SCALE });
+        await expect(element).toBeAccessible();
+    } finally {
+        frames.restore();
+    }
+});
+
+it('pointer捕捉がTypeErrorを投げても操作を終了できる', async () => {
+    const frames = mockFrames();
+    try {
+        const { element, viewport } = await createDraggableCanvas();
+        viewport.setPointerCapture = () => { throw new TypeError('unsupported'); };
+        viewport.dispatchEvent(pointerEvent('pointerdown', 5, 10));
+        viewport.dispatchEvent(pointerEvent('pointermove', 15, 30));
+        viewport.dispatchEvent(pointerEvent('pointerup', 15, 30));
+        await Promise.resolve();
+        expect(readPosition(element)).toEqual({ x: 10, y: 20, scale: canvasLogic.BASE_SCALE });
+        expect(frames.scheduled.size).toBe(0);
+    } finally {
+        frames.restore();
+    }
+});
+
+it('フレーム取消が使えなくても古い予約でズーム後の位置を上書きしない', async () => {
+    const frames = mockFrames();
+    const cancel = window.cancelAnimationFrame;
+    try {
+        window.cancelAnimationFrame = undefined;
+        const { element, viewport } = await createDraggableCanvas();
+        viewport.dispatchEvent(pointerEvent('pointerdown', 0, 0));
+        viewport.dispatchEvent(pointerEvent('pointermove', 30, 40));
+        element.resetZoom();
+        const callbacks = [...frames.scheduled.values()];
+        callbacks.forEach((callback) => callback());
+        await Promise.resolve();
+        expect(readPosition(element)).toEqual({ x: 0, y: 0, scale: canvasLogic.BASE_SCALE });
+    } finally {
+        window.cancelAnimationFrame = cancel;
+        frames.restore();
+    }
+});
+
+
+it('操作対象の機能がない場合は例外本文でなく固定の具体的な理由コードを返す', async () => {
+    const { element, viewport } = await createDraggableCanvas();
+    const listener = jest.fn();
+    element.addEventListener('clienterror', listener);
+    viewport.closest = undefined;
+    viewport.dispatchEvent(pointerEvent('pointerdown', 0, 0));
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener.mock.calls[0][0].detail.code).toBe('ORG-JS-DOM-TARGET');
+});

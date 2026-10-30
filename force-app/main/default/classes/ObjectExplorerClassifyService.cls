@@ -385,7 +385,12 @@ public with sharing class ObjectExplorerClassifyService {
             // 拒否が明示されていない送信後の失敗は不明として案内
             String prefix = context.sent && !(error instanceof MetadataApiIntegrationClient.RejectedUpdateException) ? '更新結果を確認できませんでした。最新状態を再取得してください。' : '';
             // 制御済み業務エラーだけを画面へ返す
-            String message = safeMessage(error);
+            MetadataApiProtocol.SaveState state = new MetadataApiProtocol.SaveState();
+            state.sent = context.sent;
+            state.rejected = error instanceof MetadataApiIntegrationClient.RejectedUpdateException;
+            String stage = MetadataApiProtocol.saveStage(state);
+            // 制御済み理由と段階だけを公開する
+            String message = stage + '：' + safeMessage(error);
             // 同じ項目の確定結果を生成
             context.result = new Map<String, Object>{'apiName' => context.fieldName, 'success' => false, 'message' => prefix + message};
             // 後続で上書きしない確定状態へ変更

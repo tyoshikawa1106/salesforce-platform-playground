@@ -843,8 +843,24 @@ export default class OrgExplorer extends withUiErrorBoundary(NavigationMixin(Lig
         try {
             // 位置情報は共通処理で再抽出して本文やURLの混入を防ぐ
             const error = { name: event.detail?.errorType, stack: `Error\n${(event.detail?.frames || []).join('\n')}` };
-            // 子の処理名を固定値で示して親画面内へ表示
-            this.reportClientError(error, 'orgExplorerCanvas.handlePointerMove', 'animation-frame');
+            // 子の処理名は既知の操作だけを受け付け、値や本文を混入させない
+            const locations = {
+                'orgExplorerCanvas.js / renderedCallback / model-validation': ['描画データの検証', 'model-validation'],
+                'orgExplorerCanvas.js / handlePointerDown / pointer-capture': ['ドラッグ開始', 'pointer-capture'],
+                'orgExplorerCanvas.js / handlePointerDown / pointer-event': ['ドラッグ開始', 'pointer-event'],
+                'orgExplorerCanvas.js / handlePointerMove / animation-request': ['移動描画の予約', 'animation-request'],
+                'orgExplorerCanvas.js / handlePointerMove / animation-frame': ['移動描画', 'animation-frame'],
+                'orgExplorerCanvas.js / handlePointerMove / pointer-event': ['ドラッグ移動', 'pointer-event'],
+                'orgExplorerCanvas.js / cancelPendingFrame / animation-cancel': ['移動描画の取消', 'animation-cancel'],
+                'orgExplorerCanvas.js / handlePointerLeave / pointer-capture': ['ドラッグ終了', 'pointer-capture'],
+                'orgExplorerCanvas.js / handleWheel / pointer-event': ['ホイール拡大・縮小', 'pointer-event']
+            };
+            // 旧版の子部品は従来の非同期描画エラーとして扱う
+            const [operation, phase] = locations[event.detail?.location] || ['orgExplorerCanvas.handlePointerMove', 'animation-frame'];
+            // 圧縮後の行番号ではなく失敗した操作を特定できるよう表示する
+            const code = new Set(['ORG-JS-DOM-TARGET', 'ORG-JS-MODEL', 'ORG-JS-UNEXPECTED']).has(event.detail?.code) ? event.detail.code : 'ORG-JS-UNEXPECTED';
+            // 子から渡された自由文ではなく固定コードの理由だけを表示する
+            this.reportClientError(error, operation, phase, code);
         } catch (boundaryError) {
             // 不正な通知形式も画面内で捕捉
             this.reportClientError(boundaryError, 'handleCanvasError', 'child-component');

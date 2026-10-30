@@ -36,16 +36,21 @@ public with sharing class ObjectExplorerController {
      */
     @AuraEnabled
     public static List<Object> saveClassifyData(String objectName, String changesJson) {
-        // 公開入口では要求ごとに処理状態を分離
-        ObjectExplorerController controller = new ObjectExplorerController();
-        // 入力を解釈する前に実効権限を確認
-        controller.requireEditAccess();
-        // 要求の形式と件数を更新前に確定
-        List<Object> changes = controller.requests.parseChanges(changesJson);
-        // 保存対象と結果の順序を同じ処理で管理
-        List<Object> results = controller.saveFields(objectName, changes);
-        // 確認済みの結果だけを画面へ返却
-        return results;
+        try {
+            // 公開入口では要求ごとに処理状態を分離
+            ObjectExplorerController controller = new ObjectExplorerController();
+            // 入力を解釈する前に実効権限を確認
+            controller.requireEditAccess();
+            // 要求の形式と件数を更新前に確定
+            List<Object> changes = controller.requests.parseChanges(changesJson);
+            // 保存対象と結果の順序を同じ処理で管理
+            List<Object> results = controller.saveFields(objectName, changes);
+            // 確認済みの結果だけを画面へ返却
+            return results;
+        } catch (Exception error) {
+            // 安全な業務理由だけを公開例外へ変換
+            throw MetadataApiProtocol.publicException(error, '保存要求の検証', ObjectExplorerAccessPolicy.errorPublication(error));
+        }
     }
 
     /**
@@ -143,22 +148,38 @@ public with sharing class ObjectExplorerController {
         List<FieldDefinition> definitions = this.selector.selectFieldsByNames(canonicalName, names);
         // 完全な項目識別子との照合はServiceへ委譲
         contexts = this.requests.bindDefinitions(contexts, definitions);
+        // 項目別失敗にもAPI要求の段階を残す
+        String stage = 'API接続・接続先組織の確認';
         try {
             // 認証先と更新対象組織の一致を要求単位で確認
             this.client.verifyOrganization();
             // 保存前の分類を別API要求で一括取得
+            stage = '保存前の分類取得';
+            // 確認済みの対象だけを一括取得
             Map<String, Map<String, Object>> rows = this.client.readClassifyData(canonicalName, names);
             // 所有者は現在値と選択値をまとめて取得
+            stage = '所有者の参照';
+            // 同じ要求の所有者を実行ユーザーの権限で取得
             Map<Id, SObject> owners = readOwners(rows, changes);
             // 項目ごとの事前確認失敗を分離
+            stage = '更新前の確認';
+            // 現在値と編集基準を照合
             contexts = prepareFields(contexts, rows, owners);
             // 検証済みの変更だけを各通信方式で送信
+            stage = '分類の更新';
+            // 項目ごとの成功と拒否を保持
             contexts = updateFields(contexts);
             // 確定済みの拒否を維持して保存値を確認
+            stage = '保存結果の再取得・照合';
+            // 更新の受付だけで成功とせず保存値まで確認
             contexts = verifyFields(canonicalName, contexts);
         } catch (Exception error) {
             // 通信全体の失敗でも確定した項目別結果を維持
-            contexts = this.results.failPendingFields(contexts, error);
+            Exception failure = error;
+            // 共通クライアントの固定メッセージだけに段階を付加
+            if (error instanceof MetadataApiIntegrationClient.IntegrationException) { failure = new MetadataApiIntegrationClient.IntegrationException(stage + '：' + error.getMessage()); }
+            // 想定外の例外本文はSaveResults側で固定文へ置換
+            contexts = this.results.failPendingFields(contexts, failure);
         }
         // 結果の順序と確定状態をServiceで確認
         List<Object> results = this.results.createSaveResults(contexts);
@@ -348,47 +369,57 @@ public with sharing class ObjectExplorerController {
      */
     @AuraEnabled
     public static Map<String, Object> getFieldAudit(String objectName) {
-        // 日時専用Serviceとネイティブ定義を同じ要求で使用
-        ObjectExplorerController controller = new ObjectExplorerController();
-        // 構造探索と日時情報の対応付けを分離
-        ObjectExplorerFieldService service = controller.fieldService;
-        // 日時取得もオブジェクトの参照権限を照会前に確認
-        Schema.SObjectType objectType = controller.access.requireObject(objectName);
-        // 日時取得でも同じ要求のDescribeを後段へ渡す
-        Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
-        // Describeで確認済みの正式名だけを照会に使用
-        String canonicalName = info.getName();
-        // 項目識別子だけをまとめて取得
-        List<FieldDefinition> definitions = controller.selector.selectFieldAuditTargets(canonicalName);
-        // 可視なカスタム項目だけをIDへ対応付け
-        Map<Id, String> targets = service.createAuditTargets(info, definitions);
-        // URL長と取得件数を200件単位で制限
-        List<Set<Id>> batches = service.createAuditBatches(targets.keySet());
-        // REST通信は既存Clientを共有
-        MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
-        // カスタム項目がある場合だけ認証先組織を確認
-        if (!batches.isEmpty()) { client.verifyOrganization(); }
-        // 全バッチの取得結果を対応付け前に保持
-        List<Map<String, Object>> records = new List<Map<String, Object>>();
-        // 画面へ部分成功を返さず全件取得する
-        for (Set<Id> batch : batches) {
-            // 確認済みのID集合からクエリを生成
-            String query = service.createAuditQuery(batch);
-            // 接続先・認証・待ち時間は既存Clientの処理を共用
-            Map<String, Object> response = client.request('tooling/query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'), 'GET', null);
-            // 完了した応答だけを取り出す
-            List<Map<String, Object>> batchRecords = service.readAuditRecords(response);
-            // 後続のID検証に必要な元レコードを保持
-            records.addAll(batchRecords);
+        // API呼出し前の失敗も区別して画面へ返す
+        String stage = '対象オブジェクト・項目の確認';
+        try {
+            // 日時専用Serviceとネイティブ定義を同じ要求で使用
+            ObjectExplorerController controller = new ObjectExplorerController();
+            // 構造探索と日時情報の対応付けを分離
+            ObjectExplorerFieldService service = controller.fieldService;
+            // 日時取得もオブジェクトの参照権限を照会前に確認
+            Schema.SObjectType objectType = controller.access.requireObject(objectName);
+            // 日時取得でも同じ要求のDescribeを後段へ渡す
+            Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
+            // Describeで確認済みの正式名だけを照会に使用
+            String canonicalName = info.getName();
+            // 項目識別子だけをまとめて取得
+            List<FieldDefinition> definitions = controller.selector.selectFieldAuditTargets(canonicalName);
+            // 可視なカスタム項目だけをIDへ対応付け
+            Map<Id, String> targets = service.createAuditTargets(info, definitions);
+            // URL長と取得件数を200件単位で制限
+            List<Set<Id>> batches = service.createAuditBatches(targets.keySet());
+            // REST通信は既存Clientを共有
+            MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
+            // カスタム項目がある場合だけ認証先組織を確認
+            stage = 'API接続・接続先組織の確認';
+            if (!batches.isEmpty()) { client.verifyOrganization(); }
+            // 全バッチの取得結果を対応付け前に保持
+            stage = '項目の作成・更新情報のAPI取得';
+            List<Map<String, Object>> records = new List<Map<String, Object>>();
+            // 画面へ部分成功を返さず全件取得する
+            for (Set<Id> batch : batches) {
+                // 確認済みのID集合からクエリを生成
+                String query = service.createAuditQuery(batch);
+                // 接続先・認証・待ち時間は既存Clientの処理を共用
+                Map<String, Object> response = client.request('tooling/query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'), 'GET', null);
+                // 完了した応答だけを取り出す
+                List<Map<String, Object>> batchRecords = service.readAuditRecords(response);
+                // 後続のID検証に必要な元レコードを保持
+                records.addAll(batchRecords);
+            }
+            // Userの参照可否を確認して人物IDをまとめる
+            stage = '作成者・更新者の参照と項目の照合';
+            Set<Id> userIds = service.collectAuditUserIds(records);
+            // 人物名とリンクには実行ユーザーの可視Userだけを使用
+            List<User> users = controller.selector.selectAuditUsers(userIds);
+            // 同じ項目の日時と可視な人物だけを表示モデルへ変換
+            Map<String, Object> result = service.createAuditView(targets, records, users);
+            // 検証済みの可視項目だけを返却
+            return result;
+        } catch (Exception error) {
+            // 取得段階と安全な理由だけをLWCへ返す
+            throw MetadataApiProtocol.publicException(error, stage, ObjectExplorerAccessPolicy.errorPublication(error));
         }
-        // Userの参照可否を確認して人物IDをまとめる
-        Set<Id> userIds = service.collectAuditUserIds(records);
-        // 人物名とリンクには実行ユーザーの可視Userだけを使用
-        List<User> users = controller.selector.selectAuditUsers(userIds);
-        // 同じ項目の日時と可視な人物だけを表示モデルへ変換
-        Map<String, Object> result = service.createAuditView(targets, records, users);
-        // 検証済みの可視項目だけを返却
-        return result;
     }
 
     /**

@@ -44,3 +44,11 @@ it.each([
 ])('不正な配置では有限の等倍位置へ戻す: %o', (layout) => {
     expect(alignRoot({ layout }, { width: 800 })).toEqual({ x: 0, y: 0, scale: 0.85 });
 });
+
+
+it('描画モデルは配列・キー・有限寸法が正しい場合だけ受け付ける', () => {
+    const { isCanvasModel } = require('../orgExplorerCanvasLogic');
+    const valid = Object.freeze({ rows: [{ key: 'root' }], edges: [], width: 600, height: 420 });
+    expect(isCanvasModel(valid)).toBe(true);
+    for (const value of [null, {}, { ...valid, rows: 'PRIVATE_VALUE' }, { ...valid, rows: [null] }, { ...valid, rows: [{}] }, { ...valid, edges: [null] }, { ...valid, width: NaN }, { ...valid, height: 0 }]) expect(isCanvasModel(value)).toBe(false);
+});

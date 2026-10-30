@@ -329,3 +329,17 @@ export function clientErrorDetails(error, operation, phase) {
     // 処理場所は呼び出し側が指定する固定の処理名と段階で識別
     return { location: `objectExplorer.js / ${operation} / ${phase}`, errorType: name, frames, frame: frames[0] || '' };
 }
+
+// 項目の表示フィルターに依存しない保存失敗一覧を生成
+export function classifySaveErrors(edits = {}, fields = []) {
+    // 同じAPI名の表示ラベルだけを対応付け
+    const labels = new Map(fields.map((field) => [field.apiName, field.label]));
+    // 編集中の値を変更せずサーバーが返した失敗理由を保持
+    return Object.entries(edits).filter(([, edit]) => edit.error).map(([apiName, edit]) => ({ apiName, label: labels.get(apiName) || apiName, message: edit.error }));
+}
+
+// Apexが作成する固定書式から診断コードだけを抽出する
+export function apiDiagnosticCode(message = '') {
+    // 自由文やAPI応答本文を診断コードとして扱わない
+    return typeof message === 'string' ? (message.match(/\[(OE-(?:AUTH-401|API-HTTP-[1-5]\d{2}|API-(?:CONNECTION|TIMEOUT|BUDGET|RESPONSE|ID-MISMATCH)|ORG-(?:MISMATCH|RESPONSE)))\]/)?.[1] || '') : '';
+}
