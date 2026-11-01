@@ -8,6 +8,8 @@ export default class OrgExplorerCard extends LightningElement {
     handlePointerDown(event) {
         // 右クリックや複数指による操作では標準動作を変更しない。
         if (event.button !== 0 || event.isPrimary === false) return;
+        // 背景へ開始イベントを渡さず、カード選択を図のドラッグと分離する。
+        event.stopPropagation();
         // 標準フォーカスによる表示位置の移動を止める。
         event.preventDefault();
         // キーボード操作を続けられるよう、フォーカス自体は維持する。

@@ -116,13 +116,8 @@ export default class OrgExplorerCanvas extends LightningElement {
     // カードの選択と背景ドラッグを区別する。
     handlePointerDown(event) {
         try {
-            // DOM機能の存在を使用直前に確認し、推測ではなく理由を通知する。
-            if (typeof event.target?.closest !== 'function') {
-                this.reportCanvasError(new TypeError(), 'handlePointerDown', 'pointer-event', 'ORG-JS-DOM-TARGET');
-                return;
-            }
-            // カード操作ではパンを開始しない。
-            if (event.button !== 0 || event.target.closest('c-org-explorer-card')) return;
+            // カード側で開始イベントを止めるため、DOMを探索せず背景操作だけを扱う。
+            if (event.button !== 0 || event.isPrimary === false) return;
             // 背景上の文字選択を開始しない。
             event.preventDefault();
             // pointerが領域外へ出ても終了を検知する。
