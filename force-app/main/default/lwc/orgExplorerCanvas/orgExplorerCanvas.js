@@ -1,4 +1,4 @@
-import { createClientErrorDetails } from 'c/errorUtils';
+import { clientErrorDetails } from './orgExplorerCanvasLogic';
 import { LightningElement, api } from 'lwc';
 import { BASE_SCALE, isCanvasModel, alignRoot, zoomAt, panTo, clamp } from './orgExplorerCanvasLogic';
 
@@ -176,7 +176,7 @@ export default class OrgExplorerCanvas extends LightningElement {
                         this.viewport = { ...this.viewport, ...position };
                     } catch (error) {
                         // 本文を含まない診断だけを作成
-                        const details = { ...createClientErrorDetails(error, 'orgExplorerCanvas', 'handlePointerMove', 'animation-frame'), code: 'ORG-JS-UNEXPECTED' };
+                        const details = { ...clientErrorDetails(error, 'handlePointerMove', 'animation-frame'), code: 'ORG-JS-UNEXPECTED' };
                         // DOMツリーを越えて公開せず、直接の親画面へ失敗を通知
                         this.dispatchEvent(new CustomEvent('clienterror', { detail: details }));
                     } finally {
@@ -219,7 +219,7 @@ export default class OrgExplorerCanvas extends LightningElement {
     // 同期の操作失敗も子画面の処理場所を維持して親へ通知する。
     reportCanvasError(error, operation, phase, code = 'ORG-JS-UNEXPECTED') {
         // 入力値や例外本文を含めず診断情報を生成する。
-        const details = { ...createClientErrorDetails(error, 'orgExplorerCanvas', operation, phase), code };
+        const details = { ...clientErrorDetails(error, operation, phase), code };
         // 直接の親が既存の画面内エラー表示へ反映する。
         this.dispatchEvent(new CustomEvent('clienterror', { detail: details }));
     }

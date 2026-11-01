@@ -474,7 +474,7 @@ describe('c-case-related-case-list', () => {
             '会社の問い合わせを読み込めませんでした。'
         );
         expect(
-            element.shadowRoot.querySelectorAll('[role="alert"]')
+            element.shadowRoot.querySelectorAll('[role="alert"]:not([data-client-error])')
         ).toHaveLength(1);
         await expect(element).toBeAccessible();
     });
@@ -488,7 +488,7 @@ describe('c-case-related-case-list', () => {
         expect(element.shadowRoot.textContent).toContain(
             '関連する問い合わせを読み込めませんでした。'
         );
-        expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).not.toBeNull();
         expect(element.shadowRoot.querySelector('lightning-tabset')).toBeNull();
         await expect(element).toBeAccessible();
     });
@@ -540,12 +540,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         getRecord.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('caseRelatedCaseList.js / wiredCase');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('caseRelatedCaseList.js / wiredCase');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

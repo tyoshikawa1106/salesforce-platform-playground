@@ -11,3 +11,5 @@ td {
 .changed-row > td {
     background-color: var(--slds-g-color-warning-container-1, #fff7d6);
 }
+/* エラーの長い処理名も画面内で折り返す */
+.c-client-error { overflow-wrap: anywhere; }

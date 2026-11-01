@@ -11,7 +11,7 @@ describe('取引先削除の確認モーダル', () => {
         const closeHandler = jest.fn();
         modal.closeHandler = closeHandler;
         document.body.appendChild(modal);
-        modal.shadowRoot.querySelectorAll('lightning-button')[index].click();
+        modal.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')[index].click();
         await Promise.resolve();
         expect(closeHandler).toHaveBeenCalledWith(expected);
         expect(modal.shadowRoot.textContent).toContain('法人・個人');
@@ -27,12 +27,12 @@ describe('モーダル内の例外表示', () => {
         const modal = createElement('c-accountDeleteConfirm', { is: AccountDeleteConfirm });
         modal.closeHandler = () => { throw new TypeError('private-value'); };
         document.body.appendChild(modal);
-        const cancel = [...modal.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'キャンセル');
+        const cancel = [...modal.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')].find((button) => button.label === 'キャンセル');
         cancel.click();
         await Promise.resolve();
-        const panel = modal.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('accountDeleteConfirm.js / handleCancel');
-        expect(panel.details.errorType).toBe('TypeError');
+        const panel = modal.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('accountDeleteConfirm.js / handleCancel');
+        expect(panel.textContent).toContain('TypeError');
         await expect(modal).toBeAccessible();
     });
 });

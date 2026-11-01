@@ -18,10 +18,8 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | LWC        | [objectMetricsOverview](../../../../force-app/main/default/lwc/objectMetricsOverview/objectMetricsOverview.js)              | 件数カードの表示、再読み込み、検索画面への切り替え |
 | LWC        | [objectRecordSearch](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearch.js)                       | 選択したカードのレコード一覧表示                   |
-| LWC        | [errorUtils](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                               | Apex エラーの画面表示用メッセージ変換              |
 | JavaScript | [objectMetricsOverview.js](../../../../force-app/main/default/lwc/objectMetricsOverview/objectMetricsOverview.js)           | 件数取得と画面状態の制御                           |
 | JavaScript | [objectMetricsOverviewLogic.js](../../../../force-app/main/default/lwc/objectMetricsOverview/objectMetricsOverviewLogic.js) | 件数応答とカード表示モデルの生成                   |
-| JavaScript | [errorUtils.js](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                            | Apex エラーの画面表示用メッセージ変換              |
 
 ### Apexコードと対応テスト
 
@@ -77,7 +75,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ## エラー処理
 
-操作・取得処理と子部品の例外は[画面内の共通エラー表示](../ui-error-boundary/index.md)で処理場所・種類を表示します。`uiErrorBoundary.js`、`uiErrorPanel.js`、`errorUtils.js`を利用し、既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
+操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
 手動更新と子の `recordschanged` 通知は同じ再取得処理を使用します。再取得失敗はデータボードに表示し、子の保存・削除の成功とは区別します。次の再取得成功時にエラーを解除します。
 

@@ -188,7 +188,7 @@ describe('c-object-record-search', () => {
         await flushPromises();
 
         expect(
-            element.shadowRoot.querySelector('[role="alert"]').textContent
+            element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent
         ).toContain('削除できませんでした。');
         expect(toastHandler).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -230,7 +230,7 @@ describe('c-object-record-search', () => {
         );
         await flushPromises();
 
-        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
         expect(alert.textContent).toContain(
             'アクセス権限を確認してください'
         );
@@ -248,7 +248,7 @@ describe('c-object-record-search', () => {
         await flushPromises();
 
         expect(
-            element.shadowRoot.querySelector('[role="alert"]').textContent
+            element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent
         ).toContain('アクセス権限を確認してください');
     });
 
@@ -382,7 +382,7 @@ describe('c-object-record-search', () => {
         await flushPromises();
         expect(toast.mock.calls.map(([event]) => event.detail.title)).toEqual(['削除しました']);
         expect(changed).toHaveBeenCalledTimes(1);
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('再取得');
         expect(findButton(element, '選択したレコードを削除').disabled).toBe(true);
         await expect(element).toBeAccessible();
     });
@@ -401,13 +401,13 @@ describe('c-object-record-search', () => {
         expect(findButton(element, '検索').disabled).toBe(true);
         rejectRefresh(new Error('再取得エラー'));
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得エラー');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('再取得エラー');
         expect(button.disabled).toBe(false);
         refreshApex.mockResolvedValueOnce();
         button.click();
         await flushPromises();
         expect(refreshApex).toHaveBeenCalledTimes(2);
-        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     });
 
 });
@@ -422,12 +422,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         searchRecords.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('objectRecordSearch.js / wiredRecords');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('objectRecordSearch.js / wiredRecords');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

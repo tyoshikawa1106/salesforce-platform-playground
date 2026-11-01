@@ -28,7 +28,7 @@ async function flush() {
     await Promise.resolve();
     await Promise.resolve();
 }
-const buttons = (element) => element.shadowRoot.querySelectorAll('lightning-button');
+const buttons = (element) => element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])');
 async function mount() {
     const element = createElement('c-test-data-delete', { is: TestDataDelete });
     document.body.appendChild(element);
@@ -63,7 +63,7 @@ describe('削除の確認と受付', () => {
         const element = await mount();
         expect(buttons(element)[0].disabled).toBe(true);
         expect(getRemaining).not.toHaveBeenCalled();
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('権限');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('権限');
     });
     it('確認をキャンセルすると起動しない', async () => {
         LightningConfirm.open.mockResolvedValue(false);
@@ -124,12 +124,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
 
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('testDataDelete.js / loadView');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('testDataDelete.js / loadView');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

@@ -126,7 +126,7 @@ AccountのCursorは`AccessLevel.USER_MODE`で作成し、スキャン管理レ�
 
 ## エラー処理
 
-操作・取得処理と子部品の例外は[画面内の共通エラー表示](../ui-error-boundary/index.md)で処理場所・種類を表示します。`uiErrorBoundary.js`、`uiErrorPanel.js`、`errorUtils.js`を利用し、既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
+操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
 結果取得と開始の入口でAccountと`DataQualityScan__c`の参照権限を確認します。いずれかが不足する場合は、`accessErrorMessage`に権限確認の案内を返し、スキャン検索、管理レコード作成、Queueable登録を行いません。通常応答の同項目は空文字列で、参照可能な履歴がない場合の応答は従来どおり`null`です。
 

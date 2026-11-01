@@ -484,7 +484,7 @@ describe('c-object-record-search form flows', () => {
         await openNewRecordForm(element);
         getModalRoot().querySelector('lightning-record-edit-form').dispatchEvent(new CustomEvent('error'));
         await flushPromises();
-        expect(getModalRoot().querySelector('[role="alert"]').textContent).toBe('取引先を保存できませんでした。');
+        expect(getModalRoot().querySelector('[role="alert"]:not([data-client-error])').textContent).toBe('取引先を保存できませんでした。');
         expect(getModal().disableClose).toBe(false);
     });
 
@@ -537,7 +537,7 @@ describe('c-object-record-search form flows', () => {
         await flushPromises();
         expect(changed).toHaveBeenCalledTimes(1);
         expect(toast.mock.calls.map(([event]) => event.detail.variant)).toEqual(['success']);
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('再取得');
         expect(getModal()).toBeNull();
     });
 

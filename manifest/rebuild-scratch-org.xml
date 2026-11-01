@@ -887,7 +887,6 @@
         <members>caseContactProfile</members>
         <members>caseEmailMessageList</members>
         <members>caseRelatedCaseList</members>
-        <members>errorUtils</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>

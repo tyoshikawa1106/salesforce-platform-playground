@@ -16,4 +16,4 @@ Lightning Web Componentsで実装した機能の仕様書一覧です。Apex本�
 | 組織エクスプローラー           | `orgExplorer`            | [組織エクスプローラー](org-explorer/index.md)                   |
 | オブジェクトエクスプローラー   | `objectExplorer`         | [オブジェクトエクスプローラー](object-explorer/index.md)        |
 
-共通の例外境界と表示部品は[画面内の共通エラー表示](ui-error-boundary/index.md)を参照してください。
+例外捕捉・診断情報の生成・エラー表示は各LWCのController・Logic・HTMLで実装し、共通エラー部品には依存しません。

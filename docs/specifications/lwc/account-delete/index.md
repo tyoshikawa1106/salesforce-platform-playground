@@ -14,13 +14,14 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### 画面・JavaScript
 
-| 種別       | 実装・設定                                                                                                     | 役割                                       |
-| ---------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| LWC        | [accountDelete](../../../../force-app/main/default/lwc/accountDelete/accountDelete.js)                         | 一括削除の確認と実行状況を表示             |
-| JavaScript | [accountDelete.js](../../../../force-app/main/default/lwc/accountDelete/accountDelete.js)                      | 初期取得、確認モーダル、Apex受付、状態更新 |
-| JavaScript | [accountDeleteLogic.js](../../../../force-app/main/default/lwc/accountDelete/accountDeleteLogic.js)            | 実行可否、標準ジョブ状態の表示モデル       |
-| LWC        | [accountDeleteConfirm](../../../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirm.js)    | 削除確認のモーダルを表示                   |
-| JavaScript | [accountDeleteConfirm.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirm.js) | キャンセル／実行結果を返す内部表示部品     |
+| 種別       | 実装・設定                                                                                                               | 役割                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| LWC        | [accountDelete](../../../../force-app/main/default/lwc/accountDelete/accountDelete.js)                                   | 一括削除の確認と実行状況を表示             |
+| JavaScript | [accountDelete.js](../../../../force-app/main/default/lwc/accountDelete/accountDelete.js)                                | 初期取得、確認モーダル、Apex受付、状態更新 |
+| JavaScript | [accountDeleteLogic.js](../../../../force-app/main/default/lwc/accountDelete/accountDeleteLogic.js)                      | 実行可否、標準ジョブ状態の表示モデル       |
+| LWC        | [accountDeleteConfirm](../../../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirm.js)              | 削除確認のモーダルを表示                   |
+| JavaScript | [accountDeleteConfirm.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirm.js)           | キャンセル／実行結果を返す内部表示部品     |
+| JavaScript | [accountDeleteConfirmLogic.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirmLogic.js) | 確認モーダル専用の診断情報生成             |
 
 ### Apexコードと対応テスト
 
@@ -84,7 +85,7 @@ Controllerが`Database.executeBatch(new AccountDeleteBatch(), 2000)`で直接バ
 
 ## エラー処理
 
-操作・取得処理と子部品の例外は[画面内の共通エラー表示](../ui-error-boundary/index.md)で処理場所・種類を表示します。`uiErrorBoundary.js`、`uiErrorPanel.js`、`errorUtils.js`を利用し、既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
+操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
 状態更新で自身の標準ジョブの完了・失敗・中断を確認します。
 

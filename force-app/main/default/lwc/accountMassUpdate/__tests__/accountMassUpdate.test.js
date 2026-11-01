@@ -40,7 +40,7 @@ const flush = async () => {
     await Promise.resolve();
 };
 const button = (element, label) =>
-    [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === label);
+    [...element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')].find((item) => item.label === label);
 
 async function createComponent() {
     const element = createElement('c-account-mass-update', { is: AccountMassUpdate });
@@ -266,12 +266,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         getObjectInfo.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('accountMassUpdate.js / handleObjectInfo');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('accountMassUpdate.js / handleObjectInfo');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

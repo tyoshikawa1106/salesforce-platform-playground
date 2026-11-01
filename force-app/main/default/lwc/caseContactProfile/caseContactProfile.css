@@ -24,3 +24,5 @@
 .c-customer-card__field_full {
     grid-column: 1 / -1;
 }
+/* エラーの長い処理名も画面内で折り返す */
+.c-client-error { overflow-wrap: anywhere; }

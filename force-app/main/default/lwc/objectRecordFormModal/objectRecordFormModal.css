@@ -13,3 +13,5 @@
         grid-template-columns: 1fr;
     }
 }
+/* エラーの長い処理名も画面内で折り返す */
+.c-client-error { overflow-wrap: anywhere; }

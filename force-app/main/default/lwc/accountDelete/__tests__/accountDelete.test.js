@@ -24,10 +24,10 @@ async function mount() {
     return element;
 }
 function executeButton(element) {
-    return element.shadowRoot.querySelectorAll('lightning-button')[0];
+    return element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')[0];
 }
 function refreshButton(element) {
-    return element.shadowRoot.querySelectorAll('lightning-button')[1];
+    return element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')[1];
 }
 
 describe('取引先一括削除画面', () => {
@@ -234,12 +234,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
 
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('accountDelete.js / loadView');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('accountDelete.js / loadView');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

@@ -343,3 +343,15 @@ export function apiDiagnosticCode(message = '') {
     // 自由文やAPI応答本文を診断コードとして扱わない
     return typeof message === 'string' ? (message.match(/\[(OE-(?:AUTH-401|API-HTTP-[1-5]\d{2}|API-(?:CONNECTION|TIMEOUT|BUDGET|RESPONSE|ID-MISMATCH)|ORG-(?:MISMATCH|RESPONSE)))\]/)?.[1] || '') : '';
 }
+
+// 診断イベントの任意文字列を表示せず、既知コードを固定理由へ変換
+export function safeClientDiagnostic(code) {
+    // レコード値・URL・例外本文を含まない固定の表示だけを許可
+    const reasons = {
+        'OE-JS-AUDIT-DATA': 'API応答の項目監査情報がオブジェクト形式ではありません。',
+        'OE-JS-AUDIT-VIEW': '取得済みの項目監査情報を表示用に加工できませんでした。',
+        'OE-JS-UNEXPECTED': '画面処理で想定外の値または機能が使用されました。処理場所とエラーコードを確認してください。',
+    };
+    // 未知のコードやオブジェクト由来のプロパティ名を採用しない
+    return typeof code === 'string' && Object.prototype.hasOwnProperty.call(reasons, code) ? { code, reason: reasons[code] } : { code: 'OE-JS-UNEXPECTED', reason: reasons['OE-JS-UNEXPECTED'] };
+}

@@ -1,7 +1,20 @@
 <template>
     <lightning-modal-header label="取引先の削除を開始しますか？"></lightning-modal-header>
     <lightning-modal-body>
-        <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
+        <template lwc:if={clientError}>
+            <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+                <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+            </div>
+        </template>
         <p>参照できるすべての取引先（法人・個人）を削除対象とします。削除できないレコードは失敗として記録します。</p>
         <p>個人取引先を削除すると、対応する取引先責任者も削除されます。</p>
         <p>開始後にこの画面を閉じても処理は継続します。</p>

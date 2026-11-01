@@ -1,5 +1,5 @@
 import { LightningElement } from 'lwc';
-import { safeClientDiagnostic } from 'c/errorUtils';
+import { safeClientDiagnostic } from './objectExplorerLogic';
 import locale from '@salesforce/i18n/locale';
 import timeZone from '@salesforce/i18n/timeZone';
 import hasModifyDataClassification from '@salesforce/userPermission/ModifyDataClassification';
