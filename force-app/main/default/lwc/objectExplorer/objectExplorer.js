@@ -182,21 +182,33 @@ export default class ObjectExplorer extends LightningElement {
             if (this.resizeObserver || this.resizeFallbackAttached) { return; }
             // 対応環境では要素単位のサイズ変更を監視
             if (typeof ResizeObserver === 'function') {
-                // 関数として公開されても生成が制限される環境を考慮
+                // 生成できてもDOMの監視を拒否される場合があるため登録まで確認
+                let observer;
                 try {
                     // 初回通知と幅変更を再描画と同じレイアウト処理へ渡す
-                    this.resizeObserver = new ResizeObserver((entries) => {
+                    observer = new ResizeObserver((entries) => {
+                        // 解除済みの監視から届く通知で新しい画面を更新しない
+                        if (this.resizeObserver !== observer) { return; }
                         // 通知に含まれる現在の表示幅を反映
                         try { this.syncViewportLayout(entries[0]?.contentRect.width); }
                         catch (error) { this.reportClientError(error, 'renderedCallback', 'resize-observer'); }
                     });
+                    // 現在のDOMへ登録できた監視だけを保持
+                    observer.observe(viewport);
+                    // 生成だけ成功した状態を登録済みとして扱わない
+                    this.resizeObserver = observer;
+                    // ウィンドウ監視との重複登録を避ける
+                    return;
                 } catch (error) {
-                    // コンストラクターの利用不可だけを代替処理へ切り替える
-                    if (error.name !== 'TypeError') { throw error; }
+                    // 登録に失敗した監視を解放してから代替処理へ進む
+                    try { observer?.disconnect(); }
+                    catch (cleanupError) { this.reportClientError(cleanupError, 'renderedCallback', 'resize-observer-cleanup'); }
+                    // 利用不可の既知例外は代替処理で回復し、その他は位置を通知
+                    if (!['TypeError', 'NotSupportedError', 'SecurityError'].includes(error?.name)) {
+                        this.reportClientError(error, 'renderedCallback', 'resize-observer');
+                    }
                 }
             }
-            // 生成できた場合は現在の関連カード領域だけを監視
-            if (this.resizeObserver) { this.resizeObserver.observe(viewport); return; }
             // 標準APIを利用できない環境ではウィンドウの幅変更を検知
             window.addEventListener('resize', this.handleViewportResize);
             // 再描画によるイベントの重複登録を防止
