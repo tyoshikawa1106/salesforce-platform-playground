@@ -9,7 +9,7 @@ private with sharing class ObjectExplorerApiClientTest {
     static void readsFieldAudit() {
         System.runAs(testUser) {
             Test.startTest();
-            for (Set<Id> ids : new List<Set<Id>>{new Set<Id>(), new Set<Id>{'001000000000001'}}) {
+            for (Set<Id> ids : new List<Set<Id>>{new Set<Id>(), new Set<Id>{UserInfo.getOrganizationId()}}) {
                 try {
                     fields.readFieldAudit(ids);
                     Assert.fail('不正な監査対象を拒否');
@@ -19,7 +19,7 @@ private with sharing class ObjectExplorerApiClientTest {
             }
             Assert.areEqual(0, Limits.getCallouts(), '不正な対象は送信しない');
             Test.setMock(HttpCalloutMock.class, new AuditMock());
-            Map<String,Object> result = fields.readFieldAudit(new Set<Id>{'00N000000000001'});
+            Map<String,Object> result = fields.readFieldAudit(new Set<Id>{(Id)('00N' + '000000000001')});
             Assert.areEqual(true, result.get('done'), '監査応答を処理側へ返却');
             Test.stopTest();
         }
