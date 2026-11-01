@@ -60,9 +60,9 @@ public with sharing class ObjectExplorerAccessPolicy {
      * @param error 公開境界で捕捉した例外
      * @return 元の本文を公開できる区分
      */
-    public static MetadataApiProtocol.Publication errorPublication(Exception error) {
-        Set<String> allowed = new Set<String>{AuraHandledException.class.getName(), MetadataApiIntegrationClient.IntegrationException.class.getName()};
-        return allowed.contains(error?.getTypeName()) ? MetadataApiProtocol.Publication.CONTROLLED : MetadataApiProtocol.Publication.INTERNAL;
+    public static SalesforceApiProtocol.Publication errorPublication(Exception error) {
+        Set<String> allowed = new Set<String>{AuraHandledException.class.getName(), SalesforceApiClient.IntegrationException.class.getName()};
+        return allowed.contains(error?.getTypeName()) ? SalesforceApiProtocol.Publication.CONTROLLED : SalesforceApiProtocol.Publication.INTERNAL;
     }
 
     /**

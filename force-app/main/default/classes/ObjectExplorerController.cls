@@ -5,7 +5,7 @@ public with sharing class ObjectExplorerController {
     private ObjectExplorerService structureService = new ObjectExplorerService();
     private ObjectExplorerClassifyService classifyService = new ObjectExplorerClassifyService();
     private ObjectExplorerSelector selector = new ObjectExplorerSelector();
-    private MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
+    private ObjectExplorerApiClient client = new ObjectExplorerApiClient();
     private ObjectExplorerOwnerService ownerService = new ObjectExplorerOwnerService();
     private ObjectExplorerOwnerService.CsvOwners csvOwners = new ObjectExplorerOwnerService.CsvOwners();
     private ObjectExplorerAccessPolicy access = new ObjectExplorerAccessPolicy();
@@ -49,7 +49,7 @@ public with sharing class ObjectExplorerController {
             return results;
         } catch (Exception error) {
             // 安全な業務理由だけを公開例外へ変換
-            throw MetadataApiProtocol.publicException(error, '保存要求の検証', ObjectExplorerAccessPolicy.errorPublication(error));
+            throw SalesforceApiProtocol.publicException(error, '保存要求の検証', ObjectExplorerAccessPolicy.errorPublication(error));
         }
     }
 
@@ -152,7 +152,7 @@ public with sharing class ObjectExplorerController {
         String stage = 'API接続・接続先組織の確認';
         try {
             // 認証先と更新対象組織の一致を要求単位で確認
-            this.client.verifyOrganization();
+            new SalesforceApiClient().verifyOrganization();
             // 保存前の分類を別API要求で一括取得
             stage = '保存前の分類取得';
             // 確認済みの対象だけを一括取得
@@ -177,7 +177,7 @@ public with sharing class ObjectExplorerController {
             // 通信全体の失敗でも確定した項目別結果を維持
             Exception failure = error;
             // 共通クライアントの固定メッセージだけに段階を付加
-            if (error instanceof MetadataApiIntegrationClient.IntegrationException) { failure = new MetadataApiIntegrationClient.IntegrationException(stage + '：' + error.getMessage()); }
+            if (error instanceof SalesforceApiClient.IntegrationException) { failure = new SalesforceApiClient.IntegrationException(stage + '：' + error.getMessage()); }
             // 想定外の例外本文はSaveResults側で固定文へ置換
             contexts = this.results.failPendingFields(contexts, failure);
         }
@@ -389,19 +389,17 @@ public with sharing class ObjectExplorerController {
             // URL長と取得件数を200件単位で制限
             List<Set<Id>> batches = service.createAuditBatches(targets.keySet());
             // REST通信は既存Clientを共有
-            MetadataApiIntegrationClient client = new MetadataApiIntegrationClient();
+            ObjectExplorerApiClient client = new ObjectExplorerApiClient();
             // カスタム項目がある場合だけ認証先組織を確認
             stage = 'API接続・接続先組織の確認';
-            if (!batches.isEmpty()) { client.verifyOrganization(); }
+            if (!batches.isEmpty()) { new SalesforceApiClient().verifyOrganization(); }
             // 全バッチの取得結果を対応付け前に保持
             stage = '項目の作成・更新情報のAPI取得';
             List<Map<String, Object>> records = new List<Map<String, Object>>();
             // 画面へ部分成功を返さず全件取得する
             for (Set<Id> batch : batches) {
-                // 確認済みのID集合からクエリを生成
-                String query = service.createAuditQuery(batch);
-                // 接続先・認証・待ち時間は既存Clientの処理を共用
-                Map<String, Object> response = client.request('tooling/query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'), 'GET', null);
+                // 確認済みのIDだけを機能専用クライアントへ渡す
+                Map<String, Object> response = client.readFieldAudit(batch);
                 // 完了した応答だけを取り出す
                 List<Map<String, Object>> batchRecords = service.readAuditRecords(response);
                 // 後続のID検証に必要な元レコードを保持
@@ -418,7 +416,7 @@ public with sharing class ObjectExplorerController {
             return result;
         } catch (Exception error) {
             // 取得段階と安全な理由だけをLWCへ返す
-            throw MetadataApiProtocol.publicException(error, stage, ObjectExplorerAccessPolicy.errorPublication(error));
+            throw SalesforceApiProtocol.publicException(error, stage, ObjectExplorerAccessPolicy.errorPublication(error));
         }
     }
 

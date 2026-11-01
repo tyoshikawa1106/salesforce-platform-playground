@@ -30,9 +30,11 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [ObjectExplorerOwnerService](../../../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)       | データ分類の所有者ID照合・候補表示・API参照値の生成。所有者候補・ID照合・Metadata API用の所有者参照値                          | [ObjectExplorerOwnerServiceTest](../../../../force-app/main/default/classes/ObjectExplorerOwnerServiceTest.cls)       |
 | [ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)               | 項目定義・分類と所有者候補の読み取り。項目定義・User・Group・実効権限をUSER_MODEで照会                                         | [ObjectExplorerSelectorTest](../../../../force-app/main/default/classes/ObjectExplorerSelectorTest.cls)               |
 | [ObjectExplorerService](../../../../force-app/main/default/classes/ObjectExplorerService.cls)                 | Describeに基づくオブジェクト・項目・直接参照の表示モデル。対象候補と直接関連の構造モデル                                       | [ObjectExplorerServiceTest](../../../../force-app/main/default/classes/ObjectExplorerServiceTest.cls)                 |
-| [MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)   | Named Credential経由の項目メタデータ読み取り・更新。Named CredentialによるHTTP通信と同一組織確認                               | [MetadataApiIntegrationClientTest](../../../../force-app/main/default/classes/MetadataApiIntegrationClientTest.cls)   |
-| [MetadataApiProtocol](../../../../force-app/main/default/classes/MetadataApiProtocol.cls)                     | API要求・応答の検証、固定診断、公開コードの許可一覧                                                                            | [MetadataApiProtocolTest](../../../../force-app/main/default/classes/MetadataApiProtocolTest.cls)                     |
+| [SalesforceApiClient](../../../../force-app/main/default/classes/SalesforceApiClient.cls)                     | Named Credential経由の項目メタデータ読み取り・更新。Named CredentialによるHTTP通信と同一組織確認                               | [SalesforceApiClientTest](../../../../force-app/main/default/classes/SalesforceApiClientTest.cls)                     |
+| [SalesforceApiProtocol](../../../../force-app/main/default/classes/SalesforceApiProtocol.cls)                 | API要求・応答の検証、固定診断、公開コードの許可一覧                                                                            | [SalesforceApiProtocolTest](../../../../force-app/main/default/classes/SalesforceApiProtocolTest.cls)                 |
 | [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証。SOAP XML生成と項目完全名による応答照合                                   | [MetadataApiSoapCodecTest](../../../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)                   |
+| [ObjectExplorerApiClient](../../../../force-app/main/default/classes/ObjectExplorerApiClient.cls)             | 項目定義のTooling照会・分類のREST照会とTooling／Metadata更新                                                                   | [ObjectExplorerApiClientTest](../../../../force-app/main/default/classes/ObjectExplorerApiClientTest.cls)             |
+| [ObjectExplorerApiProtocol](../../../../force-app/main/default/classes/ObjectExplorerApiProtocol.cls)         | 分類応答・更新定義・保存状態の変換                                                                                             | [ObjectExplorerApiProtocolTest](../../../../force-app/main/default/classes/ObjectExplorerApiProtocolTest.cls)         |
 
 テストでは現在の実行ユーザーを直接取得し、共通の`TestDataFactory`には依存しません。
 
@@ -41,14 +43,14 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | 種別     | 実装・設定                                                                | 役割                                                            |
 | -------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | 設定     | `ObjectExplorer`                                                          | タブ、`Salesforce`アプリ、`SalesforceApplicationUser`権限セット |
-| 設定     | `MetadataApiIntegration`                                                  | 外部クライアントアプリケーションとOAuth設定                     |
+| 設定     | `SalesforceApiIntegration`                                                | 外部クライアントアプリケーションとOAuth設定                     |
 | Manifest | [Scratch Org再構築manifest](../../../../manifest/rebuild-scratch-org.xml) | 機能構成の再現                                                  |
 
 ### 構成上の補足
 
 所有者IDの照合・候補表示・Metadata API参照値への変換は[ObjectExplorerOwnerService](../../../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)に集約し、権限・要求検証と分類値の競合・更新処理から分離します。分類Serviceの内部状態に編集対象・分類基準値・所有者・送信状態・確定結果をまとめ、入力状態を変更せず次段の状態を返します。
 
-ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答検証は[MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)、HTTP認証・待ち時間は[MetadataApiIntegrationClient](../../../../force-app/main/default/classes/MetadataApiIntegrationClient.cls)に分離します。一覧と保存には共通のオブジェクト参照権限チェックを適用します。
+ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答検証は[MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)、HTTP認証・待ち時間は[SalesforceApiClient](../../../../force-app/main/default/classes/SalesforceApiClient.cls)に分離します。一覧と保存には共通のオブジェクト参照権限チェックを適用します。
 
 公開入口は構造・分類の参照と分類保存を一つの[ObjectExplorerController](../../../../force-app/main/default/classes/ObjectExplorerController.cls)へ集約します。照会は[ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)、表示と業務判定はステートレスなServiceで扱い、Controllerで処理順序を追える構成とします。
 
@@ -120,7 +122,7 @@ Schema Describeで取得し、オブジェクト・項目の参照可否を確�
 
 API認証のプリンシパル利用権限は、External Credentialの作成後に導入先で設定します。現在ユーザーの操作権限とAPI接続先の実行ユーザーの権限は別々に必要です。
 
-Apexは固定名`MetadataApiIntegration`でNamed Credentialを参照します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
+Apexは固定名`SalesforceApiIntegration`でNamed Credentialを参照します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
 
 更新前後の分類3属性とネイティブの所有者IDは、REST APIの`FieldDefinition`クエリで最大10項目まとめて取得します。要求した項目API名・完全なDurableId・必要属性・件数を照合し、欠落や重複を未設定値として扱いません。標準項目はSOAP Metadata APIの`updateMetadata`で最大10項目まとめて更新し、分類5属性と検証済みの`fullName`だけを送信します。カスタム項目はTooling APIの`CustomField.Metadata`で最新定義を取得し、分類以外の設定済み値を保持して個別に更新します。Tooling APIで受理されない未設定の複合属性は送信対象から外し、解除する分類属性のnullは維持します。更新結果は応答順ではなく完全名で照合し、別のAPI要求で再取得した分類値と所有者IDが一致した項目だけを成功とします。
 
@@ -191,7 +193,7 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 コンプライアンス分類は複数選択のドロップダウンで、候補を開いても行の高さを変えません。入力欄の幅は選択数によらず固定し、収まらない選択値は末尾を省略します。機密度と利用状況の候補は自動配置し、選択リストや所有者候補を操作している間は少数行でも表内に表示領域を確保します。データ機密度と項目の利用状況の選択リストには他の候補と同じ1行表示の「-- なし --」を用意し、空値へ戻せるようにします。空値を選んだ入力欄は候補ラベルを表示せず空欄にし、保存要求では空文字を明示します。編集可能な項目の未設定の分類は空表示とし、編集不可・分類情報がない項目は一覧へ表示しません。
 
-対象オブジェクトとデータ所有者の検索は日本語のIME変換中も入力のたびに実行し、フォーカスを外した時には検索しません。変換中のEnterは候補の選択に使用しません。古い検索応答は反映せず、行ごとの最新の検索結果だけを採用します。所有者候補はフォーカス移動だけでは表示せず、クリックまたは文字入力で開きます。空欄への入力変更では閉じます。強調した候補、または唯一の候補をEnterで確定します。選択済みの場合は候補を開かず、×で解除して選び直します。データ所有者は対象オブジェクトと同じSLDSルックアップ形式とし、未選択時は右端の検索アイコンと「氏名・メールアドレス・グループ名で検索」の入力ヒントを表示します。ユーザー・公開グループの候補を上段の名前と下段のユーザー名・グループAPI名の2段で表示します。「ユーザー：」「グループ：」や括弧は付けません。
+対象オブジェクトとデータ所有者の検索は日本語のIME変換中も入力のたびに実行し、フォーカスを外した時には検索しません。変換中のEnterは候補の選択に使用しません。古い検索応答は反映せず、行ごとの最新の検索結果だけを採用します。所有者候補はフォーカス移動だけでは表示せず、クリックまたは文字入力で開きます。空欄への入力変更では閉じます。強調した候補、または唯一の候補をEnterで確定します。選択済みの場合は候補を開かず、×で解除して選び直します。データ所有者は対象オブジェクトと同じSLDSルックアップ形式とし、未選択時は右端の検索アイコンと「検索」の入力ヒントを表示します。ユーザー・公開グループの候補を上段の名前と下段のユーザー名・グループAPI名の2段で表示します。「ユーザー：」「グループ：」や括弧は付けません。
 
 選択後は名前だけを1行で表示し、解除ボタンを入力内へ配置します。選択済みコンテナーと入力欄に対象オブジェクトと同じSLDSクラスを適用し、枠線を統一します。候補は上下矢印・Enterで選択し、Escまたはフォーカスの移動で閉じます。検索結果と選択値は行ごとに保持し、表示名ではなく候補のIDで確定します。未保存変更の確認中はモード・種別の選択表示と一覧を維持し、OKを選んだ後に切り替えます。
 
@@ -199,9 +201,13 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 タブとControllerへのアクセスは導入先で設定します。共通アプリのアクセスは`SalesforceApplicationUser`で提供します。Describeの参照可否を超えた構造情報は返しません。ユーザーが参照可能な通常オブジェクトを候補にします。
 
-### Metadata API連携の準備
+### Salesforce API連携の準備
 
-分類更新用の外部クライアントアプリケーションは`MetadataApiIntegration`（メタデータAPIインテグレーション）です。既存のHeroku連携は使用しません。APIスコープでクライアント資格情報フローを有効にする定義を用意しています。実行ユーザーの設定とExternal Credentialへの認証情報登録が必要で、アプリケーションの作成だけでは分類の保存は利用できません。
+組織内LWCからApex Controllerを経由して同じ組織のAPIへ接続します。共通の`SalesforceApiClient`と`SalesforceApiProtocol`は認証・HTTP通信・共通応答検証を担当し、`@AuraEnabled`や`@RestResource`では公開しません。Controllerで実効権限と入力を検証し、機能固有の項目分類操作は`ObjectExplorerApiClient`と`ObjectExplorerApiProtocol`へ分離します。外部システム用の公開入口は設けません。既存の診断コードは画面との互換性のため維持します。
+
+外部クライアントアプリケーション・External Credential・Named CredentialのAPI名は`SalesforceApiIntegration`、表示ラベルは「Salesforce API連携」、Named Principalは`SalesforceApiPrincipal`です。認証設定は組織内LWCで共有します。実行ユーザー・権限・接続先を分離する必要がある場合は別設定とします。設定自体が内部LWC専用を保証するわけではなく、PrincipalアクセスとAPI実行ユーザーの権限、Controllerの操作検証で制御します。
+
+項目情報の取得・分類更新用の外部クライアントアプリケーションは`SalesforceApiIntegration`（Salesforce API連携）です。既存のHeroku連携は使用しません。APIスコープでクライアント資格情報フローを有効にする定義を用意しています。実行ユーザーの設定とExternal Credentialへの認証情報登録が必要で、アプリケーションの作成だけでは分類の保存は利用できません。
 
 Consumer KeyとConsumer SecretはExternal Credential側で管理し、ApexはNamed Credentialを参照する構成とします。認証値はConnect REST APIの`/named-credentials/credential`へ登録し、初回作成はPOST、既存の認証値の更新はPUTを使用します。CLIプロセスの終了コードだけで成功を判断せず、API応答のエラーとNamed Credential経由の実際の接続を確認します。
 
@@ -213,9 +219,9 @@ Consumer KeyとConsumer SecretはExternal Credential側で管理し、ApexはNam
 
 1. 参照機能・分類処理・タブだけを列挙した限定scopeで反映します。
 2. 外部クライアントアプリケーションを作成し、APIスコープとクライアント資格情報フローを設定します。OAuthポリシーには必要なメタデータ更新権限を持つ実行ユーザーを指定します。
-3. OAuthクライアント資格情報方式のExternal Credentialを作成し、Named Principalを`MetadataPrincipal`として構成します。Consumer Key・Consumer Secretを組織の資格情報管理へ登録します。
-4. 現在の組織を接続先とするNamed Credentialを`MetadataApiIntegration`として作成し、External Credentialへ関連付け、「HTTP 本文の数式を許可」を有効にします。
-5. 導入先でタブ・Apex入口・External Credentialの`MetadataPrincipal`へのアクセスを設定します。分類編集者には標準の分類変更またはカスタマイズ権限が必要です。
+3. OAuthクライアント資格情報方式のExternal Credentialを作成し、Named Principalを`SalesforceApiPrincipal`として構成します。Consumer Key・Consumer Secretを組織の資格情報管理へ登録します。
+4. 現在の組織を接続先とするNamed Credentialを`SalesforceApiIntegration`として作成し、External Credentialへ関連付け、「HTTP 本文の数式を許可」を有効にします。
+5. 導入先でタブ・Apex入口・External Credentialの`SalesforceApiPrincipal`へのアクセスを設定します。分類編集者には標準の分類変更またはカスタマイズ権限が必要です。
 6. Named Credential経由の接続、分類入力、保存・再取得を確認します。認証設定を含む自動再現は現時点では行いません。
 
 項目検索は「項目名」の1入力欄とし、どちらかに部分一致する項目を表示します。検索は前後空白・大文字小文字を区別せず、データ型の条件と組み合わせます。
@@ -226,7 +232,7 @@ Consumer KeyとConsumer SecretはExternal Credential側で管理し、ApexはNam
 
 参照型のデータ型表示では末尾の空括弧だけを除去します。「参照関係()」は「参照関係」とし、参照先を含む括弧は保持します。オブジェクト構造・データ分類設定・項目定義CSVに同じ表記を適用します。
 
-ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、分類CSVは「オブジェクトラベル・オブジェクトAPI名・項目ラベル・項目API名・コンプライアンス分類・データ機密度・項目の利用状況・データ所有者ID」を使用します。インポートはこの日本語ヘッダーと既存APIヘッダーを固定対応で受け付け、同じ列の二重指定は拒否します。項目定義CSVは「項目ラベル・API名・データ型・カスタム・作成日・最終更新日」を使用します。
+ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、分類CSVは「オブジェクトラベル・オブジェクトAPI名・項目ラベル・項目API名・コンプライアンス分類・データ機密度・項目の利用状況・データ所有者ID」を使用します。インポートはこの日本語ヘッダーと既存APIヘッダーを固定対応で受け付け、同じ列の二重指定は拒否します。項目定義CSVは「項目ラベル・API名・データ型・カスタム・作成日・最終更新日・コンプライアンス分類・データ機密度・項目の利用状況・データ所有者ID」を使用します。
 
 ## エラー処理
 
@@ -244,7 +250,7 @@ ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、�
 
 Apexテストはシステム管理者プロファイルの現在ユーザーで実行します。テストのための権限セット割り当てや権限不足ユーザー作成は行いません。標準権限の分岐はメモリ上の実効権限レコードで確認します。
 
-Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。HTTPモックで指定ログイン情報`MetadataApiIntegration`への接続先を検証し、認証情報には依存しません。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
+Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。HTTPモックで指定ログイン情報`SalesforceApiIntegration`への接続先を検証し、認証情報には依存しません。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
 
 - 起点・モード・種別の変更、カード選択、関連検索、項目フィルター、ページをまたぐ編集保持。
 - CSVの出力と読取の往復、引用符・BOM・空行、列ずれ・重複・別対象・空欄による解除。
@@ -252,6 +258,8 @@ Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とと
 - ChromeでCSV操作の配置・表示名・ヘルプを確認。実際の分類更新は検証対象と復元方法を限定した場合だけ実施。
 
 ## 制約・注意事項
+
+旧`MetadataApiIntegration`からは、新しい認証設定を構成して接続先組織・REST照会・Tooling照会・Metadata読取を確認した後、PrincipalアクセスとApex参照を切り替えます。切替後に同一scopeの取得比較と旧名への依存を確認して旧クラス・旧認証設定を削除します。認証情報の自動コピーや旧名へのフォールバックは本体へ実装しません。認証失敗時は旧設定を削除せず、新設定を修正するか切替前の参照へ戻します。秘密情報を含む設定はGit管理対象にしません。
 
 - 表示中と同じオブジェクトのカードを選択した場合は、取得済みの項目一覧を再利用します。参照方向・選択表示・一覧への移動は反映し、日時取得に失敗している場合は再取得します。
 

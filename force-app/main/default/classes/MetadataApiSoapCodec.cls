@@ -11,7 +11,7 @@ public with sharing class MetadataApiSoapCodec {
      * @return 認証差し込み箇所を限定したSOAP本文
      */
     public String createUpdateRequest(Map<String, Map<String, Object>> fields) {
-        if (fields.isEmpty() || fields.size() > 10) { throw new MetadataApiIntegrationClient.IntegrationException('標準項目の一括更新は1～10件で指定してください。'); }
+        if (fields.isEmpty() || fields.size() > 10) { throw new SalesforceApiClient.IntegrationException('標準項目の一括更新は1～10件で指定してください。'); }
         Dom.Document doc = new Dom.Document();
         Dom.XmlNode envelope = doc.createRootElement('Envelope', SOAP_NS, 'env');
         envelope.setAttribute('xmlns:xsi', XSI_NS);
@@ -39,9 +39,9 @@ public with sharing class MetadataApiSoapCodec {
      */
     private void appendMetadataField(Dom.XmlNode operation, String fullName, Map<String, Object> metadata) {
         // 完全名へパスやSOQL断片を含めさせない
-        if (!Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName ?? '')) { throw new MetadataApiIntegrationClient.IntegrationException('項目識別子が不正です。'); }
+        if (!Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName ?? '')) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
         // 完全名と定義の対応を送信直前にも確認
-        if (metadata.get('fullName') != fullName) { throw new MetadataApiIntegrationClient.IntegrationException('分類を更新する項目の識別名が一致しません。'); }
+        if (metadata.get('fullName') != fullName) { throw new SalesforceApiClient.IntegrationException('分類を更新する項目の識別名が一致しません。'); }
         // 文字列の連結ではなくXML APIで値を追加
         Dom.XmlNode field = operation.addChildElement('metadata', METADATA_NS, 'met');
         // 更新するメタデータ型を固定
@@ -66,10 +66,10 @@ public with sharing class MetadataApiSoapCodec {
         Map<String, String> results = new Map<String, String>();
         for (Dom.XmlNode result : operation.getChildElements()) {
             String fullName = result.getChildElement('fullName', METADATA_NS)?.getText();
-            if (!expectedNames.contains(fullName) || results.containsKey(fullName)) { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの更新結果の対象項目が一致しません。'); }
+            if (!expectedNames.contains(fullName) || results.containsKey(fullName)) { throw new SalesforceApiClient.IntegrationException('Metadata APIの更新結果の対象項目が一致しません。'); }
             results.put(fullName, readUpdateStatus(result));
         }
-        if (results.keySet() != expectedNames) { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの更新結果に不足があります。最新状態を再取得してください。'); }
+        if (results.keySet() != expectedNames) { throw new SalesforceApiClient.IntegrationException('Metadata APIの更新結果に不足があります。最新状態を再取得してください。'); }
         return results;
     }
 
@@ -84,7 +84,7 @@ public with sharing class MetadataApiSoapCodec {
         switch on success {
             when 'true' { return ''; }
             when 'false' { return readUpdateError(result); }
-            when else { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの更新成否を確認できませんでした。'); }
+            when else { throw new SalesforceApiClient.IntegrationException('Metadata APIの更新成否を確認できませんでした。'); }
         }
     }
 
@@ -98,10 +98,10 @@ public with sharing class MetadataApiSoapCodec {
         try {
             Dom.Document doc = new Dom.Document(); doc.load(response.getBody());
             body = doc.getRootElement().getChildElement('Body', SOAP_NS);
-        } catch (Exception error) { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
-        if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new MetadataApiIntegrationClient.IntegrationException('[OE-SAVE-UNCONFIRMED] Metadata APIがSOAP Faultを返したため、更新結果を確認できませんでした。最新状態を再取得してください。'); }
+        } catch (Exception error) { throw new SalesforceApiClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
+        if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new SalesforceApiClient.IntegrationException('[OE-SAVE-UNCONFIRMED] Metadata APIがSOAP Faultを返したため、更新結果を確認できませんでした。最新状態を再取得してください。'); }
         Dom.XmlNode operation = body?.getChildElement('updateMetadataResponse', METADATA_NS);
-        if (response.getStatusCode() != 200 || operation == null) { throw new MetadataApiIntegrationClient.IntegrationException('Metadata APIの更新応答を確認できませんでした。最新状態を再取得してください。'); }
+        if (response.getStatusCode() != 200 || operation == null) { throw new SalesforceApiClient.IntegrationException('Metadata APIの更新応答を確認できませんでした。最新状態を再取得してください。'); }
         return operation;
     }
 
@@ -112,7 +112,7 @@ public with sharing class MetadataApiSoapCodec {
      */
     private String readUpdateError(Dom.XmlNode result) {
         String code = result.getChildElement('errors', METADATA_NS)?.getChildElement('statusCode', METADATA_NS)?.getText();
-        String safeCode = MetadataApiProtocol.safeCode(code);
+        String safeCode = SalesforceApiProtocol.safeCode(code);
         return 'Metadata APIが更新を拒否しました（' + safeCode + '）。設定値・権限を確認してください。';
     }
 }

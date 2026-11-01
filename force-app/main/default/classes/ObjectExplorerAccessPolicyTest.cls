@@ -11,9 +11,9 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     static void classifiesInternalFailure() {
         System.runAs(testUser) {
             Test.startTest();
-            MetadataApiProtocol.Publication result = ObjectExplorerAccessPolicy.errorPublication(new QueryException('PRIVATE_VALUE'));
+            SalesforceApiProtocol.Publication result = ObjectExplorerAccessPolicy.errorPublication(new QueryException('PRIVATE_VALUE'));
             Test.stopTest();
-            Assert.areEqual(MetadataApiProtocol.Publication.INTERNAL, result, '内部のSQL等を公開しない');
+            Assert.areEqual(SalesforceApiProtocol.Publication.INTERNAL, result, '内部のSQL等を公開しない');
         }
     }
 
@@ -22,9 +22,9 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     static void classifiesControlledFailure() {
         System.runAs(testUser) {
             Test.startTest();
-            MetadataApiProtocol.Publication result = ObjectExplorerAccessPolicy.errorPublication(new MetadataApiIntegrationClient.IntegrationException('HTTP 401'));
+            SalesforceApiProtocol.Publication result = ObjectExplorerAccessPolicy.errorPublication(new SalesforceApiClient.IntegrationException('HTTP 401'));
             Test.stopTest();
-            Assert.areEqual(MetadataApiProtocol.Publication.CONTROLLED, result, '固定診断の公開可否を区別');
+            Assert.areEqual(SalesforceApiProtocol.Publication.CONTROLLED, result, '固定診断の公開可否を区別');
         }
     }
 
