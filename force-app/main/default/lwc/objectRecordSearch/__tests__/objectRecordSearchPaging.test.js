@@ -43,7 +43,7 @@ describe('c-object-record-search paging and sorting', () => {
         button.click();
         await flushPromises();
 
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得エラー');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('再取得エラー');
         expect(button.disabled).toBe(false);
         expect(findButton(element, '検索').disabled).toBe(false);
         await expect(element).toBeAccessible();

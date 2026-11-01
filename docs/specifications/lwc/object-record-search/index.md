@@ -19,10 +19,8 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | LWC        | [objectRecordSearch](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearch.js)                        | 検索条件、一覧、ページング、作成、編集、削除 UI |
 | LWC        | [objectRecordFormModal](../../../../force-app/main/default/lwc/objectRecordFormModal/objectRecordFormModal.js)               | 標準モーダル内のレコード保存・アップロード      |
 | JavaScript | [objectRecordFormModalLogic.js](../../../../force-app/main/default/lwc/objectRecordFormModal/objectRecordFormModalLogic.js)  | 保存・アップロード結果とエラー表示値の生成      |
-| LWC        | [errorUtils](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                                | Apex と UI API エラーのメッセージ変換           |
 | JavaScript | [objectRecordSearch.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearch.js)                     | 画面操作と Apex、UI API 呼び出しの統括          |
 | JavaScript | [objectRecordSearchLogic.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchLogic.js)           | 画面単位の検索、一覧、フォーム状態生成          |
-| JavaScript | [errorUtils.js](../../../../force-app/main/default/lwc/errorUtils/errorUtils.js)                                             | Apex と UI API エラーのメッセージ変換           |
 | JavaScript | [objectRecordSearchDisplay.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchDisplay.js)       | 一覧列と表示行の組み立て                        |
 | JavaScript | [objectRecordSearchForm.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchForm.js)             | レコードフォームとレイアウトの組み立て          |
 | JavaScript | [objectRecordSearchFormPolicy.js](../../../../force-app/main/default/lwc/objectRecordSearch/objectRecordSearchFormPolicy.js) | オブジェクト別のフォーム対応方針                |
@@ -94,7 +92,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 フォームの起動前には接続・切断コールバックで保持した状態を確認します。`isConnected`プロパティの公開状態へ依存せず、画面離脱後は待機中のモーダルを開きません。
 
-操作・取得処理と子部品の例外は[画面内の共通エラー表示](../ui-error-boundary/index.md)で処理場所・種類を表示します。`uiErrorBoundary.js`、`uiErrorPanel.js`、`errorUtils.js`を利用し、既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
+操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
 - 想定内の状態を例外型で識別せず、下位層の判定結果と Controller の固定メッセージを境界にします。空の独自例外では公開可能なメッセージを保証できないため、`ObjectRecordSearchException` は使用しません。
 - 未定義のカードキー、利用できないオブジェクト、参照不可の `Name` 相当項目、不正なページ取得位置は、Service が判定結果と原因コードで Controller へ返します。

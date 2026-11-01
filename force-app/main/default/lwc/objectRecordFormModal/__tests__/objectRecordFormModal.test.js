@@ -9,12 +9,12 @@ describe('モーダル内の例外表示', () => {
         const modal = createElement('c-objectRecordFormModal', { is: ObjectRecordFormModal });
         modal.closeHandler = () => { throw new TypeError('private-value'); };
         document.body.appendChild(modal);
-        const cancel = [...modal.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'キャンセル');
+        const cancel = [...modal.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')].find((button) => button.label === 'キャンセル');
         cancel.click();
         await Promise.resolve();
-        const panel = modal.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('objectRecordFormModal.js / handleCancel');
-        expect(panel.details.errorType).toBe('TypeError');
+        const panel = modal.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('objectRecordFormModal.js / handleCancel');
+        expect(panel.textContent).toContain('TypeError');
         await expect(modal).toBeAccessible();
     });
 });
@@ -31,7 +31,7 @@ it('検証処理で例外になった場合はフォームの標準送信を止�
     form.dispatchEvent(submit);
     await Promise.resolve();
     expect(submit.defaultPrevented).toBe(true);
-    expect(modal.shadowRoot.querySelector('c-ui-error-panel').details.location).toContain('handleSubmit');
+    expect(modal.shadowRoot.querySelector('[data-client-error]').textContent).toContain('handleSubmit');
     document.body.replaceChildren();
     jest.restoreAllMocks();
 });
