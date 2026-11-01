@@ -358,14 +358,6 @@
         <enabled>false</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>MetadataApiIntegrationClient</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>MetadataApiIntegrationClientTest</apexClass>
-        <enabled>false</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>MetadataApiSoapCodec</apexClass>
         <enabled>false</enabled>
     </classAccesses>

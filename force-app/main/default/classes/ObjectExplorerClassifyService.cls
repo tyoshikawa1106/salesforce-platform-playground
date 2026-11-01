@@ -352,7 +352,7 @@ public with sharing class ObjectExplorerClassifyService {
                 // 同じ完全名の結果だけを採用
                 String message = results.get(context.objectName + '.' + context.fieldName);
                 // 明示的な拒否は保存後確認不能と区別
-                if (String.isNotBlank(message)) { updated.add(failField(context, new MetadataApiIntegrationClient.RejectedUpdateException(message))); }
+                if (String.isNotBlank(message)) { updated.add(failField(context, new SalesforceApiClient.RejectedUpdateException(message))); }
                 else { updated.add(context); }
             }
             // 確定済みの結果を維持して返却
@@ -383,12 +383,12 @@ public with sharing class ObjectExplorerClassifyService {
             // 元の照合値や編集値を変更しない
             FieldContext context = new FieldContext(source);
             // 拒否が明示されていない送信後の失敗は不明として案内
-            String prefix = context.sent && !(error instanceof MetadataApiIntegrationClient.RejectedUpdateException) ? '更新結果を確認できませんでした。最新状態を再取得してください。' : '';
+            String prefix = context.sent && !(error instanceof SalesforceApiClient.RejectedUpdateException) ? '更新結果を確認できませんでした。最新状態を再取得してください。' : '';
             // 制御済み業務エラーだけを画面へ返す
-            MetadataApiProtocol.SaveState state = new MetadataApiProtocol.SaveState();
+            ObjectExplorerApiProtocol.SaveState state = new ObjectExplorerApiProtocol.SaveState();
             state.sent = context.sent;
-            state.rejected = error instanceof MetadataApiIntegrationClient.RejectedUpdateException;
-            String stage = MetadataApiProtocol.saveStage(state);
+            state.rejected = error instanceof SalesforceApiClient.RejectedUpdateException;
+            String stage = ObjectExplorerApiProtocol.saveStage(state);
             // 制御済み理由と段階だけを公開する
             String message = stage + '：' + safeMessage(error);
             // 同じ項目の確定結果を生成
@@ -425,7 +425,7 @@ public with sharing class ObjectExplorerClassifyService {
             // 同じ対象ごとの結果を入力順で処理
             for (FieldContext context : contexts) {
                 // 保存結果が不明なまま一覧へ返却しない
-                if (!context.completed) { throw new MetadataApiIntegrationClient.IntegrationException('保存結果を確認できませんでした。最新状態を再取得してください。'); }
+                if (!context.completed) { throw new SalesforceApiClient.IntegrationException('保存結果を確認できませんでした。最新状態を再取得してください。'); }
                 // 同じ入力順で確定結果を追加
                 results.add(context.result);
             }
@@ -440,7 +440,7 @@ public with sharing class ObjectExplorerClassifyService {
          */
         private String safeMessage(Exception error) {
             // API応答本文や認証値をエラーへ含めない
-            return error instanceof AuraHandledException || error instanceof MetadataApiIntegrationClient.IntegrationException || error instanceof MetadataApiIntegrationClient.RejectedUpdateException ? error.getMessage() : '項目の保存に失敗しました。編集内容と権限を確認してください。';
+            return error instanceof AuraHandledException || error instanceof SalesforceApiClient.IntegrationException || error instanceof SalesforceApiClient.RejectedUpdateException ? error.getMessage() : '項目の保存に失敗しました。編集内容と権限を確認してください。';
         }
     }
 

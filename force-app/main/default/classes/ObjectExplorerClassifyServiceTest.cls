@@ -227,7 +227,7 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Assert.isFalse(pending.completed, '元の状態を変更しない');
             List<ObjectExplorerClassifyService.FieldContext> unchanged = results.failPendingFields(
                 rejected,
-                new MetadataApiIntegrationClient.IntegrationException('後続失敗')
+                new SalesforceApiClient.IntegrationException('後続失敗')
             );
             Assert.areEqual('[OE-SAVE-REJECTED] APIによる更新拒否：拒否', unchanged[0].result.get('message'), '確定済み結果を上書きしない');
             Assert.isTrue(results.getVerificationNames(unchanged).isEmpty(), '確定行を再取得しない');
@@ -251,7 +251,7 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             try {
                 results.createSaveResults(new List<ObjectExplorerClassifyService.FieldContext>{ context(false) });
                 Assert.fail('未確定を成功扱いしない');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('確認'), '未確定を通知');
             }
             Test.stopTest();

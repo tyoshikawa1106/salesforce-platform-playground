@@ -153,10 +153,14 @@
         <members>ObjectExplorerOwnerServiceTest</members>
         <members>ObjectExplorerAccessPolicy</members>
         <members>ObjectExplorerAccessPolicyTest</members>
-        <members>MetadataApiIntegrationClient</members>
-        <members>MetadataApiIntegrationClientTest</members>
-        <members>MetadataApiProtocol</members>
-        <members>MetadataApiProtocolTest</members>
+        <members>ObjectExplorerApiClient</members>
+        <members>ObjectExplorerApiClientTest</members>
+        <members>ObjectExplorerApiProtocol</members>
+        <members>ObjectExplorerApiProtocolTest</members>
+        <members>SalesforceApiClient</members>
+        <members>SalesforceApiClientTest</members>
+        <members>SalesforceApiProtocol</members>
+        <members>SalesforceApiProtocolTest</members>
         <members>MetadataApiSoapCodec</members>
         <members>MetadataApiSoapCodecTest</members>
         <members>ObjectExplorerService</members>

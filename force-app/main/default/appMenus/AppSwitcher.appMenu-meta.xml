@@ -117,7 +117,7 @@
         <type>ExternalClientApplication</type>
     </appMenuItems>
     <appMenuItems>
-        <name>MetadataApiIntegration</name>
+        <name>SalesforceApiIntegration</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
 </AppMenu>

@@ -53,7 +53,7 @@ private with sharing class MetadataApiSoapCodecTest {
             try {
                 codec.createUpdateRequest(new Map<String, Map<String, Object>>());
                 Assert.fail('不正なSOAP契約を拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('1～10'), '失敗理由を通知');
             }
             Test.stopTest();
@@ -71,7 +71,7 @@ private with sharing class MetadataApiSoapCodecTest {
                     }
                 );
                 Assert.fail('不正なSOAP契約を拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('一致'), '失敗理由を通知');
             }
             Test.stopTest();
@@ -87,7 +87,7 @@ private with sharing class MetadataApiSoapCodecTest {
                     new Map<String, Map<String, Object>>{ 'Account.Name/' => new Map<String, Object>() }
                 );
                 Assert.fail('不正なSOAP契約を拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('不正'), '失敗理由を通知');
             }
             Test.stopTest();
@@ -101,7 +101,7 @@ private with sharing class MetadataApiSoapCodecTest {
             try {
                 codec.readUpdateResults(response(''), new Set<String>{ 'Account.Name' });
                 Assert.fail('不正なSOAP契約を拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('不足'), '失敗理由を通知');
             }
             Test.stopTest();
@@ -118,7 +118,7 @@ private with sharing class MetadataApiSoapCodecTest {
                     new Set<String>{ 'Account.Name' }
                 );
                 Assert.fail('不正なSOAP契約を拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('一致'), '失敗理由を通知');
             }
             Test.stopTest();
@@ -135,7 +135,7 @@ private with sharing class MetadataApiSoapCodecTest {
                     new Set<String>{ 'Account.Name' }
                 );
                 Assert.fail('不正なSOAP契約を拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('成否'), '失敗理由を通知');
             }
             Test.stopTest();
@@ -152,7 +152,7 @@ private with sharing class MetadataApiSoapCodecTest {
             try {
                 codec.readUpdateResults(raw, new Set<String>{ 'Account.Name' });
                 Assert.fail('壊れたXMLを拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('形式'), '形式不正を通知');
             }
             Test.stopTest();
@@ -171,7 +171,7 @@ private with sharing class MetadataApiSoapCodecTest {
             try {
                 codec.readUpdateResults(raw, new Set<String>{ 'Account.Name' });
                 Assert.fail('Faultを拒否');
-            } catch (MetadataApiIntegrationClient.IntegrationException error) {
+            } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-SAVE-UNCONFIRMED]'), '結果不明を明示拒否と区別');
             }
             Test.stopTest();
