@@ -117,7 +117,7 @@ describe('c-case-email-message-list', () => {
 
             getEmailMessageCount.emit(100);
         } else {
-            element.shadowRoot.querySelector('lightning-button').click();
+            element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         }
         await flushPromises();
         getEmailMessageCount.error({ message: '件数取得失敗' });
@@ -127,7 +127,7 @@ describe('c-case-email-message-list', () => {
         await flushPromises();
         await flushPromises();
 
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('件数取得失敗');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('件数取得失敗');
         expect(element.shadowRoot.querySelector('ul.slds-timeline')).toBeNull();
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ');
         expect(getEmailMessages).toHaveBeenCalledTimes(callsBeforeCompletion);
@@ -139,7 +139,7 @@ describe('c-case-email-message-list', () => {
         element.shadowRoot.querySelector('lightning-button-icon').click();
         await flushPromises();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (0)');
         expect(getEmailMessages).toHaveBeenCalledTimes(callsBeforeCompletion + 1);
     });
@@ -163,7 +163,7 @@ describe('c-case-email-message-list', () => {
         await flushPromises();
         await flushPromises();
         expect(getEmailMessages).toHaveBeenCalledTimes(2);
-        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
         expect(element.shadowRoot.querySelector('ul.slds-timeline')).toBeNull();
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (0)');
         expect(element.shadowRoot.querySelector('lightning-spinner')).toBeNull();
@@ -210,7 +210,7 @@ describe('c-case-email-message-list', () => {
         getEmailMessages.mockImplementationOnce(() => new Promise((resolve, reject) => {
             finishOldRequest = outcome === 'success' ? () => resolve(nextPage) : () => reject(new Error('古いケースの失敗'));
         }));
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
 
         element.recordId = '500000000000002AAA';
@@ -226,15 +226,15 @@ describe('c-case-email-message-list', () => {
         // 新しいケースの追加取得中に古い取得が完了しても操作抑止を解除しない。
         let finishNewRequest;
         getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishNewRequest = resolve; }));
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
         finishOldRequest();
         await flushPromises();
         await flushPromises();
         expect(element.shadowRoot.textContent).toContain('新しいケース');
         expect(element.shadowRoot.textContent).not.toContain('次のメール');
-        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
-        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled).toBe(true);
         expect(getEmailMessages).toHaveBeenLastCalledWith({ caseId: '500000000000002AAA', paginationCursor: newCursor, startIndex: 50 });
 
         finishNewRequest(emptyPage);
@@ -249,7 +249,7 @@ describe('c-case-email-message-list', () => {
         await flushPromises();
         let finishOldRequest;
         getEmailMessages.mockImplementationOnce(() => new Promise((resolve) => { finishOldRequest = resolve; }));
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
         element.recordId = '500000000000002AAA';
         element.recordId = '500000000000001AAA';
@@ -324,8 +324,8 @@ describe('c-case-email-message-list', () => {
         expect(timeline.textContent).toContain('お問い合わせありがとうございます。\n確認します。');
         expect(timeline.textContent).toContain('(本文なし)');
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
-        expect(element.shadowRoot.querySelector('lightning-button').label).toBe('次のメールを読み込む');
-        expect(timeline.nextElementSibling.querySelector('lightning-button')).not.toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').label).toBe('次のメールを読み込む');
+        expect(timeline.nextElementSibling.querySelector('lightning-button:not([data-client-error-dismiss])')).not.toBeNull();
         await expect(element).toBeAccessible();
     });
 
@@ -358,7 +358,7 @@ describe('c-case-email-message-list', () => {
         await flushPromises();
         await flushPromises();
 
-        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
         expect(alert).not.toBeNull();
         expect(alert.textContent).toContain('メールメッセージを取得できません。');
         await expect(element).toBeAccessible();
@@ -388,7 +388,7 @@ describe('c-case-email-message-list', () => {
         await emitCountAndPage(3, initialPage);
         getEmailMessages.mockResolvedValueOnce(nextPage);
 
-        const loadMoreButton = element.shadowRoot.querySelector('lightning-button');
+        const loadMoreButton = element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])');
         loadMoreButton.dispatchEvent(new CustomEvent('click'));
         await flushPromises();
         await flushPromises();
@@ -408,7 +408,7 @@ describe('c-case-email-message-list', () => {
         expect(pageSeparator.textContent).toContain('3件目から3件目を読み込みました');
         expect(pageSeparator.getAttribute('aria-label')).toBe('3件目から3件目を読み込みました');
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
-        expect(element.shadowRoot.querySelector('lightning-button')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])')).toBeNull();
     });
 
     it('keeps loaded email messages when loading the next page fails', async () => {
@@ -416,12 +416,12 @@ describe('c-case-email-message-list', () => {
         await emitCountAndPage(3, initialPage);
         getEmailMessages.mockRejectedValueOnce(new Error('取得失敗'));
 
-        const loadMoreButton = element.shadowRoot.querySelector('lightning-button');
+        const loadMoreButton = element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])');
         loadMoreButton.dispatchEvent(new CustomEvent('click'));
         await flushPromises();
         await flushPromises();
 
-        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
         const timelineItems = element.shadowRoot.querySelectorAll('ul.slds-timeline [role="listitem"]');
 
         expect(alert.textContent).toContain('取得失敗');
@@ -440,12 +440,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         getEmailMessageCount.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('caseEmailMessageList.js / wiredEmailMessageCount');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('caseEmailMessageList.js / wiredEmailMessageCount');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
