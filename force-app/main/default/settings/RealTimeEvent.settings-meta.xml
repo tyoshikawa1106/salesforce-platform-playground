@@ -134,7 +134,7 @@
     </realTimeEvents>
     <realTimeEvents>
         <entityName>SecurityDefenseActionEventStore</entityName>
-        <isEnabled>false</isEnabled>
+        <isEnabled>true</isEnabled>
     </realTimeEvents>
     <realTimeEvents>
         <entityName>SecurityDefenseActionEvent</entityName>
