@@ -263,7 +263,7 @@ Salesforce API共通通信とMetadata SOAP形式のクラスは、後述の「�
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | [ObjectMetricCatalog](../../force-app/main/default/classes/ObjectMetricCatalog.cls)     | データボードで扱うオブジェクト定義一元管理           | [ObjectMetricCatalogTest](../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)     |
 | [OrgEnvironment](../../force-app/main/default/classes/OrgEnvironment.cls)               | 現在の Salesforce 組織の実行環境情報を提供           | [OrgEnvironmentTest](../../force-app/main/default/classes/OrgEnvironmentTest.cls)               |
-| [SalesforceApiClient](../../force-app/main/default/classes/SalesforceApiClient.cls)     | Named Credential経由の項目メタデータ読み取り・更新   | [SalesforceApiClientTest](../../force-app/main/default/classes/SalesforceApiClientTest.cls)     |
+| [SalesforceApiClient](../../force-app/main/default/classes/SalesforceApiClient.cls)     | 同一組織のSalesforce API共通通信と接続先確認         | [SalesforceApiClientTest](../../force-app/main/default/classes/SalesforceApiClientTest.cls)     |
 | [SalesforceApiProtocol](../../force-app/main/default/classes/SalesforceApiProtocol.cls) | API要求・応答の検証と安全な固定診断                  | [SalesforceApiProtocolTest](../../force-app/main/default/classes/SalesforceApiProtocolTest.cls) |
 | [MetadataApiSoapCodec](../../force-app/main/default/classes/MetadataApiSoapCodec.cls)   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証 | [MetadataApiSoapCodecTest](../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)   |
 
