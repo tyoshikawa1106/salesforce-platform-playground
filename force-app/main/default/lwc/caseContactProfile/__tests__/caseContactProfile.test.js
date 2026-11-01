@@ -421,7 +421,7 @@ describe('c-case-contact-profile', () => {
         getRecord.error({ body: { message: 'Record load failed' } });
         await flushPromises();
 
-        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
         expect(alert.textContent).toContain(
             '取引先責任者のプロフィールを読み込めませんでした。'
         );
@@ -440,12 +440,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         getRecord.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('caseContactProfile.js / wiredCase');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('caseContactProfile.js / wiredCase');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
