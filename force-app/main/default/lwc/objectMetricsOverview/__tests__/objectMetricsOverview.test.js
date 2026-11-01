@@ -300,7 +300,7 @@ describe('c-object-metrics-overview', () => {
         });
         await flushPromises();
 
-        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
         expect(alert).not.toBeNull();
         expect(alert.textContent).toContain(
             'データボードを読み込めませんでした。'
@@ -350,7 +350,7 @@ describe('c-object-metrics-overview', () => {
         element.shadowRoot.querySelector('lightning-button-icon').click();
         await flushPromises();
 
-        const alert = element.shadowRoot.querySelector('[role="alert"]');
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
         expect(alert.textContent).toContain('再読み込みに失敗しました。');
         expect(
             element.shadowRoot.querySelectorAll('lightning-spinner')
@@ -368,11 +368,11 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
         child.dispatchEvent(new CustomEvent('back'));
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('件数の再取得に失敗');
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('件数の再取得に失敗');
         refreshApex.mockResolvedValueOnce();
         element.shadowRoot.querySelector('lightning-button-icon').click();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     });
 
 });
@@ -388,12 +388,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         getObjectMetrics.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('objectMetricsOverview.js / wiredObjectMetrics');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('objectMetricsOverview.js / wiredObjectMetrics');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
@@ -409,7 +409,7 @@ it('画面切替後のスクロール例外を未処理のPromise拒否にしな
     const card = element.shadowRoot.querySelector('[data-key]');
     card.click();
     await Array.from({ length: 15 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-    expect(element.shadowRoot.querySelector('c-ui-error-panel').details.location).toContain('scrollToTop');
+    expect(element.shadowRoot.querySelector('[data-client-error]').textContent).toContain('scrollToTop');
     document.body.replaceChildren();
     jest.restoreAllMocks();
 });
