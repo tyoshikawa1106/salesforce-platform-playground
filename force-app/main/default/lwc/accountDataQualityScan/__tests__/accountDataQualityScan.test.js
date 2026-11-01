@@ -75,7 +75,7 @@ describe('c-account-data-quality-scan', () => {
             'スキャン履歴はありません。'
         );
         expect(
-            element.shadowRoot.querySelector('lightning-button').disabled
+            element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled
         ).toBe(false);
         await expect(element).toBeAccessible();
     });
@@ -92,7 +92,7 @@ describe('c-account-data-quality-scan', () => {
             element.shadowRoot.querySelector('lightning-progress-bar').value
         ).toBe(50);
         expect(
-            element.shadowRoot.querySelector('lightning-button').disabled
+            element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled
         ).toBe(true);
         await expect(element).toBeAccessible();
     });
@@ -109,7 +109,7 @@ describe('c-account-data-quality-scan', () => {
         await flushPromises();
 
         expect(
-            element.shadowRoot.querySelector('lightning-button').disabled
+            element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled
         ).toBe(false);
     });
 
@@ -122,7 +122,7 @@ describe('c-account-data-quality-scan', () => {
 
         getLatestScan.emit(null);
         await flushPromises();
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
 
         expect(startScan).toHaveBeenCalledTimes(1);
@@ -141,10 +141,10 @@ describe('c-account-data-quality-scan', () => {
 
         getLatestScan.emit(null);
         await flushPromises();
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
 
-        expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).not.toBeNull();
         expect(element.shadowRoot.textContent).toContain(
             '実行中のスキャンがあります。'
         );
@@ -171,7 +171,7 @@ describe('c-account-data-quality-scan', () => {
         });
         await flushPromises();
 
-        expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).not.toBeNull();
         expect(element.shadowRoot.textContent).toContain(
             'スキャン状態を取得できませんでした。権限設定を確認してください。'
         );
@@ -189,12 +189,12 @@ describe('c-account-data-quality-scan', () => {
         });
         getLatestScan.emit(null);
         await flushPromises();
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
         await flushPromises();
         expect(toast.mock.calls.map(([event]) => event.detail.variant)).toEqual(['success']);
-        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('再取得エラー');
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled).toBe(true);
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('再取得エラー');
         expect(element.shadowRoot.querySelector('lightning-button-icon').disabled).toBe(false);
         refreshApex.mockImplementationOnce(async () => {
             getLatestScan.emit({ ...runningScan, status: 'Completed' });
@@ -203,7 +203,7 @@ describe('c-account-data-quality-scan', () => {
         await flushPromises();
         await flushPromises();
         expect(element.shadowRoot.textContent).toContain('完了');
-        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(false);
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled).toBe(false);
     });
 
     it.each(['取引先の参照権限がありません。', 'スキャン結果の参照権限がありません。'])(
@@ -213,10 +213,10 @@ describe('c-account-data-quality-scan', () => {
             getLatestScan.emit({ accessErrorMessage });
             await flushPromises();
 
-            expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(accessErrorMessage);
+            expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain(accessErrorMessage);
             expect(element.shadowRoot.textContent).not.toContain('スキャン履歴はありません。');
             expect(element.shadowRoot.querySelectorAll('article')).toHaveLength(0);
-            const startButton = element.shadowRoot.querySelector('lightning-button');
+            const startButton = element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])');
             expect(startButton.disabled).toBe(true);
             startButton.click();
             await flushPromises();
@@ -237,17 +237,17 @@ describe('c-account-data-quality-scan', () => {
         element.shadowRoot.querySelector('lightning-button-icon').click();
         await flushPromises();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(accessErrorMessage);
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain(accessErrorMessage);
         expect(element.shadowRoot.querySelectorAll('article')).toHaveLength(0);
-        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled).toBe(true);
 
         refreshApex.mockImplementationOnce(async () => getLatestScan.emit(null));
         element.shadowRoot.querySelector('lightning-button-icon').click();
         await flushPromises();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
         expect(element.shadowRoot.textContent).toContain('スキャン履歴はありません。');
-        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(false);
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled).toBe(false);
     });
 
     it('開始要求が参照権限不足で拒否されたら成功通知せず開始を抑止する', async () => {
@@ -258,11 +258,11 @@ describe('c-account-data-quality-scan', () => {
         startScan.mockResolvedValueOnce({ accessErrorMessage });
         getLatestScan.emit(null);
         await flushPromises();
-        element.shadowRoot.querySelector('lightning-button').click();
+        element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
         await flushPromises();
         await flushPromises();
-        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(accessErrorMessage);
-        expect(element.shadowRoot.querySelector('lightning-button').disabled).toBe(true);
+        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain(accessErrorMessage);
+        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').disabled).toBe(true);
         expect(element.shadowRoot.textContent).not.toContain('スキャン履歴はありません。');
         expect(toastHandler).not.toHaveBeenCalled();
         expect(refreshApex).not.toHaveBeenCalled();
@@ -281,12 +281,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
         getLatestScan.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('accountDataQualityScan.js / wiredLatestScan');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('accountDataQualityScan.js / wiredLatestScan');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
