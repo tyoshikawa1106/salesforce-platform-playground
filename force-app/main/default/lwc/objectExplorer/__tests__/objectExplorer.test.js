@@ -150,7 +150,7 @@ it.each([[true, false, true], [false, true, true], [false, false, false]])(
     }
 );
 
-it.each([undefined, {}, () => {}])('サイズ監視APIが使えなくても表示・幅変更・監視解除ができる (%p)', async (observer) => {
+it.each([undefined, {}, () => {}, function () { throw new DOMException('unavailable', 'SecurityError'); }])('サイズ監視APIが使えなくても表示・幅変更・監視解除ができる (%p)', async (observer) => {
     global.ResizeObserver = observer;
     const add = jest.spyOn(window, 'addEventListener');
     const remove = jest.spyOn(window, 'removeEventListener');
@@ -198,6 +198,31 @@ it('対応環境では要素のサイズ変更を監視し画面破棄時に解�
     expect(add.mock.calls.filter(([type]) => type === 'resize')).toHaveLength(0);
     element.remove();
     expect(disconnect).toHaveBeenCalled();
+});
+
+it('サイズ監視の登録が拒否されても監視を解放してウィンドウの幅変更で表示を継続する', async () => {
+    const disconnect = jest.fn();
+    global.ResizeObserver = jest.fn(() => ({
+        observe() { throw new TypeError('The provided value is not of type Element'); },
+        disconnect
+    }));
+    const add = jest.spyOn(window, 'addEventListener');
+    const remove = jest.spyOn(window, 'removeEventListener');
+    const element = createComponent();
+    await pickAccount(element);
+    expect(element.shadowRoot.querySelector('.oe-detail-title').textContent).toContain('取引先');
+    expect(element.shadowRoot.querySelector('.oe-client-error')).toBeNull();
+    expect(disconnect).toHaveBeenCalledTimes(global.ResizeObserver.mock.calls.length);
+    const registrations = add.mock.calls.filter(([type]) => type === 'resize');
+    const viewport = element.shadowRoot.querySelector('.oe-viewport');
+    Object.defineProperty(viewport, 'clientWidth', { value: 900, configurable: true });
+    window.dispatchEvent(new CustomEvent('resize'));
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-card-grid_narrow')).not.toBeNull();
+    const listeners = add.mock.calls.filter(([type]) => type === 'resize');
+    expect(listeners).toHaveLength(registrations.length);
+    element.remove();
+    expect(remove).toHaveBeenCalledWith('resize', listeners[listeners.length - 1][1]);
 });
 
 it('接続状態のDOMプロパティが未公開でも保存確認を表示する', async () => {

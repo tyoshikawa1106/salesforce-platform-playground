@@ -310,12 +310,40 @@ it('フレーム取消が使えなくても古い予約でズーム後の位置�
 });
 
 
-it('操作対象の機能がない場合は例外本文でなく固定の具体的な理由コードを返す', async () => {
+it('closestが公開されない背景でもドラッグを継続する', async () => {
     const { element, viewport } = await createDraggableCanvas();
     const listener = jest.fn();
     element.addEventListener('clienterror', listener);
     viewport.closest = undefined;
     viewport.dispatchEvent(pointerEvent('pointerdown', 0, 0));
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener.mock.calls[0][0].detail.code).toBe('ORG-JS-DOM-TARGET');
+    viewport.dispatchEvent(pointerEvent('pointermove', 30, 40));
+    viewport.dispatchEvent(pointerEvent('pointerup', 30, 40));
+    await Promise.resolve();
+    expect(listener).not.toHaveBeenCalled();
+    expect(readPosition(element)).toEqual({ x: 30, y: 40, scale: canvasLogic.BASE_SCALE });
+});
+
+it('カード内の文字を押しても図をドラッグせず、クリックで選択できる', async () => {
+    const { element, viewport } = await createDraggableCanvas();
+    element.model = {
+        rows: [{ key: 'ROLE:root', kind: 'ROLE', depth: 0, label: '試験ロール', layout: { x: 24, y: 24, width: 220 } }],
+        edges: [], width: 600, height: 420
+    };
+    await Promise.resolve();
+    await Promise.resolve();
+    const before = readPosition(element);
+    const select = jest.fn();
+    element.addEventListener('nodeselect', select);
+    const card = element.shadowRoot.querySelector('c-org-explorer-card');
+    const caption = card.shadowRoot.querySelector('.c-name');
+    const down = new CustomEvent('pointerdown', { bubbles: true, composed: true, cancelable: true });
+    Object.assign(down, { button: 0, isPrimary: true, pointerId: 1, clientX: 0, clientY: 0 });
+    caption.dispatchEvent(down);
+    viewport.dispatchEvent(pointerEvent('pointermove', 30, 40));
+    viewport.dispatchEvent(pointerEvent('pointerup', 30, 40));
+    await Promise.resolve();
+    expect(readPosition(element)).toEqual(before);
+    card.shadowRoot.querySelector('button').click();
+    expect(select).toHaveBeenCalledTimes(1);
+    expect(select.mock.calls[0][0].detail).toEqual({ key: 'ROLE:root' });
 });
