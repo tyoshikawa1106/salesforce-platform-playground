@@ -1,5 +1,18 @@
 <template>
-    <c-ui-error-panel details={clientError} ondismiss={handleClientErrorDismiss}></c-ui-error-panel>
+    <template lwc:if={clientError}>
+        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
+            <p>画面処理でエラーが発生しました。</p>
+            <template lwc:if={clientError.code}>
+                <p data-error-code>エラーコード：{clientError.code}</p>
+            </template>
+            <p data-error-location>処理場所：{clientError.location}</p>
+            <p data-error-type>エラー種別：{clientError.errorType}</p>
+            <template lwc:if={clientError.reason}>
+                <p data-error-reason>理由：{clientError.reason}</p>
+            </template>
+            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+        </div>
+    </template>
     <main>
         <header>
             <h1>組織エクスプローラー</h1>

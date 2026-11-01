@@ -494,3 +494,27 @@ export function memberPageLabel(index, memberCount, hasNext) {
     // 全ユーザーの追加取得や件数照会を行わない。
     return `${current} / ${pages}`;
 }
+// エラー本文を使わず、画面名・固定の処理名・例外種別だけを診断用に生成
+export function clientErrorDetails(error, operation, phase) {
+    // 任意の名前や本文を診断へ混ぜず、通常の例外名だけを採用
+    const errorType = typeof error?.name === 'string' && /^(?:Error|[A-Za-z]+Error)$/.test(error.name)
+        ? error.name : (error?.body ? 'SalesforceError' : 'Error');
+    // URLや端末パスを除き、JSファイルの行・列だけを上限付きで抽出
+    const frames = typeof error?.stack === 'string'
+        ? [...new Set(error.stack.split('\n').slice(1).flatMap((line) => line.match(/[A-Za-z0-9_$.-]+\.m?js:\d+:\d+/g) || []))].slice(0, 8) : [];
+    // 値やレコード名を含まない固定の呼び出し位置で表示を構成
+    return { location: `orgExplorer.js / ${operation} / ${phase}`, errorType, frames, frame: frames[0] || '' };
+}
+
+
+// 診断イベントの任意文字列を表示せず、既知コードを固定理由へ変換
+export function safeClientDiagnostic(code) {
+    // レコード値・URL・例外本文を含まない固定の表示だけを許可
+    const reasons = {
+        'ORG-JS-DOM-TARGET': 'ドラッグの操作対象でDOMのclosest機能を利用できません。',
+        'ORG-JS-MODEL': '組織図の描画データが不正です。rowsは配列、各行のkeyは空でない文字列、edgesは描画用配列、widthとheightは正の有限数値である必要があります。',
+        'ORG-JS-UNEXPECTED': '組織図の操作中に想定外の値または機能が使用されました。'
+    };
+    // 未知のコードやオブジェクト由来のプロパティ名を採用しない
+    return typeof code === 'string' && Object.prototype.hasOwnProperty.call(reasons, code) ? { code, reason: reasons[code] } : { code: 'ORG-JS-UNEXPECTED', reason: reasons['ORG-JS-UNEXPECTED'] };
+}

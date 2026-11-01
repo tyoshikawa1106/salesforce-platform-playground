@@ -113,7 +113,7 @@ it('サーバー失敗を表示し、前の人物の詳細で補わない', asyn
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('参照権限');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('参照権限');
     expect(element.shadowRoot.querySelector('c-org-explorer-details').targetLabel).toBe('');
     expect(rolePages).not.toHaveBeenCalled();
 });
@@ -197,7 +197,7 @@ it('表示条件を繰り返し変えても送信中のAPIは二つまでに抑�
     await flush();
     while (pending.length) pending.shift()();
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
 });
 
 it('トグル変更でも適用した起点を維持し、ロール候補を再検索しない', async () => {
@@ -329,7 +329,7 @@ it('200件を超えるロールも表示モデルから除外しない', async (
     document.body.appendChild(element);
     await Array.from({ length: 100 }).reduce((chain) => chain.then(flush), Promise.resolve());
     expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows).toHaveLength(252);
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
 });
 it.each(['', '   ', null, undefined])('初期ロール設定が空なら照会せず全ロールを表示する: %s', async (setting) => {
     const element = createElement('c-org-explorer', { is: OrgExplorer });
@@ -341,7 +341,7 @@ it.each(['', '   ', null, undefined])('初期ロール設定が空なら照会�
         request: expect.objectContaining({ parentId: null, scope: 'ROLE_STRUCTURE' })
     });
     expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget).toBeNull();
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     await expect(element).toBeAccessible();
 });
 it('初期ロールが見つからなければ空欄で全ロールを表示し、再取得でも初期値を再照会しない', async () => {
@@ -351,7 +351,7 @@ it('初期ロールが見つからなければ空欄で全ロールを表示し�
     await flush();
     expect(rolePages).toHaveBeenCalledWith({ request: expect.objectContaining({ parentId: null }) });
     expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget).toBeNull();
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
     expect(searchRoles).toHaveBeenCalledTimes(1);
@@ -372,7 +372,7 @@ it('初期ロールの照会失敗では全ロール取得へ進まずエラー�
     document.body.appendChild(element);
     await flush();
     expect(rolePages).not.toHaveBeenCalled();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('照会に失敗');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('照会に失敗');
 });
 it('廃止した操作を表示せず、等倍ボタンをキャンバスへ接続する', async () => {
     const element = createElement('c-org-explorer', { is: OrgExplorer });
@@ -402,7 +402,7 @@ it('未確定の名称では表示を切り替えず、選択必須エラーを�
     search.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '営業' } }));
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(calls);
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
 });
 it('入力変更後に完了した旧ロール候補を表示しない', async () => {
     jest.useFakeTimers();
@@ -436,7 +436,7 @@ it('候補選択後に起点が参照できなくなった場合は配下を取�
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(1);
     expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows).toHaveLength(0);
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('対象を表示できません');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('対象を表示できません');
 });
 it('表示条件変更時に前の候補上限の案内を残さない', async () => {
     jest.useFakeTimers();
@@ -544,7 +544,7 @@ it('不正な構造カーソルを繰り返し取得しない', async () => {
     document.body.appendChild(element);
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(2);
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('取得位置が不正');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('取得位置が不正');
 });
 
 it('上司構造の不正な継続位置をロールと案内しない', async () => {
@@ -555,7 +555,7 @@ it('上司構造の不正な継続位置をロールと案内しない', async (
     element.shadowRoot.querySelector('[data-mode="MANAGER"]').click();
     await flush();
     expect(managerPages).toHaveBeenCalledTimes(2);
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('階層構造の続きの取得位置が不正');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('階層構造の続きの取得位置が不正');
 });
 
 it.each(['ROLE', 'MANAGER'])('選択した表示対象が構造に存在しなければモードに合う案内を表示する: %s', async (mode) => {
@@ -580,7 +580,7 @@ it.each(['ROLE', 'MANAGER'])('選択した表示対象が構造に存在しな�
     await flush();
     lookup.dispatchEvent(new CustomEvent('targetpick', { detail: { targetId: mode === 'ROLE' ? 'root' : 'self' } }));
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain(
         mode === 'MANAGER' ? '指定した上司を表示できません' : '指定したロールを表示できません'
     );
     await expect(element).toBeAccessible();
@@ -609,7 +609,7 @@ it('空の起点で全ロールをページ取得し、表示条件変更でも�
     expect(rows.map((row) => row.key)).toEqual(expect.arrayContaining([rootTarget.key, other.key, child.key]));
     expect(rows.find((row) => row.key === other.key).depth).toBe(0);
     expect(rows.find((row) => row.key === child.key).depth).toBe(1);
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
@@ -751,7 +751,7 @@ it('ロールの参照権限がなくても上司階層へ自動で切り替え�
     document.body.appendChild(element);
     await flush();
     expect(rolePages).not.toHaveBeenCalled();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('参照権限');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('参照権限');
 });
 
 it('所属一覧の古い応答で選択ロール名とユーザーを上書きしない', async () => {
@@ -1036,7 +1036,7 @@ it('構造取得失敗を候補なしと誤表示せず検索中状態を終了�
     expect(lookup.results).toEqual([]);
     expect(lookup.searched).toBe(false);
     expect(lookup.loading).toBe(false);
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('構造を取得できません');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('構造を取得できません');
 });
 
 it('構造取得が成功して上司がゼロ件の場合だけ候補なしを確定する', async () => {
@@ -1098,14 +1098,14 @@ it('同じカードの取得中クリックは照会を増やさず、失敗後�
     await flush();
     const details = element.shadowRoot.querySelector('c-org-explorer-details');
     expect(details.error).toContain('一時的な失敗');
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     rolePages.mockResolvedValue({ nodes: [user], memberColumns: ['label'], hasMore: false });
     select();
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(count + 1);
     expect(details.error).toBe('');
     expect(details.rows).toHaveLength(1);
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
 });
 
 it.each([
@@ -1135,7 +1135,7 @@ it.each([
     else search.mockRejectedValueOnce({ body: { message: '参照権限なし' } });
     input.click();
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain(
         failure === 'network' ? '通信に失敗' : '参照権限なし'
     );
     expect(lookup.results).toEqual([]);
@@ -1150,7 +1150,7 @@ it.each([
     search.mockResolvedValueOnce({ nodes: [{ recordId: 'current', label: '候補B' }], hasMore: false });
     input.click();
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     expect(lookup.results.map((hit) => hit.targetId)).toEqual(['current']);
     expect(lookup.shadowRoot.querySelector('[data-id="current"]')).not.toBeNull();
     expect(lookup.loading).toBe(false);
@@ -1186,7 +1186,7 @@ it('前の入力の失敗が遅れて届いても新しい入力の候補を破�
     expect(lookup.hasMore).toBe(true);
     expect(lookup.searched).toBe(true);
     expect(lookup.loading).toBe(false);
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
 });
 
 it('候補検索が成功しても構造取得の失敗は消さない', async () => {
@@ -1197,11 +1197,11 @@ it('候補検索が成功しても構造取得の失敗は消さない', async (
     const lookup = element.shadowRoot.querySelector('c-org-explorer-search');
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('構造取得に失敗');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('構造取得に失敗');
     searchRoles.mockRejectedValueOnce({ body: { message: '候補取得に失敗' } });
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
-    expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('構造取得に失敗');
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('構造取得に失敗');
 });
 
 it('標準カーソル失効時は古い一覧を消し、同じカードの再選択で先頭から取得し直す', async () => {
@@ -1278,7 +1278,7 @@ it('所属一覧の通信失敗をリンク生成失敗と誤表示せず、内�
     expect(details.error).not.toContain('リンク');
     expect(details.error).not.toContain('内部の通信詳細');
     expect(details.rows).toEqual([]);
-    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
     await expect(element).toBeAccessible();
 });
 
@@ -1293,12 +1293,12 @@ describe('処理場所付きエラー表示', () => {
         await Promise.resolve();
 
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
-        const panel = element.shadowRoot.querySelector('c-ui-error-panel');
-        expect(panel.details.location).toContain('orgExplorer.js / loadContext');
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('orgExplorer.js / loadContext');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.dispatchEvent(new CustomEvent('dismiss'));
+        panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();
-        expect(panel.details).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
@@ -1312,11 +1312,11 @@ it('子の描画例外を親の境界で受け止め、画面内へ表示する'
         await flush();
         element.shadowRoot.querySelector('c-org-explorer-canvas').model = null;
         await flush();
-        const details = element.shadowRoot.querySelector('c-ui-error-panel').details;
-        expect(details.location).toBe('orgExplorer.js / 描画データの検証 / model-validation');
-        expect(details.code).toBe('ORG-JS-MODEL');
-        expect(details.reason).toContain('rowsは配列');
-        expect(details.errorType).toBe('TypeError');
+        const details = element.shadowRoot.querySelector('[data-client-error]');
+        expect(details.querySelector('[data-error-location]').textContent.replace('処理場所：', '')).toBe('orgExplorer.js / 描画データの検証 / model-validation');
+        expect(details.querySelector('[data-error-code]').textContent.replace('エラーコード：', '')).toBe('ORG-JS-MODEL');
+        expect(details.querySelector('[data-error-reason]').textContent.replace('理由：', '')).toContain('rowsは配列');
+        expect(details.querySelector('[data-error-type]').textContent.replace('エラー種別：', '')).toBe('TypeError');
         expect(element.shadowRoot.querySelector('h1')).not.toBeNull();
     } finally { log.mockRestore(); }
 });
@@ -1328,7 +1328,7 @@ it('子のフレーム失敗通知は固定の処理名で安全に表示する'
         await flush();
         element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('clienterror', { detail: { errorType: 'TypeError', frames: ['https://private.example/orgExplorerCanvas.js:10:3'] } }));
         await flush();
-        expect(element.shadowRoot.querySelector('c-ui-error-panel').details.location).toContain('orgExplorerCanvas.handlePointerMove');
+        expect(element.shadowRoot.querySelector('[data-client-error]').textContent).toContain('orgExplorerCanvas.handlePointerMove');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private.example');
     } finally { log.mockRestore(); }
 });
@@ -1343,7 +1343,7 @@ it('子のドラッグ開始エラーを移動描画エラーへ置き換えず�
             detail: { location: 'orgExplorerCanvas.js / handlePointerDown / pointer-event', errorType: 'TypeError', frames: [] }
         }));
         await flush();
-        expect(element.shadowRoot.querySelector('c-ui-error-panel').details.location).toBe('orgExplorer.js / ドラッグ開始 / pointer-event');
+        expect(element.shadowRoot.querySelector('[data-client-error]').textContent).toContain('orgExplorer.js / ドラッグ開始 / pointer-event');
         await expect(element).toBeAccessible();
     } finally { log.mockRestore(); }
 });
@@ -1358,9 +1358,40 @@ it('子からの未知コードや自由文を診断理由とログへ採用し�
             detail: { location: 'orgExplorerCanvas.js / handlePointerDown / pointer-event', code: 'PRIVATE_CODE', reason: 'PRIVATE_VALUE', errorType: 'TypeError', frames: [] }
         }));
         await flush();
-        const details = element.shadowRoot.querySelector('c-ui-error-panel').details;
-        expect(details.code).toBe('ORG-JS-UNEXPECTED');
-        expect(JSON.stringify(details)).not.toContain('PRIVATE');
+        const details = element.shadowRoot.querySelector('[data-client-error]');
+        expect(details.querySelector('[data-error-code]').textContent.replace('エラーコード：', '')).toBe('ORG-JS-UNEXPECTED');
+        expect(details.textContent).not.toContain('PRIVATE');
         expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE');
+    } finally { log.mockRestore(); }
+});
+
+it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知して閉じた後は再表示する', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+        const element = createElement('c-org-explorer', { is: OrgExplorer });
+        document.body.appendChild(element);
+        await flush();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+        expect(log).not.toHaveBeenCalled();
+        const canvas = element.shadowRoot.querySelector('c-org-explorer-canvas');
+        const fail = () => canvas.dispatchEvent(new CustomEvent('clienterror', {
+            detail: { location: 'orgExplorerCanvas.js / handlePointerDown / pointer-event', code: 'ORG-JS-DOM-TARGET', errorType: 'TypeError', frames: ['canvas.js:1:2'] }
+        }));
+        fail();
+        await flush();
+        fail();
+        await flush();
+        expect(log).toHaveBeenCalledTimes(1);
+        const panel = element.shadowRoot.querySelector('[data-client-error]');
+        expect(panel.textContent).toContain('ORG-JS-DOM-TARGET');
+        expect(panel.textContent).not.toContain('canvas.js:1:2');
+        await expect(element).toBeAccessible();
+        panel.querySelector('[data-client-error-dismiss]').click();
+        await flush();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+        fail();
+        await flush();
+        expect(element.shadowRoot.querySelector('[data-client-error]')).not.toBeNull();
+        expect(log).toHaveBeenCalledTimes(2);
     } finally { log.mockRestore(); }
 });

@@ -158,3 +158,6 @@ button:focus-visible {
     margin-top: var(--slds-g-spacing-4, 1rem);
     margin-bottom: 0;
 }
+
+/* エラーの長い処理名も画面内で折り返す */
+.c-client-error { overflow-wrap: anywhere; }

@@ -1,4 +1,4 @@
-import { withUiErrorBoundary } from 'c/uiErrorBoundary';
+import { clientErrorDetails, safeClientDiagnostic } from './orgExplorerLogic';
 import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getCapabilities from '@salesforce/apex/OrgExplorerController.getCapabilities';
@@ -22,7 +22,35 @@ import {
 } from './orgExplorerLogic';
 
 // 画面操作、非同期要求、選択同期を一つの入口で調整する。
-export default class OrgExplorer extends withUiErrorBoundary(NavigationMixin(LightningElement), 'orgExplorer') {
+export default class OrgExplorer extends NavigationMixin(LightningElement) {
+    // 診断表示は失敗時だけ生成し、成功ログは保持しない
+    clientError;
+
+    // 明示的に捕捉した例外を本文なしの診断へ変換
+    reportClientError(error, operation, phase, diagnosticCode) {
+        // この画面専用のLogicで固定の処理位置を生成
+        const details = { ...clientErrorDetails(error, operation, phase), ...(diagnosticCode ? safeClientDiagnostic(diagnosticCode) : {}) };
+        // 同じ描画失敗の再通知で表示と記録を繰り返さない
+        if (this.clientError?.location === details.location && this.clientError.errorType === details.errorType
+            && this.clientError.frames.join('|') === details.frames.join('|') && this.clientError.code === details.code) { return; }
+        // 画面内の表示へ診断だけを渡す
+        this.clientError = details;
+        // 元のError・メッセージ・API応答・入力値をコンソールへ渡さない
+        console.error('LWC: 画面処理でエラーが発生しました。', details);
+    }
+
+    // 子の描画と宣言的イベントの失敗を親画面内で受け止める
+    errorCallback(error) {
+        // Salesforce全体の例外ではなく、この境界内の子だけを扱う
+        this.reportClientError(error, 'errorCallback', 'child-component');
+    }
+
+    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
+    handleClientErrorDismiss() {
+        // 次の失敗は同じ処理であっても改めて表示する
+        this.clientError = undefined;
+    }
+
     // [初期値設定] 初期ロールのAPI名。空文字なら未選択で全ロールを表示する。
     @api defaultRootRoleApiName = 'SampleCompany';
     // [初期値設定] 無効ユーザー表示の初期状態。trueでON、falseでOFFにする。
