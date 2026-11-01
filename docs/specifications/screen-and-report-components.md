@@ -124,10 +124,10 @@ Salesforce上で使う画面・帳票について、機能別の入口、LWC、�
 
 仕様・配置・権限: [取引先一括削除](lwc/account-delete/index.md)。
 
-| LWC                                                                                                   | 同Bundleの補助JavaScript                                                                      |
-| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [accountDelete](../../force-app/main/default/lwc/accountDelete/accountDelete.js)                      | [accountDeleteLogic.js](../../force-app/main/default/lwc/accountDelete/accountDeleteLogic.js) |
-| [accountDeleteConfirm](../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirm.js) | なし（メインJavaScriptに実装）                                                                |
+| LWC                                                                                                   | 同Bundleの補助JavaScript                                                                                           |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [accountDelete](../../force-app/main/default/lwc/accountDelete/accountDelete.js)                      | [accountDeleteLogic.js](../../force-app/main/default/lwc/accountDelete/accountDeleteLogic.js)                      |
+| [accountDeleteConfirm](../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirm.js) | [accountDeleteConfirmLogic.js](../../force-app/main/default/lwc/accountDeleteConfirm/accountDeleteConfirmLogic.js) |
 
 | Apex本体                                                                                            | 役割                                                       | 同名Test                                                                                                    |
 | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -244,20 +244,20 @@ Salesforce API共通通信とMetadata SOAP形式のクラスは、後述の「�
 
 帳票本体: [AccountPdf.page](../../force-app/main/default/pages/AccountPdf.page)。起動用LWCとVisualforceを合わせて一つの帳票機能として扱います。
 
+例外捕捉・診断情報の生成・表示は各LWC内で完結します。機能間で共有するエラー処理バンドルはありません。
+
 ## 共通部品と共有範囲
 
 名前が汎用的でも、対象機能間で共有されているとは限りません。実際の参照元と機能内の責務共有を分けて記載します。
 
-| 部品                                                                    | 利用元・範囲                                                                         | 共有する責務                                                                                                                                             |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ObjectMetricCatalog`                                                   | データボード、汎用レコード検索                                                       | 表示キー・オブジェクト対応と問い合わせ対象の許可リスト                                                                                                   |
-| `OrgEnvironment`                                                        | 取引先一括削除の画面Service・バッチService。定期起動も同じバッチを使用               | 開発環境の判定。テストデータ一括削除の環境判定には使用しない                                                                                             |
-| `SalesforceApiClient`、`SalesforceApiProtocol`、`MetadataApiSoapCodec`  | 現行の利用機能はオブジェクトエクスプローラー                                         | Named Credential経由のHTTP通信と、SOAPの生成・応答検証                                                                                                   |
-| `TestDataDeleteService`                                                 | テストデータ一括削除の画面・バッチ                                                   | 固定の削除順序と環境判定。通常Sandboxを許可する`OrgEnvironment`とは条件が異なる                                                                          |
-| `OrgExplorerPageResponse`等の要求・応答型                               | 組織エクスプローラーのロール階層・上司階層・候補・メンバー取得                       | 同じ要求・応答の契約を機能内で共有                                                                                                                       |
-| [errorUtils](../../force-app/main/default/lwc/errorUtils/errorUtils.js) | 取引先データ品質スキャン、データボード、汎用レコード検索、ケースメールメッセージ一覧 | Apex・UI APIエラーの業務メッセージ変換と、共通例外境界向けの本文を含まない診断を生成する共通JavaScript。テストは同Bundleの`__tests__/errorUtils.test.js` |
-| `uiErrorBoundary` / `uiErrorPanel`                                      | 画面LWCとモーダル（オブジェクトエクスプローラーの既存実装は除く）                    | [画面内の共通エラー表示](lwc/ui-error-boundary/index.md)。失敗場所の表示と子の例外捕捉、エラー時だけの診断記録                                           |
-| `objectRecordSearch`                                                    | データボードに組み込む汎用レコード検索機能                                           | 検索・フォーム・削除の画面を再利用。専用Apexの所属は汎用レコード検索                                                                                     |
+| 部品                                                                   | 利用元・範囲                                                           | 共有する責務                                                                    |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `ObjectMetricCatalog`                                                  | データボード、汎用レコード検索                                         | 表示キー・オブジェクト対応と問い合わせ対象の許可リスト                          |
+| `OrgEnvironment`                                                       | 取引先一括削除の画面Service・バッチService。定期起動も同じバッチを使用 | 開発環境の判定。テストデータ一括削除の環境判定には使用しない                    |
+| `SalesforceApiClient`、`SalesforceApiProtocol`、`MetadataApiSoapCodec` | 現行の利用機能はオブジェクトエクスプローラー                           | Named Credential経由のHTTP通信と、SOAPの生成・応答検証                          |
+| `TestDataDeleteService`                                                | テストデータ一括削除の画面・バッチ                                     | 固定の削除順序と環境判定。通常Sandboxを許可する`OrgEnvironment`とは条件が異なる |
+| `OrgExplorerPageResponse`等の要求・応答型                              | 組織エクスプローラーのロール階層・上司階層・候補・メンバー取得         | 同じ要求・応答の契約を機能内で共有                                              |
+| `objectRecordSearch`                                                   | データボードに組み込む汎用レコード検索機能                             | 検索・フォーム・削除の画面を再利用。専用Apexの所属は汎用レコード検索            |
 
 | Apex本体                                                                                | 役割                                                 | 同名Test                                                                                        |
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
