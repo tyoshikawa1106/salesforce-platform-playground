@@ -15,6 +15,7 @@ force-app/main/default/autoResponseRules/
 force-app/main/default/cleanDataServices/
 force-app/main/default/escalationRules/
 force-app/main/default/externalClientApps/
+force-app/main/default/externalAuthIdentityProviders/
 force-app/main/default/externalCredentials/
 force-app/main/default/extlClntAppGlobalOauthSets/
 force-app/main/default/extlClntAppOauthPolicies/
