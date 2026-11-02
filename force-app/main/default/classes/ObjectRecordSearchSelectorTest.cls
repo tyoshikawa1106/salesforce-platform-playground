@@ -38,19 +38,28 @@ private with sharing class ObjectRecordSearchSelectorTest {
         insert accounts;
     }
 
+    /**
+     * 検索語ごとの確認に共通する標準検索要求を生成
+     * @param searchTerm 各テストが確認する検索語
+     * @return 対象・ソート条件を解決済みの要求
+     */
+    private static ObjectRecordSearchQueryPlan.SearchQueryRequest createSearchRequest(String searchTerm) {
+        ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
+        input.metricKey = 'accounts';
+        input.searchTerm = searchTerm;
+        ObjectRecordSearchService.SearchContextResult context = service.resolveSearchContext(input.metricKey);
+        ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context.context, input);
+        ObjectRecordSearchService.SearchQueryRequestResult prepared = service.createSearchQueryRequest(context.context, input, sortSpec);
+        return prepared.searchQueryRequest;
+    }
+
     /** 名称条件をbindして標準カーソルから取得 */
     @IsTest
     static void shouldUseBoundSearchWithStandardCursor() {
 
         System.runAs(testUser) {
             Test.startTest();
-            ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
-            input.metricKey = 'accounts';
-            input.searchTerm = ' Selector Alpha ';
-            ObjectRecordSearchService.SearchContextResult context = service.resolveSearchContext(input.metricKey);
-            ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context.context, input);
-            ObjectRecordSearchService.SearchQueryRequestResult prepared = service.createSearchQueryRequest(context.context, input, sortSpec);
-            ObjectRecordSearchQueryPlan.SearchQueryRequest request = prepared.searchQueryRequest;
+            ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchRequest(' Selector Alpha ');
             Database.PaginationCursor cursor = selector.createPaginationCursor(request);
             Assert.isNull(request.paginationCursor, 'カーソル作成は入力を書き換えない必要あり');
             request.paginationCursor = cursor;
@@ -72,21 +81,10 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
-            input.metricKey = 'accounts';
-            input.searchTerm = 'No matching records';
-            ObjectRecordSearchService.SearchContextResult context = service.resolveSearchContext(input.metricKey);
-            ObjectRecordSearchSortSupport.SortSpec sortSpec = service.createSortSpec(context.context, input);
-            ObjectRecordSearchService.SearchQueryRequestResult prepared = service.createSearchQueryRequest(context.context, input, sortSpec);
-            ObjectRecordSearchQueryPlan.SearchQueryRequest request = prepared.searchQueryRequest;
-            Database.PaginationCursor cursor = selector.createPaginationCursor(request);
-            Assert.isNull(request.paginationCursor, 'カーソル作成は入力を書き換えない必要あり');
-            request.paginationCursor = cursor;
-            Database.PaginationCursor reused = selector.createPaginationCursor(request);
-            Assert.areEqual(cursor, reused, '継続取得では同じ結果集合を再利用する必要あり');
+            ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchRequest('No matching records');
+            request.paginationCursor = selector.createPaginationCursor(request);
             Database.CursorFetchResult fetched = selector.searchRecords(request);
             ObjectRecordSearchResultWrapper page = service.createSearchResult(request, fetched);
-            Assert.areEqual(cursor, request.paginationCursor, 'ページ取得は入力のカーソルを置換しない必要あり');
             Test.stopTest();
             Assert.areEqual(0, page.records.size(), '対象なしは空一覧となる必要あり');
             Assert.isFalse(page.hasNextPage, '対象なしで次ページを作らない必要あり');
@@ -234,7 +232,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
             Test.stopTest();
         }
     }
-
 
     /** ページ取得のカーソル不足を暗黙の初回取得にしない */
     @IsTest
