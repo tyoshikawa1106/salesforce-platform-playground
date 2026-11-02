@@ -1,6 +1,7 @@
 import { LightningElement } from 'lwc';
 import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
 import getApiAuthenticationUrl from '@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl';
+import revokeApiAuthentication from '@salesforce/apex/ObjectExplorerController.revokeApiAuthentication';
 import { safeClientDiagnostic } from './objectExplorerLogic';
 import locale from '@salesforce/i18n/locale';
 import timeZone from '@salesforce/i18n/timeZone';
@@ -33,21 +34,17 @@ export default class ObjectExplorer extends LightningElement {
     apiAuthenticationSequence = 0;
     // 初期状態の確認完了前に認証が必要な通信を始めない
     apiAuthenticationPromise;
-    // 利用者が認証画面を開いた場合だけ画面復帰を監視する
-    apiAuthenticationWaiting = false;
-    // 別タブから戻ったときに標準トークンの登録と接続を再確認する
-    handleApiAuthenticationReturn = () => {
-        // 通常の画面移動でAPI接続確認を繰り返さない
-        if (this.apiAuthenticationWaiting && !this.apiAuthenticationChecking && !document.hidden) this.refreshApiAuthentication(true);
-    };
-
     // 未認証の場合だけAPI認証の導線を表示する
     get apiAuthenticationRequired() { return this.apiAuthenticationStatus === 'REQUIRED'; }
+    // 認証を確認できた場合だけ探索・分類の操作領域を描画する
+    get apiAuthenticationReady() { return this.apiAuthenticationStatus === 'AUTHENTICATED'; }
+    // 初期確認の間に未認証の操作領域を一瞬表示しない
+    get apiAuthenticationPending() { return this.apiAuthenticationStatus === 'CHECKING'; }
     // 状態確認中や保存中の再確認を抑止する
-    get apiAuthenticationDisabled() { return this.apiAuthenticationChecking || this.busy; }
+    get apiAuthenticationDisabled() { return this.apiAuthenticationChecking || this.busy || this.saving; }
 
     // 標準状態と実接続の結果を画面共通の案内へ反映する
-    async refreshApiAuthentication(refreshData = false) {
+    async refreshApiAuthentication() {
         // 終了した画面から認証確認を開始しない
         if (!this.componentConnected) return;
         // 後続の要求から古いURLや案内が戻らないよう固定する
@@ -68,37 +65,10 @@ export default class ObjectExplorer extends LightningElement {
             this.apiAuthenticationMessage = state.message;
             // 明示的な未認証の場合に限って標準認証URLを取得する
             if (state.status === 'REQUIRED') {
-                // 新しいタブをクリック時に直接開けるようリンクを準備する
+                // 同じタブで標準OAuthへ移動するリンクを準備する
                 const url = await getApiAuthenticationUrl();
                 // 途中で別要求へ変わった場合はURLを破棄する
                 if (this.componentConnected && sequence === this.apiAuthenticationSequence) this.apiAuthenticationUrl = url;
-            }
-            // 認証成功後だけ最新情報を取得し、編集中の値は破棄しない
-            if (state.status === 'AUTHENTICATED') {
-                // 以後の通常フォーカス移動で自動確認しない
-                this.apiAuthenticationWaiting = false;
-                // 保存中や未保存編集がある場合は再取得を保留する
-                if (refreshData && this.detail && !this.busy && !this.changeCount && !this.hasInputErrors) {
-                    // 非同期取得中の対象変更を検出する
-                    const target = this.detail;
-                    // 分類モードでは既存の取得経路を使い、構造は現在の詳細を更新する
-                    if (this.isClassify) await this.loadClassifyData(true);
-                    else {
-                        // 現在選択中の対象の項目監査情報を再取得する
-                        const data = await this.readObjectInfo(target.apiName);
-                        // 別のオブジェクトへ古い詳細を反映しない
-                        if (this.componentConnected && this.detail === target && sequence === this.apiAuthenticationSequence) {
-                            // 起点と詳細が同じ場合は取得済み定義を同期する
-                            if (this.root === target) this.root = data;
-                            // 現在の詳細だけを差し替え、フィルターとページは維持する
-                            this.detail = data;
-                            // 認証前のAPI失敗表示を成功状態へ更新する
-                            this.clientError = undefined;
-                            // 再取得した情報を現在の一覧へ反映する
-                            this.refreshFields();
-                        }
-                    }
-                }
             }
         } catch {
             // 古い要求の失敗で現在の認証を上書きしない
@@ -106,7 +76,7 @@ export default class ObjectExplorer extends LightningElement {
                 // 状態確認やURL取得の失敗を認証済み・未認証と推定しない
                 this.apiAuthenticationStatus = 'UNAVAILABLE';
                 // API応答本文やURLをエラーへ含めない
-                this.apiAuthenticationMessage = 'Salesforce APIの認証状態を確認できませんでした。接続設定と権限を確認して再確認してください。';
+                this.apiAuthenticationMessage = 'Salesforce APIの認証状態を確認できませんでした。接続設定と権限を確認して画面を再読み込みしてください。';
             }
         } finally {
             // 別要求の確認中表示を古い要求から解除しない
@@ -116,14 +86,64 @@ export default class ObjectExplorer extends LightningElement {
     // 本人の操作でだけ標準OAuth認証を開始する
     handleApiAuthenticationStart(event) {
         // 保存中や未準備のURLから認証を開始しない
-        if (this.apiAuthenticationDisabled || !this.apiAuthenticationUrl) { event.preventDefault(); return; }
-        // 認証タブから画面へ戻った場合だけ接続を再確認する
-        this.apiAuthenticationWaiting = true;
+        if (this.apiAuthenticationDisabled || !this.apiAuthenticationUrl) event.preventDefault();
     }
-    // 画面復帰が通知されない場合も明示的な再確認を可能にする
-    handleApiAuthenticationRefresh() {
-        // 確認中・保存中の重複実行を防ぐ
-        if (!this.apiAuthenticationDisabled) this.refreshApiAuthentication(true);
+    // 本人が確認した場合だけこの機能のAPI認証を解除する
+    async handleApiAuthenticationRevoke() {
+        // 確認中・保存中・未認証の重複操作を受け付けない
+        if (!this.apiAuthenticationReady || this.apiAuthenticationDisabled || this.saving) return;
+        // 確認を表示している間も画面操作と二重実行を止める
+        this.busy = true;
+        // 確認画面の失敗と解除要求後の結果不明を区別する
+        let submitted = false;
+        // 削除APIの成否を内部情報を含めず公開する
+        try {
+            // 未保存入力がある場合は破棄されることを確認に含める
+            const message = this.changeCount || this.hasInputErrors ? 'API認証を解除しますか？未保存のデータ分類の変更は失われます。' : 'この機能のAPI認証を解除しますか？';
+            // 標準の確認ダイアログで本人の意思を確認する
+            const confirmed = await LightningConfirm.open({ label: '認証解除', message, theme: 'warning' });
+            // キャンセルや画面終了後は資格情報を変更しない
+            if (!confirmed || !this.componentConnected) return;
+            // ここから先の通信失敗では解除済みかどうかを断定しない
+            submitted = true;
+            // 実行ユーザー本人の固定した資格情報だけを解除する
+            await revokeApiAuthentication();
+            // 解除待機中に終了した画面へ結果を反映しない
+            if (!this.componentConnected) return;
+            // 旧対象へ返る非同期応答を無効化する
+            this.detailSequence += 1;
+            // 分類の古い読取結果も破棄する
+            this.classifySequence += 1;
+            // 解除後は対象と未保存入力を残さず、認証前の画面へ戻す
+            this.root = undefined;
+            this.detail = undefined;
+            this.classifyEdits = {};
+            this.classifyData = {};
+            this.classifyDataReady = false;
+            // 変更件数と入力エラーを同じ時点でクリアする
+            this.refreshClassifySummary();
+            // 解除前の表示内容を操作できないよう先に非表示にする
+            this.apiAuthenticationStatus = 'CHECKING';
+            this.apiAuthenticationMessage = '';
+            this.apiAuthenticationUrl = '';
+            // 標準APIの状態から認証案内と新しい認証URLを取得する
+            await this.refreshApiAuthentication();
+        } catch (error) {
+            // 通信失敗を解除成功とも解除失敗とも断定しない
+            if (this.componentConnected && submitted) {
+                // 状態が不明な間は操作領域を表示しない
+                this.apiAuthenticationStatus = 'UNAVAILABLE';
+                this.apiAuthenticationUrl = '';
+                // 元の例外や資格情報を表示しない固定案内を使用する
+                this.apiAuthenticationMessage = 'API認証の解除結果を確認できませんでした。画面を再読み込みして確認してください。';
+            } else if (this.componentConnected) {
+                // 確認の失敗では認証状態や未保存入力を変更しない
+                this.reportClientError(error, 'handleApiAuthenticationRevoke', 'confirmation');
+            }
+        } finally {
+            // キャンセルや例外でも操作中状態を解除する
+            this.busy = false;
+        }
     }
     // エラー時だけ処理場所を表示し、通常の操作では診断表示を出さない
     clientError;
@@ -153,10 +173,6 @@ export default class ObjectExplorer extends LightningElement {
     connectedCallback() {
         // 画面が有効な間だけ保存確認や非同期応答を受け付ける
         this.componentConnected = true;
-        // 認証タブから戻ったときだけ現在ユーザーの状態を確認する
-        window.addEventListener('focus', this.handleApiAuthenticationReturn);
-        // 同じブラウザーウインドウ内のタブ切り替えにも対応する
-        document.addEventListener('visibilitychange', this.handleApiAuthenticationReturn);
         // 初回は認証状態を確認し、未選択のオブジェクトを自動選択しない
         this.apiAuthenticationPromise = this.refreshApiAuthentication();
     }
@@ -387,10 +403,6 @@ export default class ObjectExplorer extends LightningElement {
             this.componentConnected = false;
             // 破棄済み画面へ認証状態を反映しない
             this.apiAuthenticationSequence += 1;
-            // 別画面に移っても復帰監視を残さない
-            window.removeEventListener('focus', this.handleApiAuthenticationReturn);
-            // タブ表示監視も同じ終了時点で解除する
-            document.removeEventListener('visibilitychange', this.handleApiAuthenticationReturn);
             // DOMが破棄された後へサイズ変更の通知を残さない
             this.stopViewportObservation();
 

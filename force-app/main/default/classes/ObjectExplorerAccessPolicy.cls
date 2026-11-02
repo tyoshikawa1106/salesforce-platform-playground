@@ -16,8 +16,8 @@ public with sharing class ObjectExplorerAccessPolicy {
             // 資格情報や内部エラーを含めず、固定案内だけを返す
             return new Map<String, Object>{'status' => state, 'message' => new Map<String, String>{
                 'AUTHENTICATED' => '',
-                'REQUIRED' => 'Salesforce APIを利用するには、ご自身のアカウントでAPI認証してください。',
-                'UNAVAILABLE' => 'Salesforce APIの認証状態を確認できませんでした。接続設定と権限を確認して再確認してください。'
+                'REQUIRED' => 'Salesforce APIを使用します。認証ボタンをクリックしてください。',
+                'UNAVAILABLE' => 'Salesforce APIの認証状態を確認できませんでした。接続設定と権限を確認して画面を再読み込みしてください。'
             }.get(state)};
         }
 

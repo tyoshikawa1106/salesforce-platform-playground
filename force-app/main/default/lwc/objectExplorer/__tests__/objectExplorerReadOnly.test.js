@@ -1,3 +1,4 @@
+import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
 import { createElement } from 'lwc';
 import ObjectExplorer from 'c/objectExplorer';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
@@ -12,9 +13,12 @@ jest.mock('@salesforce/apex/ObjectExplorerController.saveClassifyData', () => ({
 jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ default: undefined }), { virtual: true });
 jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ default: undefined }), { virtual: true });
 
+jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
+
 const flush = () => Array.from({ length: 30 }).reduce((p) => p.then(() => Promise.resolve()), Promise.resolve());
 beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    getApiAuthentication.mockResolvedValue({ status: 'AUTHENTICATED', message: '' });
     searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }]);
 });
 afterEach(() => {
@@ -30,6 +34,7 @@ it('編集権限がない利用者にも保存済み分類を表示し、編集�
     getObjectInfo.mockResolvedValue({ apiName: 'Account', label: '取引先', fields: [{ apiName: 'Name', label: '名前', type: 'STRING', typeLabel: 'テキスト(255)', custom: false }], relations: [] });
     const element = createElement('c-object-explorer', { is: ObjectExplorer });
     document.body.appendChild(element);
+    await flush();
     element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
     await flush();
     const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');

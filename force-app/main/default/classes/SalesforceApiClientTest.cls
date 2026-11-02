@@ -5,6 +5,21 @@ private with sharing class SalesforceApiClientTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 組織の認証設定に依存する標準APIの失敗を固定案内へ変換 */
+    @IsTest
+    static void hidesAuthenticationUrlFailure() {
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                client.getAuthenticationUrl();
+                Assert.fail('認証設定を参照できないテスト要求を成功として返さない');
+            } catch (SalesforceApiClient.IntegrationException error) {
+                Assert.areEqual('API認証を開始できませんでした。接続設定と権限を管理者に確認してください。', error.getMessage(), '標準APIの内部情報を公開しない');
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 固定診断コードと内部情報の非公開を確認 */
     @IsTest
     static void reportsAuthenticationCode() {

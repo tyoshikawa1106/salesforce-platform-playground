@@ -31,6 +31,13 @@ public with sharing class ObjectExplorerController {
         return new Authentication().getUrl();
     }
 
+    /** 実行ユーザー本人のAPI認証を解除 */
+    @AuraEnabled
+    public static void revokeApiAuthentication() {
+        // 固定したPer User資格情報だけを通信境界で削除する
+        new SalesforceApiClient().revokeAuthentication();
+    }
+
     /** API認証の取得順序と失敗時の公開応答を制御 */
     private class Authentication {
         /**

@@ -1,20 +1,28 @@
 <template>
     <main>
-        <header><h1>オブジェクトエクスプローラー</h1></header>
+        <header>
+            <h1>オブジェクトエクスプローラー</h1>
+            <template lwc:if={apiAuthenticationReady}>
+                <lightning-button data-authentication-revoke label="認証解除" disabled={apiAuthenticationDisabled} onclick={handleApiAuthenticationRevoke}></lightning-button>
+            </template>
+        </header>
         <template lwc:if={apiAuthenticationMessage}>
-            <div class="oe-authentication slds-box slds-theme_shade slds-m-bottom_medium" role="status">
+            <div class="oe-authentication slds-box slds-theme_default slds-m-bottom_medium" role="status">
                 <span>{apiAuthenticationMessage}</span>
                 <div class="oe-authentication-actions">
                     <template lwc:if={apiAuthenticationRequired}>
                         <template lwc:if={apiAuthenticationUrl}>
-                            <a class="slds-button slds-button_brand" href={apiAuthenticationUrl} target="_blank" rel="noopener noreferrer" onclick={handleApiAuthenticationStart}>API認証</a>
+                            <a class="slds-button slds-button_brand" href={apiAuthenticationUrl} target="_self" onclick={handleApiAuthenticationStart}>認証</a>
                         </template>
-                        <template lwc:else><lightning-button label="API認証" disabled></lightning-button></template>
+                        <template lwc:else><lightning-button label="認証" disabled></lightning-button></template>
                     </template>
-                    <lightning-button label="再確認" disabled={apiAuthenticationDisabled} onclick={handleApiAuthenticationRefresh}></lightning-button>
                 </div>
             </div>
         </template>
+        <template lwc:if={apiAuthenticationPending}>
+            <p role="status">認証状態を確認しています…</p>
+        </template>
+        <template lwc:if={apiAuthenticationReady}>
         <lightning-radio-group
             class="oe-mode"
             label="表示モード"
@@ -593,6 +601,7 @@
                     </template>
                 </template>
             </section>
+        </template>
         </template>
     </main>
 </template>
