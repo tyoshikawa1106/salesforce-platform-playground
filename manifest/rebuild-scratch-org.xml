@@ -153,6 +153,8 @@
         <members>ObjectExplorerOwnerServiceTest</members>
         <members>ObjectExplorerAccessPolicy</members>
         <members>ObjectExplorerAccessPolicyTest</members>
+        <members>ObjectExplorerAuthenticationService</members>
+        <members>ObjectExplorerAuthenticationServiceTest</members>
         <members>ObjectExplorerApiClient</members>
         <members>ObjectExplorerApiClientTest</members>
         <members>ObjectExplorerApiProtocol</members>
@@ -896,9 +898,12 @@
         <members>orgExplorerCard</members>
         <members>orgExplorerDatatable</members>
         <members>orgExplorerDetails</members>
+        <members>orgExplorerHierarchyModal</members>
         <members>orgExplorerSearch</members>
         <members>objectExplorer</members>
         <members>objectExplorerLookup</members>
+        <members>salesforceApiUtils</members>
+        <members>lwcLoggerUtils</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
