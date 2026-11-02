@@ -1,3 +1,4 @@
+import { recordLog } from 'c/lwcLoggerUtils';
 import { LightningElement } from 'lwc';
 import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
 import getApiAuthenticationUrl from '@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl';
@@ -155,12 +156,10 @@ export default class ObjectExplorer extends LightningElement {
         const diagnostic = safeClientDiagnostic(code || 'OE-JS-UNEXPECTED');
         // APIコードがある場合も本文を診断ログへ含めない
         const details = { ...clientErrorDetails(error, operation, phase), code: apiCode || (error?.body ? 'OE-API-UNCLASSIFIED' : diagnostic.code), message: message || diagnostic.reason };
-        // 描画失敗による再描画ループと同じエラーの連続記録を防ぐ
-        if (this.clientError?.location === details.location && this.clientError.errorType === details.errorType && this.clientError.frames.join('|') === details.frames.join('|') && this.clientError.message === details.message && this.clientError.code === details.code) { return; }
-        // 標準エラーページへ投げ直さず、この画面内へ表示
+        // 記録の重複だけ共通処理で抑止し、表示状態は画面側で更新
+        if (!recordLog(this.clientError, details, 'ObjectExplorer')) return;
+        // 同じ画面の診断表示へ新しい記録を反映
         this.clientError = details;
-        // 成功ログや入力値・認証情報・API応答本文は出力しない
-        console.error('ObjectExplorer: 画面処理でエラーが発生しました。', { location: details.location, errorType: details.errorType, code: details.code, frames: details.frames });
     }
     // 子コンポーネントの描画・宣言的イベントで起きた例外を画面内へ収める
     errorCallback(error) {

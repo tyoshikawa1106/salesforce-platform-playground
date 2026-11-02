@@ -1,4 +1,4 @@
-import { getErrorMessages, reduceErrors } from 'c/salesforceApiUtil';
+import { getErrorMessages, reduceErrors } from 'c/salesforceApiUtils';
 
 describe('Salesforce API応答のメッセージ整形', () => {
     it('ApexとUI APIの異なる応答形式を入力順で表示する', () => {
