@@ -1,3 +1,4 @@
+import { createLogDetails } from 'c/lwcLoggerUtils';
 import { classifyInput, normalizeClassify, createOwnerOptions } from './objectExplorerClassifyLogic';
 import { compareFieldLabels, fieldTypeLabel, fieldTypeGroup } from './objectExplorerFieldLogic';
 
@@ -322,12 +323,11 @@ export { structureFieldView } from './objectExplorerFieldLogic';
 export { CLASSIFY_CSV_LIMITS, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv } from './objectExplorerCsv';
 // エラーの位置だけを抽出し、URL・入力値・API応答本文を診断情報へ含めない
 export function clientErrorDetails(error, operation, phase) {
-    // 例外種別は通常のError名だけを採用
-    const name = typeof error?.name === 'string' && /^(?:Error|[A-Za-z]+Error)$/.test(error.name) ? error.name : (error?.body ? 'SalesforceError' : 'Error');
-    // メッセージやURLから推測せず、スタック上のJSファイル名と行・列だけを抽出
-    const frames = typeof error?.stack === 'string' ? [...new Set(error.stack.split('\n').slice(1).flatMap((line) => line.match(/[A-Za-z0-9_$.-]+\.m?js:\d+:\d+/g) || []))].slice(0, 8) : [];
-    // 処理場所は呼び出し側が指定する固定の処理名と段階で識別
-    return { location: `objectExplorer.js / ${operation} / ${phase}`, errorType: name, frames, frame: frames[0] || '' };
+    // 例外の種類とSalesforce応答形式の判定はこの画面で管理
+    const errorType = typeof error?.name === 'string' && /^(?:Error|[A-Za-z]+Error)$/.test(error.name)
+        ? error.name : (error?.body ? 'SalesforceError' : 'Error');
+    // 判定済みの種類と固定位置だけを共通のログ整形へ渡す
+    return createLogDetails({ source: 'objectExplorer.js', operation, phase, errorType, stack: error?.stack });
 }
 
 // 項目の表示フィルターに依存しない保存失敗一覧を生成

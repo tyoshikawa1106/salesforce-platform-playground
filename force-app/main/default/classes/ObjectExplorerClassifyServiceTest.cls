@@ -242,6 +242,57 @@ private with sharing class ObjectExplorerClassifyServiceTest {
         }
     }
 
+    /** 分類の未設定値を正規化し、空白だけの既存値も保持する */
+    @IsTest
+    static void preservesEmptyAndWhitespaceClassificationValues() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, Object> missing = service.snapshot(new Map<String, Object>{'complianceGroup' => null});
+            Map<String, Object> empty = service.snapshot(new Map<String, Object>{'complianceGroup' => ''});
+            Map<String, Object> whitespace = service.snapshot(new Map<String, Object>{'complianceGroup' => '  '});
+            Test.stopTest();
+            Assert.areEqual('', missing.get('complianceGroup'), '未設定は空文字へ正規化');
+            Assert.areEqual(missing, empty, '空文字も同じ比較基準にする');
+            Assert.areEqual('  ', whitespace.get('complianceGroup'), '既存の空白値を別の分類値に変えない');
+        }
+
+    }
+
+    /** 標準更新の通信失敗を変更行だけへ反映し他の状態と入力順を保持 */
+    @IsTest
+    static void preservesOtherFieldsWhenStandardUpdateFails() {
+        ObjectExplorerClassifyService.FieldContext pending = context(false);
+        pending.expected.put('complianceGroup', 'PII');
+        pending.sent = true;
+        ObjectExplorerClassifyService.FieldContext completed = new ObjectExplorerClassifyService.FieldContext(pending);
+        completed.fieldName = 'Phone';
+        completed.completed = true;
+        completed.result = new Map<String, Object>{'apiName' => 'Phone', 'success' => true};
+        ObjectExplorerClassifyService.FieldContext unchanged = context(false);
+        unchanged.fieldName = 'Description';
+        ObjectExplorerClassifyService.FieldContext custom = new ObjectExplorerClassifyService.FieldContext(pending);
+        custom.fieldName = 'Custom__c';
+        custom.customField = true;
+        List<ObjectExplorerClassifyService.FieldContext> contexts = new List<ObjectExplorerClassifyService.FieldContext>{custom, pending, completed, unchanged};
+
+        System.runAs(testUser) {
+            Test.startTest();
+            List<ObjectExplorerClassifyService.FieldContext> updated = results.failStandardUpdates(contexts, new SalesforceApiClient.IntegrationException('一括通信失敗'));
+            Test.stopTest();
+            Assert.areEqual(contexts.size(), updated.size(), '項目数と入力順を維持');
+            Assert.areEqual(custom, updated[0], 'カスタム項目の未確定状態を維持');
+            Assert.areEqual('Name', updated[1].fieldName, '同じ位置の標準変更行だけを対象にする');
+            Assert.areEqual(false, updated[1].result.get('success'), '通信失敗を成功にしない');
+            Assert.isTrue(String.valueOf(updated[1].result.get('message')).contains('更新結果を確認できませんでした'), '送信後の確認不能を維持');
+            Assert.areEqual(completed.result, updated[2].result, '確定済み結果を上書きしない');
+            Assert.areEqual(unchanged, updated[3], '変更なしの標準項目を失敗にしない');
+            Assert.isFalse(pending.completed, '元の項目状態を変更しない');
+            Assert.isTrue(updated[1].completed, '生成した失敗結果は確定させる');
+        }
+
+    }
+
     /** 結果未確定を拒否 */
     @IsTest
     static void rejectsUnfinishedResult() {

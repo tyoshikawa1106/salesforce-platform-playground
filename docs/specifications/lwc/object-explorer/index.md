@@ -10,6 +10,10 @@
 
 ## 対象実装・メタデータ
 
+ログ情報の整形・重複記録の抑止・コンソール出力は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、ログへ表示案内やAPI応答本文を渡しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
+
+API認証状態の表示変換と標準認証URLの検証は[ObjectExplorerAuthenticationService](../../../../force-app/main/default/classes/ObjectExplorerAuthenticationService.cls)へ集約し、[ObjectExplorerAuthenticationServiceTest](../../../../force-app/main/default/classes/ObjectExplorerAuthenticationServiceTest.cls)で公開状態・固定案内・接続先の許可範囲を確認します。Controllerは標準APIの呼び出し順序と例外の捕捉を担当します。
+
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
@@ -51,6 +55,8 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 所有者IDの照合・候補表示・Metadata API参照値への変換は[ObjectExplorerOwnerService](../../../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)に集約し、権限・要求検証と分類値の競合・更新処理から分離します。分類Serviceの内部状態に編集対象・分類基準値・所有者・送信状態・確定結果をまとめ、入力状態を変更せず次段の状態を返します。
 
 ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答検証は[MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)、HTTP認証・待ち時間は[SalesforceApiClient](../../../../force-app/main/default/classes/SalesforceApiClient.cls)に分離します。一覧と保存には共通のオブジェクト参照権限チェックを適用します。
+
+標準項目の一括更新に失敗した場合は、Controllerで例外を捕捉し、既存の`ObjectExplorerClassifyService.SaveResults`で送信対象と同じ選別規則を適用します。未確定結果の失敗変換を再利用し、完全名で対応付けて入力順へ戻すことで、カスタム項目・変更なし項目・確定済み結果を維持します。
 
 公開入口は構造・分類の参照と分類保存を一つの[ObjectExplorerController](../../../../force-app/main/default/classes/ObjectExplorerController.cls)へ集約します。照会は[ObjectExplorerSelector](../../../../force-app/main/default/classes/ObjectExplorerSelector.cls)、表示と業務判定はステートレスなServiceで扱い、Controllerで処理順序を追える構成とします。
 

@@ -1,8 +1,9 @@
+import { recordLog } from 'c/lwcLoggerUtils';
+import { reduceErrors } from 'c/salesforceApiUtils';
 import { clientErrorDetails } from './objectMetricsOverviewLogic';
 import { LightningElement, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.getObjectMetrics';
-import { reduceErrors } from './objectMetricsOverviewLogic';
 import {
     createCountCards,
     normalizeMetricItems
@@ -17,13 +18,10 @@ export default class ObjectMetricsOverview extends LightningElement {
     reportClientError(error, operation, phase) {
         // この画面専用のLogicで固定の処理位置を生成
         const details = clientErrorDetails(error, operation, phase);
-        // 同じ描画失敗の再通知で表示と記録を繰り返さない
-        if (this.clientError?.location === details.location && this.clientError.errorType === details.errorType
-            && this.clientError.frames.join('|') === details.frames.join('|') && this.clientError.code === details.code) { return; }
-        // 画面内の表示へ診断だけを渡す
+        // 記録の重複だけ共通処理で抑止し、表示状態は画面側で更新
+        if (!recordLog(this.clientError, details)) return;
+        // 同じ画面の診断表示へ新しい記録を反映
         this.clientError = details;
-        // 元のError・メッセージ・API応答・入力値をコンソールへ渡さない
-        console.error('LWC: 画面処理でエラーが発生しました。', details);
     }
 
     // 子の描画と宣言的イベントの失敗を親画面内で受け止める

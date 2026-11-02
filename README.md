@@ -259,7 +259,7 @@ npm run prettier
 npm run code-analyzer
 ```
 
-`force-app` を CI 基準で解析し、重要度 3 以上の検出で失敗します。
+`force-app` をCIと同じ出力先で解析します。停止条件は[AIエージェント開発ルール](docs/development/agent-development-rules.md#静的解析)を参照してください。
 
 ```sh
 npm run code-analyzer:ci

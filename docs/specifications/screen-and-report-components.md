@@ -215,15 +215,16 @@ Salesforce上で使う画面・帳票について、機能別の入口、LWC、�
 | [objectExplorer](../../force-app/main/default/lwc/objectExplorer/objectExplorer.js)                   | [objectExplorerClassifyLogic.js](../../force-app/main/default/lwc/objectExplorer/objectExplorerClassifyLogic.js)、[objectExplorerCsv.js](../../force-app/main/default/lwc/objectExplorer/objectExplorerCsv.js)、[objectExplorerFieldLogic.js](../../force-app/main/default/lwc/objectExplorer/objectExplorerFieldLogic.js)、[objectExplorerLogic.js](../../force-app/main/default/lwc/objectExplorer/objectExplorerLogic.js) |
 | [objectExplorerLookup](../../force-app/main/default/lwc/objectExplorerLookup/objectExplorerLookup.js) | なし（メインJavaScriptに実装）                                                                                                                                                                                                                                                                                                                                                                                               |
 
-| Apex本体                                                                                                | 役割                                                     | 同名Test                                                                                                        |
-| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [ObjectExplorerAccessPolicy](../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)       | データ分類操作の権限と参照対象を検証                     | [ObjectExplorerAccessPolicyTest](../../force-app/main/default/classes/ObjectExplorerAccessPolicyTest.cls)       |
-| [ObjectExplorerClassifyService](../../force-app/main/default/classes/ObjectExplorerClassifyService.cls) | 分類編集の権限・入力・競合と表示モデルの生成             | [ObjectExplorerClassifyServiceTest](../../force-app/main/default/classes/ObjectExplorerClassifyServiceTest.cls) |
-| [ObjectExplorerController](../../force-app/main/default/classes/ObjectExplorerController.cls)           | オブジェクト構造探索と項目分類の参照・保存の入口         | [ObjectExplorerControllerTest](../../force-app/main/default/classes/ObjectExplorerControllerTest.cls)           |
-| [ObjectExplorerFieldService](../../force-app/main/default/classes/ObjectExplorerFieldService.cls)       | 項目定義の型・分類・作成更新情報の可視表示モデル         | [ObjectExplorerFieldServiceTest](../../force-app/main/default/classes/ObjectExplorerFieldServiceTest.cls)       |
-| [ObjectExplorerOwnerService](../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)       | データ分類の所有者ID照合・候補表示・API参照値の生成      | [ObjectExplorerOwnerServiceTest](../../force-app/main/default/classes/ObjectExplorerOwnerServiceTest.cls)       |
-| [ObjectExplorerSelector](../../force-app/main/default/classes/ObjectExplorerSelector.cls)               | 項目定義・分類と所有者候補の読み取り                     | [ObjectExplorerSelectorTest](../../force-app/main/default/classes/ObjectExplorerSelectorTest.cls)               |
-| [ObjectExplorerService](../../force-app/main/default/classes/ObjectExplorerService.cls)                 | Describeに基づくオブジェクト・項目・直接参照の表示モデル | [ObjectExplorerServiceTest](../../force-app/main/default/classes/ObjectExplorerServiceTest.cls)                 |
+| Apex本体                                                                                                            | 役割                                                     | 同名Test                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [ObjectExplorerAuthenticationService](../../force-app/main/default/classes/ObjectExplorerAuthenticationService.cls) | API認証状態の表示変換と標準認証URLの検証                 | [ObjectExplorerAuthenticationServiceTest](../../force-app/main/default/classes/ObjectExplorerAuthenticationServiceTest.cls) |
+| [ObjectExplorerAccessPolicy](../../force-app/main/default/classes/ObjectExplorerAccessPolicy.cls)                   | データ分類操作の権限と参照対象を検証                     | [ObjectExplorerAccessPolicyTest](../../force-app/main/default/classes/ObjectExplorerAccessPolicyTest.cls)                   |
+| [ObjectExplorerClassifyService](../../force-app/main/default/classes/ObjectExplorerClassifyService.cls)             | 分類編集の権限・入力・競合と表示モデルの生成             | [ObjectExplorerClassifyServiceTest](../../force-app/main/default/classes/ObjectExplorerClassifyServiceTest.cls)             |
+| [ObjectExplorerController](../../force-app/main/default/classes/ObjectExplorerController.cls)                       | オブジェクト構造探索と項目分類の参照・保存の入口         | [ObjectExplorerControllerTest](../../force-app/main/default/classes/ObjectExplorerControllerTest.cls)                       |
+| [ObjectExplorerFieldService](../../force-app/main/default/classes/ObjectExplorerFieldService.cls)                   | 項目定義の型・分類・作成更新情報の可視表示モデル         | [ObjectExplorerFieldServiceTest](../../force-app/main/default/classes/ObjectExplorerFieldServiceTest.cls)                   |
+| [ObjectExplorerOwnerService](../../force-app/main/default/classes/ObjectExplorerOwnerService.cls)                   | データ分類の所有者ID照合・候補表示・API参照値の生成      | [ObjectExplorerOwnerServiceTest](../../force-app/main/default/classes/ObjectExplorerOwnerServiceTest.cls)                   |
+| [ObjectExplorerSelector](../../force-app/main/default/classes/ObjectExplorerSelector.cls)                           | 項目定義・分類と所有者候補の読み取り                     | [ObjectExplorerSelectorTest](../../force-app/main/default/classes/ObjectExplorerSelectorTest.cls)                           |
+| [ObjectExplorerService](../../force-app/main/default/classes/ObjectExplorerService.cls)                             | Describeに基づくオブジェクト・項目・直接参照の表示モデル | [ObjectExplorerServiceTest](../../force-app/main/default/classes/ObjectExplorerServiceTest.cls)                             |
 
 Salesforce API共通通信とMetadata SOAP形式のクラスは、後述の「共通部品と共有範囲」に分けて記載しています。
 
@@ -244,20 +245,22 @@ Salesforce API共通通信とMetadata SOAP形式のクラスは、後述の「�
 
 帳票本体: [AccountPdf.page](../../force-app/main/default/pages/AccountPdf.page)。起動用LWCとVisualforceを合わせて一つの帳票機能として扱います。
 
-例外捕捉・診断情報の生成・表示は各LWC内で完結します。機能間で共有するエラー処理バンドルはありません。
+例外捕捉・例外種別の判定・画面固有の診断表示は各LWC内で完結します。API応答のメッセージ抽出とログ記録は、次の共通部品で責務を分けて共有します。
 
 ## 共通部品と共有範囲
 
 名前が汎用的でも、対象機能間で共有されているとは限りません。実際の参照元と機能内の責務共有を分けて記載します。
 
-| 部品                                                                   | 利用元・範囲                                                           | 共有する責務                                                                    |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `ObjectMetricCatalog`                                                  | データボード、汎用レコード検索                                         | 表示キー・オブジェクト対応と問い合わせ対象の許可リスト                          |
-| `OrgEnvironment`                                                       | 取引先一括削除の画面Service・バッチService。定期起動も同じバッチを使用 | 開発環境の判定。テストデータ一括削除の環境判定には使用しない                    |
-| `SalesforceApiClient`、`SalesforceApiProtocol`、`MetadataApiSoapCodec` | 現行の利用機能はオブジェクトエクスプローラー                           | Named Credential経由のHTTP通信と、SOAPの生成・応答検証                          |
-| `TestDataDeleteService`                                                | テストデータ一括削除の画面・バッチ                                     | 固定の削除順序と環境判定。通常Sandboxを許可する`OrgEnvironment`とは条件が異なる |
-| `OrgExplorerPageResponse`等の要求・応答型                              | 組織エクスプローラーのロール階層・上司階層・候補・メンバー取得         | 同じ要求・応答の契約を機能内で共有                                              |
-| `objectRecordSearch`                                                   | データボードに組み込む汎用レコード検索機能                             | 検索・フォーム・削除の画面を再利用。専用Apexの所属は汎用レコード検索            |
+| 部品                                                                                            | 利用元・範囲                                                               | 共有する責務                                                                                               |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [lwcLoggerUtils](../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)             | 画面・帳票の各LWCと組織図Canvas                                            | ログ位置の整形・機密情報除去・重複記録の抑止・許可属性だけのコンソール出力。例外判定と表示状態は共有しない |
+| [salesforceApiUtils](../../force-app/main/default/lwc/salesforceApiUtils/salesforceApiUtils.js) | 取引先データ品質スキャン、ケースメール一覧、データボード、汎用レコード検索 | Apex・UI API応答から表示メッセージを抽出し、複数メッセージを連結する内部APIモジュール                      |
+| `ObjectMetricCatalog`                                                                           | データボード、汎用レコード検索                                             | 表示キー・オブジェクト対応と問い合わせ対象の許可リスト                                                     |
+| `OrgEnvironment`                                                                                | 取引先一括削除の画面Service・バッチService。定期起動も同じバッチを使用     | 開発環境の判定。テストデータ一括削除の環境判定には使用しない                                               |
+| `SalesforceApiClient`、`SalesforceApiProtocol`、`MetadataApiSoapCodec`                          | 現行の利用機能はオブジェクトエクスプローラー                               | Named Credential経由のHTTP通信と、SOAPの生成・応答検証                                                     |
+| `TestDataDeleteService`                                                                         | テストデータ一括削除の画面・バッチ                                         | 固定の削除順序と環境判定。通常Sandboxを許可する`OrgEnvironment`とは条件が異なる                            |
+| `OrgExplorerPageResponse`等の要求・応答型                                                       | 組織エクスプローラーのロール階層・上司階層・候補・メンバー取得             | 同じ要求・応答の契約を機能内で共有                                                                         |
+| `objectRecordSearch`                                                                            | データボードに組み込む汎用レコード検索機能                                 | 検索・フォーム・削除の画面を再利用。専用Apexの所属は汎用レコード検索                                       |
 
 | Apex本体                                                                                | 役割                                                 | 同名Test                                                                                        |
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |

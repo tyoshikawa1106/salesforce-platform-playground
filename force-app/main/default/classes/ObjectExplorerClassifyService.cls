@@ -15,11 +15,10 @@ public with sharing class ObjectExplorerClassifyService {
             result.put(key, metadata.get(key) ?? '');
         }
         String compliance = (String)result.get('complianceGroup');
-        if (String.isNotBlank(compliance)) {
-            List<String> values = new List<String>(new Set<String>(compliance.split(';')));
-            values.sort();
-            result.put('complianceGroup', String.join(values, ';'));
-        }
+        // 空値も同じ正規化を通し、分類の有無で処理を分岐させない
+        List<String> values = new List<String>(new Set<String>(compliance.split(';')));
+        values.sort();
+        result.put('complianceGroup', String.join(values, ';'));
         return result;
     }
 
@@ -336,6 +335,33 @@ public with sharing class ObjectExplorerClassifyService {
             }
             // 生成した照合結果を返却
             return result;
+        }
+
+        /**
+         * 標準項目の一括更新失敗を今回の更新対象だけへ反映
+         * @param contexts 保存対象の状態
+         * @param error Controllerで捕捉した一括通信の失敗
+         * @return 確定済み結果とカスタム項目を保持した入力順の状態
+         */
+        public List<FieldContext> failStandardUpdates(List<FieldContext> contexts, Exception error) {
+            // 送信対象と同じ選別規則を使用し、失敗時だけ条件を重複させない
+            Map<String, FieldContext> standard = selectStandardUpdates(contexts);
+            // 未確定の失敗変換は通信全体の失敗と同じ契約を使用
+            List<FieldContext> failed = failPendingFields(standard.values(), error);
+            // 元の入力順とは独立した完全名の索引へ変換
+            Map<String, FieldContext> failures = new Map<String, FieldContext>();
+            for (FieldContext context : failed) {
+                failures.put(context.objectName + '.' + context.fieldName, context);
+            }
+            // 入力一覧を書き換えず対象項目だけ失敗状態へ置換
+            List<FieldContext> updated = new List<FieldContext>();
+            // カスタム項目と標準項目が混在していても入力順を保持
+            for (FieldContext context : contexts) {
+                // 今回失敗した完全名だけを置換し、それ以外は元の結果を保持
+                updated.add(failures.get(context.objectName + '.' + context.fieldName) ?? context);
+            }
+            // 未送信・確定済みの結果を維持して返す
+            return updated;
         }
 
         /**
