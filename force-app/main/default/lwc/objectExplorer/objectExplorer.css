@@ -76,8 +76,8 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .oe-owner-options [role="option"] { cursor: pointer; white-space: normal; }
 
 
-/* 少ない検索結果でも分類候補を固定ヘッダーの裏へ追い込まない */
-.oe-table-scroll:has(.oe-compliance-options), .oe-table-scroll:has(lightning-combobox:focus-within), .oe-table-scroll:has(.oe-owner-options) { min-height: min(var(--slds-g-sizing-15, 20rem), 60vh); }
+/* 候補クリック時のフォーカス移動でも一覧を縮めず、選択完了まで座標を維持 */
+.oe-table-scroll[data-classify="true"] { min-height: min(var(--slds-g-sizing-15, 20rem), 60vh); }
 
 /* 分類設定モードの取得・保存中を見出し横で通知 */
 .oe-loading { position: relative; width: var(--slds-g-sizing-8, 2rem); height: var(--slds-g-sizing-8, 2rem); }
@@ -104,3 +104,16 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 /* 作成日・最終更新日のユーザーリンクだけ本文と同じ黒色にする */
 .oe-audit-value a { color: inherit; text-decoration: underline; }
 .oe-client-error { display: block; overflow-wrap: anywhere; margin-block-end: var(--slds-g-spacing-3, .75rem); }
+
+.oe-authentication {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+.oe-authentication-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}

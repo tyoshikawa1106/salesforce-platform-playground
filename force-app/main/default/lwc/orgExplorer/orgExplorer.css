@@ -71,10 +71,22 @@ h2 {
     margin-bottom: 0;
 }
 .c-role-lookup {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--slds-g-spacing-2, 0.5rem);
     flex: 0 1 var(--slds-g-sizing-16, 30rem);
     min-inline-size: 0;
     margin-inline-start: auto;
 }
+.c-role-lookup > c-org-explorer-search {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+}
+.c-role-lookup > .c-hierarchy-actions {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 button {
     padding: var(--slds-g-spacing-2, 0.5rem) var(--slds-g-spacing-3, 0.75rem);
     background: var(--slds-g-color-surface-1, #fff);
@@ -161,3 +173,8 @@ button:focus-visible {
 
 /* エラーの長い処理名も画面内で折り返す */
 .c-client-error { overflow-wrap: anywhere; }
+
+.c-hierarchy-actions {
+    display: flex;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}

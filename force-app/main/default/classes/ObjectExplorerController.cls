@@ -13,6 +13,69 @@ public with sharing class ObjectExplorerController {
     private ObjectExplorerClassifyService.Preparation preparation = new ObjectExplorerClassifyService.Preparation();
     private ObjectExplorerClassifyService.SaveResults results = new ObjectExplorerClassifyService.SaveResults();
 
+    /** 実行ユーザーの認証状態を取得
+     * @return 公開状態と固定案内
+     */
+    @AuraEnabled
+    public static Map<String, Object> getApiAuthentication() {
+        // 認証確認の順序を専用の処理単位で管理
+        return new Authentication().getState();
+    }
+
+    /** 標準API認証を開始するURLを取得
+     * @return 現在組織の認証開始URL
+     */
+    @AuraEnabled
+    public static String getApiAuthenticationUrl() {
+        // 標準URLの取得と検証を一つの処理へ委譲
+        return new Authentication().getUrl();
+    }
+
+    /** 実行ユーザー本人のAPI認証を解除 */
+    @AuraEnabled
+    public static void revokeApiAuthentication() {
+        // 固定したPer User資格情報だけを通信境界で削除する
+        new SalesforceApiClient().revokeAuthentication();
+    }
+
+    /** API認証の取得順序と失敗時の公開応答を制御 */
+    private class Authentication {
+        /**
+         * 実行ユーザーの認証状態と同一組織APIへの接続可否を確認
+         * @return 認証情報を含まない状態と公開案内
+         */
+        public Map<String, Object> getState() {
+            // 既存の通信境界とアクセス判定を共用
+            ObjectExplorerAccessPolicy.Authentication policy = new ObjectExplorerAccessPolicy.Authentication();
+            // 接続拒否と確認不能を区別して画面へ返す
+            try {
+                // 本人のPer Userトークンの状態だけを取得
+                ConnectApi.CredentialAuthenticationStatus status = new SalesforceApiClient().getAuthenticationStatus();
+                // 呼び出し順序をControllerに残し、認証状態の解釈はPolicyへ委譲
+                Map<String, Object> state = policy.createAuthenticationState(status);
+                // 資格情報やAPI応答を画面へ返さない
+                return state;
+            } catch (Exception error) {
+                // 例外本文を公開せず、認証拒否だけを再認証へ振り分け
+                return policy.createAuthenticationFailure(error);
+            }
+        }
+
+        /**
+         * 本人のAPI認証を開始する標準URLを取得
+         * @return 現在組織の標準OAuth認証URL
+         */
+        public String getUrl() {
+            // 接続先と認証方式を既存設定へ固定
+            ObjectExplorerAccessPolicy.Authentication policy = new ObjectExplorerAccessPolicy.Authentication();
+            // 通信境界で内部例外を遮断した標準URLだけを取得
+            String value = new SalesforceApiClient().getAuthenticationUrl();
+            // HTTPSと同一組織を確認したURLだけを返す
+            return policy.requireAuthenticationUrl(value);
+        }
+
+    }
+
     /**
      * 分類一覧と組織の分類候補を取得
      * @param objectName Describeで検証する対象

@@ -1,3 +1,6 @@
+import revokeApiAuthentication from '@salesforce/apex/ObjectExplorerController.revokeApiAuthentication';
+import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
+import getApiAuthenticationUrl from '@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl';
 import { createElement } from 'lwc';
 import ObjectExplorer from 'c/objectExplorer';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
@@ -20,6 +23,11 @@ jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ __esMo
 jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ __esModule: true, default: true }), { virtual: true });
 jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
 
+jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl', () => ({ default: jest.fn() }), { virtual: true });
+
+jest.mock('@salesforce/apex/ObjectExplorerController.revokeApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
+
 const flush = () => Array.from({ length: 30 }).reduce((p) => p.then(() => Promise.resolve()), Promise.resolve());
 const objectInfo = { apiName: 'Account', label: '取引先', fields: [{ apiName: 'Name', label: '名前', type: 'STRING', typeLabel: 'テキスト(255)', custom: false }], relations: [] };
 const classify = { rows: { Name: { editable: true, complianceGroup: '', securityClassification: '', businessStatus: '', ownerId: '', ownerLabel: '未設定' } }, options: { ComplianceGroup: [], SecurityClassification: [], BusinessStatus: [{ label: '使用中', value: 'Active' }] } };
@@ -36,6 +44,7 @@ async function pickAccount(element) {
     await flush();
 }
 async function editClassify(element) {
+    await flush();
     element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
     await flush();
     await pickAccount(element);
@@ -47,10 +56,13 @@ beforeEach(() => {
     require('@salesforce/userPermission/ModifyDataClassification').default = false;
     require('@salesforce/userPermission/CustomizeApplication').default = true;
     global.ResizeObserver = class { observe() {} disconnect() {} };
+    getApiAuthentication.mockResolvedValue({ status: 'AUTHENTICATED', message: '' });
+    getApiAuthenticationUrl.mockResolvedValue('https://example.my.salesforce.com/auth');
     searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }]);
     getObjectInfo.mockResolvedValue(objectInfo);
     getClassifyData.mockResolvedValue(classify);
     LightningConfirm.open.mockResolvedValue(true);
+    revokeApiAuthentication.mockResolvedValue(undefined);
 });
 afterEach(() => {
     document.body.replaceChildren();
@@ -70,6 +82,7 @@ it('未選択の初期表示では照会せず、候補選択後に同じ対象�
 });
 it('古い検索応答で最新の候補を上書きしない', async () => {
     const element = createComponent();
+    await flush();
     let finish;
     searchObjects.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
@@ -82,6 +95,7 @@ it('古い検索応答で最新の候補を上書きしない', async () => {
 });
 it('取得失敗では前の対象を戻さずエラーを表示する', async () => {
     const element = createComponent();
+    await flush();
     getObjectInfo.mockRejectedValueOnce({ body: { message: '参照できません' } });
     await pickAccount(element);
     expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('参照できません');
@@ -90,6 +104,7 @@ it('取得失敗では前の対象を戻さずエラーを表示する', async (
 });
 it('分類保存の確認中から操作を止め、確定した変更だけを送信する', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     let confirm;
     LightningConfirm.open.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
@@ -109,6 +124,7 @@ it('分類保存の確認中から操作を止め、確定した変更だけを�
 });
 it('保存失敗では変更を保持して再操作できる', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     saveClassifyData.mockResolvedValueOnce([{ apiName: 'Name', success: false, message: '編集中に変更されました' }]);
     element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
@@ -117,8 +133,37 @@ it('保存失敗では変更を保持して再操作できる', async () => {
     expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
     expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
 });
+it('メール型への絞り込み後も機密度と利用状況を同じ項目へ保持する', async () => {
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [...objectInfo.fields, { apiName: 'Email__c', label: 'メール', type: 'EMAIL', typeLabel: 'メール', custom: true }] });
+    getClassifyData.mockResolvedValueOnce({
+        rows: { ...classify.rows, Email__c: { ...classify.rows.Name } },
+        options: { ...classify.options, SecurityClassification: [{ label: '機密', value: 'Confidential' }] }
+    });
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    const filter = element.shadowRoot.querySelector('.oe-filters lightning-combobox');
+    filter.dispatchEvent(new CustomEvent('change', { detail: { value: 'メール' } }));
+    await flush();
+    for (const [key, value] of [['securityClassification', 'Confidential'], ['businessStatus', 'Active']]) {
+        const input = element.shadowRoot.querySelector(`[data-field="Email__c"][data-property="${key}"]`);
+        input.dispatchEvent(new CustomEvent('change', { detail: { value } }));
+    }
+    await flush();
+    for (const [key, value] of [['securityClassification', 'Confidential'], ['businessStatus', 'Active']]) {
+        expect(element.shadowRoot.querySelector(`[data-field="Email__c"][data-property="${key}"]`).value).toBe(value);
+    }
+    filter.dispatchEvent(new CustomEvent('change', { detail: { value: '' } }));
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-field="Email__c"][data-property="securityClassification"]').value).toBe('Confidential');
+    expect(element.shadowRoot.querySelector('[data-field="Email__c"][data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('[data-field="Name"][data-property="businessStatus"]').value).toBeUndefined();
+});
 it('破棄確認のキャンセルでは対象と分類の入力を維持する', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     LightningConfirm.open.mockResolvedValueOnce(false);
     element.shadowRoot.querySelector('c-object-explorer-lookup').dispatchEvent(new CustomEvent('clear'));
@@ -142,6 +187,7 @@ it.each([[true, false, true], [false, true, true], [false, false, false]])(
             element = require('lwc').createElement('c-object-explorer', { is: component });
             document.body.appendChild(element);
         });
+        await flush();
         element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
         await flush();
         await pickAccount(element);
@@ -155,6 +201,7 @@ it.each([undefined, {}, () => {}, function () { throw new DOMException('unavaila
     const add = jest.spyOn(window, 'addEventListener');
     const remove = jest.spyOn(window, 'removeEventListener');
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     expect(element.shadowRoot.querySelector('.oe-detail-title').textContent).toContain('取引先');
     const registrationsBeforeResize = add.mock.calls.filter(([type]) => type === 'resize');
@@ -187,6 +234,7 @@ it('対応環境では要素のサイズ変更を監視し画面破棄時に解�
     global.ResizeObserver = jest.fn((callback) => { notify = callback; return { observe, disconnect }; });
     const add = jest.spyOn(window, 'addEventListener');
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     expect(observe).toHaveBeenCalledWith(element.shadowRoot.querySelector('.oe-viewport'));
     notify([{ contentRect: { width: 900 } }]);
@@ -209,6 +257,7 @@ it('サイズ監視の登録が拒否されても監視を解放してウィン�
     const add = jest.spyOn(window, 'addEventListener');
     const remove = jest.spyOn(window, 'removeEventListener');
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     expect(element.shadowRoot.querySelector('.oe-detail-title').textContent).toContain('取引先');
     expect(element.shadowRoot.querySelector('.oe-client-error')).toBeNull();
@@ -241,6 +290,7 @@ it('接続状態のDOMプロパティが未公開でも保存確認を表示す�
 });
 it('保存確認を待つ間に画面を閉じた場合は保存しない', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     let confirm;
     LightningConfirm.open.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
@@ -254,6 +304,7 @@ it('保存確認を待つ間に画面を閉じた場合は保存しない', asyn
 
 it('保存内容の準備でJS例外が起きても未実行を表示して再操作できる', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     const log = jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(objectExplorerLogic, 'classifyChanges').mockImplementationOnce(() => { throw new TypeError('sensitive input'); });
@@ -267,6 +318,7 @@ it('保存内容の準備でJS例外が起きても未実行を表示して再�
 });
 it('保存確認の表示失敗を保存APIの失敗と区別してロックを解除する', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     const log = jest.spyOn(console, 'error').mockImplementation(() => {});
     LightningConfirm.open.mockRejectedValueOnce(new TypeError('sensitive modal detail'));
@@ -314,6 +366,7 @@ it('画面イベントのJS例外は標準エラーページへ伝播させず�
 });
 it('正常な検索・保存確認では診断ログも診断表示も出さない', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     LightningConfirm.open.mockResolvedValueOnce(false);
     element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
@@ -327,7 +380,9 @@ it.each(['reference', 'classify'])('カスタム列は枠なしのチェック�
     getObjectInfo.mockResolvedValue({ ...objectInfo, fields: [...objectInfo.fields, { apiName: 'Flag__c', label: '独自項目', type: 'BOOLEAN', custom: true }] });
     getClassifyData.mockResolvedValue({ ...classify, rows: { ...classify.rows, Flag__c: { ...classify.rows.Name } } });
     const element = createComponent();
+    await flush();
     if (mode === 'classify') {
+        await flush();
         element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: mode } }));
         await flush();
     }
@@ -343,11 +398,12 @@ it.each(['reference', 'classify'])('カスタム列は枠なしのチェック�
 it('所有者の空欄クリック・空白入力では検索せず、文字入力後だけ検索する', async () => {
     searchClassifyOwners.mockResolvedValue([]);
     const element = createComponent();
+    await flush();
     element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
     await flush();
     await pickAccount(element);
     const input = element.shadowRoot.querySelector('input[data-field="Name"]');
-    expect(input.placeholder).toBe('検索');
+    expect(input.placeholder).toBe('');
     const searchIcon = [...input.parentElement.querySelectorAll('lightning-icon')].find((icon) => icon.iconName === 'utility:search');
     expect(searchIcon.alternativeText).toBe('検索');
     expect(searchIcon.classList.contains('slds-input__icon_right')).toBe(true);
@@ -375,6 +431,7 @@ it('分類は編集不可・未取得を一覧から除外し、件数を揃え�
         { apiName: 'Unavailable__c', label: '未取得', type: 'BOOLEAN' }] });
     getClassifyData.mockResolvedValue({ ...classify, rows: { ...classify.rows, ReadOnly__c: { editable: false } } });
     const element = createComponent();
+    await flush();
     element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
     await flush();
     await pickAccount(element);
@@ -386,6 +443,7 @@ it('分類は編集不可・未取得を一覧から除外し、件数を揃え�
 
 it('構造CSVは分類取得失敗時にダウンロードせず処理場所を表示する', async () => {
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     getClassifyData.mockRejectedValueOnce({ body: { message: '分類取得失敗' } });
     const exportButton = [...element.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'CSVダウンロード');
@@ -404,6 +462,7 @@ it('構造CSVの確認後に保存済み分類を取得して出力する', asyn
     jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     try {
         const element = createComponent();
+    await flush();
         await pickAccount(element);
         expect(getClassifyData).not.toHaveBeenCalled();
         const button = [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === 'CSVダウンロード');
@@ -432,7 +491,9 @@ it('構造CSVの確認後に保存済み分類を取得して出力する', asyn
 
 it.each(['reference', 'classify'])('0件時の案内は一覧の全列に広がる（%s）', async (mode) => {
     const element = createComponent();
+    await flush();
     if (mode === 'classify') {
+        await flush();
         element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: mode } }));
         await flush();
     }
@@ -454,6 +515,7 @@ it('監査情報の取得失敗は項目一覧を開く前から理由を表示�
     getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
     getFieldAudit.mockRejectedValueOnce({ body: { message: 'API接続・接続先組織の確認：HTTP 401' } });
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     const alert = element.shadowRoot.querySelector('.oe-client-error');
     expect(alert.textContent).toContain('readObjectInfo / field-audit');
@@ -464,6 +526,7 @@ it('監査情報の取得失敗は項目一覧を開く前から理由を表示�
 
 it('保存失敗の詳細は項目一覧の検索で行が非表示になっても残す', async () => {
     const element = createComponent();
+    await flush();
     await editClassify(element);
     saveClassifyData.mockResolvedValueOnce([{ apiName: 'Name', success: false, message: 'API接続・接続先組織の確認：HTTP 403' }]);
     element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
@@ -483,6 +546,7 @@ it('監査APIの成功後に表示データの加工が失敗した場合は認�
     getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
     getFieldAudit.mockResolvedValueOnce(null);
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     const alert = element.shadowRoot.querySelector('.oe-client-error');
     expect(alert.textContent).toContain('readObjectInfo / field-audit-view');
@@ -497,8 +561,114 @@ it('APIの固定コードは画面に表示し、公開メッセージ本文は�
     getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [{ ...objectInfo.fields[0], custom: true }] });
     getFieldAudit.mockRejectedValueOnce({ body: { message } });
     const element = createComponent();
+    await flush();
     await pickAccount(element);
     expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('エラーコード：OE-AUTH-401');
     expect(JSON.stringify(console.error.mock.calls)).toContain('OE-AUTH-401');
     expect(JSON.stringify(console.error.mock.calls)).not.toContain(message);
+});
+
+it('未認証の場合は対象未選択でも共通のAPI認証を表示する', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: 'API認証してください。' });
+    const element = createComponent();
+    await flush();
+    const link = element.shadowRoot.querySelector('.oe-authentication a');
+    expect(link.textContent).toBe('認証');
+    expect(element.shadowRoot.querySelector('.oe-authentication lightning-button')).toBeNull();
+    expect(link.target).toBe('_self');
+    expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('.oe-mode')).toBeNull();
+    expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-panel')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication').classList.contains('slds-theme_default')).toBe(true);
+});
+it('権限不足を未認証として案内しない', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'NO_ACCESS', message: '管理者に確認してください。' });
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
+    expect(getApiAuthenticationUrl).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('管理者');
+});
+it('認証状態の確認失敗では例外本文を表示しない', async () => {
+    getApiAuthentication.mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('再読み込み');
+});
+it('同じタブの認証から戻って画面が再生成されたら認証状態を確認する', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: '認証してください。' });
+    const before = createComponent();
+    await flush();
+    expect(before.shadowRoot.querySelector('.oe-authentication a').target).toBe('_self');
+    before.remove();
+    getApiAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED', message: '' });
+    const after = createComponent();
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(2);
+    expect(after.shadowRoot.querySelector('.oe-authentication')).toBeNull();
+    expect(after.shadowRoot.querySelector('.oe-mode')).not.toBeNull();
+    expect(after.shadowRoot.querySelector('c-object-explorer-lookup')).not.toBeNull();
+});
+it('認証状態の初期確認中は操作領域を表示しない', async () => {
+    getApiAuthentication.mockImplementationOnce(() => new Promise(() => {}));
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-mode')).toBeNull();
+    expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
+    expect(element.shadowRoot.textContent).toContain('認証状態を確認しています');
+});
+
+it('認証解除をキャンセルした場合は資格情報と未保存入力を保持する', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    LightningConfirm.open.mockResolvedValueOnce(false);
+    element.shadowRoot.querySelector('[data-authentication-revoke]').click();
+    await flush();
+    expect(LightningConfirm.open).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('未保存') }));
+    expect(revokeApiAuthentication).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('[data-authentication-revoke]').disabled).toBe(false);
+});
+it('認証解除を確認した場合だけ解除して認証案内に戻る', async () => {
+    const element = createComponent();
+    await flush();
+    let confirm;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { confirm = resolve; }));
+    element.shadowRoot.querySelector('[data-authentication-revoke]').click();
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-authentication-revoke]').disabled).toBe(true);
+    expect(revokeApiAuthentication).not.toHaveBeenCalled();
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: 'Salesforce APIを使用します。認証ボタンをクリックしてください。' });
+    confirm(true);
+    await flush();
+    expect(revokeApiAuthentication).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('[data-authentication-revoke]')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-mode')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication a').textContent).toBe('認証');
+});
+it('認証解除の結果が不明なら内部例外を出さず操作を止める', async () => {
+    const element = createComponent();
+    await flush();
+    revokeApiAuthentication.mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    element.shadowRoot.querySelector('[data-authentication-revoke]').click();
+    await flush();
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
+    expect(element.shadowRoot.textContent).toContain('解除結果を確認できません');
+    expect(element.shadowRoot.querySelector('.oe-panel')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
+});
+it('解除確認の表示に失敗した場合は認証と入力を維持する', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    LightningConfirm.open.mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    element.shadowRoot.querySelector('[data-authentication-revoke]').click();
+    await flush();
+    expect(revokeApiAuthentication).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('[data-authentication-revoke]').disabled).toBe(false);
+    expect(element.shadowRoot.textContent).not.toContain('解除結果を確認できません');
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
 });

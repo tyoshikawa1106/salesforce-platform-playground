@@ -4,6 +4,7 @@ import {
     structurePageNodes,
     managerBrowseCandidates,
     lookupCandidate,
+    roleHierarchyView,
     buildView,
     selectView,
     fieldText,
@@ -29,6 +30,28 @@ const node = (id, parent = '') => ({
 const mergePages = (previous, response) => ({ ...previous, ...structurePageNodes(response) });
 const graphFor = (nodes) =>
     createStructureGraph(Object.fromEntries(nodes.map((item) => [item.key, item])), null, 'USER');
+
+it('ロール階層の選択候補には選択起点の直下だけを名称順で含める', () => {
+    const role = (id, label, parentKey = '') => ({ key: `ROLE:${id}`, recordId: id, kind: 'ROLE', label, parentKey });
+    const nodes = Object.fromEntries([
+        { ...role('root', '本部'), memberCount: 5 }, { ...role('b', '営業', 'ROLE:root'), memberCount: 0 }, { ...role('a', '開発', 'ROLE:root'), memberCount: 2 },
+        role('grandchild', '孫ロール', 'ROLE:a'), role('other', '別の枝'),
+        { ...node('user'), parentKey: 'ROLE:root' }
+    ].map((item) => [item.key, item]));
+    const view = roleHierarchyView(nodes, 'root');
+    expect(view.rootLabel).toBe('本部');
+    expect(view.children.map((item) => item.key)).toEqual(['ROLE:b', 'ROLE:a']);
+    expect(view.children[0].selectLabel).toBe('営業を選択');
+    expect(view.hasChildren).toBe(true);
+    expect(view.children.map(item => item.summary)).toEqual(['メンバー 0人 ｜ 下位ロール 0件', 'メンバー 2人 ｜ 下位ロール 1件']);
+    expect(roleHierarchyView(nodes, 'a').children[0].summary).toBe('メンバー — ｜ 下位ロール 0件');
+    expect(roleHierarchyView(nodes, 'a', 'parent').children[0].summary).toBe('メンバー 5人 ｜ 下位ロール 2件');
+    expect(roleHierarchyView(nodes, 'grandchild')).toMatchObject({ children: [], hasChildren: false });
+    expect(roleHierarchyView(nodes, 'a', 'parent')).toMatchObject({ listLabel: '上位ロール', children: [expect.objectContaining({ key: 'ROLE:root' })] });
+    expect(roleHierarchyView(nodes, 'root', 'parent').hasChildren).toBe(false);
+    expect(roleHierarchyView(nodes, 'missing')).toBeNull();
+    expect(roleHierarchyView(nodes, 'user')).toBeNull();
+});
 
 it('構造の継続ページで重複を統合し、旧カード上限で上司を切り捨てない', () => {
     const first = mergePages({}, { nodes: Array.from({ length: 1000 }, (_, index) => node(index)) });

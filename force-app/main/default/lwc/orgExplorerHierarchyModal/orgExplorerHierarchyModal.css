@@ -1,0 +1,16 @@
+.c-role-list {
+    max-block-size: min(40vh, var(--slds-g-sizing-15, 20rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.c-role-name {
+    overflow-wrap: anywhere;
+    min-inline-size: 0;
+}
+
+.c-role-row {
+    padding-block: var(--slds-g-spacing-2, 0.5rem);
+}
+.c-role-row:not(:last-child) {
+    border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9);
+}

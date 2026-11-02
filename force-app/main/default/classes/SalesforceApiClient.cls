@@ -8,6 +8,58 @@ public with sharing class SalesforceApiClient {
     private static final Long DEADLINE = DateTime.now().getTime() + REQUEST_BUDGET_MS;
 
     /**
+     * 実行ユーザー自身のPer User認証状態を取得
+     * @return 認証値を含まない標準の状態
+     */
+    public ConnectApi.CredentialAuthenticationStatus getAuthenticationStatus() {
+        // 対象を固定し、別利用者や共有Principalの認証情報を要求しない
+        ConnectApi.Credential credential = ConnectApi.NamedCredentials.getCredential(
+            NAMED_CREDENTIAL, 'SalesforceApiUserPrincipal', ConnectApi.CredentialPrincipalType.PerUserPrincipal
+        );
+        // 保存済みトークンでは接続先の組織も通信境界で検証する
+        if (credential.authenticationStatus == ConnectApi.CredentialAuthenticationStatus.Configured) { verifyOrganization(); }
+        // 資格情報の値やパラメーターは呼び出し元へ渡さない
+        return credential.authenticationStatus;
+    }
+
+    /**
+     * 標準OAuthフローを開始する実行ユーザー用URLを取得
+     * @return プラットフォームが生成した認証開始URL
+     */
+    public String getAuthenticationUrl() {
+        // 標準API例外の内部情報を通信境界で遮断する
+        try {
+            // 任意の接続先を画面から指定させない
+            ConnectApi.OAuthCredentialAuthUrlInput input = new ConnectApi.OAuthCredentialAuthUrlInput();
+            // 同一組織API用の既存設定を使用
+            input.externalCredential = NAMED_CREDENTIAL;
+            // 管理者の共有認証ではなく本人の資格情報へ保存
+            input.principalType = ConnectApi.CredentialPrincipalType.PerUserPrincipal;
+            // 先頭スラッシュ付きの組織内パスを渡し、戻り先がホスト名へ連結されないようにする
+            input.returnUrl = '/lightning/n/ObjectExplorer';
+            // プラットフォームがPKCEと認証状態を管理するURLを生成
+            ConnectApi.OAuthCredentialAuthUrl result = ConnectApi.NamedCredentials.getOAuthCredentialAuthUrl(input);
+            // トークンの取得・保存を独自実装せず標準フローへ委ねる
+            return result.authenticationUrl;
+        } catch (Exception error) {
+            // 接続設定や資格情報を含めない固定案内だけを返す
+            throw new IntegrationException('API認証を開始できませんでした。接続設定と権限を管理者に確認してください。');
+        }
+    }
+
+    /** 実行ユーザー本人の同一組織API用資格情報だけを削除 */
+    public void revokeAuthentication() {
+        // 設定本体や共有Principalではなく、実行ユーザーの保存済み資格情報を対象にする
+        try {
+            // ユーザーや接続先を画面入力で切り替えさせない
+            ConnectApi.NamedCredentials.deleteCredential(NAMED_CREDENTIAL, 'SalesforceApiUserPrincipal', ConnectApi.CredentialPrincipalType.PerUserPrincipal);
+        } catch (Exception error) {
+            // 標準APIの例外本文やトークン情報を公開しない
+            throw new IntegrationException('API認証の解除結果を確認できませんでした。画面を再読み込みして確認してください。');
+        }
+    }
+
+    /**
      * Named Credentialで認証したAPIを呼び出す
      * @param path 固定APIパス
      * @param method GETまたはPATCH

@@ -5,10 +5,6 @@
         <enabled>true</enabled>
     </classAccesses>
     <description>LWC：オブジェクトエクスプローラーの利用に必要な入口権限。データ参照・更新権限やオブジェクトのカスタマイズ権限は付与しません。</description>
-    <externalCredentialPrincipalAccesses>
-        <enabled>true</enabled>
-        <externalCredentialPrincipal>SalesforceApiIntegration-SalesforceApiPrincipal</externalCredentialPrincipal>
-    </externalCredentialPrincipalAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：オブジェクトエクスプローラー</label>
     <tabSettings>

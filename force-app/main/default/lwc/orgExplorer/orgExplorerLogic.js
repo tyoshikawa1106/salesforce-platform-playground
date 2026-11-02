@@ -8,6 +8,7 @@ export function createGraph() {
 export function structurePageNodes(response) {
     // 過去の全ノードをコピーせず現在のページだけを変換する。
     const nodes = {};
+    // 応答ページの各ノードへ同じページの集計情報を対応付ける。
     response.nodes.forEach((node) => {
         // 未集計の人数をゼロと推定しない。
         const memberCount = response.memberCounts?.[node.recordId];
@@ -26,25 +27,38 @@ export function createStructureGraph(index, rootId, kind = 'ROLE') {
     if (!rootId) return { ...createGraph(), nodes: { ...index } };
     // 起点が削除・非可視なら別の枝へ切り替えない。
     const root = index[`${kind}:${rootId}`];
+    // 非表示の起点から別の枝を組み立てない。
     if (!root) return null;
     // 親の列挙を一度で終え、深さに比例した再検索を避ける。
     const children = new Map();
+    // 全体を一度だけ走査して親ごとの子を索引化する。
     Object.values(index).forEach((node) => {
+        // 同じ親に属する兄弟を同じ配列へまとめる。
         const siblings = children.get(node.parentKey) || [];
+        // 現在の子ノードの識別子を索引へ追加する。
         siblings.push(node.key);
+        // 後続の兄弟も同じ索引を参照できるよう保持する。
         children.set(node.parentKey, siblings);
     });
     // 他の枝の名前や人数は表示用キャッシュへ残さない。
     const nodes = {};
+    // 選択した起点から配下だけを順に探索する。
     const queue = [root.key];
+    // 循環や重複で同じノードを再探索しない。
     const seen = new Set(queue);
+    // 追加された配下も末尾まで順次処理する。
     for (let position = 0; position < queue.length; position += 1) {
+        // 今回の探索対象をキューから確定する。
         const key = queue[position];
+        // 起点の親だけを切り離し、配下の接続は維持する。
         nodes[key] = key === root.key ? { ...root, parentKey: '' } : index[key];
         // 循環した入力でも有限回で完了する。
         (children.get(key) || []).forEach((childKey) => {
+            // 未処理の子だけを次の探索対象へ追加する。
             if (!seen.has(childKey)) {
+                // 追加時点で訪問済みにして重複を防ぐ。
                 seen.add(childKey);
+                // 配下の探索を再帰ではなくキューで継続する。
                 queue.push(childKey);
             }
         });
@@ -63,6 +77,35 @@ export function lookupCandidate(node) {
     return { targetId: node.recordId, label: node.label, description: [department, title].filter(Boolean).join(' • ') };
 }
 
+// 選択起点と直下だけを取得済みの可視構造から取り出す。
+export function roleHierarchyView(nodes, targetId, direction = 'children') {
+    // 上司モードのユーザーをロールとして公開しない。
+    const root = nodes[`ROLE:${targetId}`];
+    // 解除済みまたは非表示のロールでは階層を作らない。
+    if (!root || root.kind !== 'ROLE') return null;
+    // 参照可能なロールだけを候補と集計の共通母集団にする。
+    const roles = Object.values(nodes).filter((node) => node.kind === 'ROLE');
+    // 行ごとに全体を再走査せず直下件数を一度で集計する。
+    const childCounts = new Map();
+    // 孫以下は直接所属する親の件数にだけ加える。
+    roles.forEach((node) => {
+        // 自己参照を下位ロールへ数えない。
+        if (node.parentKey && node.parentKey !== node.key) childCounts.set(node.parentKey, (childCounts.get(node.parentKey) || 0) + 1);
+    });
+    // 孫以下や別の枝を含めず、名称とIDで順序を固定する。
+    const children = roles.filter((node) => node.key !== root.key && (direction === 'parent' ? node.key === root.parentKey : node.parentKey === root.key))
+        .sort((left, right) => left.label.localeCompare(right.label, 'ja') || left.recordId.localeCompare(right.recordId))
+        .map((node) => ({
+            key: node.key,
+            label: node.label,
+            selectLabel: `${node.label}を選択`,
+            // 未集計の人数をゼロと見なさず、カードと同じ参照可能な人数を表示する。
+            summary: `メンバー ${Number.isInteger(node.memberCount) ? `${node.memberCount}人` : '—'} ｜ 下位ロール ${childCounts.get(node.key) || 0}件`
+        }));
+    // 一覧の有無を描画時に再計算しない。
+    return { rootLabel: root.label, children, hasChildren: children.length > 0, listLabel: direction === 'parent' ? '上位ロール' : '下位ロール', emptyMessage: direction === 'parent' ? '参照できる上位ロールはありません。' : '直下の下位ロールはありません。' };
+}
+
 // 取得済みの全上司構造から階層順の未入力候補を作る。
 export function managerBrowseCandidates(index) {
     // 同じ階層では氏名とIDで順序を固定する。
@@ -76,24 +119,30 @@ export function managerBrowseCandidates(index) {
     const children = new Map();
     // 最上位から幅優先で候補を列挙する。
     const queue = [];
+    // 各上司を最上位か直属候補へ一度だけ分類する。
     nodes.forEach((node) => {
         // 自己参照も上位候補の探索を妨げないよう独立させる。
         if (!keys.has(node.parentKey) || node.parentKey === node.key) {
+            // 参照可能な親がない上司を探索の開始点にする。
             queue.push(node);
         } else {
             // 同じ上司の配下を氏名順のまま保持する。
             const siblings = children.get(node.parentKey) || [];
+            // 同じ上司の直属候補をまとめて保持する。
             siblings.push(node);
+            // 以後の直属候補も同じ配列へ統合する。
             children.set(node.parentKey, siblings);
         }
     });
     // 上限超過の有無だけを判定できる件数まで取り出す。
     const candidates = [];
+    // 最上位の同じ階層から氏名順で探索を開始する。
     let level = queue.sort(compareNodes);
     // 深さにかかわらず候補上限で探索を止める。
     while (level.length && candidates.length < 21) {
         // 次の階層は親をまたいで氏名順に並べる。
         const next = [];
+        // 同じ階層の候補を順序どおり公開する。
         for (const node of level) {
             // 現在階層を下位の上司より先に候補へ追加する。
             candidates.push(lookupCandidate(node));
@@ -328,6 +377,7 @@ export function buildView(graph, mode, fieldLabels = {}) {
             const memberCountText = Number.isInteger(node.memberCount)
                 ? `メンバー ${node.memberCount}人`
                 : '';
+            // 配置計算と同じノードからカードの表示値を組み立てる。
             rows.push({
                 ...node,
                 ...cardSelection({ label: node.label, status, memberCountText }, selected),

@@ -6,6 +6,30 @@ private with sharing class ObjectExplorerAccessPolicyTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 認証状態を権限不足や不明と区別する */
+    @IsTest
+    static void classifiesAuthenticationStates() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.areEqual('AUTHENTICATED', new ObjectExplorerAccessPolicy.Authentication().createAuthenticationState(ConnectApi.CredentialAuthenticationStatus.Configured).get('status'), '保存済みは接続確認へ進む');
+            Assert.areEqual('REQUIRED', new ObjectExplorerAccessPolicy.Authentication().createAuthenticationState(ConnectApi.CredentialAuthenticationStatus.NotConfigured).get('status'), '未設定だけ認証を案内');
+            Assert.areEqual('UNAVAILABLE', new ObjectExplorerAccessPolicy.Authentication().createAuthenticationState(null).get('status'), '不明を未認証と推定しない');
+            Assert.areEqual('REQUIRED', new ObjectExplorerAccessPolicy.Authentication().createAuthenticationFailure(new SalesforceApiClient.IntegrationException('[OE-AUTH-401]')).get('status'), '明示拒否だけ再認証');
+            Assert.areEqual('UNAVAILABLE', new ObjectExplorerAccessPolicy.Authentication().createAuthenticationFailure(new QueryException('PRIVATE_VALUE')).get('status'), '内部例外を公開しない');
+            String localUrl = Url.getOrgDomainUrl().toExternalForm() + '/services/auth/test';
+            Assert.areEqual(localUrl, new ObjectExplorerAccessPolicy.Authentication().requireAuthenticationUrl(localUrl), '現在組織のHTTPSだけ許可');
+            for (String invalid : new List<String>{null, 'javascript:alert(1)', 'https://example.com/auth'}) {
+                try {
+                    new ObjectExplorerAccessPolicy.Authentication().requireAuthenticationUrl(invalid);
+                    Assert.fail('不正な接続先を拒否');
+                } catch (AuraHandledException error) {
+                    Assert.isTrue(error.getMessage().contains('開始URL'), '安全な固定案内を返す');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 未制御の例外本文を公開不可とする */
     @IsTest
     static void classifiesInternalFailure() {

@@ -85,6 +85,12 @@
                             onsearchchange={handleSearchChange}
                             ontargetpick={handleTargetPick}
                         ></c-org-explorer-search>
+                        <div class="c-hierarchy-actions">
+                            <template lwc:if={roleSelected}>
+                                <button type="button" data-role-hierarchy-toggle data-hierarchy-direction="parent" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle}>上位ロール</button>
+                                <button type="button" data-role-hierarchy-toggle data-hierarchy-direction="children" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle}>下位ロール</button>
+                            </template>
+                        </div>
                     </section>
                 </div>
                 <c-org-explorer-canvas model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
@@ -98,7 +104,11 @@
                     columns={memberColumns}
                     loading={memberLoading}
                     error={memberError}
-                ></c-org-explorer-details>
+                >
+                    <template lwc:if={canCenterMemberRole}>
+                        <lightning-button slot="actions" label="このロールを中心に表示" disabled={centerMemberRoleDisabled} onclick={handleCenterMemberRole}></lightning-button>
+                    </template>
+                </c-org-explorer-details>
                 <template lwc:if={memberNotice}>
                     <p class="slds-text-body_small slds-text-color_weak" role="status">{memberNotice}</p>
                 </template>

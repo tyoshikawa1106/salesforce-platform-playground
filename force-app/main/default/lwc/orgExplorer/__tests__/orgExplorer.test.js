@@ -1,5 +1,7 @@
 import { createElement } from 'lwc';
 import OrgExplorer from 'c/orgExplorer';
+import OrgExplorerHierarchyModal from 'c/orgExplorerHierarchyModal';
+jest.mock('c/orgExplorerHierarchyModal', () => ({ __esModule: true, default: { open: jest.fn() } }));
 import getCapabilities from '@salesforce/apex/OrgExplorerController.getCapabilities';
 import getPage from '@salesforce/apex/OrgExplorerController.getPage';
 import searchRoles from '@salesforce/apex/OrgExplorerController.searchRoles';
@@ -86,19 +88,91 @@ afterEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
 });
-it('指定した起点から始め、無効ユーザーを初期表示に含め、チェック解除で有効だけに絞る', async () => {
+it('ロール未選択では階層ボタンを無効にし、上司モードには表示しない', async () => {
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    element.defaultRootRoleApiName = '';
+    document.body.appendChild(element);
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-role-hierarchy-toggle]').disabled).toBe(true);
+    element.shadowRoot.querySelector('[data-mode="MANAGER"]').click();
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-role-hierarchy-toggle]')).toBeNull();
+});
+it('階層一覧で直下ロールを選択すると既存の起点・構造取得へ反映する', async () => {
+    const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '支部', parentKey: 'ROLE:root' };
+    const grandchild = { ...child, key: 'ROLE:grandchild', recordId: 'grandchild', label: '係', parentKey: 'ROLE:child' };
+    rolePages.mockResolvedValue({ nodes: [rootTarget, child, grandchild], hasMore: false });
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    const toggle = element.shadowRoot.querySelector('[data-hierarchy-direction="children"]');
+    expect(toggle.disabled).toBe(false);
+    toggle.click();
+    await flush();
+    expect(OrgExplorerHierarchyModal.open).toHaveBeenCalledWith({
+        size: 'small', label: '本部',
+        hierarchy: expect.objectContaining({ rootLabel: '本部', children: [expect.objectContaining({ key: 'ROLE:child' })] })
+    });
+    await expect(element).toBeAccessible();
+    OrgExplorerHierarchyModal.open.mockResolvedValueOnce('ROLE:child');
+    toggle.click();
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget).toMatchObject({ targetId: 'child', label: '支部' });
+    expect(rolePages).toHaveBeenLastCalledWith({ request: expect.objectContaining({ parentId: 'child', scope: 'ROLE_STRUCTURE' }) });
+    OrgExplorerHierarchyModal.open.mockResolvedValueOnce(undefined);
+    toggle.click();
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.targetId).toBe('child');
+});
+
+it('表示起点の外にある直属の親ロールを上位候補から選択できる', async () => {
+    const parent = { ...rootTarget, key: 'ROLE:parent', recordId: 'parent', label: '上位本部' };
+    const root = { ...rootTarget, parentKey: parent.key };
+    rolePages.mockResolvedValue({ nodes: [parent, root], hasMore: false });
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows.map(row => row.key)).not.toContain(parent.key);
+    OrgExplorerHierarchyModal.open.mockResolvedValueOnce(parent.key);
+    element.shadowRoot.querySelector('[data-hierarchy-direction="parent"]').click();
+    await flush();
+    expect(OrgExplorerHierarchyModal.open).toHaveBeenCalledWith(expect.objectContaining({ hierarchy: expect.objectContaining({ listLabel: '上位ロール', children: [expect.objectContaining({ key: parent.key })] }) }));
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.targetId).toBe('parent');
+});
+it('メンバー見出しのロールを表示起点へ切り替え、同じ起点では無効にする', async () => {
+    const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '支部', parentKey: 'ROLE:root' };
+    rolePages.mockResolvedValue({ nodes: [rootTarget, child], hasMore: false });
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    expect(element.shadowRoot.querySelector('lightning-button[slot="actions"]')).toBeNull();
+    element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('nodeselect', { detail: { key: child.key } }));
+    await flush();
+    const button = element.shadowRoot.querySelector('lightning-button[slot="actions"]');
+    expect(button.label).toBe('このロールを中心に表示');
+    expect(button.disabled).toBe(false);
+    button.click();
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.targetId).toBe('child');
+    expect(rolePages).toHaveBeenLastCalledWith({ request: expect.objectContaining({ parentId: 'child', scope: 'ROLE_STRUCTURE' }) });
+    element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('nodeselect', { detail: { key: child.key } }));
+    await flush();
+    expect(element.shadowRoot.querySelector('lightning-button[slot="actions"]').disabled).toBe(true);
+    await expect(element).toBeAccessible();
+});
+it('指定した起点から始め、初期表示は有効ユーザーに絞り、チェックすると無効ユーザーも含める', async () => {
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
     expect(getCapabilities).toHaveBeenCalledWith({ request: expect.any(String) });
     expect(rolePages).toHaveBeenCalledWith({
-        request: expect.objectContaining({ includeInactive: true, scope: 'ROLE_STRUCTURE', parentId: 'root' })
+        request: expect.objectContaining({ includeInactive: false, scope: 'ROLE_STRUCTURE', parentId: 'root' })
     });
     const toggle = element.shadowRoot.querySelector('[role="switch"]');
-    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
     toggle.click();
     await flush();
-    expect(rolePages).toHaveBeenLastCalledWith({ request: expect.objectContaining({ includeInactive: false }) });
+    expect(rolePages).toHaveBeenLastCalledWith({ request: expect.objectContaining({ includeInactive: true }) });
     expect(element.shadowRoot.querySelector('.c-controls button').dataset.mode).toBe('ROLE');
     expect(element.shadowRoot.querySelector('[data-mode="ROLE"]').getAttribute('aria-pressed')).toBe('true');
     const toolbar = element.shadowRoot.querySelector('.c-chart .c-toolbar');
@@ -155,7 +229,7 @@ it('表示条件変更前の遅延応答を反映しない', async () => {
     element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
-        request: expect.objectContaining({ mode: 'ROLE', scope: 'ROLE_STRUCTURE', includeInactive: false })
+        request: expect.objectContaining({ mode: 'ROLE', scope: 'ROLE_STRUCTURE', includeInactive: true })
     });
     resolveOld({ hasMore: false, nodes: [{ ...user, label: '古い対象' }] });
     await flush();
@@ -208,7 +282,7 @@ it('トグル変更でも適用した起点を維持し、ロール候補を再�
     await flush();
     expect(searchRoles).toHaveBeenCalledTimes(1);
     expect(rolePages).toHaveBeenLastCalledWith({
-        request: expect.objectContaining({ parentId: 'root', includeInactive: false })
+        request: expect.objectContaining({ parentId: 'root', includeInactive: true })
     });
     expect(element.shadowRoot.querySelector('[title="更新"]')).toBeNull();
 });
@@ -613,7 +687,7 @@ it('空の起点で全ロールをページ取得し、表示条件変更でも�
     element.shadowRoot.querySelector('[role="switch"]').click();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
-        request: expect.objectContaining({ parentId: null, includeInactive: false })
+        request: expect.objectContaining({ parentId: null, includeInactive: true })
     });
 });
 
@@ -964,7 +1038,7 @@ it('上司の未入力候補は全ページの上位20人を通信せず表示�
     await jest.advanceTimersByTimeAsync(300);
     await flush();
     expect(searchManagers).toHaveBeenLastCalledWith({
-        request: expect.objectContaining({ term: '部', activityFilter: 'ACTIVE' })
+        request: expect.objectContaining({ term: '部', activityFilter: 'ALL' })
     });
     expect(lookup.results[0].description).toBe('本社部門 • 代表');
     jest.useRealTimers();
