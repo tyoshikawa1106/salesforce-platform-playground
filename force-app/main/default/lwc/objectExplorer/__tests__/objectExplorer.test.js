@@ -1,3 +1,5 @@
+import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
+import getApiAuthenticationUrl from '@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl';
 import { createElement } from 'lwc';
 import ObjectExplorer from 'c/objectExplorer';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
@@ -19,6 +21,9 @@ jest.mock('@salesforce/apex/ObjectExplorerController.saveClassifyData', () => ({
 jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ __esModule: true, default: false }), { virtual: true });
 jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ __esModule: true, default: true }), { virtual: true });
 jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
+
+jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl', () => ({ default: jest.fn() }), { virtual: true });
 
 const flush = () => Array.from({ length: 30 }).reduce((p) => p.then(() => Promise.resolve()), Promise.resolve());
 const objectInfo = { apiName: 'Account', label: '取引先', fields: [{ apiName: 'Name', label: '名前', type: 'STRING', typeLabel: 'テキスト(255)', custom: false }], relations: [] };
@@ -47,6 +52,8 @@ beforeEach(() => {
     require('@salesforce/userPermission/ModifyDataClassification').default = false;
     require('@salesforce/userPermission/CustomizeApplication').default = true;
     global.ResizeObserver = class { observe() {} disconnect() {} };
+    getApiAuthentication.mockResolvedValue({ status: 'AUTHENTICATED', message: '' });
+    getApiAuthenticationUrl.mockResolvedValue('https://example.my.salesforce.com/auth');
     searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }]);
     getObjectInfo.mockResolvedValue(objectInfo);
     getClassifyData.mockResolvedValue(classify);
@@ -116,6 +123,33 @@ it('保存失敗では変更を保持して再操作できる', async () => {
     expect(element.shadowRoot.textContent).toContain('編集中に変更されました');
     expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
     expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+});
+it('メール型への絞り込み後も機密度と利用状況を同じ項目へ保持する', async () => {
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: [...objectInfo.fields, { apiName: 'Email__c', label: 'メール', type: 'EMAIL', typeLabel: 'メール', custom: true }] });
+    getClassifyData.mockResolvedValueOnce({
+        rows: { ...classify.rows, Email__c: { ...classify.rows.Name } },
+        options: { ...classify.options, SecurityClassification: [{ label: '機密', value: 'Confidential' }] }
+    });
+    const element = createComponent();
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    const filter = element.shadowRoot.querySelector('.oe-filters lightning-combobox');
+    filter.dispatchEvent(new CustomEvent('change', { detail: { value: 'メール' } }));
+    await flush();
+    for (const [key, value] of [['securityClassification', 'Confidential'], ['businessStatus', 'Active']]) {
+        const input = element.shadowRoot.querySelector(`[data-field="Email__c"][data-property="${key}"]`);
+        input.dispatchEvent(new CustomEvent('change', { detail: { value } }));
+    }
+    await flush();
+    for (const [key, value] of [['securityClassification', 'Confidential'], ['businessStatus', 'Active']]) {
+        expect(element.shadowRoot.querySelector(`[data-field="Email__c"][data-property="${key}"]`).value).toBe(value);
+    }
+    filter.dispatchEvent(new CustomEvent('change', { detail: { value: '' } }));
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-field="Email__c"][data-property="securityClassification"]').value).toBe('Confidential');
+    expect(element.shadowRoot.querySelector('[data-field="Email__c"][data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('[data-field="Name"][data-property="businessStatus"]').value).toBeUndefined();
 });
 it('破棄確認のキャンセルでは対象と分類の入力を維持する', async () => {
     const element = createComponent();
@@ -347,7 +381,7 @@ it('所有者の空欄クリック・空白入力では検索せず、文字入�
     await flush();
     await pickAccount(element);
     const input = element.shadowRoot.querySelector('input[data-field="Name"]');
-    expect(input.placeholder).toBe('検索');
+    expect(input.placeholder).toBe('');
     const searchIcon = [...input.parentElement.querySelectorAll('lightning-icon')].find((icon) => icon.iconName === 'utility:search');
     expect(searchIcon.alternativeText).toBe('検索');
     expect(searchIcon.classList.contains('slds-input__icon_right')).toBe(true);
@@ -501,4 +535,57 @@ it('APIの固定コードは画面に表示し、公開メッセージ本文は�
     expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('エラーコード：OE-AUTH-401');
     expect(JSON.stringify(console.error.mock.calls)).toContain('OE-AUTH-401');
     expect(JSON.stringify(console.error.mock.calls)).not.toContain(message);
+});
+
+it('未認証の場合は対象未選択でも共通のAPI認証を表示する', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: 'API認証してください。' });
+    const element = createComponent();
+    await flush();
+    const link = element.shadowRoot.querySelector('.oe-authentication a');
+    expect(link.textContent).toBe('API認証');
+    expect(link.target).toBe('_blank');
+    expect(link.rel).toContain('noopener');
+    expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).not.toBeNull();
+});
+it('権限不足を未認証として案内しない', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'NO_ACCESS', message: '管理者に確認してください。' });
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
+    expect(getApiAuthenticationUrl).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('管理者');
+});
+it('認証状態の確認失敗では例外本文を表示しない', async () => {
+    getApiAuthentication.mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('再確認');
+});
+it('認証から戻ったとき再確認してボタンを消す', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: 'API認証してください。' });
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.oe-authentication a').dispatchEvent(new MouseEvent('click', { cancelable: true }));
+    getApiAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED', message: '' });
+    window.dispatchEvent(new CustomEvent('focus'));
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(2);
+    expect(element.shadowRoot.querySelector('.oe-authentication')).toBeNull();
+});
+it('認証後の再確認によって未保存の分類編集を破棄しない', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: 'API認証してください。' });
+    const element = createComponent();
+    await editClassify(element);
+    element.shadowRoot.querySelector('.oe-authentication a').dispatchEvent(new MouseEvent('click', { cancelable: true }));
+    getApiAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED', message: '' });
+    window.dispatchEvent(new CustomEvent('focus'));
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(2);
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(getClassifyData).toHaveBeenCalledTimes(1);
 });

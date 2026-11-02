@@ -9,6 +9,18 @@ private with sharing class ObjectExplorerControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 標準認証APIがテストで利用できない場合も内部情報を公開しない */
+    @IsTest
+    static void returnsSafeAuthenticationState() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, Object> result = ObjectExplorerController.getApiAuthentication();
+            Test.stopTest();
+            Assert.areEqual(new Set<String>{'status', 'message'}, result.keySet(), '認証情報を公開しない');
+            Assert.isTrue(new Set<String>{'AUTHENTICATED', 'REQUIRED', 'UNAVAILABLE'}.contains((String) result.get('status')), '公開状態だけを返す');
+        }
+    }
+
     /** カスタム項目日時取得と不要な通信の省略 */
     @IsTest
     static void returnsCustomFieldAudit() {
