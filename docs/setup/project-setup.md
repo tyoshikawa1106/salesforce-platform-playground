@@ -162,4 +162,4 @@ npm run code-analyzer:ci
 
 `npm run lint:slds` が SLDS 違反0件または実際の違反一覧を出力すれば、lockfile に固定された SLDS Linter をローカルで実行できています。
 
-`npm run code-analyzer:ci` が `Found 0 violations.` または実際の violation 一覧を出せば、Salesforce Code Analyzer は実行できています。
+`npm run code-analyzer:ci` が解析結果を出力すれば、Salesforce Code Analyzerは実行できています。指摘がある場合はコマンドが失敗します。実行できたことと品質確認の成功を区別し、停止条件は[AIエージェント開発ルール](../development/agent-development-rules.md#静的解析)に従ってください。

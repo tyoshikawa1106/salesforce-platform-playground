@@ -131,7 +131,7 @@ IssueとPRには、作成時に担当者を設定します。
 ### ブランチ保護
 
 - `main`はPull Request経由の変更を前提にする。
-- 必須ステータスチェックは設定せず、push前のローカル確認と定期品質チェックを使い分ける。
+- `Code Analyzer`をmainの必須ステータスチェックにし、成功するまでマージしない。マージ先の最新状態でチェックが成功していることも必須にする。
 - リポジトリ管理者にもブランチ保護を適用する。
 - マージ前に未解決のレビュー指摘がないことを必須にする。
 - CODEOWNERSによる必須レビューは現在の要件にしない。
@@ -149,13 +149,14 @@ IssueとPRには、作成時に担当者を設定します。
 - CIの`npm audit`は`dependencies`と`devDependencies`を対象にし、`high` / `critical`の既知脆弱性が新たに混入することを防ぐ。
 - `high` / `critical`を一時的に許容する必要がある場合は、対象パッケージ、影響、許容理由、見直し期限、追跡Issueを記録し、監査対象や失敗条件を理由なく弱めない。
 - CIではSalesforce組織へのログイン、metadataのvalidate・deployを行わず、Salesforce JWT認証用シークレットも管理しない。Code Analyzer用のSalesforce CLI・plugin導入を、組織への接続許可として扱わない。
-- PR作成・更新を起点とした品質チェックの自動実行は行わない。
+- main向けPRの作成・更新・再オープン時に`Code Analyzer`を実行する。解析対象、ルール、失敗条件はローカルと同じnpm scriptで管理し、変更ファイルだけに解析範囲を縮小しない。
+- PR用チェックでは障害検知Issueを作成・更新せず、定期・手動実行の結果だけを既存の報告ジョブで扱う。
 
 ### CI変更時の確認
 
-`.github/workflows/ci.yml`と、定期品質チェック結果をIssueへ反映する`scripts/ci/report-quality-check.js`を確認します。
+PR用の`.github/workflows/code-analyzer.yml`、定期実行用の`.github/workflows/ci.yml`、定期品質チェック結果をIssueへ反映する`scripts/ci/report-quality-check.js`を確認します。
 
-- workflowのイベント、条件式、ジョブの依存関係を実行条件と照合し、定期実行と手動実行で必要なチェックが選択されることを確認する。
+- workflowのイベント、条件式、ジョブの依存関係を実行条件と照合し、PR・定期・手動実行で必要なチェックが選択されることを確認する。必須の`Code Analyzer`ジョブには、解析をスキップして成功扱いになる条件や失敗を無視する設定を付けない。
 - workflowと呼び出すスクリプトに、組織へのログイン、metadataのvalidate・deploy、Salesforce JWT用Secretの参照がないことを確認する。
 - 障害検知Issueの作成、更新、復旧、対象外結果をNode.js testで確認する。
 

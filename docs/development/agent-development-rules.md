@@ -164,7 +164,7 @@ npm run code-analyzer
 
 SLDS Linterは`force-app/main/default/lwc`配下のHTMLとCSSを対象にし、ローカルとCIで同じnpm scriptを使います。
 
-CI と同じ severity threshold まで確認する場合は次を実行します。
+ローカルとCIはともにseverity 1〜5の指摘が1件でもあれば失敗とします。指摘または解析エラーが残っている場合は、長時間の組織検証、deploy、push、PRマージへ進みません。CIと同じ出力先で確認する場合は次を実行します。
 
 ```sh
 npm run code-analyzer:ci

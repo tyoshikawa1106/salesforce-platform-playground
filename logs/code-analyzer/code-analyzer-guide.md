@@ -36,7 +36,7 @@ npm run code-analyzer:ci
 logs/code-analyzer/ci.json
 ```
 
-`ci.json` は severity threshold 付きの CI 相当確認で使います。
+`ci.json` はCIと同じ出力先で確認するときに使います。ローカルとCIの停止条件は[AIエージェント開発ルール](../../docs/development/agent-development-rules.md#静的解析)を参照してください。
 
 ## 対象を限定した確認
 
