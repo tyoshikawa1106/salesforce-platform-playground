@@ -1,8 +1,8 @@
+import { reduceErrors } from 'c/salesforceApiUtil';
 import { clientErrorDetails } from './objectMetricsOverviewLogic';
 import { LightningElement, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getObjectMetrics from '@salesforce/apex/ObjectMetricsOverviewController.getObjectMetrics';
-import { reduceErrors } from './objectMetricsOverviewLogic';
 import {
     createCountCards,
     normalizeMetricItems

@@ -1,9 +1,9 @@
+import { reduceErrors } from 'c/salesforceApiUtil';
 import { clientErrorDetails } from './caseEmailMessageListLogic';
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getEmailMessageCount from '@salesforce/apex/CaseEmailMessageController.getEmailMessageCount';
 import getEmailMessages from '@salesforce/apex/CaseEmailMessageController.getEmailMessages';
-import { reduceErrors } from './caseEmailMessageListLogic';
 import {
     LOAD_ERROR_MESSAGE,
     createCardTitle,

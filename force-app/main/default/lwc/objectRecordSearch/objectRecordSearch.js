@@ -1,3 +1,4 @@
+import { reduceErrors } from 'c/salesforceApiUtil';
 import { clientErrorDetails } from './objectRecordSearchLogic';
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
@@ -7,7 +8,7 @@ import { getLayout } from 'lightning/uiLayoutApi';
 import ObjectRecordFormModal from 'c/objectRecordFormModal';
 import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchRecords';
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
-import { createToastMessage, reduceErrors } from './objectRecordSearchLogic';
+import { createToastMessage } from './objectRecordSearchLogic';
 import {
     createFormViewState,
     createFormWireState,

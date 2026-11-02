@@ -10,6 +10,8 @@
 
 ## 対象実装・メタデータ
 
+Salesforce API応答の表示メッセージ整形は内部APIモジュール[salesforceApiUtil](../../../../force-app/main/default/lwc/salesforceApiUtil/salesforceApiUtil.js)を使用します。Apex・UI API形式、複数メッセージの順序と代替文言は[共通テスト](../../../../force-app/main/default/lwc/salesforceApiUtil/__tests__/salesforceApiUtil.test.js)で確認します。権限不足の判定、画面状態と復旧操作はこの画面で管理します。
+
 Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript

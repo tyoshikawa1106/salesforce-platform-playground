@@ -1,10 +1,10 @@
+import { reduceErrors } from 'c/salesforceApiUtil';
 import { clientErrorDetails } from './accountDataQualityScanLogic';
 import { LightningElement, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getLatestScan from '@salesforce/apex/AccountDataQualityScanController.getLatestScan';
 import startScan from '@salesforce/apex/AccountDataQualityScanController.startScan';
-import { reduceErrors } from './accountDataQualityScanLogic';
 import { createScanViewModel } from './accountDataQualityScanLogic';
 
 // スキャン開始成功を利用者へ通知する見出し
