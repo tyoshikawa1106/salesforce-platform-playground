@@ -1,6 +1,7 @@
 import { clientErrorDetails, safeClientDiagnostic } from './orgExplorerLogic';
 import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import OrgExplorerHierarchyModal from 'c/orgExplorerHierarchyModal';
 import getCapabilities from '@salesforce/apex/OrgExplorerController.getCapabilities';
 import getPage from '@salesforce/apex/OrgExplorerController.getPage';
 import searchRoles from '@salesforce/apex/OrgExplorerController.searchRoles';
@@ -11,6 +12,7 @@ import {
     structurePageNodes,
     managerBrowseCandidates,
     lookupCandidate,
+    roleHierarchyView,
     buildView,
     selectView,
     memberView,
@@ -54,12 +56,16 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     // [初期値設定] 初期ロールのAPI名。空文字なら未選択で全ロールを表示する。
     @api defaultRootRoleApiName = 'SampleCompany';
     // [初期値設定] 無効ユーザー表示の初期状態。trueでON、falseでOFFにする。
-    includeInactive = true;
+    includeInactive = false;
 
     // 検索を実行済みの起点を表示条件として保持する。
     rootTarget = null;
     // ルックアップで確定した選択値を表示部品へ渡す。
     candidateTarget = null;
+    // 開いている間だけ直下ロールの表示モデルを保持する。
+    roleHierarchy = null;
+    // 起点配下へ絞る前の参照可能なロール索引を上位移動に使用する。
+    _roleHierarchyNodes = {};
     // 初期値の適用後は、利用者が選んだ表示範囲を維持する。
     _rootInitialized = false;
     // 候補上限を超える場合は追加の絞り込みを促す。
@@ -172,6 +178,10 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 画面条件を切り替える際に全カーソルを破棄する。
     resetContext() {
+        // モード・起点・表示条件の変更で旧階層の選択を無効にする。
+        this.roleHierarchy = null;
+        // 別条件で参照できたロールを上位移動に再利用しない。
+        this._roleHierarchyNodes = {};
         // 未完了の応答を表示から切り離す。
         this._generation += 1;
         // 前の条件で始めた構造の取得を止める。
@@ -246,22 +256,30 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 成功と失敗で同じ世代・送信順の条件を適用する。
     isCurrentRequest(task) {
+        // 終了・世代変更・同じ用途の後続要求がない応答だけを採用する。
         return !this._disposed && task.generation === this._generation && task.sequence === this._sequences.get(task.scope);
     }
     // Apexが公開したメッセージだけを取得元に対応付けて表示する。
     showRequestError(error, source = 'structure') {
         // 候補検索の失敗で構造取得の失敗を上書きしない。
         if (source === 'lookup' && this.error && this._errorSource !== 'lookup') return;
+        // 別用途の成功でこの失敗を消さないよう出所を保持する。
         this._errorSource = source;
+        // 内部例外の構造を持ち出さず再取得の操作を案内する。
         this.error = `${error?.body?.message || '通信に失敗しました。更新してお試しください。'} 表示条件を切り替えて再取得してください。`;
     }
     // 現在の成功応答だけを反映し、同じ取得元の失敗を解除する。
     accepted(response, source = 'structure') {
+        // 取り消された応答から表示状態を更新しない。
         if (!response) return false;
+        // 成功した用途に属する失敗だけを解除する。
         if (this._errorSource === source) {
+            // 復旧した要求の案内を表示から外す。
             this.error = '';
+            // 復旧済みのエラー出所を解放する。
             this._errorSource = '';
         }
+        // 呼び出し元へ有効な応答であることを通知する。
         return true;
     }
     // 初期化と更新では権限を再評価する。
@@ -277,7 +295,9 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     }
     // 権限と初期値の解決後に、現在の表示条件の構造を取得する。
     async loadContext() {
+        // 開始時の表示条件と応答時の表示条件を照合する。
         const generation = this._generation;
+        // 権限と初期起点の取得失敗を画面内で扱う。
         try {
             // 相関キーだけを送り、各モードの利用可否を取得する。
             const response = await this.request('capabilities', getCapabilities, this.requestId());
@@ -300,9 +320,11 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             // 選択済みの起点だけを再検証して表示する。
             await this.loadStructure();
         } catch (error) {
+            // 旧条件や終了後の失敗を新しい画面へ持ち込まない。
             if (generation === this._generation && !this._disposed) {
                 // 現在の要求の失敗だけを診断表示
                 this.reportClientError(error, 'loadContext', 'processing');
+                // 再取得できる固定の案内へ変換する。
                 this.showRequestError(error);
             }
         }
@@ -313,6 +335,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         const developerName = this.defaultRootRoleApiName?.trim() || '';
         // 空欄なら照会を省き、未選択の表示範囲へ揃える。
         let role = null;
+        // 未設定なら全体表示を維持し、設定済みの場合だけ照会する。
         if (developerName) {
             // 組織間で変わるIDではなくAPI名の完全一致で解決する。
             const response = await this.request('role-default', searchRoles, {
@@ -327,10 +350,13 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         }
         // 表示範囲とルックアップを同じ初期選択へ揃える。
         this.rootTarget = role;
+        // ルックアップと組織図の起点を同じ候補へ揃える。
         this.candidateTarget = role;
+        // 初期選択の表示名を入力欄へ同期する。
         this.term = role?.label || '';
         // 切り替えや再取得で初期値を繰り返し適用しない。
         this._rootInitialized = true;
+        // 初期値の解決を再取得時に繰り返さない。
         return true;
     }
     // データの変更時だけ配置と表示モデルを再生成する。
@@ -344,15 +370,20 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     async loadStructure() {
         // 全取得が完了するまで部分的な構造を描画しない。
         const token = Symbol('structure');
+        // 現在の構造取得だけを完了処理の対象にする。
         this._structureToken = token;
+        // ページ間の索引と継続位置を要求内に閉じ込める。
         const state = { token, generation: this._generation, nodes: {}, cursors: new Set() };
+        // 全ページの取得失敗を同じ境界で受け止める。
         try {
             // 深さや末端数によらず件数単位で取得する。
             await this.loadStructurePage(state, '');
         } catch (error) {
+            // 現在の表示条件に属する失敗だけを表示する。
             if (this._structureToken === token && state.generation === this._generation && !this._disposed) {
                 // 現在の要求の失敗だけを診断表示
                 this.reportClientError(error, 'loadStructure', 'processing');
+                // 未完了の構造を成功として公開せず再取得を案内する。
                 this.showRequestError(error);
             }
         } finally {
@@ -364,6 +395,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     async loadStructurePage(state, cursor) {
         // 起点・表示条件が変わった後は継続しない。
         if (state.generation !== this._generation || this._structureToken !== state.token || this._disposed) return;
+        // 現在のモードと起点を含めた一ページだけを要求する。
         const response = await this.request('structure', getPage, {
             requestId: this.requestId(),
             mode: this.mode,
@@ -376,25 +408,36 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         if (!this.accepted(response) || this._structureToken !== state.token) return;
         // 表示モデルへ公開していない取得中の索引だけにページ分を追加する。
         Object.assign(state.nodes, structurePageNodes(response));
+        // 続きがある間は部分的な組織図を公開しない。
         if (response.hasMore) {
             // 不正な継続値で同じページを無限取得しない。
             if (!response.nextCursor || state.cursors.has(response.nextCursor)) {
+                // 同じ継続位置の反復を停止して復旧を案内する。
                 this.error = '階層構造の続きの取得位置が不正です。表示条件を切り替えて再取得してください。';
+                // 不正な継続値では追加照会を行わない。
                 return;
             }
+            // 次の要求前に使用済みの位置を記録する。
             state.cursors.add(response.nextCursor);
+            // 同じ要求状態へ次ページを順次統合する。
             await this.loadStructurePage(state, response.nextCursor);
+            // 全ページ完了まで部分木を構築しない。
             return;
         }
         // 表示用の部分木へ絞る前に全階層の上位候補だけを確定する。
         if (this.mode === 'MANAGER') this._managerBrowse = managerBrowseCandidates(state.nodes);
+        // 部分木の外にいる直属の親も現在の可視性で選択できるようにする。
+        if (this.mode === 'ROLE') this._roleHierarchyNodes = state.nodes;
         // 指定時は配下、未指定時は全ロールの親子を接続する。
         const graph = createStructureGraph(state.nodes, this.rootTarget?.targetId, this.mode === 'ROLE' ? 'ROLE' : 'USER');
+        // 起点の削除や可視性変更を空の階層と混同しない。
         if (!graph) {
+            // 現在のモードに応じて対象の再選択を案内する。
             this.error =
                 this.mode === 'ROLE'
                     ? '指定したロールを表示できません。表示対象を選択し直してください。'
                     : '指定した上司を表示できません。表示対象を選択し直してください。';
+            // 非表示の起点を別のロールへ置き換えない。
             return;
         }
         // 表示条件の変更で選択を解除した新しい構造を適用する。
@@ -479,6 +522,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         this.memberNotice = '';
         // 失敗した場合も現在の要求だけを終了する。
         let response;
+        // 取得とナビゲーション生成の失敗を同じ一覧内で扱う。
         try {
             // サーバーはロールと利用者権限を毎回確認する。
             response = await this.request('members', getPage, {
@@ -562,6 +606,33 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             this.reportClientError(boundaryError, 'handleMemberPage', 'ui-event');
         }
     }
+    // メンバー一覧の対象がロールの場合だけ表示起点への切り替えを提示する。
+    get canCenterMemberRole() {
+        // 上司モードへロール専用操作を持ち込まない。
+        return this.mode === 'ROLE' && this.memberTarget?.kind === 'ROLE';
+    }
+    // 取得中と既に同じ起点の場合は重複取得を防ぐ。
+    get centerMemberRoleDisabled() {
+        // 組織図の起点とメンバー一覧の対象を照合する。
+        return this.busy || this.rootTarget?.targetId === this.memberTarget?.recordId;
+    }
+    // メンバー見出しの対象を既存ルックアップと同じ経路で表示起点へ設定する。
+    handleCenterMemberRole() {
+        // 画面操作の失敗を組織図全体へ伝播させない。
+        try {
+            // 無効な対象や取得中の操作を受け付けない。
+            if (!this.canCenterMemberRole || this.centerMemberRoleDisabled) return;
+            // 現在表示できるロールだけを候補形式へ変換する。
+            this.candidateTarget = lookupCandidate(this.graph.nodes[this.memberTarget.key]);
+            // ロール名の入力表示と表示起点を同期する。
+            this.term = this.candidateTarget.label;
+            // 可視性確認と構造の再取得は通常選択の処理を共用する。
+            this.applyTargetSelection();
+        } catch (error) {
+            // 入力値を含めず操作箇所を報告する。
+            this.reportClientError(error, 'handleCenterMemberRole', 'ui-event');
+        }
+    }
     // 一覧の見出しに現在の選択対象と参照可能な役職を表示する。
     get memberTargetLabel() {
         // ロール名は維持し、上司の場合だけ役職を補足する。
@@ -617,9 +688,13 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             this.term = event.detail.value;
             // 手入力した名称だけでは起点として扱わない。
             this.candidateTarget = null;
+            // 入力変更後に旧起点の階層から選択させない。
+            this.roleHierarchy = null;
             // 空欄への変更は表示条件の初期化と一緒に候補を取り消す。
             if (!this.term.trim()) {
+                // 未選択の全体表示へ既存の切り替え経路で戻す。
                 this.applyTargetSelection();
+                // 解除した入力を検索語として再利用しない。
                 return;
             }
             // 同じ表示範囲でも旧入力に属する要求と結果を破棄する。
@@ -654,6 +729,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             term.length > 80 ||
             !(this.mode === 'ROLE' ? this.capabilities?.roleModeEnabled : this.capabilities?.managerModeEnabled)
         )
+            // 不正な条件では候補要求を発行しない。
             return;
         // 旧世代の応答を表示しないため記録する。
         const generation = this._generation;
@@ -668,10 +744,13 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             // 空欄は最上位だけ、入力時は全階層の名称候補を一回で取得する。
             await this.loadLookupCandidates({ term, generation, token });
         } catch (error) {
+            // 最新の入力に属する検索失敗だけを処理する。
             if (generation === this._generation && this._lookupToken === token && !this._disposed) {
                 // 例外本文を記録せず、失敗した処理だけを通知
                 this.reportClientError(error, 'lookupTargets', 'processing');
+                // 候補照会の復旧操作を利用者へ案内する。
                 this.showRequestError(error, 'lookup');
+                // 失敗した候補を選択できない状態へ戻す。
                 this.resetLookup();
             }
         } finally {
@@ -694,6 +773,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
                 this._disposed ||
                 !this._managerBrowse
             )
+                // 待機中に変わった条件へ古い候補を反映しない。
                 return;
             // 上位からの候補を追加の通信なしで表示する。
             this.results = this._managerBrowse.results;
@@ -701,6 +781,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
             this.lookupHasMore = this._managerBrowse.hasMore;
             // 空集合も取得済みの候補として扱う。
             this.searched = true;
+            // 取得済みの上司構造を使い、重複照会を発行しない。
             return;
         }
         // ロールの空欄候補と氏名の前方一致はサーバーで検索する。
@@ -713,6 +794,7 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         );
         // 入力変更・モード変更・後続要求後の結果を使用しない。
         if (generation !== this._generation || this._lookupToken !== token || !response) return;
+        // 復旧した候補検索の失敗表示だけを解除する。
         this.accepted(response, 'lookup');
         // 空欄時の子階層探索を行わず、一回の応答をそのまま候補にする。
         this.results = response.nodes.map(lookupCandidate);
@@ -749,6 +831,59 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
 
         // 古い描画と応答を破棄して再取得する。
         this.initialize();
+    }
+    // 標準モーダルで直下ロールを提示し、確定結果だけを既存の選択処理へ渡す。
+    async handleHierarchyToggle(event) {
+        // 表示や選択の失敗を組織図全体へ伝播させない。
+        try {
+            // 未選択・取得中・二重起動ではモーダルを開かない。
+            if (this.hierarchyDisabled || this.roleHierarchy) return;
+            // 現在参照できる直下ロールだけを一覧へ渡す。
+            this.roleHierarchy = roleHierarchyView(this._roleHierarchyNodes, this.candidateTarget.targetId, event.currentTarget.dataset.hierarchyDirection || 'children');
+            // 選択名を件名にし、標準のフォーカス・閉じる操作を利用する。
+            const key = await OrgExplorerHierarchyModal.open({
+                size: 'small',
+                label: this.roleHierarchy.rootLabel,
+                hierarchy: this.roleHierarchy
+            });
+            // キャンセル結果では表示対象を変更しない。
+            if (key) this.handleHierarchySelect(key);
+        } catch (error) {
+            // 入力値を含めず操作箇所を報告する。
+            this.reportClientError(error, 'handleHierarchyToggle', 'ui-event');
+        } finally {
+            // モーダル終了後に次の起動を許可する。
+            this.roleHierarchy = null;
+        }
+    }
+    // 一覧に表示中の直下ロールだけを次の起点として採用する。
+    handleHierarchySelect(key) {
+        // 画面イベントの失敗を組織図全体へ伝播させない。
+        try {
+            // 読み込み中の旧候補を選択させない。
+            if (this.hierarchyDisabled) return;
+            // 任意のキーをイベントから追加しない。
+            if (!this.roleHierarchy?.children.some((child) => child.key === key)) return;
+            // 既存のルックアップと同じ選択値の形式へ変換する。
+            this.candidateTarget = lookupCandidate(this._roleHierarchyNodes[key]);
+            // 選択名と組織図の起点を同時に切り替える。
+            this.term = this.candidateTarget.label;
+            // 通常の選択と同じ可視性確認・構造再取得を使用する。
+            this.applyTargetSelection();
+        } catch (error) {
+            // 入力値を含めず操作箇所を報告する。
+            this.reportClientError(error, 'handleHierarchySelect', 'ui-event');
+        }
+    }
+    // 確定済みのロール構造だけから階層選択を開始する。
+    get hierarchyDisabled() {
+        // 選択済みでも取得中や非表示のロールは操作させない。
+        return this.mode !== 'ROLE' || this.busy || !this.candidateTarget?.targetId || !this.graph.nodes[`ROLE:${this.candidateTarget.targetId}`];
+    }
+    // 開閉状態を読み上げへ同期する。
+    get hierarchyExpanded() {
+        // 表示モデルの有無だけで判定する。
+        return Boolean(this.roleHierarchy);
     }
     // モードごとの起点を維持し、旧モードの応答を引き継がない。
     handleMode(event) {
