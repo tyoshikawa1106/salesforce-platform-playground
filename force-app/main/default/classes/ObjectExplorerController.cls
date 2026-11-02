@@ -18,8 +18,19 @@ public with sharing class ObjectExplorerController {
      */
     @AuraEnabled
     public static Map<String, Object> getApiAuthentication() {
-        // 認証確認の順序を専用の処理単位で管理
-        return new Authentication().getState();
+        // 認証状態の表示契約を通信処理から分離
+        ObjectExplorerAuthenticationService service = new ObjectExplorerAuthenticationService();
+        try {
+            // 本人のPer Userトークンと接続先組織を標準の通信境界で確認
+            ConnectApi.CredentialAuthenticationStatus status = new SalesforceApiClient().getAuthenticationStatus();
+            // 資格情報を含まない画面用状態へ変換
+            Map<String, Object> state = service.createAuthenticationState(status);
+            return state;
+        } catch (Exception e) {
+            // 明示的な認証拒否だけを再認証へ振り分け、内部例外は公開しない
+            Map<String, Object> failure = service.createAuthenticationFailure(e);
+            return failure;
+        }
     }
 
     /** 標準API認証を開始するURLを取得
@@ -27,8 +38,12 @@ public with sharing class ObjectExplorerController {
      */
     @AuraEnabled
     public static String getApiAuthenticationUrl() {
-        // 標準URLの取得と検証を一つの処理へ委譲
-        return new Authentication().getUrl();
+        // 標準URLの取得順序を公開入口に残す
+        String value = new SalesforceApiClient().getAuthenticationUrl();
+        // 認証固有の接続先検証を同じServiceに集約
+        ObjectExplorerAuthenticationService service = new ObjectExplorerAuthenticationService();
+        String authenticationUrl = service.requireAuthenticationUrl(value);
+        return authenticationUrl;
     }
 
     /** 実行ユーザー本人のAPI認証を解除 */
@@ -36,44 +51,6 @@ public with sharing class ObjectExplorerController {
     public static void revokeApiAuthentication() {
         // 固定したPer User資格情報だけを通信境界で削除する
         new SalesforceApiClient().revokeAuthentication();
-    }
-
-    /** API認証の取得順序と失敗時の公開応答を制御 */
-    private class Authentication {
-        /**
-         * 実行ユーザーの認証状態と同一組織APIへの接続可否を確認
-         * @return 認証情報を含まない状態と公開案内
-         */
-        public Map<String, Object> getState() {
-            // 既存の通信境界とアクセス判定を共用
-            ObjectExplorerAccessPolicy.Authentication policy = new ObjectExplorerAccessPolicy.Authentication();
-            // 接続拒否と確認不能を区別して画面へ返す
-            try {
-                // 本人のPer Userトークンの状態だけを取得
-                ConnectApi.CredentialAuthenticationStatus status = new SalesforceApiClient().getAuthenticationStatus();
-                // 呼び出し順序をControllerに残し、認証状態の解釈はPolicyへ委譲
-                Map<String, Object> state = policy.createAuthenticationState(status);
-                // 資格情報やAPI応答を画面へ返さない
-                return state;
-            } catch (Exception error) {
-                // 例外本文を公開せず、認証拒否だけを再認証へ振り分け
-                return policy.createAuthenticationFailure(error);
-            }
-        }
-
-        /**
-         * 本人のAPI認証を開始する標準URLを取得
-         * @return 現在組織の標準OAuth認証URL
-         */
-        public String getUrl() {
-            // 接続先と認証方式を既存設定へ固定
-            ObjectExplorerAccessPolicy.Authentication policy = new ObjectExplorerAccessPolicy.Authentication();
-            // 通信境界で内部例外を遮断した標準URLだけを取得
-            String value = new SalesforceApiClient().getAuthenticationUrl();
-            // HTTPSと同一組織を確認したURLだけを返す
-            return policy.requireAuthenticationUrl(value);
-        }
-
     }
 
     /**
@@ -356,16 +333,11 @@ public with sharing class ObjectExplorerController {
             List<ObjectExplorerClassifyService.FieldContext> updated = this.results.applyStandardResults(contexts, results);
             // 結果照合済みの状態だけを次段へ渡す
             return updated;
-        } catch (Exception error) {
-            // カスタム項目の結果へ標準項目の通信失敗を混在させない
-            for (Integer index = 0; index < contexts.size(); index++) {
-                // 今回送信した標準項目だけを選択
-                ObjectExplorerClassifyService.FieldContext context = contexts[index];
-                // 確認済みの失敗やカスタム項目を保持
-                if (!context.completed && context.original != context.expected && !context.customField) { contexts[index] = this.results.failField(context, error); }
-            }
-            // 未送信・確認待ちの対象は後続で照合
-            return contexts;
+        } catch (Exception e) {
+            // 送信対象の選別と失敗結果の生成をServiceへ集約
+            List<ObjectExplorerClassifyService.FieldContext> failed = this.results.failStandardUpdates(contexts, e);
+            // カスタム項目・確定済み結果・入力順を維持した状態を返す
+            return failed;
         }
     }
 
