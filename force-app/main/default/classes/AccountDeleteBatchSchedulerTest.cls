@@ -2,12 +2,22 @@
 @IsTest
 private with sharing class AccountDeleteBatchSchedulerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
+
+    /**
+     * 同じテストクラスで必要な権限だけを割り当て
+     */
+    @TestSetup
+    static void setupDeleteAccess() {
+        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
+        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+    }
 
     /** 定期実行からバッチを起動 */
     @IsTest
     static void startsScheduledBatch() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             Test.startTest();
@@ -24,7 +34,18 @@ private with sharing class AccountDeleteBatchSchedulerTest {
     /** 開始拒否を通知 */
     @IsTest
     static void notifiesRejectedStart() {
-        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+        User denied = new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = 'Delete permission test',
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
+        insert denied;
 
         System.runAs(denied) {
             Test.startTest();
@@ -42,7 +63,6 @@ private with sharing class AccountDeleteBatchSchedulerTest {
     /** 登録済みジョブとの重複を拒否 */
     @IsTest
     static void rejectsRegisteredJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             Test.startTest();
@@ -58,4 +78,5 @@ private with sharing class AccountDeleteBatchSchedulerTest {
             Test.stopTest();
         }
     }
+
 }

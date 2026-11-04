@@ -35,7 +35,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [TestDataDeleteService](../../../../force-app/main/default/classes/TestDataDeleteService.cls)             | テストデータ削除の共通定義・実行条件と画面応答                   | [TestDataDeleteServiceTest](../../../../force-app/main/default/classes/TestDataDeleteServiceTest.cls)             |
 | [TestDataDeleteWrapper](../../../../force-app/main/default/classes/TestDataDeleteWrapper.cls)             | 削除画面に返す実行条件、対象一覧、残件数、標準ジョブ             | [TestDataDeleteWrapperTest](../../../../force-app/main/default/classes/TestDataDeleteWrapperTest.cls)             |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 ### 設定・権限
 

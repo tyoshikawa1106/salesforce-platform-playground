@@ -7,7 +7,7 @@ private with sharing class ObjectExplorerControllerTest {
         CHANGE_STATUS
     }
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 標準認証APIがテストで利用できない場合も内部情報を公開しない */
     @IsTest

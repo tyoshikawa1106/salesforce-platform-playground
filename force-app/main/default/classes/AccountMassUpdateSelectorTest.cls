@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class AccountMassUpdateSelectorTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 作成日時が同じ行を重複せずページ取得 */
     @IsTest
@@ -12,7 +12,7 @@ private with sharing class AccountMassUpdateSelectorTest {
             List<Account> records = new List<Account>();
             for (Integer position = 0; position < 205; position++) {
                 records.add(
-                    TestDataFactory.createAccount('境界検索 ' + position, TestDataFactory.SaveMode.DO_NOT_INSERT)
+                    new Account(Name = '境界検索 ' + position)
                 );
             }
             insert records;
@@ -57,8 +57,8 @@ private with sharing class AccountMassUpdateSelectorTest {
     static void escapesWildcardsAndShortCircuitsEmptyIds() {
 
         System.runAs(testUser) {
-            TestDataFactory.createAccount('法人_100%', TestDataFactory.SaveMode.INSERT_RECORD);
-            TestDataFactory.createAccount('法人A100X', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '法人_100%');
+            insert new Account(Name = '法人A100X');
             AccountMassUpdateWrapper searchRequest3 = new AccountMassUpdateWrapper();
             searchRequest3.searchTerm = '_100%';
             searchRequest3.startDate = null;
@@ -106,7 +106,8 @@ private with sharing class AccountMassUpdateSelectorTest {
             person.put('RecordTypeId', personTypes[0].Id);
             person.put('LastName', '個人除外テスト');
             insert person;
-            Account business = TestDataFactory.createAccount('法人対象', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account business = new Account(Name = '法人対象');
+            insert business;
             AccountMassUpdateWrapper searchRequest5 = new AccountMassUpdateWrapper();
             searchRequest5.searchTerm = '';
             searchRequest5.startDate = null;

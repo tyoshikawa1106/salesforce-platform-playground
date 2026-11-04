@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class OrgEnvironmentTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * Organization の Sandbox 区分を返却

@@ -1,7 +1,7 @@
 /** 固定表示項目とDescribeに基づく表示契約のテスト */
 @IsTest
 private with sharing class ObjectRecordSearchFieldCatalogTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * Describeのソート可否を表示項目へ反映

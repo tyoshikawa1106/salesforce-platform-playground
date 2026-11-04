@@ -33,7 +33,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [CaseEmailMessageSelector](../../../../force-app/main/default/classes/CaseEmailMessageSelector.cls)       | ケースに紐づくメールメッセージ問い合わせ           | [CaseEmailMessageSelectorTest](../../../../force-app/main/default/classes/CaseEmailMessageSelectorTest.cls)       |
 | [CaseEmailMessageService](../../../../force-app/main/default/classes/CaseEmailMessageService.cls)         | ケースメールメッセージ一覧の入力値検証             | [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls)         |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 ### 設定・権限
 

@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class AccountMassUpdateControllerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 異なる変更値を一括保存 */
     @IsTest
@@ -12,7 +12,7 @@ private with sharing class AccountMassUpdateControllerTest {
             List<Account> records = new List<Account>();
             for (Integer position = 0; position < 200; position++) {
                 records.add(
-                    TestDataFactory.createAccount('一括更新 ' + position, TestDataFactory.SaveMode.DO_NOT_INSERT)
+                    new Account(Name = '一括更新 ' + position)
                 );
             }
             insert records;
@@ -44,9 +44,9 @@ private with sharing class AccountMassUpdateControllerTest {
     static void preservesPartialSuccessAndClearsValue() {
 
         System.runAs(testUser) {
-            Account first = TestDataFactory.createAccount('成功対象', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Account first = new Account(Name = '成功対象');
             first.Rating = 'Hot';
-            Account second = TestDataFactory.createAccount('失敗対象', TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Account second = new Account(Name = '失敗対象');
             insert new List<Account>{ first, second };
             List<Account> current = [SELECT Id, LastModifiedDate FROM Account];
             Map<Id, Datetime> versions = new Map<Id, Datetime>();
@@ -74,7 +74,8 @@ private with sharing class AccountMassUpdateControllerTest {
     static void rejectsStaleAndForbiddenUpdates() {
 
         System.runAs(testUser) {
-            Account record = TestDataFactory.createAccount('変更禁止', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account record = new Account(Name = '変更禁止');
+            insert record;
             Test.startTest();
             AccountMassUpdateWrapper stale = AccountMassUpdateController.saveAccounts(
                 new List<Account>{ new Account(Id = record.Id, Rating = 'Cold') },
@@ -99,7 +100,7 @@ private with sharing class AccountMassUpdateControllerTest {
     static void searchesBusinessAccountsAndRejectsReverseDates() {
 
         System.runAs(testUser) {
-            TestDataFactory.createAccount('検索テスト', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '検索テスト');
             Test.startTest();
             AccountMassUpdateWrapper searchRequest1 = new AccountMassUpdateWrapper();
             searchRequest1.searchTerm = '検索';

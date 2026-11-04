@@ -4,7 +4,7 @@ private with sharing class TestDataDeleteSelectorTest {
 
     private static TestDataDeleteSelector selector = new TestDataDeleteSelector();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** ジョブID未指定では最新ジョブを取得しない */
     @IsTest
@@ -24,7 +24,7 @@ private with sharing class TestDataDeleteSelectorTest {
     static void countsAllNames() {
 
         System.runAs(testUser) {
-            TestDataFactory.createAccount('手作業相当', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '手作業相当');
             Test.startTest();
             Integer remaining = selector.getRemaining('Account');
             List<UserPermissionAccess> permissions = selector.getPermissions();

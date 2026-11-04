@@ -272,9 +272,9 @@ Salesforce API共通通信とMetadata SOAP形式のクラスは、後述の「�
 
 ### テスト専用の共通クラス
 
-| クラス                                                                      | 利用元・責務                                                           | 同名Test                                                                            |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [TestDataFactory](../../force-app/main/default/classes/TestDataFactory.cls) | Apexテストのユーザー・レコード・権限割当準備。本番クラスからは呼ばない | [TestDataFactoryTest](../../force-app/main/default/classes/TestDataFactoryTest.cls) |
+| クラス                                                                      | 利用元・責務                                   | 同名Test                                                                            |
+| --------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [TestDataFactory](../../force-app/main/default/classes/TestDataFactory.cls) | 外部から呼び出さず、本体と対応テストだけを保持 | [TestDataFactoryTest](../../force-app/main/default/classes/TestDataFactoryTest.cls) |
 
 ### 画面・帳票以外の関連Apex
 

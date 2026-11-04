@@ -3,7 +3,7 @@
 private with sharing class ObjectExplorerAuthenticationServiceTest {
     private static ObjectExplorerAuthenticationService service = new ObjectExplorerAuthenticationService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 標準認証APIの状態を固定案内だけの表示契約へ変換する */
     @IsTest

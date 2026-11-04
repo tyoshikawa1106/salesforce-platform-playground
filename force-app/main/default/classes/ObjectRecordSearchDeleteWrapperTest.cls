@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchDeleteWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * コンストラクタで受け取った値を公開

@@ -1,7 +1,7 @@
 /** メトリクス定義と許可対象のテスト */
 @IsTest
 private with sharing class ObjectMetricCatalogTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * メトリクス定義の有無をキーで判定

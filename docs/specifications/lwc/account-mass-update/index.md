@@ -30,7 +30,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountMassUpdateService](../../../../force-app/main/default/classes/AccountMassUpdateService.cls)       | 法人取引先一括更新の入力検証と応答生成      | [AccountMassUpdateServiceTest](../../../../force-app/main/default/classes/AccountMassUpdateServiceTest.cls)       |
 | [AccountMassUpdateWrapper](../../../../force-app/main/default/classes/AccountMassUpdateWrapper.cls)       | 法人取引先の検索条件・更新判定・画面応答    | [AccountMassUpdateWrapperTest](../../../../force-app/main/default/classes/AccountMassUpdateWrapperTest.cls)       |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 ### 設定・権限
 

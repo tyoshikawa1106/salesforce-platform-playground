@@ -2,12 +2,22 @@
 @IsTest
 private with sharing class AccountDeleteControllerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
+
+    /**
+     * 同じテストクラスで必要な権限だけを割り当て
+     */
+    @TestSetup
+    static void setupDeleteAccess() {
+        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
+        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+    }
 
     /** 実行状態の取得と削除受付 */
     @IsTest
     static void readsAndStarts() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             Test.startTest();
@@ -27,7 +37,18 @@ private with sharing class AccountDeleteControllerTest {
     /** 権限不足で開始を拒否 */
     @IsTest
     static void rejectsWithoutPermission() {
-        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+        User denied = new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = 'Delete permission test',
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
+        insert denied;
 
         System.runAs(denied) {
             Test.startTest();
@@ -40,7 +61,6 @@ private with sharing class AccountDeleteControllerTest {
     /** 実行中ジョブとの重複を拒否 */
     @IsTest
     static void rejectsDuplicateJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             Test.startTest();
@@ -52,4 +72,5 @@ private with sharing class AccountDeleteControllerTest {
             Test.stopTest();
         }
     }
+
 }

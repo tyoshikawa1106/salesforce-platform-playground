@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class AccountMassUpdateWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 空の応答を初期化 */
     @IsTest

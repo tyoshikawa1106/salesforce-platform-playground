@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class DateTimeUtilTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * インスタンス化を拒否

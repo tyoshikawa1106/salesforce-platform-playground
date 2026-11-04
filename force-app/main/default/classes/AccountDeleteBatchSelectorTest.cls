@@ -2,15 +2,25 @@
 @IsTest
 private with sharing class AccountDeleteBatchSelectorTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
+
+    /**
+     * 同じテストクラスで必要な権限だけを割り当て
+     */
+    @TestSetup
+    static void setupDeleteAccess() {
+        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
+        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+    }
 
     /** 削除対象と標準ジョブを取得 */
     @IsTest
     static void selectsAccountsAndStandardJob() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
-            TestDataFactory.createAccount('対象', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '対象');
             AccountDeleteBatchSelector selector = new AccountDeleteBatchSelector();
             Test.startTest();
             Assert.isTrue(selector.getAccounts().iterator().hasNext(), '参照可能な取引先');
@@ -22,4 +32,5 @@ private with sharing class AccountDeleteBatchSelectorTest {
             Test.stopTest();
         }
     }
+
 }

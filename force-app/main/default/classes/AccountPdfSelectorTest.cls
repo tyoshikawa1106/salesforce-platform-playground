@@ -4,17 +4,14 @@
 @IsTest
 private with sharing class AccountPdfSelectorTest {
     private static final AccountPdfSelector SELECTOR = new AccountPdfSelector();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * PDF 出力対象項目を利用者権限で取得
      */
     @IsTest
     static void shouldReturnAccountWithPdfFields() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'PDF Selector テスト',
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        Account accountRecord = new Account(Name = 'PDF Selector テスト');
         accountRecord.AccountNumber = 'SELECTOR-001';
         accountRecord.Phone = '03-0000-0000';
         accountRecord.Website = 'https://example.com';
@@ -65,10 +62,8 @@ private with sharing class AccountPdfSelectorTest {
      */
     @IsTest
     static void shouldReturnEmptyListWhenAccountDoesNotExist() {
-        Account deletedAccount = TestDataFactory.createAccount(
-            'PDF Selector 削除済みテスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account deletedAccount = new Account(Name = 'PDF Selector 削除済みテスト');
+        insert deletedAccount;
         Id deletedAccountId = deletedAccount.Id;
         delete deletedAccount;
         List<Account> results;

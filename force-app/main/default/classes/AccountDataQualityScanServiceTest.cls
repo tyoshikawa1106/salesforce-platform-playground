@@ -3,15 +3,26 @@
  */
 @IsTest
 private with sharing class AccountDataQualityScanServiceTest {
+    private static final DataQualityScan__c EMPTY_SCAN = new DataQualityScan__c(
+        Target_Object__c = 'Account', Processed_Count__c = 0, Missing_Phone_Count__c = 0,
+        Missing_Industry_Count__c = 0, Missing_Address_Count__c = 0, Missing_Website_Count__c = 0,
+        Missing_Account_Number_Count__c = 0
+    );
+
     private static final String TEST_USER_MARKER = 'DQScanService';
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * USER_MODE DML に必要な権限をテストユーザーへ割り当て
      */
     @TestSetup
     static void setupPermission() {
-        TestDataFactory.createAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        User scanUser = new User(Alias = 'dqscan', Email = 'data-quality-scan@example.invalid',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja', LastName = TEST_USER_MARKER,
+            LocaleSidKey = 'ja_JP', ProfileId = UserInfo.getProfileId(), TimeZoneSidKey = 'Asia/Tokyo',
+            Username = 'data-quality-scan.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid');
+        insert scanUser;
+        insert new PermissionSetAssignment(AssigneeId = scanUser.Id, PermissionSetId = scanPermissionId());
     }
 
     /**
@@ -19,11 +30,12 @@ private with sharing class AccountDataQualityScanServiceTest {
      */
     @IsTest
     static void shouldCountMissingValuesAndCompleteWhenLastChunkProcessed() {
-        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
-            AccountDataQualityScanService.STATUS_PENDING,
-            2,
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        DataQualityScan__c scanRecord = EMPTY_SCAN.clone();
+        scanRecord.Status__c = AccountDataQualityScanService.STATUS_PENDING;
+        scanRecord.Total_Count__c = 2;
+        scanRecord.Started_At__c = System.now();
+        scanRecord.Requested_By__c = UserInfo.getUserId();
+        scanRecord.Active_Key__c = AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY;
         Account completeAccount = createCompleteAccount('完全な取引先');
         Account missingAccount = new Account(Name = '不足する取引先');
         AccountDataQualityScanService service = new AccountDataQualityScanService();
@@ -55,11 +67,12 @@ private with sharing class AccountDataQualityScanServiceTest {
      */
     @IsTest
     static void shouldCountAddressMissingWhenAnyRequiredPartIsBlank() {
-        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
-            AccountDataQualityScanService.STATUS_RUNNING,
-            1,
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        DataQualityScan__c scanRecord = EMPTY_SCAN.clone();
+        scanRecord.Status__c = AccountDataQualityScanService.STATUS_RUNNING;
+        scanRecord.Total_Count__c = 1;
+        scanRecord.Started_At__c = System.now();
+        scanRecord.Requested_By__c = UserInfo.getUserId();
+        scanRecord.Active_Key__c = AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY;
         Account accountRecord = createCompleteAccount('郵便番号なし取引先');
         accountRecord.BillingPostalCode = null;
         DataQualityScan__c result;
@@ -81,11 +94,12 @@ private with sharing class AccountDataQualityScanServiceTest {
      */
     @IsTest
     static void shouldRemainRunningWhenCursorHasRemainingPositions() {
-        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
-            AccountDataQualityScanService.STATUS_PENDING,
-            5,
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        DataQualityScan__c scanRecord = EMPTY_SCAN.clone();
+        scanRecord.Status__c = AccountDataQualityScanService.STATUS_PENDING;
+        scanRecord.Total_Count__c = 5;
+        scanRecord.Started_At__c = System.now();
+        scanRecord.Requested_By__c = UserInfo.getUserId();
+        scanRecord.Active_Key__c = AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY;
         DataQualityScan__c result;
 
         System.runAs(testUser) {
@@ -106,11 +120,12 @@ private with sharing class AccountDataQualityScanServiceTest {
      */
     @IsTest
     static void shouldMarkFailedAndReleaseActiveKey() {
-        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
-            AccountDataQualityScanService.STATUS_RUNNING,
-            1,
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        DataQualityScan__c scanRecord = EMPTY_SCAN.clone();
+        scanRecord.Status__c = AccountDataQualityScanService.STATUS_RUNNING;
+        scanRecord.Total_Count__c = 1;
+        scanRecord.Started_At__c = System.now();
+        scanRecord.Requested_By__c = UserInfo.getUserId();
+        scanRecord.Active_Key__c = AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY;
         DataQualityScan__c result;
 
         System.runAs(testUser) {
@@ -132,11 +147,12 @@ private with sharing class AccountDataQualityScanServiceTest {
      */
     @IsTest
     static void shouldRejectChunkWhenScanAlreadyCompleted() {
-        DataQualityScan__c scanRecord = TestDataFactory.createDataQualityScan(
-            AccountDataQualityScanService.STATUS_COMPLETED,
-            1,
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        DataQualityScan__c scanRecord = EMPTY_SCAN.clone();
+        scanRecord.Status__c = AccountDataQualityScanService.STATUS_COMPLETED;
+        scanRecord.Total_Count__c = 1;
+        scanRecord.Started_At__c = System.now();
+        scanRecord.Requested_By__c = UserInfo.getUserId();
+        scanRecord.Active_Key__c = null;
 
         System.runAs(testUser) {
             Test.startTest();
@@ -210,4 +226,15 @@ private with sharing class AccountDataQualityScanServiceTest {
         accountRecord.AccountNumber = 'ACC-001';
         return accountRecord;
     }
+
+    /**
+     * スキャン実行に必要な権限セットの存在を確認
+     * @return スキャン用の権限セットID
+     */
+    private static Id scanPermissionId() {
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDataQualityScan'];
+        Assert.isFalse(permissions.isEmpty(), 'スキャンのテスト権限が存在');
+        return permissions[0].Id;
+    }
+
 }

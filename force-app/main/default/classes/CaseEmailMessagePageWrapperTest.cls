@@ -3,7 +3,7 @@
  */
 @IsTest
 private with sharing class CaseEmailMessagePageWrapperTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 引数なしで空ページを初期化
@@ -32,8 +32,8 @@ private with sharing class CaseEmailMessagePageWrapperTest {
     @IsTest
     static void shouldExposePageState() {
         List<Case> caseRecords = new List<Case>{
-            TestDataFactory.createCase('ページ Wrapper テスト 1', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createCase('ページ Wrapper テスト 2', TestDataFactory.SaveMode.DO_NOT_INSERT)
+            new Case(Subject = 'ページ Wrapper テスト 1'),
+            new Case(Subject = 'ページ Wrapper テスト 2')
         };
         insert caseRecords;
         Set<Id> caseIds = new Map<Id, Case>(caseRecords).keySet();

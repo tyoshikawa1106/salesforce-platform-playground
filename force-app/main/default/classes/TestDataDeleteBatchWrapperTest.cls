@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class TestDataDeleteBatchWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 子から親の削除順序を維持 */
     @IsTest

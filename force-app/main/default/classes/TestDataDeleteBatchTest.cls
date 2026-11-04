@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class TestDataDeleteBatchTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** テスト内の標準ジョブをfinishへ渡すコンテキスト */
     private class Context implements Database.BatchableContext {
@@ -113,7 +113,7 @@ private with sharing class TestDataDeleteBatchTest {
             List<Account> accounts = new List<Account>();
             for (Integer index = 0; index < 251; index++) {
                 accounts.add(
-                    TestDataFactory.createAccount('任意の名称' + index, TestDataFactory.SaveMode.DO_NOT_INSERT)
+                    new Account(Name = '任意の名称' + index)
                 );
             }
             insert accounts;
@@ -134,7 +134,8 @@ private with sharing class TestDataDeleteBatchTest {
     static void deletesTwoScopesAndPreservesParentUntilChildrenAreGone() {
 
         System.runAs(testUser) {
-            Account parent = TestDataFactory.createAccount('親の保持確認', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account parent = new Account(Name = '親の保持確認');
+            insert parent;
             List<Contact> contacts = new List<Contact>();
             List<SObject> firstScope = new List<SObject>();
             List<SObject> secondScope = new List<SObject>();
@@ -177,9 +178,12 @@ private with sharing class TestDataDeleteBatchTest {
     static void preservesPartialFailureAcrossScopes() {
 
         System.runAs(testUser) {
-            Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account gone = TestDataFactory.createAccount('既削除', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account last = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account first = new Account(Name = '前半');
+            insert first;
+            Account gone = new Account(Name = '既削除');
+            insert gone;
+            Account last = new Account(Name = '後半');
+            insert last;
             delete gone;
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.position = plan.objectNames.indexOf('Account');
@@ -204,7 +208,8 @@ private with sharing class TestDataDeleteBatchTest {
     static void rejectsInvalidPlanBeforeDml() {
 
         System.runAs(testUser) {
-            Account account = TestDataFactory.createAccount('保持', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account account = new Account(Name = '保持');
+            insert account;
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.objectNames[0] = 'User';
             Test.startTest();

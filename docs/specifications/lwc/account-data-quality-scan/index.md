@@ -34,7 +34,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountDataQualityScanService](../../../../force-app/main/default/classes/AccountDataQualityScanService.cls)       | 取引先データ品質の判定とスキャン状態遷移                 | [AccountDataQualityScanServiceTest](../../../../force-app/main/default/classes/AccountDataQualityScanServiceTest.cls)       |
 | [AccountDataQualityScanWrapper](../../../../force-app/main/default/classes/AccountDataQualityScanWrapper.cls)       | 取引先データ品質スキャンの画面表示値                     | [AccountDataQualityScanWrapperTest](../../../../force-app/main/default/classes/AccountDataQualityScanWrapperTest.cls)       |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 ### 設定・権限
 

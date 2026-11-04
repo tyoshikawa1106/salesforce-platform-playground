@@ -4,7 +4,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
 
     private static TestDataDeleteBatchService service = new TestDataDeleteBatchService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 価格の段階と次の対象をまたいでも全体件数を保持 */
     @IsTest
@@ -179,8 +179,10 @@ private with sharing class TestDataDeleteBatchServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            Account first = TestDataFactory.createAccount('削除可能', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account first = new Account(Name = '削除可能');
+            insert first;
+            Account gone = new Account(Name = '削除済み');
+            insert gone;
             delete gone;
             List<Database.DeleteResult> results = Database.delete(new List<Account>{ first, gone }, false);
             TestDataDeleteBatchWrapper original = new TestDataDeleteBatchWrapper();

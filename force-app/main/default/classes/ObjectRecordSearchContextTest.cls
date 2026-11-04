@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchContextTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 検索コンテキストから設定と許可項目を作成

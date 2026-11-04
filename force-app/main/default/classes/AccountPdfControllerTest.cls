@@ -3,17 +3,14 @@
  */
 @IsTest
 private with sharing class AccountPdfControllerTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * URL の取引先情報を PDF 表示モデルへ変換
      */
     @IsTest
     static void shouldLoadAccountDataWhenAccountIdIsValid() {
-        Account accountRecord = TestDataFactory.createAccount(
-            '株式会社 PDF Controller テスト',
-            TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        Account accountRecord = new Account(Name = '株式会社 PDF Controller テスト');
         accountRecord.AccountNumber = 'PDF-001';
         accountRecord.Phone = '03-0000-0000';
         accountRecord.Website = 'https://example.com/account';
@@ -94,15 +91,10 @@ private with sharing class AccountPdfControllerTest {
      */
     @IsTest
     static void shouldShowSafeErrorWhenIdBelongsToAnotherObject() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'PDF Controller 取引先以外 ID テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        Contact contactRecord = TestDataFactory.createContact(
-            accountRecord,
-            'Controller テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'PDF Controller 取引先以外 ID テスト');
+        insert accountRecord;
+        Contact contactRecord = new Contact(AccountId = accountRecord.Id, LastName = 'Controller テスト');
+        insert contactRecord;
         setCurrentPage(String.valueOf(contactRecord.Id));
         AccountPdfController result;
 
@@ -123,10 +115,8 @@ private with sharing class AccountPdfControllerTest {
      */
     @IsTest
     static void shouldShowSafeErrorWhenAccountDoesNotExist() {
-        Account deletedAccount = TestDataFactory.createAccount(
-            'PDF Controller 削除済みテスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account deletedAccount = new Account(Name = 'PDF Controller 削除済みテスト');
+        insert deletedAccount;
         Id deletedAccountId = deletedAccount.Id;
         delete deletedAccount;
         setCurrentPage(String.valueOf(deletedAccountId));

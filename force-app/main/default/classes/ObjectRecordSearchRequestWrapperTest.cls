@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchRequestWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 代入された検索リクエスト値を公開

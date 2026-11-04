@@ -6,17 +6,17 @@ private with sharing class ObjectRecordSearchServiceTest {
 
     private static ObjectRecordSearchService service = new ObjectRecordSearchService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     @TestSetup
     static void setupTestData() {
         List<Account> accounts = new List<Account>();
 
-        Account alphaAccount = TestDataFactory.createAccount('Service Alpha', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account alphaAccount = new Account(Name = 'Service Alpha');
         alphaAccount.Industry = 'Technology';
         accounts.add(alphaAccount);
 
-        Account betaAccount = TestDataFactory.createAccount('Service Beta', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account betaAccount = new Account(Name = 'Service Beta');
         betaAccount.Industry = 'Finance';
         accounts.add(betaAccount);
         insert accounts;
@@ -153,7 +153,7 @@ private with sharing class ObjectRecordSearchServiceTest {
     static void shouldCreatePagedSearchResultWhenMoreThanPageSizeIsFetched() {
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 51; index++) {
-            Account accountRecord = TestDataFactory.createAccount('Paged Account ' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Account accountRecord = new Account(Name = 'Paged Account ' + index);
             accountRecord.Industry = 'Technology';
             accounts.add(accountRecord);
         }
@@ -390,10 +390,8 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldCreateDeleteErrorFromFailedDmlResult() {
-        Account target = TestDataFactory.createAccount(
-            'Service 削除失敗テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account target = new Account(Name = 'Service 削除失敗テスト');
+        insert target;
         delete target;
         ObjectRecordSearchDeleteWrapper result;
 

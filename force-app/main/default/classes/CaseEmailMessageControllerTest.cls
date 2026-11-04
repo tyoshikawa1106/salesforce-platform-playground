@@ -4,17 +4,15 @@
 @IsTest
 private with sharing class CaseEmailMessageControllerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * ケースに紐づくメールメッセージ件数を返却
      */
     @IsTest
     static void shouldReturnEmailMessageCountForCase() {
-        Case caseRecord = TestDataFactory.createCase(
-            'メール件数 Controller テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'メール件数 Controller テスト');
+        insert caseRecord;
         insert new List<EmailMessage>{
             createEmailMessage(caseRecord.Id, '件数対象 1', System.now()),
             createEmailMessage(caseRecord.Id, '件数対象 2', System.now())
@@ -55,10 +53,8 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldRejectNonCaseIdForCount() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'メール件数 Case 以外 ID テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'メール件数 Case 以外 ID テスト');
+        insert accountRecord;
 
         System.runAs(testUser) {
             Test.startTest();
@@ -77,10 +73,8 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldReturnEmailMessagesForCase() {
-        Case caseRecord = TestDataFactory.createCase(
-            'メール一覧 Controller テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'メール一覧 Controller テスト');
+        insert caseRecord;
         Datetime earlierMessageDate = Datetime.newInstance(2026, 7, 16, 9, 0, 0);
         insert new List<EmailMessage>{
             createEmailMessage(caseRecord.Id, '古い Controller 取得対象', earlierMessageDate),
@@ -139,10 +133,8 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldReturnEmptyListWhenCaseIdIsNullAndCursorExists() {
-        Case caseRecord = TestDataFactory.createCase(
-            'null ケース ID と既存 Cursor テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'null ケース ID と既存 Cursor テスト');
+        insert caseRecord;
         insert createEmailMessage(caseRecord.Id, '取得してはいけないメール', System.now());
         Database.PaginationCursor paginationCursor;
         CaseEmailMessagePageWrapper result;
@@ -176,10 +168,8 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldRejectNonCaseId() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'ケース以外 ID テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'ケース以外 ID テスト');
+        insert accountRecord;
 
         System.runAs(testUser) {
             Test.startTest();

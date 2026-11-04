@@ -4,16 +4,14 @@
 @IsTest
 private with sharing class ObjectRecordSearchRowWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * レコード行の表示値を公開
      */
     @IsTest
     static void shouldExposeRecordValues() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'Wrapper Row Account', TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        Account accountRecord = new Account(Name = 'Wrapper Row Account');
         accountRecord.Industry = 'Technology';
         insert accountRecord;
         Account queriedAccount = [
@@ -67,10 +65,8 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
      */
     @IsTest
     static void shouldNormalizeNullDisplayFields() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'Wrapper Empty Field Account',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'Wrapper Empty Field Account');
+        insert accountRecord;
         ObjectRecordSearchRowWrapper wrapper;
 
         System.runAs(testUser) {

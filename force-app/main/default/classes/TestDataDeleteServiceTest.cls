@@ -3,7 +3,7 @@
 private with sharing class TestDataDeleteServiceTest {
 
     private static TestDataDeleteService service = new TestDataDeleteService();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** すべてのデータの編集権限がなければ拒否 */
     @IsTest

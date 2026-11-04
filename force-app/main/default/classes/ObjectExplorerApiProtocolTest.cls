@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class ObjectExplorerApiProtocolTest {
     private static ObjectExplorerApiProtocol.RecordReader reader = new ObjectExplorerApiProtocol.RecordReader();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** ネイティブ分類の未設定・所有者・識別子を通信せず保持 */
     @IsTest

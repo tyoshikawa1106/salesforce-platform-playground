@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class SalesforceApiProtocolTest {
     private static SalesforceApiProtocol.RecordReader reader = new SalesforceApiProtocol.RecordReader();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 公開境界の例外メッセージを確認 */
     @IsTest

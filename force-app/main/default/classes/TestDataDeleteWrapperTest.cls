@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class TestDataDeleteWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 未受付の画面応答を初期化 */
     @IsTest
