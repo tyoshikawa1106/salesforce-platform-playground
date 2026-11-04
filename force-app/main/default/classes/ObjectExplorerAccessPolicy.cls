@@ -1,6 +1,11 @@
 /** データ分類操作の権限と参照対象を検証 */
 public with sharing class ObjectExplorerAccessPolicy {
 
+    // 分類更新非対応の標準項目を要求内の全判定で共用
+    private static final Set<String> UNSUPPORTED_STANDARD_FIELDS = new Set<String>{
+        'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById'
+    };
+
     /**
      * 参照可否確認済みの対象から項目の参照・編集可否を検証
      * @param info 同じ要求で参照可否を確認したオブジェクト定義
@@ -33,15 +38,18 @@ public with sharing class ObjectExplorerAccessPolicy {
     }
 
     /**
-     * 管理パッケージや設定用の項目を編集対象から除外
+     * 管理パッケージ・設定用・分類更新非対応の標準項目を編集対象から除外
      * @param info 参照可否確認済みのオブジェクト定義
      * @param field 対象項目
-     * @return 標準項目または未管理カスタム項目の場合true
+     * @return 本機能で分類更新を許可する項目の場合true
      */
     public static Boolean isEditable(Schema.DescribeSObjectResult info, Schema.DescribeFieldResult field) {
         Boolean localField = !field.isCustom() || (field.getName().endsWith('__c') && field.getName().countMatches('__') == 1);
         Boolean localObject = !info.isCustom() || info.getName().countMatches('__') == 1;
-        return localField && localObject && !info.isCustomSetting() && !info.getName().endsWith('__mdt');
+        // 正式API名で照合し、接尾辞を持つカスタム項目には一致させない
+        Boolean supported = !UNSUPPORTED_STANDARD_FIELDS.contains(field.getName());
+        // 画面・CSVと保存入口で同じ判定を共用
+        return localField && localObject && supported && !info.isCustomSetting() && !info.getName().endsWith('__mdt');
     }
 
     /**

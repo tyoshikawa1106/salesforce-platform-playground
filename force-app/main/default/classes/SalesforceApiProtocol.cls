@@ -1,5 +1,7 @@
 /** API要求・応答の純粋な変換と機密情報を含まない固定診断 */
 public with sharing class SalesforceApiProtocol {
+    // エラーが発生した要求だけで構築し、項目別の拒否が続いても再利用
+    private static Set<String> allowedCodes;
     /**
      * 応答本文を含まないHTTP診断を作成
      * @param response HTTP失敗の応答
@@ -21,13 +23,20 @@ public with sharing class SalesforceApiProtocol {
     }
 
     /**
-     * RESTとSOAPのエラーコードを同じ許可範囲へ限定
+     * RESTとSOAPのエラーコードを公式の列挙値と固定のRESTコードへ限定
      * @param value 応答に含まれる未検証のコード
-     * @return 許可済みコード、未知の値はUNKNOWN_ERROR
+     * @return 公式コード、未登録の値はUNRECOGNIZED_API_ERROR_CODE
      */
     public static String safeCode(String value) {
-        Set<String> allowed = new Set<String>{'INVALID_SESSION_ID', 'API_DISABLED_FOR_ORG', 'INSUFFICIENT_ACCESS', 'INSUFFICIENT_ACCESS_OR_READONLY', 'INVALID_FIELD', 'INVALID_TYPE', 'MALFORMED_QUERY', 'INVALID_OPERATION', 'REQUEST_LIMIT_EXCEEDED', 'NOT_FOUND', 'FIELD_INTEGRITY_EXCEPTION', 'INVALID_CROSS_REFERENCE_KEY', 'DUPLICATE_VALUE', 'INVALID_TYPE_FOR_OPERATION', 'UNKNOWN_EXCEPTION', 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST', 'CANNOT_MODIFY_MANAGED_OBJECT'};
-        return allowed.contains(value) ? value : 'UNKNOWN_ERROR';
+        // 公式コードの列挙を同じApex要求で繰り返さない
+        if (allowedCodes == null) {
+            // REST固有コードを含む従来の公開範囲を維持
+            allowedCodes = new Set<String>{'INVALID_SESSION_ID', 'API_DISABLED_FOR_ORG', 'INSUFFICIENT_ACCESS', 'INSUFFICIENT_ACCESS_OR_READONLY', 'INVALID_FIELD', 'INVALID_TYPE', 'MALFORMED_QUERY', 'INVALID_OPERATION', 'REQUEST_LIMIT_EXCEEDED', 'NOT_FOUND', 'FIELD_INTEGRITY_EXCEPTION', 'INVALID_CROSS_REFERENCE_KEY', 'DUPLICATE_VALUE', 'INVALID_TYPE_FOR_OPERATION', 'UNKNOWN_EXCEPTION', 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST', 'CANNOT_MODIFY_MANAGED_OBJECT', 'JSON_PARSER_ERROR'};
+            // 手動一覧にない公式の業務・定義エラーも公開可能にする
+            for (System.StatusCode code : System.StatusCode.values()) { allowedCodes.add(String.valueOf(code)); }
+        }
+        // 実際のAPIコードと診断側の未認識を区別
+        return allowedCodes.contains(value) ? value : 'UNRECOGNIZED_API_ERROR_CODE';
     }
 
     /**

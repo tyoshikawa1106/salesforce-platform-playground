@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchQueryPlanTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 必須値と許可済み識別子を持つ問い合わせ条件を返却

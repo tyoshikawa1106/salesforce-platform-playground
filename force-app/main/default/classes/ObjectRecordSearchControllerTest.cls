@@ -4,21 +4,21 @@
 @IsTest
 private with sharing class ObjectRecordSearchControllerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     @TestSetup
     static void setupTestData() {
         List<Account> accounts = new List<Account>();
 
-        Account alphaAccount = TestDataFactory.createAccount('検索対象 Alpha', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account alphaAccount = new Account(Name = '検索対象 Alpha');
         alphaAccount.Industry = 'Technology';
         alphaAccount.Type = 'Prospect';
         alphaAccount.BillingState = '東京都';
         alphaAccount.BillingCity = '千代田区';
         accounts.add(alphaAccount);
 
-        accounts.add(TestDataFactory.createAccount('検索対象 Beta', TestDataFactory.SaveMode.DO_NOT_INSERT));
-        accounts.add(TestDataFactory.createAccount('削除対象 Gamma', TestDataFactory.SaveMode.DO_NOT_INSERT));
+        accounts.add(new Account(Name = '検索対象 Beta'));
+        accounts.add(new Account(Name = '削除対象 Gamma'));
         insert accounts;
     }
 
@@ -503,7 +503,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     @IsTest
     static void shouldPagePicklistsAscending() {
         System.runAs(testUser) {
-            TestDataFactory.createSearchPaginationRecords();
+            createSearchPaginationRecords();
             List<Id> expected = recordIds([SELECT Id FROM Opportunity ORDER BY StageName ASC NULLS LAST, Id ASC]);
             Test.startTest();
             List<Id> actual = readPages('opportunities', 'StageName', 'asc');
@@ -516,7 +516,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     @IsTest
     static void shouldPagePicklistsDescending() {
         System.runAs(testUser) {
-            TestDataFactory.createSearchPaginationRecords();
+            createSearchPaginationRecords();
             List<Id> expected = recordIds([SELECT Id FROM Opportunity ORDER BY StageName DESC NULLS LAST, Id ASC]);
             Test.startTest();
             List<Id> actual = readPages('opportunities', 'StageName', 'desc');
@@ -529,7 +529,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     @IsTest
     static void shouldPageBooleansAscending() {
         System.runAs(testUser) {
-            TestDataFactory.createSearchPaginationRecords();
+            createSearchPaginationRecords();
             List<Id> expected = recordIds([SELECT Id FROM Product2 ORDER BY IsActive ASC NULLS LAST, Id ASC]);
             Test.startTest();
             List<Id> actual = readPages('products', 'IsActive', 'asc');
@@ -542,7 +542,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     @IsTest
     static void shouldPageBooleansDescending() {
         System.runAs(testUser) {
-            TestDataFactory.createSearchPaginationRecords();
+            createSearchPaginationRecords();
             List<Id> expected = recordIds([SELECT Id FROM Product2 ORDER BY IsActive DESC NULLS LAST, Id ASC]);
             Test.startTest();
             List<Id> actual = readPages('products', 'IsActive', 'desc');
@@ -555,7 +555,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     @IsTest
     static void shouldPageNullablePicklists() {
         System.runAs(testUser) {
-            TestDataFactory.createSearchPaginationRecords();
+            createSearchPaginationRecords();
             List<Id> expected = recordIds([SELECT Id FROM Account ORDER BY Industry ASC NULLS LAST, Id ASC]);
             Test.startTest();
             List<Id> actual = readPages('accounts', 'Industry', 'asc');
@@ -599,7 +599,7 @@ private with sharing class ObjectRecordSearchControllerTest {
     @IsTest
     static void shouldReturnToFirstPageUsingSameCursor() {
         System.runAs(testUser) {
-            TestDataFactory.createSearchPaginationRecords();
+            createSearchPaginationRecords();
             Test.startTest();
             ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
             request.metricKey = 'accounts';
@@ -613,5 +613,35 @@ private with sharing class ObjectRecordSearchControllerTest {
             Assert.areEqual(first.records[0].id, previous.records[0].id, '同じカーソルの先頭へ戻れる必要あり');
             Assert.areEqual(first.records.size(), previous.records.size(), '前ページの件数を保持する必要あり');
         }
+    }
+
+    /** ページング境界を確認する型別レコードを準備 */
+    private static void createSearchPaginationRecords() {
+        // 設定順に並ぶ選択値とnullを別々のグループにする
+        List<Schema.PicklistEntry> values = Account.Industry.getDescribe().getPicklistValues();
+        // 同値内の境界も越える件数を用意
+        List<Account> accounts = new List<Account>();
+        List<Product2> products = new List<Product2>();
+        List<Opportunity> opportunities = new List<Opportunity>();
+        for (Integer index = 0; index < 251; index++) {
+            // 同値内のページ境界を比較できる名前を設定
+            Account record = new Account(Name = 'Pagination ' + index);
+            record.Industry = index < 100 ? values[0].getValue() : (index < 200 ? values[1].getValue() : null);
+            accounts.add(record);
+            // Booleanの両値がそれぞれ複数ページになるようにする
+            Product2 product = new Product2(Name = 'Pagination ' + index, IsActive = true);
+            product.IsActive = index < 125;
+            products.add(product);
+        }
+        // トリガの一括境界も越えた状態で保存
+        insert accounts;
+        insert products;
+        // 設定順ではProspectingが先、字句順ではNeeds Analysisが先になる組合せ
+        for (Integer index = 0; index < 251; index++) {
+            Opportunity opportunity = new Opportunity(AccountId = accounts[0].Id, Name = 'Pagination ' + index, StageName = 'Prospecting', CloseDate = Date.today().addDays(30));
+            opportunity.StageName = index < 125 ? 'Prospecting' : 'Needs Analysis';
+            opportunities.add(opportunity);
+        }
+        insert opportunities;
     }
 }

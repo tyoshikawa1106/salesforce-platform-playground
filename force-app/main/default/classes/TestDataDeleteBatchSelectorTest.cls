@@ -5,7 +5,7 @@ private with sharing class TestDataDeleteBatchSelectorTest {
     private static TestDataDeleteBatchSelector selector = new TestDataDeleteBatchSelector();
     private static TestDataDeleteBatchService service = new TestDataDeleteBatchService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     private static void verifyEmptyTarget(String objectName) {
         if (!Schema.getGlobalDescribe().containsKey(objectName)) {
@@ -60,8 +60,9 @@ private with sharing class TestDataDeleteBatchSelectorTest {
     static void countsOnlyRemainingRecords() {
 
         System.runAs(testUser) {
-            Account account = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
-            TestDataFactory.createAccount('残存', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account account = new Account(Name = '削除済み');
+            insert account;
+            insert new Account(Name = '残存');
             delete account;
             Test.startTest();
             Integer remaining = selector.getRemaining('Account', 'IsDeleted = false');
@@ -79,13 +80,11 @@ private with sharing class TestDataDeleteBatchSelectorTest {
     static void deletesStandardAndInactiveCustomPrices() {
 
         System.runAs(testUser) {
-            Product2 product = TestDataFactory.createProduct(
-                '価格表の削除検証',
-                TestDataFactory.SaveMode.INSERT_RECORD
-            );
+            Product2 product = new Product2(Name = '価格表の削除検証', IsActive = true);
+            insert product;
             Id standardId = Test.getStandardPricebookId();
             update new Pricebook2(Id = standardId, IsActive = true);
-            TestDataFactory.createPricebookEntry(product, TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new PricebookEntry(Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1200, IsActive = true);
             Pricebook2 custom = new Pricebook2(Name = '無効な価格表も対象', IsActive = false);
             insert custom;
             insert new PricebookEntry(

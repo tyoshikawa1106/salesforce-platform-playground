@@ -3,6 +3,12 @@
  */
 @IsTest
 private with sharing class AccountDataQualityScanControllerTest {
+    private static final DataQualityScan__c EMPTY_SCAN = new DataQualityScan__c(
+        Target_Object__c = 'Account', Processed_Count__c = 0, Missing_Phone_Count__c = 0,
+        Missing_Industry_Count__c = 0, Missing_Address_Count__c = 0, Missing_Website_Count__c = 0,
+        Missing_Account_Number_Count__c = 0
+    );
+
     private static final String TEST_USER_MARKER = 'DQScanController';
 
     /**
@@ -10,7 +16,12 @@ private with sharing class AccountDataQualityScanControllerTest {
      */
     @TestSetup
     static void setupPermission() {
-        TestDataFactory.createAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        User scanUser = new User(Alias = 'dqscan', Email = 'data-quality-scan@example.invalid',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja', LastName = TEST_USER_MARKER,
+            LocaleSidKey = 'ja_JP', ProfileId = UserInfo.getProfileId(), TimeZoneSidKey = 'Asia/Tokyo',
+            Username = 'data-quality-scan.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid');
+        insert scanUser;
+        insert new PermissionSetAssignment(AssigneeId = scanUser.Id, PermissionSetId = scanPermissionId());
     }
 
     /**
@@ -18,7 +29,7 @@ private with sharing class AccountDataQualityScanControllerTest {
      */
     @IsTest
     static void shouldReturnNullWhenNoScanExists() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        User testUser = getScanTestUser();
         AccountDataQualityScanWrapper result;
 
         System.runAs(testUser) {
@@ -37,8 +48,8 @@ private with sharing class AccountDataQualityScanControllerTest {
      */
     @IsTest
     static void shouldStartAndCompleteScan() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
-        TestDataFactory.createAccount('Controllerスキャン取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        User testUser = getScanTestUser();
+        insert new Account(Name = 'Controllerスキャン取引先');
         AccountDataQualityScanWrapper startResult;
         DataQualityScan__c savedScan;
 
@@ -66,10 +77,10 @@ private with sharing class AccountDataQualityScanControllerTest {
      */
     @IsTest
     static void shouldCompleteScanBeyondDefaultChunkSize() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        User testUser = getScanTestUser();
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 501; index++) {
-            accounts.add(TestDataFactory.createAccount('分割スキャン取引先' + index, TestDataFactory.SaveMode.DO_NOT_INSERT));
+            accounts.add(new Account(Name = '分割スキャン取引先' + index));
         }
         insert accounts;
         AccountDataQualityScanWrapper startResult;
@@ -100,13 +111,22 @@ private with sharing class AccountDataQualityScanControllerTest {
      */
     @IsTest
     static void shouldRejectStartWhenActiveScanExists() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        User testUser = getScanTestUser();
 
         System.runAs(testUser) {
-            TestDataFactory.createDataQualityScan(
-                AccountDataQualityScanService.STATUS_RUNNING,
-                10,
-                TestDataFactory.SaveMode.INSERT_RECORD
+            insert new DataQualityScan__c(
+                Status__c = AccountDataQualityScanService.STATUS_RUNNING,
+                Target_Object__c = 'Account',
+                Total_Count__c = 10,
+                Processed_Count__c = 0,
+                Missing_Phone_Count__c = 0,
+                Missing_Industry_Count__c = 0,
+                Missing_Address_Count__c = 0,
+                Missing_Website_Count__c = 0,
+                Missing_Account_Number_Count__c = 0,
+                Started_At__c = System.now(),
+                Requested_By__c = UserInfo.getUserId(),
+                Active_Key__c = (AccountDataQualityScanService.STATUS_RUNNING == AccountDataQualityScanService.STATUS_PENDING || AccountDataQualityScanService.STATUS_RUNNING == AccountDataQualityScanService.STATUS_RUNNING) ? AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY : null
             );
             Test.startTest();
             try {
@@ -124,16 +144,17 @@ private with sharing class AccountDataQualityScanControllerTest {
      */
     @IsTest
     static void shouldReturnLatestScanViewModel() {
-        User testUser = TestDataFactory.getAccountDataQualityScanTestUser(TEST_USER_MARKER);
+        User testUser = getScanTestUser();
         DataQualityScan__c scanRecord;
         AccountDataQualityScanWrapper result;
 
         System.runAs(testUser) {
-            scanRecord = TestDataFactory.createDataQualityScan(
-                AccountDataQualityScanService.STATUS_COMPLETED,
-                4,
-                TestDataFactory.SaveMode.DO_NOT_INSERT
-            );
+            scanRecord = EMPTY_SCAN.clone();
+            scanRecord.Status__c = AccountDataQualityScanService.STATUS_COMPLETED;
+            scanRecord.Total_Count__c = 4;
+            scanRecord.Started_At__c = System.now();
+            scanRecord.Requested_By__c = UserInfo.getUserId();
+            scanRecord.Active_Key__c = null;
             scanRecord.Processed_Count__c = 4;
             scanRecord.Completed_At__c = System.now();
             insert scanRecord;
@@ -156,7 +177,17 @@ private with sharing class AccountDataQualityScanControllerTest {
     static void shouldRejectReadAndStartWithoutReadAccess() {
         List<Profile> profiles = [SELECT Id FROM Profile WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce' LIMIT 1];
         Assert.isFalse(profiles.isEmpty(), '権限を持たないプロファイルで検証');
-        User deniedUser = TestDataFactory.createUser('スキャン参照なし', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        User deniedUser = new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = 'スキャン参照なし',
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
         deniedUser.ProfileId = profiles[0].Id;
         insert deniedUser;
 
@@ -177,4 +208,27 @@ private with sharing class AccountDataQualityScanControllerTest {
         }
     }
 
+    /**
+     * スキャン実行に必要な権限セットの存在を確認
+     * @return スキャン用の権限セットID
+     */
+    private static Id scanPermissionId() {
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDataQualityScan'];
+        Assert.isFalse(permissions.isEmpty(), 'スキャンのテスト権限が存在');
+        return permissions[0].Id;
+    }
+
+    /**
+     * このテストで作成したスキャン実行ユーザーを取得
+     * @return 保存済みのテストユーザー
+     */
+    private static User getScanTestUser() {
+        List<User> users = [
+            SELECT Id
+            FROM User
+            WHERE LastName = :TEST_USER_MARKER
+        ];
+        Assert.areEqual(1, users.size(), '同じテストクラスのユーザーを取得');
+        return users[0];
+    }
 }

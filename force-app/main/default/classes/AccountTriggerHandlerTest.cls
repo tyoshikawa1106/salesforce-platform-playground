@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class AccountTriggerHandlerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 新規取引先の法人格略称を正式名称へ補正
@@ -13,12 +13,12 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldNormalizeCompanyAbbreviationsWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('㈱テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('（株）テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('(株)テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('㈲テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('（有）テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('(有)テスト', TestDataFactory.SaveMode.DO_NOT_INSERT)
+            new Account(Name = '㈱テスト'),
+            new Account(Name = '（株）テスト'),
+            new Account(Name = '(株)テスト'),
+            new Account(Name = '㈲テスト'),
+            new Account(Name = '（有）テスト'),
+            new Account(Name = '(有)テスト')
         };
 
         // 実行
@@ -72,7 +72,8 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldNormalizeCompanyAbbreviationsWhenNameUpdated() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount('テスト取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        Account accountRecord = new Account(Name = 'テスト取引先');
+        insert accountRecord;
         accountRecord.Name = 'テスト（株）';
 
         // 実行
@@ -102,8 +103,8 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldKeepCompanyTypePositionWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('テスト（株）', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('テスト(有)', TestDataFactory.SaveMode.DO_NOT_INSERT)
+            new Account(Name = 'テスト（株）'),
+            new Account(Name = 'テスト(有)')
         };
 
         // 実行
@@ -137,9 +138,7 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount(
-            '㈱テスト(有)支店', TestDataFactory.SaveMode.DO_NOT_INSERT
-        );
+        Account accountRecord = new Account(Name = '㈱テスト(有)支店');
 
         // 実行
 
@@ -167,7 +166,7 @@ private with sharing class AccountTriggerHandlerTest {
     @IsTest
     static void shouldKeepFormalCompanyNamesWhenAlreadyNormalized() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount('株式会社テスト', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account accountRecord = new Account(Name = '株式会社テスト');
 
         // 実行
 
@@ -196,10 +195,10 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldKeepIncompleteAbbreviationsWhenAccountsInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('株）テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('（株テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('有)テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('(有テスト', TestDataFactory.SaveMode.DO_NOT_INSERT)
+            new Account(Name = '株）テスト'),
+            new Account(Name = '（株テスト'),
+            new Account(Name = '有)テスト'),
+            new Account(Name = '(有テスト')
         };
 
         // 実行
@@ -245,7 +244,7 @@ private with sharing class AccountTriggerHandlerTest {
         // 準備
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 251; index++) {
-            Account accountRecord = TestDataFactory.createAccount('㈱テスト ' + index, TestDataFactory.SaveMode.DO_NOT_INSERT);
+            Account accountRecord = new Account(Name = '㈱テスト ' + index);
             accounts.add(accountRecord);
         }
 

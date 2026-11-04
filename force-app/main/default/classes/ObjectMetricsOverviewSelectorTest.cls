@@ -4,14 +4,14 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewSelectorTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 作成済みの件数 SOQL を利用者権限で実行
      */
     @IsTest
     static void shouldReturnVisibleRecordCount() {
-        TestDataFactory.createAccount('件数 Selector テスト', TestDataFactory.SaveMode.INSERT_RECORD);
+        insert new Account(Name = '件数 Selector テスト');
         ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition('accounts');
         ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         List<ObjectMetricCatalog.MetricDefinition> definitions = new List<ObjectMetricCatalog.MetricDefinition>{

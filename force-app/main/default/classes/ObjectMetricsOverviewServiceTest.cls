@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * メトリクス定義順でサマリーを作成

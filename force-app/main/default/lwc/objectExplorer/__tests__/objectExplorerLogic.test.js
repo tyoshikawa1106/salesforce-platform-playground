@@ -64,6 +64,20 @@ describe('オブジェクトエクスプローラーの表示・分類契約', (
         const empty = classifyFieldView({ fields: [fields[1]], classifyData, edits: {}, options, canEdit: false });
         expect(empty.rows[0]).toMatchObject({ complianceLabel: '', securityLabel: '', businessLabel: '', ownerLabel: '' });
     });
+    it('保存後の分類表示を選択リスト順に揃え、比較値と廃止済み値を保持する', () => {
+        const data = { Name: { ...classifyData.Name, complianceGroup: 'HIPAA;Legacy;PII' } };
+        const choices = { ...options, ComplianceGroup: [{ value: 'PII', label: '個人情報' }, { value: 'HIPAA', label: '医療情報' }] };
+        const edits = createClassifyEdits(data);
+        edits.Name.draft.businessStatus = 'Active';
+        const saved = applyClassifyBatch(classifyChanges(edits), edits, data, [{ apiName: 'Name', success: true, latest: { complianceGroup: 'HIPAA;Legacy;PII', businessStatus: 'Active' }, owner: { value: '', label: '未設定' } }]);
+        const context = { fields: [fields[1]], classifyData: saved.classifyData, edits: saved.edits, options: choices, canEdit: true };
+        const view = classifyFieldView(context);
+        expect(view.rows[0].complianceLabel).toBe('個人情報,医療情報,Legacy');
+        expect(saved.edits.Name.original.complianceGroup).toBe('HIPAA;Legacy;PII');
+        expect(classifySummary(saved.edits).changeCount).toBe(0);
+        const reordered = { ...choices, ComplianceGroup: [...choices.ComplianceGroup].reverse() };
+        expect(classifyFieldView({ ...context, options: reordered }, view).rows[0].complianceLabel).toBe('医療情報,個人情報,Legacy');
+    });
     it('保存結果をAPI名で照合し、失敗行の入力を保持する', () => {
         const edits = changedEdits();
         const changes = classifyChanges(edits);
@@ -85,6 +99,23 @@ describe('オブジェクトエクスプローラーの表示・分類契約', (
 });
 
 describe('分類CSVの読取と反映', () => {
+    it('分類非対応の標準5項目を編集・CSVから除外し、CSVで指定されても取り込まない', () => {
+        const excluded = ['Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById'];
+        const all = [...fields, ...excluded.map((apiName) => ({ apiName, label: apiName, custom: false }))];
+        const data = { ...classifyData, ...Object.fromEntries(excluded.map((name) => [name, { ...classifyData.Name, editable: false }])) };
+        const edits = createClassifyEdits(data);
+        expect(Object.keys(edits)).toEqual(['Name']);
+        const csv = classifyCsv('Account', all, data, edits);
+        expect(csv.split('\r\n')).toHaveLength(2);
+        for (const name of excluded) {
+            expect(csv).not.toContain(`"${name}"`);
+            const input = `ObjectApiName,FieldApiName,ComplianceGroup,SecurityClassification,BusinessStatus,BusinessOwnerId\nAccount,${name},,,Active,`;
+            expect(readClassifyCsv(input, 'Account', edits, options, data, all).errors[0].message).toContain('編集対象外');
+        }
+        expect(fieldListView(all, '', '', undefined, data).rows.map((field) => field.apiName)).toEqual(['Name']);
+        expect(fieldListView(all, '', '').rows).toHaveLength(all.length);
+    });
+
     it('オブジェクトと項目のラベルを出力し、照合ではラベルに依存しない', () => {
         const edits = changedEdits();
         const csv = classifyCsv('Account', fields, classifyData, edits, '取引先');

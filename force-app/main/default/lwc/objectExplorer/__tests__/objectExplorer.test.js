@@ -1,3 +1,4 @@
+import { setImmediate } from 'node:timers';
 import revokeApiAuthentication from '@salesforce/apex/ObjectExplorerController.revokeApiAuthentication';
 import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
 import getApiAuthenticationUrl from '@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl';
@@ -114,12 +115,14 @@ it('分類保存の確認中から操作を止め、確定した変更だけを�
     await flush();
     expect(save.disabled).toBe(true);
     expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
     confirm(true);
     await flush();
     const request = saveClassifyData.mock.calls[0][0];
     expect(request.objectName).toBe('Account');
     expect(JSON.parse(request.changesJson)).toEqual([{ apiName: 'Name', original: { complianceGroup: '', securityClassification: '', businessStatus: '', ownerId: '' }, draft: { complianceGroup: '', securityClassification: '', businessStatus: 'Active', ownerId: '' } }]);
     expect(element.shadowRoot.textContent).toContain('1項目のデータ分類を保存しました');
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
     expect(save.disabled).toBe(true);
 });
 it('保存失敗では変更を保持して再操作できる', async () => {
@@ -671,4 +674,109 @@ it('解除確認の表示に失敗した場合は認証と入力を維持する'
     expect(element.shadowRoot.querySelector('[data-authentication-revoke]').disabled).toBe(false);
     expect(element.shadowRoot.textContent).not.toContain('解除結果を確認できません');
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
+});
+
+it('確認後の保存中だけ固定スピナーを表示し、拒否後は解除して入力を保持する', async () => {
+    const element = createComponent();
+    await flush();
+    await editClassify(element);
+    let confirm;
+    let complete;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise((resolve) => { confirm = resolve; }));
+    saveClassifyData.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
+    confirm(true);
+    await flush();
+    const progress = element.shadowRoot.querySelector('.oe-save-progress');
+    expect(progress.textContent).toContain('保存しています…');
+    expect(progress.querySelector('lightning-spinner').size).toBe('large');
+    await expect(element).toBeAccessible();
+    complete([{ apiName: 'Name', success: false, message: '更新拒否' }]);
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+});
+
+it('保存をキャンセルした場合は固定スピナーを表示せずAPIを呼ばない', async () => {
+    const element = createComponent();
+    await flush();
+    await editClassify(element);
+    LightningConfirm.open.mockResolvedValueOnce(false);
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
+    expect(element.shadowRoot.textContent).toContain('保存をキャンセルしました');
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+});
+
+it('保存要求が例外で失敗しても固定スピナーと操作ロックを解除する', async () => {
+    const element = createComponent();
+    await flush();
+    await editClassify(element);
+    let fail;
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    saveClassifyData.mockImplementationOnce(() => new Promise((resolve, reject) => { fail = reject; }));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).not.toBeNull();
+    fail({ body: { message: 'API応答を確認できませんでした' } });
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(false);
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.textContent).toContain('処理を中断しました');
+});
+
+it('1001行のCSVを10項目ずつ順に保存し、部分失敗だけを再保存対象に残す', async () => {
+    const fields = Array.from({ length: 1001 }, (_, index) => ({ apiName: `Field${index}__c`, label: `項目${index}`, type: 'STRING', custom: true }));
+    const rows = Object.fromEntries(fields.map((field) => [field.apiName, { ...classify.rows.Name }]));
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields });
+    getClassifyData.mockResolvedValue({ ...classify, rows });
+    const originalReader = global.FileReader;
+    global.FileReader = class {
+        readAsText() {
+            this.result = 'ObjectApiName,FieldApiName,ComplianceGroup,SecurityClassification,BusinessStatus,BusinessOwnerId\n' + fields.map((field) => `Account,${field.apiName},,,Active,`).join('\n');
+            this.onload();
+        }
+    };
+    try {
+        const element = createComponent();
+        await flush();
+        element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+        await flush();
+        await pickAccount(element);
+        const input = element.shadowRoot.querySelector('.oe-csv-import lightning-input');
+        Object.defineProperty(input, 'files', { value: [{ name: 'classify.csv', size: 100000 }], configurable: true });
+        input.dispatchEvent(new CustomEvent('change'));
+        await flush();
+        let finishFirst;
+        const resultsFor = (request) => JSON.parse(request.changesJson).map((change) => (change.apiName === 'Field1000__c'
+            ? { apiName: change.apiName, success: false, message: '更新拒否' }
+            : { apiName: change.apiName, success: true, latest: change.draft, owner: { value: '', label: '未設定' } }));
+        saveClassifyData.mockImplementation((request) => Promise.resolve(resultsFor(request)));
+        saveClassifyData.mockImplementationOnce((request) => new Promise((resolve) => { finishFirst = () => resolve(resultsFor(request)); }));
+        element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+        await flush();
+        expect(saveClassifyData).toHaveBeenCalledTimes(1);
+        expect(element.shadowRoot.querySelector('.oe-save-progress')).not.toBeNull();
+        finishFirst();
+        // 保存のPromise連鎖と描画が完了するまでイベントループを一巡させる
+        await new Promise(setImmediate);
+        expect(saveClassifyData).toHaveBeenCalledTimes(101);
+        const sent = saveClassifyData.mock.calls.flatMap(([request]) => JSON.parse(request.changesJson));
+        expect(sent.map((change) => change.apiName)).toEqual(fields.map((field) => field.apiName));
+        expect(saveClassifyData.mock.calls.every(([request]) => JSON.parse(request.changesJson).length <= 10)).toBe(true);
+        expect(element.shadowRoot.textContent).toContain('保存結果：成功1000件・失敗1件');
+        expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
+        saveClassifyData.mockClear();
+        element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+        await flush();
+        expect(JSON.parse(saveClassifyData.mock.calls[0][0].changesJson).map((change) => change.apiName)).toEqual(['Field1000__c']);
+    } finally {
+        global.FileReader = originalReader;
+    }
 });

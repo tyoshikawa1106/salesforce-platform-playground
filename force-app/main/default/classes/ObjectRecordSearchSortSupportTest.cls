@@ -3,7 +3,7 @@
  */
 @IsTest
 private with sharing class ObjectRecordSearchSortSupportTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     @TestSetup
     static void setupData() {

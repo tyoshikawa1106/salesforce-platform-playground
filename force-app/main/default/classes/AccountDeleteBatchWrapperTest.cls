@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class AccountDeleteBatchWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 空の結果を初期化 */
     @IsTest
@@ -27,7 +27,8 @@ private with sharing class AccountDeleteBatchWrapperTest {
             AccountDeleteBatchWrapper source = new AccountDeleteBatchWrapper();
             source.successCount = 2;
             source.failureCount = 1;
-            Account account = TestDataFactory.createAccount('集計結果のコピー', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account account = new Account(Name = '集計結果のコピー');
+            insert account;
             Id recordId = account.Id;
             source.recordErrors.put(recordId, '既存の理由');
             source.failureReasons.add('既存の失敗理由');

@@ -40,7 +40,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountDeleteWrapper](../../../../force-app/main/default/classes/AccountDeleteWrapper.cls)               | 画面に返す受付結果と標準ジョブの状態                       | [AccountDeleteWrapperTest](../../../../force-app/main/default/classes/AccountDeleteWrapperTest.cls)               |
 | [OrgEnvironment](../../../../force-app/main/default/classes/OrgEnvironment.cls)                           | 現在の Salesforce 組織の実行環境情報を提供                 | [OrgEnvironmentTest](../../../../force-app/main/default/classes/OrgEnvironmentTest.cls)                           |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 [AccountDeleteBatchScheduler](../../../../force-app/main/default/classes/AccountDeleteBatchScheduler.cls)は画面から直接呼ぶクラスではなく、同じ削除バッチを起動する定期実行の入口です。
 

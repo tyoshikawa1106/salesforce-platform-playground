@@ -678,14 +678,6 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>StringUtil</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>StringUtilTest</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>TestDataDeleteBatch</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -787,6 +779,14 @@
     </classAccesses>
     <classAccesses>
         <apexClass>SalesforceApiProtocolTest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>ObjectExplorerAuthenticationService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>ObjectExplorerAuthenticationServiceTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <custom>false</custom>

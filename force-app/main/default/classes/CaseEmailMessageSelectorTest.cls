@@ -3,17 +3,15 @@
  */
 @IsTest
 private with sharing class CaseEmailMessageSelectorTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * ケースに紐づくメールメッセージ件数を返却
      */
     @IsTest
     static void shouldReturnEmailMessageCount() {
-        Case caseRecord = TestDataFactory.createCase(
-            'メール件数 Selector テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'メール件数 Selector テスト');
+        insert caseRecord;
         insert createEmailMessages(caseRecord.Id, 2, System.now());
         Integer result;
 
@@ -127,10 +125,8 @@ private with sharing class CaseEmailMessageSelectorTest {
      */
     @IsTest
     static void shouldPageUndatedEmailMessagesByCreatedDate() {
-        Case caseRecord = TestDataFactory.createCase(
-            '送信日時なし Selector テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = '送信日時なし Selector テスト');
+        insert caseRecord;
         List<EmailMessage> emailMessages = new List<EmailMessage>{
             createUndatedEmailMessage(caseRecord.Id, '古い日時なしメール'),
             createUndatedEmailMessage(caseRecord.Id, '新しい日時なしメール')
@@ -167,7 +163,8 @@ private with sharing class CaseEmailMessageSelectorTest {
      */
     @IsTest
     static void shouldSkipDeletedRecordsWhenFetchingNextPage() {
-        Case caseRecord = TestDataFactory.createCase('削除行 Selector テスト', TestDataFactory.SaveMode.INSERT_RECORD);
+        Case caseRecord = new Case(Subject = '削除行 Selector テスト');
+        insert caseRecord;
         List<EmailMessage> emailMessages = createEmailMessages(
             caseRecord.Id,
             3,
@@ -215,10 +212,8 @@ private with sharing class CaseEmailMessageSelectorTest {
     }
 
     private static Case createCaseWithEmailMessages(Integer count) {
-        Case caseRecord = TestDataFactory.createCase(
-            'ページ境界 Selector テスト ' + count,
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'ページ境界 Selector テスト ' + count);
+        insert caseRecord;
         insert createEmailMessages(caseRecord.Id, count, Datetime.newInstance(2026, 7, 16, 12, 0, 0));
         return caseRecord;
     }

@@ -117,3 +117,7 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
     align-items: center;
     gap: var(--slds-g-spacing-2, 0.5rem);
 }
+/* スクロール中も保存状態を画面中央に保持し、操作ロックの理由を表示 */
+.oe-save-progress { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.oe-save-progress-content { padding: var(--slds-g-spacing-6, 1.5rem); border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); box-shadow: var(--slds-g-shadow-1, 0 2px 4px rgba(0, 0, 0, .1)); text-align: center; font-size: var(--slds-g-font-scale-3, 1.25rem); }
+.oe-save-progress-spinner { position: relative; height: var(--slds-g-sizing-11, 4rem); }

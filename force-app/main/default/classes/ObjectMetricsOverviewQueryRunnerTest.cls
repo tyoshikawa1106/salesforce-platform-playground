@@ -4,22 +4,16 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewQueryRunnerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 異なる SObject の件数取得計画を順番に実行
      */
     @IsTest
     static void shouldExecuteConfiguredCrossObjectCountQueries() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'Coordinator 件数取引先',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        TestDataFactory.createContact(
-            accountRecord,
-            'Coordinator 件数責任者',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'Coordinator 件数取引先');
+        insert accountRecord;
+        insert new Contact(AccountId = accountRecord.Id, LastName = 'Coordinator 件数責任者');
         ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
             'accounts'

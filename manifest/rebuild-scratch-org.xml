@@ -101,8 +101,6 @@
         <members>ObjectRecordSearchSortSupportTest</members>
         <members>OrgEnvironment</members>
         <members>OrgEnvironmentTest</members>
-        <members>StringUtil</members>
-        <members>StringUtilTest</members>
         <members>TestDataDeleteBatch</members>
         <members>TestDataDeleteBatchSelector</members>
         <members>TestDataDeleteBatchSelectorTest</members>

@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchConfigWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 検索設定のメトリクス定義と操作可否を公開

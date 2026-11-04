@@ -252,7 +252,28 @@ private with sharing class ObjectExplorerControllerTest {
             );
             Assert.areEqual('Name', result.get('apiName'), '成功は要求した項目に対応');
             Assert.areEqual(1, mock.writes, '標準項目を一括送信');
-            Assert.areEqual(2, mock.reads, '保存前後で最新値を照合');
+            Assert.areEqual(1, mock.reads, '保存後だけAPIで最新値を照合');
+            Assert.areEqual(3, Limits.getCallouts(), '組織確認・一括更新・保存後照会の3回だけ通信');
+            Test.stopTest();
+        }
+    }
+
+    /** 標準・カスタム混在の上限件数を同じ対象へ保存して照合 */
+    @IsTest
+    static void savesMixedBatchWithoutDuplicateReads() {
+        System.runAs(testUser) {
+            List<String> names = new List<String>{'Name', 'Phone', 'AccountNumber', 'Active__c', 'CustomerPriority__c',
+                'NumberofLocations__c', 'SLA__c', 'SLAExpirationDate__c', 'SLASerialNumber__c', 'UpsellOpportunity__c'};
+            SaveMock mock = new SaveMock('Account', new Set<String>(names), 'success');
+            Test.setMock(HttpCalloutMock.class, mock);
+            String request = changes(names, ChangeMode.CHANGE_STATUS);
+            Test.startTest();
+            List<Object> results = ObjectExplorerController.saveClassifyData('Account', request);
+            Assert.areEqual(names.size(), results.size(), '全対象の結果を返す');
+            Assert.areEqual(false, JSON.serialize(results).contains('"success":false'), '全項目で保存後照合が成功');
+            Assert.areEqual(8, mock.writes, '標準一括とカスタム個別の更新だけを送る');
+            Assert.areEqual(1, mock.reads, '保存後だけ分類をAPI再取得');
+            Assert.areEqual(17, Limits.getCallouts(), '組織確認・カスタム取得更新・標準一括更新・保存後照会だけ通信');
             Test.stopTest();
         }
     }
@@ -323,14 +344,15 @@ private with sharing class ObjectExplorerControllerTest {
     static void isolatesPreparationAndTransportFailures() {
         System.runAs(testUser) {
             Test.startTest();
-            SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'conflict');
+            SaveMock mock = new SaveMock('Account', new Set<String>{ 'Name' }, 'success');
             Test.setMock(HttpCalloutMock.class, mock);
             List<Object> results = ObjectExplorerController.saveClassifyData(
                 'Account',
-                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
+                changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS).replace('"securityClassification":"', '"securityClassification":"Conflict')
             );
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '編集基準不一致は失敗');
             Assert.areEqual(0, mock.writes, '競合した項目を送信しない');
+            Assert.isTrue(String.valueOf(((Map<String, Object>)results[0]).get('message')).contains('編集中に分類が変更'), 'ネイティブの現在値と編集基準の競合を検知');
             Test.setMock(HttpCalloutMock.class, new SaveMock('Account', new Set<String>{ 'Name' }, 'connectionError'));
             results = ObjectExplorerController.saveClassifyData(
                 'Account',
@@ -359,6 +381,7 @@ private with sharing class ObjectExplorerControllerTest {
                 'カスタム項目を再取得して照合: ' + ((Map<String, Object>) results[0]).get('message')
             );
             Assert.areEqual(1, mock.writes, '同じカスタム項目へ一回更新');
+            Assert.areEqual(4, Limits.getCallouts(), '組織確認・定義取得・更新・保存後照会の4回だけ通信');
             Test.stopTest();
         }
     }
@@ -375,7 +398,7 @@ private with sharing class ObjectExplorerControllerTest {
                 changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
             Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), 'SOAP通信失敗を成功にしない');
-            Assert.areEqual(1, mock.reads, '失敗確定後は再取得しない');
+            Assert.areEqual(0, mock.reads, '保存前の重複照会と失敗確定後の再取得をしない');
             Test.stopTest();
         }
     }
@@ -388,16 +411,21 @@ private with sharing class ObjectExplorerControllerTest {
      */
     public static String changes(List<String> names, ChangeMode requestedMode) {
         List<Object> result = new List<Object>();
+        Map<String, Map<String, Object>> rows = new ObjectExplorerApiProtocol.RecordReader().createFieldRows(
+            new ObjectExplorerSelector().selectFieldsByNames('Account', new Set<String>(names)));
         for (String name : names) {
+            Map<String, Object> row = rows.get(name);
+            List<String> compliance = new List<String>(new Set<String>(((String)row.get('ComplianceGroup') ?? '').split(';')));
+            compliance.sort();
             Map<String, Object> original = new Map<String, Object>{
-                'complianceGroup' => '',
-                'securityClassification' => '',
-                'businessStatus' => '',
-                'ownerId' => ''
+                'complianceGroup' => String.join(compliance, ';'),
+                'securityClassification' => row.get('SecurityClassification') ?? '',
+                'businessStatus' => row.get('BusinessStatus') ?? '',
+                'ownerId' => row.get('BusinessOwnerId') ?? ''
             };
             Map<String, Object> draft = original.clone();
             if (requestedMode == ChangeMode.CHANGE_STATUS) {
-                draft.put('businessStatus', 'Active');
+                draft.put('businessStatus', original.get('businessStatus') == 'Active' ? 'Hidden' : 'Active');
             }
             result.add(new Map<String, Object>{ 'apiName' => name, 'original' => original, 'draft' => draft });
         }
@@ -409,6 +437,8 @@ private with sharing class ObjectExplorerControllerTest {
         private String objectName;
         private String scenario;
         private Map<String, String> durableIds = new Map<String, String>();
+        private Map<String, String> fieldNamesById = new Map<String, String>();
+        private Map<String, Map<String, Object>> originalRows;
         public Integer reads = 0;
         public Integer writes = 0;
 
@@ -421,8 +451,11 @@ private with sharing class ObjectExplorerControllerTest {
         public SaveMock(String objectName, Set<String> names, String scenario) {
             this.objectName = objectName;
             this.scenario = scenario;
-            for (FieldDefinition field : new ObjectExplorerSelector().selectFieldsByNames(objectName, names)) {
+            List<FieldDefinition> definitions = new ObjectExplorerSelector().selectFieldsByNames(objectName, names);
+            originalRows = new ObjectExplorerApiProtocol.RecordReader().createFieldRows(definitions);
+            for (FieldDefinition field : definitions) {
                 durableIds.put(field.QualifiedApiName, field.DurableId);
+                fieldNamesById.put(field.DurableId.substringAfter('.'), field.QualifiedApiName);
             }
             Assert.areEqual(names, durableIds.keySet(), 'テスト対象の項目定義が存在');
         }
@@ -454,7 +487,7 @@ private with sharing class ObjectExplorerControllerTest {
                     )
                 );
             } else if (endpoint.contains('/services/Soap/')) {
-                respondSoap(response);
+                respondSoap(request, response);
             } else if (endpoint.contains('tooling/sobjects/CustomField/')) {
                 respondCustom(request, response);
             } else {
@@ -465,15 +498,22 @@ private with sharing class ObjectExplorerControllerTest {
 
         /**
          * 標準項目の送信と個別拒否を再現
+         * @param request 検証対象の要求
          * @param response 返却する模擬応答
          */
-        private void respondSoap(HttpResponse response) {
+        private void respondSoap(HttpRequest request, HttpResponse response) {
             writes++;
             if (scenario == 'soapError') {
                 throw new CalloutException('SOAP通信を再現');
             }
             String results = '';
-            for (String name : durableIds.keySet()) {
+            Dom.Document document = new Dom.Document();
+            document.load(request.getBody());
+            List<Dom.XmlNode> fields = document.getRootElement().getChildElement('Body', 'http://schemas.xmlsoap.org/soap/envelope/').getChildElement('updateMetadata', 'http://soap.sforce.com/2006/04/metadata').getChildElements();
+            for (Dom.XmlNode field : fields) {
+                String name = field.getChildElement('fullName', 'http://soap.sforce.com/2006/04/metadata').getText().substringAfter('.');
+                Assert.isTrue(durableIds.containsKey(name), '要求した標準項目だけを一括更新');
+                Assert.isFalse(name.endsWith('__c'), 'カスタム項目はSOAP送信しない');
                 Boolean success = !(scenario == 'rejectPhone' && name == 'Phone');
                 results +=
                     '<result><fullName>' +
@@ -500,7 +540,8 @@ private with sharing class ObjectExplorerControllerTest {
          */
         private void respondCustom(HttpRequest request, HttpResponse response) {
             String endpoint = request.getEndpoint();
-            String name = new List<String>(durableIds.keySet())[0];
+            String name = fieldNamesById.get(endpoint.substringAfterLast('/'));
+            Assert.isNotNull(name, '要求した項目IDだけをToolingで更新');
             Assert.isTrue(endpoint.endsWith(durableIds.get(name).substringAfter('.')), '取得した同じ項目IDだけへ通信');
             if (request.getMethod() == 'GET') {
                 response.setBody(
@@ -509,7 +550,7 @@ private with sharing class ObjectExplorerControllerTest {
                             'FullName' => objectName +
                             '.' +
                             name,
-                            'Metadata' => new Map<String, Object>{ 'label' => '維持する定義', 'businessStatus' => null }
+                            'Metadata' => customMetadata(name)
                         }
                     )
                 );
@@ -521,13 +562,44 @@ private with sharing class ObjectExplorerControllerTest {
                 Map<String, Object> payload = (Map<String, Object>) JSON.deserializeUntyped(request.getBody());
                 Map<String, Object> metadata = (Map<String, Object>) payload.get('Metadata');
                 Assert.areEqual('維持する定義', metadata.get('label'), '分類以外の定義を保持');
-                Assert.areEqual('Active', metadata.get('businessStatus'), '変更した分類を反映');
+                Assert.areEqual(changedStatus(name), metadata.get('businessStatus'), '変更した分類を反映');
                 response.setStatusCode(204);
             }
         }
 
         /**
-         * 保存前後の分類を要求した名前だけで返す
+         * 現在値と異なる許可済み利用状況を選択
+         * @param name 対象項目
+         * @return 変更後の利用状況
+         */
+        private String changedStatus(String name) {
+            return originalRows.get(name).get('BusinessStatus') == 'Active' ? 'Hidden' : 'Active';
+        }
+
+        /**
+         * ネイティブ分類と一致するカスタム定義を生成
+         * @param name 対象項目
+         * @return 分類以外の属性も含む模擬定義
+         */
+        private Map<String, Object> customMetadata(String name) {
+            Map<String, Object> row = originalRows.get(name);
+            String ownerId = (String)row.get('BusinessOwnerId') ?? '';
+            Set<Id> ids = new Set<Id>{(Id)row.get('BusinessOwnerId')};
+            ids.remove(null);
+            ObjectExplorerSelector selector = new ObjectExplorerSelector();
+            List<SObject> owners = new List<SObject>();
+            owners.addAll(selector.selectOwnerUsers(ids));
+            owners.addAll(selector.selectOwnerGroups(ids));
+            Map<String, Object> metadata = new ObjectExplorerOwnerService().createMetadataDraft(new Map<String, Object>{
+                'complianceGroup' => row.get('ComplianceGroup') ?? '', 'securityClassification' => row.get('SecurityClassification') ?? '',
+                'businessStatus' => row.get('BusinessStatus') ?? '', 'ownerId' => ownerId
+            }, owners);
+            metadata.put('label', '維持する定義');
+            return metadata;
+        }
+
+        /**
+         * 保存後の分類を要求した名前だけで返す
          * @param endpoint 要求先のAPIパス
          * @param response 返却する模擬応答
          */
@@ -540,15 +612,16 @@ private with sharing class ObjectExplorerControllerTest {
                 if (!query.contains('\'' + name + '\'')) {
                     continue;
                 }
-                String status = scenario == 'conflict' || (writes > 0 && scenario != 'stale') ? 'Active' : null;
+                Map<String, Object> original = originalRows.get(name);
+                String status = writes > 0 && scenario != 'stale' ? changedStatus(name) : (String)original.get('BusinessStatus');
                 rows.add(
                     new Map<String, Object>{
                         'DurableId' => durableIds.get(name),
                         'QualifiedApiName' => name,
-                        'ComplianceGroup' => null,
-                        'SecurityClassification' => null,
+                        'ComplianceGroup' => original.get('ComplianceGroup'),
+                        'SecurityClassification' => original.get('SecurityClassification'),
                         'BusinessStatus' => status,
-                        'BusinessOwnerId' => null
+                        'BusinessOwnerId' => original.get('BusinessOwnerId')
                     }
                 );
             }

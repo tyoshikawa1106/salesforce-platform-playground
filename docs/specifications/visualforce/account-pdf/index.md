@@ -32,7 +32,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountPdfService](../../../../force-app/main/default/classes/AccountPdfService.cls)       | 取引先 PDF の入力検証と表示値作成      | [AccountPdfServiceTest](../../../../force-app/main/default/classes/AccountPdfServiceTest.cls)       |
 | [AccountPdfViewModel](../../../../force-app/main/default/classes/AccountPdfViewModel.cls)   | 取引先 PDF に表示する文字列            | [AccountPdfViewModelTest](../../../../force-app/main/default/classes/AccountPdfViewModelTest.cls)   |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 ### 設定・権限
 

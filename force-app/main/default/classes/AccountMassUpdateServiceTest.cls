@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class AccountMassUpdateServiceTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 日付境界を正規化し不完全なページ境界を拒否 */
     @IsTest
@@ -47,7 +47,8 @@ private with sharing class AccountMassUpdateServiceTest {
     static void rejectsMissingDuplicateAndOversizedRequests() {
 
         System.runAs(testUser) {
-            Account record = TestDataFactory.createAccount('件数検証', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account record = new Account(Name = '件数検証');
+            insert record;
             AccountMassUpdateService service = new AccountMassUpdateService();
             Map<Id, Datetime> versions = new Map<Id, Datetime>{ record.Id => System.now() };
             List<Account> changes = new List<Account>();
@@ -78,7 +79,8 @@ private with sharing class AccountMassUpdateServiceTest {
     static void handlesUnchangedMissingAndChangedRowsWithoutMutatingInput() {
 
         System.runAs(testUser) {
-            Account record = TestDataFactory.createAccount('差分検証', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account record = new Account(Name = '差分検証');
+            insert record;
             List<Account> current = [
                 SELECT Id, Rating, Industry, Type, OwnerId, LastModifiedDate
                 FROM Account

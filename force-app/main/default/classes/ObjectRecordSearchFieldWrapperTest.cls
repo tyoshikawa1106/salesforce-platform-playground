@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchFieldWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 明示されたソート可否を公開

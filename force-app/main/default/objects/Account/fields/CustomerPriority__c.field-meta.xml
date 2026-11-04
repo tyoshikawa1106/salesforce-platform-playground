@@ -3,6 +3,7 @@
     <fullName>CustomerPriority__c</fullName>
     <label>Customer Priority</label>
     <required>false</required>
+    <securityClassification>Public</securityClassification>
     <trackFeedHistory>false</trackFeedHistory>
     <type>Picklist</type>
     <valueSet>

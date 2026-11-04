@@ -1,5 +1,16 @@
 <template>
     <main>
+        <template lwc:if={saveInProgress}>
+            <div class="oe-save-progress" role="status" aria-live="polite" aria-label="保存しています…">
+                <div class="oe-save-progress-content">
+                    <div class="oe-save-progress-spinner">
+                        <lightning-spinner alternative-text="保存処理中" size="large"></lightning-spinner>
+                    </div>
+                    <p>保存しています…</p>
+                    <p>{classifyNotice}</p>
+                </div>
+            </div>
+        </template>
         <header>
             <h1>オブジェクトエクスプローラー</h1>
             <template lwc:if={apiAuthenticationReady}>

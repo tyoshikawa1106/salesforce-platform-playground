@@ -3,12 +3,22 @@
 private with sharing class AccountDeleteBatchServiceTest {
 
     private static AccountDeleteBatchService service = new AccountDeleteBatchService();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
+
+    /**
+     * 同じテストクラスで必要な権限だけを割り当て
+     */
+    @TestSetup
+    static void setupDeleteAccess() {
+        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
+        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+    }
 
     /** 実行可能時に前回の拒否理由を解除 */
     @IsTest
     static void clearsPreviousErrorWhenExecutionIsAllowed() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
@@ -26,11 +36,12 @@ private with sharing class AccountDeleteBatchServiceTest {
     /** 部分成功を集計 */
     @IsTest
     static void preservesPartialSuccess() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
-            Account good = TestDataFactory.createAccount('成功', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account good = new Account(Name = '成功');
+            insert good;
+            Account gone = new Account(Name = '削除済み');
+            insert gone;
             delete gone;
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
             Test.startTest();
@@ -59,11 +70,12 @@ private with sharing class AccountDeleteBatchServiceTest {
     /** 引数の集計値だけを累積 */
     @IsTest
     static void accumulatesOnlyProvidedState() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
-            Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account second = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account first = new Account(Name = '前半');
+            insert first;
+            Account second = new Account(Name = '後半');
+            insert second;
             AccountDeleteBatchWrapper initial = new AccountDeleteBatchWrapper();
             Test.startTest();
             List<Database.DeleteResult> firstResults = deleteForResults(new List<Account>{ first });
@@ -82,12 +94,11 @@ private with sharing class AccountDeleteBatchServiceTest {
     /** 大量の取引先を一括削除 */
     @IsTest
     static void deletesTwoThousandAccounts() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer i = 0; i < 2000; i++) {
-                accounts.add(TestDataFactory.createAccount('件数確認' + i, TestDataFactory.SaveMode.DO_NOT_INSERT));
+                accounts.add(new Account(Name = '件数確認' + i));
             }
             insert accounts;
             Test.startTest();
@@ -197,12 +208,11 @@ private with sharing class AccountDeleteBatchServiceTest {
     /** 詳細の表示上限を超えても失敗件数を保持 */
     @IsTest
     static void limitsRecordDetailsWithoutLosingFailureCounts() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             List<Account> accounts = new List<Account>();
             for (Integer index = 0; index < 201; index++) {
-                accounts.add(TestDataFactory.createAccount('詳細上限' + index, TestDataFactory.SaveMode.DO_NOT_INSERT));
+                accounts.add(new Account(Name = '詳細上限' + index));
             }
             insert accounts;
             delete accounts;
@@ -223,7 +233,6 @@ private with sharing class AccountDeleteBatchServiceTest {
     /** 法人取引先と個人取引先を一緒に削除 */
     @IsTest
     static void deletesPersonAndBusinessAccountsTogether() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
             Boolean enabled = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED)
@@ -250,7 +259,8 @@ private with sharing class AccountDeleteBatchServiceTest {
                 AccessLevel.USER_MODE
             );
             Id contactId = (Id) people[0].get('PersonContactId');
-            Account business = TestDataFactory.createAccount('法人混在', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account business = new Account(Name = '法人混在');
+            insert business;
 
             Test.startTest();
             List<Database.DeleteResult> results = deleteForResults(new List<Account>{ person, business });
@@ -311,4 +321,5 @@ private with sharing class AccountDeleteBatchServiceTest {
         List<Database.DeleteResult> results = Database.delete(accounts, false, AccessLevel.USER_MODE);
         return results;
     }
+
 }

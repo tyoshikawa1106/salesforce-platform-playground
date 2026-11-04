@@ -4,6 +4,26 @@ private with sharing class ObjectExplorerApiProtocolTest {
     private static ObjectExplorerApiProtocol.RecordReader reader = new ObjectExplorerApiProtocol.RecordReader();
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** ネイティブ分類の未設定・所有者・識別子を通信せず保持 */
+    @IsTest
+    static void mapsNativeClassificationWithoutCallouts() {
+        System.runAs(testUser) {
+            FieldDefinition definition = (FieldDefinition)JSON.deserialize(
+                '{"QualifiedApiName":"Name","DurableId":"Account.Name","ComplianceGroup":"PII;HIPAA","SecurityClassification":"Public","BusinessStatus":null,"BusinessOwnerId":"' + testUser.Id + '"}',
+                FieldDefinition.class);
+            Test.startTest();
+            Map<String, Map<String, Object>> rows = reader.createFieldRows(new List<FieldDefinition>{definition});
+            Assert.areEqual(new Set<String>{'Name'}, rows.keySet(), '同じ項目名へ索引化');
+            Assert.areEqual('Account.Name', rows.get('Name').get('DurableId'), '識別子を保持');
+            Assert.areEqual('PII;HIPAA', rows.get('Name').get('ComplianceGroup'), '取得値を保持');
+            Assert.areEqual('Public', rows.get('Name').get('SecurityClassification'), '機密度を保持');
+            Assert.areEqual(null, rows.get('Name').get('BusinessStatus'), '未設定を補完しない');
+            Assert.areEqual(String.valueOf(testUser.Id), rows.get('Name').get('BusinessOwnerId'), '同じ所有者IDを保持');
+            Assert.areEqual(0, Limits.getCallouts(), '変換にAPI通信を使わない');
+            Test.stopTest();
+        }
+    }
+
     /** メタデータの再帰変換で元の値と設定済み属性を維持 */
     @IsTest
     static void preservesSourceMetadata() {

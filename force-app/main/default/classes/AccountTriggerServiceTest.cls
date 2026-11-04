@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class AccountTriggerServiceTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     private static AccountTriggerService service = new AccountTriggerService();
 
@@ -15,8 +15,8 @@ private with sharing class AccountTriggerServiceTest {
     static void shouldNormalizeAccountNamesWhenInserted() {
         // 準備
         List<Account> accounts = new List<Account>{
-            TestDataFactory.createAccount('㈱テスト', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('テスト(有)支店', TestDataFactory.SaveMode.DO_NOT_INSERT)
+            new Account(Name = '㈱テスト'),
+            new Account(Name = 'テスト(有)支店')
         };
 
         // 実行
@@ -49,7 +49,8 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldNormalizeChangedAccountNamesWhenUpdated() {
         // 準備
-        Account accountRecord = TestDataFactory.createAccount('テスト取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        Account accountRecord = new Account(Name = 'テスト取引先');
+        insert accountRecord;
         // 更新前後の名称差分を発生させる入力値
         Account updatedAccount = new Account(
             Id = accountRecord.Id,
@@ -85,7 +86,8 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldSkipUnchangedAccountNamesWhenUpdated() {
         // 準備
-        Account savedAccount = TestDataFactory.createAccount('テスト取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        Account savedAccount = new Account(Name = 'テスト取引先');
+        insert savedAccount;
         Account accountRecord = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'
@@ -145,8 +147,8 @@ private with sharing class AccountTriggerServiceTest {
         // 準備
         List<Account> accounts = new List<Account>{
             null,
-            TestDataFactory.createAccount(' ', TestDataFactory.SaveMode.DO_NOT_INSERT),
-            TestDataFactory.createAccount('㈱テスト', TestDataFactory.SaveMode.DO_NOT_INSERT)
+            new Account(Name = ' '),
+            new Account(Name = '㈱テスト')
         };
 
         // 実行
@@ -178,7 +180,8 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldNormalizeWhenUpdatedOldAccountIsMissing() {
         // 準備
-        Account savedAccount = TestDataFactory.createAccount('テスト取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        Account savedAccount = new Account(Name = 'テスト取引先');
+        insert savedAccount;
         Account updatedAccount = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'
@@ -208,7 +211,8 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldNormalizeWhenUpdatedOldAccountIsNull() {
         // 準備
-        Account savedAccount = TestDataFactory.createAccount('テスト取引先', TestDataFactory.SaveMode.INSERT_RECORD);
+        Account savedAccount = new Account(Name = 'テスト取引先');
+        insert savedAccount;
         Account updatedAccount = new Account(
             Id = savedAccount.Id,
             Name = '㈲テスト'

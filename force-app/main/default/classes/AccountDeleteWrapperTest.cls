@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class AccountDeleteWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 未受付の応答を成功と誤認しない

@@ -6,14 +6,15 @@ private with sharing class CaseEmailMessageServiceTest {
 
     private static CaseEmailMessageService service = new CaseEmailMessageService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * Case ID を検証済み ID として返却
      */
     @IsTest
     static void shouldReturnValidatedCaseId() {
-        Case caseRecord = TestDataFactory.createCase('Service Case ID テスト', TestDataFactory.SaveMode.INSERT_RECORD);
+        Case caseRecord = new Case(Subject = 'Service Case ID テスト');
+        insert caseRecord;
         CaseEmailMessageService.CaseIdValidationResult result;
 
         System.runAs(testUser) {
@@ -54,10 +55,8 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldRejectNonCaseId() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'Service Case 以外 ID テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'Service Case 以外 ID テスト');
+        insert accountRecord;
 
         CaseEmailMessageService.CaseIdValidationResult result;
 
@@ -82,10 +81,8 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldCreateInitialPageQuery() {
-        Case caseRecord = TestDataFactory.createCase(
-            'Service 初回ページテスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'Service 初回ページテスト');
+        insert caseRecord;
         CaseEmailMessageService.PageQueryResult result;
 
         System.runAs(testUser) {
@@ -168,10 +165,8 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldLimitPageFetchToRemainingRecords() {
-        Case caseRecord = TestDataFactory.createCase(
-            'Service 残件数テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'Service 残件数テスト');
+        insert caseRecord;
         insert new EmailMessage(
             ParentId = caseRecord.Id,
             RelatedToId = caseRecord.Id,
@@ -224,10 +219,8 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldPrepareZeroFetchSizeAtCursorEnd() {
-        Case caseRecord = TestDataFactory.createCase(
-            'Service Cursor 終端テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Case caseRecord = new Case(Subject = 'Service Cursor 終端テスト');
+        insert caseRecord;
         insert new EmailMessage(
             ParentId = caseRecord.Id,
             RelatedToId = caseRecord.Id,

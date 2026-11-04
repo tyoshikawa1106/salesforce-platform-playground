@@ -294,7 +294,7 @@ Apex バッチは、`機能名Batch`、`機能名BatchService`、`機能名Batch
 - Service、BatchService、Selector、DomainではDMLを実行しない。Serviceは判定と対象レコードの組み立てを行い、メインクラスへ返す。メインクラスがDMLを実行し、結果の集計・変換が必要な場合はServiceへ渡す。
 - DMLのユーザーモード指定、部分成功の扱い、トランザクション境界はメインクラスで明示する。DMLを隠すためだけのServiceメソッドや専用クラスを追加しない。
 - 部分成功のDML結果はレコード単位で集計し、1レコードの複数エラーを失敗件数へ重複加算しない。失敗対象の識別が必要な場合は、入力レコードと結果の対応を保持してServiceへ渡す。
-- テストデータ作成・検証のためのDMLはテストクラスと既存のTestDataFactoryで実行してよい。本体コードの責務分担とは区別する。
+- テストデータ作成・検証のためのDMLは各テストクラスで実行してよい。本体コードの責務分担とは区別する。
 
 ## セキュリティと権限
 
@@ -492,24 +492,21 @@ UI、Flow、API、非同期処理、静的解析抑止に関わるアノテー�
 ```apex
 private static ObjectRecordSearchService service = new ObjectRecordSearchService();
 
-private static User testUser = TestDataFactory.getTestUser();
+private static User testUser = new User(Id = UserInfo.getUserId());
 ```
 
-### TestDataFactory
+### テストデータの準備
 
-- テスト準備は既存の`TestDataFactory`を優先し、テスト固有の準備はテストクラス内に置く。
-- レコード作成 helper は原則 1 レコード作成に限定し、複数件が必要な場合はテストクラス側で繰り返し呼び出す。
-- レコード作成 helper は、`createAccount(..., TestDataFactory.SaveMode.INSERT_RECORD)` のように、このリポジトリで定義した保存モード enum で保存有無を切り替える。
-- `TestDataFactory.SaveMode` は Salesforce 標準 API ではなく、このリポジトリの TestDataFactory 用 enum として定義する。
-- 保存モード enum の値は、保存する場合は `INSERT_RECORD`、保存しない場合は `DO_NOT_INSERT` を使う。
-- `TestDataFactory` の公開 helper では保存有無を `Boolean` 引数で受け取らない。`createAccount(true)` / `createAccount(false)` のように呼び出し側で意味が読みにくい API にしない。
-- `TestDataFactory` 内の SObject 初期化は `new Account();` の後に `accountRecord.Name = ...;` のように項目ごとに代入し、どの項目へ値を入れるかを 1 行ずつ分かる形にする。
-- 再利用するテストデータ作成クラスは、作成データの契約もテストで確認する。
+- テストデータは各テストクラス内で作成し、保存が必要な場面だけ明示的にDMLを実行する。
+- 同じクラス内で繰り返す複雑な準備は、そのテストクラスのprivate helperへまとめてよい。別の共通ファクトリへ移さない。
+- `TestDataFactory`は原則として外部から呼び出さない。現在は`TestDataFactory`と`TestDataFactoryTest`だけを保持し、他のテストクラスからは参照しない。
+- 保持する`TestDataFactory`の契約は対応する同名Testだけで確認する。既存の保存モードenumはそのクラス内の契約として扱い、他のテストへ広げない。
+- 設定オブジェクトと業務レコードを同じtransactionで保存する場合は、`@TestSetup`や`System.runAs`でMixed DMLを避ける。
 
 ### 実行ブロック
 
-- `System.runAs(...)` に渡す `User` は、原則としてテストクラス先頭の `private static User testUser = TestDataFactory.getTestUser();` で一度取得し、各テストメソッド内で毎回 User query や user 取得 helper を呼ばない。
-- このリポジトリでは、現在ログインユーザーをテスト実行ユーザーとして扱う。テスト側はユーザー取得方法を直接書かず、`TestDataFactory.getTestUser()` を使う。
+- `System.runAs(...)` に渡す `User` は、原則としてテストクラス先頭の `private static User testUser = new User(Id = UserInfo.getUserId());` で一度取得し、各テストメソッド内で毎回 User query や user 取得 helper を呼ばない。
+- このリポジトリでは、現在ログインユーザーをテスト実行ユーザーとして扱う。テストクラス先頭で`new User(Id = UserInfo.getUserId())`を作成し、繰り返し参照する。
 - 権限や profile の違いを確認するテストでは、必要な user をテストクラス先頭で用途別に用意し、メソッド内では `System.runAs(testUser)` のように参照する。
 - 各テストメソッドの中で必ず `System.runAs(...)` を宣言し、テスト対象の処理をその中で実行する。
 - 各テストメソッドの `System.runAs(...)` 内では、`Test.startTest()` と `Test.stopTest()` を必ず宣言する。

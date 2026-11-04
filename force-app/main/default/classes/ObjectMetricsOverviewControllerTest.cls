@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewControllerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * オブジェクト件数サマリーを画面用に返却
@@ -80,33 +80,13 @@ private with sharing class ObjectMetricsOverviewControllerTest {
      * 主要オブジェクトの実件数確認用レコードを作成
      */
     private static void createObjectMetricRecords() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'Controller 件数取引先',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        TestDataFactory.createContact(
-            accountRecord,
-            'Controller 件数責任者',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        TestDataFactory.createLead(
-            'Controller 件数リード',
-            'Controller 件数会社',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        TestDataFactory.createOpportunity(
-            accountRecord,
-            'Controller 件数商談',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        TestDataFactory.createProduct(
-            'Controller 件数商品',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        TestDataFactory.createCase(
-            'Controller 件数ケース',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'Controller 件数取引先');
+        insert accountRecord;
+        insert new Contact(AccountId = accountRecord.Id, LastName = 'Controller 件数責任者');
+        insert new Lead(LastName = 'Controller 件数リード', Company = 'Controller 件数会社');
+        insert new Opportunity(AccountId = accountRecord.Id, Name = 'Controller 件数商談', StageName = 'Prospecting', CloseDate = Date.today().addDays(30));
+        insert new Product2(Name = 'Controller 件数商品', IsActive = true);
+        insert new Case(Subject = 'Controller 件数ケース');
     }
 
 }

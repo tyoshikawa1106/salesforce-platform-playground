@@ -2,7 +2,7 @@
 @IsTest
 private with sharing class TestDataDeleteControllerTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
     private static User deniedUser = createDeniedUser();
 
     /** すべてのデータの編集権限がなければ拒否 */
@@ -43,7 +43,7 @@ private with sharing class TestDataDeleteControllerTest {
     static void readsRemainingWithEffectivePermission() {
 
         System.runAs(testUser) {
-            TestDataFactory.createAccount('任意の名称', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '任意の名称');
             Test.startTest();
             TestDataDeleteWrapper response = TestDataDeleteController.getRemaining('Account');
             TestDataDeleteWrapper rejected = TestDataDeleteController.getRemaining('User');
@@ -99,9 +99,10 @@ private with sharing class TestDataDeleteControllerTest {
     static void countsValidPricebookEntriesWithoutExclusion() {
 
         System.runAs(testUser) {
-            Product2 product = TestDataFactory.createProduct('通常の価格', TestDataFactory.SaveMode.INSERT_RECORD);
+            Product2 product = new Product2(Name = '通常の価格', IsActive = true);
+            insert product;
             update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
-            TestDataFactory.createPricebookEntry(product, TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new PricebookEntry(Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1200, IsActive = true);
             Test.startTest();
             TestDataDeleteWrapper response = TestDataDeleteController.getRemaining('PricebookEntry');
             Test.stopTest();
@@ -122,7 +123,17 @@ private with sharing class TestDataDeleteControllerTest {
             LIMIT 1
         ];
         Assert.isFalse(profiles.isEmpty(), '権限不足の検証用プロファイルが必要');
-        User denied = TestDataFactory.createUser('削除権限なし', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        User denied = new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = '削除権限なし',
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
         denied.ProfileId = profiles[0].Id;
         return denied;
     }

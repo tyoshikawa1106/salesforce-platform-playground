@@ -40,6 +40,11 @@ private with sharing class ObjectExplorerSelectorTest {
             Set<String> names = new Set<String>();
             for (FieldDefinition record : records) {
                 names.add(record.QualifiedApiName);
+                Assert.isTrue(String.isNotBlank(record.DurableId), '同じ照会で完全識別子を取得');
+                record.get('ComplianceGroup');
+                record.get('SecurityClassification');
+                record.get('BusinessStatus');
+                record.get('BusinessOwnerId');
             }
             Assert.areEqual(new Set<String>{ 'Name', 'AccountNumber' }, names, '要求した定義だけを取得');
             Assert.isFalse(selector.selectFieldTypes('Account').isEmpty(), '型を取得');

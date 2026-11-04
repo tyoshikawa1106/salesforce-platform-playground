@@ -4,17 +4,15 @@
 @IsTest
 private with sharing class AccountPdfServiceTest {
     private static final AccountPdfService SERVICE = new AccountPdfService();
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 取引先 ID を検証して返却
      */
     @IsTest
     static void shouldReturnAccountIdWhenParameterIsValid() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'PDF ID 検証テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'PDF ID 検証テスト');
+        insert accountRecord;
         AccountPdfService.AccountIdValidationResult result;
 
         System.runAs(testUser) {
@@ -75,15 +73,10 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldRejectNonAccountId() {
-        Account accountRecord = TestDataFactory.createAccount(
-            'PDF 取引先以外 ID テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
-        Contact contactRecord = TestDataFactory.createContact(
-            accountRecord,
-            'PDF テスト',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Account accountRecord = new Account(Name = 'PDF 取引先以外 ID テスト');
+        insert accountRecord;
+        Contact contactRecord = new Contact(AccountId = accountRecord.Id, LastName = 'PDF テスト');
+        insert contactRecord;
 
         AccountPdfService.AccountIdValidationResult result;
 

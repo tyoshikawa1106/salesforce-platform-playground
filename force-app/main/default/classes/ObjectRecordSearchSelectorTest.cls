@@ -7,34 +7,34 @@ private with sharing class ObjectRecordSearchSelectorTest {
     private static ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
     private static ObjectRecordSearchService service = new ObjectRecordSearchService();
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     @TestSetup
     static void setupTestData() {
         List<Account> accounts = new List<Account>();
 
-        Account alphaAccount = TestDataFactory.createAccount('Selector Alpha', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account alphaAccount = new Account(Name = 'Selector Alpha');
         alphaAccount.Industry = 'Technology';
         accounts.add(alphaAccount);
 
-        Account betaAccount = TestDataFactory.createAccount('Selector Beta', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account betaAccount = new Account(Name = 'Selector Beta');
         betaAccount.Industry = 'Finance';
         accounts.add(betaAccount);
 
-        Account deleteOneAccount = TestDataFactory.createAccount('Selector Delete One', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account deleteOneAccount = new Account(Name = 'Selector Delete One');
         deleteOneAccount.Industry = 'Healthcare';
         accounts.add(deleteOneAccount);
 
-        Account deleteTwoAccount = TestDataFactory.createAccount('Selector Delete Two', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account deleteTwoAccount = new Account(Name = 'Selector Delete Two');
         deleteTwoAccount.Industry = 'Retail';
         accounts.add(deleteTwoAccount);
 
-        Account retailTwoAccount = TestDataFactory.createAccount('Selector Retail Two', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        Account retailTwoAccount = new Account(Name = 'Selector Retail Two');
         retailTwoAccount.Industry = 'Retail';
         accounts.add(retailTwoAccount);
 
-        accounts.add(TestDataFactory.createAccount('Selector Null One', TestDataFactory.SaveMode.DO_NOT_INSERT));
-        accounts.add(TestDataFactory.createAccount('Selector Null Two', TestDataFactory.SaveMode.DO_NOT_INSERT));
+        accounts.add(new Account(Name = 'Selector Null One'));
+        accounts.add(new Account(Name = 'Selector Null Two'));
         insert accounts;
     }
 
@@ -182,11 +182,8 @@ private with sharing class ObjectRecordSearchSelectorTest {
             WHERE Name = 'Selector Alpha'
             LIMIT 1
         ];
-        Contact contactRecord = TestDataFactory.createContact(
-            parentAccount,
-            'Selector Contact',
-            TestDataFactory.SaveMode.INSERT_RECORD
-        );
+        Contact contactRecord = new Contact(AccountId = parentAccount.Id, LastName = 'Selector Contact');
+        insert contactRecord;
         List<SObject> records;
 
         System.runAs(testUser) {

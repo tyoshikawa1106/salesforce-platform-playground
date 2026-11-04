@@ -74,6 +74,21 @@ private with sharing class SalesforceApiProtocolTest {
         }
     }
 
+    /** 定義更新の公式エラーコードを未知扱いせず本文は秘匿 */
+    @IsTest
+    static void exposesDefinitionValidationCode() {
+        System.runAs(testUser) {
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(400);
+            response.setBody('[{"errorCode":"REQUIRED_FIELD_MISSING","message":"PRIVATE_VALUE"}]');
+            Test.startTest();
+            String result = SalesforceApiProtocol.httpMessage(response);
+            Test.stopTest();
+            Assert.isTrue(result.contains('REQUIRED_FIELD_MISSING'), '公式の定義検証コードを維持');
+            Assert.isFalse(result.contains('PRIVATE_VALUE'), '応答の自由文は公開しない');
+        }
+    }
+
     /** 未知のコードを固定表記に置換 */
     @IsTest
     static void hidesUnknownCode() {
@@ -81,7 +96,7 @@ private with sharing class SalesforceApiProtocolTest {
             Test.startTest();
             String code = SalesforceApiProtocol.safeCode('PRIVATE_VALUE');
             Test.stopTest();
-            Assert.areEqual('UNKNOWN_ERROR', code, '未知の文字列を公開しない');
+            Assert.areEqual('UNRECOGNIZED_API_ERROR_CODE', code, '未知の文字列を公開しない');
         }
     }
 

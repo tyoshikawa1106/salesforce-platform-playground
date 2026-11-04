@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewItemWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 定義と件数から表示用メトリクス行を作成

@@ -4,7 +4,7 @@
 @IsTest
 private with sharing class ObjectRecordSearchResultWrapperTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 検索結果と次ページ有無を公開

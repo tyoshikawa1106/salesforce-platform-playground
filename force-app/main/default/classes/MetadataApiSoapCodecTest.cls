@@ -45,6 +45,37 @@ private with sharing class MetadataApiSoapCodecTest {
             Test.stopTest();
         }
     }
+    /** 対象項目の拒否を入力分類値の不正と誤案内しない */
+    @IsTest
+    static void distinguishesRejectedTargetField() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, String> results = codec.readUpdateResults(
+                response('<result><fullName>Account.Id</fullName><success>false</success><errors><fields>FieldOrColumn</fields><message>PRIVATE_VALUE</message><statusCode>INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST</statusCode></errors></result>'),
+                new Set<String>{'Account.Id'}
+            );
+            Test.stopTest();
+            Assert.isTrue(results.get('Account.Id').contains('分類更新対象として拒否'), '構造化属性で対象項目の拒否を識別');
+            Assert.isTrue(results.get('Account.Id').contains('FieldOrColumn'), '拒否された属性を固定名で案内');
+            Assert.isFalse(results.get('Account.Id').contains('PRIVATE_VALUE'), '応答の自由文は公開しない');
+        }
+    }
+
+    /** 分類値の拒否を対象項目非対応と決めつけない */
+    @IsTest
+    static void keepsClassificationValueRejectionDistinct() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, String> results = codec.readUpdateResults(
+                response('<result><fullName>Account.Name</fullName><success>false</success><errors><fields>SecurityClassification</fields><statusCode>INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST</statusCode></errors></result>'),
+                new Set<String>{'Account.Name'}
+            );
+            Test.stopTest();
+            Assert.isFalse(results.get('Account.Name').contains('分類更新対象として拒否'), '分類値の拒否を対象項目の拒否と混同しない');
+            Assert.isTrue(results.get('Account.Name').contains('INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'), '公式コードを保持');
+        }
+    }
+
     /** 不正なSOAP入力・応答を拒否 */
     @IsTest
     static void rejectsEmptyRequest() {

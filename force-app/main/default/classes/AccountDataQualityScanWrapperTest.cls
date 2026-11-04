@@ -3,7 +3,7 @@
  */
 @IsTest
 private with sharing class AccountDataQualityScanWrapperTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * nullの集計値をゼロとして画面表示値へ変換

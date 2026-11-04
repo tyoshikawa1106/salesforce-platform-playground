@@ -3,7 +3,7 @@
  */
 @IsTest
 private with sharing class AccountPdfViewModelTest {
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 全項目を共通の空値表示で初期化

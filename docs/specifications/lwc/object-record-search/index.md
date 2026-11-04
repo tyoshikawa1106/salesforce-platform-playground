@@ -49,7 +49,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [ObjectRecordSearchSortSupport](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupport.cls)       | 汎用レコード検索のソート条件とページングカーソル取り扱い   | [ObjectRecordSearchSortSupportTest](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupportTest.cls)       |
 | [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls)                           | データボードで扱うオブジェクト定義一元管理                 | [ObjectMetricCatalogTest](../../../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)                           |
 
-テストの共通準備は[TestDataFactory](../../../../force-app/main/default/classes/TestDataFactory.cls)、その契約は[TestDataFactoryTest](../../../../force-app/main/default/classes/TestDataFactoryTest.cls)で確認できます。
+テストデータの準備は、対応する同名Testの内部で管理します。
 
 ### 設定・権限
 

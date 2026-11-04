@@ -2,15 +2,25 @@
 @IsTest
 private with sharing class AccountDeleteBatchTest {
 
-    private static User testUser = TestDataFactory.getTestUser();
+    private static User testUser = new User(Id = UserInfo.getUserId());
+
+    /**
+     * 同じテストクラスで必要な権限だけを割り当て
+     */
+    @TestSetup
+    static void setupDeleteAccess() {
+        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
+        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
+        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+    }
 
     /** バッチ実行で取引先を削除 */
     @IsTest
     static void deletesThroughBatchExecution() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
-            TestDataFactory.createAccount('削除対象', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '削除対象');
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
             Test.stopTest();
@@ -24,10 +34,21 @@ private with sharing class AccountDeleteBatchTest {
     /** 直接起動時も権限を確認 */
     @IsTest
     static void directLaunchStillChecksPermission() {
-        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+        User denied = new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = 'Delete permission test',
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
+        insert denied;
 
         System.runAs(denied) {
-            TestDataFactory.createAccount('保護対象', TestDataFactory.SaveMode.INSERT_RECORD);
+            insert new Account(Name = '保護対象');
             Test.startTest();
             Database.executeBatch(new AccountDeleteBatch(), 2000);
             Test.stopTest();
@@ -38,10 +59,22 @@ private with sharing class AccountDeleteBatchTest {
     /** 権限不足でスコープの削除を拒否 */
     @IsTest
     static void executeRejectsWithoutPermission() {
-        User denied = TestDataFactory.createUser('Delete permission test', TestDataFactory.SaveMode.INSERT_RECORD);
+        User denied = new User(
+            ProfileId = UserInfo.getProfileId(),
+            Alias = 'testuser',
+            LastName = 'Delete permission test',
+            Email = 'test-user@example.invalid',
+            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+            TimeZoneSidKey = 'Asia/Tokyo',
+            LocaleSidKey = 'ja_JP',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'ja'
+        );
+        insert denied;
 
         System.runAs(denied) {
-            Account account = TestDataFactory.createAccount('削除直前の拒否', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account account = new Account(Name = '削除直前の拒否');
+            insert account;
             Test.startTest();
             AccountDeleteBatch batch = new AccountDeleteBatch();
             batch.execute(null, new List<SObject>{ account });
@@ -59,12 +92,14 @@ private with sharing class AccountDeleteBatchTest {
     /** 直列化したスコープ間で件数を保持 */
     @IsTest
     static void preservesCountsAcrossSerializedScopes() {
-        TestDataFactory.assignPermissionSet(testUser.Id, 'LwcAccountDelete');
 
         System.runAs(testUser) {
-            Account first = TestDataFactory.createAccount('前半', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account gone = TestDataFactory.createAccount('削除済み', TestDataFactory.SaveMode.INSERT_RECORD);
-            Account second = TestDataFactory.createAccount('後半', TestDataFactory.SaveMode.INSERT_RECORD);
+            Account first = new Account(Name = '前半');
+            insert first;
+            Account gone = new Account(Name = '削除済み');
+            insert gone;
+            Account second = new Account(Name = '後半');
+            insert second;
             delete gone;
             AccountDeleteBatch batch = new AccountDeleteBatch();
             Test.startTest();
@@ -83,4 +118,5 @@ private with sharing class AccountDeleteBatchTest {
             Assert.areEqual(0, [SELECT COUNT() FROM Account], '成功した削除結果を維持');
         }
     }
+
 }

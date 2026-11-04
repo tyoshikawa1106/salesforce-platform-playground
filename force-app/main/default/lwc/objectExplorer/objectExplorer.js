@@ -199,6 +199,8 @@ export default class ObjectExplorer extends LightningElement {
     classifyDataReady = false;
     // 保存処理中は編集と画面遷移を固定
     saving = false;
+    // 確認ダイアログとは分離して実際の保存中だけ固定表示
+    saveInProgress = false;
     // 保存要求ごとの確認済み成功数
     saveSuccessCount = 0;
     // 保存要求ごとの確認済み失敗数
@@ -1659,6 +1661,8 @@ export default class ObjectExplorer extends LightningElement {
             if (!confirmed) { this.classifyNotice = '保存をキャンセルしました。'; return; }
             // 保存開始後は未実行と案内せず確認済みの件数を表示
             phase = 'saving';
+            // 確認済みの保存をスクロール位置に依存せず案内
+            this.saveInProgress = true;
             // 固定したオブジェクトと変更内容を少数ずつ順に処理
             await this.saveClassifyRows(detail.apiName, changes);
             // 完了時には成功・失敗を混同せず表示
@@ -1679,6 +1683,8 @@ export default class ObjectExplorer extends LightningElement {
             if (ownsSaveLock) {
                 // 保存処理の操作ロックを解除
                 this.saving = false;
+                // 成功・部分失敗・例外のすべてで固定表示を終了
+                this.saveInProgress = false;
                 // 次の編集を許可
                 this.busy = false;
             }
