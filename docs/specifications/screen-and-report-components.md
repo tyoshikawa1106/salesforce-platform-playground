@@ -285,10 +285,9 @@ Salesforce API共通通信とMetadata SOAP形式のクラスは、後述の「�
 | [AccountTriggerHandler](../../force-app/main/default/classes/AccountTriggerHandler.cls) | 取引先トリガーハンドラークラス                 | [AccountTriggerHandlerTest](../../force-app/main/default/classes/AccountTriggerHandlerTest.cls) |
 | [AccountTriggerService](../../force-app/main/default/classes/AccountTriggerService.cls) | 取引先トリガーから呼び出されるユースケース調整 | [AccountTriggerServiceTest](../../force-app/main/default/classes/AccountTriggerServiceTest.cls) |
 | [DateTimeUtil](../../force-app/main/default/classes/DateTimeUtil.cls)                   | 日付と時刻の変換・判定処理を提供               | [DateTimeUtilTest](../../force-app/main/default/classes/DateTimeUtilTest.cls)                   |
-| [StringUtil](../../force-app/main/default/classes/StringUtil.cls)                       | 文字列の変換・分割処理を提供                   | [StringUtilTest](../../force-app/main/default/classes/StringUtilTest.cls)                       |
 
 - `AccountTriggerHandler`と`AccountTriggerService`は[取引先トリガー](apex/triggers/account-trigger/index.md)の構成です。取引先の作成・名称変更に伴って動作し、画面専用のControllerではありません。
-- `DateTimeUtil`と`StringUtil`は対象画面・帳票の本体から直接参照されていません。共通部品として存在することと、現在の利用実績は区別します。
+- `DateTimeUtil`は対象画面・帳票の本体から直接参照されていません。共通部品として存在することと、現在の利用実績は区別します。
 
 ## 一覧の確認方法
 
