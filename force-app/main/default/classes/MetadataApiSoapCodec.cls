@@ -6,29 +6,37 @@ public with sharing class MetadataApiSoapCodec {
     private static final String XSI_NS = 'http://www.w3.org/2001/XMLSchema-instance';
 
     /**
-     * 標準項目の分類だけを含む一括更新のSOAP本文を生成
-     * @param fields 検証済み完全名と分類5属性の対応
-     * @return 認証差し込み箇所を限定したSOAP本文
+     * 認証ヘッダーと操作名を固定したSOAP文書を生成
+     * @param operationName 内部で固定した操作名
+     * @return 認証ヘッダーを持つ文書
      */
-    public String createUpdateRequest(Map<String, Map<String, Object>> fields) {
-        if (fields.isEmpty() || fields.size() > 10) { throw new SalesforceApiClient.IntegrationException('標準項目の一括更新は1～10件で指定してください。'); }
+    public Dom.Document createRequestDocument(String operationName) {
         Dom.Document doc = new Dom.Document();
         Dom.XmlNode envelope = doc.createRootElement('Envelope', SOAP_NS, 'env');
         envelope.setAttribute('xmlns:xsi', XSI_NS);
         Dom.XmlNode header = envelope.addChildElement('Header', SOAP_NS, 'env');
         Dom.XmlNode session = header.addChildElement('SessionHeader', METADATA_NS, 'met');
         session.addChildElement('sessionId', METADATA_NS, 'met').addTextNode('{!$Credential.OAuthToken}');
-        Dom.XmlNode soapBody = envelope.addChildElement('Body', SOAP_NS, 'env');
-        Dom.XmlNode operation = soapBody.addChildElement('updateMetadata', METADATA_NS, 'met');
-        for (String fullName : fields.keySet()) {
-            // 同じ項目の完全名と属性を一つの単位でXMLへ追加
-            appendMetadataField(operation, fullName, fields.get(fullName));
-        }
-        // 認証欄以外の値をNamed Credentialの差し込み式にしない
+        envelope.addChildElement('Body', SOAP_NS, 'env').addChildElement(operationName, METADATA_NS, 'met');
+        return doc;
+    }
+
+    /**
+     * 認証欄以外の差し込み式を無効化
+     * @param doc 認証欄を固定した文書
+     * @return 認証欄だけに差し込みを許可したXML
+     */
+    public String serializeRequest(Dom.Document doc) {
         String xml = doc.toXmlString().replace('{', '&#123;');
-        String body = xml.replace('<met:sessionId>&#123;!$Credential.OAuthToken}</met:sessionId>', '<met:sessionId>{!$Credential.OAuthToken}</met:sessionId>');
-        // 認証欄以外をエスケープした本文だけを通信層へ返却
-        return body;
+        return xml.replace('<met:sessionId>&#123;!$Credential.OAuthToken}</met:sessionId>', '<met:sessionId>{!$Credential.OAuthToken}</met:sessionId>');
+    }
+
+    /**
+     * APIの対象を項目完全名だけに限定
+     * @param fullName オブジェクトと項目の正式名
+     */
+    public void requireFullName(String fullName) {
+        if (!Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName ?? '')) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
     }
 
     /**
@@ -37,9 +45,9 @@ public with sharing class MetadataApiSoapCodec {
      * @param fullName 検証対象の完全名
      * @param metadata 同じ項目の分類定義
      */
-    private void appendMetadataField(Dom.XmlNode operation, String fullName, Map<String, Object> metadata) {
+    public void appendMetadataField(Dom.XmlNode operation, String fullName, Map<String, Object> metadata) {
         // 完全名へパスやSOQL断片を含めさせない
-        if (!Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName ?? '')) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
+        requireFullName(fullName);
         // 完全名と定義の対応を送信直前にも確認
         if (metadata.get('fullName') != fullName) { throw new SalesforceApiClient.IntegrationException('分類を更新する項目の識別名が一致しません。'); }
         // 文字列の連結ではなくXML APIで値を追加
@@ -62,7 +70,7 @@ public with sharing class MetadataApiSoapCodec {
      * @return 完全名別の成功または安全な拒否理由
      */
     public Map<String, String> readUpdateResults(HttpResponse response, Set<String> expectedNames) {
-        Dom.XmlNode operation = readUpdateOperation(response);
+        Dom.XmlNode operation = readOperation(response, 'updateMetadataResponse', '[OE-SAVE-UNCONFIRMED] Metadata APIの更新結果を確認できませんでした。最新状態を再取得してください。');
         Map<String, String> results = new Map<String, String>();
         for (Dom.XmlNode result : operation.getChildElements()) {
             String fullName = result.getChildElement('fullName', METADATA_NS)?.getText();
@@ -91,17 +99,19 @@ public with sharing class MetadataApiSoapCodec {
     /**
      * SOAP構文・Fault・HTTP結果を検証して更新結果の境界を取得
      * @param response SOAP応答
-     * @return 更新結果を含む操作要素
+     * @param operationName 要求した操作の応答名
+     * @param failureMessage 呼び出し段階に対応する固定案内
+     * @return 対象操作の応答要素
      */
-    private Dom.XmlNode readUpdateOperation(HttpResponse response) {
+    public Dom.XmlNode readOperation(HttpResponse response, String operationName, String failureMessage) {
         Dom.XmlNode body;
         try {
             Dom.Document doc = new Dom.Document(); doc.load(response.getBody());
             body = doc.getRootElement().getChildElement('Body', SOAP_NS);
         } catch (Exception error) { throw new SalesforceApiClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
-        if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new SalesforceApiClient.IntegrationException('[OE-SAVE-UNCONFIRMED] Metadata APIがSOAP Faultを返したため、更新結果を確認できませんでした。最新状態を再取得してください。'); }
-        Dom.XmlNode operation = body?.getChildElement('updateMetadataResponse', METADATA_NS);
-        if (response.getStatusCode() != 200 || operation == null) { throw new SalesforceApiClient.IntegrationException('Metadata APIの更新応答を確認できませんでした。最新状態を再取得してください。'); }
+        if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new SalesforceApiClient.IntegrationException(failureMessage); }
+        Dom.XmlNode operation = body?.getChildElement(operationName, METADATA_NS);
+        if (response.getStatusCode() != 200 || operation == null) { throw new SalesforceApiClient.IntegrationException(failureMessage); }
         return operation;
     }
 

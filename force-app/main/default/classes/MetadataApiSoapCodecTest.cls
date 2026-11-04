@@ -10,7 +10,7 @@ private with sharing class MetadataApiSoapCodecTest {
     static void encodesOnlyAllowedMetadata() {
         System.runAs(testUser) {
             Test.startTest();
-            String xml = codec.createUpdateRequest(
+            String xml = createStandardRequest(
                 new Map<String, Map<String, Object>>{
                     'Account.Name' => new Map<String, Object>{
                         'fullName' => 'Account.Name',
@@ -82,7 +82,7 @@ private with sharing class MetadataApiSoapCodecTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                codec.createUpdateRequest(new Map<String, Map<String, Object>>());
+                createStandardRequest(new Map<String, Map<String, Object>>());
                 Assert.fail('不正なSOAP契約を拒否');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('1～10'), '失敗理由を通知');
@@ -96,7 +96,7 @@ private with sharing class MetadataApiSoapCodecTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                codec.createUpdateRequest(
+                createStandardRequest(
                     new Map<String, Map<String, Object>>{
                         'Account.Name' => new Map<String, Object>{ 'fullName' => 'Account.Phone' }
                     }
@@ -114,7 +114,7 @@ private with sharing class MetadataApiSoapCodecTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                codec.createUpdateRequest(
+                createStandardRequest(
                     new Map<String, Map<String, Object>>{ 'Account.Name/' => new Map<String, Object>() }
                 );
                 Assert.fail('不正なSOAP契約を拒否');
@@ -218,4 +218,14 @@ private with sharing class MetadataApiSoapCodecTest {
         );
         return value;
     }
+
+    /**
+     * 標準項目だけの要求を生成
+     * @param fields 検証する分類定義
+     * @return 一括更新XML
+     */
+    private static String createStandardRequest(Map<String, Map<String, Object>> fields) {
+        return new ObjectExplorerApiProtocol.CustomFieldCodec().createUpdateRequest(fields, new Map<String, Dom.XmlNode>());
+    }
+
 }

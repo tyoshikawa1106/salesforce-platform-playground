@@ -759,14 +759,17 @@ it('1001行のCSVを10項目ずつ順に保存し、部分失敗だけを再保�
             : { apiName: change.apiName, success: true, latest: change.draft, owner: { value: '', label: '未設定' } }));
         saveClassifyData.mockImplementation((request) => Promise.resolve(resultsFor(request)));
         saveClassifyData.mockImplementationOnce((request) => new Promise((resolve) => { finishFirst = () => resolve(resultsFor(request)); }));
+        const initialChecks = getApiAuthentication.mock.calls.length;
         element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
         await flush();
+        expect(getApiAuthentication).toHaveBeenCalledTimes(initialChecks + 1);
         expect(saveClassifyData).toHaveBeenCalledTimes(1);
         expect(element.shadowRoot.querySelector('.oe-save-progress')).not.toBeNull();
         finishFirst();
         // 保存のPromise連鎖と描画が完了するまでイベントループを一巡させる
         await new Promise(setImmediate);
         expect(saveClassifyData).toHaveBeenCalledTimes(101);
+        expect(getApiAuthentication).toHaveBeenCalledTimes(initialChecks + 1);
         const sent = saveClassifyData.mock.calls.flatMap(([request]) => JSON.parse(request.changesJson));
         expect(sent.map((change) => change.apiName)).toEqual(fields.map((field) => field.apiName));
         expect(saveClassifyData.mock.calls.every(([request]) => JSON.parse(request.changesJson).length <= 10)).toBe(true);
@@ -775,8 +778,20 @@ it('1001行のCSVを10項目ずつ順に保存し、部分失敗だけを再保�
         saveClassifyData.mockClear();
         element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
         await flush();
+        expect(getApiAuthentication).toHaveBeenCalledTimes(initialChecks + 2);
         expect(JSON.parse(saveClassifyData.mock.calls[0][0].changesJson).map((change) => change.apiName)).toEqual(['Field1000__c']);
     } finally {
         global.FileReader = originalReader;
     }
+});
+
+it('保存開始時の接続確認に失敗したら更新を送信しない', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    getApiAuthentication.mockRejectedValueOnce(new Error('PRIVATE_VALUE'));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
+    expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
 });

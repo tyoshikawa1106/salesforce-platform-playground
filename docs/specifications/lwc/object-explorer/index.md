@@ -37,8 +37,8 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [SalesforceApiClient](../../../../force-app/main/default/classes/SalesforceApiClient.cls)                     | 同一組織のREST・Tooling・Metadata API共通通信と接続先確認                                                                      | [SalesforceApiClientTest](../../../../force-app/main/default/classes/SalesforceApiClientTest.cls)                     |
 | [SalesforceApiProtocol](../../../../force-app/main/default/classes/SalesforceApiProtocol.cls)                 | 共通HTTP応答・接続先の検証、固定診断、公開コードの許可一覧                                                                     | [SalesforceApiProtocolTest](../../../../force-app/main/default/classes/SalesforceApiProtocolTest.cls)                 |
 | [MetadataApiSoapCodec](../../../../force-app/main/default/classes/MetadataApiSoapCodec.cls)                   | Metadata SOAPのXML生成・応答形式・項目の完全名を検証。SOAP XML生成と項目完全名による応答照合                                   | [MetadataApiSoapCodecTest](../../../../force-app/main/default/classes/MetadataApiSoapCodecTest.cls)                   |
-| [ObjectExplorerApiClient](../../../../force-app/main/default/classes/ObjectExplorerApiClient.cls)             | 項目定義のTooling照会・分類のREST照会とTooling／Metadata更新                                                                   | [ObjectExplorerApiClientTest](../../../../force-app/main/default/classes/ObjectExplorerApiClientTest.cls)             |
-| [ObjectExplorerApiProtocol](../../../../force-app/main/default/classes/ObjectExplorerApiProtocol.cls)         | 分類応答・更新定義・保存状態の変換                                                                                             | [ObjectExplorerApiProtocolTest](../../../../force-app/main/default/classes/ObjectExplorerApiProtocolTest.cls)         |
+| [ObjectExplorerApiClient](../../../../force-app/main/default/classes/ObjectExplorerApiClient.cls)             | 項目監査のTooling照会・分類のREST照会とMetadata定義読取・更新                                                                  | [ObjectExplorerApiClientTest](../../../../force-app/main/default/classes/ObjectExplorerApiClientTest.cls)             |
+| [ObjectExplorerApiProtocol](../../../../force-app/main/default/classes/ObjectExplorerApiProtocol.cls)         | 分類応答・カスタム項目XMLの保持・保存状態の変換                                                                                | [ObjectExplorerApiProtocolTest](../../../../force-app/main/default/classes/ObjectExplorerApiProtocolTest.cls)         |
 
 テストでは現在の実行ユーザーを直接取得し、共通の`TestDataFactory`には依存しません。
 
@@ -132,15 +132,17 @@ API認証のプリンシパル利用権限は、External Credentialの作成後�
 
 Apexは固定名`SalesforceApiIntegration`でNamed Credentialを参照します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
 
-保存前の分類3属性と所有者IDは、対象識別用のネイティブ`FieldDefinition`照会で同時に取得し、REST APIの重複照会を省きます。保存後は同一Apexトランザクションの照会で更新前の値が返るため、別のREST API要求で最大10項目まとめて再取得します。要求した項目API名・完全なDurableId・必要属性・件数を照合し、欠落や重複を未設定値として扱いません。標準項目はSOAP Metadata APIの`updateMetadata`で最大10項目まとめて更新し、分類5属性と検証済みの`fullName`だけを送信します。カスタム項目はTooling APIの`CustomField.Metadata`で最新定義を取得し、分類以外の設定済み値を保持して個別に更新します。Tooling APIで受理されない未設定の複合属性は送信対象から外し、解除する分類属性のnullは維持します。更新結果は応答順ではなく完全名で照合し、別のAPI要求で再取得した分類値と所有者IDが一致した項目だけを成功とします。
+保存前の分類3属性と所有者IDは、対象識別用のネイティブ`FieldDefinition`照会で同時に取得し、REST APIの重複照会を省きます。保存後は同一Apexトランザクションの照会で更新前の値が返るため、別のREST API要求で最大10項目まとめて再取得します。要求した項目API名・完全なDurableId・必要属性・件数を照合し、欠落や重複を未設定値として扱いません。標準項目はSOAP Metadata APIの`updateMetadata`で最大10項目まとめて更新し、分類5属性と検証済みの`fullName`だけを送信します。変更するカスタム項目はMetadata APIの`readMetadata`で最新のCustomField定義を最大10項目まとめて取得します。取得後に分類5属性だけを書き換え、標準項目と同じ`updateMetadata`要求で合計最大10項目を一括更新します。取得・更新の応答は順序ではなく完全名で照合します。`AllOrNoneHeader=false`を明示し、個別に拒否された項目だけを失敗にします。分類以外の定義はXMLの要素順序・繰り返し要素・名前空間属性を保持して送信し、ルックアップ検索条件、参照先、説明、数式、選択値などを書き換えません。分類の解除は空のXML要素で明示します。読取定義は同じ保存要求内だけで保持し、完全名が一致する項目以外の更新には使用しません。更新結果は応答順ではなく完全名で照合し、別のAPI要求で再取得した分類値と所有者IDが一致した項目だけを成功とします。
 
-Named Credentialでは「HTTP 本文の数式を許可」を有効にします。SOAPのSessionHeaderへSalesforce管理のOAuthトークンを差し込むテンプレートを使用し、Apexからトークンを読み出したりログへ出したりしません。分類値中の数式開始文字はXML文字参照へ変換し、RESTのJSON本文でも文字列中の開始文字をUnicodeエスケープします。APIが解釈する元の文字列を維持し、認証欄以外を差し込み対象にしません。SOAP要求の前には接続先確認のREST要求を行います。
+Named Credentialでは「HTTP 本文の数式を許可」を有効にします。SOAPのSessionHeaderへSalesforce管理のOAuthトークンを差し込むテンプレートを使用し、Apexからトークンを読み出したりログへ出したりしません。分類値中の数式開始文字はXML文字参照へ変換し、RESTのJSON本文でも文字列中の開始文字をUnicodeエスケープします。APIが解釈する元の文字列を維持し、認証欄以外を差し込み対象にしません。保存開始時には接続先確認のREST要求を1回行います。
 
 分類一覧の取得時に分類3属性とネイティブの所有者IDを基準値として保持し、編集可能な全行に入力欄を表示します。編集ボタン・更新状態列は設けません。コンプライアンス分類は折りたたみ式の複数選択、機密度と利用状況は選択リスト、所有者は名前検索とIDに結び付いた選択肢を使用します。未設定など参照表示の値はセルの縦中央に配置します。変更・入力エラーのある行は背景色で強調し、元の値へ戻した行は強調と保存対象から外します。ページ移動・絞り込みでは入力を保持します。「保存」一回の操作で全変更行を順番に保存します。分類モードは8列、構造モードは6列とします。所有者は表示名からIDへの逆引きを行わず、一覧取得時と検索応答のID・表示名を同じ候補として保持します。検索応答は行ごとに管理し、候補外のIDや入力の暗黙的な解除は保存しません。
 
 保存する所有者は候補のIDだけで指定し、変更後のユーザー名・グループAPI名・表示名を保存要求に含めません。サーバーはIDで所有者を再取得し、対象の種類、参照可否、有効性を検証した後、同じレコードからMetadata API用の値を生成します。対応がない場合は更新を拒否し、表示名による検索や他候補・旧値への補完は行いません。未設定は空のIDを明示的に選択した場合だけ受け付けます。更新前は所有者IDとメタデータ参照値の整合性を確認し、保存後は別のAPI要求で取得したBusinessOwnerIdとの一致も確認します。所有者確認の応答ではDurableIdも照合し、別の項目の応答を採用しません。
 
-変更行は最大10項目ずつ別のApex要求で順番に保存します。総更新項目数には固定の上限を設けません。前の一括結果をAPI名と所有者IDで照合した後に次の要求へ進み、結果の件数違い・重複・別項目への対応付けは拒否します。同じ要求内の対象定義と所有者レコードはまとめて取得し、項目ごとのSOQLを実行しません。正常に更新を行う場合、接続先の組織確認と保存後の分類再取得を各1回行います。すべて標準項目なら一括更新1回を加えて3回のHTTP通信です。カスタム項目を含む場合は、各項目の定義取得と個別更新を加えた`2 + 2 × カスタム項目数`回となり、標準項目も更新する場合に1回を加えます。全項目が更新前確認やAPI拒否で失敗確定した場合は、保存後の再取得を省略します。
+変更行は最大10項目ずつ別のApex要求で順番に保存します。総更新項目数には固定の上限を設けません。前の一括結果をAPI名と所有者IDで照合した後に次の要求へ進み、結果の件数違い・重複・別項目への対応付けは拒否します。同じ要求内の対象定義と所有者レコードはまとめて取得し、項目ごとのSOQLを実行しません。保存操作の開始時に`getApiAuthentication`で接続先組織を1回確認し、確認できない場合は更新要求を送信しません。各バッチでは保存後の分類再取得を1回行います。すべて標準項目なら一括更新1回を加えて2回のHTTP通信です。カスタム項目を含む場合は定義の一括取得1回を加えて3回です。1000項目を100バッチで更新する場合、開始時の確認を含めて標準項目のみなら201回、全バッチにカスタム項目を含む場合は301回です。画面初期表示時の認証確認はこの回数に含めません。`saveClassifyData`を単独で呼ぶ場合も、呼び出し元が一連の保存開始前に`getApiAuthentication`で確認する契約です。確認済み状態をサーバーへ保存する仕組みは設けず、保存中は接続・認証設定を変更しない前提です。10項目すべてがカスタムの場合も、標準と混在する場合も回数は変わりません。変更なし・事前確認失敗のカスタム項目は定義取得へ含めません。定義応答の欠落・重複・別項目混入など一括照合に失敗した場合は、その取得要求に含むカスタム項目を更新せず、事前確認済み標準項目の処理は続けます。全項目が更新前確認やAPI拒否で失敗確定した場合は、保存後の再取得を省略します。
+
+カスタム項目はAPIの更新契約上、分類以外の定義も送信します。定義取得から更新までの間に設定画面などで項目定義が同時編集された場合、その変更を上書きする可能性があります。項目定義の編集と分類の一括保存を同時に実行しないでください。自動復元・自動再試行は行いません。
 
 同じApexトランザクション内で100秒の実時間予算を共有し、各HTTP要求は30秒と残り予算の小さい方を上限にします。予算切れでは新しい要求を送信しません。各項目は最新の分類と所有者IDを編集開始時の値と比較し、競合があればその項目を更新しません。複数選択値は順序を正規化して比較します。一括更新の一部が拒否された場合は項目別に失敗を返し、成功した項目は保存後の確認を続けます。更新後の再取得まで成功した項目だけoriginalを置き換え、失敗・確認不能の項目は入力を保持して自動再試行しません。
 
@@ -253,6 +255,8 @@ ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、�
 コンプライアンス分類の選択済み表示は、組織から取得した選択リストの順序に揃えます。候補から削除された既存値は末尾に保持します。変更・競合判定用の値は従来どおり文字順へ正規化し、表示順の変更だけで未保存扱いにはしません。
 
 ## エラー処理
+
+カスタム項目の定義取得でSOAP FaultまたはHTTP拒否が発生した場合は、項目定義の取得失敗として案内し、その項目を更新しません。更新要求を送信した後の確認不能とは区別します。
 
 取得に失敗した場合は画面上へ案内を表示します。古い詳細・検索の応答を新しい選択へ反映しません。
 

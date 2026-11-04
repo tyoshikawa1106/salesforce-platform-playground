@@ -47,7 +47,7 @@ export default class ObjectExplorer extends LightningElement {
     // 標準状態と実接続の結果を画面共通の案内へ反映する
     async refreshApiAuthentication() {
         // 終了した画面から認証確認を開始しない
-        if (!this.componentConnected) return;
+        if (!this.componentConnected) return false;
         // 後続の要求から古いURLや案内が戻らないよう固定する
         const sequence = ++this.apiAuthenticationSequence;
         // 再確認が並行して走らないよう操作を固定する
@@ -59,7 +59,7 @@ export default class ObjectExplorer extends LightningElement {
             // 実行ユーザーの標準認証状態と同一組織への接続を確認する
             const state = await getApiAuthentication();
             // 接続終了や別要求より古い結果を画面へ出さない
-            if (!this.componentConnected || sequence !== this.apiAuthenticationSequence) return;
+            if (!this.componentConnected || sequence !== this.apiAuthenticationSequence) return false;
             // サーバーが公開した状態と案内だけを保持する
             this.apiAuthenticationStatus = state.status;
             // 内部例外や資格情報ではなく公開メッセージを表示する
@@ -71,6 +71,8 @@ export default class ObjectExplorer extends LightningElement {
                 // 途中で別要求へ変わった場合はURLを破棄する
                 if (this.componentConnected && sequence === this.apiAuthenticationSequence) this.apiAuthenticationUrl = url;
             }
+            // 保存開始にも使うため、この要求で確認した結果を返す
+            return state.status === 'AUTHENTICATED';
         } catch {
             // 古い要求の失敗で現在の認証を上書きしない
             if (this.componentConnected && sequence === this.apiAuthenticationSequence) {
@@ -79,6 +81,8 @@ export default class ObjectExplorer extends LightningElement {
                 // API応答本文やURLをエラーへ含めない
                 this.apiAuthenticationMessage = 'Salesforce APIの認証状態を確認できませんでした。接続設定と権限を確認して画面を再読み込みしてください。';
             }
+            // 古い表示状態を確認成功として使わない
+            return false;
         } finally {
             // 別要求の確認中表示を古い要求から解除しない
             if (sequence === this.apiAuthenticationSequence) this.apiAuthenticationChecking = false;
@@ -1694,6 +1698,10 @@ export default class ObjectExplorer extends LightningElement {
     async saveClassifyRows(objectName, changes) {
         // 内部の保存処理を直接呼ばれた場合も標準権限を必須にする
         if (!this.canEditClassifyData) { throw new Error('データ分類の変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。'); }
+        // 保存操作全体の開始時だけ実接続先をサーバーで確認
+        const authenticated = await this.refreshApiAuthentication();
+        // 確認できなければ一つ目のバッチも送信しない
+        if (!authenticated) { throw new Error('保存開始前のAPI接続・接続先組織を確認できませんでした。保存は実行していません。認証状態と接続設定を確認してください。'); }
         // API上限に合わせた保存単位を作成
         const batches = classifyBatches(changes);
         // 確認済み項目数だけを進捗として表示
