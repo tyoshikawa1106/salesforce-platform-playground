@@ -44,8 +44,29 @@ public with sharing class ObjectExplorerApiProtocol {
         return result;
     }
 
-    /** REST応答の件数・必須属性・対象識別子を検証 */
+    /** ネイティブ項目定義とREST応答の分類レコードを照合用の索引へ変換 */
     public class RecordReader {
+
+        /**
+         * 保存前に取得した項目定義を分類照合用の索引へ変換
+         * @param definitions 対象名と識別子を確認済みのネイティブ項目定義
+         * @return 同じ項目の分類と所有者ID
+         */
+        public Map<String, Map<String, Object>> createFieldRows(List<FieldDefinition> definitions) {
+            // 取得済みの定義を再通信せず照合へ渡す
+            Map<String, Map<String, Object>> rows = new Map<String, Map<String, Object>>();
+            // 対象を照合済みのレコードだけを同じAPI名へ対応付け
+            for (FieldDefinition definition : definitions) {
+                // 未設定の分類もnullのまま保持
+                rows.put(definition.QualifiedApiName, new Map<String, Object>{
+                    'QualifiedApiName' => definition.QualifiedApiName, 'DurableId' => definition.DurableId,
+                    'ComplianceGroup' => definition.ComplianceGroup, 'SecurityClassification' => definition.SecurityClassification,
+                    'BusinessStatus' => definition.BusinessStatus, 'BusinessOwnerId' => (String)definition.BusinessOwnerId
+                });
+            }
+            // 分類照合と所有者取得で同じ索引を共用
+            return rows;
+        }
 
         /**
          * 完全に取得した分類だけを項目名へ索引化

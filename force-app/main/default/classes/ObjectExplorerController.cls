@@ -193,10 +193,10 @@ public with sharing class ObjectExplorerController {
         try {
             // 認証先と更新対象組織の一致を要求単位で確認
             new SalesforceApiClient().verifyOrganization();
-            // 保存前の分類を別API要求で一括取得
+            // 保存前に取得済みのネイティブ分類を再利用
             stage = '保存前の分類取得';
-            // 確認済みの対象だけを一括取得
-            Map<String, Map<String, Object>> rows = this.client.readClassifyData(canonicalName, names);
+            // 同じ項目定義を分類照合へ渡し重複したAPI照会を省略
+            Map<String, Map<String, Object>> rows = new ObjectExplorerApiProtocol.RecordReader().createFieldRows(definitions);
             // 所有者は現在値と選択値をまとめて取得
             stage = '所有者の参照';
             // 同じ要求の所有者を実行ユーザーの権限で取得
@@ -352,7 +352,7 @@ public with sharing class ObjectExplorerController {
         Set<String> names = this.results.getVerificationNames(contexts);
         // 全項目が失敗確定なら追加通信しない
         if (names.isEmpty()) { return contexts; }
-        // ネイティブIDを含む最新分類を別APIで確認
+        // 同一トランザクションのFieldDefinitionは古い値を返すため別APIで最新値を確認
         Map<String, Map<String, Object>> rows = this.client.readClassifyData(objectName, names);
         // 保存後の所有者も新しいID集合で取得
         Map<Id, SObject> owners = readOwners(rows, new List<Object>());

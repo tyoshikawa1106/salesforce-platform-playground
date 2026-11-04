@@ -111,8 +111,16 @@ public with sharing class MetadataApiSoapCodec {
      * @return 検証済みエラーコードだけを含む案内
      */
     private String readUpdateError(Dom.XmlNode result) {
-        String code = result.getChildElement('errors', METADATA_NS)?.getChildElement('statusCode', METADATA_NS)?.getText();
+        // Salesforceの構造化属性で対象項目の拒否と分類値の拒否を区別
+        Dom.XmlNode error = result.getChildElement('errors', METADATA_NS);
+        // 自由文を解析せず公開コードだけを取得
+        String code = error?.getChildElement('statusCode', METADATA_NS)?.getText();
         String safeCode = SalesforceApiProtocol.safeCode(code);
-        return 'Metadata APIが更新を拒否しました（' + safeCode + '）。設定値・権限を確認してください。';
+        // 項目名に対する選択リスト拒否を分類値や権限の問題と案内しない
+        if (code == 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST' && error.getChildElement('fields', METADATA_NS)?.getText() == 'FieldOrColumn') {
+            return '対象項目がMetadata APIの分類更新対象として拒否されました（' + safeCode + ' / FieldOrColumn）。この結果は分類値や権限不足を示すものではありません。';
+        }
+        // 詳細を特定できない拒否は原因を推測せずコードを表示
+        return 'Metadata APIが更新を拒否しました（' + safeCode + '）。対象項目・分類値・APIの制約を確認してください。';
     }
 }

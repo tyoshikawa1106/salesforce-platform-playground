@@ -176,6 +176,8 @@ function classifyRow(field, context) {
     const compliance = (values.complianceGroup || '').split(';').filter(Boolean);
     // 既存の無効値も表示できるよう基準値を候補へ含める
     const original = edit?.original || values;
+    // 表示と候補で同じ選択リスト順を使用し、廃止済みの既存値は末尾に保持
+    const complianceOptions = includeCurrentOptions(options.ComplianceGroup, (original.complianceGroup || '').split(';'));
     // ハイライトと読み上げで同じ変更判定を使う
     const changed = classifyChanged(edit);
     // ハイライトとエラー表示で同じ入力状態を使う
@@ -185,12 +187,12 @@ function classifyRow(field, context) {
         reason: !canEdit && info?.editable ? '変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason === '分類情報を設定できない項目です。' ? '' : info?.reason || '',
         rowClass: changed || inputErrors.length ? 'oe-classify-changed' : '', changed, complianceValues: compliance, unavailable: !info,
         complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-dropdown slds-dropdown_fluid slds-dropdown_bottom oe-compliance-options' : 'slds-dropdown slds-dropdown_fluid oe-compliance-options',
-        complianceOptions: includeCurrentOptions(options.ComplianceGroup, (original.complianceGroup || '').split(';')),
+        complianceOptions,
         securityOptions: [{ label: '-- なし --', value: '' }, ...includeCurrentOptions(options.SecurityClassification, [original.securityClassification])],
         businessOptions: [{ label: '-- なし --', value: '' }, ...includeCurrentOptions(options.BusinessStatus, [original.businessStatus])],
         // 空値は候補ラベルを入力欄へ表示せず、保存用の空文字とは分ける
         securityInputValue: values.securityClassification || undefined, businessInputValue: values.businessStatus || undefined,
-        complianceLabel: compliance.length ? compliance.map((value) => choiceLabel(value, options.ComplianceGroup)).join(',') : '',
+        complianceLabel: complianceOptions.filter((option) => compliance.includes(option.value)).map((option) => choiceLabel(option.value, options.ComplianceGroup)).join(','),
         securityLabel: choiceLabel(values.securityClassification, options.SecurityClassification), businessLabel: choiceLabel(values.businessStatus, options.BusinessStatus),
         ...ownerLookupView(field.apiName, edit, info),
         // 項目自体が編集対象外のときだけ設定不可とし、権限による参照専用は保存値を維持

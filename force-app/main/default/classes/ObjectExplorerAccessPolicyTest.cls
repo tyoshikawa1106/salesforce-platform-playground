@@ -4,7 +4,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     private static ObjectExplorerAccessPolicy access = new ObjectExplorerAccessPolicy();
     private static ObjectExplorerAccessPolicy.RequestValidator validator = new ObjectExplorerAccessPolicy.RequestValidator();
 
-    private static User testUser = new User(Id = UserInfo.getUserId());
+    private static User testUser = TestDataFactory.getTestUser();
 
     /** 未制御の例外本文を公開不可とする */
     @IsTest
@@ -99,6 +99,31 @@ private with sharing class ObjectExplorerAccessPolicyTest {
             Test.stopTest();
         }
     }
+    /** 標準システム項目の分類非対応を表示と保存入口で共通判定 */
+    @IsTest
+    static void rejectsUnsupportedStandardFields() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (Schema.SObjectType objectType : new List<Schema.SObjectType>{Account.SObjectType, Contact.SObjectType, DataQualityScan__c.SObjectType}) {
+                Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
+                for (String name : new List<String>{'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById'}) {
+                    Schema.SObjectField token = info.fields.getMap().get(name);
+                    Assert.isFalse(ObjectExplorerAccessPolicy.isEditable(info, token.getDescribe()), '分類非対応の標準項目を編集対象にしない：' + name);
+                    try {
+                        access.validateField(info, token);
+                        Assert.fail('保存入口でも分類非対応項目を拒否');
+                    } catch (AuraHandledException error) {
+                        Assert.isTrue(error.getMessage().contains('対象外'), 'API更新前に拒否');
+                    }
+                }
+                Assert.isTrue(ObjectExplorerAccessPolicy.isEditable(info, info.fields.getMap().get('CreatedDate').getDescribe()), '分類更新できる作成日は除外しない');
+                Assert.isTrue(ObjectExplorerAccessPolicy.isEditable(info, info.fields.getMap().get('LastModifiedDate').getDescribe()), '分類更新できる最終更新日は除外しない');
+            }
+            Assert.isTrue(ObjectExplorerAccessPolicy.isEditable(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED), Account.Name.getDescribe()), 'レコード値の権限から分類更新不可を推定しない');
+            Test.stopTest();
+        }
+    }
+
     /** 標準のデータ分類変更権限だけでも編集を許可 */
     @IsTest
     static void acceptsModifyDataClassification() {

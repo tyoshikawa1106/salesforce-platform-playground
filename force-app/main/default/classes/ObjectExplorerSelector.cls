@@ -108,16 +108,16 @@ public inherited sharing class ObjectExplorerSelector {
     }
 
     /**
-     * 一括保存対象の識別情報をまとめて取得
+     * 一括保存対象の識別情報と保存前の分類をまとめて取得
      * @param objectName 参照可否を確認した対象
      * @param fieldNames Describeで確認した項目名
-     * @return 項目名と完全な識別子
+     * @return 項目名・完全な識別子と現在の分類
      */
     public List<FieldDefinition> selectFieldsByNames(String objectName, Set<String> fieldNames) {
         // 必須条件がない場合に全項目の取得へ広げない
         if (String.isBlank(objectName) || fieldNames == null || fieldNames.isEmpty()) { return new List<FieldDefinition>(); }
         // 結果は加工せず定義レコードのまま引き渡す
-        List<FieldDefinition> records = [SELECT QualifiedApiName, DurableId FROM FieldDefinition
+        List<FieldDefinition> records = [SELECT QualifiedApiName, DurableId, ComplianceGroup, SecurityClassification, BusinessStatus, BusinessOwnerId FROM FieldDefinition
             WHERE EntityDefinition.QualifiedApiName = :objectName AND QualifiedApiName IN :fieldNames WITH USER_MODE];
         // 同じ定義の識別子をService側で照合
         return records;
