@@ -253,7 +253,7 @@ private with sharing class ObjectExplorerControllerTest {
             Assert.areEqual('Name', result.get('apiName'), '成功は要求した項目に対応');
             Assert.areEqual(1, mock.writes, '標準項目を一括送信');
             Assert.areEqual(1, mock.reads, '保存後だけAPIで最新値を照合');
-            Assert.areEqual(3, Limits.getCallouts(), '組織確認・一括更新・保存後照会の3回だけ通信');
+            Assert.areEqual(2, Limits.getCallouts(), 'バッチ内は一括更新・保存後照会の2回だけ通信');
             Test.stopTest();
         }
     }
@@ -271,10 +271,44 @@ private with sharing class ObjectExplorerControllerTest {
             List<Object> results = ObjectExplorerController.saveClassifyData('Account', request);
             Assert.areEqual(names.size(), results.size(), '全対象の結果を返す');
             Assert.areEqual(false, JSON.serialize(results).contains('"success":false'), '全項目で保存後照合が成功');
-            Assert.areEqual(8, mock.writes, '標準一括とカスタム個別の更新だけを送る');
+            Assert.areEqual(1, mock.writes, '標準・カスタムを同じ一括更新で送る');
             Assert.areEqual(1, mock.reads, '保存後だけ分類をAPI再取得');
-            Assert.areEqual(17, Limits.getCallouts(), '組織確認・カスタム取得更新・標準一括更新・保存後照会だけ通信');
+            Assert.areEqual(3, Limits.getCallouts(), 'バッチ内は定義一括取得・一括更新・保存後照会の3回');
             Test.stopTest();
+        }
+    }
+
+    /** 標準・カスタム混在でカスタム項目の拒否だけを失敗として保持 */
+    @IsTest
+    static void preservesMixedPartialSuccess() {
+        System.runAs(testUser) {
+            List<String> names = new List<String>{'Name','Active__c','CustomerPriority__c'};
+            SaveMock mock = new SaveMock('Account', new Set<String>(names), 'rejectCustom');
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            List<Object> results = ObjectExplorerController.saveClassifyData('Account', changes(names, ChangeMode.CHANGE_STATUS));
+            Test.stopTest();
+            Assert.areEqual(true, ((Map<String,Object>)results[0]).get('success'), '標準項目の成功を維持');
+            Assert.areEqual(false, ((Map<String,Object>)results[1]).get('success'), '拒否されたカスタム項目だけ失敗');
+            Assert.areEqual(true, ((Map<String,Object>)results[2]).get('success'), '他カスタム項目の成功を維持');
+            Assert.areEqual(1, mock.definitionReads, 'カスタム定義を一回だけ取得');
+            Assert.areEqual(1, mock.writes, '混在しても一回だけ更新');
+        }
+    }
+
+    /** 変更なしのカスタム項目では定義取得も更新もしない */
+    @IsTest
+    static void skipsUnchangedCustomDefinitions() {
+        System.runAs(testUser) {
+            List<String> names = new List<String>{'Active__c'};
+            SaveMock mock = new SaveMock('Account', new Set<String>(names), 'success');
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            List<Object> results = ObjectExplorerController.saveClassifyData('Account', changes(names, ChangeMode.UNCHANGED));
+            Test.stopTest();
+            Assert.areEqual(true, ((Map<String,Object>)results[0]).get('success'), '変更なしは現在値の照合で成功');
+            Assert.areEqual(0, mock.definitionReads, '変更なしの定義を取得しない');
+            Assert.areEqual(0, mock.writes, '変更なしを更新しない');
         }
     }
 
@@ -358,8 +392,8 @@ private with sharing class ObjectExplorerControllerTest {
                 'Account',
                 changes(new List<String>{ 'Name' }, ChangeMode.CHANGE_STATUS)
             );
-            Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '組織確認失敗を結果へ返す');
-            Assert.isTrue(String.valueOf(((Map<String, Object>) results[0]).get('message')).contains('API接続・接続先組織の確認'), '項目別の失敗にも段階を返す');
+            Assert.areEqual(false, ((Map<String, Object>) results[0]).get('success'), '更新時の通信失敗を結果へ返す');
+            Assert.isTrue(String.valueOf(((Map<String, Object>) results[0]).get('message')).contains('更新送信後の確認'), '項目別の失敗にも段階を返す');
             Test.stopTest();
         }
     }
@@ -381,7 +415,7 @@ private with sharing class ObjectExplorerControllerTest {
                 'カスタム項目を再取得して照合: ' + ((Map<String, Object>) results[0]).get('message')
             );
             Assert.areEqual(1, mock.writes, '同じカスタム項目へ一回更新');
-            Assert.areEqual(4, Limits.getCallouts(), '組織確認・定義取得・更新・保存後照会の4回だけ通信');
+            Assert.areEqual(3, Limits.getCallouts(), 'バッチ内は定義取得・更新・保存後照会の3回だけ通信');
             Test.stopTest();
         }
     }
@@ -437,10 +471,10 @@ private with sharing class ObjectExplorerControllerTest {
         private String objectName;
         private String scenario;
         private Map<String, String> durableIds = new Map<String, String>();
-        private Map<String, String> fieldNamesById = new Map<String, String>();
         private Map<String, Map<String, Object>> originalRows;
         public Integer reads = 0;
         public Integer writes = 0;
+        public Integer definitionReads = 0;
 
         /**
          * 更新対象の実在する定義と模擬応答を対応付け
@@ -455,7 +489,6 @@ private with sharing class ObjectExplorerControllerTest {
             originalRows = new ObjectExplorerApiProtocol.RecordReader().createFieldRows(definitions);
             for (FieldDefinition field : definitions) {
                 durableIds.put(field.QualifiedApiName, field.DurableId);
-                fieldNamesById.put(field.DurableId.substringAfter('.'), field.QualifiedApiName);
             }
             Assert.areEqual(names, durableIds.keySet(), 'テスト対象の項目定義が存在');
         }
@@ -488,8 +521,7 @@ private with sharing class ObjectExplorerControllerTest {
                 );
             } else if (endpoint.contains('/services/Soap/')) {
                 respondSoap(request, response);
-            } else if (endpoint.contains('tooling/sobjects/CustomField/')) {
-                respondCustom(request, response);
+
             } else {
                 respondClassify(endpoint, response);
             }
@@ -502,8 +534,12 @@ private with sharing class ObjectExplorerControllerTest {
          * @param response 返却する模擬応答
          */
         private void respondSoap(HttpRequest request, HttpResponse response) {
+            if (request.getBody().contains('readMetadata')) {
+                respondCustom(request, response);
+                return;
+            }
             writes++;
-            if (scenario == 'soapError') {
+            if (scenario == 'soapError' || scenario == 'customError') {
                 throw new CalloutException('SOAP通信を再現');
             }
             String results = '';
@@ -513,8 +549,11 @@ private with sharing class ObjectExplorerControllerTest {
             for (Dom.XmlNode field : fields) {
                 String name = field.getChildElement('fullName', 'http://soap.sforce.com/2006/04/metadata').getText().substringAfter('.');
                 Assert.isTrue(durableIds.containsKey(name), '要求した標準項目だけを一括更新');
-                Assert.isFalse(name.endsWith('__c'), 'カスタム項目はSOAP送信しない');
-                Boolean success = !(scenario == 'rejectPhone' && name == 'Phone');
+                if (name.endsWith('__c')) {
+                    Assert.areEqual('維持する定義', field.getChildElement('label', 'http://soap.sforce.com/2006/04/metadata').getText(), 'カスタム定義のラベルを保持');
+                    Assert.areEqual(changedStatus(name), field.getChildElement('businessStatus', 'http://soap.sforce.com/2006/04/metadata').getText(), 'カスタム分類を変更');
+                }
+                Boolean success = !new Set<String>{'rejectPhone:Phone','rejectCustom:Active__c'}.contains(scenario + ':' + name);
                 results +=
                     '<result><fullName>' +
                     objectName +
@@ -539,32 +578,32 @@ private with sharing class ObjectExplorerControllerTest {
          * @param response 返却する模擬応答
          */
         private void respondCustom(HttpRequest request, HttpResponse response) {
-            String endpoint = request.getEndpoint();
-            String name = fieldNamesById.get(endpoint.substringAfterLast('/'));
-            Assert.isNotNull(name, '要求した項目IDだけをToolingで更新');
-            Assert.isTrue(endpoint.endsWith(durableIds.get(name).substringAfter('.')), '取得した同じ項目IDだけへ通信');
-            if (request.getMethod() == 'GET') {
-                response.setBody(
-                    JSON.serialize(
-                        new Map<String, Object>{
-                            'FullName' => objectName +
-                            '.' +
-                            name,
-                            'Metadata' => customMetadata(name)
-                        }
-                    )
-                );
-            } else {
-                writes++;
-                if (scenario == 'customError') {
-                    throw new CalloutException('カスタム更新通信を再現');
-                }
-                Map<String, Object> payload = (Map<String, Object>) JSON.deserializeUntyped(request.getBody());
-                Map<String, Object> metadata = (Map<String, Object>) payload.get('Metadata');
-                Assert.areEqual('維持する定義', metadata.get('label'), '分類以外の定義を保持');
-                Assert.areEqual(changedStatus(name), metadata.get('businessStatus'), '変更した分類を反映');
-                response.setStatusCode(204);
+            definitionReads++;
+            String ns = 'http://soap.sforce.com/2006/04/metadata';
+            Dom.Document document = new Dom.Document(); document.load(request.getBody());
+            List<Dom.XmlNode> names = document.getRootElement().getChildElement('Body', 'http://schemas.xmlsoap.org/soap/envelope/').getChildElement('readMetadata', ns).getChildElements();
+            Assert.areEqual('CustomField', names.remove(0).getText(), '読取対象の型を固定');
+            String records = '';
+            for (Dom.XmlNode node : names) {
+                Assert.areEqual('fullNames', node.getName(), '完全名だけを列挙');
+                String fullName = node.getText();
+                records = createCustomRecord(fullName) + records;
             }
+            response.setBody('<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body><readMetadataResponse xmlns="http://soap.sforce.com/2006/04/metadata"><result>' + records + '</result></readMetadataResponse></env:Body></env:Envelope>');
+        }
+
+        /**
+         * 一項目の模擬定義を完全名で対応付け
+         * @param fullName 取得対象の完全名
+         * @return 分類とラベルを含む模擬XML
+         */
+        private String createCustomRecord(String fullName) {
+            String name = fullName.substringAfter('.');
+            Assert.isTrue(durableIds.containsKey(name), '可視な同じ項目の定義を取得');
+            Map<String, Object> metadata = customMetadata(name);
+            String values = '';
+            for (String key : metadata.keySet()) { values += '<' + key + '>' + String.valueOf(metadata.get(key) ?? '').escapeXml() + '</' + key + '>'; }
+            return '<records><fullName>' + fullName + '</fullName>' + values + '<type>Text</type></records>';
         }
 
         /**

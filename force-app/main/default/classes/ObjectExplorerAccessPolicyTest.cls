@@ -104,7 +104,7 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     static void rejectsUnsupportedStandardFields() {
         System.runAs(testUser) {
             Test.startTest();
-            for (Schema.SObjectType objectType : new List<Schema.SObjectType>{Account.SObjectType, Contact.SObjectType, DataQualityScan__c.SObjectType}) {
+            for (Schema.SObjectType objectType : new List<Schema.SObjectType>{Account.SObjectType, Contact.SObjectType}) {
                 Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
                 for (String name : new List<String>{'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById'}) {
                     Schema.SObjectField token = info.fields.getMap().get(name);

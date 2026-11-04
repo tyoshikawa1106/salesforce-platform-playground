@@ -16,7 +16,7 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.startTest();
             ObjectExplorerClassifyService.FieldContext source = context(false);
             source.sent = true;
-            List<ObjectExplorerClassifyService.FieldContext> updated = results.applyStandardResults(
+            List<ObjectExplorerClassifyService.FieldContext> updated = results.applyUpdateResults(
                 new List<ObjectExplorerClassifyService.FieldContext>{ source },
                 new Map<String, String>{ 'Account.Name' => '' }
             );
@@ -215,11 +215,11 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             pending.sent = true;
             Assert.areEqual(
                 new Set<String>{ 'Account.Name' },
-                results.selectStandardUpdates(new List<ObjectExplorerClassifyService.FieldContext>{ pending })
+                results.selectUpdates(new List<ObjectExplorerClassifyService.FieldContext>{ pending })
                     .keySet(),
                 '標準の変更行だけ選ぶ'
             );
-            List<ObjectExplorerClassifyService.FieldContext> rejected = results.applyStandardResults(
+            List<ObjectExplorerClassifyService.FieldContext> rejected = results.applyUpdateResults(
                 new List<ObjectExplorerClassifyService.FieldContext>{ pending },
                 new Map<String, String>{ 'Account.Name' => '拒否' }
             );
@@ -259,9 +259,9 @@ private with sharing class ObjectExplorerClassifyServiceTest {
 
     }
 
-    /** 標準更新の通信失敗を変更行だけへ反映し他の状態と入力順を保持 */
+    /** 一括更新の通信失敗を変更行だけへ反映し確定済み・変更なしを保持 */
     @IsTest
-    static void preservesOtherFieldsWhenStandardUpdateFails() {
+    static void preservesCompletedAndUnchangedFieldsWhenUpdateFails() {
         ObjectExplorerClassifyService.FieldContext pending = context(false);
         pending.expected.put('complianceGroup', 'PII');
         pending.sent = true;
@@ -278,10 +278,10 @@ private with sharing class ObjectExplorerClassifyServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            List<ObjectExplorerClassifyService.FieldContext> updated = results.failStandardUpdates(contexts, new SalesforceApiClient.IntegrationException('一括通信失敗'));
+            List<ObjectExplorerClassifyService.FieldContext> updated = results.failUpdates(contexts, new SalesforceApiClient.IntegrationException('一括通信失敗'));
             Test.stopTest();
             Assert.areEqual(contexts.size(), updated.size(), '項目数と入力順を維持');
-            Assert.areEqual(custom, updated[0], 'カスタム項目の未確定状態を維持');
+            Assert.areEqual(false, updated[0].result.get('success'), '同じ一括要求のカスタム項目も結果不明とする');
             Assert.areEqual('Name', updated[1].fieldName, '同じ位置の標準変更行だけを対象にする');
             Assert.areEqual(false, updated[1].result.get('success'), '通信失敗を成功にしない');
             Assert.isTrue(String.valueOf(updated[1].result.get('message')).contains('更新結果を確認できませんでした'), '送信後の確認不能を維持');
@@ -354,11 +354,13 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             changed, completed, unchanged, standard, new ObjectExplorerClassifyService.FieldContext(changed)
         };
 
+        contexts[0].fieldName = 'First__c';
+        contexts[4].fieldName = 'Second__c';
         System.runAs(testUser) {
             Test.startTest();
-            List<Integer> indexes = results.getCustomUpdateIndexes(contexts);
+            Map<String, Integer> indexes = results.getCustomReadIndexes(contexts);
             Test.stopTest();
-            Assert.areEqual(new List<Integer>{ 0, 4 }, indexes, '未確定かつ変更のあるカスタム項目だけを入力順で選択');
+            Assert.areEqual(new Map<String,Integer>{'Account.First__c'=>0,'Account.Second__c'=>4}, indexes, '未確定かつ変更のあるカスタム項目を完全名と入力位置で照合');
             Assert.isFalse(changed.sent, '選択だけでは送信状態を変更しない');
             Assert.areEqual(5, contexts.size(), '入力の項目一覧を変更しない');
         }

@@ -1,6 +1,7 @@
 /** オブジェクト探索の項目照会と分類更新に限定したSalesforce API操作 */
 public with sharing class ObjectExplorerApiClient {
     private SalesforceApiClient client = new SalesforceApiClient();
+    private Map<String, Dom.XmlNode> customDefinitions = new Map<String, Dom.XmlNode>();
 
     /**
      * 可視なカスタム項目の作成・更新情報だけをTooling APIで取得
@@ -17,31 +18,25 @@ public with sharing class ObjectExplorerApiClient {
     }
 
     /**
-     * カスタム項目の最新定義を読み取り
-     * @param durableId FieldDefinitionで確認した完全な識別子
-     * @return 完全名と最新定義を含む応答
+     * カスタム項目の最新定義と分類を一括取得
+     * @param fullNames FieldDefinitionで確認した完全名、1～10件
+     * @return 完全名をキーとする分類応答
      */
-    public Map<String, Object> readCustomField(String durableId) {
-        // 対象IDを検証した固定パスだけを読み取り
-        String path = customFieldPath(durableId);
-        // 分類以外も保持するため最新定義を取得
-        return this.client.request(path, 'GET', null);
-    }
-
-    /**
-     * 分類以外の設定済み定義を保持してカスタム項目を更新
-     * @param durableId 取得済みの完全な識別子
-     * @param metadata 最新定義の分類だけを変更した値
-     */
-    public void updateCustomField(String durableId, Map<String, Object> metadata) {
-        // カスタム項目以外のパスへ更新しない
-        String path = customFieldPath(durableId);
-        // 未設定の複合属性だけを除いて取得済みの値を保持
-        Map<String, Object> payload = (Map<String, Object>)ObjectExplorerApiProtocol.cleanMetadata(metadata);
-        // 解除対象の分類属性は明示的なnullを維持
-        for (String key : new List<String>{'businessOwnerUser', 'businessOwnerGroup', 'businessStatus', 'complianceGroup', 'securityClassification'}) { payload.put(key, metadata.get(key)); }
-        // 検証済みの同じ項目へ定義を反映
-        this.client.request(path, 'PATCH', JSON.serialize(new Map<String, Object>{'Metadata' => payload}));
+    public Map<String, Map<String, Object>> readCustomFields(Set<String> fullNames) {
+        // 失敗した読取の前に保持していた定義を再利用しない
+        this.customDefinitions.clear();
+        ObjectExplorerApiProtocol.CustomFieldCodec codec = new ObjectExplorerApiProtocol.CustomFieldCodec();
+        HttpResponse response = this.client.sendMetadataUpdate(codec.createReadRequest(fullNames));
+        this.customDefinitions = codec.readCustomDefinitions(response, fullNames);
+        Map<String, Map<String, Object>> records = new Map<String, Map<String, Object>>();
+        for (String fullName : this.customDefinitions.keySet()) {
+            Map<String, Object> metadata = new Map<String, Object>();
+            for (String key : new List<String>{'businessOwnerUser', 'businessOwnerGroup', 'businessStatus', 'complianceGroup', 'securityClassification'}) {
+                metadata.put(key, this.customDefinitions.get(fullName).getChildElement(key, 'http://soap.sforce.com/2006/04/metadata')?.getText());
+            }
+            records.put(fullName, new Map<String, Object>{'FullName' => fullName, 'Metadata' => metadata});
+        }
+        return records;
     }
 
     /**
@@ -71,36 +66,19 @@ public with sharing class ObjectExplorerApiClient {
     }
 
     /**
-     * カスタム項目のIDだけをTooling APIの対象へ変換
-     * @param durableId FieldDefinitionで取得した完全な識別子
-     * @return カスタム項目だけを許可した固定パス
-     */
-    private String customFieldPath(String durableId) {
-        // 元のオブジェクト識別子も含めて検証
-        requireFullName(durableId);
-        // 完全な識別子から取得済みの項目IDを分離
-        String fieldId = durableId.substringAfter('.');
-        // 項目API名や別オブジェクトIDを更新先に使用しない
-        if (!Pattern.matches('00N[A-Za-z0-9]{12}([A-Za-z0-9]{3})?', fieldId)) { throw new SalesforceApiClient.IntegrationException('カスタム項目のIDが不正です。'); }
-        // 検証済みIDだけでカスタム項目のパスを固定
-        return 'tooling/sobjects/CustomField/' + fieldId;
-    }
-
-    /**
-     * 標準項目の分類だけを一括更新し、同じ完全名で成否を確認
-     * @param fields 完全名をキーとする分類属性だけの定義
+     * 標準・カスタム項目の分類を同じ要求で一括更新
+     * @param fields 完全名をキーとする検証済み分類属性、1～10件
+     * @param customNames 同じ要求に含むカスタム項目の完全名
      * @return 完全名別の成功または安全な拒否理由
      */
-    public Map<String, String> updateStandardFields(Map<String, Map<String, Object>> fields) {
-        // XMLの生成と応答検証を同じプロトコル契約へ集約
-        MetadataApiSoapCodec protocol = new MetadataApiSoapCodec();
-        // 本文の認証差し込み箇所以外は文字列としてエスケープ
-        String body = protocol.createUpdateRequest(fields);
-        // HTTP認証・待ち時間・接続エラーは既存の通信経路を使用
+    public Map<String, String> updateFields(Map<String, Map<String, Object>> fields, Set<String> customNames) {
+        if (!fields.keySet().containsAll(customNames)) { throw new SalesforceApiClient.IntegrationException('更新する項目定義が一致しません。'); }
+        Map<String, Dom.XmlNode> definitions = new Map<String, Dom.XmlNode>();
+        for (String fullName : customNames) { definitions.put(fullName, this.customDefinitions.remove(fullName)); }
+        MetadataApiSoapCodec codec = new MetadataApiSoapCodec();
+        String body = new ObjectExplorerApiProtocol.CustomFieldCodec().createUpdateRequest(fields, definitions);
         HttpResponse response = this.client.sendMetadataUpdate(body);
-        // 認証とアクセス拒否はSOAP解析より前に共通形式で通知する
         if (new Set<Integer>{401, 403, 429}.contains(response.getStatusCode())) { throw new SalesforceApiClient.RejectedUpdateException(SalesforceApiProtocol.httpMessage(response)); }
-        // 応答順に依存せず同じ完全名へ照合
-        return protocol.readUpdateResults(response, fields.keySet());
+        return codec.readUpdateResults(response, fields.keySet());
     }
 }

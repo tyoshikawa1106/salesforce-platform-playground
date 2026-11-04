@@ -70,6 +70,7 @@ public with sharing class ObjectExplorerController {
 
     /**
      * 最大10項目の分類をまとめて反映し、同じ対象を再取得
+     * 呼び出し元は一連の保存開始時にgetApiAuthenticationで接続先組織を確認し、保存中は接続・認証設定を変更しない
      * @param objectName 対象オブジェクト
      * @param changesJson 基準値と編集値を含む変更行
      * @return 成功・失敗・再取得状態
@@ -189,12 +190,9 @@ public with sharing class ObjectExplorerController {
         // 完全な項目識別子との照合はServiceへ委譲
         contexts = this.requests.bindDefinitions(contexts, definitions);
         // 項目別失敗にもAPI要求の段階を残す
-        String stage = 'API接続・接続先組織の確認';
+        String stage = '保存前の分類取得';
         try {
-            // 認証先と更新対象組織の一致を要求単位で確認
-            new SalesforceApiClient().verifyOrganization();
-            // 保存前に取得済みのネイティブ分類を再利用
-            stage = '保存前の分類取得';
+            // 保存開始時の接続確認後、各バッチでは取得済みの分類を照合
             // 同じ項目定義を分類照合へ渡し重複したAPI照会を省略
             Map<String, Map<String, Object>> rows = new ObjectExplorerApiProtocol.RecordReader().createFieldRows(definitions);
             // 所有者は現在値と選択値をまとめて取得
@@ -204,7 +202,9 @@ public with sharing class ObjectExplorerController {
             // 項目ごとの事前確認失敗を分離
             stage = '更新前の確認';
             // 現在値と編集基準を照合
-            contexts = prepareFields(contexts, rows, owners);
+            contexts = this.preparation.prepareFields(contexts, rows, owners);
+            // 変更するカスタム項目の定義をまとめて照合
+            contexts = prepareCustomFields(contexts);
             // 検証済みの変更だけを各通信方式で送信
             stage = '分類の更新';
             // 項目ごとの成功と拒否を保持
@@ -247,98 +247,47 @@ public with sharing class ObjectExplorerController {
     }
 
     /**
-     * 項目ごとの最新値を確認し必要なカスタム定義を取得
-     * @param contexts 保存対象
-     * @param rows 最新分類の索引
-     * @param owners IDで照合済みの所有者
-     * @return 項目別の確認結果
+     * 変更するカスタム項目の定義だけをまとめて取得し照合
+     * @param contexts 入力と競合を確認済みの状態
+     * @return 個別の読取・照合結果を反映した状態
      */
-    private List<ObjectExplorerClassifyService.FieldContext> prepareFields(List<ObjectExplorerClassifyService.FieldContext> contexts, Map<String, Map<String, Object>> rows, Map<Id, SObject> owners) {
-        // 取得前の入力を変更せず次段の状態を生成
-        List<ObjectExplorerClassifyService.FieldContext> prepared = new List<ObjectExplorerClassifyService.FieldContext>();
-        // 一項目の失敗で他の入力を破棄しない
-        for (ObjectExplorerClassifyService.FieldContext source : contexts) {
-            try {
-                // 同じ項目の現在値と編集基準を照合
-                ObjectExplorerClassifyService.FieldContext context = this.preparation.prepareField(source, rows.get(source.fieldName), owners);
-                // カスタム定義だけは他属性を保持するため追加取得
-                if (context.customField) {
-                    // 通信はControllerの処理順序に残す
-                    Map<String, Object> response = this.client.readCustomField(context.definition.DurableId);
-                    // 定義の完全名と所有者を同じ対象へ照合
-                    context = this.preparation.prepareCustomField(context, response);
-                }
-                // 確認した状態だけを更新段へ引き継ぐ
-                prepared.add(context);
-            } catch (Exception error) {
-                // 事前確認の失敗は未送信のまま保持
-                ObjectExplorerClassifyService.FieldContext failed = this.results.failField(source, error);
-                // 入力順で同じ対象の失敗状態を追加
-                prepared.add(failed);
-            }
+    private List<ObjectExplorerClassifyService.FieldContext> prepareCustomFields(List<ObjectExplorerClassifyService.FieldContext> contexts) {
+        Map<String, Integer> indexes = this.results.getCustomReadIndexes(contexts);
+        if (indexes.isEmpty()) { return contexts; }
+        Map<String, Map<String, Object>> records;
+        try { records = this.client.readCustomFields(indexes.keySet()); }
+        catch (Exception error) {
+            for (Integer index : indexes.values()) { contexts[index] = this.results.failField(contexts[index], error); }
+            return contexts;
         }
-        // 入力順を維持した確認結果を返す
-        return prepared;
+        for (Integer index : indexes.values()) {
+            ObjectExplorerClassifyService.FieldContext context = contexts[index];
+            try {
+                contexts[index] = this.preparation.prepareCustomField(context, records.get(context.objectName + '.' + context.fieldName));
+            } catch (Exception error) { contexts[index] = this.results.failField(context, error); }
+        }
+        return contexts;
     }
 
     /**
-     * 検証済みカスタム項目と標準項目の更新を実行
+     * 検証済みの標準・カスタム項目を一括更新
      * @param contexts 事前確認結果
      * @return 送信状態と個別拒否を反映した結果
      */
     private List<ObjectExplorerClassifyService.FieldContext> updateFields(List<ObjectExplorerClassifyService.FieldContext> contexts) {
-        // 更新要否は事前確認済みの状態からServiceで判定
-        List<Integer> indexes = this.results.getCustomUpdateIndexes(contexts);
-        // 選択された対象だけを入力順で通信
-        for (Integer index : indexes) {
-            // 更新要否はServiceが確定した結果を使用
-            ObjectExplorerClassifyService.FieldContext context = contexts[index];
-            // 送信後の確認不能と明示拒否を区別
-            context.sent = true;
-            try {
-                // 分類以外を保持した定義だけを送信
-                this.client.updateCustomField(context.definition.DurableId, context.metadata);
-            } catch (Exception error) {
-                // 元の入力順に同じ項目の失敗を保持
-                contexts[index] = this.results.failField(context, error);
-            }
-        }
-        // 個別更新後に標準項目だけをまとめて送信
-        return updateStandardFields(contexts);
-    }
-
-    /**
-     * 標準項目の一括更新と項目別の拒否を管理
-     * @param contexts 事前確認とカスタム更新の結果
-     * @return 標準項目の送信状態を反映した結果
-     */
-    private List<ObjectExplorerClassifyService.FieldContext> updateStandardFields(List<ObjectExplorerClassifyService.FieldContext> contexts) {
-        // 標準項目はまとめて同じ要求へ送信
-        Map<String, ObjectExplorerClassifyService.FieldContext> standard = this.results.selectStandardUpdates(contexts);
-        // 変更がないときはSOAP要求を省略
-        if (standard.isEmpty()) { return contexts; }
-        // HTTPクライアントに渡す定義だけを抽出
+        Map<String, ObjectExplorerClassifyService.FieldContext> selected = this.results.selectUpdates(contexts);
+        if (selected.isEmpty()) { return contexts; }
         Map<String, Map<String, Object>> fields = new Map<String, Map<String, Object>>();
-        // 完全名と送信した状態を同じ対象へ固定
-        for (String name : standard.keySet()) {
-            // 通信前に全標準対象の送信状態を確定
-            standard.get(name).sent = true;
-            // 応答順から対象を推測しない
-            fields.put(name, standard.get(name).metadata);
+        Set<String> customNames = new Set<String>();
+        for (String name : selected.keySet()) {
+            selected.get(name).sent = true;
+            fields.put(name, selected.get(name).metadata);
+            if (selected.get(name).customField) { customNames.add(name); }
         }
         try {
-            // 接続クライアントで応答の件数と完全名を検証
-            Map<String, String> results = this.client.updateStandardFields(fields);
-            // 明示的に拒否された対象だけを失敗へ変更
-            List<ObjectExplorerClassifyService.FieldContext> updated = this.results.applyStandardResults(contexts, results);
-            // 結果照合済みの状態だけを次段へ渡す
-            return updated;
-        } catch (Exception e) {
-            // 送信対象の選別と失敗結果の生成をServiceへ集約
-            List<ObjectExplorerClassifyService.FieldContext> failed = this.results.failStandardUpdates(contexts, e);
-            // カスタム項目・確定済み結果・入力順を維持した状態を返す
-            return failed;
-        }
+            Map<String, String> results = this.client.updateFields(fields, customNames);
+            return this.results.applyUpdateResults(contexts, results);
+        } catch (Exception error) { return this.results.failUpdates(contexts, error); }
     }
 
     /**

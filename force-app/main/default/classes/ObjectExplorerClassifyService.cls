@@ -150,6 +150,23 @@ public with sharing class ObjectExplorerClassifyService {
         private ObjectExplorerAccessPolicy.RequestValidator requests = new ObjectExplorerAccessPolicy.RequestValidator();
 
         /**
+         * 項目ごとの入力・所有者・競合を照合し事前失敗を分離
+         * @param contexts 検証済みの対象一覧
+         * @param rows 現在の分類と所有者ID
+         * @param owners 可視な所有者の索引
+         * @return 入力順を維持した事前確認結果
+         */
+        public List<FieldContext> prepareFields(List<FieldContext> contexts, Map<String, Map<String, Object>> rows, Map<Id, SObject> owners) {
+            List<FieldContext> prepared = new List<FieldContext>();
+            SaveResults results = new SaveResults();
+            for (FieldContext context : contexts) {
+                try { prepared.add(prepareField(context, rows.get(context.fieldName), owners)); }
+                catch (Exception error) { prepared.add(results.failField(context, error)); }
+            }
+            return prepared;
+        }
+
+        /**
          * 同じ完全IDの最新分類と所有者から照合値を生成
          * @param source 検証済みの対象と入力
          * @param row 最新API応答の一項目
@@ -212,9 +229,7 @@ public with sharing class ObjectExplorerClassifyService {
             baseline = this.service.snapshot(baseline);
             // カスタム項目の追加通信より前に競合を拒否
             if (baseline != context.original) { throw ObjectExplorerAccessPolicy.createException('編集中に分類が変更されました。対象オブジェクトを選び直し、最新状態を確認してください。'); }
-            // カスタム項目は元の定義を取得した後に合成
-            if (context.customField) { return context; }
-            // 標準項目は分類以外を送信しない
+            // 定義取得前に分類の変更要否と入力値を確定
             Map<String, Object> current = new Map<String, Object>(context.original);
             // 完全名を同じ項目へ固定
             current.put('fullName', context.objectName + '.' + context.fieldName);
@@ -233,10 +248,7 @@ public with sharing class ObjectExplorerClassifyService {
             Map<String, Object> record = requireMetadataRecord(response, source.objectName + '.' + source.fieldName);
             // 分類以外の定義も保持して合成
             Map<String, Object> current = (Map<String, Object>)record.get('Metadata');
-            // 二つの要求の間に変わった分類を上書きしない
-            Map<String, Object> latest = this.service.snapshot(current);
-            // 二段階取得の間に変わった分類を拒否
-            if (latest != source.original) { throw ObjectExplorerAccessPolicy.createException('分類の確認中に値が変更されました。最新状態を読み直してください。'); }
+            // prepareUpdateで現在の分類と編集基準を再照合
             // 確認済みの現在値から新しい更新状態を生成
             return prepareMetadata(source, current);
         }
@@ -300,20 +312,20 @@ public with sharing class ObjectExplorerClassifyService {
     public class SaveResults {
 
         /**
-         * カスタム項目の個別更新が必要な位置を入力順で選択
+         * 定義取得が必要なカスタム項目を完全名と入力位置で選択
          * @param contexts 事前検証済みの項目状態
-         * @return 未確定かつ変更があるカスタム項目の位置
+         * @return 未確定かつ変更があるカスタム項目の完全名と位置
          */
-        public List<Integer> getCustomUpdateIndexes(List<FieldContext> contexts) {
+        public Map<String, Integer> getCustomReadIndexes(List<FieldContext> contexts) {
             // 入力と同じ順序で通信対象を選択
-            List<Integer> indexes = new List<Integer>();
+            Map<String, Integer> indexes = new Map<String, Integer>();
             // 状態の書き換えを行わず更新要否だけを判定
             for (Integer index = 0; index < contexts.size(); index++) {
                 // 確定済み・変更なし・標準項目は個別更新から除外
                 FieldContext context = contexts[index];
                 // カスタム更新が必要な位置だけを返却
                 if (!context.completed && context.original != context.expected && context.customField) {
-                    indexes.add(index);
+                    indexes.put(context.objectName + '.' + context.fieldName, index);
                 }
             }
             // 呼び出し元で通信順を組み立てられる位置一覧を返却
@@ -321,46 +333,36 @@ public with sharing class ObjectExplorerClassifyService {
         }
 
         /**
-         * 一括送信する標準項目だけを完全名で選択
+         * 一括送信する変更項目だけを完全名で選択
          * @param contexts 項目別の検証結果
          * @return 完全名と同じ項目の状態の対応
          */
-        public Map<String, FieldContext> selectStandardUpdates(List<FieldContext> contexts) {
-            // 検証済みで実際に変更がある標準項目だけを送信
+        public Map<String, FieldContext> selectUpdates(List<FieldContext> contexts) {
+            // 検証済みで実際に変更がある項目だけを送信
             Map<String, FieldContext> result = new Map<String, FieldContext>();
             // 同じ対象ごとの結果を入力順で処理
             for (FieldContext context : contexts) {
                 // 失敗や変更不要の項目は更新しない
-                if (!context.completed && context.original != context.expected && !context.customField) { result.put(context.objectName + '.' + context.fieldName, context); }
+                if (!context.completed && context.original != context.expected) { result.put(context.objectName + '.' + context.fieldName, context); }
             }
             // 生成した照合結果を返却
             return result;
         }
 
         /**
-         * 標準項目の一括更新失敗を今回の更新対象だけへ反映
+         * 一括更新失敗を今回の更新対象だけへ反映
          * @param contexts 保存対象の状態
          * @param error Controllerで捕捉した一括通信の失敗
-         * @return 確定済み結果とカスタム項目を保持した入力順の状態
+         * @return 確定済み・変更なしを保持した入力順の状態
          */
-        public List<FieldContext> failStandardUpdates(List<FieldContext> contexts, Exception error) {
-            // 送信対象と同じ選別規則を使用し、失敗時だけ条件を重複させない
-            Map<String, FieldContext> standard = selectStandardUpdates(contexts);
-            // 未確定の失敗変換は通信全体の失敗と同じ契約を使用
-            List<FieldContext> failed = failPendingFields(standard.values(), error);
-            // 元の入力順とは独立した完全名の索引へ変換
-            Map<String, FieldContext> failures = new Map<String, FieldContext>();
-            for (FieldContext context : failed) {
-                failures.put(context.objectName + '.' + context.fieldName, context);
-            }
-            // 入力一覧を書き換えず対象項目だけ失敗状態へ置換
+        public List<FieldContext> failUpdates(List<FieldContext> contexts, Exception error) {
+            Map<String, FieldContext> selected = selectUpdates(contexts);
             List<FieldContext> updated = new List<FieldContext>();
-            // カスタム項目と標準項目が混在していても入力順を保持
             for (FieldContext context : contexts) {
-                // 今回失敗した完全名だけを置換し、それ以外は元の結果を保持
-                updated.add(failures.get(context.objectName + '.' + context.fieldName) ?? context);
+                // 送信対象だけを失敗へ変換し、確定済み・変更なしは保持
+                String name = context.objectName + '.' + context.fieldName;
+                updated.add(selected.containsKey(name) ? failField(context, error) : context);
             }
-            // 未送信・確定済みの結果を維持して返す
             return updated;
         }
 
@@ -370,7 +372,7 @@ public with sharing class ObjectExplorerClassifyService {
          * @param results 接続クライアントで対象を照合済みの結果
          * @return 明示的な拒否だけを失敗へ変更した新しい状態
          */
-        public List<FieldContext> applyStandardResults(List<FieldContext> contexts, Map<String, String> results) {
+        public List<FieldContext> applyUpdateResults(List<FieldContext> contexts, Map<String, String> results) {
             // 元の項目状態は変更しない
             List<FieldContext> updated = new List<FieldContext>();
             // 同じ対象ごとの結果を入力順で処理
@@ -416,7 +418,7 @@ public with sharing class ObjectExplorerClassifyService {
             state.rejected = error instanceof SalesforceApiClient.RejectedUpdateException;
             String stage = ObjectExplorerApiProtocol.saveStage(state);
             // 制御済み理由と段階だけを公開する
-            String message = stage + '：' + safeMessage(error);
+            String message = stage + '：' + ObjectExplorerApiProtocol.safeSaveMessage(error);
             // 同じ項目の確定結果を生成
             context.result = new Map<String, Object>{'apiName' => context.fieldName, 'success' => false, 'message' => prefix + message};
             // 後続で上書きしない確定状態へ変更
@@ -459,15 +461,6 @@ public with sharing class ObjectExplorerClassifyService {
             return results;
         }
 
-        /**
-         * 内部例外を公開せず制御した業務エラーだけを表示
-         * @param error 保存中の例外
-         * @return 利用者へ返せる固定形式のメッセージ
-         */
-        private String safeMessage(Exception error) {
-            // API応答本文や認証値をエラーへ含めない
-            return error instanceof AuraHandledException || error instanceof SalesforceApiClient.IntegrationException || error instanceof SalesforceApiClient.RejectedUpdateException ? error.getMessage() : '項目の保存に失敗しました。編集内容と権限を確認してください。';
-        }
     }
 
     /**
