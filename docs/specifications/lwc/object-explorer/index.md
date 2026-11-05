@@ -246,7 +246,7 @@ Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報�
 
 ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、分類CSVは「オブジェクトラベル・オブジェクトAPI名・項目ラベル・項目API名・コンプライアンス分類・データ機密度・項目の利用状況・データ所有者ID」を使用します。インポートはこの日本語ヘッダーと既存APIヘッダーを固定対応で受け付け、同じ列の二重指定は拒否します。項目定義CSVは「項目ラベル・API名・データ型・カスタム・作成日・最終更新日・コンプライアンス分類・データ機密度・項目の利用状況・データ所有者ID」を使用します。
 
-分類専用の編集可否フラグを公開Describeから取得できないため、標準項目の`Id`、`IsDeleted`、`SystemModstamp`、`CreatedById`、`LastModifiedById`はAPI名の固定集合で分類編集対象から除外します。この制御はレコード値に対する`isUpdateable()`や`isPermissionable()`の流用ではありません。`CreatedDate`、`LastModifiedDate`は分類更新できるため除外しません。同じ判定を分類一覧・分類CSV出力・CSV取込の編集対象と保存入口に適用します。構造参照では項目を保持します。
+分類専用の編集可否フラグを公開Describeから取得できないため、標準項目の`Id`、`IsDeleted`、`SystemModstamp`、`CreatedById`、`LastModifiedById`、`MasterRecordId`はAPI名の固定集合で分類編集対象から除外します。この制御はレコード値に対する`isUpdateable()`や`isPermissionable()`の流用ではありません。`CreatedDate`、`LastModifiedDate`は分類更新できるため除外しません。同じ判定を分類一覧・分類CSV出力・CSV取込の編集対象と保存入口に適用します。構造参照では項目を保持します。
 
 対象組織の権限・設定・API差異による追加の拒否は保存結果で処理します。SOAP拒否の`statusCode`が`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`、`fields`が`FieldOrColumn`の場合は、対象項目が分類更新対象として拒否された旨を表示し、分類値や権限不足とは区別します。拒否された項目の入力を保持し、他項目の保存は個別に継続します。
 

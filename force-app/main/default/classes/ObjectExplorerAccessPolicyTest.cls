@@ -104,9 +104,9 @@ private with sharing class ObjectExplorerAccessPolicyTest {
     static void rejectsUnsupportedStandardFields() {
         System.runAs(testUser) {
             Test.startTest();
-            for (Schema.SObjectType objectType : new List<Schema.SObjectType>{Account.SObjectType, Contact.SObjectType}) {
+            for (Schema.SObjectType objectType : new List<Schema.SObjectType>{Account.SObjectType, Contact.SObjectType, Lead.SObjectType}) {
                 Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
-                for (String name : new List<String>{'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById'}) {
+                for (String name : new List<String>{'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById', 'MasterRecordId'}) {
                     Schema.SObjectField token = info.fields.getMap().get(name);
                     Assert.isFalse(ObjectExplorerAccessPolicy.isEditable(info, token.getDescribe()), '分類非対応の標準項目を編集対象にしない：' + name);
                     try {
