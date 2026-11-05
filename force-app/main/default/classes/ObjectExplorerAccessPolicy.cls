@@ -3,7 +3,7 @@ public with sharing class ObjectExplorerAccessPolicy {
 
     // 分類更新非対応の標準項目を要求内の全判定で共用
     private static final Set<String> UNSUPPORTED_STANDARD_FIELDS = new Set<String>{
-        'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById'
+        'Id', 'IsDeleted', 'SystemModstamp', 'CreatedById', 'LastModifiedById', 'MasterRecordId'
     };
 
     /**
