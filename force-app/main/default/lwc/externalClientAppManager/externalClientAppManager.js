@@ -3,6 +3,7 @@ import { LightningElement } from 'lwc';
 import LightningConfirm from 'lightning/confirm';
 import ExternalClientAppCredentialModal from 'c/externalClientAppCredentialModal';
 import getAuthentication from '@salesforce/apex/ExternalClientAppManagerController.getAuthentication';
+import getAuthenticationUrl from '@salesforce/apex/ExternalClientAppManagerController.getAuthenticationUrl';
 import revokeAuthentication from '@salesforce/apex/ExternalClientAppManagerController.revokeAuthentication';
 import execute from '@salesforce/apex/ExternalClientAppManagerController.execute';
 import {
@@ -39,8 +40,8 @@ export default class ExternalClientAppManager extends LightningElement {
     operationVersion = 0;
 
     get authenticationRequired() {
-        // 明示的な未認証だけを認証操作へ案内する
-        return this.authenticationStatus === 'REQUIRED' && !!this.authenticationUrl;
+        // 接続確認に成功するまでは状態分類によらず認証操作を表示する
+        return !this.authenticationReady;
     }
 
     get authenticationReady() {
@@ -71,23 +72,40 @@ export default class ExternalClientAppManager extends LightningElement {
         this.stagesLoaded = false;
         // 今回の取得結果だけを案内する
         this.error = '';
+        // 古いフロー用URLを再利用しない
+        this.authenticationUrl = '';
         // 認証状態と一覧を取得する間は操作を固定する
         this.busy = true;
         try {
             // 未認証の接続へアプリ一覧を要求しない
-            const authentication = await getAuthentication();
+            let authentication;
+            try {
+                authentication = await getAuthentication();
+            } catch {
+                // 接続確認の失敗だけでは認証開始を妨げない
+                authentication = { status: 'UNAVAILABLE' };
+            }
             // 離脱または再接続後は後続のAPI送信と画面更新を行わない
             if (!this.isConnected || operationVersion !== this.operationVersion) return;
             // サーバーで判定した状態だけを使用する
-            this.authenticationStatus = authentication.status;
-            // 再認証時の古いURLを持ち越さない
-            this.authenticationUrl = authentication.url || '';
-            // 接続設定の不備は認証ボタンで解決すると推測しない
+            this.authenticationStatus = authentication?.status || 'UNAVAILABLE';
+            // 接続確認と独立した標準URLを使って認証をやり直せるようにする
             if (!this.authenticationReady) {
-                // 未認証と確認不能で案内を分ける
-                this.error = this.authenticationRequired
-                    ? ''
-                    : '認証状態を確認できません。接続設定と権限を確認し、画面を再読み込みしてください。';
+                try {
+                    const url = await getAuthenticationUrl();
+                    // 古い画面接続へ認証URLを戻さない
+                    if (!this.isConnected || operationVersion !== this.operationVersion) return;
+                    this.authenticationUrl = url || '';
+                } catch {
+                    // URLが作れない設定不備は無効ボタンと固定案内で示す
+                    if (!this.isConnected || operationVersion !== this.operationVersion) return;
+                    this.error = '認証を開始できません。接続設定と権限を管理者に確認してください。';
+                    return;
+                }
+                // 接続確認失敗を認証成功や明示的な失効と混同しない
+                this.error = this.authenticationUrl
+                    ? (this.authenticationStatus === 'REQUIRED' ? '' : '認証状態を確認できません。認証をやり直すか、接続設定と権限を確認してください。')
+                    : '認証を開始できません。接続設定と権限を管理者に確認してください。';
                 return;
             }
             // 資格情報を含まない候補だけを取得する
@@ -130,7 +148,7 @@ export default class ExternalClientAppManager extends LightningElement {
 
     handleAuthenticationStart(event) {
         // 標準認証URLの準備が終わった本人操作だけを通す
-        if (this.busy || !this.authenticationRequired) {
+        if (this.busy || !this.authenticationRequired || !this.authenticationUrl) {
             // 未準備の画面遷移を止める
             event.preventDefault();
         }

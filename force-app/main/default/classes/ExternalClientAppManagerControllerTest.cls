@@ -516,6 +516,12 @@ private with sharing class ExternalClientAppManagerControllerTest {
             Test.stopTest();
             Assert.areEqual('notStarted', result.get('state'), '権限なしは変更前に拒否');
             Assert.isTrue(((String) result.get('message')).contains('権限'), '権限不足を案内');
+            try {
+                ExternalClientAppManagerController.getAuthenticationUrl();
+                Assert.fail('機能権限なしのURL取得を拒否');
+            } catch (AuraHandledException error) {
+                Assert.isTrue(error.getMessage().contains('認証を開始できません'), '権限不足の内部情報を公開しない');
+            }
             mock.assertConsumed();
         }
     }
@@ -529,9 +535,11 @@ private with sharing class ExternalClientAppManagerControllerTest {
             Test.setMock(HttpCalloutMock.class, mock);
             Test.startTest();
             Map<String, Object> result = ExternalClientAppManagerController.getAuthentication();
+            String authenticationUrl = ExternalClientAppManagerController.getAuthenticationUrl();
             Test.stopTest();
-            Assert.areEqual('REQUIRED', result.get('status'), '未設定の場合だけ認証URLを返す');
-            Assert.areEqual(Url.getOrgDomainUrl().toExternalForm() + '/auth', result.get('url'), '標準URLを使用');
+            Assert.areEqual('REQUIRED', result.get('status'), '未認証の接続状態を返す');
+            Assert.isFalse(result.containsKey('url'), '接続状態とURL取得を分離');
+            Assert.areEqual(Url.getOrgDomainUrl().toExternalForm() + '/auth', authenticationUrl, '接続確認と独立して標準URLを使用');
         }
     }
 
@@ -580,6 +588,22 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    @IsTest
+    static void hidesAuthenticationUrlFailure() {
+        System.runAs(testUser) {
+            ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(true);
+            Test.startTest();
+            try {
+                ExternalClientAppManagerController.getAuthenticationUrl();
+                Assert.fail('URL取得失敗を通知');
+            } catch (AuraHandledException error) {
+                Assert.isTrue(error.getMessage().contains('認証を開始できません'), '公開案内を表示');
+                Assert.isFalse(error.getMessage().contains('PRIVATE'), '内部情報を公開しない');
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 標準認証APIの呼び出し境界を固定 */
     private class CredentialMock extends ExternalClientAppManagerApiClient.CredentialAccess {
         private Boolean fail;
@@ -603,6 +627,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
          * @return 現在組織のURL
          */
         public override String getUrl() {
+            if (fail) { throw new CalloutException('PRIVATE'); }
             return Url.getOrgDomainUrl().toExternalForm() + '/auth';
         }
         /** 実資格情報を解除せず呼び出しを記録 */
