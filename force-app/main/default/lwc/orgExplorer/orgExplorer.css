@@ -6,18 +6,8 @@ main {
     padding: var(--slds-g-spacing-4, 1rem);
     background: transparent;
 }
-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--slds-g-spacing-3, 0.75rem);
-    margin-bottom: var(--slds-g-spacing-4, 1rem);
-}
-h1 {
-    font-size: var(--slds-g-font-scale-4, 1.25rem);
-    font-weight: var(--slds-g-font-weight-7, 700);
-}
+
+
 h2 {
     font-size: var(--slds-g-font-scale-2, 1rem);
     font-weight: var(--slds-g-font-weight-7, 700);
@@ -177,4 +167,26 @@ button:focus-visible {
 .c-hierarchy-actions {
     display: flex;
     gap: var(--slds-g-spacing-2, 0.5rem);
+}
+/* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
+.c-page-header {
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+}
+.c-page-header-row {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+.c-page-header-title {
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.c-page-header-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+/* ヘッダー内では操作群の下余白を重ねない */
+.c-page-header-actions .c-controls {
+    margin-bottom: 0;
 }

@@ -1,8 +1,6 @@
 :host { display: block; color: var(--slds-g-color-on-surface-1, #181818); }
 main { padding: var(--slds-g-spacing-4, 1rem); background: transparent; }
-header, .oe-heading, .oe-toolbar, .oe-paging { display: flex; align-items: center; justify-content: space-between; gap: var(--slds-g-spacing-3, .75rem); flex-wrap: wrap; }
-header { margin-bottom: var(--slds-g-spacing-4, 1rem); }
-h1 { font-size: var(--slds-g-font-scale-4, 1.25rem); font-weight: var(--slds-g-font-weight-7, 700); }
+.oe-heading, .oe-toolbar, .oe-paging { display: flex; align-items: center; justify-content: space-between; gap: var(--slds-g-spacing-3, .75rem); flex-wrap: wrap; }
 h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font-weight-7, 700); }
 .oe-panel { padding: var(--slds-g-spacing-4, 1rem); background: var(--slds-g-color-surface-1, #fff); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); margin-bottom: var(--slds-g-spacing-4, 1rem); }
 .oe-toolbar { align-items: flex-end; margin: var(--slds-g-spacing-3, .75rem) 0; }
@@ -121,3 +119,21 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .oe-save-progress { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .oe-save-progress-content { padding: var(--slds-g-spacing-6, 1.5rem); border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); box-shadow: var(--slds-g-shadow-1, 0 2px 4px rgba(0, 0, 0, .1)); text-align: center; font-size: var(--slds-g-font-scale-3, 1.25rem); }
 .oe-save-progress-spinner { position: relative; height: var(--slds-g-sizing-11, 4rem); }
+/* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
+.c-page-header {
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+}
+.c-page-header-row {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+.c-page-header-title {
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.c-page-header-actions {
+    flex: 0 1 auto;
+    min-width: 0;
+}

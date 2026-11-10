@@ -14,38 +14,49 @@
         </div>
     </template>
     <main>
-        <header>
-            <h1>組織エクスプローラー</h1>
-            <div class="c-controls" aria-label="表示条件">
-                <button
-                    type="button"
-                    data-mode="ROLE"
-                    aria-pressed={roleSelected}
-                    disabled={roleDisabled}
-                    onclick={handleMode}
-                >
-                    ロール階層
-                </button>
-                <button
-                    type="button"
-                    data-mode="MANAGER"
-                    aria-pressed={managerSelected}
-                    disabled={managerDisabled}
-                    onclick={handleMode}
-                >
-                    上司階層
-                </button>
-                <button
-                    type="button"
-                    class="c-toggle"
-                    role="switch"
-                    aria-label="無効ユーザーを表示"
-                    aria-checked={includeInactive}
-                    onclick={handleInactive}
-                >
-                    <span>無効ユーザーを表示</span>
-                    <span class="c-toggle-track" aria-hidden="true"><span class="c-toggle-knob"></span></span>
-                </button>
+        <header class="slds-page-header c-page-header">
+            <div class="slds-page-header__row c-page-header-row">
+                <div class="slds-media c-page-header-title">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:hierarchy" alternative-text="組織エクスプローラー" size="medium"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <h1 class="slds-page-header__title">組織エクスプローラー</h1>
+                    </div>
+                </div>
+                <div class="slds-page-header__controls c-page-header-actions">
+                    <div class="c-controls" aria-label="表示条件">
+                        <button
+                            type="button"
+                            data-mode="ROLE"
+                            aria-pressed={roleSelected}
+                            disabled={roleDisabled}
+                            onclick={handleMode}
+                        >
+                            ロール階層
+                        </button>
+                        <button
+                            type="button"
+                            data-mode="MANAGER"
+                            aria-pressed={managerSelected}
+                            disabled={managerDisabled}
+                            onclick={handleMode}
+                        >
+                            上司階層
+                        </button>
+                        <button
+                            type="button"
+                            class="c-toggle"
+                            role="switch"
+                            aria-label="無効ユーザーを表示"
+                            aria-checked={includeInactive}
+                            onclick={handleInactive}
+                        >
+                            <span>無効ユーザーを表示</span>
+                            <span class="c-toggle-track" aria-hidden="true"><span class="c-toggle-knob"></span></span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
         <template lwc:if={error}><p role="alert" class="c-error">{error}</p></template>
