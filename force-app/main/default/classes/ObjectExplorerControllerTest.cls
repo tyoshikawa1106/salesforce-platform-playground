@@ -500,7 +500,7 @@ private with sharing class ObjectExplorerControllerTest {
          */
         public HttpResponse respond(HttpRequest request) {
             Assert.isTrue(
-                request.getEndpoint().startsWith('callout:SalesforceApiIntegration/'),
+                request.getEndpoint().startsWith('callout:InternalSalesforceApi/'),
                 '指定ログイン情報の固定名を使用'
             );
             HttpResponse response = new HttpResponse();
@@ -724,7 +724,7 @@ private with sharing class ObjectExplorerControllerTest {
          */
         public HttpResponse respond(HttpRequest request) {
             Assert.isTrue(
-                request.getEndpoint().startsWith('callout:SalesforceApiIntegration/'),
+                request.getEndpoint().startsWith('callout:InternalSalesforceApi/'),
                 '指定ログイン情報の固定名を使用'
             );
             calls++;

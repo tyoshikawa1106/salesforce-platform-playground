@@ -1,7 +1,7 @@
 /** 組織内LWCのApex入口から使用する同一組織Salesforce APIの共通通信 */
 public with sharing class SalesforceApiClient {
 
-    private static final String NAMED_CREDENTIAL = 'SalesforceApiIntegration';
+    private static final String NAMED_CREDENTIAL = 'InternalSalesforceApi';
     private static final String API_VERSION = '68.0';
     private static final Integer REQUEST_TIMEOUT_MS = 30000;
     private static final Long REQUEST_BUDGET_MS = 100000;

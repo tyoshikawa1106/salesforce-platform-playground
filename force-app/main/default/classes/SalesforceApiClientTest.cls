@@ -292,7 +292,7 @@ private with sharing class SalesforceApiClientTest {
          * @return 本文なし成功またはHTTP拒否
          */
         public HttpResponse respond(HttpRequest request) {
-            Assert.isTrue(request.getEndpoint().startsWith('callout:SalesforceApiIntegration/'), '新指定ログイン情報だけを使用');
+            Assert.isTrue(request.getEndpoint().startsWith('callout:InternalSalesforceApi/'), '新指定ログイン情報だけを使用');
             if (this.scenario == 'connectionError') { throw new CalloutException('private-response'); }
             HttpResponse response = new HttpResponse();
             response.setStatusCode(this.scenario == 'httpError' ? 403 : 204);

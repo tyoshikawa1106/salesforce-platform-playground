@@ -47,7 +47,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | 種別     | 実装・設定                                                                | 役割                                                            |
 | -------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | 設定     | `ObjectExplorer`                                                          | タブ、`Salesforce`アプリ、`SalesforceApplicationUser`権限セット |
-| 設定     | `SalesforceApiIntegration`                                                | 外部クライアントアプリケーションとOAuth設定                     |
+| 設定     | `InternalSalesforceApi`                                                   | 外部クライアントアプリケーションとOAuth設定                     |
 | Manifest | [Scratch Org再構築manifest](../../../../manifest/rebuild-scratch-org.xml) | 機能構成の再現                                                  |
 
 ### 構成上の補足
@@ -132,7 +132,7 @@ Schema Describeで取得し、オブジェクト・項目の参照可否を確�
 
 API認証のプリンシパル利用権限は、External Credentialの作成後に導入先で設定します。現在ユーザーの操作権限とAPI接続先の実行ユーザーの権限は別々に必要です。
 
-Apexは固定名`SalesforceApiIntegration`でNamed Credentialを参照します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
+Apexは固定名`InternalSalesforceApi`でNamed Credentialを参照します。Consumer Secretやアクセストークンを読み出しません。接続先のOrganization IDを現在の組織と照合してから項目定義を取得します。
 
 保存前の分類3属性と所有者IDは、対象識別用のネイティブ`FieldDefinition`照会で同時に取得し、REST APIの重複照会を省きます。保存後は同一Apexトランザクションの照会で更新前の値が返るため、別のREST API要求で最大10項目まとめて再取得します。要求した項目API名・完全なDurableId・必要属性・件数を照合し、欠落や重複を未設定値として扱いません。標準項目はSOAP Metadata APIの`updateMetadata`で最大10項目まとめて更新し、分類5属性と検証済みの`fullName`だけを送信します。変更するカスタム項目はMetadata APIの`readMetadata`で最新のCustomField定義を最大10項目まとめて取得します。取得後に分類5属性だけを書き換え、標準項目と同じ`updateMetadata`要求で合計最大10項目を一括更新します。取得・更新の応答は順序ではなく完全名で照合します。`AllOrNoneHeader=false`を明示し、個別に拒否された項目だけを失敗にします。分類以外の定義はXMLの要素順序・繰り返し要素・名前空間属性を保持して送信し、ルックアップ検索条件、参照先、説明、数式、選択値などを書き換えません。分類の解除は空のXML要素で明示します。読取定義は同じ保存要求内だけで保持し、完全名が一致する項目以外の更新には使用しません。更新結果は応答順ではなく完全名で照合し、別のAPI要求で再取得した分類値と所有者IDが一致した項目だけを成功とします。
 
@@ -217,7 +217,7 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 組織内LWCからApex Controllerを経由して同じ組織のAPIへ接続します。共通の`SalesforceApiClient`と`SalesforceApiProtocol`は認証・HTTP通信・共通応答検証を担当し、`@AuraEnabled`や`@RestResource`では公開しません。Controllerで実効権限と入力を検証し、機能固有の項目分類操作は`ObjectExplorerApiClient`と`ObjectExplorerApiProtocol`へ分離します。外部システム用の公開入口は設けません。既存の診断コードは画面との互換性のため維持します。
 
-外部クライアントアプリケーション・External Auth Identity Provider・External Credential・Named CredentialのAPI名は`SalesforceApiIntegration`です。Named Credentialの参照名を維持し、Apexがトークンを直接管理しない構成とします。OAuth 2.0のBrowser FlowとPer User Principalを使用し、利用者本人がOAuth認証したアカウントの権限でAPIを呼び出します。固定の実行ユーザーを使うクライアント資格情報フローと、証明書を使うJWT Bearer Flowは使用しません。
+外部クライアントアプリケーション・External Auth Identity Provider・External Credential・Named CredentialのAPI名は`InternalSalesforceApi`です。Apexがトークンを直接管理しない構成とします。OAuth 2.0のBrowser FlowとPer User Principalを使用し、利用者本人がOAuth認証したアカウントの権限でAPIを呼び出します。固定の実行ユーザーを使うクライアント資格情報フローと、証明書を使うJWT Bearer Flowは使用しません。
 
 外部クライアントアプリケーションは「管理者が承認したユーザーは事前承認済み」とし、システム管理者プロファイルを許可します。事前承認は利用許可であり、利用者ごとのOAuthトークン取得を代替しません。各利用者は個人設定の「外部ログイン情報」などから、自分のアカウントで認証します。有効な更新トークンがある場合はプラットフォームが更新し、期限切れ・取り消しなどで更新できない場合は再認証が必要です。
 
@@ -228,12 +228,12 @@ Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報�
 ### 新しい組織への設定順序
 
 1. 参照機能・分類処理・タブを限定scopeで反映します。タブ・Controllerの公開には既存の入口権限設定を使用します。
-2. 外部クライアントアプリケーション`SalesforceApiIntegration`を作成し、OAuthスコープをAPIと更新トークンに設定します。クライアント資格情報フローは無効にし、固定の実行ユーザーを使用しません。事前承認の許可対象にシステム管理者プロファイルを指定します。
+2. 外部クライアントアプリケーション`InternalSalesforceApi`を作成し、OAuthスコープをAPIと更新トークンに設定します。クライアント資格情報フローは無効にし、固定の実行ユーザーを使用しません。事前承認の許可対象にシステム管理者プロファイルを指定します。
 3. External Auth Identity ProviderをAuthorization Code方式で作成します。認可・トークンのエンドポイントは接続先組織のMy Domainにある`/services/oauth2/authorize`と`/services/oauth2/token`です。「Proof Key for Code Exchange (PKCE) 拡張を使用」を有効にします。アプリケーション側のPKCE必須設定を維持し、認可要求でコードチャレンジを送信します。クライアント認証は`ClientSecretPost`とし、アプリケーションのConsumer Key・Consumer Secretを資格情報管理に登録します。
 4. プロバイダーの詳細画面に表示されたコールバックURLを、外部クライアントアプリケーションのコールバックURLへ登録します。コールバックURLを推測で組み立てません。
 5. OAuth Browser FlowのExternal Credentialを作成し、プロバイダーと関連付けます。スコープを`api refresh_token`、Per User Principalを`SalesforceApiUserPrincipal`とします。Named Principalは使用しません。
-6. 現在の組織を接続先とするNamed Credentialを`SalesforceApiIntegration`として作成し、External Credentialへ関連付けます。「認証ヘッダーを生成」と「HTTP 本文の数式を許可」を有効にします。
-7. 設定の「プロファイル」から標準システム管理者を開き、「有効な外部ログイン情報プリンシパルアクセス」で`SalesforceApiIntegration-SalesforceApiUserPrincipal`を有効にします。他のプロファイルと権限セットには付与しません。アプリケーションの事前承認とPrincipalアクセスは両方必要です。
+6. 現在の組織を接続先とするNamed Credentialを`InternalSalesforceApi`として作成し、External Credentialへ関連付けます。「認証ヘッダーを生成」と「HTTP 本文の数式を許可」を有効にします。
+7. 設定の「プロファイル」から標準システム管理者を開き、「有効な外部ログイン情報プリンシパルアクセス」で`InternalSalesforceApi-SalesforceApiUserPrincipal`を有効にします。他のプロファイルと権限セットには付与しません。アプリケーションの事前承認とPrincipalアクセスは両方必要です。
 8. 利用者本人がOAuth認証し、Named Credential経由の取得、分類保存・再取得を確認します。本人以外のアカウントで認証しません。権限不足の場合は固定ユーザーへ切り替えず、操作を失敗させます。
 
 既存のNamed Principalから切り替える場合、共有トークンを利用者のトークンとして移行しません。切り替え前に関連設定とPrincipal権限を確認し、利用者の認証が済むまではAPI機能を利用できないことを周知します。失敗した場合は認証方式、コールバックURL、資格情報、Principalアクセス、認証ユーザーの権限を確認します。切り替えを取り消す場合は、組織管理者が変更前の設定と権限参照を復元します。固定ユーザー実行へ戻す場合は、その実行権限の違いを確認したうえで判断します。
@@ -274,7 +274,7 @@ ID型は「ID」と表示します。CSV出力ヘッダーは日本語とし、�
 
 Apexテストはシステム管理者プロファイルの現在ユーザーで実行します。テストのための権限セット割り当てや権限不足ユーザー作成は行いません。標準権限の分岐はメモリ上の実効権限レコードで確認します。
 
-Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。HTTPモックで指定ログイン情報`SalesforceApiIntegration`への接続先を検証し、認証情報には依存しません。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
+Apexは本体ごとの同名Testを恒久的に管理し、組織へ本体とともに反映します。HTTPモックで指定ログイン情報`InternalSalesforceApi`への接続先を検証し、認証情報には依存しません。HTTPモックによる標準・カスタム項目の保存、所有者ID照合、競合・部分失敗・権限を確認し、組織の限定scopeでコンパイル・テストを実行します。カバレッジは本体ごとに対応する同名Testの実行結果で確認します。LWCはLogic単体とコンポーネントの操作・表示・アクセシビリティを確認します。
 
 - 起点・モード・種別の変更、カード選択、関連検索、項目フィルター、ページをまたぐ編集保持。
 - CSVの出力と読取の往復、引用符・BOM・空行、列ずれ・重複・別対象・空欄による解除。
@@ -323,4 +323,4 @@ API失敗には固定の診断コードとHTTP番号を表示し、Salesforceの
 
 認証ボタンはSalesforce標準の認証URLを同じタブで開き、利用者自身が認証します。標準APIの`returnUrl`を`/lightning/n/ObjectExplorer`に固定し、資格情報の保存後はオブジェクトエクスプローラーへ戻します。画面の再生成時に状態を確認し、認証済みならボタンを隠して操作領域を表示します。認証前は操作領域を表示しないため、認証を開始する時点で分類の編集はできません。認証URLや資格情報はログへ出力しません。個人設定の外部ログイン情報も標準の管理経路として利用できます。独自のユーザーID照合は追加しません。
 
-認証済みの場合は画面タイトル右側に「認証解除」を表示します。確認後に標準APIで実行ユーザー本人の`SalesforceApiIntegration`のPer User資格情報だけを削除し、認証案内へ戻します。外部ログイン情報の設定本体やSalesforceへのログイン状態は変更しません。保存・取得・確認中はボタンを無効化し、未保存変更がある場合は確認文に破棄されることを表示します。キャンセル時は資格情報と入力を維持し、解除の結果が確認できない場合は成功と断定せず操作領域を非表示にします。
+認証済みの場合は画面タイトル右側に「認証解除」を表示します。確認後に標準APIで実行ユーザー本人の`InternalSalesforceApi`のPer User資格情報だけを削除し、認証案内へ戻します。外部ログイン情報の設定本体やSalesforceへのログイン状態は変更しません。保存・取得・確認中はボタンを無効化し、未保存変更がある場合は確認文に破棄されることを表示します。キャンセル時は資格情報と入力を維持し、解除の結果が確認できない場合は成功と断定せず操作領域を非表示にします。
