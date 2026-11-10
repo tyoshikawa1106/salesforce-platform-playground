@@ -60,19 +60,17 @@ public with sharing class ExternalClientAppManagerApiClient {
      * @return 認証済み・未認証・確認不能の区分
      */
     public String getAuthenticationStatus() {
-        ConnectApi.CredentialAuthenticationStatus status = credentialAccess.getStatus();
-        if (status == ConnectApi.CredentialAuthenticationStatus.NotConfigured) {
-            return 'REQUIRED';
-        }
-        if (status != ConnectApi.CredentialAuthenticationStatus.Configured) {
-            return 'UNAVAILABLE';
-        }
         try {
+            // 保存状態ではなく自動更新後の実接続で本人性を確認
             verifyIdentity();
             return 'AUTHENTICATED';
         } catch (CalloutException error) {
-            // 明示的な認証拒否だけを再認証へ案内する
-            return new Set<String>{ 'HTTP 401', 'AUTHENTICATION_REQUIRED' }.contains(error.getMessage())
+            // 標準の自動更新後も明示的に拒否される接続だけを再認証へ案内
+            if (new Set<String>{ 'HTTP 401', 'AUTHENTICATION_REQUIRED' }.contains(error.getMessage())) {
+                return 'REQUIRED';
+            }
+            // 接続失敗時だけ未登録と通信・権限の問題を区別
+            return credentialAccess.getStatus() == ConnectApi.CredentialAuthenticationStatus.NotConfigured
                 ? 'REQUIRED'
                 : 'UNAVAILABLE';
         }
@@ -163,7 +161,9 @@ public with sharing class ExternalClientAppManagerApiClient {
 
     /** 接続先組織とOAuth認証ユーザーが実行主体と一致することを確認 */
     public void verifyIdentity() {
-        // Per User接続で別アカウントを選んだ場合も拒否
+        // 期限切れ時に401を返すREST APIで標準トークン更新を先に実行
+        request('/services/data/v68.0/', 'GET', null);
+        // 更新後もPer User接続で別アカウントを選んだ場合は拒否
         Map<String, Object> identity = request('/services/oauth2/userinfo', 'GET', null);
         // 組織とユーザーの両方を検証
         if (

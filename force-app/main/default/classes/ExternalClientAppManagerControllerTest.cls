@@ -443,6 +443,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
     static void rejectsWrongIdentity() {
         System.runAs(testUser) {
             RequestQueue mock = new RequestQueue();
+            mock.add('GET', '/services/data/v68.0/', response(200, '{}'));
             mock.add(
                 'GET',
                 '/services/oauth2/userinfo',
@@ -523,6 +524,9 @@ private with sharing class ExternalClientAppManagerControllerTest {
     static void providesStandardAuthenticationUrl() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(false);
+            RequestQueue mock = new RequestQueue();
+            mock.add('GET', '/services/data/v68.0/', response(401, 'PRIVATE'));
+            Test.setMock(HttpCalloutMock.class, mock);
             Test.startTest();
             Map<String, Object> result = ExternalClientAppManagerController.getAuthentication();
             Test.stopTest();
@@ -535,6 +539,9 @@ private with sharing class ExternalClientAppManagerControllerTest {
     static void hidesAuthenticationApiFailure() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(true);
+            RequestQueue mock = new RequestQueue();
+            mock.add('GET', '/services/data/v68.0/', response(403, 'PRIVATE'));
+            Test.setMock(HttpCalloutMock.class, mock);
             Test.startTest();
             Map<String, Object> result = ExternalClientAppManagerController.getAuthentication();
             Test.stopTest();
@@ -641,6 +648,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
 
     private static RequestQueue applicationQueue() {
         RequestQueue mock = new RequestQueue();
+        mock.add('GET', '/services/data/v68.0/', response(200, '{}'));
         mock.add(
             'GET',
             '/services/oauth2/userinfo',

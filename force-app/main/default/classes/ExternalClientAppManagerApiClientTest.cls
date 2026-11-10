@@ -66,7 +66,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
                 )
             );
             client.verifyIdentity();
-            Assert.areEqual(1, Limits.getCallouts(), '接続主体をAPIで確認');
+            Assert.areEqual(2, Limits.getCallouts(), 'REST接続確認後に本人を照合');
             Test.stopTest();
         }
     }
@@ -135,6 +135,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     static void detectsMissingAuthentication() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock('missing');
+            Test.setMock(HttpCalloutMock.class, new TransportFailure());
             Test.startTest();
             Assert.areEqual('REQUIRED', client.getAuthenticationStatus(), '未設定は認証が必要');
             Test.stopTest();
@@ -146,6 +147,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     static void detectsUnknownAuthentication() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock('unknown');
+            Test.setMock(HttpCalloutMock.class, new TransportFailure());
             Test.startTest();
             Assert.areEqual('UNAVAILABLE', client.getAuthenticationStatus(), '不明は確認不能');
             Test.stopTest();
@@ -258,7 +260,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     static void requiresAuthenticationForInvalidToken() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock('configured');
-            Test.setMock(HttpCalloutMock.class, new ResponseMock(403, 'Bad_OAuth_Token'));
+            Test.setMock(HttpCalloutMock.class, new IdentityResponseMock(403, 'Bad_OAuth_Token'));
             Test.startTest();
             Assert.areEqual('REQUIRED', client.getAuthenticationStatus(), '失効した保存済み認証を再認証へ案内');
             Test.stopTest();
@@ -270,7 +272,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     static void requiresAuthenticationForMissingToken() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock('configured');
-            Test.setMock(HttpCalloutMock.class, new ResponseMock(403, 'Missing_OAuth_Token'));
+            Test.setMock(HttpCalloutMock.class, new IdentityResponseMock(403, 'Missing_OAuth_Token'));
             Test.startTest();
             Assert.areEqual('REQUIRED', client.getAuthenticationStatus(), '認証欠落を権限不足と混同しない');
             Test.stopTest();
@@ -282,7 +284,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     static void keepsWrongOrganizationUnavailable() {
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock('configured');
-            Test.setMock(HttpCalloutMock.class, new ResponseMock(403, 'Wrong_Org'));
+            Test.setMock(HttpCalloutMock.class, new IdentityResponseMock(403, 'Wrong_Org'));
             Test.startTest();
             Assert.areEqual('UNAVAILABLE', client.getAuthenticationStatus(), '別組織の拒否を維持');
             Test.stopTest();
@@ -373,6 +375,54 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         }
     }
 
+    /** 保存状態に依存せずREST確認を先行して本人性を照合 */
+    @IsTest
+    static void authenticatesAfterRestRefreshWithoutStoredStatusCheck() {
+        System.runAs(testUser) {
+            CredentialMock credentials = new CredentialMock('unknown');
+            ExternalClientAppManagerApiClient.credentialAccess = credentials;
+            IdentityResponseMock mock = new IdentityResponseMock(200, JSON.serialize(new Map<String, Object>{
+                'organization_id' => UserInfo.getOrganizationId(), 'user_id' => UserInfo.getUserId()
+            }));
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            Assert.areEqual('AUTHENTICATED', client.getAuthenticationStatus(), '実接続成功なら再認証不要');
+            Assert.areEqual(0, credentials.statusCalls, '保存状態の事前判定を呼ばない');
+            Assert.areEqual(2, mock.calls, 'GETで接続確認後に本人確認だけを実行');
+            Test.stopTest();
+        }
+    }
+
+    /** REST確認から本人確認までの順序を検証する通信モック */
+    private class IdentityResponseMock implements HttpCalloutMock {
+        private Integer statusCode;
+        private String body;
+        private Integer calls = 0;
+        /** 本人確認の応答を指定
+         * @param statusCode 本人確認APIのHTTP番号
+         * @param body 本人確認APIの応答本文
+         */
+        private IdentityResponseMock(Integer statusCode, String body) {
+            this.statusCode = statusCode;
+            this.body = body;
+        }
+        /** REST接続確認を先行させたGET要求だけを受け付ける
+         * @param request 実行要求
+         * @return 確認工程に対応する応答
+         */
+        public HttpResponse respond(HttpRequest request) {
+            Assert.areEqual('GET', request.getMethod(), '更新操作を再送しない');
+            Assert.isTrue(calls < 2, '確認要求を繰り返さない');
+            String path = calls == 0 ? '/services/data/v68.0/' : '/services/oauth2/userinfo';
+            Assert.areEqual('callout:ExternalClientAppManager' + path, request.getEndpoint(), '自動更新経路を先行');
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(calls == 0 ? 200 : statusCode);
+            response.setBody(calls == 0 ? '{}' : body);
+            calls++;
+            return response;
+        }
+    }
+
     /** 内部情報付きの通信例外を再現 */
     private class TransportFailure implements HttpCalloutMock {
         /** 実通信せず例外を返す
@@ -387,6 +437,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     /** 標準認証APIだけを差し替えるモック */
     private class CredentialMock extends ExternalClientAppManagerApiClient.CredentialAccess {
         private String mode;
+        private Integer statusCalls = 0;
         private Boolean revoked = false;
         /** 認証状態を指定
          * @param mode 保存状態または外部URLシナリオ
@@ -398,6 +449,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
          * @return 標準APIの認証状態
          */
         public override ConnectApi.CredentialAuthenticationStatus getStatus() {
+            statusCalls++;
             if (mode == 'missing') {
                 return ConnectApi.CredentialAuthenticationStatus.NotConfigured;
             }
