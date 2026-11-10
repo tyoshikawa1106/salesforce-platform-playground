@@ -1455,7 +1455,7 @@ it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知�
         await flush();
         fail();
         await flush();
-        expect(log).toHaveBeenCalledTimes(1);
+        expect(log).not.toHaveBeenCalled();
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('ORG-JS-DOM-TARGET');
         expect(panel.textContent).not.toContain('canvas.js:1:2');
@@ -1466,6 +1466,6 @@ it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知�
         fail();
         await flush();
         expect(element.shadowRoot.querySelector('[data-client-error]')).not.toBeNull();
-        expect(log).toHaveBeenCalledTimes(2);
+        expect(log).not.toHaveBeenCalled();
     } finally { log.mockRestore(); }
 });

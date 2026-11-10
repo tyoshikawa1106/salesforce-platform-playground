@@ -8,23 +8,16 @@ export function createLogDetails({ source, operation, phase, errorType, stack })
     return { location: `${source} / ${operation} / ${phase}`, errorType, frames, frame: frames[0] || '' };
 }
 
-// 同じ記録の連続出力を抑止し、呼び出し元へ新規記録の有無を返す
-export function recordLog(previous, details, prefix = 'LWC') {
-    // 固定位置・種類・コード・公開案内・フレームが変わった記録だけ出力
+// 同じ診断の連続更新を抑止し、呼び出し元へ新規状態の有無を返す
+export function recordLog(previous, details) {
+    // 固定位置・種類・コード・公開案内・フレームの変化を照合する
     const duplicate = previous?.location === details.location
         && previous.errorType === details.errorType
         && previous.frames.join('|') === details.frames.join('|')
         && previous.code === details.code
         && previous.message === details.message;
-    // 表示中の状態は呼び出し元に残し、重複では出力だけ省略
+    // 表示中の状態は呼び出し元に残し、重複では更新を省略
     if (duplicate) return false;
-    // 自由文・応答本文・入力値をログへ渡さず、許可した診断属性だけ出力
-    console.error(`${prefix}: 画面処理でエラーが発生しました。`, {
-        location: details.location,
-        errorType: details.errorType,
-        code: details.code,
-        frames: details.frames
-    });
-    // 記録後に表示状態を更新するかは画面側で決定
+    // コンソールへ出力せず、画面側の診断状態を更新可能とする
     return true;
 }

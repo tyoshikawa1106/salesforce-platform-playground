@@ -1,6 +1,6 @@
 import { createLogDetails, recordLog } from 'c/lwcLoggerUtils';
 
-describe('LWCログの整形と記録', () => {
+describe('LWC診断情報の整形と状態更新判定', () => {
     let output;
 
     beforeEach(() => {
@@ -37,14 +37,11 @@ describe('LWCログの整形と記録', () => {
         expect(result.frames).toEqual(['first.js:1:2', 'next.mjs:3:4']);
     });
 
-    it('ログに許可した属性だけを出力し、表示案内や応答情報を渡さない', () => {
+    it('新規の診断状態を許可し、コンソールへ出力しない', () => {
         const details = Object.freeze({ location: 'sample.js / load / api', errorType: 'SalesforceError', frames: Object.freeze([]), code: 'PUBLIC-CODE', message: 'PRIVATE_MESSAGE', body: 'PRIVATE_RESPONSE' });
 
         expect(recordLog(undefined, details)).toBe(true);
-        expect(output).toHaveBeenCalledWith('LWC: 画面処理でエラーが発生しました。', {
-            location: details.location, errorType: details.errorType, code: details.code, frames: []
-        });
-        expect(JSON.stringify(output.mock.calls)).not.toContain('PRIVATE');
+        expect(output).not.toHaveBeenCalled();
     });
 
     it('同じ記録は出力せず、画面が持つ状態も書き換えない', () => {
@@ -64,7 +61,7 @@ describe('LWCログの整形と記録', () => {
     ])('種類・処理位置・コード・公開案内が変わった記録を省略しない: %p', (change) => {
         const previous = { location: 'sample.js / load / api', errorType: 'Error', frames: [] };
 
-        expect(recordLog(previous, { ...previous, ...change }, 'ObjectExplorer')).toBe(true);
-        expect(output.mock.calls[0][0]).toBe('ObjectExplorer: 画面処理でエラーが発生しました。');
+        expect(recordLog(previous, { ...previous, ...change })).toBe(true);
+        expect(output).not.toHaveBeenCalled();
     });
 });

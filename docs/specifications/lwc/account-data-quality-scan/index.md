@@ -10,7 +10,7 @@
 
 ## 対象実装・メタデータ
 
-ログ情報の整形・重複記録の抑止・コンソール出力は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、ログへ表示案内やAPI応答本文を渡しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
+診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
 Salesforce API応答の表示メッセージ整形は内部APIモジュール[salesforceApiUtils](../../../../force-app/main/default/lwc/salesforceApiUtils/salesforceApiUtils.js)を使用します。Apex・UI API形式、複数メッセージの順序と代替文言は[共通テスト](../../../../force-app/main/default/lwc/salesforceApiUtils/__tests__/salesforceApiUtils.test.js)で確認します。エラー時の画面状態と復旧操作はこの画面で管理します。
 
