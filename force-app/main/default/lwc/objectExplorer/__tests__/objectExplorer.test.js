@@ -567,8 +567,7 @@ it('APIの固定コードは画面に表示し、公開メッセージ本文は�
     await flush();
     await pickAccount(element);
     expect(element.shadowRoot.querySelector('.oe-client-error').textContent).toContain('エラーコード：OE-AUTH-401');
-    expect(JSON.stringify(console.error.mock.calls)).toContain('OE-AUTH-401');
-    expect(JSON.stringify(console.error.mock.calls)).not.toContain(message);
+    expect(console.error).not.toHaveBeenCalled();
 });
 
 it('未認証の場合は対象未選択でも共通のAPI認証を表示する', async () => {

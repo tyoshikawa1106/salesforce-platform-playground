@@ -1,0 +1,144 @@
+<template>
+    <main aria-busy={busy}>
+        <header class="slds-page-header c-page-header">
+            <div class="slds-page-header__row c-page-header-row">
+                <div class="slds-media c-page-header-title">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:connected_apps" alternative-text="外部クライアントアプリ認証管理" size="medium"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <h1 class="slds-page-header__title">外部クライアントアプリ認証管理</h1>
+                    </div>
+                </div>
+                <div class="slds-page-header__controls c-page-header-actions">
+                    <template lwc:if={authenticationReady}>
+                        <lightning-button
+                            label="認証解除"
+                            onclick={handleAuthenticationRevoke}
+                            disabled={busy}
+                        ></lightning-button>
+                    </template>
+                </div>
+            </div>
+        </header>
+        <template lwc:if={authenticationRequired}>
+            <div class="authentication slds-box slds-theme_default slds-m-bottom_medium" role="status">
+                <span>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
+                <div class="authentication-actions">
+                    <a
+                        class="slds-button slds-button_brand"
+                        href={authenticationUrl}
+                        target="_self"
+                        onclick={handleAuthenticationStart}
+                        >認証</a
+                    >
+                </div>
+            </div>
+        </template>
+        <template lwc:if={authenticationReady}>
+            <p class="slds-m-bottom_medium">
+                外部クライアントアプリケーションの鍵・秘密を更新します。
+                生成した値は、Salesforceの標準設定画面で確認してください。
+            </p>
+            <section class="page-panel" aria-label="コンシューマ鍵と秘密の更新" aria-busy={busy}>
+                <h2 class="c-card-title">コンシューマ鍵と秘密の更新</h2>
+                <template lwc:if={busy}>
+                    <div class="c-loading" role="status" aria-live="polite">
+                        <span class="c-spinner" aria-hidden="true"></span>
+                        <span class="slds-assistive-text">処理中…</span>
+                    </div>
+                </template>
+                <lightning-combobox
+                    label="外部クライアントアプリケーション"
+                    required
+                    placeholder=" "
+                    value={appId}
+                    options={appOptions}
+                    onchange={handleAppChange}
+                    disabled={busy}
+                ></lightning-combobox>
+                <template lwc:if={appId}>
+                    <div class="slds-m-top_large">
+                        <lightning-button
+                            label="新しいコンシューマ鍵と秘密を生成"
+                            variant="brand"
+                            onclick={handleAutomaticUpdate}
+                            disabled={busy}
+                        ></lightning-button>
+                    </div>
+                </template>
+            </section>
+            <template lwc:if={stagesLoaded}>
+                <template lwc:if={hasStages}>
+                    <section class="page-panel c-stage-panel slds-m-top_medium" aria-label="旧コンシューマ鍵と秘密">
+                        <div
+                            class="c-stage-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-top_medium"
+                        >
+                            <h2 class="c-card-title">旧コンシューマ鍵と秘密</h2>
+                        </div>
+                        <p class="slds-p-horizontal_medium slds-p-top_medium slds-p-bottom_small">
+                            連携先の切り替えを確認してから、旧コンシューマ鍵と秘密を削除してください。
+                        </p>
+                        <div class="slds-scrollable_x">
+                            <table
+                                class="c-stage-table slds-table slds-table_cell-buffer slds-table_bordered"
+                                aria-label="ステージ資格情報"
+                            >
+                                <thead>
+                                    <tr>
+                                        <th scope="col">ステージID</th>
+                                        <th scope="col">状態</th>
+
+                                        <th scope="col">有効期限</th>
+                                        <th scope="col"><span class="slds-assistive-text">操作</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={stages} for:item="stage">
+                                        <tr key={stage.id}>
+                                            <th scope="row">{stage.id}</th>
+                                            <td>{stage.stateLabel}</td>
+
+                                            <td>
+                                                <lightning-formatted-date-time
+                                                    value={stage.expirationDate}
+                                                    year="numeric"
+                                                    month="2-digit"
+                                                    day="2-digit"
+                                                    hour="2-digit"
+                                                    minute="2-digit"
+                                                ></lightning-formatted-date-time>
+                                            </td>
+                                            <td class="slds-text-align_right">
+                                                <template lwc:if={stage.canDelete}
+                                                    ><lightning-button
+                                                        label="削除"
+                                                        variant="destructive"
+                                                        data-id={stage.id}
+                                                        onclick={handleStageDelete}
+                                                        disabled={busy}
+                                                    ></lightning-button
+                                                ></template>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </template>
+            </template>
+        </template>
+        <template lwc:if={error}>
+            <div class="error-notice slds-box slds-theme_error slds-m-top_medium" role="alert">
+                <lightning-icon
+                    icon-name="utility:error"
+                    alternative-text="エラー"
+                    variant="inverse"
+                    size="small"
+                ></lightning-icon>
+                <p>{error}</p>
+            </div>
+        </template>
+    </main>
+</template>

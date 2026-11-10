@@ -10,7 +10,7 @@
 
 ## 対象実装・メタデータ
 
-ログ情報の整形・重複記録の抑止・コンソール出力は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、ログへ表示案内やAPI応答本文を渡しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
+診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
 API認証状態の表示変換と標準認証URLの検証は[ObjectExplorerAuthenticationService](../../../../force-app/main/default/classes/ObjectExplorerAuthenticationService.cls)へ集約し、[ObjectExplorerAuthenticationServiceTest](../../../../force-app/main/default/classes/ObjectExplorerAuthenticationServiceTest.cls)で公開状態・固定案内・接続先の許可範囲を確認します。Controllerは標準APIの呼び出し順序と例外の捕捉を担当します。
 
@@ -103,6 +103,8 @@ ControllerはAPI通信と保存の順序を管理し、SOAPのXML生成・応答
 候補はラベルとAPI名を分けたリストボックスにし、入力へフォーカスを残したまま上下矢印で移動し、Enterで確定、Escで閉じます。ラベル右側のヘルプアイコンで、ラベル・API名による検索、選び直し、キーボード操作を説明します。選択済みの対象をクリックしたり矢印キーを押したりしても候補は開きません。選び直す場合は解除ボタンを使用します。対象の解除時は未保存変更の破棄を確認し、図・項目一覧を空にして必須対象の再選択を促します。候補の外へフォーカスを移すと未確定の検索を閉じます。
 
 ## 処理内容
+
+ページヘッダーはSLDSのPage Headerに統一し、左に機能アイコンとタイトル、右に既存の操作を配置します。幅が足りない場合は操作を折り返します。
 
 保存処理は変更行の生成・確認画面の表示・保存APIの実行を同じ`try/catch`で扱い、失敗段階と保存の実行有無を画面へ表示します。診断表示とログはエラー時だけに限定し、成功・待機の診断ログは出しません。画面内にファイル名・処理名・段階・例外種別を表示し、コンソールのスタック情報はJSファイル名と行・列だけへ限定します。入力値・認証情報・API応答本文・組織URLはログへ出しません。
 
