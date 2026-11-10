@@ -5,6 +5,7 @@ import ExternalClientAppCredentialModal from 'c/externalClientAppCredentialModal
 import ExternalClientAppManager from 'c/externalClientAppManager';
 import execute from '@salesforce/apex/ExternalClientAppManagerController.execute';
 import getAuthentication from '@salesforce/apex/ExternalClientAppManagerController.getAuthentication';
+import getAuthenticationUrl from '@salesforce/apex/ExternalClientAppManagerController.getAuthenticationUrl';
 
 jest.mock('@salesforce/apex/ExternalClientAppManagerController.execute', () => ({ default: jest.fn() }), {
     virtual: true
@@ -12,6 +13,7 @@ jest.mock('@salesforce/apex/ExternalClientAppManagerController.execute', () => (
 jest.mock('@salesforce/apex/ExternalClientAppManagerController.getAuthentication', () => ({ default: jest.fn() }), {
     virtual: true
 });
+jest.mock('@salesforce/apex/ExternalClientAppManagerController.getAuthenticationUrl', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/ExternalClientAppManagerController.revokeAuthentication', () => ({ default: jest.fn() }), {
     virtual: true
 });
@@ -27,6 +29,7 @@ const button = (element, label = '適用') =>
 const actions = () => execute.mock.calls.map(([r]) => r.input.action);
 async function createComponent(authentication = { status: 'AUTHENTICATED' }) {
     getAuthentication.mockResolvedValue(authentication);
+    getAuthenticationUrl.mockResolvedValue('/auth');
     ExternalClientAppCredentialModal.open.mockResolvedValue(apps[0].id);
     execute.mockResolvedValue({ stages: [] }).mockResolvedValueOnce({ applications: apps });
     const element = createElement('c-external-client-app-manager', { is: ExternalClientAppManager });
@@ -403,4 +406,45 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         expect(element.shadowRoot.querySelector('a').getAttribute('href')).toBe('/auth');
         expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
     });
+    it.each(['UNAVAILABLE', 'NO_ACCESS'])('確認結果%sでも認証を表示し操作は許可しない', async (status) => {
+        const element = await createComponent({ status });
+        expect(element.shadowRoot.querySelector('.authentication a').getAttribute('href')).toBe('/auth');
+        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+        expect(button(element, '認証解除')).toBeUndefined();
+        expect(execute).not.toHaveBeenCalled();
+        expect(getAuthenticationUrl).toHaveBeenCalledTimes(1);
+    });
+    it('状態取得の例外後も認証URLを独立して取得する', async () => {
+        getAuthentication.mockRejectedValueOnce(new Error('PRIVATE'));
+        const element = await createComponent();
+        expect(element.shadowRoot.querySelector('.authentication a')).not.toBeNull();
+        expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
+        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+        expect(execute).not.toHaveBeenCalled();
+    });
+    it('URL取得失敗では無効な認証ボタンと理由を表示する', async () => {
+        getAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
+        const element = await createComponent({ status: 'UNAVAILABLE' });
+        expect(element.shadowRoot.querySelector('.authentication a')).toBeNull();
+        expect(button(element, '認証').disabled).toBe(true);
+        expect(element.shadowRoot.textContent).toContain('認証を開始できません');
+        expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
+        expect(execute).not.toHaveBeenCalled();
+    });
+    it('確認中も無効な認証ボタンを表示して機能を隠す', async () => {
+        getAuthentication.mockImplementationOnce(() => new Promise(() => {}));
+        const element = await createComponent();
+        expect(button(element, '認証').disabled).toBe(true);
+        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+    });
+    it('認証し直して戻った画面では接続を確認して操作を許可する', async () => {
+        const before = await createComponent({ status: 'UNAVAILABLE' });
+        expect(before.shadowRoot.querySelector('.authentication a')).not.toBeNull();
+        before.remove();
+        const after = await createComponent();
+        expect(after.shadowRoot.querySelector('.authentication')).toBeNull();
+        expect(after.shadowRoot.querySelector('lightning-combobox')).not.toBeNull();
+        expect(button(after, '認証解除')).toBeDefined();
+    });
+
 });

@@ -584,12 +584,12 @@ it('未認証の場合は対象未選択でも共通のAPI認証を表示する'
     expect(element.shadowRoot.querySelector('.oe-panel')).toBeNull();
     expect(element.shadowRoot.querySelector('.oe-authentication').classList.contains('slds-theme_default')).toBe(true);
 });
-it('権限不足を未認証として案内しない', async () => {
+it('権限不足の案内を維持して認証をやり直す導線を表示する', async () => {
     getApiAuthentication.mockResolvedValueOnce({ status: 'NO_ACCESS', message: '管理者に確認してください。' });
     const element = createComponent();
     await flush();
-    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
-    expect(getApiAuthenticationUrl).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).not.toBeNull();
+    expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
     expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('管理者');
 });
 it('認証状態の確認失敗では例外本文を表示しない', async () => {
@@ -597,8 +597,8 @@ it('認証状態の確認失敗では例外本文を表示しない', async () =
     const element = createComponent();
     await flush();
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
-    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
-    expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('再読み込み');
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication').textContent).toContain('認証をやり直す');
 });
 it('同じタブの認証から戻って画面が再生成されたら認証状態を確認する', async () => {
     getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: '認証してください。' });
@@ -793,4 +793,26 @@ it('保存開始時の接続確認に失敗したら更新を送信しない', a
     expect(saveClassifyData).not.toHaveBeenCalled();
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
     expect(element.shadowRoot.querySelector('.oe-save-progress')).toBeNull();
+});
+
+
+it('確認不能でも認証リンクを表示し探索と保存は許可しない', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'UNAVAILABLE', message: '接続を確認できません。' });
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-mode')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-authentication-revoke]')).toBeNull();
+    expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
+});
+it('認証URL取得失敗でもボタンを隠さず無効化して理由を表示する', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'UNAVAILABLE', message: '確認不能' });
+    getApiAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.querySelector('.oe-authentication a')).toBeNull();
+    expect(element.shadowRoot.querySelector('.oe-authentication lightning-button').disabled).toBe(true);
+    expect(element.shadowRoot.textContent).toContain('API認証を開始できません');
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
+    expect(element.shadowRoot.querySelector('.oe-mode')).toBeNull();
 });

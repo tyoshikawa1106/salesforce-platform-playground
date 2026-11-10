@@ -5,8 +5,8 @@ public with sharing class ExternalClientAppManagerController {
     private static ExternalClientAppManagerService.View view = new ExternalClientAppManagerService.View();
     private static ExternalClientAppManagerApiClient client = new ExternalClientAppManagerApiClient();
 
-    /** 本人の認証状態と必要時の標準認証URLを取得
-     * @return 認証状態、未認証の場合だけ認証開始URL
+    /** 本人の管理用API認証状態を取得
+     * @return 認証済み・要認証・確認不能の区分
      */
     @AuraEnabled
     public static Map<String, Object> getAuthentication() {
@@ -15,14 +15,25 @@ public with sharing class ExternalClientAppManagerController {
             service.requireAccess();
             // 保存状態だけでなくAPI接続の本人性を検証
             String status = client.getAuthenticationStatus();
-            Map<String, Object> result = new Map<String, Object>{ 'status' => status };
-            if (status == 'REQUIRED') {
-                result.put('url', client.getAuthenticationUrl());
-            }
-            return result;
+            return new Map<String, Object>{ 'status' => status };
         } catch (Exception error) {
             // 設定不備や権限不足を未認証と推測しない
             return new Map<String, Object>{ 'status' => 'UNAVAILABLE' };
+        }
+    }
+
+    /** 接続確認の結果と独立して標準認証URLを取得
+     * @return 機能利用権限を持つ本人の認証開始URL
+     */
+    @AuraEnabled
+    public static String getAuthenticationUrl() {
+        try {
+            // URL取得でも管理機能の利用権限を確認
+            service.requireAccess();
+            // 本人確認失敗時も別アカウントで認証し直せる標準URLを準備
+            return client.getAuthenticationUrl();
+        } catch (Exception error) {
+            throw failure('認証を開始できません。接続設定と権限を管理者に確認してください。');
         }
     }
 
