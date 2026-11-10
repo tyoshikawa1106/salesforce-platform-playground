@@ -13,6 +13,10 @@
         <name>AccountMassUpdate</name>
     </customTabs>
     <customTabs>
+        <label><!-- 外部クライアントアプリ認証管理 --></label>
+        <name>ExternalClientAppManager</name>
+    </customTabs>
+    <customTabs>
         <label><!-- オブジェクトエクスプローラー --></label>
         <name>ObjectExplorer</name>
     </customTabs>

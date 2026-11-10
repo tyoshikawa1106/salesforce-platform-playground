@@ -116,4 +116,8 @@
         <name>SalesforceApiIntegration</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
+    <appMenuItems>
+        <name>ExternalClientAppManager</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
 </AppMenu>
