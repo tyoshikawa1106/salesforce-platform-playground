@@ -22,7 +22,7 @@ jest.mock('c/externalClientAppCredentialModal', () => ({ __esModule: true, defau
 const apps = [{ id: '0xI000000000001', label: '対象', name: 'Target' }];
 const stage = { id: 'new', state: 'active' };
 const flush = () => new Promise((resolve) => setImmediate(resolve));
-const button = (element, label = '新しいコンシューマ鍵と秘密を生成') =>
+const button = (element, label = '適用') =>
     [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === label);
 const actions = () => execute.mock.calls.map(([r]) => r.input.action);
 async function createComponent(authentication = { status: 'AUTHENTICATED' }) {
@@ -66,7 +66,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         expect(button(element, '削除').variant).toBe('destructive');
         expect(element.shadowRoot.textContent).toContain('適用済み');
         expect(element.shadowRoot.textContent).not.toContain('rotated');
-        expect(element.shadowRoot.textContent).toContain('旧コンシューマ鍵と秘密');
+        expect(element.shadowRoot.textContent).toContain('ステージ資格情報');
         expect(button(element, '削除')).toBeDefined();
         await expect(element).toBeAccessible();
     });
@@ -78,7 +78,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         await flush();
         expect(actions()).toEqual(['stages']);
         expect(ExternalClientAppCredentialModal.open).not.toHaveBeenCalled();
-        expect(element.shadowRoot.textContent).toContain('手動で削除してから生成');
+        expect(element.shadowRoot.textContent).toContain(state === 'unknown' ? '標準設定画面で状態を確認' : state === 'expired' ? '期限切れの資格情報' : '手動で削除してから適用');
         expect(element.shadowRoot.textContent).toContain('old');
         await expect(element).toBeAccessible();
     });
@@ -106,7 +106,40 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         button(element).click();
         await flush();
         expect(actions()).toEqual(['stages', 'deleteStage']);
-        expect(element.shadowRoot.textContent).toContain('手動で削除してから生成');
+        expect(element.shadowRoot.textContent).toContain('手動で削除してから適用');
+    });
+    it.each([
+        ['unknown', '標準設定画面で状態を確認', '削除'],
+        ['expired', '期限切れ', '連携先'],
+        ['active', 'アプリを選択し直して現在の状態を確認', '削除']
+    ])('未適用削除後に%sが現れた場合は状態に合う案内で停止する', async (state, expected, excluded) => {
+        const element = await createComponent();
+        await select(element);
+        execute
+            .mockResolvedValueOnce({ stages: [stage] })
+            .mockResolvedValueOnce({ state: 'complete', stages: [{ id: 'other', state }] });
+        button(element).click();
+        await flush();
+        expect(actions()).toEqual(['stages', 'deleteStage']);
+        const message = element.shadowRoot.querySelector('[role="alert"]').textContent;
+        expect(message).toContain(expected);
+        expect(message).not.toContain(excluded);
+    });
+    it.each(['generate', 'apply'])('%s結果が未確認なら再実行前の状態確認を案内する', async (phase) => {
+        const element = await createComponent();
+        await select(element);
+        execute.mockImplementation(({ input }) => {
+            if (input.action === 'stages') return Promise.resolve({ stages: [] });
+            if (input.action === phase) return Promise.resolve({ state: 'unconfirmed' });
+            return Promise.resolve({ state: 'complete', stages: [stage] });
+        });
+        button(element).click();
+        await flush();
+        expect(actions().at(-1)).toBe(phase);
+        const message = element.shadowRoot.querySelector('[role="alert"]').textContent;
+        expect(message).toContain('アプリを選択し直して現在の状態を確認');
+        expect(message).toContain('状態を確認するまで再実行しない');
+        expect(message).not.toContain('再実行してください');
     });
     it('未適用を一件に特定できない場合は自動削除も生成もしない', async () => {
         const element = await createComponent();
@@ -160,7 +193,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
             stageState: 'rotated',
             confirmationId: apps[0].id
         });
-        expect(element.shadowRoot.querySelector('section[aria-label="旧コンシューマ鍵と秘密"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('section[aria-label="ステージ資格情報"]')).toBeNull();
         await expect(element).toBeAccessible();
     });
     it('手動削除キャンセルでは資格情報を残す', async () => {
@@ -361,7 +394,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
     it('空一覧ではセクションと再取得操作を表示しない', async () => {
         const element = await createComponent();
         await select(element);
-        expect(element.shadowRoot.querySelector('section[aria-label="旧コンシューマ鍵と秘密"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('section[aria-label="ステージ資格情報"]')).toBeNull();
         expect(button(element, '再取得')).toBeUndefined();
         expect(element.shadowRoot.querySelector('lightning-button-icon')).toBeNull();
     });

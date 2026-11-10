@@ -60,7 +60,7 @@
                 <template lwc:if={appId}>
                     <div class="slds-m-top_large">
                         <lightning-button
-                            label="新しいコンシューマ鍵と秘密を生成"
+                            label="適用"
                             variant="brand"
                             onclick={handleAutomaticUpdate}
                             disabled={busy}
@@ -70,14 +70,14 @@
             </section>
             <template lwc:if={stagesLoaded}>
                 <template lwc:if={hasStages}>
-                    <section class="page-panel c-stage-panel slds-m-top_medium" aria-label="旧コンシューマ鍵と秘密">
+                    <section class="page-panel c-stage-panel slds-m-top_medium" aria-label="ステージ資格情報">
                         <div
                             class="c-stage-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-top_medium"
                         >
-                            <h2 class="c-card-title">旧コンシューマ鍵と秘密</h2>
+                            <h2 class="c-card-title">ステージ資格情報</h2>
                         </div>
                         <p class="slds-p-horizontal_medium slds-p-top_medium slds-p-bottom_small">
-                            連携先の切り替えを確認してから、旧コンシューマ鍵と秘密を削除してください。
+                            未適用・適用済み・期限切れの資格情報を表示します。適用済みの旧資格情報は、連携先の切り替えを確認してから削除してください。
                         </p>
                         <div class="slds-scrollable_x">
                             <table

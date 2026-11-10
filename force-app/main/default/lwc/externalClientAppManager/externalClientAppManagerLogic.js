@@ -102,3 +102,21 @@ export function automationStage(stages, stageId, expectedState) {
     // 検証済みの同一ステージだけを返す
     return matches[0];
 }
+
+// 状態に応じて安全に次の操作を案内する
+export function stageBlockingMessage(stages) {
+    // 未知の状態を削除可能な旧資格情報とみなさない
+    if (stages.some((row) => !['active', 'rotated', 'expired'].includes(row.state?.toLowerCase()))) {
+        return '状態を確認できない資格情報があります。処理を停止しました。Salesforceの標準設定画面で状態を確認してください。';
+    }
+    // 適用済みの資格情報を削除する前に連携先の切り替えを確認する
+    if (stages.some((row) => row.state?.toLowerCase() === 'rotated')) {
+        return '旧コンシューマ鍵と秘密が残っています。連携先の切り替えを確認し、一覧から手動で削除してから適用してください。';
+    }
+    // 期限切れは連携先の切り替え確認と区別する
+    if (stages.some((row) => row.state?.toLowerCase() === 'expired')) {
+        return '期限切れの資格情報が残っています。一覧から削除してから適用してください。';
+    }
+    // 空一覧と未適用だけの場合は確認モーダルへ進める
+    return '';
+}
