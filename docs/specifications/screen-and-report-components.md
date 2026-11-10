@@ -6,6 +6,8 @@ Salesforce上で使う画面・帳票について、機能別の入口、LWC、�
 
 ## 機能の入口
 
+外部クライアントアプリ認証管理は[機能仕様](lwc/external-client-app-manager/index.md)に、LWC `externalClientAppManager`、Logic、`ExternalClientAppManagerController`・`ExternalClientAppManagerService`・`ExternalClientAppManagerApiClient`と各同名Testの対応を記載しています。
+
 | 機能・仕様書                                                        | 入口                                                    |
 | ------------------------------------------------------------------- | ------------------------------------------------------- |
 | [取引先データ品質スキャン](lwc/account-data-quality-scan/index.md)  | `accountDataQualityScan`                                |

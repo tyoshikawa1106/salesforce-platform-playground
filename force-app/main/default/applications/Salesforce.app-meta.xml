@@ -53,6 +53,7 @@
     <tabs>TestDataDelete</tabs>
     <tabs>OrgExplorer</tabs>
     <tabs>ObjectExplorer</tabs>
+    <tabs>ExternalClientAppManager</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>
