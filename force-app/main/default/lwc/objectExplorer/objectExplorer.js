@@ -35,8 +35,8 @@ export default class ObjectExplorer extends LightningElement {
     apiAuthenticationSequence = 0;
     // 初期状態の確認完了前に認証が必要な通信を始めない
     apiAuthenticationPromise;
-    // 未認証の場合だけAPI認証の導線を表示する
-    get apiAuthenticationRequired() { return this.apiAuthenticationStatus === 'REQUIRED'; }
+    // 接続確認に成功するまでは認証をやり直す導線を表示する
+    get apiAuthenticationRequired() { return !this.apiAuthenticationReady; }
     // 認証を確認できた場合だけ探索・分類の操作領域を描画する
     get apiAuthenticationReady() { return this.apiAuthenticationStatus === 'AUTHENTICATED'; }
     // 初期確認の間に未認証の操作領域を一瞬表示しない
@@ -57,29 +57,37 @@ export default class ObjectExplorer extends LightningElement {
         // 接続失敗を未認証へ変換しない境界で確認する
         try {
             // 実行ユーザーの標準認証状態と同一組織への接続を確認する
-            const state = await getApiAuthentication();
+            let state;
+            try {
+                state = await getApiAuthentication();
+            } catch {
+                // 接続確認の失敗だけでは標準認証URLの取得を妨げない
+                state = { status: 'UNAVAILABLE', message: 'Salesforce APIの認証状態を確認できませんでした。認証をやり直すか、接続設定と権限を確認してください。' };
+            }
             // 接続終了や別要求より古い結果を画面へ出さない
             if (!this.componentConnected || sequence !== this.apiAuthenticationSequence) return false;
             // サーバーが公開した状態と案内だけを保持する
-            this.apiAuthenticationStatus = state.status;
+            this.apiAuthenticationStatus = state?.status || 'UNAVAILABLE';
             // 内部例外や資格情報ではなく公開メッセージを表示する
-            this.apiAuthenticationMessage = state.message;
-            // 明示的な未認証の場合に限って標準認証URLを取得する
-            if (state.status === 'REQUIRED') {
+            this.apiAuthenticationMessage = state?.message || 'Salesforce APIの認証状態を確認できませんでした。認証をやり直すか、接続設定と権限を確認してください。';
+            // 接続確認と独立して認証をやり直すURLを取得する
+            if (!this.apiAuthenticationReady) {
                 // 同じタブで標準OAuthへ移動するリンクを準備する
                 const url = await getApiAuthenticationUrl();
+                // 空のURLをクリック可能な認証操作とみなさない
+                if (!url) throw new Error('認証開始URLを確認できません。');
                 // 途中で別要求へ変わった場合はURLを破棄する
                 if (this.componentConnected && sequence === this.apiAuthenticationSequence) this.apiAuthenticationUrl = url;
             }
             // 保存開始にも使うため、この要求で確認した結果を返す
-            return state.status === 'AUTHENTICATED';
+            return this.apiAuthenticationReady;
         } catch {
             // 古い要求の失敗で現在の認証を上書きしない
             if (this.componentConnected && sequence === this.apiAuthenticationSequence) {
                 // 状態確認やURL取得の失敗を認証済み・未認証と推定しない
                 this.apiAuthenticationStatus = 'UNAVAILABLE';
                 // API応答本文やURLをエラーへ含めない
-                this.apiAuthenticationMessage = 'Salesforce APIの認証状態を確認できませんでした。接続設定と権限を確認して画面を再読み込みしてください。';
+                this.apiAuthenticationMessage = 'API認証を開始できませんでした。接続設定と権限を管理者に確認してください。';
             }
             // 古い表示状態を確認成功として使わない
             return false;
