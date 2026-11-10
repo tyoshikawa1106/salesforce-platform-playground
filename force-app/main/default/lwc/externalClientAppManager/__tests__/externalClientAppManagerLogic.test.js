@@ -3,6 +3,7 @@ import {
     automationStage,
     errorMessage,
     stageRows,
+    stageBlockingMessage,
     stageOperation,
     normalizedApplicationId
 } from '../externalClientAppManagerLogic';
@@ -61,5 +62,23 @@ describe('個別操作の表示と要求', () => {
         ]) {
             expect(() => automationStage(rows, 'stage', 'rotated')).toThrow();
         }
+    });
+});
+
+
+describe('資格情報の状態別案内', () => {
+    it.each(['unknown', undefined, ''])('不明状態%sでは削除を勧めない', (state) => {
+        const message = stageBlockingMessage([{ state }, { state: 'rotated' }]);
+        expect(message).toContain('標準設定画面で状態を確認');
+        expect(message).not.toContain('削除');
+    });
+    it('適用済みだけが連携先の切り替え確認を案内する', () => {
+        expect(stageBlockingMessage([{ state: 'Rotated' }])).toContain('連携先の切り替え');
+        expect(stageBlockingMessage([{ state: 'expired' }])).toContain('期限切れ');
+        expect(stageBlockingMessage([{ state: 'expired' }])).not.toContain('連携先');
+    });
+    it('空一覧と未適用だけでは更新を妨げない', () => {
+        expect(stageBlockingMessage([])).toBe('');
+        expect(stageBlockingMessage([{ state: 'active' }])).toBe('');
     });
 });

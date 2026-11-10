@@ -9,6 +9,7 @@ import {
     applicationOptions,
     errorMessage,
     stageRows,
+    stageBlockingMessage,
     stageOperation,
     automationStage,
     normalizedApplicationId
@@ -347,10 +348,11 @@ export default class ExternalClientAppManager extends LightningElement {
             this.stages = rows;
             // 再実行でも最新の残存状態を表示する
             this.stagesLoaded = true;
-            // 旧コンシューマ鍵と秘密や状態不明の行がある場合は変更前に手動整理を案内する
-            if (rows.some((row) => row.state?.toLowerCase() !== 'active')) {
-                // 旧コンシューマ鍵と秘密の意図しない置き換えを防ぐ
-                this.error = '旧コンシューマ鍵と秘密が残っています。連携先の切り替えを確認し、一覧から手動で削除してから生成してください。';
+            // 現在の状態に合う確認・整理方法を案内する
+            const blockingMessage = stageBlockingMessage(rows);
+            // 整理が必要な資格情報がある場合は変更前に停止する
+            if (blockingMessage) {
+                this.error = blockingMessage;
                 return;
             }
             // 入力検証をモーダル内で完了させる
@@ -395,7 +397,7 @@ export default class ExternalClientAppManager extends LightningElement {
             // 削除中に現れた旧コンシューマ鍵と秘密も残したまま生成しない
             if (rows.length) {
                 // 状態変更後は本人が一覧を確認して整理する
-                this.error = 'ステージに資格情報が残っています。一覧を確認し、手動で削除してから生成してください。';
+                this.error = stageBlockingMessage(rows) || '未適用の資格情報が残っています。アプリを選択し直して現在の状態を確認してください。';
                 return;
             }
             // 生成に失敗した場合は適用へ進めない
@@ -459,7 +461,7 @@ export default class ExternalClientAppManager extends LightningElement {
             // 結果不明の一覧から変更を繰り返させない
             this.stagesLoaded = false;
             // 工程名と再取得手順だけを表示する
-            this.error = `${phase}の完了を確認できません。処理を停止しました。設定を確認してから再実行してください。アプリを選択し直して現在の状態を確認してください。`;
+            this.error = `${phase}の完了を確認できません。処理を停止しました。アプリを選択し直して現在の状態を確認してください。資格情報が変更されている可能性があるため、状態を確認するまで再実行しないでください。`;
         } finally {
             // 自動再送せず、本人による次の実行を受け付ける
             if (this.isConnected && operationVersion === this.operationVersion) this.busy = false;
