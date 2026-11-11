@@ -1,9 +1,9 @@
-// 未選択を明示し、表示名とAPI名から対象を識別する
+// 未選択を明示し、選択肢にはアプリの表示名を使う
 export function applicationOptions(applications = []) {
     // 空値の選択肢は対象を自動選択しないために先頭へ置く
     return [
         { label: '-- なし --', value: '' },
-        ...applications.map((app) => ({ label: `${app.label} (${app.name})`, value: app.id }))
+        ...applications.map((app) => ({ label: app.label, value: app.id }))
     ];
 }
 
