@@ -101,10 +101,6 @@
         <type>CustomApplication</type>
     </appMenuItems>
     <appMenuItems>
-        <name>Salesforce_API_Playground</name>
-        <type>ExternalClientApplication</type>
-    </appMenuItems>
-    <appMenuItems>
         <name>Salesforce_API_Playground_Integration</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
@@ -114,6 +110,18 @@
     </appMenuItems>
     <appMenuItems>
         <name>ExternalClientAppManager</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
+    <appMenuItems>
+        <name>InternalSalesforceApi</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
+    <appMenuItems>
+        <name>HerokuPlaygroundIntegration</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
+    <appMenuItems>
+        <name>HerokuPlaygroundIntegrationPerUser</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
 </AppMenu>
