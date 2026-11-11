@@ -101,10 +101,6 @@
         <type>CustomApplication</type>
     </appMenuItems>
     <appMenuItems>
-        <name>Salesforce_API_Playground_Integration</name>
-        <type>ExternalClientApplication</type>
-    </appMenuItems>
-    <appMenuItems>
         <name>DEVHUB_drz7am5fceeinwhfzpj6</name>
         <type>ConnectedApp</type>
     </appMenuItems>
