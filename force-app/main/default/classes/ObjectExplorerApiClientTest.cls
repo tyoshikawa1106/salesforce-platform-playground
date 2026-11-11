@@ -33,7 +33,7 @@ private with sharing class ObjectExplorerApiClientTest {
          * @return 完了済みの模擬応答
          */
         public HttpResponse respond(HttpRequest request) {
-            Assert.isTrue(request.getEndpoint().startsWith('callout:SalesforceApiIntegration/services/data/v68.0/tooling/query/'), 'Tooling照会先を固定');
+            Assert.isTrue(request.getEndpoint().startsWith('callout:InternalSalesforceApi/services/data/v68.0/tooling/query/'), 'Tooling照会先を固定');
             String query = EncodingUtil.urlDecode(request.getEndpoint().substringAfter('?q='), 'UTF-8');
             Assert.isTrue(query.contains('FROM CustomField WHERE Id IN'), '監査対象を限定');
             Assert.isTrue(query.contains('CreatedById, LastModifiedDate, LastModifiedById'), '監査属性だけを取得');
@@ -268,7 +268,7 @@ private with sharing class ObjectExplorerApiClientTest {
          */
         public HttpResponse respond(HttpRequest request) {
             Assert.isTrue(
-                request.getEndpoint().startsWith('callout:SalesforceApiIntegration/'),
+                request.getEndpoint().startsWith('callout:InternalSalesforceApi/'),
                 '指定ログイン情報の固定名を使用'
             );
             HttpResponse response = new HttpResponse();
