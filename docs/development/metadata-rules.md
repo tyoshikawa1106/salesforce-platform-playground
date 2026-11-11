@@ -15,6 +15,8 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 - retrieve / package manifest は Git 管理対象一覧ではない。Git 管理対象は `.gitignore`、deploy scope は deploy 用 manifest または `--metadata` で別に判断する。
 - 組織から retrieve したメタデータは、コミット前または反映前に差分を確認する。
 
+外部クライアントアプリケーションの命名と認証設定は、[外部クライアントアプリケーション管理ルール](external-client-app-rules.md)を参照してください。
+
 ## 取得対象
 
 - retrieve 対象の指定がない場合は、`npm run sf:retrieve`を使い、Salesforce CLIに設定されているDefault Target Orgから`scripts/metadata/retrieve/retrieve.js`に定義したretrieve用manifestを順に取得する。
