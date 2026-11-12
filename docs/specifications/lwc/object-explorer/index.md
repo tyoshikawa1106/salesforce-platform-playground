@@ -215,7 +215,7 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 ### Salesforce API連携の準備
 
-組織内LWCからApex Controllerを経由して同じ組織のAPIへ接続します。共通の`SalesforceApiClient`と`SalesforceApiProtocol`は認証・HTTP通信・共通応答検証を担当し、`@AuraEnabled`や`@RestResource`では公開しません。Controllerで実効権限と入力を検証し、機能固有の項目分類操作は`ObjectExplorerApiClient`と`ObjectExplorerApiProtocol`へ分離します。外部システム用の公開入口は設けません。既存の診断コードは画面との互換性のため維持します。
+組織内LWCからApex Controllerを経由して同じ組織のAPIへ接続します。共通の`SalesforceApiClient`と`SalesforceApiProtocol`は認証・HTTP通信・共通応答検証を担当し、`@AuraEnabled`や`@RestResource`では公開しません。Controllerで実効権限と入力を検証し、機能固有の項目分類操作は`ObjectExplorerApiClient`と`ObjectExplorerApiProtocol`へ分離します。外部システム用の公開入口は設けません。既存の診断コードは画面との互換性のため維持します。REST照会は`query/`と`tooling/query/`の固定パスを完全一致で確認し、検索条件内の文字はパスの不正判定に含めません。
 
 外部クライアントアプリケーション・External Auth Identity Provider・External Credential・Named CredentialのAPI名は`InternalSalesforceApi`です。Apexがトークンを直接管理しない構成とします。OAuth 2.0のBrowser FlowとPer User Principalを使用し、利用者本人がOAuth認証したアカウントの権限でAPIを呼び出します。固定の実行ユーザーを使うクライアント資格情報フローと、証明書を使うJWT Bearer Flowは使用しません。
 
