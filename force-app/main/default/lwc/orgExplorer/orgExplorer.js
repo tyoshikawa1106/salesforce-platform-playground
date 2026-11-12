@@ -878,11 +878,6 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // 選択済みでも取得中や非表示のロールは操作させない。
         return this.mode !== 'ROLE' || this.busy || !this.candidateTarget?.targetId || !this.graph.nodes[`ROLE:${this.candidateTarget.targetId}`];
     }
-    // 開閉状態を読み上げへ同期する。
-    get hierarchyExpanded() {
-        // 表示モデルの有無だけで判定する。
-        return Boolean(this.roleHierarchy);
-    }
     // モードごとの起点を維持し、旧モードの応答を引き継がない。
     handleMode(event) {
         // 操作・取得・描画の入口で自画面の例外を捕捉
