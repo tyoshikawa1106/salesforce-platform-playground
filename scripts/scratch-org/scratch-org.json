@@ -12,6 +12,7 @@
         "LwcAccountMassUpdate",
         "LwcAccountPdfExport",
         "LwcCaseEmailMessageList",
+        "LwcExternalClientAppManager",
         "LwcObjectExplorer",
         "LwcObjectMetricsOverview",
         "LwcObjectRecordSearch",
