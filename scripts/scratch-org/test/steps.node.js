@@ -137,6 +137,8 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         '--name',
         'LwcCaseEmailMessageList',
         '--name',
+        'LwcExternalClientAppManager',
+        '--name',
         'LwcObjectExplorer',
         '--name',
         'LwcObjectMetricsOverview',

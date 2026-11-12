@@ -185,6 +185,7 @@ Scratch Org の作成ユーザーには、次のPermission Setを割り当てま
 - `LwcAccountMassUpdate`: 取引先一括更新タブの表示とApex入口の実行
 - `LwcAccountPdfExport`: 取引先PDF出力のApex入口とVisualforceページ
 - `LwcCaseEmailMessageList`: ケースメール一覧のApex入口
+- `LwcExternalClientAppManager`: 外部クライアントアプリ認証管理のApex入口・カスタム権限・タブ（API管理権限と認証設定は別途管理）
 - `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ（保存用の認証設定とプリンシパル利用権限は作成後に組織側で追加）
 - `LwcObjectMetricsOverview`: 件数サマリーと配下のレコード検索のApex入口
 - `LwcObjectRecordSearch`: レコード検索のApex入口
@@ -201,6 +202,7 @@ sf org assign permset \
     --name LwcAccountMassUpdate \
     --name LwcAccountPdfExport \
     --name LwcCaseEmailMessageList \
+    --name LwcExternalClientAppManager \
     --name LwcObjectExplorer \
     --name LwcObjectMetricsOverview \
     --name LwcObjectRecordSearch \

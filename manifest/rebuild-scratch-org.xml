@@ -59,6 +59,12 @@
         <members>CaseEmailMessageServiceTest</members>
         <members>DateTimeUtil</members>
         <members>DateTimeUtilTest</members>
+        <members>ExternalClientAppManagerApiClient</members>
+        <members>ExternalClientAppManagerApiClientTest</members>
+        <members>ExternalClientAppManagerController</members>
+        <members>ExternalClientAppManagerControllerTest</members>
+        <members>ExternalClientAppManagerService</members>
+        <members>ExternalClientAppManagerServiceTest</members>
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricCatalogTest</members>
         <members>ObjectMetricsOverviewController</members>
@@ -887,6 +893,8 @@
         <members>caseContactProfile</members>
         <members>caseEmailMessageList</members>
         <members>caseRelatedCaseList</members>
+        <members>externalClientAppCredentialModal</members>
+        <members>externalClientAppManager</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>
@@ -976,6 +984,7 @@
         <members>LwcAccountMassUpdate</members>
         <members>LwcAccountPdfExport</members>
         <members>LwcCaseEmailMessageList</members>
+        <members>LwcExternalClientAppManager</members>
         <members>LwcObjectExplorer</members>
         <members>LwcObjectMetricsOverview</members>
         <members>LwcObjectRecordSearch</members>
@@ -1255,11 +1264,13 @@
     <types>
         <members>RunAccountDelete</members>
         <members>ManageObjectFieldClassification</members>
+        <members>ManageExternalClientAppCredentials</members>
         <name>CustomPermission</name>
     </types>
     <types>
         <members>AccountDelete</members>
         <members>AccountMassUpdate</members>
+        <members>ExternalClientAppManager</members>
         <members>TestDataDelete</members>
         <members>OrgExplorer</members>
         <members>ObjectExplorer</members>
