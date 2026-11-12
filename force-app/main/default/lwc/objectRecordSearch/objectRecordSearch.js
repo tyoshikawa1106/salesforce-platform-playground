@@ -11,6 +11,7 @@ import searchRecords from '@salesforce/apex/ObjectRecordSearchController.searchR
 import deleteRecords from '@salesforce/apex/ObjectRecordSearchController.deleteRecords';
 import { createToastMessage } from './objectRecordSearchLogic';
 import {
+    MASTER_RECORD_TYPE_ID,
     createFormViewState,
     createFormWireState,
     createInitialSearchState,
@@ -400,13 +401,15 @@ export default class ObjectRecordSearch extends LightningElement {
         return this.formWireState.defaultRecordTypeId;
     }
 
-    // オブジェクト固有の新規操作ボタンラベルを返却
     // 編集対象のレコードタイプを新規作成の既定値から分離
     get editRecordTypeId() {
-        // 一覧で参照可能だった同じレコードの値を使用
-        return this.rows.find((row) => row.id === this.formRecordId)?.recordTypeId || this.defaultRecordTypeId;
+        // 編集対象がない間は既定タイプの編集レイアウトを先行取得
+        if (!this.formRecordId) { return this.defaultRecordTypeId; }
+        // 既存行の未指定値は利用者の既定タイプへ置き換えずMasterとして扱う
+        return this.rows.find((row) => row.id === this.formRecordId)?.recordTypeId || MASTER_RECORD_TYPE_ID;
     }
 
+    // オブジェクト固有の新規操作ボタンラベルを返却
     get newButtonLabel() {
         // Logicが生成したオブジェクト別の操作ラベルを返却
         return this.formViewState.newButtonLabel;

@@ -122,6 +122,45 @@ describe('c-object-record-search form flows', () => {
         expect(getModal().recordTypeId).toBe(record.recordTypeId);
     });
 
+    it.each([null, undefined, '012000000000000AAA'])('Master行(%s)の編集と既定カスタムタイプの新規作成を分離する', async (recordTypeId) => {
+        const masterTypeId = '012000000000000AAA';
+        const defaultTypeId = '012000000000001AAA';
+        const element = createComponent();
+        const record = { ...searchResponse.records[0], recordTypeId };
+        searchRecords.emit({ ...searchResponse, records: [record] });
+        await flushPromises();
+        emitObjectInfo({
+            Type: { custom: false, createable: true, updateable: true },
+            Rating: { custom: false, createable: true, updateable: true }
+        }, defaultTypeId);
+        await flushPromises();
+        emitLayout({ recordTypeId: defaultTypeId, fields: ['Name', 'Rating'] });
+        await flushPromises();
+
+        element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(new CustomEvent('rowaction', {
+            detail: { action: { name: 'edit' }, row: record }
+        }));
+        await flushPromises();
+        expect(getModal()).toBeNull();
+        emitLayout({ mode: 'Edit', recordTypeId: masterTypeId, fields: ['Name', 'Type'] });
+        await flushPromises();
+        await flushPromises();
+        expect(getModalRoot().querySelector('lightning-record-edit-form').recordTypeId).toBe(masterTypeId);
+        expect(getInputFieldNames()).toContain('Type');
+        expect(getInputFieldNames()).not.toContain('Rating');
+        expect(getInputFields().find((field) => field.fieldName === 'Type').required).toBe(true);
+        await expect(element).toBeAccessible();
+
+        getModal().close();
+        await flushPromises();
+        await openNewRecordForm(element);
+        const createForm = getModalRoot().querySelector('lightning-record-edit-form');
+        expect(createForm.recordId).toBeUndefined();
+        expect(createForm.recordTypeId).toBe(defaultTypeId);
+        expect(getInputFieldNames()).toContain('Rating');
+        expect(getInputFieldNames()).not.toContain('Type');
+    });
+
     it('別レコードタイプのレイアウト待機中に離脱した場合はフォームを開かない', async () => {
         const element = await createRecordFormReadyComponent();
         const record = { ...searchResponse.records[0], recordTypeId: '012000000000001AAA' };
