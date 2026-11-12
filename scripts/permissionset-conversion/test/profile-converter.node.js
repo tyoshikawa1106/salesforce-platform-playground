@@ -15,7 +15,6 @@ const {
     resolvePaths,
     resolveRunOutputDirectory,
     validateOutputTargets,
-    writeConversionOutputs,
     writeConversionPlans
 } = require('../convert-profile-to-permissionset');
 const { convertProfile, supportedProfileElements } = require('../internal/profile-converter');
@@ -1579,11 +1578,21 @@ test('最終存在確認の直後に作られたXML・レポートを上書き�
         try {
             assert.throws(
                 () =>
-                    writeConversionOutputs({
-                        outputPath,
-                        reportPath,
-                        permissionSetXml: 'generated XML',
-                        report: { generated: true },
+                    writeConversionPlans({
+                        plans: [
+                            {
+                                conversion: {
+                                    canWrite: true,
+                                    permissionSetXml: 'generated XML',
+                                    report: { generated: true }
+                                },
+                                paths: {
+                                    outputPath,
+                                    reportPath,
+                                    profilePath: path.join(directory, 'Input.profile-meta.xml')
+                                }
+                            }
+                        ],
                         existsSync(targetPath) {
                             const exists = fs.existsSync(targetPath);
                             // 最後の存在確認がfalseを返した直後に別実行のファイルを置く。
@@ -1612,11 +1621,17 @@ test('既存の一時ファイルと競合しても削除せず、自分が作�
         fs.writeFileSync(existingTemporaryPath, 'other execution');
         assert.throws(
             () =>
-                writeConversionOutputs({
-                    outputPath,
-                    reportPath,
-                    permissionSetXml: 'new XML',
-                    report: {},
+                writeConversionPlans({
+                    plans: [
+                        {
+                            conversion: { canWrite: true, permissionSetXml: 'new XML', report: {} },
+                            paths: {
+                                outputPath,
+                                reportPath,
+                                profilePath: path.join(directory, 'Input.profile-meta.xml')
+                            }
+                        }
+                    ],
                     randomUUID: () => 'fixed'
                 }),
             { code: 'EEXIST' }
@@ -1635,11 +1650,17 @@ test('一時書き込み・排他的配置・一時名の削除が失敗して�
         try {
             assert.throws(
                 () =>
-                    writeConversionOutputs({
-                        outputPath: path.join(directory, 'Expected.permissionset-meta.xml'),
-                        reportPath: path.join(directory, 'Expected.json'),
-                        permissionSetXml: 'new XML',
-                        report: {},
+                    writeConversionPlans({
+                        plans: [
+                            {
+                                conversion: { canWrite: true, permissionSetXml: 'new XML', report: {} },
+                                paths: {
+                                    outputPath: path.join(directory, 'Expected.permissionset-meta.xml'),
+                                    reportPath: path.join(directory, 'Expected.json'),
+                                    profilePath: path.join(directory, 'Input.profile-meta.xml')
+                                }
+                            }
+                        ],
                         writeFileSync(descriptor, content, options) {
                             if (failure === 'write' && !injected) {
                                 injected = true;
@@ -1678,9 +1699,17 @@ test('出力途中の失敗時にXMLとレポートを残さない', () => {
     try {
         assert.throws(
             () =>
-                writeConversionOutputs({
-                    outputPath,
-                    permissionSetXml: 'new xml',
+                writeConversionPlans({
+                    plans: [
+                        {
+                            conversion: { canWrite: true, permissionSetXml: 'new xml', report: { status: 'new' } },
+                            paths: {
+                                outputPath,
+                                reportPath,
+                                profilePath: path.join(temporaryDirectory, 'Input.profile-meta.xml')
+                            }
+                        }
+                    ],
                     randomUUID: () => 'transaction',
                     linkSync(sourcePath, targetPath) {
                         if (targetPath === reportPath) {
@@ -1688,9 +1717,7 @@ test('出力途中の失敗時にXMLとレポートを残さない', () => {
                         }
 
                         fs.linkSync(sourcePath, targetPath);
-                    },
-                    report: { status: 'new' },
-                    reportPath
+                    }
                 }),
             /report install failed/
         );
