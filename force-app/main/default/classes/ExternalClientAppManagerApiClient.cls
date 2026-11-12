@@ -50,9 +50,7 @@ public with sharing class ExternalClientAppManagerApiClient {
             query += ' AND Id = \'' + String.escapeSingleQuotes(appId) + '\'';
         } else if (String.isNotBlank(term)) {
             // 検索語の記号をSOQL構文やワイルドカードとして扱わない
-            String pattern = '%' + String.escapeSingleQuotes(
-                term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
-            ) + '%';
+            String pattern = '%' + String.escapeSingleQuotes(term.trim()).replace('%', '\\%').replace('_', '\\_') + '%';
             query += ' AND (MasterLabel LIKE \'' + pattern + '\' OR DeveloperName LIKE \'' + pattern + '\')';
         }
         query += ' ORDER BY DeveloperName LIMIT 200';
