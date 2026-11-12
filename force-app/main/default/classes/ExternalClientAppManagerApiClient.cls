@@ -198,8 +198,20 @@ public with sharing class ExternalClientAppManagerApiClient {
     }
 
     private void requireRequest(String path, String method) {
-        // 組織外URLや認証式を入力として受け付けない
-        if (path == null || !Pattern.matches('/services/(?![\\s\\S]*(?:\\.\\.|:))[\\s\\S]*', path)) {
+        // 検索条件を除き、この機能が使用する固定のAPIパスと照合する
+        String resourcePath = path?.substringBefore('?');
+        Boolean fixedPath = new Set<String>{
+            '/services/data/v68.0/',
+            '/services/oauth2/userinfo',
+            '/services/data/v68.0/tooling/query/'
+        }.contains(resourcePath);
+        // 資格情報APIは固定ルート内のSalesforce IDだけを可変部分として許可する
+        Boolean credentialPath = resourcePath != null && Pattern.matches(
+            '/services/data/v68[.]0/apps/oauth/credentials/0xI[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?'
+                + '(/888[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?/staged(/0ug[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?)?)?',
+            resourcePath
+        );
+        if (!fixedPath && !credentialPath) {
             throw new CalloutException('APIパスが不正です。');
         }
         // 管理操作に使うHTTPメソッドを限定
