@@ -59,47 +59,53 @@
                     <div class="slds-form-element__control">
                         <div class={lookupContainerClass}>
                             <div class={lookupComboboxClass}>
-                                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
-                                    <input
-                                        class="slds-input slds-combobox__input"
-                                        type="text"
-                                        role="combobox"
-                                        value={appInputValue}
-                                        readonly={appSelected}
-                                        aria-readonly={appSelected}
-                                        autocomplete="off"
-                                        aria-autocomplete="list"
-                                        aria-labelledby="app-label"
-                                        aria-haspopup="listbox"
-                                        aria-expanded={candidatesOpen}
-                                        aria-controls={appListboxId}
-                                        aria-activedescendant={activeAppOptionId}
-                                        aria-required="true"
-                                        placeholder="ラベルまたはAPI名で検索"
-                                        oninput={handleAppSearch}
-                                        onclick={openCandidates}
-                                        onkeydown={handleSearchKey}
-                                        disabled={busy}
-                                    />
-                                    <template lwc:if={appId}>
-                                        <button
-                                            class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-                                            type="button"
-                                            aria-label="外部クライアントアプリケーションの選択を解除"
-                                            title="選択を解除"
-                                            onclick={handleAppClear}
+                                <template lwc:if={appId}>
+                                    <div class="slds-pill_container" role="group" aria-labelledby="app-label">
+                                        <span class="slds-pill slds-size_1-of-1">
+                                            <span class="slds-pill__icon_container">
+                                                <lightning-icon icon-name="standard:connected_apps" size="x-small" alternative-text="外部クライアントアプリケーション"></lightning-icon>
+                                            </span>
+                                            <span class="slds-pill__label slds-grow" title={selectedAppLabel}>{selectedAppLabel}</span>
+                                            <button
+                                                class="slds-button slds-button_icon slds-pill__remove"
+                                                type="button"
+                                                aria-label="外部クライアントアプリケーションの選択を解除"
+                                                title="選択を解除"
+                                                onclick={handleAppClear}
+                                                disabled={busy}
+                                            >
+                                                <lightning-icon icon-name="utility:close" size="xx-small" alternative-text="選択を解除"></lightning-icon>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </template>
+                                <template lwc:else>
+                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                                        <input
+                                            class="slds-input slds-combobox__input"
+                                            type="text"
+                                            role="combobox"
+                                            value={appTerm}
+                                            autocomplete="off"
+                                            aria-autocomplete="list"
+                                            aria-labelledby="app-label"
+                                            aria-haspopup="listbox"
+                                            aria-expanded={candidatesOpen}
+                                            aria-controls={appListboxId}
+                                            aria-activedescendant={activeAppOptionId}
+                                            aria-required="true"
+                                            placeholder="ラベルまたはAPI名で検索"
+                                            oninput={handleAppSearch}
+                                            onclick={openCandidates}
+                                            onkeydown={handleSearchKey}
                                             disabled={busy}
-                                        >
-                                            <lightning-icon icon-name="utility:close" size="x-small" alternative-text="選択を解除"></lightning-icon>
-                                        </button>
-                                    </template>
-                                    <template lwc:else>
+                                        />
                                         <lightning-icon class="slds-input__icon slds-input__icon_right" icon-name="utility:search" size="x-small" alternative-text="アプリ検索"></lightning-icon>
-                                    </template>
-                                </div>
+                                    </div>
+                                </template>
                                 <template lwc:if={candidatesOpen}>
                                     <div class="slds-dropdown slds-dropdown_fluid">
-                                        <ul id="app-options" class="c-app-options slds-listbox slds-listbox_vertical" role="listbox" aria-label="外部クライアントアプリケーションの検索候補">
+                                        <ul id="app-options" class="slds-listbox slds-listbox_vertical slds-dropdown_length-5" role="listbox" aria-label="外部クライアントアプリケーションの検索候補">
                                             <template for:each={appOptions} for:item="option">
                                                 <li key={option.value} role="presentation">
                                                     <div
@@ -112,9 +118,9 @@
                                                         onclick={handleAppChange}
                                                         onmousedown={handleOptionMouseDown}
                                                     >
-                                                        <span class="slds-media__body">
-                                                            <span class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate">{option.label}</span>
-                                                            <span class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate">{option.name}</span>
+                                                        <span class="slds-media__body slds-grid slds-grid_vertical">
+                                                            <span class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate">{option.label}</span>
+                                                            <span class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate">{option.name}</span>
                                                         </span>
                                                     </div>
                                                 </li>

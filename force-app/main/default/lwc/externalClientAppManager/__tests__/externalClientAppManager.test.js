@@ -82,14 +82,16 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
         await flush();
         expect(execute).toHaveBeenLastCalledWith({ input: expect.objectContaining({ action: 'stages', appId: 'outside', confirmation: 'Outside' }) });
-        expect(input.readOnly).toBe(true);
-        expect(input.value).toBe('別の対象');
+        expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
+        expect(element.shadowRoot.querySelector('.slds-pill_container .slds-pill__label').textContent).toBe('別の対象');
+        expect(element.shadowRoot.activeElement).toBe(element.shadowRoot.querySelector('.slds-pill__remove'));
+        await expect(element).toBeAccessible();
         execute.mockResolvedValueOnce({ applications: [outside] }).mockResolvedValueOnce({ stages: [] });
         element.remove();
         document.body.appendChild(element);
         await flush();
         expect(execute.mock.calls.at(-2)[0]).toEqual({ input: { action: 'list', appId: 'outside' } });
-        expect(input.value).toBe('別の対象');
+        expect(element.shadowRoot.querySelector('.slds-pill__label').textContent).toBe('別の対象');
     });
     it('古い検索の成功や失敗は新しい候補を上書きしない', async () => {
         const element = await createComponent();
@@ -134,12 +136,17 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         execute.mockResolvedValueOnce({ stages: [{ id: 'old', state: 'rotated' }] });
         await select(element);
         execute.mockResolvedValueOnce({ applications: apps });
-        element.shadowRoot.querySelector('button[title="選択を解除"]').click();
+        const clearButton = element.shadowRoot.querySelector('button[title="選択を解除"]');
+        clearButton.click();
+        // 要素の差し替えによるblurが再検索を中止しないことを確認する。
+        clearButton.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
         await flush();
         expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: '' } });
         expect(button(element)).toBeUndefined();
         expect(button(element, '削除')).toBeUndefined();
-        expect(element.shadowRoot.querySelector('input[role="combobox"]').readOnly).toBe(false);
+        expect(element.shadowRoot.querySelector('.slds-pill_container')).toBeNull();
+        expect(element.shadowRoot.querySelector('input[role="combobox"]').getAttribute('aria-expanded')).toBe('true');
+        expect(element.shadowRoot.activeElement).toBe(element.shadowRoot.querySelector('input[role="combobox"]'));
         await expect(element).toBeAccessible();
     });
     it('検索失敗と候補なしを区別し、再入力で復旧する', async () => {

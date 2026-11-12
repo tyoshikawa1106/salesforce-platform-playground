@@ -38,6 +38,8 @@ export default class ExternalClientAppManager extends LightningElement {
     searchVersion = 0;
     // 更新後も利用者の選択を維持する
     appId = '';
+    // 選択表示の切り替え後にキーボード操作を継続する
+    focusLookupAfterRender = false;
     // 確認ダイアログと通信を含めて並行操作を防ぐ
     busy = false;
     // 更新・認証の公開エラーを表示する
@@ -243,6 +245,8 @@ export default class ExternalClientAppManager extends LightningElement {
         this.closeCandidates();
         // 選択したIDを後続の照合と更新に使う
         this.appId = appId;
+        // 消える検索入力から選択解除ボタンへフォーカスを移す
+        this.focusLookupAfterRender = true;
         // 前の対象のエラーを持ち越さない
         this.error = '';
         // 前の対象の資格情報を表示しない
@@ -253,14 +257,9 @@ export default class ExternalClientAppManager extends LightningElement {
         if (this.appId) await this.handleStagesRefresh();
     }
 
-    get appInputValue() {
-        // 選択後はラベルを表示し、未選択時だけ検索語を編集する
-        return this.appId ? this.applications.find((app) => app.id === this.appId)?.label || '' : this.appTerm;
-    }
-
-    get appSelected() {
-        // 選択済みの入力は解除するまで固定する
-        return Boolean(this.appId);
+    get selectedAppLabel() {
+        // 確定したアプリの表示名を選択済み項目へ表示する
+        return this.applications.find((app) => app.id === this.appId)?.label || '';
     }
 
     get lookupContainerClass() {
@@ -289,6 +288,13 @@ export default class ExternalClientAppManager extends LightningElement {
     }
 
     renderedCallback() {
+        // 取得中の無効なボタンを避け、表示切り替えが完了してから移動する
+        if (this.focusLookupAfterRender && !this.busy) {
+            // フォーカスイベントによる再描画では繰り返さない
+            this.focusLookupAfterRender = false;
+            // 選択後は解除ボタン、解除後は検索入力を操作対象にする
+            this.template.querySelector(this.appId ? '.slds-pill__remove' : 'input[role="combobox"]')?.focus();
+        }
         // キーボードで移動した候補をスクロール領域内に表示する
         if (this.candidatesOpen && this.activeCandidateIndex >= 0) {
             // 入力のフォーカスは動かさず候補だけを可視化する
@@ -328,6 +334,8 @@ export default class ExternalClientAppManager extends LightningElement {
     }
 
     handleLookupBlur(event) {
+        // 表示切り替えで消える要素のblurでは再検索を中止しない
+        if (this.focusLookupAfterRender) return;
         // 同じ候補領域内での移動では閉じない
         if (!event.currentTarget.contains(event.relatedTarget)) this.closeCandidates();
     }
@@ -385,8 +393,8 @@ export default class ExternalClientAppManager extends LightningElement {
         this.stagesLoaded = false;
         // 解除後は条件なしの候補を再取得する
         this.searchApplications();
-        // 消える解除ボタンから検索入力へフォーカスを戻す
-        this.template.querySelector('input[role="combobox"]')?.focus();
+        // 新しい検索入力が描画されてからフォーカスを戻す
+        this.focusLookupAfterRender = true;
     }
 
     handleSearchKey(event) {
