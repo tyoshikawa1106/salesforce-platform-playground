@@ -60,7 +60,11 @@ public with sharing class ExternalClientAppManagerController {
             service.requireRequest(input);
             // 改ざんされた接続主体で管理操作させない
             client.verifyIdentity();
-            Map<String, Object> response = client.listApplications();
+            // 検索語は候補取得だけに使い、操作対象はIDで直接照合する
+            Map<String, Object> response = client.listApplications(
+                input.get('action') == 'list' ? input.get('term') : null,
+                input.get('appId')
+            );
             List<Object> applications = view.applications(response);
             if (input.get('action') == 'list') {
                 return new Map<String, Object>{ 'applications' => applications };

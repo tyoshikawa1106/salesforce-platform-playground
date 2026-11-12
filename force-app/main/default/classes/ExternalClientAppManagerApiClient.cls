@@ -37,12 +37,27 @@ public with sharing class ExternalClientAppManagerApiClient {
         }
     }
 
-    /** ローカル候補を検索する固定Tooling API要求
+    /** 管理対象だけを検索し、選択済みの場合は件数上限に依存せず照合
+     * @param term ラベルまたはAPI名の検索語
+     * @param appId 選択済みアプリのID。未選択時はnull
      * @return 加工前のアプリ一覧
      */
-    public Map<String, Object> listApplications() {
+    public Map<String, Object> listApplications(String term, String appId) {
+        String query = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+            + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\'';
+        // 更新時と再接続時は検索候補の先頭200件ではなく対象IDを照合する
+        if (String.isNotBlank(appId)) {
+            query += ' AND Id = \'' + String.escapeSingleQuotes(appId) + '\'';
+        } else if (String.isNotBlank(term)) {
+            // 検索語の記号をSOQL構文やワイルドカードとして扱わない
+            String pattern = '%' + String.escapeSingleQuotes(
+                term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+            ) + '%';
+            query += ' AND (MasterLabel LIKE \'' + pattern + '\' OR DeveloperName LIKE \'' + pattern + '\')';
+        }
+        query += ' ORDER BY DeveloperName LIMIT 200';
         return request(
-            '/services/data/v68.0/tooling/query/?q=SELECT+Id,DeveloperName,MasterLabel,DistributionState+FROM+ExternalClientApplication+ORDER+BY+DeveloperName+LIMIT+201',
+            '/services/data/v68.0/tooling/query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'),
             'GET',
             null
         );

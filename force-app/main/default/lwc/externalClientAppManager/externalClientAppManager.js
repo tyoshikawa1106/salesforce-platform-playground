@@ -26,6 +26,16 @@ export default class ExternalClientAppManager extends LightningElement {
     applications = [];
     // 候補取得時だけ表示選択肢を生成する
     appOptions = applicationOptions();
+    // 入力文字列をサーバー検索に使用する
+    appTerm = '';
+    // 候補検索中も次の文字を入力できる状態を保つ
+    candidatesBusy = false;
+    // クリックまたは入力したときだけ候補を開く
+    candidatesOpen = false;
+    // キーボードの強調位置を確定済みの選択と区別する
+    activeCandidateIndex = -1;
+    // 前の検索応答が新しい候補を上書きしないようにする
+    searchVersion = 0;
     // 更新後も利用者の選択を維持する
     appId = '';
     // 確認ダイアログと通信を含めて並行操作を防ぐ
@@ -55,6 +65,8 @@ export default class ExternalClientAppManager extends LightningElement {
     }
 
     disconnectedCallback() {
+        // 離脱前の検索結果で候補を開き直さない
+        this.closeCandidates();
         // 送信済み要求は取り消さず、応答後の後続操作だけを無効化する
         this.operationVersion += 1;
         // 離脱前の一覧から削除や状態判断を再開させない
@@ -64,6 +76,8 @@ export default class ExternalClientAppManager extends LightningElement {
     }
 
     async loadApplications() {
+        // 認証確認を始める前の検索応答を破棄する
+        this.closeCandidates();
         // この画面接続で開始した処理だけを継続する
         const operationVersion = this.operationVersion;
         // 再接続時も本人確認が終わるまで操作画面を隠す
@@ -109,7 +123,7 @@ export default class ExternalClientAppManager extends LightningElement {
                 return;
             }
             // 資格情報を含まない候補だけを取得する
-            const response = await execute({ input: { action: 'list' } });
+            const response = await execute({ input: { action: 'list', ...(this.appId ? { appId: this.appId } : {}) } });
             // 離脱または再接続後は後続のAPI送信と画面更新を行わない
             if (!this.isConnected || operationVersion !== this.operationVersion) return;
             // サーバーで認証元とパッケージアプリを除外した候補を反映する
@@ -190,6 +204,8 @@ export default class ExternalClientAppManager extends LightningElement {
             if (!this.isConnected || operationVersion !== this.operationVersion) return;
             // 解除前の選択と確認結果を破棄する
             this.appId = '';
+            // 解除前の検索語を次の認証へ持ち越さない
+            this.appTerm = '';
             // 候補は再認証後に取得し直す
             this.applications = [];
             // 再認証後へ選択肢を持ち越さない
@@ -220,7 +236,13 @@ export default class ExternalClientAppManager extends LightningElement {
             return;
         }
         // 利用者が選択したアプリへ対象を変更する
-        this.appId = event.detail.value;
+        const appId = event.currentTarget.dataset.id;
+        // 現在の検索結果にない候補は選択させない
+        if (!this.applications.some((app) => app.id === appId)) return;
+        // 遅延した検索結果が選択済みの候補を消さないようにする
+        this.closeCandidates();
+        // 選択したIDを後続の照合と更新に使う
+        this.appId = appId;
         // 前の対象のエラーを持ち越さない
         this.error = '';
         // 前の対象の資格情報を表示しない
@@ -229,6 +251,177 @@ export default class ExternalClientAppManager extends LightningElement {
         this.stagesLoaded = false;
         // 再訪時もサーバーに残っている資格情報を取得する
         if (this.appId) await this.handleStagesRefresh();
+    }
+
+    get appInputValue() {
+        // 選択後はラベルを表示し、未選択時だけ検索語を編集する
+        return this.appId ? this.applications.find((app) => app.id === this.appId)?.label || '' : this.appTerm;
+    }
+
+    get appSelected() {
+        // 選択済みの入力は解除するまで固定する
+        return Boolean(this.appId);
+    }
+
+    get lookupContainerClass() {
+        // 選択状態をSLDSの入力枠へ反映する
+        return `slds-combobox_container${this.appId ? ' slds-has-selection' : ''}`;
+    }
+
+    get lookupComboboxClass() {
+        // 候補を開いている間だけドロップダウンを表示する
+        return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click${this.candidatesOpen ? ' slds-is-open' : ''}`;
+    }
+
+    get appListboxId() {
+        // 存在する候補領域だけを入力から参照する
+        return this.candidatesOpen ? 'app-options' : null;
+    }
+
+    get activeAppOptionId() {
+        // 読み上げの対象とキーボードの強調位置を揃える
+        return this.candidatesOpen ? this.appOptions[this.activeCandidateIndex]?.domId || null : null;
+    }
+
+    get noCandidates() {
+        // 通信失敗を検索結果なしとして案内しない
+        return !this.candidatesBusy && !this.error && !this.appOptions.length;
+    }
+
+    renderedCallback() {
+        // キーボードで移動した候補をスクロール領域内に表示する
+        if (this.candidatesOpen && this.activeCandidateIndex >= 0) {
+            // 入力のフォーカスは動かさず候補だけを可視化する
+            this.template.querySelector('[role="option"][aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+        }
+    }
+
+    handleAppSearch(event) {
+        // 更新中と選択済みの対象に対する検索要求を拒否する
+        if (this.busy || this.appId) return;
+        // 入力のたびに全体から検索し直す
+        this.appTerm = event.target.value;
+        // 取得済み200件の中だけでは絞り込まない
+        this.searchApplications();
+    }
+
+    openCandidates() {
+        // 選択中や更新中に候補を開かない
+        if (this.busy || this.appId) return;
+        // 途中で閉じて破棄した検索は現在の入力でやり直す
+        if (!this.applications.length) { this.searchApplications(); return; }
+        // 初期取得済みの候補をクリックで表示する
+        this.candidatesOpen = true;
+    }
+
+    closeCandidates() {
+        // フォーカス移動後や選択後に古い検索で開き直さない
+        this.searchVersion += 1;
+        // 候補領域を閉じる
+        this.candidatesOpen = false;
+        // 取り消した検索の待機表示を解除する
+        this.candidatesBusy = false;
+        // 次回の候補に以前の位置を対応づけない
+        this.activeCandidateIndex = -1;
+        // 強調表示も選択位置と同期する
+        this.appOptions = applicationOptions(this.applications);
+    }
+
+    handleLookupBlur(event) {
+        // 同じ候補領域内での移動では閉じない
+        if (!event.currentTarget.contains(event.relatedTarget)) this.closeCandidates();
+    }
+
+    handleOptionMouseDown(event) {
+        // 候補クリックが終わる前に入力欄からフォーカスを外さない
+        event.preventDefault();
+    }
+
+    async searchApplications() {
+        // 現在の入力に対応する応答だけを採用する
+        const searchVersion = ++this.searchVersion;
+        // 新しい検索結果が届くまで前の候補を選択させない
+        this.applications = [];
+        // 前の候補の表示も同時に解除する
+        this.appOptions = applicationOptions();
+        // 検索結果ごとに強調位置を解除する
+        this.activeCandidateIndex = -1;
+        // 待機表示は入力を妨げず候補内に出す
+        this.candidatesBusy = true;
+        // 入力した時点で候補領域を開く
+        this.candidatesOpen = true;
+        // 前回の検索エラーを持ち越さない
+        this.error = '';
+        try {
+            // 名前の条件を含めて最大200件を取得する
+            const response = await execute({ input: { action: 'list', term: this.appTerm } });
+            // 別の入力・選択・離脱後に古い結果を反映しない
+            if (!this.isConnected || searchVersion !== this.searchVersion) return;
+            // 後続操作の照合に使う公開属性を保持する
+            this.applications = response.applications || [];
+            // 候補取得時だけ表示用データを作る
+            this.appOptions = applicationOptions(this.applications);
+        } catch (error) {
+            // 前の検索失敗で現在の結果を上書きしない
+            if (!this.isConnected || searchVersion !== this.searchVersion) return;
+            // 検索できない理由を公開用の案内で表示する
+            this.error = errorMessage(error);
+        } finally {
+            // 現在の要求だけが待機表示を解除する
+            if (this.isConnected && searchVersion === this.searchVersion) this.candidatesBusy = false;
+        }
+    }
+
+    handleAppClear() {
+        // 資格情報の変更中は対象を解除しない
+        if (this.busy) return;
+        // 未選択状態へ戻し、適用ボタンを隠す
+        this.appId = '';
+        // 前の検索語を解除する
+        this.appTerm = '';
+        // 別アプリの資格情報を残さない
+        this.stages = [];
+        // 新たな選択後の取得まで一覧を公開しない
+        this.stagesLoaded = false;
+        // 解除後は条件なしの候補を再取得する
+        this.searchApplications();
+        // 消える解除ボタンから検索入力へフォーカスを戻す
+        this.template.querySelector('input[role="combobox"]')?.focus();
+    }
+
+    handleSearchKey(event) {
+        // IME変換中や対象固定中の入力を候補選択に使わない
+        if (event.isComposing || this.busy || this.appId) return;
+        // 通常の文字入力はブラウザへ委ねる
+        if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) return;
+        // 候補操作中はページのスクロールとフォーム送信を防ぐ
+        event.preventDefault();
+        // Escapeは入力を維持して候補だけを閉じる
+        if (event.key === 'Escape') { this.closeCandidates(); return; }
+        // 閉じた候補へEnterで確定しない
+        if (!this.candidatesOpen) {
+            // 矢印では候補を開いてから選択を始める
+            if (event.key !== 'Enter') this.openCandidates();
+            return;
+        }
+        // 検索中や空の結果からは選択しない
+        if (!this.appOptions.length) return;
+        // Enterは強調候補か唯一の候補を確定する
+        if (event.key === 'Enter') {
+            // 複数の候補から自動で先頭を選ばない
+            const option = this.appOptions[this.activeCandidateIndex] || (this.appOptions.length === 1 ? this.appOptions[0] : null);
+            // クリックと同じ選択処理へ渡す
+            if (option) this.handleAppChange({ currentTarget: { dataset: { id: option.value } } });
+            return;
+        }
+        // 上下キーで候補の範囲を循環する
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        // 初回は下キーで先頭、上キーで末尾へ移動する
+        this.activeCandidateIndex = this.activeCandidateIndex < 0
+            ? (step > 0 ? 0 : this.appOptions.length - 1)
+            : (this.activeCandidateIndex + step + this.appOptions.length) % this.appOptions.length;
+        // 強調表示と読み上げ対象を同時に更新する
+        this.appOptions = applicationOptions(this.applications, this.activeCandidateIndex);
     }
 
     get hasStages() {

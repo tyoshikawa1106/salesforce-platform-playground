@@ -206,12 +206,16 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 '管理用認証元を除外'
             );
 
-            try {
-                view.applications(new Map<String, Object>{ 'done' => false, 'records' => new List<Object>() });
-                Assert.fail('部分一覧を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException incompleteApplicationsError) {
-                Assert.isTrue(incompleteApplicationsError.getMessage().contains('上限'), '一覧不足を案内');
+            List<Object> candidates = new List<Object>();
+            for (Integer i = 0; i < 200; i++) {
+                candidates.add(new Map<String, Object>{
+                    'Id' => APP_ID, 'DeveloperName' => 'Target' + i, 'MasterLabel' => '対象' + i,
+                    'DistributionState' => 'Local'
+                });
             }
+            Assert.areEqual(200, view.applications(new Map<String, Object>{
+                'done' => false, 'totalSize' => 201, 'records' => candidates
+            }).size(), '全体が200件を超えても取得済み候補を表示する');
 
             try {
                 view.stages(new Map<String, Object>());

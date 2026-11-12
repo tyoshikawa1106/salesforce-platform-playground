@@ -34,6 +34,17 @@ main {
     align-items: center;
 }
 
+/* 候補が多い場合も入力欄の下の範囲でスクロールする */
+.c-app-options {
+    max-height: var(--slds-g-sizing-15, 20rem);
+    overflow-y: auto;
+}
+
+/* 表示名とAPI名をそれぞれ一行で表示する */
+.c-candidate-line {
+    display: block;
+}
+
 /* 長い設定案内を折り返し、アイコンと本文を並べる */
 .error-notice {
     display: flex;

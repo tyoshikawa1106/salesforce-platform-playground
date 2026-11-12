@@ -53,15 +53,86 @@
                         <span class="slds-assistive-text">処理中…</span>
                     </div>
                 </template>
-                <lightning-combobox
-                    label="外部クライアントアプリケーション"
-                    required
-                    placeholder=" "
-                    value={appId}
-                    options={appOptions}
-                    onchange={handleAppChange}
-                    disabled={busy}
-                ></lightning-combobox>
+                <div class="slds-form-element" onfocusout={handleLookupBlur}>
+                    <span id="app-label" class="slds-form-element__label">外部クライアントアプリケーション</span>
+                    <lightning-helptext content="ラベルまたはAPI名で検索します。選び直す場合は×で選択を解除してください。↑↓で候補へ移動、Enterで選択、Escで閉じます。"></lightning-helptext>
+                    <div class="slds-form-element__control">
+                        <div class={lookupContainerClass}>
+                            <div class={lookupComboboxClass}>
+                                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                                    <input
+                                        class="slds-input slds-combobox__input"
+                                        type="text"
+                                        role="combobox"
+                                        value={appInputValue}
+                                        readonly={appSelected}
+                                        aria-readonly={appSelected}
+                                        autocomplete="off"
+                                        aria-autocomplete="list"
+                                        aria-labelledby="app-label"
+                                        aria-haspopup="listbox"
+                                        aria-expanded={candidatesOpen}
+                                        aria-controls={appListboxId}
+                                        aria-activedescendant={activeAppOptionId}
+                                        aria-required="true"
+                                        placeholder="ラベルまたはAPI名で検索"
+                                        oninput={handleAppSearch}
+                                        onclick={openCandidates}
+                                        onkeydown={handleSearchKey}
+                                        disabled={busy}
+                                    />
+                                    <template lwc:if={appId}>
+                                        <button
+                                            class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                            type="button"
+                                            aria-label="外部クライアントアプリケーションの選択を解除"
+                                            title="選択を解除"
+                                            onclick={handleAppClear}
+                                            disabled={busy}
+                                        >
+                                            <lightning-icon icon-name="utility:close" size="x-small" alternative-text="選択を解除"></lightning-icon>
+                                        </button>
+                                    </template>
+                                    <template lwc:else>
+                                        <lightning-icon class="slds-input__icon slds-input__icon_right" icon-name="utility:search" size="x-small" alternative-text="アプリ検索"></lightning-icon>
+                                    </template>
+                                </div>
+                                <template lwc:if={candidatesOpen}>
+                                    <div class="slds-dropdown slds-dropdown_fluid">
+                                        <ul id="app-options" class="c-app-options slds-listbox slds-listbox_vertical" role="listbox" aria-label="外部クライアントアプリケーションの検索候補">
+                                            <template for:each={appOptions} for:item="option">
+                                                <li key={option.value} role="presentation">
+                                                    <div
+                                                        id={option.domId}
+                                                        class={option.className}
+                                                        role="option"
+                                                        tabindex="-1"
+                                                        aria-selected={option.selected}
+                                                        data-id={option.value}
+                                                        onclick={handleAppChange}
+                                                        onmousedown={handleOptionMouseDown}
+                                                    >
+                                                        <span class="slds-media__body">
+                                                            <span class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate">{option.label}</span>
+                                                            <span class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate">{option.name}</span>
+                                                        </span>
+                                                    </div>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                        <template lwc:if={candidatesBusy}>
+                                            <p class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak" role="status">候補を検索中…</p>
+                                        </template>
+                                        <template lwc:if={noCandidates}>
+                                            <p class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak" role="status">候補がありません。検索語を確認してください。</p>
+                                        </template>
+                                        <p class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">最大200件。ラベルまたはAPI名で絞り込めます。</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <template lwc:if={appId}>
                     <div class="slds-m-top_large">
                         <lightning-button

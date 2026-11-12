@@ -8,7 +8,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     private static final String OTHER_STAGE_ID = '0ug' + '0'.repeat(11) + '2';
     private static final String CONSUMER_PATH = '/services/data/v68.0/apps/oauth/credentials/' + APP_ID;
     private static final String STAGE_PATH = CONSUMER_PATH + '/' + CONSUMER_ID + '/staged';
-    private static final String APPLICATION_PATH = '/services/data/v68.0/tooling/query/?q=SELECT+Id,DeveloperName,MasterLabel,DistributionState+FROM+ExternalClientApplication+ORDER+BY+DeveloperName+LIMIT+201';
+    private static final String APPLICATION_QUERY = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+        + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\'';
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
@@ -55,7 +56,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            RequestQueue differentIdRequests = applicationQueue();
+            RequestQueue differentIdRequests = applicationQueue(APPLICATION_QUERY + ' AND Id = \'' + APP_ID + '\'');
             Map<String, String> differentIdInput = input('generate');
             differentIdInput.put('confirmationId', OTHER_APP_ID);
             Test.setMock(HttpCalloutMock.class, differentIdRequests);
@@ -64,7 +65,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
             Assert.areEqual('notStarted', differentIdResult.get('state'), '操作結果を確認');
             Assert.isFalse(JSON.serialize(differentIdResult).contains('PRIVATE'), '内部情報は非公開');
 
-            RequestQueue missingIdRequests = applicationQueue();
+            RequestQueue missingIdRequests = applicationQueue(APPLICATION_QUERY + ' AND Id = \'' + APP_ID + '\'');
             Map<String, String> missingIdInput = input('generate');
             missingIdInput.put('confirmationId', null);
             Test.setMock(HttpCalloutMock.class, missingIdRequests);
@@ -73,7 +74,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
             Assert.areEqual('notStarted', missingIdResult.get('state'), '操作結果を確認');
             Assert.isFalse(JSON.serialize(missingIdResult).contains('PRIVATE'), '内部情報は非公開');
 
-            RequestQueue differentNameRequests = applicationQueue();
+            RequestQueue differentNameRequests = applicationQueue(APPLICATION_QUERY + ' AND Id = \'' + APP_ID + '\'');
             Map<String, String> differentNameInput = input('generate');
             differentNameInput.put('confirmation', 'Other');
             Test.setMock(HttpCalloutMock.class, differentNameRequests);
@@ -368,7 +369,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
     @IsTest
     static void listsWithoutCredentials() {
         System.runAs(testUser) {
-            RequestQueue mock = applicationQueue();
+            RequestQueue mock = applicationQueue(APPLICATION_QUERY);
             Test.setMock(HttpCalloutMock.class, mock);
             Test.startTest();
             Map<String, Object> result = ExternalClientAppManagerController.execute(
@@ -378,6 +379,24 @@ private with sharing class ExternalClientAppManagerControllerTest {
             mock.assertConsumed();
             Assert.areEqual(1, ((List<Object>) result.get('applications')).size(), '候補だけを公開');
             Assert.isFalse(JSON.serialize(result).contains('PRIVATE'), '秘密を非公開');
+        }
+    }
+
+    /** 先頭候補の外にあるアプリも検索語で取得できる */
+    @IsTest
+    static void searchesApplicationLabelsAndNames() {
+        System.runAs(testUser) {
+            RequestQueue mock = applicationQueue(
+                APPLICATION_QUERY + ' AND (MasterLabel LIKE \'%Target%\' OR DeveloperName LIKE \'%Target%\')'
+            );
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            Map<String, Object> result = ExternalClientAppManagerController.execute(
+                new Map<String, String>{ 'action' => 'list', 'term' => ' Target ' }
+            );
+            Test.stopTest();
+            mock.assertConsumed();
+            Assert.areEqual(1, ((List<Object>) result.get('applications')).size(), 'サーバー検索の結果を公開');
         }
     }
 
@@ -671,7 +690,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         return JSON.serialize(new Map<String, Object>{ 'stagedCredentials' => rows });
     }
 
-    private static RequestQueue applicationQueue() {
+    private static RequestQueue applicationQueue(String query) {
         RequestQueue mock = new RequestQueue();
         mock.add('GET', '/services/data/v68.0/', response(200, '{}'));
         mock.add(
@@ -689,7 +708,10 @@ private with sharing class ExternalClientAppManagerControllerTest {
         );
         mock.add(
             'GET',
-            APPLICATION_PATH,
+            '/services/data/v68.0/tooling/query/?q=' + EncodingUtil.urlEncode(
+                query + ' ORDER BY DeveloperName LIMIT 200',
+                'UTF-8'
+            ),
             response(
                 200,
                 JSON.serialize(
@@ -711,7 +733,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
     }
 
     private static RequestQueue consumerQueue() {
-        RequestQueue mock = applicationQueue();
+        RequestQueue mock = applicationQueue(APPLICATION_QUERY + ' AND Id = \'' + APP_ID + '\'');
         mock.add(
             'GET',
             CONSUMER_PATH,

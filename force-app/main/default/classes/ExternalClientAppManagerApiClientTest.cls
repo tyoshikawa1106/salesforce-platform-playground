@@ -4,6 +4,23 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     private static ExternalClientAppManagerApiClient client = new ExternalClientAppManagerApiClient();
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 入力中の引用符とワイルドカードを検索文字として扱う */
+    @IsTest
+    static void escapesApplicationSearchTerm() {
+        System.runAs(testUser) {
+            ResponseMock mock = new ResponseMock(200, '{"records":[],"done":true}');
+            mock.expectedQuery = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+                + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\''
+                + ' AND (MasterLabel LIKE \'%O\\\'Brien\\%\\_\\\\Name%\' OR DeveloperName LIKE \'%O\\\'Brien\\%\\_\\\\Name%\')'
+                + ' ORDER BY DeveloperName LIMIT 200';
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            client.listApplications(' O\'Brien%_\\Name ', null);
+            Assert.areEqual(1, Limits.getCallouts(), '候補検索だけを行う');
+            Test.stopTest();
+        }
+    }
+
     /** 専用接続でJSON要求を送信 */
     @IsTest
     static void sendsDedicatedCredentialRequest() {
@@ -476,6 +493,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     private class ResponseMock implements HttpCalloutMock {
         private Integer statusCode;
         private String body;
+        private String expectedQuery;
         /** 固定応答を準備
          * @param statusCode HTTP番号
          * @param body JSON本文
@@ -489,6 +507,14 @@ private with sharing class ExternalClientAppManagerApiClientTest {
          * @return 固定応答
          */
         public HttpResponse respond(HttpRequest request) {
+            if (expectedQuery != null) {
+                Assert.areEqual('GET', request.getMethod(), '検索は参照だけ');
+                Assert.areEqual(
+                    expectedQuery,
+                    EncodingUtil.urlDecode(request.getEndpoint().substringAfter('?q='), 'UTF-8'),
+                    '対象条件・入力のエスケープ・候補上限を確認'
+                );
+            }
             Assert.isTrue(
                 request.getEndpoint().startsWith('callout:ExternalClientAppManager/services/'),
                 '管理専用接続へ固定'

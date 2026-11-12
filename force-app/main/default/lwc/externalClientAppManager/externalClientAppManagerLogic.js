@@ -1,10 +1,14 @@
-// 未選択を明示し、選択肢にはアプリの表示名を使う
-export function applicationOptions(applications = []) {
-    // 空値の選択肢は対象を自動選択しないために先頭へ置く
-    return [
-        { label: '-- なし --', value: '' },
-        ...applications.map((app) => ({ label: app.label, value: app.id }))
-    ];
+// 表示名とAPI名を併記し、キーボードの強調位置を候補へ反映する
+export function applicationOptions(applications = [], activeIndex = -1) {
+    // 選択値にはIDを使い、表示に必要な公開属性だけを渡す
+    return applications.map((app, index) => ({
+        label: app.label,
+        name: app.name,
+        value: app.id,
+        domId: `app-option-${app.id}`,
+        selected: index === activeIndex,
+        className: `slds-media slds-listbox__option slds-listbox__option_entity slds-media_small${index === activeIndex ? ' slds-has-focus' : ''}`
+    }));
 }
 
 // Apexが公開した案内だけを画面へ表示する

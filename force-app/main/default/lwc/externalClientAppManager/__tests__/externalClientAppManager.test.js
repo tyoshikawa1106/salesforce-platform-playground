@@ -38,9 +38,9 @@ async function createComponent(authentication = { status: 'AUTHENTICATED' }) {
     return element;
 }
 async function select(element) {
-    element.shadowRoot
-        .querySelector('lightning-combobox')
-        .dispatchEvent(new CustomEvent('change', { detail: { value: apps[0].id } }));
+    element.shadowRoot.querySelector('input[role="combobox"]').click();
+    await flush();
+    element.shadowRoot.querySelector('[role="option"]').click();
     await flush();
     execute.mockClear();
 }
@@ -54,6 +54,110 @@ describe('旧資格情報を保持して手動削除する画面', () => {
     afterEach(() => {
         document.body.replaceChildren();
         jest.resetAllMocks();
+    });
+    it('候補200件を表示し、入力時は初期候補の外もサーバーで再検索する', async () => {
+        const element = await createComponent();
+        const input = element.shadowRoot.querySelector('input[role="combobox"]');
+        const candidates = Array.from({ length: 200 }, (_, index) => ({ id: `app${index}`, label: `候補${index}`, name: `App${index}` }));
+        execute.mockResolvedValueOnce({ applications: candidates });
+        input.value = 'App';
+        input.dispatchEvent(new CustomEvent('input'));
+        await flush();
+        expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(200);
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        const outside = { id: 'outside', label: '別の対象', name: 'Outside' };
+        execute.mockResolvedValueOnce({ applications: [outside] });
+        input.value = 'Outside';
+        input.dispatchEvent(new CustomEvent('input'));
+        await flush();
+        expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: 'Outside' } });
+        expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(1);
+        expect(element.shadowRoot.querySelector('[role="option"]').textContent).toContain('別の対象');
+        expect(element.shadowRoot.querySelector('[role="option"]').textContent).toContain('Outside');
+        await expect(element).toBeAccessible();
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+        await flush();
+        expect(input.getAttribute('aria-activedescendant')).toBe(element.shadowRoot.querySelector('[role="option"]').id);
+        execute.mockResolvedValueOnce({ stages: [] });
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+        await flush();
+        expect(execute).toHaveBeenLastCalledWith({ input: expect.objectContaining({ action: 'stages', appId: 'outside', confirmation: 'Outside' }) });
+        expect(input.readOnly).toBe(true);
+        expect(input.value).toBe('別の対象');
+        execute.mockResolvedValueOnce({ applications: [outside] }).mockResolvedValueOnce({ stages: [] });
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(execute.mock.calls.at(-2)[0]).toEqual({ input: { action: 'list', appId: 'outside' } });
+        expect(input.value).toBe('別の対象');
+    });
+    it('古い検索の成功や失敗は新しい候補を上書きしない', async () => {
+        const element = await createComponent();
+        const input = element.shadowRoot.querySelector('input[role="combobox"]');
+        let resolveFirst;
+        let rejectSecond;
+        execute.mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+            .mockReturnValueOnce(new Promise((_, reject) => { rejectSecond = reject; }))
+            .mockResolvedValueOnce({ applications: [{ ...apps[0], label: '最新候補' }] });
+        for (const term of ['a', 'ab', 'abc']) {
+            input.value = term;
+            input.dispatchEvent(new CustomEvent('input'));
+        }
+        await flush();
+        resolveFirst({ applications: [{ ...apps[0], label: '古い候補' }] });
+        rejectSecond(new Error('PRIVATE'));
+        await flush();
+        expect(element.shadowRoot.querySelector('[role="option"]').textContent).toContain('最新候補');
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(input.disabled).toBe(false);
+    });
+    it('Escで検索を閉じた後の応答を捨て、クリックで検索し直す', async () => {
+        const element = await createComponent();
+        const input = element.shadowRoot.querySelector('input[role="combobox"]');
+        let resolve;
+        execute.mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+        input.value = 'Target';
+        input.dispatchEvent(new CustomEvent('input'));
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        await flush();
+        resolve({ applications: apps });
+        await flush();
+        expect(element.shadowRoot.querySelector('[role="listbox"]')).toBeNull();
+        execute.mockResolvedValueOnce({ applications: apps });
+        input.click();
+        await flush();
+        expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: 'Target' } });
+        expect(element.shadowRoot.querySelector('[role="option"]')).not.toBeNull();
+    });
+    it('選択解除で旧資格情報を消し、空の条件で候補を再取得する', async () => {
+        const element = await createComponent();
+        execute.mockResolvedValueOnce({ stages: [{ id: 'old', state: 'rotated' }] });
+        await select(element);
+        execute.mockResolvedValueOnce({ applications: apps });
+        element.shadowRoot.querySelector('button[title="選択を解除"]').click();
+        await flush();
+        expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: '' } });
+        expect(button(element)).toBeUndefined();
+        expect(button(element, '削除')).toBeUndefined();
+        expect(element.shadowRoot.querySelector('input[role="combobox"]').readOnly).toBe(false);
+        await expect(element).toBeAccessible();
+    });
+    it('検索失敗と候補なしを区別し、再入力で復旧する', async () => {
+        const element = await createComponent();
+        const input = element.shadowRoot.querySelector('input[role="combobox"]');
+        execute.mockRejectedValueOnce(new Error('PRIVATE'));
+        input.value = 'Target';
+        input.dispatchEvent(new CustomEvent('input'));
+        await flush();
+        expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
+        expect(element.shadowRoot.textContent).not.toContain('候補がありません');
+        expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
+        execute.mockResolvedValueOnce({ applications: [] });
+        input.value = 'Absent';
+        input.dispatchEvent(new CustomEvent('input'));
+        await flush();
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(element.shadowRoot.textContent).toContain('候補がありません');
     });
     it('生成と適用だけを実行し旧資格情報を表示する', async () => {
         const element = await createComponent();
@@ -328,7 +432,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         document.body.appendChild(element);
         await flush();
         expect(actions()).toEqual(['list']);
-        expect(element.shadowRoot.querySelector('lightning-combobox').value).toBe('');
+        expect(element.shadowRoot.querySelector('input[role="combobox"]').value).toBe('');
         expect(button(element)).toBeUndefined();
         expect(button(element, '削除')).toBeUndefined();
     });
@@ -404,12 +508,12 @@ describe('旧資格情報を保持して手動削除する画面', () => {
     it('未認証では標準認証リンクだけを表示する', async () => {
         const element = await createComponent({ status: 'REQUIRED', url: '/auth' });
         expect(element.shadowRoot.querySelector('a').getAttribute('href')).toBe('/auth');
-        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+        expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
     });
     it.each(['UNAVAILABLE', 'NO_ACCESS'])('確認結果%sでも認証を表示し操作は許可しない', async (status) => {
         const element = await createComponent({ status });
         expect(element.shadowRoot.querySelector('.authentication a').getAttribute('href')).toBe('/auth');
-        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+        expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(button(element, '認証解除')).toBeUndefined();
         expect(execute).not.toHaveBeenCalled();
         expect(getAuthenticationUrl).toHaveBeenCalledTimes(1);
@@ -419,7 +523,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         const element = await createComponent();
         expect(element.shadowRoot.querySelector('.authentication a')).not.toBeNull();
         expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
-        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+        expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(execute).not.toHaveBeenCalled();
     });
     it('URL取得失敗では無効な認証ボタンと理由を表示する', async () => {
@@ -435,7 +539,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         getAuthentication.mockImplementationOnce(() => new Promise(() => {}));
         const element = await createComponent();
         expect(button(element, '認証').disabled).toBe(true);
-        expect(element.shadowRoot.querySelector('lightning-combobox')).toBeNull();
+        expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
     });
     it('認証し直して戻った画面では接続を確認して操作を許可する', async () => {
         const before = await createComponent({ status: 'UNAVAILABLE' });
@@ -443,7 +547,7 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         before.remove();
         const after = await createComponent();
         expect(after.shadowRoot.querySelector('.authentication')).toBeNull();
-        expect(after.shadowRoot.querySelector('lightning-combobox')).not.toBeNull();
+        expect(after.shadowRoot.querySelector('input[role="combobox"]')).not.toBeNull();
         expect(button(after, '認証解除')).toBeDefined();
     });
 

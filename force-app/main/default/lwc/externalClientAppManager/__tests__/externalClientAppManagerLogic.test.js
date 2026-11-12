@@ -8,8 +8,8 @@ import {
     normalizedApplicationId
 } from '../externalClientAppManagerLogic';
 describe('個別操作の表示と要求', () => {
-    it('選択肢には表示名だけを使い、選択値にアプリIDを使う', () => {
-        expect(applicationOptions([{ id: 'app', label: '対象', name: 'Target' }])[1]).toEqual({ label: '対象', value: 'app' });
+    it('候補は表示名とAPI名を併記し、選択値にアプリIDを使う', () => {
+        expect(applicationOptions([{ id: 'app', label: '対象', name: 'Target' }], 0)[0]).toMatchObject({ label: '対象', name: 'Target', value: 'app', selected: true, domId: 'app-option-app' });
     });
     it('状態ごとに適用・削除可否を決め、秘密を取り除く', () => {
         const rows = stageRows(

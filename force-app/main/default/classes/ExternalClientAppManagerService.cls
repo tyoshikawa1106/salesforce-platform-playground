@@ -246,10 +246,7 @@ public with sharing class ExternalClientAppManagerService {
         public List<Object> applications(Map<String, Object> response) {
             // 欠落した応答を空一覧として扱わない
             requireRows(response, 'records');
-            // 途中までの一覧を全件として扱わない
-            if (response.get('done') != true || ((List<Object>) response.get('records')).size() > 200) {
-                throw new ValidationException('アプリ一覧が上限を超えています。管理者に確認してください。');
-            }
+            // 検索候補は最大200件を表示し、残りは検索語で絞り込む
             List<Object> result = new List<Object>();
             for (Object item : (List<Object>) response.get('records')) {
                 Map<String, Object> row = (Map<String, Object>) item;
