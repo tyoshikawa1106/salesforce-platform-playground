@@ -25,6 +25,9 @@ import {
     normalizeSortDirection
 } from './objectRecordSearchState';
 
+// レコードタイプ未指定の既存行にはUI API共通のMasterを使用
+export const MASTER_RECORD_TYPE_ID = '012000000000000AAA';
+
 // コンポーネント生成時に使う検索画面の初期状態を生成
 export function createInitialSearchState() {
     // ソート条件とページング条件を同じ初期状態へまとめる

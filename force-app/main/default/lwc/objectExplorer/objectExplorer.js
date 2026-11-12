@@ -751,13 +751,6 @@ export default class ObjectExplorer extends LightningElement {
             return false;
         }
     }
-    // 候補以外へフォーカスを移したら候補を閉じる
-    handleSearchBlur(event) {
-        // 候補同士の移動ではリストを閉じない
-        if (event.currentTarget.contains(event.relatedTarget)) { return; }
-        // 未確定の検索を対象の変更と混同しない
-        this.closeCandidates();
-    }
     // 遅延応答を無効にして候補を閉じる
     closeCandidates() {
         // 画面イベントの例外をコンポーネント外へ伝播させない
@@ -832,12 +825,6 @@ export default class ObjectExplorer extends LightningElement {
     }
     // 選択済み対象の表示をSLDS入力内へまとめる
     get selectedObjectLabel() { return this.root?.label || ''; }
-    // 選択中のルックアップをSLDSの選択表示へ切り替える
-    get lookupContainerClass() { return `slds-combobox_container${this.root ? ' slds-has-selection' : ''}`; }
-    // 候補の開閉を標準SLDSのスタイルへ反映
-    get lookupComboboxClass() { return `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click${this.candidatesOpen ? ' slds-is-open' : ''}`; }
-    // 展開中だけ候補リストを入力の参照先にする
-    get objectListboxId() { return this.candidatesOpen ? 'object-options' : null; }
     // 入力にフォーカスを保ったまま現在の候補を読み上げる
     get activeObjectOptionId() { return this.candidatesOpen && this.options[this.activeCandidateIndex] ? `object-option-${this.options[this.activeCandidateIndex].value}` : null; }
     // 検索・起点選択のすべての経路で候補のモデルを同期
@@ -854,16 +841,6 @@ export default class ObjectExplorer extends LightningElement {
         // ゲッターごとの同じ行変換を避ける
         this.candidateView = objectOptionWindow(this.options, this.activeCandidateIndex, this.candidateScrollTop);
     }
-    // 変換済みの表示モデルを余白と候補で共有
-    get candidateWindow() { return this.candidateView; }
-    // 表示範囲の候補と強調位置を合成
-    get lookupOptions() { return this.candidateWindow.items; }
-    // 描画しない上側の候補を同じ高さの余白へ置換
-    get candidateTopStyle() { return this.candidateWindow.topStyle; }
-    // 描画しない下側の候補を同じ高さの余白へ置換
-    get candidateBottomStyle() { return this.candidateWindow.bottomStyle; }
-    // 検索候補の空状態を表示
-    get noCandidates() { return !this.candidatesBusy && !this.options.length; }
     // 組織エクスプローラーと同じくクリック時の標準スクロールを防ぐ
     handleCardPointerDown(event) {
         // 画面イベントの例外をコンポーネント外へ伝播させない

@@ -457,49 +457,6 @@ function writeOutputDefinitions({
     }
 }
 
-// 単一ProfileのXMLとレポートを同一トランザクションで出力する。
-function writeConversionOutputs({
-    closeSync = fs.closeSync,
-    existsSync = fs.existsSync,
-    linkSync = fs.linkSync,
-    mkdirSync = fs.mkdirSync,
-    openSync = fs.openSync,
-    outputPath,
-    permissionSetXml,
-    protectedPaths = [],
-    randomUUID = crypto.randomUUID,
-    report,
-    reportPath,
-    unlinkSync = fs.unlinkSync,
-    writePermissionSet = true,
-    writeFileSync = fs.writeFileSync
-}) {
-    // 単一Profileでも既存出力と入力の保護を適用する。
-    validateOutputTargets({
-        existsSync,
-        outputPath,
-        protectedPaths,
-        reportPath,
-        writePermissionSet
-    });
-
-    // XMLとレポートをまとめて保存する。
-    writeOutputDefinitions({
-        closeSync,
-        existsSync,
-        linkSync,
-        mkdirSync,
-        openSync,
-        outputDefinitions: [
-            ...(writePermissionSet ? [{ content: permissionSetXml, targetPath: outputPath }] : []),
-            { content: `${JSON.stringify(report, null, 2)}\n`, targetPath: reportPath }
-        ],
-        randomUUID,
-        unlinkSync,
-        writeFileSync
-    });
-}
-
 // 複数Profileの全XMLとレポートを一括し、どれか1件の失敗時は全出力を元へ戻す。
 function writeConversionPlans({
     closeSync = fs.closeSync,
@@ -1021,6 +978,5 @@ module.exports = {
     resolveRunOutputDirectory,
     validateConversionPlans,
     validateOutputTargets,
-    writeConversionOutputs,
     writeConversionPlans
 };

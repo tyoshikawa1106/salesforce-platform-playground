@@ -3,7 +3,7 @@ import AccountMassUpdate from 'c/accountMassUpdate';
 import searchAccounts from '@salesforce/apex/AccountMassUpdateController.searchAccounts';
 import saveAccounts from '@salesforce/apex/AccountMassUpdateController.saveAccounts';
 import LightningConfirm from 'lightning/confirm';
-import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 
 jest.mock('@salesforce/apex/AccountMassUpdateController.searchAccounts', () => ({ default: jest.fn() }), {
@@ -45,7 +45,6 @@ const button = (element, label) =>
 async function createComponent() {
     const element = createElement('c-account-mass-update', { is: AccountMassUpdate });
     document.body.appendChild(element);
-    getObjectInfo.emit({ defaultRecordTypeId: record.RecordTypeId });
     await flush();
     element.shadowRoot.querySelectorAll('lightning-input').forEach((input) => {
         input.reportValidity = jest.fn();
@@ -253,6 +252,45 @@ describe('取引先一括更新画面', () => {
         expect(button(element, '次へ').disabled).toBe(false);
     });
 
+    it('Master行と独自タイプの行にそれぞれの選択肢を取得し、Masterだけの値を保存できる', async () => {
+        const masterId = '012000000000000AAA';
+        const masterRecord = { ...record, Id: '001000000000002AAA', RecordTypeId: null, Rating: null };
+        searchAccounts.mockResolvedValueOnce({ ...response, records: [record, masterRecord] });
+        const element = await createComponent();
+        button(element, '検索').click();
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBe(record.RecordTypeId);
+        getPicklistValuesByRecordType.emit({
+            picklistFieldValues: { Rating: { values: [{ label: '高', value: 'Hot' }] } }
+        });
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBe(masterId);
+        getPicklistValuesByRecordType.emit({
+            picklistFieldValues: { Rating: { values: [{ label: '高', value: 'Hot' }, { label: '低', value: 'Cold' }] } }
+        });
+        await flush();
+        const ratings = element.shadowRoot.querySelectorAll('[data-field="Rating"]');
+        expect(ratings[0].options.map((option) => option.value)).toEqual(['', 'Hot']);
+        expect(ratings[1].options.map((option) => option.value)).toEqual(['', 'Hot', 'Cold']);
+        expect(ratings[1].disabled).toBe(false);
+        element.shadowRoot.querySelectorAll('[data-field]').forEach((input) => {
+            input.reportValidity = jest.fn();
+            input.checkValidity = jest.fn(() => true);
+        });
+        ratings[1].dispatchEvent(new CustomEvent('change', { detail: { value: 'Cold' } }));
+        await flush();
+        saveAccounts.mockResolvedValue({ successIds: [masterRecord.Id], errors: {} });
+        searchAccounts.mockResolvedValue({ ...response, records: [record, { ...masterRecord, Rating: 'Cold' }] });
+        button(element, '変更を保存').click();
+        await flush();
+        expect(saveAccounts).toHaveBeenCalledWith({
+            changes: [{ Id: masterRecord.Id, Rating: 'Cold' }],
+            versions: { [masterRecord.Id]: masterRecord.LastModifiedDate }
+        });
+        expect(element.shadowRoot.querySelectorAll('[data-field="Rating"]')[1].value).toBe('Cold');
+        await expect(element).toBeAccessible();
+    });
+
 });
 
 
@@ -264,10 +302,13 @@ describe('処理場所付きエラー表示', () => {
         const element = createElement('c-accountMassUpdate', { is: AccountMassUpdate });
         document.body.appendChild(element);
         await Promise.resolve();
-        getObjectInfo.error({ message: 'private-value' });
+        searchAccounts.mockResolvedValue(response);
+        button(element, '検索').click();
+        await flush();
+        getPicklistValuesByRecordType.error({ message: 'private-value' });
         await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
         const panel = element.shadowRoot.querySelector('[data-client-error]');
-        expect(panel.textContent).toContain('accountMassUpdate.js / handleObjectInfo');
+        expect(panel.textContent).toContain('accountMassUpdate.js / handlePicklists');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
         panel.querySelector('[data-client-error-dismiss]').click();
         await Promise.resolve();

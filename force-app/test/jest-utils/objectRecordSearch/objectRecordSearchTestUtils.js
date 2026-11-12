@@ -69,9 +69,9 @@ export async function flushPromises() {
     await Promise.resolve();
 }
 
-export function emitObjectInfo(fieldOverrides = {}) {
+export function emitObjectInfo(fieldOverrides = {}, defaultRecordTypeId = '012000000000000AAA') {
     getObjectInfo.emit({
-        defaultRecordTypeId: '012000000000000AAA',
+        defaultRecordTypeId,
         fields: {
             Name: createFieldInfo(),
             Industry: createFieldInfo(),
