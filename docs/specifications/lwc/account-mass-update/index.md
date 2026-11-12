@@ -73,7 +73,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 ## 関連コンポーネント
 
 - `lightning-record-picker`: 所有者の検索と選択。
-- UI API: オブジェクト情報とレコードタイプ別の選択肢取得。
+- UI API: レコードタイプ別の選択肢取得。
 - `lightning/confirm`: 未保存の変更を破棄する確認。
 - [取引先トリガー](../../apex/triggers/account-trigger/index.md): 保存時に実行される既存処理。
 

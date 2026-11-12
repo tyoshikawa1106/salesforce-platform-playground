@@ -11,6 +11,22 @@ const record = {
 };
 
 describe('取引先一括更新の画面ロジック', () => {
+    it.each([null, undefined, '012000000000000AAA'])('レコードタイプが%sの既存行にはMasterの候補を使う', (recordTypeId) => {
+        const masterValues = [{ label: '低', value: 'Cold' }];
+        const customValues = [{ label: '高', value: 'Hot' }];
+        const records = [
+            { ...record, RecordTypeId: recordTypeId, Rating: null },
+            { ...record, Id: '001000000000002AAA', RecordTypeId: '012000000000001AAA', Rating: null }
+        ];
+        const rows = buildRows(records, {}, {}, ['Rating'], {
+            '012000000000000AAA': { Rating: { values: masterValues } },
+            '012000000000001AAA': { Rating: { values: customValues } }
+        }, false);
+        expect(rows[0].ratingOptions).toEqual([{ label: '（値をクリア）', value: '' }, ...masterValues]);
+        expect(rows[1].ratingOptions).toEqual([{ label: '（値をクリア）', value: '' }, ...customValues]);
+        expect(rows.every((row) => !row.ratingDisabled)).toBe(true);
+    });
+
     it('元の値へ戻すと変更行を解除し、クリア要求はnullで保持する', () => {
         const changed = applyEdit([record], {}, record.Id, 'Rating', 'Cold');
         expect(changed[record.Id]).toEqual({ Rating: 'Cold' });
@@ -45,8 +61,7 @@ describe('取引先一括更新の画面ロジック', () => {
             { [record.Id]: { Rating: 'Cold' } },
             { [record.Id]: '競合' },
             ['Rating'],
-            { master: { Rating: { values: [{ label: '低', value: 'Cold' }] } } },
-            'master',
+            { '012000000000000AAA': { Rating: { values: [{ label: '低', value: 'Cold' }] } } },
             false
         );
         expect(rows[0]).toMatchObject({
@@ -58,6 +73,6 @@ describe('取引先一括更新の画面ロジック', () => {
             ratingDisabled: false
         });
         expect(rows[0].ratingOptions).toContainEqual({ label: '低', value: 'Cold' });
-        expect(buildRows([record], {}, {}, ['Rating'], {}, 'master', false)[0].ratingDisabled).toBe(true);
+        expect(buildRows([record], {}, {}, ['Rating'], {}, false)[0].ratingDisabled).toBe(true);
     });
 });

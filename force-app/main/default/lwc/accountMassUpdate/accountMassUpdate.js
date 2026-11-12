@@ -2,13 +2,13 @@ import { recordLog } from 'c/lwcLoggerUtils';
 import { clientErrorDetails } from './accountMassUpdateLogic';
 import { LightningElement, wire } from 'lwc';
 import LightningConfirm from 'lightning/confirm';
-import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import TIME_ZONE from '@salesforce/i18n/timeZone';
 import ACCOUNT_OBJECT from '@salesforce/schema/Account';
 import searchAccounts from '@salesforce/apex/AccountMassUpdateController.searchAccounts';
 import saveAccounts from '@salesforce/apex/AccountMassUpdateController.saveAccounts';
-import { applyEdit, buildRows, buildSaveRequest, retainFailedChanges, validateSearch } from './accountMassUpdateLogic';
+import { MASTER_RECORD_TYPE_ID, applyEdit, buildRows, buildSaveRequest, retainFailedChanges, validateSearch } from './accountMassUpdateLogic';
 
 export default class AccountMassUpdate extends LightningElement {
     // 診断表示は失敗時だけ生成し、成功ログは保持しない
@@ -54,8 +54,6 @@ export default class AccountMassUpdate extends LightningElement {
     rows = [];
     // レコードタイプごとの選択肢を再利用
     picklists = {};
-    // レコードタイプ未指定の行で使う既定値
-    defaultRecordTypeId;
     // 現在取得中の選択肢のレコードタイプ
     activeRecordTypeId;
     // 前ページへ戻るため検索境界の履歴を保持
@@ -76,28 +74,6 @@ export default class AccountMassUpdate extends LightningElement {
     message = '';
     // 所有者候補を有効なユーザーに限定
     ownerFilter = { criteria: [{ fieldPath: 'IsActive', operator: 'eq', value: true }] };
-
-    @wire(getObjectInfo, { objectApiName: ACCOUNT_OBJECT })
-    handleObjectInfo({ data, error }) {
-        // 操作・取得・描画の入口で自画面の例外を捕捉
-        try {
-            // レコードタイプ未指定の行で使う既定値を取得
-            if (data) {
-                // 組織で利用可能な既定レコードタイプを保持
-                this.defaultRecordTypeId = data.defaultRecordTypeId;
-                // 表示中の行に必要な選択肢を取得
-                this.loadNextPicklist();
-            } else if (error) {
-                // Salesforceから返った失敗の取得元を診断表示
-                this.reportClientError(error, 'handleObjectInfo', 'wire');
-                // 項目情報が使えない場合は編集を有効化しない
-                this.errorMessage = '取引先の項目情報を取得できませんでした。権限を確認してください。';
-            }
-        } catch (boundaryError) {
-            // 利用者の入力や応答本文を含めず処理場所を表示
-            this.reportClientError(boundaryError, 'handleObjectInfo', 'wire');
-        }
-    }
 
     @wire(getPicklistValuesByRecordType, { objectApiName: ACCOUNT_OBJECT, recordTypeId: '$activeRecordTypeId' })
     handlePicklists({ data, error }) {
@@ -488,9 +464,9 @@ export default class AccountMassUpdate extends LightningElement {
     }
 
     loadNextPicklist() {
-        // 現在の結果に必要なレコードタイプだけを問い合わせ
+        // 未指定の既存行はMasterとして、現在の結果に必要な選択肢だけを問い合わせ
         const next = this.records
-            .map((record) => record.RecordTypeId || this.defaultRecordTypeId)
+            .map((record) => record.RecordTypeId || MASTER_RECORD_TYPE_ID)
             .find((id) => id && !Object.hasOwn(this.picklists, id));
         // 取得済みの型を再取得しない
         this.activeRecordTypeId = next;
@@ -506,7 +482,6 @@ export default class AccountMassUpdate extends LightningElement {
             this.errors,
             this.editableFields,
             this.picklists,
-            this.defaultRecordTypeId,
             this.busy
         );
     }

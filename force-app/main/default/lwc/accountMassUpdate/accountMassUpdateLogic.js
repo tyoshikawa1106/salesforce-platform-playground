@@ -1,4 +1,7 @@
 import { createLogDetails } from 'c/lwcLoggerUtils';
+// レコードタイプ未指定の既存行にはUI API共通のMasterを使用
+export const MASTER_RECORD_TYPE_ID = '012000000000000AAA';
+
 // 合意した更新項目だけを画面と保存要求で共有
 export const EDIT_FIELDS = ['OwnerId', 'Industry', 'Type', 'Rating'];
 
@@ -90,13 +93,13 @@ function createOptions(metadata, value) {
     return options;
 }
 
-export function buildRows(records, changes, errors, editableFields, picklists, defaultRecordTypeId, busy) {
+export function buildRows(records, changes, errors, editableFields, picklists, busy) {
     // 元データ・変更値・権限を一つの行表示モデルへ変換
     return records.map((original) => {
         // 変更値を元のレコードへ重ねて表示
         const change = changes[original.Id];
         // 行のレコードタイプに対応する選択肢を取得
-        const metadata = picklists[original.RecordTypeId || defaultRecordTypeId];
+        const metadata = picklists[original.RecordTypeId || MASTER_RECORD_TYPE_ID];
         // 表示中の値を生成
         const row = { ...original, ...change };
         // 入力値と状態をテンプレートに渡す
