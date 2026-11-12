@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
+const { buildSfCommand } = require('../../common/run-command');
 const { main, parseArgs, queryRecords, readApexResult } = require('../seed-org-explorer');
 const {
     buildSources,
@@ -47,9 +49,11 @@ function createHarness({
     apexFailureAt = null,
     incomplete = false,
     mismatch = false,
-    configResult = [{ success: true, value: 'test-org' }]
+    configResult = [{ success: true, value: 'test-org' }],
+    platform = process.platform
 } = {}) {
     const calls = [];
+    const queryPaths = [];
     const data = recordsFromPlan();
     let apexPath;
     let apexCalls = 0;
@@ -59,6 +63,7 @@ function createHarness({
     let confirmationOutput = '';
     const runSfCommand = (args) => {
         calls.push(args);
+        buildSfCommand(args, platform);
         if (args[0] === 'config') {
             assert.deepEqual(args, ['config', 'get', 'target-org', '--json']);
             return ok(configResult);
@@ -97,7 +102,9 @@ function createHarness({
                 logs: `ORG_EXPLORER_SEED rolesCreated=0 rolesSkipped=39 usersCreated=0 usersSkipped=${payload.users.length}`
             });
         }
-        const soql = args[args.indexOf('--query') + 1];
+        const queryPath = args[args.indexOf('--file') + 1];
+        queryPaths.push(queryPath);
+        const soql = fs.readFileSync(queryPath, 'utf8');
         if (soql === 'SELECT Id FROM Organization') return query([{ Id: orgId }]);
         if (soql.includes('FROM UserRole')) return query(data.roles);
         if (incomplete) return ok({ done: false, totalSize: data.users.length, records: data.users.slice(0, 1) });
@@ -125,7 +132,8 @@ function createHarness({
                     }
                 })
             }),
-        isClean: () => !apexPath || !fs.existsSync(apexPath),
+        isClean: () =>
+            (!apexPath || !fs.existsSync(apexPath)) && queryPaths.every((file) => !fs.existsSync(path.dirname(file))),
         promptClosed: () => promptClosed,
         confirmationCount: () => confirmationCount,
         confirmationOutput: () => confirmationOutput
@@ -407,6 +415,47 @@ test('検証だけの実行では確認入力・DMLを行わない', async () =>
     assert.ok(!h.calls.some((args) => args[0] === 'apex'));
     assert.equal(h.promptClosed(), false);
 });
+
+for (const argv of [[], ['--verify']]) {
+    test(`Windowsの引数検証を通して${argv.length ? '照合' : '投入'}できる`, async () => {
+        const h = createHarness({ platform: 'win32' });
+        assert.equal(await h.run(argv), 0);
+        assert.ok(h.calls.some((args) => args[0] === 'data'));
+        assert.ok(h.calls.filter((args) => args[0] === 'data').every((args) => !args.includes('--query')));
+        assert.equal(h.calls.filter((args) => args[0] === 'apex').length, argv.length ? 0 : 6);
+        assert.ok(h.isClean());
+    });
+}
+
+for (const [name, response] of [
+    ['成功', () => query([])],
+    ['CLI失敗', () => ({ status: 1, stderr: 'query failed' })],
+    ['不正JSON', () => ({ status: 0, stdout: '{' })],
+    ['不完全な応答', () => ok({ done: false, totalSize: 1, records: [] })],
+    [
+        '起動例外',
+        () => {
+            throw new Error('spawn failed');
+        }
+    ]
+]) {
+    test(`SOQLファイルは${name}でも削除される`, () => {
+        let queryPath;
+        const soql = "SELECT Id FROM User WHERE Email LIKE 'orgexplorer.seed.%@example.com'";
+        const run = () =>
+            queryRecords(soql, 'test-org', (args) => {
+                buildSfCommand(args, 'win32');
+                assert.ok(!args.includes('--query'));
+                queryPath = args[args.indexOf('--file') + 1];
+                assert.equal(fs.readFileSync(queryPath, 'utf8'), soql);
+                return response();
+            });
+        if (name === '成功') assert.deepEqual(run(), []);
+        else assert.throws(run);
+        assert.ok(queryPath);
+        assert.equal(fs.existsSync(path.dirname(queryPath)), false);
+    });
+}
 
 test('CLIが一部の行だけを返した場合と保存内容が違う場合は照合失敗', async () => {
     assert.equal(await createHarness({ incomplete: true }).run(['--verify']), 1);

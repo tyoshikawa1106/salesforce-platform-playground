@@ -53,23 +53,35 @@ function parseArgs(argv) {
 
 // 成功した照会で全件を取得できた場合だけ照合に使用する。
 function queryRecords(query, targetOrg, runSfCommand) {
-    // CLIの結果を検証してから取得データを使用する。
-    const result = parseSfJson(
-        runSfCommand(['data', 'query', '--query', query, '--target-org', targetOrg, '--json'], repoRoot),
-        'デモデータの照会'
-    );
-    // 途中までの取得を完全な照合データとして使用しない。
-    if (
-        !result ||
-        !Array.isArray(result.records) ||
-        result.done !== true ||
-        result.totalSize !== result.records.length
-    ) {
-        // 途中までの取得を全件照合として扱わない。
-        throw new Error('照会結果が不完全です。');
+    // SOQLのワイルドカードや長い条件をWindowsのコマンド引数へ展開しない。
+    const queryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'org-explorer-query-'));
+    // 書き込み・照会・応答検証のいずれで失敗しても一時ファイルを回収する。
+    try {
+        // 照会ごとに分離した場所へクエリだけを保存する。
+        const queryPath = path.join(queryDirectory, 'query.soql');
+        // 取得レコードは保存せず、ファイルの読み書きを所有者に限定する。
+        fs.writeFileSync(queryPath, query, { encoding: 'utf8', mode: 0o600 });
+        // CLIの結果を検証してから取得データを使用する。
+        const result = parseSfJson(
+            runSfCommand(['data', 'query', '--file', queryPath, '--target-org', targetOrg, '--json'], repoRoot),
+            'デモデータの照会'
+        );
+        // 途中までの取得を完全な照合データとして使用しない。
+        if (
+            !result ||
+            !Array.isArray(result.records) ||
+            result.done !== true ||
+            result.totalSize !== result.records.length
+        ) {
+            // 途中までの取得を全件照合として扱わない。
+            throw new Error('照会結果が不完全です。');
+        }
+        // 完了を確認したレコード集合だけを返す。
+        return result.records;
+    } finally {
+        // 成功・失敗のどちらでも照会用ディレクトリを残さない。
+        fs.rmSync(queryDirectory, { recursive: true, force: true });
     }
-    // 完了を確認したレコード集合だけを返す。
-    return result.records;
 }
 
 // 作成対象と既存データの同じ項目を保存前後で読み取る。
