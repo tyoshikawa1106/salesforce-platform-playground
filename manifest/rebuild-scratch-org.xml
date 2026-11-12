@@ -57,8 +57,6 @@
         <members>CaseEmailMessageSelectorTest</members>
         <members>CaseEmailMessageService</members>
         <members>CaseEmailMessageServiceTest</members>
-        <members>DateTimeUtil</members>
-        <members>DateTimeUtilTest</members>
         <members>ExternalClientAppManagerApiClient</members>
         <members>ExternalClientAppManagerApiClientTest</members>
         <members>ExternalClientAppManagerController</members>
