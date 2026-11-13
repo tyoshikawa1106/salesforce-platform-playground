@@ -5,14 +5,17 @@ private with sharing class SalesforceApiClientTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    /** 組織の認証設定に依存する標準APIの失敗を固定案内へ変換 */
+    /** 標準APIの失敗を固定案内へ変換 */
     @IsTest
     static void hidesAuthenticationUrlFailure() {
         System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            mock.fail = true;
+            SalesforceApiClient.credentialAccess = mock;
             Test.startTest();
             try {
                 client.getAuthenticationUrl();
-                Assert.fail('認証設定を参照できないテスト要求を成功として返さない');
+                Assert.fail('標準APIの失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.areEqual('API認証を開始できませんでした。接続設定と権限を管理者に確認してください。', error.getMessage(), '標準APIの内部情報を公開しない');
             }
@@ -296,6 +299,106 @@ private with sharing class SalesforceApiClientTest {
             HttpResponse response = client.sendMetadataUpdate('<request/>');
             Test.stopTest();
             Assert.areEqual('<result/>', response.getBody(), '同じ要求のSOAP応答を返す');
+        }
+    }
+
+    /** 認証済み状態でも実接続先の組織一致を確認 */
+    @IsTest
+    static void verifiesOrganizationBeforeReturningConfiguredStatus() {
+        System.runAs(testUser) {
+            SalesforceApiClient.credentialAccess = new CredentialMock();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, JSON.serialize(new Map<String, Object>{
+                'records' => new List<Object>{ new Map<String, Object>{ 'Id' => UserInfo.getOrganizationId() } }
+            }), null));
+            Test.startTest();
+            ConnectApi.CredentialAuthenticationStatus status = client.getAuthenticationStatus();
+            Assert.areEqual(ConnectApi.CredentialAuthenticationStatus.Configured, status, '同一組織を確認して認証済みを返す');
+            Assert.areEqual(1, Limits.getCallouts(), '認証済みでも組織確認を省略しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 未設定の認証状態ではAPI照会を開始しない */
+    @IsTest
+    static void returnsMissingCredentialWithoutCallout() {
+        System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            mock.status = ConnectApi.CredentialAuthenticationStatus.NotConfigured;
+            SalesforceApiClient.credentialAccess = mock;
+            Test.startTest();
+            Assert.areEqual(ConnectApi.CredentialAuthenticationStatus.NotConfigured, client.getAuthenticationStatus(), '未設定を認証済みへ変えない');
+            Assert.areEqual(0, Limits.getCallouts(), '未設定の接続で照会しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 標準APIの認証開始URLをそのまま返却 */
+    @IsTest
+    static void returnsStandardAuthenticationUrl() {
+        System.runAs(testUser) {
+            SalesforceApiClient.credentialAccess = new CredentialMock();
+            Test.startTest();
+            Assert.areEqual(Url.getOrgDomainUrl().toExternalForm() + '/auth', client.getAuthenticationUrl(), '標準APIのURLを保持');
+            Test.stopTest();
+        }
+    }
+
+    /** 本人用資格情報の解除を一度だけ委譲 */
+    @IsTest
+    static void revokesCredentialOnce() {
+        System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            SalesforceApiClient.credentialAccess = mock;
+            Test.startTest();
+            client.revokeAuthentication();
+            Test.stopTest();
+            Assert.areEqual(1, mock.revocations, '解除を一度だけ呼び出す');
+        }
+    }
+
+    /** 認証解除の失敗から標準APIの内部情報を遮断 */
+    @IsTest
+    static void hidesCredentialRevokeFailure() {
+        System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            mock.fail = true;
+            SalesforceApiClient.credentialAccess = mock;
+            Test.startTest();
+            try {
+                client.revokeAuthentication();
+                Assert.fail('解除結果を確認できない場合は成功を返さない');
+            } catch (SalesforceApiClient.IntegrationException e) {
+                Assert.areEqual('API認証の解除結果を確認できませんでした。画面を再読み込みして確認してください。', e.getMessage(), '内部情報を含めず固定案内を返す');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 標準認証APIの境界に限定した模擬応答 */
+    private class CredentialMock extends SalesforceApiClient.CredentialAccess {
+        private ConnectApi.CredentialAuthenticationStatus status = ConnectApi.CredentialAuthenticationStatus.Configured;
+        private Boolean fail = false;
+        private Integer revocations = 0;
+
+        /** 保存済みの認証状態を再現
+         * @return 指定した標準認証状態
+         */
+        public override ConnectApi.CredentialAuthenticationStatus getStatus() {
+            return status;
+        }
+
+        /** 認証開始URLの成功または標準API失敗を再現
+         * @return 現在組織の認証URL
+         */
+        public override String getUrl() {
+            if (fail) { throw new CalloutException('PRIVATE_AUTH_DETAIL'); }
+            return Url.getOrgDomainUrl().toExternalForm() + '/auth';
+        }
+
+        /** 実際の資格情報を変更せず解除要求を記録 */
+        public override void revoke() {
+            if (fail) { throw new CalloutException('PRIVATE_AUTH_DETAIL'); }
+            revocations++;
         }
     }
 
