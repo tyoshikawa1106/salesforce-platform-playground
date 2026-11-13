@@ -4,19 +4,6 @@ private with sharing class AccountDeleteBatchSelectorTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    /**
-     * 同じテストクラスで必要な権限だけを割り当て
-     */
-    @TestSetup
-    static void setupDeleteAccess() {
-        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
-        List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
-        PermissionSet access = new PermissionSet(Name = 'AccountDeleteBatchSelectorAccess', Label = 'AccountDeleteBatchSelector テスト');
-        insert access;
-        insert new SetupEntityAccess(ParentId = access.Id, SetupEntityId = permissions[0].Id);
-        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = access.Id);
-    }
-
     /** 削除対象と標準ジョブを取得 */
     @IsTest
     static void selectsAccountsAndStandardJob() {
