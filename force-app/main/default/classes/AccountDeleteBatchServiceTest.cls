@@ -28,14 +28,33 @@ private with sharing class AccountDeleteBatchServiceTest {
             current.failureCount = 2;
             current.errorMessage = '以前のエラー';
             Test.startTest();
-            Assert.areEqual('', service.getBlockMessageForEnvironment(true), '開発環境の判定値で実行を許可');
-            AccountDeleteBatchWrapper started = service.checkStartConditionsForEnvironment(current, true);
+            String message = service.getBlockMessageForConditions(true, true, true);
+            Assert.areEqual('', message, '開発環境かつ必要な権限があれば実行を許可');
+            AccountDeleteBatchWrapper started = service.applyStartConditions(current, message);
             Assert.areEqual('', started.errorMessage, '開始時の判定も最新の条件を使う');
-            AccountDeleteBatchWrapper wrapper = service.checkExecutionConditionsForEnvironment(current, new List<Account>(), true);
+            AccountDeleteBatchWrapper wrapper = service.applyExecutionConditions(current, new List<Account>(), message);
             Test.stopTest();
             Assert.areEqual('', wrapper.errorMessage, '現在の条件を満たせばエラーを解消');
             Assert.areEqual(2, wrapper.failureCount, '実行可能な対象を失敗に加算しない');
             Assert.areEqual('以前のエラー', current.errorMessage, '入力の状態を変更しない');
+        }
+    }
+
+    /** 権限判定値だけで拒否理由と判定の優先順位を確認 */
+    @IsTest
+    static void rejectsMissingPermissionsFromConditions() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            String noFeature = service.getBlockMessageForConditions(true, false, true);
+            String noCrud = service.getBlockMessageForConditions(true, true, false);
+            String environmentFirst = service.getBlockMessageForConditions(false, false, false);
+            String featureFirst = service.getBlockMessageForConditions(true, false, false);
+            Test.stopTest();
+            Assert.areEqual('取引先一括削除の利用権限がありません。', noFeature, 'カスタム権限がなければ拒否');
+            Assert.areEqual('取引先の参照・削除権限が必要です。', noCrud, '参照・削除の両方を持たなければ拒否');
+            Assert.areEqual('Scratch Org・Developer Edition・Sandboxでのみ実行できます。', environmentFirst, '環境による拒否を最優先');
+            Assert.areEqual(noFeature, featureFirst, 'CRUDよりカスタム権限の拒否を優先');
         }
     }
 
@@ -208,10 +227,10 @@ private with sharing class AccountDeleteBatchServiceTest {
                 new Account(Id = Id.valueOf(accountPrefix + '000000000003'), Name = '省略対象')
             };
             Test.startTest();
-            String message = blockedService.getBlockMessageForEnvironment(false);
-            Assert.areEqual(expectedMessage, blockedService.getBlockMessageForEnvironment(null), '判定不能な環境も拒否');
-            AccountDeleteBatchWrapper started = blockedService.checkStartConditionsForEnvironment(current, false);
-            AccountDeleteBatchWrapper wrapper = blockedService.checkExecutionConditionsForEnvironment(current, accounts, false);
+            String message = blockedService.getBlockMessageForConditions(false, true, true);
+            Assert.areEqual(expectedMessage, blockedService.getBlockMessageForConditions(null, true, true), '判定不能な環境も拒否');
+            AccountDeleteBatchWrapper started = blockedService.applyStartConditions(current, message);
+            AccountDeleteBatchWrapper wrapper = blockedService.applyExecutionConditions(current, accounts, message);
             Test.stopTest();
             Assert.areEqual(expectedMessage, message, '本番相当の環境は権限にかかわらず拒否');
             Assert.areEqual(expectedMessage, started.errorMessage, '開始時に環境の拒否理由を保持');

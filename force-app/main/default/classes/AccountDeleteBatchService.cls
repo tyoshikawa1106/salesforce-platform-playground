@@ -25,32 +25,39 @@ public with sharing class AccountDeleteBatchService {
      * @return 実行可能なら空文字、それ以外は公開可能な理由
      */
     public String getBlockMessage() {
-        // 呼び出し時の組織環境で実行可否を判定
-        return getBlockMessageForEnvironment(OrgEnvironment.isDevelopmentEnvironment());
+        // 公開入口では必ず実際の組織環境と実行ユーザーの権限を取得
+        Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
+        // 専用機能の利用権限を取得
+        Boolean canUseFeature = FeatureManagement.checkPermission('RunAccountDelete');
+        // 取引先オブジェクトの権限定義を取得
+        Schema.DescribeSObjectResult accountDescribe = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED);
+        // 参照と削除の両方が許可されているか確認
+        Boolean canReadAndDelete = accountDescribe.isAccessible() && accountDescribe.isDeletable();
+        // 共通判定から優先される拒否理由を返す
+        return getBlockMessageForConditions(developmentEnvironment, canUseFeature, canReadAndDelete);
     }
 
-    /** 組織設定を変更せず環境による拒否を確認する共通判定
+    /** 環境と権限の判定値から優先順位に従って拒否理由を決定
+     * 組織やユーザーの設定を変更せず各拒否条件をテストできるよう公開
      * @param developmentEnvironment 開発環境ならtrue、falseまたはnullの場合は実行不可
+     * @param canUseFeature 機能利用のカスタム権限があるか
+     * @param canReadAndDelete 取引先の参照・削除権限の両方があるか
      * @return 実行可能なら空文字、それ以外は公開可能な拒否理由
      */
     @TestVisible
-    private String getBlockMessageForEnvironment(Boolean developmentEnvironment) {
+    private String getBlockMessageForConditions(Boolean developmentEnvironment, Boolean canUseFeature, Boolean canReadAndDelete) {
         // 本番と判定不能な組織で削除を拒否
         if (developmentEnvironment != true) {
             // 環境判定に失敗しても許可側へ倒さない
             return 'Scratch Org・Developer Edition・Sandboxでのみ実行できます。';
         }
         // 専用の利用許可と既存のAccount権限を別々に適用
-        Boolean canUseFeature = FeatureManagement.checkPermission('RunAccountDelete');
-        if (!canUseFeature) {
+        if (canUseFeature != true) {
             // 画面経由以外でも機能利用権限を必須にする
             return '取引先一括削除の利用権限がありません。';
         }
         // オブジェクトの参照権限と削除権限を事前確認
-        Schema.DescribeSObjectResult accountDescribe = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED);
-        Boolean canRead = accountDescribe.isAccessible();
-        Boolean canDelete = accountDescribe.isDeletable();
-        if (!canRead || !canDelete) {
+        if (canReadAndDelete != true) {
             // 共有レコードの削除可否は後続のユーザーモードDMLで判定
             return '取引先の参照・削除権限が必要です。';
         }
@@ -64,21 +71,22 @@ public with sharing class AccountDeleteBatchService {
      * @return 開始可否と拒否理由を設定した新しいWrapper
      */
     public AccountDeleteBatchWrapper checkStartConditions(AccountDeleteBatchWrapper current) {
-        // 開始時の実環境を共通の拒否判定へ渡す
-        return checkStartConditionsForEnvironment(current, OrgEnvironment.isDevelopmentEnvironment());
+        // 開始時の実環境と権限による判定結果を反映
+        return applyStartConditions(current, getBlockMessage());
     }
 
-    /** 環境フラグを指定して開始拒否と集計値の保持を確認
+    /** 開始判定の結果を反映し、既存の集計値を保持
+     * 拒否時の状態保持を組織環境に依存せずテストできるよう公開
      * @param current これまでの集計結果
-     * @param developmentEnvironment 開発環境として実行できるか
+     * @param blockMessage 実行可能なら空文字、それ以外は拒否理由
      * @return 開始可否と拒否理由を設定した新しいWrapper
      */
     @TestVisible
-    private AccountDeleteBatchWrapper checkStartConditionsForEnvironment(AccountDeleteBatchWrapper current, Boolean developmentEnvironment) {
+    private AccountDeleteBatchWrapper applyStartConditions(AccountDeleteBatchWrapper current, String blockMessage) {
         // 入力の状態を変更せず実行可否を反映
         AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper(current);
         // 毎回の判定結果で前回のエラーメッセージを置き換える
-        wrapper.errorMessage = getBlockMessageForEnvironment(developmentEnvironment);
+        wrapper.errorMessage = blockMessage;
         if (String.isNotEmpty(wrapper.errorMessage)) {
             // 対象取得前のため件数を推測せず拒否理由だけを保持
             wrapper = addFailures(wrapper, 0, 'START_BLOCKED');
@@ -94,22 +102,23 @@ public with sharing class AccountDeleteBatchService {
      * @return 実行可否と集計結果を設定した新しいWrapper
      */
     public AccountDeleteBatchWrapper checkExecutionConditions(AccountDeleteBatchWrapper current, List<Account> accounts) {
-        // 削除直前の実環境を共通の拒否判定へ渡す
-        return checkExecutionConditionsForEnvironment(current, accounts, OrgEnvironment.isDevelopmentEnvironment());
+        // 削除直前に実環境と権限を再確認して反映
+        return applyExecutionConditions(current, accounts, getBlockMessage());
     }
 
-    /** 環境フラグを指定して実行拒否時の全件集計と詳細上限を確認
+    /** 実行判定の結果を反映し、拒否時の対象を失敗に集計
+     * 拒否時の失敗集計を組織環境に依存せずテストできるよう公開
      * @param current これまでの集計結果
      * @param accounts 今回の削除対象
-     * @param developmentEnvironment 開発環境として実行できるか
+     * @param blockMessage 実行可能なら空文字、それ以外は拒否理由
      * @return 実行可否と集計結果を設定した新しいWrapper
      */
     @TestVisible
-    private AccountDeleteBatchWrapper checkExecutionConditionsForEnvironment(AccountDeleteBatchWrapper current, List<Account> accounts, Boolean developmentEnvironment) {
+    private AccountDeleteBatchWrapper applyExecutionConditions(AccountDeleteBatchWrapper current, List<Account> accounts, String blockMessage) {
         // 入力の状態を変更せず実行可否を反映
         AccountDeleteBatchWrapper wrapper = new AccountDeleteBatchWrapper(current);
-        // 前のスコープの判定に依存せず現在の権限を確認
-        wrapper.errorMessage = getBlockMessageForEnvironment(developmentEnvironment);
+        // 前のスコープの判定に依存せず今回の判定結果で置き換える
+        wrapper.errorMessage = blockMessage;
         if (String.isNotEmpty(wrapper.errorMessage)) {
             // 今回の対象を削除できないため全件を失敗に加算
             wrapper.failureCount += accounts.size();

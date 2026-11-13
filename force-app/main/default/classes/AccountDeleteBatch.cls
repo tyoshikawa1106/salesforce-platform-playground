@@ -15,8 +15,20 @@ public with sharing class AccountDeleteBatch implements Database.Batchable<SObje
     public Database.QueryLocator start(Database.BatchableContext context) {
         // 開始可否と拒否理由を判定
         this.wrapper = this.service.checkStartConditions(this.wrapper);
+        // 判定済みの理由に従って対象を選択
+        return createStartQuery(this.wrapper.errorMessage);
+    }
+
+    /**
+     * 開始判定の結果に応じて対象を取得
+     * 拒否時の空の対象を組織環境に依存せずテストできるよう公開
+     * @param blockMessage 実行可能なら空文字、それ以外は拒否理由
+     * @return 拒否時は空、それ以外は削除対象の取引先
+     */
+    @TestVisible
+    private Database.QueryLocator createStartQuery(String blockMessage) {
         // エラー判定
-        if (String.isNotEmpty(this.wrapper.errorMessage)) {
+        if (String.isNotEmpty(blockMessage)) {
             // 開始拒否時の空の対象を取得
             Database.QueryLocator noAccounts = this.selector.getNoAccounts();
             return noAccounts;

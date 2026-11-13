@@ -34,6 +34,28 @@ private with sharing class AccountDeleteBatchTest {
         }
     }
 
+    /** 開始拒否時は既存データがあっても空の対象を返す */
+    @IsTest
+    static void selectsScopeFromBlockMessage() {
+
+        System.runAs(testUser) {
+            Account account = new Account(Name = '開始判定の確認');
+            insert account;
+            AccountDeleteBatch batch = new AccountDeleteBatch();
+            Test.startTest();
+            Database.QueryLocator blocked = batch.createStartQuery('実行条件を満たしていません。');
+            Database.QueryLocator allowed = batch.createStartQuery('');
+            Database.QueryLocatorIterator blockedRecords = blocked.iterator();
+            Database.QueryLocatorIterator allowedRecords = allowed.iterator();
+            Assert.isFalse(blockedRecords.hasNext(), '拒否時は取引先が存在しても対象なし');
+            Assert.isTrue(allowedRecords.hasNext(), '許可時は取引先を対象に含める');
+            Assert.areEqual(account.Id, allowedRecords.next().Id, '許可時の対象を確認');
+            Assert.isFalse(allowedRecords.hasNext(), '準備した一件だけを取得');
+            Test.stopTest();
+            Assert.areEqual(1, [SELECT COUNT() FROM Account], '対象取得では削除を実行しない');
+        }
+    }
+
     /** 直列化したスコープ間で件数を保持 */
     @IsTest
     static void preservesCountsAcrossSerializedScopes() {
