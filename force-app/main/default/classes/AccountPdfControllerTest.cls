@@ -91,11 +91,7 @@ private with sharing class AccountPdfControllerTest {
      */
     @IsTest
     static void shouldShowSafeErrorWhenIdBelongsToAnotherObject() {
-        Account accountRecord = new Account(Name = 'PDF Controller 取引先以外 ID テスト');
-        insert accountRecord;
-        Contact contactRecord = new Contact(AccountId = accountRecord.Id, LastName = 'Controller テスト');
-        insert contactRecord;
-        setCurrentPage(String.valueOf(contactRecord.Id));
+        setCurrentPage(Contact.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
         AccountPdfController result;
 
         System.runAs(testUser) {
