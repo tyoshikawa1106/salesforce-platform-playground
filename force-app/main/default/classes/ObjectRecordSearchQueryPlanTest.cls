@@ -38,6 +38,28 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         );
     }
 
+    /** 小さい取得件数を受け入れ、ゼロ以下と未指定を拒否 */
+    @IsTest
+    static void validatesSmallFetchSizes() {
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest(createAccountContext());
+
+        System.runAs(testUser) {
+            Test.startTest();
+            request.fetchSize = 2;
+            Assert.areEqual(2, ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(request).fetchSize, '小さい取得件数を保持');
+            for (Integer invalidSize : new List<Integer>{ null, 0, -1 }) {
+                request.fetchSize = invalidSize;
+                try {
+                    ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(request);
+                    Assert.fail('取得件数は正の値が必要');
+                } catch (IllegalArgumentException e) {
+                    Assert.isTrue(e.getMessage().contains('必須値'), '無効な取得件数を拒否');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
     /**
      * 検索条件未指定時は例外を送出
      */
@@ -122,7 +144,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
     }
 
     /**
-     * 固定取得件数と異なる問い合わせ条件は例外を送出
+     * 取得上限を超える問い合わせ条件は例外を送出
      */
     @IsTest
     static void shouldThrowWhenFetchSizeIsUnexpected() {
@@ -130,7 +152,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
         ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchQueryRequest(
             context
         );
-        request.fetchSize = 52;
+        request.fetchSize = 51;
 
         System.runAs(testUser) {
             Test.startTest();
@@ -139,7 +161,7 @@ private with sharing class ObjectRecordSearchQueryPlanTest {
                 ObjectRecordSearchQueryPlan.requireValidSearchQueryRequest(
                     request
                 );
-                Assert.fail('固定取得件数と異なる問い合わせ条件は拒否する必要あり');
+                Assert.fail('取得上限を超える問い合わせ条件は拒否する必要あり');
             } catch (IllegalArgumentException e) {
                 Assert.isTrue(
                     e.getMessage().contains('検索条件'),

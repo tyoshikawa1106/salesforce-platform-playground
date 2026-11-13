@@ -80,10 +80,16 @@ public with sharing class ObjectRecordSearchController {
     public static ObjectRecordSearchResultWrapper searchRecords(ObjectRecordSearchRequestWrapper request) {
         // 静的 Apex 入口から検索フローの組み立てへ処理を委譲
         ObjectRecordSearchController controller = new ObjectRecordSearchController();
-        return controller.searchRecordsForRequest(request);
+        return controller.searchRecordsForRequest(request, ObjectRecordSearchQueryPlan.SEARCH_FETCH_SIZE);
     }
 
-    private ObjectRecordSearchResultWrapper searchRecordsForRequest(ObjectRecordSearchRequestWrapper request) {
+    /** 公開入口と少量データの境界確認で検索フローを共用
+     * @param request 検索条件とページ指定
+     * @param fetchSize 内部で指定する1〜50件の取得件数
+     * @return 取得した行と継続位置
+     */
+    @TestVisible
+    private ObjectRecordSearchResultWrapper searchRecordsForRequest(ObjectRecordSearchRequestWrapper request, Integer fetchSize) {
         try {
             // リクエストの表示キーで検索対象オブジェクトを確定
             String metricKey = request?.metricKey;
@@ -117,6 +123,8 @@ public with sharing class ObjectRecordSearchController {
                 throw createHandledException(errorMessage);
             }
             ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = requestResult.searchQueryRequest;
+            // 公開入口では50件、内部の境界確認では指定件数を使用
+            searchQueryRequest.fetchSize = fetchSize;
             // カーソルの取得結果を入口で保持し、Selectorへ副作用を要求しない
             searchQueryRequest.paginationCursor = this.selector.createPaginationCursor(searchQueryRequest);
             // 既存カーソルの位置からページを取得

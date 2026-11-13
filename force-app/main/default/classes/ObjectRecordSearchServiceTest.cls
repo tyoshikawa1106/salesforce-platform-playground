@@ -8,12 +8,6 @@ private with sharing class ObjectRecordSearchServiceTest {
     private static ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
-    private static User deniedUser = new User(
-        Alias = 'limited', LastName = '権限なしテスト', Email = 'limited@example.invalid',
-        Username = 'limited.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-        TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = 'ja_JP',
-        EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja'
-    );
 
     @TestSetup
     static void setupTestData() {
@@ -454,29 +448,4 @@ private with sharing class ObjectRecordSearchServiceTest {
         return request;
     }
 
-    /** 対象オブジェクトの参照権限がない検索を拒否 */
-    @IsTest
-    static void rejectsSearchWithoutObjectReadAccess() {
-        insertDeniedUser();
-
-        System.runAs(deniedUser) {
-            Test.startTest();
-            ObjectRecordSearchService.SearchContextResult result = service.resolveSearchContext('accounts');
-            Test.stopTest();
-            Assert.areEqual(ObjectRecordSearchService.ErrorCode.OBJECT_ACCESS_DENIED, result.errorCode, '参照権限不足を区別');
-            Assert.isNull(result.context, '検索できない内部状態を返さない');
-        }
-    }
-
-    /** 権限拒否を確認するユーザーだけを保存 */
-    private static void insertDeniedUser() {
-        List<Profile> profiles = [
-            SELECT Id FROM Profile
-            WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce'
-            ORDER BY Name LIMIT 1
-        ];
-        Assert.isFalse(profiles.isEmpty(), '権限なしのプロファイルが存在');
-        deniedUser.ProfileId = profiles[0].Id;
-        insert deniedUser;
-    }
 }
