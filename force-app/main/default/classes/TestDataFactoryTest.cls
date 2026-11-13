@@ -4,16 +4,7 @@
 @IsTest
 private with sharing class TestDataFactoryTest {
 
-    private static final String DATA_QUALITY_SCAN_TEST_USER_MARKER = 'DQScanFactory';
     private static User testUser = TestDataFactory.getTestUser();
-
-    /**
-     * データ品質スキャン用テストデータの作成権限を割り当て
-     */
-    @TestSetup
-    static void setupPermission() {
-        TestDataFactory.createAccountDataQualityScanTestUser(DATA_QUALITY_SCAN_TEST_USER_MARKER);
-    }
 
     /**
      * テスト実行ユーザーとして現在ログインユーザーを参照
@@ -70,14 +61,15 @@ private with sharing class TestDataFactoryTest {
      */
     @IsTest
     static void assignsPermissionSetOnlyOnce() {
-        User target = TestDataFactory.createUser('Factory permission', TestDataFactory.SaveMode.INSERT_RECORD);
+        PermissionSet access = new PermissionSet(Name = 'FactoryAssignmentTest', Label = 'Factory割当テスト');
+        insert access;
 
         System.runAs(testUser) {
             Test.startTest();
-            TestDataFactory.assignPermissionSet(target.Id, 'LwcAccountDelete');
-            TestDataFactory.assignPermissionSet(target.Id, 'LwcAccountDelete');
+            TestDataFactory.assignPermissionSet(testUser.Id, access.Name);
+            TestDataFactory.assignPermissionSet(testUser.Id, access.Name);
             Test.stopTest();
-            Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :target.Id AND PermissionSet.Name = 'LwcAccountDelete'], '再呼び出しでも指定権限セットを一度だけ付与');
+            Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :testUser.Id AND PermissionSetId = :access.Id], '再呼び出しでも指定権限セットを一度だけ付与');
         }
     }
 
@@ -275,13 +267,10 @@ private with sharing class TestDataFactoryTest {
      */
     @IsTest
     static void createDataQualityScanWhenSaveModeProvidedControlsDml() {
-        User dataQualityScanTestUser = TestDataFactory.getAccountDataQualityScanTestUser(
-            DATA_QUALITY_SCAN_TEST_USER_MARKER
-        );
         DataQualityScan__c unsavedScan;
         DataQualityScan__c savedScan;
 
-        System.runAs(dataQualityScanTestUser) {
+        System.runAs(testUser) {
             Test.startTest();
 
             unsavedScan = TestDataFactory.createDataQualityScan(
