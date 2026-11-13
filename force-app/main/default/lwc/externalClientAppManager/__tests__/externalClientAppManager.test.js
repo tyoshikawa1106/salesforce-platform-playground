@@ -50,20 +50,20 @@ function updateResponses() {
         .mockResolvedValueOnce({ state: 'complete', stages: [stage] })
         .mockResolvedValueOnce({ state: 'complete', stages: [{ ...stage, state: 'rotated' }] });
 }
-describe('旧資格情報を保持して手動削除する画面', () => {
+describe('外部クライアントアプリ認証管理', () => {
     afterEach(() => {
         document.body.replaceChildren();
         jest.resetAllMocks();
     });
-    it('候補200件を表示し、入力時は初期候補の外もサーバーで再検索する', async () => {
+    it('入力時は取得済み候補の外もサーバーで再検索して選択できる', async () => {
         const element = await createComponent();
         const input = element.shadowRoot.querySelector('input[role="combobox"]');
-        const candidates = Array.from({ length: 200 }, (_, index) => ({ id: `app${index}`, label: `候補${index}`, name: `App${index}` }));
+        const candidates = Array.from({ length: 2 }, (_, index) => ({ id: `app${index}`, label: `候補${index}`, name: `App${index}` }));
         execute.mockResolvedValueOnce({ applications: candidates });
         input.value = 'App';
         input.dispatchEvent(new CustomEvent('input'));
         await flush();
-        expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(200);
+        expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(2);
         expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
         const outside = { id: 'outside', label: '別の対象', name: 'Outside' };
         execute.mockResolvedValueOnce({ applications: [outside] });
@@ -92,6 +92,38 @@ describe('旧資格情報を保持して手動削除する画面', () => {
         await flush();
         expect(execute.mock.calls.at(-2)[0]).toEqual({ input: { action: 'list', appId: 'outside' } });
         expect(element.shadowRoot.querySelector('.slds-pill__label').textContent).toBe('別の対象');
+    });
+    it.each([['検索完了後', false], ['検索中', true]])('%sに再接続しても入力語に一致する候補を再取得する', async (_, pending) => {
+        const element = await createComponent();
+        const outside = { id: 'outside', label: '別の対象', name: 'Outside' };
+        let resolvePrevious;
+        execute.mockImplementation(({ input }) => Promise.resolve({
+            applications: input.term === 'Outside' ? [outside] : apps
+        }));
+        if (pending) {
+            execute.mockReturnValueOnce(new Promise((resolve) => { resolvePrevious = resolve; }));
+        }
+        const input = element.shadowRoot.querySelector('input[role="combobox"]');
+        input.value = 'Outside';
+        input.dispatchEvent(new CustomEvent('input'));
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: 'Outside' } });
+        const restoredInput = element.shadowRoot.querySelector('input[role="combobox"]');
+        expect(restoredInput.value).toBe('Outside');
+        restoredInput.click();
+        await flush();
+        if (pending) {
+            resolvePrevious({ applications: apps });
+            await flush();
+        }
+        const options = element.shadowRoot.querySelectorAll('[role="option"]');
+        expect(options).toHaveLength(1);
+        expect(options[0].textContent).toContain('Outside');
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        await expect(element).toBeAccessible();
     });
     it('古い検索の成功や失敗は新しい候補を上書きしない', async () => {
         const element = await createComponent();

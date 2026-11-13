@@ -246,7 +246,7 @@ public with sharing class ExternalClientAppManagerService {
         public List<Object> applications(Map<String, Object> response) {
             // 欠落した応答を空一覧として扱わない
             requireRows(response, 'records');
-            // 検索候補は最大200件を表示し、残りは検索語で絞り込む
+            // 取得済みの候補から管理対象の公開属性だけを取り出す
             List<Object> result = new List<Object>();
             for (Object item : (List<Object>) response.get('records')) {
                 Map<String, Object> row = (Map<String, Object>) item;

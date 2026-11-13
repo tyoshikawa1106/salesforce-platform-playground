@@ -119,7 +119,7 @@ public with sharing class ExternalClientAppManagerController {
                     client.request(path + '/' + stageId, 'DELETE', null);
                 }
             }
-            // 一操作ごとに再取得し、次工程は本人の別操作へ委ねる
+            // 変更後の一覧で今回の結果を確認し、呼び出し元へ返す
             rows = readStages(path);
             // 生成ID・適用状態・削除対象の消失を操作別に照合する
             stages.requireOperationResult(action, rows, stageId);
