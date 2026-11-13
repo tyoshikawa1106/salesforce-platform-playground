@@ -27,9 +27,7 @@ private with sharing class AccountDeleteBatchWrapperTest {
             AccountDeleteBatchWrapper source = new AccountDeleteBatchWrapper();
             source.successCount = 2;
             source.failureCount = 1;
-            Account account = new Account(Name = '集計結果のコピー');
-            insert account;
-            Id recordId = account.Id;
+            Id recordId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
             source.recordErrors.put(recordId, '既存の理由');
             source.failureReasons.add('既存の失敗理由');
             source.errorMessage = '実行できません。';
