@@ -5,10 +5,9 @@ private with sharing class AccountDeleteControllerTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
-     * 同じテストクラスで必要な権限だけを割り当て
+     * 公開入口の検証で必要な機能権限を割り当て
      */
-    @TestSetup
-    static void setupDeleteAccess() {
+    private static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
         List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
         PermissionSet access = new PermissionSet(Name = 'AccountDeleteControllerAccess', Label = 'AccountDeleteController テスト');
@@ -20,6 +19,7 @@ private with sharing class AccountDeleteControllerTest {
     /** 実行状態の取得と削除受付 */
     @IsTest
     static void readsAndStarts() {
+        setupDeleteAccess();
 
         System.runAs(testUser) {
             Test.startTest();
@@ -48,6 +48,7 @@ private with sharing class AccountDeleteControllerTest {
     /** 実行中ジョブとの重複を拒否 */
     @IsTest
     static void rejectsDuplicateJob() {
+        setupDeleteAccess();
 
         System.runAs(testUser) {
             Test.startTest();

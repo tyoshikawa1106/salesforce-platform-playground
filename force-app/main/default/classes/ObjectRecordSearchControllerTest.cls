@@ -6,22 +6,6 @@ private with sharing class ObjectRecordSearchControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    @TestSetup
-    static void setupTestData() {
-        List<Account> accounts = new List<Account>();
-
-        Account alphaAccount = new Account(Name = '検索対象 Alpha');
-        alphaAccount.Industry = 'Technology';
-        alphaAccount.Type = 'Prospect';
-        alphaAccount.BillingState = '東京都';
-        alphaAccount.BillingCity = '千代田区';
-        accounts.add(alphaAccount);
-
-        accounts.add(new Account(Name = '検索対象 Beta'));
-        accounts.add(new Account(Name = '削除対象 Gamma'));
-        insert accounts;
-    }
-
     /**
      * メトリクスキーに対応する検索設定を返却
      */
@@ -128,6 +112,10 @@ private with sharing class ObjectRecordSearchControllerTest {
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
+            insert new List<Account>{
+                new Account(Name = '検索対象 Alpha', Industry = 'Technology', Type = 'Prospect', BillingState = '東京都', BillingCity = '千代田区'),
+                new Account(Name = '検索対象 Beta')
+            };
             Test.startTest();
 
             result = ObjectRecordSearchController.searchRecords(request);
@@ -183,6 +171,10 @@ private with sharing class ObjectRecordSearchControllerTest {
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
+            insert new List<Account>{
+                new Account(Name = '検索対象 Alpha'),
+                new Account(Name = '検索対象 Beta')
+            };
             Test.startTest();
 
             result = ObjectRecordSearchController.searchRecords(request);
@@ -191,7 +183,7 @@ private with sharing class ObjectRecordSearchControllerTest {
         }
 
         Assert.areEqual(
-            3,
+            2,
             result.records.size(),
             '空白検索は利用可能な Account 行をすべて返す必要あり'
         );
@@ -340,15 +332,11 @@ private with sharing class ObjectRecordSearchControllerTest {
      */
     @IsTest
     static void shouldDeleteSelectedRecords() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = '削除対象 Gamma'
-            LIMIT 1
-        ];
+        Account target = new Account(Name = '削除対象 Gamma');
         ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(testUser) {
+            insert new List<Account>{ target, new Account(Name = '削除対象外') };
             Test.startTest();
 
             result = ObjectRecordSearchController.deleteRecords(
@@ -357,6 +345,7 @@ private with sharing class ObjectRecordSearchControllerTest {
             );
 
             Test.stopTest();
+            Assert.areEqual(1, [SELECT COUNT() FROM Account WHERE Name = '削除対象外'], '指定していないレコードは保持する必要あり');
         }
 
         Assert.areEqual(
@@ -391,15 +380,11 @@ private with sharing class ObjectRecordSearchControllerTest {
      */
     @IsTest
     static void shouldReturnDeleteErrorWhenRecordIdIsDuplicated() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = '削除対象 Gamma'
-            LIMIT 1
-        ];
+        Account target = new Account(Name = '削除対象 Gamma');
         ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(testUser) {
+            insert target;
             Test.startTest();
 
             result = ObjectRecordSearchController.deleteRecords(

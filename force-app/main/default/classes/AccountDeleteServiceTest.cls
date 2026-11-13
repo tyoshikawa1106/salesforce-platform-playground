@@ -7,10 +7,9 @@ private with sharing class AccountDeleteServiceTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
-     * 同じテストクラスで必要な権限だけを割り当て
+     * 公開入口の検証で必要な機能権限を割り当て
      */
-    @TestSetup
-    static void setupDeleteAccess() {
+    private static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
         List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
         PermissionSet access = new PermissionSet(Name = 'AccountDeleteServiceAccess', Label = 'AccountDeleteService テスト');
@@ -22,6 +21,7 @@ private with sharing class AccountDeleteServiceTest {
     /** 標準ジョブを画面応答へ反映 */
     @IsTest
     static void displaysStandardJob() {
+        setupDeleteAccess();
 
         System.runAs(testUser) {
             Test.startTest();
@@ -39,6 +39,7 @@ private with sharing class AccountDeleteServiceTest {
     /** 登録済みジョブがあれば開始を拒否 */
     @IsTest
     static void rejectsRegisteredJob() {
+        setupDeleteAccess();
 
         System.runAs(testUser) {
             Test.startTest();

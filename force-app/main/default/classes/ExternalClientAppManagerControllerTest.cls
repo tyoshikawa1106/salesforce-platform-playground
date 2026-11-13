@@ -14,8 +14,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 既存の権限セット名へ依存せず機能利用権限を準備 */
-    @TestSetup
-    static void grantFeatureAccess() {
+    private static void grantFeatureAccess() {
         if (FeatureManagement.checkPermission('ManageExternalClientAppCredentials')) { return; }
         List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'ManageExternalClientAppCredentials'];
         PermissionSet access = new PermissionSet(Name = 'ExternalClientManagerTestAccess', Label = '外部クライアント管理テスト');
@@ -27,6 +26,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 一覧参照では変更要求や変更完了日時を返さない */
     @IsTest
     static void readsStagesWithoutMutation() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = stageQueue(stageBody('active'));
             Test.setMock(HttpCalloutMock.class, mock);
@@ -45,6 +46,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 対象IDや確認IDの不備では変更要求を送らない */
     @IsTest
     static void rejectsUnconfirmedApplicationTargets() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -81,6 +84,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 生成後の一覧を確認できなければ完了としない */
     @IsTest
     static void rejectsInconsistentGenerationResults() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
             RequestQueue changedIdRequests = stageQueue(stageBody(null));
@@ -121,6 +126,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 適用後のID・状態が一致しなければ完了としない */
     @IsTest
     static void rejectsInconsistentApplicationResults() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
             RequestQueue unexpectedStateRequests = stageQueue(stageBody('active'));
@@ -171,6 +178,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 削除後に対象が残っていれば完了としない */
     @IsTest
     static void rejectsUnconfirmedDeletion() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
             RequestQueue remainingStageRequests = stageQueue(stageBody('rotated'));
@@ -193,6 +202,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 変更後の一覧取得に失敗したら結果不明として停止 */
     @IsTest
     static void stopsAfterVerificationReadFailures() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -240,6 +251,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 変更要求の失敗後に再送や後続操作を行わない */
     @IsTest
     static void stopsAfterMutationFailures() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -284,6 +297,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 残存ステージの検証結果を公開し、生成APIを呼ばずに停止 */
     @IsTest
     static void rejectsGenerationWithRemainingStage() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -301,6 +316,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 生成・適用・削除は各一回の変更と事後確認で完了 */
     @IsTest
     static void executesOneMutationPerOperation() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             Test.startTest();
 
@@ -348,6 +365,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** アプリ候補の取得では鍵・秘密を公開しない */
     @IsTest
     static void listsWithoutCredentials() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = applicationQueue(APPLICATION_QUERY);
             Test.setMock(HttpCalloutMock.class, mock);
@@ -365,6 +384,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 検索語を候補取得のラベル・API名条件へ渡す */
     @IsTest
     static void searchesApplicationLabelsAndNames() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = applicationQueue(
                 APPLICATION_QUERY + ' AND (MasterLabel LIKE \'%Target%\' OR DeveloperName LIKE \'%Target%\')'
@@ -383,6 +404,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 適用済みステージへの再適用を変更前に拒否 */
     @IsTest
     static void rejectsRotatedApply() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = stageQueue(stageBody('rotated'));
             Test.setMock(HttpCalloutMock.class, mock);
@@ -398,6 +421,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 確認時から状態が変わったステージを削除しない */
     @IsTest
     static void rejectsStaleStage() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = stageQueue(stageBody('rotated'));
             Test.setMock(HttpCalloutMock.class, mock);
@@ -413,6 +438,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 参照APIの権限拒否を設定案内へ変換して停止 */
     @IsTest
     static void rejectsForbiddenBeforeMutation() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = consumerQueue();
             mock.add('GET', STAGE_PATH, response(403, 'PRIVATE'));
@@ -430,6 +457,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 接続先の本人性を確認できなければ変更を拒否 */
     @IsTest
     static void rejectsWrongIdentity() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = new RequestQueue();
             mock.add('GET', '/services/data/v68.0/', response(200, '{}'));
@@ -451,6 +480,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 一覧参照の失敗で内部情報を公開しない */
     @IsTest
     static void rejectsReadFailureSafely() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = consumerQueue();
             mock.add('GET', STAGE_PATH, response(500, 'PRIVATE'));
@@ -470,6 +501,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 廃止した一括操作を公開入口で拒否 */
     @IsTest
     static void rejectsLegacyCombinedAction() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             RequestQueue mock = new RequestQueue();
             Test.setMock(HttpCalloutMock.class, mock);
@@ -488,6 +521,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 接続状態と独立して標準認証URLを取得 */
     @IsTest
     static void providesStandardAuthenticationUrl() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(false);
             RequestQueue mock = new RequestQueue();
@@ -506,6 +541,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 接続状態の確認失敗を公開用の案内へ変換 */
     @IsTest
     static void hidesAuthenticationApiFailure() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(true);
             RequestQueue mock = new RequestQueue();
@@ -525,6 +562,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 本人の管理用資格情報の解除を標準APIへ委譲 */
     @IsTest
     static void revokesOwnManagementAuthentication() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             CredentialMock mock = new CredentialMock(false);
             ExternalClientAppManagerApiClient.credentialAccess = mock;
@@ -538,6 +577,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 認証解除の失敗で内部例外を公開しない */
     @IsTest
     static void hidesRevokeFailure() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(true);
             Test.startTest();
@@ -554,6 +595,8 @@ private with sharing class ExternalClientAppManagerControllerTest {
     /** 認証URLの取得失敗を固定の案内へ変換 */
     @IsTest
     static void hidesAuthenticationUrlFailure() {
+        grantFeatureAccess();
+
         System.runAs(testUser) {
             ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock(true);
             Test.startTest();
