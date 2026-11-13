@@ -4,6 +4,8 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewServiceTest {
 
+    private static ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
+
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
@@ -12,7 +14,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
     @IsTest
     static void shouldBuildOrderedSummaryFromMetricValues() {
         // 準備
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         Map<String, ObjectMetricsOverviewService.ObjectMetricCount> metricValues = createMetricValues();
 
         // 実行
@@ -83,9 +84,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      */
     @IsTest
     static void shouldReturnZeroValuesWhenMetricValuesAreNull() {
-        // 準備
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
-
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
 
@@ -120,7 +118,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      */
     @IsTest
     static void shouldCreateCountQueryForConfiguredObject() {
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
@@ -153,7 +150,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      */
     @IsTest
     static void shouldCreateEmptyCountQueryForNullDefinition() {
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         List<ObjectMetricsOverviewService.CountQuery> countQueries;
 
         System.runAs(testUser) {
@@ -180,7 +176,7 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            countQueries = new ObjectMetricsOverviewService().createCountQueries(null);
+            countQueries = service.createCountQueries(null);
 
             Test.stopTest();
         }
@@ -193,7 +189,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      */
     @IsTest
     static void shouldNormalizeMissingMetricInputs() {
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
@@ -224,7 +219,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      */
     @IsTest
     static void shouldCapMetricValueAtDisplayLimit() {
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
@@ -252,18 +246,17 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      */
     @IsTest
     static void shouldRejectCountQueriesOverExplicitLimit() {
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
+        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService(2);
         List<ObjectMetricCatalog.MetricDefinition> definitions = new List<ObjectMetricCatalog.MetricDefinition>();
         ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
-        Integer overLimitCount = ObjectMetricsOverviewService.MAX_COUNT_QUERY_COUNT + 1;
-        for (Integer index = 0; index < overLimitCount; index++) {
-            definitions.add(accountDefinition);
-        }
+        definitions.addAll(new List<ObjectMetricCatalog.MetricDefinition>{ accountDefinition, accountDefinition });
 
         System.runAs(testUser) {
             Test.startTest();
+            Assert.areEqual(2, service.createCountQueries(definitions).size(), '上限ちょうどは受付');
+            definitions.add(accountDefinition);
             try {
                 service.createCountQueries(definitions);
                 Assert.fail('明示上限を超える件数取得計画は拒否する必要あり');
@@ -281,7 +274,6 @@ private with sharing class ObjectMetricsOverviewServiceTest {
      * @return メトリクスキーごとの件数と上限到達状態
      */
     private static Map<String, ObjectMetricsOverviewService.ObjectMetricCount> createMetricValues() {
-        ObjectMetricsOverviewService service = new ObjectMetricsOverviewService();
         ObjectMetricCatalog.MetricDefinition accountDefinition = ObjectMetricCatalog.getDefinition(
             'accounts'
         );
@@ -299,4 +291,17 @@ private with sharing class ObjectMetricsOverviewServiceTest {
         );
         return metricValues;
     }
+    /** メタデータの存在と権限を別々に検証 */
+    @IsTest
+    static void skipsUnavailableOrUnreadableObjects() {
+        System.runAs(testUser) {
+            ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition('accounts');
+            Test.startTest();
+            Assert.areEqual('', service.createCountQuery(definition, false, true), '未有効オブジェクトを照会しない');
+            Assert.areEqual('', service.createCountQuery(definition, true, false), '参照できないオブジェクトを照会しない');
+            Assert.isTrue(service.createCountQuery(definition, true, true).contains('WITH USER_MODE'), '許可時も利用者権限を強制');
+            Test.stopTest();
+        }
+    }
+
 }

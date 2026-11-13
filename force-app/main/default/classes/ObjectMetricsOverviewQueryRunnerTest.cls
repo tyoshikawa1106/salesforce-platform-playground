@@ -116,4 +116,22 @@ private with sharing class ObjectMetricsOverviewQueryRunnerTest {
             Assert.areEqual(0, counts[1].value, '正常なゼロ件を取得済みとして保持');
         }
     }
+    /** SOQL枠の不足を実際に制限まで消費せず検証 */
+    @IsTest
+    static void rejectsPlanAboveRemainingBudget() {
+
+        System.runAs(testUser) {
+            List<ObjectMetricsOverviewService.CountQuery> plans = new List<ObjectMetricsOverviewService.CountQuery>{ null, null };
+            Test.startTest();
+            try {
+                new ObjectMetricsOverviewQueryRunner().executeWithBudget(plans, 1);
+                Assert.fail('残り枠を超える計画を拒否');
+            } catch (IllegalArgumentException e) {
+                Assert.isTrue(e.getMessage().contains('SOQL 枠が不足'), '制限到達前に案内');
+            }
+            Assert.areEqual(0, Limits.getQueries(), '拒否前にSOQLを消費しない');
+            Test.stopTest();
+        }
+    }
+
 }

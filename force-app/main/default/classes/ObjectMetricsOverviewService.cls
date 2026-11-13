@@ -8,6 +8,23 @@ public with sharing class ObjectMetricsOverviewService {
     // 同期 Apex の SOQL 上限に余裕を残す件数取得計画の最大数
     public static final Integer MAX_COUNT_QUERY_COUNT = 50;
 
+    private final Integer countQueryLimit;
+
+    /** 通常の件数取得計画上限を設定 */
+    public ObjectMetricsOverviewService() {
+        // 同期SOQLに余裕を残す上限を維持
+        this.countQueryLimit = MAX_COUNT_QUERY_COUNT;
+    }
+
+    /** 少ない計画で境界を検証するための内部生成
+     * @param countQueryLimit 正の件数取得計画上限
+     */
+    @TestVisible
+    private ObjectMetricsOverviewService(Integer countQueryLimit) {
+        // インスタンスごとに不変の上限を保持
+        this.countQueryLimit = countQueryLimit;
+    }
+
     /**
      * 固定カタログから Selector へ渡す件数取得計画を作成
      *
@@ -22,15 +39,21 @@ public with sharing class ObjectMetricsOverviewService {
             : definitions;
         // 固定カタログの肥大化による同期 SOQL 上限超過を実行前に拒否
         Integer definitionCount = safeDefinitions.size();
-        if (definitionCount > MAX_COUNT_QUERY_COUNT) {
+        if (definitionCount > this.countQueryLimit) {
             throw new IllegalArgumentException('オブジェクト件数の取得対象が上限を超えています。');
         }
         // カタログ順の取得計画を保持する非 null の List を作成
         List<CountQuery> countQueries = new List<CountQuery>();
+        // 全体定義の取得を計画ごとに繰り返さない
+        Map<String, Schema.SObjectType> objectTypes = Schema.getGlobalDescribe();
         // 許可リストと組織権限を検証した取得計画へ変換
         for (ObjectMetricCatalog.MetricDefinition definition : safeDefinitions) {
             // 定義に対応する利用者権限の件数 SOQL を作成
-            String query = createCountQuery(definition);
+            Schema.SObjectType objectType = objectTypes.get(definition?.objectApiName);
+            // 定義と実際の参照・検索可否を同じ計画判定へ渡す
+            Schema.DescribeSObjectResult description = objectType?.getDescribe(SObjectDescribeOptions.DEFERRED);
+            // 許可されたメタデータだけで問い合わせを生成
+            String query = createCountQuery(definition, objectType != null, description?.isAccessible() == true && description.isQueryable());
             // 不正な定義はキーなしの空クエリとして安全に保持
             String metricKey = definition == null ? '' : definition.key;
             // 未加工結果との対応を保つ件数取得計画を追加
@@ -45,27 +68,24 @@ public with sharing class ObjectMetricsOverviewService {
      * カタログ定義と利用者権限から単一件数 SOQL を作成
      *
      * @param definition カタログ定義済みのオブジェクトメトリクス
+     * @param objectAvailable 組織に対象オブジェクトが存在するか
+     * @param readable 参照と問い合わせが許可されるか
      * @return 利用者権限で実行する件数 SOQL、取得対象外の場合は空文字
      */
-    private String createCountQuery(ObjectMetricCatalog.MetricDefinition definition) {
+    @TestVisible
+    private String createCountQuery(ObjectMetricCatalog.MetricDefinition definition, Boolean objectAvailable, Boolean readable) {
         // カタログ外または組織に存在しない定義は SOQL 対象外にする
         Boolean isCatalogDefinition =
             definition != null && ObjectMetricCatalog.hasObjectApiName(definition.objectApiName);
         if (!isCatalogDefinition) {
             return '';
         }
-        // 許可済み API 名を組織の SObjectType へ解決
-        Schema.SObjectType sObjectType = Schema.getGlobalDescribe().get(definition.objectApiName);
-        // 組織に存在しないオブジェクトは SOQL 対象外にする
-        if (sObjectType == null) {
+        // 組織にない対象を問い合わせず未取得として扱う
+        if (!objectAvailable) {
             return '';
         }
-        // 利用者の参照権限を判定する describe 結果を取得
-        Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(SObjectDescribeOptions.DEFERRED);
-        // 参照または問い合わせできないオブジェクトは SOQL 対象外にする
-        Boolean isAccessible = objectDescribe.isAccessible();
-        Boolean isQueryable = objectDescribe.isQueryable();
-        if (!isAccessible || !isQueryable) {
+        // 参照または問い合わせできない対象を除外
+        if (!readable) {
             return '';
         }
         // User は有効ユーザーだけを件数対象にする

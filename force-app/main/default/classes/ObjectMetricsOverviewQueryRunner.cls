@@ -28,12 +28,21 @@ public with sharing class ObjectMetricsOverviewQueryRunner {
     public List<ObjectMetricsOverviewService.ObjectMetricCount> execute(
         List<ObjectMetricsOverviewService.CountQuery> countQueries
     ) {
+        // 公開入口では現在のトランザクションの実際の残り枠を使用
+        return executeWithBudget(countQueries, Limits.getLimitQueries() - Limits.getQueries());
+    }
+
+    /** 少ない計画で残りSOQL枠の境界を検証する共通処理
+     * @param countQueries 検証済みの取得計画
+     * @param remainingQueryCount 実行できるSOQLの残り枠
+     * @return 計画と同じ順序の取得状態付き件数
+     */
+    @TestVisible
+    private List<ObjectMetricsOverviewService.ObjectMetricCount> executeWithBudget(List<ObjectMetricsOverviewService.CountQuery> countQueries, Integer remainingQueryCount) {
         // null の取得計画は空の一覧へ正規化
         List<ObjectMetricsOverviewService.CountQuery> safeCountQueries = countQueries == null
             ? new List<ObjectMetricsOverviewService.CountQuery>()
             : countQueries;
-        // 現在トランザクションで実行できる残り SOQL 数を算出
-        Integer remainingQueryCount = Limits.getLimitQueries() - Limits.getQueries();
         // 明示上限または残り SOQL 枠を超える取得計画は実行前に拒否
         Integer executableQueryCount = Math.min(
             ObjectMetricsOverviewService.MAX_COUNT_QUERY_COUNT,

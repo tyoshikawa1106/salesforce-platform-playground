@@ -4,6 +4,8 @@
 @IsTest
 private with sharing class ObjectMetricsOverviewSelectorTest {
 
+    private static ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
+
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
@@ -21,7 +23,6 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             definitions
         );
         String query = countQueries[0].query;
-        ObjectMetricsOverviewSelector selector = new ObjectMetricsOverviewSelector();
         Integer result;
 
         System.runAs(testUser) {
@@ -45,7 +46,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new ObjectMetricsOverviewSelector().countVisibleRecords(' ');
+            result = selector.countVisibleRecords(' ');
 
             Test.stopTest();
         }
@@ -63,7 +64,7 @@ private with sharing class ObjectMetricsOverviewSelectorTest {
             Test.startTest();
 
             try {
-                new ObjectMetricsOverviewSelector().countVisibleRecords('SELECT COUNT() FROM UnknownObject__c WITH USER_MODE LIMIT 50000');
+                selector.countVisibleRecords('SELECT COUNT() FROM UnknownObject__c WITH USER_MODE LIMIT 50000');
                 Assert.fail('失敗した問い合わせをゼロ件へ変換しない');
             } catch (QueryException e) {
                 Assert.isNotNull(e, '取得失敗を呼び出し元へ伝播');
