@@ -448,4 +448,23 @@ private with sharing class ObjectRecordSearchServiceTest {
         return request;
     }
 
+    /** 取得済みメタデータの欠落と権限不足を区別 */
+    @IsTest
+    static void rejectsUnavailableSearchMetadata() {
+
+        System.runAs(testUser) {
+            ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition('accounts');
+            ObjectRecordSearchService.ContextMetadata metadata = new ObjectRecordSearchService.ContextMetadata();
+            Test.startTest();
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.OBJECT_UNAVAILABLE, service.resolveContextFromMetadata(definition, metadata).errorCode, '対象が未有効');
+            metadata.objectAvailable = true;
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.OBJECT_ACCESS_DENIED, service.resolveContextFromMetadata(definition, metadata).errorCode, '対象の参照を拒否');
+            metadata.objectAccessible = true;
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.NAME_FIELD_UNAVAILABLE, service.resolveContextFromMetadata(definition, metadata).errorCode, 'Name相当項目がない');
+            metadata.nameField = Account.Name.getDescribe();
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.NAME_FIELD_ACCESS_DENIED, service.resolveContextFromMetadata(definition, metadata).errorCode, 'Name相当項目の参照を拒否');
+            Test.stopTest();
+        }
+    }
+
 }

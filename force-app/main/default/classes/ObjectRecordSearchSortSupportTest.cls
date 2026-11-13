@@ -164,4 +164,20 @@ private with sharing class ObjectRecordSearchSortSupportTest {
         );
     }
 
+    /** 内部状態のないソート要求は検索前に拒否 */
+    @IsTest
+    static void rejectsMissingSearchContext() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchSortSupport.createSortSpec(null, null);
+                Assert.fail('未準備の検索状態を拒否');
+            } catch (IllegalArgumentException e) {
+                Assert.isTrue(e.getMessage().contains('検索状態'), '不足している状態を通知');
+            }
+            Test.stopTest();
+        }
+    }
+
 }

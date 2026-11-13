@@ -18,7 +18,8 @@ private with sharing class ObjectRecordSearchContextTest {
             SObjectDescribeOptions.DEFERRED
         );
         List<ObjectRecordSearchFieldWrapper> displayFields = new List<ObjectRecordSearchFieldWrapper>{
-            new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text')
+            new ObjectRecordSearchFieldWrapper('Industry', 'Industry', 'text'),
+            new ObjectRecordSearchFieldWrapper('MissingField__c', '存在しない項目', 'text')
         };
         ObjectRecordSearchContext context;
 
@@ -39,6 +40,8 @@ private with sharing class ObjectRecordSearchContextTest {
             Test.stopTest();
         }
 
+        Assert.isTrue(context.getQueryFieldApiNames().contains('Industry'), '設定済みの実在項目を検索へ含める');
+        Assert.isFalse(context.getQueryFieldApiNames().contains('MissingField__c'), '存在しない表示項目を検索から除外');
         Assert.areEqual(
             'accounts',
             context.config.metricKey,
