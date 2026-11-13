@@ -268,18 +268,19 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         }
     }
 
-    /** 他ホストへの認証遷移を拒否 */
+    /** 外部URLと未設定URLを認証開始前に拒否 */
     @IsTest
     static void rejectsForeignAuthenticationUrl() {
         System.runAs(testUser) {
-            ExternalClientAppManagerApiClient.credentialAccess = new CredentialMock('foreign');
             Test.startTest();
-            try {
-                client.getAuthenticationUrl();
-                Assert.fail('外部URLを許可しない');
-            } catch (CalloutException error) {
-                Assert.isTrue(error.getMessage().contains('認証開始URL'), 'URLを含まない案内');
+            CredentialMock mock = new CredentialMock('configured');
+            ExternalClientAppManagerApiClient.credentialAccess = mock;
+            for (String value : new List<String>{ 'https://example.invalid/auth', null, '', '   ' }) {
+                mock.authenticationUrl = value;
+                try { client.getAuthenticationUrl(); Assert.fail('不正値を拒否'); }
+                catch (CalloutException e) { Assert.isTrue(e.getMessage().contains('開始URL'), '欠落・不正値の理由を通知'); }
             }
+            Assert.areEqual(0, Limits.getCallouts(), '不正URLで通信しない');
             Test.stopTest();
         }
     }
@@ -480,6 +481,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         private String mode;
         private Integer statusCalls = 0;
         private Boolean revoked = false;
+        private String authenticationUrl = Url.getOrgDomainUrl().toExternalForm() + '/auth';
         /** 認証状態を指定
          * @param mode 保存状態または外部URLシナリオ
          */
@@ -503,9 +505,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
          * @return 模擬URL
          */
         public override String getUrl() {
-            return mode == 'foreign'
-                ? 'https://example.invalid/auth'
-                : Url.getOrgDomainUrl().toExternalForm() + '/auth';
+            return authenticationUrl;
         }
         /** 実接続を解除せず呼び出しだけ記録 */
         public override void revoke() {

@@ -15,7 +15,7 @@ public with sharing class ExternalClientAppManagerApiClient {
                     'ExternalClientAppUserPrincipal',
                     ConnectApi.CredentialPrincipalType.PerUserPrincipal
                 )
-                .authenticationStatus;
+                ?.authenticationStatus;
         }
         /** 標準認証URLを取得
          * @return 現在組織の認証開始URL
@@ -25,7 +25,7 @@ public with sharing class ExternalClientAppManagerApiClient {
             input.externalCredential = 'ExternalClientAppManager';
             input.principalType = ConnectApi.CredentialPrincipalType.PerUserPrincipal;
             input.returnUrl = '/lightning/n/ExternalClientAppManager';
-            return ConnectApi.NamedCredentials.getOAuthCredentialAuthUrl(input).authenticationUrl;
+            return ConnectApi.NamedCredentials.getOAuthCredentialAuthUrl(input)?.authenticationUrl;
         }
         /** 本人の管理用資格情報だけを解除 */
         public virtual void revoke() {

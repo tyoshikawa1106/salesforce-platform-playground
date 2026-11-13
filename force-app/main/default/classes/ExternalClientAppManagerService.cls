@@ -95,9 +95,21 @@ public with sharing class ExternalClientAppManagerService {
         }
     }
 
+    /** 外部応答の各行と操作に必要な文字列を参照前に検証
+     * @param item 応答配列の未検証要素
+     * @param required 操作対象の識別に必要な文字列属性
+     * @return 必須属性の欠落がない行
+     */
+    private static Map<String, Object> requireRow(Object item, Set<String> required) {
+        // 共通の応答形式検証でnull行と必須値欠落を検知
+        Boolean valid = SalesforceApiProtocol.hasRequiredText(item, required);
+        if (!valid) { throw new ValidationException('API応答の行または必須項目を確認できません。一覧を再取得してください。'); }
+        return (Map<String, Object>)item;
+    }
+
     private static void requireId(String value, String prefix) {
         // Salesforce ID以外をパスへ含めない
-        if (value == null || !Pattern.matches(prefix + '[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?', value)) {
+        if (String.isBlank(value) || !Pattern.matches(prefix + '[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?', value)) {
             throw new ValidationException('識別子の形式が不正です。');
         }
     }
@@ -168,7 +180,8 @@ public with sharing class ExternalClientAppManagerService {
          */
         public void requireRotated(Map<String, Object> response) {
             // 新しい資格情報の適用が確認できた場合だけ次工程へ進む
-            if (String.valueOf(response.get('state')).toLowerCase() != 'rotated') {
+            Boolean valid = SalesforceApiProtocol.hasRequiredText(response, new Set<String>{ 'state' });
+            if (!valid || ((String)response.get('state')).toLowerCase() != 'rotated') {
                 throw new ValidationException('新しい鍵・秘密の適用を確認できません。');
             }
         }
@@ -258,7 +271,7 @@ public with sharing class ExternalClientAppManagerService {
             // 取得済みの候補から管理対象の公開属性だけを取り出す
             List<Object> result = new List<Object>();
             for (Object item : (List<Object>) response.get('records')) {
-                Map<String, Object> row = (Map<String, Object>) item;
+                Map<String, Object> row = requireRow(item, new Set<String>{ 'Id', 'DeveloperName', 'DistributionState' });
                 // 認証元の自己失効とパッケージアプリへの操作を防止
                 if (row.get('DistributionState') == 'Local' && row.get('DeveloperName') != 'ExternalClientAppManager') {
                     result.add(
@@ -282,7 +295,7 @@ public with sharing class ExternalClientAppManagerService {
             // 応答欠落のまま生成・削除の完了判定へ進めない
             requireRows(response, 'consumers');
             for (Object item : (List<Object>) response.get('consumers')) {
-                Map<String, Object> row = (Map<String, Object>) item;
+                Map<String, Object> row = requireRow(item, new Set<String>{ 'id' });
                 result.add(new Map<String, Object>{ 'id' => row.get('id'), 'name' => row.get('name') });
             }
             return result;
@@ -297,7 +310,7 @@ public with sharing class ExternalClientAppManagerService {
             // 応答欠落のまま生成・削除の完了判定へ進めない
             requireRows(response, 'stagedCredentials');
             for (Object item : (List<Object>) response.get('stagedCredentials')) {
-                Map<String, Object> row = (Map<String, Object>) item;
+                Map<String, Object> row = requireRow(item, new Set<String>{ 'id', 'state' });
                 result.add(
                     new Map<String, Object>{
                         'id' => row.get('id'),

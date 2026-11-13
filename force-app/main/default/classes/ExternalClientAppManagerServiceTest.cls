@@ -22,25 +22,12 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 Assert.isTrue(malformedIdError.getMessage().contains('形式'), 'ID形式を検証');
             }
 
-            try {
-                service.requireRequest(null);
-                Assert.fail('操作欠落を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException missingRequestError) {
-                Assert.isTrue(missingRequestError.getMessage().contains('操作'), '必須入力を案内');
-            }
-
-            try {
-                service.requireRequest(new Map<String, String>{ 'action' => 'deleteStage', 'stageId' => STAGE_ID });
-                Assert.fail('状態なしの削除を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException missingStageError) {
-                Assert.isTrue(missingStageError.getMessage().contains('操作対象'), '再取得を案内');
-            }
-
-            try {
-                service.requireRequest(new Map<String, String>{ 'action' => 'apply', 'stageId' => STAGE_ID, 'stageState' => 'unknown' });
-                Assert.fail('未対応状態を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException unsupportedStateError) {
-                Assert.isTrue(unsupportedStateError.getMessage().contains('操作対象'), '対象を再確認');
+            for (Map<String, String> invalid : new List<Map<String, String>>{
+                null, new Map<String, String>{ 'action' => 'deleteStage', 'stageId' => STAGE_ID },
+                new Map<String, String>{ 'action' => 'apply', 'stageId' => STAGE_ID, 'stageState' => 'unknown' }
+            }) {
+                try { service.requireRequest(invalid); Assert.fail('不正値を拒否'); }
+                catch (ExternalClientAppManagerService.ValidationException e) { Assert.isTrue(e.getMessage().contains('操作'), '欠落・不正値の理由を通知'); }
             }
             Test.stopTest();
         }
@@ -51,13 +38,6 @@ private with sharing class ExternalClientAppManagerServiceTest {
     static void validatesAppliedStageResults() {
         System.runAs(testUser) {
             Test.startTest();
-
-            try {
-                stages.requireRotated(new Map<String, Object>{ 'state' => 'active' });
-                Assert.fail('未適用を成功にしない');
-            } catch (ExternalClientAppManagerService.ValidationException unappliedError) {
-                Assert.isTrue(unappliedError.getMessage().contains('適用'), '適用結果不明を案内');
-            }
 
             try {
                 stages.requireRetiredStage(rows('rotated'), '0ug' + '0'.repeat(11) + '2');
@@ -75,12 +55,22 @@ private with sharing class ExternalClientAppManagerServiceTest {
 
             stages.requireApplicable(rows('active'), new Map<String, String>{ 'stageId' => STAGE_ID });
 
+            try {
+                stages.requireApplicable(rows('expired'), new Map<String, String>{ 'stageId' => STAGE_ID });
+                Assert.fail('未適用以外を拒否');
+            } catch (ExternalClientAppManagerService.ValidationException inapplicableStateError) {
+                Assert.isTrue(inapplicableStateError.getMessage().contains('未適用'), '適用条件を案内');
+            }
+
+            for (Map<String, Object> response : new List<Map<String, Object>>{ null, new Map<String, Object>{ 'state' => 'active' }, new Map<String, Object>(), new Map<String, Object>{ 'state' => '   ' } }) {
                 try {
-                    stages.requireApplicable(rows('expired'), new Map<String, String>{ 'stageId' => STAGE_ID });
-                    Assert.fail('未適用以外を拒否');
-                } catch (ExternalClientAppManagerService.ValidationException inapplicableStateError) {
-                    Assert.isTrue(inapplicableStateError.getMessage().contains('未適用'), '適用条件を案内');
+                    stages.requireRotated(response);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (ExternalClientAppManagerService.ValidationException e) {
+                    Assert.isTrue(e.getMessage().contains('適用'), '欠落を明示したエラーで拒否');
                 }
+            }
+
             Test.stopTest();
         }
     }
@@ -198,26 +188,21 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 '管理用認証元を除外'
             );
 
-            try {
-                view.stages(new Map<String, Object>());
-                Assert.fail('欠落応答を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException missingStagesError) {
-                Assert.isTrue(missingStagesError.getMessage().contains('API応答'), '一覧の再取得を案内');
+            for (Map<String, Object> invalid : new List<Map<String, Object>>{
+                null,
+                new Map<String, Object>{ 'records' => 'invalid', 'consumers' => 'invalid', 'stagedCredentials' => 'invalid' },
+                new Map<String, Object>{ 'records' => new List<Object>{ null }, 'consumers' => new List<Object>{ null }, 'stagedCredentials' => new List<Object>{ null } },
+                new Map<String, Object>{ 'records' => new List<Object>{ new Map<String, Object>() }, 'consumers' => new List<Object>{ new Map<String, Object>() }, 'stagedCredentials' => new List<Object>{ new Map<String, Object>{ 'id' => STAGE_ID, 'state' => '   ' } } }
+            }) {
+                try { view.applications(invalid); Assert.fail('不正値を拒否'); }
+                catch (ExternalClientAppManagerService.ValidationException e) { Assert.isTrue(e.getMessage().contains('API応答'), '欠落・不正値の理由を通知'); }
+                try { view.consumers(invalid); Assert.fail('不正値を拒否'); }
+                catch (ExternalClientAppManagerService.ValidationException e) { Assert.isTrue(e.getMessage().contains('API応答'), '欠落・不正値の理由を通知'); }
+                try { view.stages(invalid); Assert.fail('不正値を拒否'); }
+                catch (ExternalClientAppManagerService.ValidationException e) { Assert.isTrue(e.getMessage().contains('API応答'), '欠落・不正値の理由を通知'); }
             }
-
-            try {
-                view.applications(null);
-                Assert.fail('欠落応答を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException missingApplicationsError) {
-                Assert.isTrue(missingApplicationsError.getMessage().contains('API応答'), '確認不能を明示');
-            }
-
-            try {
-                view.consumers(new Map<String, Object>{ 'consumers' => 'invalid' });
-                Assert.fail('不正な一覧を拒否');
-            } catch (ExternalClientAppManagerService.ValidationException invalidConsumersError) {
-                Assert.isTrue(invalidConsumersError.getMessage().contains('API応答'), '一覧の再取得を案内');
-            }
+            List<Object> valid = view.stages(new Map<String, Object>{ 'stagedCredentials' => new List<Object>{ new Map<String, Object>{ 'id' => STAGE_ID, 'state' => 'active', 'expirationDate' => null } } });
+            Assert.isNull(((Map<String, Object>)valid[0]).get('expirationDate'), '任意の期限なしを維持');
             Test.stopTest();
         }
     }
@@ -252,6 +237,20 @@ private with sharing class ExternalClientAppManagerServiceTest {
                     );
                 }
             }
+
+            List<Object> unmatchedApps = new List<Object>{ new Map<String, Object>{ 'id' => APP_ID, 'name' => 'Target' } };
+            Map<String, String> unmatchedInput = new Map<String, String>{
+                'appId' => APP_ID,
+                'confirmationId' => APP_ID,
+                'confirmation' => 'Other'
+            };
+
+            try {
+                service.requireApplication(unmatchedApps, unmatchedInput);
+                Assert.fail('確認したAPI名が異なれば拒否');
+            } catch (ExternalClientAppManagerService.ValidationException error) {
+                Assert.isTrue(error.getMessage().contains('対象名'), '対象確認を案内');
+            }
             Test.stopTest();
         }
     }
@@ -276,66 +275,14 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 path,
                 'URL欠落時も識別子で構築'
             );
-            Test.stopTest();
-        }
-    }
 
-    /** コンシューマーが見つからなければ処理を停止 */
-    @IsTest
-    static void rejectsMissingConsumer() {
-        System.runAs(testUser) {
-            Test.startTest();
             try {
                 service.stagePath(APP_ID, new List<Object>());
                 Assert.fail('対象不明を拒否');
             } catch (ExternalClientAppManagerService.ValidationException error) {
                 Assert.isTrue(error.getMessage().contains('一意'), 'コンシューマー不明を案内');
             }
-            Test.stopTest();
-        }
-    }
 
-    /** 削除対象が一覧に残る場合は完了としない */
-    @IsTest
-    static void rejectsRemainingDeletedStage() {
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                stages.requireDeleted(rows('rotated'), STAGE_ID);
-                Assert.fail('残っているステージを削除完了にしない');
-            } catch (ExternalClientAppManagerService.ValidationException error) {
-                Assert.isTrue(error.getMessage().contains('削除完了'), '再取得を案内');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /** 確認したAPI名と取得したアプリが異なれば拒否 */
-    @IsTest
-    static void rejectsUnmatchedApplication() {
-        System.runAs(testUser) {
-            List<Object> apps = new List<Object>{ new Map<String, Object>{ 'id' => APP_ID, 'name' => 'Target' } };
-            Map<String, String> input = new Map<String, String>{
-                'appId' => APP_ID,
-                'confirmationId' => APP_ID,
-                'confirmation' => 'Other'
-            };
-            Test.startTest();
-            try {
-                service.requireApplication(apps, input);
-                Assert.fail('確認したAPI名が異なれば拒否');
-            } catch (ExternalClientAppManagerService.ValidationException error) {
-                Assert.isTrue(error.getMessage().contains('対象名'), '対象確認を案内');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /** コンシューマーが一意に決まらなければ拒否 */
-    @IsTest
-    static void rejectsMultipleConsumers() {
-        System.runAs(testUser) {
-            Test.startTest();
             try {
                 service.stagePath(
                     APP_ID,
@@ -406,6 +353,13 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 Assert.isTrue(e.getMessage().contains('変更'), '再取得を案内');
             }
             stages.requireOperationResult('deleteStage', new List<Object>(), STAGE_ID);
+
+            try {
+                stages.requireDeleted(rows, STAGE_ID);
+                Assert.fail('残っているステージを削除完了にしない');
+            } catch (ExternalClientAppManagerService.ValidationException error) {
+                Assert.isTrue(error.getMessage().contains('削除完了'), '再取得を案内');
+            }
             Test.stopTest();
         }
     }
