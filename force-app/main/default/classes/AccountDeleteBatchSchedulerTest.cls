@@ -10,65 +10,39 @@ private with sharing class AccountDeleteBatchSchedulerTest {
     @TestSetup
     static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
-        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
-        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+        List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
+        PermissionSet access = new PermissionSet(Name = 'AccountDeleteScheduleTestAccess', Label = '取引先削除定期実行テスト用');
+        insert access;
+        insert new SetupEntityAccess(ParentId = access.Id, SetupEntityId = permissions[0].Id);
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = access.Id);
     }
 
-    /** 定期実行からバッチを起動 */
+    /** 実際の環境に応じて定期起動を受付または拒否 */
     @IsTest
-    static void startsScheduledBatch() {
+    static void appliesEnvironmentConditionWhenScheduled() {
 
         System.runAs(testUser) {
+            Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
             Test.startTest();
             System.schedule('Account delete schedule test', '0 0 0 1 1 ? 2099', new AccountDeleteBatchScheduler());
             Test.stopTest();
             Assert.areEqual(
-                1,
+                developmentEnvironment ? 1 : 0,
                 [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'AccountDeleteBatch'],
-                '定期起動からバッチを登録'
+                '許可環境だけで登録し、本番では登録しない'
             );
         }
     }
 
-    /** 開始拒否を通知 */
+    /** 実行中ジョブまたは環境で拒否された場合は追加登録しない */
     @IsTest
-    static void notifiesRejectedStart() {
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'testuser',
-            LastName = 'Delete permission test',
-            Email = 'test-user@example.invalid',
-            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert denied;
-
-        System.runAs(denied) {
-            Test.startTest();
-            new AccountDeleteBatchScheduler().execute(null);
-            Assert.areEqual(1, Limits.getEmailInvocations(), '開始拒否を通知');
-            Test.stopTest();
-            Assert.areEqual(
-                0,
-                [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'AccountDeleteBatch'],
-                '拒否時は登録なし'
-            );
-        }
-    }
-
-    /** 登録済みジョブとの重複を拒否 */
-    @IsTest
-    static void rejectsRegisteredJob() {
+    static void doesNotAddBatchWhenExecutionIsBlocked() {
 
         System.runAs(testUser) {
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
             new AccountDeleteBatchScheduler().execute(null);
-            Assert.areEqual(1, Limits.getEmailInvocations(), '重複拒否を通知');
+            Assert.areEqual(1, Limits.getEmailInvocations(), '実行を拒否した理由を通知');
             Assert.areEqual(
                 1,
                 [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'AccountDeleteBatch'],

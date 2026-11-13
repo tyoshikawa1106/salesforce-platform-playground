@@ -28,14 +28,35 @@ private with sharing class AccountDeleteBatchServiceTest {
             current.failureCount = 2;
             current.errorMessage = '以前のエラー';
             Test.startTest();
-            Assert.areEqual('', service.getBlockMessage(), '実際の開発環境で通常の実行を許可');
-            AccountDeleteBatchWrapper started = service.checkStartConditions(current);
+            Assert.areEqual('', service.getBlockMessageForEnvironment(true), '開発環境の判定値で実行を許可');
+            AccountDeleteBatchWrapper started = service.checkStartConditionsForEnvironment(current, true);
             Assert.areEqual('', started.errorMessage, '開始時の判定も最新の条件を使う');
-            AccountDeleteBatchWrapper wrapper = service.checkExecutionConditions(current, new List<Account>());
+            AccountDeleteBatchWrapper wrapper = service.checkExecutionConditionsForEnvironment(current, new List<Account>(), true);
             Test.stopTest();
             Assert.areEqual('', wrapper.errorMessage, '現在の条件を満たせばエラーを解消');
             Assert.areEqual(2, wrapper.failureCount, '実行可能な対象を失敗に加算しない');
             Assert.areEqual('以前のエラー', current.errorMessage, '入力の状態を変更しない');
+        }
+    }
+
+    /** 公開入口の判定を現在の組織環境と一致させる */
+    @IsTest
+    static void matchesPublicConditionsToCurrentEnvironment() {
+
+        System.runAs(testUser) {
+            Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
+            String expectedMessage = developmentEnvironment ? '' : 'Scratch Org・Developer Edition・Sandboxでのみ実行できます。';
+            AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
+            Test.startTest();
+            String message = service.getBlockMessage();
+            AccountDeleteBatchWrapper started = service.checkStartConditions(current);
+            AccountDeleteBatchWrapper executed = service.checkExecutionConditions(current, new List<Account>());
+            Test.stopTest();
+            Assert.areEqual(expectedMessage, message, '公開入口は実際の組織環境で判定');
+            Assert.areEqual(expectedMessage, started.errorMessage, '開始時も実際の環境制限を適用');
+            Assert.areEqual(expectedMessage, executed.errorMessage, '削除直前も実際の環境制限を適用');
+            Assert.areEqual(0, started.failureCount, '開始時に対象件数を推測しない');
+            Assert.areEqual(0, executed.failureCount, '空スコープの失敗件数を増やさない');
         }
     }
 
