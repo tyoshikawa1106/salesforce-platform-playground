@@ -9,6 +9,27 @@ private with sharing class ObjectExplorerControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 不正JSONを更新前に拒否し公開エラーへ変換 */
+    @IsTest
+    static void rejectsMalformedSaveRequestBeforeCallout() {
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                ObjectExplorerController.saveClassifyData('Account', '{');
+                Assert.fail('不正JSONでは保存を開始しない');
+            } catch (AuraHandledException e) {
+                Assert.areEqual(
+                    '保存要求の検証：変更内容が不正です。配列で指定してください。',
+                    e.getMessage(),
+                    '解析の内部情報を含めず入力の修正を案内'
+                );
+            }
+            Assert.areEqual(0, Limits.getCallouts(), '不正な要求を外部APIへ送信しない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '不正な要求ではデータを変更しない');
+            Test.stopTest();
+        }
+    }
+
     /** 標準認証APIがテストで利用できない場合も内部情報を公開しない */
     @IsTest
     static void returnsSafeAuthenticationState() {
@@ -487,11 +508,19 @@ private with sharing class ObjectExplorerControllerTest {
             };
             Map<String, Object> draft = original.clone();
             if (requestedMode == ChangeMode.CHANGE_STATUS) {
-                draft.put('businessStatus', original.get('businessStatus') == 'Active' ? 'Hidden' : 'Active');
+                draft.put('businessStatus', alternateStatus((String) original.get('businessStatus')));
             }
             result.add(new Map<String, Object>{ 'apiName' => name, 'original' => original, 'draft' => draft });
         }
         return JSON.serialize(result);
+    }
+
+    /** 現在値と異なる利用状況を要求と模擬応答で共用
+     * @param currentStatus 元の利用状況
+     * @return 変更後の利用状況
+     */
+    private static String alternateStatus(String currentStatus) {
+        return currentStatus == 'Active' ? 'Hidden' : 'Active';
     }
 
     /** 永続データを変更せず取得・更新・再取得を再現 */
@@ -653,7 +682,7 @@ private with sharing class ObjectExplorerControllerTest {
          * @return 変更後の利用状況
          */
         private String changedStatus(String name) {
-            return originalRows.get(name).get('BusinessStatus') == 'Active' ? 'Hidden' : 'Active';
+            return alternateStatus((String) originalRows.get(name).get('BusinessStatus'));
         }
 
         /**
