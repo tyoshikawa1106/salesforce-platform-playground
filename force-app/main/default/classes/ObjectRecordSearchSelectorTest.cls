@@ -9,35 +9,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    @TestSetup
-    static void setupTestData() {
-        List<Account> accounts = new List<Account>();
-
-        Account alphaAccount = new Account(Name = 'Selector Alpha');
-        alphaAccount.Industry = 'Technology';
-        accounts.add(alphaAccount);
-
-        Account betaAccount = new Account(Name = 'Selector Beta');
-        betaAccount.Industry = 'Finance';
-        accounts.add(betaAccount);
-
-        Account deleteOneAccount = new Account(Name = 'Selector Delete One');
-        deleteOneAccount.Industry = 'Healthcare';
-        accounts.add(deleteOneAccount);
-
-        Account deleteTwoAccount = new Account(Name = 'Selector Delete Two');
-        deleteTwoAccount.Industry = 'Retail';
-        accounts.add(deleteTwoAccount);
-
-        Account retailTwoAccount = new Account(Name = 'Selector Retail Two');
-        retailTwoAccount.Industry = 'Retail';
-        accounts.add(retailTwoAccount);
-
-        accounts.add(new Account(Name = 'Selector Null One'));
-        accounts.add(new Account(Name = 'Selector Null Two'));
-        insert accounts;
-    }
-
     /**
      * 検索語ごとの確認に共通する標準検索要求を生成
      * @param searchTerm 各テストが確認する検索語
@@ -58,6 +29,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void shouldUseBoundSearchWithStandardCursor() {
 
         System.runAs(testUser) {
+            insert new List<Account>{new Account(Name = 'Selector Alpha'), new Account(Name = 'Selector Beta')};
             Test.startTest();
             ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchRequest(' Selector Alpha ');
             Database.PaginationCursor cursor = selector.createPaginationCursor(request);
@@ -80,6 +52,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void shouldReturnEmptyPage() {
 
         System.runAs(testUser) {
+            insert new Account(Name = '検索に一致しない取引先');
             Test.startTest();
             ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchRequest('No matching records');
             request.paginationCursor = selector.createPaginationCursor(request);
@@ -96,15 +69,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldReturnMatchingRows() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Selector Delete One'
-            LIMIT 1
-        ];
+        Account target = new Account(Name = '取得対象');
         List<SObject> records;
 
         System.runAs(testUser) {
+            insert new List<Account>{ target, new Account(Name = '取得対象外') };
             Test.startTest();
 
             records = selector.getRecordsById(
@@ -176,22 +145,16 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldExcludeIdsFromAnotherObject() {
-        Account parentAccount = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Selector Alpha'
-            LIMIT 1
-        ];
-        Contact contactRecord = new Contact(AccountId = parentAccount.Id, LastName = 'Selector Contact');
-        insert contactRecord;
+        Id nonAccountId = UserInfo.getUserId();
         List<SObject> records;
 
         System.runAs(testUser) {
+            insert new Account(Name = '対象外IDでは取得しない取引先');
             Test.startTest();
 
             records = selector.getRecordsById(
                 'Account',
-                new Set<Id>{ contactRecord.Id }
+                new Set<Id>{ nonAccountId }
             );
 
             Test.stopTest();
@@ -200,7 +163,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             0,
             records.size(),
-            'Account検索ではContact IDを取得対象にしない必要あり'
+            'Account検索ではUser IDを取得対象にしない必要あり'
         );
     }
 
@@ -294,6 +257,12 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void sortsNullablePicklists() {
 
         System.runAs(testUser) {
+            insert new List<Account>{
+                new Account(Name = '設定済みA', Industry = 'Retail'),
+                new Account(Name = '設定済みB', Industry = 'Retail'),
+                new Account(Name = '未設定A'),
+                new Account(Name = '未設定B')
+            };
             List<Account> expected = [SELECT Id FROM Account ORDER BY Industry ASC NULLS LAST, Id ASC];
             Test.startTest();
             Assert.areEqual(recordIds(expected), readSortedIds('accounts', 'Industry', 'asc'), 'nullを末尾へ配置');
