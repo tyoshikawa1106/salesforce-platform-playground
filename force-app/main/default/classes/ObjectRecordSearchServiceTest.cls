@@ -9,25 +9,15 @@ private with sharing class ObjectRecordSearchServiceTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    @TestSetup
-    static void setupTestData() {
-        List<Account> accounts = new List<Account>();
-
-        Account alphaAccount = new Account(Name = 'Service Alpha');
-        alphaAccount.Industry = 'Technology';
-        accounts.add(alphaAccount);
-
-        Account betaAccount = new Account(Name = 'Service Beta');
-        betaAccount.Industry = 'Finance';
-        accounts.add(betaAccount);
-        insert accounts;
-    }
-
     /**
      * 取得レコードから検索結果を作成
      */
     @IsTest
     static void shouldCreateSearchResultFromQueriedRecords() {
+        insert new List<Account>{
+            new Account(Name = 'Service Alpha', Industry = 'Technology'),
+            new Account(Name = 'Service Beta', Industry = 'Finance')
+        };
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             'Service'
@@ -200,12 +190,8 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldCreateDeleteResultFromDmlResults() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Service Beta'
-            LIMIT 1
-        ];
+        Account target = new Account(Name = 'Service Beta');
+        insert target;
         List<Id> recordIds = new List<Id>{ target.Id };
         List<Database.DeleteResult> deleteResults = Database.delete(
             new List<Account>{ target },
@@ -244,12 +230,7 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldCreateDeleteErrorWhenRequestedRecordWasNotProcessed() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Service Beta'
-            LIMIT 1
-        ];
+        Account target = new Account(Id = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
         ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(testUser) {

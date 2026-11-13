@@ -5,14 +5,6 @@
 private with sharing class ObjectRecordSearchSortSupportTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    @TestSetup
-    static void setupData() {
-        insert new Account(
-            Name = 'Cursor Account',
-            Industry = 'Technology'
-        );
-    }
-
     /**
      * ソート指定なしの場合は既定ソート条件を作成
      */
