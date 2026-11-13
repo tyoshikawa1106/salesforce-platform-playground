@@ -108,4 +108,49 @@ private with sharing class TestDataDeleteControllerTest {
 
     }
 
+    /** 実効権限不足ならgetViewの後続処理を行わない */
+    @IsTest
+    static void rejectsGetViewWithoutPermission() {
+        System.runAs(testUser) {
+            UserPermissionAccess denied = (UserPermissionAccess) JSON.deserialize('{"PermissionsModifyAllData":false}', UserPermissionAccess.class);
+            Test.startTest();
+            TestDataDeleteWrapper result = TestDataDeleteController.getViewForConditions(null, new List<UserPermissionAccess>{ denied }, TestDataDeleteService.Environment.DEVELOPMENT);
+            Assert.areEqual('「すべてのデータの編集」権限が必要です。', result.errorMessage, '実効権限がなければ拒否');
+            Assert.areEqual('', result.jobId, '拒否時にジョブを受け付けない');
+            Assert.areEqual(0, Limits.getQueries(), '拒否後にデータやジョブを照会しない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '拒否後にデータ変更やジョブ登録をしない');
+            Test.stopTest();
+        }
+    }
+
+    /** 実効権限不足ならgetRemainingの後続処理を行わない */
+    @IsTest
+    static void rejectsGetRemainingWithoutPermission() {
+        System.runAs(testUser) {
+            UserPermissionAccess denied = (UserPermissionAccess) JSON.deserialize('{"PermissionsModifyAllData":false}', UserPermissionAccess.class);
+            Test.startTest();
+            TestDataDeleteWrapper result = TestDataDeleteController.getRemainingForConditions('Account', new List<UserPermissionAccess>{ denied }, TestDataDeleteService.Environment.DEVELOPMENT);
+            Assert.areEqual('「すべてのデータの編集」権限が必要です。', result.errorMessage, '実効権限がなければ拒否');
+            Assert.areEqual('', result.jobId, '拒否時にジョブを受け付けない');
+            Assert.areEqual(0, Limits.getQueries(), '拒否後にデータやジョブを照会しない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '拒否後にデータ変更やジョブ登録をしない');
+            Test.stopTest();
+        }
+    }
+
+    /** 実効権限不足ならstartRunの後続処理を行わない */
+    @IsTest
+    static void rejectsStartRunWithoutPermission() {
+        System.runAs(testUser) {
+            UserPermissionAccess denied = (UserPermissionAccess) JSON.deserialize('{"PermissionsModifyAllData":false}', UserPermissionAccess.class);
+            Test.startTest();
+            TestDataDeleteWrapper result = TestDataDeleteController.startRunForConditions('DELETE_ALL', new List<UserPermissionAccess>{ denied }, TestDataDeleteService.Environment.DEVELOPMENT);
+            Assert.areEqual('「すべてのデータの編集」権限が必要です。', result.errorMessage, '実効権限がなければ拒否');
+            Assert.areEqual('', result.jobId, '拒否時にジョブを受け付けない');
+            Assert.areEqual(0, Limits.getQueries(), '拒否後にデータやジョブを照会しない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '拒否後にデータ変更やジョブ登録をしない');
+            Test.stopTest();
+        }
+    }
+
 }

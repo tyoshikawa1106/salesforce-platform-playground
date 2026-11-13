@@ -85,18 +85,6 @@ private with sharing class ObjectExplorerControllerTest {
         return message;
     }
 
-    /** 標準認証APIがテストで利用できない場合も内部情報を公開しない */
-    @IsTest
-    static void returnsSafeAuthenticationState() {
-        System.runAs(testUser) {
-            Test.startTest();
-            Map<String, Object> result = ObjectExplorerController.getApiAuthentication();
-            Test.stopTest();
-            Assert.areEqual(new Set<String>{'status', 'message'}, result.keySet(), '認証情報を公開しない');
-            Assert.isTrue(new Set<String>{'AUTHENTICATED', 'REQUIRED', 'UNAVAILABLE'}.contains((String) result.get('status')), '公開状態だけを返す');
-        }
-    }
-
     /** カスタム項目日時取得と不要な通信の省略 */
     @IsTest
     static void returnsCustomFieldAudit() {
@@ -888,4 +876,81 @@ private with sharing class ObjectExplorerControllerTest {
             return response;
         }
     }
+
+    /** 保存済み状態と実接続の結果から公開認証状態を決定 */
+    @IsTest
+    static void verifiesAuthenticationStates() {
+        System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            SalesforceApiClient.credentialAccess = mock;
+            Test.setMock(HttpCalloutMock.class, new AuditMock());
+            Test.startTest();
+            Map<String, Object> result = ObjectExplorerController.getApiAuthentication();
+            Assert.areEqual(new Map<String, Object>{ 'status' => 'AUTHENTICATED', 'message' => '' }, result, '同一組織の認証済み状態を返す');
+            Assert.areEqual(1, Limits.getCallouts(), '認証済みでも接続先を確認');
+            mock.status = ConnectApi.CredentialAuthenticationStatus.NotConfigured;
+            result = ObjectExplorerController.getApiAuthentication();
+            Assert.areEqual(new Map<String, Object>{ 'status' => 'REQUIRED', 'message' => 'Salesforce APIを使用します。認証ボタンをクリックしてください。' }, result, '未設定は認証開始を案内');
+            Assert.areEqual(1, Limits.getCallouts(), '未設定では接続確認を追加しない');
+            mock.status = ConnectApi.CredentialAuthenticationStatus.Configured;
+            Test.setMock(HttpCalloutMock.class, new AuditFailureMock('unauthorized'));
+            result = ObjectExplorerController.getApiAuthentication();
+            Assert.areEqual('REQUIRED', result.get('status'), '保存済みでも実接続の拒否を優先して再認証へ変換');
+            Assert.isFalse(JSON.serialize(result).contains('PRIVATE'), '通信の内部情報を公開しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 認証URLを検証して本人用資格情報の解除を委譲 */
+    @IsTest
+    static void validatesUrlAndRevokesCredential() {
+        System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            SalesforceApiClient.credentialAccess = mock;
+            Test.startTest();
+            Assert.areEqual(mock.authenticationUrl, ObjectExplorerController.getApiAuthenticationUrl(), '同じ組織の標準URLを返す');
+            Assert.areEqual(1, mock.urlRequests, 'URLを一度だけ取得');
+            mock.authenticationUrl = 'https://example.invalid/auth';
+            try {
+                ObjectExplorerController.getApiAuthenticationUrl();
+                Assert.fail('別ホストの認証URLを拒否');
+            } catch (AuraHandledException e) {
+                Assert.areEqual('API認証の開始URLを取得できませんでした。管理者に確認してください。', e.getMessage(), 'URLの値を公開しない');
+            }
+            Assert.areEqual(2, mock.urlRequests, '拒否したURLも標準APIから取得');
+            ObjectExplorerController.revokeApiAuthentication();
+            Assert.areEqual(1, mock.revocations, '解除を一度だけ委譲');
+            Assert.areEqual(2, mock.urlRequests, '解除時に新しい認証を開始しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 公開入口から実際の認証設定を変更しないための標準API境界 */
+    private class CredentialMock extends SalesforceApiClient.CredentialAccess {
+        private ConnectApi.CredentialAuthenticationStatus status = ConnectApi.CredentialAuthenticationStatus.Configured;
+        private String authenticationUrl = Url.getOrgDomainUrl().toExternalForm() + '/auth';
+        private Integer urlRequests = 0;
+        private Integer revocations = 0;
+
+        /** 指定した認証状態を取得
+         * @return 標準認証状態
+         */
+        public override ConnectApi.CredentialAuthenticationStatus getStatus() {
+            return status;
+        }
+
+        /** 指定した認証URLを取得
+         * @return 模擬する認証URL
+         */
+        public override String getUrl() {
+            urlRequests++;
+            return authenticationUrl;
+        }
+
+        /** 実際の資格情報を変更せず解除要求を記録 */
+        public override void revoke() {
+            revocations++;
+        }
+    }
+
 }

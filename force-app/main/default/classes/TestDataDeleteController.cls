@@ -18,15 +18,8 @@ public with sharing class TestDataDeleteController {
             TestDataDeleteService.Environment environment = service.getEnvironment(
                 organizations
             );
-            TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
-            if (String.isNotEmpty(wrapper.errorMessage)) {
-                return wrapper;
-            }
-            // 重複判定と追跡IDの照会を分離
-            List<AsyncApexJob> activeJobs = selector.getActiveJobs();
-            wrapper.executionState = activeJobs.isEmpty() ? 'IDLE' : 'RUNNING';
-            wrapper.jobs = selector.getJobs(jobId);
-            return wrapper;
+            // 実際の環境と権限を同じ処理経路へ渡す
+            return getViewForConditions(jobId, permissions, environment);
         } catch (Exception e) {
             // SOQLや内部識別子を表示しない
             throw new AuraHandledException('実行状態を取得できませんでした。権限を確認してください。');
@@ -48,17 +41,8 @@ public with sharing class TestDataDeleteController {
             TestDataDeleteService.Environment environment = service.getEnvironment(
                 organizations
             );
-            TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
-            if (String.isNotEmpty(wrapper.errorMessage)) {
-                return wrapper;
-            }
-            wrapper = service.checkObject(wrapper, objectName);
-            if (String.isNotEmpty(wrapper.errorMessage)) {
-                return wrapper;
-            }
-            // 件数クエリをループ内で実行しない
-            wrapper.remaining = selector.getRemaining(objectName);
-            return wrapper;
+            // 実際の環境と権限を同じ処理経路へ渡す
+            return getRemainingForConditions(objectName, permissions, environment);
         } catch (Exception e) {
             throw new AuraHandledException('残件数を取得できませんでした。対象の参照権限を確認してください。');
         }
@@ -79,24 +63,79 @@ public with sharing class TestDataDeleteController {
             TestDataDeleteService.Environment environment = service.getEnvironment(
                 organizations
             );
-            TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
-            if (String.isNotEmpty(wrapper.errorMessage)) {
-                return wrapper;
-            }
-            // 二重起動の受付を抑止し非同期startでも再判定
-            List<AsyncApexJob> activeJobs = selector.getActiveJobs();
-            wrapper = service.checkStart(wrapper, activeJobs, confirmation);
-            if (String.isNotEmpty(wrapper.errorMessage)) {
-                return wrapper;
-            }
-            // 起動処理をControllerに置き専用スクリプトは提供しない
-            TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
-            Id jobId = Database.executeBatch(new TestDataDeleteBatch(plan), 200);
-            wrapper.jobId = String.valueOf(jobId);
-            wrapper.executionState = 'RUNNING';
-            return wrapper;
+            // 実際の環境と権限を同じ処理経路へ渡す
+            return startRunForConditions(confirmation, permissions, environment);
         } catch (Exception e) {
             throw new AuraHandledException('削除を開始できませんでした。実行条件とApexジョブを確認してください。');
         }
+    }
+
+    /** 取得済みの環境・権限から実行状態の処理を制御
+     * @param jobId 公開入口から受け取った要求値
+     * @param permissions 実行ユーザーの実効権限
+     * @param environment 削除専用の環境判定
+     * @return 実行結果または拒否理由
+     */
+    @TestVisible
+    private static TestDataDeleteWrapper getViewForConditions(Id jobId, List<UserPermissionAccess> permissions, TestDataDeleteService.Environment environment) {
+        // 判定が拒否の場合は対象データへアクセスしない
+        TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
+        if (String.isNotEmpty(wrapper.errorMessage)) {
+            return wrapper;
+        }
+        // 重複判定と追跡IDの照会を分離
+        List<AsyncApexJob> activeJobs = selector.getActiveJobs();
+        wrapper.executionState = activeJobs.isEmpty() ? 'IDLE' : 'RUNNING';
+        wrapper.jobs = selector.getJobs(jobId);
+        return wrapper;
+    }
+
+    /** 取得済みの環境・権限から残件数の処理を制御
+     * @param objectName 公開入口から受け取った要求値
+     * @param permissions 実行ユーザーの実効権限
+     * @param environment 削除専用の環境判定
+     * @return 実行結果または拒否理由
+     */
+    @TestVisible
+    private static TestDataDeleteWrapper getRemainingForConditions(String objectName, List<UserPermissionAccess> permissions, TestDataDeleteService.Environment environment) {
+        // 判定が拒否の場合は対象データへアクセスしない
+        TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
+        if (String.isNotEmpty(wrapper.errorMessage)) {
+            return wrapper;
+        }
+        wrapper = service.checkObject(wrapper, objectName);
+        if (String.isNotEmpty(wrapper.errorMessage)) {
+            return wrapper;
+        }
+        // 件数クエリをループ内で実行しない
+        wrapper.remaining = selector.getRemaining(objectName);
+        return wrapper;
+    }
+
+    /** 取得済みの環境・権限から削除開始の処理を制御
+     * @param confirmation 公開入口から受け取った要求値
+     * @param permissions 実行ユーザーの実効権限
+     * @param environment 削除専用の環境判定
+     * @return 実行結果または拒否理由
+     */
+    @TestVisible
+    private static TestDataDeleteWrapper startRunForConditions(String confirmation, List<UserPermissionAccess> permissions, TestDataDeleteService.Environment environment) {
+        // 判定が拒否の場合は対象データへアクセスしない
+        TestDataDeleteWrapper wrapper = service.createView(permissions, environment);
+        if (String.isNotEmpty(wrapper.errorMessage)) {
+            return wrapper;
+        }
+        // 二重起動の受付を抑止し非同期startでも再判定
+        List<AsyncApexJob> activeJobs = selector.getActiveJobs();
+        wrapper = service.checkStart(wrapper, activeJobs, confirmation);
+        if (String.isNotEmpty(wrapper.errorMessage)) {
+            return wrapper;
+        }
+        // 起動処理をControllerに置き専用スクリプトは提供しない
+        TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
+        Id jobId = Database.executeBatch(new TestDataDeleteBatch(plan), 200);
+        wrapper.jobId = String.valueOf(jobId);
+        wrapper.executionState = 'RUNNING';
+        return wrapper;
     }
 }

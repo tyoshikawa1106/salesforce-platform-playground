@@ -24,6 +24,16 @@ public with sharing class AccountDataQualityScanController {
     public static AccountDataQualityScanWrapper getLatestScan() {
         // 結果の取得前に両オブジェクトの参照権限を確認
         Boolean canReadScan = service.canReadScan();
+        // 公開入口と引数による検証で同じ権限判定を使用
+        return getLatestScanForAccess(canReadScan);
+    }
+
+    /** 取得済みの参照権限から直近スキャン取得を制御
+     * @param canReadScan 実行ユーザーの参照権限判定
+     * @return 実行結果または参照権限不足の案内
+     */
+    @TestVisible
+    private static AccountDataQualityScanWrapper getLatestScanForAccess(Boolean canReadScan) {
         // 参照可否を確定してから後続処理へ進む
         if (!canReadScan) {
             return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
@@ -51,6 +61,16 @@ public with sharing class AccountDataQualityScanController {
     public static AccountDataQualityScanWrapper startScan() {
         // 画面表示後に権限が変わった場合も保存や非同期登録の前に拒否
         Boolean canReadScan = service.canReadScan();
+        // 公開入口と引数による検証で同じ権限判定を使用
+        return startScanForAccess(canReadScan);
+    }
+
+    /** 取得済みの参照権限からスキャン開始を制御
+     * @param canReadScan 実行ユーザーの参照権限判定
+     * @return 実行結果または参照権限不足の案内
+     */
+    @TestVisible
+    private static AccountDataQualityScanWrapper startScanForAccess(Boolean canReadScan) {
         // 参照可否を確定してから後続処理へ進む
         if (!canReadScan) {
             return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
