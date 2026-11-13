@@ -124,8 +124,8 @@ export default class ExternalClientAppManager extends LightningElement {
                     : '認証を開始できません。接続設定と権限を管理者に確認してください。';
                 return;
             }
-            // 資格情報を含まない候補だけを取得する
-            const response = await execute({ input: { action: 'list', ...(this.appId ? { appId: this.appId } : {}) } });
+            // 選択済みならIDで照合し、未選択なら保持中の検索語で候補を再取得する
+            const response = await execute({ input: { action: 'list', ...(this.appId ? { appId: this.appId } : { term: this.appTerm }) } });
             // 離脱または再接続後は後続のAPI送信と画面更新を行わない
             if (!this.isConnected || operationVersion !== this.operationVersion) return;
             // サーバーで認証元とパッケージアプリを除外した候補を反映する
