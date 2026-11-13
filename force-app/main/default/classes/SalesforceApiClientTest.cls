@@ -27,7 +27,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(401, '[{"errorCode":"INVALID_SESSION_ID","message":"PRIVATE_VALUE"}]', null));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-AUTH-401]'), '失敗の種類を固定コードで識別');
@@ -45,7 +45,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(403, '[{"errorCode":"PRIVATE_CODE","message":"PRIVATE_VALUE"}]', null));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-403]'), '失敗の種類を固定コードで識別');
@@ -63,7 +63,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(503, 'PRIVATE_VALUE', null));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-503]'), '失敗の種類を固定コードで識別');
@@ -81,7 +81,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, '', 'Read timed out PRIVATE_VALUE'));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-TIMEOUT]'), '失敗の種類を固定コードで識別');
@@ -99,7 +99,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, '', 'PRIVATE_VALUE'));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-CONNECTION]'), '失敗の種類を固定コードで識別');
@@ -117,7 +117,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, 'PRIVATE_VALUE', null));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('失敗を成功として返さない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-RESPONSE]'), '失敗の種類を固定コードで識別');
@@ -135,7 +135,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(403, 'PRIVATE_VALUE', null));
             try {
-                client.request('example', 'PATCH', '{}');
+                client.request('query/', 'PATCH', '{}');
                 Assert.fail('更新拒否を成功にしない');
             } catch (SalesforceApiClient.RejectedUpdateException error) {
                 Assert.isTrue(error.getMessage().contains('HTTP 403'), '更新の明示拒否として通知');
@@ -152,7 +152,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new DiagnosticMock(503, 'PRIVATE_VALUE', null));
             try {
-                client.request('example', 'PATCH', '{}');
+                client.request('query/', 'PATCH', '{}');
                 Assert.fail('更新結果を正常と扱わない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('HTTP 503'), '明示拒否と異なる連携エラーで返す');
@@ -169,7 +169,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new ResponseMock('expression'));
             Assert.isTrue(
-                client.request('example', 'PATCH', '{"value":"{!input}"}').isEmpty(),
+                client.request('query/', 'PATCH', '{"value":"{!input}"}').isEmpty(),
                 '本文なし成功を空応答として扱う'
             );
             Test.stopTest();
@@ -183,7 +183,7 @@ private with sharing class SalesforceApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new ResponseMock('httpError'));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('HTTP拒否を成功にしない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('HTTP 403'), '状態コードを伝える');
@@ -191,7 +191,7 @@ private with sharing class SalesforceApiClientTest {
             }
             Test.setMock(HttpCalloutMock.class, new ResponseMock('connectionError'));
             try {
-                client.request('example', 'GET', null);
+                client.request('query/', 'GET', null);
                 Assert.fail('接続失敗を成功にしない');
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('API接続'), '接続失敗を伝える');
@@ -206,7 +206,7 @@ private with sharing class SalesforceApiClientTest {
     static void rejectsUnsupportedRequests() {
         System.runAs(testUser) {
             Test.startTest();
-            for (String path : new List<String>{'https://example.invalid', '/query/', '../query/'}) {
+            for (String path : new List<String>{null, '', 'https://example.invalid', '/query/', '../query/', 'tooling/query/../sobjects', 'query/extra', 'other/?q=..'}) {
                 try {
                     client.request(path, 'GET', null);
                     Assert.fail('固定接続先以外を拒否');
@@ -225,11 +225,29 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
+    /** 検索条件内のドットとコロンを変えずに固定の照会先へ送る */
+    @IsTest
+    static void preservesQueryCharacters() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (String resourcePath : new List<String>{'query/', 'tooling/query/'}) {
+                String path = resourcePath + '?q=SELECT+Id+FROM+Account+WHERE+Name=\'A..B:C\'';
+                DiagnosticMock mock = new DiagnosticMock(200, '{"records":[]}', null);
+                mock.expectedEndpoint = 'callout:InternalSalesforceApi/services/data/v68.0/' + path;
+                Test.setMock(HttpCalloutMock.class, mock);
+                Assert.isNotNull(client.request(path, 'GET', null).get('records'), '検索条件の記号を拒否しない');
+            }
+            Assert.areEqual(2, Limits.getCallouts(), '通常の照会とTooling照会を一度ずつ送信');
+            Test.stopTest();
+        }
+    }
+
     /** 認証・HTTP・形式不正を再現する診断用モック */
     private class DiagnosticMock implements HttpCalloutMock {
         private Integer status;
         private String body;
         private String exceptionMessage;
+        private String expectedEndpoint;
 
         /**
          * 模擬応答と接続失敗の種類を指定
@@ -249,6 +267,7 @@ private with sharing class SalesforceApiClientTest {
          * @return 指定したHTTP応答
          */
         public HttpResponse respond(HttpRequest request) {
+            if (this.expectedEndpoint != null) { Assert.areEqual(this.expectedEndpoint, request.getEndpoint(), '検索条件を変更せず固定接続先へ送信'); }
             if (this.exceptionMessage != null) { throw new CalloutException(this.exceptionMessage); }
             HttpResponse response = new HttpResponse();
             response.setStatusCode(this.status);

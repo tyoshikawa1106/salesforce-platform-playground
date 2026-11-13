@@ -37,12 +37,25 @@ public with sharing class ExternalClientAppManagerApiClient {
         }
     }
 
-    /** ローカル候補を検索する固定Tooling API要求
+    /** 管理対象だけを検索し、選択済みの場合は件数上限に依存せず照合
+     * @param term ラベルまたはAPI名の検索語
+     * @param appId 選択済みアプリのID。未選択時はnull
      * @return 加工前のアプリ一覧
      */
-    public Map<String, Object> listApplications() {
+    public Map<String, Object> listApplications(String term, String appId) {
+        String query = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+            + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\'';
+        // 更新時と再接続時は検索候補の先頭200件ではなく対象IDを照合する
+        if (String.isNotBlank(appId)) {
+            query += ' AND Id = \'' + String.escapeSingleQuotes(appId) + '\'';
+        } else if (String.isNotBlank(term)) {
+            // 検索語の記号をSOQL構文やワイルドカードとして扱わない
+            String pattern = '%' + String.escapeSingleQuotes(term.trim()).replace('%', '\\%').replace('_', '\\_') + '%';
+            query += ' AND (MasterLabel LIKE \'' + pattern + '\' OR DeveloperName LIKE \'' + pattern + '\')';
+        }
+        query += ' ORDER BY DeveloperName LIMIT 200';
         return request(
-            '/services/data/v68.0/tooling/query/?q=SELECT+Id,DeveloperName,MasterLabel,DistributionState+FROM+ExternalClientApplication+ORDER+BY+DeveloperName+LIMIT+201',
+            '/services/data/v68.0/tooling/query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'),
             'GET',
             null
         );
@@ -185,8 +198,20 @@ public with sharing class ExternalClientAppManagerApiClient {
     }
 
     private void requireRequest(String path, String method) {
-        // 組織外URLや認証式を入力として受け付けない
-        if (path == null || !Pattern.matches('/services/(?![\\s\\S]*(?:\\.\\.|:))[\\s\\S]*', path)) {
+        // 検索条件を除き、この機能が使用する固定のAPIパスと照合する
+        String resourcePath = path?.substringBefore('?');
+        Boolean fixedPath = new Set<String>{
+            '/services/data/v68.0/',
+            '/services/oauth2/userinfo',
+            '/services/data/v68.0/tooling/query/'
+        }.contains(resourcePath);
+        // 資格情報APIは固定ルート内のSalesforce IDだけを可変部分として許可する
+        Boolean credentialPath = resourcePath != null && Pattern.matches(
+            '/services/data/v68[.]0/apps/oauth/credentials/0xI[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?'
+                + '(/888[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?/staged(/0ug[a-zA-Z0-9]{12}([a-zA-Z0-9]{3})?)?)?',
+            resourcePath
+        );
+        if (!fixedPath && !credentialPath) {
             throw new CalloutException('APIパスが不正です。');
         }
         // 管理操作に使うHTTPメソッドを限定

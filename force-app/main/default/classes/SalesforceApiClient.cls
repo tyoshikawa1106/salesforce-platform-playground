@@ -92,7 +92,9 @@ public with sharing class SalesforceApiClient {
      * @param method GETまたはPATCH
      */
     private void requireRequest(String path, String method) {
-        if (String.isBlank(path) || path.startsWith('/') || path.contains('..') || path.contains(':')) { throw new IntegrationException('Salesforce APIの要求形式が不正です。'); }
+        // 検索語をパスの禁止文字として扱わず、利用中の照会ルートと完全一致で照合する
+        String resourcePath = path?.substringBefore('?');
+        if (!new Set<String>{'query/', 'tooling/query/'}.contains(resourcePath)) { throw new IntegrationException('Salesforce APIの要求形式が不正です。'); }
         if (!new Set<String>{'GET', 'PATCH'}.contains(method)) { throw new IntegrationException('Salesforce APIの要求形式が不正です。'); }
     }
 

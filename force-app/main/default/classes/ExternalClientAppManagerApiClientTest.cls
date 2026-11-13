@@ -3,6 +3,43 @@
 private with sharing class ExternalClientAppManagerApiClientTest {
     private static ExternalClientAppManagerApiClient client = new ExternalClientAppManagerApiClient();
     private static User testUser = new User(Id = UserInfo.getUserId());
+    private static final String APP_ID = '0xI' + '0'.repeat(11) + '1';
+    private static final String STAGE_PATH = '/services/data/v68.0/apps/oauth/credentials/' + APP_ID
+        + '/888' + '0'.repeat(11) + '1/staged/0ug' + '0'.repeat(11) + '1';
+
+    /** 入力中の引用符とワイルドカードを検索文字として扱う */
+    @IsTest
+    static void escapesApplicationSearchTerm() {
+        System.runAs(testUser) {
+            ResponseMock mock = new ResponseMock(200, '{"records":[],"done":true}');
+            mock.expectedQuery = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+                + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\''
+                + ' AND (MasterLabel LIKE \'%O\\\'Brien\\%\\_\\\\Name%\' OR DeveloperName LIKE \'%O\\\'Brien\\%\\_\\\\Name%\')'
+                + ' ORDER BY DeveloperName LIMIT 200';
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            client.listApplications(' O\'Brien%_\\Name ', null);
+            Assert.areEqual(1, Limits.getCallouts(), '候補検索だけを行う');
+            Test.stopTest();
+        }
+    }
+
+    /** 連続ドットを検索語として保持し、パス検証で拒否しない */
+    @IsTest
+    static void searchesApplicationWithConsecutiveDots() {
+        System.runAs(testUser) {
+            ResponseMock mock = new ResponseMock(200, '{"records":[]}');
+            mock.expectedQuery = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+                + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\''
+                + ' AND (MasterLabel LIKE \'%..%\' OR DeveloperName LIKE \'%..%\')'
+                + ' ORDER BY DeveloperName LIMIT 200';
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            Assert.isNotNull(client.listApplications('..', null).get('records'), '空の検索結果も正常応答として返す');
+            Assert.areEqual(1, Limits.getCallouts(), '検索要求を一度送信する');
+            Test.stopTest();
+        }
+    }
 
     /** 専用接続でJSON要求を送信 */
     @IsTest
@@ -11,7 +48,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new ResponseMock(201, '{"stagedCredentials":[]}'));
             Map<String, Object> result = client.request(
-                '/services/data/v68.0/apps/oauth/credentials/example/staged',
+                STAGE_PATH.substringBeforeLast('/'),
                 'POST',
                 '{}'
             );
@@ -26,7 +63,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         System.runAs(testUser) {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new ResponseMock(204, ''));
-            Map<String, Object> result = client.request('/services/data/v68.0/example', 'DELETE', null);
+            Map<String, Object> result = client.request(STAGE_PATH, 'DELETE', null);
             Test.stopTest();
             Assert.isTrue(result.isEmpty(), '空本文を空Mapとして返却');
         }
@@ -39,7 +76,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             Test.startTest();
             Test.setMock(HttpCalloutMock.class, new ResponseMock(403, 'PRIVATE_SECRET'));
             try {
-                client.request('/services/data/v68.0/example', 'GET', null);
+                client.request('/services/data/v68.0/', 'GET', null);
                 Assert.fail('API拒否を成功にしない');
             } catch (CalloutException e) {
                 Assert.areEqual('HTTP 403', e.getMessage(), 'HTTP番号以外を返さない');
@@ -98,6 +135,10 @@ private with sharing class ExternalClientAppManagerApiClientTest {
                     'https://example.invalid',
                     '//example.invalid',
                     '/services/../outside',
+                    '/services/data/v68.0/tooling/query/../sobjects',
+                    '/services/data/v68.0/tooling/query/extra',
+                    '/services/data/v68.0/sobjects/?q=..',
+                    '/services/data/v68.0/apps/oauth/credentials/' + APP_ID + '/../outside',
                     '/services/:token',
                     '/services/example\n../outside',
                     '/services/example\n:token'
@@ -121,7 +162,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                client.request('/services/data/v68.0/example', 'PUT', null);
+                client.request('/services/data/v68.0/', 'PUT', null);
                 Assert.fail('未対応操作を許可しない');
             } catch (CalloutException e) {
                 Assert.isTrue(e.getMessage().contains('操作'), '未対応操作を識別');
@@ -315,7 +356,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             for (String body : new List<String>{ '{"PRIVATE":', '[]', 'null', '"PRIVATE"', '123', 'true' }) {
                 Test.setMock(HttpCalloutMock.class, new ResponseMock(200, body));
                 try {
-                    client.request('/services/data/v68.0/example', 'GET', null);
+                    client.request('/services/data/v68.0/', 'GET', null);
                     Assert.fail('オブジェクト以外の応答を拒否');
                 } catch (CalloutException error) {
                     Assert.areEqual('API応答の形式を確認できません。', error.getMessage(), '本文を含まない固定案内');
@@ -333,7 +374,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             Test.setMock(HttpCalloutMock.class, new TransportFailure());
             Test.startTest();
             try {
-                client.request('/services/data/v68.0/example', 'POST', '{}');
+                client.request(STAGE_PATH.substringBeforeLast('/'), 'POST', '{}');
                 Assert.fail('通信例外を成功にしない');
             } catch (CalloutException error) {
                 Assert.isFalse(
@@ -476,6 +517,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
     private class ResponseMock implements HttpCalloutMock {
         private Integer statusCode;
         private String body;
+        private String expectedQuery;
         /** 固定応答を準備
          * @param statusCode HTTP番号
          * @param body JSON本文
@@ -489,6 +531,14 @@ private with sharing class ExternalClientAppManagerApiClientTest {
          * @return 固定応答
          */
         public HttpResponse respond(HttpRequest request) {
+            if (expectedQuery != null) {
+                Assert.areEqual('GET', request.getMethod(), '検索は参照だけ');
+                Assert.areEqual(
+                    expectedQuery,
+                    EncodingUtil.urlDecode(request.getEndpoint().substringAfter('?q='), 'UTF-8'),
+                    '対象条件・入力のエスケープ・候補上限を確認'
+                );
+            }
             Assert.isTrue(
                 request.getEndpoint().startsWith('callout:ExternalClientAppManager/services/'),
                 '管理専用接続へ固定'
