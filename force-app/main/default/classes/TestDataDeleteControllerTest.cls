@@ -2,7 +2,13 @@
 @IsTest
 private with sharing class TestDataDeleteControllerTest {
 
+    private static TestDataDeleteService service = new TestDataDeleteService();
+
     private static User testUser = new User(Id = UserInfo.getUserId());
+
+    private static String environmentError = service.getEnvironment(
+        [SELECT IsSandbox, OrganizationType, TrialExpirationDate FROM Organization LIMIT 1]
+    ) == TestDataDeleteService.Environment.DEVELOPMENT ? '' : '開発組織でのみ実行できます。';
 
     /** 確認済み要求だけを受け付け同じジョブを追跡 */
     @IsTest
@@ -11,14 +17,19 @@ private with sharing class TestDataDeleteControllerTest {
         System.runAs(testUser) {
             Test.startTest();
             TestDataDeleteWrapper accepted = TestDataDeleteController.startRun('DELETE_ALL');
-            Assert.areEqual('', accepted.errorMessage, '実効権限があれば確認済み要求を受付');
-            Assert.isTrue(String.isNotBlank(accepted.jobId), '受付したジョブIDを返す');
-            TestDataDeleteWrapper view = TestDataDeleteController.getView(accepted.jobId);
-            Assert.areEqual('RUNNING', view.executionState, '実行中を検知');
-            Assert.areEqual(accepted.jobId, String.valueOf(view.jobs[0].Id), '同じジョブを追跡');
-            TestDataDeleteWrapper duplicate = TestDataDeleteController.startRun('DELETE_ALL');
-            Assert.areEqual('', duplicate.jobId, '実行中の再受付を拒否');
-            System.abortJob(accepted.jobId);
+            Assert.areEqual(environmentError, accepted.errorMessage, '実環境の受付条件を適用');
+            if (String.isEmpty(environmentError)) {
+                Assert.isTrue(String.isNotBlank(accepted.jobId), '受付したジョブIDを返す');
+                TestDataDeleteWrapper view = TestDataDeleteController.getView(accepted.jobId);
+                Assert.areEqual('RUNNING', view.executionState, '実行中を検知');
+                Assert.areEqual(accepted.jobId, String.valueOf(view.jobs[0].Id), '同じジョブを追跡');
+                TestDataDeleteWrapper duplicate = TestDataDeleteController.startRun('DELETE_ALL');
+                Assert.areEqual('', duplicate.jobId, '実行中の再受付を拒否');
+                System.abortJob(accepted.jobId);
+            } else {
+                Assert.areEqual('', accepted.jobId, '許可外の環境ではジョブを作成しない');
+                Assert.areEqual(0, [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'TestDataDeleteBatch'], '開始拒否時に非同期処理を登録しない');
+            }
             Test.stopTest();
         }
     }
@@ -34,10 +45,10 @@ private with sharing class TestDataDeleteControllerTest {
             TestDataDeleteWrapper rejected = TestDataDeleteController.getRemaining('User');
             TestDataDeleteWrapper unconfirmed = TestDataDeleteController.startRun('');
             Test.stopTest();
-            Assert.areEqual('', response.errorMessage, '対象の件数を確認');
-            Assert.areEqual(1, response.remaining, '識別値に依存しない全件数');
-            Assert.isTrue(rejected.errorMessage.contains('対象では'), '許可外のオブジェクトを拒否');
-            Assert.isTrue(unconfirmed.errorMessage.contains('確認'), '実効権限があっても確認が必要');
+            Assert.areEqual(environmentError, response.errorMessage, '実環境に応じて件数取得を許可または拒否');
+            Assert.areEqual(String.isEmpty(environmentError) ? 1 : 0, response.remaining, '許可された環境でだけ全件数を取得');
+            Assert.isTrue(String.isEmpty(environmentError) ? rejected.errorMessage.contains('対象では') : rejected.errorMessage == environmentError, '環境判定の後で対象制限を適用');
+            Assert.isTrue(String.isEmpty(environmentError) ? unconfirmed.errorMessage.contains('確認') : unconfirmed.errorMessage == environmentError, '環境判定の後で確認文字列を検証');
         }
     }
 
@@ -50,7 +61,7 @@ private with sharing class TestDataDeleteControllerTest {
             TestDataDeleteWrapper response = TestDataDeleteController.startRun('');
             Test.stopTest();
             Assert.areEqual('', response.jobId, '確認なしに起動しない');
-            Assert.isTrue(String.isNotBlank(response.errorMessage), '停止理由を返す');
+            Assert.isTrue(String.isEmpty(environmentError) ? response.errorMessage.contains('確認') : response.errorMessage == environmentError, '未確認または環境拒否の理由を区別');
         }
     }
 
@@ -62,7 +73,7 @@ private with sharing class TestDataDeleteControllerTest {
             Test.startTest();
             TestDataDeleteWrapper response = TestDataDeleteController.getRemaining('User');
             Test.stopTest();
-            Assert.isTrue(String.isNotBlank(response.errorMessage), '対象外または権限不足を拒否');
+            Assert.isTrue(String.isEmpty(environmentError) ? response.errorMessage.contains('対象では') : response.errorMessage == environmentError, '対象外または環境拒否の理由を区別');
         }
     }
 
@@ -74,7 +85,7 @@ private with sharing class TestDataDeleteControllerTest {
             Test.startTest();
             TestDataDeleteWrapper response = TestDataDeleteController.getView(null);
             Test.stopTest();
-            Assert.isNotNull(response, '初期画面の応答');
+            Assert.areEqual(environmentError, response.errorMessage, '初期画面にも実環境の判定を適用');
             Assert.isTrue(response.jobs.isEmpty(), '未指定のジョブを推測しない');
         }
     }
@@ -91,8 +102,8 @@ private with sharing class TestDataDeleteControllerTest {
             Test.startTest();
             TestDataDeleteWrapper response = TestDataDeleteController.getRemaining('PricebookEntry');
             Test.stopTest();
-            Assert.areEqual('', response.errorMessage, '件数の取得に成功');
-            Assert.areEqual(1, response.remaining, '通常の価格表エントリを残件数に含める');
+            Assert.areEqual(environmentError, response.errorMessage, '価格件数にも実環境の判定を適用');
+            Assert.areEqual(String.isEmpty(environmentError) ? 1 : 0, response.remaining, '許可時だけ通常の価格表エントリを集計');
         }
 
     }

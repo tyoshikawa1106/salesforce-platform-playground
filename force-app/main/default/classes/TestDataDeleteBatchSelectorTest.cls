@@ -105,12 +105,12 @@ private with sharing class TestDataDeleteBatchSelectorTest {
             String customFilter = service.getStageRecordFilter(plan);
             List<SObject> customScope = collectScope(selector.getRecords('PricebookEntry', customFilter));
             Assert.areEqual(1, customScope.size(), '最初はカスタム価格だけを選択');
-            new TestDataDeleteBatch(plan).execute(null, customScope);
+            Database.delete(customScope, AccessLevel.USER_MODE);
             TestDataDeleteBatchWrapper standardPlan = service.createNext(plan);
             String standardFilter = service.getStageRecordFilter(standardPlan);
             List<SObject> standardScope = collectScope(selector.getRecords('PricebookEntry', standardFilter));
             Assert.areEqual(1, standardScope.size(), 'カスタム価格削除後も標準価格を保持');
-            new TestDataDeleteBatch(standardPlan).execute(null, standardScope);
+            Database.delete(standardScope, AccessLevel.USER_MODE);
             Test.stopTest();
             Assert.areEqual(0, selector.getRemaining('PricebookEntry', filter), '参照先のあるエントリを全件削除');
             Assert.areEqual(1, [SELECT COUNT() FROM Product2], '商品は次の段階まで保持');
