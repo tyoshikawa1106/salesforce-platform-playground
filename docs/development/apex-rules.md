@@ -497,11 +497,12 @@ private static User testUser = new User(Id = UserInfo.getUserId());
 
 ### テストデータの準備
 
+- `@TestSetup`は原則使用しない。各テストメソッドで必要な準備だけを明示的に行い、データを使わないケースへ一律のINSERTを持ち込まない。
 - テストデータは各テストクラス内で作成し、保存が必要な場面だけ明示的にDMLを実行する。1テストメソッドで使用するINSERT件数は、`@TestSetup`を含めて1オブジェクトあたり20件以内にする。超過が必要な場合は理由を説明し、許可を得てから作成する。
 - 同じクラス内で繰り返す複雑な準備は、そのテストクラスのprivate helperへまとめてよい。別の共通ファクトリへ移さない。
 - `TestDataFactory`は原則として外部から呼び出さない。現在は`TestDataFactory`と`TestDataFactoryTest`だけを保持し、他のテストクラスからは参照しない。
 - 保持する`TestDataFactory`の契約は対応する同名Testだけで確認する。既存の保存モードenumはそのクラス内の契約として扱い、他のテストへ広げない。
-- 設定オブジェクトと業務レコードを同じtransactionで保存する場合は、`@TestSetup`や`System.runAs`でMixed DMLを避ける。
+- 設定オブジェクトと業務レコードを同じtransactionで保存する場合は、`System.runAs`でMixed DMLを避ける。
 
 ### 実行ブロック
 
