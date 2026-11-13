@@ -77,31 +77,49 @@ public with sharing class TestDataDeleteService {
             wrapper.errorMessage = '「すべてのデータの編集」権限が必要です。';
             return wrapper;
         }
-        // 許可済みユーザーにだけ対象一覧を構成
-        return createTargets();
+        // 現在の組織メタデータと実行ユーザーの権限を取得
+        Map<String, Schema.SObjectType> objectTypes = Schema.getGlobalDescribe();
+        // 表示に必要な取得済み定義だけを保持
+        Map<String, Schema.DescribeSObjectResult> descriptions = new Map<String, Schema.DescribeSObjectResult>();
+        // 参照・検索・削除のすべてを満たす対象だけ許可
+        Set<String> allowedObjects = new Set<String>();
+        // 固定計画の各対象を一度だけDescribe
+        for (String objectName : getObjectNames()) {
+            // 未有効の機能は定義なしのまま渡す
+            Schema.DescribeSObjectResult info = objectTypes.get(objectName)?.getDescribe(SObjectDescribeOptions.DEFERRED);
+            // メタデータと権限を同じ対象名で対応付ける
+            descriptions.put(objectName, info);
+            // 削除可否は実際のユーザー権限から取得
+            if (info?.isAccessible() == true && info.isQueryable() && info.isDeletable()) {
+                allowedObjects.add(objectName);
+            }
+        }
+        // 同じ判定結果から表示用の対象一覧を生成
+        return createTargets(descriptions, allowedObjects);
     }
 
-    /** 組織で利用可能な固定対象と権限不足をまとめる
+    /** 取得済み条件から対象一覧を生成し、機能・権限差異を引数で検証
+     * @param descriptions 取得済みの対象定義
+     * @param allowedObjects 参照・検索・削除のすべてを許可された対象名
      * @return 固定対象とその実行可否
      */
-    private TestDataDeleteWrapper createTargets() {
+    @TestVisible
+    private TestDataDeleteWrapper createTargets(Map<String, Schema.DescribeSObjectResult> descriptions, Set<String> allowedObjects) {
         // 画面へ返すデータはこの処理で新しく生成
         TestDataDeleteWrapper wrapper = new TestDataDeleteWrapper();
         // バッチと画面で同じ固定の削除計画を使用
         wrapper.objectNames = getObjectNames();
-        Map<String, Schema.SObjectType> objectTypes = Schema.getGlobalDescribe();
         for (String objectName : wrapper.objectNames) {
             // 存在しないoptional objectだけを対象外と表示
-            Schema.SObjectType objectType = objectTypes.get(objectName);
-            if (objectType == null) {
+            Schema.DescribeSObjectResult description = descriptions.get(objectName);
+            if (description == null) {
                 wrapper.unavailableObjects.add(objectName);
                 wrapper.labels.put(objectName, objectName);
                 continue;
             }
             // 一つでも権限不足なら削除開始前に拒否
-            Schema.DescribeSObjectResult description = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
             wrapper.labels.put(objectName, description.getLabel());
-            if (!description.isAccessible() || !description.isQueryable() || !description.isDeletable()) {
+            if (!allowedObjects.contains(objectName)) {
                 wrapper.errorMessage = objectName + 'の参照・削除権限が必要です。';
             }
         }

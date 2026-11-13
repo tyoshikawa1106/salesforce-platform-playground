@@ -35,4 +35,19 @@ private with sharing class TestDataDeleteSelectorTest {
             Assert.isTrue(active.isEmpty(), '未起動');
         }
     }
+    /** 登録済みジョブを実行せず検索条件を確認 */
+    @IsTest
+    static void queriesRegisteredDeleteJob() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Id jobId = Database.executeBatch(new TestDataDeleteBatch(new TestDataDeleteBatchWrapper()), 200);
+            List<Organization> organizations = selector.getOrganizations();
+            Assert.areEqual(1, organizations.size(), '現在組織の判定情報を取得');
+            Assert.areEqual(jobId, selector.getJobs(jobId)[0].Id, '指定された同機能ジョブだけを取得');
+            System.abortJob(jobId);
+            Test.stopTest();
+        }
+    }
+
 }

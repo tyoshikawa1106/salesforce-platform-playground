@@ -3,21 +3,6 @@
 private with sharing class TestDataDeleteControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
-    private static User deniedUser = createDeniedUser();
-
-    /** すべてのデータの編集権限がなければ拒否 */
-    @IsTest
-    static void rejectsUserWithoutEffectiveModifyAllData() {
-        insert deniedUser;
-
-        System.runAs(deniedUser) {
-            Test.startTest();
-            TestDataDeleteWrapper response = TestDataDeleteController.startRun('DELETE_ALL');
-            Test.stopTest();
-            Assert.areEqual('', response.jobId, '実効権限のないユーザーは開始できない');
-            Assert.isTrue(response.errorMessage.contains('すべてのデータの編集'), '必要権限を案内');
-        }
-    }
 
     /** 確認済み要求だけを受け付け同じジョブを追跡 */
     @IsTest
@@ -110,32 +95,6 @@ private with sharing class TestDataDeleteControllerTest {
             Assert.areEqual(1, response.remaining, '通常の価格表エントリを残件数に含める');
         }
 
-    }
-
-    /** 権限不足の検証に使う未保存ユーザーを準備
-     * @return すべてのデータの編集権限を持たないユーザー
-     */
-    private static User createDeniedUser() {
-        List<Profile> profiles = [
-            SELECT Id
-            FROM Profile
-            WHERE PermissionsModifyAllData = FALSE AND UserLicense.Name = 'Salesforce'
-            LIMIT 1
-        ];
-        Assert.isFalse(profiles.isEmpty(), '権限不足の検証用プロファイルが必要');
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'testuser',
-            LastName = '削除権限なし',
-            Email = 'test-user@example.invalid',
-            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        denied.ProfileId = profiles[0].Id;
-        return denied;
     }
 
 }

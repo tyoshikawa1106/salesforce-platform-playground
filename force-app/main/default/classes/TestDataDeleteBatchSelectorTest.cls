@@ -127,4 +127,19 @@ private with sharing class TestDataDeleteBatchSelectorTest {
         }
         return result;
     }
+    /** 登録済みジョブを実行せず検索条件を確認 */
+    @IsTest
+    static void queriesRegisteredDeleteJob() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Id jobId = Database.executeBatch(new TestDataDeleteBatch(new TestDataDeleteBatchWrapper()), 200);
+            Assert.areEqual(jobId, selector.getJob(jobId)[0].Id, '完了通知用の同じジョブを取得');
+            Assert.isTrue(selector.getOtherActiveJobs(jobId).isEmpty(), '自身を重複起動と誤認しない');
+            Assert.areEqual(jobId, selector.getOtherActiveJobs(null)[0].Id, '自身の指定がない場合は登録済みジョブを検出');
+            System.abortJob(jobId);
+            Test.stopTest();
+        }
+    }
+
 }
