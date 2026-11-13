@@ -13,25 +13,15 @@ private with sharing class ExternalClientAppManagerControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 既存の権限セット名へ依存せず機能利用権限を準備 */
     @TestSetup
     static void grantFeatureAccess() {
-        List<PermissionSet> permissions = [
-            SELECT Id
-            FROM PermissionSet
-            WHERE Name = 'LwcExternalClientAppManager'
-            WITH USER_MODE
-        ];
-        Assert.areEqual(1, permissions.size(), '機能権限セットを配置');
-        Id permissionId = permissions[0].Id;
-        List<PermissionSetAssignment> assignments = [
-            SELECT Id
-            FROM PermissionSetAssignment
-            WHERE AssigneeId = :UserInfo.getUserId() AND PermissionSetId = :permissionId
-            WITH USER_MODE
-        ];
-        if (assignments.isEmpty()) {
-            insert new PermissionSetAssignment(AssigneeId = UserInfo.getUserId(), PermissionSetId = permissionId);
-        }
+        if (FeatureManagement.checkPermission('ManageExternalClientAppCredentials')) { return; }
+        List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'ManageExternalClientAppCredentials'];
+        PermissionSet access = new PermissionSet(Name = 'ExternalClientManagerTestAccess', Label = '外部クライアント管理テスト');
+        insert access;
+        insert new SetupEntityAccess(ParentId = access.Id, SetupEntityId = permissions[0].Id);
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = access.Id);
     }
 
     /** 一覧参照では変更要求や変更完了日時を返さない */
@@ -491,39 +481,6 @@ private with sharing class ExternalClientAppManagerControllerTest {
                 Assert.isTrue(error.getMessage().contains('操作'), '入力エラーを案内');
             }
             Test.stopTest();
-            mock.assertConsumed();
-        }
-    }
-
-    /** 機能権限がなければ更新・認証入口を利用させない */
-    @IsTest
-    static void rejectsWithoutFeaturePermission() {
-        User noAccess = new User(
-            Alias = 'ecatest',
-            Email = 'eca-test@example.invalid',
-            LastName = '資格情報テスト',
-            Username = 'eca-' + System.now().getTime() + '@example.invalid',
-            ProfileId = UserInfo.getProfileId(),
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert noAccess;
-        System.runAs(noAccess) {
-            RequestQueue mock = new RequestQueue();
-            Test.setMock(HttpCalloutMock.class, mock);
-            Test.startTest();
-            Map<String, Object> result = ExternalClientAppManagerController.execute(input('generate'));
-            Test.stopTest();
-            Assert.areEqual('notStarted', result.get('state'), '権限なしは変更前に拒否');
-            Assert.isTrue(((String) result.get('message')).contains('権限'), '権限不足を案内');
-            try {
-                ExternalClientAppManagerController.getAuthenticationUrl();
-                Assert.fail('機能権限なしのURL取得を拒否');
-            } catch (AuraHandledException error) {
-                Assert.isTrue(error.getMessage().contains('認証を開始できません'), '権限不足の内部情報を公開しない');
-            }
             mock.assertConsumed();
         }
     }

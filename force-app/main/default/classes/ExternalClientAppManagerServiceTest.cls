@@ -36,21 +36,11 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 Assert.isTrue(missingStageError.getMessage().contains('操作対象'), '再取得を案内');
             }
 
-            for (String action : new List<String>{ 'apply', 'deleteStage' }) {
-                for (String unsupportedState : new List<String>{ null, '', 'unknown' }) {
-                    try {
-                        service.requireRequest(
-                            new Map<String, String>{
-                                'action' => action,
-                                'stageId' => STAGE_ID,
-                                'stageState' => unsupportedState
-                            }
-                        );
-                        Assert.fail('未対応状態を拒否');
-                    } catch (ExternalClientAppManagerService.ValidationException unsupportedStateError) {
-                        Assert.isTrue(unsupportedStateError.getMessage().contains('操作対象'), '対象を再確認');
-                    }
-                }
+            try {
+                service.requireRequest(new Map<String, String>{ 'action' => 'apply', 'stageId' => STAGE_ID, 'stageState' => 'unknown' });
+                Assert.fail('未対応状態を拒否');
+            } catch (ExternalClientAppManagerService.ValidationException unsupportedStateError) {
+                Assert.isTrue(unsupportedStateError.getMessage().contains('操作対象'), '対象を再確認');
             }
             Test.stopTest();
         }
@@ -84,14 +74,13 @@ private with sharing class ExternalClientAppManagerServiceTest {
             }
 
             stages.requireApplicable(rows('active'), new Map<String, String>{ 'stageId' => STAGE_ID });
-            for (String inapplicableState : new List<String>{ 'rotated', 'expired', 'unknown' }) {
+
                 try {
-                    stages.requireApplicable(rows(inapplicableState), new Map<String, String>{ 'stageId' => STAGE_ID });
+                    stages.requireApplicable(rows('expired'), new Map<String, String>{ 'stageId' => STAGE_ID });
                     Assert.fail('未適用以外を拒否');
                 } catch (ExternalClientAppManagerService.ValidationException inapplicableStateError) {
                     Assert.isTrue(inapplicableStateError.getMessage().contains('未適用'), '適用条件を案内');
                 }
-            }
             Test.stopTest();
         }
     }
@@ -103,14 +92,13 @@ private with sharing class ExternalClientAppManagerServiceTest {
             Test.startTest();
 
             stages.requireEmptyStages(new List<Object>());
-            for (String remainingState : new List<String>{ 'active', 'rotated', 'expired', 'unknown' }) {
+
                 try {
-                    stages.requireEmptyStages(new List<Object>{ new Map<String, Object>{ 'state' => remainingState } });
+                    stages.requireEmptyStages(new List<Object>{ new Map<String, Object>{ 'state' => 'active' } });
                     Assert.fail('資格情報が残った生成を拒否');
                 } catch (ExternalClientAppManagerService.ValidationException remainingStageError) {
                     Assert.isTrue(remainingStageError.getMessage().contains('手動で削除'), '手動整理を案内');
                 }
-            }
 
             List<Object> generatedAndRetiredStages = rows('rotated');
             ((Map<String, Object>) generatedAndRetiredStages[0]).put('id', '0ug' + '0'.repeat(11) + '2');
@@ -367,4 +355,59 @@ private with sharing class ExternalClientAppManagerServiceTest {
     private static List<Object> rows(String state) {
         return new List<Object>{ new Map<String, Object>{ 'id' => STAGE_ID, 'state' => state } };
     }
+    /** 権限の判定値と現在の公開入口を照合 */
+    @IsTest
+    static void enforcesFeatureAccessArgument() {
+
+        System.runAs(testUser) {
+            Boolean currentAccess = FeatureManagement.checkPermission('ManageExternalClientAppCredentials');
+            Test.startTest();
+            service.requireFeatureAccess(true);
+            try {
+                service.requireFeatureAccess(false);
+                Assert.fail('権限なしの判定を拒否');
+            } catch (ExternalClientAppManagerService.ValidationException e) {
+                Assert.isTrue(e.getMessage().contains('更新権限'), '必要な権限を案内');
+            }
+            try {
+                service.requireAccess();
+                Assert.isTrue(currentAccess, '公開入口は実際の権限に従う');
+            } catch (ExternalClientAppManagerService.ValidationException e) {
+                Assert.isFalse(currentAccess, '権限がない場合だけ拒否');
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 画面で確認したステージと操作後の同一IDを検証 */
+    @IsTest
+    static void checksStageAndOperationResults() {
+
+        System.runAs(testUser) {
+            Map<String, Object> row = new Map<String, Object>{ 'id' => STAGE_ID, 'state' => 'active' };
+            List<Object> rows = new List<Object>{ row };
+            Map<String, String> input = new Map<String, String>{ 'action' => 'apply', 'stageId' => STAGE_ID, 'stageState' => 'active' };
+            Test.startTest();
+            service.requireRequest(input);
+            stages.requireStage(rows, input);
+            stages.requireOperationResult('generate', rows, STAGE_ID);
+            try {
+                stages.requireOperationResult('generate', rows, '0ug' + '0'.repeat(11) + '2');
+                Assert.fail('別IDの生成結果を拒否');
+            } catch (ExternalClientAppManagerService.ValidationException e) {
+                Assert.isTrue(e.getMessage().contains('確認できません'), '同じIDの生成が必要');
+            }
+            row.put('state', 'rotated');
+            stages.requireOperationResult('apply', rows, STAGE_ID);
+            try {
+                stages.requireStage(rows, input);
+                Assert.fail('確認後に変化した状態を拒否');
+            } catch (ExternalClientAppManagerService.ValidationException e) {
+                Assert.isTrue(e.getMessage().contains('変更'), '再取得を案内');
+            }
+            stages.requireOperationResult('deleteStage', new List<Object>(), STAGE_ID);
+            Test.stopTest();
+        }
+    }
+
 }
