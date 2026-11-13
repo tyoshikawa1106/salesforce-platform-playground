@@ -908,9 +908,9 @@ private with sharing class ObjectExplorerControllerTest {
             CredentialMock mock = new CredentialMock();
             SalesforceApiClient.credentialAccess = mock;
             Test.startTest();
-            Assert.areEqual(mock.url, ObjectExplorerController.getApiAuthenticationUrl(), '同じ組織の標準URLを返す');
+            Assert.areEqual(mock.authenticationUrl, ObjectExplorerController.getApiAuthenticationUrl(), '同じ組織の標準URLを返す');
             Assert.areEqual(1, mock.urlRequests, 'URLを一度だけ取得');
-            mock.url = 'https://example.invalid/auth';
+            mock.authenticationUrl = 'https://example.invalid/auth';
             try {
                 ObjectExplorerController.getApiAuthenticationUrl();
                 Assert.fail('別ホストの認証URLを拒否');
@@ -928,7 +928,7 @@ private with sharing class ObjectExplorerControllerTest {
     /** 公開入口から実際の認証設定を変更しないための標準API境界 */
     private class CredentialMock extends SalesforceApiClient.CredentialAccess {
         private ConnectApi.CredentialAuthenticationStatus status = ConnectApi.CredentialAuthenticationStatus.Configured;
-        private String url = Url.getOrgDomainUrl().toExternalForm() + '/auth';
+        private String authenticationUrl = Url.getOrgDomainUrl().toExternalForm() + '/auth';
         private Integer urlRequests = 0;
         private Integer revocations = 0;
 
@@ -944,7 +944,7 @@ private with sharing class ObjectExplorerControllerTest {
          */
         public override String getUrl() {
             urlRequests++;
-            return url;
+            return authenticationUrl;
         }
 
         /** 実際の資格情報を変更せず解除要求を記録 */
