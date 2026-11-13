@@ -251,4 +251,75 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
     }
 
+    /** 選択リストの設定順と同値内のID順を取得 */
+    @IsTest
+    static void sortsPicklistValuesInBothDirections() {
+
+        System.runAs(testUser) {
+            insert new List<Opportunity>{
+                new Opportunity(Name = '順序A', StageName = 'Prospecting', CloseDate = Date.today()),
+                new Opportunity(Name = '順序B', StageName = 'Needs Analysis', CloseDate = Date.today()),
+                new Opportunity(Name = '順序C', StageName = 'Prospecting', CloseDate = Date.today())
+            };
+            List<Opportunity> ascending = [SELECT Id FROM Opportunity ORDER BY StageName ASC NULLS LAST, Id ASC];
+            List<Opportunity> descending = [SELECT Id FROM Opportunity ORDER BY StageName DESC NULLS LAST, Id ASC];
+            Test.startTest();
+            Assert.areEqual(recordIds(ascending), readSortedIds('opportunities', 'StageName', 'asc'), '選択値の昇順を維持');
+            Assert.areEqual(recordIds(descending), readSortedIds('opportunities', 'StageName', 'desc'), '選択値の降順を維持');
+            Test.stopTest();
+        }
+    }
+
+    /** Booleanの両値を指定方向で取得 */
+    @IsTest
+    static void sortsBooleanValuesInBothDirections() {
+
+        System.runAs(testUser) {
+            insert new List<Product2>{
+                new Product2(Name = '有効A', IsActive = true),
+                new Product2(Name = '無効', IsActive = false),
+                new Product2(Name = '有効B', IsActive = true)
+            };
+            List<Product2> ascending = [SELECT Id FROM Product2 ORDER BY IsActive ASC NULLS LAST, Id ASC];
+            List<Product2> descending = [SELECT Id FROM Product2 ORDER BY IsActive DESC NULLS LAST, Id ASC];
+            Test.startTest();
+            Assert.areEqual(recordIds(ascending), readSortedIds('products', 'IsActive', 'asc'), 'Booleanの昇順を維持');
+            Assert.areEqual(recordIds(descending), readSortedIds('products', 'IsActive', 'desc'), 'Booleanの降順を維持');
+            Test.stopTest();
+        }
+    }
+
+    /** nullの選択値を末尾に置き同値内のID順を維持 */
+    @IsTest
+    static void sortsNullablePicklists() {
+
+        System.runAs(testUser) {
+            List<Account> expected = [SELECT Id FROM Account ORDER BY Industry ASC NULLS LAST, Id ASC];
+            Test.startTest();
+            Assert.areEqual(recordIds(expected), readSortedIds('accounts', 'Industry', 'asc'), 'nullを末尾へ配置');
+            Test.stopTest();
+        }
+    }
+
+    private static List<Id> readSortedIds(String key, String field, String direction) {
+        ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
+        input.metricKey = key;
+        input.sortBy = field;
+        input.sortDirection = direction;
+        ObjectRecordSearchContext context = service.resolveSearchContext(key).context;
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request = service.createSearchQueryRequest(
+            context, input, service.createSortSpec(context, input)
+        ).searchQueryRequest;
+        request.paginationCursor = selector.createPaginationCursor(request);
+        Database.CursorFetchResult fetched = selector.searchRecords(request);
+        return recordIds(fetched.getRecords());
+    }
+
+    private static List<Id> recordIds(List<SObject> records) {
+        List<Id> ids = new List<Id>();
+        for (SObject record : records) {
+            ids.add(record.Id);
+        }
+        return ids;
+    }
 }

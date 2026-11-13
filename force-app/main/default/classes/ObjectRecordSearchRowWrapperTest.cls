@@ -11,21 +11,15 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
      */
     @IsTest
     static void shouldExposeRecordValues() {
-        Account accountRecord = new Account(Name = 'Wrapper Row Account');
+        Account accountRecord = new Account(Id = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'), Name = 'Wrapper Row Account');
         accountRecord.Industry = 'Technology';
-        insert accountRecord;
-        Account queriedAccount = [
-            SELECT Id, Name, Industry
-            FROM Account
-            WHERE Id = :accountRecord.Id
-        ];
         ObjectRecordSearchRowWrapper wrapper;
 
         System.runAs(testUser) {
             Test.startTest();
 
             wrapper = new ObjectRecordSearchRowWrapper(
-                queriedAccount,
+                accountRecord,
                 'Name',
                 new List<ObjectRecordSearchFieldWrapper>{
                     new ObjectRecordSearchFieldWrapper(
@@ -40,7 +34,7 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
         }
 
         Assert.areEqual(
-            queriedAccount.Id,
+            accountRecord.Id,
             wrapper.id,
             'Row wrapper はレコード ID を公開する必要あり'
         );
@@ -66,7 +60,6 @@ private with sharing class ObjectRecordSearchRowWrapperTest {
     @IsTest
     static void shouldNormalizeNullDisplayFields() {
         Account accountRecord = new Account(Name = 'Wrapper Empty Field Account');
-        insert accountRecord;
         ObjectRecordSearchRowWrapper wrapper;
 
         System.runAs(testUser) {

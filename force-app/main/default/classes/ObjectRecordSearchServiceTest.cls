@@ -5,8 +5,15 @@
 private with sharing class ObjectRecordSearchServiceTest {
 
     private static ObjectRecordSearchService service = new ObjectRecordSearchService();
+    private static ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
+    private static User deniedUser = new User(
+        Alias = 'limited', LastName = '権限なしテスト', Email = 'limited@example.invalid',
+        Username = 'limited.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+        TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = 'ja_JP',
+        EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja'
+    );
 
     @TestSetup
     static void setupTestData() {
@@ -32,7 +39,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             'Service'
         );
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = createQueryRequest(request);
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
@@ -147,16 +154,13 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
-     * ページサイズ超過時に次ページ情報を作成
+     * カーソルに残件がある場合の次ページ情報を作成
      */
     @IsTest
-    static void shouldCreatePagedSearchResultWhenMoreThanPageSizeIsFetched() {
-        List<Account> accounts = new List<Account>();
-        for (Integer index = 0; index < 51; index++) {
-            Account accountRecord = new Account(Name = 'Paged Account ' + index);
-            accountRecord.Industry = 'Technology';
-            accounts.add(accountRecord);
-        }
+    static void shouldCreateNextPageFromCursorResult() {
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Paged A'), new Account(Name = 'Paged B')
+        };
         insert accounts;
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
@@ -164,22 +168,22 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
         request.pageNumber = 0;
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = createQueryRequest(request);
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
             searchQueryRequest.paginationCursor = selector.createPaginationCursor(searchQueryRequest);
-            result = service.createSearchResult(searchQueryRequest, selector.searchRecords(searchQueryRequest));
+            result = service.createSearchResult(searchQueryRequest, searchQueryRequest.paginationCursor.fetchPage(0, 1));
 
             Test.stopTest();
         }
 
         Assert.areEqual(
-            50,
+            1,
             result.records.size(),
-            'Service は余分に取得した行をレスポンスから除く必要あり'
+            '取得済みの一行だけを返す必要あり'
         );
         Assert.isTrue(
             result.hasNextPage,
@@ -189,7 +193,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             result.paginationCursor,
             '次ページ状態は標準カーソルを含む必要あり'
         );
-        Assert.areEqual(50, result.nextIndex, '標準APIの次ページ位置を保持する必要あり');
+        Assert.areEqual(1, result.nextIndex, '標準APIの次ページ位置を保持する必要あり');
         Assert.areEqual(
             1,
             result.pageNumber,
@@ -399,7 +403,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             Test.startTest();
 
             List<Database.DeleteResult> deleteResults = Database.delete(new List<SObject>{ target }, false, AccessLevel.USER_MODE);
-            result = new ObjectRecordSearchService().createDeleteResult(
+            result = service.createDeleteResult(
                 new List<Id>{ target.Id },
                 deleteResults
             );
@@ -448,5 +452,31 @@ private with sharing class ObjectRecordSearchServiceTest {
         request.metricKey = metricKey;
         request.searchTerm = searchTerm;
         return request;
+    }
+
+    /** 対象オブジェクトの参照権限がない検索を拒否 */
+    @IsTest
+    static void rejectsSearchWithoutObjectReadAccess() {
+        insertDeniedUser();
+
+        System.runAs(deniedUser) {
+            Test.startTest();
+            ObjectRecordSearchService.SearchContextResult result = service.resolveSearchContext('accounts');
+            Test.stopTest();
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.OBJECT_ACCESS_DENIED, result.errorCode, '参照権限不足を区別');
+            Assert.isNull(result.context, '検索できない内部状態を返さない');
+        }
+    }
+
+    /** 権限拒否を確認するユーザーだけを保存 */
+    private static void insertDeniedUser() {
+        List<Profile> profiles = [
+            SELECT Id FROM Profile
+            WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce'
+            ORDER BY Name LIMIT 1
+        ];
+        Assert.isFalse(profiles.isEmpty(), '権限なしのプロファイルが存在');
+        deniedUser.ProfileId = profiles[0].Id;
+        insert deniedUser;
     }
 }
