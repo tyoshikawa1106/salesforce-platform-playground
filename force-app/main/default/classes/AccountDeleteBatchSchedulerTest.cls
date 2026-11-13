@@ -5,10 +5,9 @@ private with sharing class AccountDeleteBatchSchedulerTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
-     * 同じテストクラスで必要な権限だけを割り当て
+     * 公開入口の検証で必要な機能権限を割り当て
      */
-    @TestSetup
-    static void setupDeleteAccess() {
+    private static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
         List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
         PermissionSet access = new PermissionSet(Name = 'AccountDeleteScheduleTestAccess', Label = '取引先削除定期実行テスト用');
@@ -20,6 +19,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
     /** 実際の環境に応じて定期起動を受付または拒否 */
     @IsTest
     static void appliesEnvironmentConditionWhenScheduled() {
+        setupDeleteAccess();
 
         System.runAs(testUser) {
             Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
@@ -37,6 +37,7 @@ private with sharing class AccountDeleteBatchSchedulerTest {
     /** 実行中ジョブまたは環境で拒否された場合は追加登録しない */
     @IsTest
     static void doesNotAddBatchWhenExecutionIsBlocked() {
+        setupDeleteAccess();
 
         System.runAs(testUser) {
             Test.startTest();
