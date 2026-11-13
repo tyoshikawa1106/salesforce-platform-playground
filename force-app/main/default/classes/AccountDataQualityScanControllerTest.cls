@@ -118,4 +118,32 @@ private with sharing class AccountDataQualityScanControllerTest {
         Assert.areEqual(100, result.progressPercent, '完了済みスキャンは進捗100パーセントにする必要あり');
     }
 
+    /** 参照権限不足なら履歴取得前に終了 */
+    @IsTest
+    static void rejectsGetLatestScanWithoutReadAccess() {
+        System.runAs(testUser) {
+            Test.startTest();
+            AccountDataQualityScanWrapper result = AccountDataQualityScanController.getLatestScanForAccess(false);
+            Assert.areEqual('取引先またはスキャン結果の参照権限がありません。管理者に権限を確認してください。', result.accessErrorMessage, '参照権限の不足を通知');
+            Assert.areEqual(0, Limits.getQueries(), '拒否後に履歴を取得しない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '拒否後に保存しない');
+            Assert.areEqual(0, Limits.getQueueableJobs(), '拒否後にスキャンを登録しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 参照権限不足なら開始前に終了 */
+    @IsTest
+    static void rejectsStartScanWithoutReadAccess() {
+        System.runAs(testUser) {
+            Test.startTest();
+            AccountDataQualityScanWrapper result = AccountDataQualityScanController.startScanForAccess(false);
+            Assert.areEqual('取引先またはスキャン結果の参照権限がありません。管理者に権限を確認してください。', result.accessErrorMessage, '参照権限の不足を通知');
+            Assert.areEqual(0, Limits.getQueries(), '拒否後に履歴を取得しない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '拒否後に保存しない');
+            Assert.areEqual(0, Limits.getQueueableJobs(), '拒否後にスキャンを登録しない');
+            Test.stopTest();
+        }
+    }
+
 }
