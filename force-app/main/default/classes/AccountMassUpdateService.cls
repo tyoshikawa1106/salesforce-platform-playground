@@ -134,10 +134,13 @@ public with sharing class AccountMassUpdateService {
             // 判定結果を呼び出し元へ返却
             return wrapper;
         }
+        // nullキーは対象レコードの版情報として扱わず、呼出元のMapは変更しない
+        Map<Id, Datetime> recordVersions = new Map<Id, Datetime>(versions);
+        recordVersions.remove(null);
         // 各行の項目・ID・更新前バージョンを検証
         for (Account change : changes) {
             // 行検証で許可項目と重複を一緒に確認
-            String errorMessage = validateChange(change, versions, wrapper);
+            String errorMessage = validateChange(change, recordVersions, wrapper);
             // 最初の不正行で要求全体を拒否
             if (String.isNotEmpty(errorMessage)) {
                 wrapper.errorMessage = errorMessage;

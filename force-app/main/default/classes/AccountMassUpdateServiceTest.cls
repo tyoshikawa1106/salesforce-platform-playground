@@ -188,4 +188,18 @@ private with sharing class AccountMassUpdateServiceTest {
         }
     }
 
+    /** nullキーの版情報があってもnull行を更新対象にしない */
+    @IsTest
+    static void rejectsNullChangeWithNullVersionKey() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<Id, Datetime> versions = new Map<Id, Datetime>{ null => System.now() };
+            AccountMassUpdateWrapper result = service.prepareSave(new List<Account>{ null }, versions);
+            Assert.isTrue(result.errorMessage.contains('更新対象'), 'null行は版情報に関係なく拒否');
+            Assert.isTrue(result.recordIds.isEmpty(), '不正な対象IDを後続へ渡さない');
+            Assert.areEqual(0, Limits.getDmlStatements(), '拒否時に更新しない');
+            Test.stopTest();
+        }
+    }
+
 }
