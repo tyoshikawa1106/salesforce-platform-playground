@@ -53,13 +53,12 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldRejectNonCaseIdForCount() {
-        Account accountRecord = new Account(Name = 'メール件数 Case 以外 ID テスト');
-        insert accountRecord;
+        Id nonCaseId = UserInfo.getUserId();
 
         System.runAs(testUser) {
             Test.startTest();
             try {
-                CaseEmailMessageController.getEmailMessageCount(accountRecord.Id);
+                CaseEmailMessageController.getEmailMessageCount(nonCaseId);
                 Assert.fail('Case 以外の ID は AuraHandledException にする必要あり');
             } catch (AuraHandledException e) {
                 Assert.isNotNull(e, 'Case 以外の ID は利用者向け例外に変換する必要あり');
@@ -168,13 +167,12 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldRejectNonCaseId() {
-        Account accountRecord = new Account(Name = 'ケース以外 ID テスト');
-        insert accountRecord;
+        Id nonCaseId = UserInfo.getUserId();
 
         System.runAs(testUser) {
             Test.startTest();
             try {
-                CaseEmailMessageController.getEmailMessages(accountRecord.Id, null, 0);
+                CaseEmailMessageController.getEmailMessages(nonCaseId, null, 0);
                 Assert.fail('ケース以外の ID は AuraHandledException にする必要あり');
             } catch (AuraHandledException e) {
                 Assert.isNotNull(e, 'ケース以外の ID は利用者向け例外に変換する必要あり');
