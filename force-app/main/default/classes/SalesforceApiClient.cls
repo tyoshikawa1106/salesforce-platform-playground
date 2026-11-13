@@ -20,7 +20,7 @@ public with sharing class SalesforceApiClient {
             // 本人用Principal以外の資格情報を取得しない
             return ConnectApi.NamedCredentials.getCredential(
                 NAMED_CREDENTIAL, 'SalesforceApiUserPrincipal', ConnectApi.CredentialPrincipalType.PerUserPrincipal
-            ).authenticationStatus;
+            )?.authenticationStatus;
         }
 
         /** 本人用OAuth認証URLを取得
@@ -36,7 +36,7 @@ public with sharing class SalesforceApiClient {
             // 戻り先は固定した組織内パス
             input.returnUrl = '/lightning/n/ObjectExplorer';
             // 認証フローをSalesforce標準機能へ委譲
-            return ConnectApi.NamedCredentials.getOAuthCredentialAuthUrl(input).authenticationUrl;
+            return ConnectApi.NamedCredentials.getOAuthCredentialAuthUrl(input)?.authenticationUrl;
         }
 
         /** 実行ユーザー本人の資格情報を解除 */
@@ -53,6 +53,8 @@ public with sharing class SalesforceApiClient {
     public ConnectApi.CredentialAuthenticationStatus getAuthenticationStatus() {
         // 対象を固定し、別利用者や共有Principalの認証情報を要求しない
         ConnectApi.CredentialAuthenticationStatus status = credentialAccess.getStatus();
+        // 状態欠落を認証済み・未認証のいずれにも推測しない
+        if (status == null) { throw new IntegrationException('API認証の状態を確認できませんでした。'); }
         // 保存済みトークンでは接続先の組織も通信境界で検証する
         if (status == ConnectApi.CredentialAuthenticationStatus.Configured) { verifyOrganization(); }
         // 資格情報の値やパラメーターは呼び出し元へ渡さない
@@ -67,7 +69,10 @@ public with sharing class SalesforceApiClient {
         // 標準API例外の内部情報を通信境界で遮断する
         try {
             // 標準APIの接続境界から本人用URLを取得
-            return credentialAccess.getUrl();
+            String authenticationUrl = credentialAccess.getUrl();
+            // 必須URLがない状態で認証フローを開始しない
+            if (String.isBlank(authenticationUrl)) { throw new IntegrationException('API認証の開始URLを確認できませんでした。'); }
+            return authenticationUrl;
         } catch (Exception error) {
             // 接続設定や資格情報を含めない固定案内だけを返す
             throw new IntegrationException('API認証を開始できませんでした。接続設定と権限を管理者に確認してください。');
@@ -104,13 +109,8 @@ public with sharing class SalesforceApiClient {
             if (method == 'PATCH' && new Set<Integer>{400, 401, 403, 404, 409, 422, 429}.contains(response.getStatusCode())) { throw new RejectedUpdateException(failure.getMessage()); }
             throw failure;
         }
-        try {
-            // HTTP成功とJSON形式の正常性を別々に確認する
-            return String.isBlank(response.getBody()) ? new Map<String, Object>() : (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
-        } catch (Exception error) {
-            // 応答本文は公開せず形式不正だけを通知する
-            throw new IntegrationException('[OE-API-RESPONSE] API応答をオブジェクト形式で読み取れませんでした。');
-        }
+        // 応答本文の型検証を共通プロトコルへ委譲
+        return new SalesforceApiProtocol.RecordReader().readResponse(response.getBody());
     }
 
     /**

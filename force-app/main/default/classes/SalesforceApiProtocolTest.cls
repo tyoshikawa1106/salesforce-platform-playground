@@ -83,6 +83,12 @@ private with sharing class SalesforceApiProtocolTest {
             response.setBody('[{"errorCode":"REQUIRED_FIELD_MISSING","message":"PRIVATE_VALUE"}]');
             Test.startTest();
             String result = SalesforceApiProtocol.httpMessage(response);
+            Dom.Document soap = new Dom.Document();
+            soap.load('<result xmlns="http://soap.sforce.com/2006/04/metadata"><errors><statusCode>INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST</statusCode><fields>FieldOrColumn</fields></errors></result>');
+            Assert.isTrue(SalesforceApiProtocol.metadataUpdateError(soap.getRootElement()).contains('FieldOrColumn'), '項目自体の拒否を区別');
+            soap = new Dom.Document();
+            soap.load('<result xmlns="http://soap.sforce.com/2006/04/metadata"/>');
+            Assert.isTrue(SalesforceApiProtocol.metadataUpdateError(soap.getRootElement()).contains('UNRECOGNIZED_API_ERROR_CODE'), 'コード欠落は原因未確定として保持');
             Test.stopTest();
             Assert.isTrue(result.contains('REQUIRED_FIELD_MISSING'), '公式の定義検証コードを維持');
             Assert.isFalse(result.contains('PRIVATE_VALUE'), '応答の自由文は公開しない');
@@ -170,4 +176,94 @@ private with sharing class SalesforceApiProtocolTest {
         }
     }
 
+    /** 応答・配列・行の欠落を照合前に拒否 */
+    @IsTest
+    static void rejectsNullQueryResponseAndRows() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (Map<String, Object> response : new List<Map<String, Object>>{
+                null, new Map<String, Object>(), new Map<String, Object>{ 'records' => null },
+                new Map<String, Object>{ 'records' => new List<Object>{ null } }
+            }) {
+                try {
+                    reader.requireQueryRecord(response, 'Id', 'expected');
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('一意'), '欠落を明示したエラーで拒否');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 空白の照合属性・期待値・応答IDを有効な一致にしない */
+    @IsTest
+    static void rejectsBlankQueryIdentifiers() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<String, Object> row = new Map<String, Object>{ 'Id' => 'expected' };
+            Map<String, Object> response = new Map<String, Object>{ 'records' => new List<Object>{ row } };
+            for (String value : new List<String>{ null, '', '   ' }) {
+                try {
+                    reader.requireQueryRecord(response, value, 'expected');
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('一意'), '欠落を明示したエラーで拒否');
+                }
+                try {
+                    reader.requireQueryRecord(response, 'Id', value);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('一意'), '欠落を明示したエラーで拒否');
+                }
+                row.put('Id', value);
+                try {
+                    reader.requireQueryRecord(response, 'Id', 'expected');
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('ID-MISMATCH'), '欠落を明示したエラーで拒否');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** REST応答を非nullのMapへ制限し、空本文の成功を維持 */
+    @IsTest
+    static void validatesResponseObjectShape() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.isTrue(reader.readResponse(null).isEmpty(), '本文なしの成功を維持');
+            Assert.areEqual('value', reader.readResponse('{"key":"value"}').get('key'), '正常な属性を保持');
+            for (String value : new List<String>{ 'null', '[]', '{' }) {
+                try { reader.readResponse(value); Assert.fail('欠落や別型を拒否'); }
+                catch (SalesforceApiClient.IntegrationException e) { Assert.isTrue(e.getMessage().contains('OE-API-RESPONSE'), '形式不正を通知'); }
+            }
+            Test.stopTest();
+        }
+    }
+
+    /** 配列の入力形式と行の必須属性を独立して確認 */
+    @IsTest
+    static void validatesArrayAndRequiredText() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.isTrue(reader.readAuditRecords(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>() }).isEmpty(), '正常な0件を維持');
+            Assert.areEqual('field', reader.readAuditRecords(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ new Map<String, Object>{ 'Id' => 'field', 'CreatedById' => null } } })[0].get('Id'), '必須IDと任意のnullを保持');
+            for (Map<String, Object> invalid : new List<Map<String, Object>>{ null, new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ null } } }) {
+                try { reader.readAuditRecords(invalid); Assert.fail('不完全な日時応答を拒否'); }
+                catch (AuraHandledException e) { Assert.isTrue(e.getMessage().contains('情報'), '日時応答の欠落を通知'); }
+            }
+            Assert.isTrue(reader.parseArray('[]', 20, '入力不正').isEmpty(), '正常な空配列を維持');
+            for (String value : new List<String>{ null, '', '  ', 'null', '{' }) {
+                try { reader.parseArray(value, 20, '入力不正'); Assert.fail('不正入力を拒否'); }
+                catch (AuraHandledException e) { Assert.areEqual('入力不正', e.getMessage(), '固定案内を保持'); }
+            }
+            Assert.isFalse(SalesforceApiProtocol.hasRequiredText(null, new Set<String>{ 'id' }), 'null行を拒否');
+            Assert.isFalse(SalesforceApiProtocol.hasRequiredText(new Map<String, Object>(), null), '検証条件なしを拒否');
+            Assert.isFalse(SalesforceApiProtocol.hasRequiredText(new Map<String, Object>{ 'id' => '  ' }, new Set<String>{ 'id' }), '空白の必須値を拒否');
+            Assert.isTrue(SalesforceApiProtocol.hasRequiredText(new Map<String, Object>{ 'id' => 'value', 'optional' => null }, new Set<String>{ 'id' }), '任意属性のnullを許容');
+            Test.stopTest();
+        }
+    }
 }

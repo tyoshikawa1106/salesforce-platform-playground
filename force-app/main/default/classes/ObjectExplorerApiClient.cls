@@ -46,9 +46,9 @@ public with sharing class ObjectExplorerApiClient {
      * @return 項目API名で一意に照合した応答
      */
     public Map<String, Map<String, Object>> readClassifyData(String objectName, Set<String> fieldNames) {
-        if (fieldNames.isEmpty() || fieldNames.size() > 10) { throw new SalesforceApiClient.IntegrationException('分類の取得は1～10項目で指定してください。'); }
+        if (String.isBlank(objectName) || fieldNames == null || fieldNames.isEmpty() || fieldNames.size() > 10) { throw new SalesforceApiClient.IntegrationException('分類の取得は1～10項目で指定してください。'); }
         List<String> names = new List<String>();
-        for (String name : fieldNames) { requireFullName(objectName + '.' + name); names.add('\'' + name + '\''); }
+        for (String name : fieldNames) { if (String.isBlank(name)) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); } requireFullName(objectName + '.' + name); names.add('\'' + name + '\''); }
         String query = 'SELECT DurableId, QualifiedApiName, ComplianceGroup, SecurityClassification, BusinessStatus, BusinessOwnerId FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = \''
             + String.escapeSingleQuotes(objectName) + '\' AND QualifiedApiName IN (' + String.join(names, ',') + ')';
         Map<String, Object> response = this.client.request('query/?q=' + EncodingUtil.urlEncode(query, 'UTF-8'), 'GET', null);
@@ -62,7 +62,7 @@ public with sharing class ObjectExplorerApiClient {
      */
     private static void requireFullName(String fullName) {
         // 項目名に使用できる識別子だけを許可
-        if (!Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName ?? '')) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
+        if (String.isBlank(fullName) || !Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName)) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
     }
 
     /**
@@ -72,7 +72,7 @@ public with sharing class ObjectExplorerApiClient {
      * @return 完全名別の成功または安全な拒否理由
      */
     public Map<String, String> updateFields(Map<String, Map<String, Object>> fields, Set<String> customNames) {
-        if (!fields.keySet().containsAll(customNames)) { throw new SalesforceApiClient.IntegrationException('更新する項目定義が一致しません。'); }
+        if (fields == null || customNames == null || !fields.keySet().containsAll(customNames)) { throw new SalesforceApiClient.IntegrationException('更新する項目定義が一致しません。'); }
         Map<String, Dom.XmlNode> definitions = new Map<String, Dom.XmlNode>();
         for (String fullName : customNames) { definitions.put(fullName, this.customDefinitions.remove(fullName)); }
         MetadataApiSoapCodec codec = new MetadataApiSoapCodec();

@@ -36,7 +36,7 @@ public with sharing class MetadataApiSoapCodec {
      * @param fullName オブジェクトと項目の正式名
      */
     public void requireFullName(String fullName) {
-        if (!Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName ?? '')) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
+        if (String.isBlank(fullName) || !Pattern.matches('[A-Za-z0-9_]+\\.[A-Za-z0-9_]+', fullName)) { throw new SalesforceApiClient.IntegrationException('項目識別子が不正です。'); }
     }
 
     /**
@@ -49,6 +49,7 @@ public with sharing class MetadataApiSoapCodec {
         // 完全名へパスやSOQL断片を含めさせない
         requireFullName(fullName);
         // 完全名と定義の対応を送信直前にも確認
+        requireUpdateTarget(operation, metadata);
         if (metadata.get('fullName') != fullName) { throw new SalesforceApiClient.IntegrationException('分類を更新する項目の識別名が一致しません。'); }
         // 文字列の連結ではなくXML APIで値を追加
         Dom.XmlNode field = operation.addChildElement('metadata', METADATA_NS, 'met');
@@ -91,7 +92,7 @@ public with sharing class MetadataApiSoapCodec {
         // 成功・明示拒否・形式不明を混同しない
         switch on success {
             when 'true' { return ''; }
-            when 'false' { return readUpdateError(result); }
+            when 'false' { return SalesforceApiProtocol.metadataUpdateError(result); }
             when else { throw new SalesforceApiClient.IntegrationException('Metadata APIの更新成否を確認できませんでした。'); }
         }
     }
@@ -104,33 +105,55 @@ public with sharing class MetadataApiSoapCodec {
      * @return 対象操作の応答要素
      */
     public Dom.XmlNode readOperation(HttpResponse response, String operationName, String failureMessage) {
-        Dom.XmlNode body;
-        try {
-            Dom.Document doc = new Dom.Document(); doc.load(response.getBody());
-            body = doc.getRootElement().getChildElement('Body', SOAP_NS);
-        } catch (Exception error) { throw new SalesforceApiClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
+        Dom.XmlNode body = readBody(response);
         if (body?.getChildElement('Fault', SOAP_NS) != null) { throw new SalesforceApiClient.IntegrationException(failureMessage); }
         Dom.XmlNode operation = body?.getChildElement(operationName, METADATA_NS);
         if (response.getStatusCode() != 200 || operation == null) { throw new SalesforceApiClient.IntegrationException(failureMessage); }
         return operation;
     }
 
-    /**
-     * APIの拒否理由を認証情報を含まない固定形式へ変換
-     * @param result 同じ項目と照合済みの失敗結果
-     * @return 検証済みエラーコードだけを含む案内
+    /** XML生成で必須の操作要素と定義を確認
+     * @param operation 更新先の操作要素
+     * @param metadata 変更対象の定義
      */
-    private String readUpdateError(Dom.XmlNode result) {
-        // Salesforceの構造化属性で対象項目の拒否と分類値の拒否を区別
-        Dom.XmlNode error = result.getChildElement('errors', METADATA_NS);
-        // 自由文を解析せず公開コードだけを取得
-        String code = error?.getChildElement('statusCode', METADATA_NS)?.getText();
-        String safeCode = SalesforceApiProtocol.safeCode(code);
-        // 項目名に対する選択リスト拒否を分類値や権限の問題と案内しない
-        if (code == 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST' && error.getChildElement('fields', METADATA_NS)?.getText() == 'FieldOrColumn') {
-            return '対象項目がMetadata APIの分類更新対象として拒否されました（' + safeCode + ' / FieldOrColumn）。この結果は分類値や権限不足を示すものではありません。';
-        }
-        // 詳細を特定できない拒否は原因を推測せずコードを表示
-        return 'Metadata APIが更新を拒否しました（' + safeCode + '）。対象項目・分類値・APIの制約を確認してください。';
+    public void requireUpdateTarget(Dom.XmlNode operation, Map<String, Object> metadata) {
+        if (operation == null || metadata == null) { throw new SalesforceApiClient.IntegrationException('更新する項目定義の識別名を確認できません。'); }
     }
+
+    /** 空応答を解析前に拒否し、SOAP本文を取得
+     * @param response 外部API応答
+     * @return 本文要素、未存在ならnullを呼び出し元で拒否
+     */
+    private Dom.XmlNode readBody(HttpResponse response) {
+        if (String.isBlank(response?.getBody())) { throw new SalesforceApiClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
+        try {
+            Dom.Document doc = new Dom.Document();
+            doc.load(response.getBody());
+            return doc.getRootElement().getChildElement('Body', SOAP_NS);
+        } catch (Exception e) { throw new SalesforceApiClient.IntegrationException('Metadata APIの応答形式を確認できませんでした。最新状態を再取得してください。'); }
+    }
+
+    /**
+     * 分類以外の複合定義を型変換せずXMLとして複製
+     * @param source 取得した要素
+     * @param parent 複製先の親要素
+     */
+    public void copyDefinitionElement(Dom.XmlNode source, Dom.XmlNode parent) {
+        Dom.XmlNode target = parent.addChildElement(source.getName(), source.getNamespace(), null);
+        for (Integer i = 0; i < source.getAttributeCount(); i++) {
+            String key = source.getAttributeKeyAt(i);
+            String ns = source.getAttributeKeyNsAt(i);
+            String value = source.getAttributeValue(key, ns);
+            if (String.isNotBlank(ns)) {
+                String prefix = 'attribute' + i;
+                target.setNamespace(prefix, ns);
+                key = prefix + ':' + key;
+            }
+            target.setAttribute(key, value);
+        }
+        List<Dom.XmlNode> children = source.getChildElements();
+        if (children.isEmpty()) { target.addTextNode(source.getText() ?? ''); }
+        for (Dom.XmlNode child : children) { copyDefinitionElement(child, target); }
+    }
+
 }

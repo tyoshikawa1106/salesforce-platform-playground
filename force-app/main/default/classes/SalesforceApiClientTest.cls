@@ -23,58 +23,6 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
-    /** 認証拒否では固定診断コードと許可済みAPIコードだけを公開 */
-    @IsTest
-    static void reportsAuthenticationCode() {
-        System.runAs(testUser) {
-            Test.startTest();
-            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(401, '[{"errorCode":"INVALID_SESSION_ID","message":"PRIVATE_VALUE"}]', null));
-            try {
-                client.request('query/', 'GET', null);
-                Assert.fail('失敗を成功として返さない');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('[OE-AUTH-401]'), '失敗の種類を固定コードで識別');
-                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-                Assert.isTrue(error.getMessage().contains('Salesforceコード：INVALID_SESSION_ID'), '許可済みコードを表示');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /** 未知のAPIコードとエラー本文を公開しない */
-    @IsTest
-    static void hidesUnknownApiCode() {
-        System.runAs(testUser) {
-            Test.startTest();
-            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(403, '[{"errorCode":"PRIVATE_CODE","message":"PRIVATE_VALUE"}]', null));
-            try {
-                client.request('query/', 'GET', null);
-                Assert.fail('失敗を成功として返さない');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-403]'), '失敗の種類を固定コードで識別');
-                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-            }
-            Test.stopTest();
-        }
-    }
-
-    /** JSONでないエラー本文でもHTTP状態を伝える */
-    @IsTest
-    static void preservesHttpStatusForMalformedBody() {
-        System.runAs(testUser) {
-            Test.startTest();
-            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(503, 'PRIVATE_VALUE', null));
-            try {
-                client.request('query/', 'GET', null);
-                Assert.fail('失敗を成功として返さない');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-503]'), '失敗の種類を固定コードで識別');
-                Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-            }
-            Test.stopTest();
-        }
-    }
-
     /** タイムアウトを接続失敗と区別して案内 */
     @IsTest
     static void reportsResponseTimeout() {
@@ -378,6 +326,7 @@ private with sharing class SalesforceApiClientTest {
     private class CredentialMock extends SalesforceApiClient.CredentialAccess {
         private ConnectApi.CredentialAuthenticationStatus status = ConnectApi.CredentialAuthenticationStatus.Configured;
         private Boolean fail = false;
+        private String authenticationUrl = Url.getOrgDomainUrl().toExternalForm() + '/auth';
         private Integer revocations = 0;
 
         /** 保存済みの認証状態を再現
@@ -392,7 +341,7 @@ private with sharing class SalesforceApiClientTest {
          */
         public override String getUrl() {
             if (fail) { throw new CalloutException('PRIVATE_AUTH_DETAIL'); }
-            return Url.getOrgDomainUrl().toExternalForm() + '/auth';
+            return authenticationUrl;
         }
 
         /** 実際の資格情報を変更せず解除要求を記録 */
@@ -402,4 +351,77 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
+    /** JSONのnull応答を後続へ渡さない */
+    @IsTest
+    static void rejectsNullJsonResponse() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, 'null', null));
+                try {
+                    client.request('query/', 'GET', null);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('OE-API-RESPONSE'), '欠落を明示したエラーで拒否');
+                }
+            Test.stopTest();
+        }
+    }
+
+    /** 認証の必須値欠落を通信前に拒否 */
+    @IsTest
+    static void rejectsMissingAuthenticationValues() {
+        System.runAs(testUser) {
+            Test.startTest();
+            assertMissingAuthentication();
+            Assert.areEqual(0, Limits.getCallouts(), '欠落した認証では通信しない');
+            Test.stopTest();
+        }
+    }
+
+        /** 状態とURLの欠落を固定エラーで確認 */
+    private static void assertMissingAuthentication() {
+            CredentialMock mock = new CredentialMock();
+            mock.status = null;
+            SalesforceApiClient.credentialAccess = mock;
+                try {
+                    client.getAuthenticationStatus();
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('状態'), '欠落を明示したエラーで拒否');
+                }
+            for (String value : new List<String>{ null, '', '   ' }) {
+                mock.authenticationUrl = value;
+                try {
+                    client.getAuthenticationUrl();
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('開始'), '欠落を明示したエラーで拒否');
+                }
+            }
+            Assert.areEqual(0, Limits.getCallouts(), '状態欠落では組織確認へ進まない');
+        }
+
+    /** 認証拒否・権限拒否・サーバー障害を固定コードで区別 */
+    @IsTest
+    static void reportsSafeHttpFailures() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Map<Integer, String> bodies = new Map<Integer, String>{
+                401 => '[{"errorCode":"INVALID_SESSION_ID","message":"PRIVATE_VALUE"}]',
+                403 => '[{"errorCode":"PRIVATE_CODE","message":"PRIVATE_VALUE"}]',
+                503 => 'PRIVATE_VALUE'
+            };
+            Map<Integer, String> codes = new Map<Integer, String>{ 401 => 'OE-AUTH-401', 403 => 'OE-API-HTTP-403', 503 => 'OE-API-HTTP-503' };
+            for (Integer status : bodies.keySet()) {
+                Test.setMock(HttpCalloutMock.class, new DiagnosticMock(status, bodies.get(status), null));
+                try { client.request('query/', 'GET', null); Assert.fail('HTTP失敗を拒否'); }
+                catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains(codes.get(status)), 'HTTP状態に対応する診断コード');
+                    Assert.isFalse(e.getMessage().contains('PRIVATE'), '自由文と未知コードを公開しない');
+                    Assert.areEqual(status == 401, e.getMessage().contains('Salesforceコード：INVALID_SESSION_ID'), '許可済みコードだけを表示');
+                }
+            }
+            Test.stopTest();
+        }
+    }
 }

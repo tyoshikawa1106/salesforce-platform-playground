@@ -228,4 +228,74 @@ private with sharing class MetadataApiSoapCodecTest {
         return new ObjectExplorerApiProtocol.CustomFieldCodec().createUpdateRequest(fields, new Map<String, Dom.XmlNode>());
     }
 
+    /** null応答や空白本文をXML解析前に拒否 */
+    @IsTest
+    static void rejectsMissingSoapResponse() {
+        System.runAs(testUser) {
+            Test.startTest();
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(200);
+            for (HttpResponse value : new List<HttpResponse>{ null, response }) {
+                try {
+                    codec.readOperation(value, 'updateMetadataResponse', '更新結果不明');
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('応答形式'), '欠落を明示したエラーで拒否');
+                }
+            }
+            response.setBody('   ');
+                try {
+                    codec.readOperation(response, 'updateMetadataResponse', '更新結果不明');
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('応答形式'), '欠落を明示したエラーで拒否');
+                }
+            Test.stopTest();
+        }
+    }
+
+    /** 空白の完全名と必須定義のnullをXML生成前に拒否 */
+    @IsTest
+    static void rejectsMissingFieldMetadata() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (String name : new List<String>{ null, '', '   ' }) {
+                try {
+                    codec.requireFullName(name);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('識別子'), '欠落を明示したエラーで拒否');
+                }
+            }
+                try {
+                    codec.appendMetadataField(null, 'Account.Name', null);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('識別名'), '欠落を明示したエラーで拒否');
+                }
+            Test.stopTest();
+        }
+    }
+
+    /** 分類以外のXML定義を属性・ネスト・空要素ごと保持 */
+    @IsTest
+    static void copiesCompleteDefinitionElement() {
+        System.runAs(testUser) {
+            Dom.Document source = new Dom.Document();
+            source.load('<root xmlns:x="urn:test" plain="value" x:kind="Text"><child>text</child><empty/></root>');
+            Dom.Document target = new Dom.Document();
+            Dom.XmlNode parent = target.createRootElement('parent', null, null);
+            Test.startTest();
+            codec.copyDefinitionElement(source.getRootElement(), parent);
+            Test.stopTest();
+            // 送信するXMLを再読込し、接頭辞付き属性の名前空間を確認
+            Dom.Document serialized = new Dom.Document();
+            serialized.load(target.toXmlString());
+            Dom.XmlNode copied = serialized.getRootElement().getChildElement('root', null);
+            Assert.areEqual('value', copied.getAttribute('plain', null), '通常属性を保持');
+            Assert.areEqual('Text', copied.getAttribute('kind', 'urn:test'), '名前空間付き属性を保持');
+            Assert.areEqual('text', copied.getChildElement('child', null).getText(), '子要素の本文を保持');
+            Assert.isNotNull(copied.getChildElement('empty', null), '空要素を保持');
+        }
+    }
 }

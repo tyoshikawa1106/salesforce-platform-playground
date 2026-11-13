@@ -142,14 +142,8 @@ public with sharing class ObjectExplorerFieldService {
      * @return 項目IDを維持した日時・実行者レコード
      */
     public List<Map<String, Object>> readAuditRecords(Map<String, Object> response) {
-        // 未完了の一部応答を全件取得として扱わない
-        if (response.get('done') != true || !(response.get('records') instanceof List<Object>)) { throw ObjectExplorerAccessPolicy.createException('項目の作成・更新情報をすべて取得できませんでした。'); }
-        // 後で要求ID・重複・欠落を確認できる形で保持
-        List<Map<String, Object>> records = new List<Map<String, Object>>();
-        // レコードの識別子を保ったまま型を統一
-        for (Object value : (List<Object>)response.get('records')) { records.add((Map<String, Object>)value); }
-        // 表示値への加工は全件照合の後に行う
-        return records;
+        // 表示値へ加工する前に、共通プロトコルで応答の型と必須値を確認
+        return new SalesforceApiProtocol.RecordReader().readAuditRecords(response);
     }
     /**
      * 項目定義の型表記を可視項目へ合成

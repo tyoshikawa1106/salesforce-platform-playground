@@ -365,4 +365,59 @@ private with sharing class ObjectExplorerApiClientTest {
             }
         }
     }
+
+    /** 対象名・項目集合の欠落ではAPIへ送信しない */
+    @IsTest
+    static void rejectsMissingClassificationRequest() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (String objectName : new List<String>{ null, '', '   ' }) {
+                try {
+                    fields.readClassifyData(objectName, new Set<String>{ 'Name' });
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('分類'), '欠落を明示したエラーで拒否');
+                }
+            }
+                try {
+                    fields.readClassifyData('Account', null);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('分類'), '欠落を明示したエラーで拒否');
+                }
+            for (String fieldName : new List<String>{ null, '', '   ' }) {
+                try {
+                    fields.readClassifyData('Account', new Set<String>{ fieldName });
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('識別子'), '欠落を明示したエラーで拒否');
+                }
+            }
+            Assert.areEqual(0, Limits.getCallouts(), '不正な対象をAPIへ送信しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 更新Mapやカスタム項目集合が欠落した場合に拒否 */
+    @IsTest
+    static void rejectsMissingUpdateRequest() {
+        System.runAs(testUser) {
+            Test.startTest();
+                try {
+                    fields.updateFields(null, new Set<String>());
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('定義'), '欠落を明示したエラーで拒否');
+                }
+                try {
+                    fields.updateFields(new Map<String, Map<String, Object>>(), null);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('定義'), '欠落を明示したエラーで拒否');
+                }
+            Assert.areEqual(0, Limits.getCallouts(), '欠落した更新要求を送らない');
+            Test.stopTest();
+        }
+    }
+
 }
