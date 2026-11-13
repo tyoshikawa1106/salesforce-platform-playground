@@ -1,4 +1,4 @@
-/** メタデータ通信と応答の識別子照合 */
+/** 同一組織APIの通信・認証・公開エラー */
 @IsTest
 private with sharing class SalesforceApiClientTest {
     private static SalesforceApiClient client = new SalesforceApiClient();
@@ -20,7 +20,7 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
-    /** 固定診断コードと内部情報の非公開を確認 */
+    /** 認証拒否では固定診断コードと許可済みAPIコードだけを公開 */
     @IsTest
     static void reportsAuthenticationCode() {
         System.runAs(testUser) {
@@ -38,7 +38,7 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
-    /** 固定診断コードと内部情報の非公開を確認 */
+    /** 未知のAPIコードとエラー本文を公開しない */
     @IsTest
     static void hidesUnknownApiCode() {
         System.runAs(testUser) {
@@ -50,13 +50,12 @@ private with sharing class SalesforceApiClientTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-403]'), '失敗の種類を固定コードで識別');
                 Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-
             }
             Test.stopTest();
         }
     }
 
-    /** 固定診断コードと内部情報の非公開を確認 */
+    /** JSONでないエラー本文でもHTTP状態を伝える */
     @IsTest
     static void preservesHttpStatusForMalformedBody() {
         System.runAs(testUser) {
@@ -68,13 +67,12 @@ private with sharing class SalesforceApiClientTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-HTTP-503]'), '失敗の種類を固定コードで識別');
                 Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-
             }
             Test.stopTest();
         }
     }
 
-    /** 固定診断コードと内部情報の非公開を確認 */
+    /** タイムアウトを接続失敗と区別して案内 */
     @IsTest
     static void reportsResponseTimeout() {
         System.runAs(testUser) {
@@ -86,13 +84,12 @@ private with sharing class SalesforceApiClientTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-TIMEOUT]'), '失敗の種類を固定コードで識別');
                 Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-
             }
             Test.stopTest();
         }
     }
 
-    /** 固定診断コードと内部情報の非公開を確認 */
+    /** 分類できない接続例外を固定の案内へ変換 */
     @IsTest
     static void reportsUnclassifiedConnectionFailure() {
         System.runAs(testUser) {
@@ -104,13 +101,12 @@ private with sharing class SalesforceApiClientTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-CONNECTION]'), '失敗の種類を固定コードで識別');
                 Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-
             }
             Test.stopTest();
         }
     }
 
-    /** 固定診断コードと内部情報の非公開を確認 */
+    /** 成功ステータスでも不正なJSONを成功として返さない */
     @IsTest
     static void reportsMalformedSuccessfulResponse() {
         System.runAs(testUser) {
@@ -122,7 +118,6 @@ private with sharing class SalesforceApiClientTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('[OE-API-RESPONSE]'), '失敗の種類を固定コードで識別');
                 Assert.isFalse(error.getMessage().contains('PRIVATE'), '例外本文と未知コードを公開しない');
-
             }
             Test.stopTest();
         }
@@ -167,36 +162,11 @@ private with sharing class SalesforceApiClientTest {
     static void escapesJsonMergeExpression() {
         System.runAs(testUser) {
             Test.startTest();
-            Test.setMock(HttpCalloutMock.class, new ResponseMock('expression'));
+            Test.setMock(HttpCalloutMock.class, new JsonBodyMock());
             Assert.isTrue(
                 client.request('query/', 'PATCH', '{"value":"{!input}"}').isEmpty(),
                 '本文なし成功を空応答として扱う'
             );
-            Test.stopTest();
-        }
-    }
-
-    /** 通信失敗時に応答本文を公開しない */
-    @IsTest
-    static void sanitizesHttpAndConnectionErrors() {
-        System.runAs(testUser) {
-            Test.startTest();
-            Test.setMock(HttpCalloutMock.class, new ResponseMock('httpError'));
-            try {
-                client.request('query/', 'GET', null);
-                Assert.fail('HTTP拒否を成功にしない');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('HTTP 403'), '状態コードを伝える');
-                Assert.isFalse(error.getMessage().contains('private-response'), 'API本文を公開しない');
-            }
-            Test.setMock(HttpCalloutMock.class, new ResponseMock('connectionError'));
-            try {
-                client.request('query/', 'GET', null);
-                Assert.fail('接続失敗を成功にしない');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('API接続'), '接続失敗を伝える');
-                Assert.isFalse(error.getMessage().contains('private-response'), '内部例外を公開しない');
-            }
             Test.stopTest();
         }
     }
@@ -297,29 +267,20 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
-    /** 共通通信の本文保護と接続失敗を確認するモック */
-    private class ResponseMock implements HttpCalloutMock {
-        private String scenario;
+    /** JSONの値を保ち、認証差し込み式だけを無効化したことを確認 */
+    private class JsonBodyMock implements HttpCalloutMock {
         /**
-         * 応答種別を指定
-         * @param scenario 本文保護または通信失敗
-         */
-        ResponseMock(String scenario) { this.scenario = scenario; }
-        /**
-         * 認証値を含まない模擬応答を返却
+         * 送信本文を照合して本文なし成功を返す
          * @param request 共通通信の要求
-         * @return 本文なし成功またはHTTP拒否
+         * @return 本文なし成功
          */
         public HttpResponse respond(HttpRequest request) {
-            Assert.isTrue(request.getEndpoint().startsWith('callout:InternalSalesforceApi/'), '新指定ログイン情報だけを使用');
-            if (this.scenario == 'connectionError') { throw new CalloutException('private-response'); }
+            Assert.isTrue(request.getEndpoint().startsWith('callout:InternalSalesforceApi/'), '指定ログイン情報を使用');
+            Assert.isFalse(request.getBody().contains('{!'), '入力の数式差し込みを無効化');
+            Assert.areEqual('{!input}', ((Map<String,Object>)JSON.deserializeUntyped(request.getBody())).get('value'), '元の文字列は維持');
             HttpResponse response = new HttpResponse();
-            response.setStatusCode(this.scenario == 'httpError' ? 403 : 204);
-            if (this.scenario == 'expression') {
-                Assert.isFalse(request.getBody().contains('{!'), '入力の数式差し込みを無効化');
-                Assert.areEqual('{!input}', ((Map<String,Object>)JSON.deserializeUntyped(request.getBody())).get('value'), '元の文字列は維持');
-            }
-            response.setBody(this.scenario == 'httpError' ? 'private-response' : '');
+            response.setStatusCode(204);
+            response.setBody('');
             return response;
         }
     }
