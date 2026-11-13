@@ -284,4 +284,19 @@ private with sharing class SalesforceApiClientTest {
             return response;
         }
     }
+    /** Metadata更新を固定のSOAP接続先へ送信 */
+    @IsTest
+    static void sendsMetadataUpdateToFixedEndpoint() {
+
+        System.runAs(testUser) {
+            DiagnosticMock mock = new DiagnosticMock(200, '<result/>', null);
+            mock.expectedEndpoint = 'callout:InternalSalesforceApi/services/Soap/m/68.0';
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            HttpResponse response = client.sendMetadataUpdate('<request/>');
+            Test.stopTest();
+            Assert.areEqual('<result/>', response.getBody(), '同じ要求のSOAP応答を返す');
+        }
+    }
+
 }
