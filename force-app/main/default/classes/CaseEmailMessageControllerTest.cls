@@ -197,4 +197,21 @@ private with sharing class CaseEmailMessageControllerTest {
         );
     }
 
+    /** 不正な継続位置を問い合わせ前に拒否 */
+    @IsTest
+    static void rejectsNegativePagePosition() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Integer queries = Limits.getQueries();
+            try {
+                CaseEmailMessageController.getEmailMessages(null, null, -1);
+                Assert.fail('負の開始位置を拒否');
+            } catch (AuraHandledException e) {
+                Assert.isNotNull(e, '画面用例外へ変換');
+            }
+            Assert.areEqual(queries, Limits.getQueries(), '不正な条件で問い合わせない');
+            Test.stopTest();
+        }
+    }
+
 }
