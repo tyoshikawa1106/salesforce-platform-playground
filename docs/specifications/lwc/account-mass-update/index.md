@@ -79,6 +79,8 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ## テスト・確認観点
 
+`AccountMassUpdateServiceTest`では内部コンストラクタに件数上限2件を渡し、未保存レコード3件で保存要求とページ表示の境界を確認します。通常実行の上限は200件です。実行者は標準システム管理者とし、プロファイル・権限セット名に依存する権限差異のテストは行いません。
+
 - `accountMassUpdate.test.js`: 画面操作、ハイライト、保存・再取得、移動の取消、アクセシビリティ。
 - `accountMassUpdateLogic.test.js`: 差分、クリア、保存件数、表示モデル。
 - [AccountMassUpdateControllerTest](../../../../force-app/main/default/classes/AccountMassUpdateControllerTest.cls): 更新上限、行別の値、部分成功、改ざん・競合拒否。

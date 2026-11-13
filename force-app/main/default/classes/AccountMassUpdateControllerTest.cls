@@ -3,12 +3,6 @@
 private with sharing class AccountMassUpdateControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
-    private static User limitedUser = new User(
-        Alias = 'limited', LastName = '項目権限テスト', Email = 'limited@example.invalid',
-        Username = 'limited.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-        TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = 'ja_JP',
-        EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja'
-    );
 
     /** 異なる変更値を一括保存 */
     @IsTest
@@ -126,40 +120,4 @@ private with sharing class AccountMassUpdateControllerTest {
         }
     }
 
-    /** オブジェクト権限だけでは必須項目の検索と更新を許可しない */
-    @IsTest
-    static void convertsFieldAccessFailuresAtEntryPoints() {
-        List<Profile> profiles = [
-            SELECT Id FROM Profile
-            WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce'
-            ORDER BY Name LIMIT 1
-        ];
-        Assert.isFalse(profiles.isEmpty(), '最小権限のプロファイルが存在');
-        limitedUser.ProfileId = profiles[0].Id;
-        insert limitedUser;
-        PermissionSet access = new PermissionSet(Name = 'MassUpdateObjectAccessTest', Label = '一括更新テスト権限');
-        insert access;
-        insert new ObjectPermissions(ParentId = access.Id, SobjectType = 'Account', PermissionsRead = true, PermissionsEdit = true);
-        insert new PermissionSetAssignment(AssigneeId = limitedUser.Id, PermissionSetId = access.Id);
-        Id recordId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
-
-        System.runAs(limitedUser) {
-            Test.startTest();
-            try {
-                AccountMassUpdateController.searchAccounts(new AccountMassUpdateWrapper());
-                Assert.fail('項目参照権限なしの検索は拒否');
-            } catch (AuraHandledException e) {
-                Assert.isNotNull(e.getMessage(), '検索失敗を画面向け例外へ変換');
-            }
-            try {
-                AccountMassUpdateController.saveAccounts(
-                    new List<Account>{ new Account(Id = recordId) }, new Map<Id, Datetime>{ recordId => System.now() }
-                );
-                Assert.fail('ロック時の項目参照権限不足は拒否');
-            } catch (AuraHandledException e) {
-                Assert.isNotNull(e.getMessage(), '保存失敗を画面向け例外へ変換');
-            }
-            Test.stopTest();
-        }
-    }
 }

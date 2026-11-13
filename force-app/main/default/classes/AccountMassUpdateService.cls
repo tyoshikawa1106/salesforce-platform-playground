@@ -1,6 +1,24 @@
 /** 法人取引先一括更新の入力検証と応答生成 */
 public with sharing class AccountMassUpdateService {
 
+    // 保存要求とページ表示で共用する不変の件数上限
+    private final Integer recordLimit;
+
+    /** 通常の一括更新上限を設定 */
+    public AccountMassUpdateService() {
+        // 公開入口の保存・表示上限を維持
+        this.recordLimit = 200;
+    }
+
+    /** 少量データで保存と表示の境界を確認する内部生成
+     * @param recordLimit 正の保存・表示上限
+     */
+    @TestVisible
+    private AccountMassUpdateService(Integer recordLimit) {
+        // 本番と同じ判定をインスタンスごとの固定上限で実行
+        this.recordLimit = recordLimit;
+    }
+
     /**
      * 検索条件と利用権限を確認
      * @param request 名前・作成日・ページ境界を持つ検索条件
@@ -23,7 +41,7 @@ public with sharing class AccountMassUpdateService {
             return wrapper;
         }
         // 空白だけの入力を検索なしに正規化
-        wrapper.searchTerm = String.isBlank(input.searchTerm) ? '' : input.searchTerm.trim();
+        wrapper.searchTerm = input.searchTerm?.trim() ?? '';
         // 利用者のタイムゾーンで日付境界を生成
         wrapper.startAt = input.startDate == null
             ? null
@@ -50,11 +68,11 @@ public with sharing class AccountMassUpdateService {
         // 入力のレコード一覧を変更せず応答を生成
         AccountMassUpdateWrapper wrapper = new AccountMassUpdateWrapper();
         // 後続行の存在を追加一行から判定
-        wrapper.hasNext = records.size() > 200;
+        wrapper.hasNext = records.size() > this.recordLimit;
         // 権限情報を画面へ返却
         wrapper.editableFields.addAll(editableFields);
         // 表示上限以内の行だけを返す
-        for (Integer position = 0; position < Math.min(200, records.size()); position++) {
+        for (Integer position = 0; position < Math.min(this.recordLimit, records.size()); position++) {
             // 画面で表示可能な行だけを追加
             wrapper.records.add(records[position]);
         }
@@ -81,10 +99,10 @@ public with sharing class AccountMassUpdateService {
             !Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isUpdateable() ||
             changes == null ||
             changes.isEmpty() ||
-            changes.size() > 200 ||
+            changes.size() > this.recordLimit ||
             versions == null
         ) {
-            wrapper.errorMessage = '更新権限を確認し、1〜200件の変更を指定してください。';
+            wrapper.errorMessage = '更新権限を確認し、1〜' + this.recordLimit + '件の変更を指定してください。';
             // 判定結果を呼び出し元へ返却
             return wrapper;
         }

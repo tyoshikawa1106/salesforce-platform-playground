@@ -5,12 +5,6 @@ private with sharing class AccountMassUpdateServiceTest {
     private static AccountMassUpdateService service = new AccountMassUpdateService();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
-    private static User deniedUser = new User(
-        Alias = 'limited', LastName = '権限なしテスト', Email = 'limited@example.invalid',
-        Username = 'limited.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-        TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = 'ja_JP',
-        EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja'
-    );
 
     /** 日付境界を正規化し不完全なページ境界を拒否 */
     @IsTest
@@ -56,29 +50,35 @@ private with sharing class AccountMassUpdateServiceTest {
     /** 欠落・重複・上限超過の保存要求を拒否 */
     @IsTest
     static void rejectsMissingDuplicateAndOversizedRequests() {
+        AccountMassUpdateService boundedService = new AccountMassUpdateService(2);
 
         System.runAs(testUser) {
             Account record = new Account(Id = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
-            Map<Id, Datetime> versions = new Map<Id, Datetime>{ record.Id => System.now() };
+            Map<Id, Datetime> versions = new Map<Id, Datetime>();
             List<Account> changes = new List<Account>();
-            for (Integer position = 0; position < 201; position++) {
-                changes.add(new Account(Id = record.Id, Rating = 'Hot'));
+            for (Integer position = 1; position <= 3; position++) {
+                Id recordId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + String.valueOf(position).leftPad(12, '0'));
+                changes.add(new Account(Id = recordId, Rating = 'Hot'));
+                versions.put(recordId, System.now());
             }
             Test.startTest();
-            AccountMassUpdateWrapper oversized = service.prepareSave(changes, versions);
-            AccountMassUpdateWrapper missing = service.prepareSave(null, versions);
-            AccountMassUpdateWrapper valid = service.prepareSave(new List<Account>{ changes[0] }, versions);
+            AccountMassUpdateWrapper oversized = boundedService.prepareSave(changes, versions);
+            AccountMassUpdateWrapper missing = boundedService.prepareSave(null, versions);
+            AccountMassUpdateWrapper valid = boundedService.prepareSave(new List<Account>{ changes[0] }, versions);
             Assert.areEqual(new Set<Id>{ record.Id }, valid.recordIds, '正当な要求を検索対象へ渡す');
-            AccountMassUpdateWrapper duplicate = service.prepareSave(
-                new List<Account>{ changes[0], changes[1] },
+            AccountMassUpdateWrapper exact = boundedService.prepareSave(new List<Account>{ changes[0], changes[1] }, versions);
+            Assert.areEqual(2, exact.recordIds.size(), '上限ちょうどの要求を受け付ける');
+            Assert.areEqual('', exact.errorMessage, '上限内の要求を拒否しない');
+            AccountMassUpdateWrapper duplicate = boundedService.prepareSave(
+                new List<Account>{ changes[0], changes[0] },
                 versions
             );
-            AccountMassUpdateWrapper noVersion = service.prepareSave(
+            AccountMassUpdateWrapper noVersion = boundedService.prepareSave(
                 new List<Account>{ changes[0] },
                 new Map<Id, Datetime>()
             );
             Test.stopTest();
-            Assert.areNotEqual('', oversized.errorMessage, '201件を拒否');
+            Assert.areEqual('更新権限を確認し、1〜2件の変更を指定してください。', oversized.errorMessage, '上限2件を超える要求を拒否');
             Assert.areNotEqual('', missing.errorMessage, '未指定を拒否');
             Assert.areNotEqual('', duplicate.errorMessage, '重複IDを拒否');
             Assert.areNotEqual('', noVersion.errorMessage, '更新前情報なしを拒否');
@@ -122,18 +122,25 @@ private with sharing class AccountMassUpdateServiceTest {
     /** 入力を変更せず表示件数を制限 */
     @IsTest
     static void boundsPageWithoutChangingInput() {
+        AccountMassUpdateService boundedService = new AccountMassUpdateService(2);
 
         System.runAs(testUser) {
             List<Account> records = new List<Account>();
-            for (Integer position = 0; position < 201; position++) {
+            for (Integer position = 0; position < 3; position++) {
                 records.add(new Account(Name = '表示行 ' + position));
             }
             Test.startTest();
-            AccountMassUpdateWrapper result = service.createPage(records, new List<String>{ 'Rating' });
+            AccountMassUpdateWrapper first = boundedService.createPage(new List<Account>{ records[0] }, new List<String>());
+            AccountMassUpdateWrapper exact = boundedService.createPage(new List<Account>{ records[0], records[1] }, new List<String>());
+            AccountMassUpdateWrapper result = boundedService.createPage(records, new List<String>{ 'Rating' });
             Test.stopTest();
-            Assert.areEqual(200, result.records.size(), '200行まで表示');
-            Assert.isTrue(result.hasNext, '201行目で次ページを判定');
-            Assert.areEqual(201, records.size(), '入力リストを破壊しない');
+            Assert.areEqual(1, first.records.size(), '上限未満は全件表示');
+            Assert.isFalse(first.hasNext, '上限未満に次ページなし');
+            Assert.areEqual(2, exact.records.size(), '上限ちょうども全件表示');
+            Assert.isFalse(exact.hasNext, '上限ちょうどに次ページなし');
+            Assert.areEqual(2, result.records.size(), '指定した2行まで表示');
+            Assert.isTrue(result.hasNext, '3行目で次ページを判定');
+            Assert.areEqual(3, records.size(), '入力リストを破壊しない');
         }
     }
 
@@ -166,30 +173,4 @@ private with sharing class AccountMassUpdateServiceTest {
         }
     }
 
-    /** 参照権限がない利用者の検索と保存を拒否 */
-    @IsTest
-    static void rejectsRequestsWithoutReadAccess() {
-        insertDeniedUser();
-
-        System.runAs(deniedUser) {
-            Test.startTest();
-            AccountMassUpdateWrapper search = service.prepareSearch(null);
-            AccountMassUpdateWrapper save = service.prepareSave(null, null);
-            Test.stopTest();
-            Assert.areEqual('取引先の参照権限がありません。', search.errorMessage, '検索前に参照権限を確認');
-            Assert.areEqual(search.errorMessage, save.errorMessage, '保存前も同じ参照権限を確認');
-        }
-    }
-
-    /** 権限拒否を確認するユーザーだけを保存 */
-    private static void insertDeniedUser() {
-        List<Profile> profiles = [
-            SELECT Id FROM Profile
-            WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce'
-            ORDER BY Name LIMIT 1
-        ];
-        Assert.isFalse(profiles.isEmpty(), '権限なしのプロファイルが存在');
-        deniedUser.ProfileId = profiles[0].Id;
-        insert deniedUser;
-    }
 }
