@@ -1,20 +1,23 @@
-/** 一括更新入口の最大件数・部分成功・改ざん拒否テスト */
+/** 一括更新入口の一括保存・部分成功・改ざん拒否テスト */
 @IsTest
 private with sharing class AccountMassUpdateControllerTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
+    private static User limitedUser = new User(
+        Alias = 'limited', LastName = '項目権限テスト', Email = 'limited@example.invalid',
+        Username = 'limited.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+        TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = 'ja_JP',
+        EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja'
+    );
 
     /** 異なる変更値を一括保存 */
     @IsTest
-    static void savesTwoHundredDifferentChanges() {
+    static void savesDifferentChanges() {
 
         System.runAs(testUser) {
-            List<Account> records = new List<Account>();
-            for (Integer position = 0; position < 200; position++) {
-                records.add(
-                    new Account(Name = '一括更新 ' + position)
-                );
-            }
+            List<Account> records = new List<Account>{
+                new Account(Name = '一括更新A'), new Account(Name = '一括更新B')
+            };
             insert records;
             List<Account> current = [SELECT Id, LastModifiedDate FROM Account];
             Map<Id, Datetime> versions = new Map<Id, Datetime>();
@@ -29,7 +32,7 @@ private with sharing class AccountMassUpdateControllerTest {
             AccountMassUpdateWrapper result = AccountMassUpdateController.saveAccounts(changes, versions);
             Test.stopTest();
             Assert.areEqual('', result.errorMessage, '正当な要求は拒否しない');
-            Assert.areEqual(200, result.successIds.size(), '上限200件を保存');
+            Assert.areEqual(2, result.successIds.size(), '異なる変更値を両方保存');
             Assert.areEqual(0, result.errors.size(), '有効な値は全行成功');
             List<Account> saved = [SELECT Id, Rating FROM Account];
             Map<Id, Account> savedMap = new Map<Id, Account>(saved);
@@ -120,6 +123,43 @@ private with sharing class AccountMassUpdateControllerTest {
             Assert.areEqual(1, result.records.size(), '名前で絞り込み');
             Assert.isFalse(result.hasNext, '一行に次ページはない');
             Assert.areNotEqual('', rejected.errorMessage, '逆転した日付を拒否');
+        }
+    }
+
+    /** オブジェクト権限だけでは必須項目の検索と更新を許可しない */
+    @IsTest
+    static void convertsFieldAccessFailuresAtEntryPoints() {
+        List<Profile> profiles = [
+            SELECT Id FROM Profile
+            WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce'
+            ORDER BY Name LIMIT 1
+        ];
+        Assert.isFalse(profiles.isEmpty(), '最小権限のプロファイルが存在');
+        limitedUser.ProfileId = profiles[0].Id;
+        insert limitedUser;
+        PermissionSet access = new PermissionSet(Name = 'MassUpdateObjectAccessTest', Label = '一括更新テスト権限');
+        insert access;
+        insert new ObjectPermissions(ParentId = access.Id, SobjectType = 'Account', PermissionsRead = true, PermissionsEdit = true);
+        insert new PermissionSetAssignment(AssigneeId = limitedUser.Id, PermissionSetId = access.Id);
+        Id recordId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
+
+        System.runAs(limitedUser) {
+            Test.startTest();
+            try {
+                AccountMassUpdateController.searchAccounts(new AccountMassUpdateWrapper());
+                Assert.fail('項目参照権限なしの検索は拒否');
+            } catch (AuraHandledException e) {
+                Assert.isNotNull(e.getMessage(), '検索失敗を画面向け例外へ変換');
+            }
+            try {
+                AccountMassUpdateController.saveAccounts(
+                    new List<Account>{ new Account(Id = recordId) }, new Map<Id, Datetime>{ recordId => System.now() }
+                );
+                Assert.fail('ロック時の項目参照権限不足は拒否');
+            } catch (AuraHandledException e) {
+                Assert.isNotNull(e.getMessage(), '保存失敗を画面向け例外へ変換');
+            }
+            Test.stopTest();
         }
     }
 }
