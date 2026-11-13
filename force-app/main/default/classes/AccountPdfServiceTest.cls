@@ -3,7 +3,9 @@
  */
 @IsTest
 private with sharing class AccountPdfServiceTest {
+
     private static final AccountPdfService SERVICE = new AccountPdfService();
+
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
@@ -11,8 +13,7 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldReturnAccountIdWhenParameterIsValid() {
-        Account accountRecord = new Account(Name = 'PDF ID 検証テスト');
-        insert accountRecord;
+        Account accountRecord = new Account(Id = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
         AccountPdfService.AccountIdValidationResult result;
 
         System.runAs(testUser) {
@@ -73,10 +74,7 @@ private with sharing class AccountPdfServiceTest {
      */
     @IsTest
     static void shouldRejectNonAccountId() {
-        Account accountRecord = new Account(Name = 'PDF 取引先以外 ID テスト');
-        insert accountRecord;
-        Contact contactRecord = new Contact(AccountId = accountRecord.Id, LastName = 'PDF テスト');
-        insert contactRecord;
+        Contact contactRecord = new Contact(Id = Id.valueOf(Contact.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
 
         AccountPdfService.AccountIdValidationResult result;
 
