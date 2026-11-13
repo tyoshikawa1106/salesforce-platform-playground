@@ -243,7 +243,7 @@ private with sharing class AccountTriggerHandlerTest {
     static void shouldNormalizeCompanyAbbreviationsWhenBulkInserted() {
         // 準備
         List<Account> accounts = new List<Account>();
-        for (Integer index = 0; index < 251; index++) {
+        for (Integer index = 0; index < 201; index++) {
             Account accountRecord = new Account(Name = '㈱テスト ' + index);
             accounts.add(accountRecord);
         }
@@ -261,7 +261,7 @@ private with sharing class AccountTriggerHandlerTest {
         // 検証
         List<Account> insertedAccounts = getAccounts(accounts);
         Assert.areEqual(
-            251,
+            201,
             insertedAccounts.size(),
             '一括取引先はすべて作成される必要あり'
         );

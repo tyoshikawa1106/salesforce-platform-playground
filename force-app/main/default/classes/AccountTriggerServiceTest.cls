@@ -4,9 +4,11 @@
 @IsTest
 private with sharing class AccountTriggerServiceTest {
 
+    private static AccountTriggerService service = new AccountTriggerService();
+
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    private static AccountTriggerService service = new AccountTriggerService();
+    private static final Id ACCOUNT_ID = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
 
     /**
      * 新規取引先名の法人格略称を正式名称へ補正
@@ -49,8 +51,7 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldNormalizeChangedAccountNamesWhenUpdated() {
         // 準備
-        Account accountRecord = new Account(Name = 'テスト取引先');
-        insert accountRecord;
+        Account accountRecord = new Account(Id = ACCOUNT_ID, Name = 'テスト取引先');
         // 更新前後の名称差分を発生させる入力値
         Account updatedAccount = new Account(
             Id = accountRecord.Id,
@@ -86,8 +87,7 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldSkipUnchangedAccountNamesWhenUpdated() {
         // 準備
-        Account savedAccount = new Account(Name = 'テスト取引先');
-        insert savedAccount;
+        Account savedAccount = new Account(Id = ACCOUNT_ID, Name = 'テスト取引先');
         Account accountRecord = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'
@@ -180,8 +180,7 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldNormalizeWhenUpdatedOldAccountIsMissing() {
         // 準備
-        Account savedAccount = new Account(Name = 'テスト取引先');
-        insert savedAccount;
+        Account savedAccount = new Account(Id = ACCOUNT_ID, Name = 'テスト取引先');
         Account updatedAccount = new Account(
             Id = savedAccount.Id,
             Name = '㈱テスト'
@@ -211,8 +210,7 @@ private with sharing class AccountTriggerServiceTest {
     @IsTest
     static void shouldNormalizeWhenUpdatedOldAccountIsNull() {
         // 準備
-        Account savedAccount = new Account(Name = 'テスト取引先');
-        insert savedAccount;
+        Account savedAccount = new Account(Id = ACCOUNT_ID, Name = 'テスト取引先');
         Account updatedAccount = new Account(
             Id = savedAccount.Id,
             Name = '㈲テスト'
