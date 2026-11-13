@@ -437,6 +437,34 @@ private with sharing class ObjectExplorerControllerTest {
         }
     }
 
+    /** 接続・定義取得・事前照合の失敗では更新要求を送らない */
+    @IsTest
+    static void rejectsFailuresBeforeMetadataUpdate() {
+        System.runAs(testUser) {
+            String request = changes(new List<String>{ 'Active__c' }, ChangeMode.CHANGE_STATUS);
+            Test.startTest();
+            assertPrecheckFailure(request, 'connectionError');
+            assertPrecheckFailure(request, 'definitionError');
+            assertPrecheckFailure(request, 'definitionConflict');
+            Assert.areEqual(3, Limits.getCallouts(), '各要求の定義読取だけを行い更新を送らない');
+            Test.stopTest();
+        }
+    }
+
+    /** 事前失敗に共通する未更新と公開情報の契約を確認
+     * @param request 一項目の変更要求
+     * @param scenario 模擬応答の失敗段階
+     */
+    private static void assertPrecheckFailure(String request, String scenario) {
+        SaveMock mock = new SaveMock('Account', new Set<String>{ 'Active__c' }, scenario);
+        Test.setMock(HttpCalloutMock.class, mock);
+        List<Object> results = ObjectExplorerController.saveClassifyData('Account', request);
+        Map<String, Object> result = (Map<String, Object>)results[0];
+        Assert.areEqual(false, result.get('success'), '事前確認の失敗を保存成功にしない');
+        Assert.areEqual(0, mock.writes, '定義を確認できなければ更新しない');
+        Assert.isFalse(JSON.serialize(result).contains('PRIVATE_RESPONSE'), '通信の内部本文を公開しない');
+    }
+
     /**
      * 画面と同じ四属性の変更要求
      * @param names 更新対象の項目名
@@ -539,7 +567,7 @@ private with sharing class ObjectExplorerControllerTest {
                 return;
             }
             writes++;
-            if (scenario == 'soapError' || scenario == 'customError') {
+            if (new Set<String>{ 'soapError', 'customError' }.contains(scenario)) {
                 throw new CalloutException('SOAP通信を再現');
             }
             String results = '';
@@ -549,10 +577,7 @@ private with sharing class ObjectExplorerControllerTest {
             for (Dom.XmlNode field : fields) {
                 String name = field.getChildElement('fullName', 'http://soap.sforce.com/2006/04/metadata').getText().substringAfter('.');
                 Assert.isTrue(durableIds.containsKey(name), '要求した標準項目だけを一括更新');
-                if (name.endsWith('__c')) {
-                    Assert.areEqual('維持する定義', field.getChildElement('label', 'http://soap.sforce.com/2006/04/metadata').getText(), 'カスタム定義のラベルを保持');
-                    Assert.areEqual(changedStatus(name), field.getChildElement('businessStatus', 'http://soap.sforce.com/2006/04/metadata').getText(), 'カスタム分類を変更');
-                }
+                assertCustomDefinition(field, name);
                 Boolean success = !new Set<String>{'rejectPhone:Phone','rejectCustom:Active__c'}.contains(scenario + ':' + name);
                 results +=
                     '<result><fullName>' +
@@ -572,6 +597,17 @@ private with sharing class ObjectExplorerControllerTest {
             );
         }
 
+        /** カスタム項目の分類以外の定義も更新要求へ保持
+         * @param field 送信する一項目のXML
+         * @param name 項目API名
+         */
+        private void assertCustomDefinition(Dom.XmlNode field, String name) {
+            if (name.endsWith('__c')) {
+                Assert.areEqual('維持する定義', field.getChildElement('label', 'http://soap.sforce.com/2006/04/metadata').getText(), 'カスタム定義のラベルを保持');
+                Assert.areEqual(changedStatus(name), field.getChildElement('businessStatus', 'http://soap.sforce.com/2006/04/metadata').getText(), 'カスタム分類を変更');
+            }
+        }
+
         /**
          * カスタム定義の保持と同じIDへの更新を確認
          * @param request 検証対象の要求
@@ -579,6 +615,11 @@ private with sharing class ObjectExplorerControllerTest {
          */
         private void respondCustom(HttpRequest request, HttpResponse response) {
             definitionReads++;
+            if (scenario == 'definitionError') {
+                response.setStatusCode(500);
+                response.setBody('PRIVATE_RESPONSE');
+                return;
+            }
             String ns = 'http://soap.sforce.com/2006/04/metadata';
             Dom.Document document = new Dom.Document(); document.load(request.getBody());
             List<Dom.XmlNode> names = document.getRootElement().getChildElement('Body', 'http://schemas.xmlsoap.org/soap/envelope/').getChildElement('readMetadata', ns).getChildElements();
@@ -633,6 +674,7 @@ private with sharing class ObjectExplorerControllerTest {
                 'complianceGroup' => row.get('ComplianceGroup') ?? '', 'securityClassification' => row.get('SecurityClassification') ?? '',
                 'businessStatus' => row.get('BusinessStatus') ?? '', 'ownerId' => ownerId
             }, owners);
+            if (scenario == 'definitionConflict') { metadata.put('businessStatus', changedStatus(name)); }
             metadata.put('label', '維持する定義');
             return metadata;
         }

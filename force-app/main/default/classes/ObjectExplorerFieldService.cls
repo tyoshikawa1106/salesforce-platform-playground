@@ -93,16 +93,31 @@ public with sharing class ObjectExplorerFieldService {
      * @return 200件以下のID集合の一覧
      */
     public List<Set<Id>> createAuditBatches(Set<Id> ids) {
+        // 公開入口の分割件数を維持
+        return createAuditBatchesWithSize(ids, 200);
+    }
+
+    /** 少量のIDで分割境界を検証する共通処理
+     * @param ids ネイティブ定義の項目ID
+     * @param auditBatchSize 正の照会単位件数
+     * @return 分割したID集合
+     */
+    @TestVisible
+    private List<Set<Id>> createAuditBatchesWithSize(Set<Id> ids, Integer auditBatchSize) {
         // 一要求200件以下の対象を保持
         List<Set<Id>> batches = new List<Set<Id>>();
         // 型付きIDを照会単位へ分割
+        Integer position = 0;
+        // 取得順の区切りで照会単位を作成
         for (Id fieldId : ids) {
             // カスタム項目以外のIDを拒否
             if (!String.valueOf(fieldId).startsWith('00N')) { throw ObjectExplorerAccessPolicy.createException('カスタム項目の識別子を確認してください。'); }
-            // 200件に達した場合だけ次の要求を作成
-            if (batches.isEmpty() || batches[batches.size() - 1].size() == 200) { batches.add(new Set<Id>()); }
+            // 分割件数に達した場合だけ次の要求を作成
+            if (Math.mod(position, auditBatchSize) == 0) { batches.add(new Set<Id>()); }
             // 同じIDを一回だけ要求
             batches[batches.size() - 1].add(fieldId);
+            // 次のIDが分割境界に達したか判定できる位置へ進める
+            position++;
         }
         // 確認済みの分割対象を呼出元へ返却
         return batches;

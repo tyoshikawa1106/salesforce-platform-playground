@@ -208,15 +208,14 @@ private with sharing class ObjectExplorerOwnerServiceTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            List<String> ids = new List<String>();
-            for (Integer i = 0; i < 2001; i++) {
-                ids.add(String.valueOf(testUser.Id));
-            }
+            ObjectExplorerOwnerService.CsvOwners limited = new ObjectExplorerOwnerService.CsvOwners(2);
+            String ownerId = String.valueOf(testUser.Id);
+            Assert.areEqual(new Set<Id>{ testUser.Id }, limited.parseIds(JSON.serialize(new List<String>{ ownerId, ownerId })), '上限ちょうどを受け付け重複排除');
             try {
-                csv.parseIds(JSON.serialize(ids));
+                limited.parseIds(JSON.serialize(new List<String>{ ownerId, ownerId, ownerId }));
                 Assert.fail('件数上限を検証');
             } catch (AuraHandledException error) {
-                Assert.isTrue(error.getMessage().contains('2000'), '上限を通知');
+                Assert.isTrue(error.getMessage().contains('2件'), '上限を通知');
             }
             Test.stopTest();
         }

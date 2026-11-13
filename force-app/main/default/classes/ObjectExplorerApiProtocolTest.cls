@@ -322,4 +322,33 @@ private with sharing class ObjectExplorerApiProtocolTest {
         response.setBody('<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body><readMetadataResponse xmlns="http://soap.sforce.com/2006/04/metadata"><result>' + records + '</result></readMetadataResponse></env:Body></env:Envelope>');
         return response;
     }
+    /** 完全に取得した分類を同じ項目名に対応付ける */
+    @IsTest
+    static void readsCompleteClassificationResponse() {
+
+        System.runAs(testUser) {
+            Map<String, Object> record = new Map<String, Object>{ 'DurableId' => 'Account.Name', 'QualifiedApiName' => 'Name', 'ComplianceGroup' => null, 'SecurityClassification' => null, 'BusinessStatus' => null, 'BusinessOwnerId' => null };
+            Test.startTest();
+            Map<String, Map<String, Object>> rows = reader.readClassifyData(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ record } }, new Set<String>{ 'Name' });
+            Test.stopTest();
+            Assert.areEqual(record, rows.get('Name'), '完全な取得結果を保持');
+        }
+    }
+
+    /** 標準項目の分類を安全なSOAP要求へ変換 */
+    @IsTest
+    static void encodesStandardFieldClassification() {
+
+        System.runAs(testUser) {
+            Map<String, Map<String, Object>> fields = new Map<String, Map<String, Object>>{ 'Account.Name' => new Map<String, Object>{ 'fullName' => 'Account.Name', 'businessStatus' => 'Active' } };
+            Test.startTest();
+            String xml = new ObjectExplorerApiProtocol.CustomFieldCodec().createUpdateRequest(fields, new Map<String, Dom.XmlNode>());
+            String safeMessage = ObjectExplorerApiProtocol.safeSaveMessage(new QueryException('PRIVATE'));
+            Test.stopTest();
+            Assert.isTrue(xml.contains('Account.Name'), '同じ完全名を保存対象にする');
+            Assert.isTrue(xml.contains('Active'), '要求された分類を送信');
+            Assert.areEqual('項目の保存に失敗しました。編集内容と権限を確認してください。', safeMessage, '想定外の失敗は固定案内へ変換');
+        }
+    }
+
 }
