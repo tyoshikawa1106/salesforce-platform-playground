@@ -54,6 +54,8 @@ public with sharing class ObjectExplorerApiProtocol {
          * @return 件数・属性・項目名を確認した分類
          */
         public Map<String, Map<String, Object>> readClassifyData(Map<String, Object> response, Set<String> fieldNames) {
+            // 外部応答と照合条件がない場合は件数比較へ進めない
+            if (fieldNames == null || !(response?.get('records') instanceof List<Object>)) { throw new SalesforceApiClient.IntegrationException('分類の取得結果に不足があります。'); }
             List<Object> records = (List<Object>)response.get('records');
             if (records?.size() != fieldNames.size() || response.get('done') != true) { throw new SalesforceApiClient.IntegrationException('分類の取得結果に不足があります。'); }
             return indexClassifyData(records, fieldNames);
@@ -69,6 +71,9 @@ public with sharing class ObjectExplorerApiProtocol {
             Map<String, Map<String, Object>> rows = new Map<String, Map<String, Object>>();
             Set<String> required = new Set<String>{'DurableId', 'QualifiedApiName', 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus', 'BusinessOwnerId'};
             for (Object item : records) {
+                // 任意の分類nullを維持し、必須識別子だけを検証
+                Boolean valid = SalesforceApiProtocol.hasRequiredText(item, new Set<String>{ 'QualifiedApiName', 'DurableId' });
+                if (!valid) { throw new SalesforceApiClient.IntegrationException('分類の取得対象または属性が一致しません。'); }
                 Map<String, Object> row = (Map<String, Object>)item;
                 String name = (String)row.get('QualifiedApiName');
                 if (!fieldNames.contains(name) || rows.containsKey(name) || !row.keySet().containsAll(required)) { throw new SalesforceApiClient.IntegrationException('分類の取得対象または属性が一致しません。'); }
@@ -89,6 +94,8 @@ public with sharing class ObjectExplorerApiProtocol {
          * @return 認証差し込み箇所を限定したSOAP本文
          */
         public String createUpdateRequest(Map<String, Map<String, Object>> fields, Map<String, Dom.XmlNode> definitions) {
+            // 未取得の定義を空の更新要求へ置き換えない
+            if (fields == null || definitions == null) { throw new SalesforceApiClient.IntegrationException('更新する項目定義を確認できません。'); }
             requireBatch(fields.keySet());
             Dom.Document doc = soap.createRequestDocument('updateMetadata');
             // 一項目の拒否で他項目の成功を取り消さない
@@ -96,6 +103,7 @@ public with sharing class ObjectExplorerApiProtocol {
             Dom.XmlNode operation = doc.getRootElement().getChildElement('Body', 'http://schemas.xmlsoap.org/soap/envelope/').getChildElement('updateMetadata', metadataNamespace);
             for (String fullName : fields.keySet()) {
                 // 同じ項目の完全名と属性を一つの単位でXMLへ追加
+                if (fields.get(fullName) == null) { throw new SalesforceApiClient.IntegrationException('更新する項目定義を確認できません。'); }
                 if (definitions.containsKey(fullName)) {
                     Map<String, Object> classification = new Map<String, Object>(fields.get(fullName));
                     classification.put('fullName', fullName);
@@ -130,10 +138,8 @@ public with sharing class ObjectExplorerApiProtocol {
          */
         public Map<String, Dom.XmlNode> readCustomDefinitions(HttpResponse response, Set<String> fullNames) {
             requireBatch(fullNames);
-            Dom.XmlNode operation = soap.readOperation(response, 'readMetadataResponse', 'Metadata APIの項目定義を取得できませんでした。最新状態を再取得してください。');
             Map<String, Dom.XmlNode> definitions = new Map<String, Dom.XmlNode>();
-            List<Dom.XmlNode> records = operation.getChildElement('result', metadataNamespace)?.getChildElements();
-            if (records == null) { throw new SalesforceApiClient.IntegrationException('Metadata APIの項目定義を確認できませんでした。'); }
+            List<Dom.XmlNode> records = readDefinitionRecords(response);
             for (Dom.XmlNode record : records) {
                 String fullName = record.getChildElement('fullName', metadataNamespace)?.getText();
                 requireDefinition(record, fullNames);
@@ -142,6 +148,17 @@ public with sharing class ObjectExplorerApiProtocol {
             }
             if (definitions.keySet() != fullNames) { throw new SalesforceApiClient.IntegrationException('Metadata APIの項目定義に不足があります。'); }
             return definitions;
+        }
+
+        /** SOAP読取応答から必須の定義一覧を取得
+         * @param response 未検証のSOAP応答
+         * @return 定義要素の一覧
+         */
+        private List<Dom.XmlNode> readDefinitionRecords(HttpResponse response) {
+            Dom.XmlNode operation = soap.readOperation(response, 'readMetadataResponse', 'Metadata APIの項目定義を取得できませんでした。最新状態を再取得してください。');
+            List<Dom.XmlNode> records = operation.getChildElement('result', metadataNamespace)?.getChildElements();
+            if (records == null) { throw new SalesforceApiClient.IntegrationException('Metadata APIの項目定義を確認できませんでした。'); }
+            return records;
         }
 
         /**
@@ -170,6 +187,8 @@ public with sharing class ObjectExplorerApiProtocol {
          * @param classification 検証済みの分類5属性
          */
         public void appendCustomDefinition(Dom.XmlNode operation, Dom.XmlNode definition, Map<String, Object> classification) {
+            // XML生成前に操作先と分類定義の存在を確認
+            soap.requireUpdateTarget(operation, classification);
             String fullName = (String)classification.get('fullName');
             soap.requireFullName(fullName);
             if (definition?.getChildElement('fullName', metadataNamespace)?.getText() != fullName) { throw new SalesforceApiClient.IntegrationException('保存するカスタム項目定義が一致しません。'); }
@@ -184,31 +203,8 @@ public with sharing class ObjectExplorerApiProtocol {
                     String key = keys[index++];
                     field.addChildElement(key, metadataNamespace, 'met').addTextNode((String)classification.get(key) ?? '');
                 }
-                if (!keys.contains(name)) { copyDefinitionElement(child, field); }
+                if (!keys.contains(name)) { soap.copyDefinitionElement(child, field); }
             }
-        }
-
-        /**
-         * 分類以外の複合定義を型変換せずXMLとして複製
-         * @param source 取得した要素
-         * @param parent 複製先の親要素
-         */
-        private void copyDefinitionElement(Dom.XmlNode source, Dom.XmlNode parent) {
-            Dom.XmlNode target = parent.addChildElement(source.getName(), source.getNamespace(), null);
-            for (Integer i = 0; i < source.getAttributeCount(); i++) {
-                String key = source.getAttributeKeyAt(i);
-                String ns = source.getAttributeKeyNsAt(i);
-                String value = source.getAttributeValue(key, ns);
-                if (String.isNotBlank(ns)) {
-                    String prefix = 'attribute' + i;
-                    target.setNamespace(prefix, ns);
-                    key = prefix + ':' + key;
-                }
-                target.setAttribute(key, value);
-            }
-            List<Dom.XmlNode> children = source.getChildElements();
-            if (children.isEmpty()) { target.addTextNode(source.getText() ?? ''); }
-            for (Dom.XmlNode child : children) { copyDefinitionElement(child, target); }
         }
 
     }

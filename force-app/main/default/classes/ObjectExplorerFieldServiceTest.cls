@@ -201,4 +201,26 @@ private with sharing class ObjectExplorerFieldServiceTest {
             Test.stopTest();
         }
     }
+
+    /** 日時応答のnull・null要素・必須ID欠落を拒否 */
+    @IsTest
+    static void rejectsMissingAuditResponseValues() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (Map<String, Object> response : new List<Map<String, Object>>{
+                null, new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ null } },
+                new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ new Map<String, Object>{ 'Id' => '   ' } } }
+            }) {
+                try {
+                    service.readAuditRecords(response);
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (AuraHandledException e) {
+                    Assert.isTrue(e.getMessage().contains('情報'), '欠落を明示したエラーで拒否');
+                }
+            }
+            Assert.isTrue(service.readAuditRecords(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>() }).isEmpty(), '正常な0件応答を維持');
+            Test.stopTest();
+        }
+    }
+
 }

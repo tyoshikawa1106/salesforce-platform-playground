@@ -48,7 +48,7 @@ private with sharing class ObjectExplorerControllerTest {
         System.runAs(testUser) {
             Test.startTest();
             String message = assertVerificationFailure(200, '{"done":true,"records":"PRIVATE_RESPONSE"}');
-            Assert.isTrue(message.contains('項目の保存に失敗しました。編集内容と権限を確認してください。'), '内部の型変換例外は固定の案内へ変換');
+            Assert.isTrue(message.contains('保存結果の再取得・照合：分類の取得結果に不足があります。'), '不正な応答型を参照前に拒否し再取得段階の失敗を案内');
             Test.stopTest();
         }
     }

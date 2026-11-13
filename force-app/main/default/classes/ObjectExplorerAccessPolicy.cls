@@ -106,21 +106,8 @@ public with sharing class ObjectExplorerAccessPolicy {
      * @return 型と大きさを確認済みの未加工配列
      */
     public List<Object> readJsonArray(String inputJson, Integer maxLength, String message) {
-        // 過大な要求をJSON展開より前に拒否
-        if (inputJson?.length() > maxLength) { throw createException(message); }
-        // 解析結果の型を入力値から推測しない
-        Object parsed;
-        try {
-            // JSONの構文検証だけを標準APIへ委譲
-            parsed = JSON.deserializeUntyped(inputJson);
-        } catch (Exception error) {
-            // JSON解析の失敗やnullを公開入力エラーに統一
-            throw createException(message);
-        }
-        // オブジェクトやnullを空配列へ補完しない
-        if (!(parsed instanceof List<Object>)) { throw createException(message); }
-        // 以降の件数・行・ID検証に同じ配列を使用
-        return (List<Object>)parsed;
+        // 必須文字列とJSON配列の型を通信プロトコルの共通検証へ渡す
+        return new SalesforceApiProtocol.RecordReader().parseArray(inputJson, maxLength, message);
     }
 
     /** 保存要求の形・項目名・定義IDを更新前に確定 */

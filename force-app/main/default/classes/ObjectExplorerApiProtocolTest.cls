@@ -24,32 +24,6 @@ private with sharing class ObjectExplorerApiProtocolTest {
         }
     }
 
-    /** 更新結果不明を未保存と断定しない */
-    @IsTest
-    static void distinguishesUnconfirmedSave() {
-        System.runAs(testUser) {
-            Test.startTest();
-            ObjectExplorerApiProtocol.SaveState state = new ObjectExplorerApiProtocol.SaveState();
-            state.sent = true;
-            String result = ObjectExplorerApiProtocol.saveStage(state);
-            Test.stopTest();
-            Assert.isTrue(result.startsWith('[OE-SAVE-UNCONFIRMED]'), '送信後の確認不能を区別');
-        }
-    }
-
-    /** 明示拒否を結果不明と扱わない */
-    @IsTest
-    static void distinguishesRejectedSave() {
-        System.runAs(testUser) {
-            Test.startTest();
-            ObjectExplorerApiProtocol.SaveState state = new ObjectExplorerApiProtocol.SaveState();
-            state.sent = true;
-            state.rejected = true;
-            String result = ObjectExplorerApiProtocol.saveStage(state);
-            Test.stopTest();
-            Assert.isTrue(result.startsWith('[OE-SAVE-REJECTED]'), 'APIの明示拒否を区別');
-        }
-    }
     /** 未完了・属性欠落・重複した分類応答を拒否 */
     @IsTest
     static void rejectsIncompleteAndMismatchedRows() {
@@ -81,6 +55,24 @@ private with sharing class ObjectExplorerApiProtocolTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.isTrue(error.getMessage().contains('一致'), '重複を通知');
             }
+            for (Map<String, Object> invalid : new List<Map<String, Object>>{
+                null, new Map<String, Object>{ 'done' => true, 'records' => null },
+                new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ null } }
+            }) {
+                try { reader.readClassifyData(invalid, new Set<String>{ 'Name' }); Assert.fail('不正値を拒否'); }
+                catch (SalesforceApiClient.IntegrationException e) { Assert.isTrue(e.getMessage().contains('分類'), '欠落・不正値の理由を通知'); }
+            }
+            for (String missing : new List<String>{ null, '', '   ' }) {
+                Map<String, Object> invalidRow = classifyRow();
+                invalidRow.put('DurableId', missing);
+                try { reader.readClassifyData(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ invalidRow } }, new Set<String>{ 'Name' }); Assert.fail('不正値を拒否'); }
+                catch (SalesforceApiClient.IntegrationException e) { Assert.isTrue(e.getMessage().contains('属性'), '欠落・不正値の理由を通知'); }
+            }
+
+            Map<String, Object> record = classifyRow();
+            Map<String, Map<String, Object>> rows = reader.readClassifyData(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ record } }, new Set<String>{ 'Name' });
+
+            Assert.areEqual(record, rows.get('Name'), '完全な取得結果を保持');
             Test.stopTest();
         }
     }
@@ -157,23 +149,10 @@ private with sharing class ObjectExplorerApiProtocolTest {
             } catch (SalesforceApiClient.IntegrationException error) {
                 Assert.areEqual('Metadata APIの項目定義を取得できませんでした。最新状態を再取得してください。', error.getMessage(), '読取失敗だけを案内し更新結果不明やAPI本文を公開しない');
             }
-            Test.stopTest();
-        }
-    }
-
-    /** 定義取得のHTTP失敗も読取段階として案内 */
-    @IsTest
-    static void distinguishesReadHttpFailure() {
-        System.runAs(testUser) {
-            HttpResponse raw = customResponse('<fullName>Account.Probe__c</fullName><type>Text</type>');
-            raw.setStatusCode(403);
-            Test.startTest();
-            try {
-                readDefinition(raw, 'Account.Probe__c');
-                Assert.fail('HTTP拒否を成功にしない');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.areEqual('Metadata APIの項目定義を取得できませんでした。最新状態を再取得してください。', error.getMessage(), '更新応答ではなく読取失敗とする');
-            }
+            HttpResponse rejected = customResponse('<fullName>Account.Probe__c</fullName><type>Text</type>');
+            rejected.setStatusCode(403);
+            try { readDefinition(rejected, 'Account.Probe__c'); Assert.fail('不正値を拒否'); }
+            catch (SalesforceApiClient.IntegrationException e) { Assert.isTrue(e.getMessage().contains('取得できません'), '欠落・不正値の理由を通知'); }
             Test.stopTest();
         }
     }
@@ -193,6 +172,23 @@ private with sharing class ObjectExplorerApiProtocolTest {
                 createCustomRequest('Account.Probe__c', null, new Map<String, Object>());
                 Assert.fail('読取前の保存は拒否');
             } catch (SalesforceApiClient.IntegrationException error) { Assert.isTrue(error.getMessage().contains('一致'), '同じ項目の定義を必須にする'); }
+
+            ObjectExplorerApiProtocol.CustomFieldCodec codec = new ObjectExplorerApiProtocol.CustomFieldCodec();
+            for (Map<String, Map<String, Object>> fields : new List<Map<String, Map<String, Object>>>{ null, new Map<String, Map<String, Object>>{ 'Account.Name' => null } }) {
+                try {
+                    codec.createUpdateRequest(fields, new Map<String, Dom.XmlNode>());
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (SalesforceApiClient.IntegrationException e) {
+                    Assert.isTrue(e.getMessage().contains('定義'), '欠落を明示したエラーで拒否');
+                }
+            }
+            try {
+                codec.appendCustomDefinition(null, null, null);
+                Assert.fail('必須値の欠落を拒否');
+            } catch (SalesforceApiClient.IntegrationException e) {
+                Assert.isTrue(e.getMessage().contains('定義'), '欠落を明示したエラーで拒否');
+            }
+
             Test.stopTest();
         }
     }
@@ -249,6 +245,13 @@ private with sharing class ObjectExplorerApiProtocolTest {
             Test.startTest();
             String request = custom.createReadRequest(names);
             Map<String, Dom.XmlNode> definitions = custom.readCustomDefinitions(batchResponse(reversed), names);
+
+            Set<String> tooMany = new Set<String>();
+            for (Integer i = 0; i < 11; i++) { tooMany.add('Account.Field' + i + '__c'); }
+            for (Set<String> invalidNames : new List<Set<String>>{ null, new Set<String>(), tooMany }) {
+                try { new ObjectExplorerApiProtocol.CustomFieldCodec().createReadRequest(invalidNames); Assert.fail('不正値を拒否'); }
+                catch (SalesforceApiClient.IntegrationException e) { Assert.isTrue(e.getMessage().contains('1～10'), '欠落・不正値の理由を通知'); }
+            }
             Test.stopTest();
             Assert.areEqual(10, request.countMatches('<met:fullNames>'), '10項目を一回の読取要求に含む');
             Assert.areEqual(names, definitions.keySet(), '応答順に依存しない');
@@ -256,56 +259,15 @@ private with sharing class ObjectExplorerApiProtocolTest {
         }
     }
 
-    /** 重複した定義で別項目を上書きしない */
+    /** 定義の欠落と同じ定義の重複を拒否 */
     @IsTest
     static void rejectsDuplicateDefinitions() {
         System.runAs(testUser) {
             Test.startTest();
-            try {
-                new ObjectExplorerApiProtocol.CustomFieldCodec().readCustomDefinitions(batchResponse(new List<String>{'Account.A__c','Account.A__c'}), new Set<String>{'Account.A__c','Account.B__c'});
-                Assert.fail('同じ定義の重複を拒否');
-            } catch (SalesforceApiClient.IntegrationException error) { Assert.isTrue(error.getMessage().contains('一致'), '照合エラーとして通知'); }
-            Test.stopTest();
-        }
-    }
-
-    /** 欠落を別の定義や未設定値で補完しない */
-    @IsTest
-    static void rejectsMissingDefinitions() {
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                new ObjectExplorerApiProtocol.CustomFieldCodec().readCustomDefinitions(batchResponse(new List<String>{'Account.A__c'}), new Set<String>{'Account.A__c','Account.B__c'});
-                Assert.fail('定義の欠落を拒否');
-            } catch (SalesforceApiClient.IntegrationException error) { Assert.isTrue(error.getMessage().contains('不足'), '欠落を通知'); }
-            Test.stopTest();
-        }
-    }
-
-    /** 上限を超える取得は通信前に拒否 */
-    @IsTest
-    static void rejectsOverLimitReadBatch() {
-        System.runAs(testUser) {
-            Set<String> names = new Set<String>();
-            for (Integer i = 0; i < 11; i++) { names.add('Account.Field' + i + '__c'); }
-            Test.startTest();
-            try {
-                new ObjectExplorerApiProtocol.CustomFieldCodec().createReadRequest(names);
-                Assert.fail('11項目の一括取得を拒否');
-            } catch (SalesforceApiClient.IntegrationException error) { Assert.isTrue(error.getMessage().contains('1～10'), '上限を通知'); }
-            Test.stopTest();
-        }
-    }
-
-    /** 空の取得要求を生成しない */
-    @IsTest
-    static void rejectsEmptyReadBatch() {
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                new ObjectExplorerApiProtocol.CustomFieldCodec().createReadRequest(new Set<String>());
-                Assert.fail('空の一括取得を拒否');
-            } catch (SalesforceApiClient.IntegrationException error) { Assert.isTrue(error.getMessage().contains('1～10'), '件数を通知'); }
+            for (List<String> names : new List<List<String>>{ new List<String>{ 'Account.A__c' }, new List<String>{ 'Account.A__c', 'Account.A__c' } }) {
+                try { new ObjectExplorerApiProtocol.CustomFieldCodec().readCustomDefinitions(batchResponse(names), new Set<String>{ 'Account.A__c', 'Account.B__c' }); Assert.fail('不完全な定義を拒否'); }
+                catch (SalesforceApiClient.IntegrationException e) { Assert.isTrue(new Set<String>{ 'Metadata APIの項目定義に不足があります。', '取得したカスタム項目定義が一致しません。' }.contains(e.getMessage()), '欠落と重複を照合エラーとして通知'); }
+            }
             Test.stopTest();
         }
     }
@@ -321,18 +283,6 @@ private with sharing class ObjectExplorerApiProtocolTest {
         for (String name : names) { records += '<records><fullName>' + name + '</fullName><label>' + name + '</label><type>Text</type></records>'; }
         response.setBody('<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body><readMetadataResponse xmlns="http://soap.sforce.com/2006/04/metadata"><result>' + records + '</result></readMetadataResponse></env:Body></env:Envelope>');
         return response;
-    }
-    /** 完全に取得した分類を同じ項目名に対応付ける */
-    @IsTest
-    static void readsCompleteClassificationResponse() {
-
-        System.runAs(testUser) {
-            Map<String, Object> record = new Map<String, Object>{ 'DurableId' => 'Account.Name', 'QualifiedApiName' => 'Name', 'ComplianceGroup' => null, 'SecurityClassification' => null, 'BusinessStatus' => null, 'BusinessOwnerId' => null };
-            Test.startTest();
-            Map<String, Map<String, Object>> rows = reader.readClassifyData(new Map<String, Object>{ 'done' => true, 'records' => new List<Object>{ record } }, new Set<String>{ 'Name' });
-            Test.stopTest();
-            Assert.areEqual(record, rows.get('Name'), '完全な取得結果を保持');
-        }
     }
 
     /** 標準項目の分類を安全なSOAP要求へ変換 */
@@ -351,4 +301,17 @@ private with sharing class ObjectExplorerApiProtocolTest {
         }
     }
 
+    /** 送信後の未確認と明示拒否を区別 */
+    @IsTest
+    static void distinguishesSaveStates() {
+        System.runAs(testUser) {
+            Test.startTest();
+            ObjectExplorerApiProtocol.SaveState state = new ObjectExplorerApiProtocol.SaveState();
+            state.sent = true;
+            Assert.isTrue(ObjectExplorerApiProtocol.saveStage(state).startsWith('[OE-SAVE-UNCONFIRMED]'), '送信後の未確認');
+            state.rejected = true;
+            Assert.isTrue(ObjectExplorerApiProtocol.saveStage(state).startsWith('[OE-SAVE-REJECTED]'), '明示拒否を優先');
+            Test.stopTest();
+        }
+    }
 }

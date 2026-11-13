@@ -297,4 +297,22 @@ private with sharing class ObjectExplorerAccessPolicyTest {
             'ownerId' => ''
         };
     }
+
+    /** null・空・空白入力をJSON解析前に拒否 */
+    @IsTest
+    static void rejectsBlankJsonBeforeParsing() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (String value : new List<String>{ null, '', '   ' }) {
+                try {
+                    access.readJsonArray(value, 100, '入力形式エラー');
+                    Assert.fail('必須値の欠落を拒否');
+                } catch (AuraHandledException e) {
+                    Assert.isTrue(e.getMessage().contains('入力形式エラー'), '欠落を明示したエラーで拒否');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
 }
