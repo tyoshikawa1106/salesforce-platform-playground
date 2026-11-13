@@ -3,25 +3,24 @@
  */
 @IsTest
 private with sharing class AccountDataQualityScanSelectorTest {
-    private static final DataQualityScan__c EMPTY_SCAN = new DataQualityScan__c(
-        Target_Object__c = 'Account', Processed_Count__c = 0, Missing_Phone_Count__c = 0,
-        Missing_Industry_Count__c = 0, Missing_Address_Count__c = 0, Missing_Website_Count__c = 0,
-        Missing_Account_Number_Count__c = 0
-    );
 
-    private static final String TEST_USER_MARKER = 'DQScanSelector';
+    private static AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();
+
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * USER_MODE処理に必要な権限をテストユーザーへ割り当て
      */
     @TestSetup
     static void setupPermission() {
-        User scanUser = new User(Alias = 'dqscan', Email = 'data-quality-scan@example.invalid',
-            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja', LastName = TEST_USER_MARKER,
-            LocaleSidKey = 'ja_JP', ProfileId = UserInfo.getProfileId(), TimeZoneSidKey = 'Asia/Tokyo',
-            Username = 'data-quality-scan.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid');
-        insert scanUser;
-        insert new PermissionSetAssignment(AssigneeId = scanUser.Id, PermissionSetId = scanPermissionId());
+        Id permissionId = scanPermissionId();
+        List<PermissionSetAssignment> assignments = [
+            SELECT Id FROM PermissionSetAssignment
+            WHERE AssigneeId = :testUser.Id AND PermissionSetId = :permissionId
+        ];
+        if (assignments.isEmpty()) {
+            insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissionId);
+        }
     }
 
     /**
@@ -29,7 +28,6 @@ private with sharing class AccountDataQualityScanSelectorTest {
      */
     @IsTest
     static void shouldCreateCursorAndFetchVisibleAccounts() {
-        User testUser = getScanTestUser();
         insert new Account(Name = 'Cursor取引先1');
         insert new Account(Name = 'Cursor取引先2');
         Database.Cursor accountCursor;
@@ -38,9 +36,9 @@ private with sharing class AccountDataQualityScanSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();
             accountCursor = selector.createAccountCursor();
             accounts = selector.fetchAccounts(accountCursor, 0, 500);
+            Assert.isTrue(selector.fetchAccounts(accountCursor, 2, 1).isEmpty(), '末尾以降は取得しない');
 
             Test.stopTest();
         }
@@ -54,13 +52,12 @@ private with sharing class AccountDataQualityScanSelectorTest {
      */
     @IsTest
     static void shouldReturnEmptyAccountsWhenFetchInputInvalid() {
-        User testUser = getScanTestUser();
         List<Account> accounts;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            accounts = new AccountDataQualityScanSelector().fetchAccounts(null, -1, 0);
+            accounts = selector.fetchAccounts(null, -1, 0);
 
             Test.stopTest();
         }
@@ -73,13 +70,16 @@ private with sharing class AccountDataQualityScanSelectorTest {
      */
     @IsTest
     static void shouldSelectActiveAndLatestScans() {
-        User testUser = getScanTestUser();
         DataQualityScan__c scanRecord;
         List<DataQualityScan__c> activeScans;
         List<DataQualityScan__c> latestScans;
 
         System.runAs(testUser) {
-            scanRecord = EMPTY_SCAN.clone();
+            scanRecord = new DataQualityScan__c(
+                Target_Object__c = 'Account', Processed_Count__c = 0, Missing_Phone_Count__c = 0,
+                Missing_Industry_Count__c = 0, Missing_Address_Count__c = 0, Missing_Website_Count__c = 0,
+                Missing_Account_Number_Count__c = 0
+            );
             scanRecord.Status__c = AccountDataQualityScanService.STATUS_PENDING;
             scanRecord.Total_Count__c = 10;
             scanRecord.Started_At__c = System.now();
@@ -88,9 +88,14 @@ private with sharing class AccountDataQualityScanSelectorTest {
             insert scanRecord;
             Test.startTest();
 
-            AccountDataQualityScanSelector selector = new AccountDataQualityScanSelector();
             activeScans = selector.getActiveScans();
             latestScans = selector.getLatestScans();
+            List<DataQualityScan__c> byId = selector.getScansById(scanRecord.Id);
+            Integer queriesBeforeEmptyId = Limits.getQueries();
+            Assert.isTrue(selector.getScansById(null).isEmpty(), '未指定IDは空結果');
+            Assert.areEqual(queriesBeforeEmptyId, Limits.getQueries(), '未指定IDは問い合わせない');
+            Assert.areEqual(scanRecord.Id, byId[0].Id, '指定したスキャンだけを取得');
+            Assert.areEqual(1, byId.size(), '指定IDの一件だけを返す');
 
             Test.stopTest();
         }
@@ -111,17 +116,4 @@ private with sharing class AccountDataQualityScanSelectorTest {
         return permissions[0].Id;
     }
 
-    /**
-     * このテストで作成したスキャン実行ユーザーを取得
-     * @return 保存済みのテストユーザー
-     */
-    private static User getScanTestUser() {
-        List<User> users = [
-            SELECT Id
-            FROM User
-            WHERE LastName = :TEST_USER_MARKER
-        ];
-        Assert.areEqual(1, users.size(), '同じテストクラスのユーザーを取得');
-        return users[0];
-    }
 }
