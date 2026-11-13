@@ -28,6 +28,7 @@ private with sharing class AccountDeleteBatchServiceTest {
             current.failureCount = 2;
             current.errorMessage = '以前のエラー';
             Test.startTest();
+            Assert.areEqual('', service.getBlockMessage(), '実際の開発環境で通常の実行を許可');
             AccountDeleteBatchWrapper started = service.checkStartConditions(current);
             Assert.areEqual('', started.errorMessage, '開始時の判定も最新の条件を使う');
             AccountDeleteBatchWrapper wrapper = service.checkExecutionConditions(current, new List<Account>());
@@ -169,24 +170,43 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
-    /** 実行拒否したスコープを失敗へ加算 */
+    /** 本番相当の環境で開始と実行を拒否し、詳細上限まで失敗を記録 */
     @IsTest
-    static void countsBlockedScopeAsFailures() {
+    static void rejectsProductionEnvironmentAndCountsBlockedScope() {
+        AccountDeleteBatchService blockedService = new AccountDeleteBatchService(2);
 
         System.runAs(testUser) {
             AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
             current.successCount = 2;
             current.failureCount = 1;
-            current.errorMessage = '取引先の参照・削除権限が必要です。';
+            String expectedMessage = 'Scratch Org・Developer Edition・Sandboxでのみ実行できます。';
+            String accountPrefix = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix();
+            List<Account> accounts = new List<Account>{
+                new Account(Id = Id.valueOf(accountPrefix + '000000000001'), Name = '拒否A'),
+                new Account(Id = Id.valueOf(accountPrefix + '000000000002'), Name = '拒否B'),
+                new Account(Id = Id.valueOf(accountPrefix + '000000000003'), Name = '省略対象')
+            };
             Test.startTest();
-            AccountDeleteBatchWrapper wrapper = service.addFailures(current, 3, 'EXECUTION_BLOCKED');
+            String message = blockedService.getBlockMessageForEnvironment(false);
+            Assert.areEqual(expectedMessage, blockedService.getBlockMessageForEnvironment(null), '判定不能な環境も拒否');
+            AccountDeleteBatchWrapper started = blockedService.checkStartConditionsForEnvironment(current, false);
+            AccountDeleteBatchWrapper wrapper = blockedService.checkExecutionConditionsForEnvironment(current, accounts, false);
             Test.stopTest();
+            Assert.areEqual(expectedMessage, message, '本番相当の環境は権限にかかわらず拒否');
+            Assert.areEqual(expectedMessage, started.errorMessage, '開始時に環境の拒否理由を保持');
+            Assert.areEqual(1, started.failureCount, '開始時は対象件数を推測して加算しない');
+            Assert.isTrue(started.failureReasons.contains('START_BLOCKED: ' + expectedMessage), '開始不可の理由を記録');
+            Assert.areEqual(expectedMessage, wrapper.errorMessage, '削除直前にも環境の拒否理由を保持');
             Assert.areEqual(4, wrapper.failureCount, '削除できなかったスコープ全件を失敗に加算');
             Assert.areEqual(2, wrapper.successCount, '以前の成功件数は維持');
+            Assert.areEqual(2, wrapper.recordErrors.size(), '拒否された対象も詳細上限を適用');
+            Assert.isTrue(wrapper.recordErrors.get(accounts[1].Id).contains('EXECUTION_BLOCKED'), '上限ちょうどの対象の拒否を記録');
+            Assert.isTrue(wrapper.recordErrors.get(accounts[0].Id).contains(expectedMessage), '環境による拒否理由を詳細に記録');
+            Assert.isFalse(wrapper.recordErrors.containsKey(accounts[2].Id), '上限超過の詳細だけを省略');
             Assert.areEqual(1, current.failureCount, '入力値を変更しない');
-
-            Assert.isTrue(current.recordErrors.isEmpty(), '入力の理由コードを変更しない');
-            Assert.isTrue(wrapper.failureReasons.contains('EXECUTION_BLOCKED: 取引先の参照・削除権限が必要です。'), '中止理由の説明を保持');
+            Assert.areEqual('', current.errorMessage, '入力のエラーメッセージを変更しない');
+            Assert.isTrue(current.recordErrors.isEmpty(), '入力のレコード詳細を変更しない');
+            Assert.isTrue(current.failureReasons.isEmpty(), '入力の失敗理由を変更しない');
         }
     }
 

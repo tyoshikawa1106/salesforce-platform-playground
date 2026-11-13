@@ -114,7 +114,6 @@ private with sharing class AccountDeleteBatchTest {
             Assert.areEqual(1, (Integer) wrapper.get('failureCount'), '前のスコープの失敗件数を維持');
             Map<String, Object> details = (Map<String, Object>) wrapper.get('recordErrors');
             Assert.isTrue(((String) details.get(String.valueOf(gone.Id))).contains('ENTITY_IS_DELETED'), 'レコードと理由を引き継ぐ');
-            Assert.areEqual(0, ((Map<String, Object>) state.get('service')).size(), 'Serviceには状態を保持しない');
             Assert.areEqual(0, [SELECT COUNT() FROM Account], '成功した削除結果を維持');
         }
     }
