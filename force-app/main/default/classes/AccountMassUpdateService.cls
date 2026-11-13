@@ -25,8 +25,21 @@ public with sharing class AccountMassUpdateService {
      * @return 正規化済み条件または拒否理由
      */
     public AccountMassUpdateWrapper prepareSearch(AccountMassUpdateWrapper request) {
-        // 読取権限と編集可能な項目をまとめて判定
-        AccountMassUpdateWrapper wrapper = createAccess();
+        // 公開入口は現在ユーザーの実権限から判定を作成
+        Boolean canRead = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible();
+        // 判定済みの権限と要求を同じ検証へ渡す
+        return prepareSearchWithAccess(request, canRead);
+    }
+
+    /** 取得済み権限から要求を検証し、拒否をテスト可能にする
+     * @param request 検索要求
+     * @param canRead 取引先の参照可否
+     * @return 検証結果
+     */
+    @TestVisible
+    private AccountMassUpdateWrapper prepareSearchWithAccess(AccountMassUpdateWrapper request, Boolean canRead) {
+        // 引数を変更せず新しい応答に権限情報を設定
+        AccountMassUpdateWrapper wrapper = createAccess(canRead);
         // 権限不足では入力に関係なく検索を拒否
         if (String.isNotEmpty(wrapper.errorMessage)) {
             // 判定結果を呼び出し元へ返却
@@ -35,7 +48,9 @@ public with sharing class AccountMassUpdateService {
         // 未指定の条件は空検索として扱う
         AccountMassUpdateWrapper input = request ?? new AccountMassUpdateWrapper();
         // 日付の逆転と不完全なページ境界を拒否
-        if (isInvalidSearch(input)) {
+        Boolean reversed = input.endDate != null && input.startDate?.daysBetween(input.endDate) < 0;
+        // 不完全なページ境界も日付不正と同じ案内で拒否
+        if (reversed || ((input.afterCreated == null) != (input.afterId == null))) {
             wrapper.errorMessage = '検索条件が不正です。開始日・終了日とページを確認してください。';
             // 判定結果を呼び出し元へ返却
             return wrapper;
@@ -87,8 +102,22 @@ public with sharing class AccountMassUpdateService {
      * @return 対象IDと拒否理由
      */
     public AccountMassUpdateWrapper prepareSave(List<Account> changes, Map<Id, Datetime> versions) {
-        // サーバー側で毎回権限を再検証
-        AccountMassUpdateWrapper wrapper = createAccess();
+        // 公開入口は現在ユーザーの実権限から判定を作成
+        Boolean canRead = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible();
+        // 判定済みの権限と要求を同じ検証へ渡す
+        return prepareSaveWithAccess(changes, versions, canRead);
+    }
+
+    /** 取得済み権限から要求を検証し、拒否をテスト可能にする
+     * @param changes 更新要求
+     * @param versions 更新前の日時
+     * @param canRead 取引先の参照可否
+     * @return 検証結果
+     */
+    @TestVisible
+    private AccountMassUpdateWrapper prepareSaveWithAccess(List<Account> changes, Map<Id, Datetime> versions, Boolean canRead) {
+        // 引数を変更せず新しい応答に権限情報を設定
+        AccountMassUpdateWrapper wrapper = createAccess(canRead);
         // 権限不足ではレコード取得も行わない
         if (String.isNotEmpty(wrapper.errorMessage)) {
             // 判定結果を呼び出し元へ返却
@@ -97,8 +126,7 @@ public with sharing class AccountMassUpdateService {
         // オブジェクト更新権限と保存件数を検証
         if (
             !Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isUpdateable() ||
-            changes == null ||
-            changes.isEmpty() ||
+            changes?.isEmpty() != false ||
             changes.size() > this.recordLimit ||
             versions == null
         ) {
@@ -219,7 +247,12 @@ public with sharing class AccountMassUpdateService {
         return wrapper;
     }
 
-    private AccountMassUpdateWrapper createAccess() {
+    /** 参照可否を引数で検証し、現在ユーザーの編集可能項目を取得
+     * @param canRead 取引先の参照可否
+     * @return 権限情報または拒否理由
+     */
+    @TestVisible
+    private AccountMassUpdateWrapper createAccess(Boolean canRead) {
         // 画面に必要なすべての項目を参照できる場合だけ検索
         AccountMassUpdateWrapper wrapper = new AccountMassUpdateWrapper();
         // 個人取引先未有効組織でも動作するよう項目の存在を確認
@@ -232,7 +265,7 @@ public with sharing class AccountMassUpdateService {
         // 更新候補は合意した四項目に限定
         Set<String> updateFields = new Set<String>{ 'OwnerId', 'Industry', 'Type', 'Rating' };
         // オブジェクト参照権限を確認
-        if (!Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible()) {
+        if (canRead != true) {
             wrapper.errorMessage = '取引先の参照権限がありません。';
             // 判定結果を呼び出し元へ返却
             return wrapper;
@@ -249,16 +282,9 @@ public with sharing class AccountMassUpdateService {
         return wrapper;
     }
 
-    private Boolean isInvalidSearch(AccountMassUpdateWrapper input) {
-        // 両方指定された日付だけ前後関係を確認
-        Boolean reversed = input.startDate != null && input.endDate != null && input.startDate > input.endDate;
-        // 日時とIDは常に一組のページ境界として扱う
-        return reversed || ((input.afterCreated == null) != (input.afterId == null));
-    }
-
     private String validateChange(Account change, Map<Id, Datetime> versions, AccountMassUpdateWrapper wrapper) {
         // nullレコードと更新前バージョン欠落を拒否
-        if (change == null || versions.get(change.Id) == null) {
+        if (versions.get(change?.Id) == null) {
             return '更新対象または更新前の情報が不正です。再検索してください。';
         }
         // 同じレコードを二回DMLへ渡さない

@@ -128,4 +128,22 @@ private with sharing class AccountMassUpdateSelectorTest {
             Assert.areEqual(1, locked.size(), '個人IDの改ざんを拒否');
         }
     }
+    /** 機能判定値に応じてレコードタイプと個人取引先の条件を生成 */
+    @IsTest
+    static void buildsQueriesForEnabledAccountFeatures() {
+
+        System.runAs(testUser) {
+            AccountMassUpdateWrapper request = new AccountMassUpdateWrapper();
+            request.recordTypesEnabled = true;
+            request.personAccountsEnabled = true;
+            Test.startTest();
+            String search = selector.createSearchQuery(request).query;
+            String locking = selector.createLockQuery(request);
+            Test.stopTest();
+            Assert.isTrue(search.contains(', RecordTypeId'), '有効時だけレコードタイプを取得');
+            Assert.isTrue(search.contains('AND IsPersonAccount = false'), '検索から個人取引先を除外');
+            Assert.isTrue(locking.contains('AND IsPersonAccount = false FOR UPDATE'), 'ロック時も法人だけを対象にする');
+        }
+    }
+
 }

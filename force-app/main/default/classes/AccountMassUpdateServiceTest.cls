@@ -173,4 +173,19 @@ private with sharing class AccountMassUpdateServiceTest {
         }
     }
 
+    /** 参照不可の判定値では検索と更新の両方を拒否 */
+    @IsTest
+    static void rejectsRequestsWithoutReadAccess() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            AccountMassUpdateWrapper search = service.prepareSearchWithAccess(null, false);
+            AccountMassUpdateWrapper save = service.prepareSaveWithAccess(new List<Account>(), new Map<Id, Datetime>(), false);
+            Test.stopTest();
+            Assert.areEqual('取引先の参照権限がありません。', search.errorMessage, '検索前に拒否');
+            Assert.areEqual(search.errorMessage, save.errorMessage, '更新前にも拒否');
+            Assert.isTrue(save.recordIds.isEmpty(), '検索するIDを生成しない');
+        }
+    }
+
 }
