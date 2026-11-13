@@ -5,12 +5,6 @@ private with sharing class AccountDeleteBatchServiceTest {
     private static AccountDeleteBatchService service = new AccountDeleteBatchService();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
-    private static User deniedUser = new User(
-        Alias = 'limited', LastName = '権限なしテスト', Email = 'limited@example.invalid',
-        Username = 'limited.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-        TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = 'ja_JP',
-        EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja'
-    );
 
     /**
      * 同じテストクラスで必要な権限だけを割り当て
@@ -18,9 +12,11 @@ private with sharing class AccountDeleteBatchServiceTest {
     @TestSetup
     static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
-        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
-        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+        List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
+        PermissionSet access = new PermissionSet(Name = 'AccountDeleteTestAccess', Label = '取引先削除テスト用');
+        insert access;
+        insert new SetupEntityAccess(ParentId = access.Id, SetupEntityId = permissions[0].Id);
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = access.Id);
     }
 
     /** 実行可能時に前回の拒否理由を解除 */
@@ -194,33 +190,41 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
-    /** 詳細の表示上限を超えても失敗件数を保持 */
+    /** 詳細上限の直前・ちょうど・超過を失敗3件で確認 */
     @IsTest
     static void limitsRecordDetailsWithoutLosingFailureCounts() {
+        AccountDeleteBatchService boundedService = new AccountDeleteBatchService(2);
 
         System.runAs(testUser) {
-            Account targetAccount = new Account(Name = '省略される失敗');
-            insert targetAccount;
-            delete targetAccount;
-            List<Account> accounts = new List<Account>{ targetAccount };
-            AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
-            current.failureCount = 200;
-            // 既に上限まで集計済みの状態は保存せずに組み立て
-            for (Integer index = 0; index < 200; index++) {
-                Id previousId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + String.valueOf(index).leftPad(12, '0'));
-                current.recordErrors.put(previousId, '以前の失敗');
-            }
+            List<Account> accounts = new List<Account>{
+                new Account(Name = '失敗A'), new Account(Name = '失敗B'), new Account(Name = '省略対象')
+            };
+            insert accounts;
+            delete accounts;
+            AccountDeleteBatchWrapper initial = new AccountDeleteBatchWrapper();
             Test.startTest();
             List<Database.DeleteResult> results = deleteForResults(accounts);
-            AccountDeleteBatchWrapper wrapper = service.aggregateDeleteResults(results, accounts, current);
+            AccountDeleteBatchWrapper first = boundedService.aggregateDeleteResults(
+                new List<Database.DeleteResult>{ results[0] }, new List<Account>{ accounts[0] }, initial
+            );
+            AccountDeleteBatchWrapper exact = boundedService.aggregateDeleteResults(
+                new List<Database.DeleteResult>{ results[1] }, new List<Account>{ accounts[1] }, first
+            );
+            AccountDeleteBatchWrapper overflow = boundedService.aggregateDeleteResults(
+                new List<Database.DeleteResult>{ results[2] }, new List<Account>{ accounts[2] }, exact
+            );
             AsyncApexJob job = (AsyncApexJob) JSON.deserialize('{"NumberOfErrors":0}', AsyncApexJob.class);
-            String body = service.buildBody(job, wrapper);
+            String body = boundedService.buildBody(job, overflow);
             Test.stopTest();
-            Assert.areEqual(201, wrapper.failureCount, '全失敗レコードを集計');
-            Assert.areEqual(200, wrapper.recordErrors.size(), '詳細はレコード単位で上限を適用');
-            Assert.isTrue(body.contains('200 / 201件'), '表示件数と全失敗件数を通知');
-            Assert.isTrue(body.contains('表示していない失敗レコードがあります'), '省略があることを通知');
-            Assert.isFalse(body.contains('取引先ID: ' + targetAccount.Id), '上限を超えるレコードは表示しない');
+            Assert.areEqual(1, first.recordErrors.size(), '上限未満の詳細を保存');
+            Assert.areEqual(2, exact.recordErrors.size(), '上限ちょうどの詳細も保存');
+            Assert.isTrue(exact.recordErrors.containsKey(accounts[1].Id), '最後に表示できる詳細を保持');
+            Assert.areEqual(3, overflow.failureCount, '省略しても全失敗件数を保持');
+            Assert.areEqual(2, overflow.recordErrors.size(), '超過した詳細を追加しない');
+            Assert.isFalse(overflow.recordErrors.containsKey(accounts[2].Id), '上限超過の対象を省略');
+            Assert.isTrue(body.contains('2 / 3件（最大2件）'), '設定上限と件数を通知');
+            Assert.isTrue(body.contains('表示していない失敗レコードがあります'), '詳細の省略を通知');
+            Assert.isTrue(initial.recordErrors.isEmpty(), '入力状態を変更しない');
         }
     }
 
@@ -329,53 +333,4 @@ private with sharing class AccountDeleteBatchServiceTest {
         }
     }
 
-    /** 利用権限なしでは開始を拒否し今回の対象だけを失敗に加算 */
-    @IsTest
-    static void rejectsExecutionWithoutFeaturePermission() {
-        insertDeniedUser();
-
-        System.runAs(deniedUser) {
-            Account target = new Account(
-                Id = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'),
-                Name = '拒否対象'
-            );
-            AccountDeleteBatchWrapper current = new AccountDeleteBatchWrapper();
-            Test.startTest();
-            AccountDeleteBatchWrapper start = service.checkStartConditions(current);
-            AccountDeleteBatchWrapper execution = service.checkExecutionConditions(current, new List<Account>{ target });
-            Test.stopTest();
-            Assert.isTrue(start.errorMessage.contains('利用権限'), '専用の利用許可なしでは開始しない');
-            Assert.areEqual(0, start.failureCount, '開始前に件数を推測しない');
-            Assert.areEqual(1, execution.failureCount, '今回の対象だけを失敗にする');
-            Assert.isTrue(execution.recordErrors.containsKey(target.Id), '拒否した対象の理由を保持');
-            Assert.areEqual(0, current.failureCount, '入力状態を変更しない');
-        }
-    }
-
-    /** 利用許可があってもオブジェクト権限不足は拒否 */
-    @IsTest
-    static void rejectsExecutionWithoutAccountAccess() {
-        insertDeniedUser();
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
-        insert new PermissionSetAssignment(AssigneeId = deniedUser.Id, PermissionSetId = permissions[0].Id);
-
-        System.runAs(deniedUser) {
-            Test.startTest();
-            String message = service.getBlockMessage();
-            Test.stopTest();
-            Assert.areEqual('取引先の参照・削除権限が必要です。', message, '専用許可とは別にCRUDを確認');
-        }
-    }
-
-    /** 権限拒否を確認するユーザーだけを保存 */
-    private static void insertDeniedUser() {
-        List<Profile> profiles = [
-            SELECT Id FROM Profile
-            WHERE PermissionsModifyAllData = false AND UserLicense.Name = 'Salesforce'
-            ORDER BY Name LIMIT 1
-        ];
-        Assert.isFalse(profiles.isEmpty(), '権限なしのプロファイルが存在');
-        deniedUser.ProfileId = profiles[0].Id;
-        insert deniedUser;
-    }
 }

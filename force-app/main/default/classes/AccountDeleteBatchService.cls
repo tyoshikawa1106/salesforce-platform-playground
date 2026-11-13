@@ -3,6 +3,24 @@
  */
 public with sharing class AccountDeleteBatchService {
 
+    // 通常の表示上限と少量データの境界検証で共用
+    private final Integer detailLimit;
+
+    /** 通常の削除結果で表示する詳細件数を固定 */
+    public AccountDeleteBatchService() {
+        // 公開入口では既存の200件を維持
+        this.detailLimit = 200;
+    }
+
+    /** 少量の失敗レコードで詳細上限の境界を確認する内部生成
+     * @param detailLimit 正の詳細表示上限
+     */
+    @TestVisible
+    private AccountDeleteBatchService(Integer detailLimit) {
+        // 実行データとは分離して生成時に上限を固定
+        this.detailLimit = detailLimit;
+    }
+
     /**
      * 現在の実行条件から開始拒否理由を取得
      * @return 実行可能なら空文字、それ以外は公開可能な理由
@@ -65,7 +83,7 @@ public with sharing class AccountDeleteBatchService {
             // 今回の対象を削除できないため全件を失敗に加算
             wrapper.failureCount += accounts.size();
             for (Account account : accounts) {
-                if (wrapper.recordErrors.size() < 200) {
+                if (wrapper.recordErrors.size() < this.detailLimit) {
                     wrapper.recordErrors.put(account.Id, buildRecordError(
                         account.Name, new Set<String>{ 'EXECUTION_BLOCKED' }, new List<String>{ wrapper.errorMessage }
                     ));
@@ -93,7 +111,7 @@ public with sharing class AccountDeleteBatchService {
                 wrapper.successCount++;
             } else {
                 wrapper.failureCount++;
-                if (wrapper.recordErrors.size() < 200) {
+                if (wrapper.recordErrors.size() < this.detailLimit) {
                     List<String> messages = new List<String>();
                     Set<String> codes = new Set<String>();
                     for (Database.Error error : result.getErrors()) {
@@ -199,7 +217,7 @@ public with sharing class AccountDeleteBatchService {
         reasons.sort();
         details.addAll(reasons);
         String errorText = details.isEmpty() ? 'なし' : String.join(details, '\n\n');
-        String displayCount = '失敗レコードの詳細表示件数: ' + recordIds.size() + ' / ' + wrapper.failureCount + '件（最大200件）';
+        String displayCount = '失敗レコードの詳細表示件数: ' + recordIds.size() + ' / ' + wrapper.failureCount + '件（最大' + this.detailLimit + '件）';
         if (wrapper.failureCount > recordIds.size()) {
             displayCount += '\n表示していない失敗レコードがあります。';
         }
