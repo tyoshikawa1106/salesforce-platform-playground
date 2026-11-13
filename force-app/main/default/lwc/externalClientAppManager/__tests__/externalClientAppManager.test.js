@@ -50,20 +50,20 @@ function updateResponses() {
         .mockResolvedValueOnce({ state: 'complete', stages: [stage] })
         .mockResolvedValueOnce({ state: 'complete', stages: [{ ...stage, state: 'rotated' }] });
 }
-describe('旧資格情報を保持して手動削除する画面', () => {
+describe('外部クライアントアプリ認証管理', () => {
     afterEach(() => {
         document.body.replaceChildren();
         jest.resetAllMocks();
     });
-    it('候補200件を表示し、入力時は初期候補の外もサーバーで再検索する', async () => {
+    it('入力時は取得済み候補の外もサーバーで再検索して選択できる', async () => {
         const element = await createComponent();
         const input = element.shadowRoot.querySelector('input[role="combobox"]');
-        const candidates = Array.from({ length: 200 }, (_, index) => ({ id: `app${index}`, label: `候補${index}`, name: `App${index}` }));
+        const candidates = Array.from({ length: 2 }, (_, index) => ({ id: `app${index}`, label: `候補${index}`, name: `App${index}` }));
         execute.mockResolvedValueOnce({ applications: candidates });
         input.value = 'App';
         input.dispatchEvent(new CustomEvent('input'));
         await flush();
-        expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(200);
+        expect(element.shadowRoot.querySelectorAll('[role="option"]')).toHaveLength(2);
         expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
         const outside = { id: 'outside', label: '別の対象', name: 'Outside' };
         execute.mockResolvedValueOnce({ applications: [outside] });

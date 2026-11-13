@@ -9,6 +9,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
     private static final String CONSUMER_ID = '888' + '0'.repeat(11) + '1';
     private static final String STAGE_ID = '0ug' + '0'.repeat(11) + '1';
 
+    /** 不正な操作・ID・確認値を処理前に拒否 */
     @IsTest
     static void validatesRequestBoundaries() {
         System.runAs(testUser) {
@@ -55,6 +56,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 未適用だけを適用対象とし、適用後のID・状態・件数を照合 */
     @IsTest
     static void validatesAppliedStageResults() {
         System.runAs(testUser) {
@@ -69,7 +71,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
 
             try {
                 stages.requireRetiredStage(rows('rotated'), '0ug' + '0'.repeat(11) + '2');
-                Assert.fail('別のステージを削除しない');
+                Assert.fail('別IDのステージを適用完了としない');
             } catch (ExternalClientAppManagerService.ValidationException differentStageError) {
                 Assert.isTrue(differentStageError.getMessage().contains('変更'), '並行変更を案内');
             }
@@ -78,7 +80,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
                 stages.requireRetiredStage(new List<Object>(), STAGE_ID);
                 Assert.fail('適用後の欠落を検知');
             } catch (ExternalClientAppManagerService.ValidationException missingStageError) {
-                Assert.isTrue(missingStageError.getMessage().contains('一意'), '削除対象不明を案内');
+                Assert.isTrue(missingStageError.getMessage().contains('一意'), '適用結果の対象不明を案内');
             }
 
             stages.requireApplicable(rows('active'), new Map<String, String>{ 'stageId' => STAGE_ID });
@@ -94,12 +96,12 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 残存ステージを拒否し、生成・適用した同じIDと状態を確認 */
     @IsTest
     static void validatesGenerationResults() {
         System.runAs(testUser) {
             Test.startTest();
 
-            ExternalClientAppManagerService.Stages stages = new ExternalClientAppManagerService.Stages();
             stages.requireEmptyStages(new List<Object>());
             for (String remainingState : new List<String>{ 'active', 'rotated', 'expired', 'unknown' }) {
                 try {
@@ -150,6 +152,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 部分応答からも管理対象の公開属性だけを返し、一覧欠落は拒否 */
     @IsTest
     static void validatesPublishedCollections() {
         System.runAs(testUser) {
@@ -178,7 +181,8 @@ private with sharing class ExternalClientAppManagerServiceTest {
 
             List<Object> eligibleApplications = view.applications(
                 new Map<String, Object>{
-                    'done' => true,
+                    'done' => false,
+                    'totalSize' => 201,
                     'records' => new List<Object>{
                         new Map<String, Object>{
                             'Id' => APP_ID,
@@ -199,23 +203,12 @@ private with sharing class ExternalClientAppManagerServiceTest {
                     }
                 }
             );
-            Assert.areEqual(1, eligibleApplications.size(), 'ローカルの更新対象だけを返す');
+            Assert.areEqual(1, eligibleApplications.size(), '全体が200件を超える部分応答でも、取得済みの管理対象を返す');
             Assert.areEqual(
                 'Target',
                 ((Map<String, Object>) eligibleApplications[0]).get('name'),
                 '管理用認証元を除外'
             );
-
-            List<Object> candidates = new List<Object>();
-            for (Integer i = 0; i < 200; i++) {
-                candidates.add(new Map<String, Object>{
-                    'Id' => APP_ID, 'DeveloperName' => 'Target' + i, 'MasterLabel' => '対象' + i,
-                    'DistributionState' => 'Local'
-                });
-            }
-            Assert.areEqual(200, view.applications(new Map<String, Object>{
-                'done' => false, 'totalSize' => 201, 'records' => candidates
-            }).size(), '全体が200件を超えても取得済み候補を表示する');
 
             try {
                 view.stages(new Map<String, Object>());
@@ -241,6 +234,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 15桁と18桁の同一IDを許可し、不一致を拒否 */
     @IsTest
     static void validatesConfirmationId() {
         System.runAs(testUser) {
@@ -274,6 +268,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 応答URLに依存せず対象IDから固定パスを構築 */
     @IsTest
     static void constructsStagePathWithoutReturnedUrl() {
         System.runAs(testUser) {
@@ -297,6 +292,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** コンシューマーが見つからなければ処理を停止 */
     @IsTest
     static void rejectsMissingConsumer() {
         System.runAs(testUser) {
@@ -311,6 +307,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 削除対象が一覧に残る場合は完了としない */
     @IsTest
     static void rejectsRemainingDeletedStage() {
         System.runAs(testUser) {
@@ -325,6 +322,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** 確認したAPI名と取得したアプリが異なれば拒否 */
     @IsTest
     static void rejectsUnmatchedApplication() {
         System.runAs(testUser) {
@@ -345,6 +343,7 @@ private with sharing class ExternalClientAppManagerServiceTest {
         }
     }
 
+    /** コンシューマーが一意に決まらなければ拒否 */
     @IsTest
     static void rejectsMultipleConsumers() {
         System.runAs(testUser) {

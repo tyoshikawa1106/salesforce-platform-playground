@@ -24,7 +24,7 @@ export default class ExternalClientAppManager extends LightningElement {
     authenticationUrl = '';
     // サーバーで所属確認したアプリ候補を保持する
     applications = [];
-    // 候補取得時だけ表示選択肢を生成する
+    // 候補とキーボードの強調位置を表示用に保持する
     appOptions = applicationOptions();
     // 入力文字列をサーバー検索に使用する
     appTerm = '';
@@ -367,7 +367,7 @@ export default class ExternalClientAppManager extends LightningElement {
             if (!this.isConnected || searchVersion !== this.searchVersion) return;
             // 後続操作の照合に使う公開属性を保持する
             this.applications = response.applications || [];
-            // 候補取得時だけ表示用データを作る
+            // 再取得した候補と強調位置を表示へ反映する
             this.appOptions = applicationOptions(this.applications);
         } catch (error) {
             // 前の検索失敗で現在の結果を上書きしない

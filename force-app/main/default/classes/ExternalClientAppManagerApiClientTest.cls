@@ -124,7 +124,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         }
     }
 
-    /** 組織外のURLを拒否 */
+    /** 許可したAPIルート以外を送信前に拒否 */
     @IsTest
     static void rejectsExternalPath() {
         System.runAs(testUser) {
@@ -171,7 +171,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         }
     }
 
-    /** 未設定だけを認証要求に分類 */
+    /** 接続失敗時の未登録資格情報を再認証へ分類 */
     @IsTest
     static void detectsMissingAuthentication() {
         System.runAs(testUser) {
@@ -218,7 +218,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         }
     }
 
-    /** 401だけを再認証として扱う */
+    /** REST APIの401を再認証へ分類 */
     @IsTest
     static void mapsUnauthorizedAuthentication() {
         System.runAs(testUser) {
@@ -230,7 +230,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
         }
     }
 
-    /** 403を再認証で解決すると案内しない */
+    /** REST APIの権限拒否を確認不能へ分類 */
     @IsTest
     static void mapsForbiddenAuthentication() {
         System.runAs(testUser) {

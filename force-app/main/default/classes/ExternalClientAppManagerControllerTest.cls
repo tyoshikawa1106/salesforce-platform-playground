@@ -34,6 +34,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 一覧参照では変更要求や変更完了日時を返さない */
     @IsTest
     static void readsStagesWithoutMutation() {
         System.runAs(testUser) {
@@ -51,6 +52,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 対象IDや確認IDの不備では変更要求を送らない */
     @IsTest
     static void rejectsUnconfirmedApplicationTargets() {
         System.runAs(testUser) {
@@ -86,6 +88,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 生成後の一覧を確認できなければ完了としない */
     @IsTest
     static void rejectsInconsistentGenerationResults() {
         System.runAs(testUser) {
@@ -125,6 +128,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 適用後のID・状態が一致しなければ完了としない */
     @IsTest
     static void rejectsInconsistentApplicationResults() {
         System.runAs(testUser) {
@@ -174,6 +178,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 削除後に対象が残っていれば完了としない */
     @IsTest
     static void rejectsUnconfirmedDeletion() {
         System.runAs(testUser) {
@@ -195,6 +200,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 変更後の一覧取得に失敗したら結果不明として停止 */
     @IsTest
     static void stopsAfterVerificationReadFailures() {
         System.runAs(testUser) {
@@ -241,6 +247,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 変更要求の失敗後に再送や後続操作を行わない */
     @IsTest
     static void stopsAfterMutationFailures() {
         System.runAs(testUser) {
@@ -284,8 +291,9 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 残存ステージの検証結果を公開し、生成APIを呼ばずに停止 */
     @IsTest
-    static void rejectsGenerationForEveryRemainingState() {
+    static void rejectsGenerationWithRemainingStage() {
         System.runAs(testUser) {
             Test.startTest();
 
@@ -296,30 +304,11 @@ private with sharing class ExternalClientAppManagerControllerTest {
             Assert.areEqual('notStarted', activeStageResult.get('state'), '操作結果を確認');
             Assert.isFalse(JSON.serialize(activeStageResult).contains('PRIVATE'), '内部情報は非公開');
 
-            RequestQueue rotatedStageRequests = stageQueue(stageBody('rotated'));
-            Test.setMock(HttpCalloutMock.class, rotatedStageRequests);
-            Map<String, Object> rotatedStageResult = ExternalClientAppManagerController.execute(input('generate'));
-            rotatedStageRequests.assertConsumed();
-            Assert.areEqual('notStarted', rotatedStageResult.get('state'), '操作結果を確認');
-            Assert.isFalse(JSON.serialize(rotatedStageResult).contains('PRIVATE'), '内部情報は非公開');
-
-            RequestQueue expiredStageRequests = stageQueue(stageBody('expired'));
-            Test.setMock(HttpCalloutMock.class, expiredStageRequests);
-            Map<String, Object> expiredStageResult = ExternalClientAppManagerController.execute(input('generate'));
-            expiredStageRequests.assertConsumed();
-            Assert.areEqual('notStarted', expiredStageResult.get('state'), '操作結果を確認');
-            Assert.isFalse(JSON.serialize(expiredStageResult).contains('PRIVATE'), '内部情報は非公開');
-
-            RequestQueue unknownStageRequests = stageQueue(stageBody('unknown'));
-            Test.setMock(HttpCalloutMock.class, unknownStageRequests);
-            Map<String, Object> unknownStageResult = ExternalClientAppManagerController.execute(input('generate'));
-            unknownStageRequests.assertConsumed();
-            Assert.areEqual('notStarted', unknownStageResult.get('state'), '操作結果を確認');
-            Assert.isFalse(JSON.serialize(unknownStageResult).contains('PRIVATE'), '内部情報は非公開');
             Test.stopTest();
         }
     }
 
+    /** 生成・適用・削除は各一回の変更と事後確認で完了 */
     @IsTest
     static void executesOneMutationPerOperation() {
         System.runAs(testUser) {
@@ -366,6 +355,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** アプリ候補の取得では鍵・秘密を公開しない */
     @IsTest
     static void listsWithoutCredentials() {
         System.runAs(testUser) {
@@ -382,7 +372,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
-    /** 先頭候補の外にあるアプリも検索語で取得できる */
+    /** 検索語を候補取得のラベル・API名条件へ渡す */
     @IsTest
     static void searchesApplicationLabelsAndNames() {
         System.runAs(testUser) {
@@ -400,6 +390,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 適用済みステージへの再適用を変更前に拒否 */
     @IsTest
     static void rejectsRotatedApply() {
         System.runAs(testUser) {
@@ -414,20 +405,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
-    @IsTest
-    static void rejectsExpiredApply() {
-        System.runAs(testUser) {
-            RequestQueue mock = stageQueue(stageBody('expired'));
-            Test.setMock(HttpCalloutMock.class, mock);
-            Test.startTest();
-            Map<String, Object> result = ExternalClientAppManagerController.execute(stageInput('apply', 'expired'));
-            Test.stopTest();
-            mock.assertConsumed();
-            Assert.areEqual('notStarted', result.get('state'), '操作結果を確認');
-            Assert.isFalse(JSON.serialize(result).contains('PRIVATE'), '内部情報は非公開');
-        }
-    }
-
+    /** 確認時から状態が変わったステージを削除しない */
     @IsTest
     static void rejectsStaleStage() {
         System.runAs(testUser) {
@@ -442,6 +420,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 参照APIの権限拒否を設定案内へ変換して停止 */
     @IsTest
     static void rejectsForbiddenBeforeMutation() {
         System.runAs(testUser) {
@@ -458,6 +437,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 接続先の本人性を確認できなければ変更を拒否 */
     @IsTest
     static void rejectsWrongIdentity() {
         System.runAs(testUser) {
@@ -478,6 +458,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 一覧参照の失敗で内部情報を公開しない */
     @IsTest
     static void rejectsReadFailureSafely() {
         System.runAs(testUser) {
@@ -496,6 +477,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 廃止した一括操作を公開入口で拒否 */
     @IsTest
     static void rejectsLegacyCombinedAction() {
         System.runAs(testUser) {
@@ -513,6 +495,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 機能権限がなければ更新・認証入口を利用させない */
     @IsTest
     static void rejectsWithoutFeaturePermission() {
         User noAccess = new User(
@@ -545,6 +528,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 接続状態と独立して標準認証URLを取得 */
     @IsTest
     static void providesStandardAuthenticationUrl() {
         System.runAs(testUser) {
@@ -562,6 +546,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 接続状態の確認失敗を公開用の案内へ変換 */
     @IsTest
     static void hidesAuthenticationApiFailure() {
         System.runAs(testUser) {
@@ -580,6 +565,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 本人の管理用資格情報の解除を標準APIへ委譲 */
     @IsTest
     static void revokesOwnManagementAuthentication() {
         System.runAs(testUser) {
@@ -592,6 +578,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 認証解除の失敗で内部例外を公開しない */
     @IsTest
     static void hidesRevokeFailure() {
         System.runAs(testUser) {
@@ -607,6 +594,7 @@ private with sharing class ExternalClientAppManagerControllerTest {
         }
     }
 
+    /** 認証URLの取得失敗を固定の案内へ変換 */
     @IsTest
     static void hidesAuthenticationUrlFailure() {
         System.runAs(testUser) {

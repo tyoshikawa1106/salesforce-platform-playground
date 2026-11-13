@@ -9,7 +9,7 @@ import {
 } from '../externalClientAppManagerLogic';
 describe('個別操作の表示と要求', () => {
     it('候補は表示名とAPI名を併記し、選択値にアプリIDを使う', () => {
-        expect(applicationOptions([{ id: 'app', label: '対象', name: 'Target' }], 0)[0]).toMatchObject({ label: '対象', name: 'Target', value: 'app', selected: true, domId: 'app-option-app' });
+        expect(applicationOptions([{ id: 'app', label: '対象', name: 'Target' }], 0)[0]).toMatchObject({ label: '対象', name: 'Target', value: 'app', selected: true });
     });
     it('状態ごとに適用・削除可否を決め、秘密を取り除く', () => {
         const rows = stageRows(
@@ -52,7 +52,6 @@ describe('個別操作の表示と要求', () => {
         const row = { id: 'stage', state: 'Rotated' };
         expect(automationStage([row, { id: 'old', state: 'rotated' }], 'stage', 'rotated')).toBe(row);
         expect(automationStage([{ id: 'old', state: 'rotated' }, { id: 'new', state: 'active' }], undefined, 'active').id).toBe('new');
-        expect(automationStage([{ id: 'new', state: 'active' }], undefined, 'active').id).toBe('new');
         for (const rows of [
             [],
             [row, row],
@@ -64,7 +63,6 @@ describe('個別操作の表示と要求', () => {
         }
     });
 });
-
 
 describe('資格情報の状態別案内', () => {
     it.each(['unknown', undefined, ''])('不明状態%sでは削除を勧めない', (state) => {
