@@ -55,6 +55,22 @@ private with sharing class TestDataDeleteBatchSelectorTest {
         }
     }
 
+    /** 保存データなしで実行条件の取得結果を確認 */
+    @IsTest
+    static void loadsExecutionContext() {
+        System.runAs(testUser) {
+            Test.startTest();
+            List<Organization> organizations = selector.getOrganizations();
+            List<UserPermissionAccess> permissions = selector.getPermissions();
+            Test.stopTest();
+            Assert.areEqual(1, organizations.size(), '実行先の組織情報を一件取得');
+            Assert.isNotNull(organizations[0].IsSandbox, 'Sandbox判定を取得');
+            Assert.isTrue(String.isNotBlank(organizations[0].OrganizationType), 'Edition判定を取得');
+            Assert.areEqual(1, permissions.size(), '実行ユーザーの実効権限を取得');
+            Assert.isTrue(permissions[0].PermissionsModifyAllData, '標準システム管理者の実効権限を確認');
+        }
+    }
+
     /** ごみ箱を除いた残存レコードを取得 */
     @IsTest
     static void countsOnlyRemainingRecords() {
@@ -67,11 +83,9 @@ private with sharing class TestDataDeleteBatchSelectorTest {
             Test.startTest();
             Integer remaining = selector.getRemaining('Account', 'IsDeleted = false');
             Database.QueryLocator records = selector.getRecords('Account', 'IsDeleted = false');
-            List<UserPermissionAccess> permissions = selector.getPermissions();
             Test.stopTest();
             Assert.areEqual(1, remaining, 'ごみ箱を除いた残件数');
             Assert.isTrue(records.iterator().hasNext(), '対象のカーソルを返す');
-            Assert.areEqual(1, permissions.size(), '実効権限を取得');
         }
     }
 
