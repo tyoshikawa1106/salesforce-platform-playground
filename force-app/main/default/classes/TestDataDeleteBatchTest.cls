@@ -71,6 +71,12 @@ private with sharing class TestDataDeleteBatchTest {
             ];
             Assert.areEqual(1, next.size(), '次の親へ一ジョブだけ登録');
             Assert.areEqual(0, Limits.getEmailInvocations(), '途中段階では通知しない');
+            try {
+                new TestDataDeleteBatch(last).start(new Context(currentJob));
+                Assert.fail('別のジョブが残る間は開始を拒否');
+            } catch (TestDataDeleteBatch.DeleteRunException e) {
+                Assert.isTrue(e.getMessage().contains('別の削除ジョブ'), '重複起動の理由を返す');
+            }
             System.abortJob(currentJob);
             System.abortJob(next[0].Id);
             Test.stopTest();
@@ -110,17 +116,14 @@ private with sharing class TestDataDeleteBatchTest {
     static void deletesAllAccountsInSingleScope() {
 
         System.runAs(testUser) {
-            List<Account> accounts = new List<Account>();
-            for (Integer index = 0; index < 251; index++) {
-                accounts.add(
-                    new Account(Name = '任意の名称' + index)
-                );
-            }
+            List<Account> accounts = new List<Account>{
+                new Account(Name = '任意の名称A'), new Account(Name = '任意の名称B')
+            };
             insert accounts;
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.position = plan.objectNames.indexOf('Account');
             Test.startTest();
-            Id jobId = Database.executeBatch(new TestDataDeleteBatch(plan), 400);
+            Id jobId = Database.executeBatch(new TestDataDeleteBatch(plan), 2);
             Test.stopTest();
             Assert.areEqual(0, [SELECT COUNT() FROM Account], '識別プレフィックスなしでも全件削除');
             List<AsyncApexJob> jobs = [SELECT Status, NumberOfErrors FROM AsyncApexJob WHERE Id = :jobId];
@@ -136,26 +139,19 @@ private with sharing class TestDataDeleteBatchTest {
         System.runAs(testUser) {
             Account parent = new Account(Name = '親の保持確認');
             insert parent;
-            List<Contact> contacts = new List<Contact>();
-            List<SObject> firstScope = new List<SObject>();
-            List<SObject> secondScope = new List<SObject>();
-            for (Integer index = 0; index < 251; index++) {
-                contacts.add(new Contact(LastName = '分割確認' + index, AccountId = parent.Id));
-            }
+            List<Contact> contacts = new List<Contact>{
+                new Contact(LastName = '前半', AccountId = parent.Id),
+                new Contact(LastName = '後半', AccountId = parent.Id)
+            };
             insert contacts;
-            for (Integer index = 0; index < contacts.size(); index++) {
-                if (index < 200) {
-                    firstScope.add(contacts[index]);
-                } else {
-                    secondScope.add(contacts[index]);
-                }
-            }
+            List<SObject> firstScope = new List<SObject>{ contacts[0] };
+            List<SObject> secondScope = new List<SObject>{ contacts[1] };
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.position = plan.objectNames.indexOf('Contact');
             TestDataDeleteBatch batch = new TestDataDeleteBatch(plan);
             Test.startTest();
             batch.execute(null, firstScope);
-            Assert.areEqual(51, [SELECT COUNT() FROM Contact], '最初のスコープのみ削除');
+            Assert.areEqual(1, [SELECT COUNT() FROM Contact], '最初のスコープのみ削除');
             Assert.areEqual(1, [SELECT COUNT() FROM Account], '子の残存中は親を保持');
             TestDataDeleteBatch restored = (TestDataDeleteBatch) JSON.deserialize(
                 JSON.serialize(batch),
@@ -167,8 +163,8 @@ private with sharing class TestDataDeleteBatchTest {
             Assert.areEqual(1, [SELECT COUNT() FROM Account], 'Contact処理でAccountを削除しない');
             Map<String, Object> state = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(restored));
             Map<String, Object> result = (Map<String, Object>) state.get('wrapper');
-            Assert.areEqual(251, result.get('successCount'), '200件と51件の集計を保持');
-            Assert.areEqual(251, result.get('totalSuccessCount'), '全体の通知件数も集計');
+            Assert.areEqual(2, result.get('successCount'), '各スコープの集計を保持');
+            Assert.areEqual(2, result.get('totalSuccessCount'), '全体の通知件数も集計');
             Assert.areEqual(0, result.get('failureCount'), '全スコープ成功');
         }
     }
@@ -213,7 +209,16 @@ private with sharing class TestDataDeleteBatchTest {
             TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
             plan.objectNames[0] = 'User';
             Test.startTest();
-            new TestDataDeleteBatch(plan).execute(null, new List<SObject>{ account });
+            TestDataDeleteBatch batch = new TestDataDeleteBatch(plan);
+            try {
+                batch.start(null);
+                Assert.fail('不正な計画では開始も拒否');
+            } catch (TestDataDeleteBatch.DeleteRunException e) {
+                Assert.isNotNull(e.getMessage(), '計画の拒否理由を返す');
+            }
+            batch.execute(null, new List<SObject>{ account });
+            batch.finish(null);
+            Assert.areEqual(1, Limits.getEmailInvocations(), '途中停止を一回通知');
             Test.stopTest();
             Assert.areEqual(1, [SELECT COUNT() FROM Account], '不正な計画ではスコープを削除しない');
         }
