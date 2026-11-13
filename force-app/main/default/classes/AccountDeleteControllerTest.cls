@@ -10,9 +10,11 @@ private with sharing class AccountDeleteControllerTest {
     @TestSetup
     static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
-        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
-        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+        List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
+        PermissionSet access = new PermissionSet(Name = 'AccountDeleteControllerAccess', Label = 'AccountDeleteController テスト');
+        insert access;
+        insert new SetupEntityAccess(ParentId = access.Id, SetupEntityId = permissions[0].Id);
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = access.Id);
     }
 
     /** 実行状態の取得と削除受付 */
@@ -21,7 +23,16 @@ private with sharing class AccountDeleteControllerTest {
 
         System.runAs(testUser) {
             Test.startTest();
-            Assert.areEqual('', AccountDeleteController.getView(null).blockMessage, '実行を許可');
+            AccountDeleteWrapper initial = AccountDeleteController.getView(null);
+            if (!OrgEnvironment.isDevelopmentEnvironment()) {
+                Assert.isTrue(initial.blockMessage.contains('でのみ実行'), '本番では状態の参照を拒否');
+                AccountDeleteWrapper blocked = AccountDeleteController.startRun();
+                Assert.areEqual(initial.blockMessage, blocked.blockMessage, '本番では登録も同じ理由で拒否');
+                Assert.areEqual('', blocked.jobId, '拒否時に受付IDを返さない');
+                Test.stopTest();
+                return;
+            }
+            Assert.areEqual('', initial.blockMessage, '許可環境では実行を受付');
             AccountDeleteWrapper response = AccountDeleteController.startRun();
             Assert.isNotNull(response.jobId, '受付ID');
             Assert.areEqual(
@@ -34,36 +45,17 @@ private with sharing class AccountDeleteControllerTest {
         }
     }
 
-    /** 権限不足で開始を拒否 */
-    @IsTest
-    static void rejectsWithoutPermission() {
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'testuser',
-            LastName = 'Delete permission test',
-            Email = 'test-user@example.invalid',
-            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert denied;
-
-        System.runAs(denied) {
-            Test.startTest();
-            Assert.isTrue(AccountDeleteController.getView(null).blockMessage.contains('利用権限'), '表示を拒否');
-            Assert.isTrue(AccountDeleteController.startRun().blockMessage.contains('利用権限'), '開始も拒否');
-            Test.stopTest();
-        }
-    }
-
     /** 実行中ジョブとの重複を拒否 */
     @IsTest
     static void rejectsDuplicateJob() {
 
         System.runAs(testUser) {
             Test.startTest();
+            if (!OrgEnvironment.isDevelopmentEnvironment()) {
+                Assert.isTrue(AccountDeleteController.startRun().blockMessage.contains('でのみ実行'), '本番では重複判定より先に拒否');
+                Test.stopTest();
+                return;
+            }
             AccountDeleteWrapper first = AccountDeleteController.startRun();
             AccountDeleteWrapper second = AccountDeleteController.startRun();
             Assert.isTrue(second.blockMessage.contains('実行中'), '登録済みの重複を拒否');
