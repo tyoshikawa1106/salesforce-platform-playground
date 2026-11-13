@@ -30,6 +30,61 @@ private with sharing class ObjectExplorerControllerTest {
         }
     }
 
+    /** 保存後のHTTP失敗でも確定済みの項目別拒否を維持 */
+    @IsTest
+    static void preservesRejectedFieldWhenVerificationRequestFails() {
+        System.runAs(testUser) {
+            Test.startTest();
+            String message = assertVerificationFailure(503, 'PRIVATE_RESPONSE');
+            Assert.isTrue(message.contains('保存結果の再取得・照合：'), '再取得段階の通信失敗を案内');
+            Assert.isTrue(message.contains('[OE-API-HTTP-503]'), '安全なHTTPステータスを案内');
+            Test.stopTest();
+        }
+    }
+
+    /** 保存後の不正な応答型を安全な確認不能として通知 */
+    @IsTest
+    static void hidesMalformedVerificationResponse() {
+        System.runAs(testUser) {
+            Test.startTest();
+            String message = assertVerificationFailure(200, '{"done":true,"records":"PRIVATE_RESPONSE"}');
+            Assert.isTrue(message.contains('項目の保存に失敗しました。編集内容と権限を確認してください。'), '内部の型変換例外は固定の案内へ変換');
+            Test.stopTest();
+        }
+    }
+
+    /** 再取得失敗と更新時の確定済み拒否を区別
+     * @param statusCode 再取得APIの応答ステータス
+     * @param body 再取得APIの応答本文
+     * @return 再取得に失敗した項目の公開メッセージ
+     */
+    private static String assertVerificationFailure(Integer statusCode, String body) {
+        SaveMock writes = new SaveMock('Account', new Set<String>{'Name', 'Phone'}, 'rejectPhone');
+        HttpResponse failedRead = new HttpResponse();
+        failedRead.setStatusCode(statusCode);
+        failedRead.setBody(body);
+        writes.verificationResponse = failedRead;
+        Test.setMock(HttpCalloutMock.class, writes);
+        List<Object> results = ObjectExplorerController.saveClassifyData(
+            'Account', changes(new List<String>{'Name', 'Phone'}, ChangeMode.CHANGE_STATUS)
+        );
+        Assert.areEqual(2, results.size(), '元の二項目の結果を保持');
+        Map<String, Object> pending = (Map<String, Object>) results[0];
+        Map<String, Object> rejected = (Map<String, Object>) results[1];
+        Assert.areEqual('Name', pending.get('apiName'), '確認不能の項目を要求順で対応');
+        Assert.areEqual(false, pending.get('success'), '更新受付だけで成功と扱わない');
+        String message = (String) pending.get('message');
+        Assert.isTrue(message.contains('[OE-SAVE-UNCONFIRMED]'), '更新送信後の確認不能として通知');
+        Assert.areEqual('Phone', rejected.get('apiName'), '拒否された項目を保持');
+        Assert.areEqual(false, rejected.get('success'), '確定済みの拒否を成功へ変更しない');
+        Assert.isTrue(((String) rejected.get('message')).contains('[OE-SAVE-REJECTED]'), '確定済み拒否を再取得失敗で上書きしない');
+        Assert.isFalse(JSON.serialize(results).contains('PRIVATE_RESPONSE'), '外部応答の内部情報を公開しない');
+        Assert.areEqual(1, writes.writes, '更新は一括で一回だけ送信');
+        Assert.areEqual(1, writes.reads, '保存後に一回だけ再取得');
+        Assert.areEqual(0, Limits.getDmlStatements(), '保存データなしで応答処理を検証');
+        return message;
+    }
+
     /** 標準認証APIがテストで利用できない場合も内部情報を公開しない */
     @IsTest
     static void returnsSafeAuthenticationState() {
@@ -532,6 +587,7 @@ private with sharing class ObjectExplorerControllerTest {
         public Integer reads = 0;
         public Integer writes = 0;
         public Integer definitionReads = 0;
+        public HttpResponse verificationResponse;
 
         /**
          * 更新対象の実在する定義と模擬応答を対応付け
@@ -716,6 +772,11 @@ private with sharing class ObjectExplorerControllerTest {
         private void respondClassify(String endpoint, HttpResponse response) {
             Assert.isTrue(endpoint.contains('/query/?q='), '分類クエリのみを許可');
             reads++;
+            if (verificationResponse != null) {
+                response.setStatusCode(verificationResponse.getStatusCode());
+                response.setBody(verificationResponse.getBody());
+                return;
+            }
             String query = EncodingUtil.urlDecode(endpoint.substringAfter('?q='), 'UTF-8');
             List<Object> rows = new List<Object>();
             for (String name : durableIds.keySet()) {
