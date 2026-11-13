@@ -9,21 +9,6 @@ private with sharing class AccountDataQualityScanSelectorTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
-     * USER_MODE処理に必要な権限をテストユーザーへ割り当て
-     */
-    @TestSetup
-    static void setupPermission() {
-        Id permissionId = scanPermissionId();
-        List<PermissionSetAssignment> assignments = [
-            SELECT Id FROM PermissionSetAssignment
-            WHERE AssigneeId = :testUser.Id AND PermissionSetId = :permissionId
-        ];
-        if (assignments.isEmpty()) {
-            insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissionId);
-        }
-    }
-
-    /**
      * 利用者が参照できる取引先をCursorで分割取得
      */
     @IsTest
@@ -104,16 +89,6 @@ private with sharing class AccountDataQualityScanSelectorTest {
         Assert.areEqual(scanRecord.Id, activeScans[0].Id, 'Account の実行中スキャンを返す必要あり');
         Assert.areEqual(1, latestScans.size(), '最新スキャンを1件取得する必要あり');
         Assert.areEqual(scanRecord.Id, latestScans[0].Id, '作成日時が最新のスキャンを返す必要あり');
-    }
-
-    /**
-     * スキャン実行に必要な権限セットの存在を確認
-     * @return スキャン用の権限セットID
-     */
-    private static Id scanPermissionId() {
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDataQualityScan'];
-        Assert.isFalse(permissions.isEmpty(), 'スキャンのテスト権限が存在');
-        return permissions[0].Id;
     }
 
 }
