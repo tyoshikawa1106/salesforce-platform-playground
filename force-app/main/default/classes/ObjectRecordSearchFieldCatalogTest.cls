@@ -48,4 +48,18 @@ private with sharing class ObjectRecordSearchFieldCatalogTest {
             Assert.areEqual(0, fields.size(), '未定義の対象には追加列なし');
         }
     }
+    /** 未有効項目と参照不可の項目を列から除外 */
+    @IsTest
+    static void excludesMissingAndUnreadableFields() {
+        System.runAs(testUser) {
+            Test.startTest();
+            List<ObjectRecordSearchFieldWrapper> fields = ObjectRecordSearchFieldCatalog.getDisplayFields('Account', Contact.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED));
+            Set<String> names = new Set<String>();
+            for (ObjectRecordSearchFieldWrapper field : fields) { names.add(field.apiName); }
+            Assert.isFalse(names.contains('Industry'), '別オブジェクトには存在しない項目を除外');
+            Assert.isNull(ObjectRecordSearchFieldCatalog.getAccessibleFieldDescribe(new Map<String, Schema.SObjectField>{ 'Name' => Account.Name }, 'Name', false), '判定値が参照不可なら定義を返さない');
+            Test.stopTest();
+        }
+    }
+
 }

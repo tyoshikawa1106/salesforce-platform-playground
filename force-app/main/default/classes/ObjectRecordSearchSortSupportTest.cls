@@ -5,14 +5,6 @@
 private with sharing class ObjectRecordSearchSortSupportTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    @TestSetup
-    static void setupData() {
-        insert new Account(
-            Name = 'Cursor Account',
-            Industry = 'Technology'
-        );
-    }
-
     /**
      * ソート指定なしの場合は既定ソート条件を作成
      */
@@ -162,6 +154,22 @@ private with sharing class ObjectRecordSearchSortSupportTest {
             nameFieldDescribe,
             objectDescribe
         );
+    }
+
+    /** 内部状態のないソート要求は検索前に拒否 */
+    @IsTest
+    static void rejectsMissingSearchContext() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                ObjectRecordSearchSortSupport.createSortSpec(null, null);
+                Assert.fail('未準備の検索状態を拒否');
+            } catch (IllegalArgumentException e) {
+                Assert.isTrue(e.getMessage().contains('検索状態'), '不足している状態を通知');
+            }
+            Test.stopTest();
+        }
     }
 
 }

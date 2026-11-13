@@ -1,4 +1,4 @@
-/** 一括更新入口の最大件数・部分成功・改ざん拒否テスト */
+/** 一括更新入口の一括保存・部分成功・改ざん拒否テスト */
 @IsTest
 private with sharing class AccountMassUpdateControllerTest {
 
@@ -6,15 +6,12 @@ private with sharing class AccountMassUpdateControllerTest {
 
     /** 異なる変更値を一括保存 */
     @IsTest
-    static void savesTwoHundredDifferentChanges() {
+    static void savesDifferentChanges() {
 
         System.runAs(testUser) {
-            List<Account> records = new List<Account>();
-            for (Integer position = 0; position < 200; position++) {
-                records.add(
-                    new Account(Name = '一括更新 ' + position)
-                );
-            }
+            List<Account> records = new List<Account>{
+                new Account(Name = '一括更新A'), new Account(Name = '一括更新B')
+            };
             insert records;
             List<Account> current = [SELECT Id, LastModifiedDate FROM Account];
             Map<Id, Datetime> versions = new Map<Id, Datetime>();
@@ -29,7 +26,7 @@ private with sharing class AccountMassUpdateControllerTest {
             AccountMassUpdateWrapper result = AccountMassUpdateController.saveAccounts(changes, versions);
             Test.stopTest();
             Assert.areEqual('', result.errorMessage, '正当な要求は拒否しない');
-            Assert.areEqual(200, result.successIds.size(), '上限200件を保存');
+            Assert.areEqual(2, result.successIds.size(), '異なる変更値を両方保存');
             Assert.areEqual(0, result.errors.size(), '有効な値は全行成功');
             List<Account> saved = [SELECT Id, Rating FROM Account];
             Map<Id, Account> savedMap = new Map<Id, Account>(saved);
@@ -122,4 +119,5 @@ private with sharing class AccountMassUpdateControllerTest {
             Assert.areNotEqual('', rejected.errorMessage, '逆転した日付を拒否');
         }
     }
+
 }

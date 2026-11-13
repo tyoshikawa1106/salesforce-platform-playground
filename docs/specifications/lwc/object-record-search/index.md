@@ -115,10 +115,12 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ## テスト・確認観点
 
+`ObjectRecordSearchControllerTest`では内部検索フローへ取得件数2件を渡し、取引先3件でページ継続・カーソルのJSON往復・先頭への復帰を確認します。公開入口は50件を固定し、内部問い合わせは1〜50件のみ許可します。実行者は標準システム管理者とし、プロファイル名に依存する権限拒否のテストは行いません。
+
 - [ObjectRecordSearchFieldCatalogTest](../../../../force-app/main/default/classes/ObjectRecordSearchFieldCatalogTest.cls)で、固定表示列の順序、表示型、ソート可否、未定義オブジェクトの扱いを確認すること
 
 - [ObjectRecordSearchControllerTest](../../../../force-app/main/default/classes/ObjectRecordSearchControllerTest.cls)、[ObjectRecordSearchSelectorTest](../../../../force-app/main/default/classes/ObjectRecordSearchSelectorTest.cls)、[ObjectRecordSearchServiceTest](../../../../force-app/main/default/classes/ObjectRecordSearchServiceTest.cls) で、設定取得、検索語の正規化、任意フィルターなしの初期一覧、ページング、削除、不正入力を確認すること
-- [ObjectRecordSearchSelectorTest](../../../../force-app/main/default/classes/ObjectRecordSearchSelectorTest.cls)、[ObjectRecordSearchQueryPlanTest](../../../../force-app/main/default/classes/ObjectRecordSearchQueryPlanTest.cls)、[ObjectRecordSearchSortSupportTest](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupportTest.cls) で、動的 SOQL と bind、許可済み検索条件、固定取得件数、昇順・降順ソート、カーソル、不正ページ取得位置を確認すること
+- [ObjectRecordSearchSelectorTest](../../../../force-app/main/default/classes/ObjectRecordSearchSelectorTest.cls)、[ObjectRecordSearchQueryPlanTest](../../../../force-app/main/default/classes/ObjectRecordSearchQueryPlanTest.cls)、[ObjectRecordSearchSortSupportTest](../../../../force-app/main/default/classes/ObjectRecordSearchSortSupportTest.cls) で、動的 SOQL と bind、許可済み検索条件、取得件数の許容範囲、昇順・降順ソート、カーソル、不正ページ取得位置を確認すること
 - `objectRecordSearch.test.js`、`objectRecordSearchPaging.test.js`、`objectRecordSearchFormFlow.test.js` で、一覧表示、検索、ページ移動、レコード操作、権限メッセージ、エラー、親イベント通知を確認すること
 - 対応する各オブジェクトで `Name` 相当項目と追加表示項目が正しく表示されることを確認します。
 - 権限の異なるユーザーでボタン状態、表示列、検索、各 DML を確認します。

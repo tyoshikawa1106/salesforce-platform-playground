@@ -53,13 +53,12 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldRejectNonCaseIdForCount() {
-        Account accountRecord = new Account(Name = 'メール件数 Case 以外 ID テスト');
-        insert accountRecord;
+        Id nonCaseId = UserInfo.getUserId();
 
         System.runAs(testUser) {
             Test.startTest();
             try {
-                CaseEmailMessageController.getEmailMessageCount(accountRecord.Id);
+                CaseEmailMessageController.getEmailMessageCount(nonCaseId);
                 Assert.fail('Case 以外の ID は AuraHandledException にする必要あり');
             } catch (AuraHandledException e) {
                 Assert.isNotNull(e, 'Case 以外の ID は利用者向け例外に変換する必要あり');
@@ -168,13 +167,12 @@ private with sharing class CaseEmailMessageControllerTest {
      */
     @IsTest
     static void shouldRejectNonCaseId() {
-        Account accountRecord = new Account(Name = 'ケース以外 ID テスト');
-        insert accountRecord;
+        Id nonCaseId = UserInfo.getUserId();
 
         System.runAs(testUser) {
             Test.startTest();
             try {
-                CaseEmailMessageController.getEmailMessages(accountRecord.Id, null, 0);
+                CaseEmailMessageController.getEmailMessages(nonCaseId, null, 0);
                 Assert.fail('ケース以外の ID は AuraHandledException にする必要あり');
             } catch (AuraHandledException e) {
                 Assert.isNotNull(e, 'ケース以外の ID は利用者向け例外に変換する必要あり');
@@ -195,6 +193,23 @@ private with sharing class CaseEmailMessageControllerTest {
             Status = '0',
             TextBody = 'テスト用メール本文'
         );
+    }
+
+    /** 不正な継続位置を問い合わせ前に拒否 */
+    @IsTest
+    static void rejectsNegativePagePosition() {
+        System.runAs(testUser) {
+            Test.startTest();
+            Integer queries = Limits.getQueries();
+            try {
+                CaseEmailMessageController.getEmailMessages(null, null, -1);
+                Assert.fail('負の開始位置を拒否');
+            } catch (AuraHandledException e) {
+                Assert.isNotNull(e, '画面用例外へ変換');
+            }
+            Assert.areEqual(queries, Limits.getQueries(), '不正な条件で問い合わせない');
+            Test.stopTest();
+        }
     }
 
 }

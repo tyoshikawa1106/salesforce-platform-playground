@@ -6,27 +6,37 @@ public with sharing class AccountDeleteService {
      * @return 実行可能なら空文字、それ以外は公開可能な理由
      */
     public String getBlockMessage() {
-        // 本番と判定不能な組織で削除を拒否
+        // 公開入口では現在の環境と実効権限を取得
         Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
-        if (!developmentEnvironment) {
-            // 環境判定に失敗しても許可側へ倒さない
+        // カスタム権限はユーザーの割当から判定
+        Boolean canUseFeature = FeatureManagement.checkPermission('RunAccountDelete');
+        // 参照と削除の両方の権限を必須にする
+        Schema.DescribeSObjectResult info = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED);
+        // 共通判定へ実際の条件を渡す
+        return getBlockMessageForConditions(developmentEnvironment, canUseFeature, info.isAccessible() && info.isDeletable());
+    }
+
+    /** 組織設定を変えず許可と拒否を検証する共通判定
+     * @param developmentEnvironment 開発環境か
+     * @param canUseFeature 機能利用権限があるか
+     * @param canReadAndDelete 取引先の参照と削除の両方が許可されているか
+     * @return 許可時は空文字、それ以外は拒否理由
+     */
+    @TestVisible
+    private String getBlockMessageForConditions(Boolean developmentEnvironment, Boolean canUseFeature, Boolean canReadAndDelete) {
+        // 本番と不明な環境で削除を開始しない
+        if (developmentEnvironment != true) {
             return 'Scratch Org・Developer Edition・Sandboxでのみ実行できます。';
         }
-        // 専用の利用許可と既存のAccount権限を別々に適用
-        Boolean canUseFeature = FeatureManagement.checkPermission('RunAccountDelete');
-        if (!canUseFeature) {
-            // 画面経由以外でも機能利用権限を必須にする
+        // 機能利用権限の不足をCRUDより優先
+        if (canUseFeature != true) {
             return '取引先一括削除の利用権限がありません。';
         }
-        // オブジェクトの参照権限と削除権限を事前確認
-        Schema.DescribeSObjectResult accountDescribe = Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED);
-        Boolean canRead = accountDescribe.isAccessible();
-        Boolean canDelete = accountDescribe.isDeletable();
-        if (!canRead || !canDelete) {
-            // 共有レコードの削除可否は後続のユーザーモードDMLで判定
+        // 参照か削除のいずれかがなければ拒否
+        if (canReadAndDelete != true) {
             return '取引先の参照・削除権限が必要です。';
         }
-        // 許可済みの要求だけを開始処理へ渡す
+        // すべての条件を満たす要求だけ許可
         return '';
     }
 

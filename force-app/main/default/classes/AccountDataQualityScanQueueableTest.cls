@@ -9,27 +9,13 @@ private with sharing class AccountDataQualityScanQueueableTest {
         Missing_Account_Number_Count__c = 0
     );
 
-    private static final String TEST_USER_MARKER = 'DQScanQueueable';
-
-    /**
-     * USER_MODE処理に必要な権限をテストユーザーへ割り当て
-     */
-    @TestSetup
-    static void setupPermission() {
-        User scanUser = new User(Alias = 'dqscan', Email = 'data-quality-scan@example.invalid',
-            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja', LastName = TEST_USER_MARKER,
-            LocaleSidKey = 'ja_JP', ProfileId = UserInfo.getProfileId(), TimeZoneSidKey = 'Asia/Tokyo',
-            Username = 'data-quality-scan.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid');
-        insert scanUser;
-        insert new PermissionSetAssignment(AssigneeId = scanUser.Id, PermissionSetId = scanPermissionId());
-    }
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
      * 1区間で全取引先を集計して完了
      */
     @IsTest
     static void shouldCompleteScanWhenAllAccountsFitInChunk() {
-        User testUser = getScanTestUser();
         insert new Account(Name = '不足項目のある取引先');
         DataQualityScan__c scanRecord;
         Database.Cursor accountCursor;
@@ -63,7 +49,6 @@ private with sharing class AccountDataQualityScanQueueableTest {
      */
     @IsTest
     static void shouldCompleteScanWhenCursorIsEmpty() {
-        User testUser = getScanTestUser();
         DataQualityScan__c scanRecord;
         Database.Cursor accountCursor;
         DataQualityScan__c result;
@@ -94,7 +79,6 @@ private with sharing class AccountDataQualityScanQueueableTest {
      */
     @IsTest
     static void shouldCompleteScanAcrossPartialFinalChunk() {
-        User testUser = getScanTestUser();
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 5; index++) {
             Account accountRecord = new Account(Name = '連鎖取引先' + index);
@@ -132,7 +116,6 @@ private with sharing class AccountDataQualityScanQueueableTest {
      */
     @IsTest
     static void shouldCompleteScanBeyondFiveChainedJobs() {
-        User testUser = getScanTestUser();
         List<Account> accounts = new List<Account>();
         for (Integer index = 0; index < 6; index++) {
             accounts.add(new Account(Name = '6段連鎖取引先' + index));
@@ -165,7 +148,6 @@ private with sharing class AccountDataQualityScanQueueableTest {
      */
     @IsTest
     static void shouldRecordFailureAndReleaseActiveKey() {
-        User testUser = getScanTestUser();
         DataQualityScan__c result;
 
         System.runAs(testUser) {
@@ -196,7 +178,6 @@ private with sharing class AccountDataQualityScanQueueableTest {
      */
     @IsTest
     static void shouldRejectInitialJobWithoutCursor() {
-        User testUser = getScanTestUser();
 
         System.runAs(testUser) {
             DataQualityScan__c scanRecord = createPendingScan(0);
@@ -219,7 +200,6 @@ private with sharing class AccountDataQualityScanQueueableTest {
      */
     @IsTest
     static void shouldRejectInitialJobWithoutScanId() {
-        User testUser = getScanTestUser();
 
         System.runAs(testUser) {
             Database.Cursor accountCursor = new AccountDataQualityScanSelector().createAccountCursor();
@@ -297,27 +277,22 @@ private with sharing class AccountDataQualityScanQueueableTest {
         return scan;
     }
 
-    /**
-     * スキャン実行に必要な権限セットの存在を確認
-     * @return スキャン用の権限セットID
-     */
-    private static Id scanPermissionId() {
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDataQualityScan'];
-        Assert.isFalse(permissions.isEmpty(), 'スキャンのテスト権限が存在');
-        return permissions[0].Id;
+    /** 継続時にCursorが失われていた場合は集計を進めない */
+    @IsTest
+    static void rejectsMissingCursorDuringExecution() {
+
+        System.runAs(testUser) {
+            DataQualityScan__c scan = createPendingScan(0);
+            insert scan;
+            Test.startTest();
+            System.enqueueJob(new AccountDataQualityScanQueueable(null, 0, scan.Id));
+            try {
+                Test.stopTest();
+                Assert.fail('Cursorのない継続処理を拒否');
+            } catch (AccountDataQualityScanService.ScanException e) {
+                Assert.isTrue(e.getMessage().contains('継続するための状態'), '失われた状態を通知');
+            }
+        }
     }
 
-    /**
-     * このテストで作成したスキャン実行ユーザーを取得
-     * @return 保存済みのテストユーザー
-     */
-    private static User getScanTestUser() {
-        List<User> users = [
-            SELECT Id
-            FROM User
-            WHERE LastName = :TEST_USER_MARKER
-        ];
-        Assert.areEqual(1, users.size(), '同じテストクラスのユーザーを取得');
-        return users[0];
-    }
 }

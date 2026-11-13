@@ -3,6 +3,10 @@
  */
 @IsTest
 private with sharing class CaseEmailMessageSelectorTest {
+
+    private static CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
+    private static CaseEmailMessageService service = new CaseEmailMessageService();
+
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
@@ -18,7 +22,7 @@ private with sharing class CaseEmailMessageSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageSelector().getCountByCaseId(caseRecord.Id);
+            result = selector.getCountByCaseId(caseRecord.Id);
 
             Test.stopTest();
         }
@@ -36,7 +40,7 @@ private with sharing class CaseEmailMessageSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new CaseEmailMessageSelector().getCountByCaseId(null);
+            result = selector.getCountByCaseId(null);
 
             Test.stopTest();
         }
@@ -45,75 +49,75 @@ private with sharing class CaseEmailMessageSelectorTest {
     }
 
     /**
-     * 49件では次ページなしとして返却
+     * 1件では次ページなしとして返却
      */
     @IsTest
-    static void shouldReturnNoNextPageWhenFortyNineRecordsExist() {
-        Case caseRecord = createCaseWithEmailMessages(49);
+    static void shouldReturnNoNextPageWhenOneRecordExists() {
+        Case caseRecord = createCaseWithEmailMessages(1);
         CaseEmailMessagePageWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = getInitialPage(caseRecord.Id, 50);
+            result = getInitialPage(caseRecord.Id, 2);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(49, result.emailMessages.size(), '49 件を 1 ページで返す必要あり');
-        Assert.isFalse(result.hasNextPage, '49 件では次ページなしにする必要あり');
+        Assert.areEqual(1, result.emailMessages.size(), '1 件を 1 ページで返す必要あり');
+        Assert.isFalse(result.hasNextPage, '1 件では次ページなしにする必要あり');
     }
 
     /**
-     * 50件ちょうどでは次ページなしとして返却
+     * 2件ちょうどでは次ページなしとして返却
      */
     @IsTest
-    static void shouldReturnNoNextPageWhenFiftyRecordsExist() {
-        Case caseRecord = createCaseWithEmailMessages(50);
+    static void shouldReturnNoNextPageWhenTwoRecordsExist() {
+        Case caseRecord = createCaseWithEmailMessages(2);
         CaseEmailMessagePageWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = getInitialPage(caseRecord.Id, 50);
+            result = getInitialPage(caseRecord.Id, 2);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(50, result.emailMessages.size(), '50 件を 1 ページで返す必要あり');
-        Assert.isFalse(result.hasNextPage, '50 件ちょうどでは次ページなしにする必要あり');
+        Assert.areEqual(2, result.emailMessages.size(), '2 件を 1 ページで返す必要あり');
+        Assert.isFalse(result.hasNextPage, '2 件ちょうどでは次ページなしにする必要あり');
         Assert.areEqual(0, result.nextIndex, '最終ページの次の取得位置は 0 にする必要あり');
     }
 
     /**
-     * 51件を重複なく2ページへ分割
+     * 3件を重複なく2ページへ分割
      */
     @IsTest
-    static void shouldReturnTwoPagesWithoutDuplicatesWhenFiftyOneRecordsExist() {
-        Case caseRecord = createCaseWithEmailMessages(51);
+    static void shouldReturnTwoPagesWithoutDuplicatesWhenThreeRecordsExist() {
+        Case caseRecord = createCaseWithEmailMessages(3);
         CaseEmailMessagePageWrapper firstPage;
         CaseEmailMessagePageWrapper nextPage;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            firstPage = getInitialPage(caseRecord.Id, 50);
-            nextPage = getNextPage(caseRecord.Id, firstPage, 50);
+            firstPage = getInitialPage(caseRecord.Id, 2);
+            nextPage = getNextPage(caseRecord.Id, firstPage, 2);
 
             Test.stopTest();
         }
 
-        Assert.areEqual(50, firstPage.emailMessages.size(), '初回ページは最大 50 件にする必要あり');
-        Assert.isTrue(firstPage.hasNextPage, '51 件では初回ページに次ページを返す必要あり');
+        Assert.areEqual(2, firstPage.emailMessages.size(), '初回ページは最大 2 件にする必要あり');
+        Assert.isTrue(firstPage.hasNextPage, '3 件では初回ページに次ページを返す必要あり');
         Assert.areEqual(1, nextPage.emailMessages.size(), '2 ページ目に残り 1 件を返す必要あり');
         Assert.isFalse(nextPage.hasNextPage, '2 ページ目を最終ページにする必要あり');
         Assert.areNotEqual(
-            firstPage.emailMessages[49].Id,
+            firstPage.emailMessages[1].Id,
             nextPage.emailMessages[0].Id,
             'ページ境界で同じメールを重複して返さない必要あり'
         );
         Assert.areEqual(
-            'メール 50',
+            'メール 2',
             firstPage.emailMessages[0].Subject,
             '最も古いメールを初回ページの先頭にする必要あり'
         );
@@ -203,7 +207,7 @@ private with sharing class CaseEmailMessageSelectorTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = getInitialPage(null, 50);
+            result = getInitialPage(null, 2);
 
             Test.stopTest();
         }
@@ -275,8 +279,7 @@ private with sharing class CaseEmailMessageSelectorTest {
     }
 
     private static CaseEmailMessagePageWrapper getPage(CaseEmailMessageService.PageQuery pageQuery) {
-        CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
-        CaseEmailMessageService service = new CaseEmailMessageService();
+
         Database.PaginationCursor paginationCursor = pageQuery.paginationCursor;
         if (paginationCursor == null) {
             paginationCursor = selector.getPaginationCursorByCaseId(pageQuery.caseId);

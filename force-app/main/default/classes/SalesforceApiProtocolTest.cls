@@ -138,4 +138,36 @@ private with sharing class SalesforceApiProtocolTest {
             Test.stopTest();
         }
     }
+    /** 既知のタイムアウトと自由形式のAPI本文を安全に扱う */
+    @IsTest
+    static void handlesTimeoutAndMissingErrorCode() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            String timeout = SalesforceApiProtocol.connectionMessage('Read timed out: PRIVATE');
+            HttpResponse response = new HttpResponse();
+            response.setStatusCode(400);
+            response.setBody('[{"message":"PRIVATE"}]');
+            String code = SalesforceApiProtocol.httpMessage(response);
+            Test.stopTest();
+            Assert.isTrue(timeout.startsWith('[OE-API-TIMEOUT]'), 'タイムアウトを固定コードへ分類');
+            Assert.isFalse(timeout.contains('PRIVATE'), '内部情報を非公開');
+            Assert.isTrue(code.contains('HTTP 400'), 'HTTP状態を保持');
+            Assert.isFalse(code.contains('PRIVATE'), 'コードのない自由文を公開しない');
+        }
+    }
+
+    /** 確認対象と一致した一件だけを返す */
+    @IsTest
+    static void returnsConfirmedRecord() {
+
+        System.runAs(testUser) {
+            Map<String, Object> record = new Map<String, Object>{ 'Id' => 'confirmed', 'Name' => '対象' };
+            Test.startTest();
+            Map<String, Object> result = reader.requireQueryRecord(new Map<String, Object>{ 'records' => new List<Object>{ record } }, 'Id', 'confirmed');
+            Test.stopTest();
+            Assert.areEqual(record, result, '照合できたレコードをそのまま返す');
+        }
+    }
+
 }

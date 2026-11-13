@@ -225,10 +225,11 @@ public with sharing class ObjectRecordSearchFieldCatalog {
         );
         for (String fieldApiName : displayFieldApiNames) {
             // 権限がない項目は一覧の追加表示対象から除外
-            Schema.DescribeFieldResult fieldDescribe = getAccessibleFieldDescribe(
-                fieldsByApiName,
-                fieldApiName
-            );
+            Schema.SObjectField fieldToken = fieldsByApiName.get(fieldApiName);
+            // 現在ユーザーの実際の項目権限を共通判定へ渡す
+            Boolean readable = fieldToken?.getDescribe().isAccessible() == true;
+            // メタデータの存在と参照可否を同じ順序で確認
+            Schema.DescribeFieldResult fieldDescribe = getAccessibleFieldDescribe(fieldsByApiName, fieldApiName, readable);
             if (fieldDescribe == null) {
                 continue;
             }
@@ -240,7 +241,14 @@ public with sharing class ObjectRecordSearchFieldCatalog {
         return displayFields;
     }
 
-    private static Schema.DescribeFieldResult getAccessibleFieldDescribe(Map<String, Schema.SObjectField> fieldsByApiName, String fieldApiName) {
+    /** 項目の存在と取得済み権限を同じ判定で確認
+     * @param fieldsByApiName 対象の項目定義
+     * @param fieldApiName 固定カタログの項目名
+     * @param isFieldAccessible 実際の参照権限判定
+     * @return 表示可能な定義、存在しないか権限がなければnull
+     */
+    @TestVisible
+    private static Schema.DescribeFieldResult getAccessibleFieldDescribe(Map<String, Schema.SObjectField> fieldsByApiName, String fieldApiName, Boolean isFieldAccessible) {
         // オブジェクトに存在しない項目は表示対象から除外
         Boolean hasFieldApiName = fieldsByApiName.containsKey(fieldApiName);
         if (!hasFieldApiName) {
@@ -249,7 +257,6 @@ public with sharing class ObjectRecordSearchFieldCatalog {
         Schema.SObjectField fieldToken = fieldsByApiName.get(fieldApiName);
         Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
         // 参照権限がある項目だけを datatable 列にする
-        Boolean isFieldAccessible = fieldDescribe.isAccessible();
         if (!isFieldAccessible) {
             return null;
         }

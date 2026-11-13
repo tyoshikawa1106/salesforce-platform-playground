@@ -253,4 +253,41 @@ private with sharing class TestDataDeleteBatchServiceTest {
         }
 
     }
+    /** 拒否済みの計画と組織に存在しない機能を区別 */
+    @IsTest
+    static void preservesRejectionAndChecksOptionalMetadata() {
+
+        System.runAs(testUser) {
+            TestDataDeleteBatchWrapper current = new TestDataDeleteBatchWrapper();
+            current.errorMessage = '前のスコープで停止';
+            Test.startTest();
+            TestDataDeleteBatchWrapper rejected = service.checkExecution(current, new List<UserPermissionAccess>(), TestDataDeleteService.Environment.DEVELOPMENT);
+            Assert.areEqual(current.errorMessage, rejected.errorMessage, '以前の拒否理由を維持');
+            Assert.areEqual(current.errorMessage, service.getStopReason(current, new List<AsyncApexJob>(), 0), '継続判定でも拒否を優先');
+            Assert.areEqual('', service.getObjectError('OptionalObject__c', null), '未有効の機能は対象外');
+            Assert.areEqual('Userの参照・削除権限が必要です。', service.getObjectError('User', User.SObjectType), '削除できない種類を許可しない');
+            Test.stopTest();
+        }
+    }
+
+    /** 価格削除の順序と完了時の継続可否を確認 */
+    @IsTest
+    static void createsStageFiltersAndAllowsCompletedScope() {
+
+        System.runAs(testUser) {
+            TestDataDeleteBatchWrapper plan = new TestDataDeleteBatchWrapper();
+            plan.position = plan.objectNames.indexOf('PricebookEntry');
+            AsyncApexJob job = (AsyncApexJob) JSON.deserialize('{"NumberOfErrors":0}', AsyncApexJob.class);
+            Test.startTest();
+            Assert.isTrue(service.getStageRecordFilter(plan).contains(' NOT IN '), 'カスタム価格を先に削除');
+            plan.standardPricePhase = true;
+            Assert.isTrue(service.getStageRecordFilter(plan).contains(' IN '), '完了後に標準価格を削除');
+            plan.position = plan.objectNames.indexOf('Account');
+            Assert.areEqual('IsDeleted = false', service.getStageRecordFilter(plan), '価格以外は通常の削除条件');
+            Assert.isTrue(service.getRecordFilter('Contact').startsWith('IsDeleted = false'), 'Contactもごみ箱を除外');
+            Assert.areEqual('', service.getStopReason(plan, new List<AsyncApexJob>{ job }, 0), '未処理エラーと残件がなければ継続');
+            Test.stopTest();
+        }
+    }
+
 }

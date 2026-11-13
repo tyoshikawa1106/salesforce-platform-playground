@@ -3,27 +3,15 @@
  */
 @IsTest
 private with sharing class AccountDataQualityScanServiceTest {
+
+    private static AccountDataQualityScanService service = new AccountDataQualityScanService();
+
+    private static User testUser = new User(Id = UserInfo.getUserId());
     private static final DataQualityScan__c EMPTY_SCAN = new DataQualityScan__c(
         Target_Object__c = 'Account', Processed_Count__c = 0, Missing_Phone_Count__c = 0,
         Missing_Industry_Count__c = 0, Missing_Address_Count__c = 0, Missing_Website_Count__c = 0,
         Missing_Account_Number_Count__c = 0
     );
-
-    private static final String TEST_USER_MARKER = 'DQScanService';
-    private static User testUser = new User(Id = UserInfo.getUserId());
-
-    /**
-     * USER_MODE DML に必要な権限をテストユーザーへ割り当て
-     */
-    @TestSetup
-    static void setupPermission() {
-        User scanUser = new User(Alias = 'dqscan', Email = 'data-quality-scan@example.invalid',
-            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'ja', LastName = TEST_USER_MARKER,
-            LocaleSidKey = 'ja_JP', ProfileId = UserInfo.getProfileId(), TimeZoneSidKey = 'Asia/Tokyo',
-            Username = 'data-quality-scan.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid');
-        insert scanUser;
-        insert new PermissionSetAssignment(AssigneeId = scanUser.Id, PermissionSetId = scanPermissionId());
-    }
 
     /**
      * 不足項目を累積して最終区間で完了へ遷移
@@ -38,7 +26,6 @@ private with sharing class AccountDataQualityScanServiceTest {
         scanRecord.Active_Key__c = AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY;
         Account completeAccount = createCompleteAccount('完全な取引先');
         Account missingAccount = new Account(Name = '不足する取引先');
-        AccountDataQualityScanService service = new AccountDataQualityScanService();
         DataQualityScan__c result;
 
         System.runAs(testUser) {
@@ -80,7 +67,7 @@ private with sharing class AccountDataQualityScanServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new AccountDataQualityScanService().applyChunk(scanRecord, new List<Account>{ accountRecord }, 1);
+            result = service.applyChunk(scanRecord, new List<Account>{ accountRecord }, 1);
 
             Test.stopTest();
         }
@@ -105,7 +92,7 @@ private with sharing class AccountDataQualityScanServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new AccountDataQualityScanService().applyChunk(scanRecord, new List<Account>{ new Account(Name = '途中取引先') }, 1);
+            result = service.applyChunk(scanRecord, new List<Account>{ new Account(Name = '途中取引先') }, 1);
 
             Test.stopTest();
         }
@@ -131,7 +118,7 @@ private with sharing class AccountDataQualityScanServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new AccountDataQualityScanService().markFailed(scanRecord, null);
+            result = service.markFailed(scanRecord, null);
 
             Test.stopTest();
         }
@@ -157,7 +144,7 @@ private with sharing class AccountDataQualityScanServiceTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                new AccountDataQualityScanService().applyChunk(scanRecord, new List<Account>(), 1);
+                service.applyChunk(scanRecord, new List<Account>(), 1);
                 Assert.fail('終了済みスキャンは再集計を拒否する必要あり');
             } catch (AccountDataQualityScanService.ScanException e) {
                 Assert.isTrue(e.getMessage().contains('終了済み'), '終了済みであることを示す例外にする必要あり');
@@ -176,7 +163,7 @@ private with sharing class AccountDataQualityScanServiceTest {
         System.runAs(testUser) {
             Test.startTest();
 
-            result = new AccountDataQualityScanService().getFirstScan(new List<DataQualityScan__c>());
+            result = service.getFirstScan(new List<DataQualityScan__c>());
 
             Test.stopTest();
         }
@@ -190,7 +177,6 @@ private with sharing class AccountDataQualityScanServiceTest {
      */
     @IsTest
     static void shouldAllowStartOnlyWithoutActiveScan() {
-        AccountDataQualityScanService service = new AccountDataQualityScanService();
         Id savedScanId = Id.valueOf(
             DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() +
             '000000000000'
@@ -227,14 +213,52 @@ private with sharing class AccountDataQualityScanServiceTest {
         return accountRecord;
     }
 
-    /**
-     * スキャン実行に必要な権限セットの存在を確認
-     * @return スキャン用の権限セットID
-     */
-    private static Id scanPermissionId() {
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDataQualityScan'];
-        Assert.isFalse(permissions.isEmpty(), 'スキャンのテスト権限が存在');
-        return permissions[0].Id;
+    /** 初期化・表示変換・完了判定を保存せず確認 */
+    @IsTest
+    static void createsAndPresentsScanState() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.areEqual(
+                Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible() && DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible(),
+                service.canReadScan(), '参照権限の判定を返す'
+            );
+            DataQualityScan__c scan = service.createPendingScan(2, testUser.Id);
+            Assert.areEqual(0, service.createPendingScan(null, testUser.Id).Total_Count__c, '未指定総件数はゼロ');
+            Assert.areEqual(AccountDataQualityScanService.STATUS_PENDING, scan.Status__c, '開始前の状態を設定');
+            Assert.areEqual(testUser.Id, scan.Requested_By__c, '依頼者を保持');
+            Assert.isNull(service.createViewModel(scan), '未保存のスキャンは表示しない');
+            Assert.isFalse(service.isCompleted(null), 'スキャンなしは未完了');
+            Assert.isFalse(service.isCompleted(scan), '待機中は未完了');
+            scan.Id = Id.valueOf(DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
+            scan.Processed_Count__c = 1;
+            AccountDataQualityScanWrapper halfway = service.createViewModel(scan);
+            Assert.areEqual(50, halfway.progressPercent, '処理済み位置から進捗率を計算');
+            Assert.areEqual(scan, service.getFirstScan(new List<DataQualityScan__c>{ scan }), '先頭スキャンを返す');
+            scan.Status__c = AccountDataQualityScanService.STATUS_COMPLETED;
+            Assert.isTrue(service.isCompleted(scan), '完了状態を判定');
+            scan.Total_Count__c = 0;
+            Assert.areEqual(100, service.createViewModel(scan).progressPercent, 'ゼロ件完了は100%');
+            scan.Status__c = AccountDataQualityScanService.STATUS_PENDING;
+            Assert.areEqual(0, service.createViewModel(scan).progressPercent, 'ゼロ件待機は0%');
+            Test.stopTest();
+        }
     }
 
+    /** 管理レコードなしの更新は拒否し、失敗記録は空値を返す */
+    @IsTest
+    static void handlesMissingScanWithoutDml() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.isNull(service.markFailed(null, '処理失敗').Id, '対象なしでは更新対象を作らない');
+            try {
+                service.applyChunk(null, new List<Account>(), 0);
+                Assert.fail('対象なしの集計は拒否');
+            } catch (AccountDataQualityScanService.ScanException e) {
+                Assert.isTrue(e.getMessage().contains('ありません'), '管理レコード不足を通知');
+            }
+            Test.stopTest();
+        }
+    }
 }

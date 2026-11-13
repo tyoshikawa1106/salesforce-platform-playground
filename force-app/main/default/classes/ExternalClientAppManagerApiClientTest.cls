@@ -550,4 +550,21 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             return response;
         }
     }
+    /** 操作対象の照合は候補検索語よりIDを優先 */
+    @IsTest
+    static void selectsRequestedApplicationById() {
+
+        System.runAs(testUser) {
+            ResponseMock mock = new ResponseMock(200, '{"records":[],"done":true}');
+            mock.expectedQuery = 'SELECT Id,DeveloperName,MasterLabel,DistributionState FROM ExternalClientApplication'
+                + ' WHERE DistributionState = \'Local\' AND DeveloperName != \'ExternalClientAppManager\''
+                + ' AND Id = \'' + APP_ID + '\' ORDER BY DeveloperName LIMIT 200';
+            Test.setMock(HttpCalloutMock.class, mock);
+            Test.startTest();
+            Map<String, Object> response = client.listApplications('無視する検索語', APP_ID);
+            Test.stopTest();
+            Assert.areEqual(0, ((List<Object>) response.get('records')).size(), '指定IDの取得結果を返す');
+        }
+    }
+
 }

@@ -68,57 +68,68 @@ public with sharing class ObjectRecordSearchService {
      * @return 検索状態または利用できない理由
      */
     public SearchContextResult resolveSearchContext(String metricKey) {
+        // 検索対象は固定カタログから決定
+        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(metricKey);
+        // 外部入力から任意オブジェクトを検索しない
+        Schema.SObjectType objectType = Schema.getGlobalDescribe().get(definition?.objectApiName);
+        // 取得時点のメタデータと権限を同じ状態として保持
+        ContextMetadata metadata = new ContextMetadata();
+        // 定義が存在する場合だけDescribeする
+        metadata.objectDescribe = objectType?.getDescribe(SObjectDescribeOptions.DEFERRED);
+        // 許可リストとメタデータの両方で対象を確認
+        metadata.objectAvailable = definition != null && ObjectMetricCatalog.hasObjectApiName(definition.objectApiName) && objectType != null;
+        // 実行ユーザーの参照・検索権限を取得
+        metadata.objectAccessible = metadata.objectDescribe?.isAccessible() == true && metadata.objectDescribe.isQueryable();
+        // 未有効のオブジェクトには空の項目一覧を使用
+        Map<String, Schema.SObjectField> fields = metadata.objectDescribe?.fields.getMap() ?? new Map<String, Schema.SObjectField>();
+        // Name相当の項目がなければ従来どおりNameを候補にする
+        metadata.nameField = findNameFieldDescribe(fields.values()) ?? fields.get('Name')?.getDescribe();
+        // 項目の可視性も実際のDescribeから取得
+        metadata.nameAccessible = metadata.nameField?.isAccessible() == true;
+        // 取得済みの状態から同じ順序で許可・拒否を決定
+        return resolveContextFromMetadata(definition, metadata);
+    }
+
+    /** 取得時点の検索用メタデータと権限判定 */
+    public class ContextMetadata {
+        public Schema.DescribeSObjectResult objectDescribe;
+        public Schema.DescribeFieldResult nameField;
+        public Boolean objectAvailable = false;
+        public Boolean objectAccessible = false;
+        public Boolean nameAccessible = false;
+    }
+
+    /** 組織の設定を変えずメタデータ差異と拒否条件を検証する共通判定
+     * @param definition 固定カタログの定義
+     * @param metadata 取得済みのメタデータと実効権限
+     * @return 検索状態または利用できない理由
+     */
+    @TestVisible
+    private SearchContextResult resolveContextFromMetadata(ObjectMetricCatalog.MetricDefinition definition, ContextMetadata metadata) {
+        // 呼び出し元の状態を変更せず判定結果を生成
         SearchContextResult result = new SearchContextResult();
-        // 表示キーを固定カタログの検索対象へ変換
-        ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition(
-            metricKey
-        );
+        // カタログにない要求を最初に拒否
         if (definition == null) {
             result.errorCode = ErrorCode.UNSUPPORTED_METRIC_KEY;
             return result;
         }
-
-        // 動的処理へ渡すオブジェクトを固定カタログに限定
-        Boolean isSupportedObject = ObjectMetricCatalog.hasObjectApiName(
-            definition.objectApiName
-        );
-        // 組織内のメタデータから対象 SObjectType を解決
-        Map<String, Schema.SObjectType> sObjectTypesByApiName = Schema.getGlobalDescribe();
-        Schema.SObjectType sObjectType = sObjectTypesByApiName.get(
-            definition.objectApiName
-        );
-        if (!isSupportedObject || sObjectType == null) {
+        // 機能未有効を権限不足と区別
+        if (!metadata.objectAvailable) {
             result.errorCode = ErrorCode.OBJECT_UNAVAILABLE;
             return result;
         }
-
-        // 現在ユーザーが検索へ利用できるオブジェクトかを判定
-        Schema.DescribeSObjectResult objectDescribe = sObjectType.getDescribe(
-            SObjectDescribeOptions.DEFERRED
-        );
-        Boolean canSearchObject = objectDescribe.isAccessible() &&
-            objectDescribe.isQueryable();
-        if (!canSearchObject) {
+        // オブジェクトを検索できない場合は項目を公開しない
+        if (!metadata.objectAccessible) {
             result.errorCode = ErrorCode.OBJECT_ACCESS_DENIED;
             return result;
         }
-
-        // 一覧の主表示項目として使える Name 相当項目を解決
-        Map<String, Schema.SObjectField> fieldsByApiName = objectDescribe.fields.getMap();
-        List<Schema.SObjectField> fieldTokens = fieldsByApiName.values();
-        Schema.DescribeFieldResult nameFieldDescribe = findNameFieldDescribe(fieldTokens);
-        Schema.SObjectField fallbackNameField = fieldsByApiName.get('Name');
-        if (nameFieldDescribe == null) {
-            nameFieldDescribe = fallbackNameField?.getDescribe();
-        }
-        if (nameFieldDescribe == null) {
+        // 表示に必要な項目の欠落を通知
+        if (metadata.nameField == null) {
             result.errorCode = ErrorCode.NAME_FIELD_UNAVAILABLE;
             return result;
         }
-
-        // 主表示項目を参照できる利用者だけに検索状態を提供
-        Boolean isNameFieldAccessible = nameFieldDescribe.isAccessible();
-        if (!isNameFieldAccessible) {
+        // Name相当項目の参照権限を確認
+        if (!metadata.nameAccessible) {
             result.errorCode = ErrorCode.NAME_FIELD_ACCESS_DENIED;
             return result;
         }
@@ -126,19 +137,19 @@ public with sharing class ObjectRecordSearchService {
         // 画面へ返す固定表示項目を参照権限で絞り込み
         List<ObjectRecordSearchFieldWrapper> displayFields = ObjectRecordSearchFieldCatalog.getDisplayFields(
             definition.objectApiName,
-            objectDescribe
+            metadata.objectDescribe
         );
         // 同じ describe 情報から画面設定と内部検索状態を構築
         ObjectRecordSearchConfigWrapper config = createObjectConfig(
             definition,
-            nameFieldDescribe,
-            objectDescribe
+            metadata.nameField,
+            metadata.objectDescribe
         );
         config = config.withDisplayFields(displayFields);
         result.context = createSearchContext(
             config,
-            nameFieldDescribe,
-            objectDescribe
+            metadata.nameField,
+            metadata.objectDescribe
         );
         result.errorCode = ErrorCode.NONE;
         return result;

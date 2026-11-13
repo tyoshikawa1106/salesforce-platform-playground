@@ -9,35 +9,6 @@ private with sharing class ObjectRecordSearchSelectorTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    @TestSetup
-    static void setupTestData() {
-        List<Account> accounts = new List<Account>();
-
-        Account alphaAccount = new Account(Name = 'Selector Alpha');
-        alphaAccount.Industry = 'Technology';
-        accounts.add(alphaAccount);
-
-        Account betaAccount = new Account(Name = 'Selector Beta');
-        betaAccount.Industry = 'Finance';
-        accounts.add(betaAccount);
-
-        Account deleteOneAccount = new Account(Name = 'Selector Delete One');
-        deleteOneAccount.Industry = 'Healthcare';
-        accounts.add(deleteOneAccount);
-
-        Account deleteTwoAccount = new Account(Name = 'Selector Delete Two');
-        deleteTwoAccount.Industry = 'Retail';
-        accounts.add(deleteTwoAccount);
-
-        Account retailTwoAccount = new Account(Name = 'Selector Retail Two');
-        retailTwoAccount.Industry = 'Retail';
-        accounts.add(retailTwoAccount);
-
-        accounts.add(new Account(Name = 'Selector Null One'));
-        accounts.add(new Account(Name = 'Selector Null Two'));
-        insert accounts;
-    }
-
     /**
      * 検索語ごとの確認に共通する標準検索要求を生成
      * @param searchTerm 各テストが確認する検索語
@@ -58,6 +29,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void shouldUseBoundSearchWithStandardCursor() {
 
         System.runAs(testUser) {
+            insert new List<Account>{new Account(Name = 'Selector Alpha'), new Account(Name = 'Selector Beta')};
             Test.startTest();
             ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchRequest(' Selector Alpha ');
             Database.PaginationCursor cursor = selector.createPaginationCursor(request);
@@ -80,6 +52,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
     static void shouldReturnEmptyPage() {
 
         System.runAs(testUser) {
+            insert new Account(Name = '検索に一致しない取引先');
             Test.startTest();
             ObjectRecordSearchQueryPlan.SearchQueryRequest request = createSearchRequest('No matching records');
             request.paginationCursor = selector.createPaginationCursor(request);
@@ -96,15 +69,11 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldReturnMatchingRows() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Selector Delete One'
-            LIMIT 1
-        ];
+        Account target = new Account(Name = '取得対象');
         List<SObject> records;
 
         System.runAs(testUser) {
+            insert new List<Account>{ target, new Account(Name = '取得対象外') };
             Test.startTest();
 
             records = selector.getRecordsById(
@@ -176,22 +145,16 @@ private with sharing class ObjectRecordSearchSelectorTest {
      */
     @IsTest
     static void getRecordsByIdShouldExcludeIdsFromAnotherObject() {
-        Account parentAccount = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Selector Alpha'
-            LIMIT 1
-        ];
-        Contact contactRecord = new Contact(AccountId = parentAccount.Id, LastName = 'Selector Contact');
-        insert contactRecord;
+        Id nonAccountId = UserInfo.getUserId();
         List<SObject> records;
 
         System.runAs(testUser) {
+            insert new Account(Name = '対象外IDでは取得しない取引先');
             Test.startTest();
 
             records = selector.getRecordsById(
                 'Account',
-                new Set<Id>{ contactRecord.Id }
+                new Set<Id>{ nonAccountId }
             );
 
             Test.stopTest();
@@ -200,7 +163,7 @@ private with sharing class ObjectRecordSearchSelectorTest {
         Assert.areEqual(
             0,
             records.size(),
-            'Account検索ではContact IDを取得対象にしない必要あり'
+            'Account検索ではUser IDを取得対象にしない必要あり'
         );
     }
 
@@ -251,4 +214,81 @@ private with sharing class ObjectRecordSearchSelectorTest {
         }
     }
 
+    /** 選択リストの設定順と同値内のID順を取得 */
+    @IsTest
+    static void sortsPicklistValuesInBothDirections() {
+
+        System.runAs(testUser) {
+            insert new List<Opportunity>{
+                new Opportunity(Name = '順序A', StageName = 'Prospecting', CloseDate = Date.today()),
+                new Opportunity(Name = '順序B', StageName = 'Needs Analysis', CloseDate = Date.today()),
+                new Opportunity(Name = '順序C', StageName = 'Prospecting', CloseDate = Date.today())
+            };
+            List<Opportunity> ascending = [SELECT Id FROM Opportunity ORDER BY StageName ASC NULLS LAST, Id ASC];
+            List<Opportunity> descending = [SELECT Id FROM Opportunity ORDER BY StageName DESC NULLS LAST, Id ASC];
+            Test.startTest();
+            Assert.areEqual(recordIds(ascending), readSortedIds('opportunities', 'StageName', 'asc'), '選択値の昇順を維持');
+            Assert.areEqual(recordIds(descending), readSortedIds('opportunities', 'StageName', 'desc'), '選択値の降順を維持');
+            Test.stopTest();
+        }
+    }
+
+    /** Booleanの両値を指定方向で取得 */
+    @IsTest
+    static void sortsBooleanValuesInBothDirections() {
+
+        System.runAs(testUser) {
+            insert new List<Product2>{
+                new Product2(Name = '有効A', IsActive = true),
+                new Product2(Name = '無効', IsActive = false),
+                new Product2(Name = '有効B', IsActive = true)
+            };
+            List<Product2> ascending = [SELECT Id FROM Product2 ORDER BY IsActive ASC NULLS LAST, Id ASC];
+            List<Product2> descending = [SELECT Id FROM Product2 ORDER BY IsActive DESC NULLS LAST, Id ASC];
+            Test.startTest();
+            Assert.areEqual(recordIds(ascending), readSortedIds('products', 'IsActive', 'asc'), 'Booleanの昇順を維持');
+            Assert.areEqual(recordIds(descending), readSortedIds('products', 'IsActive', 'desc'), 'Booleanの降順を維持');
+            Test.stopTest();
+        }
+    }
+
+    /** nullの選択値を末尾に置き同値内のID順を維持 */
+    @IsTest
+    static void sortsNullablePicklists() {
+
+        System.runAs(testUser) {
+            insert new List<Account>{
+                new Account(Name = '設定済みA', Industry = 'Retail'),
+                new Account(Name = '設定済みB', Industry = 'Retail'),
+                new Account(Name = '未設定A'),
+                new Account(Name = '未設定B')
+            };
+            List<Account> expected = [SELECT Id FROM Account ORDER BY Industry ASC NULLS LAST, Id ASC];
+            Test.startTest();
+            Assert.areEqual(recordIds(expected), readSortedIds('accounts', 'Industry', 'asc'), 'nullを末尾へ配置');
+            Test.stopTest();
+        }
+    }
+
+    private static List<Id> readSortedIds(String key, String field, String direction) {
+        ObjectRecordSearchRequestWrapper input = new ObjectRecordSearchRequestWrapper();
+        input.metricKey = key;
+        input.sortBy = field;
+        input.sortDirection = direction;
+        ObjectRecordSearchContext context = service.resolveSearchContext(key).context;
+        ObjectRecordSearchQueryPlan.SearchQueryRequest request = service.createSearchQueryRequest(
+            context, input, service.createSortSpec(context, input)
+        ).searchQueryRequest;
+        request.paginationCursor = selector.createPaginationCursor(request);
+        Database.CursorFetchResult fetched = selector.searchRecords(request);
+        return recordIds(fetched.getRecords());
+    }
+
+    private static List<Id> recordIds(List<SObject> records) {
+        List<Id> ids = new List<Id>();
+        for (SObject record : records) {
+            ids.add(record.Id);
+        }
+        return ids;
+    }
 }

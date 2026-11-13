@@ -5,6 +5,7 @@
 private with sharing class CaseEmailMessageServiceTest {
 
     private static CaseEmailMessageService service = new CaseEmailMessageService();
+    private static CaseEmailMessageSelector selector = new CaseEmailMessageSelector();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
@@ -13,8 +14,7 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldReturnValidatedCaseId() {
-        Case caseRecord = new Case(Subject = 'Service Case ID テスト');
-        insert caseRecord;
+        Case caseRecord = new Case(Id = Id.valueOf(Case.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
         CaseEmailMessageService.CaseIdValidationResult result;
 
         System.runAs(testUser) {
@@ -55,15 +55,14 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldRejectNonCaseId() {
-        Account accountRecord = new Account(Name = 'Service Case 以外 ID テスト');
-        insert accountRecord;
+        Id nonCaseId = testUser.Id;
 
         CaseEmailMessageService.CaseIdValidationResult result;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            result = service.validateCaseId(accountRecord.Id);
+            result = service.validateCaseId(nonCaseId);
 
             Test.stopTest();
         }
@@ -81,8 +80,7 @@ private with sharing class CaseEmailMessageServiceTest {
      */
     @IsTest
     static void shouldCreateInitialPageQuery() {
-        Case caseRecord = new Case(Subject = 'Service 初回ページテスト');
-        insert caseRecord;
+        Case caseRecord = new Case(Id = Id.valueOf(Case.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
         CaseEmailMessageService.PageQueryResult result;
 
         System.runAs(testUser) {
@@ -178,13 +176,17 @@ private with sharing class CaseEmailMessageServiceTest {
         );
         CaseEmailMessageService.PageQueryResult pageQueryResult = service.createPageQuery(caseRecord.Id, null, 0);
         CaseEmailMessageService.PageQuery pageQuery = pageQueryResult.pageQuery;
-        Database.PaginationCursor paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(caseRecord.Id);
+        Database.PaginationCursor paginationCursor = selector.getPaginationCursorByCaseId(caseRecord.Id);
         CaseEmailMessageService.PageQuery result;
 
         System.runAs(testUser) {
             Test.startTest();
 
             result = service.preparePageFetch(pageQuery, paginationCursor);
+            CaseEmailMessagePageWrapper page = service.createPage(paginationCursor, paginationCursor.fetchPage(0, 1));
+            Assert.areEqual('残件数テスト', page.emailMessages[0].Subject, '取得したメールを表示用ページへ変換');
+            Assert.areEqual(1, page.emailMessages.size(), '取得済みメールだけを返す');
+            Assert.isFalse(page.hasNextPage, '一件だけの結果は最終ページ');
 
             Test.stopTest();
         }
@@ -236,7 +238,7 @@ private with sharing class CaseEmailMessageServiceTest {
                 0
             )
             .pageQuery;
-        Database.PaginationCursor paginationCursor = new CaseEmailMessageSelector().getPaginationCursorByCaseId(
+        Database.PaginationCursor paginationCursor = selector.getPaginationCursorByCaseId(
             caseRecord.Id
         );
         pageQuery.startIndex = paginationCursor.getNumRecords();

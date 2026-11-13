@@ -2,26 +2,17 @@
 @IsTest
 private with sharing class AccountDeleteSelectorTest {
 
-    private static User testUser = new User(Id = UserInfo.getUserId());
+    private static AccountDeleteSelector selector = new AccountDeleteSelector();
 
-    /**
-     * 同じテストクラスで必要な権限だけを割り当て
-     */
-    @TestSetup
-    static void setupDeleteAccess() {
-        if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
-        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
-        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
-    }
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     /** 実行者自身の最新ジョブだけを取得 */
     @IsTest
     static void selectsOnlyOwnLatestJob() {
-        User denied = new User(
+        User otherUser = new User(
             ProfileId = UserInfo.getProfileId(),
             Alias = 'testuser',
-            LastName = 'Delete permission test',
+            LastName = 'Delete job owner test',
             Email = 'test-user@example.invalid',
             Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
             TimeZoneSidKey = 'Asia/Tokyo',
@@ -29,15 +20,15 @@ private with sharing class AccountDeleteSelectorTest {
             EmailEncodingKey = 'UTF-8',
             LanguageLocaleKey = 'ja'
         );
-        insert denied;
+        insert otherUser;
 
         System.runAs(testUser) {
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
-            Assert.areEqual(jobId, new AccountDeleteSelector().getJobs(null)[0].Id, '自身のジョブ');
+            Assert.areEqual(jobId, selector.getJobs(null)[0].Id, '自身のジョブ');
 
-            System.runAs(denied) {
-                Assert.isTrue(new AccountDeleteSelector().getJobs(null).isEmpty(), '他者のジョブは非公開');
+            System.runAs(otherUser) {
+                Assert.isTrue(selector.getJobs(null).isEmpty(), '他者のジョブは非公開');
             }
             System.abortJob(jobId);
             Test.stopTest();
@@ -50,7 +41,7 @@ private with sharing class AccountDeleteSelectorTest {
         User otherUser = new User(
             ProfileId = UserInfo.getProfileId(),
             Alias = 'testuser',
-            LastName = 'Delete permission test',
+            LastName = 'Delete job owner test',
             Email = 'test-user@example.invalid',
             Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
             TimeZoneSidKey = 'Asia/Tokyo',
@@ -65,7 +56,6 @@ private with sharing class AccountDeleteSelectorTest {
             Id firstId = Database.executeBatch(new AccountDeleteBatch(), 2000);
             System.abortJob(firstId);
             Id secondId = Database.executeBatch(new AccountDeleteBatch(), 2000);
-            AccountDeleteSelector selector = new AccountDeleteSelector();
             Assert.areEqual(firstId, selector.getJobs(firstId)[0].Id, '後続ジョブではなく指定したジョブを取得');
 
             System.runAs(otherUser) {
@@ -73,6 +63,21 @@ private with sharing class AccountDeleteSelectorTest {
             }
             System.abortJob(secondId);
             Assert.areEqual(firstId, selector.getJobs(firstId)[0].Id, '後続ジョブの終了後も指定IDを維持');
+            Test.stopTest();
+        }
+    }
+
+    /** 登録済みの削除ジョブだけを重複判定対象にする */
+    @IsTest
+    static void findsActiveDeleteJob() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
+            List<AsyncApexJob> jobs = selector.getActiveJobs();
+            Assert.areEqual(1, jobs.size(), '登録したジョブを検出');
+            Assert.areEqual(jobId, jobs[0].Id, '同じ機能のジョブを取得');
+            System.abortJob(jobId);
             Test.stopTest();
         }
     }

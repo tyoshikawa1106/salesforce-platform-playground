@@ -28,4 +28,17 @@ private with sharing class AccountDataQualityScanWrapperTest {
         Assert.areEqual(0, result.progressPercent, 'nullの進捗率はゼロへ変換する必要あり');
         Assert.areEqual('', result.errorMessage, 'nullのエラー文言は空文字列へ変換する必要あり');
     }
+    /** 権限不足の案内を空の集計結果に付加 */
+    @IsTest
+    static void initializesAccessErrorWithoutScanData() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            AccountDataQualityScanWrapper wrapper = new AccountDataQualityScanWrapper('参照できません');
+            Test.stopTest();
+            Assert.areEqual('参照できません', wrapper.accessErrorMessage, 'アクセス拒否の理由を保持');
+            Assert.areEqual(0, wrapper.totalCount, '未取得の件数を推測しない');
+        }
+    }
+
 }

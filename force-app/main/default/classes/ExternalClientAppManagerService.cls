@@ -8,8 +8,17 @@ public with sharing class ExternalClientAppManagerService {
 
     /** 実行権限を持たない直接呼び出しを拒否 */
     public void requireAccess() {
+        // 公開入口は実際のカスタム権限で判断
+        requireFeatureAccess(FeatureManagement.checkPermission('ManageExternalClientAppCredentials'));
+    }
+
+    /** ユーザーを追加せず許可・拒否を検証する共通判定
+     * @param allowed 機能利用権限の判定値
+     */
+    @TestVisible
+    private void requireFeatureAccess(Boolean allowed) {
         // API管理権限とは別に画面機能の利用を制限
-        if (!FeatureManagement.checkPermission('ManageExternalClientAppCredentials')) {
+        if (allowed != true) {
             throw new ValidationException('資格情報の更新権限がありません。');
         }
     }

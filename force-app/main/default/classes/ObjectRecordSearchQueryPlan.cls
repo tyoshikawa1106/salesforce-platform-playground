@@ -50,7 +50,7 @@ public with sharing class ObjectRecordSearchQueryPlan {
             request.context != null &&
             request.context.config != null &&
             request.sortSpec != null &&
-            request.fetchSize == SEARCH_FETCH_SIZE;
+            request.fetchSize != null && request.fetchSize > 0 && request.fetchSize <= SEARCH_FETCH_SIZE;
     }
 
     private static Boolean isSupportedObject(String objectApiName) {

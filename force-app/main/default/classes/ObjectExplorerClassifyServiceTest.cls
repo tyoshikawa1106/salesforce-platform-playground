@@ -400,4 +400,22 @@ private with sharing class ObjectExplorerClassifyServiceTest {
         }
     }
 
+    /** 一項目の事前失敗が他の項目の準備を取り消さない */
+    @IsTest
+    static void preparesFieldsWithIndividualFailures() {
+
+        System.runAs(testUser) {
+            ObjectExplorerClassifyService.FieldContext valid = context(false);
+            ObjectExplorerClassifyService.FieldContext missing = context(false);
+            missing.fieldName = 'Missing__c';
+            Test.startTest();
+            List<ObjectExplorerClassifyService.FieldContext> prepared = preparation.prepareFields(new List<ObjectExplorerClassifyService.FieldContext>{ valid, missing }, new Map<String, Map<String, Object>>{ 'Name' => nativeRow() }, new Map<Id, SObject>());
+            Test.stopTest();
+            Assert.areEqual(2, prepared.size(), '入力順と件数を維持');
+            Assert.areEqual('Account.Name', prepared[0].metadata.get('fullName'), '正常な項目を準備');
+            Assert.isTrue(prepared[1].completed, '失敗した項目だけを確定');
+            Assert.areEqual(false, prepared[1].result.get('success'), '未取得の定義を保存しない');
+        }
+    }
+
 }

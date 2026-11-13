@@ -5,34 +5,25 @@
 private with sharing class ObjectRecordSearchServiceTest {
 
     private static ObjectRecordSearchService service = new ObjectRecordSearchService();
+    private static ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
 
     private static User testUser = new User(Id = UserInfo.getUserId());
-
-    @TestSetup
-    static void setupTestData() {
-        List<Account> accounts = new List<Account>();
-
-        Account alphaAccount = new Account(Name = 'Service Alpha');
-        alphaAccount.Industry = 'Technology';
-        accounts.add(alphaAccount);
-
-        Account betaAccount = new Account(Name = 'Service Beta');
-        betaAccount.Industry = 'Finance';
-        accounts.add(betaAccount);
-        insert accounts;
-    }
 
     /**
      * 取得レコードから検索結果を作成
      */
     @IsTest
     static void shouldCreateSearchResultFromQueriedRecords() {
+        insert new List<Account>{
+            new Account(Name = 'Service Alpha', Industry = 'Technology'),
+            new Account(Name = 'Service Beta', Industry = 'Finance')
+        };
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
             'Service'
         );
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = createQueryRequest(request);
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
@@ -147,16 +138,13 @@ private with sharing class ObjectRecordSearchServiceTest {
     }
 
     /**
-     * ページサイズ超過時に次ページ情報を作成
+     * カーソルに残件がある場合の次ページ情報を作成
      */
     @IsTest
-    static void shouldCreatePagedSearchResultWhenMoreThanPageSizeIsFetched() {
-        List<Account> accounts = new List<Account>();
-        for (Integer index = 0; index < 51; index++) {
-            Account accountRecord = new Account(Name = 'Paged Account ' + index);
-            accountRecord.Industry = 'Technology';
-            accounts.add(accountRecord);
-        }
+    static void shouldCreateNextPageFromCursorResult() {
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Paged A'), new Account(Name = 'Paged B')
+        };
         insert accounts;
         ObjectRecordSearchRequestWrapper request = createSearchRequest(
             'accounts',
@@ -164,22 +152,22 @@ private with sharing class ObjectRecordSearchServiceTest {
         );
         request.pageNumber = 0;
         ObjectRecordSearchQueryPlan.SearchQueryRequest searchQueryRequest = createQueryRequest(request);
-        ObjectRecordSearchSelector selector = new ObjectRecordSearchSelector();
+
         ObjectRecordSearchResultWrapper result;
 
         System.runAs(testUser) {
             Test.startTest();
 
             searchQueryRequest.paginationCursor = selector.createPaginationCursor(searchQueryRequest);
-            result = service.createSearchResult(searchQueryRequest, selector.searchRecords(searchQueryRequest));
+            result = service.createSearchResult(searchQueryRequest, searchQueryRequest.paginationCursor.fetchPage(0, 1));
 
             Test.stopTest();
         }
 
         Assert.areEqual(
-            50,
+            1,
             result.records.size(),
-            'Service は余分に取得した行をレスポンスから除く必要あり'
+            '取得済みの一行だけを返す必要あり'
         );
         Assert.isTrue(
             result.hasNextPage,
@@ -189,7 +177,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             result.paginationCursor,
             '次ページ状態は標準カーソルを含む必要あり'
         );
-        Assert.areEqual(50, result.nextIndex, '標準APIの次ページ位置を保持する必要あり');
+        Assert.areEqual(1, result.nextIndex, '標準APIの次ページ位置を保持する必要あり');
         Assert.areEqual(
             1,
             result.pageNumber,
@@ -202,12 +190,8 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldCreateDeleteResultFromDmlResults() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Service Beta'
-            LIMIT 1
-        ];
+        Account target = new Account(Name = 'Service Beta');
+        insert target;
         List<Id> recordIds = new List<Id>{ target.Id };
         List<Database.DeleteResult> deleteResults = Database.delete(
             new List<Account>{ target },
@@ -246,12 +230,7 @@ private with sharing class ObjectRecordSearchServiceTest {
      */
     @IsTest
     static void shouldCreateDeleteErrorWhenRequestedRecordWasNotProcessed() {
-        Account target = [
-            SELECT Id
-            FROM Account
-            WHERE Name = 'Service Beta'
-            LIMIT 1
-        ];
+        Account target = new Account(Id = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001'));
         ObjectRecordSearchDeleteWrapper result;
 
         System.runAs(testUser) {
@@ -399,7 +378,7 @@ private with sharing class ObjectRecordSearchServiceTest {
             Test.startTest();
 
             List<Database.DeleteResult> deleteResults = Database.delete(new List<SObject>{ target }, false, AccessLevel.USER_MODE);
-            result = new ObjectRecordSearchService().createDeleteResult(
+            result = service.createDeleteResult(
                 new List<Id>{ target.Id },
                 deleteResults
             );
@@ -449,4 +428,24 @@ private with sharing class ObjectRecordSearchServiceTest {
         request.searchTerm = searchTerm;
         return request;
     }
+
+    /** 取得済みメタデータの欠落と権限不足を区別 */
+    @IsTest
+    static void rejectsUnavailableSearchMetadata() {
+
+        System.runAs(testUser) {
+            ObjectMetricCatalog.MetricDefinition definition = ObjectMetricCatalog.getDefinition('accounts');
+            ObjectRecordSearchService.ContextMetadata metadata = new ObjectRecordSearchService.ContextMetadata();
+            Test.startTest();
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.OBJECT_UNAVAILABLE, service.resolveContextFromMetadata(definition, metadata).errorCode, '対象が未有効');
+            metadata.objectAvailable = true;
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.OBJECT_ACCESS_DENIED, service.resolveContextFromMetadata(definition, metadata).errorCode, '対象の参照を拒否');
+            metadata.objectAccessible = true;
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.NAME_FIELD_UNAVAILABLE, service.resolveContextFromMetadata(definition, metadata).errorCode, 'Name相当項目がない');
+            metadata.nameField = Account.Name.getDescribe();
+            Assert.areEqual(ObjectRecordSearchService.ErrorCode.NAME_FIELD_ACCESS_DENIED, service.resolveContextFromMetadata(definition, metadata).errorCode, 'Name相当項目の参照を拒否');
+            Test.stopTest();
+        }
+    }
+
 }

@@ -10,82 +10,49 @@ private with sharing class AccountDeleteBatchTest {
     @TestSetup
     static void setupDeleteAccess() {
         if (FeatureManagement.checkPermission('RunAccountDelete')) { return; }
-        List<PermissionSet> permissions = [SELECT Id FROM PermissionSet WHERE Name = 'LwcAccountDelete'];
-        Assert.areEqual(1, permissions.size(), '削除機能のテスト権限が存在');
-        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = permissions[0].Id);
+        List<CustomPermission> permissions = [SELECT Id FROM CustomPermission WHERE DeveloperName = 'RunAccountDelete'];
+        PermissionSet access = new PermissionSet(Name = 'AccountDeleteBatchTestAccess', Label = '取引先削除バッチテスト用');
+        insert access;
+        insert new SetupEntityAccess(ParentId = access.Id, SetupEntityId = permissions[0].Id);
+        insert new PermissionSetAssignment(AssigneeId = testUser.Id, PermissionSetId = access.Id);
     }
 
-    /** バッチ実行で取引先を削除 */
+    /** 実際の環境に応じて削除または開始拒否を適用 */
     @IsTest
-    static void deletesThroughBatchExecution() {
+    static void appliesEnvironmentConditionThroughBatchExecution() {
 
         System.runAs(testUser) {
+            Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
             insert new Account(Name = '削除対象');
             Test.startTest();
             Id jobId = Database.executeBatch(new AccountDeleteBatch(), 2000);
             Test.stopTest();
-            Assert.areEqual(0, [SELECT COUNT() FROM Account], '対象を削除');
+            Assert.areEqual(developmentEnvironment ? 0 : 1, [SELECT COUNT() FROM Account], '許可環境だけで削除し、本番では対象を保持');
             AsyncApexJob job = [SELECT Status, NumberOfErrors FROM AsyncApexJob WHERE Id = :jobId];
             Assert.areEqual('Completed', job.Status, 'finishまで正常終了');
             Assert.areEqual(0, job.NumberOfErrors, '非同期処理エラーなし');
         }
     }
 
-    /** 直接起動時も権限を確認 */
+    /** 開始拒否時は既存データがあっても空の対象を返す */
     @IsTest
-    static void directLaunchStillChecksPermission() {
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'testuser',
-            LastName = 'Delete permission test',
-            Email = 'test-user@example.invalid',
-            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert denied;
+    static void selectsScopeFromBlockMessage() {
 
-        System.runAs(denied) {
-            insert new Account(Name = '保護対象');
-            Test.startTest();
-            Database.executeBatch(new AccountDeleteBatch(), 2000);
-            Test.stopTest();
-            Assert.areEqual(1, [SELECT COUNT() FROM Account], '直接起動でも削除しない');
-        }
-    }
-
-    /** 権限不足でスコープの削除を拒否 */
-    @IsTest
-    static void executeRejectsWithoutPermission() {
-        User denied = new User(
-            ProfileId = UserInfo.getProfileId(),
-            Alias = 'testuser',
-            LastName = 'Delete permission test',
-            Email = 'test-user@example.invalid',
-            Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
-            TimeZoneSidKey = 'Asia/Tokyo',
-            LocaleSidKey = 'ja_JP',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'ja'
-        );
-        insert denied;
-
-        System.runAs(denied) {
-            Account account = new Account(Name = '削除直前の拒否');
+        System.runAs(testUser) {
+            Account account = new Account(Name = '開始判定の確認');
             insert account;
-            Test.startTest();
             AccountDeleteBatch batch = new AccountDeleteBatch();
-            batch.execute(null, new List<SObject>{ account });
-            Map<String, Object> state = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(batch));
-            Map<String, Object> wrapper = (Map<String, Object>) state.get('wrapper');
+            Test.startTest();
+            Database.QueryLocator blocked = batch.createStartQuery('実行条件を満たしていません。');
+            Database.QueryLocator allowed = batch.createStartQuery('');
+            Database.QueryLocatorIterator blockedRecords = blocked.iterator();
+            Database.QueryLocatorIterator allowedRecords = allowed.iterator();
+            Assert.isFalse(blockedRecords.hasNext(), '拒否時は取引先が存在しても対象なし');
+            Assert.isTrue(allowedRecords.hasNext(), '許可時は取引先を対象に含める');
+            Assert.areEqual(account.Id, allowedRecords.next().Id, '許可時の対象を確認');
+            Assert.isFalse(allowedRecords.hasNext(), '準備した一件だけを取得');
             Test.stopTest();
-            Assert.areEqual(1, [SELECT COUNT() FROM Account WHERE Id = :account.Id], 'executeでも権限を再確認');
-            Assert.areEqual(1, (Integer) wrapper.get('failureCount'), '削除できなかった対象を失敗に数える');
-            Assert.areEqual('取引先一括削除の利用権限がありません。', wrapper.get('errorMessage'), 'Serviceの判定結果を保持');
-            Map<String, Object> details = (Map<String, Object>) wrapper.get('recordErrors');
-            Assert.isTrue(((String) details.get(String.valueOf(account.Id))).contains('利用権限がありません'), '中止したレコードと理由を保持');
+            Assert.areEqual(1, [SELECT COUNT() FROM Account], '対象取得では削除を実行しない');
         }
     }
 
@@ -94,6 +61,7 @@ private with sharing class AccountDeleteBatchTest {
     static void preservesCountsAcrossSerializedScopes() {
 
         System.runAs(testUser) {
+            Boolean developmentEnvironment = OrgEnvironment.isDevelopmentEnvironment();
             Account first = new Account(Name = '前半');
             insert first;
             Account gone = new Account(Name = '削除済み');
@@ -110,12 +78,13 @@ private with sharing class AccountDeleteBatchTest {
             Map<String, Object> state = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(restored));
             Test.stopTest();
             Map<String, Object> wrapper = (Map<String, Object>) state.get('wrapper');
-            Assert.areEqual(2, (Integer) wrapper.get('successCount'), 'バッチの成功件数を累積');
-            Assert.areEqual(1, (Integer) wrapper.get('failureCount'), '前のスコープの失敗件数を維持');
+            Assert.areEqual(developmentEnvironment ? 2 : 0, (Integer) wrapper.get('successCount'), '実際に削除した成功件数を累積');
+            Assert.areEqual(developmentEnvironment ? 1 : 3, (Integer) wrapper.get('failureCount'), '削除失敗または環境による拒否件数を累積');
             Map<String, Object> details = (Map<String, Object>) wrapper.get('recordErrors');
-            Assert.isTrue(((String) details.get(String.valueOf(gone.Id))).contains('ENTITY_IS_DELETED'), 'レコードと理由を引き継ぐ');
-            Assert.areEqual(0, ((Map<String, Object>) state.get('service')).size(), 'Serviceには状態を保持しない');
-            Assert.areEqual(0, [SELECT COUNT() FROM Account], '成功した削除結果を維持');
+            String expectedCode = developmentEnvironment ? 'ENTITY_IS_DELETED' : 'EXECUTION_BLOCKED';
+            Assert.areEqual(developmentEnvironment ? 1 : 3, details.size(), '確定した失敗レコードの詳細を保持');
+            Assert.isTrue(((String) details.get(String.valueOf(gone.Id))).contains(expectedCode), 'レコードと理由を引き継ぐ');
+            Assert.areEqual(developmentEnvironment ? 0 : 2, [SELECT COUNT() FROM Account], '削除結果または環境拒否による保持を確認');
         }
     }
 

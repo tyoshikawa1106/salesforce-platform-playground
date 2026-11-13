@@ -132,13 +132,11 @@ private with sharing class ObjectExplorerFieldServiceTest {
     static void splitsAuditAtBoundary() {
         System.runAs(testUser) {
             Test.startTest();
-            Set<Id> ids = new Set<Id>();
-            for (Integer i = 0; i < 201; i++) {
-                ids.add((Id) ('00N' + String.valueOf(i).leftPad(12, '0')));
-            }
-            List<Set<Id>> batches = service.createAuditBatches(ids);
+            String prefix = '00N';
+            Set<Id> ids = new Set<Id>{ prefix + '000000000001', prefix + '000000000002', prefix + '000000000003' };
+            List<Set<Id>> batches = service.createAuditBatchesWithSize(ids, 2);
             Assert.areEqual(2, batches.size(), '上限超過分を次の要求へ分割');
-            Assert.areEqual(200, batches[0].size(), '先頭要求の上限を維持');
+            Assert.areEqual(2, batches[0].size(), '先頭要求の上限を維持');
             Assert.areEqual(1, batches[1].size(), '端数を欠落させない');
             Test.stopTest();
         }

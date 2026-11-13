@@ -4,12 +4,6 @@
 @IsTest
 public with sharing class TestDataFactory {
 
-    // 取引先データ品質スキャンの権限セットAPI名
-    private static final String ACCOUNT_DATA_QUALITY_SCAN_PERMISSION_SET = 'LwcAccountDataQualityScan';
-
-    // 取引先データ品質スキャン用テストユーザーのAlias
-    private static final String ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS = 'dqscan';
-
     /**
      * TestDataFactory のレコード保存方法
      */
@@ -72,47 +66,6 @@ public with sharing class TestDataFactory {
             assignment.PermissionSetId = permissionSetId;
             insert assignment;
         }
-    }
-
-    /**
-     * データ品質スキャン権限を持つテストユーザーを作成
-     * @param userMarker テストクラスごとに識別する姓
-     */
-    public static void createAccountDataQualityScanTestUser(String userMarker) {
-        User userRecord = new User();
-        userRecord.Alias = ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS;
-        userRecord.Email = 'data-quality-scan@example.invalid';
-        userRecord.EmailEncodingKey = 'UTF-8';
-        userRecord.LanguageLocaleKey = 'ja';
-        userRecord.LastName = userMarker;
-        userRecord.LocaleSidKey = 'ja_JP';
-        userRecord.ProfileId = UserInfo.getProfileId();
-        userRecord.TimeZoneSidKey = 'Asia/Tokyo';
-        userRecord.Username =
-            'data-quality-scan.' + userMarker.toLowerCase() + '.' + String.valueOf(System.now().getTime()) + '@example.invalid';
-        insert userRecord;
-
-        PermissionSet permissionSet = [
-            SELECT Id
-            FROM PermissionSet
-            WHERE Name = :ACCOUNT_DATA_QUALITY_SCAN_PERMISSION_SET
-            LIMIT 1
-        ];
-        insert new PermissionSetAssignment(AssigneeId = userRecord.Id, PermissionSetId = permissionSet.Id);
-    }
-
-    /**
-     * データ品質スキャン権限を持つテストユーザーを取得
-     * @param userMarker テストクラスごとに識別する姓
-     * @return 指定したテストユーザー
-     */
-    public static User getAccountDataQualityScanTestUser(String userMarker) {
-        return [
-            SELECT Id
-            FROM User
-            WHERE Alias = :ACCOUNT_DATA_QUALITY_SCAN_USER_ALIAS AND LastName = :userMarker
-            LIMIT 1
-        ];
     }
 
     /**

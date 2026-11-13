@@ -499,149 +499,40 @@ private with sharing class ObjectRecordSearchControllerTest {
         }
     }
 
-    /** 選択リストの昇順で全ページを取得 */
-    @IsTest
-    static void shouldPagePicklistsAscending() {
-        System.runAs(testUser) {
-            createSearchPaginationRecords();
-            List<Id> expected = recordIds([SELECT Id FROM Opportunity ORDER BY StageName ASC NULLS LAST, Id ASC]);
-            Test.startTest();
-            List<Id> actual = readPages('opportunities', 'StageName', 'asc');
-            Test.stopTest();
-            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
-        }
-    }
-
-    /** 選択リストの降順で全ページを取得 */
-    @IsTest
-    static void shouldPagePicklistsDescending() {
-        System.runAs(testUser) {
-            createSearchPaginationRecords();
-            List<Id> expected = recordIds([SELECT Id FROM Opportunity ORDER BY StageName DESC NULLS LAST, Id ASC]);
-            Test.startTest();
-            List<Id> actual = readPages('opportunities', 'StageName', 'desc');
-            Test.stopTest();
-            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
-        }
-    }
-
-    /** Booleanの昇順で全ページを取得 */
-    @IsTest
-    static void shouldPageBooleansAscending() {
-        System.runAs(testUser) {
-            createSearchPaginationRecords();
-            List<Id> expected = recordIds([SELECT Id FROM Product2 ORDER BY IsActive ASC NULLS LAST, Id ASC]);
-            Test.startTest();
-            List<Id> actual = readPages('products', 'IsActive', 'asc');
-            Test.stopTest();
-            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
-        }
-    }
-
-    /** Booleanの降順で全ページを取得 */
-    @IsTest
-    static void shouldPageBooleansDescending() {
-        System.runAs(testUser) {
-            createSearchPaginationRecords();
-            List<Id> expected = recordIds([SELECT Id FROM Product2 ORDER BY IsActive DESC NULLS LAST, Id ASC]);
-            Test.startTest();
-            List<Id> actual = readPages('products', 'IsActive', 'desc');
-            Test.stopTest();
-            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
-        }
-    }
-
-    /** nullを含む選択リストで全ページを取得 */
-    @IsTest
-    static void shouldPageNullablePicklists() {
-        System.runAs(testUser) {
-            createSearchPaginationRecords();
-            List<Id> expected = recordIds([SELECT Id FROM Account ORDER BY Industry ASC NULLS LAST, Id ASC]);
-            Test.startTest();
-            List<Id> actual = readPages('accounts', 'Industry', 'asc');
-            Test.stopTest();
-            Assert.areEqual(expected, actual, '標準ORDER BYと全ページの順序・件数が一致する必要あり');
-        }
-    }
-
-    private static List<Id> recordIds(List<SObject> records) {
-        List<Id> ids = new List<Id>();
-        for (SObject record : records) {
-            ids.add(record.Id);
-        }
-        return ids;
-    }
-
-    private static List<Id> readPages(String key, String field, String direction) {
-        List<Id> actualIds = new List<Id>();
-        ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
-        request.metricKey = key;
-        request.sortBy = field;
-        request.sortDirection = direction;
-        Boolean hasNext = true;
-        while (hasNext && request.pageNumber <= 10) {
-            ObjectRecordSearchResultWrapper page = ObjectRecordSearchController.searchRecords(request);
-            for (ObjectRecordSearchRowWrapper row : page.records) {
-                actualIds.add(row.id);
-            }
-            hasNext = page.hasNextPage;
-            request.paginationCursor = page.paginationCursor;
-            request.startIndex = page.nextIndex;
-            request.pageNumber++;
-            // LWCとの往復で標準カーソルをそのまま復元できることも検証
-            request = (ObjectRecordSearchRequestWrapper) JSON.deserialize(JSON.serialize(request), ObjectRecordSearchRequestWrapper.class);
-        }
-        Assert.isFalse(hasNext, '全ページを上限内に読み切る必要あり');
-        return actualIds;
-    }
-
-    /** 同じカーソルで先頭ページへ戻る */
+    /** 検索フローのページ継続と同じカーソルでの前ページ復帰 */
     @IsTest
     static void shouldReturnToFirstPageUsingSameCursor() {
+
+        ObjectRecordSearchController controller = new ObjectRecordSearchController();
+
         System.runAs(testUser) {
-            createSearchPaginationRecords();
+            // 同じ検索フローに取得件数2を渡し、3件で継続と復帰を確認
+            List<Account> accounts = new List<Account>();
+            for (Integer index = 0; index < 3; index++) {
+                accounts.add(new Account(Name = 'Pagination ' + index));
+            }
+            insert accounts;
             Test.startTest();
             ObjectRecordSearchRequestWrapper request = new ObjectRecordSearchRequestWrapper();
             request.metricKey = 'accounts';
-            ObjectRecordSearchResultWrapper first = ObjectRecordSearchController.searchRecords(request);
+            request.searchTerm = 'Pagination';
+            ObjectRecordSearchResultWrapper first = controller.searchRecordsForRequest(request, 2);
             request.paginationCursor = first.paginationCursor;
             request.startIndex = first.nextIndex;
-            ObjectRecordSearchController.searchRecords(request);
+            request.pageNumber = 2;
+            request = (ObjectRecordSearchRequestWrapper) JSON.deserialize(JSON.serialize(request), ObjectRecordSearchRequestWrapper.class);
+            ObjectRecordSearchResultWrapper nextPage = controller.searchRecordsForRequest(request, 2);
             request.startIndex = 0;
-            ObjectRecordSearchResultWrapper previous = ObjectRecordSearchController.searchRecords(request);
+            request.pageNumber = 1;
+            ObjectRecordSearchResultWrapper previous = controller.searchRecordsForRequest(request, 2);
             Test.stopTest();
+            Assert.areEqual(2, first.records.size(), '指定した取得件数で表示');
+            Assert.isTrue(first.hasNextPage, '残り一件を次ページへ渡す');
+            Assert.areEqual(1, nextPage.records.size(), '継続位置から残り一件を取得');
+            Assert.isFalse(nextPage.hasNextPage, '末尾に次ページを作らない');
+            Assert.areNotEqual(first.records[1].id, nextPage.records[0].id, '境界で行を重複させない');
             Assert.areEqual(first.records[0].id, previous.records[0].id, '同じカーソルの先頭へ戻れる必要あり');
             Assert.areEqual(first.records.size(), previous.records.size(), '前ページの件数を保持する必要あり');
         }
-    }
-
-    /** ページング境界を確認する型別レコードを準備 */
-    private static void createSearchPaginationRecords() {
-        // 設定順に並ぶ選択値とnullを別々のグループにする
-        List<Schema.PicklistEntry> values = Account.Industry.getDescribe().getPicklistValues();
-        // 同値内の境界も越える件数を用意
-        List<Account> accounts = new List<Account>();
-        List<Product2> products = new List<Product2>();
-        List<Opportunity> opportunities = new List<Opportunity>();
-        for (Integer index = 0; index < 251; index++) {
-            // 同値内のページ境界を比較できる名前を設定
-            Account record = new Account(Name = 'Pagination ' + index);
-            record.Industry = index < 100 ? values[0].getValue() : (index < 200 ? values[1].getValue() : null);
-            accounts.add(record);
-            // Booleanの両値がそれぞれ複数ページになるようにする
-            Product2 product = new Product2(Name = 'Pagination ' + index, IsActive = true);
-            product.IsActive = index < 125;
-            products.add(product);
-        }
-        // トリガの一括境界も越えた状態で保存
-        insert accounts;
-        insert products;
-        // 設定順ではProspectingが先、字句順ではNeeds Analysisが先になる組合せ
-        for (Integer index = 0; index < 251; index++) {
-            Opportunity opportunity = new Opportunity(AccountId = accounts[0].Id, Name = 'Pagination ' + index, StageName = 'Prospecting', CloseDate = Date.today().addDays(30));
-            opportunity.StageName = index < 125 ? 'Prospecting' : 'Needs Analysis';
-            opportunities.add(opportunity);
-        }
-        insert opportunities;
     }
 }

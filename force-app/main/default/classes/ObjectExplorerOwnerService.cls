@@ -172,6 +172,23 @@ public with sharing class ObjectExplorerOwnerService {
     public class CsvOwners {
         private ObjectExplorerOwnerService owners = new ObjectExplorerOwnerService();
 
+        private final Integer idLimit;
+
+        /** 公開入口のCSV所有者件数上限を設定 */
+        public CsvOwners() {
+            // 通常のCSV件数制限を維持
+            this.idLimit = 2000;
+        }
+
+        /** 小さい境界で同じ処理を検証するための内部生成
+         * @param idLimit 正の所有者件数上限
+         */
+        @TestVisible
+        private CsvOwners(Integer idLimit) {
+            // インスタンスごとに不変の上限を保持
+            this.idLimit = idLimit;
+        }
+
         /**
          * CSVに明示した18桁の所有者IDだけを受け付ける
          * @param idsJson ユーザー・公開グループIDの配列JSON
@@ -181,7 +198,7 @@ public with sharing class ObjectExplorerOwnerService {
             // JSONの構文と配列形式はID照合より前に確定
             List<Object> values = new ObjectExplorerAccessPolicy().readJsonArray(idsJson, 100000, 'CSVの所有者ID要求が不正です。配列で指定してください。');
             // ブラウザのCSV上限をサーバー側でも適用
-            if (values.size() > 2000) { throw ObjectExplorerAccessPolicy.createException('CSVの所有者IDは2000件以内で指定してください。'); }
+            if (values.size() > this.idLimit) { throw ObjectExplorerAccessPolicy.createException('CSVの所有者IDは' + this.idLimit + '件以内で指定してください。'); }
             // ID以外の識別名は検索しない
             Set<Id> ids = new Set<Id>();
             // 不正な一件があれば取得全体を拒否

@@ -38,17 +38,18 @@ public with sharing class TestDataDeleteBatchService {
         }
         // 固定計画の確認後にオブジェクト固有の実行条件を判定
         String objectName = wrapper.objectNames[wrapper.position];
-        wrapper.errorMessage = getObjectError(objectName);
+        wrapper.errorMessage = getObjectError(objectName, Schema.getGlobalDescribe().get(objectName));
         return wrapper;
     }
 
     /** オブジェクトの機能状態と必要な実効権限を確認
      * @param objectName 検証済みの対象名
+     * @param objectType 取得済みのメタデータ、未有効ならnull
      * @return 停止理由または空文字
      */
-    private String getObjectError(String objectName) {
-        // 機能自体が存在しないoptional objectだけを対象外とする
-        Schema.SObjectType objectType = Schema.getGlobalDescribe().get(objectName);
+    @TestVisible
+    private String getObjectError(String objectName, Schema.SObjectType objectType) {
+        // メタデータを引数に取り、機能の有無を組織に依存せず検証
         if (objectType == null) {
             return '';
         }

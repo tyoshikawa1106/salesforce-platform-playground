@@ -270,4 +270,19 @@ private with sharing class TestDataDeleteServiceTest {
             Assert.areEqual(TestDataDeleteService.Environment.DISALLOWED, actual, '未取得時は拒否');
         }
     }
+    /** 未有効の機能と権限不足を取得済み情報から区別 */
+    @IsTest
+    static void buildsTargetsFromAvailableMetadataAndAccess() {
+
+        System.runAs(testUser) {
+            Map<String, Schema.DescribeSObjectResult> descriptions = new Map<String, Schema.DescribeSObjectResult>{ 'Account' => Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED) };
+            Test.startTest();
+            TestDataDeleteWrapper wrapper = service.createTargets(descriptions, new Set<String>());
+            Test.stopTest();
+            Assert.isTrue(wrapper.unavailableObjects.contains('Contact'), '定義がない対象だけを未有効と表示');
+            Assert.isFalse(wrapper.unavailableObjects.contains('Account'), '権限不足を未有効と誤認しない');
+            Assert.areEqual('Accountの参照・削除権限が必要です。', wrapper.errorMessage, '権限不足を開始前に案内');
+        }
+    }
+
 }
