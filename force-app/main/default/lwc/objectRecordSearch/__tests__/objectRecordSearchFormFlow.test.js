@@ -161,7 +161,7 @@ describe('c-object-record-search form flows', () => {
         expect(getInputFieldNames()).not.toContain('Type');
     });
 
-    it('別レコードタイプのレイアウト待機中に離脱した場合はフォームを開かない', async () => {
+    it.each([false, true])('レイアウト待機中の離脱後は再接続=%sでも古いフォームを開かない', async (reconnect) => {
         const element = await createRecordFormReadyComponent();
         const record = { ...searchResponse.records[0], recordTypeId: '012000000000001AAA' };
         searchRecords.emit({ ...searchResponse, records: [record] });
@@ -169,6 +169,7 @@ describe('c-object-record-search form flows', () => {
         element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(new CustomEvent('rowaction', { detail: { action: { name: 'edit' }, row: record } }));
         await flushPromises();
         element.remove();
+        if (reconnect) document.body.appendChild(element);
         await flushPromises();
         expect(getModal()).toBeNull();
     });
@@ -607,3 +608,49 @@ function getInputFields() {
         getModalRoot().querySelectorAll('lightning-input-field')
     );
 }
+
+describe('レイアウト切替の連続編集', () => {
+    beforeEach(() => mockModalOpen());
+    afterEach(() => { document.body.replaceChildren(); jest.clearAllMocks(); jest.restoreAllMocks(); });
+    it.each([false, true])('既定レイアウトの先行応答=%sでも対象の項目だけを編集する', async (respondBeforeOpen) => {
+        const defaultTypeId = '012000000000001AAA';
+        const masterTypeId = '012000000000000AAA';
+        const records = [
+            { ...searchResponse.records[0], recordTypeId: null },
+            { ...searchResponse.records[0], id: '001xx000003DGbZAAW', recordTypeId: defaultTypeId }
+        ];
+        const element = createComponent();
+        searchRecords.emit({ ...searchResponse, records });
+        await flushPromises();
+        emitObjectInfo({ Type: { custom: false, createable: true, updateable: true }, Rating: { custom: false, createable: true, updateable: true } }, defaultTypeId);
+        await flushPromises();
+        emitLayout({ recordTypeId: defaultTypeId, fields: ['Name', 'Rating'] });
+        await flushPromises();
+        const edit = row => element.shadowRoot.querySelector('lightning-datatable').dispatchEvent(new CustomEvent('rowaction', { detail: { action: { name: 'edit' }, row } }));
+        edit(records[0]);
+        await flushPromises();
+        emitLayout({ mode: 'Edit', recordTypeId: masterTypeId, fields: ['Name', 'Type'] });
+        await flushPromises(); await flushPromises();
+        expect(getInputFieldNames()).toContain('Type');
+        getModal().close();
+        await flushPromises(); await flushPromises();
+        if (respondBeforeOpen) {
+            emitLayout({ mode: 'Edit', recordTypeId: defaultTypeId, fields: ['Name', 'Rating'] });
+            await flushPromises();
+        }
+        edit(records[1]);
+        await flushPromises(); await flushPromises();
+        expect(getModal() !== null).toBe(respondBeforeOpen);
+        if (!respondBeforeOpen) {
+            emitLayout({ mode: 'Edit', recordTypeId: defaultTypeId, fields: ['Name', 'Rating'] });
+            await flushPromises();
+            await flushPromises();
+        }
+        expect(getModal()).not.toBeNull();
+        expect(getModal().recordTypeId).toBe(defaultTypeId);
+        expect(getInputFieldNames()).toContain('Rating');
+        expect(getInputFieldNames()).not.toContain('Type');
+        expect(getInputFields().find((field) => field.fieldName === 'Rating').required).toBe(true);
+        await expect(element).toBeAccessible();
+    });
+});
