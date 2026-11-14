@@ -1,4 +1,5 @@
-.c-actions {
+.c-actions,
+.c-toolbar-actions {
     display: inline-flex;
     gap: var(--slds-g-spacing-1, 0.25rem);
 }
@@ -8,8 +9,7 @@
 }
 
 .c-toolbar-actions {
-    display: inline-flex;
-    gap: var(--slds-g-spacing-1, 0.25rem);
+    column-gap: var(--slds-g-spacing-3, 0.75rem);
 }
 
 .c-record-table {
@@ -21,10 +21,6 @@
         var(--slds-g-sizing-16, 30rem) + var(--slds-g-sizing-16, 30rem) +
             var(--slds-g-sizing-15, 20rem)
     );
-}
-
-.c-pagination {
-    gap: var(--slds-g-spacing-1, 0.25rem);
 }
 
 @media (max-width: 48em) {

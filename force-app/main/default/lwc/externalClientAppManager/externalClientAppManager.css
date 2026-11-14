@@ -27,7 +27,7 @@
 .c-card-title {
     font-size: var(--slds-g-font-scale-2, 1rem);
     font-weight: var(--slds-g-font-weight-7, 700);
-    padding-inline-end: var(--slds-g-sizing-8, 2rem);
+    padding-inline-end: var(--slds-g-sizing-8, 1.75rem);
 }
 .c-loading {
     inset-block-start: var(--slds-g-spacing-4, 1rem);

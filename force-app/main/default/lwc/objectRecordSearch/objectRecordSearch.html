@@ -65,13 +65,11 @@
                     disabled={isBusy}
                 ></lightning-button>
                 <lightning-button
-                    class="slds-m-left_x-small"
                     label={newButtonLabel}
                     onclick={handleNewRecord}
                     disabled={createDisabled}
                 ></lightning-button>
                 <lightning-button
-                    class="slds-m-left_x-small"
                     label="選択したレコードを削除"
                     variant="destructive"
                     onclick={handleDeleteSelected}
@@ -134,7 +132,7 @@
             class="c-pagination slds-grid slds-grid_align-end slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-vertical_small"
             aria-live="polite"
         >
-            <span class="slds-text-body_small slds-m-right_small">
+            <span class="slds-text-body_small slds-m-right_medium">
                 {pageLabel}
             </span>
             <lightning-button
@@ -143,7 +141,7 @@
                 disabled={previousDisabled}
             ></lightning-button>
             <lightning-button
-                class="slds-m-left_x-small"
+                class="slds-m-left_small"
                 label="次へ"
                 onclick={handleNextPage}
                 disabled={nextDisabled}

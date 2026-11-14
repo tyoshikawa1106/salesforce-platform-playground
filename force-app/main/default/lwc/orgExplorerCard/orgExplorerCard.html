@@ -8,9 +8,16 @@
             onpointerdown={handlePointerDown}
             onclick={handleSelect}
         >
-            <span class="c-avatar" aria-hidden="true">{node.initials}</span>
+            <lightning-avatar
+                class="slds-shrink-none"
+                initials={node.initials}
+                alternative-text={node.label}
+                size="medium"
+                variant="circle"
+                aria-hidden="true"
+            ></lightning-avatar>
             <span class="c-caption">
-                <strong class="c-name slds-scrollable_none" title={node.label}>{node.label}</strong>
+                <strong class="c-name slds-line-clamp_x-small" title={node.label}>{node.label}</strong>
                 <template lwc:if={node.managerCard}>
                     <span lwc:if={node.showDepartment} class="slds-truncate" title={node.departmentText}
                         >{node.departmentLabel}：{node.departmentText}</span
