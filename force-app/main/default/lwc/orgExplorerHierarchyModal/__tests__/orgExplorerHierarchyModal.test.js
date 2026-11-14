@@ -13,6 +13,12 @@ it('標準ヘッダーへロール名を渡し、重複ラベルなしで多数�
     expect(modal.shadowRoot.textContent).not.toContain('選択中のロール');
     expect(modal.shadowRoot.querySelectorAll('li')).toHaveLength(50);
     expect(modal.shadowRoot.querySelector('li').textContent).toContain('メンバー 0人 ｜ 下位ロール 0件');
+    // 空の標準スタブへ実コンポーネントのボタン役割を補い、各行の読み上げ名を検証する。
+    modal.shadowRoot.querySelectorAll('lightning-button[data-key]').forEach((button, index) => {
+        expect(button.label).toBe('選択');
+        expect(button.getAttribute('aria-label')).toBe(`支部${index}を選択`);
+        button.setAttribute('role', 'button');
+    });
     modal.shadowRoot.querySelector('[data-key="role49"]').click();
     expect(closeHandler).toHaveBeenCalledWith('role49');
     await expect(modal).toBeAccessible();

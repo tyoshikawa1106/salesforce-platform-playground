@@ -258,7 +258,7 @@ describe('c-object-record-search form flows', () => {
         findButton(element, '新規').click();
         await flushPromises();
 
-        const sections = getModalRoot().querySelectorAll('.form-section');
+        const sections = getModalRoot().querySelectorAll('.c-form-section');
         expect(sections).toHaveLength(2);
         expect(sections[0].textContent).toContain('基本情報');
         expect(sections[1].textContent).toContain('追加情報');

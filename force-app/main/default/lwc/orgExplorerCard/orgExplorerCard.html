@@ -1,27 +1,34 @@
 <template>
     <article class={node.cardClass}>
         <button
-            class="c-select"
+            class="c-select slds-p-around_x-small slds-grid slds-grid_vertical-align-center"
             type="button"
             aria-label={node.ariaLabel}
             aria-pressed={node.selected}
             onpointerdown={handlePointerDown}
             onclick={handleSelect}
         >
-            <span class="c-avatar" aria-hidden="true">{node.initials}</span>
+            <lightning-avatar
+                class="slds-shrink-none"
+                initials={node.initials}
+                alternative-text={node.label}
+                size="medium"
+                variant="circle"
+                aria-hidden="true"
+            ></lightning-avatar>
             <span class="c-caption">
-                <strong class="c-name" title={node.label}>{node.label}</strong>
+                <strong class="c-name slds-line-clamp_x-small" title={node.label}>{node.label}</strong>
                 <template lwc:if={node.managerCard}>
-                    <span lwc:if={node.showDepartment} class="c-subtitle" title={node.departmentText}
+                    <span lwc:if={node.showDepartment} class="slds-truncate" title={node.departmentText}
                         >{node.departmentLabel}：{node.departmentText}</span
                     >
-                    <span lwc:if={node.showTitle} class="c-subtitle" title={node.titleText}
+                    <span lwc:if={node.showTitle} class="slds-truncate" title={node.titleText}
                         >{node.titleLabel}：{node.titleText}</span
                     >
-                    <span lwc:if={node.showRole} class="c-subtitle" title={node.roleText}>{node.roleLabel}：{node.roleText}</span>
+                    <span lwc:if={node.showRole} class="slds-truncate" title={node.roleText}>{node.roleLabel}：{node.roleText}</span>
                 </template>
-                <span lwc:else class="c-subtitle" title={node.titleText}>{node.titleText}</span>
-                <span class="c-status">{node.memberCountText}</span>
+                <span lwc:else class="slds-truncate" title={node.titleText}>{node.titleText}</span>
+                <span class="slds-text-body_small">{node.memberCountText}</span>
             </span>
         </button>
     </article>

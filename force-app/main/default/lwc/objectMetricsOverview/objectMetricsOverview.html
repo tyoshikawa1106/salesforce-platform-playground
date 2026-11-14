@@ -41,18 +41,18 @@
                 </div>
             </template>
 
-            <div class="counts" aria-busy={isBusy}>
+            <div class="c-counts slds-p-around_small" aria-busy={isBusy}>
                 <template for:each={countCards} for:item="card">
-                    <div key={card.key} class="count-card-cell">
+                    <div key={card.key} class="c-count-card-cell slds-grid">
                         <button
-                            class="count-card-button slds-size_full"
+                            class="c-count-card-button slds-size_full slds-show"
                             type="button"
                             data-key={card.key}
                             onclick={handleCardClick}
                             title={card.openTitle}
                         >
                             <article
-                                class="count-card slds-tile slds-box slds-box_x-small slds-theme_default slds-size_full slds-p-vertical_x-small"
+                                class="c-count-card slds-tile slds-box slds-box_x-small slds-theme_default slds-size_full slds-p-vertical_x-small slds-grid slds-grid_vertical"
                             >
                                 <h2 class="slds-tile__title" title={card.label}>
                                     <span class="slds-media slds-media_center">
@@ -73,7 +73,7 @@
                                     </span>
                                 </h2>
                                 <div
-                                    class="count-card__content slds-tile__detail"
+                                    class="c-count-card-content slds-col slds-tile__detail slds-grid_vertical-align-center slds-grid slds-grid_align-center"
                                 >
                                     <template lwc:if={card.loading}>
                                         <lightning-spinner

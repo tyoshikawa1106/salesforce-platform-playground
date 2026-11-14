@@ -98,7 +98,7 @@ describe('取引先一括更新画面', () => {
         await search(element);
         edit(element);
         await flush();
-        expect(element.shadowRoot.querySelector('tbody tr').className).toBe('changed-row');
+        expect(element.shadowRoot.querySelector('tbody tr').className).toBe('c-row-changed');
         expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
         button(element, '変更を取り消す').click();
         await flush();

@@ -937,17 +937,22 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // 取得モードとボタン表示を一致させる。
         return this.mode === 'MANAGER';
     }
+    // 選択中の階層だけを標準の強調色で表示する。
+    get managerButtonClass() {
+        // 権限による無効化はbuttonのdisabled属性へ委ねる。
+        return this.managerSelected ? 'slds-button slds-button_brand' : 'slds-button slds-button_neutral';
+    }
     // 上司項目を参照できない場合は操作を無効にする。
     get managerDisabled() {
         // ロールの参照権限とは独立して評価する。
         return !this.capabilities?.managerModeEnabled;
     }
     // 表示条件の切り替えでも適用済みの起点を維持する。
-    handleInactive() {
+    handleInactive(event) {
         // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 有効条件を反転する。
-            this.includeInactive = !this.includeInactive;
+            // 標準トグルの選択状態を表示条件へ反映する。
+            this.includeInactive = event.target.checked;
             // 同じ起点で構造と所属一覧を再取得可能にする。
             this.initialize();
         } catch (boundaryError) {
@@ -987,6 +992,11 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     get roleSelected() {
         // ロール構造を上司関係と混同しない。
         return this.mode === 'ROLE';
+    }
+    // ロール階層の選択状態も標準ボタンの外観へ反映する。
+    get roleButtonClass() {
+        // 選択中のモードをaria-pressedと同じ条件で強調する。
+        return this.roleSelected ? 'slds-button slds-button_brand' : 'slds-button slds-button_neutral';
     }
     // ロール構造の権限を独立して評価する。
     get roleDisabled() {

@@ -1,8 +1,8 @@
 <template>
-    <main aria-busy={busy}>
-        <header class="slds-page-header c-page-header">
-            <div class="slds-page-header__row c-page-header-row">
-                <div class="slds-media c-page-header-title">
+    <main aria-busy={busy} class="slds-p-around_medium">
+        <header class="slds-page-header slds-m-bottom_medium">
+            <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
+                <div class="slds-media slds-col c-page-header-title slds-grid_vertical-align-center">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:connected_apps" alternative-text="外部クライアントアプリ認証管理" size="medium"></lightning-icon>
                     </div>
@@ -22,9 +22,9 @@
             </div>
         </header>
         <template lwc:if={authenticationRequired}>
-            <div class="authentication slds-box slds-theme_default slds-m-bottom_medium" role="status">
+            <div class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap" role="status">
                 <span>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
-                <div class="authentication-actions">
+                <div class="slds-grid slds-grid_vertical-align-center">
                     <template lwc:if={authenticationUrl}>
                         <a
                             class="slds-button slds-button_brand"
@@ -41,16 +41,15 @@
             </div>
         </template>
         <template lwc:if={authenticationReady}>
-            <p class="slds-m-bottom_medium">
+            <p class="slds-box slds-theme_default slds-m-bottom_medium">
                 外部クライアントアプリケーションの鍵・秘密を更新します。
                 生成した値は、Salesforceの標準設定画面で確認してください。
             </p>
-            <section class="page-panel" aria-label="コンシューマ鍵と秘密の更新" aria-busy={busy}>
-                <h2 class="c-card-title">コンシューマ鍵と秘密の更新</h2>
+            <section class="slds-box slds-theme_default slds-is-relative" aria-label="コンシューマ鍵と秘密の更新" aria-busy={busy}>
+                <h2 class="c-card-title slds-m-bottom_small">コンシューマ鍵と秘密の更新</h2>
                 <template lwc:if={busy}>
-                    <div class="c-loading" role="status" aria-live="polite">
-                        <span class="c-spinner" aria-hidden="true"></span>
-                        <span class="slds-assistive-text">処理中…</span>
+                    <div class="c-loading slds-is-absolute">
+                        <lightning-spinner alternative-text="処理中…" size="small" variant="brand"></lightning-spinner>
                     </div>
                 </template>
                 <div class="slds-form-element" onfocusout={handleLookupBlur}>
@@ -152,11 +151,11 @@
             </section>
             <template lwc:if={stagesLoaded}>
                 <template lwc:if={hasStages}>
-                    <section class="page-panel c-stage-panel slds-m-top_medium" aria-label="ステージ資格情報">
+                    <section class="slds-box slds-theme_default slds-p-around_none slds-m-top_medium slds-is-relative slds-scrollable_none" aria-label="ステージ資格情報">
                         <div
                             class="c-stage-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-top_medium"
                         >
-                            <h2 class="c-card-title">ステージ資格情報</h2>
+                            <h2 class="c-card-title slds-m-bottom_small">ステージ資格情報</h2>
                         </div>
                         <p class="slds-p-horizontal_medium slds-p-top_medium slds-p-bottom_small">
                             未適用・適用済み・期限切れの資格情報を表示します。適用済みの旧資格情報は、連携先の切り替えを確認してから削除してください。
@@ -212,7 +211,7 @@
             </template>
         </template>
         <template lwc:if={error}>
-            <div class="error-notice slds-box slds-theme_error slds-m-top_medium" role="alert">
+            <div class="c-error-notice slds-box slds-theme_error slds-m-top_medium slds-grid slds-grid_vertical-align-start" role="alert">
                 <lightning-icon
                     icon-name="utility:error"
                     alternative-text="エラー"

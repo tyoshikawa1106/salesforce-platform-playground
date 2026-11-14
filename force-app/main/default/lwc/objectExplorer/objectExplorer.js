@@ -289,7 +289,7 @@ export default class ObjectExplorer extends LightningElement {
     // 解除時も同じ関数を指定できるようにイベントハンドラーを保持
     handleViewportResize = () => {
         // 画面外の要素を参照せず、現在の表示領域だけを測定
-        try { this.syncViewportLayout(this.template.querySelector('.oe-viewport')?.clientWidth); }
+        try { this.syncViewportLayout(this.template.querySelector('.c-viewport')?.clientWidth); }
         catch (error) { this.reportClientError(error, 'handleViewportResize', 'layout'); }
     };
     // 実際の表示領域に合わせて左右の列数を切り替える
@@ -307,7 +307,7 @@ export default class ObjectExplorer extends LightningElement {
                 // 再描画のたびに画面を移動しない
                 this.revealFields = false;
                 // キーボード操作の続きも一覧から行えるようにする
-                const heading = this.template.querySelector('.oe-detail-title');
+                const heading = this.template.querySelector('.c-detail-title');
                 // 非同期取得後の最新オブジェクト見出しへ案内
                 heading?.focus({ preventScroll: true });
                 // 図の下にある項目一覧を確実に見える位置へ置く
@@ -316,7 +316,7 @@ export default class ObjectExplorer extends LightningElement {
             // 分類モードや起点取得中は表示幅の監視を解除
             if (!this.isReference || this.rootLoading) { this.stopViewportObservation(); return; }
             // 描画されていない表示領域へ監視を登録しない
-            const viewport = this.template.querySelector('.oe-viewport');
+            const viewport = this.template.querySelector('.c-viewport');
             // 対象解除でDOMが消えた場合も以前の監視を残さない
             if (!viewport) { this.stopViewportObservation(); return; }
             // 再描画でも現在の表示幅とカード内容を反映
@@ -392,13 +392,13 @@ export default class ObjectExplorer extends LightningElement {
     // 全カードの自然な高さを測り、最大値へ統一
     syncCardHeights() {
         // 項目一覧の入力やページ変更ではカードの高さを再計算しない
-        const width = this.template.querySelector('.oe-viewport')?.clientWidth;
+        const width = this.template.querySelector('.c-viewport')?.clientWidth;
         // 選択のハイライトは自然な高さを変えないため再測定しない
         const source = this.cardHeightSource;
         // 内容・表示条件・幅が変わった場合だけ共通高さを更新
         if (source?.root === this.root && source?.relations === this.relations && source?.incomingTerm === this.incomingTerm && source?.outgoingTerm === this.outgoingTerm && this.cardHeightWidth === width) { return; }
         // 検索結果に含まれる左右のカードと起点を同じ基準で測る
-        const cards = [...this.template.querySelectorAll('.oe-node')];
+        const cards = [...this.template.querySelectorAll('.c-node')];
         // 前回の固定値を外し、画面幅や検索結果に応じた自然な高さへ戻す
         cards.forEach((card) => { card.style.height = ''; });
         // 全件の読み取りをまとめ、測定中の書き込みを避ける
@@ -1081,7 +1081,7 @@ export default class ObjectExplorer extends LightningElement {
         return relation ? { title: relation.direction === 'IN' ? `${relation.label} → ${this.root.label}` : `${this.root.label} → ${relation.label}`, links: relation.links.map((link) => ({ ...link, text: `${link.label} (${link.field})：${link.kind}` })) } : undefined;
     }
     // 左右のカードは領域が狭い場合だけ一列にする
-    get cardGridClass() { return `oe-card-grid${this.narrowRelations ? ' oe-card-grid_narrow' : ''}`; }
+    get cardGridClass() { return `c-card-grid${this.narrowRelations ? ' c-card-grid-narrow' : ''}`; }
     // 各列で一致件数と全件数を案内
     get incomingCount() { return `${this.board.incoming.length} / ${this.board.incomingTotal || 0}件`; }
     get outgoingCount() { return `${this.board.outgoing.length} / ${this.board.outgoingTotal || 0}件`; }
@@ -1195,7 +1195,7 @@ export default class ObjectExplorer extends LightningElement {
             // 一覧の下端で候補が切れないよう開く方向を決める
             const rect = event.currentTarget.getBoundingClientRect();
             // 固定ヘッダーを含むスクロール領域を基準にする
-            const area = event.currentTarget.closest('.oe-table-scroll').getBoundingClientRect();
+            const area = event.currentTarget.closest('.c-table-scroll').getBoundingClientRect();
             // 固定ヘッダーへ重ならない範囲だけを上側の余白として扱う
             const headerHeight = event.currentTarget.closest('table').querySelector('thead').getBoundingClientRect().height;
             // 既存の非アクティブ値も含めた候補数から必要な高さを見積もる

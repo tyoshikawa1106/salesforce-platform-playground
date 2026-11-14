@@ -106,7 +106,7 @@ export function buildRows(records, changes, errors, editableFields, picklists, b
         return {
             ...row,
             url: `/lightning/r/Account/${row.Id}/view`,
-            rowClass: change ? 'changed-row' : '',
+            rowClass: change ? 'c-row-changed' : '',
             status: change ? '変更あり' : '',
             error: errors[row.Id] || '',
             ownerLabel: `${row.Name}の所有者`,

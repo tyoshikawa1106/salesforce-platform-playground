@@ -360,7 +360,7 @@ describe('c-object-metrics-overview', () => {
         const element = createComponent();
         getObjectMetrics.emit(countResponse);
         await flushPromises();
-        element.shadowRoot.querySelector('.count-card-button').click();
+        element.shadowRoot.querySelector('.c-count-card-button').click();
         await flushPromises();
         refreshApex.mockRejectedValueOnce(new Error('件数の再取得に失敗'));
         const child = element.shadowRoot.querySelector('c-object-record-search');

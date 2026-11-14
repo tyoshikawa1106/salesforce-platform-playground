@@ -228,7 +228,7 @@ describe('c-case-contact-profile', () => {
         ).toContain('slds-p-bottom_medium');
         const recordLinks = [...element.shadowRoot.querySelectorAll('a')];
         const companyField = element.shadowRoot.querySelector(
-            '.c-customer-card__field_full'
+            '.c-customer-card-field-full'
         );
         expect(recordLinks).toHaveLength(2);
         expect(
@@ -269,7 +269,7 @@ describe('c-case-contact-profile', () => {
         expect(
             [
                 ...element.shadowRoot.querySelectorAll(
-                    '.c-customer-card__case-count'
+                    '.c-customer-card-case-count'
                 )
             ].map((caseCount) => caseCount.textContent.trim())
         ).toEqual(['-', '-']);
@@ -312,7 +312,7 @@ describe('c-case-contact-profile', () => {
 
         const caseCounts = [
             ...element.shadowRoot.querySelectorAll(
-                '.c-customer-card__case-count'
+                '.c-customer-card-case-count'
             )
         ];
         expect(caseCounts[0].textContent.trim()).toBe('+');
@@ -343,7 +343,7 @@ describe('c-case-contact-profile', () => {
         expect(
             [
                 ...element.shadowRoot.querySelectorAll(
-                    '.c-customer-card__case-count'
+                    '.c-customer-card-case-count'
                 )
             ].map((caseCount) => caseCount.textContent.trim())
         ).toEqual(['-', '-']);

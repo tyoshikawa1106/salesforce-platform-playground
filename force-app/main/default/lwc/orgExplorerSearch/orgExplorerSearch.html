@@ -1,5 +1,5 @@
 <template>
-    <div class="c-form">
+    <div class="c-form slds-grid slds-grid_vertical-align-end">
         <div class="c-lookup slds-form-element" onfocusout={handleBlur}>
             <span id="role-label" class="slds-assistive-text">{lookupLabel}</span>
             <div class="slds-form-element__control">
@@ -109,13 +109,13 @@
                                                 ></span>
                                                 <span class="slds-media__body">
                                                     <span
-                                                        class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate"
+                                                        class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show"
                                                         title={hit.label}
                                                         >{hit.label}</span
                                                     >
                                                     <template lwc:if={hit.description}>
                                                         <span
-                                                            class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-text-body_small slds-text-color_weak"
+                                                            class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-text-body_small slds-text-color_weak slds-show"
                                                             title={hit.description}
                                                             >{hit.description}</span
                                                         >

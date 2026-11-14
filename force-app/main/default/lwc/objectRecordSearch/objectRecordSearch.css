@@ -1,59 +1,33 @@
-.actions {
+.c-actions,
+.c-toolbar-actions {
     display: inline-flex;
     gap: var(--slds-g-spacing-1, 0.25rem);
 }
 
-.toolbar {
+.c-toolbar {
     gap: var(--slds-g-spacing-2, 0.5rem);
 }
 
-.toolbar__actions {
-    align-items: center;
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: var(--slds-g-spacing-1, 0.25rem);
-    justify-content: flex-end;
+.c-toolbar-actions {
+    column-gap: var(--slds-g-spacing-3, 0.75rem);
 }
 
-.access-notices {
-    font-size: var(--slds-g-font-scale-base);
-}
-
-.empty {
-    position: relative;
-}
-
-.record-table {
+.c-record-table {
     height: clamp(16rem, 45vh, 600px);
-    overflow: auto;
 }
 
-.record-table lightning-datatable {
+.c-record-table lightning-datatable {
     min-width: calc(
         var(--slds-g-sizing-16, 30rem) + var(--slds-g-sizing-16, 30rem) +
             var(--slds-g-sizing-15, 20rem)
     );
 }
 
-.record-table_empty {
-    align-items: center;
-    display: flex;
-    justify-content: center;
-}
-
-.pagination {
-    gap: var(--slds-g-spacing-1, 0.25rem);
-}
-
 @media (max-width: 48em) {
-    .pagination {
+    .c-pagination,
+    .c-toolbar-actions {
         justify-content: flex-start;
     }
-
-    .toolbar__actions {
-        justify-content: flex-start;
-    }
-
 }
 /* エラーの長い処理名も画面内で折り返す */
 .c-client-error { overflow-wrap: anywhere; }

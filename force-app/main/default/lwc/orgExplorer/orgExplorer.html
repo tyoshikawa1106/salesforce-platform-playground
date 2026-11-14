@@ -13,10 +13,10 @@
             <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
         </div>
     </template>
-    <main>
-        <header class="slds-page-header c-page-header">
-            <div class="slds-page-header__row c-page-header-row">
-                <div class="slds-media c-page-header-title">
+    <main class="slds-p-around_medium">
+        <header class="slds-page-header slds-m-bottom_medium">
+            <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
+                <div class="slds-media slds-col c-page-header-title slds-grid_vertical-align-center">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:hierarchy" alternative-text="組織エクスプローラー" size="medium"></lightning-icon>
                     </div>
@@ -25,9 +25,10 @@
                     </div>
                 </div>
                 <div class="slds-page-header__controls c-page-header-actions">
-                    <div class="c-controls" aria-label="表示条件">
+                    <div class="c-controls slds-grid slds-grid_vertical-align-center slds-wrap" role="group" aria-label="表示条件">
                         <button
                             type="button"
+                            class={roleButtonClass}
                             data-mode="ROLE"
                             aria-pressed={roleSelected}
                             disabled={roleDisabled}
@@ -37,6 +38,7 @@
                         </button>
                         <button
                             type="button"
+                            class={managerButtonClass}
                             data-mode="MANAGER"
                             aria-pressed={managerSelected}
                             disabled={managerDisabled}
@@ -44,46 +46,42 @@
                         >
                             上司階層
                         </button>
-                        <button
-                            type="button"
-                            class="c-toggle"
-                            role="switch"
-                            aria-label="無効ユーザーを表示"
-                            aria-checked={includeInactive}
-                            onclick={handleInactive}
-                        >
-                            <span>無効ユーザーを表示</span>
-                            <span class="c-toggle-track" aria-hidden="true"><span class="c-toggle-knob"></span></span>
-                        </button>
+                        <lightning-input
+                            type="toggle"
+                            data-include-inactive
+                            label="無効ユーザーを表示"
+                            checked={includeInactive}
+                            message-toggle-active=""
+                            message-toggle-inactive=""
+                            onchange={handleInactive}
+                        ></lightning-input>
                     </div>
                 </div>
             </div>
         </header>
-        <template lwc:if={error}><p role="alert" class="c-error">{error}</p></template>
+        <template lwc:if={error}><p role="alert" class="c-error slds-p-around_small slds-m-bottom_small">{error}</p></template>
         <div class="c-layout">
-            <section class="c-panel c-chart" aria-label="組織図">
-                <h2>組織図</h2>
+            <section class="c-panel slds-box slds-theme_default c-chart slds-is-relative slds-grid slds-grid_vertical" aria-label="組織図">
+                <h2 class="slds-no-flex slds-m-bottom_small">組織図</h2>
                 <template lwc:if={busy}>
-                    <div class="c-loading" role="status" aria-live="polite">
-                        <span class="c-spinner" aria-hidden="true"></span>
-                        <span class="slds-assistive-text">読み込み中…</span>
+                    <div class="c-loading slds-is-absolute">
+                        <lightning-spinner alternative-text="読み込み中…" size="small" variant="brand"></lightning-spinner>
                     </div>
                 </template>
-                <div class="c-toolbar">
-                    <div class="c-controls c-zoom" aria-label="組織図の表示操作">
-                        <button type="button" data-action="out" aria-label="縮小" onclick={handleViewport}>－</button>
-                        <button type="button" data-action="in" aria-label="拡大" onclick={handleViewport}>＋</button>
-                        <button
+                <div class="c-toolbar slds-no-flex slds-m-bottom_small slds-grid slds-grid_vertical-align-end slds-grid_align-spread">
+                    <div class="c-controls c-zoom slds-no-flex slds-grid slds-grid_vertical-align-center" role="group" aria-label="組織図の表示操作">
+                        <lightning-button-icon data-action="out" icon-name="utility:zoomout" alternative-text="縮小" title="縮小" onclick={handleViewport}></lightning-button-icon>
+                        <lightning-button-icon data-action="in" icon-name="utility:zoomin" alternative-text="拡大" title="拡大" onclick={handleViewport}></lightning-button-icon>
+                        <lightning-button
                             type="button"
                             data-action="reset"
-                            aria-label="ズームを100%に戻す"
+                            title="ズームを100%に戻す"
                             onclick={handleViewport}
-                        >
-                            100%
-                        </button>
-                        <button type="button" data-action="fit" onclick={handleViewport}>全体を表示</button>
+                            label="100%"
+                        ></lightning-button>
+                        <lightning-button type="button" data-action="fit" onclick={handleViewport} label="全体を表示"></lightning-button>
                     </div>
-                    <section class="c-role-lookup" aria-label={lookupSectionLabel}>
+                    <section class="c-role-lookup slds-col_bump-left slds-grid slds-grid_vertical-align-end" aria-label={lookupSectionLabel}>
                         <c-org-explorer-search
                             mode={mode}
                             term={term}
@@ -96,17 +94,17 @@
                             onsearchchange={handleSearchChange}
                             ontargetpick={handleTargetPick}
                         ></c-org-explorer-search>
-                        <div class="c-hierarchy-actions">
+                        <div class="c-hierarchy-actions slds-no-flex slds-grid">
                             <template lwc:if={roleSelected}>
-                                <button type="button" data-role-hierarchy-toggle data-hierarchy-direction="parent" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle}>上位ロール</button>
-                                <button type="button" data-role-hierarchy-toggle data-hierarchy-direction="children" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle}>下位ロール</button>
+                                <lightning-button type="button" data-role-hierarchy-toggle data-hierarchy-direction="parent" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle} label="上位ロール"></lightning-button>
+                                <lightning-button type="button" data-role-hierarchy-toggle data-hierarchy-direction="children" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle} label="下位ロール"></lightning-button>
                             </template>
                         </div>
                     </section>
                 </div>
-                <c-org-explorer-canvas model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
+                <c-org-explorer-canvas class="slds-col" model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
             </section>
-            <section class="c-panel" aria-label={memberListLabel}>
+            <section class="c-panel slds-box slds-theme_default" aria-label={memberListLabel}>
                 <c-org-explorer-details
                     mode={mode}
                     target-label={memberTargetLabel}
@@ -124,24 +122,22 @@
                     <p class="slds-text-body_small slds-text-color_weak" role="status">{memberNotice}</p>
                 </template>
                 <template lwc:if={hasMemberRows}>
-                    <div class="c-controls c-member-pages" aria-label={memberPagingLabel}>
-                        <button
+                    <div class="c-controls slds-m-top_medium slds-grid slds-grid_vertical-align-center slds-wrap" data-member-pagination role="group" aria-label={memberPagingLabel}>
+                        <lightning-button
                             type="button"
                             data-direction="previous"
                             disabled={memberPreviousDisabled}
                             onclick={handleMemberPage}
-                        >
-                            前へ
-                        </button>
+                            label="前へ"
+                        ></lightning-button>
                         <span>{memberPageLabel}</span>
-                        <button
+                        <lightning-button
                             type="button"
                             data-direction="next"
                             disabled={memberNextDisabled}
                             onclick={handleMemberPage}
-                        >
-                            次へ
-                        </button>
+                            label="次へ"
+                        ></lightning-button>
                     </div>
                 </template>
             </section>

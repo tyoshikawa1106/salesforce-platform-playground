@@ -1,43 +1,34 @@
-.counts {
+.c-counts {
     display: grid;
     gap: var(--slds-g-spacing-3, 0.75rem);
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: var(--slds-g-spacing-3, 0.75rem);
 }
 
-.count-card {
-    display: flex;
-    flex-direction: column;
+.c-count-card {
     height: var(--slds-g-sizing-12, 5rem);
 }
 
-.count-card-cell {
-    display: flex;
+.c-count-card-cell {
     min-width: 0;
 }
 
-.count-card-button {
+.c-count-card-button {
     background: transparent;
     border: 0;
     color: inherit;
     cursor: pointer;
-    display: block;
     font: inherit;
     height: var(--slds-g-sizing-12, 5rem);
     padding: 0;
     text-align: inherit;
 }
 
-.count-card__content {
-    align-items: center;
-    display: flex;
-    flex: 1 1 auto;
-    justify-content: center;
+.c-count-card-content {
     min-height: var(--slds-g-sizing-9, 2rem);
 }
 
 @media (max-width: 48em) {
-    .counts {
+    .c-counts {
         grid-template-columns: 1fr;
     }
 }

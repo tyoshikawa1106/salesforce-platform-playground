@@ -7,10 +7,5 @@ h2 {
     overflow-wrap: anywhere;
 }
 .c-member-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
     gap: var(--slds-g-spacing-3, 0.75rem);
-    margin-bottom: var(--slds-g-spacing-4, 1rem);
 }

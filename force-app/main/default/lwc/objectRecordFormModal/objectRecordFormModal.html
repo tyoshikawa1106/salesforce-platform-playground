@@ -42,7 +42,7 @@
                 <template for:each={formSections} for:item="section">
                     <section
                         key={section.key}
-                        class="form-section slds-m-bottom_medium"
+                        class="c-form-section slds-m-bottom_medium"
                         aria-labelledby={section.headingId}
                     >
                         <h3
@@ -51,9 +51,9 @@
                         >
                             {section.label}
                         </h3>
-                        <div class="form-section__fields slds-p-top_small">
+                        <div class="c-form-section-fields slds-p-top_small">
                             <template for:each={section.fields} for:item="field">
-                                <div key={field.apiName} class="form-section__field">
+                                <div key={field.apiName} class="c-form-section-field">
                                     <lightning-input-field
                                         field-name={field.apiName}
                                         required={field.required}

@@ -1,5 +1,5 @@
 <template>
-                    <div class="oe-object-search slds-form-element" onfocusout={handleSearchBlur}>
+                    <div class="c-object-search slds-form-element slds-is-relative" onfocusout={handleSearchBlur}>
                         <span id="object-label" class="slds-form-element__label">対象オブジェクト</span>
                         <lightning-helptext content="ラベルまたはAPI名を入力して対象オブジェクトを検索します。選び直す場合は×で選択を解除してください。↑↓で候補へ移動、Enterで選択、Escで閉じます。"></lightning-helptext>
                         <div class="slds-form-element__control">
@@ -10,7 +10,7 @@
                                             class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
                                         >
                                             <input
-                                                class="oe-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
+                                                class="c-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
                                                 type="text"
                                                 readonly
                                                 role="combobox"
@@ -43,7 +43,7 @@
                                             class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
                                         >
                                             <input
-                                                class="oe-lookup-input slds-input slds-combobox__input"
+                                                class="c-lookup-input slds-input slds-combobox__input"
                                                 type="text"
                                                 role="combobox"
                                                 value={term}
@@ -73,7 +73,7 @@
                                         <div class="slds-dropdown slds-dropdown_fluid">
                                             <ul
                                                 id="object-options"
-                                                class="oe-option-scroll slds-listbox slds-listbox_vertical"
+                                                class="c-option-scroll slds-listbox slds-listbox_vertical"
                                                 role="listbox"
                                                 aria-label="対象オブジェクトの検索候補"
                                                 onmousedown={handleOptionMouseDown}
@@ -100,12 +100,12 @@
                                                         >
                                                             <span class="slds-media__body">
                                                                 <span
-                                                                    class="oe-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate"
+                                                                    class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show"
                                                                 >
                                                                     {option.label}
                                                                 </span>
                                                                 <span
-                                                                    class="oe-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate"
+                                                                    class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show"
                                                                 >
                                                                     {option.value}
                                                                 </span>

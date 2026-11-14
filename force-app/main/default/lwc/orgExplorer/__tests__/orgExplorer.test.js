@@ -26,6 +26,11 @@ jest.mock('lightning/navigation', () => {
     NavigationMixin.GenerateUrl = GenerateUrl;
     return { NavigationMixin };
 });
+const changeInactive = (element) => {
+    const toggle = element.shadowRoot.querySelector('[data-include-inactive]');
+    toggle.checked = !toggle.checked;
+    toggle.dispatchEvent(new CustomEvent('change'));
+};
 const flush = () =>
     Array.from({ length: 25 }).reduce((chain) => chain.then(() => Promise.resolve()), Promise.resolve());
 const user = {
@@ -168,9 +173,9 @@ it('指定した起点から始め、初期表示は有効ユーザーに絞り�
     expect(rolePages).toHaveBeenCalledWith({
         request: expect.objectContaining({ includeInactive: false, scope: 'ROLE_STRUCTURE', parentId: 'root' })
     });
-    const toggle = element.shadowRoot.querySelector('[role="switch"]');
-    expect(toggle.getAttribute('aria-checked')).toBe('false');
-    toggle.click();
+    const toggle = element.shadowRoot.querySelector('[data-include-inactive]');
+    expect(toggle.checked).toBe(false);
+    changeInactive(element);
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({ request: expect.objectContaining({ includeInactive: true }) });
     expect(element.shadowRoot.querySelector('.c-controls button').dataset.mode).toBe('ROLE');
@@ -178,7 +183,7 @@ it('指定した起点から始め、初期表示は有効ユーザーに絞り�
     const toolbar = element.shadowRoot.querySelector('.c-chart .c-toolbar');
     expect(toolbar.querySelector('[data-action="fit"]')).not.toBeNull();
     expect(toolbar.querySelector('.c-role-lookup c-org-explorer-search')).not.toBeNull();
-    expect(element.shadowRoot.querySelector('main > .c-search')).toBeNull();
+    expect(element.shadowRoot.querySelector('main > .search')).toBeNull();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').targetLabel).toBe('');
     await expect(element).toBeAccessible();
 });
@@ -225,8 +230,8 @@ it('表示条件変更前の遅延応答を反映しない', async () => {
     expect(element.shadowRoot.querySelector('.c-loading').parentElement).toBe(
         element.shadowRoot.querySelector('.c-chart')
     );
-    expect(element.shadowRoot.querySelector('.c-loading .slds-assistive-text').textContent).toBe('読み込み中…');
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    expect(element.shadowRoot.querySelector('.c-loading lightning-spinner').alternativeText).toBe('読み込み中…');
+    changeInactive(element);
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
         request: expect.objectContaining({ mode: 'ROLE', scope: 'ROLE_STRUCTURE', includeInactive: true })
@@ -258,9 +263,9 @@ it('表示条件を繰り返し変えても送信中のAPIは二つまでに抑�
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     expect(pending).toHaveLength(2);
     expect(maximum).toBe(2);
@@ -278,7 +283,7 @@ it('トグル変更でも適用した起点を維持し、ロール候補を再�
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     expect(searchRoles).toHaveBeenCalledTimes(1);
     expect(rolePages).toHaveBeenLastCalledWith({
@@ -297,10 +302,10 @@ it('取得中はスピナーを表示し、取得完了で消す', async () => {
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
-    expect(element.shadowRoot.querySelector('.c-spinner')).not.toBeNull();
+    expect(element.shadowRoot.querySelector('.c-loading lightning-spinner')).not.toBeNull();
     resolvePage({ nodes: [], hasMore: false });
     await flush();
-    expect(element.shadowRoot.querySelector('.c-spinner')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-loading lightning-spinner')).toBeNull();
 });
 it('初期表示は全ロールだけを展開し、選択ロールのユーザーを前後ページで取得する', async () => {
     const root = { key: 'ROLE:root', recordId: 'root', kind: 'ROLE', label: '本部', parentKey: '' };
@@ -330,13 +335,13 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
         child.key
     ]);
     expect(rolePages.mock.calls.some(([input]) => input.request.scope === 'ROLE_MEMBERS')).toBe(false);
-    expect(element.shadowRoot.querySelector('.c-member-pages')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-member-pagination]')).toBeNull();
     element.shadowRoot
         .querySelector('c-org-explorer-canvas')
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: child.key } }));
     await flush();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows[0].label).toContain(first.label);
-    expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe('1 / 2');
+    expect(element.shadowRoot.querySelector('[data-member-pagination] span').textContent).toBe('1 / 2');
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rowNumberOffset).toBe(0);
     element.shadowRoot.querySelector('[data-direction="next"]').click();
     await flush();
@@ -350,14 +355,14 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
     });
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows[0].label).toContain(second.label);
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rowNumberOffset).toBe(51);
-    expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe('2 / 2');
+    expect(element.shadowRoot.querySelector('[data-member-pagination] span').textContent).toBe('2 / 2');
     const countBeforeSameSelection = rolePages.mock.calls.length;
     element.shadowRoot
         .querySelector('c-org-explorer-canvas')
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: child.key } }));
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(countBeforeSameSelection);
-    expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe('2 / 2');
+    expect(element.shadowRoot.querySelector('[data-member-pagination] span').textContent).toBe('2 / 2');
     element.shadowRoot.querySelector('[data-direction="previous"]').click();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
@@ -370,13 +375,13 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
     });
     expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows).toHaveLength(2);
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rowNumberOffset).toBe(0);
-    expect(element.shadowRoot.querySelector('.c-spinner')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-loading lightning-spinner')).toBeNull();
     element.shadowRoot
         .querySelector('c-org-explorer-canvas')
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: root.key } }));
     await flush();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows).toEqual([]);
-    expect(element.shadowRoot.querySelector('.c-member-pages')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-member-pagination]')).toBeNull();
     expect(element.shadowRoot.querySelector('[data-direction]')).toBeNull();
     await expect(element).toBeAccessible();
 });
@@ -426,7 +431,7 @@ it('初期ロールが見つからなければ空欄で全ロールを表示し�
     expect(rolePages).toHaveBeenCalledWith({ request: expect.objectContaining({ parentId: null }) });
     expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget).toBeNull();
     expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     expect(searchRoles).toHaveBeenCalledTimes(1);
 });
@@ -453,8 +458,8 @@ it('廃止した操作を表示せず、等倍ボタンをキャンバスへ接�
     document.body.appendChild(element);
     await flush();
     expect(
-        [...element.shadowRoot.querySelectorAll('.c-zoom button')].map((button) => button.textContent.trim())
-    ).toEqual(['－', '＋', '100%', '全体を表示']);
+        [...element.shadowRoot.querySelectorAll('.c-zoom [data-action]')].map((button) => button.label || button.alternativeText)
+    ).toEqual(['縮小', '拡大', '100%', '全体を表示']);
     const text = element.shadowRoot.textContent;
     for (const label of ['自分を表示', 'ルート一覧', '前の対象へ', '次の対象へ']) expect(text).not.toContain(label);
     for (const action of ['left', 'right', 'up', 'down'])
@@ -523,7 +528,7 @@ it('表示条件変更時に前の候補上限の案内を残さない', async (
     jest.advanceTimersByTime(300);
     await flush();
     expect(search.hasMore).toBe(true);
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     expect(search.hasMore).toBe(false);
     expect(search.results).toEqual([]);
@@ -684,7 +689,7 @@ it('空の起点で全ロールをページ取得し、表示条件変更でも�
     expect(rows.find((row) => row.key === other.key).depth).toBe(0);
     expect(rows.find((row) => row.key === child.key).depth).toBe(1);
     expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
         request: expect.objectContaining({ parentId: null, includeInactive: true })
@@ -805,7 +810,7 @@ it.each([
             .querySelector('c-org-explorer-canvas')
             .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: target.key } }));
         await flush();
-        expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe(label);
+        expect(element.shadowRoot.querySelector('[data-member-pagination] span').textContent).toBe(label);
         expect(element.shadowRoot.querySelector('[data-direction="next"]').disabled).toBe(!hasMore);
         await expect(element).toBeAccessible();
     }
@@ -1026,7 +1031,7 @@ it('上司の未入力候補は全ページの上位20人を通信せず表示�
     expect(lookup.results[0].targetId).toBe('boss');
     expect(searchManagers).not.toHaveBeenCalled();
     managerPages.mockResolvedValue({ nodes: [boss, children[0]], hasMore: false });
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     lookup.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await flush();
@@ -1093,7 +1098,7 @@ it.each(['mode', 'clear', 'inactive'])('構造待機中の%s操作で古い候�
     const { element, lookup, resolveStructure } = await openPendingManagerLookup();
     if (action === 'mode') element.shadowRoot.querySelector('[data-mode="ROLE"]').click();
     else if (action === 'clear') lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: '' } }));
-    else element.shadowRoot.querySelector('[role="switch"]').click();
+    else changeInactive(element);
     await flush();
     resolveStructure({ nodes: [{ ...user, label: '古い上司' }], hasMore: false });
     await flush();
@@ -1300,7 +1305,7 @@ it('標準カーソル失効時は古い一覧を消し、同じカードの再�
     const details = element.shadowRoot.querySelector('c-org-explorer-details');
     expect(details.rows).toEqual([]);
     expect(details.error).toContain('再取得');
-    expect(element.shadowRoot.querySelector('.c-member-pages')).toBeNull();
+    expect(element.shadowRoot.querySelector('[data-member-pagination]')).toBeNull();
     select();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
@@ -1332,7 +1337,7 @@ it('標準カーソルの上限案内は成功した一覧だけに表示し、�
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: rootTarget.key } }));
     await flush();
     expect(element.shadowRoot.querySelector('.c-panel > p[role="status"]').textContent).toContain('100,000件');
-    element.shadowRoot.querySelector('[role="switch"]').click();
+    changeInactive(element);
     await flush();
     expect(element.shadowRoot.querySelector('.c-panel > p[role="status"]')).toBeNull();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows).toEqual([]);

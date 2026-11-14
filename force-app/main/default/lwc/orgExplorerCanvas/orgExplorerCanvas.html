@@ -1,6 +1,6 @@
 <template>
     <div
-        class="c-viewport"
+        class="c-viewport slds-is-relative slds-scrollable_none"
         onpointerdown={handlePointerDown}
         onpointermove={handlePointerMove}
         onpointerup={handlePointerUp}
@@ -8,19 +8,19 @@
         onpointerleave={handlePointerLeave}
         onwheel={handleWheel}
     >
-        <div class="c-plane" style={planeStyle}>
-            <svg class="c-lines" width={model.width} height={model.height} aria-hidden="true">
+        <div class="c-plane slds-is-absolute" style={planeStyle}>
+            <svg class="c-lines slds-is-absolute" width={model.width} height={model.height} aria-hidden="true">
                 <template for:each={model.edges} for:item="edge"><path key={edge.key} d={edge.d}></path></template>
             </svg>
             <template for:each={model.rows} for:item="node"
                 ><c-org-explorer-card
                     key={node.key}
-                    class="c-position"
+                    class="slds-is-absolute"
                     style={node.style}
                     node={node}
                 ></c-org-explorer-card
             ></template>
         </div>
     </div>
-    <p class="c-caption">{model.countText} ｜ ズーム {zoomLabel}</p>
+    <p class="slds-m-top_x-small">{model.countText} ｜ ズーム {zoomLabel}</p>
 </template>

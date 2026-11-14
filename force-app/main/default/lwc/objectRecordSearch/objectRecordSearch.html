@@ -14,7 +14,7 @@
         </div>
     </template>
     <lightning-card title={title} icon-name="utility:table">
-        <div slot="actions" class="actions">
+        <div slot="actions" class="c-actions">
             <lightning-button-icon
                 alternative-text="データボードに戻る"
                 icon-name="utility:back"
@@ -42,7 +42,7 @@
         </template>
 
         <div
-            class="toolbar slds-grid slds-wrap slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-bottom_small"
+            class="c-toolbar slds-grid slds-wrap slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-bottom_small"
         >
             <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                 <lightning-input
@@ -56,7 +56,7 @@
                 ></lightning-input>
             </div>
             <div
-                class="toolbar__actions slds-col slds-no-flex slds-p-top_medium"
+                class="c-toolbar-actions slds-col slds-no-flex slds-p-top_medium slds-grid_vertical-align-center slds-grid_align-end slds-wrap"
             >
                 <lightning-button
                     label="検索"
@@ -65,13 +65,11 @@
                     disabled={isBusy}
                 ></lightning-button>
                 <lightning-button
-                    class="slds-m-left_x-small"
                     label={newButtonLabel}
                     onclick={handleNewRecord}
                     disabled={createDisabled}
                 ></lightning-button>
                 <lightning-button
-                    class="slds-m-left_x-small"
                     label="選択したレコードを削除"
                     variant="destructive"
                     onclick={handleDeleteSelected}
@@ -82,7 +80,7 @@
 
         <template lwc:if={hasAccessMessages}>
             <div
-                class="access-notices slds-box slds-theme_shade slds-m-horizontal_medium slds-m-bottom_small"
+                class="slds-text-body_regular slds-box slds-theme_shade slds-m-horizontal_medium slds-m-bottom_small"
             >
                 <ul class="slds-list_dotted">
                     <template for:each={accessMessages} for:item="notice">
@@ -99,7 +97,7 @@
         </template>
 
         <template lwc:if={hasRows}>
-            <div class="record-table" tabindex="0">
+            <div class="c-record-table slds-scrollable" tabindex="0">
                 <lightning-datatable
                     key-field="id"
                     data={rows}
@@ -116,7 +114,7 @@
         </template>
         <template lwc:else>
             <div
-                class="record-table record-table_empty empty slds-p-around_large slds-text-align_center"
+                class="c-record-table slds-p-around_large slds-text-align_center slds-scrollable slds-grid_vertical-align-center slds-grid slds-grid_align-center slds-is-relative"
             >
                 <template lwc:if={isBusy}>
                     <lightning-spinner
@@ -131,10 +129,10 @@
         </template>
 
         <div
-            class="pagination slds-grid slds-grid_align-end slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-vertical_small"
+            class="c-pagination slds-grid slds-grid_align-end slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-vertical_small"
             aria-live="polite"
         >
-            <span class="slds-text-body_small slds-m-right_small">
+            <span class="slds-text-body_small slds-m-right_medium">
                 {pageLabel}
             </span>
             <lightning-button
@@ -143,7 +141,7 @@
                 disabled={previousDisabled}
             ></lightning-button>
             <lightning-button
-                class="slds-m-left_x-small"
+                class="slds-m-left_small"
                 label="次へ"
                 onclick={handleNextPage}
                 disabled={nextDisabled}

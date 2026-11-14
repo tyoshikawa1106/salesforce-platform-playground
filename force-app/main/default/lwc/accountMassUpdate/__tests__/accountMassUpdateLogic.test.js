@@ -65,7 +65,7 @@ describe('取引先一括更新の画面ロジック', () => {
             false
         );
         expect(rows[0]).toMatchObject({
-            rowClass: 'changed-row',
+            rowClass: 'c-row-changed',
             status: '変更あり',
             error: '競合',
             ratingValue: 'Cold',

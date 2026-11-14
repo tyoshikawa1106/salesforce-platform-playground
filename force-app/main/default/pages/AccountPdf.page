@@ -77,30 +77,28 @@
                     font-weight: bold;
                 }
 
-                .section {
+                .c-section {
                     page-break-inside: avoid;
                 }
 
-                .long-text-section {
+                .c-long-text-section {
                     margin-top: 6mm;
                 }
 
-                .long-text {
+                .c-long-text {
                     min-height: 20mm;
                     padding: 3mm;
                     border: 1px solid #c9c9c9;
+                }
+
+                .c-long-text,
+                .c-preserve-lines {
                     white-space: pre-wrap;
                     word-wrap: break-word;
                     overflow-wrap: break-word;
                 }
 
-                .preserve-lines {
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                }
-
-                .error-panel {
+                .c-error-panel {
                     margin-top: 30mm;
                     padding: 8mm;
                     border: 1px solid #ba0517;
@@ -109,7 +107,7 @@
                     text-align: center;
                 }
 
-                .error-title {
+                .c-error-title {
                     margin: 0 0 3mm;
                     font-size: 16pt;
                     font-weight: bold;
@@ -117,15 +115,15 @@
             </style>
         </head>
         <body>
-            <apex:outputPanel rendered="{!hasError}" layout="block" styleClass="error-panel">
-                <div class="error-title">PDFを表示できません</div>
+            <apex:outputPanel rendered="{!hasError}" layout="block" styleClass="c-error-panel">
+                <div class="c-error-title">PDFを表示できません</div>
                 <apex:outputText value="{!errorMessage}" escape="true" />
             </apex:outputPanel>
 
             <apex:outputPanel rendered="{!NOT(hasError)}" layout="block">
                 <h1>取引先情報</h1>
 
-                <div class="section">
+                <div class="c-section">
                     <h2>基本情報</h2>
                     <table>
                         <tr>
@@ -150,34 +148,34 @@
                         </tr>
                         <tr>
                             <th>Webサイト</th>
-                            <td class="preserve-lines">
+                            <td class="c-preserve-lines">
                                 <apex:outputText value="{!accountData.website}" escape="true" />
                             </td>
                         </tr>
                     </table>
                 </div>
 
-                <div class="section">
+                <div class="c-section">
                     <h2>住所</h2>
                     <table>
                         <tr>
                             <th>請求先住所</th>
-                            <td class="preserve-lines">
+                            <td class="c-preserve-lines">
                                 <apex:outputText value="{!accountData.billingAddress}" escape="true" />
                             </td>
                         </tr>
                         <tr>
                             <th>納入先住所</th>
-                            <td class="preserve-lines">
+                            <td class="c-preserve-lines">
                                 <apex:outputText value="{!accountData.shippingAddress}" escape="true" />
                             </td>
                         </tr>
                     </table>
                 </div>
 
-                <div class="long-text-section">
+                <div class="c-long-text-section">
                     <h2>詳細</h2>
-                    <div class="long-text">
+                    <div class="c-long-text">
                         <apex:outputText value="{!accountData.description}" escape="true" />
                     </div>
                 </div>
