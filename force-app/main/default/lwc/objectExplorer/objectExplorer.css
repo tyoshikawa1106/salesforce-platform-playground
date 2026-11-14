@@ -1,8 +1,6 @@
 :host { display: block; color: var(--slds-g-color-on-surface-1, #181818); }
 .c-heading, .c-toolbar, .c-pagination { gap: var(--slds-g-spacing-3, .75rem); }
 h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font-weight-7, 700); }
-.c-panel { padding: var(--slds-g-spacing-4, 1rem); background: var(--slds-g-color-surface-1, #fff); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); }
-.c-toolbar { margin: var(--slds-g-spacing-3, .75rem) 0; }
 .c-filters { gap: var(--slds-g-spacing-2, .5rem); margin: var(--slds-g-spacing-4, 1rem) 0; }
 .c-toolbar-filters { margin-inline-start: auto; gap: var(--slds-g-spacing-4, 1rem); }
 .c-lookup { width: min(100%, 38rem); }
@@ -17,8 +15,8 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .c-selected-relation h3 { font-weight: var(--slds-g-font-weight-7, 700); }
 .c-selected-relation ul { list-style: disc; padding-left: var(--slds-g-spacing-5, 1.5rem); }
 
-.c-detail-title { scroll-margin-top: 10rem; margin-block-end: var(--slds-g-spacing-2, .5rem); }
-.c-save-bar { gap: var(--slds-g-spacing-4, 1rem); margin: var(--slds-g-spacing-4, 1rem) 0; }
+.c-detail-title { scroll-margin-top: 10rem; }
+.c-save-bar { gap: var(--slds-g-spacing-4, 1rem); }
 .c-classify-notice { background: var(--slds-g-color-surface-2, #f3f3f3); white-space: normal; }
 .c-classify-cell { min-width: var(--slds-g-sizing-14, 15rem); vertical-align: middle; }
 
@@ -28,8 +26,8 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 /* 中央の起点を維持し、左右は読める大きさの二列一覧にする */
 .c-viewport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .5fr) minmax(0, 1fr); gap: var(--slds-g-spacing-5, 1rem); min-height: var(--slds-g-sizing-16, 30rem); padding: var(--slds-g-spacing-3, .75rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); background: var(--slds-g-color-surface-2, #f3f3f3); }
 .c-relation-column, .c-origin-column { min-width: 0; }
-.c-column-heading { min-height: var(--slds-g-sizing-8, 2rem); gap: var(--slds-g-spacing-2, .5rem); margin-block-end: var(--slds-g-spacing-2, .5rem); font-weight: var(--slds-g-font-weight-7, 700); }
-.c-card-scroll { height: min(55vh, 36rem); overflow-y: auto; scrollbar-gutter: stable; margin-block-start: var(--slds-g-spacing-3, .75rem); }
+.c-column-heading { min-height: var(--slds-g-sizing-8, 2rem); gap: var(--slds-g-spacing-2, .5rem); font-weight: var(--slds-g-font-weight-7, 700); }
+.c-card-scroll { height: min(55vh, 36rem); overflow-y: auto; scrollbar-gutter: stable; }
 .c-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--slds-g-spacing-2, .5rem); align-items: start; }
 .c-node { box-sizing: border-box; min-width: 0; min-height: calc(var(--slds-g-spacing-4, 1rem) * 6 + 1lh); text-align: left; padding: var(--slds-g-spacing-2, .5rem); padding-block-end: calc(var(--slds-g-spacing-2, .5rem) + 1lh); line-height: var(--slds-g-font-lineheight-2, 1.25); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #181818); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); cursor: pointer; gap: var(--slds-g-spacing-1, .25rem); overflow-wrap: anywhere; }
 /* 長い名称や関連項目は一行の省略表示にする */

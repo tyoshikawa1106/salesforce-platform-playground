@@ -66,7 +66,7 @@
                 <template lwc:if={clientError.message}><p>理由：{clientError.message}</p></template>
             </div>
         </template>
-        <section class="c-panel slds-m-bottom_medium" aria-label={modeLabel}>
+        <section class="slds-box slds-theme_default slds-m-bottom_medium" aria-label={modeLabel}>
             <div class="c-heading slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap">
                 <h2>{modeLabel}</h2>
                 <template lwc:if={showClassifySpinner}>
@@ -75,7 +75,7 @@
                     </div>
                 </template>
             </div>
-            <div class="c-toolbar slds-grid slds-grid_vertical-align-end slds-grid_align-spread slds-wrap">
+            <div class="c-toolbar slds-m-vertical_small slds-grid slds-grid_vertical-align-end slds-grid_align-spread slds-wrap">
                 <div class="c-lookup">
                     <c-object-explorer-lookup
                         selected={root}
@@ -124,7 +124,7 @@
                             <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
                         </template>
                         <section class="c-relation-column" aria-label="参照元">
-                            <div class="c-column-heading slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
+                            <div class="c-column-heading slds-m-bottom_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
                                 <h3>参照元</h3>
                                 <span class="c-hint slds-text-body_small">{incomingCount}</span>
                             </div>
@@ -137,7 +137,7 @@
                                 value={incomingTerm}
                                 onchange={handleRelationFilter}
                             ></lightning-input>
-                            <div class="c-card-scroll slds-p-around_x-small" role="region" aria-label="参照元のカード一覧" tabindex="0">
+                            <div class="c-card-scroll slds-m-top_small slds-p-around_x-small" role="region" aria-label="参照元のカード一覧" tabindex="0">
                                 <div class={cardGridClass}>
                                     <template for:each={board.incoming} for:item="node">
                                         <button
@@ -169,7 +169,7 @@
                             </div>
                         </section>
                         <section class="c-origin-column slds-grid slds-grid_vertical" aria-label="対象オブジェクト">
-                            <div class="c-column-heading slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap"><h3>対象オブジェクト</h3></div>
+                            <div class="c-column-heading slds-m-bottom_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap"><h3>対象オブジェクト</h3></div>
                             <button
                                 type="button"
                                 class={board.root.className}
@@ -185,7 +185,7 @@
                             </button>
                         </section>
                         <section class="c-relation-column" aria-label="参照先">
-                            <div class="c-column-heading slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
+                            <div class="c-column-heading slds-m-bottom_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
                                 <h3>参照先</h3>
                                 <span class="c-hint slds-text-body_small">{outgoingCount}</span>
                             </div>
@@ -198,7 +198,7 @@
                                 value={outgoingTerm}
                                 onchange={handleRelationFilter}
                             ></lightning-input>
-                            <div class="c-card-scroll slds-p-around_x-small" role="region" aria-label="参照先のカード一覧" tabindex="0">
+                            <div class="c-card-scroll slds-m-top_small slds-p-around_x-small" role="region" aria-label="参照先のカード一覧" tabindex="0">
                                 <div class={cardGridClass}>
                                     <template for:each={board.outgoing} for:item="node">
                                         <button
@@ -237,10 +237,10 @@
             </template>
         </section>
         <template lwc:if={detail}>
-            <section class="c-panel c-details slds-m-bottom_medium" aria-label="オブジェクト詳細">
+            <section class="slds-box slds-theme_default c-details slds-m-bottom_medium" aria-label="オブジェクト詳細">
                 <div class="c-heading slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap">
                     <div>
-                        <h2 class="c-detail-title" tabindex="-1">【{modeLabel}】{detail.label} ({detail.apiName})</h2>
+                        <h2 class="c-detail-title slds-m-bottom_x-small" tabindex="-1">【{modeLabel}】{detail.label} ({detail.apiName})</h2>
                     </div>
                     <template lwc:if={isReference}>
                         <lightning-button
@@ -612,7 +612,7 @@
                 </div>
                 <template lwc:if={isClassify}>
                     <template lwc:if={canEditClassifyData}>
-                        <div class="c-save-bar slds-grid slds-grid_vertical-align-center slds-grid_align-end slds-wrap">
+                        <div class="c-save-bar slds-m-vertical_medium slds-grid slds-grid_vertical-align-center slds-grid_align-end slds-wrap">
                             <lightning-button
                                 variant="brand"
                                 label="保存"

@@ -581,7 +581,7 @@ it('未認証の場合は対象未選択でも共通のAPI認証を表示する'
     expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
     expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
-    expect(element.shadowRoot.querySelector('.c-panel')).toBeNull();
+    expect(element.shadowRoot.querySelector('section.slds-box')).toBeNull();
     expect(element.shadowRoot.querySelector('.c-authentication').classList.contains('slds-theme_default')).toBe(true);
 });
 it('権限不足の案内を維持して認証をやり直す導線を表示する', async () => {
@@ -659,7 +659,7 @@ it('認証解除の結果が不明なら内部例外を出さず操作を止め�
     await flush();
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE_VALUE');
     expect(element.shadowRoot.textContent).toContain('解除結果を確認できません');
-    expect(element.shadowRoot.querySelector('.c-panel')).toBeNull();
+    expect(element.shadowRoot.querySelector('section.slds-box')).toBeNull();
     expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
 });
 it('解除確認の表示に失敗した場合は認証と入力を維持する', async () => {
