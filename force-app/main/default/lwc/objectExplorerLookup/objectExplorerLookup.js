@@ -18,7 +18,7 @@ export default class ObjectExplorerLookup extends LightningElement {
         // 親が指定した位置が変わった時だけスクロールを同期
         if (this.appliedScrollTop !== this.candidateScrollTop) {
             // 表示中の候補領域を取得
-            const list = this.template.querySelector('.oe-option-scroll');
+            const list = this.template.querySelector('.c-option-scroll');
             // ドロップダウンが開いた後に位置を反映
             if (list) {
                 // 候補の仮想表示とDOMの位置を揃える
@@ -48,7 +48,7 @@ export default class ObjectExplorerLookup extends LightningElement {
         // 対応するキーだけブラウザ標準の移動を抑止
         if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) { event.preventDefault(); }
         // 候補の現在の表示領域を取得
-        const list = this.template.querySelector('.oe-option-scroll');
+        const list = this.template.querySelector('.c-option-scroll');
         // DOMを親へ渡さず必要な座標だけを通知
         this.dispatchEvent(new CustomEvent('searchkey', { detail: { key: event.key, scrollTop: list?.scrollTop, height: list?.clientHeight } }));
     }

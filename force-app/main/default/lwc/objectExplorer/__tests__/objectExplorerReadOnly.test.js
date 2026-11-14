@@ -35,7 +35,7 @@ it('編集権限がない利用者にも保存済み分類を表示し、編集�
     const element = createElement('c-object-explorer', { is: ObjectExplorer });
     document.body.appendChild(element);
     await flush();
-    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
     await flush();
     const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
     lookup.dispatchEvent(new CustomEvent('lookupopen'));
@@ -47,7 +47,7 @@ it('編集権限がない利用者にも保存済み分類を表示し、編集�
     expect(table.textContent).not.toContain('設定不可');
     expect(table.querySelector('[data-property]')).toBeNull();
     expect(table.querySelector('input')).toBeNull();
-    expect(element.shadowRoot.querySelector('.oe-save-bar')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-save-bar')).toBeNull();
     expect(saveClassifyData).not.toHaveBeenCalled();
     await expect(element).toBeAccessible();
 });

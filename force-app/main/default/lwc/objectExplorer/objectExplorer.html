@@ -1,9 +1,9 @@
 <template>
-    <main>
+    <main class="slds-p-around_medium">
         <template lwc:if={saveInProgress}>
-            <div class="oe-save-progress" role="status" aria-live="polite" aria-label="保存しています…">
-                <div class="oe-save-progress-content">
-                    <div class="oe-save-progress-spinner">
+            <div class="c-save-progress slds-is-fixed slds-grid slds-grid_vertical-align-center slds-grid_align-center" role="status" aria-live="polite" aria-label="保存しています…">
+                <div class="c-save-progress-content slds-text-align_center">
+                    <div class="c-save-progress-spinner slds-is-relative">
                         <lightning-spinner alternative-text="保存処理中" size="large"></lightning-spinner>
                     </div>
                     <p>保存しています…</p>
@@ -11,9 +11,9 @@
                 </div>
             </div>
         </template>
-        <header class="slds-page-header c-page-header">
-            <div class="slds-page-header__row c-page-header-row">
-                <div class="slds-media c-page-header-title">
+        <header class="slds-page-header slds-m-bottom_medium">
+            <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
+                <div class="slds-media c-page-header-title slds-grid_vertical-align-center">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:custom_entity" alternative-text="オブジェクトエクスプローラー" size="medium"></lightning-icon>
                     </div>
@@ -29,9 +29,9 @@
             </div>
         </header>
         <template lwc:if={apiAuthenticationRequired}>
-            <div class="oe-authentication slds-box slds-theme_default slds-m-bottom_medium" role="status">
+            <div class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap" role="status">
                 <span>{apiAuthenticationMessage}</span>
-                <div class="oe-authentication-actions">
+                <div class="c-authentication-actions slds-grid slds-grid_vertical-align-center">
                     <template lwc:if={apiAuthenticationRequired}>
                         <template lwc:if={apiAuthenticationUrl}>
                             <a class="slds-button slds-button_brand" href={apiAuthenticationUrl} target="_self" onclick={handleApiAuthenticationStart}>認証</a>
@@ -46,7 +46,7 @@
         </template>
         <template lwc:if={apiAuthenticationReady}>
         <lightning-radio-group
-            class="oe-mode"
+            class="c-mode slds-show slds-m-bottom_medium"
             label="表示モード"
             options={modeOptions}
             value={mode}
@@ -58,7 +58,7 @@
             <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{error}</div>
         </template>
         <template lwc:if={clientError}>
-            <div class="slds-notify slds-notify_alert slds-alert_error oe-client-error" role="alert">
+            <div class="slds-notify slds-notify_alert slds-alert_error c-client-error slds-show slds-m-bottom_small" role="alert">
                 <p>画面処理でエラーが発生しました。</p>
                 <p>エラーコード：{clientError.code}</p>
                 <p>処理場所：{clientError.location}</p>
@@ -66,17 +66,17 @@
                 <template lwc:if={clientError.message}><p>理由：{clientError.message}</p></template>
             </div>
         </template>
-        <section class="oe-panel" aria-label={modeLabel}>
-            <div class="oe-heading">
+        <section class="c-panel slds-m-bottom_medium" aria-label={modeLabel}>
+            <div class="c-heading slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap">
                 <h2>{modeLabel}</h2>
                 <template lwc:if={showClassifySpinner}>
-                    <div class="oe-loading">
+                    <div class="c-loading slds-is-relative">
                         <lightning-spinner alternative-text="処理中…" size="small"></lightning-spinner>
                     </div>
                 </template>
             </div>
-            <div class="oe-toolbar">
-                <div class="oe-lookup">
+            <div class="c-toolbar slds-grid slds-grid_vertical-align-end slds-grid_align-spread slds-wrap">
+                <div class="c-lookup">
                     <c-object-explorer-lookup
                         selected={root}
                         selected-label={selectedObjectLabel}
@@ -96,7 +96,7 @@
                         oncandidatescroll={handleCandidateScroll}
                     ></c-object-explorer-lookup>
                 </div>
-                <div class="oe-toolbar-filters">
+                <div class="c-toolbar-filters slds-grid slds-grid_vertical-align-end slds-wrap">
                     <template lwc:if={isReference}>
                         <div class="slds-form-element">
                             <span class="slds-form-element__label">参照元の種類</span>
@@ -115,7 +115,7 @@
                 </div>
             </div>
             <template lwc:if={isReference}>
-                <div class="oe-viewport" aria-label="オブジェクトの関連" aria-busy={busy}>
+                <div class="c-viewport slds-is-relative" aria-label="オブジェクトの関連" aria-busy={busy}>
                     <template lwc:if={rootLoading}>
                         <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
                     </template>
@@ -123,10 +123,10 @@
                         <template lwc:if={busy}>
                             <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
                         </template>
-                        <section class="oe-relation-column" aria-label="参照元">
-                            <div class="oe-column-heading">
+                        <section class="c-relation-column" aria-label="参照元">
+                            <div class="c-column-heading slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
                                 <h3>参照元</h3>
-                                <span class="oe-hint">{incomingCount}</span>
+                                <span class="c-hint slds-text-body_small">{incomingCount}</span>
                             </div>
                             <lightning-input
                                 type="search"
@@ -137,7 +137,7 @@
                                 value={incomingTerm}
                                 onchange={handleRelationFilter}
                             ></lightning-input>
-                            <div class="oe-card-scroll" role="region" aria-label="参照元のカード一覧" tabindex="0">
+                            <div class="c-card-scroll slds-p-around_x-small" role="region" aria-label="参照元のカード一覧" tabindex="0">
                                 <div class={cardGridClass}>
                                     <template for:each={board.incoming} for:item="node">
                                         <button
@@ -151,25 +151,25 @@
                                             disabled={busy}
                                             aria-pressed={node.selected}
                                         >
-                                            <strong title={node.label}>{node.label}</strong>
-                                            <span class="oe-api" title={node.apiName}>{node.apiName}</span>
-                                            <small>{node.count}</small>
+                                            <strong title={node.label} class="slds-truncate slds-shrink-none">{node.label}</strong>
+                                            <span class="c-api slds-text-body_small slds-truncate slds-shrink-none" title={node.apiName}>{node.apiName}</span>
+                                            <small class="slds-truncate slds-shrink-none">{node.count}</small>
                                             <template for:each={node.links} for:item="link">
-                                                <span key={link.key} class="oe-card-field" title={link.text}>
+                                                <span key={link.key} class="slds-text-body_small slds-truncate slds-shrink-none" title={link.text}>
                                                     {link.text}
                                                 </span>
                                             </template>
-                                            <template lwc:if={node.more}><small>{node.more}</small></template>
+                                            <template lwc:if={node.more}><small class="slds-truncate slds-shrink-none">{node.more}</small></template>
                                         </button>
                                     </template>
                                 </div>
                                 <template lwc:if={noIncoming}>
-                                    <p class="oe-hint slds-p-around_small">該当する参照元はありません。</p>
+                                    <p class="c-hint slds-p-around_small slds-text-body_small">該当する参照元はありません。</p>
                                 </template>
                             </div>
                         </section>
-                        <section class="oe-origin-column" aria-label="対象オブジェクト">
-                            <div class="oe-column-heading"><h3>対象オブジェクト</h3></div>
+                        <section class="c-origin-column slds-grid slds-grid_vertical" aria-label="対象オブジェクト">
+                            <div class="c-column-heading slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap"><h3>対象オブジェクト</h3></div>
                             <button
                                 type="button"
                                 class={board.root.className}
@@ -180,14 +180,14 @@
                                 disabled={busy}
                                 aria-pressed={board.root.selected}
                             >
-                                <strong title={board.root.label}>{board.root.label}</strong>
-                                <span class="oe-api" title={board.root.apiName}>{board.root.apiName}</span>
+                                <strong title={board.root.label} class="slds-truncate slds-shrink-none">{board.root.label}</strong>
+                                <span class="c-api slds-text-body_small slds-truncate slds-shrink-none" title={board.root.apiName}>{board.root.apiName}</span>
                             </button>
                         </section>
-                        <section class="oe-relation-column" aria-label="参照先">
-                            <div class="oe-column-heading">
+                        <section class="c-relation-column" aria-label="参照先">
+                            <div class="c-column-heading slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
                                 <h3>参照先</h3>
-                                <span class="oe-hint">{outgoingCount}</span>
+                                <span class="c-hint slds-text-body_small">{outgoingCount}</span>
                             </div>
                             <lightning-input
                                 type="search"
@@ -198,7 +198,7 @@
                                 value={outgoingTerm}
                                 onchange={handleRelationFilter}
                             ></lightning-input>
-                            <div class="oe-card-scroll" role="region" aria-label="参照先のカード一覧" tabindex="0">
+                            <div class="c-card-scroll slds-p-around_x-small" role="region" aria-label="参照先のカード一覧" tabindex="0">
                                 <div class={cardGridClass}>
                                     <template for:each={board.outgoing} for:item="node">
                                         <button
@@ -212,20 +212,20 @@
                                             disabled={busy}
                                             aria-pressed={node.selected}
                                         >
-                                            <strong title={node.label}>{node.label}</strong>
-                                            <span class="oe-api" title={node.apiName}>{node.apiName}</span>
-                                            <small>{node.count}</small>
+                                            <strong title={node.label} class="slds-truncate slds-shrink-none">{node.label}</strong>
+                                            <span class="c-api slds-text-body_small slds-truncate slds-shrink-none" title={node.apiName}>{node.apiName}</span>
+                                            <small class="slds-truncate slds-shrink-none">{node.count}</small>
                                             <template for:each={node.links} for:item="link">
-                                                <span key={link.key} class="oe-card-field" title={link.text}>
+                                                <span key={link.key} class="slds-text-body_small slds-truncate slds-shrink-none" title={link.text}>
                                                     {link.text}
                                                 </span>
                                             </template>
-                                            <template lwc:if={node.more}><small>{node.more}</small></template>
+                                            <template lwc:if={node.more}><small class="slds-truncate slds-shrink-none">{node.more}</small></template>
                                         </button>
                                     </template>
                                 </div>
                                 <template lwc:if={noOutgoing}>
-                                    <p class="oe-hint slds-p-around_small">該当する参照先はありません。</p>
+                                    <p class="c-hint slds-p-around_small slds-text-body_small">該当する参照先はありません。</p>
                                 </template>
                             </div>
                         </section>
@@ -237,10 +237,10 @@
             </template>
         </section>
         <template lwc:if={detail}>
-            <section class="oe-panel details" aria-label="オブジェクト詳細">
-                <div class="oe-heading">
+            <section class="c-panel c-details slds-m-bottom_medium" aria-label="オブジェクト詳細">
+                <div class="c-heading slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap">
                     <div>
-                        <h2 class="oe-detail-title" tabindex="-1">【{modeLabel}】{detail.label} ({detail.apiName})</h2>
+                        <h2 class="c-detail-title" tabindex="-1">【{modeLabel}】{detail.label} ({detail.apiName})</h2>
                     </div>
                     <template lwc:if={isReference}>
                         <lightning-button
@@ -251,7 +251,7 @@
                     </template>
                 </div>
                 <template lwc:if={selectedRelation}>
-                    <div class="oe-selected-relation">
+                    <div class="c-selected-relation slds-m-top_medium">
                         <h3>関連項目：{selectedRelation.title}</h3>
                         <ul>
                             <template for:each={selectedRelation.links} for:item="link">
@@ -260,8 +260,8 @@
                         </ul>
                     </div>
                 </template>
-                <div class="oe-filter-toolbar">
-                    <div class="oe-filters">
+                <div class="c-filter-toolbar slds-grid slds-grid_vertical-align-end">
+                    <div class="c-filters slds-grid slds-grid_vertical-align-center slds-wrap">
                         <lightning-combobox
                             name="type"
                             label="データ型"
@@ -271,7 +271,7 @@
                             disabled={busy}
                         ></lightning-combobox>
                         <lightning-input
-                            class="oe-field-search"
+                            class="c-field-search"
                             name="fieldSearch"
                             type="search"
                             label="項目名"
@@ -282,16 +282,16 @@
                         ></lightning-input>
                     </div>
                     <template lwc:if={isReference}>
-                        <div class="oe-csv-tools">
+                        <div class="c-csv-tools slds-grid slds-grid_vertical-align-end">
                             <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
                         </div>
                     </template>
                     <template lwc:if={isClassify}>
-                        <div class="oe-csv-tools">
+                        <div class="c-csv-tools slds-grid slds-grid_vertical-align-end">
                             <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
                             <template lwc:if={canEditClassifyData}>
-                                <div class="oe-csv-import">
-                                    <div class="oe-csv-label">
+                                <div class="c-csv-import">
+                                    <div class="c-csv-label slds-grid slds-grid_vertical-align-center">
                                         <span class="slds-form-element__label">CSVインポート</span>
                                         <lightning-helptext content={csvHelp}></lightning-helptext>
                                     </div>
@@ -302,9 +302,9 @@
                     </template>
                 </div>
                 <template lwc:if={isClassify}>
-                    <p class="oe-classify-notice" role="status">{classifyNotice}</p>
+                    <p class="c-classify-notice slds-m-bottom_small slds-p-around_small" role="status">{classifyNotice}</p>
                     <template lwc:if={hasCsvErrors}>
-                        <ul class="oe-csv-errors" aria-label="CSVの検証エラー" role="alert">
+                        <ul class="c-csv-errors slds-scrollable slds-m-bottom_small slds-p-around_small" aria-label="CSVの検証エラー" role="alert">
                             <template for:each={csvErrors} for:item="error">
                                 <li key={error.line}>{error.line}行目：{error.message}</li>
                             </template>
@@ -322,9 +322,9 @@
                     </section>
                 </template>
                 <template lwc:if={auditNotice}>
-                    <p class="oe-classify-notice" role="status">{auditNotice}</p>
+                    <p class="c-classify-notice slds-m-bottom_small slds-p-around_small" role="status">{auditNotice}</p>
                 </template>
-                <div class="oe-table-scroll" data-classify={isClassify}>
+                <div class="c-table-scroll slds-scrollable" data-classify={isClassify}>
                     <table class="slds-table slds-table_cell-buffer slds-table_bordered">
                         <caption class="slds-assistive-text">選択したオブジェクトの項目一覧</caption>
                         <thead>
@@ -354,7 +354,7 @@
                                             <template lwc:if={field.changed}>
                                                 <span class="slds-assistive-text">（変更あり）</span>
                                             </template>
-                                            <p class="oe-hint">{field.reason}</p>
+                                            <p class="c-hint slds-text-body_small">{field.reason}</p>
                                             <p class="slds-text-color_error">{field.error}</p>
                                         </template>
                                     </th>
@@ -367,25 +367,25 @@
                                         <template lwc:else><span class="slds-assistive-text">標準項目</span></template>
                                     </td>
                                     <template lwc:if={isReference}>
-                                        <td class="oe-audit-value">
+                                        <td class="c-audit-value">
                                             <span>{field.createdAudit.prefix}</span><template lwc:if={field.createdAudit.userName}><template lwc:if={field.createdAudit.url}><a href={field.createdAudit.url}>{field.createdAudit.userName}</a></template><template lwc:else><span>{field.createdAudit.userName}</span></template></template>
                                         </td>
-                                        <td class="oe-audit-value">
+                                        <td class="c-audit-value">
                                             <span>{field.modifiedAudit.prefix}</span><template lwc:if={field.modifiedAudit.userName}><template lwc:if={field.modifiedAudit.url}><a href={field.modifiedAudit.url}>{field.modifiedAudit.userName}</a></template><template lwc:else><span>{field.modifiedAudit.userName}</span></template></template>
                                         </td>
                                     </template>
                                     <template lwc:if={isClassify}>
-                                        <td class="oe-classify-cell" aria-disabled={field.unavailable}>
+                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
                                             <template lwc:if={field.editing}>
                                                 <div
-                                                    class="oe-compliance"
+                                                    class="c-compliance slds-is-relative"
                                                     data-field={field.apiName}
                                                     onfocusout={handleComplianceBlur}
                                                     onkeydown={handleComplianceKeydown}
                                                 >
                                                     <button
                                                         type="button"
-                                                        class="slds-input oe-compliance-input"
+                                                        class="slds-input c-compliance-input slds-grid slds-grid_vertical-align-center slds-grid_align-spread"
                                                         aria-label="コンプライアンス分類"
                                                         aria-haspopup="dialog"
                                                         aria-expanded={field.complianceOpen}
@@ -395,7 +395,7 @@
                                                         onclick={handleComplianceToggle}
                                                         disabled={busy}
                                                     >
-                                                        <span class="slds-truncate oe-compliance-value">
+                                                        <span class="slds-truncate c-compliance-value">
                                                             {field.complianceLabel}
                                                         </span>
                                                         <lightning-icon
@@ -427,7 +427,7 @@
                                             </template>
                                             <template lwc:else>{field.complianceLabel}</template>
                                         </td>
-                                        <td class="oe-classify-cell" aria-disabled={field.unavailable}>
+                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
                                             <template lwc:if={field.editing}>
                                                 <lightning-combobox
                                                     variant="label-hidden"
@@ -444,7 +444,7 @@
                                             </template>
                                             <template lwc:else>{field.securityLabel}</template>
                                         </td>
-                                        <td class="oe-classify-cell" aria-disabled={field.unavailable}>
+                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
                                             <template lwc:if={field.editing}>
                                                 <lightning-combobox
                                                     variant="label-hidden"
@@ -461,10 +461,10 @@
                                             </template>
                                             <template lwc:else>{field.businessLabel}</template>
                                         </td>
-                                        <td class="oe-classify-cell" aria-disabled={field.unavailable}>
+                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
                                             <template lwc:if={field.editing}>
                                                 <div
-                                                    class="oe-owner-lookup"
+                                                    class="c-owner-lookup slds-is-relative"
                                                     data-field={field.apiName}
                                                     onfocusout={handleOwnerBlur}
                                                 >
@@ -477,7 +477,7 @@
                                                             >
                                                                 <template lwc:if={field.ownerSelected}>
                                                                     <input
-                                                                        class="oe-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
+                                                                        class="c-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
                                                                         type="text"
                                                                         readonly
                                                                         role="combobox"
@@ -506,7 +506,7 @@
                                                                 </template>
                                                                 <template lwc:else>
                                                                     <input
-                                                                        class="oe-lookup-input slds-input slds-combobox__input"
+                                                                        class="c-lookup-input slds-input slds-combobox__input"
                                                                         type="text"
                                                                         role="combobox"
                                                                         aria-label="データ所有者"
@@ -534,7 +534,7 @@
                                                             </div>
                                                             <template lwc:if={field.ownerOpen}>
                                                                 <div
-                                                                    class="slds-dropdown slds-dropdown_fluid oe-owner-options"
+                                                                    class="slds-dropdown slds-dropdown_fluid c-owner-options"
                                                                     role="listbox"
                                                                     id={field.ownerListId}
                                                                     aria-label="所有者候補"
@@ -559,8 +559,8 @@
                                                                                     onclick={handleOwnerSelect}
                                                                                 >
                                                                                     <span class="slds-media__body">
-                                                                                        <span class="oe-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate" title={owner.label}>{owner.label}</span>
-                                                                                        <span class="oe-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate" title={owner.description}>{owner.description}</span>
+                                                                                        <span class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show" title={owner.label}>{owner.label}</span>
+                                                                                        <span class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show" title={owner.description}>{owner.description}</span>
                                                                                     </span>
                                                                                 </div>
                                                                             </li>
@@ -595,7 +595,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="oe-paging">
+                <div class="c-pagination slds-grid slds-grid_vertical-align-center slds-grid_align-center slds-m-top_medium slds-wrap">
                     <lightning-button
                         label="前へ"
                         data-step="-1"
@@ -612,7 +612,7 @@
                 </div>
                 <template lwc:if={isClassify}>
                     <template lwc:if={canEditClassifyData}>
-                        <div class="oe-save-bar">
+                        <div class="c-save-bar slds-grid slds-grid_vertical-align-center slds-grid_align-end slds-wrap">
                             <lightning-button
                                 variant="brand"
                                 label="保存"
