@@ -4,13 +4,6 @@
     color: var(--slds-g-color-on-surface-1, #181818);
 }
 
-.c-panel {
-    padding: var(--slds-g-spacing-4, 1rem);
-    background: var(--slds-g-color-surface-1, #fff);
-    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9);
-    border-radius: var(--slds-g-radius-border-2, 0.25rem);
-}
-
 .c-authentication {
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
@@ -18,11 +11,6 @@
 /* 長い設定案内を折り返し、アイコンと本文を並べる */
 .c-error-notice {
     gap: var(--slds-g-spacing-3, 0.75rem);
-}
-
-/* 入力と旧資格情報を独立した枠に分け、一覧の余白は各領域で管理する */
-.c-stage-panel {
-    padding: 0;
 }
 
 /* 旧資格情報の見出しもカードと同じ文字色で表示する */
@@ -35,35 +23,18 @@
     border-radius: 0;
 }
 
-/* 組織エクスプローラーと同じ見出しとリング型スピナーを使用する */
+/* 見出しの右側に処理中表示の領域を確保する */
 .c-card-title {
     font-size: var(--slds-g-font-scale-2, 1rem);
     font-weight: var(--slds-g-font-weight-7, 700);
-    margin-bottom: var(--slds-g-spacing-3, 0.75rem);
     padding-inline-end: var(--slds-g-sizing-8, 2rem);
 }
 .c-loading {
     inset-block-start: var(--slds-g-spacing-4, 1rem);
     inset-inline-end: var(--slds-g-spacing-4, 1rem);
+    width: var(--slds-g-sizing-9, 2rem);
+    height: var(--slds-g-sizing-9, 2rem);
     pointer-events: none;
-}
-.c-spinner {
-    width: var(--slds-g-sizing-6, 1.25rem);
-    height: var(--slds-g-sizing-6, 1.25rem);
-    border: var(--slds-g-sizing-border-3, 3px) solid var(--slds-g-color-border-base-1, #c9c9c9);
-    border-top-color: var(--slds-g-color-accent-2, #0176d3);
-    border-radius: var(--slds-g-radius-border-circle, 100%);
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-@media (prefers-reduced-motion: reduce) {
-    .c-spinner {
-        animation: none;
-    }
 }
 
 /* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
