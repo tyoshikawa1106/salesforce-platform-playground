@@ -20,6 +20,3 @@
     stroke: var(--slds-g-color-border-base-1, #c9c9c9);
     stroke-width: 1.5px;
 }
-.c-caption {
-    margin: var(--slds-g-spacing-2, 0.5rem) 0 0;
-}

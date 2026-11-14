@@ -48,20 +48,20 @@ it('拡大と縮小の後も等倍操作で正確に100%へ戻す', async () => 
     const element = createElement('c-org-explorer-canvas', { is: OrgExplorerCanvas });
     document.body.appendChild(element);
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toBe('表示ロール数：0 ｜ ズーム 100%');
+    expect(element.shadowRoot.querySelector('p').textContent).toBe('表示ロール数：0 ｜ ズーム 100%');
     element.adjustZoom(0.45);
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toContain('145%');
+    expect(element.shadowRoot.querySelector('p').textContent).toContain('145%');
     expect(element.shadowRoot.querySelector('.c-plane').getAttribute('style')).toContain('scale(1.2325)');
     element.resetZoom();
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toContain('100%');
+    expect(element.shadowRoot.querySelector('p').textContent).toContain('100%');
     element.adjustZoom(-0.3);
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toContain('70%');
+    expect(element.shadowRoot.querySelector('p').textContent).toContain('70%');
     element.resetZoom();
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toContain('100%');
+    expect(element.shadowRoot.querySelector('p').textContent).toContain('100%');
     await expect(element).toBeAccessible();
 });
 it('初期表示は100%で、全体表示は手動だけにしスクロールで切り替えない', async () => {
@@ -118,12 +118,12 @@ it('全体表示の上限と下限も標準サイズに対する100%と25%で扱
     document.body.appendChild(element);
     element.fit();
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toContain('100%');
+    expect(element.shadowRoot.querySelector('p').textContent).toContain('100%');
     expect(element.shadowRoot.querySelector('.c-plane').getAttribute('style')).toContain('scale(0.85)');
     element.model = { rows: [], edges: [], width: 10000, height: 10000, countText: '表示ロール数：0' };
     element.fit();
     await Promise.resolve();
-    expect(element.shadowRoot.querySelector('.c-caption').textContent).toContain('25%');
+    expect(element.shadowRoot.querySelector('p').textContent).toContain('25%');
     expect(element.shadowRoot.querySelector('.c-plane').getAttribute('style')).toContain('scale(0.2125)');
 });
 
