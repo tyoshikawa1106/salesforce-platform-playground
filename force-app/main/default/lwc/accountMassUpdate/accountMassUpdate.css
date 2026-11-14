@@ -1,9 +1,5 @@
-.table-container {
-    overflow: auto;
-}
-
 /* 末尾行の選択肢も表示し、候補クリックまで領域を縮めない */
-.table-container[data-empty="false"] {
+.c-table-scroll[data-empty="false"] {
     padding-block-end: var(--slds-g-sizing-16, 30rem);
 }
 
@@ -12,8 +8,8 @@ td {
     vertical-align: top;
 }
 
-.changed-row > th,
-.changed-row > td {
+.c-row-changed > th,
+.c-row-changed > td {
     background-color: var(--slds-g-color-warning-container-1, #fff7d6);
 }
 /* エラーの長い処理名も画面内で折り返す */

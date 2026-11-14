@@ -81,7 +81,7 @@
             ></template>
             <template lwc:if={emptyResult}><p>条件に一致する法人取引先はありません。</p></template>
             <template lwc:if={searched}>
-                <div class="table-container" data-empty={emptyResult} tabindex="0" role="region" aria-label="法人取引先の編集一覧">
+                <div class="c-table-scroll slds-scrollable" data-empty={emptyResult} tabindex="0" role="region" aria-label="法人取引先の編集一覧">
                     <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                         <caption class="slds-assistive-text">
                             法人取引先の編集一覧。変更した行は保存するまで「変更あり」と表示されます。
