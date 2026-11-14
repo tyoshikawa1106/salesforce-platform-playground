@@ -1,15 +1,15 @@
-.form-section__fields {
+.c-form-section-fields {
     display: grid;
     gap: 0 var(--slds-g-spacing-4, 1rem);
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.form-section__field {
+.c-form-section-field {
     min-width: 0;
 }
 
 @media (max-width: 48em) {
-    .form-section__fields {
+    .c-form-section-fields {
         grid-template-columns: 1fr;
     }
 }
