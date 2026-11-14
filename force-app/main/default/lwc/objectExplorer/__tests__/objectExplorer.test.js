@@ -816,3 +816,81 @@ it('認証URL取得失敗でもボタンを隠さず無効化して理由を表�
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
     expect(element.shadowRoot.querySelector('.oe-mode')).toBeNull();
 });
+
+it.each([[false, false], [true, false], [true, true]])('分類保存中の離脱=%s・応答失敗=%sで古い処理を継続しない', async (detach, rejectFirst) => {
+    const names = ['Name', 'Phone', 'Fax', 'Website', 'Industry', 'Type', 'Rating', 'Description', 'AccountNumber', 'AnnualRevenue', 'NumberOfEmployees'];
+    getObjectInfo.mockResolvedValueOnce({ ...objectInfo, fields: names.map(apiName => ({ apiName, label: apiName, type: 'STRING', custom: false })) });
+    getClassifyData.mockResolvedValueOnce({ ...classify, rows: Object.fromEntries(names.map(name => [name, { ...classify.rows.Name }])) });
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.oe-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    for (const input of element.shadowRoot.querySelectorAll('[data-property="businessStatus"]')) {
+        input.dispatchEvent(new CustomEvent('change', { detail: { value: 'Active' } }));
+    }
+    await flush();
+    let finishFirst;
+    const resultsFor = request => JSON.parse(request.changesJson).map(change => ({ apiName: change.apiName, success: true, latest: { ...change.draft }, owner: { value: '', label: '未設定' }, message: '' }));
+    saveClassifyData.mockImplementationOnce(request => new Promise((resolve, reject) => {
+        finishFirst = () => { if (rejectFirst) reject(new Error('Old save')); else resolve(resultsFor(request)); };
+    }));
+    saveClassifyData.mockImplementation(request => Promise.resolve(resultsFor(request)));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    expect(saveClassifyData).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(saveClassifyData.mock.calls[0][0].changesJson)).toHaveLength(10);
+    if (detach) { element.remove(); document.body.appendChild(element); await flush(); }
+    finishFirst();
+    await flush();
+    expect(saveClassifyData).toHaveBeenCalledTimes(detach ? 1 : 2);
+    expect(element.shadowRoot.textContent.includes('後続の保存を中断しました')).toBe(detach);
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(true);
+    expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+});
+
+
+it.each(['resolve', 'reject'])('再接続前の保存確認の%sで新しい確認のロックを解除しない', async (settlement) => {
+    const element = createComponent();
+    await editClassify(element);
+    let finishOld;
+    let confirmNew;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise((resolve, reject) => {
+        finishOld = () => { if (settlement === 'resolve') resolve(true); else reject(new Error('Old confirmation')); };
+    }));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    LightningConfirm.open.mockImplementationOnce(() => new Promise((resolve) => { confirmNew = resolve; }));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    finishOld();
+    await flush();
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.oe-save-bar lightning-button').disabled).toBe(true);
+    expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+    saveClassifyData.mockResolvedValueOnce([{ apiName: 'Name', success: true, latest: { businessStatus: 'Active' }, owner: { value: '', label: '未設定' }, message: '' }]);
+    confirmNew(true);
+    await flush();
+    expect(saveClassifyData).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.textContent).toContain('1項目のデータ分類を保存しました');
+});
+
+it('保存前の認証確認中に離脱・再接続した場合は保存を送信しない', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    let finishAuthentication;
+    getApiAuthentication.mockImplementationOnce(() => new Promise((resolve) => { finishAuthentication = resolve; }));
+    element.shadowRoot.querySelector('.oe-save-bar lightning-button').click();
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    finishAuthentication({ status: 'AUTHENTICATED' });
+    await flush();
+    expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+    expect(element.shadowRoot.textContent).toContain('後続の保存を中断しました');
+});
