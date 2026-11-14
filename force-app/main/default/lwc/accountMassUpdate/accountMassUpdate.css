@@ -2,6 +2,11 @@
     overflow: auto;
 }
 
+/* 末尾行の選択肢も表示し、候補クリックまで領域を縮めない */
+.table-container[data-empty="false"] {
+    padding-block-end: var(--slds-g-sizing-16, 30rem);
+}
+
 th,
 td {
     vertical-align: top;

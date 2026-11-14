@@ -81,7 +81,7 @@
             ></template>
             <template lwc:if={emptyResult}><p>条件に一致する法人取引先はありません。</p></template>
             <template lwc:if={searched}>
-                <div class="table-container" tabindex="0" role="region" aria-label="法人取引先の編集一覧">
+                <div class="table-container" data-empty={emptyResult} tabindex="0" role="region" aria-label="法人取引先の編集一覧">
                     <table class="slds-table slds-table_bordered slds-table_cell-buffer">
                         <caption class="slds-assistive-text">
                             法人取引先の編集一覧。変更した行は保存するまで「変更あり」と表示されます。
@@ -122,6 +122,7 @@
                                             data-field="Industry"
                                             label={row.industryLabel}
                                             variant="label-hidden"
+                                            dropdown-alignment="auto"
                                             value={row.industryValue}
                                             options={row.industryOptions}
                                             onchange={handleEdit}
@@ -134,6 +135,7 @@
                                             data-field="Type"
                                             label={row.typeLabel}
                                             variant="label-hidden"
+                                            dropdown-alignment="auto"
                                             value={row.typeValue}
                                             options={row.typeOptions}
                                             onchange={handleEdit}
@@ -146,6 +148,7 @@
                                             data-field="Rating"
                                             label={row.ratingLabel}
                                             variant="label-hidden"
+                                            dropdown-alignment="auto"
                                             value={row.ratingValue}
                                             options={row.ratingOptions}
                                             onchange={handleEdit}
