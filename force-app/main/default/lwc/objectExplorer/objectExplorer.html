@@ -45,15 +45,17 @@
             <p role="status">認証状態を確認しています…</p>
         </template>
         <template lwc:if={apiAuthenticationReady}>
-        <lightning-radio-group
-            class="c-mode slds-show slds-m-bottom_medium"
-            label="表示モード"
-            options={modeOptions}
-            value={mode}
-            type="button"
-            onchange={handleMode}
-            disabled={busy}
-        ></lightning-radio-group>
+        <div class="slds-box slds-theme_default slds-m-bottom_medium">
+            <lightning-radio-group
+                class="c-mode slds-show"
+                label="表示モード"
+                options={modeOptions}
+                value={mode}
+                type="button"
+                onchange={handleMode}
+                disabled={busy}
+            ></lightning-radio-group>
+        </div>
         <template lwc:if={error}>
             <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{error}</div>
         </template>
