@@ -551,7 +551,7 @@ describe('外部クライアントアプリ認証管理', () => {
     });
     it.each(['UNAVAILABLE', 'NO_ACCESS'])('確認結果%sでも認証を表示し操作は許可しない', async (status) => {
         const element = await createComponent({ status });
-        expect(element.shadowRoot.querySelector('.authentication a').getAttribute('href')).toBe('/auth');
+        expect(element.shadowRoot.querySelector('.c-authentication a').getAttribute('href')).toBe('/auth');
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(button(element, '認証解除')).toBeUndefined();
         expect(execute).not.toHaveBeenCalled();
@@ -560,7 +560,7 @@ describe('外部クライアントアプリ認証管理', () => {
     it('状態取得の例外後も認証URLを独立して取得する', async () => {
         getAuthentication.mockRejectedValueOnce(new Error('PRIVATE'));
         const element = await createComponent();
-        expect(element.shadowRoot.querySelector('.authentication a')).not.toBeNull();
+        expect(element.shadowRoot.querySelector('.c-authentication a')).not.toBeNull();
         expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(execute).not.toHaveBeenCalled();
@@ -568,7 +568,7 @@ describe('外部クライアントアプリ認証管理', () => {
     it('URL取得失敗では無効な認証ボタンと理由を表示する', async () => {
         getAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
         const element = await createComponent({ status: 'UNAVAILABLE' });
-        expect(element.shadowRoot.querySelector('.authentication a')).toBeNull();
+        expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
         expect(button(element, '認証').disabled).toBe(true);
         expect(element.shadowRoot.textContent).toContain('認証を開始できません');
         expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
@@ -582,10 +582,10 @@ describe('外部クライアントアプリ認証管理', () => {
     });
     it('認証し直して戻った画面では接続を確認して操作を許可する', async () => {
         const before = await createComponent({ status: 'UNAVAILABLE' });
-        expect(before.shadowRoot.querySelector('.authentication a')).not.toBeNull();
+        expect(before.shadowRoot.querySelector('.c-authentication a')).not.toBeNull();
         before.remove();
         const after = await createComponent();
-        expect(after.shadowRoot.querySelector('.authentication')).toBeNull();
+        expect(after.shadowRoot.querySelector('.c-authentication')).toBeNull();
         expect(after.shadowRoot.querySelector('input[role="combobox"]')).not.toBeNull();
         expect(button(after, '認証解除')).toBeDefined();
     });

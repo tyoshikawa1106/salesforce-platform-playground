@@ -4,47 +4,25 @@
     color: var(--slds-g-color-on-surface-1, #181818);
 }
 
-main {
-    padding: var(--slds-g-spacing-4, 1rem);
-    background: transparent;
-}
-
-
-
-
-
-.page-panel {
-    position: relative;
+.c-panel {
     padding: var(--slds-g-spacing-4, 1rem);
     background: var(--slds-g-color-surface-1, #fff);
     border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9);
     border-radius: var(--slds-g-radius-border-2, 0.25rem);
 }
 
-.authentication {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
+.c-authentication {
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 
-.authentication-actions {
-    display: flex;
-    align-items: center;
-}
-
 /* 長い設定案内を折り返し、アイコンと本文を並べる */
-.error-notice {
-    display: flex;
-    align-items: flex-start;
+.c-error-notice {
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 
 /* 入力と旧資格情報を独立した枠に分け、一覧の余白は各領域で管理する */
 .c-stage-panel {
     padding: 0;
-    overflow: hidden;
 }
 
 /* 旧資格情報の見出しもカードと同じ文字色で表示する */
@@ -65,11 +43,8 @@ main {
     padding-inline-end: var(--slds-g-sizing-8, 2rem);
 }
 .c-loading {
-    position: absolute;
     inset-block-start: var(--slds-g-spacing-4, 1rem);
     inset-inline-end: var(--slds-g-spacing-4, 1rem);
-    display: flex;
-    align-items: center;
     pointer-events: none;
 }
 .c-spinner {
@@ -78,9 +53,9 @@ main {
     border: var(--slds-g-sizing-border-3, 3px) solid var(--slds-g-color-border-base-1, #c9c9c9);
     border-top-color: var(--slds-g-color-accent-2, #0176d3);
     border-radius: var(--slds-g-radius-border-circle, 100%);
-    animation: c-spin 0.8s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
-@keyframes c-spin {
+@keyframes spin {
     to {
         transform: rotate(360deg);
     }
@@ -92,16 +67,10 @@ main {
 }
 
 /* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
-.c-page-header {
-    margin-bottom: var(--slds-g-spacing-4, 1rem);
-}
 .c-page-header-row {
-    align-items: center;
-    flex-wrap: wrap;
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-page-header-title {
-    align-items: center;
     flex: 1 1 auto;
     min-width: 0;
 }
