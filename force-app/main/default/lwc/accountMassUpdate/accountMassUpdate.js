@@ -54,6 +54,8 @@ export default class AccountMassUpdate extends LightningElement {
     rows = [];
     // レコードタイプごとの選択肢を再利用
     picklists = {};
+    // 同じ検索内の無限再試行を防ぎ、次の検索では再取得する
+    failedPicklistTypes = new Set();
     // 現在取得中の選択肢のレコードタイプ
     activeRecordTypeId;
     // 前ページへ戻るため検索境界の履歴を保持
@@ -81,14 +83,19 @@ export default class AccountMassUpdate extends LightningElement {
         try {
             // 選択肢は取得中のレコードタイプへ対応させる
             if (data || error) {
-                // 取得失敗も記録して無限再取得を防ぐ
-                this.picklists = { ...this.picklists, [this.activeRecordTypeId]: data?.picklistFieldValues || {} };
                 // 選択肢を取得できない項目を読取専用にする
                 if (error) {
-                // Salesforceから返った失敗の取得元を診断表示
-                this.reportClientError(error, 'handlePicklists', 'wire');
+                    // 失敗を成功キャッシュに混ぜず、この検索内だけ再試行を止める
+                    this.failedPicklistTypes.add(this.activeRecordTypeId);
+                    // Salesforceから返った失敗の取得元を診断表示
+                    this.reportClientError(error, 'handlePicklists', 'wire');
                     // 選択肢が不明な項目を編集できない理由を表示
-                    this.errorMessage = '一部の選択肢を取得できませんでした。該当する項目は編集できません。';
+                    this.errorMessage = '一部の選択肢を取得できませんでした。該当する項目は編集できません。再検索して取得し直してください。';
+                } else {
+                    // 取得に成功したタイプの選択肢だけを再利用する
+                    this.picklists = { ...this.picklists, [this.activeRecordTypeId]: data.picklistFieldValues || {} };
+                    // 後から成功応答が届いたタイプを失敗対象から外す
+                    this.failedPicklistTypes.delete(this.activeRecordTypeId);
                 }
                 // 同一画面の別レコードタイプを順番に取得
                 this.loadNextPicklist();
@@ -446,6 +453,8 @@ export default class AccountMassUpdate extends LightningElement {
         this.message = '';
         // 検索結果の表示を有効化
         this.searched = true;
+        // 検索成功後だけ失敗した選択肢の再取得を許可する
+        this.failedPicklistTypes.clear();
         // 表示する行のレコードタイプ別選択肢を準備
         this.loadNextPicklist();
     }
@@ -467,7 +476,7 @@ export default class AccountMassUpdate extends LightningElement {
         // 未指定の既存行はMasterとして、現在の結果に必要な選択肢だけを問い合わせ
         const next = this.records
             .map((record) => record.RecordTypeId || MASTER_RECORD_TYPE_ID)
-            .find((id) => id && !Object.hasOwn(this.picklists, id));
+            .find((id) => id && !Object.hasOwn(this.picklists, id) && !this.failedPicklistTypes.has(id));
         // 取得済みの型を再取得しない
         this.activeRecordTypeId = next;
         // 入力値と変更状態を一覧へ反映
