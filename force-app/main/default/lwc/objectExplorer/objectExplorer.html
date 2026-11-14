@@ -2,7 +2,7 @@
     <main class="slds-p-around_medium">
         <template lwc:if={saveInProgress}>
             <div class="c-save-progress slds-is-fixed slds-grid slds-grid_vertical-align-center slds-grid_align-center" role="status" aria-live="polite" aria-label="保存しています…">
-                <div class="c-save-progress-content slds-text-align_center">
+                <div class="c-save-progress-content slds-p-around_x-large slds-text-align_center">
                     <div class="c-save-progress-spinner slds-is-relative">
                         <lightning-spinner alternative-text="保存処理中" size="large"></lightning-spinner>
                     </div>
@@ -13,7 +13,7 @@
         </template>
         <header class="slds-page-header slds-m-bottom_medium">
             <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
-                <div class="slds-media c-page-header-title slds-grid_vertical-align-center">
+                <div class="slds-media slds-col c-page-header-title slds-grid_vertical-align-center">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:custom_entity" alternative-text="オブジェクトエクスプローラー" size="medium"></lightning-icon>
                     </div>
@@ -96,7 +96,7 @@
                         oncandidatescroll={handleCandidateScroll}
                     ></c-object-explorer-lookup>
                 </div>
-                <div class="c-toolbar-filters slds-grid slds-grid_vertical-align-end slds-wrap">
+                <div class="c-toolbar-filters slds-col_bump-left slds-grid slds-grid_vertical-align-end slds-wrap">
                     <template lwc:if={isReference}>
                         <div class="slds-form-element">
                             <span class="slds-form-element__label">参照元の種類</span>
@@ -115,7 +115,7 @@
                 </div>
             </div>
             <template lwc:if={isReference}>
-                <div class="c-viewport slds-is-relative" aria-label="オブジェクトの関連" aria-busy={busy}>
+                <div class="c-viewport slds-is-relative slds-p-around_small" aria-label="オブジェクトの関連" aria-busy={busy}>
                     <template lwc:if={rootLoading}>
                         <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
                     </template>
@@ -237,7 +237,7 @@
             </template>
         </section>
         <template lwc:if={detail}>
-            <section class="slds-box slds-theme_default c-details slds-m-bottom_medium" aria-label="オブジェクト詳細">
+            <section class="slds-box slds-theme_default slds-m-bottom_medium" aria-label="オブジェクト詳細">
                 <div class="c-heading slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap">
                     <div>
                         <h2 class="c-detail-title slds-m-bottom_x-small" tabindex="-1">【{modeLabel}】{detail.label} ({detail.apiName})</h2>
@@ -260,7 +260,7 @@
                         </ul>
                     </div>
                 </template>
-                <div class="c-filter-toolbar slds-grid slds-grid_vertical-align-end">
+                <div class="c-filter-toolbar slds-m-vertical_medium slds-grid slds-grid_vertical-align-end">
                     <div class="c-filters slds-grid slds-grid_vertical">
                         <lightning-combobox
                             name="type"
@@ -282,12 +282,12 @@
                         ></lightning-input>
                     </div>
                     <template lwc:if={isReference}>
-                        <div class="c-csv-tools slds-grid slds-grid_vertical-align-end">
+                        <div class="c-csv-tools slds-col_bump-left slds-grid slds-grid_vertical-align-end">
                             <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
                         </div>
                     </template>
                     <template lwc:if={isClassify}>
-                        <div class="c-csv-tools slds-grid slds-grid_vertical-align-end">
+                        <div class="c-csv-tools slds-col_bump-left slds-grid slds-grid_vertical-align-end">
                             <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
                             <template lwc:if={canEditClassifyData}>
                                 <div class="c-csv-import">

@@ -66,7 +66,7 @@ export function buildRelationBoard(data, relations, selectedKey, incomingTerm = 
     const shown = relations.filter((row) => row.apiName !== data.apiName);
     // 同じ相手でも参照方向ごとのカードを維持
     const card = (row, root = false) => ({ key: row.key || 'root', apiName: row.apiName, label: row.label,
-        className: `c-node slds-is-relative slds-text-body_small slds-grid slds-grid_vertical${root ? ' c-root' : ''}${(row.key || 'root') === selectedKey ? ' c-selected' : ''}`,
+        className: `c-node slds-is-relative slds-text-body_small slds-grid slds-grid_vertical slds-p-around_x-small${root ? ' slds-m-top_small' : ''}${(row.key || 'root') === selectedKey ? ' c-selected' : ''}`,
         selected: (row.key || 'root') === selectedKey,
         count: root ? '' : `${row.links.length}項目で関連`,
         links: root ? [] : row.links.slice(0, 2).map((link) => ({ key: link.field, text: `${link.label} (${link.field})：${link.kind}` })),
@@ -186,7 +186,7 @@ function classifyRow(field, context) {
     return { ...field, ...values, editing: Boolean(edit),
         reason: !canEdit && info?.editable ? '変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason === '分類情報を設定できない項目です。' ? '' : info?.reason || '',
         rowClass: changed || inputErrors.length ? 'c-row-changed' : '', changed, complianceValues: compliance, unavailable: !info,
-        complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-dropdown slds-dropdown_fluid slds-dropdown_bottom c-compliance-options' : 'slds-dropdown slds-dropdown_fluid c-compliance-options',
+        complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-dropdown slds-dropdown_fluid slds-dropdown_bottom c-compliance-options slds-p-around_x-small' : 'slds-dropdown slds-dropdown_fluid c-compliance-options slds-p-around_x-small',
         complianceOptions,
         securityOptions: [{ label: '-- なし --', value: '' }, ...includeCurrentOptions(options.SecurityClassification, [original.securityClassification])],
         businessOptions: [{ label: '-- なし --', value: '' }, ...includeCurrentOptions(options.BusinessStatus, [original.businessStatus])],

@@ -2,7 +2,7 @@
 .c-heading, .c-toolbar, .c-pagination { gap: var(--slds-g-spacing-3, .75rem); }
 h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font-weight-7, 700); }
 .c-filters { gap: var(--slds-g-spacing-2, .5rem); }
-.c-toolbar-filters { margin-inline-start: auto; gap: var(--slds-g-spacing-4, 1rem); }
+.c-toolbar-filters { gap: var(--slds-g-spacing-4, 1rem); }
 .c-lookup { width: min(100%, 38rem); }
 .c-hint, .c-api { color: var(--slds-g-color-on-surface-2, #444); }
 .c-node.c-selected { background: var(--slds-g-color-info-container-1, #d8e6fe); color: var(--slds-g-color-on-info-1, #0b5cab); }
@@ -24,16 +24,15 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .c-node.c-selected .c-api { color: inherit; }
 
 /* 中央の起点を維持し、左右は読める大きさの二列一覧にする */
-.c-viewport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .5fr) minmax(0, 1fr); gap: var(--slds-g-spacing-5, 1.5rem); min-height: var(--slds-g-sizing-16, 30rem); padding: var(--slds-g-spacing-3, .75rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); background: var(--slds-g-color-surface-2, #f3f3f3); }
+.c-viewport { display: grid; grid-template-columns: minmax(0, 1fr) minmax(10rem, .5fr) minmax(0, 1fr); gap: var(--slds-g-spacing-5, 1.5rem); min-height: var(--slds-g-sizing-16, 30rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); background: var(--slds-g-color-surface-2, #f3f3f3); }
 .c-relation-column, .c-origin-column { min-width: 0; }
 .c-column-heading { min-height: var(--slds-g-sizing-8, 1.75rem); gap: var(--slds-g-spacing-2, .5rem); font-weight: var(--slds-g-font-weight-7, 700); }
 .c-card-scroll { height: min(55vh, 36rem); overflow-y: auto; scrollbar-gutter: stable; }
 .c-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--slds-g-spacing-2, .5rem); align-items: start; }
-.c-node { box-sizing: border-box; min-width: 0; min-height: calc(var(--slds-g-spacing-4, 1rem) * 6 + 1lh); text-align: left; padding: var(--slds-g-spacing-2, .5rem); padding-block-end: calc(var(--slds-g-spacing-2, .5rem) + 1lh); line-height: var(--slds-g-font-lineheight-2, 1.25); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #181818); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); cursor: pointer; gap: var(--slds-g-spacing-1, .25rem); overflow-wrap: anywhere; }
+.c-node { box-sizing: border-box; min-width: 0; min-height: calc(var(--slds-g-spacing-4, 1rem) * 6 + 1lh); text-align: left; padding-block-end: calc(var(--slds-g-spacing-2, .5rem) + 1lh); line-height: var(--slds-g-font-lineheight-2, 1.25); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #181818); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); cursor: pointer; gap: var(--slds-g-spacing-1, .25rem); overflow-wrap: anywhere; }
 /* 長い名称や関連項目は一行の省略表示にする */
 .c-node > strong, .c-node > span, .c-node > small { min-width: 0; }
 .c-node strong { font-weight: var(--slds-g-font-weight-7, 700); }
-.c-origin-column .c-node { margin-block-start: var(--slds-g-spacing-3, .75rem); }
 .c-card-scroll:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-2, #0176d3); }
 .c-card-grid-narrow { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 42rem) { .c-viewport { grid-template-columns: minmax(0, 1fr); } .c-origin-column { grid-row: 1; } }
@@ -44,7 +43,7 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .c-compliance { inline-size: var(--slds-g-sizing-14, 15rem); }
 .c-compliance-input { min-height: var(--slds-g-sizing-9, 2rem); gap: var(--slds-g-spacing-2, .5rem); text-align: left; }
 .c-compliance-value { min-width: 0; flex: 1; }
-.c-compliance-options { z-index: 1; max-height: var(--slds-g-sizing-14, 15rem); overflow-y: auto; padding: var(--slds-g-spacing-2, .5rem); border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); white-space: normal; }
+.c-compliance-options { z-index: 1; max-height: var(--slds-g-sizing-14, 15rem); overflow-y: auto; border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); white-space: normal; }
 
 /* ユーザーと公開グループを同じ検索欄から選択 */
 .c-owner-lookup { min-width: var(--slds-g-sizing-14, 15rem); }
@@ -63,9 +62,9 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 .c-lookup-input:not([readonly]):focus { border-color: var(--slds-g-color-accent-1, #0176d3); box-shadow: 0 0 3px var(--slds-g-color-accent-1, #0176d3); outline: 0; }
 
 /* CSV操作を一覧の上へまとめ、エラー全件を独立した領域で確認 */
-.c-filter-toolbar { flex-wrap: nowrap; gap: var(--slds-g-spacing-4, 1rem); margin-block: var(--slds-g-spacing-4, 1rem); }
+.c-filter-toolbar { gap: var(--slds-g-spacing-4, 1rem); }
 .c-filter-toolbar .c-filters { flex: 0 1 var(--slds-g-sizing-15, 20rem); min-width: 0; }
-.c-csv-tools { flex-wrap: nowrap; gap: var(--slds-g-spacing-3, .75rem); margin-inline-start: auto; }
+.c-csv-tools { gap: var(--slds-g-spacing-3, .75rem); }
 .c-csv-import { min-width: 0; }
 .c-csv-label { gap: var(--slds-g-spacing-1, .25rem); }
 .c-csv-errors { max-height: var(--slds-g-sizing-14, 15rem); overflow-wrap: anywhere; border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-base-1, #c9c9c9); }
@@ -88,14 +87,13 @@ h2 { font-size: var(--slds-g-font-scale-2, 1rem); font-weight: var(--slds-g-font
 }
 /* スクロール中も保存状態を画面中央に保持し、操作ロックの理由を表示 */
 .c-save-progress { inset: 0; z-index: 9000; pointer-events: none; }
-.c-save-progress-content { padding: var(--slds-g-spacing-6, 2rem); border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); box-shadow: var(--slds-g-shadow-1, 0 2px 4px rgba(0, 0, 0, .1)); font-size: var(--slds-g-font-scale-3, 1.25rem); }
+.c-save-progress-content { border-radius: var(--slds-g-radius-border-2, .25rem); background: var(--slds-g-color-surface-1, #fff); color: var(--slds-g-color-on-surface-2, #444); box-shadow: var(--slds-g-shadow-1, 0 2px 4px rgba(0, 0, 0, .1)); font-size: var(--slds-g-font-scale-3, 1.25rem); }
 .c-save-progress-spinner { height: var(--slds-g-sizing-11, 4rem); }
 /* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
 .c-page-header-row {
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-page-header-title {
-    flex: 1 1 auto;
     min-width: 0;
 }
 .c-page-header-actions {
