@@ -42,7 +42,6 @@
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-page-header-title {
-    flex: 1 1 auto;
     min-width: 0;
 }
 .c-page-header-actions {
