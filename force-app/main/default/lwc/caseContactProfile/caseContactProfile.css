@@ -3,25 +3,20 @@
 }
 
 .c-customer-card {
-    position: relative;
     min-block-size: var(--slds-g-spacing-10, 4rem);
 }
 
-.c-customer-card__divider {
-    margin-block: var(--slds-g-spacing-4, 1rem);
-}
-
-.c-customer-card__fields {
+.c-customer-card-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
 }
 
-.c-customer-card__value {
+.c-customer-card-value {
     overflow-wrap: anywhere;
 }
 
-.c-customer-card__field_full {
+.c-customer-card-field-full {
     grid-column: 1 / -1;
 }
 /* エラーの長い処理名も画面内で折り返す */
