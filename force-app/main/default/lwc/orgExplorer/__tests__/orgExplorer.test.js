@@ -178,7 +178,7 @@ it('指定した起点から始め、初期表示は有効ユーザーに絞り�
     const toolbar = element.shadowRoot.querySelector('.c-chart .c-toolbar');
     expect(toolbar.querySelector('[data-action="fit"]')).not.toBeNull();
     expect(toolbar.querySelector('.c-role-lookup c-org-explorer-search')).not.toBeNull();
-    expect(element.shadowRoot.querySelector('main > .c-search')).toBeNull();
+    expect(element.shadowRoot.querySelector('main > .search')).toBeNull();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').targetLabel).toBe('');
     await expect(element).toBeAccessible();
 });
@@ -330,13 +330,13 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
         child.key
     ]);
     expect(rolePages.mock.calls.some(([input]) => input.request.scope === 'ROLE_MEMBERS')).toBe(false);
-    expect(element.shadowRoot.querySelector('.c-member-pages')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-member-pagination')).toBeNull();
     element.shadowRoot
         .querySelector('c-org-explorer-canvas')
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: child.key } }));
     await flush();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows[0].label).toContain(first.label);
-    expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe('1 / 2');
+    expect(element.shadowRoot.querySelector('.c-member-pagination span').textContent).toBe('1 / 2');
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rowNumberOffset).toBe(0);
     element.shadowRoot.querySelector('[data-direction="next"]').click();
     await flush();
@@ -350,14 +350,14 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
     });
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows[0].label).toContain(second.label);
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rowNumberOffset).toBe(51);
-    expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe('2 / 2');
+    expect(element.shadowRoot.querySelector('.c-member-pagination span').textContent).toBe('2 / 2');
     const countBeforeSameSelection = rolePages.mock.calls.length;
     element.shadowRoot
         .querySelector('c-org-explorer-canvas')
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: child.key } }));
     await flush();
     expect(rolePages).toHaveBeenCalledTimes(countBeforeSameSelection);
-    expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe('2 / 2');
+    expect(element.shadowRoot.querySelector('.c-member-pagination span').textContent).toBe('2 / 2');
     element.shadowRoot.querySelector('[data-direction="previous"]').click();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({
@@ -376,7 +376,7 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
         .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: root.key } }));
     await flush();
     expect(element.shadowRoot.querySelector('c-org-explorer-details').rows).toEqual([]);
-    expect(element.shadowRoot.querySelector('.c-member-pages')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-member-pagination')).toBeNull();
     expect(element.shadowRoot.querySelector('[data-direction]')).toBeNull();
     await expect(element).toBeAccessible();
 });
@@ -805,7 +805,7 @@ it.each([
             .querySelector('c-org-explorer-canvas')
             .dispatchEvent(new CustomEvent('nodeselect', { detail: { key: target.key } }));
         await flush();
-        expect(element.shadowRoot.querySelector('.c-member-pages span').textContent).toBe(label);
+        expect(element.shadowRoot.querySelector('.c-member-pagination span').textContent).toBe(label);
         expect(element.shadowRoot.querySelector('[data-direction="next"]').disabled).toBe(!hasMore);
         await expect(element).toBeAccessible();
     }
@@ -1300,7 +1300,7 @@ it('標準カーソル失効時は古い一覧を消し、同じカードの再�
     const details = element.shadowRoot.querySelector('c-org-explorer-details');
     expect(details.rows).toEqual([]);
     expect(details.error).toContain('再取得');
-    expect(element.shadowRoot.querySelector('.c-member-pages')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-member-pagination')).toBeNull();
     select();
     await flush();
     expect(rolePages).toHaveBeenLastCalledWith({

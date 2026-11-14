@@ -15,8 +15,6 @@
     color: var(--slds-g-color-on-info-1, #0b5cab);
 }
 .c-select {
-    display: flex;
-    align-items: center;
     gap: var(--slds-g-spacing-2, 0.5rem);
     padding: var(--slds-g-spacing-2, 0.5rem);
     border: 0;
@@ -42,16 +40,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    overflow: hidden;
     line-height: var(--slds-g-font-lineheight-2, 1.25);
-}
-.c-subtitle {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.c-status {
-    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
 }
 button:focus-visible {
     outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-2, #0250d9);

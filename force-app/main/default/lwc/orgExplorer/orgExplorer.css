@@ -2,11 +2,6 @@
     display: block;
     color: var(--slds-g-color-on-surface-1, #181818);
 }
-main {
-    padding: var(--slds-g-spacing-4, 1rem);
-    background: transparent;
-}
-
 
 h2 {
     font-size: var(--slds-g-font-scale-2, 1rem);
@@ -14,9 +9,6 @@ h2 {
     margin-bottom: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
     gap: var(--slds-g-spacing-2, 0.5rem);
     margin-bottom: var(--slds-g-spacing-3, 0.75rem);
 }
@@ -33,9 +25,6 @@ h2 {
     gap: var(--slds-g-spacing-4, 1rem);
 }
 .c-chart {
-    position: relative;
-    display: flex;
-    flex-direction: column;
     box-sizing: border-box;
     block-size: calc(100dvh - var(--slds-g-sizing-13, 10rem) - var(--slds-g-sizing-9, 2rem));
 }
@@ -48,10 +37,7 @@ h2 {
     min-block-size: 0;
 }
 .c-toolbar {
-    display: flex;
     flex-wrap: nowrap;
-    align-items: flex-end;
-    justify-content: space-between;
     gap: var(--slds-g-spacing-4, 1rem);
     margin-bottom: var(--slds-g-spacing-3, 0.75rem);
 }
@@ -61,8 +47,6 @@ h2 {
     margin-bottom: 0;
 }
 .c-role-lookup {
-    display: flex;
-    align-items: flex-end;
     gap: var(--slds-g-spacing-2, 0.5rem);
     flex: 0 1 var(--slds-g-sizing-16, 30rem);
     min-inline-size: 0;
@@ -105,13 +89,11 @@ button:focus-visible {
 }
 .c-toggle {
     display: inline-flex;
-    align-items: center;
     gap: var(--slds-g-spacing-2, 0.5rem);
     color: inherit;
 }
 .c-toggle-track {
     display: inline-flex;
-    align-items: center;
     width: calc(var(--slds-g-sizing-6, 1.25rem) * 2);
     height: var(--slds-g-sizing-7, 1.5rem);
     padding: var(--slds-g-sizing-1, 0.125rem);
@@ -130,11 +112,8 @@ button:focus-visible {
     background: var(--slds-g-color-surface-1, #fff);
 }
 .c-loading {
-    position: absolute;
     inset-block-start: var(--slds-g-spacing-4, 1rem);
     inset-inline-end: var(--slds-g-spacing-4, 1rem);
-    display: flex;
-    align-items: center;
     pointer-events: none;
 }
 .c-spinner {
@@ -143,9 +122,9 @@ button:focus-visible {
     border: var(--slds-g-sizing-border-3, 3px) solid var(--slds-g-color-border-base-1, #c9c9c9);
     border-top-color: var(--slds-g-color-accent-2, #0176d3);
     border-radius: var(--slds-g-radius-border-circle, 100%);
-    animation: c-spin 0.8s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
-@keyframes c-spin {
+@keyframes spin {
     to {
         transform: rotate(360deg);
     }
@@ -156,7 +135,7 @@ button:focus-visible {
     }
 }
 
-.c-member-pages {
+.c-member-pagination {
     margin-top: var(--slds-g-spacing-4, 1rem);
     margin-bottom: 0;
 }
@@ -165,20 +144,13 @@ button:focus-visible {
 .c-client-error { overflow-wrap: anywhere; }
 
 .c-hierarchy-actions {
-    display: flex;
     gap: var(--slds-g-spacing-2, 0.5rem);
 }
 /* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
-.c-page-header {
-    margin-bottom: var(--slds-g-spacing-4, 1rem);
-}
 .c-page-header-row {
-    align-items: center;
-    flex-wrap: wrap;
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-page-header-title {
-    align-items: center;
     flex: 1 1 auto;
     min-width: 0;
 }
