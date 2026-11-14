@@ -113,6 +113,8 @@ export default class ObjectRecordSearch extends LightningElement {
     createLayoutResult;
     // 編集用フォームの項目と操作可否を判定する応答を保持
     editLayoutResult;
+    // 保持中の編集レイアウトが対応する取得条件を記録
+    editLayoutContext;
     // UI API wireへ渡す軽量なフォーム条件を保持
     formWireState = createFormWireState({});
     // UI API応答変更時に生成したフォーム表示状態を保持
@@ -122,6 +124,8 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // DOMプロパティの公開状態に依存せず、モーダル起動時の接続を判定
     componentConnected = false;
+    // 離脱前のレイアウト待機で復帰後にモーダルを開かない
+    connectionVersion = 0;
 
     // 再接続した画面からの明示操作を受け付ける
     connectedCallback() {
@@ -141,6 +145,8 @@ export default class ObjectRecordSearch extends LightningElement {
         try {
             // 待機解除より先に離脱を記録し、モーダル起動を防ぐ
             this.componentConnected = false;
+            // 再接続で接続フラグが戻っても古い操作を無効にする
+            this.connectionVersion += 1;
             // 待機後の接続確認でモーダル表示を中止
             this.pendingEditLayout?.();
             // 待機の参照を解放
@@ -249,6 +255,10 @@ export default class ObjectRecordSearch extends LightningElement {
         try {
             // 編集用応答だけを保存して作成用応答と混在させない
             this.editLayoutResult = result;
+            // 要求中のIDと取得済み応答のIDを混同しない
+            this.editLayoutContext = (result.data || result.error)
+                ? { objectApiName: this.layoutObjectApiName, recordTypeId: this.editRecordTypeId }
+                : undefined;
             // 編集レイアウトの取得失敗を作成レイアウトと区別
             if (result.error) { this.reportClientError(result.error, 'wiredEditLayout', 'wire'); }
             // 編集対象に対応するレイアウトが確定してからフォームを開く
@@ -798,14 +808,14 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 標準モーダルへフォームを渡し、確定した変更だけ一覧へ反映
     async openRecordForm(recordId) {
+        // 待機中に離脱した操作を再接続後へ持ち越さない
+        const connectionVersion = this.connectionVersion;
         // 呼び出し元が待機しない非同期処理もこの画面で捕捉
         try {
             // 二重起動を拒否し、標準モーダルが戻すフォーカス先のボタンは保持
             if (this.showRecordForm) {
                 return;
             }
-            // 切り替え前のレコードタイプを保持
-            const previousRecordTypeId = this.editRecordTypeId;
             // 編集対象を確定
             this.formRecordId = recordId;
             // 選択モードの項目と見出しを構築
@@ -814,15 +824,18 @@ export default class ObjectRecordSearch extends LightningElement {
             this.showRecordForm = true;
             // キーボード操作とフォーカス管理をLightningModalへ委譲
             try {
-                // 別レコードタイプの編集では新しいレイアウトの応答を待機
-                if (recordId && previousRecordTypeId !== this.editRecordTypeId) {
+                // 対象と取得済み応答が一致するまで古いレイアウトを使わない
+                if (recordId && (
+                    this.editLayoutContext?.objectApiName !== this.layoutObjectApiName ||
+                    this.editLayoutContext?.recordTypeId !== this.editRecordTypeId
+                )) {
                     // 古いレイアウトで項目と必須条件を決めない
                     await new Promise((resolve) => { this.pendingEditLayout = resolve; });
                     // 確定した編集レイアウトを表示モデルへ反映
                     this.updateFormState();
                 }
                 // 画面離脱後にモーダルを開かない
-                if (!this.componentConnected) { return; }
+                if (!this.componentConnected || connectionVersion !== this.connectionVersion) { return; }
 
                 // フォーム表示時点の設定を独立したモーダルへ渡す
                 const result = await ObjectRecordFormModal.open({

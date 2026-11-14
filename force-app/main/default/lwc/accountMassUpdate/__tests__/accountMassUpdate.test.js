@@ -294,6 +294,67 @@ describe('取引先一括更新画面', () => {
 });
 
 
+describe('選択肢の再取得', () => {
+    beforeEach(() => {
+        searchAccounts.mockResolvedValue(response);
+        LightningConfirm.open.mockResolvedValue(true);
+    });
+    afterEach(() => { document.body.replaceChildren(); jest.resetAllMocks(); });
+
+    it.each([null, record.RecordTypeId])('取得失敗後の再検索でタイプ%sの編集を復旧する', async (recordTypeId) => {
+        searchAccounts.mockResolvedValue({ ...response, records: [{ ...record, RecordTypeId: recordTypeId }] });
+        const expectedTypeId = recordTypeId || '012000000000000AAA';
+        const element = await createComponent();
+        button(element, '検索').click();
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBe(expectedTypeId);
+        getPicklistValuesByRecordType.error({ message: 'Temporary failure' });
+        await flush();
+        expect(element.shadowRoot.querySelector('[data-field="Rating"]').disabled).toBe(true);
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBeUndefined();
+        expect(element.shadowRoot.textContent).toContain('再検索して取得し直してください');
+
+        button(element, '検索').click();
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBe(expectedTypeId);
+        expect(button(element, '検索').disabled).toBe(true);
+        getPicklistValuesByRecordType.emit({ picklistFieldValues: { Rating: { values: [{ label: '高', value: 'Hot' }] } } });
+        await flush();
+        expect(element.shadowRoot.querySelector('[data-field="Rating"]').disabled).toBe(false);
+        expect(element.shadowRoot.textContent).not.toContain('一部の選択肢を取得できませんでした');
+
+        button(element, '検索').click();
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBeUndefined();
+        expect(element.shadowRoot.querySelector('[data-field="Rating"]').disabled).toBe(false);
+        await expect(element).toBeAccessible();
+    });
+
+    it('失敗したタイプだけを再取得し、再失敗しても無限に要求しない', async () => {
+        const another = { ...record, Id: '001000000000002AAA', RecordTypeId: '012000000000002AAA' };
+        searchAccounts.mockResolvedValue({ ...response, records: [record, another] });
+        const element = await createComponent();
+        button(element, '検索').click();
+        await flush();
+        getPicklistValuesByRecordType.error({ message: 'Temporary failure' });
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBe(another.RecordTypeId);
+        getPicklistValuesByRecordType.emit({ picklistFieldValues: { Rating: { values: [{ label: '高', value: 'Hot' }] } } });
+        await flush();
+        button(element, '検索').click();
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBe(record.RecordTypeId);
+        getPicklistValuesByRecordType.error({ message: 'Temporary failure' });
+        await flush();
+        expect(getPicklistValuesByRecordType.getLastConfig().recordTypeId).toBeUndefined();
+        const ratings = element.shadowRoot.querySelectorAll('[data-field="Rating"]');
+        expect(ratings[0].disabled).toBe(true);
+        expect(ratings[1].disabled).toBe(false);
+        expect(button(element, '検索').disabled).toBe(false);
+        expect(element.shadowRoot.textContent).toContain('再検索して取得し直してください');
+    });
+});
+
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
     it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
