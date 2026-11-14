@@ -22,34 +22,22 @@ h2 {
     box-sizing: border-box;
     block-size: calc(100dvh - var(--slds-g-sizing-13, 10rem) - var(--slds-g-sizing-9, 2rem));
 }
-.c-chart > h2,
-.c-chart > .c-toolbar {
-    flex: 0 0 auto;
-}
 .c-chart > c-org-explorer-canvas {
-    flex: 1 1 auto;
     min-block-size: 0;
 }
 .c-toolbar {
-    flex-wrap: nowrap;
     gap: var(--slds-g-spacing-4, 1rem);
-}
-.c-zoom {
-    flex: 0 0 auto;
-    flex-wrap: nowrap;
 }
 .c-role-lookup {
     gap: var(--slds-g-spacing-2, 0.5rem);
     flex: 0 1 var(--slds-g-sizing-16, 30rem);
     min-inline-size: 0;
-    margin-inline-start: auto;
 }
 .c-role-lookup > c-org-explorer-search {
     flex: 1 1 auto;
     min-inline-size: 0;
 }
 .c-role-lookup > .c-hierarchy-actions {
-    flex: 0 0 auto;
     white-space: nowrap;
 }
 
@@ -76,7 +64,6 @@ h2 {
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-page-header-title {
-    flex: 1 1 auto;
     min-width: 0;
 }
 .c-page-header-actions {

@@ -1,7 +1,7 @@
 <template>
     <article class={node.cardClass}>
         <button
-            class="c-select slds-grid slds-grid_vertical-align-center"
+            class="c-select slds-p-around_x-small slds-grid slds-grid_vertical-align-center"
             type="button"
             aria-label={node.ariaLabel}
             aria-pressed={node.selected}
@@ -28,7 +28,7 @@
                     <span lwc:if={node.showRole} class="slds-truncate" title={node.roleText}>{node.roleLabel}：{node.roleText}</span>
                 </template>
                 <span lwc:else class="slds-truncate" title={node.titleText}>{node.titleText}</span>
-                <span class="c-status slds-text-body_small">{node.memberCountText}</span>
+                <span class="slds-text-body_small">{node.memberCountText}</span>
             </span>
         </button>
     </article>

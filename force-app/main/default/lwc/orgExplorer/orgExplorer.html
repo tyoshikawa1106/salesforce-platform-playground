@@ -16,7 +16,7 @@
     <main class="slds-p-around_medium">
         <header class="slds-page-header slds-m-bottom_medium">
             <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
-                <div class="slds-media c-page-header-title slds-grid_vertical-align-center">
+                <div class="slds-media slds-col c-page-header-title slds-grid_vertical-align-center">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:hierarchy" alternative-text="組織エクスプローラー" size="medium"></lightning-icon>
                     </div>
@@ -62,14 +62,14 @@
         <template lwc:if={error}><p role="alert" class="c-error slds-p-around_small slds-m-bottom_small">{error}</p></template>
         <div class="c-layout">
             <section class="c-panel slds-box slds-theme_default c-chart slds-is-relative slds-grid slds-grid_vertical" aria-label="組織図">
-                <h2 class="slds-m-bottom_small">組織図</h2>
+                <h2 class="slds-no-flex slds-m-bottom_small">組織図</h2>
                 <template lwc:if={busy}>
                     <div class="c-loading slds-is-absolute">
                         <lightning-spinner alternative-text="読み込み中…" size="small" variant="brand"></lightning-spinner>
                     </div>
                 </template>
-                <div class="c-toolbar slds-m-bottom_small slds-grid slds-grid_vertical-align-end slds-grid_align-spread">
-                    <div class="c-controls c-zoom slds-grid slds-grid_vertical-align-center slds-wrap" role="group" aria-label="組織図の表示操作">
+                <div class="c-toolbar slds-no-flex slds-m-bottom_small slds-grid slds-grid_vertical-align-end slds-grid_align-spread">
+                    <div class="c-controls c-zoom slds-no-flex slds-grid slds-grid_vertical-align-center" role="group" aria-label="組織図の表示操作">
                         <lightning-button-icon data-action="out" icon-name="utility:zoomout" alternative-text="縮小" title="縮小" onclick={handleViewport}></lightning-button-icon>
                         <lightning-button-icon data-action="in" icon-name="utility:zoomin" alternative-text="拡大" title="拡大" onclick={handleViewport}></lightning-button-icon>
                         <lightning-button
@@ -81,7 +81,7 @@
                         ></lightning-button>
                         <lightning-button type="button" data-action="fit" onclick={handleViewport} label="全体を表示"></lightning-button>
                     </div>
-                    <section class="c-role-lookup slds-grid slds-grid_vertical-align-end" aria-label={lookupSectionLabel}>
+                    <section class="c-role-lookup slds-col_bump-left slds-grid slds-grid_vertical-align-end" aria-label={lookupSectionLabel}>
                         <c-org-explorer-search
                             mode={mode}
                             term={term}
@@ -94,7 +94,7 @@
                             onsearchchange={handleSearchChange}
                             ontargetpick={handleTargetPick}
                         ></c-org-explorer-search>
-                        <div class="c-hierarchy-actions slds-grid">
+                        <div class="c-hierarchy-actions slds-no-flex slds-grid">
                             <template lwc:if={roleSelected}>
                                 <lightning-button type="button" data-role-hierarchy-toggle data-hierarchy-direction="parent" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle} label="上位ロール"></lightning-button>
                                 <lightning-button type="button" data-role-hierarchy-toggle data-hierarchy-direction="children" disabled={hierarchyDisabled} aria-haspopup="dialog" onclick={handleHierarchyToggle} label="下位ロール"></lightning-button>
@@ -102,7 +102,7 @@
                         </div>
                     </section>
                 </div>
-                <c-org-explorer-canvas model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
+                <c-org-explorer-canvas class="slds-col" model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
             </section>
             <section class="c-panel slds-box slds-theme_default" aria-label={memberListLabel}>
                 <c-org-explorer-details

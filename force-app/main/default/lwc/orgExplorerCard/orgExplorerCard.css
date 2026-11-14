@@ -16,7 +16,6 @@
 }
 .c-select {
     gap: var(--slds-g-spacing-2, 0.5rem);
-    padding: var(--slds-g-spacing-2, 0.5rem);
     border: 0;
     text-align: left;
     background: transparent;

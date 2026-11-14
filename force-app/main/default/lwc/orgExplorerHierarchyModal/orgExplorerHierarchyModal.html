@@ -11,7 +11,7 @@
                                 <p>{child.label}</p>
                                 <p class="slds-text-body_small slds-text-color_weak">{child.summary}</p>
                             </div>
-                            <button type="button" class="slds-button slds-button_neutral slds-m-left_small" aria-label={child.selectLabel} data-key={child.key} onclick={handleSelect}>選択</button>
+                            <lightning-button class="slds-m-left_small" label="選択" aria-label={child.selectLabel} data-key={child.key} onclick={handleSelect}></lightning-button>
                         </li>
                     </template>
                 </ul>
