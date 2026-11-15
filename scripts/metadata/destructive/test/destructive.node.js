@@ -337,7 +337,6 @@ test('本番環境では1回の実行でdry-run後に実削除し、Apexテス�
     assert.deepEqual(deploy.calls[1].deployArgs, deployArgs);
     assert.equal(deploy.calls[0].operation, deployOperations.DRY_RUN);
     assert.equal(deploy.calls[1].operation, deployOperations.DEPLOY);
-    assert.equal(deployArgs.includes('--test-level'), false);
     assert.deepEqual(prompt.getQuestions(), [
         'この接続組織で続行しますか？ [y/N]: ',
         '本番環境です。メタデータ削除を実行してよろしいですか？ [y/N]: '

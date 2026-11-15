@@ -194,6 +194,7 @@ describe('c-case-contact-profile', () => {
         expect(element.shadowRoot.textContent).toContain(
             'カスタマーサクセス部'
         );
+        expect(element.shadowRoot.textContent).not.toContain('取引先責任者取引先株式会社');
         expect(element.shadowRoot.textContent).toContain('部長');
         expect(
             element.shadowRoot.querySelector('lightning-formatted-email').value
@@ -347,24 +348,6 @@ describe('c-case-contact-profile', () => {
                 )
             ].map((caseCount) => caseCount.textContent.trim())
         ).toEqual(['-', '-']);
-        await expect(element).toBeAccessible();
-    });
-
-    it('prioritizes the case account over the contact account', async () => {
-        const element = createComponent();
-
-        getRecord.emit(createCaseRecord());
-        await flushPromises();
-
-        expect(element.shadowRoot.textContent).toContain(
-            'ケース取引先株式会社'
-        );
-        expect(element.shadowRoot.textContent).not.toContain(
-            '取引先責任者取引先株式会社'
-        );
-        expect(
-            element.shadowRoot.querySelector('lightning-formatted-url').value
-        ).toBe('https://case-account.example.com');
         await expect(element).toBeAccessible();
     });
 

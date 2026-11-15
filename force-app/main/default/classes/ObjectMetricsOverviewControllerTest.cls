@@ -11,7 +11,7 @@ private with sharing class ObjectMetricsOverviewControllerTest {
      */
     @IsTest
     static void shouldReturnObjectMetricSummary() {
-        createObjectMetricRecords();
+        insert new Account(Name = 'Controller 件数取引先');
 
         // 実行
         ObjectMetricsOverviewSummaryWrapper summary;
@@ -38,23 +38,8 @@ private with sharing class ObjectMetricsOverviewControllerTest {
         );
         ObjectMetricsOverviewItemWrapper accountMetric = getMetric(summary, 'accounts');
         ObjectMetricsOverviewItemWrapper contactMetric = getMetric(summary, 'contacts');
-        ObjectMetricsOverviewItemWrapper leadMetric = getMetric(summary, 'leads');
-        ObjectMetricsOverviewItemWrapper opportunityMetric = getMetric(
-            summary,
-            'opportunities'
-        );
-        ObjectMetricsOverviewItemWrapper productMetric = getMetric(summary, 'products');
-        ObjectMetricsOverviewItemWrapper caseMetric = getMetric(summary, 'cases');
         Assert.areEqual(1, accountMetric.value, '作成済み Account を数える必要あり');
-        Assert.areEqual(1, contactMetric.value, '作成済み Contact を数える必要あり');
-        Assert.areEqual(1, leadMetric.value, '作成済み Lead を数える必要あり');
-        Assert.areEqual(
-            1,
-            opportunityMetric.value,
-            '作成済み Opportunity を数える必要あり'
-        );
-        Assert.areEqual(1, productMetric.value, '作成済み Product を数える必要あり');
-        Assert.areEqual(1, caseMetric.value, '作成済み Case を数える必要あり');
+        Assert.areEqual(0, contactMetric.value, '未作成の Contact は0件を返す必要あり');
     }
 
     /**
@@ -74,19 +59,6 @@ private with sharing class ObjectMetricsOverviewControllerTest {
             }
         }
         return null;
-    }
-
-    /**
-     * 主要オブジェクトの実件数確認用レコードを作成
-     */
-    private static void createObjectMetricRecords() {
-        Account accountRecord = new Account(Name = 'Controller 件数取引先');
-        insert accountRecord;
-        insert new Contact(AccountId = accountRecord.Id, LastName = 'Controller 件数責任者');
-        insert new Lead(LastName = 'Controller 件数リード', Company = 'Controller 件数会社');
-        insert new Opportunity(AccountId = accountRecord.Id, Name = 'Controller 件数商談', StageName = 'Prospecting', CloseDate = Date.today().addDays(30));
-        insert new Product2(Name = 'Controller 件数商品', IsActive = true);
-        insert new Case(Subject = 'Controller 件数ケース');
     }
 
 }

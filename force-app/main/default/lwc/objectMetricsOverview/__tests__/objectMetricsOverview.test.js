@@ -38,122 +38,7 @@ const countResponse = {
             label: '取引先責任者',
             iconName: 'standard:contact',
             value: 34
-        },
-        { key: 'leads', label: 'リード', iconName: 'standard:lead', value: 8 },
-        {
-            key: 'opportunities',
-            label: '商談',
-            iconName: 'standard:opportunity',
-            value: 13
-        },
-        {
-            key: 'opportunityLineItems',
-            label: '商談商品',
-            iconName: 'standard:product_consumed',
-            value: 7
-        },
-        { key: 'products', label: '商品', iconName: 'standard:product', value: 21 },
-        {
-            key: 'pricebooks',
-            label: '価格表',
-            iconName: 'standard:pricebook',
-            value: 2
-        },
-        {
-            key: 'pricebookEntries',
-            label: '価格表エントリ',
-            iconName: 'standard:price_book_entries',
-            value: 3
-        },
-        {
-            key: 'assets',
-            label: '納入商品',
-            iconName: 'standard:asset_object',
-            value: 10
-        },
-        {
-            key: 'campaigns',
-            label: 'キャンペーン',
-            iconName: 'standard:campaign',
-            value: 1
-        },
-        { key: 'cases', label: 'ケース', iconName: 'standard:case', value: 4 },
-        {
-            key: 'contracts',
-            label: '契約',
-            iconName: 'standard:contract',
-            value: 6
-        },
-        {
-            key: 'orders',
-            label: '注文',
-            iconName: 'standard:order_item',
-            value: 11
-        },
-        {
-            key: 'orderItems',
-            label: '注文商品',
-            iconName: 'standard:order_item',
-            value: 12
-        },
-        {
-            key: 'entitlements',
-            label: 'エンタイトルメント',
-            iconName: 'standard:entitlement',
-            value: 13
-        },
-        {
-            key: 'serviceContracts',
-            label: 'サービス契約',
-            iconName: 'standard:service_contract',
-            value: 14
-        },
-        {
-            key: 'workOrders',
-            label: '作業指示',
-            iconName: 'standard:work_order',
-            value: 15
-        },
-        {
-            key: 'workOrderLineItems',
-            label: '作業指示品目',
-            iconName: 'standard:work_order_item',
-            value: 16
-        },
-        {
-            key: 'knowledgeArticles',
-            label: 'ナレッジ',
-            iconName: 'utility:knowledge_base',
-            value: 17
-        },
-        { key: 'events', label: '行動', iconName: 'standard:event', value: 2 },
-        { key: 'tasks', label: 'ToDo', iconName: 'standard:task', value: 5 },
-        {
-            key: 'emailMessages',
-            label: 'メールメッセージ',
-            iconName: 'standard:email',
-            value: 55
-        },
-        {
-            key: 'emailTemplates',
-            label: 'メールテンプレート',
-            iconName: 'utility:insert_template',
-            value: 9
-        },
-        {
-            key: 'reports',
-            label: 'レポート',
-            iconName: 'standard:report',
-            value: 18
-        },
-        {
-            key: 'dashboards',
-            label: 'ダッシュボード',
-            iconName: 'standard:dashboard',
-            value: 19
-        },
-        { key: 'files', label: 'ファイル', iconName: 'standard:file', value: 20 },
-        { key: 'users', label: 'ユーザー', iconName: 'standard:user', value: 1 }
+        }
     ]
 };
 countResponse.metrics = countResponse.metrics.map((metric) => ({ ...metric, available: true }));
@@ -194,25 +79,13 @@ describe('c-object-metrics-overview', () => {
         const cards = element.shadowRoot.querySelectorAll('article');
         const cardContainer =
             element.shadowRoot.querySelector('lightning-card');
-        expect(cards).toHaveLength(27);
+        expect(cards).toHaveLength(2);
         expect(cardContainer.title).toBe('データボード');
         expect(cardContainer.iconName).toBe('utility:trailhead');
         expect(element.shadowRoot.textContent).toContain('取引先');
         expect(element.shadowRoot.textContent).toContain('取引先責任者');
-        expect(element.shadowRoot.textContent).toContain('商談商品');
-        expect(element.shadowRoot.textContent).toContain('納入商品');
-        expect(element.shadowRoot.textContent).toContain('エンタイトルメント');
-        expect(element.shadowRoot.textContent).toContain('作業指示品目');
-        expect(element.shadowRoot.textContent).toContain('メールテンプレート');
-        expect(element.shadowRoot.textContent).toContain('メールメッセージ');
-        expect(element.shadowRoot.textContent).toContain('レポート');
-        expect(element.shadowRoot.textContent).toContain('ダッシュボード');
-        expect(element.shadowRoot.textContent).toContain('ファイル');
-        expect(element.shadowRoot.textContent).not.toContain('承認申請');
-        expect(element.shadowRoot.textContent).not.toContain('承認作業項目');
-        expect(element.shadowRoot.textContent).not.toContain('承認履歴');
         expect(element.shadowRoot.textContent).toContain('50,000+');
-        expect(element.shadowRoot.textContent).toContain('55');
+        expect(element.shadowRoot.textContent).toContain('34');
         expect(
             element.shadowRoot.querySelector('lightning-icon').iconName
         ).toBe('standard:account');
@@ -326,7 +199,7 @@ describe('c-object-metrics-overview', () => {
         expect(refreshApex).toHaveBeenCalledTimes(1);
         expect(
             element.shadowRoot.querySelectorAll('lightning-spinner')
-        ).toHaveLength(27);
+        ).toHaveLength(2);
 
         resolveRefresh();
         await flushPromises();

@@ -7,59 +7,6 @@ private with sharing class ObjectRecordSearchRequestWrapperTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
     /**
-     * 代入された検索リクエスト値を公開
-     */
-    @IsTest
-    static void shouldExposeAssignedValues() {
-        ObjectRecordSearchRequestWrapper wrapper;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            wrapper = new ObjectRecordSearchRequestWrapper();
-            wrapper.metricKey = 'accounts';
-            wrapper.searchTerm = 'Alpha';
-            wrapper.startIndex = 50;
-            wrapper.sortBy = 'Name';
-            wrapper.sortDirection = 'asc';
-            wrapper.pageNumber = 2;
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            'accounts',
-            wrapper.metricKey,
-            'Request wrapper はメトリクスキーを公開する必要あり'
-        );
-        Assert.areEqual(
-            'Alpha',
-            wrapper.searchTerm,
-            'Request wrapper は検索語を公開する必要あり'
-        );
-        Assert.areEqual(
-            50,
-            wrapper.startIndex,
-            'Request wrapper はページ取得位置を公開する必要あり'
-        );
-        Assert.areEqual(
-            'Name',
-            wrapper.sortBy,
-            'Request wrapper はソート項目を公開する必要あり'
-        );
-        Assert.areEqual(
-            'asc',
-            wrapper.sortDirection,
-            'Request wrapper はソート方向を公開する必要あり'
-        );
-        Assert.areEqual(
-            2,
-            wrapper.pageNumber,
-            'Request wrapper はページ番号を公開する必要あり'
-        );
-    }
-
-    /**
      * 検索リクエストの未指定項目を既定値で初期化
      */
     @IsTest

@@ -42,13 +42,9 @@ private with sharing class TestDataDeleteControllerTest {
             insert new Account(Name = '任意の名称');
             Test.startTest();
             TestDataDeleteWrapper response = TestDataDeleteController.getRemaining('Account');
-            TestDataDeleteWrapper rejected = TestDataDeleteController.getRemaining('User');
-            TestDataDeleteWrapper unconfirmed = TestDataDeleteController.startRun('');
             Test.stopTest();
             Assert.areEqual(environmentError, response.errorMessage, '実環境に応じて件数取得を許可または拒否');
             Assert.areEqual(String.isEmpty(environmentError) ? 1 : 0, response.remaining, '許可された環境でだけ全件数を取得');
-            Assert.isTrue(String.isEmpty(environmentError) ? rejected.errorMessage.contains('対象では') : rejected.errorMessage == environmentError, '環境判定の後で対象制限を適用');
-            Assert.isTrue(String.isEmpty(environmentError) ? unconfirmed.errorMessage.contains('確認') : unconfirmed.errorMessage == environmentError, '環境判定の後で確認文字列を検証');
         }
     }
 

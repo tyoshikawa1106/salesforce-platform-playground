@@ -200,24 +200,16 @@ test('取得対象metadata typeがないmanifestを検出する', () => {
 test('分割manifestのAPI version差を検出する', () => {
     const mismatchedApiVersion = `${Number.parseInt(projectConfig.sourceApiVersion, 10) - 1}.0`;
 
-    // 1件だけ異なるAPI versionを持つ分割manifest入力を作る。
-    const splitSources = manifests.map((manifest) => {
-        const source = fs.readFileSync(path.join(repoRoot, manifest), 'utf8');
-        return {
-            label: manifest,
-            source:
-                manifest === manifests[0]
-                    ? source.replace(
-                          `<version>${projectConfig.sourceApiVersion}</version>`,
-                          `<version>${mismatchedApiVersion}</version>`
-                      )
-                    : source
-        };
-    });
+    const splitSources = [
+        {
+            label: 'version-mismatch.xml',
+            source: `<Package xmlns="http://soap.sforce.com/2006/04/metadata"><types><members>*</members><name>ApexClass</name></types><version>${mismatchedApiVersion}</version></Package>`
+        }
+    ];
 
     // 不一致のmanifestとversionを取得開始前に検出する。
     assert.throws(() => validateManifestDefinitions(splitSources, projectConfig.sourceApiVersion), {
-        message: `manifest/retrieve-profile.xmlのAPI versionがsfdx-project.jsonと一致しません: ${mismatchedApiVersion} / ${projectConfig.sourceApiVersion}`
+        message: `version-mismatch.xmlのAPI versionがsfdx-project.jsonと一致しません: ${mismatchedApiVersion} / ${projectConfig.sourceApiVersion}`
     });
 });
 
