@@ -6,7 +6,10 @@
                 <div class={containerClass}>
                     <div class={comboboxClass}>
                         <template lwc:if={selectedTarget}>
-                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right">
+                            <div
+                                class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right"
+                                role="none"
+                            >
                                 <span class="slds-icon_container slds-combobox__input-entity-icon">
                                     <lightning-icon
                                         icon-name={lookupIcon}
@@ -31,23 +34,23 @@
                                     onclick={handleSelectedOpen}
                                     onkeydown={handleKeyDown}
                                 />
-                                <button
-                                    class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                <lightning-button-icon
+                                    class="slds-input__icon slds-input__icon_right"
                                     type="button"
-                                    aria-label={clearLabel}
                                     title="選択を解除"
                                     onclick={handleClear}
-                                >
-                                    <lightning-icon
-                                        icon-name="utility:close"
-                                        size="x-small"
-                                        alternative-text="選択を解除"
-                                    ></lightning-icon>
-                                </button>
+                                    icon-name="utility:close"
+                                    variant="bare"
+                                    size="medium"
+                                    alternative-text={clearLabel}
+                                ></lightning-button-icon>
                             </div>
                         </template>
                         <template lwc:else>
-                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                            <div
+                                class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                role="none"
+                            >
                                 <input
                                     id="role-search"
                                     class="slds-input slds-combobox__input"
@@ -107,15 +110,15 @@
                                                         alternative-text={entityLabel}
                                                     ></lightning-icon
                                                 ></span>
-                                                <span class="slds-media__body">
+                                                <span class="slds-media__body slds-grid slds-grid_vertical">
                                                     <span
-                                                        class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show"
+                                                        class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show"
                                                         title={hit.label}
                                                         >{hit.label}</span
                                                     >
                                                     <template lwc:if={hit.description}>
                                                         <span
-                                                            class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-text-body_small slds-text-color_weak slds-show"
+                                                            class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-text-body_small slds-text-color_weak slds-show"
                                                             title={hit.description}
                                                             >{hit.description}</span
                                                         >

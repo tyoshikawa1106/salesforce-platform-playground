@@ -7,7 +7,7 @@ function createLookup() {
     return element;
 }
 const flush = () => Promise.resolve();
-afterEach(() => { document.body.replaceChildren(); });
+afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
 it('検索と候補選択を値だけのイベントで親へ通知する', async () => {
     const element = createLookup();
     const change = jest.fn();
@@ -45,7 +45,45 @@ it('選択済みでは検索せず、解除要求だけを親へ通知する', a
     element.addEventListener('clear', clear);
     await flush();
     expect(element.shadowRoot.querySelector('input').readOnly).toBe(true);
-    element.shadowRoot.querySelector('button').click();
+    element.shadowRoot.querySelector('lightning-button-icon').click();
     expect(clear).toHaveBeenCalledTimes(1);
     await expect(element).toBeAccessible();
+});
+
+it('SLDSの自然な行高を親へ通知し、親のスクロール位置を適用する', async () => {
+    const element = createLookup();
+    const scroll = jest.fn();
+    element.addEventListener('candidatescroll', scroll);
+    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ height: 41.996 });
+    element.candidatesOpen = true;
+    element.candidateView = { items: [{ value: 'Account', label: '取引先', domId: 'account-option', position: 1, total: 1 }], topStyle: '', bottomStyle: '' };
+    await flush();
+    expect(scroll.mock.calls[0][0].detail.rowHeight).toBe(41.996);
+    element.candidateRowHeight = 41.996;
+    element.candidateScrollTop = 83.972;
+    element.candidateView = { ...element.candidateView };
+    await flush();
+    expect(element.shadowRoot.querySelector('[role="listbox"]').scrollTop).toBe(83.972);
+    expect(scroll).toHaveBeenCalledTimes(1);
+});
+
+it('選択済みのDeleteだけが解除を要求し、IME変換中と無効時は値を維持する', async () => {
+    const element = createLookup();
+    element.selected = { apiName: 'Account' };
+    const clear = jest.fn();
+    const search = jest.fn();
+    element.addEventListener('clear', clear);
+    element.addEventListener('searchkey', search);
+    await flush();
+    const input = element.shadowRoot.querySelector('input');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', isComposing: true }));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' }));
+    expect(clear).not.toHaveBeenCalled();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    expect(clear).toHaveBeenCalledTimes(1);
+    expect(search).not.toHaveBeenCalled();
+    element.disabled = true;
+    await flush();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+    expect(clear).toHaveBeenCalledTimes(1);
 });

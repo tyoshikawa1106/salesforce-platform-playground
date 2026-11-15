@@ -89,6 +89,7 @@
                         active-object-option-id={activeObjectOptionId}
                         candidate-view={candidateView}
                         candidate-scroll-top={candidateScrollTop}
+                            candidate-row-height={candidateRowHeight}
                         onsearchchange={handleSearch}
                         onlookupopen={handleSearchClick}
                         onsearchkey={handleSearchKey}
@@ -379,210 +380,249 @@
                                     <template lwc:if={isClassify}>
                                         <td class="c-classify-cell" aria-disabled={field.unavailable}>
                                             <template lwc:if={field.editing}>
-                                                <div
-                                                    class="c-compliance slds-is-relative"
-                                                    data-field={field.apiName}
-                                                    onfocusout={handleComplianceBlur}
-                                                    onkeydown={handleComplianceKeydown}
-                                                >
-                                                    <button
-                                                        type="button"
-                                                        class="slds-input c-compliance-input slds-grid slds-grid_vertical-align-center slds-grid_align-spread"
-                                                        aria-label="コンプライアンス分類"
-                                                        aria-haspopup="dialog"
-                                                        aria-expanded={field.complianceOpen}
-                                                        aria-controls={field.compliancePopupId}
-                                                        title={field.complianceLabel}
+                                                    <div
+                                                        class={field.complianceComboboxClass}
                                                         data-field={field.apiName}
-                                                        onclick={handleComplianceToggle}
-                                                        disabled={busy}
+                                                        onfocusout={handleComplianceBlur}
+                                                        onkeydown={handleComplianceKeydown}
                                                     >
-                                                        <span class="slds-truncate c-compliance-value">
-                                                            {field.complianceLabel}
-                                                        </span>
-                                                        <lightning-icon
-                                                            icon-name="utility:down"
-                                                            alternative-text="候補を開く"
-                                                            size="xx-small"
-                                                        ></lightning-icon>
-                                                    </button>
-                                                    <template lwc:if={field.complianceOpen}>
                                                         <div
-                                                            class={field.compliancePopupClass}
-                                                            onmousedown={handleCompliancePointerDown}
-                                                            id={field.compliancePopupId}
-                                                            role="dialog"
-                                                            aria-label="コンプライアンス分類の選択"
+                                                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                                            role="none"
                                                         >
-                                                            <lightning-checkbox-group
-                                                                label="コンプライアンス分類"
-                                                                options={field.complianceOptions}
-                                                                value={field.complianceValues}
+                                                            <button
+                                                                type="button"
+                                                                role="combobox"
+                                                                class="slds-input_faux slds-combobox__input"
+                                                                aria-label="コンプライアンス分類"
+                                                                aria-haspopup="dialog"
+                                                                aria-expanded={field.complianceOpen}
+                                                                aria-controls={field.compliancePopupId}
+                                                                title={field.complianceLabel}
                                                                 data-field={field.apiName}
-                                                                data-property="complianceGroup"
-                                                                onchange={handleClassifyChange}
+                                                                onclick={handleComplianceToggle}
                                                                 disabled={busy}
-                                                            ></lightning-checkbox-group>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                            <template lwc:else>{field.complianceLabel}</template>
-                                        </td>
-                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
-                                            <template lwc:if={field.editing}>
-                                                <lightning-combobox
-                                                    variant="label-hidden"
-                                                    placeholder=" "
-                                                    label="データ機密度"
-                                                    dropdown-alignment="auto"
-                                                    options={field.securityOptions}
-                                                    value={field.securityInputValue}
-                                                    data-field={field.apiName}
-                                                    data-property="securityClassification"
-                                                    onchange={handleClassifyChange}
-                                                    disabled={busy}
-                                                ></lightning-combobox>
-                                            </template>
-                                            <template lwc:else>{field.securityLabel}</template>
-                                        </td>
-                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
-                                            <template lwc:if={field.editing}>
-                                                <lightning-combobox
-                                                    variant="label-hidden"
-                                                    placeholder=" "
-                                                    label="項目の利用状況"
-                                                    dropdown-alignment="auto"
-                                                    options={field.businessOptions}
-                                                    value={field.businessInputValue}
-                                                    data-field={field.apiName}
-                                                    data-property="businessStatus"
-                                                    onchange={handleClassifyChange}
-                                                    disabled={busy}
-                                                ></lightning-combobox>
-                                            </template>
-                                            <template lwc:else>{field.businessLabel}</template>
-                                        </td>
-                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
-                                            <template lwc:if={field.editing}>
-                                                <div
-                                                    class="c-owner-lookup slds-is-relative"
-                                                    data-field={field.apiName}
-                                                    onfocusout={handleOwnerBlur}
-                                                >
-                                                    <div class={field.ownerContainerClass}>
-                                                        <div
-                                                            class={field.ownerComboboxClass}
-                                                        >
-                                                            <div
-                                                                class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
                                                             >
-                                                                <template lwc:if={field.ownerSelected}>
-                                                                    <input
-                                                                        class="c-lookup-input slds-input slds-combobox__input slds-combobox__input-value"
-                                                                        type="text"
-                                                                        readonly
-                                                                        role="combobox"
-                                                                        aria-readonly="true"
-                                                                        aria-label="データ所有者"
-                                                                        aria-expanded="false"
-                                                                        aria-haspopup="listbox"
-                                                                        value={field.ownerLabel}
-                                                                        disabled={busy}
-                                                                    />
-                                                                    <button
-                                                                        class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-                                                                        type="button"
-                                                                        aria-label="データ所有者の選択を解除"
-                                                                        title="選択を解除"
-                                                                        data-field={field.apiName}
-                                                                        onclick={handleOwnerClear}
-                                                                        disabled={busy}
-                                                                    >
-                                                                        <lightning-icon
-                                                                            icon-name="utility:close"
-                                                                            size="x-small"
-                                                                            alternative-text="選択を解除"
-                                                                        ></lightning-icon>
-                                                                    </button>
-                                                                </template>
-                                                                <template lwc:else>
-                                                                    <input
-                                                                        class="c-lookup-input slds-input slds-combobox__input"
-                                                                        type="text"
-                                                                        role="combobox"
-                                                                        aria-label="データ所有者"
-                                                                        aria-autocomplete="list"
-                                                                        aria-expanded={field.ownerOpen}
-                                                                        aria-haspopup="listbox"
-                                                                        aria-controls={field.ownerListId}
-                                                                        aria-activedescendant={field.ownerActiveId}
-                                                                        autocomplete="off"
-                                                                        value={field.ownerSearch}
-                                                                        placeholder=""
-                                                                        data-field={field.apiName}
-                                                                        oninput={handleOwnerSearch}
-                                                                        onclick={handleOwnerSearch}
-                                                                        onkeydown={handleOwnerKeydown}
-                                                                        disabled={busy}
-                                                                    />
-                                                                    <lightning-icon
-                                                                        class="slds-input__icon slds-input__icon_right"
-                                                                        icon-name="utility:search"
-                                                                        size="x-small"
-                                                                        alternative-text="検索"
-                                                                    ></lightning-icon>
-                                                                </template>
-                                                            </div>
-                                                            <template lwc:if={field.ownerOpen}>
-                                                                <div
-                                                                    class="slds-dropdown slds-dropdown_fluid c-owner-options"
-                                                                    role="listbox"
-                                                                    id={field.ownerListId}
-                                                                    aria-label="所有者候補"
+                                                                <span class="slds-truncate"
+                                                                    >{field.complianceLabel}</span
                                                                 >
-                                                                    <ul
-                                                                        class="slds-listbox slds-listbox_vertical"
-                                                                        role="presentation"
-                                                                    >
-                                                                        <template
-                                                                            for:each={field.ownerCandidates}
-                                                                            for:item="owner"
+                                                            </button>
+                                                            <lightning-icon
+                                                                class="slds-input__icon slds-input__icon_right"
+                                                                icon-name="utility:down"
+                                                                alternative-text="候補を開く"
+                                                                size="x-small"
+                                                            ></lightning-icon>
+                                                        </div>
+                                                        <template lwc:if={field.complianceOpen}>
+                                                            <div
+                                                                class={field.compliancePopupClass}
+                                                                onmousedown={handleCompliancePointerDown}
+                                                                id={field.compliancePopupId}
+                                                                role="dialog"
+                                                                aria-label="コンプライアンス分類の選択"
+                                                            >
+                                                                <div
+                                                                    class="slds-popover__body slds-popover__body_small"
+                                                                >
+                                                                    <lightning-checkbox-group
+                                                                        label="コンプライアンス分類"
+                                                                        options={field.complianceOptions}
+                                                                        value={field.complianceValues}
+                                                                        data-field={field.apiName}
+                                                                        data-property="complianceGroup"
+                                                                        onchange={handleClassifyChange}
+                                                                        disabled={busy}
+                                                                    ></lightning-checkbox-group>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <template lwc:else>{field.complianceLabel}</template>
+                                            </td>
+                                            <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                                <template lwc:if={field.editing}>
+                                                    <lightning-combobox
+                                                        variant="label-hidden"
+                                                        placeholder=" "
+                                                        label="データ機密度"
+                                                        dropdown-alignment="auto"
+                                                        options={field.securityOptions}
+                                                        value={field.securityInputValue}
+                                                        data-field={field.apiName}
+                                                        data-property="securityClassification"
+                                                        onchange={handleClassifyChange}
+                                                        disabled={busy}
+                                                    ></lightning-combobox>
+                                                </template>
+                                                <template lwc:else>{field.securityLabel}</template>
+                                            </td>
+                                            <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                                <template lwc:if={field.editing}>
+                                                    <lightning-combobox
+                                                        variant="label-hidden"
+                                                        placeholder=" "
+                                                        label="項目の利用状況"
+                                                        dropdown-alignment="auto"
+                                                        options={field.businessOptions}
+                                                        value={field.businessInputValue}
+                                                        data-field={field.apiName}
+                                                        data-property="businessStatus"
+                                                        onchange={handleClassifyChange}
+                                                        disabled={busy}
+                                                    ></lightning-combobox>
+                                                </template>
+                                                <template lwc:else>{field.businessLabel}</template>
+                                            </td>
+                                            <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                                <template lwc:if={field.editing}>
+                                                    <div
+                                                        class="c-owner-lookup slds-is-relative"
+                                                        data-field={field.apiName}
+                                                        onfocusout={handleOwnerBlur}
+                                                    >
+                                                        <div class={field.ownerContainerClass}>
+                                                            <div class={field.ownerComboboxClass}>
+                                                                <div class={field.ownerFormClass} role="none">
+                                                                    <template lwc:if={field.ownerSelected}>
+                                                                        <span
+                                                                            class="slds-icon_container slds-combobox__input-entity-icon"
                                                                         >
-                                                                            <li key={owner.value} role="presentation">
-                                                                                <div
-                                                                                    class={owner.optionClass}
-                                                                                    role="option"
-                                                                                    id={owner.id}
-                                                                                    aria-selected={owner.selected}
-                                                                                    data-field={field.apiName}
-                                                                                    data-value={owner.value}
-                                                                                    onmousedown={handleOwnerPointerDown}
-                                                                                    onclick={handleOwnerSelect}
-                                                                                >
-                                                                                    <span class="slds-media__body">
-                                                                                        <span class="c-candidate-line slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show" title={owner.label}>{owner.label}</span>
-                                                                                        <span class="c-candidate-line slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show" title={owner.description}>{owner.description}</span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            </li>
-                                                                        </template>
-                                                                    </ul>
-                                                                    <template
-                                                                        lwc:if={field.ownerCandidates.length}
-                                                                    ></template>
+                                                                            <lightning-icon
+                                                                                icon-name={field.ownerIcon}
+                                                                                size="x-small"
+                                                                                alternative-text={field.ownerTypeLabel}
+                                                                            ></lightning-icon>
+                                                                        </span>
+                                                                        <input
+                                                                            class="slds-input slds-combobox__input slds-combobox__input-value"
+                                                                            type="text"
+                                                                            readonly
+                                                                            role="combobox"
+                                                                            aria-readonly="true"
+                                                                            data-field={field.apiName}
+                                                                            onkeydown={handleOwnerKeydown}
+                                                                            aria-label="データ所有者"
+                                                                            aria-expanded="false"
+                                                                            aria-haspopup="listbox"
+                                                                            value={field.ownerLabel}
+                                                                            disabled={busy}
+                                                                        />
+                                                                        <lightning-button-icon
+                                                                            class="slds-input__icon slds-input__icon_right"
+                                                                            type="button"
+                                                                            title="選択を解除"
+                                                                            data-field={field.apiName}
+                                                                            onclick={handleOwnerClear}
+                                                                            disabled={busy}
+                                                                            icon-name="utility:close"
+                                                                            variant="bare"
+                                                                            size="medium"
+                                                                            alternative-text="データ所有者の選択を解除"
+                                                                        ></lightning-button-icon>
+                                                                    </template>
                                                                     <template lwc:else>
-                                                                        <p class="slds-p-around_small" role="status">
-                                                                            候補がありません。名前を入力してください。
-                                                                        </p>
+                                                                        <input
+                                                                            class="slds-input slds-combobox__input"
+                                                                            type="text"
+                                                                            role="combobox"
+                                                                            aria-label="データ所有者"
+                                                                            aria-autocomplete="list"
+                                                                            aria-expanded={field.ownerOpen}
+                                                                            aria-haspopup="listbox"
+                                                                            aria-controls={field.ownerListId}
+                                                                            aria-activedescendant={field.ownerActiveId}
+                                                                            autocomplete="off"
+                                                                            value={field.ownerSearch}
+                                                                            placeholder=""
+                                                                            data-field={field.apiName}
+                                                                            oninput={handleOwnerSearch}
+                                                                            onclick={handleOwnerSearch}
+                                                                            onkeydown={handleOwnerKeydown}
+                                                                            disabled={busy}
+                                                                        />
+                                                                        <lightning-icon
+                                                                            class="slds-input__icon slds-input__icon_right"
+                                                                            icon-name="utility:search"
+                                                                            size="x-small"
+                                                                            alternative-text="検索"
+                                                                        ></lightning-icon>
                                                                     </template>
                                                                 </div>
-                                                            </template>
+                                                                <template lwc:if={field.ownerOpen}>
+                                                                    <div
+                                                                        class="slds-dropdown slds-dropdown_fluid c-owner-options"
+                                                                        role="listbox"
+                                                                        id={field.ownerListId}
+                                                                        aria-label="所有者候補"
+                                                                    >
+                                                                        <ul
+                                                                            class="slds-listbox slds-listbox_vertical"
+                                                                            role="presentation"
+                                                                        >
+                                                                            <template
+                                                                                for:each={field.ownerCandidates}
+                                                                                for:item="owner"
+                                                                            >
+                                                                                <li
+                                                                                    key={owner.value}
+                                                                                    role="presentation"
+                                                                                >
+                                                                                    <div
+                                                                                        class={owner.optionClass}
+                                                                                        role="option"
+                                                                                        id={owner.id}
+                                                                                        aria-selected={owner.selected}
+                                                                                        data-field={field.apiName}
+                                                                                        data-value={owner.value}
+                                                                                        onmousedown={handleOwnerPointerDown}
+                                                                                        onclick={handleOwnerSelect}
+                                                                                    >
+                                                                                        <span
+                                                                                            class="slds-media__body slds-grid slds-grid_vertical"
+                                                                                        >
+                                                                                            <span
+                                                                                                class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show"
+                                                                                                title={owner.label}
+                                                                                                >{owner.label}</span
+                                                                                            >
+                                                                                            <span
+                                                                                                class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show"
+                                                                                                title={owner.description}
+                                                                                                >{owner.description}</span
+                                                                                            >
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </li>
+                                                                            </template>
+                                                                        </ul>
+                                                                        <template lwc:if={field.ownerLoading}>
+                                                                            <p
+                                                                                class="slds-p-around_small"
+                                                                                role="status"
+                                                                            >
+                                                                                候補を検索中…
+                                                                            </p>
+                                                                        </template>
+                                                                        <template
+                                                                            lwc:elseif={field.ownerCandidates.length}
+                                                                        ></template>
+                                                                        <template lwc:else>
+                                                                            <p
+                                                                                class="slds-p-around_small"
+                                                                                role="status"
+                                                                            >
+                                                                                候補がありません。名前を入力してください。
+                                                                            </p>
+                                                                        </template>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </template>
-                                            <template lwc:else>{field.ownerLabel}</template>
+                                                </template>
+                                                <template lwc:else>{field.ownerLabel}</template>
                                         </td>
                                     </template>
                                 </tr>

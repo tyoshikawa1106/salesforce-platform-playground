@@ -293,7 +293,7 @@ export default class ExternalClientAppManager extends LightningElement {
             // フォーカスイベントによる再描画では繰り返さない
             this.focusLookupAfterRender = false;
             // 選択後は解除ボタン、解除後は検索入力を操作対象にする
-            this.template.querySelector(this.appId ? '.slds-pill__remove' : 'input[role="combobox"]')?.focus();
+            this.template.querySelector(this.appId ? 'lightning-button-icon[title="選択を解除"]' : 'input[role="combobox"]')?.focus();
         }
         // キーボードで移動した候補をスクロール領域内に表示する
         if (this.candidatesOpen && this.activeCandidateIndex >= 0) {
@@ -399,7 +399,14 @@ export default class ExternalClientAppManager extends LightningElement {
 
     handleSearchKey(event) {
         // IME変換中や対象固定中の入力を候補選択に使わない
-        if (event.isComposing || this.busy || this.appId) return;
+        if (event.isComposing || this.busy) return;
+        // 選択済みのpillは標準ルックアップと同じDeleteで解除する
+        if (this.appId) {
+            // 検索・保存の処理は既存の解除経路へ集約する
+            if (event.key === 'Delete') { event.preventDefault(); this.handleAppClear(); }
+            // 選択中の名称を検索語として扱わない
+            return;
+        }
         // 通常の文字入力はブラウザへ委ねる
         if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) return;
         // 候補操作中はページのスクロールとフォーム送信を防ぐ

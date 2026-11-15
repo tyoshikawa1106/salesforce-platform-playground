@@ -140,8 +140,13 @@ export default class OrgExplorerSearch extends LightningElement {
     handleKeyDown(event) {
         // IME変換中のキー操作は文字入力に任せ、候補の移動や確定に使用しない。
         if (event.isComposing) return;
-        // Escapeは候補だけを閉じ、適用済みの起点は変えない。
-        if (event.key === 'Escape') {
+        // Deleteは選択を解除し、Escapeは候補だけを閉じる。
+        if (event.key === 'Delete' && this.selectedTarget) {
+            // クリックと同じ解除通知を使い、既存の候補を閉じる
+            event.preventDefault();
+            // 親の選択状態と起点をまとめて解除する
+            this.handleClear(event);
+        } else if (event.key === 'Escape') {
             event.preventDefault();
             this._open = false;
             this._activeIndex = -1;
@@ -208,7 +213,7 @@ export default class OrgExplorerSearch extends LightningElement {
             ...hit,
             domId: `role-option-${hit.targetId}`,
             selected: index === this._activeIndex,
-            optionClass: `slds-media slds-listbox__option ${hit.description ? 'slds-listbox__option_entity slds-listbox__option_has-meta' : 'slds-listbox__option_plain'}${index === this._activeIndex ? ' slds-has-focus' : ''}`
+            optionClass: `slds-media slds-listbox__option slds-listbox__option_entity${hit.description ? ' slds-listbox__option_has-meta' : ''}${index === this._activeIndex ? ' slds-has-focus' : ''}`
         }));
     }
 
