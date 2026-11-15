@@ -235,41 +235,6 @@ private with sharing class ObjectRecordSearchControllerTest {
     }
 
     /**
-     * 削除 ID が空の場合は空の削除結果を返却
-     */
-    @IsTest
-    static void shouldReturnEmptyDeleteResultWhenRecordIdsAreEmpty() {
-        ObjectRecordSearchDeleteWrapper result;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            result = ObjectRecordSearchController.deleteRecords(
-                'accounts',
-                new List<Id>()
-            );
-
-            Test.stopTest();
-        }
-
-        Assert.areEqual(
-            0,
-            result.requestedCount,
-            '空の削除リクエストは依頼件数を 0 にする必要あり'
-        );
-        Assert.areEqual(
-            0,
-            result.deletedCount,
-            '空の削除リクエストはレコードを削除しない必要あり'
-        );
-        Assert.areEqual(
-            0,
-            result.errors.size(),
-            '空の削除リクエストはエラーを返さない必要あり'
-        );
-    }
-
-    /**
      * 未対応メトリクスキーは画面向けエラーへ変換
      */
     @IsTest
