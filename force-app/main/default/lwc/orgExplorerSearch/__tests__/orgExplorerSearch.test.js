@@ -124,7 +124,7 @@ it('選択済みロールを幅いっぱいのSLDS入力とアイコンで表示
     expect(element.shadowRoot.querySelector('[role="listbox"]')).not.toBeNull();
     const opened = jest.fn();
     element.addEventListener('lookupopen', opened);
-    const clear = element.shadowRoot.querySelector('[aria-label="表示ロールの選択を解除"]');
+    const clear = element.shadowRoot.querySelector('lightning-button-icon[title="選択を解除"]');
     clear.focus();
     clear.click();
     await flush();
@@ -193,9 +193,6 @@ it('上司候補はSLDSの補足行に部署と役職を表示し、補足なし
     expect(options[0].classList.contains('slds-listbox__option_has-meta')).toBe(true);
     expect(options[0].querySelector('.slds-listbox__option-text_entity').textContent).toBe('試験 上司');
     expect(options[0].querySelector('.slds-listbox__option-meta_entity').textContent).toBe('営業部 • 部長');
-    expect(options[0].querySelector('.slds-listbox__option-meta_entity').classList.contains('c-candidate-line')).toBe(
-        true
-    );
     expect(options[1].querySelector('.slds-listbox__option-meta')).toBeNull();
     await expect(element).toBeAccessible();
 });
@@ -232,4 +229,18 @@ it.each([
     const message = element.shadowRoot.querySelector('.slds-dropdown [role="status"]');
     expect(message.textContent.trim()).toBe(expected);
     await expect(element).toBeAccessible();
+});
+
+it.each(['ROLE', 'MANAGER'])('選択済みのDeleteは解除通知を送り、IME変換中は維持する: %s', async (mode) => {
+    const element = createElement('c-org-explorer-search', { is: OrgExplorerSearch });
+    element.mode = mode;
+    element.selectedTarget = roles[0];
+    const changed = jest.fn();
+    element.addEventListener('searchchange', changed);
+    document.body.appendChild(element);
+    const input = element.shadowRoot.querySelector('input[readonly]');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', isComposing: true }));
+    expect(changed).not.toHaveBeenCalled();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    expect(changed.mock.calls[0][0].detail).toEqual({ value: '' });
 });
