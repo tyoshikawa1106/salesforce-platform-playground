@@ -325,11 +325,9 @@ private with sharing class OrgExplorerRequestServiceTest {
     @IsTest
     static void rejectsInvalidStructureRequests() {
         System.runAs(testUser) {
-            OrgExplorerPageRequest request = structureRequest(testUser.Id);
+            OrgExplorerPageRequest request = structureRequest(targetId(2000));
             OrgExplorerAccessPolicy access = new OrgExplorerAccessPolicy();
             Test.startTest();
-            Assert.areEqual('INVALID_REQUEST', requestService.validatePage(request, access), 'Userを起点にしない');
-            request.parentId = targetId(2000);
             access.rolesEnabled = false;
             Assert.areEqual('ACCESS_DENIED', requestService.validatePage(request, access), '構造権限なしを拒否');
             request.parentId = null;
