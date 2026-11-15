@@ -180,9 +180,8 @@ private with sharing class AccountDataQualityScanQueueableTest {
     static void shouldRejectInitialJobWithoutCursor() {
 
         System.runAs(testUser) {
-            DataQualityScan__c scanRecord = createPendingScan(0);
-            insert scanRecord;
-            AccountDataQualityScanQueueable job = new AccountDataQualityScanQueueable(null, 0, scanRecord.Id);
+            Id scanId = Id.valueOf(DataQualityScan__c.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
+            AccountDataQualityScanQueueable job = new AccountDataQualityScanQueueable(null, 0, scanId);
             Test.startTest();
             try {
                 job.enqueueInitialJob();
