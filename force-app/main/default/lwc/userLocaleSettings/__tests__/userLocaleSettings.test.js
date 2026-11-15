@@ -197,6 +197,76 @@ describe('c-user-locale-settings', () => {
         expect(window.location.reload).not.toHaveBeenCalled();
     });
 
+    it.each(['success', 'validation', 'transport'])('waits for a pending %s save before loading after reconnect', async (outcome) => {
+        let resolveSave;
+        let rejectSave;
+        saveSettings.mockReturnValueOnce(new Promise((resolve, reject) => { resolveSave = resolve; rejectSave = reject; }));
+        const element = await edit();
+        change(element, 'language', 'en_US');
+        button(element, '保存').click();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(getSettings).toHaveBeenCalledTimes(1);
+        expect(button(element, '編集').disabled).toBe(true);
+        if (outcome === 'success') {
+            getSettings.mockResolvedValueOnce({ ...response, language: 'en_US', locale: 'en_US' });
+            resolveSave({ language: 'en_US', locale: 'en_US', errorMessage: '' });
+        } else if (outcome === 'validation') {
+            resolveSave({ errorMessage: '保存拒否' });
+        } else {
+            rejectSave(new Error('private'));
+        }
+        await flush();
+        await flush();
+        expect(getSettings).toHaveBeenCalledTimes(2);
+        expect(element.shadowRoot.textContent).toContain(outcome === 'success' ? '英語' : '日本語');
+        expect(button(element, '編集').disabled).toBe(false);
+        expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+        expect(window.location.reload).not.toHaveBeenCalled();
+        button(element, '編集').click();
+        await flush();
+        expect(combo(element, 'language').value).toBe(outcome === 'success' ? 'en_US' : 'ja');
+        expect(combo(element, 'locale').value).toBe(outcome === 'success' ? 'en_US' : 'en_GB');
+    });
+
+    it('only loads for the latest connection when reconnecting repeatedly during a save', async () => {
+        let resolveSave;
+        saveSettings.mockReturnValueOnce(new Promise((resolve) => { resolveSave = resolve; }));
+        const element = await edit();
+        button(element, '保存').click();
+        element.remove();
+        document.body.appendChild(element);
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(getSettings).toHaveBeenCalledTimes(1);
+        resolveSave({ language: 'ja', locale: 'en_GB', errorMessage: '' });
+        await flush();
+        await flush();
+        expect(getSettings).toHaveBeenCalledTimes(2);
+        expect(button(element, '編集').disabled).toBe(false);
+        expect(window.location.reload).not.toHaveBeenCalled();
+    });
+
+    it('does not fetch while detached when a save awaited by a reconnect finishes', async () => {
+        let resolveSave;
+        saveSettings.mockReturnValueOnce(new Promise((resolve) => { resolveSave = resolve; }));
+        const element = await edit();
+        button(element, '保存').click();
+        element.remove();
+        document.body.appendChild(element);
+        element.remove();
+        resolveSave({ language: 'ja', locale: 'en_GB', errorMessage: '' });
+        await flush();
+        expect(getSettings).toHaveBeenCalledTimes(1);
+        expect(window.location.reload).not.toHaveBeenCalled();
+        document.body.appendChild(element);
+        await flush();
+        expect(getSettings).toHaveBeenCalledTimes(2);
+        expect(button(element, '編集').disabled).toBe(false);
+    });
+
     it('distinguishes a reload failure from a failed save', async () => {
         window.location.reload.mockImplementationOnce(() => { throw new Error('reload'); });
         const element = await edit();

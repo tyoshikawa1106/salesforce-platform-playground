@@ -27,6 +27,8 @@ export default class UserLocaleSettings extends LightningElement {
     errorMessage = '';
     // 接続し直した後に古い応答を採用しない
     operationVersion = 0;
+    // 再接続時の取得をサーバー側の保存完了まで待たせる
+    pendingSave = null;
 
     // 配置時と再接続時に最新の設定を取得
     connectedCallback() {
@@ -64,6 +66,13 @@ export default class UserLocaleSettings extends LightningElement {
         this.errorMessage = '';
         // 通信失敗後に再取得できるよう捕捉
         try {
+            // 切断しても取り消せない保存の結果を待つ
+            if (this.pendingSave) {
+                // 保存の成否にかかわらず確定後の現在値を取得する
+                await this.pendingSave.catch(() => undefined);
+                // 待機中に切断または再接続された取得は開始しない
+                if (!this.isConnected || version !== this.operationVersion) return;
+            }
             // キャッシュを使わず最新の本人設定を取得
             const settings = await getSettings();
             // 古い接続の応答を破棄
@@ -167,7 +176,9 @@ export default class UserLocaleSettings extends LightningElement {
         // 失敗後も編集値を保持して再試行可能にする
         try {
             // ユーザーIDを受け付けない公開APIで本人を更新
-            const result = await saveSettings(request.parameters);
+            this.pendingSave = saveSettings(request.parameters);
+            // 再接続後の取得と同じ保存要求の完了を待つ
+            const result = await this.pendingSave;
             // 画面を離れた後に再読み込みしない
             if (!this.isConnected || version !== this.operationVersion) return;
             // サーバー側の入力・権限エラーを表示
@@ -192,6 +203,8 @@ export default class UserLocaleSettings extends LightningElement {
                     : '保存しました。画面を再読み込みしてください。';
             }
         } finally {
+            // 切断済みでも完了した保存への参照を解放する
+            this.pendingSave = null;
             // 古い保存結果で新しい接続を変更しない
             if (this.isConnected && version === this.operationVersion) {
                 // 再試行できる状態へ戻す
