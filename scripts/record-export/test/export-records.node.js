@@ -129,9 +129,15 @@ test('入力ファイルの未検出・ディレクトリ指定はCLI起動前�
     await assert.rejects(() => main(['--fields', '.'], dependencies), /ディレクトリ.*テキストファイル/);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), '');
     await assert.rejects(() => main([], dependencies), /1行1項目/);
-    // ファイルを親に指定した場合、WindowsはENOENT、macOS/LinuxはENOTDIRを返す。
-    const invalidPathMessage = process.platform === 'win32' ? /項目ファイルが見つかりません.*--fields/ : /パスが不正/;
-    await assert.rejects(() => main(['--fields', 'fields.txt/child.txt'], dependencies), invalidPathMessage);
+    // OSのエラー分類によらず、入力ファイルの修正案内を出して停止する。
+    await assert.rejects(
+        () => main(['--fields', 'fields.txt/child.txt'], dependencies),
+        (error) => {
+            assert.match(error.message, /項目ファイル.*--fields/);
+            assert.ok(!error.message.includes(cwd));
+            return true;
+        }
+    );
     assert.deepEqual(fs.readdirSync(cwd), ['fields.txt']);
 });
 
