@@ -2,8 +2,6 @@ import {
     createFormViewState,
     createFormWireState,
     createInitialSearchState,
-    createNextSearchState,
-    createPreviousSearchState,
     createSearchCriteriaState,
     createSearchFailureState,
     createSearchRequest,
@@ -97,7 +95,7 @@ describe('objectRecordSearchLogic', () => {
         });
     });
 
-    it('検索条件、ソート、ページ移動を画面単位の状態へ変換する', () => {
+    it('初期状態、検索条件、ソートを画面単位の状態へ変換する', () => {
         expect(createInitialSearchState()).toEqual({
             sortedBy: 'recordUrl',
             sortedDirection: 'asc',
@@ -115,27 +113,6 @@ describe('objectRecordSearchLogic', () => {
                 pagePositionHistory: []
             })
         );
-        expect(
-            createNextSearchState({
-                pageNumber: 1,
-                pagePositionHistory: [],
-                nextPagePosition: 'token-2'
-            })
-        ).toEqual({
-            pageNumber: 2,
-            currentPagePosition: 'token-2',
-            pagePositionHistory: ['token-2']
-        });
-        expect(
-            createPreviousSearchState({
-                pageNumber: 3,
-                pagePositionHistory: ['token-2', 'token-3']
-            })
-        ).toEqual({
-            pageNumber: 2,
-            currentPagePosition: 'token-2',
-            pagePositionHistory: ['token-2']
-        });
         expect(
             createSortSearchState({
                 fieldName: 'displayField_Industry',
