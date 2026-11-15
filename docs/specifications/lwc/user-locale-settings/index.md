@@ -21,7 +21,7 @@ Lightningホームでログインユーザーの言語と地域を参照・変�
 | [UserLocaleSettingsSelector](../../../../force-app/main/default/classes/UserLocaleSettingsSelector.cls)                    | 本人の設定取得                                             |
 | [UserLocaleSettingsWrapper](../../../../force-app/main/default/classes/UserLocaleSettingsWrapper.cls)                      | 現在値、選択肢、編集可否、処理結果                         |
 | [LwcUserLocaleSettings](../../../../force-app/main/default/permissionsets/LwcUserLocaleSettings.permissionset-meta.xml)    | 公開Controllerへのアクセス                                 |
-| [HomeFlexiPage](../../../../force-app/main/default/flexipages/HomeFlexiPage.flexipage-meta.xml)                            | ホームのbottomRight領域への配置                            |
+| [HomeFlexiPage](../../../../force-app/main/default/flexipages/HomeFlexiPage.flexipage-meta.xml)                            | ホームのsidebar領域でアシスタントの直後に配置              |
 
 ## 入力
 
