@@ -104,8 +104,7 @@ describe('c-object-metrics-overview', () => {
         const recordSearch = element.shadowRoot.querySelector(
             'c-object-record-search'
         );
-        expect(recordSearch).not.toBeNull();
-        expect(recordSearch.metricKey).toBe('accounts');
+        expect(recordSearch).toHaveProperty('metricKey', 'accounts');
     });
 
     it('scrolls to top when navigating between the dashboard and record search', async () => {
@@ -174,9 +173,8 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
 
         const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
-        expect(alert).not.toBeNull();
-        expect(alert.textContent).toContain(
-            'データボードを読み込めませんでした。'
+        expect(alert?.textContent).toEqual(
+            expect.stringContaining('データボードを読み込めませんでした。')
         );
         await expect(element).toBeAccessible();
     });
