@@ -171,6 +171,14 @@
         <members>ObjectExplorerServiceTest</members>
         <members>ObjectExplorerFieldService</members>
         <members>ObjectExplorerFieldServiceTest</members>
+        <members>UserLocaleSettingsController</members>
+        <members>UserLocaleSettingsControllerTest</members>
+        <members>UserLocaleSettingsSelector</members>
+        <members>UserLocaleSettingsSelectorTest</members>
+        <members>UserLocaleSettingsService</members>
+        <members>UserLocaleSettingsServiceTest</members>
+        <members>UserLocaleSettingsWrapper</members>
+        <members>UserLocaleSettingsWrapperTest</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -908,6 +916,7 @@
         <members>objectExplorerLookup</members>
         <members>salesforceApiUtils</members>
         <members>lwcLoggerUtils</members>
+        <members>userLocaleSettings</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
@@ -988,6 +997,7 @@
         <members>LwcObjectRecordSearch</members>
         <members>LwcOrgExplorer</members>
         <members>LwcTestDataDelete</members>
+        <members>LwcUserLocaleSettings</members>
         <members>SalesforceAPIPlaygroundIntegration</members>
         <members>SalesforceApplicationUser</members>
         <members>ScratchOrgMetadataDeployer</members>
