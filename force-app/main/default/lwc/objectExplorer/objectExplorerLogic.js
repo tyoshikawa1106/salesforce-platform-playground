@@ -139,8 +139,12 @@ function ownerLookupView(apiName, edit, info) {
     // キーボード選択が候補内にある場合だけ読み上げ対象を指定
     const active = candidates[edit?.ownerActive];
     // 表示名と候補の位置は同じIDに結び付ける
-    return { ownerLabel: owner.value ? owner.label : '', ownerSearch: edit?.ownerSearch || '', ownerSelected: Boolean(owner.value),
-        ownerOpen: open, ownerContainerClass: `slds-combobox_container${owner.value ? ' slds-has-selection' : ''}`, ownerComboboxClass: `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click${open ? ' slds-is-open' : ''}`, ownerListId: `owners-${apiName}`, ownerActiveId: active?.id || null, ownerCandidates: candidates };
+    return {
+        ownerIcon: owner.value.startsWith('00G') ? 'standard:groups' : 'standard:user',
+        ownerTypeLabel: owner.value.startsWith('00G') ? '公開グループ' : 'ユーザー',
+        ownerFormClass: `slds-combobox__form-element slds-input-has-icon ${owner.value ? 'slds-input-has-icon_left-right' : 'slds-input-has-icon_right'}`,
+        ownerLabel: owner.value ? owner.label : '',  ownerSearch: edit?.ownerSearch || '', ownerSelected: Boolean(owner.value),
+        ownerOpen: open, ownerLoading: open && Boolean(edit?.ownerLoading), ownerContainerClass: `slds-combobox_container${owner.value ? ' slds-has-selection' : ''}`, ownerComboboxClass: `slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click${open ? ' slds-is-open' : ''}`, ownerListId: `owners-${apiName}`, ownerActiveId: active?.id || null, ownerCandidates: candidates };
 }
 
 // 保存の応答を対象行へ適用し、未確認の値や別行の入力を変更しない
@@ -186,7 +190,8 @@ function classifyRow(field, context) {
     return { ...field, ...values, editing: Boolean(edit),
         reason: !canEdit && info?.editable ? '変更には「データ分類の変更」または「オブジェクトのカスタマイズ」権限が必要です。' : info?.reason === '分類情報を設定できない項目です。' ? '' : info?.reason || '',
         rowClass: changed || inputErrors.length ? 'c-row-changed' : '', changed, complianceValues: compliance, unavailable: !info,
-        complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-dropdown slds-dropdown_fluid slds-dropdown_bottom c-compliance-options slds-p-around_x-small' : 'slds-dropdown slds-dropdown_fluid c-compliance-options slds-p-around_x-small',
+        complianceComboboxClass: `c-compliance slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click${edit?.complianceOpen ? ' slds-is-open' : ''}`,
+        complianceOpen: Boolean(edit?.complianceOpen), compliancePopupId: `compliance-${field.apiName}`, compliancePopupClass: edit?.complianceAbove ? 'slds-popover slds-popover_full-width c-compliance-options c-compliance-options-above' : 'slds-popover slds-popover_full-width c-compliance-options',
         complianceOptions,
         securityOptions: [{ label: '-- なし --', value: '' }, ...includeCurrentOptions(options.SecurityClassification, [original.securityClassification])],
         businessOptions: [{ label: '-- なし --', value: '' }, ...includeCurrentOptions(options.BusinessStatus, [original.businessStatus])],
@@ -245,42 +250,42 @@ export function hasInvalidClassifyInput(state) {
     return Object.values(state?.inputErrors || {}).some(Boolean);
 }
 
-// 候補のスクロール座標と描画範囲で同じ行高を使用
-const OBJECT_OPTION_HEIGHT = 56;
 // 大量の候補があってもDOMへ展開する件数を固定
 const OBJECT_OPTION_WINDOW = 40;
 // スクロール中に表示枠の前後が空にならない余白
 const OBJECT_OPTION_OVERSCAN = 5;
 
 // 描画する候補の先頭を行変換なしで計算
-export function objectOptionStart(count, scrollTop) {
+export function objectOptionStart(count, scrollTop, rowHeight = 0) {
+    // 初回計測までは先頭の候補を描画してSLDSの自然な行高を取得
+    if (!rowHeight) { return 0; }
     // 末尾とスクロール前後の余白を同じ境界に揃える
-    return Math.min(Math.max(0, count - OBJECT_OPTION_WINDOW), Math.max(0, Math.floor(scrollTop / OBJECT_OPTION_HEIGHT) - OBJECT_OPTION_OVERSCAN));
+    return Math.min(Math.max(0, count - OBJECT_OPTION_WINDOW), Math.max(0, Math.floor(scrollTop / rowHeight) - OBJECT_OPTION_OVERSCAN));
 }
 
 // 取得済み候補のうち表示位置付近だけをSLDSの候補行へ変換
-export function objectOptionWindow(options, activeIndex, scrollTop) {
+export function objectOptionWindow(options, activeIndex, scrollTop, rowHeight = 0) {
     // 末尾でも描画範囲が配列を超えないよう先頭位置を制限
-    const start = objectOptionStart(options.length, scrollTop);
+    const start = objectOptionStart(options.length, scrollTop, rowHeight);
     // 描画範囲の外側を同じ高さの余白として維持
     const end = Math.min(options.length, start + OBJECT_OPTION_WINDOW);
     // 候補IDと表示名を同じ行に維持し、全件中の位置も読み上げへ渡す
     const items = options.slice(start, end).map((option, index) => ({ ...option,
         domId: `object-option-${option.value}`, selected: start + index === activeIndex,
-        position: start + index + 1, total: options.length, style: `height:${OBJECT_OPTION_HEIGHT}px`,
-        className: `slds-grid_vertical-align-center slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta${start + index === activeIndex ? ' slds-has-focus' : ''}` }));
+        position: start + index + 1, total: options.length,
+        className: `slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta${start + index === activeIndex ? ' slds-has-focus' : ''}` }));
     // 余白と候補行を同じモデルから返す
-    return { items, start, end, topStyle: `height:${start * OBJECT_OPTION_HEIGHT}px`, bottomStyle: `height:${(options.length - end) * OBJECT_OPTION_HEIGHT}px` };
+    return { items, start, end, topStyle: `height:${start * rowHeight}px`, bottomStyle: `height:${(options.length - end) * rowHeight}px` };
 }
 
 // キーボードで選んだ候補が表示範囲へ入る最小のスクロール位置を計算
-export function objectOptionScrollTop(index, scrollTop, viewportHeight) {
-    // 候補上端の座標を固定の行高から算出
-    const top = index * OBJECT_OPTION_HEIGHT;
+export function objectOptionScrollTop(index, scrollTop, viewportHeight, rowHeight) {
+    // SLDSで描画された候補の実測高から座標を算出
+    const top = index * rowHeight;
     // 表示枠より上の候補は上端へ合わせる
     if (top < scrollTop) { return top; }
     // 表示枠より下の候補は下端へ合わせ、範囲内なら動かさない
-    return Math.max(scrollTop, top + OBJECT_OPTION_HEIGHT - viewportHeight);
+    return Math.max(scrollTop, top + rowHeight - viewportHeight);
 }
 
 // 保存対象をAPIの上限に合わせて最大10項目ずつに分割

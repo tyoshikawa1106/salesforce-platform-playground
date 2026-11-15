@@ -2,7 +2,7 @@ import {
     applyClassifyBatch, applyClassifyCsv, buildRelationBoard, clientErrorDetails,
     classifyBatches, classifyChanges, classifyCsv, classifyFieldView,
     classifyInput, classifySummary, createClassifyEdits,
-    fieldListView, objectOptionWindow, readClassifyCsv, structureCsv, visibleRelations
+    fieldListView, objectOptionScrollTop, objectOptionWindow, readClassifyCsv, structureCsv, visibleRelations
 } from '../objectExplorerLogic';
 
 const fields = [
@@ -34,9 +34,17 @@ describe('オブジェクトエクスプローラーの表示・分類契約', (
     });
     it('候補の末尾でも全件をDOM用モデルへ展開しない', () => {
         const all = Array.from({ length: 2000 }, (_, index) => ({ value: `Object${index}`, label: `対象${index}` }));
-        const view = objectOptionWindow(all, 1999, 2000 * 56);
+        const view = objectOptionWindow(all, 1999, 2000 * 42, 42);
         expect(view.items).toHaveLength(40);
+        expect(view.topStyle).toBe('height:82320px');
+        expect(view.bottomStyle).toBe('height:0px');
         expect(view.items.at(-1)).toMatchObject({ position: 2000, total: 2000, selected: true });
+    });
+    it('実測した行高で末尾と先頭へのキー移動を計算する', () => {
+        expect(objectOptionScrollTop(6, 0, 210, 42)).toBe(84);
+        expect(objectOptionScrollTop(0, 84, 210, 42)).toBe(0);
+        expect(objectOptionScrollTop(4, 0, 210, 42)).toBe(0);
+        expect(objectOptionScrollTop(6, 0, 210, 41.996)).toBeCloseTo(83.972);
     });
     it('分類変更と不正入力を独立して集計する', () => {
         const edits = changedEdits();

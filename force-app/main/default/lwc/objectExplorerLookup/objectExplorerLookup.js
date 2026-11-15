@@ -11,21 +11,30 @@ export default class ObjectExplorerLookup extends LightningElement {
     @api activeObjectOptionId;
     @api candidateView = { items: [], topStyle: '', bottomStyle: '' };
     @api candidateScrollTop = 0;
+    @api candidateRowHeight = 0;
     appliedScrollTop;
 
     // キーボードで選択した候補を可視領域へ移動
     renderedCallback() {
+        // 閉じた候補のDOMへ以前のスクロール反映状態を持ち越さない
+        const list = this.template.querySelector('.c-option-scroll');
+        // 表示中の候補だけを計測
+        if (!list) { this.appliedScrollTop = undefined; return; }
+        // 行高をCSSで上書きせず、SLDSとブラウザの実測値を座標計算へ渡す
+        const rowHeight = list.querySelector('[role="option"]')?.getBoundingClientRect().height;
+        // 初回と行高が変わった時だけ仮想余白を更新
+        if (rowHeight && rowHeight !== this.candidateRowHeight) {
+            // 計測後の余白で確定した位置は次の描画で反映
+            this.dispatchEvent(new CustomEvent('candidatescroll', { detail: { top: list.scrollTop, height: list.clientHeight, rowHeight } }));
+            // 古い行高による位置を適用しない
+            return;
+        }
         // 親が指定した位置が変わった時だけスクロールを同期
         if (this.appliedScrollTop !== this.candidateScrollTop) {
-            // 表示中の候補領域を取得
-            const list = this.template.querySelector('.c-option-scroll');
-            // ドロップダウンが開いた後に位置を反映
-            if (list) {
-                // 候補の仮想表示とDOMの位置を揃える
-                list.scrollTop = this.candidateScrollTop;
-                // 自然なスクロールを次の描画で戻さない
-                this.appliedScrollTop = this.candidateScrollTop;
-            }
+            // 候補の仮想表示とDOMの位置を揃える
+            list.scrollTop = this.candidateScrollTop;
+            // 自然なスクロールを次の描画で戻さない
+            this.appliedScrollTop = this.candidateScrollTop;
         }
     }
 
@@ -44,7 +53,14 @@ export default class ObjectExplorerLookup extends LightningElement {
     // ネイティブキー操作と候補移動の座標を親へ通知
     handleSearchKey(event) {
         // IME変換中は候補を確定しない
-        if (event.isComposing || this.disabled || this.selected) { return; }
+        if (event.isComposing || this.disabled) { return; }
+        // Deleteによる解除も親の未保存確認を経由する
+        if (this.selected) {
+            // 他のキーでは現在の選択を変更しない
+            if (event.key === 'Delete') { event.preventDefault(); this.handleClearObject(); }
+            // 選択済みの名称から検索を開始しない
+            return;
+        }
         // 対応するキーだけブラウザ標準の移動を抑止
         if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) { event.preventDefault(); }
         // 候補の現在の表示領域を取得

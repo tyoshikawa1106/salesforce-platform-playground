@@ -894,3 +894,120 @@ it('保存前の認証確認中に離脱・再接続した場合は保存を送�
     expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
     expect(element.shadowRoot.textContent).toContain('後続の保存を中断しました');
 });
+
+it('キー移動後の端数を含むスクロール通知で候補を解除せずEnterで確定する', async () => {
+    searchObjects.mockResolvedValue(Array.from({ length: 10 }, (_, index) => ({ apiName: index === 6 ? 'Account' : `Object${index}`, label: `対象${index}` })));
+    const element = createComponent();
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    lookup.dispatchEvent(new CustomEvent('lookupopen'));
+    await flush();
+    lookup.dispatchEvent(new CustomEvent('candidatescroll', { detail: { top: 0, height: 210, rowHeight: 41.996 } }));
+    await flush();
+    await Array.from({ length: 7 }).reduce(async (previous) => {
+        await previous;
+        lookup.dispatchEvent(new CustomEvent('searchkey', { detail: { key: 'ArrowDown', height: 210, scrollTop: lookup.candidateScrollTop } }));
+        await flush();
+    }, Promise.resolve());
+    expect(lookup.candidateScrollTop).toBeCloseTo(83.972);
+    lookup.dispatchEvent(new CustomEvent('candidatescroll', { detail: { top: 83.75, height: 210 } }));
+    await flush();
+    expect(lookup.candidateView.items.find((item) => item.selected)?.value).toBe('Account');
+    lookup.dispatchEvent(new CustomEvent('searchkey', { detail: { key: 'Enter' } }));
+    await flush();
+    expect(getObjectInfo).toHaveBeenCalledWith({ objectName: 'Account', mode: 'reference' });
+});
+
+it('手動スクロールで表示枠から離れた候補はEnterで確定しない', async () => {
+    searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }, { apiName: 'Contact', label: '取引先責任者' }]);
+    const element = createComponent();
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    lookup.dispatchEvent(new CustomEvent('lookupopen'));
+    await flush();
+    lookup.dispatchEvent(new CustomEvent('candidatescroll', { detail: { top: 0, height: 42, rowHeight: 42 } }));
+    lookup.dispatchEvent(new CustomEvent('searchkey', { detail: { key: 'ArrowDown', height: 42, scrollTop: 0 } }));
+    await flush();
+    lookup.dispatchEvent(new CustomEvent('candidatescroll', { detail: { top: 42, height: 42 } }));
+    await flush();
+    expect(lookup.candidateView.items.some((item) => item.selected)).toBe(false);
+    lookup.dispatchEvent(new CustomEvent('searchkey', { detail: { key: 'Enter' } }));
+    await flush();
+    expect(getObjectInfo).not.toHaveBeenCalled();
+});
+
+
+it('所有者検索中と結果なしを分け、古い応答で検索中表示を解除しない', async () => {
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    let resolveFirst;
+    let resolveSecond;
+    searchClassifyOwners.mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+        .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }));
+    const input = element.shadowRoot.querySelector('input[data-field="Name"]');
+    input.value = '検索';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    expect(element.shadowRoot.querySelector('.c-owner-options').textContent).toContain('候補を検索中');
+    expect(element.shadowRoot.querySelector('.c-owner-options').textContent).not.toContain('候補がありません');
+    input.value = '検索語';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    resolveFirst([]);
+    await flush();
+    expect(element.shadowRoot.querySelector('.c-owner-options').textContent).toContain('候補を検索中');
+    resolveSecond([]);
+    await flush();
+    expect(element.shadowRoot.querySelector('.c-owner-options').textContent).toContain('候補がありません');
+    expect(element.shadowRoot.querySelector('.c-owner-options').textContent).not.toContain('候補を検索中');
+    await expect(element).toBeAccessible();
+});
+
+it.each([['005000000000001', 'standard:user'], ['00G000000000001', 'standard:groups']])('所有者候補の種別を保ち、選択済み値をDeleteで解除できる: %s', async (value, icon) => {
+    searchClassifyOwners.mockResolvedValue([{ value, label: '所有者候補', description: '種別' }]);
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    const search = element.shadowRoot.querySelector('input[data-field="Name"]');
+    search.value = '所有者';
+    search.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    element.shadowRoot.querySelector('.c-owner-options [role="option"]').click();
+    await flush();
+    const selected = element.shadowRoot.querySelector('input[data-field="Name"][readonly]');
+    expect(selected.value).toBe('所有者候補');
+    expect(selected.parentElement.querySelector('lightning-icon').iconName).toBe(icon);
+    selected.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', isComposing: true }));
+    await flush();
+    expect(element.shadowRoot.querySelector('input[data-field="Name"][readonly]')).not.toBeNull();
+    selected.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    await flush();
+    expect(element.shadowRoot.querySelector('input[data-field="Name"]').value).toBe('');
+    expect(element.shadowRoot.querySelector('input[data-field="Name"]').readOnly).toBe(false);
+    expect(saveClassifyData).not.toHaveBeenCalled();
+});
+
+it('複数選択ダイアログは選択値を維持してEscapeで閉じ、再度開ける', async () => {
+    getClassifyData.mockResolvedValue({ ...classify, options: { ...classify.options, ComplianceGroup: ['GDPR', 'PII'].map((value) => ({ value, label: value })) } });
+    const element = createComponent();
+    await editClassify(element);
+    const toggle = element.shadowRoot.querySelector('button[aria-label="コンプライアンス分類"]');
+    toggle.click();
+    await flush();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    const group = element.shadowRoot.querySelector('lightning-checkbox-group');
+    group.dispatchEvent(new CustomEvent('change', { detail: { value: ['GDPR', 'PII'] } }));
+    await flush();
+    toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flush();
+    expect(element.shadowRoot.querySelector('[role="dialog"]')).toBeNull();
+    toggle.click();
+    await flush();
+    expect(element.shadowRoot.querySelector('lightning-checkbox-group').value).toEqual(['GDPR', 'PII']);
+    await expect(element).toBeAccessible();
+});

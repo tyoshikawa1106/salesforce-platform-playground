@@ -256,6 +256,8 @@ export default class ObjectExplorer extends LightningElement {
     activeCandidateIndex = -1;
     // 候補全体のスクロール位置から描画する範囲を決定
     candidateScrollTop = 0;
+    // 候補の自然な行高を仮想表示とキー移動で共有
+    candidateRowHeight = 0;
     // 候補の余白と行のモデルを入力変更時だけ生成
     candidateView = objectOptionWindow([], -1, 0);
     // 候補取得中と該当なしを区別
@@ -676,7 +678,7 @@ export default class ObjectExplorer extends LightningElement {
             this.activeCandidateIndex = this.activeCandidateIndex < 0 ? (step > 0 ? 0 : this.options.length - 1) : (this.activeCandidateIndex + step + this.options.length) % this.options.length;
             // 現在の表示枠に合わせ、末尾への移動でも全件を描画しない
             // DOMの座標計算を候補の純粋な変換処理から分離
-            this.candidateScrollTop = objectOptionScrollTop(this.activeCandidateIndex, event.detail.scrollTop ?? this.candidateScrollTop, event.detail.height || 280);
+            this.candidateScrollTop = objectOptionScrollTop(this.activeCandidateIndex, event.detail.scrollTop ?? this.candidateScrollTop, event.detail.height || 280, this.candidateRowHeight);
             // 行と上下余白を一つのモデルへ確定
             this.refreshCandidateWindow();
 
@@ -691,26 +693,30 @@ export default class ObjectExplorer extends LightningElement {
         try {
             // 通常スクロールでもキーボード移動でも同じ座標を保持
             const top = event.detail.top;
-            // 同じ位置の通知では再描画しない
-            if (top === this.candidateScrollTop) { return; }
+            // 初回の行高計測も同じ表示モデルへ反映
+            const rowHeight = event.detail.rowHeight ?? this.candidateRowHeight;
+            // 行高が変わった時は同じスクロール位置でも余白を再計算
+            const heightChanged = rowHeight !== this.candidateRowHeight;
+            // 同じ位置と行高の通知では再描画しない
+            if (top === this.candidateScrollTop && !heightChanged) { return; }
             // 描画範囲内でも表示枠から外れた候補は確定対象から外す
             const active = this.activeCandidateIndex;
-            // キーボード移動と同じ座標基準で可視性を確認
-            const selectedVisible = active >= 0 && objectOptionScrollTop(active, top, event.detail.height || 280) === top;
-            // 非表示の選択を推測して保持しない
+            // ブラウザのスクロール丸めによる1px未満の差で強調を解除しない
+            const selectedVisible = active >= 0 && Math.abs(objectOptionScrollTop(active, top, event.detail.height || 280, rowHeight) - top) < 1;
+            // 実際に表示枠を離れた候補だけを解除
             const nextActive = selectedVisible ? active : -1;
-            // 候補行を作り直す前に範囲の変更を確認
-            const start = objectOptionStart(this.options.length, top);
-            // 同じ候補範囲と強調状態なら変換も再描画もしない
-            if (start === this.candidateView.start && nextActive === active) { return; }
-            // 更新が必要な表示範囲だけを変換
-            const window = objectOptionWindow(this.options, nextActive, top);
-            // 新しい描画範囲を確定
+            // 更新不要な描画でも現在の座標と実測高は保持
             this.candidateScrollTop = top;
+            // 表示行と上下余白で同じ行高を使用
+            this.candidateRowHeight = rowHeight;
+            // 候補行を作り直す前に範囲の変更を確認
+            const start = objectOptionStart(this.options.length, top, rowHeight);
+            // 同じ候補範囲と強調状態なら変換も再描画もしない
+            if (!heightChanged && start === this.candidateView.start && nextActive === active) { return; }
             // スクロールで見えなくなった候補をEnterで確定しない
             this.activeCandidateIndex = nextActive;
-            // 表示行と余白を同時に反映
-            this.candidateView = window;
+            // 実測高による表示行と余白を同時に反映
+            this.refreshCandidateWindow();
 
         } catch (error) {
             // 処理名を付けてこの画面内へエラーを表示
@@ -862,7 +868,7 @@ export default class ObjectExplorer extends LightningElement {
     // 候補と位置を一つの表示モデルへ確定
     refreshCandidateWindow() {
         // ゲッターごとの同じ行変換を避ける
-        this.candidateView = objectOptionWindow(this.options, this.activeCandidateIndex, this.candidateScrollTop);
+        this.candidateView = objectOptionWindow(this.options, this.activeCandidateIndex, this.candidateScrollTop, this.candidateRowHeight);
     }
     // 組織エクスプローラーと同じくクリック時の標準スクロールを防ぐ
     handleCardPointerDown(event) {
@@ -1313,7 +1319,7 @@ export default class ObjectExplorer extends LightningElement {
             // 行ごとの最新要求だけを採用
             const sequence = ++this.ownerSequence;
             // 所有者IDを維持して古い検索候補だけを外す
-            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerSearch: term, ownerQuery: open ? term : undefined, ownerRequest: sequence, ownerOpen: open, ownerActive: -1, ownerOptions: createOwnerOptions([], state.owner) } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerSearch: term, ownerQuery: open ? term : undefined, ownerLoading: open, ownerRequest: sequence, ownerOpen: open, ownerActive: -1, ownerOptions: createOwnerOptions([], state.owner) } };
             // フォーカス移動を待たず入力時に通信を開始
             if (open) { this.searchOwnerCandidates(apiName, term, sequence); }
 
@@ -1337,7 +1343,7 @@ export default class ObjectExplorer extends LightningElement {
             // 同じIDの最新候補があればIDと表示名の組として差し替える
             const owner = options.find((option) => option.value === state.owner.value) || state.owner;
             // 現在の選択値を検索結果と一緒に保持
-            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, owner, ownerSearch: term, ownerOptions: createOwnerOptions(options, owner) } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, owner, ownerLoading: false, ownerSearch: term, ownerOptions: createOwnerOptions(options, owner) } };
             // 検索が完了したことと該当件数を明示
             this.classifyNotice = `所有者候補を${options.length}件取得しました。`;
         } catch (error) {
@@ -1348,7 +1354,7 @@ export default class ObjectExplorer extends LightningElement {
             // 同じ検索語のクリックを重複要求として拒否しない
             const state = this.classifyEdits[apiName];
             // 入力と選択値は維持し、失敗した候補の状態だけを解除
-            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerQuery: undefined, ownerOpen: false, ownerActive: -1 } };
+            this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerQuery: undefined, ownerLoading: false, ownerOpen: false, ownerActive: -1 } };
             // 検索に失敗した理由を通知
             this.classifyNotice = error.body?.message || '所有者候補を取得できませんでした。';
         }
@@ -1408,8 +1414,15 @@ export default class ObjectExplorer extends LightningElement {
             const apiName = event.currentTarget.dataset.field;
             // 保存中はキーボード操作も拒否
             const state = this.classifyEdits[apiName];
-            // 選択済みの所有者は解除ボタンで選び直す
-            if (!state || state.owner.value || this.busy) { return; }
+            // 保存中と存在しない行は変更しない
+            if (!state || this.busy) { return; }
+            // 選択済みのpillをDeleteで解除し、既存の保存可否判定を使う
+            if (state.owner.value) {
+                // 解除ボタンと同じ権限・要求世代の検証を通す
+                if (event.key === 'Delete') { event.preventDefault(); this.handleOwnerClear(event); }
+                // 選択済み名称は候補検索へ流用しない
+                return;
+            }
             // 空値を含まない表示候補と同じ順番を使用
             const options = state.ownerOptions.filter((option) => option.value);
             // Escapeは値を変えず候補だけ閉じる
