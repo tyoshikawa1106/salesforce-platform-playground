@@ -4,7 +4,11 @@
             <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
                 <div class="slds-media slds-col c-page-header-title slds-grid_vertical-align-center">
                     <div class="slds-media__figure">
-                        <lightning-icon icon-name="standard:connected_apps" alternative-text="外部クライアントアプリ認証管理" size="medium"></lightning-icon>
+                        <lightning-icon
+                            icon-name="standard:connected_apps"
+                            alternative-text="外部クライアントアプリ認証管理"
+                            size="medium"
+                        ></lightning-icon>
                     </div>
                     <div class="slds-media__body">
                         <h1 class="slds-page-header__title">外部クライアントアプリ認証管理</h1>
@@ -22,7 +26,10 @@
             </div>
         </header>
         <template lwc:if={authenticationRequired}>
-            <div class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap" role="status">
+            <div
+                class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap"
+                role="status"
+            >
                 <span>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
                 <div class="slds-grid slds-grid_vertical-align-center">
                     <template lwc:if={authenticationUrl}>
@@ -45,7 +52,11 @@
                 外部クライアントアプリケーションの鍵・秘密を更新します。
                 生成した値は、Salesforceの標準設定画面で確認してください。
             </p>
-            <section class="slds-box slds-theme_default slds-is-relative" aria-label="コンシューマ鍵と秘密の更新" aria-busy={busy}>
+            <section
+                class="slds-box slds-theme_default slds-is-relative"
+                aria-label="コンシューマ鍵と秘密の更新"
+                aria-busy={busy}
+            >
                 <h2 class="c-card-title slds-m-bottom_small">コンシューマ鍵と秘密の更新</h2>
                 <template lwc:if={busy}>
                     <div class="c-loading slds-is-absolute">
@@ -54,32 +65,56 @@
                 </template>
                 <div class="slds-form-element" onfocusout={handleLookupBlur}>
                     <span id="app-label" class="slds-form-element__label">外部クライアントアプリケーション</span>
-                    <lightning-helptext content="ラベルまたはAPI名で検索します。選び直す場合は×で選択を解除してください。↑↓で候補へ移動、Enterで選択、Escで閉じます。"></lightning-helptext>
+                    <lightning-helptext
+                        content="ラベルまたはAPI名で検索します。選び直す場合は×で選択を解除してください。↑↓で候補へ移動、Enterで選択、Escで閉じます。"
+                    ></lightning-helptext>
                     <div class="slds-form-element__control">
                         <div class={lookupContainerClass}>
                             <div class={lookupComboboxClass}>
                                 <template lwc:if={appId}>
-                                    <div class="slds-pill_container" role="group" aria-labelledby="app-label">
-                                        <span class="slds-pill slds-size_1-of-1">
-                                            <span class="slds-pill__icon_container">
-                                                <lightning-icon icon-name="standard:connected_apps" size="x-small" alternative-text="外部クライアントアプリケーション"></lightning-icon>
-                                            </span>
-                                            <span class="slds-pill__label slds-grow" title={selectedAppLabel}>{selectedAppLabel}</span>
-                                            <button
-                                                class="slds-button slds-button_icon slds-pill__remove"
-                                                type="button"
-                                                aria-label="外部クライアントアプリケーションの選択を解除"
-                                                title="選択を解除"
-                                                onclick={handleAppClear}
-                                                disabled={busy}
-                                            >
-                                                <lightning-icon icon-name="utility:close" size="xx-small" alternative-text="選択を解除"></lightning-icon>
-                                            </button>
+                                    <div
+                                        class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right"
+                                        role="none"
+                                    >
+                                        <span class="slds-icon_container slds-combobox__input-entity-icon">
+                                            <lightning-icon
+                                                icon-name="standard:connected_apps"
+                                                size="x-small"
+                                                alternative-text="外部クライアントアプリケーション"
+                                            ></lightning-icon>
                                         </span>
+                                        <input
+                                            class="slds-input slds-combobox__input slds-combobox__input-value"
+                                            type="text"
+                                            readonly
+                                            role="combobox"
+                                            value={selectedAppLabel}
+                                            aria-labelledby="app-label"
+                                            aria-haspopup="listbox"
+                                            aria-expanded="false"
+                                            aria-readonly="true"
+                                            onkeydown={handleSearchKey}
+                                            aria-required="true"
+                                            disabled={busy}
+                                        />
+                                        <lightning-button-icon
+                                            class="slds-input__icon slds-input__icon_right"
+                                            type="button"
+                                            title="選択を解除"
+                                            onclick={handleAppClear}
+                                            disabled={busy}
+                                            icon-name="utility:close"
+                                            variant="bare"
+                                            size="medium"
+                                            alternative-text="外部クライアントアプリケーションの選択を解除"
+                                        ></lightning-button-icon>
                                     </div>
                                 </template>
                                 <template lwc:else>
-                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                                    <div
+                                        class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                        role="none"
+                                    >
                                         <input
                                             class="slds-input slds-combobox__input"
                                             type="text"
@@ -99,12 +134,22 @@
                                             onkeydown={handleSearchKey}
                                             disabled={busy}
                                         />
-                                        <lightning-icon class="slds-input__icon slds-input__icon_right" icon-name="utility:search" size="x-small" alternative-text="アプリ検索"></lightning-icon>
+                                        <lightning-icon
+                                            class="slds-input__icon slds-input__icon_right"
+                                            icon-name="utility:search"
+                                            size="x-small"
+                                            alternative-text="アプリ検索"
+                                        ></lightning-icon>
                                     </div>
                                 </template>
                                 <template lwc:if={candidatesOpen}>
                                     <div class="slds-dropdown slds-dropdown_fluid">
-                                        <ul id="app-options" class="slds-listbox slds-listbox_vertical slds-dropdown_length-5" role="listbox" aria-label="外部クライアントアプリケーションの検索候補">
+                                        <ul
+                                            id="app-options"
+                                            class="slds-listbox slds-listbox_vertical slds-dropdown_length-5"
+                                            role="listbox"
+                                            aria-label="外部クライアントアプリケーションの検索候補"
+                                        >
                                             <template for:each={appOptions} for:item="option">
                                                 <li key={option.value} role="presentation">
                                                     <div
@@ -118,20 +163,40 @@
                                                         onmousedown={handleOptionMouseDown}
                                                     >
                                                         <span class="slds-media__body slds-grid slds-grid_vertical">
-                                                            <span class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate">{option.label}</span>
-                                                            <span class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate">{option.name}</span>
+                                                            <span
+                                                                class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate"
+                                                                >{option.label}</span
+                                                            >
+                                                            <span
+                                                                class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate"
+                                                                >{option.name}</span
+                                                            >
                                                         </span>
                                                     </div>
                                                 </li>
                                             </template>
                                         </ul>
                                         <template lwc:if={candidatesBusy}>
-                                            <p class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak" role="status">候補を検索中…</p>
+                                            <p
+                                                class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                                role="status"
+                                            >
+                                                候補を検索中…
+                                            </p>
                                         </template>
                                         <template lwc:if={noCandidates}>
-                                            <p class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak" role="status">候補がありません。検索語を確認してください。</p>
+                                            <p
+                                                class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                                role="status"
+                                            >
+                                                候補がありません。検索語を確認してください。
+                                            </p>
                                         </template>
-                                        <p class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">最大200件。ラベルまたはAPI名で絞り込めます。</p>
+                                        <p
+                                            class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak"
+                                        >
+                                            最大200件。ラベルまたはAPI名で絞り込めます。
+                                        </p>
                                     </div>
                                 </template>
                             </div>
@@ -151,7 +216,10 @@
             </section>
             <template lwc:if={stagesLoaded}>
                 <template lwc:if={hasStages}>
-                    <section class="slds-box slds-theme_default slds-p-around_none slds-m-top_medium slds-is-relative slds-scrollable_none" aria-label="ステージ資格情報">
+                    <section
+                        class="slds-box slds-theme_default slds-p-around_none slds-m-top_medium slds-is-relative slds-scrollable_none"
+                        aria-label="ステージ資格情報"
+                    >
                         <div
                             class="c-stage-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-top_medium"
                         >
@@ -211,7 +279,10 @@
             </template>
         </template>
         <template lwc:if={error}>
-            <div class="c-error-notice slds-box slds-theme_error slds-m-top_medium slds-grid slds-grid_vertical-align-start" role="alert">
+            <div
+                class="c-error-notice slds-box slds-theme_error slds-m-top_medium slds-grid slds-grid_vertical-align-start"
+                role="alert"
+            >
                 <lightning-icon
                     icon-name="utility:error"
                     alternative-text="エラー"

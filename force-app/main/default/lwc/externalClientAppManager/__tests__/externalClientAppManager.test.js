@@ -79,19 +79,21 @@ describe('外部クライアントアプリ認証管理', () => {
         await flush();
         expect(input.getAttribute('aria-activedescendant')).toBe(element.shadowRoot.querySelector('[role="option"]').id);
         execute.mockResolvedValueOnce({ stages: [] });
+        const focus = jest.spyOn(HTMLElement.prototype, 'focus');
         input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
         await flush();
         expect(execute).toHaveBeenLastCalledWith({ input: expect.objectContaining({ action: 'stages', appId: 'outside', confirmation: 'Outside' }) });
-        expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
-        expect(element.shadowRoot.querySelector('.slds-pill_container .slds-pill__label').textContent).toBe('別の対象');
-        expect(element.shadowRoot.activeElement).toBe(element.shadowRoot.querySelector('.slds-pill__remove'));
+        expect(element.shadowRoot.querySelector('input[role="combobox"]').readOnly).toBe(true);
+        expect(element.shadowRoot.querySelector('input[readonly]').value).toBe('別の対象');
+        expect(focus.mock.contexts).toContain(element.shadowRoot.querySelector('lightning-button-icon[title="選択を解除"]'));
+        focus.mockRestore();
         await expect(element).toBeAccessible();
         execute.mockResolvedValueOnce({ applications: [outside] }).mockResolvedValueOnce({ stages: [] });
         element.remove();
         document.body.appendChild(element);
         await flush();
         expect(execute.mock.calls.at(-2)[0]).toEqual({ input: { action: 'list', appId: 'outside' } });
-        expect(element.shadowRoot.querySelector('.slds-pill__label').textContent).toBe('別の対象');
+        expect(element.shadowRoot.querySelector('input[readonly]').value).toBe('別の対象');
     });
     it.each([['検索完了後', false], ['検索中', true]])('%sに再接続しても入力語に一致する候補を再取得する', async (_, pending) => {
         const element = await createComponent();
@@ -163,20 +165,21 @@ describe('外部クライアントアプリ認証管理', () => {
         expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: 'Target' } });
         expect(element.shadowRoot.querySelector('[role="option"]')).not.toBeNull();
     });
-    it('選択解除で旧資格情報を消し、空の条件で候補を再取得する', async () => {
+    it.each(['click', 'Delete'])('%sで選択解除すると旧資格情報を消し、空の条件で候補を再取得する', async (method) => {
         const element = await createComponent();
         execute.mockResolvedValueOnce({ stages: [{ id: 'old', state: 'rotated' }] });
         await select(element);
         execute.mockResolvedValueOnce({ applications: apps });
-        const clearButton = element.shadowRoot.querySelector('button[title="選択を解除"]');
-        clearButton.click();
+        const clearButton = element.shadowRoot.querySelector('lightning-button-icon[title="選択を解除"]');
+        if (method === 'click') { clearButton.click(); }
+        else { element.shadowRoot.querySelector('input[readonly]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true })); }
         // 要素の差し替えによるblurが再検索を中止しないことを確認する。
         clearButton.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
         await flush();
         expect(execute).toHaveBeenLastCalledWith({ input: { action: 'list', term: '' } });
         expect(button(element)).toBeUndefined();
         expect(button(element, '削除')).toBeUndefined();
-        expect(element.shadowRoot.querySelector('.slds-pill_container')).toBeNull();
+        expect(element.shadowRoot.querySelector('input[readonly]')).toBeNull();
         expect(element.shadowRoot.querySelector('input[role="combobox"]').getAttribute('aria-expanded')).toBe('true');
         expect(element.shadowRoot.activeElement).toBe(element.shadowRoot.querySelector('input[role="combobox"]'));
         await expect(element).toBeAccessible();
@@ -542,7 +545,7 @@ describe('外部クライアントアプリ認証管理', () => {
         await select(element);
         expect(element.shadowRoot.querySelector('section[aria-label="ステージ資格情報"]')).toBeNull();
         expect(button(element, '再取得')).toBeUndefined();
-        expect(element.shadowRoot.querySelector('lightning-button-icon')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-button-icon[title="選択を解除"]')).not.toBeNull();
     });
     it('未認証では標準認証リンクだけを表示する', async () => {
         const element = await createComponent({ status: 'REQUIRED', url: '/auth' });

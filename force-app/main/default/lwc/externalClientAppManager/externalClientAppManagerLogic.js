@@ -7,7 +7,7 @@ export function applicationOptions(applications = [], activeIndex = -1) {
         value: app.id,
         domId: `app-option-${app.id}`,
         selected: index === activeIndex,
-        className: `slds-media slds-listbox__option slds-listbox__option_entity slds-media_small${index === activeIndex ? ' slds-has-focus' : ''}`
+        className: `slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta${index === activeIndex ? ' slds-has-focus' : ''}`
     }));
 }
 
