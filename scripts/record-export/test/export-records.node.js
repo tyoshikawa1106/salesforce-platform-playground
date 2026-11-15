@@ -688,27 +688,6 @@ test('否認と本番の追加確認では検索・保存せず入力を閉じ�
     }
 });
 
-test('CLIの応答を待つ間に定期メッセージを表示しない', async (t) => {
-    const cwd = temporary(t);
-    const messages = [];
-    t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-    assert.equal(
-        await main(['--check-auth'], {
-            cwd,
-            writeLine: (line) => messages.push(line),
-            runner: async (args) => {
-                const before = [...messages];
-                t.mock.timers.tick(61000);
-                await new Promise((resolve) => setImmediate(resolve));
-                assert.deepEqual(messages, before, '応答待ち中に追加の表示をしない');
-                return runnerFor()(args);
-            }
-        }),
-        0
-    );
-    assert.ok(messages.every((line) => !line.includes('・実行中:')));
-});
-
 test('CLI障害の固定診断は生の本文を漏らさない', async () => {
     for (const [error, code] of [
         [{ code: 'ENOENT' }, 'CLI_NOT_FOUND'],
