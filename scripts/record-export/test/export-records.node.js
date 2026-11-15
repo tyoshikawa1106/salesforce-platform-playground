@@ -688,16 +688,19 @@ test('否認と本番の追加確認では検索・保存せず入力を閉じ�
     }
 });
 
-test('CLIの応答待ち中に定期メッセージ用タイマーを起動しない', async (t) => {
+test('CLIの応答を待つ間に定期メッセージを表示しない', async (t) => {
     const cwd = temporary(t);
     const messages = [];
-    t.mock.method(global, 'setInterval', () => assert.fail('定期表示タイマーは不要'));
+    t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
     assert.equal(
         await main(['--check-auth'], {
             cwd,
             writeLine: (line) => messages.push(line),
             runner: async (args) => {
+                const before = [...messages];
+                t.mock.timers.tick(61000);
                 await new Promise((resolve) => setImmediate(resolve));
+                assert.deepEqual(messages, before, '応答待ち中に追加の表示をしない');
                 return runnerFor()(args);
             }
         }),
@@ -1934,9 +1937,8 @@ test('MasterRecordIdも特別扱いせず個別補完に含め、空欄と実値
     }
 });
 
-test('補完検索中の表示と定期表示なしでも待機期限とスキップを維持する', async (t) => {
+test('補完検索の項目ごとに待機期限を設定し、期限切れをスキップへ変換する', async (t) => {
     const { resolvePreviewValue, SUPPLEMENT_TIMEOUT_MS } = require('../internal/preview-values');
-    t.mock.method(global, 'setInterval', () => assert.fail('補完の定期表示は不要'));
     let now = 0;
     t.mock.method(performance, 'now', () => now);
     const settings = {
