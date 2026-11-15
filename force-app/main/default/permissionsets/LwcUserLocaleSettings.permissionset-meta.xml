@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>UserLocaleSettingsController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>LWC：言語・地域の利用に必要な入口権限。ユーザー管理権限は付与しません。</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>LWC：言語・地域</label>
+</PermissionSet>

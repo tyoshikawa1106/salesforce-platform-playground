@@ -6,6 +6,7 @@ Lightning Web Componentsで実装した機能の仕様書一覧です。Apex本�
 | ------------------------------ | -------------------------- | ---------------------------------------------------------------------- |
 | 取引先データ品質スキャン       | `accountDataQualityScan`   | [取引先データ品質スキャン](account-data-quality-scan/index.md)         |
 | データボード                   | `objectMetricsOverview`    | [データボード](object-metrics-overview/index.md)                       |
+| 言語・地域                     | `userLocaleSettings`       | [言語・地域](user-locale-settings/index.md)                            |
 | 汎用レコード検索               | `objectRecordSearch`       | [汎用レコード検索](object-record-search/index.md)                      |
 | ケース取引先責任者プロフィール | `caseContactProfile`       | [ケース取引先責任者プロフィール](case-contact-profile/index.md)        |
 | 最近の問い合わせ               | `caseRelatedCaseList`      | [最近の問い合わせ](case-related-case-list/index.md)                    |

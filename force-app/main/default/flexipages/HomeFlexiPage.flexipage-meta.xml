@@ -23,6 +23,12 @@
         <type>Region</type>
     </flexiPageRegions>
     <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentName>userLocaleSettings</componentName>
+                <identifier>c_userLocaleSettings</identifier>
+            </componentInstance>
+        </itemInstances>
         <mode>Replace</mode>
         <name>bottomRight</name>
         <type>Region</type>
