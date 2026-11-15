@@ -15,17 +15,18 @@ const DEFAULT_LOCALES = Object.freeze({
     no: 'no_NO'
 });
 
+// 並べ替えの比較ごとに優先順位表を作り直さず共有する
+const LANGUAGE_PRIORITY = Object.freeze({ ja: 0, en_US: 1 });
+
 // コードと表示名から選択肢を作り、日本語・英語を優先
 export function createOptions(labels = {}, prioritizeLanguages = false) {
     // サーバーから受け取った候補を基本コンポーネント形式へ変換
     const options = Object.entries(labels).map(([value, label]) => ({ value, label }));
     // 言語の優先順以外は表示名で並べる
     return options.sort((left, right) => {
-        // 日本語と英語だけに固定の優先順位を設定
-        const priority = { ja: 0, en_US: 1 };
         // 地域候補には言語の優先順を適用しない
         const rankDifference = prioritizeLanguages
-            ? (priority[left.value] ?? 2) - (priority[right.value] ?? 2)
+            ? (LANGUAGE_PRIORITY[left.value] ?? 2) - (LANGUAGE_PRIORITY[right.value] ?? 2)
             : 0;
         // 同じ順位では現在のブラウザーの照合順で表示
         return rankDifference || left.label.localeCompare(right.label);
@@ -48,9 +49,11 @@ export function selectDefaultLocale(language, localeOptions) {
 }
 
 // 現在値が選択肢にない場合も実際の保存値を表示
-export function getDisplayLabel(value, options) {
+export function getDisplayLabel(value, labels = {}) {
+    // サーバーが返した対応表を直接参照し、継承プロパティは表示名として扱わない
+    const label = Object.prototype.hasOwnProperty.call(labels, value) ? labels[value] : undefined;
     // 有効な表示名、保存値、未設定表示の順に採用
-    return options.find((option) => option.value === value)?.label ?? (value || '未設定');
+    return label ?? (value || '未設定');
 }
 
 // 画面の選択肢と保存要求の整合性を検証

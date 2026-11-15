@@ -106,6 +106,25 @@ describe('c-user-locale-settings', () => {
         await flush();
         expect(window.location.reload).toHaveBeenCalledTimes(1);
         expect(combo(element, 'language')).toBeNull();
+        expect(element.shadowRoot.querySelector('dl').textContent).toContain('英語');
+        expect(element.shadowRoot.querySelector('dl').textContent).toContain('米国');
+    });
+
+    it('uses the latest translated labels after reconnecting', async () => {
+        const element = mount();
+        await flush();
+        expect(element.shadowRoot.querySelector('dl').textContent).toContain('日本語');
+        getSettings.mockResolvedValueOnce({
+            ...response, language: 'en_US', locale: 'en_US',
+            languages: { ja: 'Japanese', en_US: 'English' },
+            locales: { ja_JP: 'Japan', en_US: 'United States' }
+        });
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(element.shadowRoot.querySelector('dl').textContent).toContain('English');
+        expect(element.shadowRoot.querySelector('dl').textContent).toContain('United States');
+        expect(element.shadowRoot.querySelector('dl').textContent).not.toContain('日本語');
     });
 
     it('retains edits and shows a retryable server validation error', async () => {

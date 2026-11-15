@@ -227,14 +227,14 @@ export default class UserLocaleSettings extends LightningElement {
 
     // 保存済みの言語を表示名へ変換
     get languageLabel() {
-        // 編集値ではなく現在値を参照
-        return getDisplayLabel(this.settings.language, this.languageOptions);
+        // 取得済みの対応表から保存値の表示名を直接参照
+        return getDisplayLabel(this.settings.language, this.settings.languages);
     }
 
     // 保存済みの地域を表示名へ変換
     get localeLabel() {
-        // 編集値ではなく現在値を参照
-        return getDisplayLabel(this.settings.locale, this.localeOptions);
+        // 取得済みの対応表から保存値の表示名を直接参照
+        return getDisplayLabel(this.settings.locale, this.settings.locales);
     }
 
     // 取得失敗後だけ再試行を表示

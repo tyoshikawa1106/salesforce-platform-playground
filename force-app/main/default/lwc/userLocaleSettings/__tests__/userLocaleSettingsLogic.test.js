@@ -29,9 +29,12 @@ describe('userLocaleSettingsLogic', () => {
     });
 
     it('preserves current values that no longer appear among choices', () => {
-        expect(getDisplayLabel('ja', languages)).toBe('日本語');
-        expect(getDisplayLabel('retired', languages)).toBe('retired');
-        expect(getDisplayLabel('', [])).toBe('未設定');
+        const labels = { ja: '日本語' };
+        expect(getDisplayLabel('ja', labels)).toBe('日本語');
+        expect(getDisplayLabel('retired', labels)).toBe('retired');
+        expect(getDisplayLabel('toString', labels)).toBe('toString');
+        expect(getDisplayLabel('', {})).toBe('未設定');
+        expect(getDisplayLabel('')).toBe('未設定');
     });
 
     it('allows a manually chosen locale and sends only two settings', () => {
