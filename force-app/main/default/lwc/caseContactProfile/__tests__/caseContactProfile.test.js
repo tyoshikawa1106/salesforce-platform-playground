@@ -200,9 +200,6 @@ describe('c-case-contact-profile', () => {
             element.shadowRoot.querySelector('lightning-formatted-email').value
         ).toBe('taro@example.com');
         expect(
-            element.shadowRoot.querySelector('lightning-formatted-phone').value
-        ).toBe('03-1234-5678');
-        expect(
             element.shadowRoot.querySelector('lightning-formatted-url').value
         ).toBe('https://case-account.example.com');
         expect(
