@@ -646,8 +646,7 @@ describe('レイアウト切替の連続編集', () => {
             await flushPromises();
             await flushPromises();
         }
-        expect(getModal()).not.toBeNull();
-        expect(getModal().recordTypeId).toBe(defaultTypeId);
+        expect(getModal()).toHaveProperty('recordTypeId', defaultTypeId);
         expect(getInputFieldNames()).toContain('Rating');
         expect(getInputFieldNames()).not.toContain('Type');
         expect(getInputFields().find((field) => field.fieldName === 'Rating').required).toBe(true);
