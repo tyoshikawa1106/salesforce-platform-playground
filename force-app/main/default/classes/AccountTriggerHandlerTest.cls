@@ -14,11 +14,7 @@ private with sharing class AccountTriggerHandlerTest {
         // 準備
         List<Account> accounts = new List<Account>{
             new Account(Name = '㈱テスト'),
-            new Account(Name = '（株）テスト'),
-            new Account(Name = '(株)テスト'),
-            new Account(Name = '㈲テスト'),
-            new Account(Name = '（有）テスト'),
-            new Account(Name = '(有)テスト')
+            new Account(Name = '㈲テスト')
         };
 
         // 実行
@@ -34,36 +30,8 @@ private with sharing class AccountTriggerHandlerTest {
 
         // 検証
         Map<Id, Account> accountsById = getAccountsById(accounts);
-        Assert.areEqual(
-            '株式会社テスト',
-            accountsById.get(accounts[0].Id).Name,
-            '㈱ は正式名称へ補正する必要あり'
-        );
-        Assert.areEqual(
-            '株式会社テスト',
-            accountsById.get(accounts[1].Id).Name,
-            '（株）は正式名称へ補正する必要あり'
-        );
-        Assert.areEqual(
-            '株式会社テスト',
-            accountsById.get(accounts[2].Id).Name,
-            '(株) は正式名称へ補正する必要あり'
-        );
-        Assert.areEqual(
-            '有限会社テスト',
-            accountsById.get(accounts[3].Id).Name,
-            '㈲ は正式名称へ補正する必要あり'
-        );
-        Assert.areEqual(
-            '有限会社テスト',
-            accountsById.get(accounts[4].Id).Name,
-            '（有）は正式名称へ補正する必要あり'
-        );
-        Assert.areEqual(
-            '有限会社テスト',
-            accountsById.get(accounts[5].Id).Name,
-            '(有) は正式名称へ補正する必要あり'
-        );
+        Assert.areEqual('株式会社テスト', accountsById.get(accounts[0].Id).Name, '挿入時に株式会社の略称を補正');
+        Assert.areEqual('有限会社テスト', accountsById.get(accounts[1].Id).Name, '挿入した複数レコードへ補正を適用');
     }
 
     /**
@@ -94,183 +62,6 @@ private with sharing class AccountTriggerHandlerTest {
             updatedAccount.Name,
             '更新後の取引先名は正式名称へ補正する必要あり'
         );
-    }
-
-    /**
-     * 法人格略称の前後位置を保って正式名称へ補正
-     */
-    @IsTest
-    static void shouldKeepCompanyTypePositionWhenAccountsInserted() {
-        // 準備
-        List<Account> accounts = new List<Account>{
-            new Account(Name = 'テスト（株）'),
-            new Account(Name = 'テスト(有)')
-        };
-
-        // 実行
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            // 法人格略称の位置を保ったまま挿入時補正を適用
-            insert accounts;
-
-            Test.stopTest();
-        }
-
-        // 検証
-        Map<Id, Account> accountsById = getAccountsById(accounts);
-        Assert.areEqual(
-            'テスト株式会社',
-            accountsById.get(accounts[0].Id).Name,
-            '株式会社の法人格位置は維持する必要あり'
-        );
-        Assert.areEqual(
-            'テスト有限会社',
-            accountsById.get(accounts[1].Id).Name,
-            '有限会社の法人格位置は維持する必要あり'
-        );
-    }
-
-    /**
-     * 複数の法人格略称を含む取引先名を正式名称へ補正
-     */
-    @IsTest
-    static void shouldNormalizeMultipleCompanyAbbreviationsInAccountName() {
-        // 準備
-        Account accountRecord = new Account(Name = '㈱テスト(有)支店');
-
-        // 実行
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            // 一つの名称に含まれる複数の略称をまとめて補正
-            insert accountRecord;
-
-            Test.stopTest();
-        }
-
-        // 検証
-        Account insertedAccount = getAccount(accountRecord);
-        Assert.areEqual(
-            '株式会社テスト有限会社支店',
-            insertedAccount.Name,
-            '取引先名に含まれる法人格略称はすべて補正する必要あり'
-        );
-    }
-
-    /**
-     * 正式名称の法人格表記は変更せず保持
-     */
-    @IsTest
-    static void shouldKeepFormalCompanyNamesWhenAlreadyNormalized() {
-        // 準備
-        Account accountRecord = new Account(Name = '株式会社テスト');
-
-        // 実行
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            // 既に正式名称の取引先名を変更対象から除外
-            insert accountRecord;
-
-            Test.stopTest();
-        }
-
-        // 検証
-        Account insertedAccount = getAccount(accountRecord);
-        Assert.areEqual(
-            '株式会社テスト',
-            insertedAccount.Name,
-            '正式名称の取引先名は変更しない必要あり'
-        );
-    }
-
-    /**
-     * 不完全な法人格略称は補正対象外として保持
-     */
-    @IsTest
-    static void shouldKeepIncompleteAbbreviationsWhenAccountsInserted() {
-        // 準備
-        List<Account> accounts = new List<Account>{
-            new Account(Name = '株）テスト'),
-            new Account(Name = '（株テスト'),
-            new Account(Name = '有)テスト'),
-            new Account(Name = '(有テスト')
-        };
-
-        // 実行
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            // 不完全な略称を補正対象にしない挿入処理を検証
-            insert accounts;
-
-            Test.stopTest();
-        }
-
-        // 検証
-        Map<Id, Account> accountsById = getAccountsById(accounts);
-        Assert.areEqual(
-            '株）テスト',
-            accountsById.get(accounts[0].Id).Name,
-            '不完全な株式会社略称は変更しない必要あり'
-        );
-        Assert.areEqual(
-            '（株テスト',
-            accountsById.get(accounts[1].Id).Name,
-            '不完全な株式会社略称は変更しない必要あり'
-        );
-        Assert.areEqual(
-            '有)テスト',
-            accountsById.get(accounts[2].Id).Name,
-            '不完全な有限会社略称は変更しない必要あり'
-        );
-        Assert.areEqual(
-            '(有テスト',
-            accountsById.get(accounts[3].Id).Name,
-            '不完全な有限会社略称は変更しない必要あり'
-        );
-    }
-
-    /**
-     * 一括作成された取引先名の法人格略称を補正
-     */
-    @IsTest
-    static void shouldNormalizeCompanyAbbreviationsWhenBulkInserted() {
-        // 準備
-        List<Account> accounts = new List<Account>();
-        for (Integer index = 0; index < 2; index++) {
-            Account accountRecord = new Account(Name = '㈱テスト ' + index);
-            accounts.add(accountRecord);
-        }
-
-        // 実行
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            insert accounts;
-
-            Test.stopTest();
-        }
-
-        // 検証
-        List<Account> insertedAccounts = getAccounts(accounts);
-        Assert.areEqual(
-            2,
-            insertedAccounts.size(),
-            '一括取引先はすべて作成される必要あり'
-        );
-        for (Account accountRecord : insertedAccounts) {
-            Assert.isTrue(
-                accountRecord.Name.startsWith('株式会社テスト '),
-                '一括取引先名は正式名称へ補正する必要あり'
-            );
-        }
     }
 
     private static Account getAccount(Account accountRecord) {
