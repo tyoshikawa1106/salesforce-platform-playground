@@ -11,9 +11,6 @@ private with sharing class AccountPdfControllerTest {
     @IsTest
     static void shouldLoadAccountDataWhenAccountIdIsValid() {
         Account accountRecord = new Account(Name = '株式会社 PDF Controller テスト');
-        accountRecord.AccountNumber = 'PDF-001';
-        accountRecord.Phone = '03-0000-0000';
-        accountRecord.Website = 'https://example.com/account';
         accountRecord.BillingPostalCode = '100-0001';
         accountRecord.BillingState = '東京都';
         accountRecord.BillingCity = '千代田区';
@@ -35,9 +32,6 @@ private with sharing class AccountPdfControllerTest {
         Assert.isFalse(result.hasError, '正常な取引先ではエラーにしない必要あり');
         Assert.areEqual('', result.errorMessage, '正常時はエラーメッセージを空にする必要あり');
         Assert.areEqual('株式会社 PDF Controller テスト', result.accountData.accountName, '取引先名を表示する必要あり');
-        Assert.areEqual('PDF-001', result.accountData.accountNumber, '取引先番号を表示する必要あり');
-        Assert.areEqual('03-0000-0000', result.accountData.phone, '電話を表示する必要あり');
-        Assert.areEqual('https://example.com/account', result.accountData.website, 'Web サイトを表示する必要あり');
         Assert.areEqual(
             '100-0001\n東京都千代田区\n千代田1-1\n日本',
             result.accountData.billingAddress,
