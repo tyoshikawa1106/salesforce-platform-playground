@@ -22,8 +22,24 @@ Salesforce上で使う画面・帳票について、機能別の入口、LWC、�
 | [組織エクスプローラー](lwc/org-explorer/index.md)                   | `orgExplorer`                                           |
 | [オブジェクトエクスプローラー](lwc/object-explorer/index.md)        | `objectExplorer`                                        |
 | [取引先情報PDF](visualforce/account-pdf/index.md)                   | `Account.PdfExport` → `accountPdfExport` → `AccountPdf` |
+| [言語・地域](lwc/user-locale-settings/index.md)                     | `userLocaleSettings`                                    |
 
 ## 機能別の構成
+
+### 言語・地域
+
+仕様・配置・権限: [言語・地域](lwc/user-locale-settings/index.md)。
+
+| LWC                                                                                             | 同Bundleの補助JavaScript                                                                                     |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [userLocaleSettings](../../force-app/main/default/lwc/userLocaleSettings/userLocaleSettings.js) | [userLocaleSettingsLogic.js](../../force-app/main/default/lwc/userLocaleSettings/userLocaleSettingsLogic.js) |
+
+| Apex本体                                                                                              | 役割                         | 同名Test                                                                                                      |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [UserLocaleSettingsController](../../force-app/main/default/classes/UserLocaleSettingsController.cls) | 本人設定の取得・保存の入口   | [UserLocaleSettingsControllerTest](../../force-app/main/default/classes/UserLocaleSettingsControllerTest.cls) |
+| [UserLocaleSettingsService](../../force-app/main/default/classes/UserLocaleSettingsService.cls)       | 候補・権限検証と更新対象生成 | [UserLocaleSettingsServiceTest](../../force-app/main/default/classes/UserLocaleSettingsServiceTest.cls)       |
+| [UserLocaleSettingsSelector](../../force-app/main/default/classes/UserLocaleSettingsSelector.cls)     | 本人設定の取得               | [UserLocaleSettingsSelectorTest](../../force-app/main/default/classes/UserLocaleSettingsSelectorTest.cls)     |
+| [UserLocaleSettingsWrapper](../../force-app/main/default/classes/UserLocaleSettingsWrapper.cls)       | 画面の設定と処理結果         | [UserLocaleSettingsWrapperTest](../../force-app/main/default/classes/UserLocaleSettingsWrapperTest.cls)       |
 
 ### 取引先データ品質スキャン
 

@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="言語・地域" icon-name="utility:world">
+        <template lwc:if={isEditing}>
+            <lightning-button slot="actions" label="キャンセル" onclick={handleCancel} disabled={isBusy}></lightning-button>
+        </template>
+        <template lwc:else>
+            <lightning-button slot="actions" label="編集" onclick={handleEdit} disabled={editDisabled}></lightning-button>
+        </template>
+        <div class="slds-p-horizontal_medium slds-p-bottom_small slds-is-relative" aria-busy={isBusy}>
+            <template lwc:if={isBusy}>
+                <lightning-spinner alternative-text="処理中" size="small"></lightning-spinner>
+            </template>
+            <template lwc:if={errorMessage}>
+                <p role="alert" class="slds-text-color_error slds-m-bottom_small">{errorMessage}</p>
+            </template>
+            <template lwc:if={showRetry}>
+                <lightning-button label="再読み込み" onclick={handleRetry}></lightning-button>
+            </template>
+            <template lwc:if={isLoaded}>
+                <template lwc:if={isEditing}>
+                    <lightning-combobox name="language" label="言語" value={language} options={languageOptions} onchange={handleLanguageChange} disabled={isBusy} required></lightning-combobox>
+                    <lightning-combobox class="slds-m-top_small" name="locale" label="地域" placeholder="地域を選択" value={locale} options={localeOptions} onchange={handleLocaleChange} disabled={isBusy} required></lightning-combobox>
+                    <p class="slds-m-top_small slds-text-color_weak">言語を変更すると地域を自動設定します。地域は個別に変更できます。保存後に画面を再読み込みします。</p>
+                    <lightning-button class="slds-m-top_medium slds-show" label="保存" variant="brand" onclick={handleSave} disabled={isBusy}></lightning-button>
+                </template>
+                <template lwc:else>
+                    <dl>
+                        <dt class="slds-text-color_weak">言語</dt>
+                        <dd class="slds-m-bottom_small">{languageLabel}</dd>
+                        <dt class="slds-text-color_weak">地域</dt>
+                        <dd>{localeLabel}</dd>
+                    </dl>
+                </template>
+            </template>
+            <template lwc:if={showReadOnlyMessage}>
+                <p class="slds-m-top_small">言語・地域を変更する権限がありません。</p>
+            </template>
+        </div>
+    </lightning-card>
+</template>

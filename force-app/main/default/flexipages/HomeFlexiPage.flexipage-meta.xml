@@ -46,6 +46,12 @@
                 <identifier>home_assistant</identifier>
             </componentInstance>
         </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>userLocaleSettings</componentName>
+                <identifier>c_userLocaleSettings</identifier>
+            </componentInstance>
+        </itemInstances>
         <mode>Replace</mode>
         <name>sidebar</name>
         <type>Region</type>
