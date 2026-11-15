@@ -7,17 +7,17 @@
                 <identifier>c_objectMetricsOverview</identifier>
             </componentInstance>
         </itemInstances>
-        <mode>Replace</mode>
-        <name>top</name>
-        <type>Region</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
         <itemInstances>
             <componentInstance>
                 <componentName>accountDataQualityScan</componentName>
                 <identifier>c_accountDataQualityScan</identifier>
             </componentInstance>
         </itemInstances>
+        <mode>Replace</mode>
+        <name>top</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
         <mode>Replace</mode>
         <name>bottomLeft</name>
         <type>Region</type>

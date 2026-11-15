@@ -40,7 +40,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 | 種別                   | 実装・設定                                           | 役割                                                                                                                                                                   |
 | ---------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FlexiPage              | `HomeFlexiPage`                                      | Salesforceアプリのホームページ下部左側へLWCを配置                                                                                                                      |
+| FlexiPage              | `HomeFlexiPage`                                      | ホームのメイン領域でデータボードの直下に同じ幅で配置                                                                                                                   |
 | CustomObject・関連設定 | `DataQualityScan__c`                                 | スキャン状態、進捗、集計結果、最終エラーを保持                                                                                                                         |
 | CustomField            | `DataQualityScan__c.Active_Key__c`                   | Accountスキャンの同時実行を防ぐ一意キー                                                                                                                                |
 | CustomField            | `DataQualityScan__c.Status__c`                       | `Pending`、`Running`、`Completed`、`Failed`を保持                                                                                                                      |
