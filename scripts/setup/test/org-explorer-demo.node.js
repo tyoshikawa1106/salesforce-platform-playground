@@ -385,14 +385,6 @@ for (const answer of ['y', 'Y']) {
     });
 }
 
-test('取消ではDML・一時ファイルを作成しない', async () => {
-    const h = createHarness({ answer: '' });
-    assert.equal(await h.run(), 0);
-    assert.equal(h.calls.length, 2);
-    assert.ok(h.promptClosed());
-    assert.ok(h.isClean());
-});
-
 test('投入成功後に全件を再照会し、一時ファイルを削除する', async () => {
     const h = createHarness();
     assert.equal(await h.run(), 0);

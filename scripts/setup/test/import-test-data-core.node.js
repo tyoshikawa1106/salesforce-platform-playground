@@ -67,31 +67,28 @@ test('standaloneと共通preamble付きentryのソース構成を判定する', 
     ]);
 });
 
-test('実際のimport planから共通preambleとobject固有処理を合成する', () => {
-    // 実際のplanからCase用entryだけを準備する。
-    const plan = readPlan({
-        fileSystem: fs,
-        planPath: 'scripts/setup/plans/import-test-data-plan.json',
-        repoRoot
-    });
-    const [prepared] = prepareEntries({
-        args: {
-            defaultRepeat: null,
-            only: 'standard-objects-cases',
-            repeat: null
-        },
-        fileSystem: fs,
-        plan,
-        repoRoot
-    });
-
-    // preambleとCase固有処理が1つの実行ソースへ合成されることを確認する。
-    assert.deepEqual(prepared.sourcePaths, [
-        'scripts/apex/test-data/seed-standard-preamble.apexpart',
-        'scripts/apex/test-data/seed-standard-cases.apexpart'
+test('共通preambleと個別ソースを空行で区切り、周囲の空白を除いて合成する', () => {
+    const sources = new Map([
+        [path.join(repoRoot, 'preamble.apexpart'), '  Integer count = 1;\n'],
+        [path.join(repoRoot, 'entry.apexpart'), '\ncount += 1;  ']
     ]);
-    assert.match(prepared.source, /String pick\(/);
-    assert.match(prepared.source, /List<Case> records/);
+    const [prepared] = prepareEntries({
+        args: { defaultRepeat: null, only: 'sample', repeat: null },
+        fileSystem: {
+            existsSync: (file) => sources.has(file),
+            readFileSync: (file) => sources.get(file)
+        },
+        plan: {
+            preamble: 'preamble.apexpart',
+            imports: [
+                { label: 'sample', operation: 'apex', file: 'entry.apexpart' },
+                { label: 'unselected', operation: 'apex', file: 'unread.apexpart' }
+            ]
+        },
+        repoRoot
+    });
+    assert.deepEqual(prepared.sourcePaths, ['preamble.apexpart', 'entry.apexpart']);
+    assert.equal(prepared.source, 'Integer count = 1;\n\ncount += 1;\n');
     assert.equal(prepared.repeatCount, 1);
 });
 
@@ -121,7 +118,11 @@ test('import planの全entryを検証し、共通preambleを重複定義しな�
     // 各合成ソースがpreambleを1回だけ含むことを確認する。
     for (const prepared of composedEntries) {
         assert.equal(prepared.sourcePaths[0], plan.preamble);
-        assert.equal((prepared.source.match(/String pick\(/g) || []).length, 1);
+        assert.equal(prepared.sourcePaths.filter((sourcePath) => sourcePath === plan.preamble).length, 1);
+        assert.equal(
+            prepared.source,
+            `${prepared.sourcePaths.map((sourcePath) => fs.readFileSync(path.join(repoRoot, sourcePath), 'utf8').trim()).join('\n\n')}\n`
+        );
         assert.ok(prepared.sourcePaths.every((sourcePath) => sourcePath.endsWith('.apexpart')));
     }
 });
