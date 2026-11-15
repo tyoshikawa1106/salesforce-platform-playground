@@ -273,7 +273,7 @@ private with sharing class ObjectExplorerApiClientTest {
             );
             HttpResponse response = new HttpResponse();
             response.setStatusCode(200);
-            if (new Set<String>{ 'organization', 'classify', 'customRead' }.contains(scenario)) {
+            if (new Set<String>{ 'classify', 'customRead' }.contains(scenario)) {
                 respondRead(request, response);
             } else {
                 respondWrite(request, response);
@@ -287,21 +287,7 @@ private with sharing class ObjectExplorerApiClientTest {
          * @param response 返却する模擬応答
          */
         private void respondRead(HttpRequest request, HttpResponse response) {
-            if (scenario == 'organization') {
-                Assert.isTrue(
-                    request.getEndpoint().endsWith('query/?q=SELECT+Id+FROM+Organization'),
-                    '組織確認だけを問い合わせる'
-                );
-                response.setBody(
-                    JSON.serialize(
-                        new Map<String, Object>{
-                            'records' => new List<Object>{
-                                new Map<String, Object>{ 'Id' => UserInfo.getOrganizationId() }
-                            }
-                        }
-                    )
-                );
-            } else if (scenario == 'classify') {
+            if (scenario == 'classify') {
                 String query = EncodingUtil.urlDecode(request.getEndpoint().substringAfter('?q='), 'UTF-8');
                 Assert.isTrue(
                     query.contains('EntityDefinition.QualifiedApiName = \'Account\''),
@@ -336,14 +322,6 @@ private with sharing class ObjectExplorerApiClientTest {
                 Assert.isNull(field.getChildElement('nested', ns), '入力へ紛れた分類以外の属性を送信しない');
                 Assert.isTrue(String.isBlank(field.getChildElement('businessStatus', ns).getText()), '分類解除を送信');
                 response.setBody('<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body><updateMetadataResponse xmlns="http://soap.sforce.com/2006/04/metadata"><result><fullName>Account.Example__c</fullName><success>true</success></result></updateMetadataResponse></env:Body></env:Envelope>');
-            } else if (scenario == 'expression') {
-                Assert.isFalse(request.getBody().contains('{!'), '入力内の差し込み式をエスケープ');
-                Assert.areEqual(
-                    new Map<String, Object>{ 'value' => '{!input}' },
-                    JSON.deserializeUntyped(request.getBody()),
-                    'JSON値としては保持'
-                );
-                response.setStatusCode(204);
             } else if (scenario == 'soap') {
                 Assert.areEqual('POST', request.getMethod(), 'SOAPで送信');
                 Assert.areEqual('updateMetadata', request.getHeader('SOAPAction'), '更新操作を指定');
@@ -355,11 +333,6 @@ private with sharing class ObjectExplorerApiClientTest {
                 response.setBody(
                     '<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body><updateMetadataResponse xmlns="http://soap.sforce.com/2006/04/metadata"><result><fullName>Account.Name</fullName><success>true</success></result></updateMetadataResponse></env:Body></env:Envelope>'
                 );
-            } else if (scenario == 'httpError') {
-                response.setStatusCode(403);
-                response.setBody('private-response');
-            } else if (scenario == 'connectionError') {
-                throw new CalloutException('private-response');
             } else {
                 Assert.fail('未定義の通信を許可しない');
             }

@@ -78,20 +78,6 @@ private with sharing class MetadataApiSoapCodecTest {
 
     /** 不正なSOAP入力・応答を拒否 */
     @IsTest
-    static void rejectsEmptyRequest() {
-        System.runAs(testUser) {
-            Test.startTest();
-            try {
-                createStandardRequest(new Map<String, Map<String, Object>>());
-                Assert.fail('不正なSOAP契約を拒否');
-            } catch (SalesforceApiClient.IntegrationException error) {
-                Assert.isTrue(error.getMessage().contains('1～10'), '失敗理由を通知');
-            }
-            Test.stopTest();
-        }
-    }
-    /** 不正なSOAP入力・応答を拒否 */
-    @IsTest
     static void rejectsMismatchedMetadata() {
         System.runAs(testUser) {
             Test.startTest();
@@ -225,7 +211,12 @@ private with sharing class MetadataApiSoapCodecTest {
      * @return 一括更新XML
      */
     private static String createStandardRequest(Map<String, Map<String, Object>> fields) {
-        return new ObjectExplorerApiProtocol.CustomFieldCodec().createUpdateRequest(fields, new Map<String, Dom.XmlNode>());
+        Dom.Document doc = codec.createRequestDocument('updateMetadata');
+        Dom.XmlNode operation = doc.getRootElement().getChildElement('Body', 'http://schemas.xmlsoap.org/soap/envelope/').getChildElement('updateMetadata', 'http://soap.sforce.com/2006/04/metadata');
+        for (String fullName : fields.keySet()) {
+            codec.appendMetadataField(operation, fullName, fields.get(fullName));
+        }
+        return codec.serializeRequest(doc);
     }
 
     /** null応答や空白本文をXML解析前に拒否 */

@@ -174,12 +174,16 @@ private with sharing class ObjectExplorerApiProtocolTest {
             } catch (SalesforceApiClient.IntegrationException error) { Assert.isTrue(error.getMessage().contains('一致'), '同じ項目の定義を必須にする'); }
 
             ObjectExplorerApiProtocol.CustomFieldCodec codec = new ObjectExplorerApiProtocol.CustomFieldCodec();
-            for (Map<String, Map<String, Object>> fields : new List<Map<String, Map<String, Object>>>{ null, new Map<String, Map<String, Object>>{ 'Account.Name' => null } }) {
+            List<Map<String, Map<String, Object>>> invalidFields = new List<Map<String, Map<String, Object>>>{
+                null, new Map<String, Map<String, Object>>{ 'Account.Name' => null }, new Map<String, Map<String, Object>>()
+            };
+            List<String> expectedReasons = new List<String>{ '定義', '定義', '1～10' };
+            for (Integer index = 0; index < invalidFields.size(); index++) {
                 try {
-                    codec.createUpdateRequest(fields, new Map<String, Dom.XmlNode>());
-                    Assert.fail('必須値の欠落を拒否');
+                    codec.createUpdateRequest(invalidFields[index], new Map<String, Dom.XmlNode>());
+                    Assert.fail('定義の欠落と空の更新要求を拒否');
                 } catch (SalesforceApiClient.IntegrationException e) {
-                    Assert.isTrue(e.getMessage().contains('定義'), '欠落を明示したエラーで拒否');
+                    Assert.isTrue(e.getMessage().contains(expectedReasons[index]), '入力ごとの拒否理由を通知');
                 }
             }
             try {
