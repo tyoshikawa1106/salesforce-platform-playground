@@ -89,7 +89,8 @@ test('サイズ・複雑さによる再分割後もIDと項目順で完全なCSV
     const output = path.join(dir, 'result.csv');
     spool.finish(result.ids, output);
     assert.equal(fs.readFileSync(output, 'utf8'), toCsv({ fields, records: data }, 'records'));
-    assert.throws(() => spool.finish(result.ids, output), /EEXIST/);
+    assert.throws(() => spool.finish(result.ids, output), { code: 'EEXIST' });
+    assert.equal(fs.readFileSync(output, 'utf8'), toCsv({ fields, records: data }, 'records'));
 });
 
 test('認証エラーと最小単位のサイズエラーは再分割し続けない', async () => {

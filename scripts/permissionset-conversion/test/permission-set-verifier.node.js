@@ -234,7 +234,7 @@ test('再取得先の不存在・空フォルダ・対象外ファイルだけ�
     }
 });
 
-test('生成元が空なら組織へ接続せず拒否し、再取得先の読み取りエラーを欠落扱いにしない', async () => {
+test('生成元が空なら組織へ接続せず拒否し、再取得先の読み取りエラーを欠落扱いにしない', async (t) => {
     const project = createComparisonProject();
     let calls = 0;
     try {
@@ -255,15 +255,22 @@ test('生成元が空なら組織へ接続せず拒否し、再取得先の読�
             path.join(project.sourceDirectory, 'Expected.permissionset-meta.xml'),
             createPermissionSetXml('<label>Expected</label>')
         );
-        const retrievedDirectory = path.join(project.runDirectory, 'not-a-directory');
-        fs.writeFileSync(retrievedDirectory, 'invalid retrieval path');
+        const retrievedDirectory = path.join(project.runDirectory, 'retrieved');
+        fs.mkdirSync(retrievedDirectory);
+        // OSによる例外の違いではなく、読み取り失敗を欠落結果へ変換しないことを確認する。
+        const readError = new Error('retrieved directory read failed');
+        const readdirSync = fs.readdirSync;
+        t.mock.method(fs, 'readdirSync', (directory, options) => {
+            if (directory === retrievedDirectory) throw readError;
+            return readdirSync(directory, options);
+        });
         assert.throws(
             () =>
                 comparePermissionSetDirectories({
                     sourceDirectory: project.sourceDirectory,
                     retrievedDirectory
                 }),
-            { code: 'ENOTDIR' }
+            (error) => error === readError
         );
     } finally {
         fs.rmSync(project.projectRoot, { recursive: true, force: true });
