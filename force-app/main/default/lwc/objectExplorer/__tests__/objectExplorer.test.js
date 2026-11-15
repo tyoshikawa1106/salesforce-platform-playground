@@ -367,18 +367,6 @@ it('画面イベントのJS例外は標準エラーページへ伝播させず�
     expect(element.shadowRoot.querySelector('h1').textContent).toBe('オブジェクトエクスプローラー');
     expect(searchObjects).not.toHaveBeenCalled();
 });
-it('正常な検索・保存確認では診断ログも診断表示も出さない', async () => {
-    const element = createComponent();
-    await flush();
-    await editClassify(element);
-    LightningConfirm.open.mockResolvedValueOnce(false);
-    element.shadowRoot.querySelector('.c-save-bar lightning-button').click();
-    await flush();
-    expect(console.error).not.toHaveBeenCalled();
-    expect(element.shadowRoot.querySelector('.c-client-error')).toBeNull();
-    expect(element.shadowRoot.textContent).not.toContain('保存の確認画面を開いています');
-});
-
 it.each(['reference', 'classify'])('カスタム列は枠なしのチェックを表示する（%s）', async (mode) => {
     getObjectInfo.mockResolvedValue({ ...objectInfo, fields: [...objectInfo.fields, { apiName: 'Flag__c', label: '独自項目', type: 'BOOLEAN', custom: true }] });
     getClassifyData.mockResolvedValue({ ...classify, rows: { ...classify.rows, Flag__c: { ...classify.rows.Name } } });
@@ -699,7 +687,7 @@ it('確認後の保存中だけ固定スピナーを表示し、拒否後は解�
     expect(element.shadowRoot.querySelector('.c-save-bar lightning-button').disabled).toBe(false);
 });
 
-it('保存をキャンセルした場合は固定スピナーを表示せずAPIを呼ばない', async () => {
+it('保存をキャンセルした場合はAPIを呼ばず、診断も進捗も表示しない', async () => {
     const element = createComponent();
     await flush();
     await editClassify(element);
@@ -707,7 +695,10 @@ it('保存をキャンセルした場合は固定スピナーを表示せずAPI�
     element.shadowRoot.querySelector('.c-save-bar lightning-button').click();
     await flush();
     expect(saveClassifyData).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
+    expect(element.shadowRoot.querySelector('.c-client-error')).toBeNull();
     expect(element.shadowRoot.querySelector('.c-save-progress')).toBeNull();
+    expect(element.shadowRoot.textContent).not.toContain('保存の確認画面を開いています');
     expect(element.shadowRoot.textContent).toContain('保存をキャンセルしました');
     expect(element.shadowRoot.querySelector('.c-save-bar lightning-button').disabled).toBe(false);
 });

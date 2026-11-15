@@ -134,7 +134,6 @@ it('構造索引を到着順に依存せず結合し、起点以外の枝をキ�
     });
     const graph = createStructureGraph(index, 'root');
     expect(Object.keys(graph.nodes)).toEqual(['ROLE:root', 'ROLE:child']);
-    expect(Object.keys(graph.nodes)).toHaveLength(2);
     expect(graph.nodes['ROLE:root'].parentKey).toBe('');
     expect(graph.nodes['ROLE:root'].memberCount).toBe(9);
     expect(graph.nodes['ROLE:child'].memberCount).toBe(0);

@@ -212,11 +212,10 @@ describe('外部クライアントアプリ認証管理', () => {
         expect(actions()).toEqual(['stages', 'generate', 'apply']);
         expect(ExternalClientAppCredentialModal.open).toHaveBeenCalledTimes(1);
         expect(element.shadowRoot.querySelector('lightning-input')).toBeNull();
-        expect(button(element, '削除').variant).toBe('destructive');
+        expect(button(element, '削除')).toHaveProperty('variant', 'destructive');
         expect(element.shadowRoot.textContent).toContain('適用済み');
         expect(element.shadowRoot.textContent).not.toContain('rotated');
         expect(element.shadowRoot.textContent).toContain('ステージ資格情報');
-        expect(button(element, '削除')).toBeDefined();
         await expect(element).toBeAccessible();
     });
     it.each(['rotated', 'expired', 'unknown'])('残存する%sは手動整理まで生成を止める', async (state) => {

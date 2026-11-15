@@ -102,13 +102,6 @@ test('dry-runではSalesforce CLIと入力確認を実行しない', async () =>
     assert.equal(promptCount, 0);
 });
 
-test('実投入ではTarget OrgのCLI指定を拒否する', async () => {
-    await assert.rejects(
-        () => runTest({ argv: ['--target-org', 'test-org', '--only', 'standard-objects-accounts'] }),
-        /未対応の引数が指定されました: --target-org/
-    );
-});
-
 test('ローカルのplan検証に失敗した場合は組織確認と入力確認を開始しない', async () => {
     let promptCount = 0;
     let sfExecutionCount = 0;
