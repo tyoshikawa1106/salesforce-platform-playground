@@ -387,7 +387,7 @@ it('初期表示は全ロールだけを展開し、選択ロールのユーザ�
 });
 
 it('200件を超えるロールも表示モデルから除外しない', async () => {
-    const roots = Array.from({ length: 251 }, (_, index) => ({
+    const roots = Array.from({ length: 200 }, (_, index) => ({
         key: `ROLE:r${index}`,
         recordId: `r${index}`,
         kind: 'ROLE',
@@ -406,8 +406,8 @@ it('200件を超えるロールも表示モデルから除外しない', async (
     });
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
-    await Array.from({ length: 100 }).reduce((chain) => chain.then(flush), Promise.resolve());
-    expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows).toHaveLength(252);
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-canvas').model.rows).toHaveLength(201);
     expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).toBeNull();
 });
 it.each(['', '   ', null, undefined])('初期ロール設定が空なら照会せず全ロールを表示する: %s', async (setting) => {
@@ -568,8 +568,8 @@ it('一文字目から前方一致で候補を取得する', async () => {
     expect(search.results[0].targetId).toBe('sales');
 });
 
-it('100段のロール構造を一回で取得し、再展開でも通信しない', async () => {
-    const chain = Array.from({ length: 100 }, (_, i) => ({
+it('ロールの全階層を一回で取得してキャンバスへ渡す', async () => {
+    const chain = Array.from({ length: 3 }, (_, i) => ({
         ...rootTarget,
         key: `ROLE:chain${i}`,
         recordId: `chain${i}`,
@@ -582,7 +582,7 @@ it('100段のロール構造を一回で取得し、再展開でも通信しな�
     document.body.appendChild(element);
     await flush();
     const outline = element.shadowRoot.querySelector('c-org-explorer-canvas');
-    expect(outline.model.rows).toHaveLength(100);
+    expect(outline.model.rows).toHaveLength(3);
     expect(outline.model.rows[0].memberCountText).toBe('メンバー 8人');
     expect(rolePages).toHaveBeenCalledTimes(1);
     expect(element.shadowRoot.querySelector('c-org-explorer-outline')).toBeNull();

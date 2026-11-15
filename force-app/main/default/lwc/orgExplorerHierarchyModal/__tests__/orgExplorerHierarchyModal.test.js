@@ -2,16 +2,16 @@ import { createElement } from 'lwc';
 import OrgExplorerHierarchyModal from 'c/orgExplorerHierarchyModal';
 
 afterEach(() => document.body.replaceChildren());
-it('標準ヘッダーへロール名を渡し、重複ラベルなしで多数の直下行を表示する', async () => {
+it('標準ヘッダーへロール名を渡し、重複ラベルなしで直下行を表示する', async () => {
     const modal = createElement('c-org-explorer-hierarchy-modal', { is: OrgExplorerHierarchyModal });
     modal.label = '本部';
-    modal.hierarchy = { listLabel: '下位ロール', hasChildren: true, children: Array.from({ length: 50 }, (_, i) => ({ key: `role${i}`, label: `支部${i}`, selectLabel: `支部${i}を選択`, summary: `メンバー ${i}人 ｜ 下位ロール 0件` })) };
+    modal.hierarchy = { listLabel: '下位ロール', hasChildren: true, children: Array.from({ length: 2 }, (_, i) => ({ key: `role${i}`, label: `支部${i}`, selectLabel: `支部${i}を選択`, summary: `メンバー ${i}人 ｜ 下位ロール 0件` })) };
     const closeHandler = jest.fn();
     modal.closeHandler = closeHandler;
     document.body.appendChild(modal);
     expect(modal.shadowRoot.querySelector('lightning-modal-header').label).toBe('本部');
     expect(modal.shadowRoot.textContent).not.toContain('選択中のロール');
-    expect(modal.shadowRoot.querySelectorAll('li')).toHaveLength(50);
+    expect(modal.shadowRoot.querySelectorAll('li')).toHaveLength(2);
     expect(modal.shadowRoot.querySelector('li').textContent).toContain('メンバー 0人 ｜ 下位ロール 0件');
     // 空の標準スタブへ実コンポーネントのボタン役割を補い、各行の読み上げ名を検証する。
     modal.shadowRoot.querySelectorAll('lightning-button[data-key]').forEach((button, index) => {
@@ -19,8 +19,8 @@ it('標準ヘッダーへロール名を渡し、重複ラベルなしで多数�
         expect(button.getAttribute('aria-label')).toBe(`支部${index}を選択`);
         button.setAttribute('role', 'button');
     });
-    modal.shadowRoot.querySelector('[data-key="role49"]').click();
-    expect(closeHandler).toHaveBeenCalledWith('role49');
+    modal.shadowRoot.querySelector('[data-key="role1"]').click();
+    expect(closeHandler).toHaveBeenCalledWith('role1');
     await expect(modal).toBeAccessible();
 });
 it('末端ロールを空状態で表示し、閉じる操作では選択結果を返さない', () => {

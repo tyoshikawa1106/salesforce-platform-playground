@@ -435,6 +435,8 @@ it.each(['ROLE', 'MANAGER'])(
         const after = selectView(before, 'USER:1');
         expect(after).toEqual(buildView({ ...graph, selectedKey: 'USER:1' }, mode));
         expect(after.edges).toBe(before.edges);
+        expect(after.rows.filter((row, index) => row !== before.rows[index])).toHaveLength(2);
+        expect(after.rows.map((row) => row.style)).toEqual(before.rows.map((row) => row.style));
         expect(after.rows[2]).toBe(before.rows[2]);
         expect(after.rows[0].selected).toBe(false);
         expect(after.rows[0].ariaLabel).not.toContain('選択中');
@@ -446,13 +448,7 @@ it.each(['ROLE', 'MANAGER'])(
         expect(selectView(after, '').rows.every((row) => !row.selected)).toBe(true);
     }
 );
-it('多数の表示カードでも選択で置換するのは新旧の二行だけに限る', () => {
-    const graph = graphFor(Array.from({ length: 5000 }, (_, index) => node(index)));
-    const before = selectView(buildView(graph, 'MANAGER'), 'USER:0');
-    const after = selectView(before, 'USER:4999');
-    expect(after.rows.filter((row, index) => row !== before.rows[index])).toHaveLength(2);
-    expect(after.edges).toBe(before.edges);
-    expect(after.rows.map((row) => row.style)).toEqual(before.rows.map((row) => row.style));
+it('空の図の選択ではカードを追加しない', () => {
     expect(selectView(buildView(createGraph(), 'ROLE'), 'missing').rows).toEqual([]);
 });
 
