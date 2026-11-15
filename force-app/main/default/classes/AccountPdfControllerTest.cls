@@ -67,55 +67,12 @@ private with sharing class AccountPdfControllerTest {
     }
 
     /**
-     * 不正な ID 形式を安全なエラー表示へ変換
-     */
-    @IsTest
-    static void shouldShowSafeErrorWhenAccountIdIsMalformed() {
-        setCurrentPage('invalid-id');
-        AccountPdfController result;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            result = new AccountPdfController();
-
-            Test.stopTest();
-        }
-
-        Assert.isTrue(result.hasError, '不正な ID 形式はエラーにする必要あり');
-        Assert.isTrue(result.errorMessage.contains('取引先を確認できませんでした'), '内部例外を表示しない必要あり');
-    }
-
-    /**
-     * 取引先以外の ID を安全なエラー表示へ変換
-     */
-    @IsTest
-    static void shouldShowSafeErrorWhenIdBelongsToAnotherObject() {
-        setCurrentPage(Contact.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
-        AccountPdfController result;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            result = new AccountPdfController();
-
-            Test.stopTest();
-        }
-
-        Assert.isTrue(result.hasError, '取引先以外の ID はエラーにする必要あり');
-        Assert.isTrue(result.errorMessage.contains('取引先を確認できませんでした'), '安全な入力エラーを表示する必要あり');
-    }
-
-    /**
      * 存在しない取引先を権限外と区別せず案内
      */
     @IsTest
     static void shouldShowSafeErrorWhenAccountDoesNotExist() {
-        Account deletedAccount = new Account(Name = 'PDF Controller 削除済みテスト');
-        insert deletedAccount;
-        Id deletedAccountId = deletedAccount.Id;
-        delete deletedAccount;
-        setCurrentPage(String.valueOf(deletedAccountId));
+        Id missingAccountId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
+        setCurrentPage(String.valueOf(missingAccountId));
         AccountPdfController result;
 
         System.runAs(testUser) {

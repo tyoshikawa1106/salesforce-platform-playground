@@ -58,20 +58,17 @@ private with sharing class AccountPdfSelectorTest {
     }
 
     /**
-     * 存在しない取引先は null を返却
+     * 存在しない取引先は空の一覧を返却
      */
     @IsTest
     static void shouldReturnEmptyListWhenAccountDoesNotExist() {
-        Account deletedAccount = new Account(Name = 'PDF Selector 削除済みテスト');
-        insert deletedAccount;
-        Id deletedAccountId = deletedAccount.Id;
-        delete deletedAccount;
+        Id missingAccountId = Id.valueOf(Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000001');
         List<Account> results;
 
         System.runAs(testUser) {
             Test.startTest();
 
-            results = SELECTOR.getById(deletedAccountId);
+            results = SELECTOR.getById(missingAccountId);
 
             Test.stopTest();
         }
