@@ -129,14 +129,18 @@ test('入力ファイルの未検出・ディレクトリ指定はCLI起動前�
     await assert.rejects(() => main(['--fields', '.'], dependencies), /ディレクトリ.*テキストファイル/);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), '');
     await assert.rejects(() => main([], dependencies), /1行1項目/);
-    await assert.rejects(() => main(['--fields', 'fields.txt/child.txt'], dependencies), /パスが不正/);
+    // ファイルを親に指定した場合、WindowsはENOENT、macOS/LinuxはENOTDIRを返す。
+    const invalidPathMessage = process.platform === 'win32' ? /項目ファイルが見つかりません.*--fields/ : /パスが不正/;
+    await assert.rejects(() => main(['--fields', 'fields.txt/child.txt'], dependencies), invalidPathMessage);
     assert.deepEqual(fs.readdirSync(cwd), ['fields.txt']);
 });
 
-test('入力ファイルの権限・未知の読み取り障害でも生のOSエラーを表示しない', async (t) => {
+test('入力ファイルの原因別診断はOSによらず生のエラーを表示しない', async (t) => {
     const cwd = temporary(t);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
     for (const [code, expected] of [
+        ['ENOENT', /項目ファイルが見つかりません.*--fields/],
+        ['ENOTDIR', /パスが不正.*--fields/],
         ['EACCES', /読み取る権限がありません/],
         ['EPERM', /アクセスが許可されていません/],
         ['EIO', /読み込めませんでした/]
