@@ -290,7 +290,6 @@ describe('c-case-email-message-list', () => {
         const details = timeline.querySelectorAll('.slds-timeline__item_details');
         const formattedDates = timeline.querySelectorAll('lightning-formatted-date-time');
 
-        expect(timeline).not.toBeNull();
         expect(timeline.getAttribute('aria-label')).toBe('メールメッセージの活動履歴');
         expect(timelineItems).toHaveLength(2);
         expect(timeline.querySelector('[role="separator"]')).toBeNull();
@@ -324,8 +323,9 @@ describe('c-case-email-message-list', () => {
         expect(timeline.textContent).toContain('お問い合わせありがとうございます。\n確認します。');
         expect(timeline.textContent).toContain('(本文なし)');
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
-        expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').label).toBe('次のメールを読み込む');
-        expect(timeline.nextElementSibling.querySelector('lightning-button:not([data-client-error-dismiss])')).not.toBeNull();
+        expect(
+            timeline.nextElementSibling?.querySelector('lightning-button:not([data-client-error-dismiss])')
+        ).toHaveProperty('label', '次のメールを読み込む');
         await expect(element).toBeAccessible();
     });
 
@@ -359,8 +359,7 @@ describe('c-case-email-message-list', () => {
         await flushPromises();
 
         const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
-        expect(alert).not.toBeNull();
-        expect(alert.textContent).toContain('メールメッセージを取得できません。');
+        expect(alert?.textContent).toEqual(expect.stringContaining('メールメッセージを取得できません。'));
         await expect(element).toBeAccessible();
     });
 
@@ -404,8 +403,7 @@ describe('c-case-email-message-list', () => {
         });
         expect(timelineItems).toHaveLength(3);
         expect(recordLinks[2].textContent).toBe('次のメール');
-        expect(pageSeparator).not.toBeNull();
-        expect(pageSeparator.textContent).toContain('3件目から3件目を読み込みました');
+        expect(pageSeparator?.textContent).toEqual(expect.stringContaining('3件目から3件目を読み込みました'));
         expect(pageSeparator.getAttribute('aria-label')).toBe('3件目から3件目を読み込みました');
         expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
         expect(element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])')).toBeNull();
