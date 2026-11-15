@@ -92,7 +92,7 @@ test('共通preambleと個別ソースを空行で区切り、周囲の空白を
     assert.equal(prepared.repeatCount, 1);
 });
 
-test('import planの全entryを検証し、共通preambleを重複定義しない', () => {
+test('実際のimport planの全entryを定義順に準備できる', () => {
     // 実際のplanに含まれるすべてのentryを準備する。
     const plan = readPlan({
         fileSystem: fs,
@@ -109,20 +109,14 @@ test('import planの全entryを検証し、共通preambleを重複定義しな�
         plan,
         repoRoot
     });
-    const composedEntries = preparedEntries.filter((prepared) => !prepared.entry.standalone);
-
-    // 固定件数ではなく、現在のplan全体が漏れなく準備されたことを確認する。
-    assert.equal(preparedEntries.length, plan.imports.length);
-    assert.equal(composedEntries.length, plan.imports.filter((entry) => !entry.standalone).length);
-
-    // 各合成ソースがpreambleを1回だけ含むことを確認する。
-    for (const prepared of composedEntries) {
-        assert.equal(prepared.sourcePaths[0], plan.preamble);
-        assert.equal(prepared.sourcePaths.filter((sourcePath) => sourcePath === plan.preamble).length, 1);
-        assert.equal(
-            prepared.source,
-            `${prepared.sourcePaths.map((sourcePath) => fs.readFileSync(path.join(repoRoot, sourcePath), 'utf8').trim()).join('\n\n')}\n`
+    assert.deepEqual(
+        preparedEntries.map(({ entry }) => entry.label),
+        plan.imports.map(({ label }) => label)
+    );
+    for (const [index, entry] of plan.imports.entries()) {
+        assert.deepEqual(
+            preparedEntries[index].sourcePaths,
+            entry.standalone ? [entry.file] : [plan.preamble, entry.file]
         );
-        assert.ok(prepared.sourcePaths.every((sourcePath) => sourcePath.endsWith('.apexpart')));
     }
 });
