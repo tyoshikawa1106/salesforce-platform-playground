@@ -1,7 +1,7 @@
 // 実行コマンド: node scripts/scratch-org/steps/deploy-external-client-apps.js [--alias <alias>]
 // 用途: Scratch Org専用のローカルECAとOAuth設定を反映する。
 
-const { mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
 const { XMLBuilder, XMLParser } = require('fast-xml-parser');
@@ -9,7 +9,7 @@ const { runSf, runSfWithOutput } = require('../../common/run-command');
 const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
-const { localOAuthProviders, registerProviderCredentials } = require('../internal/eca-provider-credentials');
+const { registerProviderCredentials } = require('../internal/eca-provider-credentials');
 
 // 確認済みのScratch OrgへGit管理のECAを反映する。
 function main({
@@ -84,8 +84,13 @@ function main({
                 // 変換に失敗したパッケージは送信しない。
                 if (conversion !== 0) return conversion;
 
-                // 管理・組織内接続の3件について、組織ごとのURLを一時パッケージだけに反映する。
-                for (const name of localOAuthProviders) {
+                // 専用manifestから変換された全認証プロバイダーを対象にする。
+                const providerNames = readdirSync(path.join(directory, 'externalAuthIdentityProviders'))
+                    .filter((file) => file.endsWith('.externalAuthIdentityProvider'))
+                    .map((file) => file.slice(0, -'.externalAuthIdentityProvider'.length))
+                    .sort();
+                // 組織ごとのURLを一時パッケージだけに反映する。
+                for (const name of providerNames) {
                     // 反映するURLのファイル種別を限定し、認証情報には触れない。
                     const files = [
                         `externalAuthIdentityProviders/${name}.externalAuthIdentityProvider`,
@@ -151,7 +156,7 @@ function main({
                 // メタデータ反映が成功した組織だけで資格情報を登録する。
                 if (deployment !== 0) return deployment;
                 // CLI出力に資格情報を表示せず、同じ組織内で登録を完了する。
-                registerCredentials(orgInfo.username, runSfQuery);
+                registerCredentials(orgInfo.username, providerNames, runSfQuery);
                 return 0;
             } finally {
                 // 組織固有のユーザー名を含む一時パッケージは反映後に削除する。

@@ -5,8 +5,6 @@ const { buildSfCommand, runSfWithOutput } = require('../../common/run-command');
 const { sourceApiVersion } = require('../../../sfdx-project.json');
 const { repoRoot } = require('./context');
 
-// 同じAPI名で対応付ける組織内接続に対象を限定する。
-const localOAuthProviders = ['ExternalClientAppManager', 'InternalSalesforceApi', 'SalesforceApiIntegration'];
 const apiRoot = `/services/data/v${sourceApiVersion}`;
 
 // 認証済みCLIで同一組織へREST要求を送り、資格情報は標準入出力のパイプだけで渡す。
@@ -42,9 +40,19 @@ function requestScratchRest(username, resource, method, body) {
 }
 
 // 作成済みのローカルECAとプロバイダーを照合してから、資格情報を登録する。
-function registerProviderCredentials(username, runSfQuery = runSfWithOutput, request = requestScratchRest) {
+function registerProviderCredentials(
+    username,
+    providerNames,
+    runSfQuery = runSfWithOutput,
+    request = requestScratchRest
+) {
+    // メタデータ由来のAPI名を検証してからSOQLに渡す。
+    if (providerNames.length === 0) return;
+    if (providerNames.some((name) => !/^[A-Za-z][A-Za-z0-9_]*$/.test(name))) {
+        throw new Error('認証プロバイダーのAPI名が不正です。');
+    }
     // Git管理の対象名だけを使用し、組織側のアプリ名とIDを取得する。
-    const names = localOAuthProviders.map((name) => `'${name}'`).join(', ');
+    const names = providerNames.map((name) => `'${name}'`).join(', ');
     const query = runSfQuery(
         [
             'data',
@@ -61,12 +69,12 @@ function registerProviderCredentials(username, runSfQuery = runSfWithOutput, req
     if (query.status !== 0) throw new Error('Scratch OrgのローカルECAを照合できません。');
     const response = JSON.parse(query.stdout);
     const records = response.result?.records;
-    if (response.status !== 0 || !Array.isArray(records) || records.length !== localOAuthProviders.length) {
+    if (response.status !== 0 || !Array.isArray(records) || records.length !== providerNames.length) {
         throw new Error('Scratch OrgのローカルECAを照合できません。');
     }
 
     // すべての鍵を確認してから書き込みを開始する。
-    const registrations = localOAuthProviders.map((name) => {
+    const registrations = providerNames.map((name) => {
         // 同じAPI名のローカルECAだけを対応するプロバイダーに割り当てる。
         const matches = records.filter((row) => row?.DeveloperName === name);
         const appId = matches[0]?.Id;
@@ -110,4 +118,4 @@ function registerProviderCredentials(username, runSfQuery = runSfWithOutput, req
     }
 }
 
-module.exports = { localOAuthProviders, registerProviderCredentials };
+module.exports = { registerProviderCredentials };
