@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtlClntAppOauthConfigurablePolicies xmlns="http://soap.sforce.com/2006/04/metadata">
+    <commaSeparatedProfile>System Administrator</commaSeparatedProfile>
     <externalClientApplication>HerokuPlaygroundIntegration</externalClientApplication>
     <ipRelaxationPolicyType>Enforce</ipRelaxationPolicyType>
-    <isClientCredentialsFlowEnabled>false</isClientCredentialsFlowEnabled>
+    <isClientCredentialsFlowEnabled>true</isClientCredentialsFlowEnabled>
     <isGuestCodeCredFlowEnabled>false</isGuestCodeCredFlowEnabled>
     <isTokenExchangeFlowEnabled>false</isTokenExchangeFlowEnabled>
     <label>HerokuPlaygroundIntegration_oauthPlcy</label>

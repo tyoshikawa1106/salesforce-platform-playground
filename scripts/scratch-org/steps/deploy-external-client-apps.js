@@ -1,6 +1,10 @@
 // 実行コマンド: node scripts/scratch-org/steps/deploy-external-client-apps.js [--alias <alias>]
 // 用途: Scratch Org専用のローカルECAとOAuth設定を反映する。
 
+const { mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const path = require('node:path');
+const { XMLBuilder, XMLParser } = require('fast-xml-parser');
 const { runSf, runSfWithOutput } = require('../../common/run-command');
 const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { repoRoot, scratchOrg } = require('../internal/context');
@@ -21,23 +25,98 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 throw new Error('外部クライアントアプリの再現はScratch Orgだけに実行できます。');
             }
 
-            // 専用manifestで範囲を限定し、確認済みユーザーを接続先に指定する。
-            return runSfCommand(
+            // 作成aliasのログインユーザーが有効な標準システム管理者か確認する。
+            const escapedUsername = orgInfo.username.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+            // 組織から返る一致結果だけを使い、Dev組織の実行ユーザーは参照しない。
+            const adminQuery = runSfQuery(
                 [
-                    'project',
-                    'deploy',
-                    'start',
-                    '--manifest',
-                    scratchOrg.externalClientAppManifest,
+                    'data',
+                    'query',
                     '--target-org',
                     orgInfo.username,
-                    '--test-level',
-                    'NoTestRun',
-                    '--wait',
-                    String(scratchOrg.waitMinutes)
+                    '--query',
+                    `SELECT Username FROM User WHERE Username = '${escapedUsername}' AND IsActive = true AND Profile.Name = 'System Administrator' LIMIT 2`,
+                    '--json'
                 ],
                 repoRoot
             );
+            // 確認できないユーザーをRun Asに設定しない。
+            if (adminQuery.status !== 0) throw new Error('Scratch Orgの作成ユーザーを確認できません。');
+            // 作成aliasのユーザーに一意に一致する応答を要求する。
+            const admin = JSON.parse(adminQuery.stdout);
+            if (
+                admin.status !== 0 ||
+                admin.result?.records?.length !== 1 ||
+                admin.result.records[0].Username !== orgInfo.username
+            ) {
+                throw new Error('Scratch Orgの作成ユーザーが有効な標準システム管理者と確認できません。');
+            }
+
+            // Run Asを含むパッケージをGit管理外に作成する。
+            const directory = mkdtempSync(path.join(tmpdir(), 'scratch-org-eca-'));
+            try {
+                // Git管理の定義を変換し、専用manifestの範囲を維持する。
+                const conversion = runSfCommand(
+                    [
+                        'project',
+                        'convert',
+                        'source',
+                        '--manifest',
+                        scratchOrg.externalClientAppManifest,
+                        '--output-dir',
+                        directory
+                    ],
+                    repoRoot
+                );
+                // 変換に失敗したパッケージは送信しない。
+                if (conversion !== 0) return conversion;
+
+                // 組織ごとのRun Asは、作成対象の一時ポリシーだけに設定する。
+                const policyPath = path.join(
+                    directory,
+                    'extlClntAppOauthPolicies',
+                    'HerokuPlaygroundIntegration.ecaOauthPlcy'
+                );
+                // 名前空間と値の文字列表現を維持して読み込む。
+                const parser = new XMLParser({
+                    ignoreAttributes: false,
+                    parseTagValue: false,
+                    ignoreDeclaration: false
+                });
+                const packagePolicy = parser.parse(readFileSync(policyPath, 'utf8'));
+                // Client Credentials Flowを使うアプリに作成ユーザーを指定する。
+                const { '@_xmlns': namespace, ...fields } = packagePolicy.ExtlClntAppOauthConfigurablePolicies;
+                packagePolicy.ExtlClntAppOauthConfigurablePolicies = {
+                    '@_xmlns': namespace,
+                    ...fields,
+                    clientCredentialsFlowUser: orgInfo.username
+                };
+                // XMLエスケープを適用して一時ポリシーを保存する。
+                const builder = new XMLBuilder({ ignoreAttributes: false, format: true });
+                writeFileSync(policyPath, builder.build(packagePolicy));
+
+                // 検証済みのScratch Orgに、全ECAと組織固有のRun Asをまとめて反映する。
+                return runSfCommand(
+                    [
+                        'project',
+                        'deploy',
+                        'start',
+                        '--metadata-dir',
+                        directory,
+                        '--single-package',
+                        '--target-org',
+                        orgInfo.username,
+                        '--test-level',
+                        'NoTestRun',
+                        '--wait',
+                        String(scratchOrg.waitMinutes)
+                    ],
+                    repoRoot
+                );
+            } finally {
+                // 組織固有のユーザー名を含む一時パッケージは反映後に削除する。
+                rmSync(directory, { recursive: true, force: true });
+            }
         }
     });
 }
