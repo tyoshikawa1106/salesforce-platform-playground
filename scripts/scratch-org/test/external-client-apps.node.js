@@ -6,10 +6,11 @@ const { main } = require('../steps/deploy-external-client-apps');
 
 test('定義したローカルECAとOAuth設定だけを検証済みScratch Orgに送る', () => {
     const app = { apiName: 'TestIntegration', label: 'Test & Integration', scopes: ['Api', 'OpenID'] };
+    const rotationApp = { apiName: 'RotationTest', label: 'Rotation test', scopes: ['Api'], rotationOnly: true };
     let directory;
     const status = main({
         argv: ['--alias', 'test-scratch'],
-        apps: [app],
+        apps: [app, rotationApp],
         runSfQuery() {
             return {
                 status: 0,
@@ -41,6 +42,11 @@ test('定義したローカルECAとOAuth設定だけを検証済みScratch Org�
             const oauth = readFileSync(join(directory, 'extlClntAppOauthSettings', 'TestIntegration.ecaOauth'), 'utf8');
             assert.match(oauth, /<commaSeparatedOauthScopes>Api, OpenID<\/commaSeparatedOauthScopes>/);
             assert.doesNotMatch(oauth, /oauthLink/);
+            const policyDir = join(directory, 'extlClntAppOauthPolicies');
+            const policy = readFileSync(join(policyDir, 'RotationTest.ecaOauthPlcy'), 'utf8');
+            assert.match(policy, /<permittedUsersPolicyType>AdminApprovedPreAuthorized<\/permittedUsersPolicyType>/);
+            assert.doesNotMatch(policy, /commaSeparated(?:PermissionSet|Profile)/);
+            assert.equal(existsSync(join(policyDir, 'TestIntegration.ecaOauthPlcy')), false);
             return 7;
         }
     });

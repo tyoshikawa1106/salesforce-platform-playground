@@ -46,17 +46,30 @@ function writePackage(directory, apps) {
                 externalClientApplication: app.apiName,
                 label: app.label
             })
+        ],
+        [
+            'ExtlClntAppOauthConfigurablePolicies',
+            'extlClntAppOauthPolicies',
+            'ecaOauthPlcy',
+            (app) => ({
+                externalClientApplication: app.apiName,
+                label: app.label,
+                permittedUsersPolicyType: 'AdminApprovedPreAuthorized'
+            }),
+            apps.filter((app) => app.rotationOnly)
         ]
     ];
 
     // 各typeのファイルを一時ディレクトリに出力する。
-    const types = components.map(([name, folder, extension, fields]) => {
+    const types = components.flatMap(([name, folder, extension, fields, selectedApps = apps]) => {
+        // 更新検証専用のポリシーは、明示されたアプリにだけ出力する。
+        if (selectedApps.length === 0) return [];
         // Metadata API形式のtype別ディレクトリを作成する。
         const componentDir = path.join(directory, folder);
         mkdirSync(componentDir);
 
         // 設定で明示されたアプリ以外のメタデータは参照しない。
-        const members = apps.map((app) => {
+        const members = selectedApps.map((app) => {
             // 名前は実行前に検証済みで、出力先を一時ディレクトリ内に限定する。
             writeFileSync(
                 path.join(componentDir, `${app.apiName}.${extension}`),
@@ -66,7 +79,7 @@ function writePackage(directory, apps) {
             return app.apiName;
         });
         // ワイルドカードを使わず、各typeの名前を列挙する。
-        return { members, name };
+        return [{ members, name }];
     });
 
     // 生成先を単一パッケージとしてデプロイできるようにする。
@@ -98,6 +111,7 @@ function main({
                         /^[A-Za-z][A-Za-z0-9]{0,39}$/.test(app.apiName) &&
                         typeof app.label === 'string' &&
                         app.label.trim().length > 0 &&
+                        (app.rotationOnly === undefined || typeof app.rotationOnly === 'boolean') &&
                         Array.isArray(app.scopes) &&
                         app.scopes.length > 0 &&
                         app.scopes.every((scope) => typeof scope === 'string' && /^[A-Za-z][A-Za-z0-9]*$/.test(scope))

@@ -30,6 +30,12 @@
             "apiName": "ExternalClientAppManager",
             "label": "外部クライアントアプリ認証管理",
             "scopes": ["Api", "RefreshToken", "OpenID"]
+        },
+        {
+            "apiName": "SampleExternalClientApp",
+            "label": "サンプル外部クライアントアプリケーション",
+            "scopes": ["Api"],
+            "rotationOnly": true
         }
     ]
 }
