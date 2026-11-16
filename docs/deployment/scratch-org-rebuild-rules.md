@@ -68,12 +68,13 @@ alias の付け方と Scratch definition の feature 判断は、[Scratch Org �
 
 1. Scratch Org を作成する。
 2. manifest を`RunLocalTests`付きで deploy する。
-3. Scratch Org ユーザー用 Permission Set を割り当てる。
-4. 標準オブジェクトのテストデータを投入する。
+3. 設定に含まれる外部クライアントアプリを反映する。
+4. Scratch Org ユーザー用 Permission Set を割り当てる。
+5. 標準オブジェクトのテストデータを投入する。
 
 途中で失敗した場合は、その時点で停止します。alias、duration、manifest、Permission Set、import plan は `scripts/scratch-org/scratch-org.json` で定義します。
 
-4番目のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
+最後のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
 
 ```text
 この接続組織で続行しますか？ [y/N]:
@@ -172,8 +173,21 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 ### External Client App の扱い
 
-External Client App は Salesforce 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
-Scratch Org で External Client App まで検証する必要が出た場合は、初期反映手順とは別に、org 固有値を含まない方法を個別に設計します。
+新規 Scratch Org では、開発組織の外部クライアントアプリ構成を再現します。開発組織の一覧と反映範囲を照合し、直接反映する定義は `force-app/main/default` に、反映範囲は [ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) に登録します。パッケージに含まれるアプリは対応するパッケージの導入手順で再現します。manifest から除外したアプリは既存組織から自動削除しません。
+
+開発組織から取得したファイルを取り込む前に、OAuth link、組織 ID、資格情報、組織固有の URL を取り除きます。Git 管理に含めるファイルは個別に指定します。Scratch Org の作成時は Git 管理の定義を使用します。ECA の機能設定は Scratch definition で有効化し、反映先が Scratch Org であることを確認してから専用 manifest を deploy します。
+
+初期構築時、Client Credentials Flow を使用するアプリには、作成 alias に対応する有効な標準システム管理者を Run As に指定します。Git 管理の定義から一時パッケージに変換したうえで、対象組織のURL、実行ユーザー、事前承認とプリンシパル利用権限を設定し、反映終了時に一時パッケージを削除します。事前承認の割り当てが定義されているアプリとClient Credentials Flowを使用するアプリには標準システム管理者プロファイルを設定します。事前承認の割り当てがない更新検証用のアプリには利用許可を追加しません。
+
+初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。ECA本体と接続定義の作成後、OAuthポリシーを別のパッケージで反映します。対象と関連付け、検証、失敗時の状態は[Scratch Org管理スクリプト仕様](../specifications/scripts/scratch-org-management/index.md)を参照してください。
+
+```sh
+node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-org-alias>
+```
+
+組織内 API 接続用の認証プロバイダー、外部ログイン情報、指定ログイン情報も ECA 用 manifest から反映します。認可先、トークン発行先、コールバック、callout 先には対象 Scratch Org の My Domain を使います。反映後は認証プロバイダーが表示するコールバック URL と ECA の値を照合します。
+
+メタデータの反映直後に、専用 manifest に含まれる各認証プロバイダーについて、`scratch-org.json` の `externalClientAppProviders` で対応付けた ECA が対象 Scratch Org で発行したコンシューマ鍵とシークレットを Connect REST API で取り出し、同じ組織の対応する認証プロバイダーへ登録します。資格情報はプロセスのメモリと標準入出力のパイプで扱います。登録が失敗した場合は後続の初期化を停止し、同じ Scratch Org に対して ECA 反映ステップを再開できます。Browser Flow の各利用者は登録後に本人の OAuth 認証を行い、対象組織の API 接続を確認します。
 
 ### Permission Set 割り当て
 
@@ -186,7 +200,8 @@ Scratch Org の作成ユーザーには、次のPermission Setを割り当てま
 - `LwcAccountPdfExport`: 取引先PDF出力のApex入口とVisualforceページ
 - `LwcCaseEmailMessageList`: ケースメール一覧のApex入口
 - `LwcExternalClientAppManager`: 外部クライアントアプリ認証管理のApex入口・カスタム権限・タブ（API管理権限と認証設定は別途管理）
-- `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ（保存用の認証設定とプリンシパル利用権限は作成後に組織側で追加）
+- `ScratchOrgExternalCredentialAccess`: 作成ユーザー向けの組織内 API 接続プリンシパル利用権限
+- `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ
 - `LwcObjectMetricsOverview`: 件数サマリーと配下のレコード検索のApex入口
 - `LwcObjectRecordSearch`: レコード検索のApex入口
 - `LwcOrgExplorer`: 組織エクスプローラーのApex入口とタブ
@@ -203,6 +218,7 @@ sf org assign permset \
     --name LwcAccountPdfExport \
     --name LwcCaseEmailMessageList \
     --name LwcExternalClientAppManager \
+    --name ScratchOrgExternalCredentialAccess \
     --name LwcObjectExplorer \
     --name LwcObjectMetricsOverview \
     --name LwcObjectRecordSearch \

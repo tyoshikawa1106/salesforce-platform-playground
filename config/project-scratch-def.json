@@ -1,13 +1,23 @@
 {
     "orgName": "Scratch Org",
     "edition": "Developer",
-    "features": ["EnableSetPasswordInApi", "FieldService:5", "PersonAccounts"],
+    "features": [
+        "EnableSetPasswordInApi",
+        "FieldService:5",
+        "PersonAccounts",
+        "ExternalClientApps",
+        "ExtlClntAppSecretExposeCtl"
+    ],
     "settings": {
         "lightningExperienceSettings": {
             "enableS1DesktopEnabled": true
         },
         "mobileSettings": {
             "enableS1EncryptedStoragePref2": false
+        },
+        "externalClientAppSettings": {
+            "enableExternalClientApps": true,
+            "enableClientSecretInRestApiAccess": true
         }
     }
 }

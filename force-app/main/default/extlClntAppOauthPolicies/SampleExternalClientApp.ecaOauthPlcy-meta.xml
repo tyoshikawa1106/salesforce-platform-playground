@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtlClntAppOauthConfigurablePolicies xmlns="http://soap.sforce.com/2006/04/metadata">
+    <externalClientApplication>SampleExternalClientApp</externalClientApplication>
+    <ipRelaxationPolicyType>Enforce</ipRelaxationPolicyType>
+    <isClientCredentialsFlowEnabled>false</isClientCredentialsFlowEnabled>
+    <isGuestCodeCredFlowEnabled>false</isGuestCodeCredFlowEnabled>
+    <isTokenExchangeFlowEnabled>false</isTokenExchangeFlowEnabled>
+    <label>サンプル外部クライアントアプリケーション</label>
+    <permittedUsersPolicyType>AdminApprovedPreAuthorized</permittedUsersPolicyType>
+    <refreshTokenPolicyType>Zero</refreshTokenPolicyType>
+    <requiredSessionLevel>HIGH_ASSURANCE</requiredSessionLevel>
+</ExtlClntAppOauthConfigurablePolicies>

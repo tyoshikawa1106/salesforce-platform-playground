@@ -80,6 +80,7 @@ function getLightningComponentBundleNames() {
 
 // 取得済みsourceのうち、Scratch Org初期反映から意図的に除外するmetadataを定義する。
 const excludedSourceNames = {
+    PermissionSet: new Set(['ScratchOrgExternalCredentialAccess']),
     FlexiPage: new Set(['CommandCenterApp_UtilityBar']),
     Flow: new Set(['customer_satisfaction', 'net_promoter_score']),
     Layout: new Set([
