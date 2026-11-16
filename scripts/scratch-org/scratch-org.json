@@ -21,5 +21,10 @@
         "LwcTestDataDelete"
     ],
     "waitMinutes": 30,
-    "externalClientAppManifest": "manifest/rebuild-scratch-org-external-client-apps.xml"
+    "externalClientAppManifest": "manifest/rebuild-scratch-org-external-client-apps.xml",
+    "externalClientAppProviders": {
+        "ExternalClientAppManager": "ExternalClientAppManager",
+        "InternalSalesforceApi": "InternalSalesforceApi",
+        "SalesforceApiIntegration": "SalesforceApiIntegration"
+    }
 }

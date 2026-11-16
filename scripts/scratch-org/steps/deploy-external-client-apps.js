@@ -1,15 +1,15 @@
 // 実行コマンド: node scripts/scratch-org/steps/deploy-external-client-apps.js [--alias <alias>]
 // 用途: Scratch Org専用のローカルECAとOAuth設定を反映する。
 
-const { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
-const { XMLBuilder, XMLParser } = require('fast-xml-parser');
 const { runSf, runSfWithOutput } = require('../../common/run-command');
 const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
 const { registerProviderCredentials } = require('../internal/eca-provider-credentials');
+const { prepareEcaPackage, resolvePolicyNames } = require('../internal/eca-package');
 
 // 確認済みのScratch OrgへGit管理のECAを反映する。
 function main({
@@ -68,6 +68,8 @@ function main({
             // Run Asを含むパッケージをGit管理外に作成する。
             const directory = mkdtempSync(path.join(tmpdir(), 'scratch-org-eca-'));
             try {
+                // 基本設定と後段ポリシーを同じ一時ルートの別パッケージへ分ける。
+                const packageDirectory = path.join(directory, 'base');
                 // Git管理の定義を変換し、専用manifestの範囲を維持する。
                 const conversion = runSfCommand(
                     [
@@ -77,86 +79,71 @@ function main({
                         '--manifest',
                         scratchOrg.externalClientAppManifest,
                         '--output-dir',
-                        directory
+                        packageDirectory
                     ],
                     repoRoot
                 );
                 // 変換に失敗したパッケージは送信しない。
                 if (conversion !== 0) return conversion;
 
-                // 専用manifestから変換された全認証プロバイダーを対象にする。
-                const providerNames = readdirSync(path.join(directory, 'externalAuthIdentityProviders'))
-                    .filter((file) => file.endsWith('.externalAuthIdentityProvider'))
-                    .map((file) => file.slice(0, -'.externalAuthIdentityProvider'.length))
-                    .sort();
-                // 組織ごとのURLを一時パッケージだけに反映する。
-                for (const name of providerNames) {
-                    // 反映するURLのファイル種別を限定し、認証情報には触れない。
-                    const files = [
-                        `externalAuthIdentityProviders/${name}.externalAuthIdentityProvider`,
-                        `namedCredentials/${name}.namedCredential`,
-                        `extlClntAppGlobalOauthSets/${name}.ecaGlblOauth`
-                    ];
-                    // 在庫のDev組織URLを使わず、定義上のプレースホルダーだけを置換する。
-                    for (const file of files) {
-                        // 変換後の実ファイルを読んで、未置換のままの反映を防ぐ。
-                        const filepath = path.join(directory, file);
-                        // 各型のURLに共通のプレースホルダーが入っていることを検証する。
-                        const xml = readFileSync(filepath, 'utf8');
-                        if (!xml.includes('https://scratch-org.example.invalid')) {
-                            throw new Error('Scratch Orgの接続先URLを設定できません。');
-                        }
-                        // SalesforceのHTTPSオリジンで接続先を設定する。
-                        writeFileSync(filepath, xml.replaceAll('https://scratch-org.example.invalid', orgUrl.origin));
-                    }
-                }
-
-                // 組織ごとのRun Asは、作成対象の一時ポリシーだけに設定する。
-                const policyPath = path.join(
-                    directory,
-                    'extlClntAppOauthPolicies',
-                    'HerokuPlaygroundIntegration.ecaOauthPlcy'
-                );
-                // 名前空間と値の文字列表現を維持して読み込む。
-                const parser = new XMLParser({
-                    ignoreAttributes: false,
-                    parseTagValue: false,
-                    ignoreDeclaration: false
+                // アプリ名やファイル名を固定せず、全定義と関連参照を検証して置換する。
+                const { policyDirectory, hasPolicies } = prepareEcaPackage(packageDirectory, {
+                    username: orgInfo.username,
+                    instanceUrl: orgUrl.origin,
+                    providerApps: scratchOrg.externalClientAppProviders
                 });
-                const packagePolicy = parser.parse(readFileSync(policyPath, 'utf8'));
-                // Client Credentials Flowを使うアプリに作成ユーザーを指定する。
-                const { '@_xmlns': namespace, ...fields } = packagePolicy.ExtlClntAppOauthConfigurablePolicies;
-                packagePolicy.ExtlClntAppOauthConfigurablePolicies = {
-                    '@_xmlns': namespace,
-                    ...fields,
-                    clientCredentialsFlowUser: orgInfo.username
-                };
-                // XMLエスケープを適用して一時ポリシーを保存する。
-                const builder = new XMLBuilder({ ignoreAttributes: false, format: true });
-                writeFileSync(policyPath, builder.build(packagePolicy));
 
-                // 検証済みのScratch Orgに、全ECAと組織固有のRun Asをまとめて反映する。
-                const deployment = runSfCommand(
-                    [
-                        'project',
-                        'deploy',
-                        'start',
-                        '--metadata-dir',
-                        directory,
-                        '--single-package',
-                        '--target-org',
-                        orgInfo.username,
-                        '--test-level',
-                        'NoTestRun',
-                        '--wait',
-                        String(scratchOrg.waitMinutes)
-                    ],
-                    repoRoot
-                );
-                // メタデータ反映が成功した組織だけで資格情報を登録する。
-                if (deployment !== 0) return deployment;
-                // CLI出力に資格情報を表示せず、同じ組織内で登録を完了する。
-                registerCredentials(orgInfo.username, providerNames, runSfQuery);
+                // ECAと接続定義の作成後、Salesforceが生成するポリシーを更新する。
+                for (const deploymentDirectory of [packageDirectory, ...(hasPolicies ? [policyDirectory] : [])]) {
+                    // 後段では組織が生成したポリシーの実名を確認し、別名の新規作成を防ぐ。
+                    if (deploymentDirectory === policyDirectory) {
+                        // 取得結果は元のソースに上書きせず、同じ一時ルートに限定する。
+                        const generatedDirectory = path.join(directory, 'generated');
+                        // ポリシーtypeだけを取得し、鍵やシークレットを含むglobal設定は取得しない。
+                        const retrieval = runSfCommand(
+                            [
+                                'project',
+                                'retrieve',
+                                'start',
+                                '--metadata',
+                                'ExtlClntAppOauthConfigurablePolicies',
+                                '--target-org',
+                                orgInfo.username,
+                                '--target-metadata-dir',
+                                generatedDirectory,
+                                '--unzip',
+                                '--wait',
+                                String(scratchOrg.waitMinutes)
+                            ],
+                            repoRoot
+                        );
+                        // 取得失敗を無視して仮のポリシー名で更新しない。
+                        if (retrieval !== 0) return retrieval;
+                        // 生成結果とローカル定義を関連アプリで照合する。
+                        resolvePolicyNames(policyDirectory, generatedDirectory);
+                    }
+                    // 一つでも失敗したら資格情報登録と後続の初期化へ進まない。
+                    const deployment = runSfCommand(
+                        [
+                            'project',
+                            'deploy',
+                            'start',
+                            '--metadata-dir',
+                            deploymentDirectory,
+                            '--single-package',
+                            '--target-org',
+                            orgInfo.username,
+                            '--test-level',
+                            'NoTestRun',
+                            '--wait',
+                            String(scratchOrg.waitMinutes)
+                        ],
+                        repoRoot
+                    );
+                    if (deployment !== 0) return deployment;
+                }
+                // 資格情報は明示した関連付けに従い、同じ組織内だけで登録する。
+                registerCredentials(orgInfo.username, scratchOrg.externalClientAppProviders, runSfQuery);
                 return 0;
             } finally {
                 // 組織固有のユーザー名を含む一時パッケージは反映後に削除する。

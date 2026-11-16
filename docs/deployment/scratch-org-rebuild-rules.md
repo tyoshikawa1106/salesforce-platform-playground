@@ -177,9 +177,9 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 開発組織から取得したファイルを取り込む前に、OAuth link、組織 ID、資格情報、組織固有の URL を取り除きます。Git 管理に含めるファイルは個別に指定します。Scratch Org の作成時は Git 管理の定義を使用します。ECA の機能設定は Scratch definition で有効化し、反映先が Scratch Org であることを確認してから専用 manifest を deploy します。
 
-初期構築時、Client Credentials Flow を使用するアプリには、作成 alias に対応する有効な標準システム管理者を Run As に指定します。Git 管理の定義から一時パッケージに変換したうえで、対象組織固有のユーザー名だけを追加し、反映終了時に一時パッケージを削除します。管理者の事前承認が必要な既存アプリには標準システム管理者プロファイルを設定します。更新検証用のアプリは利用許可を割り当てません。
+初期構築時、Client Credentials Flow を使用するアプリには、作成 alias に対応する有効な標準システム管理者を Run As に指定します。Git 管理の定義から一時パッケージに変換したうえで、対象組織のURL、実行ユーザー、事前承認とプリンシパル利用権限を設定し、反映終了時に一時パッケージを削除します。事前承認の割り当てが定義されているアプリとClient Credentials Flowを使用するアプリには標準システム管理者プロファイルを設定します。事前承認の割り当てがない更新検証用のアプリには利用許可を追加しません。
 
-初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。この反映コマンドは、コールバック URL や個別ポリシーを設定する前に実行します。
+初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。ECA本体と接続定義の作成後、OAuthポリシーを別のパッケージで反映します。対象と関連付け、検証、失敗時の状態は[Scratch Org管理スクリプト仕様](../specifications/scripts/scratch-org-management/index.md)を参照してください。
 
 ```sh
 node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-org-alias>
@@ -187,7 +187,7 @@ node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-o
 
 組織内 API 接続用の認証プロバイダー、外部ログイン情報、指定ログイン情報も ECA 用 manifest から反映します。認可先、トークン発行先、コールバック、callout 先には対象 Scratch Org の My Domain を使います。反映後は認証プロバイダーが表示するコールバック URL と ECA の値を照合します。
 
-メタデータの反映直後に、専用 manifest に含まれる各認証プロバイダーについて、同名 ECA が対象 Scratch Org で発行したコンシューマ鍵とシークレットを Connect REST API で取り出し、同じ組織の対応する認証プロバイダーへ登録します。資格情報はプロセスのメモリと標準入出力のパイプで扱います。登録が失敗した場合は後続の初期化を停止し、同じ Scratch Org に対して ECA 反映ステップを再開できます。Browser Flow の各利用者は登録後に本人の OAuth 認証を行い、対象組織の API 接続を確認します。
+メタデータの反映直後に、専用 manifest に含まれる各認証プロバイダーについて、`scratch-org.json` の `externalClientAppProviders` で対応付けた ECA が対象 Scratch Org で発行したコンシューマ鍵とシークレットを Connect REST API で取り出し、同じ組織の対応する認証プロバイダーへ登録します。資格情報はプロセスのメモリと標準入出力のパイプで扱います。登録が失敗した場合は後続の初期化を停止し、同じ Scratch Org に対して ECA 反映ステップを再開できます。Browser Flow の各利用者は登録後に本人の OAuth 認証を行い、対象組織の API 接続を確認します。
 
 ### Permission Set 割り当て
 
