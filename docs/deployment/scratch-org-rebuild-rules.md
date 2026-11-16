@@ -173,9 +173,9 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 ### External Client App の扱い
 
-新規 Scratch Org には、`scripts/scratch-org/scratch-org.json` の `externalClientApps` に定義したローカルアプリと OAuth 設定を反映します。アプリの追加・除外はこの設定で管理します。配列が空の場合は反映をスキップします。除外したアプリは既存組織から自動削除しません。
+新規 Scratch Org では、開発組織の外部クライアントアプリ構成を再現します。開発組織の一覧と反映範囲を照合し、直接反映する定義は `force-app/main/default` に、反映範囲は [ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) に登録します。パッケージに含まれるアプリは対応するパッケージの導入手順で再現します。manifest から除外したアプリは既存組織から自動削除しません。
 
-ECA の機能設定は Scratch definition で有効化します。使用する Dev Hub で、Scratch definition の ECA 関連 feature が利用可能であることを確認してください。反映ステップは対象を Scratch Org と確認し、アプリ名、表示名、OAuth スコープから専用のメタデータと manifest を一時生成します。別組織から取得した OAuth link、組織 ID、資格情報は使用しません。生成したパッケージは反映終了時に削除します。
+開発組織から取得したファイルを取り込む前に、OAuth link、組織 ID、資格情報、組織固有の URL を取り除きます。Git 管理に含めるファイルは個別に指定します。Scratch Org の作成時は Git 管理の定義を使用します。ECA の機能設定は Scratch definition で有効化し、反映先が Scratch Org であることを確認してから専用 manifest を deploy します。
 
 初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。この反映コマンドは、コールバック URL や個別ポリシーを設定する前に実行します。
 
