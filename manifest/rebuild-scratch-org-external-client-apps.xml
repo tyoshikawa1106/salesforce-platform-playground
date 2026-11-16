@@ -2,23 +2,37 @@
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>ExternalClientAppManager</members>
+        <members>HerokuPlaygroundIntegration</members>
+        <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
         <members>SampleExternalClientApp</members>
         <name>ExternalClientApplication</name>
     </types>
     <types>
         <members>ExternalClientAppManager</members>
+        <members>HerokuPlaygroundIntegration</members>
+        <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
         <members>SampleExternalClientApp</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
     <types>
         <members>ExternalClientAppManager</members>
+        <members>HerokuPlaygroundIntegration</members>
+        <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
         <members>SampleExternalClientApp</members>
         <name>ExtlClntAppOauthSettings</name>
     </types>
     <types>
+        <members>ExternalClientAppManager</members>
+        <members>HerokuPlaygroundIntegration</members>
+        <members>HerokuPlaygroundIntegrationPerUser</members>
+        <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
         <members>SampleExternalClientApp</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>

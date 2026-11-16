@@ -177,6 +177,8 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 開発組織から取得したファイルを取り込む前に、OAuth link、組織 ID、資格情報、組織固有の URL を取り除きます。Git 管理に含めるファイルは個別に指定します。Scratch Org の作成時は Git 管理の定義を使用します。ECA の機能設定は Scratch definition で有効化し、反映先が Scratch Org であることを確認してから専用 manifest を deploy します。
 
+初期構築では、OAuth の Client Credentials Flow を無効にし、Dev 組織の実行ユーザーや OAuth ポリシーに含まれるプロファイル・権限セットの参照は持ち込みません。実際に連携する場合は、接続先、利用者、権限を対象 Scratch Org で設定します。
+
 初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。この反映コマンドは、コールバック URL や個別ポリシーを設定する前に実行します。
 
 ```sh
