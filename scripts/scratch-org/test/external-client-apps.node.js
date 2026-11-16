@@ -94,3 +94,39 @@ test('ECA専用manifestを確認済みScratch Orgへ送る', () => {
     assert.equal(status, 7);
     assert.equal(existsSync(packageDir), false);
 });
+
+test('反映後に同じ組織のECAの現行資格情報を対応するプロバイダーに登録する', () => {
+    const { localOAuthProviders, registerProviderCredentials } = require('../internal/eca-provider-credentials');
+    const username = 'scratch@example.invalid';
+    const records = localOAuthProviders.map((DeveloperName, index) => ({
+        DeveloperName,
+        Id: `0xI00000000000${index}`
+    }));
+    const requests = [];
+    registerProviderCredentials(
+        username,
+        (args) => {
+            assert.equal(args[args.indexOf('--target-org') + 1], username);
+            return { status: 0, stdout: JSON.stringify({ status: 0, result: { records } }) };
+        },
+        (target, url, method, body) => {
+            assert.equal(target, username);
+            requests.push({ url, method, body });
+            if (method === 'PUT') return;
+            if (url.endsWith('?part=keyandsecret')) return { key: 'test-client-id', secret: 'test-client-secret' };
+            return { consumers: [{ id: '888000000000000' }] };
+        }
+    );
+    assert.deepEqual(
+        requests.map(({ method }) => method),
+        ['GET', 'GET', 'GET', 'GET', 'GET', 'GET', 'PUT', 'PUT', 'PUT']
+    );
+    assert.deepEqual(
+        requests.slice(6).map(({ url }) => url),
+        localOAuthProviders.map((name) => `/named-credentials/external-auth-identity-provider-credentials/${name}`)
+    );
+    assert.deepEqual(requests[6].body.credentials, [
+        { credentialName: 'clientId', credentialValue: 'test-client-id' },
+        { credentialName: 'clientSecret', credentialValue: 'test-client-secret' }
+    ]);
+});

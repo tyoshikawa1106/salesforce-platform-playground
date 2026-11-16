@@ -9,9 +9,15 @@ const { runSf, runSfWithOutput } = require('../../common/run-command');
 const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
+const { localOAuthProviders, registerProviderCredentials } = require('../internal/eca-provider-credentials');
 
 // 確認済みのScratch OrgへGit管理のECAを反映する。
-function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery = runSfWithOutput } = {}) {
+function main({
+    argv = process.argv.slice(2),
+    runSfCommand = runSf,
+    runSfQuery = runSfWithOutput,
+    registerCredentials = registerProviderCredentials
+} = {}) {
     // aliasの検証とエラー処理には他の準備ステップと同じ規則を使う。
     return runAliasCommand({
         argv,
@@ -79,7 +85,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 if (conversion !== 0) return conversion;
 
                 // 管理・組織内接続の3件について、組織ごとのURLを一時パッケージだけに反映する。
-                for (const name of ['ExternalClientAppManager', 'InternalSalesforceApi', 'SalesforceApiIntegration']) {
+                for (const name of localOAuthProviders) {
                     // 反映するURLのファイル種別を限定し、認証情報には触れない。
                     const files = [
                         `externalAuthIdentityProviders/${name}.externalAuthIdentityProvider`,
@@ -125,7 +131,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 writeFileSync(policyPath, builder.build(packagePolicy));
 
                 // 検証済みのScratch Orgに、全ECAと組織固有のRun Asをまとめて反映する。
-                return runSfCommand(
+                const deployment = runSfCommand(
                     [
                         'project',
                         'deploy',
@@ -142,6 +148,11 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                     ],
                     repoRoot
                 );
+                // メタデータ反映が成功した組織だけで資格情報を登録する。
+                if (deployment !== 0) return deployment;
+                // CLI出力に資格情報を表示せず、同じ組織内で登録を完了する。
+                registerCredentials(orgInfo.username, runSfQuery);
+                return 0;
             } finally {
                 // 組織固有のユーザー名を含む一時パッケージは反映後に削除する。
                 rmSync(directory, { recursive: true, force: true });

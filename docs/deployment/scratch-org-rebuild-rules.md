@@ -187,7 +187,7 @@ node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-o
 
 組織内 API 接続用の認証プロバイダー、外部ログイン情報、指定ログイン情報も ECA 用 manifest から反映します。認可先、トークン発行先、コールバック、callout 先には対象 Scratch Org の My Domain を使います。反映後は認証プロバイダーが表示するコールバック URL と ECA の値を照合します。
 
-実 API 接続には、対象 Scratch Org の ECA で発行したコンシューマ鍵とシークレットを対応する認証プロバイダーに登録し、利用者本人が OAuth 認証します。接続の確認は対象組織の API を呼び出して行います。
+メタデータの反映直後に、対象 Scratch Org で発行したコンシューマ鍵とシークレットを Connect REST API で取り出し、同じ組織の対応する認証プロバイダーへ登録します。資格情報はプロセスのメモリと標準入出力のパイプで扱います。登録が失敗した場合は後続の初期化を停止し、同じ Scratch Org に対して ECA 反映ステップを再開できます。Browser Flow の各利用者は登録後に本人の OAuth 認証を行い、対象組織の API 接続を確認します。
 
 ### Permission Set 割り当て
 
