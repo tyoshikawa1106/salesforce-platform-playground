@@ -24,6 +24,7 @@ function createOutput() {
 const expectedScripts = [
     'scripts/scratch-org/steps/create.js',
     'scripts/scratch-org/steps/deploy.js',
+    'scripts/scratch-org/steps/deploy-external-client-apps.js',
     'scripts/scratch-org/steps/assign-permission-set.js',
     'scripts/scratch-org/steps/import-test-data.js'
 ];
@@ -41,7 +42,7 @@ test('同じaliasでScratch Orgの準備手順を順番に実行する', () => {
         }
     });
 
-    // 4つの手順が定義順かつ同じaliasで実行されることを確認する。
+    // 5つの手順が定義順かつ同じaliasで実行されることを確認する。
     assert.equal(status, 0);
     assert.deepEqual(
         calls.map((call) => call.scriptPath),

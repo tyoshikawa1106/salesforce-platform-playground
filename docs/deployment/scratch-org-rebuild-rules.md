@@ -68,12 +68,13 @@ alias の付け方と Scratch definition の feature 判断は、[Scratch Org �
 
 1. Scratch Org を作成する。
 2. manifest を`RunLocalTests`付きで deploy する。
-3. Scratch Org ユーザー用 Permission Set を割り当てる。
-4. 標準オブジェクトのテストデータを投入する。
+3. 設定に含まれる外部クライアントアプリを反映する。
+4. Scratch Org ユーザー用 Permission Set を割り当てる。
+5. 標準オブジェクトのテストデータを投入する。
 
 途中で失敗した場合は、その時点で停止します。alias、duration、manifest、Permission Set、import plan は `scripts/scratch-org/scratch-org.json` で定義します。
 
-4番目のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
+最後のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
 
 ```text
 この接続組織で続行しますか？ [y/N]:
@@ -172,8 +173,17 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 ### External Client App の扱い
 
-External Client App は Salesforce 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
-Scratch Org で External Client App まで検証する必要が出た場合は、初期反映手順とは別に、org 固有値を含まない方法を個別に設計します。
+新規 Scratch Org には、`scripts/scratch-org/scratch-org.json` の `externalClientApps` に定義したローカルアプリと OAuth 設定を反映します。アプリの追加・除外はこの設定で管理します。配列が空の場合は反映をスキップします。除外したアプリは既存組織から自動削除しません。
+
+ECA の機能設定は Scratch definition で有効化します。使用する Dev Hub で、Scratch definition の ECA 関連 feature が利用可能であることを確認してください。反映ステップは対象を Scratch Org と確認し、アプリ名、表示名、OAuth スコープから専用のメタデータと manifest を一時生成します。別組織から取得した OAuth link、組織 ID、資格情報は使用しません。生成したパッケージは反映終了時に削除します。
+
+初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。この反映コマンドは、コールバック URL や個別ポリシーを設定する前に実行します。
+
+```sh
+node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-org-alias>
+```
+
+反映後、設定に定義したアプリと OAuth スコープを対象組織で確認します。実 API 接続を検証する場合は、利用する機能の仕様に沿って認証プロバイダー、資格情報、コールバック URL、Named Credential、利用許可を設定し、本人認証と対象組織への API 接続を確認します。
 
 ### Permission Set 割り当て
 

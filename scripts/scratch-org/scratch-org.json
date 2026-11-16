@@ -19,5 +19,17 @@
         "LwcOrgExplorer",
         "LwcTestDataDelete"
     ],
-    "waitMinutes": 30
+    "waitMinutes": 30,
+    "externalClientApps": [
+        {
+            "apiName": "InternalSalesforceApi",
+            "label": "Salesforce API アクセス（組織内）",
+            "scopes": ["Api", "RefreshToken"]
+        },
+        {
+            "apiName": "ExternalClientAppManager",
+            "label": "外部クライアントアプリ認証管理",
+            "scopes": ["Api", "RefreshToken", "OpenID"]
+        }
+    ]
 }
