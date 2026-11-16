@@ -185,7 +185,9 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-org-alias>
 ```
 
-反映後、設定に定義したアプリと OAuth スコープを対象組織で確認します。実 API 接続を検証する場合は、利用する機能の仕様に沿って認証プロバイダー、資格情報、コールバック URL、Named Credential、利用許可を設定し、本人認証と対象組織への API 接続を確認します。
+組織内 API 接続用の認証プロバイダー、外部ログイン情報、指定ログイン情報も ECA 用 manifest から反映します。認可先、トークン発行先、コールバック、callout 先には対象 Scratch Org の My Domain を使います。反映後は認証プロバイダーが表示するコールバック URL と ECA の値を照合します。
+
+実 API 接続には、対象 Scratch Org の ECA で発行したコンシューマ鍵とシークレットを対応する認証プロバイダーに登録し、利用者本人が OAuth 認証します。接続の確認は対象組織の API を呼び出して行います。
 
 ### Permission Set 割り当て
 
@@ -198,7 +200,8 @@ Scratch Org の作成ユーザーには、次のPermission Setを割り当てま
 - `LwcAccountPdfExport`: 取引先PDF出力のApex入口とVisualforceページ
 - `LwcCaseEmailMessageList`: ケースメール一覧のApex入口
 - `LwcExternalClientAppManager`: 外部クライアントアプリ認証管理のApex入口・カスタム権限・タブ（API管理権限と認証設定は別途管理）
-- `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ（保存用の認証設定とプリンシパル利用権限は作成後に組織側で追加）
+- `ScratchOrgExternalCredentialAccess`: 作成ユーザー向けの組織内 API 接続プリンシパル利用権限
+- `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ
 - `LwcObjectMetricsOverview`: 件数サマリーと配下のレコード検索のApex入口
 - `LwcObjectRecordSearch`: レコード検索のApex入口
 - `LwcOrgExplorer`: 組織エクスプローラーのApex入口とタブ
@@ -215,6 +218,7 @@ sf org assign permset \
     --name LwcAccountPdfExport \
     --name LwcCaseEmailMessageList \
     --name LwcExternalClientAppManager \
+    --name ScratchOrgExternalCredentialAccess \
     --name LwcObjectExplorer \
     --name LwcObjectMetricsOverview \
     --name LwcObjectRecordSearch \

@@ -36,5 +36,27 @@
         <members>SampleExternalClientApp</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>
+    <types>
+        <members>ExternalClientAppManager</members>
+        <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
+        <name>ExternalAuthIdentityProvider</name>
+    </types>
+    <types>
+        <members>ExternalClientAppManager</members>
+        <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
+        <name>ExternalCredential</name>
+    </types>
+    <types>
+        <members>ExternalClientAppManager</members>
+        <members>InternalSalesforceApi</members>
+        <members>SalesforceApiIntegration</members>
+        <name>NamedCredential</name>
+    </types>
+    <types>
+        <members>ScratchOrgExternalCredentialAccess</members>
+        <name>PermissionSet</name>
+    </types>
     <version>68.0</version>
 </Package>

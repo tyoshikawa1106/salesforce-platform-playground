@@ -16,7 +16,8 @@
             "enableS1EncryptedStoragePref2": false
         },
         "externalClientAppSettings": {
-            "enableExternalClientApps": true
+            "enableExternalClientApps": true,
+            "enableClientSecretInRestApiAccess": true
         }
     }
 }

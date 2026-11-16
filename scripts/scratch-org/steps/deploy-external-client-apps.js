@@ -25,6 +25,13 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 throw new Error('外部クライアントアプリの再現はScratch Orgだけに実行できます。');
             }
 
+            // 認可先、トークン発行先、callout先を同じScratch OrgのMy Domainに限定する。
+            const orgUrl = new URL(orgInfo.instanceUrl);
+            // エンドポイント設定へ埋め込めるSalesforceのHTTPSオリジンだけを使用する。
+            if (orgUrl.origin !== `https://${orgUrl.hostname}` || !orgUrl.hostname.endsWith('.my.salesforce.com')) {
+                throw new Error('Scratch OrgのMy Domainを確認できません。');
+            }
+
             // 作成aliasのログインユーザーが有効な標準システム管理者か確認する。
             const escapedUsername = orgInfo.username.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
             // 組織から返る一致結果だけを使い、Dev組織の実行ユーザーは参照しない。
@@ -70,6 +77,28 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 );
                 // 変換に失敗したパッケージは送信しない。
                 if (conversion !== 0) return conversion;
+
+                // 管理・組織内接続の3件について、組織ごとのURLを一時パッケージだけに反映する。
+                for (const name of ['ExternalClientAppManager', 'InternalSalesforceApi', 'SalesforceApiIntegration']) {
+                    // 反映するURLのファイル種別を限定し、認証情報には触れない。
+                    const files = [
+                        `externalAuthIdentityProviders/${name}.externalAuthIdentityProvider`,
+                        `namedCredentials/${name}.namedCredential`,
+                        `extlClntAppGlobalOauthSets/${name}.ecaGlblOauth`
+                    ];
+                    // 在庫のDev組織URLを使わず、定義上のプレースホルダーだけを置換する。
+                    for (const file of files) {
+                        // 変換後の実ファイルを読んで、未置換のままの反映を防ぐ。
+                        const filepath = path.join(directory, file);
+                        // 各型のURLに共通のプレースホルダーが入っていることを検証する。
+                        const xml = readFileSync(filepath, 'utf8');
+                        if (!xml.includes('https://scratch-org.example.invalid')) {
+                            throw new Error('Scratch Orgの接続先URLを設定できません。');
+                        }
+                        // SalesforceのHTTPSオリジンで接続先を設定する。
+                        writeFileSync(filepath, xml.replaceAll('https://scratch-org.example.invalid', orgUrl.origin));
+                    }
+                }
 
                 // 組織ごとのRun Asは、作成対象の一時ポリシーだけに設定する。
                 const policyPath = path.join(

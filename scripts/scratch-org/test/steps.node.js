@@ -127,6 +127,8 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         '--name',
         'SalesforceApplicationUser',
         '--name',
+        'ScratchOrgExternalCredentialAccess',
+        '--name',
         'LwcAccountDataQualityScan',
         '--name',
         'LwcAccountDelete',

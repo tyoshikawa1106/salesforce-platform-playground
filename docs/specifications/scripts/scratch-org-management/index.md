@@ -44,7 +44,7 @@ node scripts/scratch-org/delete.js --alias <alias>
 
 1. `sf org create scratch`でScratch定義、alias、有効日数を指定して作成する。
 2. CLIの認証済み組織一覧で対象が一意のScratch Orgであることを確認し、そのusernameを接続先に固定する。`deploymentPermissionSet`に指定した権限セットだけを`NoTestRun`でdeployし、同じ実行者への割り当てを確認し、未割り当ての場合だけ付与してから、`manifest/rebuild-scratch-org.xml`を`RunLocalTests`と設定済み待機時間でdeployする。
-3. `externalClientAppManifest` に指定されたGit管理のECAメタデータを変換する。作成aliasに対応する標準システム管理者をClient Credentials Flowの実行ユーザーとして一時パッケージに設定し、確認済みのScratch Orgへ反映する。反映が失敗した場合は後続を実行しない。
+3. `externalClientAppManifest` に指定されたGit管理のECAメタデータを変換する。作成aliasに対応する標準システム管理者をClient Credentials Flowの実行ユーザーとして一時パッケージに設定し、接続設定のURLを同じ組織のMy Domainに差し替え、確認済みのScratch Orgへ反映する。反映が失敗した場合は後続を実行しない。
 4. `scratch-org.json`の`permissionSets`に列挙したPermission Setを、同じScratch Orgの作成ユーザーへまとめて割り当てる。共通アプリ用の`SalesforceApplicationUser`と、各LWCのApex入口・タブ・必要なカスタム権限を持つ`Lwc`プレフィックスの権限セットを対象にする。オブジェクトや項目の権限は各機能の既存設定に従う。オブジェクトエクスプローラーの分類変更には、別途標準の`CustomizeApplication`が必要で、この割り当てでは付与しない。CLIへ`--name`を繰り返し指定し、`--json`で結果を表示する。一部でも失敗した場合は非0終了し、後続のテストデータ投入を実行しない。
 5. 共通のテストデータ投入スクリプトへ作成済みalias、import plan、投入stepで定義した繰り返し回数を渡す。標準データの投入が成功し、対象がScratch Orgと確認できた場合は、同じ組織の確認済みユーザーをロール・ユーザーデータ作成処理へ内部的に引き継ぐ。追加投入でも種別を再判定し、接続先を表示して作成確認を求める。
 

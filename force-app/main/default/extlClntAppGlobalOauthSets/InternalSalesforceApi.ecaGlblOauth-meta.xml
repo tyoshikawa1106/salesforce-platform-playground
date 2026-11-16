@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtlClntAppGlobalOauthSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <callbackUrl>https://scratch-org.example.invalid/services/extidp/callback</callbackUrl>
     <externalClientApplication>InternalSalesforceApi</externalClientApplication>
     <isClientCredentialsFlowEnabled>false</isClientCredentialsFlowEnabled>
     <isConsumerSecretOptional>false</isConsumerSecretOptional>
