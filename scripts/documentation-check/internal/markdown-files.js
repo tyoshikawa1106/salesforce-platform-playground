@@ -33,10 +33,11 @@ function isHistoricalDocument(filePath) {
 // Git管理対象と未追跡・非除外のMarkdownを列挙し、新規文書も検証対象に含める。
 function getManagedMarkdownFiles(runGitCommand = execFileSync, fileExists = fs.existsSync) {
     // Gitが管理または新規追加候補として認識するMarkdownだけを取得する。
-    return runGitCommand('git', ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md'], {
-        cwd: projectRoot,
-        encoding: 'utf8'
-    })
+    return runGitCommand(
+        'git',
+        ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md', ':(exclude,top)export-out/'],
+        { cwd: projectRoot, encoding: 'utf8' }
+    )
         .split('\n')
         .filter(Boolean)
         .map((filePath) => path.join(projectRoot, filePath))

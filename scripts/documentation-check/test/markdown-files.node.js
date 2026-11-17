@@ -30,6 +30,7 @@ test('現行文書を検査対象に含め、外部取得物と履歴文書を�
     assert.ok(relativePaths.every((filePath) => !filePath.startsWith('.agents/skills/')));
     assert.ok(relativePaths.every((filePath) => !filePath.startsWith('docs/knowledge/')));
     assert.ok(relativePaths.every((filePath) => !filePath.startsWith('docs/discussions/')));
+    assert.ok(relativePaths.every((filePath) => !filePath.startsWith('export-out/')));
     // 抽出された文書がすべて存在することを確認する。
     assert.ok(markdownFiles.every((filePath) => fs.existsSync(filePath)));
 });
@@ -46,7 +47,7 @@ test('Git管理対象と未追跡・非除外のMarkdownを列挙する', () => 
     );
 
     assert.deepEqual(invocation, {
-        args: ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md'],
+        args: ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.md', ':(exclude,top)export-out/'],
         command: 'git',
         options: { cwd: projectRoot, encoding: 'utf8' }
     });
