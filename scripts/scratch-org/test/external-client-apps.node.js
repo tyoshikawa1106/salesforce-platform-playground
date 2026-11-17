@@ -22,6 +22,23 @@ const metadataTypes = {
     PermissionSet: ['permissionsets', 'permissionset']
 };
 
+// ECAの実データを使わず、参照関係と境界条件だけをテスト用に組み立てる。
+const ecaFixtureTypes = {
+    ExternalClientApplication: () => ({ distributionState: 'Local' }),
+    ExtlClntAppGlobalOauthSettings: (app) => ({
+        externalClientApplication: app,
+        isClientCredentialsFlowEnabled: String(app === 'HerokuPlaygroundIntegration')
+    }),
+    ExtlClntAppOauthSettings: (app) => ({ externalClientApplication: app }),
+    ExtlClntAppOauthConfigurablePolicies: (app) => ({
+        externalClientApplication: app,
+        isClientCredentialsFlowEnabled: String(app === 'HerokuPlaygroundIntegration'),
+        permittedUsersPolicyType: 'AdminApprovedPreAuthorized',
+        refreshTokenPolicyType: 'Zero',
+        requiredSessionLevel: 'HIGH_ASSURANCE'
+    })
+};
+
 function makePackage(directory) {
     mkdirSync(directory, { recursive: true });
     const manifestPath = path.join(repoRoot, scratchOrg.externalClientAppManifest);
@@ -32,7 +49,18 @@ function makePackage(directory) {
         mkdirSync(path.join(directory, folder), { recursive: true });
         for (const member of [type.members].flat()) {
             const file = `${folder}/${member}.${suffix}`;
-            copyFileSync(path.join(repoRoot, 'force-app/main/default', file + '-meta.xml'), path.join(directory, file));
+            const fixture = ecaFixtureTypes[type.name];
+            const destination = path.join(directory, file);
+            if (fixture) {
+                writeFileSync(
+                    destination,
+                    builder.build({
+                        [type.name]: { '@_xmlns': 'http://soap.sforce.com/2006/04/metadata', ...fixture(member) }
+                    })
+                );
+            } else {
+                copyFileSync(path.join(repoRoot, 'force-app/main/default', file + '-meta.xml'), destination);
+            }
         }
     }
 }
@@ -320,7 +348,7 @@ test('REST要求の資格情報を引数・ファイルへ出さず、HTTP失敗
     );
 });
 
-test('Git管理のECAと接続定義が専用manifestに全件含まれる', () => {
+test('ECA本体とOAuth定義をGit管理から除外し、接続定義のmanifest範囲を照合する', () => {
     const { execFileSync } = require('node:child_process');
     const files = execFileSync('git', ['ls-files', '-z', '--', 'force-app/main/default'], {
         cwd: repoRoot,
@@ -339,7 +367,17 @@ test('Git管理のECAと接続定義が専用manifestに全件含まれる', () 
             .filter((type) => type.name === name)
             .flatMap((type) => [type.members].flat())
             .sort();
-        assert.deepEqual(members, sourceNames, name);
+        if (ecaFixtureTypes[name]) {
+            assert.deepEqual(sourceNames, [], name);
+            assert.ok(members.length > 0, name);
+            for (const member of members) {
+                execFileSync('git', ['check-ignore', '-q', '--', `${prefix}${member}.${suffix}-meta.xml`], {
+                    cwd: repoRoot
+                });
+            }
+        } else {
+            assert.deepEqual(members, sourceNames, name);
+        }
         assert.equal(members.includes('*'), false);
     }
 });
