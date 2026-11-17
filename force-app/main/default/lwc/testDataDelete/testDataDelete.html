@@ -1,20 +1,33 @@
 <template>
-    <template lwc:if={clientError}>
-        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-            <p>画面処理でエラーが発生しました。</p>
-            <template lwc:if={clientError.code}>
-                <p data-error-code>エラーコード：{clientError.code}</p>
-            </template>
-            <p data-error-location>処理場所：{clientError.location}</p>
-            <p data-error-type>エラー種別：{clientError.errorType}</p>
-            <template lwc:if={clientError.reason}>
-                <p data-error-reason>理由：{clientError.reason}</p>
-            </template>
-            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
-        </div>
-    </template>
-    <lightning-card title="テストデータ一括削除">
-        <div class="slds-p-around_medium">
+    <main class="slds-p-around_medium">
+        <header class="slds-page-header slds-m-bottom_medium">
+            <div class="slds-page-header__row slds-grid_vertical-align-center slds-wrap">
+                <div class="slds-media slds-media_center slds-col">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:dataset" size="medium" alternative-text=""></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <h1 class="slds-page-header__title">テストデータ一括削除</h1>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <template lwc:if={clientError}>
+            <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+                <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+            </div>
+        </template>
+        <div class="slds-box slds-theme_default slds-is-relative">
             <p>対象組織: {view.organizationName}</p>
             <p>一覧のオブジェクトの全レコードを、表示順に削除します。手動作成したデータも対象です。</p>
             <p>
@@ -80,5 +93,5 @@
                 処理中はデータ投入・編集を止めてください。削除失敗時は後続を停止します。詳細は設定のApexジョブで確認できます。
             </p>
         </div>
-    </lightning-card>
+    </main>
 </template>
