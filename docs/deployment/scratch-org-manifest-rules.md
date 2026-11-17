@@ -58,10 +58,10 @@ Scratch Org は開発とテストの場所、Salesforce 組織はリリース先
 この初期反映には Scratch Org 初期反映用 manifest を使います。
 
 ```sh
-sf project deploy start --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --test-level RunLocalTests --wait 30
+sf project deploy start --manifest manifest/<scratch-rebuild>.xml --target-org <scratch-org> --test-level NoTestRun --wait 30
 ```
 
-初期反映のdeployは`RunLocalTests`を必須とし、metadata反映とApexテストが同じdeployで成功した場合だけ初期反映成功として扱います。
+初期反映後、テスト実行ユーザーに必要な Permission Set を割り当ててから `RunLocalTests` を実行します。メタデータ反映と Apex テストの両方が成功した場合に初期構築完了として扱います。
 
 ### Scratch Org での変更
 

@@ -1007,6 +1007,7 @@
         <members>LwcUserLocaleSettings</members>
         <members>SalesforceAPIPlaygroundIntegration</members>
         <members>SalesforceApplicationUser</members>
+        <members>ScratchOrgApexTestAccess</members>
         <members>ScratchOrgMetadataDeployer</members>
         <members>sfdcInternalInt__sfdc_scrt2</members>
         <name>PermissionSet</name>

@@ -8,6 +8,7 @@ const { runSf, runSfWithOutput } = require('../../common/run-command');
 const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
+const { withRestSecretAccess } = require('../internal/eca-rest-secret-access');
 const { registerProviderCredentials } = require('../internal/eca-provider-credentials');
 const { prepareEcaPackage, resolvePolicyNames } = require('../internal/eca-package');
 
@@ -16,7 +17,8 @@ function main({
     argv = process.argv.slice(2),
     runSfCommand = runSf,
     runSfQuery = runSfWithOutput,
-    registerCredentials = registerProviderCredentials
+    registerCredentials = registerProviderCredentials,
+    prepareSecretAccess = withRestSecretAccess
 } = {}) {
     // aliasの検証とエラー処理には他の準備ステップと同じ規則を使う。
     return runAliasCommand({
@@ -48,7 +50,7 @@ function main({
                     '--target-org',
                     orgInfo.username,
                     '--query',
-                    `SELECT Username FROM User WHERE Username = '${escapedUsername}' AND IsActive = true AND Profile.Name = 'System Administrator' LIMIT 2`,
+                    `SELECT Username, Profile.Name FROM User WHERE Username = '${escapedUsername}' AND IsActive = true AND Profile.Name IN ('System Administrator', 'システム管理者') LIMIT 2`,
                     '--json'
                 ],
                 repoRoot
@@ -60,7 +62,8 @@ function main({
             if (
                 admin.status !== 0 ||
                 admin.result?.records?.length !== 1 ||
-                admin.result.records[0].Username !== orgInfo.username
+                admin.result.records[0].Username !== orgInfo.username ||
+                !['System Administrator', 'システム管理者'].includes(admin.result.records[0].Profile?.Name)
             ) {
                 throw new Error('Scratch Orgの作成ユーザーが有効な標準システム管理者と確認できません。');
             }
@@ -89,8 +92,10 @@ function main({
                 // アプリ名やファイル名を固定せず、全定義と関連参照を検証して置換する。
                 const { policyDirectory, hasPolicies } = prepareEcaPackage(packageDirectory, {
                     username: orgInfo.username,
+                    adminProfileName: admin.result.records[0].Profile.Name,
                     instanceUrl: orgUrl.origin,
-                    providerApps: scratchOrg.externalClientAppProviders
+                    providerApps: scratchOrg.externalClientAppProviders,
+                    appLabels: scratchOrg.externalClientAppLabels
                 });
 
                 // ECAと接続定義の作成後、Salesforceが生成するポリシーを更新する。
@@ -130,7 +135,6 @@ function main({
                             'start',
                             '--metadata-dir',
                             deploymentDirectory,
-                            '--single-package',
                             '--target-org',
                             orgInfo.username,
                             '--test-level',
@@ -143,7 +147,9 @@ function main({
                     if (deployment !== 0) return deployment;
                 }
                 // 資格情報は明示した関連付けに従い、同じ組織内だけで登録する。
-                registerCredentials(orgInfo.username, scratchOrg.externalClientAppProviders, runSfQuery);
+                prepareSecretAccess({ username: orgInfo.username, directory, runSfCommand }, () =>
+                    registerCredentials(orgInfo.username, scratchOrg.externalClientAppProviders, runSfQuery)
+                );
                 return 0;
             } finally {
                 // 組織固有のユーザー名を含む一時パッケージは反映後に削除する。

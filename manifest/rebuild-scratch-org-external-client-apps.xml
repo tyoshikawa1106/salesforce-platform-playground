@@ -11,29 +11,29 @@
     </types>
     <types>
         <members>ExternalClientAppManager</members>
-        <members>HerokuPlaygroundIntegration</members>
-        <members>HerokuPlaygroundIntegrationPerUser</members>
-        <members>InternalSalesforceApi</members>
+        <members>HerokuPlaygroundIntegration_glbloauth</members>
+        <members>HerokuPlaygroundPerUser_glbloauth</members>
+        <members>InternalSalesforceApi_global</members>
         <members>SampleIntegration</members>
         <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
     <types>
         <members>ExternalClientAppManager</members>
-        <members>HerokuPlaygroundIntegration</members>
-        <members>HerokuPlaygroundIntegrationPerUser</members>
-        <members>InternalSalesforceApi</members>
+        <members>HerokuPlaygroundIntegration_oauth</members>
+        <members>HerokuPlaygroundPerUser_oauth</members>
+        <members>InternalSalesforceApi_oauth</members>
         <members>SampleIntegration</members>
         <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppOauthSettings</name>
     </types>
     <types>
-        <members>ExternalClientAppManager</members>
-        <members>HerokuPlaygroundIntegration</members>
-        <members>HerokuPlaygroundIntegrationPerUser</members>
-        <members>InternalSalesforceApi</members>
-        <members>SampleIntegration</members>
-        <members>SampleIntegrationPerUser</members>
+        <members>ExternalClientAppManager_defaultPolicy</members>
+        <members>HerokuPlaygroundIntegration_oauthPlcy</members>
+        <members>HerokuPlaygroundPerUser_oauthPlcy</members>
+        <members>InternalSalesforceApi_oauthPlcy</members>
+        <members>SampleIntegration_defaultPolicy</members>
+        <members>SampleIntegrationPerUser_defaultPolicy</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>
     <types>
