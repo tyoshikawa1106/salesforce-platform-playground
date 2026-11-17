@@ -28,7 +28,6 @@
             </div>
         </template>
         <div class="slds-box slds-theme_default slds-is-relative">
-            <p>法人取引先を検索して、所有者・業種・種別・評価を行ごとに編集できます。1ページ最大200件です。</p>
             <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_medium">
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
                     <lightning-input
@@ -46,7 +45,7 @@
                         data-search
                         name="startDate"
                         type="date"
-                        label="作成日：開始日"
+                        label="作成日 FROM"
                         value={filters.startDate}
                         onchange={handleFilter}
                         disabled={busy}
@@ -57,7 +56,7 @@
                         data-search
                         name="endDate"
                         type="date"
-                        label="作成日：終了日（当日を含む）"
+                        label="作成日 TO"
                         value={filters.endDate}
                         onchange={handleFilter}
                         disabled={busy}
