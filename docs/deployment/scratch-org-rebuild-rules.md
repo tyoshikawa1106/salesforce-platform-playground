@@ -177,7 +177,7 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 ### External Client App の扱い
 
-アプリの枠を再現する場合は、[既存の ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) の `ExternalClientApplication` に列挙されたアプリを対象にします。AI エージェントは次の順に進めます。
+アプリの枠を再現する場合は、[既存の ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) の `ExternalClientApplication` に列挙されたアプリを対象にします。ECA 本体と OAuth 定義は Git 管理対象外です。必要な本体の定義が手元にない場合は、認証済み Dev 組織から該当する `ExternalClientApplication` だけを取得します。Dev に存在しないアプリは取得できないため、反映対象と入手元を確認します。AI エージェントは次の順に進めます。
 
 1. CLI の組織一覧で接続先が対象の Scratch Org であることを確認し、アプリ一覧から未作成の API 名を特定する。
 2. 未作成のアプリだけを `--metadata` に指定し、既存のメタデータに対して `--dry-run` を実行する。複数件は `--metadata` を繰り返す。成功した範囲を同じ指定で実デプロイする。
