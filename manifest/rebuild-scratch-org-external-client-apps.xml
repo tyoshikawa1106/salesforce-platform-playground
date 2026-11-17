@@ -5,7 +5,6 @@
         <members>HerokuPlaygroundIntegration</members>
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <members>SampleIntegration</members>
         <members>SampleIntegrationPerUser</members>
         <name>ExternalClientApplication</name>
@@ -15,7 +14,6 @@
         <members>HerokuPlaygroundIntegration</members>
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <members>SampleIntegration</members>
         <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
@@ -25,7 +23,6 @@
         <members>HerokuPlaygroundIntegration</members>
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <members>SampleIntegration</members>
         <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppOauthSettings</name>
@@ -35,7 +32,6 @@
         <members>HerokuPlaygroundIntegration</members>
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <members>SampleIntegration</members>
         <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
@@ -43,19 +39,16 @@
     <types>
         <members>ExternalClientAppManager</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <name>ExternalAuthIdentityProvider</name>
     </types>
     <types>
         <members>ExternalClientAppManager</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <name>ExternalCredential</name>
     </types>
     <types>
         <members>ExternalClientAppManager</members>
         <members>InternalSalesforceApi</members>
-        <members>SalesforceApiIntegration</members>
         <name>NamedCredential</name>
     </types>
     <types>
