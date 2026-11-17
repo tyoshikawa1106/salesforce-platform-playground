@@ -36,6 +36,20 @@ const ecaFixtureTypes = {
         permittedUsersPolicyType: 'AdminApprovedPreAuthorized',
         refreshTokenPolicyType: 'Zero',
         requiredSessionLevel: 'HIGH_ASSURANCE'
+    }),
+    ExternalAuthIdentityProvider: () => ({
+        externalAuthIdentityProviderParameters: [
+            {
+                parameterName: 'AuthorizeUrl',
+                parameterType: 'AuthorizeUrl',
+                parameterValue: 'https://scratch-org.example.invalid/services/oauth2/authorize'
+            },
+            {
+                parameterName: 'TokenUrl',
+                parameterType: 'TokenUrl',
+                parameterValue: 'https://scratch-org.example.invalid/services/oauth2/token'
+            }
+        ]
     })
 };
 
@@ -340,7 +354,7 @@ test('REST要求の資格情報を引数・ファイルへ出さず、HTTP失敗
     );
 });
 
-test('ECA本体とOAuth定義をGit管理から除外し、接続定義のmanifest範囲を照合する', () => {
+test('ECAのOAuth定義と外部認証IDプロバイダーをGit管理から除外し、manifest範囲を照合する', () => {
     const { execFileSync } = require('node:child_process');
     const files = execFileSync('git', ['ls-files', '-z', '--', 'force-app/main/default'], {
         cwd: repoRoot,
