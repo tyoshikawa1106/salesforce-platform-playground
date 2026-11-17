@@ -9,6 +9,7 @@ const { main: assignPermissionSet } = require('../steps/assign-permission-set');
 const { main: createScratchOrg } = require('../steps/create');
 const { main: deployMetadata } = require('../steps/deploy');
 const { main: importTestData } = require('../steps/import-test-data');
+const { main: runApexTests } = require('../steps/run-apex-tests');
 
 // Salesforce CLIへ渡された引数と作業場所を記録する。
 function captureSfCall(execute) {
@@ -46,7 +47,7 @@ test('Scratch Orgを設定ファイルの内容で作成する', () => {
     ]);
 });
 
-test('Scratch Orgの実行者に反映権限を用意してからmanifestをRunLocalTestsで反映する', () => {
+test('Scratch Orgの実行者に反映権限を用意してからmanifestをNoTestRunで反映する', () => {
     const calls = [];
     const status = deployMetadata({
         argv: ['--alias', 'test-scratch-org'],
@@ -91,7 +92,7 @@ test('Scratch Orgの実行者に反映権限を用意してからmanifestをRunL
             '--target-org',
             'scratch-test@example.invalid',
             '--test-level',
-            'RunLocalTests',
+            'NoTestRun',
             '--wait',
             String(scratchOrg.waitMinutes)
         ]
@@ -126,6 +127,8 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         'permset',
         '--name',
         'SalesforceApplicationUser',
+        '--name',
+        'ScratchOrgApexTestAccess',
         '--name',
         'ScratchOrgExternalCredentialAccess',
         '--name',
@@ -340,3 +343,19 @@ for (const response of [
         assert.equal(calls.length, 1);
     });
 }
+
+test('Scratch Orgの実行ユーザーでApexテストの完了を待ち、失敗を返す', async () => {
+    const status = await runApexTests({
+        argv: ['--alias', 'test-scratch-org'],
+        runSfQuery: scratchOrgQuery,
+        async runTests(options) {
+            assert.deepEqual(options, {
+                testType: 'apex',
+                targetOrg: 'scratch-test@example.invalid',
+                repoRoot
+            });
+            return 42;
+        }
+    });
+    assert.equal(status, 42);
+});

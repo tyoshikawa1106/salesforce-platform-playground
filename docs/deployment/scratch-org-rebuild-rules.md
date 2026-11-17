@@ -71,10 +71,11 @@ alias の付け方と Scratch definition の feature 判断は、[Scratch Org �
 通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するスクリプトで行います。
 
 1. Scratch Org を作成する。
-2. manifest を`RunLocalTests`付きで deploy する。
+2. manifest を`NoTestRun`で deploy する。
 3. 設定に含まれる外部クライアントアプリを反映する。
 4. Scratch Org ユーザー用 Permission Set を割り当てる。
-5. 標準オブジェクトのテストデータを投入する。
+5. Apex の `RunLocalTests` を実行し、完了を確認する。
+6. 標準オブジェクトのテストデータを投入する。
 
 途中で失敗した場合は、その時点で停止します。alias、duration、manifest、Permission Set、import plan は `scripts/scratch-org/scratch-org.json` で定義します。
 
@@ -131,13 +132,13 @@ sf project deploy start --dry-run --source-dir force-app --target-org <scratch-o
 
 ### Scratch Org への deploy
 
-`manifest/rebuild-scratch-org.xml` と`RunLocalTests`で反映します。Apexテストが失敗した場合はdeployを失敗させ、一括実行ではPermission Set割り当てとテストデータ投入へ進みません。
+`manifest/rebuild-scratch-org.xml` を `NoTestRun` で反映します。Apex テストは Permission Set の割り当て後に実行し、失敗した場合はテストデータを投入しません。
 
 ```sh
 sf project deploy start \
     --manifest manifest/rebuild-scratch-org.xml \
     --target-org <scratch-org-alias> \
-    --test-level RunLocalTests \
+    --test-level NoTestRun \
     --wait 30
 ```
 
@@ -299,7 +300,7 @@ Salesforce 組織へ反映する場合も、同じ作業対象 manifest を使�
 
 ## 確認
 
-初期反映ではdeploy内の`RunLocalTests`を必須とします。初期反映後にApexテストだけを再確認する場合は、次のコマンドを実行します。
+初期反映と権限セットの割り当て後に `RunLocalTests` を実行し、成功を確認します。Apex テストだけを再確認する場合は、次のコマンドを実行します。
 
 ```sh
 sf apex run test --test-level RunLocalTests --result-format human --target-org <scratch-org-alias>
@@ -307,7 +308,7 @@ sf apex run test --test-level RunLocalTests --result-format human --target-org <
 
 Scratch Org 初期反映対象を変更した場合は、次を確認します。
 
-- `manifest/rebuild-scratch-org.xml` のdeployが`RunLocalTests`を含めて成功すること
+- `manifest/rebuild-scratch-org.xml` の deploy と、権限セット割り当て後の `RunLocalTests` が成功すること
 - Scratch Org ユーザーに必要な Permission Set が割り当てられていること
 - テストデータ投入を依頼された場合は、投入 script と確認 SOQL が成功すること
 

@@ -1,5 +1,5 @@
 // 実行コマンド: node scripts/scratch-org/setup.js [--alias <alias>]
-// 用途: Scratch Orgの作成、メタデータとECA反映、権限割り当て、テストデータ投入を順番に行う。
+// 用途: Scratch Orgの作成、メタデータとECA反映、権限割り当て、Apexテスト、テストデータ投入を順番に行う。
 
 const { runNodeScript } = require('../common/run-command');
 const { repoRoot, scratchOrg } = require('./internal/context');
@@ -26,12 +26,13 @@ function main({
             // 実行開始時に、全ステップが使用するaliasを明示する。
             stdout.write(`使用するScratch Org alias: ${alias}\n`);
 
-            // 作成、metadataとECA反映、権限割り当て、テストデータ投入を順番に実行する。
+            // 作成、metadataとECA反映、権限割り当て、Apexテスト、テストデータ投入を順番に実行する。
             const steps = [
                 ['Scratch Orgの作成', 'scripts/scratch-org/steps/create.js'],
                 ['メタデータの反映', 'scripts/scratch-org/steps/deploy.js'],
                 ['外部クライアントアプリの反映', 'scripts/scratch-org/steps/deploy-external-client-apps.js'],
                 ['Permission Setの割り当て', 'scripts/scratch-org/steps/assign-permission-set.js'],
+                ['Apexテスト', 'scripts/scratch-org/steps/run-apex-tests.js'],
                 ['テストデータの投入', 'scripts/scratch-org/steps/import-test-data.js']
             ];
 

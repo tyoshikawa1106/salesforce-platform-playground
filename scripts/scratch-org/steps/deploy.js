@@ -93,7 +93,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 // 必須権限を用意できなければ、同じ権限不足で本体反映を失敗させない。
                 if (assignmentStatus !== 0) return assignmentStatus;
             }
-            // 再構築専用manifestを指定Scratch OrgへRunLocalTests付きで反映する。
+            // Apexテストは必要な権限セットを割り当てた後に別ステップで実行する。
             return runSfCommand(
                 [
                     'project',
@@ -104,7 +104,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                     '--target-org',
                     orgInfo.username,
                     '--test-level',
-                    'RunLocalTests',
+                    'NoTestRun',
                     '--wait',
                     String(scratchOrg.waitMinutes)
                 ],
