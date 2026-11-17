@@ -120,4 +120,8 @@
         <name>HerokuPlaygroundIntegrationPerUser</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
+    <appMenuItems>
+        <name>SampleExternalClientApp</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
 </AppMenu>
