@@ -354,7 +354,7 @@ test('REST要求の資格情報を引数・ファイルへ出さず、HTTP失敗
     );
 });
 
-test('ECAのOAuth定義と外部認証IDプロバイダーをGit管理から除外し、manifest範囲を照合する', () => {
+test('ECAと組織固有の接続定義をGit管理から除外し、manifest範囲を照合する', () => {
     const { execFileSync } = require('node:child_process');
     const files = execFileSync('git', ['ls-files', '-z', '--', 'force-app/main/default'], {
         cwd: repoRoot,
@@ -373,7 +373,7 @@ test('ECAのOAuth定義と外部認証IDプロバイダーをGit管理から除�
             .filter((type) => type.name === name)
             .flatMap((type) => [type.members].flat())
             .sort();
-        if (ecaFixtureTypes[name]) {
+        if (ecaFixtureTypes[name] || name === 'NamedCredential') {
             assert.deepEqual(sourceNames, [], name);
             assert.ok(members.length > 0, name);
             for (const member of members) {
