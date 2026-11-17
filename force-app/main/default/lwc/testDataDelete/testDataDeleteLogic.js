@@ -45,7 +45,6 @@ export function createView(response, counts, busy, acceptedJobId, acceptanceUnkn
     // 完了表示は現在の全件確認を根拠にする
     return {
         rows,
-        organizationName: response?.organizationName || '',
         canStart: Boolean(
             response &&
             !response.errorMessage &&

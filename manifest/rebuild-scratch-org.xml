@@ -63,6 +63,11 @@
         <members>ExternalClientAppManagerControllerTest</members>
         <members>ExternalClientAppManagerService</members>
         <members>ExternalClientAppManagerServiceTest</members>
+        <members>OAuthTokenIssuanceController</members>
+        <members>OAuthTokenIssuanceControllerTest</members>
+        <members>OAuthTokenIssuanceResult</members>
+        <members>OAuthTokenIssuanceService</members>
+        <members>OAuthTokenIssuanceServiceTest</members>
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricCatalogTest</members>
         <members>ObjectMetricsOverviewController</members>
@@ -901,6 +906,7 @@
         <members>caseRelatedCaseList</members>
         <members>externalClientAppCredentialModal</members>
         <members>externalClientAppManager</members>
+        <members>oauthTokenIssuance</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>
@@ -992,6 +998,7 @@
         <members>LwcAccountPdfExport</members>
         <members>LwcCaseEmailMessageList</members>
         <members>LwcExternalClientAppManager</members>
+        <members>LwcOAuthTokenIssuance</members>
         <members>LwcObjectExplorer</members>
         <members>LwcObjectMetricsOverview</members>
         <members>LwcObjectRecordSearch</members>
@@ -1279,6 +1286,7 @@
         <members>AccountDelete</members>
         <members>AccountMassUpdate</members>
         <members>ExternalClientAppManager</members>
+        <members>OAuthTokenIssuance</members>
         <members>TestDataDelete</members>
         <members>OrgExplorer</members>
         <members>ObjectExplorer</members>

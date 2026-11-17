@@ -22,8 +22,8 @@ describe('取引先一括更新の画面ロジック', () => {
             '012000000000000AAA': { Rating: { values: masterValues } },
             '012000000000001AAA': { Rating: { values: customValues } }
         }, false);
-        expect(rows[0].ratingOptions).toEqual([{ label: '（値をクリア）', value: '' }, ...masterValues]);
-        expect(rows[1].ratingOptions).toEqual([{ label: '（値をクリア）', value: '' }, ...customValues]);
+        expect(rows[0].ratingOptions).toEqual([{ label: '-- なし --', value: '' }, ...masterValues]);
+        expect(rows[1].ratingOptions).toEqual([{ label: '-- なし --', value: '' }, ...customValues]);
         expect(rows.every((row) => !row.ratingDisabled)).toBe(true);
     });
 

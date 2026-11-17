@@ -27,12 +27,12 @@ const ecaFixtureTypes = {
     ExternalClientApplication: () => ({ distributionState: 'Local' }),
     ExtlClntAppGlobalOauthSettings: (app) => ({
         externalClientApplication: app,
-        isClientCredentialsFlowEnabled: String(app === 'HerokuPlaygroundIntegration')
+        isClientCredentialsFlowEnabled: String(['HerokuPlaygroundIntegration', 'SampleIntegration'].includes(app))
     }),
     ExtlClntAppOauthSettings: (app) => ({ externalClientApplication: app }),
     ExtlClntAppOauthConfigurablePolicies: (app) => ({
         externalClientApplication: app,
-        isClientCredentialsFlowEnabled: String(app === 'HerokuPlaygroundIntegration'),
+        isClientCredentialsFlowEnabled: String(['HerokuPlaygroundIntegration', 'SampleIntegration'].includes(app)),
         permittedUsersPolicyType: 'AdminApprovedPreAuthorized',
         refreshTokenPolicyType: 'Zero',
         requiredSessionLevel: 'HIGH_ASSURANCE'
@@ -210,16 +210,8 @@ function mutateXml(base, file, mutate) {
 
 test('全Client Credentials Flowを管理者へ置換し、ファイル名やアプリ名を固定しない', () =>
     withPackage((base) => {
-        for (const [folder, suffix, root] of [
-            ['extlClntAppGlobalOauthSets', 'ecaGlblOauth', 'ExtlClntAppGlobalOauthSettings'],
-            ['extlClntAppOauthPolicies', 'ecaOauthPlcy', 'ExtlClntAppOauthConfigurablePolicies']
-        ]) {
-            mutateXml(base, `${folder}/SampleExternalClientApp.${suffix}`, (document) => {
-                document[root].isClientCredentialsFlowEnabled = 'true';
-            });
-        }
         const { policyDirectory } = prepareEcaPackage(base, target);
-        for (const name of ['HerokuPlaygroundIntegration', 'SampleExternalClientApp']) {
+        for (const name of ['HerokuPlaygroundIntegration', 'SampleIntegration']) {
             const policy = parser.parse(
                 readFileSync(path.join(policyDirectory, `extlClntAppOauthPolicies/${name}.ecaOauthPlcy`), 'utf8')
             ).ExtlClntAppOauthConfigurablePolicies;
@@ -250,7 +242,7 @@ test('対応設定の不足、外部接続先、Flow設定の不一致を反映�
         assert.throws(() => prepareEcaPackage(base, target), /同じScratch Org/);
     });
     withPackage((base) => {
-        mutateXml(base, 'extlClntAppGlobalOauthSets/SampleExternalClientApp.ecaGlblOauth', (document) => {
+        mutateXml(base, 'extlClntAppGlobalOauthSets/SampleIntegrationPerUser.ecaGlblOauth', (document) => {
             document.ExtlClntAppGlobalOauthSettings.isClientCredentialsFlowEnabled = 'true';
         });
         assert.throws(() => prepareEcaPackage(base, target), /一致しません/);
@@ -387,7 +379,7 @@ test('資格情報更新用のアプリに利用権限を追加しない', () =>
         const { policyDirectory } = prepareEcaPackage(base, target);
         const policy = parser.parse(
             readFileSync(
-                path.join(policyDirectory, 'extlClntAppOauthPolicies/SampleExternalClientApp.ecaOauthPlcy'),
+                path.join(policyDirectory, 'extlClntAppOauthPolicies/SampleIntegrationPerUser.ecaOauthPlcy'),
                 'utf8'
             )
         ).ExtlClntAppOauthConfigurablePolicies;

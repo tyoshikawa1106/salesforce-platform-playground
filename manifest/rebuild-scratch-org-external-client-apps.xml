@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>ExternalClientAppManager</members>
@@ -6,7 +6,8 @@
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
         <members>SalesforceApiIntegration</members>
-        <members>SampleExternalClientApp</members>
+        <members>SampleIntegration</members>
+        <members>SampleIntegrationPerUser</members>
         <name>ExternalClientApplication</name>
     </types>
     <types>
@@ -15,7 +16,8 @@
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
         <members>SalesforceApiIntegration</members>
-        <members>SampleExternalClientApp</members>
+        <members>SampleIntegration</members>
+        <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppGlobalOauthSettings</name>
     </types>
     <types>
@@ -24,7 +26,8 @@
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
         <members>SalesforceApiIntegration</members>
-        <members>SampleExternalClientApp</members>
+        <members>SampleIntegration</members>
+        <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppOauthSettings</name>
     </types>
     <types>
@@ -33,7 +36,8 @@
         <members>HerokuPlaygroundIntegrationPerUser</members>
         <members>InternalSalesforceApi</members>
         <members>SalesforceApiIntegration</members>
-        <members>SampleExternalClientApp</members>
+        <members>SampleIntegration</members>
+        <members>SampleIntegrationPerUser</members>
         <name>ExtlClntAppOauthConfigurablePolicies</name>
     </types>
     <types>
