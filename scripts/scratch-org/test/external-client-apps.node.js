@@ -5,6 +5,7 @@ const { tmpdir } = require('node:os');
 const path = require('node:path');
 const { XMLParser, XMLBuilder } = require('fast-xml-parser');
 const { main } = require('../steps/deploy-external-client-apps');
+const { withRestSecretAccess } = require('../internal/eca-rest-secret-access');
 const { scratchOrg, repoRoot } = require('../internal/context');
 const { prepareEcaPackage } = require('../internal/eca-package');
 const { registerProviderCredentials, requestScratchRest } = require('../internal/eca-provider-credentials');
@@ -23,11 +24,24 @@ const metadataTypes = {
 };
 
 // ECAの実データを使わず、参照関係と境界条件だけをテスト用に組み立てる。
+const sourceOrigin = 'https://source-org.my.salesforce.com';
+const oauthAppNames = {
+    HerokuPlaygroundIntegration_glbloauth: 'HerokuPlaygroundIntegration',
+    HerokuPlaygroundPerUser_glbloauth: 'HerokuPlaygroundIntegrationPerUser',
+    InternalSalesforceApi_global: 'InternalSalesforceApi',
+    HerokuPlaygroundIntegration_oauth: 'HerokuPlaygroundIntegration',
+    HerokuPlaygroundPerUser_oauth: 'HerokuPlaygroundIntegrationPerUser',
+    InternalSalesforceApi_oauth: 'InternalSalesforceApi',
+    HerokuPlaygroundPerUser_oauthPlcy: 'HerokuPlaygroundIntegrationPerUser'
+};
 const ecaFixtureTypes = {
     ExternalClientApplication: () => ({ distributionState: 'Local' }),
     ExtlClntAppGlobalOauthSettings: (app) => ({
         externalClientApplication: app,
-        isClientCredentialsFlowEnabled: String(['HerokuPlaygroundIntegration', 'SampleIntegration'].includes(app))
+        isClientCredentialsFlowEnabled: String(['HerokuPlaygroundIntegration', 'SampleIntegration'].includes(app)),
+        ...(['ExternalClientAppManager', 'InternalSalesforceApi'].includes(app) && {
+            callbackUrl: `${sourceOrigin}/services/extidp/callback`
+        })
     }),
     ExtlClntAppOauthSettings: (app) => ({ externalClientApplication: app }),
     ExtlClntAppOauthConfigurablePolicies: (app) => ({
@@ -42,13 +56,19 @@ const ecaFixtureTypes = {
             {
                 parameterName: 'AuthorizeUrl',
                 parameterType: 'AuthorizeUrl',
-                parameterValue: 'https://scratch-org.example.invalid/services/oauth2/authorize'
+                parameterValue: `${sourceOrigin}/services/oauth2/authorize`
             },
             {
                 parameterName: 'TokenUrl',
                 parameterType: 'TokenUrl',
-                parameterValue: 'https://scratch-org.example.invalid/services/oauth2/token'
+                parameterValue: `${sourceOrigin}/services/oauth2/token`
             }
+        ]
+    }),
+    NamedCredential: (name) => ({
+        namedCredentialParameters: [
+            { parameterName: 'Url', parameterType: 'Url', parameterValue: sourceOrigin },
+            { externalCredential: name }
         ]
     })
 };
@@ -65,11 +85,12 @@ function makePackage(directory) {
             const file = `${folder}/${member}.${suffix}`;
             const fixture = ecaFixtureTypes[type.name];
             const destination = path.join(directory, file);
+            const app = oauthAppNames[member] ?? member.replace(/_(?:defaultPolicy|oauthPlcy)$/, '');
             if (fixture) {
                 writeFileSync(
                     destination,
                     builder.build({
-                        [type.name]: { '@_xmlns': 'http://soap.sforce.com/2006/04/metadata', ...fixture(member) }
+                        [type.name]: { '@_xmlns': 'http://soap.sforce.com/2006/04/metadata', ...fixture(app) }
                     })
                 );
             } else {
@@ -81,10 +102,13 @@ function makePackage(directory) {
 
 function scratchQuery(args) {
     if (args[0] === 'data') {
-        assert.match(args[args.indexOf('--query') + 1], /Profile.Name = 'System Administrator'/);
+        assert.match(args[args.indexOf('--query') + 1], /Profile.Name IN \('System Administrator', 'システム管理者'\)/);
         return {
             status: 0,
-            stdout: JSON.stringify({ status: 0, result: { records: [{ Username: 'scratch@example.invalid' }] } })
+            stdout: JSON.stringify({
+                status: 0,
+                result: { records: [{ Username: 'scratch@example.invalid', Profile: { Name: 'システム管理者' } }] }
+            })
         };
     }
     return {
@@ -153,6 +177,9 @@ for (const failedPhase of [undefined, 'convert', 'base', 'retrieve', 'policies',
                 }
                 return 0;
             },
+            prepareSecretAccess(_, register) {
+                return register();
+            },
             registerCredentials(username, mapping) {
                 operations.push('credentials');
                 assert.equal(username, 'scratch@example.invalid');
@@ -211,8 +238,10 @@ function withPackage(fn) {
 
 const target = {
     username: 'scratch&admin@example.invalid',
+    adminProfileName: 'システム管理者',
     instanceUrl: 'https://test-scratch.scratch.my.salesforce.com',
-    providerApps: scratchOrg.externalClientAppProviders
+    providerApps: scratchOrg.externalClientAppProviders,
+    appLabels: scratchOrg.externalClientAppLabels
 };
 
 function mutateXml(base, file, mutate) {
@@ -224,8 +253,34 @@ function mutateXml(base, file, mutate) {
 
 test('全Client Credentials Flowを管理者へ置換し、ファイル名やアプリ名を固定しない', () =>
     withPackage((base) => {
+        const appFile = 'externalClientApps/InternalSalesforceApi.eca';
+        const globalFile = 'extlClntAppGlobalOauthSets/InternalSalesforceApi_global.ecaGlblOauth';
+        const oauthFile = 'extlClntAppOauthSettings/InternalSalesforceApi_oauth.ecaOauth';
+        mutateXml(base, appFile, (document) => {
+            document.ExternalClientApplication.orgScopedExternalApp = 'source-org-app-id';
+        });
+        mutateXml(base, globalFile, (document) => {
+            document.ExtlClntAppGlobalOauthSettings.consumerKey = 'source-org-consumer-key';
+            document.ExtlClntAppGlobalOauthSettings.consumerSecret = 'source-org-consumer-secret';
+        });
+        mutateXml(base, oauthFile, (document) => {
+            document.ExtlClntAppOauthSettings.oauthLink = 'source-org-oauth-link';
+        });
         const { policyDirectory } = prepareEcaPackage(base, target);
-        for (const name of ['HerokuPlaygroundIntegration', 'SampleIntegration']) {
+        for (const [file, field] of [
+            [appFile, 'orgScopedExternalApp'],
+            [globalFile, 'consumerKey'],
+            [globalFile, 'consumerSecret'],
+            [oauthFile, 'oauthLink']
+        ]) {
+            assert.equal(readFileSync(path.join(base, file), 'utf8').includes(`<${field}>`), false);
+        }
+        const herokuApp = path.join(base, 'externalClientApps/HerokuPlaygroundIntegrationPerUser.eca');
+        assert.equal(
+            parser.parse(readFileSync(herokuApp, 'utf8')).ExternalClientApplication.label,
+            target.appLabels.HerokuPlaygroundIntegrationPerUser
+        );
+        for (const name of ['HerokuPlaygroundIntegration_oauthPlcy', 'SampleIntegration_defaultPolicy']) {
             const policy = parser.parse(
                 readFileSync(path.join(policyDirectory, `extlClntAppOauthPolicies/${name}.ecaOauthPlcy`), 'utf8')
             ).ExtlClntAppOauthConfigurablePolicies;
@@ -237,7 +292,15 @@ test('全Client Credentials Flowを管理者へ置換し、ファイル名やア
             'utf8'
         );
         assert.ok(provider.includes(`${target.instanceUrl}/services/oauth2/authorize`));
-        assert.equal(provider.includes('scratch-org.example.invalid'), false);
+        assert.equal(provider.includes(sourceOrigin), false);
+        for (const file of [
+            'namedCredentials/InternalSalesforceApi.namedCredential',
+            'extlClntAppGlobalOauthSets/InternalSalesforceApi_global.ecaGlblOauth'
+        ]) {
+            const content = readFileSync(path.join(base, file), 'utf8');
+            assert.ok(content.includes(target.instanceUrl));
+            assert.equal(content.includes(sourceOrigin), false);
+        }
     }));
 
 test('対応設定の不足、外部接続先、Flow設定の不一致を反映前に拒否する', () => {
@@ -373,7 +436,7 @@ test('ECAと組織固有の接続定義をGit管理から除外し、manifest範
             .filter((type) => type.name === name)
             .flatMap((type) => [type.members].flat())
             .sort();
-        if (ecaFixtureTypes[name] || name === 'NamedCredential') {
+        if (ecaFixtureTypes[name]) {
             assert.deepEqual(sourceNames, [], name);
             assert.ok(members.length > 0, name);
             for (const member of members) {
@@ -393,7 +456,10 @@ test('資格情報更新用のアプリに利用権限を追加しない', () =>
         const { policyDirectory } = prepareEcaPackage(base, target);
         const policy = parser.parse(
             readFileSync(
-                path.join(policyDirectory, 'extlClntAppOauthPolicies/SampleIntegrationPerUser.ecaOauthPlcy'),
+                path.join(
+                    policyDirectory,
+                    'extlClntAppOauthPolicies/SampleIntegrationPerUser_defaultPolicy.ecaOauthPlcy'
+                ),
                 'utf8'
             )
         ).ExtlClntAppOauthConfigurablePolicies;
@@ -427,3 +493,43 @@ test('プリンシパルの追加・削除を一時権限セットに反映す�
         assert.ok(accesses.includes('InternalSalesforceApi-AdditionalPrincipal'));
         assert.equal(accesses.includes('InternalSalesforceApi-SalesforceApiUserPrincipal'), false);
     }));
+
+test('シークレット参照を登録時だけ有効化し、登録失敗時にも復元する', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'scratch-secret-access-test-'));
+    const operations = [];
+    try {
+        const runSfCommand = (args) => {
+            assert.equal(args[args.indexOf('--target-org') + 1], target.username);
+            if (args[1] === 'retrieve') {
+                const settingsDirectory = path.join(args[args.indexOf('--target-metadata-dir') + 1], 'settings');
+                mkdirSync(settingsDirectory, { recursive: true });
+                writeFileSync(
+                    path.join(settingsDirectory, 'ExternalClientApp.settings'),
+                    '<ExternalClientAppSettings xmlns="http://soap.sforce.com/2006/04/metadata">' +
+                        '<enableClientSecretInRestApiAccess>false</enableClientSecretInRestApiAccess>' +
+                        '</ExternalClientAppSettings>'
+                );
+            } else {
+                const file = path.join(
+                    args[args.indexOf('--metadata-dir') + 1],
+                    'settings',
+                    'ExternalClientApp.settings'
+                );
+                const setting = parser.parse(readFileSync(file, 'utf8')).ExternalClientAppSettings;
+                operations.push(setting.enableClientSecretInRestApiAccess);
+            }
+            return 0;
+        };
+        assert.throws(
+            () =>
+                withRestSecretAccess({ username: target.username, directory, runSfCommand }, () => {
+                    operations.push('register');
+                    throw new Error('登録失敗');
+                }),
+            /登録失敗/
+        );
+        assert.deepEqual(operations, ['true', 'register', 'false']);
+    } finally {
+        rmSync(directory, { recursive: true, force: true });
+    }
+});

@@ -22,6 +22,9 @@
     ],
     "waitMinutes": 30,
     "externalClientAppManifest": "manifest/rebuild-scratch-org-external-client-apps.xml",
+    "externalClientAppLabels": {
+        "HerokuPlaygroundIntegrationPerUser": "Heroku本人連携"
+    },
     "externalClientAppProviders": {
         "ExternalClientAppManager": "ExternalClientAppManager",
         "InternalSalesforceApi": "InternalSalesforceApi"

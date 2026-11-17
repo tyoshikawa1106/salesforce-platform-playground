@@ -1,4 +1,4 @@
-// 用途: Git管理のECAパッケージを、名前や件数を固定せず対象Scratch Org向けに準備する。
+// 用途: 一時ディレクトリのECAパッケージを対象Scratch Org向けに準備する。
 
 const { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
@@ -37,7 +37,7 @@ function readComponents(directory, folder, suffix, type) {
 }
 
 // 関連する全定義を検証した後、組織固有値の設定と段階別パッケージの作成を行う。
-function prepareEcaPackage(directory, { username, instanceUrl, providerApps }) {
+function prepareEcaPackage(directory, { username, adminProfileName, instanceUrl, providerApps, appLabels = {} }) {
     // プロバイダー名とECA名の対応は非機密の設定から取得する。
     if (!providerApps || typeof providerApps !== 'object' || Array.isArray(providerApps)) {
         // 関連を推測した登録を防ぐ。
@@ -77,8 +77,17 @@ function prepareEcaPackage(directory, { username, instanceUrl, providerApps }) {
         // 配信済みアプリの共有設定へ干渉する反映を防ぐ。
         throw new Error('Scratch OrgのECA定義はLocalである必要があります。');
     }
+    // 組織スコープ付き識別子はScratch Org側で発行する。
+    for (const { fields } of apps) delete fields.orgScopedExternalApp;
     // 参照先の欠落と重複を、組織へ送信する前に検出する。
     const appNames = new Set(apps.map(({ name }) => name));
+    for (const [name, label] of Object.entries(appLabels)) {
+        const app = apps.find((component) => component.name === name);
+        if (!app || typeof label !== 'string' || !label.trim()) {
+            throw new Error('Scratch Org向けECA表示名の対象または値が不正です。');
+        }
+        app.fields.label = label;
+    }
     // typeごとに、各ECAへ一つの設定が対応することを確認する。
     for (const components of [globals, settings, policies]) {
         // ファイル名でなく、定義が指定するECAを使う。
@@ -115,16 +124,12 @@ function prepareEcaPackage(directory, { username, instanceUrl, providerApps }) {
             // 無効化への補正を行わず、設定の矛盾を報告する。
             throw new Error(`${name}のClient Credentials Flow設定が一致しません。`);
         }
-        // 取得元の資格情報とOAuth linkをScratch Orgに持ち込まない。
-        if (global.fields.consumerKey !== undefined || global.fields.consumerSecret !== undefined) {
-            // 他組織で発行した鍵を再利用しない。
-            throw new Error('ECA定義に組織の資格情報を含めることはできません。');
-        }
+        // コピーから取得元のコンシューマー識別子を取り除き、新組織で発行する。
+        delete global.fields.consumerKey;
+        delete global.fields.consumerSecret;
     }
-    // 元組織のコンシューマーを共有するリンクを拒否する。
-    if (settings.some(({ fields }) => fields.extlClntAppGlobalOauthLink !== undefined)) {
-        // 独立した資格情報を発行できない定義では停止する。
-        throw new Error('ECA定義に取得元組織のOAuth linkを含めることはできません。');
+    for (const { fields } of settings) {
+        delete fields.oauthLink;
     }
     // 設定された対応とパッケージのプロバイダーを双方向に照合する。
     const providerNames = providers.map(({ name }) => name);
@@ -133,62 +138,76 @@ function prepareEcaPackage(directory, { username, instanceUrl, providerApps }) {
         // 一部のプロバイダーだけが未設定の状態を防ぐ。
         throw new Error('全認証プロバイダーとECAの対応設定を確認してください。');
     }
-    // プロバイダーごとに対象ECAと接続先の安全性を確認する。
-    for (const [provider, app] of Object.entries(providerApps)) {
-        // 名前の不正値や対象外ECAを登録先へ渡さない。
-        if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(provider) || !appNames.has(app)) {
-            // 存在しないアプリの資格情報取得を開始しない。
+    const providerOrigins = new Map();
+    const providerEndpoints = new Map([
+        ['AuthorizeUrl', '/services/oauth2/authorize'],
+        ['TokenUrl', '/services/oauth2/token']
+    ]);
+    for (const { name, fields } of providers) {
+        const app = providerApps[name];
+        if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name) || !appNames.has(app)) {
             throw new Error('認証プロバイダーに対応するECAがありません。');
         }
-        // 同一組織向けの接続定義だけに、同一組織の資格情報を登録する。
-        const fields = providers.find(({ name }) => name === provider).fields;
-        // パラメーターが一件のXMLも配列として扱う。
         const parameters = [fields.externalAuthIdentityProviderParameters ?? []].flat();
-        // 認可とトークン発行の両方が対象組織を向くことを確認する。
-        for (const type of ['AuthorizeUrl', 'TokenUrl']) {
-            // 該当種別のパラメーターが一意であるか確認する。
+        const endpoints = [...providerEndpoints].map(([type, endpoint]) => {
             const matches = parameters.filter((parameter) => parameter.parameterType === type);
-            // 未置換の外部URLへ対象組織の資格情報を送らない。
-            if (matches.length !== 1 || !matches[0].parameterValue?.startsWith(`${placeholder}/`)) {
-                // 接続先が確定しない時点で反映を止める。
-                throw new Error('認証プロバイダーの接続先が同じScratch Orgではありません。');
+            const value = matches[0]?.parameterValue;
+            const url = typeof value === 'string' ? URL.parse(value) : null;
+            if (
+                matches.length !== 1 ||
+                !url ||
+                (url.origin !== placeholder && !/^https:\/\/[a-z0-9.-]+\.my\.salesforce\.com$/.test(url.origin)) ||
+                value !== url.origin + endpoint
+            ) {
+                throw new Error('認証プロバイダーの接続先を同じScratch Orgに変換できません。');
             }
+            return { parameter: matches[0], endpoint, origin: url.origin };
+        });
+        const [authorize, token] = endpoints;
+        if (authorize.origin !== token.origin) {
+            throw new Error('認証プロバイダーの認可先とトークン発行先が一致しません。');
         }
+        providerOrigins.set(name, authorize.origin);
+        for (const { parameter, endpoint } of endpoints) {
+            parameter.parameterValue = instanceUrl + endpoint;
+        }
+
+        const global = globals.find(({ fields }) => fields.externalClientApplication === app)?.fields;
+        const callbackPath = '/services/extidp/callback';
+        if (global?.callbackUrl !== authorize.origin + callbackPath) {
+            throw new Error('組織内ECAのコールバックURLと認証プロバイダーの接続先が一致しません。');
+        }
+        global.callbackUrl = instanceUrl + callbackPath;
     }
+    const credentialOrigins = new Map();
     // 全プリンシパルをメタデータから読み、追加・削除を権限に反映する。
     const principalAccesses = credentials.flatMap(({ name, fields }) => {
-        // XMLの一件・複数件を同じ形で扱う。
         const parameters = [fields.externalCredentialParameters ?? []].flat();
-        // 設定値として保持されたプロバイダー参照を抽出する。
         const references = parameters.filter((parameter) => parameter.externalAuthIdentityProvider);
-        // パッケージ外のプロバイダーへの参照を拒否する。
-        if (references.length !== 1 || !providerNames.includes(references[0].externalAuthIdentityProvider)) {
-            // 不完全な認証構成を反映しない。
+        const origin = providerOrigins.get(references[0]?.externalAuthIdentityProvider);
+        if (references.length !== 1 || !origin) {
             throw new Error('外部ログイン情報の認証プロバイダー参照を確認してください。');
         }
-        // プリンシパルの種別に関係なく利用権限を組み立てる。
+        credentialOrigins.set(name, origin);
         return parameters
             .filter((parameter) => ['PerUserPrincipal', 'NamedPrincipal'].includes(parameter.parameterType))
             .map((parameter) => ({ enabled: true, externalCredentialPrincipal: `${name}-${parameter.parameterName}` }));
     });
-    // Named Credentialの参照も名前の一致ではなく、定義内の参照を使う。
     for (const { fields } of namedCredentials) {
-        // 指定ログイン情報が実際に参照する資格情報を取り出す。
-        const references = [fields.namedCredentialParameters ?? []]
-            .flat()
-            .filter((parameter) => parameter.externalCredential);
-        // 存在しない資格情報の参照を反映前に検出する。
-        if (references.length !== 1 || !credentials.some(({ name }) => name === references[0].externalCredential)) {
-            // callout時の参照先欠落を防ぐ。
+        const parameters = [fields.namedCredentialParameters ?? []].flat();
+        const references = parameters.filter((parameter) => parameter.externalCredential);
+        const origin = credentialOrigins.get(references[0]?.externalCredential);
+        if (references.length !== 1 || !origin) {
             throw new Error('指定ログイン情報の外部ログイン情報参照を確認してください。');
         }
+        const urls = parameters.filter((parameter) => parameter.parameterType === 'Url');
+        if (urls.length !== 1 || urls[0].parameterValue !== origin) {
+            throw new Error('指定ログイン情報と認証プロバイダーの接続先が一致しません。');
+        }
+        urls[0].parameterValue = instanceUrl;
     }
-    // URLのプレースホルダーを、対象typeの全ファイルで置換する。
-    for (const component of [...globals, ...providers, ...namedCredentials]) {
-        // 既存の機能設定を残したままURLを書き換える。
-        const xml = builder.build(component.document);
-        // 置換するのは既知のプレースホルダーだけに限定する。
-        writeFileSync(component.filepath, xml.replaceAll(placeholder, instanceUrl));
+    for (const { filepath, document } of [...apps, ...globals, ...settings, ...providers, ...namedCredentials]) {
+        writeFileSync(filepath, builder.build(document));
     }
     // 有効な全Client Credentials Flowの実行者を、作成管理者へ置換する。
     for (const policy of policies) {
@@ -208,7 +227,7 @@ function prepareEcaPackage(directory, { username, instanceUrl, providerApps }) {
                 policy.fields.isClientCredentialsFlowEnabled === 'true')
         ) {
             // 元組織のプロファイル割り当てを作成管理者へ置き換える。
-            policy.fields.commaSeparatedProfile = 'System Administrator';
+            policy.fields.commaSeparatedProfile = adminProfileName;
             // 元組織の権限セットIDを持ち込まない。
             delete policy.fields.commaSeparatedPermissionSet;
         }
