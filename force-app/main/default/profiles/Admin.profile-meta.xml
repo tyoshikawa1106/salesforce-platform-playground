@@ -805,6 +805,38 @@
         <apexClass>ExternalClientAppManagerServiceTest</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsControllerTest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsSelectorTest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsServiceTest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsWrapper</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>UserLocaleSettingsWrapperTest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <custom>false</custom>
     <fieldPermissions>
         <editable>true</editable>
