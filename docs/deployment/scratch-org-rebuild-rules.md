@@ -62,6 +62,10 @@ Installed Package の確認方法と反映順序は、[Scratch Org 再現の前�
 
 alias の付け方と Scratch definition の feature 判断は、[Scratch Org 再現の前提と設定](scratch-org-rebuild-reference.md)を参照します。
 
+## AI エージェントによる初期構築
+
+外部クライアントアプリの枠を作る場合は、作成済み Scratch Org を対象に、以下の [External Client App の手順](#external-client-app-の扱い) を個別に実行します。一括実行は ECA の OAuth 設定まで反映する別の経路です。
+
 ## 一括実行
 
 通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するスクリプトで行います。
@@ -173,21 +177,20 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 ### External Client App の扱い
 
-新規 Scratch Org では、開発組織の外部クライアントアプリ構成を再現します。開発組織の一覧と反映範囲を照合し、直接反映する定義は `force-app/main/default` に、反映範囲は [ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) に登録します。パッケージに含まれるアプリは対応するパッケージの導入手順で再現します。manifest から除外したアプリは既存組織から自動削除しません。
+アプリの枠を再現する場合は、[既存の ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) の `ExternalClientApplication` に列挙されたアプリを対象にします。AI エージェントは次の順に進めます。
 
-開発組織から取得したファイルを取り込む前に、OAuth link、組織 ID、資格情報、組織固有の URL を取り除きます。Git 管理に含めるファイルは個別に指定します。Scratch Org の作成時は Git 管理の定義を使用します。ECA の機能設定は Scratch definition で有効化し、反映先が Scratch Org であることを確認してから専用 manifest を deploy します。
-
-初期構築時、Client Credentials Flow を使用するアプリには、作成 alias に対応する有効な標準システム管理者を Run As に指定します。Git 管理の定義から一時パッケージに変換したうえで、対象組織のURL、実行ユーザー、事前承認とプリンシパル利用権限を設定し、反映終了時に一時パッケージを削除します。事前承認の割り当てが定義されているアプリとClient Credentials Flowを使用するアプリには標準システム管理者プロファイルを設定します。事前承認の割り当てがない更新検証用のアプリには利用許可を追加しません。
-
-初期反映で ECA ステップが失敗した場合は、原因を修正し、作成済みの対象組織で次のステップから再開します。ECA本体と接続定義の作成後、OAuthポリシーを別のパッケージで反映します。対象と関連付け、検証、失敗時の状態は[Scratch Org管理スクリプト仕様](../specifications/scripts/scratch-org-management/index.md)を参照してください。
+1. CLI の組織一覧で接続先が対象の Scratch Org であることを確認し、アプリ一覧から未作成の API 名を特定する。
+2. 未作成のアプリだけを `--metadata` に指定し、既存のメタデータに対して `--dry-run` を実行する。複数件は `--metadata` を繰り返す。成功した範囲を同じ指定で実デプロイする。
+3. 本体の反映が失敗した場合は、エラーをアプリごとに確認する。既存の CLI 認証で対象 Scratch Org を開き、設定画面に作成機能がある場合は未作成のアプリだけを元の定義に従って設定する。対象組織で作成機能が使えない場合は、失敗した項目と理由を報告する。
+4. 組織のアプリ一覧で API 名と表示名を確認する。枠の作成はここで完了とする。OAuth 設定、ポリシー、資格情報の登録、疎通確認が必要な場合は別に扱う。
 
 ```sh
-node scripts/scratch-org/steps/deploy-external-client-apps.js --alias <scratch-org-alias>
+sf org list metadata --metadata-type ExternalClientApplication --target-org <scratch-org-alias>
+sf project deploy start --metadata 'ExternalClientApplication:<api-name>' --target-org <scratch-org-alias> --dry-run --wait 30
+sf project deploy start --metadata 'ExternalClientApplication:<api-name>' --target-org <scratch-org-alias> --wait 30
 ```
 
-組織内 API 接続用の認証プロバイダー、外部ログイン情報、指定ログイン情報も ECA 用 manifest から反映します。認可先、トークン発行先、コールバック、callout 先には対象 Scratch Org の My Domain を使います。反映後は認証プロバイダーが表示するコールバック URL と ECA の値を照合します。
-
-メタデータの反映直後に、専用 manifest に含まれる各認証プロバイダーについて、`scratch-org.json` の `externalClientAppProviders` で対応付けた ECA が対象 Scratch Org で発行したコンシューマ鍵とシークレットを Connect REST API で取り出し、同じ組織の対応する認証プロバイダーへ登録します。資格情報はプロセスのメモリと標準入出力のパイプで扱います。登録が失敗した場合は後続の初期化を停止し、同じ Scratch Org に対して ECA 反映ステップを再開できます。Browser Flow の各利用者は登録後に本人の OAuth 認証を行い、対象組織の API 接続を確認します。
+この手順では既存のソースを Salesforce CLI に直接渡します。メタデータのコピーや加工、ZIP の作成、スクリプトの変更は行いません。OAuth 設定とポリシーを含む manifest 全体では、コールバック URL、実行ユーザー、プロファイルなどの組織間差分により失敗することがあります。Dev の資格情報、組織固有値、取得ファイルは公開リポジトリへ保存しません。
 
 ### Permission Set 割り当て
 
