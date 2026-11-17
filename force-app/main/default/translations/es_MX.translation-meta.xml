@@ -17,6 +17,10 @@
         <name>ExternalClientAppManager</name>
     </customTabs>
     <customTabs>
+        <label><!-- OAuth トークン発行 --></label>
+        <name>OAuthTokenIssuance</name>
+    </customTabs>
+    <customTabs>
         <label><!-- オブジェクトエクスプローラー --></label>
         <name>ObjectExplorer</name>
     </customTabs>
