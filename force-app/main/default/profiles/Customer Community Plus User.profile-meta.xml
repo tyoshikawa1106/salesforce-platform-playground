@@ -837,6 +837,26 @@
         <apexClass>UserLocaleSettingsWrapperTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>OAuthTokenIssuanceController</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>OAuthTokenIssuanceControllerTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>OAuthTokenIssuanceResult</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>OAuthTokenIssuanceService</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>OAuthTokenIssuanceServiceTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
     <custom>false</custom>
     <fieldPermissions>
         <editable>false</editable>
@@ -3720,6 +3740,10 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>ExternalClientAppManager</tab>
+        <visibility>Hidden</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>OAuthTokenIssuance</tab>
         <visibility>Hidden</visibility>
     </tabVisibilities>
     <userLicense>Customer Community Plus</userLicense>

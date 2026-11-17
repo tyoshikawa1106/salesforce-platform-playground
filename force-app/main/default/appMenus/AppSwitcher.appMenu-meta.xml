@@ -121,7 +121,11 @@
         <type>ExternalClientApplication</type>
     </appMenuItems>
     <appMenuItems>
-        <name>SampleExternalClientApp</name>
+        <name>SampleIntegration</name>
+        <type>ExternalClientApplication</type>
+    </appMenuItems>
+    <appMenuItems>
+        <name>SampleIntegrationPerUser</name>
         <type>ExternalClientApplication</type>
     </appMenuItems>
 </AppMenu>
