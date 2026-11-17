@@ -54,6 +54,7 @@
     <tabs>OrgExplorer</tabs>
     <tabs>ObjectExplorer</tabs>
     <tabs>ExternalClientAppManager</tabs>
+    <tabs>OAuthTokenIssuance</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>

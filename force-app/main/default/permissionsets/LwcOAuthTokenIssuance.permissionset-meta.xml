@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>OAuthTokenIssuanceController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>OAuth トークン発行タブの表示と Apex Controller の実行を許可します。</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>LWC：OAuth トークン発行</label>
+    <tabSettings>
+        <tab>OAuthTokenIssuance</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
