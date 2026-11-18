@@ -37,10 +37,10 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### 設定・権限
 
-| 種別          | 実装・設定                | 役割                                        |
-| ------------- | ------------------------- | ------------------------------------------- |
-| PermissionSet | `LwcCaseEmailMessageList` | Apex Controller の実行権限                  |
-| FlexiPage     | `CaseFlexiPage`           | Case レコードページのメールログタブへの配置 |
+| 種別          | 実装・設定                | 役割                                         |
+| ------------- | ------------------------- | -------------------------------------------- |
+| PermissionSet | `LwcCaseEmailMessageList` | Apex Controller の実行権限とケースの参照権限 |
+| FlexiPage     | `CaseFlexiPage`           | Case レコードページのメールログタブへの配置  |
 
 ## 入力
 
@@ -71,7 +71,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 ## 権限・実行条件
 
 - `caseEmailMessageList` は Case の Lightning レコードページだけに配置できます。
-- `LwcCaseEmailMessageList` 権限セットで [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls) の実行権限を付与します。
+- `LwcCaseEmailMessageList` 権限セットで [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls) の実行権限と、ケースの参照権限を付与します。
 - 一覧取得は `with sharing` と `WITH USER_MODE` で利用者の共有ルール、オブジェクト権限、項目権限を適用します。
 
 ## エラー処理

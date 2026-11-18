@@ -4,7 +4,17 @@
         <apexClass>CaseEmailMessageController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>LWC：ケースメール一覧の利用に必要な入口権限。データ参照・更新権限やオブジェクトのカスタマイズ権限は付与しません。</description>
+    <description>ケースメール一覧の利用に必要なApexアクセスとケースの参照権限を付与します。</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：ケースメール一覧</label>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Case</object>
+        <viewAllFields>false</viewAllFields>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
 </PermissionSet>
