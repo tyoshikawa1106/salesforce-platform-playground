@@ -147,47 +147,39 @@
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <tabSettings>
-        <tab>standard-home</tab>
+        <tab>AccountDelete</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>standard-Feed</tab>
+        <tab>AccountMassUpdate</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>standard-CollaborationGroup</tab>
+        <tab>ExternalClientAppManager</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>standard-Task</tab>
+        <tab>OAuthTokenIssuance</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>standard-Event</tab>
+        <tab>ObjectExplorer</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>OrgExplorer</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>SetupAuditTrailExplorer</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>TestDataDelete</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
         <tab>standard-Account</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Contact</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Lead</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Opportunity</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Product2</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Pricebook2</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
@@ -203,31 +195,15 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
+        <tab>standard-CollaborationGroup</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-Contact</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>standard-Contract</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Order</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-Entitlement</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-ServiceContract</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-WorkOrder</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-EmailTemplate</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-report</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
@@ -235,19 +211,31 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
+        <tab>standard-DeleteEvent</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-EmailTemplate</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-Entitlement</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-Event</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-Feed</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>standard-File</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>standard-OtherUserProfile</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-ProcessInstanceWorkitem</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>standard-DeleteEvent</tab>
+        <tab>standard-Lead</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
@@ -255,35 +243,47 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>AccountMassUpdate</tab>
+        <tab>standard-Opportunity</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>AccountDelete</tab>
+        <tab>standard-Order</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>TestDataDelete</tab>
+        <tab>standard-OtherUserProfile</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>OrgExplorer</tab>
+        <tab>standard-Pricebook2</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>ObjectExplorer</tab>
+        <tab>standard-ProcessInstanceWorkitem</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>ExternalClientAppManager</tab>
+        <tab>standard-Product2</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>OAuthTokenIssuance</tab>
+        <tab>standard-ServiceContract</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>SetupAuditTrailExplorer</tab>
+        <tab>standard-Task</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-WorkOrder</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-home</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>standard-report</tab>
         <visibility>Visible</visibility>
     </tabSettings>
 </PermissionSet>
