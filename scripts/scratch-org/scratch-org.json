@@ -7,19 +7,19 @@
     "manifest": "manifest/rebuild-scratch-org.xml",
     "permissionSets": [
         "SalesforceApplicationUser",
-        "ScratchOrgApexTestAccess",
-        "ScratchOrgExternalCredentialAccess",
         "LwcAccountDataQualityScan",
         "LwcAccountDelete",
         "LwcAccountMassUpdate",
         "LwcAccountPdfExport",
         "LwcCaseEmailMessageList",
         "LwcExternalClientAppManager",
+        "LwcOAuthTokenIssuance",
         "LwcObjectExplorer",
         "LwcObjectMetricsOverview",
         "LwcObjectRecordSearch",
         "LwcOrgExplorer",
-        "LwcTestDataDelete"
+        "LwcTestDataDelete",
+        "LwcUserLocaleSettings"
     ],
     "waitMinutes": 30,
     "externalClientAppManifest": "manifest/rebuild-scratch-org-external-client-apps.xml",

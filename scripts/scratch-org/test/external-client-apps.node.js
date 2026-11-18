@@ -469,31 +469,6 @@ test('資格情報更新用のアプリに利用権限を追加しない', () =>
         assert.equal(policy.requiredSessionLevel, 'HIGH_ASSURANCE');
     }));
 
-test('プリンシパルの追加・削除を一時権限セットに反映する', () =>
-    withPackage((base) => {
-        mutateXml(base, 'externalCredentials/InternalSalesforceApi.externalCredential', (document) => {
-            const parameters = document.ExternalCredential.externalCredentialParameters;
-            document.ExternalCredential.externalCredentialParameters = parameters.filter(
-                (p) => p.parameterType !== 'PerUserPrincipal'
-            );
-            document.ExternalCredential.externalCredentialParameters.push({
-                parameterName: 'AdditionalPrincipal',
-                parameterGroup: 'AdditionalPrincipal',
-                parameterType: 'NamedPrincipal',
-                sequenceNumber: '1'
-            });
-        });
-        prepareEcaPackage(base, target);
-        const permission = parser.parse(
-            readFileSync(path.join(base, 'permissionsets/ScratchOrgExternalCredentialAccess.permissionset'), 'utf8')
-        ).PermissionSet;
-        const accesses = permission.externalCredentialPrincipalAccesses.map(
-            (value) => value.externalCredentialPrincipal
-        );
-        assert.ok(accesses.includes('InternalSalesforceApi-AdditionalPrincipal'));
-        assert.equal(accesses.includes('InternalSalesforceApi-SalesforceApiUserPrincipal'), false);
-    }));
-
 test('シークレット参照を登録時だけ有効化し、登録失敗時にも復元する', () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'scratch-secret-access-test-'));
     const operations = [];

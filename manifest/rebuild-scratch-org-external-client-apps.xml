@@ -52,7 +52,8 @@
         <name>NamedCredential</name>
     </types>
     <types>
-        <members>ScratchOrgExternalCredentialAccess</members>
+        <members>LwcExternalClientAppManager</members>
+        <members>LwcObjectExplorer</members>
         <name>PermissionSet</name>
     </types>
     <version>68.0</version>

@@ -180,8 +180,8 @@ function prepareEcaPackage(directory, { username, adminProfileName, instanceUrl,
         global.callbackUrl = instanceUrl + callbackPath;
     }
     const credentialOrigins = new Map();
-    // 全プリンシパルをメタデータから読み、追加・削除を権限に反映する。
-    const principalAccesses = credentials.flatMap(({ name, fields }) => {
+    // 外部ログイン情報の参照先を検証する。
+    for (const { name, fields } of credentials) {
         const parameters = [fields.externalCredentialParameters ?? []].flat();
         const references = parameters.filter((parameter) => parameter.externalAuthIdentityProvider);
         const origin = providerOrigins.get(references[0]?.externalAuthIdentityProvider);
@@ -189,10 +189,7 @@ function prepareEcaPackage(directory, { username, adminProfileName, instanceUrl,
             throw new Error('外部ログイン情報の認証プロバイダー参照を確認してください。');
         }
         credentialOrigins.set(name, origin);
-        return parameters
-            .filter((parameter) => ['PerUserPrincipal', 'NamedPrincipal'].includes(parameter.parameterType))
-            .map((parameter) => ({ enabled: true, externalCredentialPrincipal: `${name}-${parameter.parameterName}` }));
-    });
+    }
     for (const { fields } of namedCredentials) {
         const parameters = [fields.namedCredentialParameters ?? []].flat();
         const references = parameters.filter((parameter) => parameter.externalCredential);
@@ -234,14 +231,6 @@ function prepareEcaPackage(directory, { username, adminProfileName, instanceUrl,
         // アプリごとに反映用のポリシーを保存する。
         writeFileSync(policy.filepath, builder.build(policy.document));
     }
-    // 権限セットの他の設定を維持し、プリンシパル利用権限だけ再生成する。
-    const permissionPath = path.join(directory, 'permissionsets/ScratchOrgExternalCredentialAccess.permissionset');
-    // ラベルなどの既存設定を引き継ぐ。
-    const permissionDocument = parser.parse(readFileSync(permissionPath, 'utf8'));
-    // 削除したプリンシパルの権限も残さない。
-    permissionDocument.PermissionSet.externalCredentialPrincipalAccesses = principalAccesses;
-    // 権限の組織依存差分を一時成果物へ限定する。
-    writeFileSync(permissionPath, builder.build(permissionDocument));
     // SalesforceがECA作成時にポリシーを生成するため、ポリシーの反映を後段に分ける。
     const manifestPath = path.join(directory, 'package.xml');
     // 元のAPIバージョンとスコープを保持する。

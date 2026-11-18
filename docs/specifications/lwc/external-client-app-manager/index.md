@@ -92,7 +92,7 @@ APIパスの検証は検索条件を除いたパスに適用します。検索�
 ## 権限・実行条件
 
 - `ManageExternalClientAppCredentials`とControllerへのアクセスが必要です。
-- API認証ユーザーには`External Client App Developer`と`View Client Secret`が必要です。
+- `LwcExternalClientAppManager` はAPI認証ユーザーに必要な `External Client App Developer` と `View Client Secret` に加え、依存する `ExternalClientAppAdmin` と `ExternalClientAppViewer` を付与します。
 - 外部クライアントアプリケーション設定の「REST APIを使用した外部クライアントアプリケーションのコンシューマーの秘密へのアクセスを許可」を有効にする必要があります。画面は設定を変更しません。
 - 更新可能なのはローカルアプリで、管理用認証元は除外します。
 
@@ -102,7 +102,7 @@ APIパスの検証は検索条件を除いたパスに適用します。検索�
 2. 同名のExternal Auth Identity Providerへ鍵・秘密を設定し、標準コールバックURLをアプリへ登録します。実値はソースへ保存しません。
 3. OAuth Browser FlowのExternal Credentialを`ExternalClientAppManager`、Per User Principalを`ExternalClientAppUserPrincipal`として構成します。
 4. Named Credentialを`ExternalClientAppManager`として導入先組織のMy Domainへ接続し、認証ヘッダーを生成します。本文へのトークン差し込みは使用しません。
-5. 利用者本人へPrincipalアクセスと画面用権限セットを付与します。画面用権限セットは広い管理権限やPrincipalアクセスを自動追加しません。
+5. 利用者本人へ `LwcExternalClientAppManager` を割り当てます。この権限セットは `ExternalClientAppUserPrincipal` の利用権限も付与します。Scratch Orgでは接続定義と同じ段階でデプロイします。
 6. 本人が画面から標準OAuth認証を完了します。APIの`userinfo`で現在のApex実行ユーザー・組織との一致を検証します。
 
 ## エラー処理
