@@ -857,6 +857,38 @@
         <apexClass>OAuthTokenIssuanceServiceTest</apexClass>
         <enabled>false</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerController</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerControllerTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerSelector</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerSelectorTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerService</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerServiceTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerWrapper</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SetupAuditTrailExplorerWrapperTest</apexClass>
+        <enabled>false</enabled>
+    </classAccesses>
     <custom>false</custom>
     <fieldPermissions>
         <editable>false</editable>
@@ -3604,6 +3636,10 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>OAuthTokenIssuance</tab>
+        <visibility>Hidden</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
+        <tab>SetupAuditTrailExplorer</tab>
         <visibility>Hidden</visibility>
     </tabVisibilities>
     <userLicense>Identity</userLicense>

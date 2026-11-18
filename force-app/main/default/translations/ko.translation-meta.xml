@@ -29,6 +29,10 @@
         <name>OrgExplorer</name>
     </customTabs>
     <customTabs>
+        <label><!-- 設定変更履歴エクスプローラー --></label>
+        <name>SetupAuditTrailExplorer</name>
+    </customTabs>
+    <customTabs>
         <label><!-- テストデータ一括削除 --></label>
         <name>TestDataDelete</name>
     </customTabs>
