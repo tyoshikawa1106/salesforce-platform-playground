@@ -328,7 +328,7 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
 });
 
 it('moves through adjacent pages and resets the cursor only after search', async () => {
-    countMonth.mockResolvedValue(102);
+    countMonth.mockResolvedValue(4002);
     load.mockImplementation(({ nextId, action }) => {
         if (action) {
             return Promise.resolve({ records: [] });
@@ -343,10 +343,11 @@ it('moves through adjacent pages and resets the cursor only after search', async
     await flush();
     expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['前へ', '次へ']);
     expect(button('前へ').disabled).toBe(true);
+    expect(load.mock.calls[0][0]).toMatchObject({ pageSize: 2000, chart: false });
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('2 / 3ページ');
-    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(50);
+    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(2000);
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('3 / 3ページ');
@@ -359,27 +360,6 @@ it('moves through adjacent pages and resets the cursor only after search', async
     expect(root.textContent).toContain('2 / 3ページ');
     await search(component);
     expect(load.mock.calls.at(-1)[0]).not.toHaveProperty('nextId');
-});
-
-it('resets the history cursor when changing the display size to 2,000', async () => {
-    countMonth.mockResolvedValue(2001);
-    load.mockResolvedValue({ records: [{ Id: 'row' }], nextId: 'cursor', nextTime: 'time' });
-    const component = mount();
-    const root = component.shadowRoot;
-    await flush();
-    const next = [...root.querySelectorAll('nav lightning-button')].find(button => button.label === '次へ');
-    next.click();
-    await flush();
-    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(50);
-
-    const size = [...root.querySelectorAll('lightning-combobox')].find(field => field.label === '表示件数');
-    size.dispatchEvent(new CustomEvent('change', { detail: { value: '2000' } }));
-    await flush();
-    expect(load.mock.lastCall[0]).toMatchObject({ pageSize: 2000, chart: false });
-    expect(load.mock.lastCall[0]).not.toHaveProperty('nextId');
-    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(0);
-    expect(root.textContent).toContain('1 / 2ページ');
-    expect(countMonth).toHaveBeenCalledTimes(1);
 });
 
 it('defers filtered result counts until the history tab is opened', async () => {

@@ -35,11 +35,7 @@ function offsetMonth(month, offset) {
     return date.toISOString().slice(0, 7);
 }
 
-const DEFAULT_PAGE_SIZE = 50;
-const PAGE_SIZE_OPTIONS = [50, 100, 200, 500, 1000, 2000].map(size => ({
-    label: size.toLocaleString('ja-JP') + '件',
-    value: String(size)
-}));
+const PAGE_SIZE = 2000;
 const COUNT_FORMAT = new Intl.NumberFormat('ja-JP');
 const CSV_DATE_FORMAT = new Intl.DateTimeFormat('ja-JP', {
     calendar: 'gregory', timeZone: TIME_ZONE, timeZoneName: 'short',
@@ -116,8 +112,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     matchRequest = 0;
     matchLoading = false;
     page = 1;
-    pageSize = DEFAULT_PAGE_SIZE;
-    pageSizeOptions = PAGE_SIZE_OPTIONS;
     listReady = false;
     chartReady = false;
     loading = false;
@@ -175,23 +169,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     get totalPages() {
-        return this.resultCount === null ? null : Math.ceil(this.resultCount / this.pageSize);
-    }
-
-    get selectedPageSize() {
-        return String(this.pageSize);
-    }
-
-    changePageSize(event) {
-        const size = event.detail.value;
-        if (size !== this.selectedPageSize && this.pageSizeOptions.some(option => option.value === size)) {
-            // 履歴のカーソルだけを破棄し、絞り込み件数と分析結果は再利用する。
-            this.pageSize = Number(size);
-            this.page = 1;
-            this.pageStarts = [{}];
-            this.listReady = false;
-            this.read();
-        }
+        return this.resultCount === null ? null : Math.ceil(this.resultCount / PAGE_SIZE);
     }
 
     get pageSummary() {
@@ -199,7 +177,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     get rowNumberOffset() {
-        return (this.page - 1) * this.pageSize;
+        return (this.page - 1) * PAGE_SIZE;
     }
 
     get nextDisabled() {
@@ -670,7 +648,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.loading = true;
         const query = {
             ...this.searchCriteria, chart,
-            ...(!chart && this.pageSize !== DEFAULT_PAGE_SIZE ? { pageSize: this.pageSize } : {})
+            ...(!chart ? { pageSize: PAGE_SIZE } : {})
         };
         let cursor = chart ? {} : this.pageStarts[this.page - 1];
         const totals = new Map();
