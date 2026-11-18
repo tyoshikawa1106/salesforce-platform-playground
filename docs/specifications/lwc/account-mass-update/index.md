@@ -34,10 +34,10 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### 設定・権限
 
-| 種別          | 実装・設定             | 役割                         |
-| ------------- | ---------------------- | ---------------------------- |
-| CustomTab     | `AccountMassUpdate`    | 画面の入口                   |
-| PermissionSet | `LwcAccountMassUpdate` | Apex入口の実行権限とタブ表示 |
+| 種別          | 実装・設定             | 役割                                                               |
+| ------------- | ---------------------- | ------------------------------------------------------------------ |
+| CustomTab     | `AccountMassUpdate`    | 画面の入口                                                         |
+| PermissionSet | `LwcAccountMassUpdate` | Apex入口、タブ表示、取引先の参照・編集、項目権限、レコード移転権限 |
 
 ## 入力
 
@@ -59,7 +59,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 - 利用ユーザーに `LwcAccountMassUpdate` 権限セットを割り当て、タブ表示と [AccountMassUpdateController](../../../../force-app/main/default/classes/AccountMassUpdateController.cls) の実行権限を付与します。メタデータのデプロイだけではユーザーへの割り当ては行われません。
 - 「Salesforce」アプリへのアクセスも必要です。`SalesforceApplicationUser` はアプリへのアクセスを提供しますが、一括更新専用の `LwcAccountMassUpdate` の代わりにはなりません。
-- `LwcAccountMassUpdate` は画面へのアクセスだけを提供します。オブジェクト・項目権限や所有者移転権限は追加しません。
+- `LwcAccountMassUpdate` は取引先の参照・編集、業種・種別・評価の項目参照・編集、およびレコード移転権限（`TransferAnyEntity`）を付与します。対象レコードの編集と所有者変更には、Salesforceの共有と所有者移転条件が適用されます。
 - Apexは `with sharing` と、検索・DMLの `USER_MODE` を使用します。
 - 一覧に必要な項目を参照できない場合は検索が失敗します。編集権限のない項目は画面で無効にします。
 - 所有者候補の検索は標準 `lightning-record-picker` と利用者の参照権限に従います。

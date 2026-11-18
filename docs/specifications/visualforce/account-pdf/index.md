@@ -84,7 +84,7 @@ Salesforce Files、取引先、その他のレコードへPDFや履歴を保存�
 
 - Lightning Experienceの取引先レコードページで実行する。
 - `LwcAccountPdfExport`によるVisualforce PageとApex Controllerへのアクセスが必要。
-- 対象取引先の参照権限と、全出力項目の項目参照権限が必要。
+- `LwcAccountPdfExport` は取引先と出力対象項目の参照権限を付与する。対象レコードへの参照アクセスには共有設定が適用される。
 - [AccountPdfController](../../../../force-app/main/default/classes/AccountPdfController.cls)と[AccountPdfSelector](../../../../force-app/main/default/classes/AccountPdfSelector.cls)は`with sharing`で実行する。
 - SOQLは`WITH USER_MODE`を使用し、共有、CRUD、FLSを利用者権限で適用する。
 - Business Accountを対象とする。Person Account固有の項目とラベルは扱わない。

@@ -184,6 +184,14 @@
         <members>UserLocaleSettingsServiceTest</members>
         <members>UserLocaleSettingsWrapper</members>
         <members>UserLocaleSettingsWrapperTest</members>
+        <members>SetupAuditTrailExplorerController</members>
+        <members>SetupAuditTrailExplorerControllerTest</members>
+        <members>SetupAuditTrailExplorerSelector</members>
+        <members>SetupAuditTrailExplorerSelectorTest</members>
+        <members>SetupAuditTrailExplorerService</members>
+        <members>SetupAuditTrailExplorerServiceTest</members>
+        <members>SetupAuditTrailExplorerWrapper</members>
+        <members>SetupAuditTrailExplorerWrapperTest</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -923,6 +931,8 @@
         <members>salesforceApiUtils</members>
         <members>lwcLoggerUtils</members>
         <members>userLocaleSettings</members>
+        <members>setupAuditTrailChart</members>
+        <members>setupAuditTrailExplorer</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
@@ -997,17 +1007,13 @@
         <members>LwcAccountMassUpdate</members>
         <members>LwcAccountPdfExport</members>
         <members>LwcCaseEmailMessageList</members>
-        <members>LwcExternalClientAppManager</members>
         <members>LwcOAuthTokenIssuance</members>
-        <members>LwcObjectExplorer</members>
         <members>LwcObjectMetricsOverview</members>
         <members>LwcObjectRecordSearch</members>
         <members>LwcOrgExplorer</members>
         <members>LwcTestDataDelete</members>
         <members>LwcUserLocaleSettings</members>
-        <members>SalesforceAPIPlaygroundIntegration</members>
         <members>SalesforceApplicationUser</members>
-        <members>ScratchOrgApexTestAccess</members>
         <members>ScratchOrgMetadataDeployer</members>
         <members>sfdcInternalInt__sfdc_scrt2</members>
         <name>PermissionSet</name>
@@ -1291,6 +1297,7 @@
         <members>TestDataDelete</members>
         <members>OrgExplorer</members>
         <members>ObjectExplorer</members>
+        <members>SetupAuditTrailExplorer</members>
         <name>CustomTab</name>
     </types>
     <version>68.0</version>

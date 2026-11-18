@@ -8,11 +8,31 @@
         <enabled>true</enabled>
         <name>ManageExternalClientAppCredentials</name>
     </customPermissions>
-    <description>外部クライアントアプリ資格情報更新画面の利用許可。API管理権限とExternal CredentialのPrincipalアクセスは別途管理します。</description>
+    <description>外部クライアントアプリ資格情報更新画面の利用許可。管理用の外部ログイン情報を利用する権限と、外部クライアントアプリの資格情報を管理する権限を付与します。</description>
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal>ExternalClientAppManager-ExternalClientAppUserPrincipal</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：外部クライアントアプリ認証管理</label>
     <tabSettings>
         <tab>ExternalClientAppManager</tab>
         <visibility>Visible</visibility>
     </tabSettings>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ExternalClientAppAdmin</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ExternalClientAppDeveloper</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ExternalClientAppViewer</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ViewClientSecret</name>
+    </userPermissions>
 </PermissionSet>
