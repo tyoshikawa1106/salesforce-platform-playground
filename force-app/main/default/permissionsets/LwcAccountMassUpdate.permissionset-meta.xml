@@ -4,11 +4,40 @@
         <apexClass>AccountMassUpdateController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>取引先一括更新画面を利用できます。データと項目の参照・更新権限および所有者変更権限は既存の設定に従います。</description>
+    <description>取引先一括更新画面を利用できます。取引先と業種・種別・評価の参照・編集権限、およびレコード移転権限を付与します。</description>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Account.Industry</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Account.Rating</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Account.Type</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：取引先一括更新</label>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Account</object>
+        <viewAllFields>false</viewAllFields>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <tabSettings>
         <tab>AccountMassUpdate</tab>
         <visibility>Visible</visibility>
     </tabSettings>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>TransferAnyEntity</name>
+    </userPermissions>
 </PermissionSet>
