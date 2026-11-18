@@ -40,9 +40,19 @@
         <enabled>true</enabled>
         <name>RunAccountDelete</name>
     </customPermissions>
-    <description>取引先一括削除の利用を許可します。取引先の参照・削除権限は既存の権限設定に従います。</description>
+    <description>取引先一括削除の利用を許可します。取引先の参照・編集・削除権限を付与します。</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>LWC：取引先一括削除</label>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Account</object>
+        <viewAllFields>false</viewAllFields>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <tabSettings>
         <tab>AccountDelete</tab>
         <visibility>Visible</visibility>
