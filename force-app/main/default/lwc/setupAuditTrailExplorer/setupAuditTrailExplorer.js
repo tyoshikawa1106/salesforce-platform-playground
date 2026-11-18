@@ -173,23 +173,22 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     get pageSummary() {
-        return this.totalPages === null ? this.page + 'ページ' : this.page + ' / ' + this.totalPages + 'ページ';
+        if (this.emptyList && this.page === 1) {
+            return '0 / 0ページ';
+        }
+        return this.totalPages ? this.page + ' / ' + this.totalPages + 'ページ' : this.page + 'ページ';
     }
 
     get rowNumberOffset() {
         return (this.page - 1) * PAGE_SIZE;
     }
 
-    get nextDisabled() {
-        return this.loading || !this.canOpenPage(this.page + 1);
+    get hasNextPage() {
+        return this.canOpenPage(this.page + 1);
     }
 
-    get previousDisabled() {
-        return this.loading || !this.canOpenPage(this.page - 1);
-    }
-
-    get showPagination() {
-        return this.pageStarts.length > 1 || this.totalPages > 1;
+    get hasPreviousPage() {
+        return this.canOpenPage(this.page - 1);
     }
 
     canOpenPage(page) {
@@ -515,7 +514,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const request = ++this.matchRequest;
         this.matchLoading = true;
         try {
-            const count = await countMatches(this.searchCriteria);
+            const count = await countMatches({ criteriaJson: JSON.stringify(this.searchCriteria) });
             if (request === this.matchRequest) {
                 this.matchCount = count;
             }
@@ -583,7 +582,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     exportMonth() {
-        return this.exportCsv(this.month, load, { monthStart: this.monthDate, csv: true });
+        return this.exportCsv(this.month, query => load({ criteriaJson: JSON.stringify(query) }), { monthStart: this.monthDate, csv: true });
     }
 
     selectExportOption(event) {
@@ -656,7 +655,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             do {
                 // Each page supplies the cursor for the next request.
                 // eslint-disable-next-line no-await-in-loop
-                const result = await load({ ...query, ...cursor });
+                const result = await load({ criteriaJson: JSON.stringify({ ...query, ...cursor }) });
                 if (request !== this.request) {
                     return;
                 }

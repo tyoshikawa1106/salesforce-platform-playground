@@ -8,6 +8,9 @@ public class SetupAuditTrailExplorerWrapper {
     @AuraEnabled public Id nextId { get; set; }
     @AuraEnabled public Datetime nextTime { get; set; }
 
+    /**
+     * 履歴・集計の応答を初期化する。
+     */
     public SetupAuditTrailExplorerWrapper() {
         records = new List<SetupAuditTrail>();
         buckets = new List<Bucket>();

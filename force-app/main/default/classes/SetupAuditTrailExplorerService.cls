@@ -2,6 +2,11 @@
 public with sharing class SetupAuditTrailExplorerService {
     private static final Integer CSV_TEXT_BUDGET = 500000;
 
+    /**
+     * 指定月と日付の整合性を検証する。
+     * @param monthStart 対象月の初日。
+     * @param day 指定日。未指定なら月全体。
+     */
     public static void checkPeriod(Date monthStart, Date day) {
         if (monthStart == null || monthStart.day() != 1 ||
             (day != null && day.toStartOfMonth() != monthStart)) {
@@ -9,18 +14,32 @@ public with sharing class SetupAuditTrailExplorerService {
         }
     }
 
-    /** 続きのページを指定するときは日時とIDを一緒に受け取る。 */
+    /**
+     * カーソルの日時とIDの組を検証する。
+     * @param nextId 直前ページの境界レコードID。
+     * @param nextTime 直前ページの境界日時。
+     */
     public static void checkCursor(Id nextId, Datetime nextTime) {
         if ((nextId == null) != (nextTime == null)) {
             throw new AuraHandledException('ページの取得条件が不正です。');
         }
     }
 
+    /**
+     * 日付を実行ユーザーのタイムゾーンの午前0時に変換する。
+     * @param day 指定日。未指定なら月全体。
+     * @return 日付に対応する午前0時。
+     */
     public static Datetime midnight(Date day) {
         return Datetime.newInstance(day, Time.newInstance(0, 0, 0, 0));
     }
 
-    /** 文字数によって返却するCSV明細の件数を抑える。 */
+    /**
+     * CSVの文字量に応じたページ件数を求める。
+     * @param rows 取得した設定変更履歴。
+     * @param maximum 件数の上限。
+     * @return 取得件数またはページ件数。
+     */
     public static Integer csvPageSize(List<SetupAuditTrail> rows, Integer maximum) {
         Integer textLength = 0;
         Integer available = Math.min(rows.size(), maximum);
@@ -39,7 +58,12 @@ public with sharing class SetupAuditTrailExplorerService {
         return value == null ? 0 : value.length();
     }
 
-    /** 候補の値だけをページ内で重複排除し、次ページの位置と一緒に返す。 */
+    /**
+     * 候補の値を重複排除して返す。
+     * @param rows 取得した設定変更履歴。
+     * @param sizeLimit ページに含める最大件数。
+     * @return 取得ページと続きのカーソル。
+     */
     public static SetupAuditTrailExplorerWrapper summarizeOptions(List<SetupAuditTrail> rows, Integer sizeLimit) {
         SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
         Set<String> actions = new Set<String>();
@@ -83,12 +107,26 @@ public with sharing class SetupAuditTrailExplorerService {
         return response;
     }
 
-    public static SetupAuditTrailExplorerWrapper summarize(List<SetupAuditTrail> rows, Boolean chart, Integer sizeLimit) {
+    /**
+     * ページの明細を返す。
+     * @param rows 取得した設定変更履歴。
+     * @param sizeLimit ページに含める最大件数。
+     * @return 取得ページと続きのカーソル。
+     */
+    public static SetupAuditTrailExplorerWrapper summarizeDetails(List<SetupAuditTrail> rows, Integer sizeLimit) {
         SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
-        if (!chart) {
-            response.records = rows;
-            return response;
-        }
+        response.records = rows;
+        return response;
+    }
+
+    /**
+     * ページの分析集計を返す。
+     * @param rows 取得した設定変更履歴。
+     * @param sizeLimit ページに含める最大件数。
+     * @return 分析集計と続きのカーソル。
+     */
+    public static SetupAuditTrailExplorerWrapper summarizeChart(List<SetupAuditTrail> rows, Integer sizeLimit) {
+        SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
         Map<String, SetupAuditTrailExplorerWrapper.Bucket> buckets = new Map<String, SetupAuditTrailExplorerWrapper.Bucket>();
         for (SetupAuditTrail row : rows) {
             String day = String.valueOf(row.CreatedDate.date());

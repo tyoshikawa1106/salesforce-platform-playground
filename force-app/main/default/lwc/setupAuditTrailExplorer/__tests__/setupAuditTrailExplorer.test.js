@@ -6,11 +6,21 @@ import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerControlle
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 
-jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => {
+    const request = jest.fn();
+    return { default: Object.assign(({
+        criteriaJson
+    }) => request({ input: JSON.parse(criteriaJson) }), { request }) };
+}, { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMonth', () => ({ default: jest.fn() }), { virtual: true });
 
-jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMatches', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMatches', () => {
+    const request = jest.fn();
+    return { default: Object.assign(({
+        criteriaJson
+    }) => request({ input: JSON.parse(criteriaJson) }), { request }) };
+}, { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions', () => ({ default: jest.fn() }), { virtual: true });
 
@@ -19,7 +29,7 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory',
 beforeEach(() => {
     loadFilterOptions.mockResolvedValue({ options: { action: ['createdApexClass'], namespacePrefix: [], delegateUser: [] } });
     countMonth.mockResolvedValue(0);
-    countMatches.mockResolvedValue(0);
+    countMatches.request.mockResolvedValue(0);
 });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -64,9 +74,9 @@ afterEach(() => {
     document.body.replaceChildren();
     loadFilterOptions.mockReset();
     exportAllHistory.mockReset();
-    load.mockReset();
+    load.request.mockReset();
     countMonth.mockReset();
-    countMatches.mockReset();
+    countMatches.request.mockReset();
     jest.restoreAllMocks();
 });
 
@@ -74,7 +84,7 @@ it('merges chart buckets across pages and reuses them as filter options', async 
     const bucket = { day: '2026-11-18', userId: '005000000000001', action: 'createdApexClass' };
     const namespacedBucket = { ...bucket, namespacePrefix: 'sample' };
     const delegatedBucket = { ...bucket, delegateUser: '代理ユーザー' };
-    load.mockResolvedValueOnce({ records: [] })
+    load.request.mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 2 }], nextId: 'cursor', nextTime: 'time' })
         .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 3 }, { ...namespacedBucket, count: 1 }, { ...delegatedBucket, count: 4 }] });
     const component = mount();
@@ -82,7 +92,7 @@ it('merges chart buckets across pages and reuses them as filter options', async 
     const [, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(load).toHaveBeenLastCalledWith(expect.objectContaining({ chart: true, nextId: 'cursor', nextTime: 'time' }));
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ chart: true, nextId: 'cursor', nextTime: 'time' }) });
     expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets).toEqual([
         { ...bucket, count: 5 },
         { ...namespacedBucket, count: 1 },
@@ -94,7 +104,7 @@ it('merges chart buckets across pages and reuses them as filter options', async 
 });
 
 it('loads candidates on demand and applies selected filters only on search', async () => {
-    load.mockResolvedValue({ records: [] });
+    load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValueOnce({
         options: { action: [], namespacePrefix: ['first'], delegateUser: [] }, nextId: 'cursor', nextTime: 'time'
     }).mockResolvedValueOnce({
@@ -117,24 +127,24 @@ it('loads candidates on demand and applies selected filters only on search', asy
     await flush();
     namespace.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     await flush();
-    expect(load).toHaveBeenCalledTimes(1);
-    expect(countMatches).not.toHaveBeenCalled();
+    expect(load.request).toHaveBeenCalledTimes(1);
+    expect(countMatches.request).not.toHaveBeenCalled();
     await chooseLookup(component, 'delegateUser', '代理ユーザー');
     await search(component);
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(load).toHaveBeenLastCalledWith(expect.objectContaining({ namespacePrefix: 'second', delegateUser: '代理ユーザー' }));
+    expect(load.request).toHaveBeenCalledTimes(2);
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: '代理ユーザー' }) });
     await chooseLookup(component, 'namespacePrefix', '');
     await search(component);
     expect(component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').value).toBe('');
     component.shadowRoot.querySelector('input[data-field="delegateUser"]').click();
     await flush();
     expect(loadFilterOptions).toHaveBeenCalledTimes(2);
-    expect(load.mock.lastCall[0]).not.toHaveProperty('namespacePrefix');
+    expect(load.request.mock.lastCall[0].input).not.toHaveProperty('namespacePrefix');
 });
 
 it('shows raw action codes and month users', async () => {
     const userId = '005000000000001';
-    load.mockResolvedValue({ records: [] });
+    load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValue({
         options: { action: ['filteredLookupActivate'], namespacePrefix: [], delegateUser: [] },
         userOptions: { [userId]: 'audit@example.invalid' },
@@ -166,7 +176,7 @@ it('shows raw action codes and month users', async () => {
     expect(selectedAction.value).toBe('filteredLookupActivate');
     expect(selectedAction.readOnly).toBe(true);
     await search(component);
-    expect(load).toHaveBeenLastCalledWith(expect.objectContaining({ userId, action: 'filteredLookupActivate' }));
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ userId, action: 'filteredLookupActivate' }) });
 
     component.shadowRoot.querySelector('input[data-field="delegateUser"]').click();
     await flush();
@@ -175,14 +185,14 @@ it('shows raw action codes and month users', async () => {
 });
 
 it('retries the same list page after a request fails', async () => {
-    load.mockRejectedValueOnce({ body: { message: '取得エラー' } }).mockResolvedValueOnce({ records: [] });
+    load.request.mockRejectedValueOnce({ body: { message: '取得エラー' } }).mockResolvedValueOnce({ records: [] });
     const component = mount();
     await flush();
     const retry = [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === '再試行');
     retry.click();
     await flush();
-    expect(load).toHaveBeenCalledTimes(2);
-    expect(load.mock.calls[0]).toEqual(load.mock.calls[1]);
+    expect(load.request).toHaveBeenCalledTimes(2);
+    expect(load.request.mock.calls[0]).toEqual(load.request.mock.calls[1]);
     expect(component.shadowRoot.textContent).toContain('条件に一致する設定変更履歴はありません。');
 });
 
@@ -200,7 +210,7 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
     };
     URL.createObjectURL = jest.fn(() => 'blob:audit');
     URL.revokeObjectURL = jest.fn();
-    load.mockResolvedValueOnce({ records: [] })
+    load.request.mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time' })
         .mockResolvedValueOnce({ records: [row] });
@@ -213,8 +223,8 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
             .find(child => child.label === 'CSV出力');
         button.click();
         await flush();
-        const monthStart = load.mock.calls[0][0].monthStart;
-        expect(load.mock.calls.slice(2)).toEqual([
+        const monthStart = load.request.mock.calls[0][0].input.monthStart;
+        expect(load.request.mock.calls.slice(2).map(([request]) => [request.input])).toEqual([
             [{ monthStart, csv: true }],
             [{ monthStart, csv: true, nextId: 'cursor', nextTime: 'time' }]
         ]);
@@ -242,7 +252,7 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
 
 it('retries only the failed CSV page after a temporary connection error', async () => {
     const page = { records: [{ CreatedDate: '2026-11-18T00:00:00Z' }], nextId: 'cursor', nextTime: 'time' };
-    load.mockResolvedValueOnce({ records: [] })
+    load.request.mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce(page)
         .mockRejectedValueOnce({ status: 503 })
         .mockImplementationOnce(() => new Promise(() => {}));
@@ -252,15 +262,15 @@ it('retries only the failed CSV page after a temporary connection error', async 
         .find(button => button.label === 'CSV出力').click();
     await flush();
 
-    expect(load).toHaveBeenCalledTimes(4);
-    expect(load.mock.calls[2]).toEqual(load.mock.calls[3]);
-    expect(load.mock.calls[3][0]).toEqual(expect.objectContaining({ nextId: 'cursor', nextTime: 'time' }));
+    expect(load.request).toHaveBeenCalledTimes(4);
+    expect(load.request.mock.calls[2]).toEqual(load.request.mock.calls[3]);
+    expect(load.request.mock.calls[3][0].input).toEqual(expect.objectContaining({ nextId: 'cursor', nextTime: 'time' }));
     expect(component.shadowRoot.querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
 });
 
 it('shows a CSV permission error without retrying', async () => {
-    load.mockResolvedValueOnce({ records: [] })
+    load.request.mockResolvedValueOnce({ records: [] })
         .mockRejectedValueOnce({ status: 403, body: { message: 'アクセス権限がありません。' } });
     const component = mount();
     await flush();
@@ -268,14 +278,14 @@ it('shows a CSV permission error without retrying', async () => {
         .find(button => button.label === 'CSV出力').click();
     await flush();
 
-    expect(load).toHaveBeenCalledTimes(2);
+    expect(load.request).toHaveBeenCalledTimes(2);
     expect(component.shadowRoot.querySelector('[role="alert"]').textContent)
         .toContain('アクセス権限がありません。');
 });
 
 it('stops fetching CSV pages when the component is removed', async () => {
     let finishPage;
-    load.mockResolvedValueOnce({ records: [] }).mockImplementationOnce(() => new Promise(resolve => {
+    load.request.mockResolvedValueOnce({ records: [] }).mockImplementationOnce(() => new Promise(resolve => {
         finishPage = resolve;
     }));
     const component = mount();
@@ -286,12 +296,12 @@ it('stops fetching CSV pages when the component is removed', async () => {
     component.remove();
     finishPage({ records: [], nextId: 'cursor', nextTime: 'time' });
     await flush();
-    expect(load).toHaveBeenCalledTimes(2);
+    expect(load.request).toHaveBeenCalledTimes(2);
 });
 
 it('reports how many CSV rows have been fetched while waiting for the next page', async () => {
     const row = { CreatedDate: '2026-11-18T00:00:00Z' };
-    load.mockResolvedValueOnce({ records: [] })
+    load.request.mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time' })
         .mockImplementationOnce(() => new Promise(() => {}));
     const component = mount();
@@ -304,32 +314,32 @@ it('reports how many CSV rows have been fetched while waiting for the next page'
 });
 
 it('keeps the current result when the normalized action filter is unchanged', async () => {
-    load.mockResolvedValue({ records: [] });
+    load.request.mockResolvedValue({ records: [] });
     const component = mount();
     await flush();
     await chooseLookup(component, 'action', 'createdApexClass');
     await chooseLookup(component, 'action', 'createdApexClass');
-    expect(load).toHaveBeenCalledTimes(1);
+    expect(load.request).toHaveBeenCalledTimes(1);
 });
 
 
 it('shows the monthly count and keeps it when a list filter changes', async () => {
     countMonth.mockResolvedValue(21638);
-    load.mockResolvedValue({ records: [] });
+    load.request.mockResolvedValue({ records: [] });
     const component = mount();
     await flush();
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
     await chooseLookup(component, 'action', 'createdApexClass');
     await search(component);
     expect(countMonth).toHaveBeenCalledTimes(1);
-    expect(countMatches).toHaveBeenCalledTimes(1);
-    expect(countMatches).toHaveBeenCalledWith(expect.objectContaining({ action: 'createdApexClass' }));
+    expect(countMatches.request).toHaveBeenCalledTimes(1);
+    expect(countMatches.request).toHaveBeenCalledWith({ input: expect.objectContaining({ action: 'createdApexClass' }) });
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
 });
 
 it('moves through adjacent pages and resets the cursor only after search', async () => {
     countMonth.mockResolvedValue(4002);
-    load.mockImplementation(({ nextId, action }) => {
+    load.request.mockImplementation(({ input: { nextId, action } }) => {
         if (action) {
             return Promise.resolve({ records: [] });
         }
@@ -341,9 +351,8 @@ it('moves through adjacent pages and resets the cursor only after search', async
     const root = component.shadowRoot;
     const button = label => [...root.querySelectorAll('nav lightning-button')].find(item => item.label === label);
     await flush();
-    expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['前へ', '次へ']);
-    expect(button('前へ').disabled).toBe(true);
-    expect(load.mock.calls[0][0]).toMatchObject({ pageSize: 2000, chart: false });
+    expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['次へ']);
+    expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 2000, chart: false });
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('2 / 3ページ');
@@ -351,19 +360,30 @@ it('moves through adjacent pages and resets the cursor only after search', async
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('3 / 3ページ');
-    expect(button('次へ').disabled).toBe(true);
+    expect(button('次へ')).toBeUndefined();
     button('前へ').click();
     await flush();
-    expect(load).toHaveBeenLastCalledWith(expect.objectContaining({ nextId: 'cursor-2' }));
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ nextId: 'cursor-2' }) });
 
     await chooseLookup(component, 'action', 'createdApexClass');
     expect(root.textContent).toContain('2 / 3ページ');
     await search(component);
-    expect(load.mock.calls.at(-1)[0]).not.toHaveProperty('nextId');
+    expect(load.request.mock.calls.at(-1)[0].input).not.toHaveProperty('nextId');
+    expect(root.textContent).toContain('0 / 0ページ');
+});
+
+it('shows 1 / 1 even when neither adjacent page exists', async () => {
+    countMonth.mockResolvedValue(1);
+    load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
+    const component = mount();
+    await flush();
+    const pagination = component.shadowRoot.querySelector('nav');
+    expect(pagination.textContent).toContain('1 / 1ページ');
+    expect(pagination.querySelector('lightning-button')).toBeNull();
 });
 
 it('defers filtered result counts until the history tab is opened', async () => {
-    load.mockImplementation(({ chart }) => Promise.resolve(chart ? { buckets: [] } : { records: [] }));
+    load.request.mockImplementation(({ input: { chart } }) => Promise.resolve(chart ? { buckets: [] } : { records: [] }));
     const component = mount();
     await flush();
     const [historyTab, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
@@ -371,24 +391,24 @@ it('defers filtered result counts until the history tab is opened', async () => 
     await flush();
 
     component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
-        .dispatchEvent(new CustomEvent('change', { detail: { value: load.mock.calls[0][0].monthStart } }));
+        .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
     await search(component);
-    expect(load).toHaveBeenLastCalledWith(expect.objectContaining({
-        chart: true, day: load.mock.calls[0][0].monthStart
-    }));
-    expect(countMatches).not.toHaveBeenCalled();
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({
+        chart: true, day: load.request.mock.calls[0][0].input.monthStart
+    }) });
+    expect(countMatches.request).not.toHaveBeenCalled();
 
     historyTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(countMatches).toHaveBeenCalledTimes(1);
+    expect(countMatches.request).toHaveBeenCalledTimes(1);
     chartTab.dispatchEvent(new CustomEvent('active'));
     historyTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(countMatches).toHaveBeenCalledTimes(1);
+    expect(countMatches.request).toHaveBeenCalledTimes(1);
 });
 
 it('uses the same cutoff for every full history CSV page', async () => {
-    load.mockResolvedValue({ records: [] });
+    load.request.mockResolvedValue({ records: [] });
     exportAllHistory.mockResolvedValueOnce({ records: [], nextId: 'cursor', nextTime: 'time' })
         .mockResolvedValueOnce({ records: [] });
     const component = mount();
@@ -403,11 +423,11 @@ it('uses the same cutoff for every full history CSV page', async () => {
         [{ cutoff }],
         [{ cutoff, nextId: 'cursor', nextTime: 'time' }]
     ]);
-    expect(load).toHaveBeenCalledTimes(1);
+    expect(load.request).toHaveBeenCalledTimes(1);
 });
 
 it('limits month navigation to the current month and the six preceding months', async () => {
-    load.mockResolvedValue({ records: [] });
+    load.request.mockResolvedValue({ records: [] });
     const component = mount();
     const previous = component.shadowRoot.querySelector('[data-step="-1"]');
     const next = component.shadowRoot.querySelector('[data-step="1"]');

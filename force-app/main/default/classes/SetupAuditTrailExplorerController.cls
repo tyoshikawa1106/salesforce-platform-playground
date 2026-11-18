@@ -3,89 +3,110 @@ public with sharing class SetupAuditTrailExplorerController {
     private static final Integer CSV_PAGE_SIZE = 2000;
     private static final Integer CHART_PAGE_SIZE = 5000;
 
+    /**
+     * 対象月の履歴件数を取得する。
+     * @param monthStart 対象月の初日。
+     * @return 対象月の件数。
+     */
     @AuraEnabled
     public static Integer countMonth(Date monthStart) {
-        SetupAuditTrailExplorerService.checkPeriod(monthStart, null);
-        Datetime startAt = SetupAuditTrailExplorerService.midnight(monthStart);
-        Datetime endAt = SetupAuditTrailExplorerService.midnight(monthStart.addMonths(1));
-        Integer total = SetupAuditTrailExplorerSelector.countMonth(startAt, endAt);
-        return total;
+        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+        criteria.monthStart = monthStart;
+        setPeriod(criteria);
+        return SetupAuditTrailExplorerSelector.countMatches(criteria);
     }
 
-    /** 旧画面が再読み込みされるまで、従来の候補応答を返す。 */
-    @AuraEnabled
-    public static SetupAuditTrailExplorerWrapper loadFilterOptions(Date monthStart, Id nextId, Datetime nextTime) {
-        return load(monthStart, null, null, null, null, null, nextId, nextTime, true, false, null);
-    }
-
-    /** 対象月の候補だけを同じカーソル順で分割取得する。 */
+    /**
+     * 対象月の候補を分割取得する。
+     * @param monthStart 対象月の初日。
+     * @param nextId 直前ページの境界レコードID。
+     * @param nextTime 直前ページの境界日時。
+     * @return 取得ページと続きのカーソル。
+     */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper loadDistinctFilterOptions(Date monthStart, Id nextId, Datetime nextTime) {
-        SetupAuditTrailExplorerService.checkPeriod(monthStart, null);
+        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+        criteria.monthStart = monthStart;
+        criteria.nextId = nextId;
+        criteria.nextTime = nextTime;
+        setPeriod(criteria);
         SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
-        Datetime startAt = SetupAuditTrailExplorerService.midnight(monthStart);
-        Datetime endAt = SetupAuditTrailExplorerService.midnight(monthStart.addMonths(1));
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectOptionPage(
-            startAt, endAt, nextId, nextTime, CHART_PAGE_SIZE + 1
+        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+            criteria, SetupAuditTrailExplorerSelector.Projection.OPTIONS, CHART_PAGE_SIZE + 1
         );
         return SetupAuditTrailExplorerService.summarizeOptions(rows, CHART_PAGE_SIZE);
     }
 
+    /**
+     * 条件に一致する履歴件数を取得する。
+     * @param criteriaJson クライアントが指定した検索条件。
+     * @return 条件に一致する件数。
+     */
     @AuraEnabled
-    public static Integer countMatches(Date monthStart, Date day, Id userId, String action, String namespacePrefix, String delegateUser) {
-        SetupAuditTrailExplorerService.checkPeriod(monthStart, day);
-        Datetime startAt = SetupAuditTrailExplorerService.midnight(day ?? monthStart);
-        Datetime endAt = SetupAuditTrailExplorerService.midnight(day == null ? monthStart.addMonths(1) : day.addDays(1));
-        Integer total = SetupAuditTrailExplorerSelector.countMatches(startAt, endAt, userId, action, namespacePrefix, delegateUser);
-        return total;
+    public static Integer countMatches(String criteriaJson) {
+        return SetupAuditTrailExplorerSelector.countMatches(readCriteria(criteriaJson));
     }
 
-    @AuraEnabled
-    public static List<SetupAuditTrail> loadTail(
-        Date monthStart, Date day, Id userId, String action, String namespacePrefix, String delegateUser, Id nextId, Datetime nextTime, Integer pageSize
-    ) {
-        SetupAuditTrailExplorerService.checkPeriod(monthStart, day);
-        SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
-        Datetime startAt = SetupAuditTrailExplorerService.midnight(day ?? monthStart);
-        Datetime endAt = SetupAuditTrailExplorerService.midnight(day == null ? monthStart.addMonths(1) : day.addDays(1));
-        Integer sizeLimit = Math.max(1, Math.min(50, pageSize ?? 50));
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectTail(
-            startAt, endAt, userId, action, namespacePrefix, delegateUser, nextId, nextTime, sizeLimit
-        );
-        return rows;
-    }
-
-    /** 組織に保持されている全期間の履歴をCSV用に分割取得する。 */
+    /**
+     * 保持期間内の履歴をCSV用に分割取得する。
+     * @param cutoff 出力開始時の取得上限。
+     * @param nextId 直前ページの境界レコードID。
+     * @param nextTime 直前ページの境界日時。
+     * @return 取得ページと続きのカーソル。
+     */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper exportAllHistory(Datetime cutoff, Id nextId, Datetime nextTime) {
         SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
-        Datetime endAt = cutoff ?? System.now();
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
-            null, endAt, null, null, null, null, nextId, nextTime, false, CSV_PAGE_SIZE + 1
-        );
-        Integer sizeLimit = SetupAuditTrailExplorerService.csvPageSize(rows, CSV_PAGE_SIZE);
-        return SetupAuditTrailExplorerService.summarize(rows, false, sizeLimit);
+        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+        criteria.endAt = cutoff ?? System.now();
+        criteria.nextId = nextId;
+        criteria.nextTime = nextTime;
+        return loadDetails(criteria, CSV_PAGE_SIZE);
     }
 
+    /**
+     * 対象月の履歴を用途に応じて分割取得する。
+     * @param criteriaJson クライアントが指定した検索条件、用途、ページ境界。
+     * @return 取得ページと続きのカーソル。
+     */
     @AuraEnabled
-    public static SetupAuditTrailExplorerWrapper load(
-        Date monthStart, Date day, Id userId, String action, String namespacePrefix, String delegateUser, Id nextId, Datetime nextTime, Boolean chart, Boolean csv, Integer pageSize
-    ) {
-        SetupAuditTrailExplorerService.checkPeriod(monthStart, day);
-        SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
-        Date firstDay = day == null ? monthStart : day;
-        Date endDay = day == null ? monthStart.addMonths(1) : day.addDays(1);
-        Datetime startAt = SetupAuditTrailExplorerService.midnight(firstDay);
-        Datetime endAt = SetupAuditTrailExplorerService.midnight(endDay);
-        Boolean isChart = chart == true && csv != true;
-        Integer sizeLimit = isChart ? CHART_PAGE_SIZE : (csv == true ? CSV_PAGE_SIZE : Math.max(1, Math.min(2000, pageSize ?? 50)));
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
-            startAt, endAt, userId, action, namespacePrefix, delegateUser, nextId, nextTime, isChart, sizeLimit + 1
-        );
-        if (csv == true) {
-            sizeLimit = SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit);
+    public static SetupAuditTrailExplorerWrapper load(String criteriaJson) {
+        SetupAuditTrailExplorerSelector.Criteria criteria = readCriteria(criteriaJson);
+        SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
+        if (criteria.csv == true) {
+            return loadDetails(criteria, CSV_PAGE_SIZE);
         }
-        SetupAuditTrailExplorerWrapper response = SetupAuditTrailExplorerService.summarize(rows, isChart, sizeLimit);
-        return response;
+        if (criteria.chart == true) {
+            List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+                criteria, SetupAuditTrailExplorerSelector.Projection.CHART, CHART_PAGE_SIZE + 1
+            );
+            return SetupAuditTrailExplorerService.summarizeChart(rows, CHART_PAGE_SIZE);
+        }
+        Integer sizeLimit = Math.max(1, Math.min(2000, criteria.pageSize ?? 50));
+        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+            criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
+        );
+        return SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
+    }
+
+    private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit) {
+        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+            criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
+        );
+        return SetupAuditTrailExplorerService.summarizeDetails(rows, SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit));
+    }
+
+    private static SetupAuditTrailExplorerSelector.Criteria readCriteria(String criteriaJson) {
+        SetupAuditTrailExplorerSelector.Criteria criteria = String.isBlank(criteriaJson) ? new SetupAuditTrailExplorerSelector.Criteria() :
+            (SetupAuditTrailExplorerSelector.Criteria) JSON.deserialize(criteriaJson, SetupAuditTrailExplorerSelector.Criteria.class);
+        setPeriod(criteria);
+        return criteria;
+    }
+
+    private static void setPeriod(SetupAuditTrailExplorerSelector.Criteria criteria) {
+        SetupAuditTrailExplorerService.checkPeriod(criteria.monthStart, criteria.day);
+        criteria.startAt = SetupAuditTrailExplorerService.midnight(criteria.day ?? criteria.monthStart);
+        Date endDay = criteria.day == null ? criteria.monthStart.addMonths(1) : criteria.day.addDays(1);
+        criteria.endAt = SetupAuditTrailExplorerService.midnight(endDay);
     }
 }

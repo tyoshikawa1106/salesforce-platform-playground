@@ -107,13 +107,11 @@
                                     max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                             </div>
                         </template>
-                        <template lwc:if={showPagination}>
-                            <nav class="pagination" aria-label="履歴のページ送り">
-                                <lightning-button label="前へ" disabled={previousDisabled} onclick={previousPage}></lightning-button>
-                                <span aria-live="polite">{pageSummary}</span>
-                                <lightning-button label="次へ" disabled={nextDisabled} onclick={nextPage}></lightning-button>
-                            </nav>
-                        </template>
+                        <nav class="pagination" aria-label="履歴のページ送り">
+                            <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
+                            <span class="c-page-summary" aria-live="polite">{pageSummary}</span>
+                            <lightning-button lwc:if={hasNextPage} label="次へ" disabled={loading} onclick={nextPage}></lightning-button>
+                        </nav>
                     </lightning-tab>
                     <lightning-tab label="分析" value="chart" onactive={activateTab}>
                         <template lwc:if={chartEmpty}><p>条件に一致する設定変更履歴はありません。</p></template>

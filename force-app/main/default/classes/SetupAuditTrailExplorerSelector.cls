@@ -5,73 +5,78 @@ public with sharing class SetupAuditTrailExplorerSelector {
     private static final String LOOKUP_FIELDS = OPTION_FIELDS + ', CreatedById, CreatedBy.Name, CreatedBy.Username';
     private static final String CHART_FIELDS = LOOKUP_FIELDS + ', Section';
 
-    /** 対象月に記録された設定変更履歴の件数を返す。 */
-    public static Integer countMonth(Datetime startAt, Datetime endAt) {
-        return countMatches(startAt, endAt, null, null, null, null);
+    /** 検索条件とページ境界を保持する。 */
+    public class Criteria {
+        public Date monthStart;
+        public Date day;
+        public Id userId;
+        public String action;
+        public String namespacePrefix;
+        public String delegateUser;
+        public Id nextId;
+        public Datetime nextTime;
+        public Boolean chart;
+        public Boolean csv;
+        public Integer pageSize;
+        public Datetime startAt;
+        public Datetime endAt;
     }
 
-    public static Integer countMatches(Datetime startAt, Datetime endAt, Id userId, String action, String namespacePrefix, String delegateUser) {
-        Map<String, Object> binds = new Map<String, Object>{'startAt' => startAt, 'endAt' => endAt};
-        String whereClause = filters(startAt, userId, action, namespacePrefix, delegateUser, binds);
+    public enum Projection { DETAIL, CHART, OPTIONS }
+
+    /**
+     * 条件に一致する履歴件数を取得する。
+     * @param criteria 取得範囲と絞り込み条件。
+     * @return 条件に一致する件数。
+     */
+    public static Integer countMatches(Criteria criteria) {
+        Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt };
+        String whereClause = filters(criteria, binds);
         return Database.countQueryWithBinds('SELECT COUNT() FROM SetupAuditTrail' + whereClause, binds, AccessLevel.USER_MODE);
     }
 
-    public static List<SetupAuditTrail> selectPage(
-        Datetime startAt, Datetime endAt, Id userId, String action, String namespacePrefix, String delegateUser, Id nextId, Datetime nextTime, Boolean chart, Integer sizeLimit
-    ) {
-        return selectInOrder(startAt, endAt, userId, action, namespacePrefix, delegateUser, nextId, nextTime, chart ? CHART_FIELDS : DETAIL_FIELDS, sizeLimit, false);
-    }
-
-    public static List<SetupAuditTrail> selectTail(
-        Datetime startAt, Datetime endAt, Id userId, String action, String namespacePrefix, String delegateUser, Id nextId, Datetime nextTime, Integer sizeLimit
-    ) {
-        return selectInOrder(startAt, endAt, userId, action, namespacePrefix, delegateUser, nextId, nextTime, DETAIL_FIELDS, sizeLimit, true);
-    }
-
-    /** 候補に必要な項目を、履歴と同じカーソル順で取得する。 */
-    public static List<SetupAuditTrail> selectOptionPage(
-        Datetime startAt, Datetime endAt, Id nextId, Datetime nextTime, Integer sizeLimit
-    ) {
-        return selectInOrder(startAt, endAt, null, null, null, null, nextId, nextTime, LOOKUP_FIELDS, sizeLimit, false);
-    }
-
-    private static List<SetupAuditTrail> selectInOrder(
-        Datetime startAt, Datetime endAt, Id userId, String action, String namespacePrefix, String delegateUser, Id nextId, Datetime nextTime, String fields, Integer sizeLimit,
-        Boolean ascending
-    ) {
-        Map<String, Object> binds = new Map<String, Object>{'endAt' => endAt, 'sizeLimit' => sizeLimit};
-        String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(startAt, userId, action, namespacePrefix, delegateUser, binds);
-        if (nextId != null && nextTime != null) {
-            String operator = ascending ? ' > ' : ' < ';
-            query += ' AND (CreatedDate' + operator + ':nextTime OR (CreatedDate = :nextTime AND Id' + operator + ':nextId))';
-            binds.put('nextId', nextId);
-            binds.put('nextTime', nextTime);
+    /**
+     * カーソルより古い履歴を取得する。
+     * @param criteria 取得範囲、絞り込み条件、ページ境界。
+     * @param fieldSet 用途に応じて取得する項目。
+     * @param sizeLimit ページに含める最大件数。
+     * @return 指定条件の履歴レコード。
+     */
+    public static List<SetupAuditTrail> selectPage(Criteria criteria, Projection fieldSet, Integer sizeLimit) {
+        String fields = fieldSet == Projection.CHART ? CHART_FIELDS :
+            (fieldSet == Projection.OPTIONS ? LOOKUP_FIELDS : DETAIL_FIELDS);
+        Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
+        String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(criteria, binds);
+        if (criteria.nextId != null && criteria.nextTime != null) {
+            query += ' AND (CreatedDate < :nextTime OR (CreatedDate = :nextTime AND Id < :nextId))';
+            binds.put('nextId', criteria.nextId);
+            binds.put('nextTime', criteria.nextTime);
         }
-        query += ascending ? ' ORDER BY CreatedDate ASC, Id ASC LIMIT :sizeLimit' : ' ORDER BY CreatedDate DESC, Id DESC LIMIT :sizeLimit';
+        query += ' ORDER BY CreatedDate DESC, Id DESC LIMIT :sizeLimit';
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
-    private static String filters(Datetime startAt, Id userId, String action, String namespacePrefix, String delegateUser, Map<String, Object> binds) {
+    private static String filters(Criteria criteria, Map<String, Object> binds) {
         String query = ' WHERE CreatedDate < :endAt';
-        if (startAt != null) {
+        if (criteria.startAt != null) {
             query += ' AND CreatedDate >= :startAt';
-            binds.put('startAt', startAt);
+            binds.put('startAt', criteria.startAt);
         }
-        if (userId != null) {
+        if (criteria.userId != null) {
             query += ' AND CreatedById = :userId';
-            binds.put('userId', userId);
+            binds.put('userId', criteria.userId);
         }
-        if (String.isNotBlank(action)) {
+        if (String.isNotBlank(criteria.action)) {
             query += ' AND Action = :action';
-            binds.put('action', action);
+            binds.put('action', criteria.action);
         }
-        if (String.isNotBlank(namespacePrefix)) {
+        if (String.isNotBlank(criteria.namespacePrefix)) {
             query += ' AND ResponsibleNamespacePrefix = :namespacePrefix';
-            binds.put('namespacePrefix', namespacePrefix);
+            binds.put('namespacePrefix', criteria.namespacePrefix);
         }
-        if (String.isNotBlank(delegateUser)) {
+        if (String.isNotBlank(criteria.delegateUser)) {
             query += ' AND DelegateUser = :delegateUser';
-            binds.put('delegateUser', delegateUser);
+            binds.put('delegateUser', criteria.delegateUser);
         }
         return query;
     }
