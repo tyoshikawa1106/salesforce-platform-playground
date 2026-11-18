@@ -1,0 +1,38 @@
+<template>
+    <div class="c-charts">
+        <template for:each={charts} for:item="chart">
+            <section key={chart.key} class="c-chart" aria-label={chart.title}>
+                <h2 class="c-title slds-text-heading_small slds-p-horizontal_medium slds-p-vertical_small">{chart.title}</h2>
+                <div lwc:if={chart.hasRows} class="c-chart-body slds-p-horizontal_medium slds-p-vertical_small">
+                    <div class="c-chart-row c-axis">
+                        <span></span>
+                        <div class="c-ticks" aria-hidden="true">
+                            <template for:each={chart.ticks} for:item="tick">
+                                <span key={tick.key}>{tick.label}</span>
+                            </template>
+                        </div>
+                        <span>件数</span>
+                    </div>
+                    <div class="c-chart-scroll" tabindex="0" role="group" aria-label={chart.title}>
+                        <template for:each={chart.rows} for:item="row">
+                            <div key={row.id} class="c-chart-row">
+                                <div class="slds-p-vertical_xx-small">
+                                    <span class={row.weekdayClass} title={row.tooltip}>
+                                        {row.label}<template lwc:if={row.weekday}>（{row.weekday}）</template>
+                                    </span>
+                                </div>
+                                <div class="c-bar">
+                                    <button class="c-segment" type="button" style={row.style}
+                                        title={row.buttonLabel} aria-label={row.buttonLabel} data-id={row.id}
+                                        disabled={row.disabled} onclick={selectSegment}></button>
+                                </div>
+                                <span class="c-count">{row.formattedCount}</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <p lwc:else class="slds-p-around_medium slds-text-color_weak">集計対象の値がありません。</p>
+            </section>
+        </template>
+    </div>
+</template>
