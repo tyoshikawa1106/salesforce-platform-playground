@@ -196,7 +196,7 @@ it('retries the same list page after a request fails', async () => {
     expect(component.shadowRoot.textContent).toContain('条件に一致する設定変更履歴はありません。');
 });
 
-it('exports the whole month as UTF-8 without changing log text', async () => {
+it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard date and newline formatting', async period => {
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
     const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
@@ -204,30 +204,37 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
         CreatedDate: '2026-11-18T00:00:00.000Z',
         CreatedBy: { Username: 'audit@example.invalid' },
         ResponsibleNamespacePrefix: 'sample',
-        Display: '=原文,"引用"\n続き🧪',
+        Display: '=原文,"引用"\r\n続き🧪',
         Section: 'Apps',
         DelegateUser: 'delegate@example.invalid'
     };
     URL.createObjectURL = jest.fn(() => 'blob:audit');
     URL.revokeObjectURL = jest.fn();
-    load.request.mockResolvedValueOnce({ records: [] })
-        .mockResolvedValueOnce({ records: [] })
-        .mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ records: [row] });
+    load.request.mockResolvedValue({ records: [] });
     const component = mount();
     try {
         await flush();
         await chooseLookup(component, 'action', 'createdApexClass');
         await search(component);
-        const button = [...component.shadowRoot.querySelectorAll('lightning-button')]
-            .find(child => child.label === 'CSV出力');
-        button.click();
-        await flush();
+        const exportPage = period === 'month' ? load.request : exportAllHistory;
+        exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time' })
+            .mockResolvedValueOnce({ records: [row] });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
-        expect(load.request.mock.calls.slice(2).map(([request]) => [request.input])).toEqual([
-            [{ monthStart, csv: true }],
-            [{ monthStart, csv: true, nextId: 'cursor', nextTime: 'time' }]
-        ]);
+        const menu = component.shadowRoot.querySelector('lightning-button-menu');
+        expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
+        if (period === 'month') {
+            [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
+        } else {
+            menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
+        }
+        await flush();
+
+        const queries = period === 'month'
+            ? load.request.mock.calls.slice(2).map(([request]) => request.input)
+            : exportAllHistory.mock.calls.map(([request]) => request);
+        const firstQueries = { month: { monthStart, csv: true }, all: { cutoff: expect.any(String) } };
+        expect(queries[0]).toEqual(firstQueries[period]);
+        expect(queries.slice(1)).toEqual([{ ...queries[0], nextId: 'cursor', nextTime: 'time' }]);
         expect(download).toHaveBeenCalledTimes(1);
         expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
         const [blob] = URL.createObjectURL.mock.calls[0];
@@ -238,10 +245,10 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
             reader.readAsText(blob, 'utf-8');
         });
         const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
-        const line = '"2026/11/18 09:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
+        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
         expect(csv).toBe(header + line + line);
         expect(component.shadowRoot.querySelector('a[data-download]').download)
-            .toBe('setup-audit-trail-' + monthStart.slice(0, 7) + '.csv');
+            .toBe('setup-audit-trail-' + (period === 'month' ? monthStart.slice(0, 7) : 'all') + '.csv');
         component.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:audit');
     } finally {
@@ -408,25 +415,6 @@ it('defers filtered result counts until the history tab is opened', async () => 
     historyTab.dispatchEvent(new CustomEvent('active'));
     await flush();
     expect(countMatches.request).toHaveBeenCalledTimes(1);
-});
-
-it('uses the same cutoff for every full history CSV page', async () => {
-    load.request.mockResolvedValue({ records: [] });
-    exportAllHistory.mockResolvedValueOnce({ records: [], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ records: [] });
-    const component = mount();
-    await flush();
-    const menu = component.shadowRoot.querySelector('lightning-button-menu');
-    expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
-    menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
-    await flush();
-
-    const cutoff = exportAllHistory.mock.calls[0][0].cutoff;
-    expect(exportAllHistory.mock.calls).toEqual([
-        [{ cutoff }],
-        [{ cutoff, nextId: 'cursor', nextTime: 'time' }]
-    ]);
-    expect(load.request).toHaveBeenCalledTimes(1);
 });
 
 it('limits month navigation to the current month and the six preceding months', async () => {
