@@ -229,6 +229,7 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
             [{ monthStart, csv: true, nextId: 'cursor', nextTime: 'time' }]
         ]);
         expect(download).toHaveBeenCalledTimes(1);
+        expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
         const [blob] = URL.createObjectURL.mock.calls[0];
         const csv = await new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -267,6 +268,7 @@ it('retries only the failed CSV page after a temporary connection error', async 
     expect(load.request.mock.calls[3][0].input).toEqual(expect.objectContaining({ nextId: 'cursor', nextTime: 'time' }));
     expect(component.shadowRoot.querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
+    expect(component.shadowRoot.querySelector('lightning-spinner').alternativeText).toBe('CSVを作成中');
 });
 
 it('shows a CSV permission error without retrying', async () => {
@@ -281,6 +283,7 @@ it('shows a CSV permission error without retrying', async () => {
     expect(load.request).toHaveBeenCalledTimes(2);
     expect(component.shadowRoot.querySelector('[role="alert"]').textContent)
         .toContain('アクセス権限がありません。');
+    expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
 });
 
 it('stops fetching CSV pages when the component is removed', async () => {
@@ -338,7 +341,7 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
 });
 
 it('moves through adjacent pages and resets the cursor only after search', async () => {
-    countMonth.mockResolvedValue(4002);
+    countMonth.mockResolvedValue(402);
     load.request.mockImplementation(({ input: { nextId, action } }) => {
         if (action) {
             return Promise.resolve({ records: [] });
@@ -352,11 +355,11 @@ it('moves through adjacent pages and resets the cursor only after search', async
     const button = label => [...root.querySelectorAll('nav lightning-button')].find(item => item.label === label);
     await flush();
     expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['次へ']);
-    expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 2000, chart: false });
+    expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 200, chart: false });
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('2 / 3ページ');
-    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(2000);
+    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(200);
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('3 / 3ページ');
@@ -443,4 +446,57 @@ it('limits month navigation to the current month and the six preceding months', 
     expect(next.disabled).toBe(false);
     previous.click();
     expect(countMonth).toHaveBeenCalledTimes(7);
+});
+
+
+it.each([true, false])('clears data loading spinners after requests settle (success: %s)', async succeeds => {
+    let resolveRequests;
+    let rejectRequests;
+    const pending = new Promise((resolve, reject) => {
+        resolveRequests = resolve;
+        rejectRequests = reject;
+    });
+    countMonth.mockReturnValueOnce(pending.then(() => 42));
+    countMatches.request.mockReturnValueOnce(pending.then(() => 1));
+    load.request.mockResolvedValue({ records: [] });
+
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    expect(root.querySelector('.month-navigation lightning-spinner').alternativeText).toBe('月の総件数を取得中');
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    expect(root.querySelector('.pagination lightning-spinner').alternativeText).toBe('絞り込み件数を取得中');
+
+    if (succeeds) {
+        resolveRequests();
+    } else {
+        rejectRequests(new Error('Request failed'));
+    }
+    await flush();
+    expect(root.querySelector('lightning-spinner')).toBeNull();
+});
+
+it.each([true, false])('clears the filter candidate spinner after loading (success: %s)', async succeeds => {
+    let finishRequest;
+    loadFilterOptions.mockImplementationOnce(() => new Promise((resolve, reject) => {
+        finishRequest = () => {
+            if (succeeds) {
+                resolve({ options: { action: ['createdApexClass'] } });
+            } else {
+                reject(new Error('Request failed'));
+            }
+        };
+    }));
+    load.request.mockResolvedValue({ records: [] });
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+
+    root.querySelector('input[data-field="action"]').click();
+    await flush();
+    expect(root.querySelector('.c-filter-dropdown lightning-spinner').alternativeText).toBe('絞り込み候補を取得中');
+    finishRequest();
+    await flush();
+    expect(root.querySelector('lightning-spinner')).toBeNull();
 });
