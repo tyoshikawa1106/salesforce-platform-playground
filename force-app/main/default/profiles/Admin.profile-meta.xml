@@ -890,6 +890,18 @@
         <enabled>true</enabled>
     </classAccesses>
     <custom>false</custom>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>ManageExternalClientAppCredentials</name>
+    </customPermissions>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>ManageObjectFieldClassification</name>
+    </customPermissions>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>RunAccountDelete</name>
+    </customPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>Account.AccountNumber</field>
@@ -3842,15 +3854,7 @@
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
-        <tab>standard-PricebookEntry</tab>
-        <visibility>DefaultOn</visibility>
-    </tabVisibilities>
-    <tabVisibilities>
         <tab>standard-Product2</tab>
-        <visibility>DefaultOn</visibility>
-    </tabVisibilities>
-    <tabVisibilities>
-        <tab>standard-QuickText</tab>
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
@@ -3879,11 +3883,11 @@
     </tabVisibilities>
     <tabVisibilities>
         <tab>ExternalClientAppManager</tab>
-        <visibility>Hidden</visibility>
+        <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>OAuthTokenIssuance</tab>
-        <visibility>Hidden</visibility>
+        <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
         <tab>SetupAuditTrailExplorer</tab>
