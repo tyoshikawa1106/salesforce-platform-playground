@@ -23,12 +23,22 @@
         </header>
 
         <div class="slds-box slds-theme_default">
-            <template lwc:if={exporting}><p role="status" class="slds-m-bottom_small">{exportProgress}</p></template>
+            <div lwc:if={exporting} class="c-inline-status slds-m-bottom_small">
+                <p role="status">{exportProgress}</p>
+                <span class="c-inline-spinner">
+                    <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
+                </span>
+            </div>
             <template lwc:if={exportError}><p role="alert" class="slds-text-color_error slds-m-bottom_small">{exportError}</p></template>
             <div class="month-navigation slds-m-bottom_medium">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"
                     disabled={previousMonthDisabled} onclick={moveMonth}></lightning-button>
-                <h2 class="slds-text-heading_small" aria-live="polite">{monthHeading}</h2>
+                <div class="c-inline-status">
+                    <h2 class="slds-text-heading_small" aria-live="polite">{monthHeading}</h2>
+                    <span lwc:if={monthTotalLoading} class="c-inline-spinner">
+                        <lightning-spinner size="small" alternative-text="月の総件数を取得中"></lightning-spinner>
+                    </span>
+                </div>
                 <lightning-button label="次月" icon-name="utility:chevronright" icon-position="right" data-step="1"
                     disabled={nextMonthDisabled} onclick={moveMonth}></lightning-button>
             </div>
@@ -75,7 +85,12 @@
                                         </li>
                                     </template>
                                 </ul>
-                                <p lwc:if={optionsLoading} role="status" class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>
+                                <div lwc:if={optionsLoading} class="c-inline-status slds-p-horizontal_small slds-p-vertical_x-small">
+                                    <p role="status" class="slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>
+                                    <span class="c-inline-spinner">
+                                        <lightning-spinner size="small" alternative-text="絞り込み候補を取得中"></lightning-spinner>
+                                    </span>
+                                </div>
                                 <p lwc:elseif={field.noMatches} role="status" class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">候補がありません。</p>
                             </div>
                         </template>
@@ -109,7 +124,12 @@
                         </template>
                         <nav class="pagination" aria-label="履歴のページ送り">
                             <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
-                            <span class="c-page-summary" aria-live="polite">{pageSummary}</span>
+                            <div class="c-page-summary c-inline-status">
+                                <span aria-live="polite">{pageSummary}</span>
+                                <span lwc:if={matchLoading} class="c-inline-spinner">
+                                    <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
+                                </span>
+                            </div>
                             <lightning-button lwc:if={hasNextPage} label="次へ" disabled={loading} onclick={nextPage}></lightning-button>
                         </nav>
                     </lightning-tab>

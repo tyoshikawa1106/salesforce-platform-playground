@@ -21,6 +21,19 @@
 .c-filter-dropdown {
     display: block;
 }
+.c-inline-status {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.c-inline-spinner {
+    position: relative;
+    width: var(--slds-g-sizing-7, 1.5rem);
+    height: var(--slds-g-sizing-7, 1.5rem);
+    flex: none;
+}
+
 .results {
     position: relative;
     min-height: var(--c-results-min-height);

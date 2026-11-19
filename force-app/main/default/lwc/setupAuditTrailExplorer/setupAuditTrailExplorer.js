@@ -35,7 +35,7 @@ function offsetMonth(month, offset) {
     return date.toISOString().slice(0, 7);
 }
 
-const PAGE_SIZE = 2000;
+const PAGE_SIZE = 200;
 const COUNT_FORMAT = new Intl.NumberFormat('ja-JP');
 const CSV_DATE_FORMAT = new Intl.DateTimeFormat('ja-JP', {
     calendar: 'gregory', timeZone: TIME_ZONE, timeZoneName: 'short',
@@ -123,6 +123,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     exportedRows = 0;
     downloadUrl;
     monthTotal = null;
+    monthTotalLoading = false;
     monthTotalError = false;
     countRequest = 0;
 
@@ -136,6 +137,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         window.removeEventListener('resize', this.fitHistoryViewport);
         this.request += 1;
         this.countRequest += 1;
+        this.monthTotalLoading = false;
         this.optionsRequest += 1;
         this.optionsLoading = false;
         this.matchRequest += 1;
@@ -243,6 +245,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     async readMonthTotal() {
         const request = ++this.countRequest;
+        this.monthTotalLoading = true;
         this.monthTotal = null;
         this.monthTotalError = false;
         try {
@@ -253,6 +256,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         } catch {
             if (request === this.countRequest) {
                 this.monthTotalError = true;
+            }
+        } finally {
+            if (request === this.countRequest) {
+                this.monthTotalLoading = false;
             }
         }
     }
