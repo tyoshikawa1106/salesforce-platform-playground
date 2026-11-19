@@ -7,18 +7,18 @@ Apex、メタデータ、GitHub、デプロイなどの詳細は該当するル�
 
 この文書を共通の作業順序として使用し、変更内容に応じて次の詳細ルールを併用します。
 
-| 作業内容                                                                                                          | 詳細ルール                                                           |
-| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Apex クラス、Trigger、Apex test                                                                                   | [Apex 開発ルール](apex-rules.md)                                     |
-| metadata の取得、編集、Git 管理                                                                                   | [メタデータ管理ルール](metadata-rules.md)                            |
-| docs の追加、変更、配置、記載粒度                                                                                 | [ドキュメント配置ルール](documentation-rules.md)                     |
-| 機能の振る舞い変更、機能仕様書の追加・更新・棚卸し                                                                | [機能仕様書ルール](specification-rules.md)                           |
-| ブランチ、コミット、PR、マージ                                                                                    | [GitHub 運用ルール](github-rules.md)                                 |
-| Issue、Project、Milestone、Release、CI                                                                            | [リポジトリ固有 GitHub 運用ルール](github-repository-rules.md)       |
-| Salesforce 実装・metadata 変更時の組織検証要否判断、push 前の組織検証、validate・deploy・retrieve・組織上のテスト | [組織操作ルール](../deployment/org-operation-rules.md)               |
-| metadata の削除                                                                                                   | [メタデータ削除ルール](../deployment/metadata-deletion-rules.md)     |
-| Scratch Org の作成、再現                                                                                          | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md) |
-| テストデータ投入                                                                                                  | [テストデータ投入手順](../deployment/test-data-import.md)            |
+| 作業内容                                                                                                                                                              | 詳細ルール                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Apex クラス、Trigger、Apex test                                                                                                                                       | [Apex 開発ルール](apex-rules.md)                                     |
+| metadata の取得、編集、Git 管理                                                                                                                                       | [メタデータ管理ルール](metadata-rules.md)                            |
+| docs の追加、変更、配置、記載粒度                                                                                                                                     | [ドキュメント配置ルール](documentation-rules.md)                     |
+| 機能の振る舞い変更、機能仕様書の追加・更新・棚卸し                                                                                                                    | [機能仕様書ルール](specification-rules.md)                           |
+| ブランチ、コミット、PR、マージ                                                                                                                                        | [GitHub 運用ルール](github-rules.md)                                 |
+| Issue、Project、Milestone、Release、CI                                                                                                                                | [リポジトリ固有 GitHub 運用ルール](github-repository-rules.md)       |
+| Salesforce 組織への接続、画面確認・CSV 出力などの読み取り操作、実装・metadata 変更時の組織検証要否判断、push 前の組織検証、validate・deploy・retrieve・組織上のテスト | [組織操作ルール](../deployment/org-operation-rules.md)               |
+| metadata の削除                                                                                                                                                       | [メタデータ削除ルール](../deployment/metadata-deletion-rules.md)     |
+| Scratch Org の作成、再現                                                                                                                                              | [Scratch Org 再現ルール](../deployment/scratch-org-rebuild-rules.md) |
+| テストデータ投入                                                                                                                                                      | [テストデータ投入手順](../deployment/test-data-import.md)            |
 
 複数の作業内容に該当する場合は、関連するルールをすべて適用します。詳細ルール間で判断が分かれる場合は、より対象を限定した文書を優先し、解消できない場合は変更前に確認します。
 
@@ -71,6 +71,7 @@ Apex、メタデータ、GitHub、デプロイなどの詳細は該当するル�
 - `.env`、`.env.*`、秘密鍵、証明書、token、password、client secret などの実値を含み得るファイルを読まない。
 - 明示依頼なしに、認証情報管理アプリ（macOS のキーチェーンアクセス、Windows の資格情報マネージャー、パスワードマネージャーなど）を起動・操作したり、OS の認証情報管理機能へ直接アクセスしたり、ブラウザで新規ログイン、追加認証、再認証を開始したり、認証設定を変更したりしない。通常の開発操作中に認証画面、パスワード入力、追加認証を求められた場合は、その認証操作を停止して報告する。
 - 開発確認は原則として Chrome を使用する。ブックマーク、タブグループ、プロファイル設定など、ブラウザの永続設定を変更しない。
+- Salesforce 組織の画面確認や CSV 出力などでログイン画面が表示された場合は、手動ログインを依頼する前に、[組織操作ルールの保存済み CLI 認証の手順](../deployment/org-operation-rules.md#保存済みの-cli-認証を使う)に従って対象組織と保存済み認証を確認する。対象組織の接続を確認できた場合は、保存済み認証で対象組織を Chrome に開いて作業を続ける。
 
 ## コードコメント
 
