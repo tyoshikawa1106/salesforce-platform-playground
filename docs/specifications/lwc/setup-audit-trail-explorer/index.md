@@ -23,6 +23,8 @@ Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・�
 
 ## 出力・更新対象
 
+ファイル名は月別が `SetupAuditTrailMonthly<開始時刻>.csv`、全期間が `SetupAuditTrailAll<開始時刻>.csv` です。開始時刻には、出力操作時点の Unix タイムスタンプ（ミリ秒）を使用します。
+
 両方の CSV は BOM 付き UTF-8 です。レコードとセル内の改行には LF を使い、セル内の引用符は二重にします。履歴の文字は Unicode のまま出力します。
 
 | 列                             | 出力する値                                                                  |

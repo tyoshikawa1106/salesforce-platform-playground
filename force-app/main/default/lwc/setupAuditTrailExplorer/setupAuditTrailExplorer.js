@@ -774,23 +774,29 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 表示月の全履歴をCSVにする。
     exportMonth() {
+        // 出力を開始した時刻で月別CSVを識別する。
+        const fileName = 'SetupAuditTrailMonthly' + Date.now() + '.csv';
         // 月の初日だけを取得条件にして画面の絞り込みから独立させる。
-        return this.exportCsv(this.month, query => load({ criteriaJson: JSON.stringify(query) }), { monthStart: this.monthDate, csv: true });
+        return this.exportCsv(fileName, query => load({ criteriaJson: JSON.stringify(query) }), { monthStart: this.monthDate, csv: true });
     }
 
     // メニューから全期間出力を受け付ける。
     selectExportOption(event) {
         // 選択された項目が全期間出力か確認する。
         if (event.detail.value === 'all') {
-            // すべてのページで使う出力上限日時を最初に固定する。
-            return this.exportCsv('all', exportAllHistory, { cutoff: new Date().toISOString() });
+            // ファイル名と全ページの取得上限に同じ開始時刻を使う。
+            const startedAt = Date.now();
+            // 全期間CSVを月別CSVと区別できる名前で保存する。
+            return this.exportCsv('SetupAuditTrailAll' + startedAt + '.csv', exportAllHistory, {
+                cutoff: new Date(startedAt).toISOString()
+            });
         }
         // 対応する出力操作がない場合は終了する。
         return undefined;
     }
 
     // 各ページを結合して一つのダウンロードを作る。
-    async exportCsv(period, fetchPage, query) {
+    async exportCsv(fileName, fetchPage, query) {
         // ほかのCSV出力が進行中か確認する。
         if (this.exporting) {
             // 同時に二つのダウンロードを開始しないようにする。
@@ -834,8 +840,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             const link = this.template.querySelector('a[data-download]');
             // 生成したCSVをリンク先に設定する。
             link.href = this.downloadUrl;
-            // 月別と全期間をファイル名で識別できるようにする。
-            link.download = 'setup-audit-trail-' + period + '.csv';
+            // ページ取得を始めた時点のファイル名で保存する。
+            link.download = fileName;
             // 完成したCSVの保存を開始する。
             link.click();
         } catch (error) {
