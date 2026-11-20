@@ -13,14 +13,30 @@ private class SetupAuditTrailExplorerControllerTest {
         }
     }
 
+    /** 初回はSalesforceが照会時に決めた上限を返す。 */
     @IsTest
-    static void exportsNoHistoryBeforeRetention() {
+    static void startsExportAtServerTime() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
+            Datetime beforeRequest = System.now();
+            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.exportAllHistory(null, null, null);
+            Datetime afterRequest = System.now();
+            Test.stopTest();
+            Assert.isTrue(result.cutoff >= beforeRequest && result.cutoff <= afterRequest, '取得上限は初回要求を処理した組織の時刻です。');
+        }
+    }
+
+    /** 続きのページは引き継いだ取得上限を適用し、同じ値を返す。 */
+    @IsTest
+    static void preservesExportCutoffOnLaterPages() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Datetime cutoff = Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0);
+            Test.startTest();
             SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.exportAllHistory(
-                Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0), null, null
+                cutoff, UserInfo.getUserId(), System.now()
             );
             Test.stopTest();
+            Assert.areEqual(cutoff, result.cutoff, '続きのページでも初回の取得上限を維持します。');
             Assert.isTrue(result.records.isEmpty(), '指定した基準日時より前の対象履歴はありません。');
             Assert.isNull(result.nextId, '0件なら続きのページはありません。');
         }

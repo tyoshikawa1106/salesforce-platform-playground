@@ -7,6 +7,8 @@ public class SetupAuditTrailExplorerWrapper {
     @AuraEnabled public Map<String, String> userNames { get; set; }
     @AuraEnabled public Id nextId { get; set; }
     @AuraEnabled public Datetime nextTime { get; set; }
+    // 全期間CSVの各ページに共通する取得上限（この日時を含まない）。
+    @AuraEnabled public Datetime cutoff { get; set; }
 
     /**
      * 履歴・集計の応答を初期化する。

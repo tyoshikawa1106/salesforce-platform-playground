@@ -784,12 +784,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     selectExportOption(event) {
         // 選択された項目が全期間出力か確認する。
         if (event.detail.value === 'all') {
-            // ファイル名と全ページの取得上限に同じ開始時刻を使う。
-            const startedAt = Date.now();
-            // 全期間CSVを月別CSVと区別できる名前で保存する。
-            return this.exportCsv('SetupAuditTrailAll' + startedAt + '.csv', exportAllHistory, {
-                cutoff: new Date(startedAt).toISOString()
-            });
+            // 出力操作時の端末時刻でファイル名を決める。
+            const fileName = 'SetupAuditTrailAll' + Date.now() + '.csv';
+            // 初回の取得上限はSalesforce側で決定する。
+            return this.exportCsv(fileName, exportAllHistory, { cutoff: null });
         }
         // 対応する出力操作がない場合は終了する。
         return undefined;
@@ -831,6 +829,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 this.exportedRows += result.records.length;
                 // 次回要求に日時とIDの境界を引き継ぐ。
                 cursor = pageCursor(result);
+                // 全期間CSVではSalesforceが照会に使った上限も引き継ぐ。
+                if (result.cutoff) {
+                    // 次のページとその再試行に同じ上限を指定する。
+                    cursor.cutoff = result.cutoff;
+                }
             } while (cursor.nextId);
             // 以前の出力に使ったBlobを解放する。
             this.releaseDownload();

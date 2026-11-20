@@ -217,7 +217,8 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         await chooseLookup(component, 'action', 'createdApexClass');
         await search(component);
         const exportPage = period === 'month' ? load.request : exportAllHistory;
-        exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time' })
+        const serverCutoff = '2026-11-19T13:43:07.912Z';
+        exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time', cutoff: period === 'all' ? serverCutoff : null })
             .mockResolvedValueOnce({ records: [row] });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
@@ -235,9 +236,11 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         const queries = period === 'month'
             ? load.request.mock.calls.slice(2).map(([request]) => request.input)
             : exportAllHistory.mock.calls.map(([request]) => request);
-        const firstQueries = { month: { monthStart, csv: true }, all: { cutoff: new Date(startedAt).toISOString() } };
-        expect(queries[0]).toEqual(firstQueries[period]);
-        expect(queries.slice(1)).toEqual([{ ...queries[0], nextId: 'cursor', nextTime: 'time' }]);
+        const monthQuery = { monthStart, csv: true };
+        expect(queries).toEqual([
+            period === 'month' ? monthQuery : { cutoff: null },
+            { ...(period === 'month' ? monthQuery : { cutoff: serverCutoff }), nextId: 'cursor', nextTime: 'time' }
+        ]);
         expect(download).toHaveBeenCalledTimes(1);
         expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
         const [blob] = URL.createObjectURL.mock.calls[0];

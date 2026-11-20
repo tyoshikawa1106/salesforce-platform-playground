@@ -49,7 +49,7 @@ public with sharing class SetupAuditTrailExplorerController {
 
     /**
      * 保持期間内の履歴をCSV用に分割取得する。
-     * @param cutoff 出力開始時の取得上限。
+     * @param cutoff 初回は未指定。続きは最初の応答で返した取得上限。
      * @param nextId 直前ページの境界レコードID。
      * @param nextTime 直前ページの境界日時。
      * @return 取得ページと続きのカーソル。
@@ -61,7 +61,10 @@ public with sharing class SetupAuditTrailExplorerController {
         criteria.endAt = cutoff ?? System.now();
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
-        return loadDetails(criteria, CSV_PAGE_SIZE);
+        SetupAuditTrailExplorerWrapper wrapper = loadDetails(criteria, CSV_PAGE_SIZE);
+        // 後続ページでも同じ期間を照会できるよう、今回の検索に使った上限を返す。
+        wrapper.cutoff = criteria.endAt;
+        return wrapper;
     }
 
     /**
