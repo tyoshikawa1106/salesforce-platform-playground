@@ -25,6 +25,7 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMatches', () 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions', () => ({ default: jest.fn() }), { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 beforeEach(() => {
     loadFilterOptions.mockResolvedValue({ options: { action: ['createdApexClass'], namespacePrefix: [], delegateUser: [] } });
@@ -218,8 +219,9 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         await search(component);
         const exportPage = period === 'month' ? load.request : exportAllHistory;
         const serverCutoff = '2026-11-19T13:43:07.912Z';
-        exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time', cutoff: period === 'all' ? serverCutoff : null })
-            .mockResolvedValueOnce({ records: [row] });
+        exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
+            cutoff: period === 'all' ? serverCutoff : null, employeeActorIds: ['employee'] })
+            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }] });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
         expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
@@ -252,7 +254,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         });
         const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
         const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
-        expect(csv).toBe(header + line + line);
+        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン'));
         expect(component.shadowRoot.querySelector('a[data-download]').download)
             .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrailAll') + startedAt + '.csv');
         component.remove();

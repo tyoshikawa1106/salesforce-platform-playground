@@ -22,7 +22,21 @@ public with sharing class SetupAuditTrailExplorerSelector {
         public Datetime endAt;
     }
 
-    public enum Projection { DETAIL, CHART, OPTIONS }
+    public enum Projection { DETAIL, CHART, OPTIONS, CSV }
+
+    /**
+     * CSVの作成者を確認するため、保持期間内のSalesforce内部操作を取得する。
+     * @param beforeTime 作成日時の上限（この日時を含まない）。
+     * @return 従業員操作の本文と作成者を照合するための直近の候補。
+     */
+    public static List<SetupAuditTrail> selectEmployeeActions(Datetime beforeTime) {
+        List<SetupAuditTrail> rows = [
+            SELECT CreatedById, Display FROM SetupAuditTrail
+            WHERE Action = 'BlackTabFrameworkActionRun' AND DelegateUser != null AND CreatedDate < :beforeTime
+            WITH USER_MODE ORDER BY CreatedDate DESC, Id DESC LIMIT 200
+        ];
+        return rows;
+    }
 
     /**
      * 条件に一致する履歴件数を取得する。
@@ -45,6 +59,10 @@ public with sharing class SetupAuditTrailExplorerSelector {
     public static List<SetupAuditTrail> selectPage(Criteria criteria, Projection fieldSet, Integer sizeLimit) {
         String fields = fieldSet == Projection.CHART ? CHART_FIELDS :
             (fieldSet == Projection.OPTIONS ? LOOKUP_FIELDS : DETAIL_FIELDS);
+        // CSVだけに表示名の判定に必要な履歴種別と作成者情報を含める。
+        if (fieldSet == Projection.CSV) {
+            fields += ', Action, CreatedById, CreatedBy.UserType';
+        }
         Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
         String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(criteria, binds);
         if (criteria.nextId != null && criteria.nextTime != null) {

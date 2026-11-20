@@ -1,4 +1,5 @@
 import TIME_ZONE from '@salesforce/i18n/timeZone';
+import LANG from '@salesforce/i18n/lang';
 
 // 月別・全期間で同じ順に列を出力する。
 export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
@@ -67,6 +68,52 @@ export function sortFilterOptions(groups) {
     ]));
 }
 
+// 日本語の標準CSVで確認した、組織のEntityDefinitionから取得できない標準オブジェクトの表示名。
+const PERMISSION_OBJECT_LABELS = new Map([
+    ['AiMetadataSyncStatus', 'AiMetadataSyncStatuses'],
+    ['ArchiveJobSession', 'アーカイブジョブセッション'],
+    ['AuthDomainStatusEvent', '認証ドメイン状況イベント'],
+    ['FlowAutosaveInterviewStatus', 'Flow Autosave Interview Statuses'],
+    ['GisPrvdCnctrJobDefinition', 'GIS プロバイダーコネクタジョブ定義'],
+    ['GisPrvdCnctrJobObjFilter', 'GIS プロバイダーコネクタジョブオブジェクト検索条件'],
+    ['GisPrvdCnctrJobObjFldMap', 'GIS プロバイダーコネクタジョブオブジェクト項目の対応付け'],
+    ['GisPrvdCnctrJobObject', 'GIS プロバイダーコネクタジョブオブジェクト'],
+    ['PrivacyBatchReservation', 'プライバシー一括予約'],
+    ['PrivacyJobSessionDefinition', 'プライバシージョブセッション定義'],
+    ['PrivacyProcessorOrchestrator', 'プライバシープロセッサーオーケストレーター'],
+    ['PrivacySessionQueue', 'プライバシーセッションキュー'],
+    ['RebatePayoutSnapshot', 'Rebate Payout Snapshots'],
+    ['WebCartDocument', 'Web Cart Documents']
+]);
+
+// 日本語の標準表示に対応できるユーザー種別と作成者だけを整形する。
+function csvUser(row, employeeActorIds) {
+    // 日本語の自動化プロセスには標準CSVの種別名を出す。
+    if (LANG.startsWith('ja') && row.CreatedBy?.UserType === 'AutomatedProcess') {
+        // 自動化プロセスの内部ログイン名を表示名に変換する。
+        return '自動化プロセス';
+    }
+    // ログイン名がない場合も、同じ作成者の従業員操作を確認できた場合だけ会社名を使う。
+    if (LANG.startsWith('ja') && !row.CreatedBy?.Username && employeeActorIds.has(row.CreatedById)) {
+        // 日本語の標準CSVでのSalesforce側の実行主体を表す。
+        return '株式会社セールスフォース・ジャパン';
+    }
+    // 一般ユーザーと代理ログインはAPIで確認できたログイン名を保持する。
+    return row.CreatedBy?.Username;
+}
+
+// 権限セットのオブジェクト権限変更に限り、本文の対象オブジェクト名を整える。
+function csvAction(row) {
+    // 他の操作や言語はAPIが返した本文を使用する。
+    if (row.Action !== 'PermSetEntityPermChanged' || !LANG.startsWith('ja')) {
+        // 通常の監査本文は原文を保持する。
+        return row.Display;
+    }
+    // 権限セット名や権限値に含まれる同じ文字列を置換しないよう、対象名の位置を限定する。
+    return row.Display?.replace(/^(権限セット .+ を変更: )([A-Za-z][A-Za-z0-9_]*)(?= オブジェクト権限を )/u,
+        (matched, prefix, objectName) => prefix + (PERMISSION_OBJECT_LABELS.get(objectName) ?? objectName));
+}
+
 // 履歴の文字を一つのCSVセルに収める。
 function csvCell(value) {
     // セル内の改行をLFに揃え、引用符を二重にして囲む。
@@ -74,7 +121,7 @@ function csvCell(value) {
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
-export function formatCsvPage(records) {
+export function formatCsvPage(records, employeeActorIds = new Set()) {
     // 同じ秒に続く履歴で日時の書式変換を共有する。
     let lastDate;
     // 直前の履歴に対応する日時文字列を保持する。
@@ -88,9 +135,9 @@ export function formatCsvPage(records) {
             // 秒とタイムゾーンを含む日時に整える。
             formattedDate = CSV_DATE_FORMAT.format(new Date(lastDate));
         }
-        // アクションにはAPIが返した説明を使い、ユーザーには取得したログイン名を使う。
-        return [formattedDate, row.CreatedBy?.Username, row.ResponsibleNamespacePrefix,
-            row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
+        // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
+        return [formattedDate, csvUser(row, employeeActorIds), row.ResponsibleNamespacePrefix,
+            csvAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }
 

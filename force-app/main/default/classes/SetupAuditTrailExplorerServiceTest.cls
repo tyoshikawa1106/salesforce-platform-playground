@@ -1,5 +1,24 @@
 @IsTest
 private class SetupAuditTrailExplorerServiceTest {
+    /** 従業員操作を明示した同一の作成者を一度だけ採用する。 */
+    @IsTest
+    static void identifiesOnlyConfirmedEmployeeActors() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SetupAuditTrail employee = (SetupAuditTrail) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+                'CreatedById' => UserInfo.getUserId(), 'Display' => 'Salesforce 従業員がケースに対応'
+            }), SetupAuditTrail.class);
+            SetupAuditTrail other = (SetupAuditTrail) JSON.deserialize(
+                '{"CreatedById":"005000000000001","Display":"別の操作"}', SetupAuditTrail.class
+            );
+            Test.startTest();
+            List<Id> actors = SetupAuditTrailExplorerService.employeeActorIds(
+                new List<SetupAuditTrail>{employee, employee, other}
+            );
+            Test.stopTest();
+            Assert.areEqual(new List<Id>{UserInfo.getUserId()}, actors, '根拠のある作成者だけを出力に渡します。');
+        }
+    }
+
     @IsTest
     static void rejectsInvalidDay() {
         System.runAs(new User(Id = UserInfo.getUserId())) {

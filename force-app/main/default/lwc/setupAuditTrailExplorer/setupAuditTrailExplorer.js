@@ -804,6 +804,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const request = ++this.exportRequest;
         // UTF-8のBOMと列名をファイルの先頭に置く。
         const chunks = ['\uFEFF', CSV_HEADER];
+        // 今回の出力だけで使う作成者の照合結果を保持する。
+        let employeeActorIds = new Set();
         // 最初のページは境界を指定しない。
         let cursor = {};
         // 取得完了まで追加の出力操作を止める。
@@ -823,8 +825,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     // 中断済みのCSVの生成を終了する。
                     return;
                 }
+                // 先頭ページの根拠を後続ページでも引き継ぐ。
+                if (result.employeeActorIds) {
+                    // 作成者IDの照合で履歴ごとの再検索を避ける。
+                    employeeActorIds = new Set(result.employeeActorIds);
+                }
                 // 月別と全期間で共通の書式を使って明細を追加する。
-                chunks.push(formatCsvPage(result.records));
+                chunks.push(formatCsvPage(result.records, employeeActorIds));
                 // 今回のページで取得が完了した件数を加算する。
                 this.exportedRows += result.records.length;
                 // 次回要求に日時とIDの境界を引き継ぐ。

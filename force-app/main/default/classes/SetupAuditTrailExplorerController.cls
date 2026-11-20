@@ -94,9 +94,16 @@ public with sharing class SetupAuditTrailExplorerController {
 
     private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit) {
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
-            criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
+            criteria, SetupAuditTrailExplorerSelector.Projection.CSV, sizeLimit + 1
         );
-        return SetupAuditTrailExplorerService.summarizeDetails(rows, SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit));
+        Integer pageSize = SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit);
+        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
+        // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
+        if (criteria.nextId == null) {
+            List<SetupAuditTrail> employeeActions = SetupAuditTrailExplorerSelector.selectEmployeeActions(System.now());
+            wrapper.employeeActorIds = SetupAuditTrailExplorerService.employeeActorIds(employeeActions);
+        }
+        return wrapper;
     }
 
     private static SetupAuditTrailExplorerSelector.Criteria readCriteria(String criteriaJson) {

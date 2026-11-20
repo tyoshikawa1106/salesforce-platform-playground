@@ -1,5 +1,18 @@
 @IsTest
 private class SetupAuditTrailExplorerSelectorTest {
+    /** 指定日時より後の従業員操作を判定根拠に含めない。 */
+    @IsTest
+    static void excludesEmployeeActionsAfterCutoff() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectEmployeeActions(
+                Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0)
+            );
+            Test.stopTest();
+            Assert.isTrue(rows.isEmpty(), '保持期間より前なら照合元の履歴はありません。');
+        }
+    }
+
     @IsTest
     static void countsHistoryInMonth() {
         System.runAs(new User(Id = UserInfo.getUserId())) {

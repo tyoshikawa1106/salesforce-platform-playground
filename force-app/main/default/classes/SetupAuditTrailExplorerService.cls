@@ -3,6 +3,21 @@ public with sharing class SetupAuditTrailExplorerService {
     private static final Integer CSV_TEXT_BUDGET = 500000;
 
     /**
+     * 履歴の本文がSalesforce従業員の操作と明示する作成者だけを採用する。
+     * @param rows 内部操作の履歴。
+     * @return CSVで会社名を表示できる作成者ID。
+     */
+    public static List<Id> employeeActorIds(List<SetupAuditTrail> rows) {
+        Set<Id> actors = new Set<Id>();
+        for (SetupAuditTrail row : rows) {
+            if (row.CreatedById != null && row.Display?.startsWith('Salesforce 従業員が') == true) {
+                actors.add(row.CreatedById);
+            }
+        }
+        return new List<Id>(actors);
+    }
+
+    /**
      * 指定月と日付の整合性を検証する。
      * @param monthStart 対象月の初日。
      * @param day 指定日。未指定なら月全体。
