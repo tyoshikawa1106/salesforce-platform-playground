@@ -397,7 +397,8 @@ it('keeps the current result when the normalized action filter is unchanged', as
 
 it('shows the monthly count and keeps it when a list filter changes', async () => {
     countMonth.mockResolvedValue(21638);
-    load.request.mockResolvedValue({ records: [] });
+    countMatches.request.mockResolvedValue(201);
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'cursor', nextTime: 'time' });
     const component = mount();
     await flush();
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
@@ -405,7 +406,7 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
     await search(component);
     expect(countMonth).toHaveBeenCalledTimes(1);
     expect(countMatches.request).toHaveBeenCalledTimes(1);
-    expect(countMatches.request).toHaveBeenCalledWith({ input: expect.objectContaining({ action: 'createdApexClass' }) });
+    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
 });
 
@@ -454,29 +455,90 @@ it('shows 1 / 1 even when neither adjacent page exists', async () => {
     expect(pagination.querySelector('lightning-button')).toBeNull();
 });
 
-it('defers filtered result counts until the history tab is opened', async () => {
-    load.request.mockImplementation(({ input: { chart } }) => Promise.resolve(chart ? { buckets: [] } : { records: [] }));
+it('uses all completed chart pages including delegated logins for history pagination', async () => {
+    const login = { Action: 'suOrgAdminLogin', CreatedDate: '2026-11-01T12:00:00Z', CreatedById: 'target' };
+    load.request.mockImplementation(({ input }) => {
+        if (!input.chart) {
+            return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
+        }
+        if (!input.day) {
+            return { buckets: [] };
+        }
+        return input.nextId ? { buckets: [{ action: 'change', count: 100 }], records: [login] } :
+            { buckets: [{ action: 'change', count: 100 }], nextId: 'more', nextTime: 'time' };
+    });
     const component = mount();
     await flush();
     const [historyTab, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-
     component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
         .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
     await search(component);
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({
-        chart: true, day: load.request.mock.calls[0][0].input.monthStart
-    }) });
+    historyTab.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
     expect(countMatches.request).not.toHaveBeenCalled();
+});
 
-    historyTab.dispatchEvent(new CustomEvent('active'));
+it('keeps the completed analysis total when an earlier count response arrives late', async () => {
+    let finishCount;
+    countMatches.request.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
+    load.request.mockImplementation(({ input }) => (input.chart ? { buckets: [{ action: 'change', count: 401 }] } :
+        { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' }));
+    const component = mount();
     await flush();
-    expect(countMatches.request).toHaveBeenCalledTimes(1);
-    chartTab.dispatchEvent(new CustomEvent('active'));
-    historyTab.dispatchEvent(new CustomEvent('active'));
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
+    chart.dispatchEvent(new CustomEvent('active'));
     await flush();
+    finishCount(201);
+    await flush();
+    history.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('1 / 3ページ');
     expect(countMatches.request).toHaveBeenCalledTimes(1);
+});
+
+it('does not use an interrupted chart as the count for the history tab', async () => {
+    let finishChart;
+    load.request.mockImplementation(({ input }) => {
+        if (!input.chart) {
+            return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
+        }
+        if (!input.day) {
+            return { buckets: [] };
+        }
+        return input.nextId ? new Promise(resolve => { finishChart = resolve; }) :
+            { buckets: [{ action: 'change', count: 1 }], nextId: 'more', nextTime: 'time' };
+    });
+    countMatches.request.mockResolvedValue(201);
+    const component = mount();
+    await flush();
+    const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
+        .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
+    await search(component);
+    history.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    finishChart({ buckets: [{ action: 'change', count: 400 }] });
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
+    expect(countMatches.request).toHaveBeenCalledTimes(1);
+});
+
+it.each([0, 1, 200])('derives a complete first page of %i filtered records without a count query', async size => {
+    const records = Array.from({ length: size }, (_, i) => ({ Id: String(i) }));
+    load.request.mockResolvedValue({ records });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    expect(component.shadowRoot.textContent).toContain(size ? '1 / 1ページ' : '0 / 0ページ');
+    expect(countMatches.request).not.toHaveBeenCalled();
 });
 
 it('limits month navigation to the current month and the six preceding months', async () => {
@@ -507,8 +569,8 @@ it.each([true, false])('clears data loading spinners after requests settle (succ
         rejectRequests = reject;
     });
     countMonth.mockReturnValueOnce(pending.then(() => 42));
-    countMatches.request.mockReturnValueOnce(pending.then(() => 1));
-    load.request.mockResolvedValue({ records: [] });
+    countMatches.request.mockReturnValueOnce(pending.then(() => 201));
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'cursor', nextTime: 'time' });
 
     const component = mount();
     const root = component.shadowRoot;
@@ -581,7 +643,7 @@ it('queries ordinary actions for the selected creator with normal detail paginat
     await search(component);
     expect(load.request.mock.calls.map(([{ input }]) => input.matchIndex)).toEqual([undefined, undefined]);
     expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'changedApexClass', userId: 'target', pageSize: 200 });
-    expect(countMatches.request).toHaveBeenCalledTimes(1);
+    expect(countMatches.request).not.toHaveBeenCalled();
     expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
 

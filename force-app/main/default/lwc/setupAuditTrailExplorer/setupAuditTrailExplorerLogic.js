@@ -331,8 +331,11 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
 
 // ページ境界をまたぐ集計を同じ軸ごとに統合する。
 export function mergeChartPage(totals, buckets) {
+    // 同じ走査で元の履歴件数を数え、一覧のページ数にも利用する。
+    let count = 0;
     // 今回の集計ページをこれまでの結果に統合する。
     for (const bucket of buckets) {
+        count += bucket.count;
         // 日・ユーザー・操作・セクション・名前空間・代理ユーザーで集計を区別する。
         const key = JSON.stringify([
             bucket.day, bucket.userId, bucket.action, bucket.section, bucket.namespacePrefix, bucket.delegateUser
@@ -348,6 +351,7 @@ export function mergeChartPage(totals, buckets) {
             totals.set(key, { ...bucket });
         }
     }
+    return count;
 }
 
 // Apexと同じ実行ユーザーの暦日で、代理ログインを分析の集計行に加える。

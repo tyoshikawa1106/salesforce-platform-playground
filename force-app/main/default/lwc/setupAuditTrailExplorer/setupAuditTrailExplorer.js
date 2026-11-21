@@ -669,8 +669,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         if (selected && selected !== this.tab) {
             // 選択された表示に切り替える。
             this.tab = selected;
-            // 明細表示に必要な一致件数を読み込む。
-            this.readMatchCount();
             // 選択したタブの内容を取得する。
             this.read();
         }
@@ -703,11 +701,27 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return { monthStart: this.monthDate, day: null, userId: null, action: null, ...this.appliedFilters };
     }
 
+    // 一覧または分析で確定した件数を公開し、以前に開始した件数要求を無効にする。
+    setResultCount(count) {
+        this.matchRequest += 1;
+        this.matchLoading = false;
+        this.matchCount = count;
+    }
+
     // ページ番号表示用の一致件数を取得する。
     async readMatchCount() {
-        // 絞り込み件数は履歴のページ送りでだけ使う。
-        if (this.usesMatchIndex || this.tab !== 'list' || !this.hasFilters || this.matchCount !== null || this.matchLoading) {
-            // 件数が不要または要求済みなら取得を省く。
+        // 照合済みIDの件数と月全体の件数は、それぞれ既存の取得結果を使う。
+        if (this.usesMatchIndex || !this.hasFilters) {
+            return;
+        }
+        // 先頭ページに続きがなければ、0件やちょうど200件の場合も総件数が確定する。
+        if (this.page === 1 && !this.hasNextPage) {
+            this.setResultCount(this.records.length);
+            return;
+        }
+        // 分析後に新しい履歴が増えた場合は、現在の明細と矛盾する件数を再取得する。
+        const minimum = this.rowNumberOffset + this.records.length + (this.hasNextPage ? 1 : 0);
+        if (this.matchLoading || (this.matchCount !== null && this.matchCount >= minimum)) {
             return;
         }
         // 検索条件ごとの件数要求を識別する。
@@ -755,8 +769,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.matchCount = null;
         // 表示ページを先頭に戻す。
         this.page = 1;
-        // 現在の条件に必要な件数を問い合わせる。
-        this.readMatchCount();
         // 表示タブに必要なデータを読み込む。
         return this.read();
     }
@@ -934,6 +946,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.rememberNextPage(cursor);
         }
         this.listReady = true;
+        // 明細の境界が確定してから不足する件数だけを取得する。
+        this.readMatchCount();
     }
 
     // 表示月の全履歴をCSVにする。
@@ -1037,8 +1051,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 一覧取得の失敗後に再度読み込む。
     retryRead() {
-        // 件数が未確定なら再取得する。
-        this.readMatchCount();
         // 現在のタブの履歴を再度読み込む。
         return this.read();
     }
@@ -1053,6 +1065,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.error = '';
         // 選択タブの結果が取得済みか確認する。
         if (chart ? this.chartReady : this.listReady) {
+            // 取得済み明細へ戻った際に前回の件数照会が失敗していれば再試行する。
+            if (!chart && this.matchCount === null) {
+                this.readMatchCount();
+            }
             // キャッシュ利用時は読み込み完了とする。
             this.loading = false;
             // 取得済みの結果をそのまま表示する。
@@ -1067,8 +1083,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         };
         // 分析は先頭、一覧は移動先の境界から取得する。
         let cursor = chart ? {} : this.pageStarts[this.page - 1];
-        // 複数ページの集計を共通のキーでまとめる。
-        const totals = new Map();
         const isCurrent = () => request === this.request;
         try {
             if (this.usesMatchIndex && !this.matchingIds) {
@@ -1089,7 +1103,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 }
                 return;
             }
-            const logins = [];
+            // 分析ページごとに通常操作と代理ログインを集約し、補正済みの明細は保持しない。
+            const totals = new Map();
+            const loginTotals = new Map();
+            let chartCount = 0;
             let offset = 0;
             do {
                 const recordIds = this.matchingIds?.slice(offset, offset + 2000);
@@ -1101,20 +1118,27 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 if (!isCurrent()) {
                     return;
                 }
-                mergeChartPage(totals, result.buckets);
-                logins.push(...(result.records ?? []));
+                // 通常操作の合計には各集計行が代表する履歴件数を加える。
+                chartCount += mergeChartPage(totals, result.buckets);
+                // 代理ログインは元のページに含まれるうちに補正して集計する。
+                if (result.records?.length) {
+                    // 照合結果はページ間で共有し、旧条件の結果を混入させない。
+                    // eslint-disable-next-line no-await-in-loop
+                    const actors = await this.actorsForLogins(result.records);
+                    if (!isCurrent()) {
+                        return;
+                    }
+                    chartCount += mergeChartPage(loginTotals, result.records.map(row => loginBucket(row, actors)));
+                }
                 offset += recordIds?.length ?? 0;
                 cursor = recordIds ? { nextId: offset < this.matchingIds.length } : pageCursor(result);
             } while (cursor.nextId);
-            if (logins.length) {
-                const actors = await this.actorsForLogins(logins);
-                if (!isCurrent()) {
-                    return;
-                }
-                mergeChartPage(totals, logins.map(row => loginBucket(row, actors)));
+            // 通常操作を先、代理ログインを後に渡す既存の順序を保持する。
+            this.buckets = [...totals.values(), ...loginTotals.values()];
+            // 検索中に中断された部分集計を件数として公開しない。
+            if (this.hasFilters && !this.usesMatchIndex) {
+                this.setResultCount(chartCount);
             }
-            // 全ページの集計行を分析タブに渡す。
-            this.buckets = [...totals.values()];
             // 全件の分析が完了した月だけ、分析結果を候補一覧に再利用する。
             if (!this.hasFilters && !this.filterOptions) {
                 // 集計行を一度走査して項目候補とユーザーの両方を取得する。
