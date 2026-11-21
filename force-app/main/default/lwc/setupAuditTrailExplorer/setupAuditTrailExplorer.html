@@ -122,7 +122,8 @@
                         <template lwc:if={emptyList}><p>条件に一致する設定変更履歴はありません。</p></template>
                         <template lwc:elseif={listReady}>
                             <div class="c-history-viewport">
-                                <lightning-datatable class="history-table" key-field="Id" data={records} columns={columns}
+                                <lightning-datatable class="history-table" key-field="Id" data={visibleRecords} columns={columns}
+                                    enable-infinite-loading={hasMoreRows} onloadmore={showMoreRows}
                                     max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                             </div>
                         </template>

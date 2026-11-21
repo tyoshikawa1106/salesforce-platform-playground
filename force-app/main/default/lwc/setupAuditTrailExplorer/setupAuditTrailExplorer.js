@@ -28,7 +28,9 @@ const COLUMNS = [
     cellAttributes: { class: 'slds-text-body_small' }
 }));
 // 一覧のページ送りと行番号に同じ件数を使う。
-const PAGE_SIZE = 200;
+const PAGE_SIZE = 1000;
+// 取得済みの明細をスクロールに合わせて表へ追加する単位。
+const RENDER_BATCH_SIZE = 50;
 // 見出しの件数に桁区切りを付ける。
 const COUNT_FORMAT = new Intl.NumberFormat('ja-JP');
 
@@ -80,6 +82,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     tab = 'list';
     // 表示中の明細ページを保持する。
     records = [];
+    // 表の末尾へ到達するまでは現在のページの先頭だけを描画する。
+    renderedRowLimit = RENDER_BATCH_SIZE;
     // 分析タブに渡す集計行を保持する。
     buckets = [];
     // 先頭ページは境界を指定せず取得する。
@@ -218,6 +222,23 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const minimumPages = this.page + (this.hasNextPage ? 1 : 0);
         // 件数が未確定または明細と矛盾する間は現在位置のみ表示する。
         return this.totalPages >= minimumPages ? this.page + ' / ' + this.totalPages + 'ページ' : this.page + 'ページ';
+    }
+
+    // 現在のページのうちスクロール済みの範囲を表に渡す。
+    get visibleRecords() {
+        // 全件表示後は取得済みの配列をそのまま使う。
+        return this.hasMoreRows ? this.records.slice(0, this.renderedRowLimit) : this.records;
+    }
+
+    // 次ページへ進む前に描画できる取得済み明細があるかを判定する。
+    get hasMoreRows() {
+        return this.renderedRowLimit < this.records.length;
+    }
+
+    // 表の末尾では、通信せずに同じページの続きを表示する。
+    showMoreRows() {
+        // 端数のページでも取得済み件数を上限にする。
+        this.renderedRowLimit = Math.min(this.records.length, this.renderedRowLimit + RENDER_BATCH_SIZE);
     }
 
     // 行番号を前のページから連続させる。
@@ -995,6 +1016,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             }
         }
         const employees = new Set(result.employeeActorIds);
+        // ページを開くたびに表示範囲を先頭へ戻す。
+        this.renderedRowLimit = RENDER_BATCH_SIZE;
         this.records = result.records.map(row => historyRow(row, employees, this.screenActors, result.delegateNames));
         if (!this.usesMatchIndex) {
             this.rememberNextPage(cursor);

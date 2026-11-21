@@ -437,7 +437,7 @@ it('keeps the current result when the normalized action filter is unchanged', as
 
 it('shows the monthly count and keeps it when a list filter changes', async () => {
     countMonth.mockResolvedValue(21638);
-    countMatches.request.mockResolvedValue(201);
+    countMatches.request.mockResolvedValue(1001);
     load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'cursor', nextTime: 'time' });
     const component = mount();
     await flush();
@@ -451,7 +451,7 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
 });
 
 it('moves through adjacent pages and resets the cursor only after search', async () => {
-    countMonth.mockResolvedValue(402);
+    countMonth.mockResolvedValue(2002);
     load.request.mockImplementation(({ input: { nextId, action } }) => {
         if (action) {
             return Promise.resolve({ records: [] });
@@ -465,11 +465,11 @@ it('moves through adjacent pages and resets the cursor only after search', async
     const button = label => [...root.querySelectorAll('nav lightning-button')].find(item => item.label === label);
     await flush();
     expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['次へ']);
-    expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 200, chart: false });
+    expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 1000, chart: false });
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('2 / 3ページ');
-    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(200);
+    expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(1000);
     button('次へ').click();
     await flush();
     expect(root.textContent).toContain('3 / 3ページ');
@@ -485,7 +485,7 @@ it('moves through adjacent pages and resets the cursor only after search', async
     expect(root.textContent).toContain('0 / 0ページ');
 });
 
-it.each([1, 200])('shows 1 / 1 without adjacent pages for a monthly total of %i', async total => {
+it.each([1, 1000])('shows 1 / 1 without adjacent pages for a monthly total of %i', async total => {
     countMonth.mockResolvedValue(total);
     load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
     const component = mount();
@@ -504,8 +504,8 @@ it('uses all completed chart pages including delegated logins for history pagina
         if (!input.day) {
             return { buckets: [] };
         }
-        return input.nextId ? { buckets: [{ action: 'change', count: 100 }], records: [login] } :
-            { buckets: [{ action: 'change', count: 100 }], nextId: 'more', nextTime: 'time' };
+        return input.nextId ? { buckets: [{ action: 'change', count: 500 }], records: [login] } :
+            { buckets: [{ action: 'change', count: 500 }], nextId: 'more', nextTime: 'time' };
     });
     const component = mount();
     await flush();
@@ -524,7 +524,7 @@ it('uses all completed chart pages including delegated logins for history pagina
 it('keeps the completed analysis total when an earlier count response arrives late', async () => {
     let finishCount;
     countMatches.request.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
-    load.request.mockImplementation(({ input }) => (input.chart ? { buckets: [{ action: 'change', count: 401 }] } :
+    load.request.mockImplementation(({ input }) => (input.chart ? { buckets: [{ action: 'change', count: 2001 }] } :
         { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' }));
     const component = mount();
     await flush();
@@ -534,7 +534,7 @@ it('keeps the completed analysis total when an earlier count response arrives la
     chart.dispatchEvent(new CustomEvent('active'));
     await flush();
     expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
-    finishCount(201);
+    finishCount(1001);
     await flush();
     history.dispatchEvent(new CustomEvent('active'));
     await flush();
@@ -554,7 +554,7 @@ it('does not use an interrupted chart as the count for the history tab', async (
         return input.nextId ? new Promise(resolve => { finishChart = resolve; }) :
             { buckets: [{ action: 'change', count: 1 }], nextId: 'more', nextTime: 'time' };
     });
-    countMatches.request.mockResolvedValue(201);
+    countMatches.request.mockResolvedValue(1001);
     const component = mount();
     await flush();
     const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
@@ -565,7 +565,7 @@ it('does not use an interrupted chart as the count for the history tab', async (
     await search(component);
     history.dispatchEvent(new CustomEvent('active'));
     await flush();
-    finishChart({ buckets: [{ action: 'change', count: 400 }] });
+    finishChart({ buckets: [{ action: 'change', count: 2000 }] });
     await flush();
     expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
     expect(countMatches.request).toHaveBeenCalledTimes(1);
@@ -612,7 +612,7 @@ it.each([true, false])('clears data loading spinners after requests settle (succ
         rejectRequests = reject;
     });
     countMonth.mockReturnValueOnce(pending.then(() => 42));
-    countMatches.request.mockReturnValueOnce(pending.then(() => 201));
+    countMatches.request.mockReturnValueOnce(pending.then(() => 1001));
     load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'cursor', nextTime: 'time' });
 
     const component = mount();
@@ -685,7 +685,7 @@ it('queries ordinary actions for the selected creator with normal detail paginat
     await chooseLookup(component, 'action', 'changedApexClass');
     await search(component);
     expect(load.request.mock.calls.map(([{ input }]) => input.matchIndex)).toEqual([undefined, undefined]);
-    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'changedApexClass', userId: 'target', pageSize: 200 });
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'changedApexClass', userId: 'target', pageSize: 1000 });
     expect(countMatches.request).not.toHaveBeenCalled();
     expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
@@ -774,7 +774,7 @@ it('allows retry inside the failed lookup and displays the returned options', as
 it('refreshes monthly pagination and ignores the previous monthly count after search', async () => {
     let finishInitialCount;
     countMonth.mockImplementationOnce(() => new Promise(resolve => { finishInitialCount = resolve; }))
-        .mockResolvedValueOnce(201);
+        .mockResolvedValueOnce(1001);
     // 総件数と次ページの境界はApex応答で表し、明細は各ページの代表行だけを用意する。
     const firstPage = [{ Id: 'first' }];
     load.request.mockResolvedValueOnce({ records: firstPage })
@@ -783,10 +783,10 @@ it('refreshes monthly pagination and ignores the previous monthly count after se
     const component = mount();
     await flush();
     await search(component);
-    finishInitialCount(200);
+    finishInitialCount(1000);
     await flush();
     const root = component.shadowRoot;
-    expect(root.querySelector('h2').textContent).toContain('201件');
+    expect(root.querySelector('h2').textContent).toContain('1,001件');
     [...root.querySelectorAll('nav lightning-button')].find(button => button.label === '次へ').click();
     await flush();
     expect(root.querySelector('nav').textContent).toContain('2 / 2ページ');
@@ -852,13 +852,13 @@ it('uses the actual last page when a delayed filtered count includes unavailable
     await search(component);
     component.shadowRoot.querySelector('nav lightning-button').click();
     await flush();
-    finishCount(401);
+    finishCount(2001);
     await flush();
     expect(component.shadowRoot.querySelector('nav').textContent).toContain('2 / 2ページ');
 });
 
 it('hides an obsolete monthly page count when the cursor already proves another page exists', async () => {
-    countMonth.mockResolvedValue(200);
+    countMonth.mockResolvedValue(1000);
     load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'next', nextTime: 'time' });
     const component = mount();
     await flush();
@@ -867,7 +867,7 @@ it('hides an obsolete monthly page count when the cursor already proves another 
 });
 
 it('can retry a failed filtered count without reloading the visible records', async () => {
-    countMatches.request.mockRejectedValueOnce(new Error('count')).mockResolvedValueOnce(201);
+    countMatches.request.mockRejectedValueOnce(new Error('count')).mockResolvedValueOnce(1001);
     load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'next', nextTime: 'time' });
     const component = mount();
     await flush();
@@ -885,7 +885,7 @@ it('can retry a failed filtered count without reloading the visible records', as
 });
 
 it('returns to available history if records beyond the saved cursor have expired', async () => {
-    countMonth.mockResolvedValueOnce(201).mockResolvedValueOnce(1);
+    countMonth.mockResolvedValueOnce(1001).mockResolvedValueOnce(1);
     load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }], nextId: 'expired', nextTime: 'time' })
         .mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ records: [{ Id: 'remaining' }] });
     const component = mount();
