@@ -20,6 +20,19 @@ private class SetupAuditTrailExplorerServiceTest {
     }
 
     @IsTest
+    static void includesDistinctSectionOptions() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize('{"Section":"Apex クラス"}', SetupAuditTrail.class);
+            Test.startTest();
+            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.summarizeOptions(
+                new List<SetupAuditTrail>{row, row, new SetupAuditTrail()}, 3
+            );
+            Test.stopTest();
+            Assert.areEqual(new List<String>{'Apex クラス'}, result.options.get('section'), '空欄と重複を候補から除きます。');
+        }
+    }
+
+    @IsTest
     static void rejectsInvalidDay() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             try {

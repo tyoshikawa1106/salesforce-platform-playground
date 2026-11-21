@@ -37,7 +37,7 @@ export function pageCursor({ nextId, nextTime }) {
 }
 
 // ユーザー以外の検索候補を履歴から収集する。
-export const FILTER_OPTION_FIELDS = ['action', 'namespacePrefix', 'delegateUser'];
+export const FILTER_OPTION_FIELDS = ['action', 'namespacePrefix', 'section', 'delegateUser'];
 
 // 項目ごとに候補の重複を取り除く準備をする。
 export function filterOptionGroups() {
@@ -126,7 +126,9 @@ export function collectLoginAsPairs(pairs, records) {
         group.previousTime = time;
         if (login) {
             // 作成者の表示名も本文に一致したログアウトだけをこのログインに対応付ける。
-            if (group.logout.CreatedBy?.Name === target) {
+            if (needsLoginAsUser(row) && row.Id && row.CreatedById && group.logout.CreatedBy?.Name === target &&
+                group.logout.CreatedById && group.logout.CreatedById !== row.CreatedById && group.logout.CreatedBy.Username &&
+                group.logout.CreatedBy.Username.toLowerCase() !== row.DelegateUser.toLowerCase()) {
                 group.byLogin.set(row.Id, group.logout);
             }
             group.logout = null;
@@ -136,23 +138,24 @@ export function collectLoginAsPairs(pairs, records) {
     }
 }
 
-// 日本語の標準表示に対応できるユーザー種別と作成者だけを整形する。
-function csvUser(row, employeeActorIds, loginAsPairs) {
-    // 同じ代理人・対象の操作が時系列で対応することを確認する。
-    if (row.Id && row.CreatedById && needsLoginAsUser(row)) {
-        // 本文の対象名を正確に照合し、同名の別の代理人による操作を除く。
-        const key = loginAsKey(row.DelegateUser, row.Display.slice(0, -LOGIN_SUFFIX.length));
-        // 同じ履歴IDのログインに対応するログアウトだけを調べる。
-        const group = loginAsPairs?.get(key);
-        // 許可元の作成者IDとログイン名がそろった後続操作だけを採用する。
-        const logout = group && !group.ambiguous && !group.logout && group.byLogin.get(row.Id);
-        // 同時刻や逆順の行、代理人自身の作成者情報では置き換えない。
-        if (logout?.CreatedById && logout.CreatedById !== row.CreatedById &&
-            logout.CreatedBy?.Username && logout.CreatedBy.Username.toLowerCase() !== row.DelegateUser.toLowerCase() &&
-            Date.parse(logout.CreatedDate) > Date.parse(row.CreatedDate)) {
-            // 確認できた許可元のログイン名を「ユーザー」列へ渡す。
-            return logout.CreatedBy.Username;
+// 一意に対応した組だけを履歴IDで参照し、検索と表示に同じ作成者を使う。
+export function loginAsActors(pairs) {
+    const actors = new Map();
+    for (const group of pairs.values()) {
+        if (!group.ambiguous && !group.logout) {
+            for (const [id, logout] of group.byLogin) {
+                actors.set(id, logout);
+            }
         }
+    }
+    return actors;
+}
+
+// 履歴一覧とCSVで同じユーザー名を表示する。
+export function displayUser(row, employeeActorIds, actors) {
+    const logout = actors?.get(row.Id);
+    if (logout && needsLoginAsUser(row)) {
+        return logout.CreatedBy.Username;
     }
     // 日本語の自動化プロセスには標準CSVの種別名を出す。
     if (LANG.startsWith('ja') && row.CreatedBy?.UserType === 'AutomatedProcess') {
@@ -169,7 +172,7 @@ function csvUser(row, employeeActorIds, loginAsPairs) {
 }
 
 // 権限セットのオブジェクト権限変更に限り、本文の対象オブジェクト名を整える。
-function csvAction(row) {
+export function displayAction(row) {
     // 他の操作や言語はAPIが返した本文を使用する。
     if (row.Action !== 'PermSetEntityPermChanged' || !LANG.startsWith('ja')) {
         // 通常の監査本文は原文を保持する。
@@ -187,7 +190,7 @@ function csvCell(value) {
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
-export function formatCsvPage(records, employeeActorIds = new Set(), loginAsPairs) {
+export function formatCsvPage(records, employeeActorIds = new Set(), actors) {
     // 同じ秒に続く履歴で日時の書式変換を共有する。
     let lastDate;
     // 直前の履歴に対応する日時文字列を保持する。
@@ -202,8 +205,8 @@ export function formatCsvPage(records, employeeActorIds = new Set(), loginAsPair
             formattedDate = CSV_DATE_FORMAT.format(new Date(lastDate));
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
-        return [formattedDate, csvUser(row, employeeActorIds, loginAsPairs), row.ResponsibleNamespacePrefix,
-            csvAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
+        return [formattedDate, displayUser(row, employeeActorIds, actors), row.ResponsibleNamespacePrefix,
+            displayAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }
 
@@ -228,6 +231,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
         { key: 'userId', label: 'ユーザー', values: Object.keys(userOptions) },
         { key: 'namespacePrefix', label: '名前空間プレフィックス', values: filterOptions?.namespacePrefix },
         { key: 'action', label: 'アクション', values: filterOptions?.action },
+        { key: 'section', label: 'セクション', values: filterOptions?.section },
         { key: 'delegateUser', label: '代理ユーザー', values: filterOptions?.delegateUser }
     ].map(({ key, label, values }) => {
         // 候補値から画面に表示するラベルを選ぶ。
@@ -235,7 +239,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
             // ユーザー欄はIDから表示名を解決する。
             if (key === 'userId') {
                 // 候補が持つ最も具体的な名前を使う。
-                return userNames[value] || userOptions[value] || value;
+                return userNames[value] || userOptions[value] || '';
             }
             // その他の項目は候補値をそのまま表示する。
             return value;
@@ -247,7 +251,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
             // 選択した値と解除操作のラベルを組み立てる。
             return {
                 key, label, open: false, selected: Boolean(selected),
-                inputValue: selected ? labelFor(selected) : '',
+                inputValue: selected ? (key === 'userId' ? userOptions[selected] || labelFor(selected) : labelFor(selected)) : '',
                 clearLabel: label + 'の選択を解除',
                 selectedIcon: key === 'userId' ? 'standard:user' : 'standard:custom'
             };
@@ -273,7 +277,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
             noMatches: Boolean(filterOptions) && matches.length === 0,
             options: matches.map((value, index) => ({
                 label: labelFor(value),
-                code: key === 'userId' ? value : '',
+                code: key === 'userId' ? userOptions[value] : '',
                 value,
                 id: listId + '-' + index,
                 active: index === lookupIndex,
@@ -303,4 +307,18 @@ export function mergeChartPage(totals, buckets) {
             totals.set(key, { ...bucket });
         }
     }
+}
+
+// Apexと同じ実行ユーザーの暦日で、代理ログインを分析の集計行に加える。
+const DAY_FORMAT = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE
+});
+
+export function loginBucket(row, actors) {
+    const actor = actors.get(row.Id) ?? row;
+    return {
+        day: DAY_FORMAT.format(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
+        loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
+        namespacePrefix: row.ResponsibleNamespacePrefix, delegateUser: row.DelegateUser, count: 1
+    };
 }

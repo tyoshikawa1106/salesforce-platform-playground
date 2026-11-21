@@ -102,6 +102,12 @@ public with sharing class SetupAuditTrailExplorerController {
         if (criteria.csv == true) {
             return loadDetails(criteria, CSV_PAGE_SIZE);
         }
+        if (criteria.matchIndex == true) {
+            List<SetupAuditTrail> matches = SetupAuditTrailExplorerSelector.selectPage(
+                criteria, SetupAuditTrailExplorerSelector.Projection.MATCH_INDEX, CHART_PAGE_SIZE + 1
+            );
+            return SetupAuditTrailExplorerService.summarizeDetails(matches, CHART_PAGE_SIZE);
+        }
         if (criteria.chart == true) {
             List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.CHART, CHART_PAGE_SIZE + 1
@@ -112,7 +118,19 @@ public with sharing class SetupAuditTrailExplorerController {
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
         );
-        return SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
+        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
+        // 従業員操作の候補がある表示ページだけ、CSVと同じ作成者の根拠を照会する。
+        for (SetupAuditTrail row : wrapper.records) {
+            if (row.CreatedById != null && String.isBlank(row.CreatedBy?.Username)) {
+                wrapper.employeeActorIds = employeeActors();
+                break;
+            }
+        }
+        return wrapper;
+    }
+
+    private static List<Id> employeeActors() {
+        return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(System.now()));
     }
 
     private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit) {
@@ -123,8 +141,7 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
         if (criteria.nextId == null) {
-            List<SetupAuditTrail> employeeActions = SetupAuditTrailExplorerSelector.selectEmployeeActions(System.now());
-            wrapper.employeeActorIds = SetupAuditTrailExplorerService.employeeActorIds(employeeActions);
+            wrapper.employeeActorIds = employeeActors();
         }
         return wrapper;
     }

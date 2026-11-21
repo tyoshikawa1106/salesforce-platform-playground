@@ -4,14 +4,21 @@
 }
 
 .filters {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: end;
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 .c-search-lookup {
-    flex: 1 1 12rem;
     min-width: 0;
+}
+
+@media (max-width: 48rem) {
+    .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 30rem) {
+    .filters { grid-template-columns: minmax(0, 1fr); }
 }
 
 .c-search-lookup input {

@@ -82,12 +82,15 @@ public with sharing class SetupAuditTrailExplorerService {
     public static SetupAuditTrailExplorerWrapper summarizeOptions(List<SetupAuditTrail> rows, Integer sizeLimit) {
         SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
         Set<String> actions = new Set<String>();
+        Set<String> sections = new Set<String>();
         Set<String> namespaces = new Set<String>();
         Set<String> delegates = new Set<String>();
         response.userOptions = new Map<String, String>();
         response.userNames = new Map<String, String>();
         for (SetupAuditTrail row : rows) {
-            if (row.CreatedById != null && String.isNotBlank(row.CreatedBy?.Username)) {
+            if (row.Action == 'suOrgAdminLogin') {
+                response.records.add(row);
+            } else if (row.CreatedById != null && String.isNotBlank(row.CreatedBy?.Username)) {
                 String userId = String.valueOf(row.CreatedById);
                 response.userOptions.put(userId, row.CreatedBy.Username);
                 if (String.isNotBlank(row.CreatedBy.Name)) {
@@ -95,14 +98,17 @@ public with sharing class SetupAuditTrailExplorerService {
                 }
             }
             actions.add(row.Action);
+            sections.add(row.Section);
             namespaces.add(row.ResponsibleNamespacePrefix);
             delegates.add(row.DelegateUser);
         }
         actions.remove(null);
+        sections.remove(null);
         namespaces.remove(null);
         delegates.remove(null);
         response.options = new Map<String, List<String>>{
             'action' => new List<String>(actions),
+            'section' => new List<String>(sections),
             'namespacePrefix' => new List<String>(namespaces),
             'delegateUser' => new List<String>(delegates)
         };
@@ -144,6 +150,11 @@ public with sharing class SetupAuditTrailExplorerService {
         SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
         Map<String, SetupAuditTrailExplorerWrapper.Bucket> buckets = new Map<String, SetupAuditTrailExplorerWrapper.Bucket>();
         for (SetupAuditTrail row : rows) {
+            // 代理ログインだけは照合後のユーザーで画面側の同じ集計に加える。
+            if (row.Action == 'suOrgAdminLogin') {
+                response.records.add(row);
+                continue;
+            }
             String day = String.valueOf(row.CreatedDate.date());
             String key = JSON.serialize(new List<String>{
                 day, row.CreatedById, row.Action, row.Section, row.ResponsibleNamespacePrefix, row.DelegateUser

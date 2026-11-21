@@ -33,6 +33,21 @@ private class SetupAuditTrailExplorerSelectorTest {
     }
 
     @IsTest
+    static void returnsNoRecordsForEmptySelection() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+            criteria.endAt = System.now();
+            criteria.recordIds = new List<Id>();
+            Test.startTest();
+            List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+                criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, 200
+            );
+            Test.stopTest();
+            Assert.isTrue(rows.isEmpty(), '空の選択を未指定として扱いません。');
+        }
+    }
+
+    @IsTest
     static void countsHistoryInMonth() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Datetime startAt = Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0);

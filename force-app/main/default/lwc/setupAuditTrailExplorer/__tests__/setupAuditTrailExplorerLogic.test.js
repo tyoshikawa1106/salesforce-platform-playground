@@ -1,4 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage, loginAsActors } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -24,7 +24,7 @@ it.each([
 ])('uses the verified login-as user only if unambiguous: %s', (description, rows, expected) => {
     const pairs = new Map();
     rows.forEach(row => collectLoginAsPairs(pairs, [row]));
-    expect(formatCsvPage([login], new Set(), pairs)).toBe(
+    expect(formatCsvPage([login], new Set(), loginAsActors(pairs))).toBe(
         '"2026/10/31 23:59:00 JST","' + expected + '","","' + login.Display + '","","admin"\n'
     );
 });
@@ -37,7 +37,7 @@ it('matches separate sessions of the same delegate and target across pages by lo
     collectLoginAsPairs(pairs, [laterLogout]);
     collectLoginAsPairs(pairs, [laterLogin, logout]);
     collectLoginAsPairs(pairs, [login]);
-    expect(formatCsvPage([laterLogin, login], new Set(), pairs).split('\n').slice(0, 2).map(line => line.split(',')[1]))
+    expect(formatCsvPage([laterLogin, login], new Set(), loginAsActors(pairs)).split('\n').slice(0, 2).map(line => line.split(',')[1]))
         .toEqual(['"secondTarget"', '"target"']);
 });
 

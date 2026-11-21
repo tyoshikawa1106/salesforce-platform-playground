@@ -96,8 +96,8 @@
                         </template>
                     </div>
                 </template>
-                <lightning-button label="検索" variant="brand" onclick={search}></lightning-button>
             </div>
+            <lightning-button class="slds-m-top_small slds-show_inline-block" label="検索" variant="brand" onclick={search}></lightning-button>
             <template lwc:if={optionsError}>
                 <p role="alert" class="slds-text-color_error slds-m-top_small">絞り込み候補を取得できませんでした。</p>
                 <lightning-button label="候補を再取得" onclick={readFilterOptions}></lightning-button>

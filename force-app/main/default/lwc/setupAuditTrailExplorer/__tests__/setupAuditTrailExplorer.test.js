@@ -161,10 +161,10 @@ it('shows raw action codes and month users', async () => {
     await flush();
     const userOption = component.shadowRoot.querySelector(`[role="option"][data-value="${userId}"]`);
     expect(userOption.firstElementChild.children[0].textContent).toBe('山田 太郎');
-    expect(userOption.firstElementChild.children[1].textContent).toBe(userId);
+    expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.invalid');
     userOption.click();
     await flush();
-    expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('山田 太郎');
+    expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('audit@example.invalid');
     expect(component.shadowRoot.textContent).not.toContain(userId);
     const action = component.shadowRoot.querySelector('input[data-field="action"]');
     action.click();
@@ -529,4 +529,42 @@ it.each([true, false])('clears the filter candidate spinner after loading (succe
     finishRequest();
     await flush();
     expect(root.querySelector('lightning-spinner')).toBeNull();
+});
+
+it('shows the CSV actor and action on screen and indexes the section across source pages', async () => {
+    const target = { Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
+        CreatedDate: '2026-11-02T03:00:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin', Section: 'ログイン' };
+    const logout = { ...target, Id: 'logout', Action: 'suOrgAdminLogout', Display: '対象 のログインアクセスを使用してログアウト済み',
+        CreatedDate: '2026-11-02T03:00:05Z', CreatedById: 'targetId', CreatedBy: { Name: '対象', Username: 'target' } };
+    const changed = { Id: 'changed', CreatedById: 'service', Action: 'PermSetEntityPermChanged', Section: '権限',
+        Display: '権限セット X を変更: ArchiveJobSession オブジェクト権限を 参照' };
+    loadLoginAsHistory.mockResolvedValue({ records: [logout, target] });
+    loadFilterOptions.mockResolvedValue({ options: { section: ['ログイン', '権限'] }, userOptions: { targetId: 'target' } });
+    load.request.mockImplementation(({ input }) => {
+        if (input.matchIndex) {
+            return input.nextId ? { records: [target] } : { records: [changed, logout], nextId: 'cursor', nextTime: 'time' };
+        }
+        if (input.chart) {
+            return { buckets: [], records: [target] };
+        }
+        return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'] };
+    });
+    const component = mount();
+    await flush();
+    const table = () => component.shadowRoot.querySelector('lightning-datatable');
+    expect(table().data.map(row => row.displayedUser)).toEqual(['target', '株式会社セールスフォース・ジャパン']);
+    expect(table().data[1].displayedAction).toContain('アーカイブジョブセッション');
+    await chooseLookup(component, 'section', 'ログイン');
+    await chooseLookup(component, 'userId', 'targetId');
+    await search(component);
+    await flush();
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ recordIds: ['logout', 'login'] }) });
+    expect(table().data.map(row => row.displayedUser)).toEqual(['target', 'target']);
+    expect(countMatches.request).not.toHaveBeenCalled();
+    const chartTab = [...component.shadowRoot.querySelectorAll('lightning-tab')].find(tab => tab.value === 'chart');
+    chartTab.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({
+        userId: 'targetId', loginName: 'target', day: '2026-11-02', section: 'ログイン'
+    });
 });

@@ -8,7 +8,7 @@ import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerControll
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    collectLoginAsPairs, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
+    collectLoginAsPairs, displayUser, displayAction, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -17,9 +17,9 @@ const COLUMNS = [
         year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
         timeZone: TIME_ZONE
     }},
-    { label: 'ユーザー', fieldName: 'userFullName', initialWidth: 300, wrapText: true },
+    { label: 'ユーザー', fieldName: 'displayedUser', initialWidth: 300, wrapText: true },
     { label: '名前空間プレフィックス', fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
-    { label: 'アクション', fieldName: 'Display', wrapText: true },
+    { label: 'アクション', fieldName: 'displayedAction', wrapText: true },
     { label: 'セクション', fieldName: 'Section', initialWidth: 240, wrapText: true },
     { label: '代理ユーザー', fieldName: 'DelegateUser', initialWidth: 175, wrapText: true }
 ].map(column => ({
@@ -46,6 +46,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     namespacePrefix = null;
     // 入力中の代理ユーザー条件を保持する。
     delegateUser = null;
+    // 画面の表示値で照合する条件と、その確定済み検索に属する結果を保持する。
+    section = null;
+    matchingIds;
+    screenActors;
     // 取得前と候補なしを区別する。
     filterOptions = null;
     // ログイン名による候補検索を可能にする。
@@ -222,7 +226,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 指定ページを取得できるか調べる。
     canOpenPage(page) {
         // 取得済みのページ境界内に移動先を限定する。
-        return page >= 1 && page <= this.pageStarts.length;
+        return page >= 1 && page <= (this.matchingIds ? this.totalPages : this.pageStarts.length);
     }
 
     // 読み込み後の空一覧を識別する。
@@ -353,6 +357,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const users = {};
         // ユーザーIDと表示名の対応を集める。
         const names = {};
+        const logins = [];
         // 全ページで同じ月を使う。
         const monthStart = this.monthDate;
         // 最初の候補ページから始める。
@@ -371,18 +376,33 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 // 項目別に候補をまとめる。
                 for (const field of FILTER_OPTION_FIELDS) {
                     // このページが返した各値を取り込む。
-                    for (const value of result.options[field]) {
+                    for (const value of (result.options[field] ?? [])) {
                         // 複数ページに現れる候補を一つにまとめる。
                         groups[field].add(value);
                     }
                 }
                 // ログイン名をページ間で統合する。
                 Object.assign(users, result.userOptions);
+                logins.push(...(result.records ?? []));
                 // 表示名をページ間で統合する。
                 Object.assign(names, result.userNames);
                 // 次ページの開始境界を引き継ぐ。
                 cursor = pageCursor(result);
             } while (cursor.nextId);
+            if (logins.length) {
+                const isCurrent = () => request === this.optionsRequest;
+                const actors = this.screenActors ?? await this.readActors(null, isCurrent);
+                if (!isCurrent()) {
+                    return;
+                }
+                for (const row of logins) {
+                    const actor = actors.get(row.Id) ?? row;
+                    if (actor.CreatedById && actor.CreatedBy?.Username) {
+                        users[actor.CreatedById] = actor.CreatedBy.Username;
+                        names[actor.CreatedById] = actor.CreatedBy.Name;
+                    }
+                }
+            }
             // 全ページで見つかったユーザーを検索可能にする。
             this.userOptions = users;
             // ユーザー候補に表示名を適用する。
@@ -421,7 +441,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 入力中の条件を、確定済みの検索条件とは独立して表示する。
         return buildFilterFields({
             userOptions: this.userOptions, userNames: this.userNames, filterOptions: this.filterOptions,
-            selectedValues: { userId: this.userId, namespacePrefix: this.namespacePrefix, action: this.action, delegateUser: this.delegateUser },
+            selectedValues: { userId: this.userId, namespacePrefix: this.namespacePrefix, action: this.action, section: this.section, delegateUser: this.delegateUser },
             lookupField: this.lookupField, lookupTerm: this.lookupTerm, lookupIndex: this.lookupIndex
         });
     }
@@ -593,6 +613,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.action = null;
         // 代理ユーザーを指定しない状態に戻す。
         this.delegateUser = null;
+        this.section = null;
         // 日の指定を外して月全体を対象にする。
         this.day = null;
     }
@@ -606,6 +627,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             day: this.day,
             userId: this.userId,
             action: this.action,
+            ...(this.section ? { section: this.section } : {}),
             ...(this.namespacePrefix ? { namespacePrefix: this.namespacePrefix } : {}),
             ...(this.delegateUser ? { delegateUser: this.delegateUser } : {})
         };
@@ -631,7 +653,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 集計行から対応する明細へ移動する。
     selectBucket(event) {
         // 確定済みの条件に選択した集計軸を重ねる。
-        const { userId, action, day, namespacePrefix, delegateUser } = { ...this.appliedFilters, ...event.detail };
+        const { userId, action, day, namespacePrefix, section, delegateUser } = { ...this.appliedFilters, ...event.detail };
         // 集計対象のユーザーを明細条件に渡す。
         this.userId = userId ?? null;
         // 集計対象の操作種別を引き継ぐ。
@@ -642,6 +664,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.namespacePrefix = namespacePrefix ?? null;
         // 代理ユーザーで区別された集計を引き継ぐ。
         this.delegateUser = delegateUser ?? null;
+        this.section = section ?? null;
         // 集計に対応する明細タブを開く。
         this.tab = 'list';
         // 集計行の条件を確定して明細を読み込む。
@@ -657,7 +680,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // ページ番号表示用の一致件数を取得する。
     async readMatchCount() {
         // 絞り込み件数は履歴のページ送りでだけ使う。
-        if (this.tab !== 'list' || !this.hasFilters || this.matchCount !== null || this.matchLoading) {
+        if (this.usesMatchIndex || this.tab !== 'list' || !this.hasFilters || this.matchCount !== null || this.matchLoading) {
             // 件数が不要または要求済みなら取得を省く。
             return;
         }
@@ -686,6 +709,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 新しい条件で先頭から取得し直す。
     refresh() {
+        this.matchingIds = undefined;
+        this.screenActors = undefined;
         // 以前の明細を取得済みと扱わないようにする。
         this.listReady = false;
         // 以前の分析結果を取得済みと扱わないようにする。
@@ -758,13 +783,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     // 一時的な通信エラー時は同じCSVページを一度再取得する。
-    async readExportPage(fetchPage, query, request) {
+    async readExportPage(fetchPage, query, isCurrent) {
         try {
             // 指定された境界から履歴を取得する。
             return await fetchPage(query);
         } catch (error) {
             // 離脱後の要求と一時的通信エラー以外を再試行から除く。
-            if (request !== this.exportRequest || ![0, 502, 503, 504].includes(error?.status)) {
+            if (!isCurrent() || ![0, 502, 503, 504].includes(error?.status)) {
                 // 元のエラーを出力処理へ伝える。
                 throw error;
             }
@@ -776,32 +801,86 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 代理ログインを初めて含む明細ページでだけ照合を開始する。
     async readCsvPage(fetchPage, query, request, context) {
         // 月別・全期間の既存のページ境界と再試行を共通で使う。
-        const page = await this.readExportPage(fetchPage, query, request);
+        const isCurrent = () => request === this.exportRequest;
+        const page = await this.readExportPage(fetchPage, query, isCurrent);
         // 離脱後や照合済みの出力では追加の要求を送らない。
-        if (request === this.exportRequest && !context.loginAsPairs && page.records.some(needsLoginAsUser)) {
+        if (request === this.exportRequest && !context.actors && page.records.some(needsLoginAsUser)) {
             // 出力ごとに独立した照合結果を全明細ページで共有する。
-            context.loginAsPairs = new Map();
             // 全期間では明細と同じ上限、月別では組織時刻を使って月外も照合する。
-            await this.readLoginAsPairs({ cutoff: page.cutoff ?? null }, request, context.loginAsPairs);
+            context.actors = await this.readActors(page.cutoff, isCurrent);
         }
         // 明細の追加前に呼び出し元で要求の有効性を再確認する。
         return page;
     }
 
-    // 保持期間内の代理ログイン・ログアウトだけをページ順に取り込む。
-    async readLoginAsPairs(query, request, pairs) {
-        // 一時的な通信障害は同じ照合ページを再取得する。
-        const page = await this.readExportPage(loadLoginAsHistory, query, request);
-        // 中断した出力では集計と次ページの要求を打ち切る。
-        if (request !== this.exportRequest) {
-            return;
+    // 保持期間全体でログインとログアウトを照合し、完了した結果だけを返す。
+    async readActors(cutoff, isCurrent) {
+        const pairs = new Map();
+        const readPage = async query => {
+            const page = await this.readExportPage(loadLoginAsHistory, query, isCurrent);
+            if (!isCurrent()) {
+                return;
+            }
+            collectLoginAsPairs(pairs, page.records);
+            if (page.nextId) {
+                await readPage({ cutoff: page.cutoff, ...pageCursor(page) });
+            }
+        };
+        await readPage({ cutoff: cutoff ?? null });
+        return loginAsActors(pairs);
+    }
+
+    // SOQLで絞れないセクションと、代理ログイン補正後のユーザーを明細・分析で共有する。
+    get usesMatchIndex() {
+        return Boolean(this.appliedFilters.section || this.appliedFilters.userId);
+    }
+
+    // セクション照合用に本文を取得せず、一致した履歴IDだけを作成日時順に保持する。
+    async readMatchingIds(query, isCurrent) {
+        const ids = [];
+        const readPage = async cursor => {
+            const page = await load({ criteriaJson: JSON.stringify({ ...query, ...cursor, matchIndex: true }) });
+            if (!isCurrent()) {
+                return;
+            }
+            if (query.userId && !this.screenActors && page.records.some(row => row.Action === 'suOrgAdminLogin')) {
+                const actors = await this.readActors(null, isCurrent);
+                if (!isCurrent()) {
+                    return;
+                }
+                this.screenActors = actors;
+            }
+            for (const row of page.records) {
+                const userId = this.screenActors?.get(row.Id)?.CreatedById ?? row.CreatedById;
+                if ((!query.section || row.Section === query.section) && (!query.userId || userId === query.userId)) {
+                    ids.push(row.Id);
+                }
+            }
+            if (page.nextId) {
+                await readPage(pageCursor(page));
+            }
+        };
+        await readPage({});
+        return ids;
+    }
+
+    // 通常の一覧にもCSVと同じ作成者とアクションを組み立てる。
+    async showDetailPage(result, cursor, isCurrent) {
+        if (!this.screenActors && result.records.some(needsLoginAsUser)) {
+            const actors = await this.readActors(null, isCurrent);
+            if (!isCurrent()) {
+                return;
+            }
+            this.screenActors = actors;
         }
-        // 後続ページで重複が見つかる場合も含めて候補を集計する。
-        collectLoginAsPairs(pairs, page.records);
-        // 固定した取得上限を最後の照合ページまで引き継ぐ。
-        if (page.nextId) {
-            await this.readLoginAsPairs({ cutoff: page.cutoff, ...pageCursor(page) }, request, pairs);
+        const employees = new Set(result.employeeActorIds);
+        this.records = result.records.map(row => ({
+            ...row, displayedUser: displayUser(row, employees, this.screenActors), displayedAction: displayAction(row)
+        }));
+        if (!this.usesMatchIndex) {
+            this.rememberNextPage(cursor);
         }
+        this.listReady = true;
     }
 
     // 表示月の全履歴をCSVにする。
@@ -865,7 +944,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     employeeActorIds = new Set(result.employeeActorIds);
                 }
                 // 月別と全期間で共通の書式を使って明細を追加する。
-                chunks.push(formatCsvPage(result.records, employeeActorIds, context.loginAsPairs));
+                chunks.push(formatCsvPage(result.records, employeeActorIds, context.actors));
                 // 今回のページで取得が完了した件数を加算する。
                 this.exportedRows += result.records.length;
                 // 次回要求に日時とIDの境界を引き継ぐ。
@@ -937,33 +1016,51 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         let cursor = chart ? {} : this.pageStarts[this.page - 1];
         // 複数ページの集計を共通のキーでまとめる。
         const totals = new Map();
+        const isCurrent = () => request === this.request;
         try {
-            // タブ表示に必要なページを順番に取得する。
+            if (this.usesMatchIndex && !this.matchingIds) {
+                const ids = await this.readMatchingIds(query, isCurrent);
+                if (!isCurrent()) {
+                    return;
+                }
+                this.matchingIds = ids;
+                this.matchCount = ids.length;
+            }
+            if (!chart) {
+                const offset = (this.page - 1) * PAGE_SIZE;
+                const recordIds = this.matchingIds?.slice(offset, offset + PAGE_SIZE);
+                const result = recordIds?.length === 0 ? { records: [] } :
+                    await load({ criteriaJson: JSON.stringify({ ...query, ...(recordIds ? { recordIds } : cursor) }) });
+                if (isCurrent()) {
+                    await this.showDetailPage(result, pageCursor(result), isCurrent);
+                }
+                return;
+            }
+            const logins = [];
+            let offset = 0;
             do {
+                const recordIds = this.matchingIds?.slice(offset, offset + 2000);
                 // 次のページには直前の応答の境界を使う。
                 // eslint-disable-next-line no-await-in-loop
-                const result = await load({ criteriaJson: JSON.stringify({ ...query, ...cursor }) });
-                // 取得中に条件が変わったかを確認する。
-                if (request !== this.request) {
-                    // 無効になった応答は表示に反映しない。
+                const result = recordIds?.length === 0 ? { buckets: [] } : await load({
+                    criteriaJson: JSON.stringify({ ...query, ...(recordIds ? { recordIds } : cursor) })
+                });
+                if (!isCurrent()) {
                     return;
                 }
-                // 次回の取得に使う境界を保存する。
-                cursor = pageCursor(result);
-                // 一覧では一度に一ページを表示する。
-                if (!chart) {
-                    // 明細の表示用ユーザー名を作る。
-                    this.records = result.records.map(row => ({ ...row, userFullName: row.CreatedBy?.Name }));
-                    // 次のページに移動できるように境界を登録する。
-                    this.rememberNextPage(cursor);
-                    // 明細が取得できたことを示す。
-                    this.listReady = true;
-                    // 一覧では利用者が移動するまで次ページを取得しない。
-                    return;
-                }
-                // 全ページの集計を同じ軸ごとに加算する。
                 mergeChartPage(totals, result.buckets);
+                logins.push(...(result.records ?? []));
+                offset += recordIds?.length ?? 0;
+                cursor = recordIds ? { nextId: offset < this.matchingIds.length } : pageCursor(result);
             } while (cursor.nextId);
+            if (logins.length) {
+                const actors = this.screenActors ?? await this.readActors(null, isCurrent);
+                if (!isCurrent()) {
+                    return;
+                }
+                this.screenActors = actors;
+                mergeChartPage(totals, logins.map(row => loginBucket(row, actors)));
+            }
             // 全ページの集計行を分析タブに渡す。
             this.buckets = [...totals.values()];
             // 全件の分析が完了した月だけ、分析結果を候補一覧に再利用する。

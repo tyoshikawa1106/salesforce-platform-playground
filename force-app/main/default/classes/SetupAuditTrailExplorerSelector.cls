@@ -3,13 +3,15 @@ public with sharing class SetupAuditTrailExplorerSelector {
     private static final String DETAIL_FIELDS = 'Id, CreatedDate, CreatedBy.Name, CreatedBy.Username, ResponsibleNamespacePrefix, Display, Section, DelegateUser';
     private static final String OPTION_FIELDS = 'Id, CreatedDate, Action, ResponsibleNamespacePrefix, DelegateUser';
     private static final String LOOKUP_FIELDS = OPTION_FIELDS + ', CreatedById, CreatedBy.Name, CreatedBy.Username';
-    private static final String CHART_FIELDS = LOOKUP_FIELDS + ', Section';
+    private static final String DETAIL_ACTOR_FIELDS = DETAIL_FIELDS + ', Action, CreatedById, CreatedBy.UserType';
 
     /** 検索条件とページ境界を保持する。 */
     public class Criteria {
         public Date monthStart;
         public Date day;
         public Id userId;
+        public List<Id> recordIds;
+        public Boolean matchIndex;
         public String action;
         public String namespacePrefix;
         public String delegateUser;
@@ -22,7 +24,7 @@ public with sharing class SetupAuditTrailExplorerSelector {
         public Datetime endAt;
     }
 
-    public enum Projection { DETAIL, CHART, OPTIONS, CSV, LOGIN_AS }
+    public enum Projection { DETAIL, CHART, OPTIONS, CSV, LOGIN_AS, MATCH_INDEX }
 
     /**
      * CSVの作成者を確認するため、保持期間内のSalesforce内部操作を取得する。
@@ -57,11 +59,12 @@ public with sharing class SetupAuditTrailExplorerSelector {
      * @return 指定条件の履歴レコード。
      */
     public static List<SetupAuditTrail> selectPage(Criteria criteria, Projection fieldSet, Integer sizeLimit) {
-        String fields = fieldSet == Projection.CHART ? CHART_FIELDS :
-            (fieldSet == Projection.OPTIONS ? LOOKUP_FIELDS : DETAIL_FIELDS);
-        // CSVだけに表示名の判定に必要な履歴種別と作成者情報を含める。
-        if (fieldSet == Projection.CSV) {
-            fields += ', Action, CreatedById, CreatedBy.UserType';
+        String fields = DETAIL_ACTOR_FIELDS;
+        if (fieldSet == Projection.CHART || fieldSet == Projection.OPTIONS) {
+            fields = LOOKUP_FIELDS + ', Section';
+        }
+        if (fieldSet == Projection.MATCH_INDEX) {
+            fields = 'Id, CreatedDate, Section, Action, CreatedById';
         }
         if (fieldSet == Projection.LOGIN_AS) {
             fields = 'Id, CreatedDate, Action, Display, DelegateUser, CreatedById, CreatedBy.Name, CreatedBy.Username';
@@ -86,7 +89,10 @@ public with sharing class SetupAuditTrailExplorerSelector {
             query += ' AND CreatedDate >= :startAt';
             binds.put('startAt', criteria.startAt);
         }
-        if (criteria.userId != null) {
+        if (criteria.recordIds != null) {
+            query += ' AND Id IN :recordIds';
+            binds.put('recordIds', criteria.recordIds);
+        } else if (criteria.userId != null && criteria.matchIndex != true) {
             query += ' AND CreatedById = :userId';
             binds.put('userId', criteria.userId);
         }

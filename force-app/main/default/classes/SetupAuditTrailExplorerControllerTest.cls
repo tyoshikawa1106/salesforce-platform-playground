@@ -73,6 +73,19 @@ private class SetupAuditTrailExplorerControllerTest {
     }
 
     @IsTest
+    static void readsEmptyMatchIndex() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.load(
+                '{"monthStart":"2000-01-01","matchIndex":true}'
+            );
+            Test.stopTest();
+            Assert.isTrue(result.records.isEmpty(), '対象がない月の照合は空です。');
+            Assert.isNull(result.nextId, '照合は最終ページで終了します。');
+        }
+    }
+
+    @IsTest
     static void countsEmptyMonth() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
