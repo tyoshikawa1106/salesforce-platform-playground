@@ -86,3 +86,14 @@
 .history-table {
     font-size: var(--c-history-font-size);
 }
+
+.export-dialog {
+    margin: auto;
+    width: min(30rem, 90vw);
+    border: 0;
+    border-radius: var(--slds-g-radius-border-3, 0.5rem);
+}
+
+.export-dialog::backdrop {
+    background: rgb(0 0 0 / 45%);
+}

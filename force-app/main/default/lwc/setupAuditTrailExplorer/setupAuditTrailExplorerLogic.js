@@ -1,6 +1,9 @@
 import TIME_ZONE from '@salesforce/i18n/timeZone';
 import LANG from '@salesforce/i18n/lang';
 
+// 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
+export const PAGE_SIZE = 1000;
+
 // 月別・全期間で同じ順に列を出力する。
 export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
 

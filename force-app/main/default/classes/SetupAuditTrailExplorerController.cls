@@ -4,14 +4,25 @@ public with sharing class SetupAuditTrailExplorerController {
     private static final Integer CHART_PAGE_SIZE = 5000;
 
     /** 月内の検索期間と応答形式を受け取り、Selectorには確定した期間を渡す。 */
+    @TestVisible
     private class MonthRequest extends SetupAuditTrailExplorerSelector.Criteria {
         public Date monthStart;
         public Date day;
+        public Datetime cutoff;
         public String section;
         public Boolean chart;
         public Boolean includeDelegateNames;
         public Boolean csv;
         public Integer pageSize;
+    }
+
+    /**
+     * 一覧・分析の検索範囲を同じ組織時刻で固定する。
+     * @return 検索に含める履歴の作成日時の上限（この日時を含まない）。
+     */
+    @AuraEnabled
+    public static Datetime startSearch() {
+        return System.now();
     }
 
     /**
@@ -36,10 +47,24 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper loadDistinctFilterOptions(Date monthStart, Id nextId, Datetime nextTime) {
+        return loadOptionsAt(monthStart, nextId, nextTime, null);
+    }
+
+    /**
+     * 検索開始時点の候補をカーソル順に取得する。
+     * @param monthStart 表示月の初日。
+     * @param nextId 直前の履歴ID。
+     * @param nextTime 直前の履歴日時。
+     * @param cutoff 検索開始時刻。
+     * @return 表示月の候補と続きの境界。
+     */
+    @AuraEnabled
+    public static SetupAuditTrailExplorerWrapper loadOptionsAt(Date monthStart, Id nextId, Datetime nextTime, Datetime cutoff) {
         MonthRequest criteria = new MonthRequest();
         criteria.monthStart = monthStart;
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
+        criteria.cutoff = cutoff;
         setPeriod(criteria);
         SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
@@ -146,7 +171,7 @@ public with sharing class SetupAuditTrailExplorerController {
             }
         }
         if (needsEmployeeActors) {
-            wrapper.employeeActorIds = employeeActors();
+            wrapper.employeeActorIds = employeeActors(criteria.cutoff);
         }
         return wrapper;
     }
@@ -161,8 +186,8 @@ public with sharing class SetupAuditTrailExplorerController {
         return SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
     }
 
-    private static List<Id> employeeActors() {
-        return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(System.now()));
+    private static List<Id> employeeActors(Datetime cutoff) {
+        return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(cutoff ?? System.now()));
     }
 
     private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit) {
@@ -173,11 +198,12 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
         if (criteria.nextId == null) {
-            wrapper.employeeActorIds = employeeActors();
+            wrapper.employeeActorIds = employeeActors(null);
         }
         return wrapper;
     }
 
+    @TestVisible
     private static MonthRequest readCriteria(String criteriaJson) {
         MonthRequest criteria = String.isBlank(criteriaJson) ? new MonthRequest() :
             (MonthRequest) JSON.deserialize(criteriaJson, MonthRequest.class);
@@ -189,6 +215,7 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerService.checkPeriod(criteria.monthStart, criteria.day);
         criteria.startAt = SetupAuditTrailExplorerService.midnight(criteria.day ?? criteria.monthStart);
         Date endDay = criteria.day == null ? criteria.monthStart.addMonths(1) : criteria.day.addDays(1);
-        criteria.endAt = SetupAuditTrailExplorerService.midnight(endDay);
+        Datetime periodEnd = SetupAuditTrailExplorerService.midnight(endDay);
+        criteria.endAt = criteria.cutoff != null && criteria.cutoff < periodEnd ? criteria.cutoff : periodEnd;
     }
 }

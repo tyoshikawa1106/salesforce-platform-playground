@@ -1,5 +1,20 @@
 @IsTest
 private class SetupAuditTrailExplorerControllerTest {
+    @IsTest
+    static void limitsSearchToEarlierOfCutoffAndPeriodEnd() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            Date month = Date.today().toStartOfMonth();
+            Datetime cutoff = SetupAuditTrailExplorerController.startSearch();
+            Map<String, Object> query = new Map<String, Object>{ 'monthStart' => month, 'cutoff' => cutoff };
+            Assert.areEqual(cutoff, SetupAuditTrailExplorerController.readCriteria(JSON.serialize(query)).endAt);
+            query.put('monthStart', month.addMonths(-1));
+            Assert.areEqual(SetupAuditTrailExplorerService.midnight(month),
+                SetupAuditTrailExplorerController.readCriteria(JSON.serialize(query)).endAt);
+            Test.stopTest();
+        }
+    }
+
     /** 照合履歴の上限は未指定なら組織時刻で決まり、指定済みなら維持される。 */
     @IsTest
     static void fixesLoginAsHistoryCutoff() {

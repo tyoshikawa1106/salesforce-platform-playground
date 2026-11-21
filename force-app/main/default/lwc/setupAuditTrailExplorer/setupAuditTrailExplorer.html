@@ -12,7 +12,7 @@
                 </div>
                 <div class="slds-page-header__col-actions">
                     <lightning-button-group>
-                        <lightning-button label="CSV出力" title="対象月をCSV出力" disabled={exporting} onclick={exportMonth}></lightning-button>
+                        <lightning-button label="CSV出力" title="対象月をCSV出力" disabled={exporting} onclick={openMonthlyExport}></lightning-button>
                         <lightning-button-menu alternative-text="CSV出力メニュー" menu-alignment="right"
                             disabled={exporting} onselect={selectExportOption}>
                             <lightning-menu-item value="all" label="CSV出力 (全期間)"></lightning-menu-item>
@@ -22,14 +22,24 @@
             </div>
         </header>
 
-        <div class="slds-box slds-theme_default">
-            <div lwc:if={exporting} class="c-inline-status slds-m-bottom_small">
+        <dialog class="export-dialog slds-p-around_large" aria-labelledby="csv-title" oncancel={cancelExportDialog}>
+            <h2 id="csv-title" class="slds-text-heading_medium">CSV出力</h2>
+            <p lwc:if={exporting} class="slds-m-vertical_medium">{exportRange}</p>
+            <p lwc:else class="slds-m-vertical_medium">{exportConfirmation}</p>
+            <div lwc:if={exporting} class="c-inline-status slds-m-bottom_medium">
                 <p role="status">{exportProgress}</p>
                 <span class="c-inline-spinner">
                     <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
                 </span>
             </div>
-            <template lwc:if={exportError}><p role="alert" class="slds-text-color_error slds-m-bottom_small">{exportError}</p></template>
+            <p lwc:if={exportError} role="alert" class="slds-text-color_error slds-m-bottom_medium">{exportError}</p>
+            <div class="slds-text-align_right">
+                <lightning-button label="キャンセル" onclick={closeExportDialog}></lightning-button>
+                <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={exporting}
+                    onclick={confirmExport}></lightning-button>
+            </div>
+        </dialog>
+        <div class="slds-box slds-theme_default">
             <div class="month-navigation slds-m-bottom_medium">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"
                     disabled={previousMonthDisabled} onclick={moveMonth}></lightning-button>
@@ -132,6 +142,7 @@
                             <div class="c-page-summary c-inline-status">
                                 <span aria-live="polite">{pageSummary}</span>
                                 <lightning-button lwc:if={matchCountError} label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
+                                <span lwc:if={probingNextPage} role="status">次の一致を確認中…</span>
                                 <span lwc:if={matchLoading} class="c-inline-spinner">
                                     <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
                                 </span>
