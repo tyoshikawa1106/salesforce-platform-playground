@@ -16,7 +16,7 @@ it('shows the username only in the tooltip and preserves chart blank rules', asy
     await Promise.resolve();
 
     const [users, namespaces, actions, sections, dates, delegates] = chart.shadowRoot.querySelectorAll('section');
-    const user = users.querySelector('span[title="viewer@example.invalid"]');
+    const user = users.querySelector('[title="viewer@example.invalid"]');
     expect(user.textContent.trim()).toBe('山田 太郎');
     expect(users.textContent).not.toContain('viewer@example.invalid');
     expect(users.querySelector('button[aria-label="- 4件"]').disabled).toBe(true);

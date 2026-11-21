@@ -55,7 +55,7 @@ export default class SetupAuditTrailChart extends LightningElement {
             }
             accumulate(users, userId, userName, { userId }, count);
             accumulate(actions, action, action, { action }, count);
-            accumulate(sections, section, section, null, count);
+            accumulate(sections, section, section, { section }, count);
             accumulate(dates, day, day, { day }, count);
             // 名前空間と代理ユーザーは値がある履歴だけを集計する。
             if (namespacePrefix?.trim()) {

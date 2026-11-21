@@ -3,26 +3,52 @@ public with sharing class SetupAuditTrailExplorerSelector {
     private static final String DETAIL_FIELDS = 'Id, CreatedDate, CreatedBy.Name, CreatedBy.Username, ResponsibleNamespacePrefix, Display, Section, DelegateUser';
     private static final String OPTION_FIELDS = 'Id, CreatedDate, Action, ResponsibleNamespacePrefix, DelegateUser';
     private static final String LOOKUP_FIELDS = OPTION_FIELDS + ', CreatedById, CreatedBy.Name, CreatedBy.Username';
-    private static final String CHART_FIELDS = LOOKUP_FIELDS + ', Section';
+    private static final String DETAIL_ACTOR_FIELDS = DETAIL_FIELDS + ', Action, CreatedById, CreatedBy.UserType';
 
     /** 検索条件とページ境界を保持する。 */
-    public class Criteria {
-        public Date monthStart;
-        public Date day;
+    public virtual class Criteria {
         public Id userId;
+        public List<Id> recordIds;
+        public Boolean matchIndex;
         public String action;
         public String namespacePrefix;
         public String delegateUser;
         public Id nextId;
         public Datetime nextTime;
-        public Boolean chart;
-        public Boolean csv;
-        public Integer pageSize;
         public Datetime startAt;
         public Datetime endAt;
     }
 
-    public enum Projection { DETAIL, CHART, OPTIONS }
+    /**
+     * 表示ページの代理ユーザーを、閲覧できるユーザーの氏名に対応付ける。
+     * @param usernames ページに含まれる代理ユーザーのログイン名。
+     * @return 小文字のログイン名をキーにした氏名。
+     */
+    public static Map<String, String> selectDelegateNames(Set<String> usernames) {
+        Map<String, String> names = new Map<String, String>();
+        if (!usernames.isEmpty()) {
+            for (User delegate : [SELECT Username, Name FROM User WHERE Username IN :usernames WITH USER_MODE]) {
+                names.put(delegate.Username.toLowerCase(), delegate.Name);
+            }
+        }
+        return names;
+    }
+
+    public enum Projection { DETAIL, CHART, OPTIONS, CSV, LOGIN_AS, MATCH_INDEX }
+
+    /**
+     * CSVの作成者を確認するため、保持期間内のSalesforce内部操作を取得する。
+     * @param beforeTime 作成日時の上限（この日時を含まない）。
+     * @return 従業員操作の本文と作成者を照合するための直近の候補。
+     */
+    public static List<SetupAuditTrail> selectEmployeeActions(Datetime beforeTime) {
+        List<SetupAuditTrail> rows = [
+            SELECT CreatedById, Display FROM SetupAuditTrail
+            WHERE Action = 'BlackTabFrameworkActionRun' AND DelegateUser != null AND CreatedDate < :beforeTime
+            WITH USER_MODE ORDER BY CreatedDate DESC, Id DESC LIMIT 200
+        ];
+        return rows;
+    }
 
     /**
      * 条件に一致する履歴件数を取得する。
@@ -43,10 +69,21 @@ public with sharing class SetupAuditTrailExplorerSelector {
      * @return 指定条件の履歴レコード。
      */
     public static List<SetupAuditTrail> selectPage(Criteria criteria, Projection fieldSet, Integer sizeLimit) {
-        String fields = fieldSet == Projection.CHART ? CHART_FIELDS :
-            (fieldSet == Projection.OPTIONS ? LOOKUP_FIELDS : DETAIL_FIELDS);
+        String fields = DETAIL_ACTOR_FIELDS;
+        if (fieldSet == Projection.CHART || fieldSet == Projection.OPTIONS) {
+            fields = LOOKUP_FIELDS + ', Section';
+        }
+        if (fieldSet == Projection.MATCH_INDEX) {
+            fields = 'Id, CreatedDate, Section, Action, CreatedById';
+        }
+        if (fieldSet == Projection.LOGIN_AS) {
+            fields = 'Id, CreatedDate, Action, Display, DelegateUser, CreatedById, CreatedBy.Name, CreatedBy.Username';
+        }
         Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
         String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(criteria, binds);
+        if (fieldSet == Projection.LOGIN_AS) {
+            query += ' AND Action IN (\'suOrgAdminLogin\', \'suOrgAdminLogout\')';
+        }
         if (criteria.nextId != null && criteria.nextTime != null) {
             query += ' AND (CreatedDate < :nextTime OR (CreatedDate = :nextTime AND Id < :nextId))';
             binds.put('nextId', criteria.nextId);
@@ -62,8 +99,14 @@ public with sharing class SetupAuditTrailExplorerSelector {
             query += ' AND CreatedDate >= :startAt';
             binds.put('startAt', criteria.startAt);
         }
-        if (criteria.userId != null) {
-            query += ' AND CreatedById = :userId';
+        if (criteria.recordIds != null) {
+            query += ' AND Id IN :recordIds';
+            binds.put('recordIds', criteria.recordIds);
+        } else if (criteria.userId != null) {
+            // 照合前の代理ログインは作成者が違っても対象ユーザーの操作になり得る。
+            query += criteria.matchIndex == true
+                ? ' AND (CreatedById = :userId OR Action = \'suOrgAdminLogin\')'
+                : ' AND CreatedById = :userId';
             binds.put('userId', criteria.userId);
         }
         if (String.isNotBlank(criteria.action)) {

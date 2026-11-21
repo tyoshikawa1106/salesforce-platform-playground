@@ -4,6 +4,7 @@ import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.cou
 import countMonth from '@salesforce/apex/SetupAuditTrailExplorerController.countMonth';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
+import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => {
@@ -25,6 +26,8 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMatches', () 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions', () => ({ default: jest.fn() }), { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 beforeEach(() => {
     loadFilterOptions.mockResolvedValue({ options: { action: ['createdApexClass'], namespacePrefix: [], delegateUser: [] } });
@@ -74,6 +77,7 @@ afterEach(() => {
     document.body.replaceChildren();
     loadFilterOptions.mockReset();
     exportAllHistory.mockReset();
+    loadLoginAsHistory.mockReset();
     load.request.mockReset();
     countMonth.mockReset();
     countMatches.request.mockReset();
@@ -83,24 +87,45 @@ afterEach(() => {
 it('merges chart buckets across pages and reuses them as filter options', async () => {
     const bucket = { day: '2026-11-18', userId: '005000000000001', action: 'createdApexClass' };
     const namespacedBucket = { ...bucket, namespacePrefix: 'sample' };
-    const delegatedBucket = { ...bucket, delegateUser: '代理ユーザー' };
+    const delegatedBucket = { ...bucket, delegateUser: 'Delegate@example.invalid' };
     load.request.mockResolvedValueOnce({ records: [] })
-        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 2 }], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 3 }, { ...namespacedBucket, count: 1 }, { ...delegatedBucket, count: 4 }] });
+        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 2 }, { ...delegatedBucket, count: 4 }],
+            delegateNames: { 'delegate@example.invalid': '代理 担当' }, nextId: 'cursor', nextTime: 'time' })
+        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 3 }, { ...namespacedBucket, count: 1 }] });
     const component = mount();
     await flush();
     const [, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ chart: true, nextId: 'cursor', nextTime: 'time' }) });
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ chart: true, includeDelegateNames: true, nextId: 'cursor', nextTime: 'time' }) });
     expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets).toEqual([
         { ...bucket, count: 5 },
-        { ...namespacedBucket, count: 1 },
-        { ...delegatedBucket, count: 4 }
+        { ...delegatedBucket, count: 4 },
+        { ...namespacedBucket, count: 1 }
     ]);
     await chooseLookup(component, 'namespacePrefix', 'sample');
-    await chooseLookup(component, 'delegateUser', '代理ユーザー');
+    await chooseLookup(component, 'delegateUser', delegatedBucket.delegateUser);
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理 担当');
     expect(loadFilterOptions).not.toHaveBeenCalled();
+});
+
+it('uses the recorded user for lookup and chart when the delegate is a different user', async () => {
+    const login = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-02T03:00:00Z',
+        CreatedById: 'target', CreatedBy: { Name: '対象', Username: 'target@example.invalid' }, DelegateUser: 'admin@example.invalid' };
+    load.request.mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ buckets: [], records: [login] });
+    loadFilterOptions.mockResolvedValueOnce({ options: {}, records: [login], nextId: 'cursor', nextTime: 'time' })
+        .mockResolvedValueOnce({ options: {}, userOptions: { target: 'target@example.invalid' }, userNames: { target: '別表記' } });
+    const root = mount().shadowRoot;
+    await flush();
+    root.querySelector('input[data-field="userId"]').click();
+    await flush();
+    expect(root.querySelectorAll('[role="option"]')).toHaveLength(1);
+    expect(root.querySelector('[role="option"]').textContent).toContain('対象');
+    root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
+    expect(root.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({ userId: 'target', count: 1 });
+    expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
 
 it('loads candidates on demand and applies selected filters only on search', async () => {
@@ -108,7 +133,8 @@ it('loads candidates on demand and applies selected filters only on search', asy
     loadFilterOptions.mockResolvedValueOnce({
         options: { action: [], namespacePrefix: ['first'], delegateUser: [] }, nextId: 'cursor', nextTime: 'time'
     }).mockResolvedValueOnce({
-        options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['代理ユーザー'] }
+        options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['Delegate@example.invalid', 'former@example.invalid'] },
+        delegateNames: { 'delegate@example.invalid': '代理 担当' }
     });
     const component = mount();
     await flush();
@@ -129,17 +155,51 @@ it('loads candidates on demand and applies selected filters only on search', asy
     await flush();
     expect(load.request).toHaveBeenCalledTimes(1);
     expect(countMatches.request).not.toHaveBeenCalled();
-    await chooseLookup(component, 'delegateUser', '代理ユーザー');
+    await chooseLookup(component, 'delegateUser', 'Delegate@example.invalid');
     await search(component);
     expect(load.request).toHaveBeenCalledTimes(2);
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: '代理ユーザー' }) });
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: 'Delegate@example.invalid' }) });
     await chooseLookup(component, 'namespacePrefix', '');
     await search(component);
     expect(component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').value).toBe('');
-    component.shadowRoot.querySelector('input[data-field="delegateUser"]').click();
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理 担当');
+    component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').click();
     await flush();
     expect(loadFilterOptions).toHaveBeenCalledTimes(2);
     expect(load.request.mock.lastCall[0].input).not.toHaveProperty('namespacePrefix');
+    await chooseLookup(component, 'delegateUser', 'former@example.invalid');
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('former@example.invalid');
+});
+
+it('finds a delegate by name or login and selects the login shown on the second line', async () => {
+    const login = 'delegate@example.invalid';
+    const other = 'other@example.invalid';
+    load.request.mockResolvedValue({ records: [] });
+    loadFilterOptions.mockResolvedValue({ options: { delegateUser: [login, other] },
+        delegateNames: { [login]: '代理 担当', [other]: '代理 担当' } });
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    const input = root.querySelector('input[data-field="delegateUser"]');
+    input.click();
+    await flush();
+    input.value = '担当';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    expect([...root.querySelectorAll('[role="option"]')].map(option =>
+        [...option.firstElementChild.children].map(line => line.textContent))).toEqual([
+        ['代理 担当', login], ['代理 担当', other]
+    ]);
+    input.value = 'OTHER@';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    const options = root.querySelectorAll('[role="option"]');
+    expect(options).toHaveLength(1);
+    options[0].click();
+    await flush();
+    expect(input.value).toBe('代理 担当');
+    await search(component);
+    expect(load.request.mock.lastCall[0].input.delegateUser).toBe(other);
 });
 
 it('shows raw action codes and month users', async () => {
@@ -147,8 +207,8 @@ it('shows raw action codes and month users', async () => {
     load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValue({
         options: { action: ['filteredLookupActivate'], namespacePrefix: [], delegateUser: [] },
-        userOptions: { [userId]: 'audit@example.invalid' },
-        userNames: { [userId]: '山田 太郎' }
+        userOptions: { '005000000000002': 'other@example.invalid', [userId]: 'audit@example.invalid' },
+        userNames: { '005000000000002': '山田 太郎', [userId]: '山田 太郎' }
     });
     const component = mount();
     await flush();
@@ -157,7 +217,7 @@ it('shows raw action codes and month users', async () => {
     await flush();
     const userOption = component.shadowRoot.querySelector(`[role="option"][data-value="${userId}"]`);
     expect(userOption.firstElementChild.children[0].textContent).toBe('山田 太郎');
-    expect(userOption.firstElementChild.children[1].textContent).toBe(userId);
+    expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.invalid');
     userOption.click();
     await flush();
     expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('山田 太郎');
@@ -174,7 +234,10 @@ it('shows raw action codes and month users', async () => {
     await flush();
     const selectedAction = component.shadowRoot.querySelector('input[data-field="action"]');
     expect(selectedAction.value).toBe('filteredLookupActivate');
-    expect(selectedAction.readOnly).toBe(true);
+    const box = selectedAction.closest('section.slds-box');
+    expect(box.querySelectorAll('.slds-combobox_container.slds-has-selection input[readonly]')).toHaveLength(2);
+    expect(box.querySelector('lightning-button-icon[data-field="action"]').alternativeText).toBe('アクションの選択を解除');
+    expect([...box.querySelectorAll('lightning-button')].some(button => button.label === '検索')).toBe(true);
     await search(component);
     expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ userId, action: 'filteredLookupActivate' }) });
 
@@ -196,37 +259,58 @@ it('retries the same list page after a request fails', async () => {
     expect(component.shadowRoot.textContent).toContain('条件に一致する設定変更履歴はありません。');
 });
 
-it('exports the whole month as UTF-8 without changing log text', async () => {
+it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard date and newline formatting', async period => {
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
-    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
+    const downloaded = new Promise(resolve => download.mockImplementation(() => resolve()));
     const row = {
         CreatedDate: '2026-11-18T00:00:00.000Z',
         CreatedBy: { Username: 'audit@example.invalid' },
         ResponsibleNamespacePrefix: 'sample',
-        Display: '=原文,"引用"\n続き🧪',
+        Display: '=原文,"引用"\r\n続き🧪',
         Section: 'Apps',
         DelegateUser: 'delegate@example.invalid'
     };
     URL.createObjectURL = jest.fn(() => 'blob:audit');
     URL.revokeObjectURL = jest.fn();
-    load.request.mockResolvedValueOnce({ records: [] })
-        .mockResolvedValueOnce({ records: [] })
-        .mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ records: [row] });
+    load.request.mockResolvedValue({ records: [] });
     const component = mount();
     try {
         await flush();
         await chooseLookup(component, 'action', 'createdApexClass');
         await search(component);
-        const button = [...component.shadowRoot.querySelectorAll('lightning-button')]
-            .find(child => child.label === 'CSV出力');
-        button.click();
-        await flush();
+        const exportPage = period === 'month' ? load.request : exportAllHistory;
+        const serverCutoff = '2026-11-19T13:43:07.912Z';
+        const login = { ...row, Id: 'login', Action: 'suOrgAdminLogin', CreatedById: 'admin', CreatedBy: { Username: row.DelegateUser },
+            Display: '対象 のログインアクセスを使用してログイン済み' };
+        const logout = { ...row, Id: 'logout', Action: 'suOrgAdminLogout', CreatedById: 'target', CreatedDate: '2026-11-18T00:05:00Z',
+            CreatedBy: { Name: '対象', Username: 'target@example.invalid' }, Display: '対象 のログインアクセスを使用してログアウト済み' };
+        loadLoginAsHistory.mockResolvedValueOnce({ records: [logout], cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate })
+            .mockResolvedValueOnce({ records: [login], cutoff: serverCutoff });
+        exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
+            cutoff: period === 'all' ? serverCutoff : null, employeeActorIds: ['employee'] })
+            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }, login], cutoff: period === 'all' ? serverCutoff : null });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
-        expect(load.request.mock.calls.slice(2).map(([request]) => [request.input])).toEqual([
-            [{ monthStart, csv: true }],
-            [{ monthStart, csv: true, nextId: 'cursor', nextTime: 'time' }]
+        const menu = component.shadowRoot.querySelector('lightning-button-menu');
+        expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
+        const startedAt = Date.UTC(2026, 10, 19, 13, 38, 7, 912);
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt);
+        if (period === 'month') {
+            [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
+        } else {
+            menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
+        }
+        clock.mockReturnValue(startedAt + 5000);
+        await downloaded;
+
+        const queries = period === 'month'
+            ? load.request.mock.calls.slice(2).map(([request]) => request.input)
+            : exportAllHistory.mock.calls.map(([request]) => request);
+        const monthQuery = { monthStart, csv: true };
+        expect(queries).toEqual([
+            period === 'month' ? monthQuery : { cutoff: null },
+            { ...(period === 'month' ? monthQuery : { cutoff: serverCutoff }), nextId: 'cursor', nextTime: 'time' }
         ]);
         expect(download).toHaveBeenCalledTimes(1);
         expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
@@ -238,10 +322,15 @@ it('exports the whole month as UTF-8 without changing log text', async () => {
             reader.readAsText(blob, 'utf-8');
         });
         const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
-        const line = '"2026/11/18 09:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
-        expect(csv).toBe(header + line + line);
+        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
+        expect(loadLoginAsHistory.mock.calls.map(([query]) => query)).toEqual([
+            { cutoff: period === 'all' ? serverCutoff : null },
+            { cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate }
+        ]);
+        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン') +
+            '"2026/11/18 9:00:00 JST","target@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
-            .toBe('setup-audit-trail-' + monthStart.slice(0, 7) + '.csv');
+            .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrailAll') + startedAt + '.csv');
         component.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:audit');
     } finally {
@@ -314,6 +403,25 @@ it('reports how many CSV rows have been fetched while waiting for the next page'
     await flush();
     expect(component.shadowRoot.querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
+    expect(loadLoginAsHistory).not.toHaveBeenCalled();
+});
+
+it('stops fetching login-as evidence after leaving the page', async () => {
+    let finishEvidence;
+    load.request.mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ records: [{
+        Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
+        CreatedBy: { Username: 'admin' }, DelegateUser: 'admin'
+    }] });
+    loadLoginAsHistory.mockImplementationOnce(() => new Promise(resolve => { finishEvidence = resolve; }));
+    const component = mount();
+    await flush();
+    [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
+    await flush();
+    component.remove();
+    finishEvidence({ records: [], nextId: 'more', nextTime: 'time' });
+    await flush();
+    expect(loadLoginAsHistory).toHaveBeenCalledTimes(1);
+    expect(load.request).toHaveBeenCalledTimes(2);
 });
 
 it('keeps the current result when the normalized action filter is unchanged', async () => {
@@ -328,7 +436,8 @@ it('keeps the current result when the normalized action filter is unchanged', as
 
 it('shows the monthly count and keeps it when a list filter changes', async () => {
     countMonth.mockResolvedValue(21638);
-    load.request.mockResolvedValue({ records: [] });
+    countMatches.request.mockResolvedValue(201);
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'cursor', nextTime: 'time' });
     const component = mount();
     await flush();
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
@@ -336,7 +445,7 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
     await search(component);
     expect(countMonth).toHaveBeenCalledTimes(1);
     expect(countMatches.request).toHaveBeenCalledTimes(1);
-    expect(countMatches.request).toHaveBeenCalledWith({ input: expect.objectContaining({ action: 'createdApexClass' }) });
+    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
 });
 
@@ -385,48 +494,91 @@ it('shows 1 / 1 even when neither adjacent page exists', async () => {
     expect(pagination.querySelector('lightning-button')).toBeNull();
 });
 
-it('defers filtered result counts until the history tab is opened', async () => {
-    load.request.mockImplementation(({ input: { chart } }) => Promise.resolve(chart ? { buckets: [] } : { records: [] }));
+it('uses all completed chart pages including delegated logins for history pagination', async () => {
+    const login = { Action: 'suOrgAdminLogin', CreatedDate: '2026-11-01T12:00:00Z', CreatedById: 'target' };
+    load.request.mockImplementation(({ input }) => {
+        if (!input.chart) {
+            return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
+        }
+        if (!input.day) {
+            return { buckets: [] };
+        }
+        return input.nextId ? { buckets: [{ action: 'change', count: 100 }], records: [login] } :
+            { buckets: [{ action: 'change', count: 100 }], nextId: 'more', nextTime: 'time' };
+    });
     const component = mount();
     await flush();
     const [historyTab, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-
     component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
         .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
     await search(component);
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({
-        chart: true, day: load.request.mock.calls[0][0].input.monthStart
-    }) });
+    historyTab.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
     expect(countMatches.request).not.toHaveBeenCalled();
+});
 
-    historyTab.dispatchEvent(new CustomEvent('active'));
+it('keeps the completed analysis total when an earlier count response arrives late', async () => {
+    let finishCount;
+    countMatches.request.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
+    load.request.mockImplementation(({ input }) => (input.chart ? { buckets: [{ action: 'change', count: 401 }] } :
+        { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' }));
+    const component = mount();
     await flush();
-    expect(countMatches.request).toHaveBeenCalledTimes(1);
-    chartTab.dispatchEvent(new CustomEvent('active'));
-    historyTab.dispatchEvent(new CustomEvent('active'));
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
+    chart.dispatchEvent(new CustomEvent('active'));
     await flush();
+    expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
+    finishCount(201);
+    await flush();
+    history.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('1 / 3ページ');
     expect(countMatches.request).toHaveBeenCalledTimes(1);
 });
 
-it('uses the same cutoff for every full history CSV page', async () => {
-    load.request.mockResolvedValue({ records: [] });
-    exportAllHistory.mockResolvedValueOnce({ records: [], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ records: [] });
+it('does not use an interrupted chart as the count for the history tab', async () => {
+    let finishChart;
+    load.request.mockImplementation(({ input }) => {
+        if (!input.chart) {
+            return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
+        }
+        if (!input.day) {
+            return { buckets: [] };
+        }
+        return input.nextId ? new Promise(resolve => { finishChart = resolve; }) :
+            { buckets: [{ action: 'change', count: 1 }], nextId: 'more', nextTime: 'time' };
+    });
+    countMatches.request.mockResolvedValue(201);
     const component = mount();
     await flush();
-    const menu = component.shadowRoot.querySelector('lightning-button-menu');
-    expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
-    menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
+    const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
+    chart.dispatchEvent(new CustomEvent('active'));
     await flush();
+    component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
+        .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
+    await search(component);
+    history.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    finishChart({ buckets: [{ action: 'change', count: 400 }] });
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
+    expect(countMatches.request).toHaveBeenCalledTimes(1);
+});
 
-    const cutoff = exportAllHistory.mock.calls[0][0].cutoff;
-    expect(exportAllHistory.mock.calls).toEqual([
-        [{ cutoff }],
-        [{ cutoff, nextId: 'cursor', nextTime: 'time' }]
-    ]);
-    expect(load.request).toHaveBeenCalledTimes(1);
+it.each([0, 1, 200])('derives a complete first page of %i filtered records without a count query', async size => {
+    const records = Array.from({ length: size }, (_, i) => ({ Id: String(i) }));
+    load.request.mockResolvedValue({ records });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    expect(component.shadowRoot.textContent).toContain(size ? '1 / 1ページ' : '0 / 0ページ');
+    expect(countMatches.request).not.toHaveBeenCalled();
 });
 
 it('limits month navigation to the current month and the six preceding months', async () => {
@@ -457,8 +609,8 @@ it.each([true, false])('clears data loading spinners after requests settle (succ
         rejectRequests = reject;
     });
     countMonth.mockReturnValueOnce(pending.then(() => 42));
-    countMatches.request.mockReturnValueOnce(pending.then(() => 1));
-    load.request.mockResolvedValue({ records: [] });
+    countMatches.request.mockReturnValueOnce(pending.then(() => 201));
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'cursor', nextTime: 'time' });
 
     const component = mount();
     const root = component.shadowRoot;
@@ -495,8 +647,123 @@ it.each([true, false])('clears the filter candidate spinner after loading (succe
 
     root.querySelector('input[data-field="action"]').click();
     await flush();
-    expect(root.querySelector('.c-filter-dropdown lightning-spinner').alternativeText).toBe('絞り込み候補を取得中');
+    expect(root.querySelector('.slds-dropdown lightning-spinner').alternativeText).toBe('絞り込み候補を取得中');
     finishRequest();
     await flush();
     expect(root.querySelector('lightning-spinner')).toBeNull();
+});
+
+it('shares an in-flight actor lookup between the table and the open user lookup', async () => {
+    const login = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-21T01:00:00Z',
+        Display: '対象 のログインアクセスを使用してログイン済み', DelegateUser: 'admin', CreatedById: 'admin', CreatedBy: { Username: 'admin' } };
+    const logout = { ...login, Id: 'logout', Action: 'suOrgAdminLogout', CreatedDate: '2026-11-21T02:00:00Z',
+        Display: '対象 のログインアクセスを使用してログアウト済み', CreatedById: 'target', CreatedBy: { Name: '対象', Username: 'target' } };
+    let finish;
+    loadLoginAsHistory.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    load.request.mockResolvedValue({ records: [login] });
+    loadFilterOptions.mockResolvedValue({ options: {}, records: [login] });
+    const root = mount().shadowRoot;
+    await flush();
+    root.querySelector('input[data-field="userId"]').click();
+    await flush();
+    finish({ records: [logout, login] });
+    await flush();
+    expect(loadLoginAsHistory).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('lightning-datatable').data[0].displayedUser).toBe('対象');
+    expect(root.querySelector('[role="option"]').dataset.value).toBe('target');
+});
+
+it('queries ordinary actions for the selected creator with normal detail pagination', async () => {
+    loadFilterOptions.mockResolvedValue({ options: { action: ['changedApexClass'] }, userOptions: { target: 'target' } });
+    load.request.mockResolvedValue({ records: [] });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'userId', 'target');
+    await chooseLookup(component, 'action', 'changedApexClass');
+    await search(component);
+    expect(load.request.mock.calls.map(([{ input }]) => input.matchIndex)).toEqual([undefined, undefined]);
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'changedApexClass', userId: 'target', pageSize: 200 });
+    expect(countMatches.request).not.toHaveBeenCalled();
+    expect(loadLoginAsHistory).not.toHaveBeenCalled();
+});
+
+it('shows actor and delegate names on screen and indexes the section across source pages', async () => {
+    const target = { Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
+        CreatedDate: '2026-11-02T03:00:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin', Section: 'ログイン' };
+    const logout = { ...target, Id: 'logout', Action: 'suOrgAdminLogout', Display: '対象 のログインアクセスを使用してログアウト済み',
+        CreatedDate: '2026-11-02T03:00:05Z', CreatedById: 'targetId', CreatedBy: { Name: '対象', Username: 'target' } };
+    const changed = { Id: 'changed', CreatedById: 'service', Action: 'PermSetEntityPermChanged', Section: '権限',
+        Display: '権限セット X を変更: ArchiveJobSession オブジェクト権限を 参照' };
+    loadLoginAsHistory.mockResolvedValue({ records: [logout, target] });
+    loadFilterOptions.mockResolvedValue({ options: { section: ['ログイン', '権限'] }, userOptions: { targetId: 'target' } });
+    load.request.mockImplementation(({ input }) => {
+        if (input.matchIndex) {
+            return input.nextId ? { records: [target] } : { records: [logout], nextId: 'cursor', nextTime: 'time' };
+        }
+        if (input.chart) {
+            return { buckets: [], records: [target] };
+        }
+        return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'], delegateNames: { admin: '管理者' } };
+    });
+    const component = mount();
+    await flush();
+    const table = () => component.shadowRoot.querySelector('lightning-datatable');
+    expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '株式会社セールスフォース・ジャパン']);
+    expect(table().data.map(row => row.displayedDelegate)).toEqual(['管理者', undefined]);
+    expect(table().data[1].displayedAction).toContain('アーカイブジョブセッション');
+    await chooseLookup(component, 'section', 'ログイン');
+    await chooseLookup(component, 'userId', 'targetId');
+    await search(component);
+    await flush();
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ recordIds: ['logout', 'login'] }) });
+    expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '対象']);
+    expect(countMatches.request).not.toHaveBeenCalled();
+    const chartTab = [...component.shadowRoot.querySelectorAll('lightning-tab')].find(tab => tab.value === 'chart');
+    chartTab.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({
+        userId: 'targetId', loginName: 'target', day: '2026-11-02', section: 'ログイン'
+    });
+});
+
+it('preserves the lookup through keyboard selection, IME composition and clearing', async () => {
+    load.request.mockResolvedValue({ records: [] });
+    const root = mount().shadowRoot;
+    const input = root.querySelector('input[data-field="action"]');
+    const key = (value, composing = false) => input.dispatchEvent(new KeyboardEvent('keydown', { key: value, isComposing: composing }));
+    input.focus();
+    await flush();
+    key('ArrowDown');
+    await flush();
+    key('Enter', true);
+    await flush();
+    expect(input.getAttribute('aria-activedescendant')).toBe(root.querySelector('[role="option"]').id);
+    expect(input.readOnly).toBe(false);
+    key('Enter');
+    await flush();
+    expect(input.readOnly).toBe(true);
+    expect(input.value).toBe('createdApexClass');
+    expect(input.closest('.slds-has-selection')).not.toBeNull();
+    key('Delete');
+    await flush();
+    expect(input.readOnly).toBe(false);
+    expect(input.value).toBe('');
+    key('ArrowDown');
+    await flush();
+    key('Escape');
+    await flush();
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+});
+
+it('allows retry inside the failed lookup and displays the returned options', async () => {
+    load.request.mockResolvedValue({ records: [] });
+    loadFilterOptions.mockRejectedValueOnce(new Error('error'));
+    const root = mount().shadowRoot;
+    root.querySelector('input[data-field="action"]').focus();
+    await flush();
+    const dropdown = root.querySelector('.slds-dropdown');
+    expect(dropdown.querySelector('[role="alert"]')).not.toBeNull();
+    dropdown.querySelector('lightning-button').click();
+    await flush();
+    expect(dropdown.querySelector('[role="option"]').textContent).toContain('createdApexClass');
 });

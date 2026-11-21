@@ -5,8 +5,14 @@ public class SetupAuditTrailExplorerWrapper {
     @AuraEnabled public Map<String, List<String>> options { get; set; }
     @AuraEnabled public Map<String, String> userOptions { get; set; }
     @AuraEnabled public Map<String, String> userNames { get; set; }
+    // 履歴一覧に表示する代理ユーザーの氏名をログイン名で参照する。
+    @AuraEnabled public Map<String, String> delegateNames { get; set; }
     @AuraEnabled public Id nextId { get; set; }
     @AuraEnabled public Datetime nextTime { get; set; }
+    // 全期間CSVの各ページに共通する取得上限（この日時を含まない）。
+    @AuraEnabled public Datetime cutoff { get; set; }
+    // CSVの先頭ページで返す、履歴に裏付けられたSalesforce側の作成者ID。
+    @AuraEnabled public List<Id> employeeActorIds { get; set; }
 
     /**
      * 履歴・集計の応答を初期化する。

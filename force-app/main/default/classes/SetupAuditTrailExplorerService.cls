@@ -3,6 +3,21 @@ public with sharing class SetupAuditTrailExplorerService {
     private static final Integer CSV_TEXT_BUDGET = 500000;
 
     /**
+     * 履歴の本文がSalesforce従業員の操作と明示する作成者だけを採用する。
+     * @param rows 内部操作の履歴。
+     * @return CSVで会社名を表示できる作成者ID。
+     */
+    public static List<Id> employeeActorIds(List<SetupAuditTrail> rows) {
+        Set<Id> actors = new Set<Id>();
+        for (SetupAuditTrail row : rows) {
+            if (row.CreatedById != null && row.Display?.startsWith('Salesforce 従業員が') == true) {
+                actors.add(row.CreatedById);
+            }
+        }
+        return new List<Id>(actors);
+    }
+
+    /**
      * 指定月と日付の整合性を検証する。
      * @param monthStart 対象月の初日。
      * @param day 指定日。未指定なら月全体。
@@ -67,12 +82,15 @@ public with sharing class SetupAuditTrailExplorerService {
     public static SetupAuditTrailExplorerWrapper summarizeOptions(List<SetupAuditTrail> rows, Integer sizeLimit) {
         SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
         Set<String> actions = new Set<String>();
+        Set<String> sections = new Set<String>();
         Set<String> namespaces = new Set<String>();
         Set<String> delegates = new Set<String>();
         response.userOptions = new Map<String, String>();
         response.userNames = new Map<String, String>();
         for (SetupAuditTrail row : rows) {
-            if (row.CreatedById != null && String.isNotBlank(row.CreatedBy?.Username)) {
+            if (row.Action == 'suOrgAdminLogin') {
+                response.records.add(row);
+            } else if (row.CreatedById != null && String.isNotBlank(row.CreatedBy?.Username)) {
                 String userId = String.valueOf(row.CreatedById);
                 response.userOptions.put(userId, row.CreatedBy.Username);
                 if (String.isNotBlank(row.CreatedBy.Name)) {
@@ -80,14 +98,17 @@ public with sharing class SetupAuditTrailExplorerService {
                 }
             }
             actions.add(row.Action);
+            sections.add(row.Section);
             namespaces.add(row.ResponsibleNamespacePrefix);
             delegates.add(row.DelegateUser);
         }
         actions.remove(null);
+        sections.remove(null);
         namespaces.remove(null);
         delegates.remove(null);
         response.options = new Map<String, List<String>>{
             'action' => new List<String>(actions),
+            'section' => new List<String>(sections),
             'namespacePrefix' => new List<String>(namespaces),
             'delegateUser' => new List<String>(delegates)
         };
@@ -105,6 +126,27 @@ public with sharing class SetupAuditTrailExplorerService {
             }
         }
         return response;
+    }
+
+    /**
+     * 取得元のページ境界を確定し、選択したセクションに一致する照合行を返す。
+     * @param rows 作成日時・ID降順の照合行。
+     * @param sizeLimit 読み進める元ページの件数。
+     * @param section 表示言語のセクション名。未指定なら全行を返す。
+     * @return 一致行がなくても元ページの続きを取得できる応答。
+     */
+    public static SetupAuditTrailExplorerWrapper summarizeMatches(List<SetupAuditTrail> rows, Integer sizeLimit, String section) {
+        SetupAuditTrailExplorerWrapper result = page(rows, sizeLimit);
+        if (String.isBlank(section)) {
+            result.records = rows;
+        } else {
+            for (SetupAuditTrail row : rows) {
+                if (section.equals(row.Section)) {
+                    result.records.add(row);
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -129,6 +171,11 @@ public with sharing class SetupAuditTrailExplorerService {
         SetupAuditTrailExplorerWrapper response = page(rows, sizeLimit);
         Map<String, SetupAuditTrailExplorerWrapper.Bucket> buckets = new Map<String, SetupAuditTrailExplorerWrapper.Bucket>();
         for (SetupAuditTrail row : rows) {
+            // 代理ログインだけは照合後のユーザーで画面側の同じ集計に加える。
+            if (row.Action == 'suOrgAdminLogin') {
+                response.records.add(row);
+                continue;
+            }
             String day = String.valueOf(row.CreatedDate.date());
             String key = JSON.serialize(new List<String>{
                 day, row.CreatedById, row.Action, row.Section, row.ResponsibleNamespacePrefix, row.DelegateUser
