@@ -15,6 +15,8 @@ const logout = {
 it.each([
     ['unique across months and pages', [logout, login], 'target'],
     ['no logout', [login], 'admin'],
+    ['newer session still open', [{ ...login, Id: 'open', CreatedDate: '2026-11-01T02:00:00Z' }, logout, login], 'target'],
+    ['older login outside retention', [logout, login, { ...logout, CreatedDate: '2026-09-01T02:00:00Z' }], 'target'],
     ['different delegate', [{ ...logout, DelegateUser: 'other' }, login], 'admin'],
     ['different target', [{ ...logout, CreatedBy: { Name: '別人', Username: 'other' } }, login], 'admin'],
     ['missing actor ID', [{ ...logout, CreatedById: null }, login], 'admin'],

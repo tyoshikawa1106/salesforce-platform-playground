@@ -130,6 +130,7 @@
                             <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
                             <div class="c-page-summary c-inline-status">
                                 <span aria-live="polite">{pageSummary}</span>
+                                <lightning-button lwc:if={matchCountError} label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
                                 <span lwc:if={matchLoading} class="c-inline-spinner">
                                     <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
                                 </span>

@@ -139,14 +139,15 @@ export function collectLoginAsPairs(pairs, records) {
         pairs.set(key, group);
         // 同時刻や順序の逆転、操作の重なりがある組に許可元を割り当てない。
         const time = Date.parse(row.CreatedDate);
-        if (group.ambiguous || !(time < group.previousTime) || login !== Boolean(group.logout)) {
+        if (group.ambiguous || !(time < group.previousTime) ||
+            (group.previousTime !== Infinity && login !== Boolean(group.logout))) {
             group.ambiguous = true;
             continue;
         }
         group.previousTime = time;
         if (login) {
             // 作成者の表示名も本文に一致したログアウトだけをこのログインに対応付ける。
-            if (needsLoginAsUser(row) && row.Id && row.CreatedById && group.logout.CreatedBy?.Name === target &&
+            if (needsLoginAsUser(row) && row.Id && row.CreatedById && group.logout?.CreatedBy?.Name === target &&
                 group.logout.CreatedById && group.logout.CreatedById !== row.CreatedById && group.logout.CreatedBy.Username &&
                 group.logout.CreatedBy.Username.toLowerCase() !== row.DelegateUser.toLowerCase()) {
                 group.byLogin.set(row.Id, group.logout);
@@ -162,7 +163,8 @@ export function collectLoginAsPairs(pairs, records) {
 export function loginAsActors(pairs) {
     const actors = new Map();
     for (const group of pairs.values()) {
-        if (!group.ambiguous && !group.logout) {
+        // 保持期間の端で片側だけの操作があっても、対応の確定した履歴は利用できる。
+        if (!group.ambiguous) {
             for (const [id, logout] of group.byLogin) {
                 actors.set(id, logout);
             }

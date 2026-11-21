@@ -90,6 +90,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     matchRequest = 0;
     // 同じ件数の同時取得を防ぐ。
     matchLoading = false;
+    // 明細を維持したまま件数だけを再取得できるようにする。
+    matchCountError = false;
     // 一覧のページ番号を先頭から始める。
     page = 1;
     // 明細取得前と取得済みの空一覧を区別する。
@@ -207,8 +209,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 履歴がないことをページ数に反映する。
             return '0 / 0ページ';
         }
-        // 件数を取得できているときは総ページ数も表示する。
-        return this.totalPages ? this.page + ' / ' + this.totalPages + 'ページ' : this.page + 'ページ';
+        // 読み込んだ最終ページは、別の時点で取得した月別件数より優先する。
+        if (this.listReady && this.records.length && !this.hasNextPage) {
+            // 最終ページの位置から総ページ数を確定する。
+            return this.page + ' / ' + this.page + 'ページ';
+        }
+        // カーソルで到達できる範囲より小さい総ページ数は表示しない。
+        const minimumPages = this.page + (this.hasNextPage ? 1 : 0);
+        // 件数が未確定または明細と矛盾する間は現在位置のみ表示する。
+        return this.totalPages >= minimumPages ? this.page + ' / ' + this.totalPages + 'ページ' : this.page + 'ページ';
     }
 
     // 行番号を前のページから連続させる。
@@ -718,6 +727,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.matchRequest += 1;
         this.matchLoading = false;
         this.matchCount = count;
+        // 明細や集計で件数が確定したら再試行の案内を閉じる。
+        this.matchCountError = false;
     }
 
     // ページ番号表示用の一致件数を取得する。
@@ -726,9 +737,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         if (this.usesMatchIndex || !this.hasFilters) {
             return;
         }
-        // 先頭ページに続きがなければ、0件やちょうど200件の場合も総件数が確定する。
-        if (this.page === 1 && !this.hasNextPage) {
-            this.setResultCount(this.records.length);
+        // 最終ページでは境界から確定した件数を使い、先に開始した件数照会を無効にする。
+        if (!this.hasNextPage) {
+            this.setResultCount(this.rowNumberOffset + this.records.length);
             return;
         }
         // 分析後に新しい履歴が増えた場合は、現在の明細と矛盾する件数を再取得する。
@@ -740,6 +751,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const request = ++this.matchRequest;
         // 同じ条件での重複要求を防ぐ。
         this.matchLoading = true;
+        // 新しい取得が完了するまで再試行を重ねない。
+        this.matchCountError = false;
         try {
             // 確定した条件の一致件数を取得する。
             const count = await countMatches({ criteriaJson: JSON.stringify(this.searchCriteria) });
@@ -749,7 +762,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 this.matchCount = count;
             }
         } catch {
-            // 件数取得に失敗しても取得済みカーソルでページ送りを続ける。
+            // 旧条件の失敗を現在のページへ表示しない。
+            if (request === this.matchRequest) {
+                // 明細は操作可能なまま、件数だけを再取得できるようにする。
+                this.matchCount = null;
+                this.matchCountError = true;
+            }
         } finally {
             // 新しい件数取得が続いている場合は待機表示を維持する。
             if (request === this.matchRequest) {
@@ -788,6 +806,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.pageStarts = [{}];
         // 以前の条件の件数応答を無効にする。
         this.matchRequest += 1;
+        // 旧条件の件数エラーを取り下げる。
+        this.matchCountError = false;
         // 新しい一致件数を取得可能にする。
         this.matchLoading = false;
         // 件数を未確定に戻す。
@@ -959,6 +979,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 照合した利用者と代理ユーザーの氏名を履歴一覧に表示する。
     async showDetailPage(result, cursor, isCurrent) {
+        // 保持期限などで移動先が空になった場合は、有効な境界を先頭から取り直す。
+        if (this.page > 1 && !result.records.length) {
+            // 見出しも同じ時点の月別件数へ合わせる。
+            this.readMonthTotal();
+            // 確定済みの条件を保ち、古いページ位置と照合済みIDを破棄する。
+            await this.refresh();
+            // 空になったページの応答を新しい一覧へ反映しない。
+            return;
+        }
         if (!this.screenActors && result.records.some(needsLoginAsUser)) {
             await this.readScreenActors();
             if (!isCurrent()) {

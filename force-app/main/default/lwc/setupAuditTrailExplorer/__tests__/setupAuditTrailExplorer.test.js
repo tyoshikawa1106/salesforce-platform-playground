@@ -840,3 +840,60 @@ it.each([
     expect(load.request.mock.lastCall[0].input).toMatchObject({ day, userId, matchIndex: true });
     expect(loadFilterOptions).not.toHaveBeenCalled();
 });
+
+it('uses the actual last page when a delayed filtered count includes unavailable pages', async () => {
+    let finishCount;
+    countMatches.request.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
+    load.request.mockImplementation(({ input }) => (input.nextId ? { records: [{ Id: 'last' }] } :
+        { records: [{ Id: 'first' }], nextId: 'second-page', nextTime: 'time' }));
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    component.shadowRoot.querySelector('nav lightning-button').click();
+    await flush();
+    finishCount(401);
+    await flush();
+    expect(component.shadowRoot.querySelector('nav').textContent).toContain('2 / 2ページ');
+});
+
+it('hides an obsolete monthly page count when the cursor already proves another page exists', async () => {
+    countMonth.mockResolvedValue(200);
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'next', nextTime: 'time' });
+    const component = mount();
+    await flush();
+    expect(component.shadowRoot.querySelector('nav').textContent).toBe('1ページ');
+    expect(component.shadowRoot.querySelector('nav lightning-button').label).toBe('次へ');
+});
+
+it('can retry a failed filtered count without reloading the visible records', async () => {
+    countMatches.request.mockRejectedValueOnce(new Error('count')).mockResolvedValueOnce(201);
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'next', nextTime: 'time' });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    const nav = component.shadowRoot.querySelector('nav');
+    const reads = load.request.mock.calls.length;
+    const retry = [...nav.querySelectorAll('lightning-button')].find(item => item.label === '絞り込み件数を再取得');
+    expect(retry).toBeDefined();
+    retry.click();
+    await flush();
+    expect(load.request).toHaveBeenCalledTimes(reads);
+    expect(nav.textContent).toContain('1 / 2ページ');
+    expect([...nav.querySelectorAll('lightning-button')].map(item => item.label)).toEqual(['次へ']);
+});
+
+it('returns to available history if records beyond the saved cursor have expired', async () => {
+    countMonth.mockResolvedValueOnce(201).mockResolvedValueOnce(1);
+    load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }], nextId: 'expired', nextTime: 'time' })
+        .mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ records: [{ Id: 'remaining' }] });
+    const component = mount();
+    await flush();
+    const root = component.shadowRoot;
+    root.querySelector('nav lightning-button').click();
+    await flush();
+    expect(root.querySelector('nav').textContent).toContain('1 / 1ページ');
+    expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['remaining']);
+    expect(root.querySelector('h2').textContent).toContain('（1件）');
+});
