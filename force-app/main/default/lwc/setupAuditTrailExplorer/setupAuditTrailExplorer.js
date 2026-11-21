@@ -368,7 +368,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // ユーザーIDと表示名の対応を集める。
         const names = {};
         const delegateNames = {};
-        const logins = [];
+        // 補正後のユーザーをID単位で保持し、取得済みの明細ページを解放する。
+        const loginUsers = new Map();
         // 全ページで同じ月を使う。
         const monthStart = this.monthDate;
         // 最初の候補ページから始める。
@@ -394,26 +395,31 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 }
                 // ログイン名をページ間で統合する。
                 Object.assign(users, result.userOptions);
-                logins.push(...(result.records ?? []));
                 // 表示名をページ間で統合する。
                 Object.assign(names, result.userNames);
                 Object.assign(delegateNames, result.delegateNames);
+                // 代理ログインはこのページのうちにユーザー候補へ変換する。
+                if (result.records?.length) {
+                    // 必要な場合だけ画面で共有する照合結果を待つ。
+                    // eslint-disable-next-line no-await-in-loop
+                    const actors = await this.actorsForLogins(result.records);
+                    if (request !== this.optionsRequest) {
+                        return;
+                    }
+                    for (const row of result.records) {
+                        const actor = actors?.get(row.Id) ?? row;
+                        if (actor.CreatedById && actor.CreatedBy?.Username) {
+                            loginUsers.set(actor.CreatedById, actor.CreatedBy);
+                        }
+                    }
+                }
                 // 次ページの開始境界を引き継ぐ。
                 cursor = pageCursor(result);
             } while (cursor.nextId);
-            if (logins.length) {
-                const isCurrent = () => request === this.optionsRequest;
-                const actors = await this.actorsForLogins(logins);
-                if (!isCurrent()) {
-                    return;
-                }
-                for (const row of logins) {
-                    const actor = actors?.get(row.Id) ?? row;
-                    if (actor.CreatedById && actor.CreatedBy?.Username) {
-                        users[actor.CreatedById] = actor.CreatedBy.Username;
-                        names[actor.CreatedById] = actor.CreatedBy.Name;
-                    }
-                }
+            // 通常履歴と重なるIDには、従来と同じ順で照合済みの候補を適用する。
+            for (const [id, user] of loginUsers) {
+                users[id] = user.Username;
+                names[id] = user.Name;
             }
             // 全ページで見つかったユーザーを検索可能にする。
             this.userOptions = users;
@@ -1121,7 +1127,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 // 次のページには直前の応答の境界を使う。
                 // eslint-disable-next-line no-await-in-loop
                 const result = recordIds?.length === 0 ? { buckets: [] } : await load({
-                    criteriaJson: JSON.stringify({ ...query, ...(recordIds ? { recordIds } : cursor) })
+                    criteriaJson: JSON.stringify({
+                        ...query, ...(recordIds ? { recordIds } : cursor),
+                        // 月全体の分析から未取得の候補を作る間だけ代理ユーザーの氏名を取得する。
+                        includeDelegateNames: !this.hasFilters && !this.filterOptions
+                    })
                 });
                 if (!isCurrent()) {
                     return;

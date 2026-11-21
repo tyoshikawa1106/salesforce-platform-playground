@@ -97,7 +97,7 @@ it('merges chart buckets across pages and reuses them as filter options', async 
     const [, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ chart: true, nextId: 'cursor', nextTime: 'time' }) });
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ chart: true, includeDelegateNames: true, nextId: 'cursor', nextTime: 'time' }) });
     expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets).toEqual([
         { ...bucket, count: 5 },
         { ...delegatedBucket, count: 4 },
@@ -113,14 +113,17 @@ it('uses the recorded user for lookup and chart when the delegate is a different
     const login = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-02T03:00:00Z',
         CreatedById: 'target', CreatedBy: { Name: '対象', Username: 'target@example.invalid' }, DelegateUser: 'admin@example.invalid' };
     load.request.mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ buckets: [], records: [login] });
-    loadFilterOptions.mockResolvedValue({ options: {}, records: [login] });
+    loadFilterOptions.mockResolvedValueOnce({ options: {}, records: [login], nextId: 'cursor', nextTime: 'time' })
+        .mockResolvedValueOnce({ options: {}, userOptions: { target: 'target@example.invalid' }, userNames: { target: '別表記' } });
     const root = mount().shadowRoot;
     await flush();
     root.querySelector('input[data-field="userId"]').click();
     await flush();
+    expect(root.querySelectorAll('[role="option"]')).toHaveLength(1);
     expect(root.querySelector('[role="option"]').textContent).toContain('対象');
     root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
     await flush();
+    expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
     expect(root.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({ userId: 'target', count: 1 });
     expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
@@ -498,6 +501,7 @@ it('keeps the completed analysis total when an earlier count response arrives la
     const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
     chart.dispatchEvent(new CustomEvent('active'));
     await flush();
+    expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
     finishCount(201);
     await flush();
     history.dispatchEvent(new CustomEvent('active'));

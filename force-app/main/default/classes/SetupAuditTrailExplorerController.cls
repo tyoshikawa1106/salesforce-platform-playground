@@ -9,6 +9,7 @@ public with sharing class SetupAuditTrailExplorerController {
         public Date day;
         public String section;
         public Boolean chart;
+        public Boolean includeDelegateNames;
         public Boolean csv;
         public Integer pageSize;
     }
@@ -125,7 +126,10 @@ public with sharing class SetupAuditTrailExplorerController {
                 criteria, SetupAuditTrailExplorerSelector.Projection.CHART, CHART_PAGE_SIZE + 1
             );
             SetupAuditTrailExplorerWrapper chart = SetupAuditTrailExplorerService.summarizeChart(rows, CHART_PAGE_SIZE);
-            chart.delegateNames = delegateNamesFor(rows);
+            // 旧クライアントでは従来どおり氏名を返す。
+            if (criteria.includeDelegateNames != false) {
+                chart.delegateNames = delegateNamesFor(rows);
+            }
             return chart;
         }
         Integer sizeLimit = Math.max(1, Math.min(2000, criteria.pageSize ?? 50));
