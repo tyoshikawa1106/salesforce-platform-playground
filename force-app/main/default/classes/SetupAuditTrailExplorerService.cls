@@ -10,10 +10,11 @@ public with sharing class SetupAuditTrailExplorerService {
     public static List<Id> employeeActorIds(List<SetupAuditTrail> rows) {
         Set<Id> actors = new Set<Id>();
         for (SetupAuditTrail row : rows) {
-            if (row.CreatedById != null && row.Display?.startsWith('Salesforce 従業員が') == true) {
+            if (row.Display?.startsWith('Salesforce 従業員が') == true) {
                 actors.add(row.CreatedById);
             }
         }
+        actors.remove(null);
         return new List<Id>(actors);
     }
 
@@ -23,8 +24,7 @@ public with sharing class SetupAuditTrailExplorerService {
      * @param day 指定日。未指定なら月全体。
      */
     public static void checkPeriod(Date monthStart, Date day) {
-        if (monthStart == null || monthStart.day() != 1 ||
-            (day != null && day.toStartOfMonth() != monthStart)) {
+        if (monthStart?.day() != 1 || (day ?? monthStart).toStartOfMonth() != monthStart) {
             throw new AuraHandledException('対象月と日付を確認してください。');
         }
     }
@@ -56,13 +56,25 @@ public with sharing class SetupAuditTrailExplorerService {
      * @return 取得件数またはページ件数。
      */
     public static Integer csvPageSize(List<SetupAuditTrail> rows, Integer maximum) {
+        return countCsvPageRows(rows, maximum, CSV_TEXT_BUDGET);
+    }
+
+    /**
+     * 件数と文字数の両方の上限から、カーソルを進められるページ件数を求める
+     * @param rows 出力順に並べた履歴
+     * @param maximum ページの件数上限
+     * @param textBudget ページに含める文字数の上限
+     * @return 上限を超えた行の直前までの件数。先頭行が超過した場合は1件
+     */
+    @TestVisible
+    private static Integer countCsvPageRows(List<SetupAuditTrail> rows, Integer maximum, Integer textBudget) {
         Integer textLength = 0;
         Integer available = Math.min(rows.size(), maximum);
         for (Integer index = 0; index < available; index++) {
             SetupAuditTrail row = rows[index];
             textLength += length(row.Display) + length(row.CreatedBy?.Username) +
                 length(row.ResponsibleNamespacePrefix) + length(row.Section) + length(row.DelegateUser);
-            if (textLength > CSV_TEXT_BUDGET) {
+            if (textLength > textBudget) {
                 return Math.max(1, index);
             }
         }
@@ -70,7 +82,7 @@ public with sharing class SetupAuditTrailExplorerService {
     }
 
     private static Integer length(String value) {
-        return value == null ? 0 : value.length();
+        return value?.length() ?? 0;
     }
 
     /**
@@ -88,15 +100,7 @@ public with sharing class SetupAuditTrailExplorerService {
         response.userOptions = new Map<String, String>();
         response.userNames = new Map<String, String>();
         for (SetupAuditTrail row : rows) {
-            if (row.Action == 'suOrgAdminLogin') {
-                response.records.add(row);
-            } else if (row.CreatedById != null && String.isNotBlank(row.CreatedBy?.Username)) {
-                String userId = String.valueOf(row.CreatedById);
-                response.userOptions.put(userId, row.CreatedBy.Username);
-                if (String.isNotBlank(row.CreatedBy.Name)) {
-                    response.userNames.put(userId, row.CreatedBy.Name);
-                }
-            }
+            collectUserOption(response, row);
             actions.add(row.Action);
             sections.add(row.Section);
             namespaces.add(row.ResponsibleNamespacePrefix);
@@ -115,15 +119,32 @@ public with sharing class SetupAuditTrailExplorerService {
         return response;
     }
 
+    // 代理ログインは後段の照合へ渡し、それ以外の履歴から検索できるユーザーを集める。
+    private static void collectUserOption(SetupAuditTrailExplorerWrapper response, SetupAuditTrail row) {
+        if (row.Action == 'suOrgAdminLogin') {
+            response.records.add(row);
+            return;
+        }
+        if (row.CreatedById == null || String.isBlank(row.CreatedBy?.Username)) {
+            return;
+        }
+        String userId = String.valueOf(row.CreatedById);
+        response.userOptions.put(userId, row.CreatedBy.Username);
+        if (String.isNotBlank(row.CreatedBy.Name)) {
+            response.userNames.put(userId, row.CreatedBy.Name);
+        }
+    }
+
     private static SetupAuditTrailExplorerWrapper page(List<SetupAuditTrail> rows, Integer sizeLimit) {
         SetupAuditTrailExplorerWrapper response = new SetupAuditTrailExplorerWrapper();
-        if (rows.size() > sizeLimit) {
-            SetupAuditTrail lastRow = rows[sizeLimit - 1];
-            response.nextId = lastRow.Id;
-            response.nextTime = lastRow.CreatedDate;
-            for (Integer index = rows.size() - 1; index >= sizeLimit; index--) {
-                rows.remove(index);
-            }
+        if (rows.size() <= sizeLimit) {
+            return response;
+        }
+        SetupAuditTrail lastRow = rows[sizeLimit - 1];
+        response.nextId = lastRow.Id;
+        response.nextTime = lastRow.CreatedDate;
+        for (Integer index = rows.size() - 1; index >= sizeLimit; index--) {
+            rows.remove(index);
         }
         return response;
     }
@@ -139,11 +160,11 @@ public with sharing class SetupAuditTrailExplorerService {
         SetupAuditTrailExplorerWrapper result = page(rows, sizeLimit);
         if (String.isBlank(section)) {
             result.records = rows;
-        } else {
-            for (SetupAuditTrail row : rows) {
-                if (section.equals(row.Section)) {
-                    result.records.add(row);
-                }
+            return result;
+        }
+        for (SetupAuditTrail row : rows) {
+            if (section.equals(row.Section)) {
+                result.records.add(row);
             }
         }
         return result;

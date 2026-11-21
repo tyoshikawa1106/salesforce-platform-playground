@@ -96,23 +96,26 @@ private class SetupAuditTrailExplorerServiceTest {
         }
     }
 
+    /** 文字数上限ちょうどの行を含め、その行の日時とIDを次ページの境界に使う */
     @IsTest
     static void capsCsvPagesWithoutDroppingTheNextCursor() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
-            SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize(
-                '{"Id":"0Ym000000000001","CreatedDate":"2026-11-01T00:00:00.000Z","Display":"' +
-                    '変更'.repeat(500) + '"}', SetupAuditTrail.class
+            List<SetupAuditTrail> rows = (List<SetupAuditTrail>) JSON.deserialize(
+                '[{"Id":"0Ym000000000003","CreatedDate":"2026-11-01T00:02:00.000Z","Display":"変更"},' +
+                '{"Id":"0Ym000000000002","CreatedDate":"2026-11-01T00:01:00.000Z","Section":"設定"},' +
+                '{"Id":"0Ym000000000001","CreatedDate":"2026-11-01T00:00:00.000Z","Display":"次"}]',
+                List<SetupAuditTrail>.class
             );
-            List<SetupAuditTrail> rows = new List<SetupAuditTrail>();
-            for (Integer index = 0; index < 503; index++) {
-                rows.add(row);
-            }
+            SetupAuditTrail boundary = rows[1];
 
-            Integer pageSize = SetupAuditTrailExplorerService.csvPageSize(rows, 2000);
+            Test.startTest();
+            Integer pageSize = SetupAuditTrailExplorerService.countCsvPageRows(rows, 3, 4);
             SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
+            Test.stopTest();
 
-            Assert.areEqual(500, result.records.size(), '文字量の上限でページを区切ります。');
-            Assert.areEqual(row.Id, result.nextId, '続きの取得条件を返します。');
+            Assert.areEqual(2, result.records.size(), '4文字に収まる2行までを返します。');
+            Assert.areEqual(boundary.Id, result.nextId, '最後に出力した行のIDから再開します。');
+            Assert.areEqual(boundary.CreatedDate, result.nextTime, '最後に出力した行の日時から再開します。');
         }
     }
 
