@@ -485,8 +485,8 @@ it('moves through adjacent pages and resets the cursor only after search', async
     expect(root.textContent).toContain('0 / 0ページ');
 });
 
-it('shows 1 / 1 even when neither adjacent page exists', async () => {
-    countMonth.mockResolvedValue(1);
+it.each([1, 200])('shows 1 / 1 without adjacent pages for a monthly total of %i', async total => {
+    countMonth.mockResolvedValue(total);
     load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
     const component = mount();
     await flush();
@@ -571,14 +571,16 @@ it('does not use an interrupted chart as the count for the history tab', async (
     expect(countMatches.request).toHaveBeenCalledTimes(1);
 });
 
-it.each([0, 1, 200])('derives a complete first page of %i filtered records without a count query', async size => {
-    const records = Array.from({ length: size }, (_, i) => ({ Id: String(i) }));
+it.each([
+    { records: [], summary: '0 / 0ページ' },
+    { records: [{ Id: 'only' }], summary: '1 / 1ページ' }
+])('shows $summary for a complete filtered page without a count query', async ({ records, summary }) => {
     load.request.mockResolvedValue({ records });
     const component = mount();
     await flush();
     await chooseLookup(component, 'action', 'createdApexClass');
     await search(component);
-    expect(component.shadowRoot.textContent).toContain(size ? '1 / 1ページ' : '0 / 0ページ');
+    expect(component.shadowRoot.textContent).toContain(summary);
     expect(countMatches.request).not.toHaveBeenCalled();
 });
 
@@ -773,7 +775,8 @@ it('refreshes monthly pagination and ignores the previous monthly count after se
     let finishInitialCount;
     countMonth.mockImplementationOnce(() => new Promise(resolve => { finishInitialCount = resolve; }))
         .mockResolvedValueOnce(201);
-    const firstPage = Array.from({ length: 200 }, (_, index) => ({ Id: String(index) }));
+    // 総件数と次ページの境界はApex応答で表し、明細は各ページの代表行だけを用意する。
+    const firstPage = [{ Id: 'first' }];
     load.request.mockResolvedValueOnce({ records: firstPage })
         .mockResolvedValueOnce({ records: firstPage, nextId: 'cursor', nextTime: 'time' })
         .mockResolvedValueOnce({ records: [{ Id: 'last' }] });
