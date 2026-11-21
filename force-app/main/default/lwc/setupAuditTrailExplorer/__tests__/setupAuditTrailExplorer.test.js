@@ -171,6 +171,37 @@ it('loads candidates on demand and applies selected filters only on search', asy
     expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('former@example.invalid');
 });
 
+it('finds a delegate by name or login and selects the login shown on the second line', async () => {
+    const login = 'delegate@example.invalid';
+    const other = 'other@example.invalid';
+    load.request.mockResolvedValue({ records: [] });
+    loadFilterOptions.mockResolvedValue({ options: { delegateUser: [login, other] },
+        delegateNames: { [login]: '代理 担当', [other]: '代理 担当' } });
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    const input = root.querySelector('input[data-field="delegateUser"]');
+    input.click();
+    await flush();
+    input.value = '担当';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    expect([...root.querySelectorAll('[role="option"]')].map(option =>
+        [...option.firstElementChild.children].map(line => line.textContent))).toEqual([
+        ['代理 担当', login], ['代理 担当', other]
+    ]);
+    input.value = 'OTHER@';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    const options = root.querySelectorAll('[role="option"]');
+    expect(options).toHaveLength(1);
+    options[0].click();
+    await flush();
+    expect(input.value).toBe('代理 担当');
+    await search(component);
+    expect(load.request.mock.lastCall[0].input.delegateUser).toBe(other);
+});
+
 it('shows raw action codes and month users', async () => {
     const userId = '005000000000001';
     load.request.mockResolvedValue({ records: [] });

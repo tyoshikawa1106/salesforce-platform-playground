@@ -267,12 +267,17 @@ export function buildFilterFields({ userOptions, userNames, delegateNames, filte
         { key: 'section', label: 'セクション', values: filterOptions?.section },
         { key: 'delegateUser', label: '代理ユーザー', values: filterOptions?.delegateUser }
     ].map(({ key, label, values }) => {
-        // 候補値から画面に表示するラベルを選ぶ。
+        const isUserLookup = key === 'userId' || key === 'delegateUser';
+        // 候補一覧と選択後の欄に同じ氏名を使う。
         const labelFor = value => {
             // ユーザー欄はIDから表示名を解決する。
             if (key === 'userId') {
                 // 候補が持つ最も具体的な名前を使う。
                 return userNames[value] || userOptions[value] || '';
+            }
+            // 代理ユーザーは履歴に記録されたログイン名から氏名を引く。
+            if (key === 'delegateUser') {
+                return delegateNames?.[value.toLowerCase()] || value;
             }
             // その他の項目は候補値をそのまま表示する。
             return value;
@@ -290,14 +295,11 @@ export function buildFilterFields({ userOptions, userNames, delegateNames, filte
             inputClass: 'slds-input slds-combobox__input' + (selected ? ' slds-combobox__input-value' : '')
         };
         if (!open) {
-            // 代理ユーザーの選択値は検索用のログイン名を保持し、欄には氏名を表示する。
-            const selectedLabel = key === 'delegateUser' && selected
-                ? delegateNames?.[selected.toLowerCase()] || selected : labelFor(selected);
             // 選択した値と解除操作のラベルを組み立てる。
             return {
                 ...field, clearLabel: label + 'の選択を解除',
-                inputValue: selectedLabel || '',
-                selectedIcon: ['userId', 'delegateUser'].includes(key) ? 'standard:user' : 'standard:custom'
+                inputValue: selected ? labelFor(selected) : '',
+                selectedIcon: isUserLookup ? 'standard:user' : 'standard:custom'
             };
         }
 
@@ -308,8 +310,8 @@ export function buildFilterFields({ userOptions, userNames, delegateNames, filte
         // ラベルに加えユーザーはIDとログイン名でも探せるようにする。
         const matches = term
             ? candidates.filter(value => labelFor(value).toLocaleLowerCase().includes(term) ||
-                (key === 'userId' && (value.toLocaleLowerCase().includes(term) ||
-                    userOptions[value]?.toLocaleLowerCase().includes(term))))
+                (isUserLookup && value.toLocaleLowerCase().includes(term)) ||
+                (key === 'userId' && userOptions[value]?.toLocaleLowerCase().includes(term)))
             : candidates;
         // 入力欄と候補一覧を関連付ける。
         const listId = key + '-options';
@@ -321,7 +323,8 @@ export function buildFilterFields({ userOptions, userNames, delegateNames, filte
             noMatches: Boolean(filterOptions) && matches.length === 0,
             options: matches.map((value, index) => ({
                 label: labelFor(value),
-                code: key === 'userId' ? userOptions[value] : '',
+                code: key === 'delegateUser' && delegateNames?.[value.toLowerCase()] ? value :
+                    (key === 'userId' ? userOptions[value] : ''),
                 value,
                 id: listId + '-' + index,
                 active: index === lookupIndex,
