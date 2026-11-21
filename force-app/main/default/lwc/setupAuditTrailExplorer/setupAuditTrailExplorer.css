@@ -80,7 +80,7 @@
 }
 
 .c-history-viewport {
-    height: max(4.5rem, calc(100dvh - var(--c-history-page-inset, 0px) - 12rem));
+    height: max(6.625rem, calc(100dvh - var(--c-history-page-inset, 0px) - 9.875rem));
 }
 
 .history-table {
