@@ -450,6 +450,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     openLookup(event) {
         // 入力欄から対象項目を識別する。
         const field = event.currentTarget.dataset.field;
+        if (this[field]) {
+            return;
+        }
         // 別の検索欄へ移ったかを判定する。
         if (field !== this.lookupField) {
             // 対象の項目だけを展開する。
@@ -486,10 +489,25 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.lookupIndex = -1;
     }
 
+    // 同じ欄内の解除・再取得ボタンへ移動する間は候補を維持する。
+    leaveLookup(event) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            this.closeLookup();
+        }
+    }
+
+    // 再取得ボタンが消えても入力欄で候補を選べるようにする。
+    retryLookupOptions(event) {
+        this.lookupToFocus = event.currentTarget.dataset.field;
+        this.readFilterOptions();
+    }
+
     // マウスで選ぶ間は入力欄にフォーカスを保つ。
     keepLookupFocus(event) {
         // 候補のクリック前にフォーカスが外れるのを防ぐ。
-        event.preventDefault();
+        if (event.target.closest('[role="option"]')) {
+            event.preventDefault();
+        }
     }
 
     // キーボードで候補を移動・確定する。
@@ -497,6 +515,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // IMEの変換確定を候補選択に使わない。
         if (event.isComposing) {
             // 文字入力が完了するまで操作を保留する。
+            return;
+        }
+        if (event.currentTarget.readOnly) {
+            if (event.key === 'Delete' || event.key === 'Backspace') {
+                event.preventDefault();
+                this.clearLookupSelection(event);
+            }
             return;
         }
         // 開いている候補をEscで閉じる。
@@ -544,7 +569,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     renderedCallback() {
         // 本文の表示位置に高さを合わせる。
         this.fitHistoryViewport();
-        // ピルの解除後は再表示された入力欄で続けて候補を選べるようにする。
+        // 選択の解除後は同じ入力欄で続けて候補を選べるようにする。
         if (this.lookupToFocus) {
             const input = this.template.querySelector(`input[data-field="${this.lookupToFocus}"]`);
             this.lookupToFocus = null;
@@ -579,7 +604,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 選択を解除したあとも検索を押すまで確定済みの条件を保持する。
     clearLookupSelection(event) {
         // 候補を空にし、未指定の条件へ戻す。
-        this.lookupToFocus = event.detail.name;
+        this.lookupToFocus = event.currentTarget.dataset.field;
         this.applyFilter(this.lookupToFocus, null);
     }
 

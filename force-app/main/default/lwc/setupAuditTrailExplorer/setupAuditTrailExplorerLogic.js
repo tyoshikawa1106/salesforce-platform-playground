@@ -247,10 +247,19 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
         // 項目別の選択値を取り出す。
         const selected = selectedValues[key];
         // 閉じている欄は選択状態だけを表示する。
-        if (lookupField !== key) {
+        const open = lookupField === key && !selected;
+        const field = {
+            key, label, open, selected: Boolean(selected),
+            containerClass: 'slds-combobox_container' + (selected ? ' slds-has-selection' : ''),
+            comboboxClass: 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click' + (open ? ' slds-is-open' : ''),
+            controlClass: 'slds-combobox__form-element slds-input-has-icon ' +
+                (selected ? 'slds-input-has-icon_left-right' : 'slds-input-has-icon_right'),
+            inputClass: 'slds-input slds-combobox__input' + (selected ? ' slds-combobox__input-value' : '')
+        };
+        if (!open) {
             // 選択した値と解除操作のラベルを組み立てる。
             return {
-                key, label, open: false, selected: Boolean(selected),
+                ...field, clearLabel: label + 'の選択を解除',
                 inputValue: selected ? (key === 'userId' ? userOptions[selected] || labelFor(selected) : labelFor(selected)) : '',
                 selectedIcon: ['userId', 'delegateUser'].includes(key) ? 'standard:user' : 'standard:custom'
             };
@@ -270,7 +279,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
         const listId = key + '-options';
         // 開いた欄の表示とキーボードの選択状態を組み立てる。
         return {
-            key, label, open: true, listId,
+            ...field, listId,
             inputValue: lookupTerm,
             activeId: lookupIndex >= 0 ? listId + '-' + lookupIndex : undefined,
             noMatches: Boolean(filterOptions) && matches.length === 0,

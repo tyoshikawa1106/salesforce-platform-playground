@@ -16,8 +16,8 @@
                     <div class="c-chart-scroll" tabindex="0" role="group" aria-label={chart.title}>
                         <template for:each={chart.rows} for:item="row">
                             <div key={row.id} class="c-chart-row">
-                                <div class="slds-p-vertical_xx-small">
-                                    <span class={row.weekdayClass} title={row.tooltip}>
+                                <div class="slds-truncate slds-p-vertical_xx-small" title={row.tooltip}>
+                                    <span class={row.weekdayClass}>
                                         {row.label}<template lwc:if={row.weekday}>（{row.weekday}）</template>
                                     </span>
                                 </div>

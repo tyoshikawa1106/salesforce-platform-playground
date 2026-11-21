@@ -53,9 +53,9 @@ function mount() {
 
 async function chooseLookup(component, field, value) {
     const root = component.shadowRoot;
-    const clear = Array.from(root.querySelectorAll('lightning-pill')).find(pill => pill.name === field);
+    const clear = root.querySelector(`lightning-button-icon[data-field="${field}"]`);
     if (clear) {
-        clear.dispatchEvent(new CustomEvent('remove', { detail: { name: field } }));
+        clear.click();
         await flush();
     }
     if (!value) {
@@ -140,7 +140,7 @@ it('loads candidates on demand and applies selected filters only on search', asy
     await chooseLookup(component, 'namespacePrefix', '');
     await search(component);
     expect(component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').value).toBe('');
-    expect([...component.shadowRoot.querySelectorAll('lightning-pill')].find(pill => pill.name === 'delegateUser').label).toBe('代理ユーザー');
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理ユーザー');
     component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').click();
     await flush();
     expect(loadFilterOptions).toHaveBeenCalledTimes(2);
@@ -165,7 +165,7 @@ it('shows raw action codes and month users', async () => {
     expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.invalid');
     userOption.click();
     await flush();
-    expect([...component.shadowRoot.querySelectorAll('lightning-pill')].find(pill => pill.name === 'userId').label).toBe('audit@example.invalid');
+    expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('audit@example.invalid');
     expect(component.shadowRoot.textContent).not.toContain(userId);
     const action = component.shadowRoot.querySelector('input[data-field="action"]');
     action.click();
@@ -177,10 +177,11 @@ it('shows raw action codes and month users', async () => {
     expect(option.textContent).toContain('filteredLookupActivate');
     option.click();
     await flush();
-    const selectedAction = [...component.shadowRoot.querySelectorAll('lightning-pill')].find(pill => pill.name === 'action');
-    expect(selectedAction.label).toBe('filteredLookupActivate');
+    const selectedAction = component.shadowRoot.querySelector('input[data-field="action"]');
+    expect(selectedAction.value).toBe('filteredLookupActivate');
     const box = selectedAction.closest('section.slds-box');
-    expect(box.querySelectorAll('lightning-pill')).toHaveLength(2);
+    expect(box.querySelectorAll('.slds-combobox_container.slds-has-selection input[readonly]')).toHaveLength(2);
+    expect(box.querySelector('lightning-button-icon[data-field="action"]').alternativeText).toBe('アクションの選択を解除');
     expect([...box.querySelectorAll('lightning-button')].some(button => button.label === '検索')).toBe(true);
     await search(component);
     expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ userId, action: 'filteredLookupActivate' }) });
@@ -528,7 +529,7 @@ it.each([true, false])('clears the filter candidate spinner after loading (succe
 
     root.querySelector('input[data-field="action"]').click();
     await flush();
-    expect(root.querySelector('.c-filter-dropdown lightning-spinner').alternativeText).toBe('絞り込み候補を取得中');
+    expect(root.querySelector('.slds-dropdown lightning-spinner').alternativeText).toBe('絞り込み候補を取得中');
     finishRequest();
     await flush();
     expect(root.querySelector('lightning-spinner')).toBeNull();
@@ -570,4 +571,46 @@ it('shows the CSV actor and action on screen and indexes the section across sour
     expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({
         userId: 'targetId', loginName: 'target', day: '2026-11-02', section: 'ログイン'
     });
+});
+
+it('preserves the lookup through keyboard selection, IME composition and clearing', async () => {
+    load.request.mockResolvedValue({ records: [] });
+    const root = mount().shadowRoot;
+    const input = root.querySelector('input[data-field="action"]');
+    const key = (value, composing = false) => input.dispatchEvent(new KeyboardEvent('keydown', { key: value, isComposing: composing }));
+    input.focus();
+    await flush();
+    key('ArrowDown');
+    await flush();
+    key('Enter', true);
+    await flush();
+    expect(input.getAttribute('aria-activedescendant')).toBe(root.querySelector('[role="option"]').id);
+    expect(input.readOnly).toBe(false);
+    key('Enter');
+    await flush();
+    expect(input.readOnly).toBe(true);
+    expect(input.value).toBe('createdApexClass');
+    expect(input.closest('.slds-has-selection')).not.toBeNull();
+    key('Delete');
+    await flush();
+    expect(input.readOnly).toBe(false);
+    expect(input.value).toBe('');
+    key('ArrowDown');
+    await flush();
+    key('Escape');
+    await flush();
+    expect(input.getAttribute('aria-expanded')).toBe('false');
+});
+
+it('allows retry inside the failed lookup and displays the returned options', async () => {
+    load.request.mockResolvedValue({ records: [] });
+    loadFilterOptions.mockRejectedValueOnce(new Error('error'));
+    const root = mount().shadowRoot;
+    root.querySelector('input[data-field="action"]').focus();
+    await flush();
+    const dropdown = root.querySelector('.slds-dropdown');
+    expect(dropdown.querySelector('[role="alert"]')).not.toBeNull();
+    dropdown.querySelector('lightning-button').click();
+    await flush();
+    expect(dropdown.querySelector('[role="option"]').textContent).toContain('createdApexClass');
 });
