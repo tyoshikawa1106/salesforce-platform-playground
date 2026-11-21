@@ -551,6 +551,40 @@ it.each([true, false])('clears the filter candidate spinner after loading (succe
     expect(root.querySelector('lightning-spinner')).toBeNull();
 });
 
+it('shares an in-flight actor lookup between the table and the open user lookup', async () => {
+    const login = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-21T01:00:00Z',
+        Display: '対象 のログインアクセスを使用してログイン済み', DelegateUser: 'admin', CreatedById: 'admin', CreatedBy: { Username: 'admin' } };
+    const logout = { ...login, Id: 'logout', Action: 'suOrgAdminLogout', CreatedDate: '2026-11-21T02:00:00Z',
+        Display: '対象 のログインアクセスを使用してログアウト済み', CreatedById: 'target', CreatedBy: { Name: '対象', Username: 'target' } };
+    let finish;
+    loadLoginAsHistory.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    load.request.mockResolvedValue({ records: [login] });
+    loadFilterOptions.mockResolvedValue({ options: {}, records: [login] });
+    const root = mount().shadowRoot;
+    await flush();
+    root.querySelector('input[data-field="userId"]').click();
+    await flush();
+    finish({ records: [logout, login] });
+    await flush();
+    expect(loadLoginAsHistory).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('lightning-datatable').data[0].displayedUser).toBe('対象');
+    expect(root.querySelector('[role="option"]').dataset.value).toBe('target');
+});
+
+it('queries ordinary actions for the selected creator with normal detail pagination', async () => {
+    loadFilterOptions.mockResolvedValue({ options: { action: ['changedApexClass'] }, userOptions: { target: 'target' } });
+    load.request.mockResolvedValue({ records: [] });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'userId', 'target');
+    await chooseLookup(component, 'action', 'changedApexClass');
+    await search(component);
+    expect(load.request.mock.calls.map(([{ input }]) => input.matchIndex)).toEqual([undefined, undefined]);
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'changedApexClass', userId: 'target', pageSize: 200 });
+    expect(countMatches.request).toHaveBeenCalledTimes(1);
+    expect(loadLoginAsHistory).not.toHaveBeenCalled();
+});
+
 it('shows actor and delegate names on screen and indexes the section across source pages', async () => {
     const target = { Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
         CreatedDate: '2026-11-02T03:00:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin', Section: 'ログイン' };
@@ -562,7 +596,7 @@ it('shows actor and delegate names on screen and indexes the section across sour
     loadFilterOptions.mockResolvedValue({ options: { section: ['ログイン', '権限'] }, userOptions: { targetId: 'target' } });
     load.request.mockImplementation(({ input }) => {
         if (input.matchIndex) {
-            return input.nextId ? { records: [target] } : { records: [changed, logout], nextId: 'cursor', nextTime: 'time' };
+            return input.nextId ? { records: [target] } : { records: [logout], nextId: 'cursor', nextTime: 'time' };
         }
         if (input.chart) {
             return { buckets: [], records: [target] };

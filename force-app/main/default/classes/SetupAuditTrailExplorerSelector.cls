@@ -6,9 +6,7 @@ public with sharing class SetupAuditTrailExplorerSelector {
     private static final String DETAIL_ACTOR_FIELDS = DETAIL_FIELDS + ', Action, CreatedById, CreatedBy.UserType';
 
     /** 検索条件とページ境界を保持する。 */
-    public class Criteria {
-        public Date monthStart;
-        public Date day;
+    public virtual class Criteria {
         public Id userId;
         public List<Id> recordIds;
         public Boolean matchIndex;
@@ -17,9 +15,6 @@ public with sharing class SetupAuditTrailExplorerSelector {
         public String delegateUser;
         public Id nextId;
         public Datetime nextTime;
-        public Boolean chart;
-        public Boolean csv;
-        public Integer pageSize;
         public Datetime startAt;
         public Datetime endAt;
     }
@@ -107,8 +102,11 @@ public with sharing class SetupAuditTrailExplorerSelector {
         if (criteria.recordIds != null) {
             query += ' AND Id IN :recordIds';
             binds.put('recordIds', criteria.recordIds);
-        } else if (criteria.userId != null && criteria.matchIndex != true) {
-            query += ' AND CreatedById = :userId';
+        } else if (criteria.userId != null) {
+            // 照合前の代理ログインは作成者が違っても対象ユーザーの操作になり得る。
+            query += criteria.matchIndex == true
+                ? ' AND (CreatedById = :userId OR Action = \'suOrgAdminLogin\')'
+                : ' AND CreatedById = :userId';
             binds.put('userId', criteria.userId);
         }
         if (String.isNotBlank(criteria.action)) {

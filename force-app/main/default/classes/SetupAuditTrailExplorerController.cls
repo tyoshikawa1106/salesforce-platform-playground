@@ -3,6 +3,16 @@ public with sharing class SetupAuditTrailExplorerController {
     private static final Integer CSV_PAGE_SIZE = 2000;
     private static final Integer CHART_PAGE_SIZE = 5000;
 
+    /** 月内の検索期間と応答形式を受け取り、Selectorには確定した期間を渡す。 */
+    private class MonthRequest extends SetupAuditTrailExplorerSelector.Criteria {
+        public Date monthStart;
+        public Date day;
+        public String section;
+        public Boolean chart;
+        public Boolean csv;
+        public Integer pageSize;
+    }
+
     /**
      * 対象月の履歴件数を取得する。
      * @param monthStart 対象月の初日。
@@ -10,7 +20,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static Integer countMonth(Date monthStart) {
-        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+        MonthRequest criteria = new MonthRequest();
         criteria.monthStart = monthStart;
         setPeriod(criteria);
         return SetupAuditTrailExplorerSelector.countMatches(criteria);
@@ -25,7 +35,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper loadDistinctFilterOptions(Date monthStart, Id nextId, Datetime nextTime) {
-        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+        MonthRequest criteria = new MonthRequest();
         criteria.monthStart = monthStart;
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
@@ -97,7 +107,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper load(String criteriaJson) {
-        SetupAuditTrailExplorerSelector.Criteria criteria = readCriteria(criteriaJson);
+        MonthRequest criteria = readCriteria(criteriaJson);
         SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
         if (criteria.csv == true) {
             return loadDetails(criteria, CSV_PAGE_SIZE);
@@ -106,7 +116,7 @@ public with sharing class SetupAuditTrailExplorerController {
             List<SetupAuditTrail> matches = SetupAuditTrailExplorerSelector.selectPage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.MATCH_INDEX, CHART_PAGE_SIZE + 1
             );
-            return SetupAuditTrailExplorerService.summarizeDetails(matches, CHART_PAGE_SIZE);
+            return SetupAuditTrailExplorerService.summarizeMatches(matches, CHART_PAGE_SIZE, criteria.section);
         }
         if (criteria.chart == true) {
             List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
@@ -154,14 +164,14 @@ public with sharing class SetupAuditTrailExplorerController {
         return wrapper;
     }
 
-    private static SetupAuditTrailExplorerSelector.Criteria readCriteria(String criteriaJson) {
-        SetupAuditTrailExplorerSelector.Criteria criteria = String.isBlank(criteriaJson) ? new SetupAuditTrailExplorerSelector.Criteria() :
-            (SetupAuditTrailExplorerSelector.Criteria) JSON.deserialize(criteriaJson, SetupAuditTrailExplorerSelector.Criteria.class);
+    private static MonthRequest readCriteria(String criteriaJson) {
+        MonthRequest criteria = String.isBlank(criteriaJson) ? new MonthRequest() :
+            (MonthRequest) JSON.deserialize(criteriaJson, MonthRequest.class);
         setPeriod(criteria);
         return criteria;
     }
 
-    private static void setPeriod(SetupAuditTrailExplorerSelector.Criteria criteria) {
+    private static void setPeriod(MonthRequest criteria) {
         SetupAuditTrailExplorerService.checkPeriod(criteria.monthStart, criteria.day);
         criteria.startAt = SetupAuditTrailExplorerService.midnight(criteria.day ?? criteria.monthStart);
         Date endDay = criteria.day == null ? criteria.monthStart.addMonths(1) : criteria.day.addDays(1);

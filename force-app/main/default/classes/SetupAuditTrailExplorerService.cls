@@ -129,6 +129,27 @@ public with sharing class SetupAuditTrailExplorerService {
     }
 
     /**
+     * 取得元のページ境界を確定し、選択したセクションに一致する照合行を返す。
+     * @param rows 作成日時・ID降順の照合行。
+     * @param sizeLimit 読み進める元ページの件数。
+     * @param section 表示言語のセクション名。未指定なら全行を返す。
+     * @return 一致行がなくても元ページの続きを取得できる応答。
+     */
+    public static SetupAuditTrailExplorerWrapper summarizeMatches(List<SetupAuditTrail> rows, Integer sizeLimit, String section) {
+        SetupAuditTrailExplorerWrapper result = page(rows, sizeLimit);
+        if (String.isBlank(section)) {
+            result.records = rows;
+        } else {
+            for (SetupAuditTrail row : rows) {
+                if (section.equals(row.Section)) {
+                    result.records.add(row);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * ページの明細を返す。
      * @param rows 取得した設定変更履歴。
      * @param sizeLimit ページに含める最大件数。

@@ -78,6 +78,25 @@ private class SetupAuditTrailExplorerServiceTest {
     }
 
     @IsTest
+    static void keepsSourceCursorAcrossEmptySectionPage() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SetupAuditTrail other = (SetupAuditTrail) JSON.deserialize(
+                '{"Id":"0Ym000000000001","CreatedDate":"2026-11-01T00:00:00.000Z","Section":"Apps"}', SetupAuditTrail.class
+            );
+            SetupAuditTrail match = (SetupAuditTrail) JSON.deserialize('{"Id":"0Ym000000000002","Section":"Apex"}', SetupAuditTrail.class);
+            Test.startTest();
+            SetupAuditTrailExplorerWrapper first = SetupAuditTrailExplorerService.summarizeMatches(new List<SetupAuditTrail>{other, match}, 1, 'Apex');
+            SetupAuditTrailExplorerWrapper last = SetupAuditTrailExplorerService.summarizeMatches(new List<SetupAuditTrail>{match}, 1, 'Apex');
+            Test.stopTest();
+            Assert.isTrue(first.records.isEmpty(), '一致しない行と先読み行を送信しません。');
+            Assert.areEqual(other.Id, first.nextId, '取得元のページ境界から再開します。');
+            Assert.areEqual(other.CreatedDate, first.nextTime, '境界日時を保持します。');
+            Assert.areEqual(new List<SetupAuditTrail>{match}, last.records, '次のページで一致行を取得します。');
+            Assert.isNull(last.nextId, '最終ページに続きはありません。');
+        }
+    }
+
+    @IsTest
     static void capsCsvPagesWithoutDroppingTheNextCursor() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize(

@@ -50,6 +50,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     section = null;
     matchingIds;
     screenActors;
+    // 同じ画面で並行する照合要求を共有する。
+    pendingActors;
     // 取得前と候補なしを区別する。
     filterOptions = null;
     // ログイン名による候補検索を可能にする。
@@ -131,6 +133,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     disconnectedCallback() {
         // 表示を終えた画面のサイズ監視を解除する。
         window.removeEventListener('resize', this.fitHistoryViewport);
+        // 離脱前の代理ログイン照合を打ち切る。
+        this.pendingActors = undefined;
         // 離脱前の履歴応答を無効にする。
         this.request += 1;
         // 離脱前の月別件数を無効にする。
@@ -289,6 +293,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.appliedFilters = {};
         // 新しい月の見出し件数を取得する。
         this.readMonthTotal();
+        // 旧月で開始した照合を次のページまで続けない。
+        this.pendingActors = undefined;
         // 旧月の候補応答を無効にする。
         this.optionsRequest += 1;
         // 候補を新しい月で再取得可能にする。
@@ -391,7 +397,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             } while (cursor.nextId);
             if (logins.length) {
                 const isCurrent = () => request === this.optionsRequest;
-                const actors = await this.actorsForLogins(logins, isCurrent);
+                const actors = await this.actorsForLogins(logins);
                 if (!isCurrent()) {
                     return;
                 }
@@ -834,70 +840,93 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     // 分析・候補用の代理ログインには本文がないため、作成者だけで照合要否を判定する。
-    actorsForLogins(logins, isCurrent) {
+    actorsForLogins(logins) {
         // 作成者が既に判明している行だけなら保持期間全体の取得を省く。
-        return this.screenActors ?? (logins.some(hasDelegateAsCreator) ? this.readActors(null, isCurrent) : undefined);
+        return this.screenActors ?? (logins.some(hasDelegateAsCreator) ? this.readScreenActors() : undefined);
+    }
+
+    // 一覧・候補・分析は同じ照合要求を待ち、CSVは出力開始時点の上限を個別に使う。
+    readScreenActors() {
+        if (!this.pendingActors) {
+            // 月切替や離脱後は、先に届いた旧要求が新しい照合結果やロックを書き換えないようにする。
+            const request = {};
+            this.pendingActors = request;
+            const isCurrent = () => this.pendingActors === request;
+            request.promise = this.readActors(null, isCurrent).then(actors => {
+                if (isCurrent()) {
+                    this.screenActors = actors;
+                }
+                return actors;
+            }).finally(() => {
+                // 通信に失敗しても次の画面操作で再照合できるようにする。
+                if (isCurrent()) {
+                    this.pendingActors = undefined;
+                }
+            });
+        }
+        return this.pendingActors.promise;
     }
 
     // 保持期間全体でログインとログアウトを照合し、完了した結果だけを返す。
     async readActors(cutoff, isCurrent) {
         const pairs = new Map();
-        const readPage = async query => {
+        let query = { cutoff: cutoff ?? null };
+        do {
+            // 次ページは直前の応答で確定した上限と境界で取得する。
+            // eslint-disable-next-line no-await-in-loop
             const page = await this.readExportPage(loadLoginAsHistory, query, isCurrent);
             if (!isCurrent()) {
-                return;
+                return undefined;
             }
             collectLoginAsPairs(pairs, page.records);
-            if (page.nextId) {
-                await readPage({ cutoff: page.cutoff, ...pageCursor(page) });
-            }
-        };
-        await readPage({ cutoff: cutoff ?? null });
+            query = { cutoff: page.cutoff, ...pageCursor(page) };
+        } while (query.nextId);
         return loginAsActors(pairs);
     }
 
-    // SOQLで絞れないセクションと、代理ログイン補正後のユーザーを明細・分析で共有する。
+    // セクションまたは代理ログイン補正を含み得るユーザー検索だけが照合を必要とする。
     get usesMatchIndex() {
-        return Boolean(this.appliedFilters.section || this.appliedFilters.userId);
+        const { section, userId, action } = this.appliedFilters;
+        return Boolean(section || (userId && (!action || action === 'suOrgAdminLogin')));
     }
 
     // セクション照合用に本文を取得せず、一致した履歴IDだけを作成日時順に保持する。
     async readMatchingIds(query, isCurrent) {
         const ids = [];
-        const readPage = async cursor => {
+        let cursor = {};
+        do {
+            // 一致がない元ページでも返された境界から続ける。
+            // eslint-disable-next-line no-await-in-loop
             const page = await load({ criteriaJson: JSON.stringify({ ...query, ...cursor, matchIndex: true }) });
             if (!isCurrent()) {
-                return;
+                return ids;
             }
             if (query.userId && !this.screenActors && page.records.some(row => row.Action === 'suOrgAdminLogin')) {
-                const actors = await this.readActors(null, isCurrent);
+                // 照合が必要な最初のページだけ、画面内の共通要求を待つ。
+                // eslint-disable-next-line no-await-in-loop
+                await this.readScreenActors();
                 if (!isCurrent()) {
-                    return;
+                    return ids;
                 }
-                this.screenActors = actors;
             }
             for (const row of page.records) {
                 const userId = this.screenActors?.get(row.Id)?.CreatedById ?? row.CreatedById;
-                if ((!query.section || row.Section === query.section) && (!query.userId || userId === query.userId)) {
+                if (!query.userId || userId === query.userId) {
                     ids.push(row.Id);
                 }
             }
-            if (page.nextId) {
-                await readPage(pageCursor(page));
-            }
-        };
-        await readPage({});
+            cursor = pageCursor(page);
+        } while (cursor.nextId);
         return ids;
     }
 
     // 照合した利用者と代理ユーザーの氏名を履歴一覧に表示する。
     async showDetailPage(result, cursor, isCurrent) {
         if (!this.screenActors && result.records.some(needsLoginAsUser)) {
-            const actors = await this.readActors(null, isCurrent);
+            await this.readScreenActors();
             if (!isCurrent()) {
                 return;
             }
-            this.screenActors = actors;
         }
         const employees = new Set(result.employeeActorIds);
         this.records = result.records.map(row => historyRow(row, employees, this.screenActors, result.delegateNames));
@@ -967,8 +996,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     // 作成者IDの照合で履歴ごとの再検索を避ける。
                     employeeActorIds = new Set(result.employeeActorIds);
                 }
-                // 月別と全期間で共通の書式を使って明細を追加する。
-                chunks.push(formatCsvPage(result.records, employeeActorIds, context.actors));
+                // ページ単位でUTF-8に符号化し、完了済みページの文字列を保持しない。
+                chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors)], { type: 'application/octet-stream' }));
                 // 今回のページで取得が完了した件数を加算する。
                 this.exportedRows += result.records.length;
                 // 次回要求に日時とIDの境界を引き継ぐ。
@@ -1078,11 +1107,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 cursor = recordIds ? { nextId: offset < this.matchingIds.length } : pageCursor(result);
             } while (cursor.nextId);
             if (logins.length) {
-                const actors = await this.actorsForLogins(logins, isCurrent);
+                const actors = await this.actorsForLogins(logins);
                 if (!isCurrent()) {
                     return;
                 }
-                this.screenActors = actors;
                 mergeChartPage(totals, logins.map(row => loginBucket(row, actors)));
             }
             // 全ページの集計行を分析タブに渡す。
