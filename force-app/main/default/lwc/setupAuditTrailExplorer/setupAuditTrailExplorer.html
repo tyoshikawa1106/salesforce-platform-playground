@@ -42,66 +42,68 @@
                 <lightning-button label="次月" icon-name="utility:chevronright" icon-position="right" data-step="1"
                     disabled={nextMonthDisabled} onclick={moveMonth}></lightning-button>
             </div>
-            <div class="filters">
-                <lightning-combobox label="日付" data-field="day" value={selectedDay}
-                    options={dateOptions} onchange={changeFilter}></lightning-combobox>
-                <template for:each={filterFields} for:item="field">
-                    <div key={field.key} class="c-search-lookup slds-form-element slds-is-relative">
-                        <label class="slds-form-element__label" for={field.key}>{field.label}</label>
-                        <div lwc:if={field.selected} class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right">
-                            <span class="slds-icon_container slds-combobox__input-entity-icon">
-                                <lightning-icon icon-name={field.selectedIcon} size="x-small"></lightning-icon>
-                            </span>
-                            <input id={field.key} class="slds-input slds-combobox__input slds-combobox__input-value"
-                                type="text" readonly value={field.inputValue} title={field.inputValue} data-field={field.key}
-                                onkeydown={handleSelectedLookupKey} />
-                            <lightning-button-icon class="slds-input__icon slds-input__icon_right" icon-name="utility:close"
-                                variant="bare" alternative-text={field.clearLabel} title={field.clearLabel}
-                                data-field={field.key} onclick={clearLookupSelection}></lightning-button-icon>
-                        </div>
-                        <div lwc:else class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
-                            <input id={field.key} class="slds-input" type="text" role="combobox"
-                                aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={field.open}
-                                aria-controls={field.listId} aria-activedescendant={field.activeId}
-                                autocomplete="off" data-field={field.key}
-                                value={field.inputValue} onfocus={openLookup} onclick={openLookup}
-                                oninput={searchFilterOptions} onblur={closeLookup} onkeydown={handleLookupKey} />
-                            <lightning-icon class="slds-input__icon slds-input__icon_right"
-                                icon-name="utility:search" size="x-small"></lightning-icon>
-                        </div>
-                        <template lwc:if={field.open}>
-                            <div class="c-filter-dropdown slds-dropdown slds-dropdown_fluid">
-                                <ul id={field.listId} class="slds-listbox slds-listbox_vertical slds-dropdown_length-5"
-                                    role="listbox" aria-label={field.label} onmousedown={keepLookupFocus}>
-                                    <template for:each={field.options} for:item="option">
-                                        <li key={option.value} role="presentation">
-                                            <div id={option.id} class={option.className} role="option"
-                                                aria-selected={option.active} data-value={option.value} onclick={selectLookupOption}>
-                                                <span class="slds-media__body">
-                                                    <span class="slds-listbox__option-text slds-listbox__option-text_entity slds-show">{option.label}</span>
-                                                    <span lwc:if={option.code} class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-show">{option.code}</span>
-                                                </span>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
-                                <div lwc:if={optionsLoading} class="c-inline-status slds-p-horizontal_small slds-p-vertical_x-small">
-                                    <p role="status" class="slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>
-                                    <span class="c-inline-spinner">
-                                        <lightning-spinner size="small" alternative-text="絞り込み候補を取得中"></lightning-spinner>
-                                    </span>
+            <section class="slds-box slds-box_small" aria-label="検索条件">
+                <div class="filters">
+                    <lightning-combobox label="日付" data-field="day" value={selectedDay}
+                        options={dateOptions} onchange={changeFilter}></lightning-combobox>
+                    <template for:each={filterFields} for:item="field">
+                        <div key={field.key} class="c-search-lookup slds-form-element slds-is-relative">
+                            <template lwc:if={field.selected}>
+                                <span class="slds-form-element__label">{field.label}</span>
+                                <div class="c-selected-lookup slds-pill_container" role="group" aria-label={field.label}>
+                                    <lightning-pill name={field.key} label={field.inputValue} title={field.inputValue}
+                                        onremove={clearLookupSelection}>
+                                        <lightning-icon icon-name={field.selectedIcon} alternative-text={field.label}></lightning-icon>
+                                    </lightning-pill>
                                 </div>
-                                <p lwc:elseif={field.noMatches} role="status" class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">候補がありません。</p>
-                            </div>
-                        </template>
-                    </div>
+                            </template>
+                            <template lwc:else>
+                                <label class="slds-form-element__label" for={field.key}>{field.label}</label>
+                                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right">
+                                    <input id={field.key} class="slds-input" type="text" role="combobox"
+                                        aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={field.open}
+                                        aria-controls={field.listId} aria-activedescendant={field.activeId}
+                                        autocomplete="off" data-field={field.key}
+                                        value={field.inputValue} onfocus={openLookup} onclick={openLookup}
+                                        oninput={searchFilterOptions} onblur={closeLookup} onkeydown={handleLookupKey} />
+                                    <lightning-icon class="slds-input__icon slds-input__icon_right"
+                                        icon-name="utility:search" size="x-small"></lightning-icon>
+                                </div>
+                            </template>
+                            <template lwc:if={field.open}>
+                                <div class="c-filter-dropdown slds-dropdown slds-dropdown_fluid">
+                                    <ul id={field.listId} class="slds-listbox slds-listbox_vertical slds-dropdown_length-5"
+                                        role="listbox" aria-label={field.label} onmousedown={keepLookupFocus}>
+                                        <template for:each={field.options} for:item="option">
+                                            <li key={option.value} role="presentation">
+                                                <div id={option.id} class={option.className} role="option"
+                                                    aria-selected={option.active} data-value={option.value} onclick={selectLookupOption}>
+                                                    <span class="slds-media__body">
+                                                        <span class="slds-listbox__option-text slds-listbox__option-text_entity slds-show">{option.label}</span>
+                                                        <span lwc:if={option.code} class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-show">{option.code}</span>
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                    <div lwc:if={optionsLoading} class="c-inline-status slds-p-horizontal_small slds-p-vertical_x-small">
+                                        <p role="status" class="slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>
+                                        <span class="c-inline-spinner">
+                                            <lightning-spinner size="small" alternative-text="絞り込み候補を取得中"></lightning-spinner>
+                                        </span>
+                                    </div>
+                                    <p lwc:elseif={field.noMatches} role="status" class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">候補がありません。</p>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <lightning-button class="slds-m-top_small slds-show_inline-block" label="検索" variant="brand" onclick={search}></lightning-button>
+                <template lwc:if={optionsError}>
+                    <p role="alert" class="slds-text-color_error slds-m-top_small">絞り込み候補を取得できませんでした。</p>
+                    <lightning-button label="候補を再取得" onclick={readFilterOptions}></lightning-button>
                 </template>
-            </div>
-            <lightning-button class="slds-m-top_small slds-show_inline-block" label="検索" variant="brand" onclick={search}></lightning-button>
-            <template lwc:if={optionsError}>
-                <p role="alert" class="slds-text-color_error slds-m-top_small">絞り込み候補を取得できませんでした。</p>
-                <lightning-button label="候補を再取得" onclick={readFilterOptions}></lightning-button>
-            </template>
+            </section>
             <template lwc:if={monthTotalError}>
                 <lightning-button class="slds-m-top_small" label="総件数を再取得" onclick={readMonthTotal}></lightning-button>
             </template>

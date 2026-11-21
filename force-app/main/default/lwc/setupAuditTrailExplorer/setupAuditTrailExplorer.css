@@ -25,6 +25,16 @@
     text-overflow: ellipsis;
 }
 
+.c-selected-lookup {
+    display: flex;
+    align-items: center;
+    min-height: var(--slds-g-sizing-8, 2rem);
+}
+
+.c-selected-lookup lightning-pill {
+    min-width: 0;
+}
+
 .c-filter-dropdown {
     display: block;
 }

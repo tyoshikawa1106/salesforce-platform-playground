@@ -53,9 +53,9 @@ function mount() {
 
 async function chooseLookup(component, field, value) {
     const root = component.shadowRoot;
-    const clear = root.querySelector(`lightning-button-icon[data-field="${field}"]`);
+    const clear = Array.from(root.querySelectorAll('lightning-pill')).find(pill => pill.name === field);
     if (clear) {
-        clear.click();
+        clear.dispatchEvent(new CustomEvent('remove', { detail: { name: field } }));
         await flush();
     }
     if (!value) {
@@ -140,7 +140,8 @@ it('loads candidates on demand and applies selected filters only on search', asy
     await chooseLookup(component, 'namespacePrefix', '');
     await search(component);
     expect(component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').value).toBe('');
-    component.shadowRoot.querySelector('input[data-field="delegateUser"]').click();
+    expect([...component.shadowRoot.querySelectorAll('lightning-pill')].find(pill => pill.name === 'delegateUser').label).toBe('代理ユーザー');
+    component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').click();
     await flush();
     expect(loadFilterOptions).toHaveBeenCalledTimes(2);
     expect(load.request.mock.lastCall[0].input).not.toHaveProperty('namespacePrefix');
@@ -164,7 +165,7 @@ it('shows raw action codes and month users', async () => {
     expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.invalid');
     userOption.click();
     await flush();
-    expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('audit@example.invalid');
+    expect([...component.shadowRoot.querySelectorAll('lightning-pill')].find(pill => pill.name === 'userId').label).toBe('audit@example.invalid');
     expect(component.shadowRoot.textContent).not.toContain(userId);
     const action = component.shadowRoot.querySelector('input[data-field="action"]');
     action.click();
@@ -176,9 +177,11 @@ it('shows raw action codes and month users', async () => {
     expect(option.textContent).toContain('filteredLookupActivate');
     option.click();
     await flush();
-    const selectedAction = component.shadowRoot.querySelector('input[data-field="action"]');
-    expect(selectedAction.value).toBe('filteredLookupActivate');
-    expect(selectedAction.readOnly).toBe(true);
+    const selectedAction = [...component.shadowRoot.querySelectorAll('lightning-pill')].find(pill => pill.name === 'action');
+    expect(selectedAction.label).toBe('filteredLookupActivate');
+    const box = selectedAction.closest('section.slds-box');
+    expect(box.querySelectorAll('lightning-pill')).toHaveLength(2);
+    expect([...box.querySelectorAll('lightning-button')].some(button => button.label === '検索')).toBe(true);
     await search(component);
     expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ userId, action: 'filteredLookupActivate' }) });
 

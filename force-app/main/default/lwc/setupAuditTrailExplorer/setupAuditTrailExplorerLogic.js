@@ -252,8 +252,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
             return {
                 key, label, open: false, selected: Boolean(selected),
                 inputValue: selected ? (key === 'userId' ? userOptions[selected] || labelFor(selected) : labelFor(selected)) : '',
-                clearLabel: label + 'の選択を解除',
-                selectedIcon: key === 'userId' ? 'standard:user' : 'standard:custom'
+                selectedIcon: ['userId', 'delegateUser'].includes(key) ? 'standard:user' : 'standard:custom'
             };
         }
 

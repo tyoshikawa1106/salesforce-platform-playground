@@ -544,6 +544,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     renderedCallback() {
         // 本文の表示位置に高さを合わせる。
         this.fitHistoryViewport();
+        // ピルの解除後は再表示された入力欄で続けて候補を選べるようにする。
+        if (this.lookupToFocus) {
+            const input = this.template.querySelector(`input[data-field="${this.lookupToFocus}"]`);
+            this.lookupToFocus = null;
+            input?.focus();
+        }
         // キーボードで候補を移動した場合に位置を調整する。
         if (this.lookupIndex >= 0) {
             // 選択した候補が一覧内に見えるようにする。
@@ -573,18 +579,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 選択を解除したあとも検索を押すまで確定済みの条件を保持する。
     clearLookupSelection(event) {
         // 候補を空にし、未指定の条件へ戻す。
-        this.applyFilter(event.currentTarget.dataset.field, null);
-    }
-
-    // 選択済みの項目をキーボードで解除する。
-    handleSelectedLookupKey(event) {
-        // 削除操作を選択解除として扱う。
-        if (event.key === 'Delete' || event.key === 'Backspace') {
-            // ブラウザーの既定の削除操作を抑える。
-            event.preventDefault();
-            // 操作対象の条件を未選択に戻す。
-            this.clearLookupSelection(event);
-        }
+        this.lookupToFocus = event.detail.name;
+        this.applyFilter(this.lookupToFocus, null);
     }
 
     // 日付欄の選択を検索条件に渡す。
