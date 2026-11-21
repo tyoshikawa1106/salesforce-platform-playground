@@ -8,7 +8,7 @@ import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerControll
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    collectLoginAsPairs, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
+    collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -391,12 +391,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             } while (cursor.nextId);
             if (logins.length) {
                 const isCurrent = () => request === this.optionsRequest;
-                const actors = this.screenActors ?? await this.readActors(null, isCurrent);
+                const actors = await this.actorsForLogins(logins, isCurrent);
                 if (!isCurrent()) {
                     return;
                 }
                 for (const row of logins) {
-                    const actor = actors.get(row.Id) ?? row;
+                    const actor = actors?.get(row.Id) ?? row;
                     if (actor.CreatedById && actor.CreatedBy?.Username) {
                         users[actor.CreatedById] = actor.CreatedBy.Username;
                         names[actor.CreatedById] = actor.CreatedBy.Name;
@@ -833,6 +833,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return page;
     }
 
+    // 分析・候補用の代理ログインには本文がないため、作成者だけで照合要否を判定する。
+    actorsForLogins(logins, isCurrent) {
+        // 作成者が既に判明している行だけなら保持期間全体の取得を省く。
+        return this.screenActors ?? (logins.some(hasDelegateAsCreator) ? this.readActors(null, isCurrent) : undefined);
+    }
+
     // 保持期間全体でログインとログアウトを照合し、完了した結果だけを返す。
     async readActors(cutoff, isCurrent) {
         const pairs = new Map();
@@ -1072,7 +1078,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 cursor = recordIds ? { nextId: offset < this.matchingIds.length } : pageCursor(result);
             } while (cursor.nextId);
             if (logins.length) {
-                const actors = this.screenActors ?? await this.readActors(null, isCurrent);
+                const actors = await this.actorsForLogins(logins, isCurrent);
                 if (!isCurrent()) {
                     return;
                 }
@@ -1083,18 +1089,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.buckets = [...totals.values()];
             // 全件の分析が完了した月だけ、分析結果を候補一覧に再利用する。
             if (!this.hasFilters && !this.filterOptions) {
-                // 集計済みの履歴から項目別の候補を作る。
-                const groups = filterOptionGroups();
-                // 全集計行の候補を重複なく収集する。
-                collectFilterOptions(groups, this.buckets);
-                // ログイン名で検索できるようユーザーIDに対応付ける。
-                this.userOptions = Object.fromEntries(this.buckets
-                    .filter(bucket => bucket.userId && bucket.loginName)
-                    .map(bucket => [bucket.userId, bucket.loginName]));
-                // 表示名で検索できるようユーザーIDに対応付ける。
-                this.userNames = Object.fromEntries(this.buckets
-                    .filter(bucket => bucket.userId && bucket.userName)
-                    .map(bucket => [bucket.userId, bucket.userName]));
+                // 集計行を一度走査して項目候補とユーザーの両方を取得する。
+                const options = collectFilterOptions(this.buckets);
+                // ログイン名と表示名で検索できるようにする。
+                this.userOptions = options.userOptions;
+                this.userNames = options.userNames;
                 // 並行していた候補取得の応答を無効にする。
                 this.optionsRequest += 1;
                 // 集計結果からの候補作成を完了する。
@@ -1102,7 +1101,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 // 分析結果で候補が揃ったため以前の取得エラーを解消する。
                 this.optionsError = false;
                 // 表示順に並べた候補を検索欄へ渡す。
-                this.filterOptions = sortFilterOptions(groups);
+                this.filterOptions = options.filterOptions;
             }
             // 全ページを取得した分析結果を再利用可能にする。
             this.chartReady = true;

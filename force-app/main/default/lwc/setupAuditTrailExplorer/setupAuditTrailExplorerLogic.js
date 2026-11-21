@@ -4,11 +4,13 @@ import LANG from '@salesforce/i18n/lang';
 // 月別・全期間で同じ順に列を出力する。
 export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
 
+// 月移動ボタンの再描画でも同じタイムゾーンと書式を使う。
+const MONTH_FORMAT = new Intl.DateTimeFormat('en', { year: 'numeric', month: '2-digit', timeZone: TIME_ZONE });
+
 // 月選択の基準を実行ユーザーの暦に合わせる。
 export function currentMonth() {
     // 年と月を別々に取り出し、実行環境の日付順序に依存しないようにする。
-    const parts = new Intl.DateTimeFormat('en', { year: 'numeric', month: '2-digit', timeZone: TIME_ZONE })
-        .formatToParts(new Date());
+    const parts = MONTH_FORMAT.formatToParts(new Date());
     // 月選択値と同じ年・月形式に揃える。
     return parts.find(part => part.type === 'year').value + '-' + parts.find(part => part.type === 'month').value;
 }
@@ -46,9 +48,20 @@ export function filterOptionGroups() {
 }
 
 // 分析済みの履歴を検索候補にも利用する。
-export function collectFilterOptions(groups, buckets) {
+export function collectFilterOptions(buckets) {
+    // 項目候補とユーザーの検索情報を同じ走査で集める。
+    const groups = filterOptionGroups();
+    const userOptions = {};
+    const userNames = {};
     // 各集計行から候補値を取り出す。
     for (const bucket of buckets) {
+        // ログイン名と表示名は取得できたものを個別に保持する。
+        if (bucket.userId && bucket.loginName) {
+            userOptions[bucket.userId] = bucket.loginName;
+        }
+        if (bucket.userId && bucket.userName) {
+            userNames[bucket.userId] = bucket.userName;
+        }
         // 検索可能な項目だけを調べる。
         for (const field of FILTER_OPTION_FIELDS) {
             // 未設定値は選択候補から外す。
@@ -58,6 +71,8 @@ export function collectFilterOptions(groups, buckets) {
             }
         }
     }
+    // 全集計行を読み終えてから候補を表示順に揃える。
+    return { userOptions, userNames, filterOptions: sortFilterOptions(groups) };
 }
 
 // 収集済みの候補を画面用の並びに整える。
@@ -97,11 +112,16 @@ function loginAsKey(delegate, target) {
     return JSON.stringify([delegate.toLowerCase(), target]);
 }
 
+// 作成者に代理ユーザー自身が記録されたログインだけが照合の対象になる。
+export function hasDelegateAsCreator(row) {
+    // 履歴とユーザーのログイン名の大文字小文字を区別しない。
+    return Boolean(row.DelegateUser) && row.CreatedBy?.Username?.toLowerCase() === row.DelegateUser.toLowerCase();
+}
+
 // 作成者に代理ユーザー自身が記録された日本語の代理ログインだけを照合する。
 export function needsLoginAsUser(row) {
     // 通常の作成者や、許可元を既に取得できた履歴には補正を行わない。
-    return row.Action === 'suOrgAdminLogin' && Boolean(row.DelegateUser) &&
-        row.CreatedBy?.Username?.toLowerCase() === row.DelegateUser.toLowerCase() && row.Display?.endsWith(LOGIN_SUFFIX);
+    return row.Action === 'suOrgAdminLogin' && hasDelegateAsCreator(row) && row.Display?.endsWith(LOGIN_SUFFIX);
 }
 
 // 同じ代理人・対象の履歴を新しい順に読み、各ログインの直後のログアウトを記録する。
@@ -241,7 +261,7 @@ export function buildDateOptions(monthDate) {
 export function buildFilterFields({ userOptions, userNames, filterOptions, selectedValues, lookupField, lookupTerm, lookupIndex }) {
     // ユーザー・名前空間・操作・代理ユーザーに対応する欄を作る。
     return [
-        { key: 'userId', label: 'ユーザー', values: Object.keys(userOptions) },
+        { key: 'userId', label: 'ユーザー' },
         { key: 'namespacePrefix', label: '名前空間プレフィックス', values: filterOptions?.namespacePrefix },
         { key: 'action', label: 'アクション', values: filterOptions?.action },
         { key: 'section', label: 'セクション', values: filterOptions?.section },
@@ -281,7 +301,7 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
         // 大文字小文字と前後の空白を無視して検索する。
         const term = lookupTerm.trim().toLocaleLowerCase();
         // 未取得の項目も空の候補として扱う。
-        const candidates = values ?? [];
+        const candidates = key === 'userId' ? Object.keys(userOptions) : values ?? [];
         // ラベルに加えユーザーはIDとログイン名でも探せるようにする。
         const matches = term
             ? candidates.filter(value => labelFor(value).toLocaleLowerCase().includes(term) ||
@@ -336,7 +356,7 @@ const DAY_FORMAT = new Intl.DateTimeFormat('en-CA', {
 });
 
 export function loginBucket(row, actors) {
-    const actor = actors.get(row.Id) ?? row;
+    const actor = actors?.get(row.Id) ?? row;
     return {
         day: DAY_FORMAT.format(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
         loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
