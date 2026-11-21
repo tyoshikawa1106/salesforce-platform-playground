@@ -582,17 +582,16 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
-    // フィルターの折り返しやウィンドウの高さに合わせて本文の表示域を調整する。
+    // 表自体に一画面を使えるよう、Salesforce の本文が始まる位置だけを高さから除く。
     fitHistoryViewport = () => {
-        // 本文のスクロール領域を探す。
-        const viewport = this.template.querySelector('.c-history-viewport');
-        // 本文が表示されている場合だけ寸法を取得する。
-        if (viewport) {
-            // 本文上端の位置を画面内に収める。
-            const top = Math.round(Math.max(0, viewport.getBoundingClientRect().top));
-            // 表示域の高さ計算に上端の位置を渡す。
-            viewport.style.setProperty('--c-history-top', top + 'px');
+        const main = this.template.querySelector('main');
+        // 非表示のコンポーネントでは本文の開始位置を計測できない。
+        if (!main?.getClientRects().length) {
+            return;
         }
+        // 文書座標で計測し、検索条件の高さやページのスクロール量で表の高さが変わるのを防ぐ。
+        const inset = Math.ceil(main.getBoundingClientRect().top + window.scrollY);
+        main.style.setProperty('--c-history-page-inset', Math.max(0, inset) + 'px');
     };
 
     // クリックした候補を入力中の条件に反映する。
