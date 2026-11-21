@@ -535,7 +535,7 @@ it.each([true, false])('clears the filter candidate spinner after loading (succe
     expect(root.querySelector('lightning-spinner')).toBeNull();
 });
 
-it('shows the CSV actor and action on screen and indexes the section across source pages', async () => {
+it('shows actor and delegate names on screen and indexes the section across source pages', async () => {
     const target = { Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
         CreatedDate: '2026-11-02T03:00:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin', Section: 'ログイン' };
     const logout = { ...target, Id: 'logout', Action: 'suOrgAdminLogout', Display: '対象 のログインアクセスを使用してログアウト済み',
@@ -551,19 +551,20 @@ it('shows the CSV actor and action on screen and indexes the section across sour
         if (input.chart) {
             return { buckets: [], records: [target] };
         }
-        return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'] };
+        return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'], delegateNames: { admin: '管理者' } };
     });
     const component = mount();
     await flush();
     const table = () => component.shadowRoot.querySelector('lightning-datatable');
-    expect(table().data.map(row => row.displayedUser)).toEqual(['target', '株式会社セールスフォース・ジャパン']);
+    expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '株式会社セールスフォース・ジャパン']);
+    expect(table().data.map(row => row.displayedDelegate)).toEqual(['管理者', undefined]);
     expect(table().data[1].displayedAction).toContain('アーカイブジョブセッション');
     await chooseLookup(component, 'section', 'ログイン');
     await chooseLookup(component, 'userId', 'targetId');
     await search(component);
     await flush();
     expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ recordIds: ['logout', 'login'] }) });
-    expect(table().data.map(row => row.displayedUser)).toEqual(['target', 'target']);
+    expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '対象']);
     expect(countMatches.request).not.toHaveBeenCalled();
     const chartTab = [...component.shadowRoot.querySelectorAll('lightning-tab')].find(tab => tab.value === 'chart');
     chartTab.dispatchEvent(new CustomEvent('active'));

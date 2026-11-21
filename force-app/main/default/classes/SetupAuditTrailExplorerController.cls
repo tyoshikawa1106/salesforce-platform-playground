@@ -119,13 +119,21 @@ public with sharing class SetupAuditTrailExplorerController {
             criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
         );
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
-        // 従業員操作の候補がある表示ページだけ、CSVと同じ作成者の根拠を照会する。
+        // 表示ページに含まれる代理ユーザーだけをまとめて氏名に変換する。
+        Set<String> delegates = new Set<String>();
+        Boolean needsEmployeeActors = false;
         for (SetupAuditTrail row : wrapper.records) {
             if (row.CreatedById != null && String.isBlank(row.CreatedBy?.Username)) {
-                wrapper.employeeActorIds = employeeActors();
-                break;
+                needsEmployeeActors = true;
+            }
+            if (String.isNotBlank(row.DelegateUser)) {
+                delegates.add(row.DelegateUser);
             }
         }
+        if (needsEmployeeActors) {
+            wrapper.employeeActorIds = employeeActors();
+        }
+        wrapper.delegateNames = SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
         return wrapper;
     }
 

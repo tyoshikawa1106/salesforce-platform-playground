@@ -24,6 +24,21 @@ public with sharing class SetupAuditTrailExplorerSelector {
         public Datetime endAt;
     }
 
+    /**
+     * 表示ページの代理ユーザーを、閲覧できるユーザーの氏名に対応付ける。
+     * @param usernames ページに含まれる代理ユーザーのログイン名。
+     * @return 小文字のログイン名をキーにした氏名。
+     */
+    public static Map<String, String> selectDelegateNames(Set<String> usernames) {
+        Map<String, String> names = new Map<String, String>();
+        if (!usernames.isEmpty()) {
+            for (User delegate : [SELECT Username, Name FROM User WHERE Username IN :usernames WITH USER_MODE]) {
+                names.put(delegate.Username.toLowerCase(), delegate.Name);
+            }
+        }
+        return names;
+    }
+
     public enum Projection { DETAIL, CHART, OPTIONS, CSV, LOGIN_AS, MATCH_INDEX }
 
     /**

@@ -1,5 +1,22 @@
 @IsTest
 private class SetupAuditTrailExplorerSelectorTest {
+    @IsTest
+    static void resolvesDelegateNamesByUsername() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            User viewer = [SELECT Name, Username FROM User WHERE Id = :UserInfo.getUserId() WITH USER_MODE];
+            Test.startTest();
+            Map<String, String> names = SetupAuditTrailExplorerSelector.selectDelegateNames(
+                new Set<String>{viewer.Username.toUpperCase(), 'unknown@example.invalid'}
+            );
+            Integer queries = Limits.getQueries();
+            Map<String, String> empty = SetupAuditTrailExplorerSelector.selectDelegateNames(new Set<String>());
+            Assert.areEqual(queries, Limits.getQueries(), '代理操作のないページでは照会しません。');
+            Test.stopTest();
+            Assert.areEqual(new Map<String, String>{viewer.Username.toLowerCase() => viewer.Name}, names, '照合できたユーザーの氏名だけを返します。');
+            Assert.isTrue(empty.isEmpty(), '代理操作がなければ氏名も空です。');
+        }
+    }
+
     /** 照合用の取得は代理ログイン・ログアウトに限定する。 */
     @IsTest
     static void selectsOnlyDelegatedHistory() {

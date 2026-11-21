@@ -151,12 +151,8 @@ export function loginAsActors(pairs) {
     return actors;
 }
 
-// 履歴一覧とCSVで同じユーザー名を表示する。
-export function displayUser(row, employeeActorIds, actors) {
-    const logout = actors?.get(row.Id);
-    if (logout && needsLoginAsUser(row)) {
-        return logout.CreatedBy.Username;
-    }
+// システムによる操作に対応する日本語ラベルを返す。
+function systemActorLabel(row, employeeActorIds) {
     // 日本語の自動化プロセスには標準CSVの種別名を出す。
     if (LANG.startsWith('ja') && row.CreatedBy?.UserType === 'AutomatedProcess') {
         // 自動化プロセスの内部ログイン名を表示名に変換する。
@@ -167,8 +163,25 @@ export function displayUser(row, employeeActorIds, actors) {
         // 日本語の標準CSVでのSalesforce側の実行主体を表す。
         return '株式会社セールスフォース・ジャパン';
     }
-    // 一般ユーザーと代理ログインはAPIで確認できたログイン名を保持する。
-    return row.CreatedBy?.Username;
+    return undefined;
+}
+
+// CSVには標準出力に合わせたログイン名を使用する。
+function csvUser(row, employeeActorIds, actors) {
+    const logout = actors?.get(row.Id);
+    return logout && needsLoginAsUser(row) ? logout.CreatedBy.Username :
+        systemActorLabel(row, employeeActorIds) || row.CreatedBy?.Username;
+}
+
+// 履歴の本人と代理ユーザーを独立して氏名に変換し、照合できない場合は元の表記を保持する。
+export function historyRow(row, employeeActorIds, actors, delegateNames) {
+    const actor = actors?.get(row.Id) ?? row;
+    return {
+        ...row,
+        displayedUser: actor.CreatedBy?.Name || systemActorLabel(actor, employeeActorIds) || actor.CreatedBy?.Username,
+        displayedDelegate: delegateNames?.[row.DelegateUser?.toLowerCase()] ?? row.DelegateUser,
+        displayedAction: displayAction(row)
+    };
 }
 
 // 権限セットのオブジェクト権限変更に限り、本文の対象オブジェクト名を整える。
@@ -205,7 +218,7 @@ export function formatCsvPage(records, employeeActorIds = new Set(), actors) {
             formattedDate = CSV_DATE_FORMAT.format(new Date(lastDate));
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
-        return [formattedDate, displayUser(row, employeeActorIds, actors), row.ResponsibleNamespacePrefix,
+        return [formattedDate, csvUser(row, employeeActorIds, actors), row.ResponsibleNamespacePrefix,
             displayAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }

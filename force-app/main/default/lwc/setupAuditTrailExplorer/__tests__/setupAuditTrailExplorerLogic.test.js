@@ -1,4 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, loginAsActors } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage, historyRow, loginAsActors } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -67,4 +67,13 @@ it('formats only identified actors and the object name in a permission-set chang
         '"2026/11/18 9:00:00 JST","visible","","' + permission + '","",""',
         '"2026/11/18 9:00:00 JST","","","' + permission.replace(': WebCartDocument', ': OtherObject') + '","",""'
     ]);
+});
+
+it('keeps history display names separate from CSV logins and preserves an unresolved delegate', () => {
+    const row = { ...logout, DelegateUser: 'Admin' };
+    expect(historyRow(row, new Set(), undefined, { admin: '管理者' })).toMatchObject({
+        displayedUser: '対象', displayedDelegate: '管理者'
+    });
+    expect(historyRow(row, new Set(), undefined, {}).displayedDelegate).toBe('Admin');
+    expect(formatCsvPage([row])).toContain('"target","","' + row.Display + '","","Admin"');
 });

@@ -8,7 +8,7 @@ import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerControll
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    collectLoginAsPairs, displayUser, displayAction, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
+    collectLoginAsPairs, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -21,7 +21,7 @@ const COLUMNS = [
     { label: '名前空間プレフィックス', fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
     { label: 'アクション', fieldName: 'displayedAction', wrapText: true },
     { label: 'セクション', fieldName: 'Section', initialWidth: 240, wrapText: true },
-    { label: '代理ユーザー', fieldName: 'DelegateUser', initialWidth: 175, wrapText: true }
+    { label: '代理ユーザー', fieldName: 'displayedDelegate', initialWidth: 175, wrapText: true }
 ].map(column => ({
     ...column,
     hideDefaultActions: true,
@@ -884,7 +884,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return ids;
     }
 
-    // 通常の一覧にもCSVと同じ作成者とアクションを組み立てる。
+    // 照合した利用者と代理ユーザーの氏名を履歴一覧に表示する。
     async showDetailPage(result, cursor, isCurrent) {
         if (!this.screenActors && result.records.some(needsLoginAsUser)) {
             const actors = await this.readActors(null, isCurrent);
@@ -894,9 +894,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.screenActors = actors;
         }
         const employees = new Set(result.employeeActorIds);
-        this.records = result.records.map(row => ({
-            ...row, displayedUser: displayUser(row, employees, this.screenActors), displayedAction: displayAction(row)
-        }));
+        this.records = result.records.map(row => historyRow(row, employees, this.screenActors, result.delegateNames));
         if (!this.usesMatchIndex) {
             this.rememberNextPage(cursor);
         }
