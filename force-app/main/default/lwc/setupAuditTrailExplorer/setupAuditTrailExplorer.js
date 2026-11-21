@@ -4,10 +4,11 @@ import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.cou
 import countMonth from '@salesforce/apex/SetupAuditTrailExplorerController.countMonth';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
+import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    filterOptionGroups, formatCsvPage, mergeChartPage, offsetMonth, pageCursor, sortFilterOptions
+    collectLoginAsPairs, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -772,6 +773,37 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
+    // 代理ログインを初めて含む明細ページでだけ照合を開始する。
+    async readCsvPage(fetchPage, query, request, context) {
+        // 月別・全期間の既存のページ境界と再試行を共通で使う。
+        const page = await this.readExportPage(fetchPage, query, request);
+        // 離脱後や照合済みの出力では追加の要求を送らない。
+        if (request === this.exportRequest && !context.loginAsPairs && page.records.some(needsLoginAsUser)) {
+            // 出力ごとに独立した照合結果を全明細ページで共有する。
+            context.loginAsPairs = new Map();
+            // 全期間では明細と同じ上限、月別では組織時刻を使って月外も照合する。
+            await this.readLoginAsPairs({ cutoff: page.cutoff ?? null }, request, context.loginAsPairs);
+        }
+        // 明細の追加前に呼び出し元で要求の有効性を再確認する。
+        return page;
+    }
+
+    // 保持期間内の代理ログイン・ログアウトだけをページ順に取り込む。
+    async readLoginAsPairs(query, request, pairs) {
+        // 一時的な通信障害は同じ照合ページを再取得する。
+        const page = await this.readExportPage(loadLoginAsHistory, query, request);
+        // 中断した出力では集計と次ページの要求を打ち切る。
+        if (request !== this.exportRequest) {
+            return;
+        }
+        // 後続ページで重複が見つかる場合も含めて候補を集計する。
+        collectLoginAsPairs(pairs, page.records);
+        // 固定した取得上限を最後の照合ページまで引き継ぐ。
+        if (page.nextId) {
+            await this.readLoginAsPairs({ cutoff: page.cutoff, ...pageCursor(page) }, request, pairs);
+        }
+    }
+
     // 表示月の全履歴をCSVにする。
     exportMonth() {
         // 出力を開始した時刻で月別CSVを識別する。
@@ -806,6 +838,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const chunks = ['\uFEFF', CSV_HEADER];
         // 今回の出力だけで使う作成者の照合結果を保持する。
         let employeeActorIds = new Set();
+        // 代理ログインの照合結果はこの出力が終了するまで共有する。
+        const context = {};
         // 最初のページは境界を指定しない。
         let cursor = {};
         // 取得完了まで追加の出力操作を止める。
@@ -819,7 +853,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             do {
                 // 次のページは直前の応答が返す境界から取得する。
                 // eslint-disable-next-line no-await-in-loop
-                const result = await this.readExportPage(fetchPage, { ...query, ...cursor }, request);
+                const result = await this.readCsvPage(fetchPage, { ...query, ...cursor }, request, context);
                 // 離脱後のページが届いたかを確認する。
                 if (request !== this.exportRequest) {
                     // 中断済みのCSVの生成を終了する。
@@ -831,7 +865,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     employeeActorIds = new Set(result.employeeActorIds);
                 }
                 // 月別と全期間で共通の書式を使って明細を追加する。
-                chunks.push(formatCsvPage(result.records, employeeActorIds));
+                chunks.push(formatCsvPage(result.records, employeeActorIds, context.loginAsPairs));
                 // 今回のページで取得が完了した件数を加算する。
                 this.exportedRows += result.records.length;
                 // 次回要求に日時とIDの境界を引き継ぐ。

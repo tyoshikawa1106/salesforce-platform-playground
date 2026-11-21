@@ -86,8 +86,74 @@ const PERMISSION_OBJECT_LABELS = new Map([
     ['WebCartDocument', 'Web Cart Documents']
 ]);
 
+// 操作別の定型部分を取り除き、ログインとログアウトの対象表示名を比較する。
+const LOGIN_SUFFIX = ' のログインアクセスを使用してログイン済み';
+// ログアウト行の本文に記録された許可元の表示名を取り出す。
+const LOGOUT_SUFFIX = ' のログインアクセスを使用してログアウト済み';
+
+// 代理ユーザー名の大文字小文字を揃え、対象表示名を完全一致で照合する。
+function loginAsKey(delegate, target) {
+    // 名前に区切り文字が含まれても異なる組を混同しないようにする。
+    return JSON.stringify([delegate.toLowerCase(), target]);
+}
+
+// 作成者に代理ユーザー自身が記録された日本語の代理ログインだけを照合する。
+export function needsLoginAsUser(row) {
+    // 通常の作成者や、許可元を既に取得できた履歴には補正を行わない。
+    return row.Action === 'suOrgAdminLogin' && Boolean(row.DelegateUser) &&
+        row.CreatedBy?.Username?.toLowerCase() === row.DelegateUser.toLowerCase() && row.Display?.endsWith(LOGIN_SUFFIX);
+}
+
+// 同じ代理人・対象の履歴を新しい順に読み、各ログインの直後のログアウトを記録する。
+export function collectLoginAsPairs(pairs, records) {
+    for (const row of records) {
+        // 日本語の本文で確認できる対象名は空白や記号を含めて比較する。
+        const login = row.Action === 'suOrgAdminLogin';
+        const suffix = login ? LOGIN_SUFFIX : LOGOUT_SUFFIX;
+        if (!row.DelegateUser || !row.Display?.endsWith(suffix) || row.Display.length === suffix.length) {
+            continue;
+        }
+        const target = row.Display.slice(0, -suffix.length);
+        const key = loginAsKey(row.DelegateUser, target);
+        const group = pairs.get(key) ?? { byLogin: new Map(), previousTime: Infinity };
+        pairs.set(key, group);
+        // 同時刻や順序の逆転、操作の重なりがある組に許可元を割り当てない。
+        const time = Date.parse(row.CreatedDate);
+        if (group.ambiguous || !(time < group.previousTime) || login !== Boolean(group.logout)) {
+            group.ambiguous = true;
+            continue;
+        }
+        group.previousTime = time;
+        if (login) {
+            // 作成者の表示名も本文に一致したログアウトだけをこのログインに対応付ける。
+            if (group.logout.CreatedBy?.Name === target) {
+                group.byLogin.set(row.Id, group.logout);
+            }
+            group.logout = null;
+        } else {
+            group.logout = row;
+        }
+    }
+}
+
 // 日本語の標準表示に対応できるユーザー種別と作成者だけを整形する。
-function csvUser(row, employeeActorIds) {
+function csvUser(row, employeeActorIds, loginAsPairs) {
+    // 同じ代理人・対象の操作が時系列で対応することを確認する。
+    if (row.Id && row.CreatedById && needsLoginAsUser(row)) {
+        // 本文の対象名を正確に照合し、同名の別の代理人による操作を除く。
+        const key = loginAsKey(row.DelegateUser, row.Display.slice(0, -LOGIN_SUFFIX.length));
+        // 同じ履歴IDのログインに対応するログアウトだけを調べる。
+        const group = loginAsPairs?.get(key);
+        // 許可元の作成者IDとログイン名がそろった後続操作だけを採用する。
+        const logout = group && !group.ambiguous && !group.logout && group.byLogin.get(row.Id);
+        // 同時刻や逆順の行、代理人自身の作成者情報では置き換えない。
+        if (logout?.CreatedById && logout.CreatedById !== row.CreatedById &&
+            logout.CreatedBy?.Username && logout.CreatedBy.Username.toLowerCase() !== row.DelegateUser.toLowerCase() &&
+            Date.parse(logout.CreatedDate) > Date.parse(row.CreatedDate)) {
+            // 確認できた許可元のログイン名を「ユーザー」列へ渡す。
+            return logout.CreatedBy.Username;
+        }
+    }
     // 日本語の自動化プロセスには標準CSVの種別名を出す。
     if (LANG.startsWith('ja') && row.CreatedBy?.UserType === 'AutomatedProcess') {
         // 自動化プロセスの内部ログイン名を表示名に変換する。
@@ -121,7 +187,7 @@ function csvCell(value) {
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
-export function formatCsvPage(records, employeeActorIds = new Set()) {
+export function formatCsvPage(records, employeeActorIds = new Set(), loginAsPairs) {
     // 同じ秒に続く履歴で日時の書式変換を共有する。
     let lastDate;
     // 直前の履歴に対応する日時文字列を保持する。
@@ -136,7 +202,7 @@ export function formatCsvPage(records, employeeActorIds = new Set()) {
             formattedDate = CSV_DATE_FORMAT.format(new Date(lastDate));
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
-        return [formattedDate, csvUser(row, employeeActorIds), row.ResponsibleNamespacePrefix,
+        return [formattedDate, csvUser(row, employeeActorIds, loginAsPairs), row.ResponsibleNamespacePrefix,
             csvAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }

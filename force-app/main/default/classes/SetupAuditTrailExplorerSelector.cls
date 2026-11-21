@@ -22,7 +22,7 @@ public with sharing class SetupAuditTrailExplorerSelector {
         public Datetime endAt;
     }
 
-    public enum Projection { DETAIL, CHART, OPTIONS, CSV }
+    public enum Projection { DETAIL, CHART, OPTIONS, CSV, LOGIN_AS }
 
     /**
      * CSVの作成者を確認するため、保持期間内のSalesforce内部操作を取得する。
@@ -63,8 +63,14 @@ public with sharing class SetupAuditTrailExplorerSelector {
         if (fieldSet == Projection.CSV) {
             fields += ', Action, CreatedById, CreatedBy.UserType';
         }
+        if (fieldSet == Projection.LOGIN_AS) {
+            fields = 'Id, CreatedDate, Action, Display, DelegateUser, CreatedById, CreatedBy.Name, CreatedBy.Username';
+        }
         Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
         String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(criteria, binds);
+        if (fieldSet == Projection.LOGIN_AS) {
+            query += ' AND Action IN (\'suOrgAdminLogin\', \'suOrgAdminLogout\')';
+        }
         if (criteria.nextId != null && criteria.nextTime != null) {
             query += ' AND (CreatedDate < :nextTime OR (CreatedDate = :nextTime AND Id < :nextId))';
             binds.put('nextId', criteria.nextId);

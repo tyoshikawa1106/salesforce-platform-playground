@@ -1,7 +1,45 @@
-import { formatCsvPage } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
+
+const login = {
+    Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
+    CreatedDate: '2026-10-31T14:59:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin'
+};
+const logout = {
+    Id: 'logout', Action: 'suOrgAdminLogout', Display: '対象 のログインアクセスを使用してログアウト済み',
+    CreatedDate: '2026-10-31T15:01:00Z', CreatedById: 'user', CreatedBy: { Name: '対象', Username: 'target' }, DelegateUser: 'admin'
+};
+
+it.each([
+    ['unique across months and pages', [logout, login], 'target'],
+    ['no logout', [login], 'admin'],
+    ['different delegate', [{ ...logout, DelegateUser: 'other' }, login], 'admin'],
+    ['different target', [{ ...logout, CreatedBy: { Name: '別人', Username: 'other' } }, login], 'admin'],
+    ['missing actor ID', [{ ...logout, CreatedById: null }, login], 'admin'],
+    ['same timestamp', [{ ...logout, CreatedDate: login.CreatedDate }, login], 'admin'],
+    ['duplicate login', [logout, login, { ...login, Id: 'another' }], 'admin'],
+    ['duplicate logout', [logout, login, { ...logout, Id: 'another' }], 'admin']
+])('uses the verified login-as user only if unambiguous: %s', (description, rows, expected) => {
+    const pairs = new Map();
+    rows.forEach(row => collectLoginAsPairs(pairs, [row]));
+    expect(formatCsvPage([login], new Set(), pairs)).toBe(
+        '"2026/10/31 23:59:00 JST","' + expected + '","","' + login.Display + '","","admin"\n'
+    );
+});
+
+it('matches separate sessions of the same delegate and target across pages by login ID', () => {
+    const laterLogin = { ...login, Id: 'later', CreatedDate: '2026-11-02T03:00:00Z' };
+    const laterLogout = { ...logout, Id: 'laterLogout', CreatedDate: '2026-11-02T03:00:05Z',
+        CreatedById: 'anotherTarget', CreatedBy: { Name: '対象', Username: 'secondTarget' } };
+    const pairs = new Map();
+    collectLoginAsPairs(pairs, [laterLogout]);
+    collectLoginAsPairs(pairs, [laterLogin, logout]);
+    collectLoginAsPairs(pairs, [login]);
+    expect(formatCsvPage([laterLogin, login], new Set(), pairs).split('\n').slice(0, 2).map(line => line.split(',')[1]))
+        .toEqual(['"secondTarget"', '"target"']);
+});
 
 it('formats midnight and afternoon in local time and retains Unicode across line breaks', () => {
     const records = [

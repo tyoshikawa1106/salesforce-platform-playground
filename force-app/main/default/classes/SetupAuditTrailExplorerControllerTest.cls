@@ -1,5 +1,21 @@
 @IsTest
 private class SetupAuditTrailExplorerControllerTest {
+    /** 照合履歴の上限は未指定なら組織時刻で決まり、指定済みなら維持される。 */
+    @IsTest
+    static void fixesLoginAsHistoryCutoff() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Datetime past = Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0);
+            Test.startTest();
+            Datetime beforeRequest = System.now();
+            SetupAuditTrailExplorerWrapper first = SetupAuditTrailExplorerController.loadLoginAsHistory(null, null, null);
+            SetupAuditTrailExplorerWrapper historical = SetupAuditTrailExplorerController.loadLoginAsHistory(past, null, null);
+            Test.stopTest();
+            Assert.isTrue(first.cutoff >= beforeRequest && first.cutoff <= System.now(), '初回の取得上限は組織時刻です。');
+            Assert.areEqual(past, historical.cutoff, '指定した上限で照合します。');
+            Assert.isTrue(historical.records.isEmpty(), '指定日時以降の行を含みません。');
+        }
+    }
+
     @IsTest
     static void exportsEmptyMonthAsCsv() {
         System.runAs(new User(Id = UserInfo.getUserId())) {

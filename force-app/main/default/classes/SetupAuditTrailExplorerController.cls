@@ -68,6 +68,29 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     /**
+     * 月境界をまたぐ代理ログインを照合するため、保持期間内の入退場履歴だけを取得する。
+     * @param cutoff 照合上限。未指定なら初回の組織時刻。
+     * @param nextId 直前ページの境界レコードID。
+     * @param nextTime 直前ページの境界日時。
+     * @return 照合行、固定した上限と次のページ境界。
+     */
+    @AuraEnabled
+    public static SetupAuditTrailExplorerWrapper loadLoginAsHistory(Datetime cutoff, Id nextId, Datetime nextTime) {
+        SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
+        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
+        criteria.endAt = cutoff ?? System.now();
+        criteria.nextId = nextId;
+        criteria.nextTime = nextTime;
+        Integer sizeLimit = 200;
+        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+            criteria, SetupAuditTrailExplorerSelector.Projection.LOGIN_AS, sizeLimit + 1
+        );
+        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
+        wrapper.cutoff = criteria.endAt;
+        return wrapper;
+    }
+
+    /**
      * 対象月の履歴を用途に応じて分割取得する。
      * @param criteriaJson クライアントが指定した検索条件、用途、ページ境界。
      * @return 取得ページと続きのカーソル。

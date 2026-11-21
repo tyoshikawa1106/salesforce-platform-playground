@@ -4,6 +4,7 @@ import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.cou
 import countMonth from '@salesforce/apex/SetupAuditTrailExplorerController.countMonth';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
+import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => {
@@ -25,6 +26,7 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMatches', () 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadDistinctFilterOptions', () => ({ default: jest.fn() }), { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 beforeEach(() => {
@@ -75,6 +77,7 @@ afterEach(() => {
     document.body.replaceChildren();
     loadFilterOptions.mockReset();
     exportAllHistory.mockReset();
+    loadLoginAsHistory.mockReset();
     load.request.mockReset();
     countMonth.mockReset();
     countMatches.request.mockReset();
@@ -200,7 +203,8 @@ it('retries the same list page after a request fails', async () => {
 it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard date and newline formatting', async period => {
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
-    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
+    const downloaded = new Promise(resolve => download.mockImplementation(() => resolve()));
     const row = {
         CreatedDate: '2026-11-18T00:00:00.000Z',
         CreatedBy: { Username: 'audit@example.invalid' },
@@ -219,9 +223,15 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         await search(component);
         const exportPage = period === 'month' ? load.request : exportAllHistory;
         const serverCutoff = '2026-11-19T13:43:07.912Z';
+        const login = { ...row, Id: 'login', Action: 'suOrgAdminLogin', CreatedById: 'admin', CreatedBy: { Username: row.DelegateUser },
+            Display: '対象 のログインアクセスを使用してログイン済み' };
+        const logout = { ...row, Id: 'logout', Action: 'suOrgAdminLogout', CreatedById: 'target', CreatedDate: '2026-11-18T00:05:00Z',
+            CreatedBy: { Name: '対象', Username: 'target@example.invalid' }, Display: '対象 のログインアクセスを使用してログアウト済み' };
+        loadLoginAsHistory.mockResolvedValueOnce({ records: [logout], cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate })
+            .mockResolvedValueOnce({ records: [login], cutoff: serverCutoff });
         exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
             cutoff: period === 'all' ? serverCutoff : null, employeeActorIds: ['employee'] })
-            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }] });
+            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }, login], cutoff: period === 'all' ? serverCutoff : null });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
         expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
@@ -233,7 +243,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
         }
         clock.mockReturnValue(startedAt + 5000);
-        await flush();
+        await downloaded;
 
         const queries = period === 'month'
             ? load.request.mock.calls.slice(2).map(([request]) => request.input)
@@ -254,7 +264,12 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         });
         const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
         const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
-        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン'));
+        expect(loadLoginAsHistory.mock.calls.map(([query]) => query)).toEqual([
+            { cutoff: period === 'all' ? serverCutoff : null },
+            { cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate }
+        ]);
+        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン') +
+            '"2026/11/18 9:00:00 JST","target@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
             .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrailAll') + startedAt + '.csv');
         component.remove();
@@ -329,6 +344,25 @@ it('reports how many CSV rows have been fetched while waiting for the next page'
     await flush();
     expect(component.shadowRoot.querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
+    expect(loadLoginAsHistory).not.toHaveBeenCalled();
+});
+
+it('stops fetching login-as evidence after leaving the page', async () => {
+    let finishEvidence;
+    load.request.mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ records: [{
+        Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
+        CreatedBy: { Username: 'admin' }, DelegateUser: 'admin'
+    }] });
+    loadLoginAsHistory.mockImplementationOnce(() => new Promise(resolve => { finishEvidence = resolve; }));
+    const component = mount();
+    await flush();
+    [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
+    await flush();
+    component.remove();
+    finishEvidence({ records: [], nextId: 'more', nextTime: 'time' });
+    await flush();
+    expect(loadLoginAsHistory).toHaveBeenCalledTimes(1);
+    expect(load.request).toHaveBeenCalledTimes(2);
 });
 
 it('keeps the current result when the normalized action filter is unchanged', async () => {
