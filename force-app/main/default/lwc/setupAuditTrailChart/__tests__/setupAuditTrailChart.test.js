@@ -30,5 +30,5 @@ it('shows the username only in the tooltip and preserves chart blank rules', asy
     const onSelect = jest.fn();
     chart.addEventListener('selectfilter', onSelect);
     users.querySelector('button[aria-label="山田 太郎 5件"]').click();
-    expect(onSelect.mock.calls[0][0].detail).toEqual({ userId: '005000000000001' });
+    expect(onSelect.mock.calls[0][0].detail).toEqual({ userId: '005000000000001', userName: '山田 太郎' });
 });

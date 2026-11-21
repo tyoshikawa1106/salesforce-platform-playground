@@ -295,22 +295,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.appliedFilters = {};
         // 新しい月の見出し件数を取得する。
         this.readMonthTotal();
-        // 旧月で開始した照合を次のページまで続けない。
-        this.pendingActors = undefined;
-        // 旧月の候補応答を無効にする。
-        this.optionsRequest += 1;
-        // 候補を新しい月で再取得可能にする。
-        this.filterOptions = null;
-        // 旧月のユーザー検索用ログイン名を消去する。
-        this.userOptions = {};
-        // 旧月のユーザー表示名を消去する。
+        // 新しい月には以前の氏名を引き継がない。
         this.userNames = {};
-        // 旧月の代理ユーザーの氏名を消去する。
+        // 代理ユーザーの表示名も新しい月から取得する。
         this.delegateNames = {};
-        // 旧月の候補エラーを取り下げる。
-        this.optionsError = false;
-        // 新しい月の候補要求を許可する。
-        this.optionsLoading = false;
         // 新しい月の先頭から履歴を表示する。
         this.refresh();
     }
@@ -419,12 +407,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 通常履歴と重なるIDには、従来と同じ順で照合済みの候補を適用する。
             for (const [id, user] of loginUsers) {
                 users[id] = user.Username;
-                names[id] = user.Name;
+                // 氏名が空でも選択後にログイン名を表示できるようにする。
+                names[id] = user.Name || user.Username;
             }
             // 全ページで見つかったユーザーを検索可能にする。
             this.userOptions = users;
-            // ユーザー候補に表示名を適用する。
-            this.userNames = names;
+            // 候補から外れた選択済みユーザーの表示名も保持する。
+            this.userNames = { ...this.userNames, ...users, ...names };
             this.delegateNames = delegateNames;
             // 並べ替えた候補をまとめて公開する。
             this.filterOptions = sortFilterOptions(groups);
@@ -670,6 +659,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             ...(this.namespacePrefix ? { namespacePrefix: this.namespacePrefix } : {}),
             ...(this.delegateUser ? { delegateUser: this.delegateUser } : {})
         };
+        // 全件検索では見出しとページ数も今回の履歴に合わせる。
+        if (!this.hasFilters) {
+            // 一覧と並行して月全体の件数を更新する。
+            this.readMonthTotal();
+        }
         // 確定した条件で一覧と分析を再読み込みする。
         return this.refresh();
     }
@@ -691,6 +685,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     selectBucket(event) {
         // 確定済みの条件に選択した集計軸を重ねる。
         const { userId, action, day, namespacePrefix, section, delegateUser } = { ...this.appliedFilters, ...event.detail };
+        // 候補を未取得でも、選択した棒のユーザー名を明細の検索欄に表示する。
+        if (event.detail.userId && event.detail.userName) {
+            // ユーザーIDと表示名を一緒に引き継ぐ。
+            this.userNames = { ...this.userNames, [event.detail.userId]: event.detail.userName };
+        }
         // 集計対象のユーザーを明細条件に渡す。
         this.userId = userId ?? null;
         // 集計対象の操作種別を引き継ぐ。
@@ -762,6 +761,19 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 新しい条件で先頭から取得し直す。
     refresh() {
+        // 以前の検索で開始した候補取得を無効にする。
+        this.optionsRequest += 1;
+        // 次に欄を開いたときは、今回の月の候補を先頭から取得する。
+        this.filterOptions = null;
+        // ユーザーの表示名は保持し、再取得前のログイン名を候補に出さない。
+        this.userOptions = {};
+        // 直前の取得が失敗していても、新しい検索では候補を要求できる。
+        this.optionsError = false;
+        // 無効にした要求の完了を待たず、次の候補取得を許可する。
+        this.optionsLoading = false;
+        // 以前の代理操作の照合結果が新しい検索に反映されるのを防ぐ。
+        this.pendingActors = undefined;
+        // 確定した条件で対象の履歴を照合し直す。
         this.matchingIds = undefined;
         this.screenActors = undefined;
         // 以前の明細を取得済みと扱わないようにする。
@@ -1164,7 +1176,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 const options = collectFilterOptions(this.buckets);
                 // ログイン名と表示名で検索できるようにする。
                 this.userOptions = options.userOptions;
-                this.userNames = options.userNames;
+                // 分析中に候補から外れた選択済みユーザーも識別できるようにする。
+                this.userNames = { ...this.userNames, ...options.userOptions, ...options.userNames };
                 this.delegateNames = delegateNames;
                 // 並行していた候補取得の応答を無効にする。
                 this.optionsRequest += 1;

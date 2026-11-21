@@ -53,7 +53,10 @@ export default class SetupAuditTrailChart extends LightningElement {
             if (userId && loginName) {
                 loginNames.set(userId, loginName);
             }
-            accumulate(users, userId, userName, { userId }, count);
+            // 選択時に検索欄へ引き継ぐ氏名がなければログイン名を使う。
+            const userLabel = userName || loginName;
+            // 棒の表示と履歴側の選択ラベルに同じ名前を使う。
+            accumulate(users, userId, userLabel, { userId, userName: userLabel }, count);
             accumulate(actions, action, action, { action }, count);
             accumulate(sections, section, section, { section }, count);
             accumulate(dates, day, day, { day }, count);

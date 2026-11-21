@@ -132,7 +132,7 @@ it('loads candidates on demand and applies selected filters only on search', asy
     load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValueOnce({
         options: { action: [], namespacePrefix: ['first'], delegateUser: [] }, nextId: 'cursor', nextTime: 'time'
-    }).mockResolvedValueOnce({
+    }).mockResolvedValue({
         options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['Delegate@example.invalid', 'former@example.invalid'] },
         delegateNames: { 'delegate@example.invalid': '代理 担当' }
     });
@@ -165,7 +165,8 @@ it('loads candidates on demand and applies selected filters only on search', asy
     expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理 担当');
     component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').click();
     await flush();
-    expect(loadFilterOptions).toHaveBeenCalledTimes(2);
+    expect([...component.shadowRoot.querySelectorAll('[role="option"]')].map(option => option.dataset.value))
+        .toEqual(['first', 'second']);
     expect(load.request.mock.lastCall[0].input).not.toHaveProperty('namespacePrefix');
     await chooseLookup(component, 'delegateUser', 'former@example.invalid');
     expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('former@example.invalid');
@@ -766,4 +767,73 @@ it('allows retry inside the failed lookup and displays the returned options', as
     dropdown.querySelector('lightning-button').click();
     await flush();
     expect(dropdown.querySelector('[role="option"]').textContent).toContain('createdApexClass');
+});
+
+it('refreshes monthly pagination and ignores the previous monthly count after search', async () => {
+    let finishInitialCount;
+    countMonth.mockImplementationOnce(() => new Promise(resolve => { finishInitialCount = resolve; }))
+        .mockResolvedValueOnce(201);
+    const firstPage = Array.from({ length: 200 }, (_, index) => ({ Id: String(index) }));
+    load.request.mockResolvedValueOnce({ records: firstPage })
+        .mockResolvedValueOnce({ records: firstPage, nextId: 'cursor', nextTime: 'time' })
+        .mockResolvedValueOnce({ records: [{ Id: 'last' }] });
+    const component = mount();
+    await flush();
+    await search(component);
+    finishInitialCount(200);
+    await flush();
+    const root = component.shadowRoot;
+    expect(root.querySelector('h2').textContent).toContain('201件');
+    [...root.querySelectorAll('nav lightning-button')].find(button => button.label === '次へ').click();
+    await flush();
+    expect(root.querySelector('nav').textContent).toContain('2 / 2ページ');
+});
+
+it('reloads candidates after each search even if a previous options request finishes last', async () => {
+    load.request.mockResolvedValue({ records: [] });
+    let finishStale;
+    loadFilterOptions.mockResolvedValueOnce({ options: { action: ['original'] } })
+        .mockImplementationOnce(() => new Promise(resolve => { finishStale = resolve; }))
+        .mockResolvedValueOnce({ options: { action: ['latest'] } });
+    const component = mount();
+    const root = component.shadowRoot;
+    const openActions = async () => {
+        root.querySelector('input[data-field="action"]').click();
+        await flush();
+    };
+    await flush();
+    await openActions();
+    expect(root.querySelector('[role="option"]').dataset.value).toBe('original');
+    await search(component);
+    await openActions();
+    expect(root.querySelector('[role="option"]')).toBeNull();
+    await search(component);
+    await openActions();
+    finishStale({ options: { action: ['stale'] } });
+    await flush();
+    expect([...root.querySelectorAll('[role="option"]')].map(option => option.dataset.value)).toEqual(['latest']);
+});
+
+it.each([
+    ['担当者', '担当者'],
+    [null, 'viewer@example.invalid']
+])('keeps the filtered chart user label on drilldown with name %s', async (userName, label) => {
+    const userId = 'target';
+    load.request.mockImplementation(({ input }) => (input.chart
+        ? { buckets: [{ userId, userName, loginName: 'viewer@example.invalid', day: input.day, count: 1 }] }
+        : { records: [] }));
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    const day = load.request.mock.calls[0][0].input.monthStart;
+    root.querySelector('[data-field="day"]').dispatchEvent(new CustomEvent('change', { detail: { value: day } }));
+    await search(component);
+    root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
+    await flush();
+    const chart = root.querySelector('c-setup-audit-trail-chart');
+    chart.shadowRoot.querySelector('section[aria-label="ユーザー"] button').click();
+    await flush();
+    expect(root.querySelector('input[data-field="userId"]').value).toBe(label);
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ day, userId, matchIndex: true });
+    expect(loadFilterOptions).not.toHaveBeenCalled();
 });
