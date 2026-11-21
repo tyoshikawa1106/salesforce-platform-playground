@@ -41,6 +41,23 @@ export function pageCursor({ nextId, nextTime }) {
     return { nextId, nextTime };
 }
 
+// 開始境界が直近の照合範囲内なら、その直後に続く一致行を返す。
+export function remainingMatchRecords(batch, start) {
+    if (!batch) {
+        return undefined;
+    }
+    if (start.nextId === batch.start.nextId && start.nextTime === batch.start.nextTime) {
+        return batch.records;
+    }
+    if (start.nextId) {
+        const index = batch.records.findIndex(row => row.Id === start.nextId && row.CreatedDate === start.nextTime);
+        if (index >= 0) {
+            return batch.records.slice(index + 1);
+        }
+    }
+    return undefined;
+}
+
 // ユーザー以外の検索候補を履歴から収集する。
 export const FILTER_OPTION_FIELDS = ['action', 'namespacePrefix', 'section', 'delegateUser'];
 

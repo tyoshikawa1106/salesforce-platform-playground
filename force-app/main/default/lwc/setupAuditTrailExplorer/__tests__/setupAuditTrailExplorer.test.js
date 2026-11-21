@@ -957,7 +957,7 @@ it('shows a full matched page while probing later source batches and resumes at 
     await flush();
     expect(rows()).toEqual(['c']);
     expect(root.querySelector('nav').textContent).toBe('2 / 2ページ');
-    expect(probeReads).toBe(2);
+    expect(probeReads).toBe(1);
 });
 
 it('uses one server cutoff across views and renews it on explicit search', async () => {
@@ -1051,9 +1051,34 @@ it('keeps the extra match from a source batch and uses the same cutoff for index
     await flush();
     const chart = root.querySelector('c-setup-audit-trail-chart');
     expect(chart.buckets[0].count).toBe(3);
+    expect(load.request.mock.calls.filter(([{ input }]) => input.matchIndex)).toHaveLength(1);
     const starts = startSearch.mock.calls.length;
     chart.dispatchEvent(new CustomEvent('selectfilter', { detail: { action: 'change' } }));
     await flush();
     expect(startSearch).toHaveBeenCalledTimes(starts);
     expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'change', cutoff, recordIds: ['c', 'b'] });
+});
+
+it('retains monthly lookup options from the chart until the next explicit search', async () => {
+    load.request.mockImplementation(({ input }) => (input.chart
+        ? { buckets: [{ action: 'change', section: 'A', count: 1 }] }
+        : { records: [] }));
+    loadFilterOptions.mockResolvedValue({ options: { section: ['B'] } });
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
+    await flush();
+    root.querySelector('c-setup-audit-trail-chart').dispatchEvent(new CustomEvent('selectfilter', { detail: { action: 'change' } }));
+    await flush();
+    const openSections = async () => {
+        root.querySelector('input[data-field="section"]').click();
+        await flush();
+        return [...root.querySelectorAll('[role="option"]')].map(item => item.dataset.value);
+    };
+    expect(await openSections()).toEqual(['A']);
+    expect(loadFilterOptions).not.toHaveBeenCalled();
+    await search(component);
+    expect(await openSections()).toEqual(['B']);
+    expect(loadFilterOptions).toHaveBeenCalledTimes(1);
 });

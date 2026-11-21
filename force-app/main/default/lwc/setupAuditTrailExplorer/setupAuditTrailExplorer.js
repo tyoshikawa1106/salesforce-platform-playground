@@ -8,7 +8,7 @@ import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerControll
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, PAGE_SIZE, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, sortFilterOptions
+    collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, remainingMatchRecords, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -54,6 +54,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     cutoffRequest;
     // 一致がちょうど1ページ分の場合は、先に表示して次の一致を探す。
     probeCursor;
+    // 同じ検索で直近に読み込んだ照合用の1バッチを一覧と分析で共有する。
+    matchBatch;
     screenActors;
     // 同じ画面で並行する照合要求を共有する。
     pendingActors;
@@ -86,7 +88,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 表示中の明細ページを保持する。
     records = [];
     // 表の末尾へ到達するまでは現在のページの先頭だけを描画する。
-    renderedRowLimit = RENDER_BATCH_SIZE;
+    visibleRecords = [];
     // 分析タブに渡す集計行を保持する。
     buckets = [];
     // 先頭ページは境界を指定せず取得する。
@@ -229,21 +231,22 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return this.totalPages >= minimumPages ? this.page + ' / ' + this.totalPages + 'ページ' : this.page + 'ページ';
     }
 
-    // 現在のページのうちスクロール済みの範囲を表に渡す。
-    get visibleRecords() {
-        // 全件表示後は取得済みの配列をそのまま使う。
-        return this.hasMoreRows ? this.records.slice(0, this.renderedRowLimit) : this.records;
+    // 表に渡す配列をページ切替時に更新し、件数やCSV進捗だけの変更では再利用する。
+    setPageRecords(records) {
+        this.records = records;
+        this.visibleRecords = records.length > RENDER_BATCH_SIZE ? records.slice(0, RENDER_BATCH_SIZE) : records;
     }
 
     // 次ページへ進む前に描画できる取得済み明細があるかを判定する。
     get hasMoreRows() {
-        return this.renderedRowLimit < this.records.length;
+        return this.visibleRecords.length < this.records.length;
     }
 
     // 表の末尾では、通信せずに同じページの続きを表示する。
     showMoreRows() {
         // 端数のページでも取得済み件数を上限にする。
-        this.renderedRowLimit = Math.min(this.records.length, this.renderedRowLimit + RENDER_BATCH_SIZE);
+        const limit = this.visibleRecords.length + RENDER_BATCH_SIZE;
+        this.visibleRecords = limit < this.records.length ? this.records.slice(0, limit) : this.records;
     }
 
     // 行番号を前のページから連続させる。
@@ -839,29 +842,24 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 初期表示・再検索・月切り替えでは、新しい基準時刻で見出しも更新する。
             this.cutoffRequest = undefined;
             this.readMonthTotal();
+            // 月全体の候補と代理ログイン照合は同じ基準時刻のドリルダウンで再利用する。
+            this.optionsRequest += 1;
+            this.filterOptions = null;
+            this.userOptions = {};
+            this.optionsError = false;
+            this.optionsLoading = false;
+            this.pendingActors = undefined;
+            this.screenActors = undefined;
         }
         this.pageCache.clear();
         this.probeCursor = null;
-        // 以前の検索で開始した候補取得を無効にする。
-        this.optionsRequest += 1;
-        // 次に欄を開いたときは、今回の月の候補を先頭から取得する。
-        this.filterOptions = null;
-        // ユーザーの表示名は保持し、再取得前のログイン名を候補に出さない。
-        this.userOptions = {};
-        // 直前の取得が失敗していても、新しい検索では候補を要求できる。
-        this.optionsError = false;
-        // 無効にした要求の完了を待たず、次の候補取得を許可する。
-        this.optionsLoading = false;
-        // 以前の代理操作の照合結果が新しい検索に反映されるのを防ぐ。
-        this.pendingActors = undefined;
-        // 確定した条件で対象の履歴を照合し直す。
-        this.screenActors = undefined;
+        this.matchBatch = undefined;
         // 以前の明細を取得済みと扱わないようにする。
         this.listReady = false;
         // 以前の分析結果を取得済みと扱わないようにする。
         this.chartReady = false;
         // 以前の検索行を取り下げる。
-        this.records = [];
+        this.setPageRecords([]);
         // 以前の集計結果を取り下げる。
         this.buckets = [];
         // 新しい条件の先頭ページに戻す。
@@ -1032,6 +1030,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 一致しない元ページもカーソルを進め、分析と一覧で同じ照合を使う。
     async *matchingBatches(query, start, isCurrent) {
+        const cached = this.matchBatch;
+        const remaining = remainingMatchRecords(cached, start);
+        if (remaining) {
+            yield { records: remaining, cursor: cached.cursor };
+            start = cached.cursor;
+            if (!start.nextId || !isCurrent()) {
+                return;
+            }
+        }
         for await (const page of this.sourcePages({ ...query, matchIndex: true }, start, isCurrent)) {
             // 代理ログインを含むユーザー検索にだけ、共通の作成者照合を適用する。
             if (query.userId && !this.screenActors && page.records.some(row => row.Action === 'suOrgAdminLogin')) {
@@ -1043,7 +1050,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 元ページの末尾を境界にし、一致しなかった範囲をもう一度走査しない。
             const records = query.userId ? page.records.filter(row =>
                 (this.screenActors?.get(row.Id)?.CreatedById ?? row.CreatedById) === query.userId) : page.records;
-            yield { records, cursor: pageCursor(page) };
+            if (!isCurrent()) {
+                return;
+            }
+            const cursor = pageCursor(page);
+            this.matchBatch = { start, records, cursor };
+            yield { records, cursor };
+            start = cursor;
         }
     }
 
@@ -1133,8 +1146,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
         const employees = new Set(result.employeeActorIds);
         // ページを開くたびに表示範囲を先頭へ戻す。
-        this.renderedRowLimit = RENDER_BATCH_SIZE;
-        this.records = result.records.map(row => historyRow(row, employees, this.screenActors, result.delegateNames));
+        this.setPageRecords(result.records.map(row => historyRow(row, employees, this.screenActors, result.delegateNames)));
         this.rememberNextPage(cursor);
         if (!this.probeCursor) {
             this.cachePage();
@@ -1310,8 +1322,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.error = '';
         // 選択タブの結果が取得済みか確認する。
         if (!chart && this.pageCache.has(this.page) && !this.listReady) {
-            this.records = this.pageCache.get(this.page);
-            this.renderedRowLimit = RENDER_BATCH_SIZE;
+            this.setPageRecords(this.pageCache.get(this.page));
             this.listReady = true;
             this.cachePage();
         }

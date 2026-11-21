@@ -1,4 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, historyRow, loginAsActors } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage, historyRow, loginAsActors, remainingMatchRecords } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -78,4 +78,14 @@ it('keeps history display names separate from CSV logins and preserves an unreso
     });
     expect(historyRow(row, new Set(), undefined, {}).displayedDelegate).toBe('Admin');
     expect(formatCsvPage([row])).toContain('"target","","' + row.Display + '","","Admin"');
+});
+
+it('reuses only matches after the same ID and timestamp within the cached range', () => {
+    const rows = ['b', 'a'].map(Id => ({ Id, CreatedDate: 'same' }));
+    const batch = { start: { nextId: 'c', nextTime: 'start' }, records: rows };
+    expect(remainingMatchRecords(batch, batch.start)).toBe(rows);
+    expect(remainingMatchRecords(batch, { nextId: 'b', nextTime: 'same' })).toEqual([rows[1]]);
+    expect(remainingMatchRecords(batch, { nextId: 'a', nextTime: 'same' })).toEqual([]);
+    expect(remainingMatchRecords(batch, { nextId: 'b', nextTime: 'other' })).toBeUndefined();
+    expect(remainingMatchRecords(batch, {})).toBeUndefined();
 });
