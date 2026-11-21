@@ -258,7 +258,7 @@ export function buildDateOptions(monthDate) {
 }
 
 // 各検索欄の表示値と候補を組み立てる。
-export function buildFilterFields({ userOptions, userNames, filterOptions, selectedValues, lookupField, lookupTerm, lookupIndex }) {
+export function buildFilterFields({ userOptions, userNames, delegateNames, filterOptions, selectedValues, lookupField, lookupTerm, lookupIndex }) {
     // ユーザー・名前空間・操作・代理ユーザーに対応する欄を作る。
     return [
         { key: 'userId', label: 'ユーザー' },
@@ -290,10 +290,13 @@ export function buildFilterFields({ userOptions, userNames, filterOptions, selec
             inputClass: 'slds-input slds-combobox__input' + (selected ? ' slds-combobox__input-value' : '')
         };
         if (!open) {
+            // 代理ユーザーの選択値は検索用のログイン名を保持し、欄には氏名を表示する。
+            const selectedLabel = key === 'delegateUser' && selected
+                ? delegateNames?.[selected.toLowerCase()] || selected : labelFor(selected);
             // 選択した値と解除操作のラベルを組み立てる。
             return {
                 ...field, clearLabel: label + 'の選択を解除',
-                inputValue: selected ? (key === 'userId' ? userOptions[selected] || labelFor(selected) : labelFor(selected)) : '',
+                inputValue: selectedLabel || '',
                 selectedIcon: ['userId', 'delegateUser'].includes(key) ? 'standard:user' : 'standard:custom'
             };
         }

@@ -87,10 +87,11 @@ afterEach(() => {
 it('merges chart buckets across pages and reuses them as filter options', async () => {
     const bucket = { day: '2026-11-18', userId: '005000000000001', action: 'createdApexClass' };
     const namespacedBucket = { ...bucket, namespacePrefix: 'sample' };
-    const delegatedBucket = { ...bucket, delegateUser: '代理ユーザー' };
+    const delegatedBucket = { ...bucket, delegateUser: 'Delegate@example.invalid' };
     load.request.mockResolvedValueOnce({ records: [] })
-        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 2 }], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 3 }, { ...namespacedBucket, count: 1 }, { ...delegatedBucket, count: 4 }] });
+        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 2 }, { ...delegatedBucket, count: 4 }],
+            delegateNames: { 'delegate@example.invalid': '代理 担当' }, nextId: 'cursor', nextTime: 'time' })
+        .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 3 }, { ...namespacedBucket, count: 1 }] });
     const component = mount();
     await flush();
     const [, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
@@ -99,11 +100,12 @@ it('merges chart buckets across pages and reuses them as filter options', async 
     expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ chart: true, nextId: 'cursor', nextTime: 'time' }) });
     expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets).toEqual([
         { ...bucket, count: 5 },
-        { ...namespacedBucket, count: 1 },
-        { ...delegatedBucket, count: 4 }
+        { ...delegatedBucket, count: 4 },
+        { ...namespacedBucket, count: 1 }
     ]);
     await chooseLookup(component, 'namespacePrefix', 'sample');
-    await chooseLookup(component, 'delegateUser', '代理ユーザー');
+    await chooseLookup(component, 'delegateUser', delegatedBucket.delegateUser);
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理 担当');
     expect(loadFilterOptions).not.toHaveBeenCalled();
 });
 
@@ -128,7 +130,8 @@ it('loads candidates on demand and applies selected filters only on search', asy
     loadFilterOptions.mockResolvedValueOnce({
         options: { action: [], namespacePrefix: ['first'], delegateUser: [] }, nextId: 'cursor', nextTime: 'time'
     }).mockResolvedValueOnce({
-        options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['代理ユーザー'] }
+        options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['Delegate@example.invalid', 'former@example.invalid'] },
+        delegateNames: { 'delegate@example.invalid': '代理 担当' }
     });
     const component = mount();
     await flush();
@@ -149,18 +152,20 @@ it('loads candidates on demand and applies selected filters only on search', asy
     await flush();
     expect(load.request).toHaveBeenCalledTimes(1);
     expect(countMatches.request).not.toHaveBeenCalled();
-    await chooseLookup(component, 'delegateUser', '代理ユーザー');
+    await chooseLookup(component, 'delegateUser', 'Delegate@example.invalid');
     await search(component);
     expect(load.request).toHaveBeenCalledTimes(2);
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: '代理ユーザー' }) });
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: 'Delegate@example.invalid' }) });
     await chooseLookup(component, 'namespacePrefix', '');
     await search(component);
     expect(component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').value).toBe('');
-    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理ユーザー');
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理 担当');
     component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').click();
     await flush();
     expect(loadFilterOptions).toHaveBeenCalledTimes(2);
     expect(load.request.mock.lastCall[0].input).not.toHaveProperty('namespacePrefix');
+    await chooseLookup(component, 'delegateUser', 'former@example.invalid');
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('former@example.invalid');
 });
 
 it('shows raw action codes and month users', async () => {
@@ -168,8 +173,8 @@ it('shows raw action codes and month users', async () => {
     load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValue({
         options: { action: ['filteredLookupActivate'], namespacePrefix: [], delegateUser: [] },
-        userOptions: { [userId]: 'audit@example.invalid' },
-        userNames: { [userId]: '山田 太郎' }
+        userOptions: { '005000000000002': 'other@example.invalid', [userId]: 'audit@example.invalid' },
+        userNames: { '005000000000002': '山田 太郎', [userId]: '山田 太郎' }
     });
     const component = mount();
     await flush();
@@ -181,7 +186,7 @@ it('shows raw action codes and month users', async () => {
     expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.invalid');
     userOption.click();
     await flush();
-    expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('audit@example.invalid');
+    expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('山田 太郎');
     expect(component.shadowRoot.textContent).not.toContain(userId);
     const action = component.shadowRoot.querySelector('input[data-field="action"]');
     action.click();

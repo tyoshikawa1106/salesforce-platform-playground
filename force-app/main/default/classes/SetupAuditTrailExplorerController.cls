@@ -44,7 +44,9 @@ public with sharing class SetupAuditTrailExplorerController {
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.OPTIONS, CHART_PAGE_SIZE + 1
         );
-        return SetupAuditTrailExplorerService.summarizeOptions(rows, CHART_PAGE_SIZE);
+        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeOptions(rows, CHART_PAGE_SIZE);
+        wrapper.delegateNames = SetupAuditTrailExplorerSelector.selectDelegateNames(new Set<String>(wrapper.options.get('delegateUser')));
+        return wrapper;
     }
 
     /**
@@ -122,29 +124,37 @@ public with sharing class SetupAuditTrailExplorerController {
             List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.CHART, CHART_PAGE_SIZE + 1
             );
-            return SetupAuditTrailExplorerService.summarizeChart(rows, CHART_PAGE_SIZE);
+            SetupAuditTrailExplorerWrapper chart = SetupAuditTrailExplorerService.summarizeChart(rows, CHART_PAGE_SIZE);
+            chart.delegateNames = delegateNamesFor(rows);
+            return chart;
         }
         Integer sizeLimit = Math.max(1, Math.min(2000, criteria.pageSize ?? 50));
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
         );
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
-        // 表示ページに含まれる代理ユーザーだけをまとめて氏名に変換する。
-        Set<String> delegates = new Set<String>();
+        wrapper.delegateNames = delegateNamesFor(wrapper.records);
         Boolean needsEmployeeActors = false;
         for (SetupAuditTrail row : wrapper.records) {
             if (row.CreatedById != null && String.isBlank(row.CreatedBy?.Username)) {
                 needsEmployeeActors = true;
-            }
-            if (String.isNotBlank(row.DelegateUser)) {
-                delegates.add(row.DelegateUser);
+                break;
             }
         }
         if (needsEmployeeActors) {
             wrapper.employeeActorIds = employeeActors();
         }
-        wrapper.delegateNames = SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
         return wrapper;
+    }
+
+    private static Map<String, String> delegateNamesFor(List<SetupAuditTrail> rows) {
+        Set<String> delegates = new Set<String>();
+        for (SetupAuditTrail row : rows) {
+            if (String.isNotBlank(row.DelegateUser)) {
+                delegates.add(row.DelegateUser);
+            }
+        }
+        return SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
     }
 
     private static List<Id> employeeActors() {

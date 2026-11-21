@@ -58,6 +58,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     userOptions = {};
     // ユーザー候補の表示名を保持する。
     userNames = {};
+    // 月内の代理ユーザーのログイン名を氏名に対応付ける。
+    delegateNames = {};
     // 検索ボタンで確定した条件を一覧と分析で共有する。
     appliedFilters = {};
     // 開いている候補欄を識別する。
@@ -303,6 +305,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.userOptions = {};
         // 旧月のユーザー表示名を消去する。
         this.userNames = {};
+        // 旧月の代理ユーザーの氏名を消去する。
+        this.delegateNames = {};
         // 旧月の候補エラーを取り下げる。
         this.optionsError = false;
         // 新しい月の候補要求を許可する。
@@ -363,6 +367,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const users = {};
         // ユーザーIDと表示名の対応を集める。
         const names = {};
+        const delegateNames = {};
         const logins = [];
         // 全ページで同じ月を使う。
         const monthStart = this.monthDate;
@@ -392,6 +397,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 logins.push(...(result.records ?? []));
                 // 表示名をページ間で統合する。
                 Object.assign(names, result.userNames);
+                Object.assign(delegateNames, result.delegateNames);
                 // 次ページの開始境界を引き継ぐ。
                 cursor = pageCursor(result);
             } while (cursor.nextId);
@@ -413,6 +419,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.userOptions = users;
             // ユーザー候補に表示名を適用する。
             this.userNames = names;
+            this.delegateNames = delegateNames;
             // 並べ替えた候補をまとめて公開する。
             this.filterOptions = sortFilterOptions(groups);
         } catch {
@@ -446,7 +453,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     get filterFields() {
         // 入力中の条件を、確定済みの検索条件とは独立して表示する。
         return buildFilterFields({
-            userOptions: this.userOptions, userNames: this.userNames, filterOptions: this.filterOptions,
+            userOptions: this.userOptions, userNames: this.userNames, delegateNames: this.delegateNames, filterOptions: this.filterOptions,
             selectedValues: { userId: this.userId, namespacePrefix: this.namespacePrefix, action: this.action, section: this.section, delegateUser: this.delegateUser },
             lookupField: this.lookupField, lookupTerm: this.lookupTerm, lookupIndex: this.lookupIndex
         });
@@ -1106,6 +1113,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 分析ページごとに通常操作と代理ログインを集約し、補正済みの明細は保持しない。
             const totals = new Map();
             const loginTotals = new Map();
+            const delegateNames = {};
             let chartCount = 0;
             let offset = 0;
             do {
@@ -1120,6 +1128,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 }
                 // 通常操作の合計には各集計行が代表する履歴件数を加える。
                 chartCount += mergeChartPage(totals, result.buckets);
+                Object.assign(delegateNames, result.delegateNames);
                 // 代理ログインは元のページに含まれるうちに補正して集計する。
                 if (result.records?.length) {
                     // 照合結果はページ間で共有し、旧条件の結果を混入させない。
@@ -1146,6 +1155,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 // ログイン名と表示名で検索できるようにする。
                 this.userOptions = options.userOptions;
                 this.userNames = options.userNames;
+                this.delegateNames = delegateNames;
                 // 並行していた候補取得の応答を無効にする。
                 this.optionsRequest += 1;
                 // 集計結果からの候補作成を完了する。
