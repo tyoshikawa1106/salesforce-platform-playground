@@ -83,11 +83,22 @@
 }
 
 .c-segment {
-    height: var(--c-chart-bar-height);
+    flex: 1;
+    align-self: stretch;
+    justify-content: flex-start;
+    min-height: var(--c-chart-row-min-height);
+    border-radius: 0;
     border: 0;
     padding: 0;
-    background-color: var(--slds-g-color-palette-cloud-blue-70, #56b9ea);
+    background: transparent;
     cursor: pointer;
+}
+
+.c-bar-fill {
+    display: block;
+    min-width: var(--slds-g-sizing-border-1, 1px);
+    height: var(--c-chart-bar-height);
+    background-color: var(--slds-g-color-palette-cloud-blue-70, #56b9ea);
 }
 
 .c-segment:focus-visible {
