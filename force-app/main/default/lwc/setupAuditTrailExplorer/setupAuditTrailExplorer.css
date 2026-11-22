@@ -46,7 +46,7 @@
     flex: none;
 }
 
-.results {
+.c-tab-results {
     position: relative;
     min-height: var(--c-results-min-height);
 }
