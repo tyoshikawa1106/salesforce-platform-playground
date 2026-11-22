@@ -1,6 +1,7 @@
 import { createElement } from 'lwc';
 import Explorer from 'c/setupAuditTrailExplorer';
 import * as historyLogic from '../setupAuditTrailExplorerLogic';
+import loadEmployeeActorIds from '@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
 import startSearch from '@salesforce/apex/SetupAuditTrailExplorerController.startSearch';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt';
@@ -14,6 +15,8 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => {
         criteriaJson
     }) => request({ input: JSON.parse(criteriaJson) }), { request }) };
 }, { virtual: true });
+
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds', () => ({ default: jest.fn() }), { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.startSearch', () => ({ default: jest.fn() }), { virtual: true });
 
@@ -36,6 +39,7 @@ const countMonth = countMatches.month;
 const cutoff = '2026-11-19T10:00:00.000Z';
 
 beforeEach(() => {
+    loadEmployeeActorIds.mockReset().mockResolvedValue([]);
     startSearch.mockReset().mockResolvedValue(cutoff);
     HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
     HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
@@ -117,6 +121,30 @@ it('merges chart buckets across pages and reuses them as filter options', async 
     await chooseLookup(component, 'delegateUser', delegatedBucket.delegateUser);
     expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('代理 担当');
     expect(loadFilterOptions).not.toHaveBeenCalled();
+});
+
+it('labels confirmed employees across chart pages and opens history with their original ID', async () => {
+    const company = '株式会社セールスフォース・ジャパン';
+    loadEmployeeActorIds.mockResolvedValue(['employee']);
+    load.request.mockResolvedValueOnce({ records: [] })
+        .mockResolvedValueOnce({ buckets: [{ userId: 'employee', action: 'first', count: 1 }], nextId: 'row', nextTime: cutoff })
+        .mockResolvedValueOnce({ buckets: [{ userId: 'employee', action: 'next', count: 2 }, { userId: 'other', action: 'other', count: 4 }] })
+        .mockResolvedValue({ records: [] });
+    const root = mount().shadowRoot;
+    await flush();
+    root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
+    await flush();
+    const chart = root.querySelector('c-setup-audit-trail-chart');
+    expect(loadEmployeeActorIds.mock.calls).toEqual([[{ cutoff }]]);
+    expect(chart.buckets).toEqual([
+        { userId: 'employee', userName: company, action: 'first', count: 1 },
+        { userId: 'employee', userName: company, action: 'next', count: 2 },
+        { userId: 'other', action: 'other', count: 4 }
+    ]);
+    chart.dispatchEvent(new CustomEvent('selectfilter', { detail: { userId: 'employee', userName: company } }));
+    await flush();
+    expect(root.querySelector('input[data-field="userId"]').value).toBe(company);
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ userId: 'employee', cutoff });
 });
 
 it('uses the recorded user for lookup and chart when the delegate is a different user', async () => {

@@ -27,6 +27,7 @@ public class SetupAuditTrailExplorerWrapper {
         @AuraEnabled public String day { get; set; }
         @AuraEnabled public Id userId { get; set; }
         @AuraEnabled public String userName { get; set; }
+        @AuraEnabled public String userType { get; set; }
         @AuraEnabled public String loginName { get; set; }
         @AuraEnabled public String action { get; set; }
         @AuraEnabled public String section { get; set; }

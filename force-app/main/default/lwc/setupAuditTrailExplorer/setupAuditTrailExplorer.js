@@ -1,6 +1,7 @@
 import { LightningElement } from 'lwc';
 import TIME_ZONE from '@salesforce/i18n/timeZone';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
+import loadEmployeeActorIds from '@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds';
 import startSearch from '@salesforce/apex/SetupAuditTrailExplorerController.startSearch';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
@@ -8,7 +9,7 @@ import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerControll
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    appliedFilterLabels, collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, remainingMatchRecords, sortFilterOptions
+    appliedFilterLabels, collectLoginAsPairs, hasDelegateAsCreator, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, remainingMatchRecords, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -1560,7 +1561,14 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 return;
             }
             // 全ページが揃った分析だけをタブ切替と月の再訪で使う。
-            this.analysis = { context, cutoff, count, delegateNames, buckets: [...totals.values(), ...loginTotals.values()] };
+            const buckets = [...totals.values(), ...loginTotals.values()];
+            const employeeActorIds = buckets.some(needsChartEmployeeLabel)
+                ? await this.readPageWithRetry(loadEmployeeActorIds, { cutoff }, isCurrent) : [];
+            if (!isCurrent()) {
+                return;
+            }
+            labelChartActors(buckets, employeeActorIds);
+            this.analysis = { context, cutoff, count, delegateNames, buckets };
             this.monthlyAnalyses.set(month, this.analysis);
             if (context === this.historyContext) {
                 // 同じ基準時刻を参照中の履歴だけに月全体の結果を引き継ぐ。

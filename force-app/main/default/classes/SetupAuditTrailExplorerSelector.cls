@@ -90,14 +90,17 @@ public with sharing class SetupAuditTrailExplorerSelector {
 
     private static String pageQuery(Criteria criteria, Projection fieldSet, Map<String, Object> binds) {
         String fields = DETAIL_ACTOR_FIELDS;
-        if (fieldSet == Projection.CHART || fieldSet == Projection.OPTIONS) {
+        if (fieldSet == Projection.CHART) {
+            fields = LOOKUP_FIELDS + ', Section, CreatedBy.UserType';
+        }
+        if (fieldSet == Projection.OPTIONS) {
             fields = LOOKUP_FIELDS + ', Section';
         }
         if (fieldSet == Projection.MATCH_INDEX) {
             fields = 'Id, CreatedDate, Section, Action, CreatedById';
         }
         if (fieldSet == Projection.LOGIN_AS) {
-            fields = 'Id, CreatedDate, Action, Display, DelegateUser, CreatedById, CreatedBy.Name, CreatedBy.Username';
+            fields = 'Id, CreatedDate, Action, Display, DelegateUser, CreatedById, CreatedBy.Name, CreatedBy.Username, CreatedBy.UserType';
         }
         String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(criteria, binds);
         if (fieldSet == Projection.LOGIN_AS) {

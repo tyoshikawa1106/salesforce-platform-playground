@@ -77,7 +77,7 @@ private class SetupAuditTrailExplorerServiceTest {
     static void summarizesPageAndReturnsCursor() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize(
-                '{"CreatedDate":"2026-11-01T00:00:00.000Z","Action":"PermSetCreate"}', SetupAuditTrail.class
+                '{"CreatedDate":"2026-11-01T00:00:00.000Z","Action":"PermSetCreate","CreatedBy":{"attributes":{"type":"User"},"UserType":"AutomatedProcess"}}', SetupAuditTrail.class
             );
             List<SetupAuditTrail> rows = new List<SetupAuditTrail>{row, row, row};
             SetupAuditTrailExplorerService.checkCursor(null, null);
@@ -89,6 +89,7 @@ private class SetupAuditTrailExplorerServiceTest {
             Assert.isNotNull(midnight, '日付を検索境界に変換します。');
             Assert.areEqual(row.CreatedDate, result.nextTime, '次のページの境界を返します。');
             Assert.areEqual(1, result.buckets.size(), '同じ操作を一つに集計します。');
+            Assert.areEqual('AutomatedProcess', result.buckets[0].userType, '作成者種別を集計後も判別できます。');
             Assert.areEqual(2, result.buckets[0].count, '次ページの行を集計から除きます。');
             Assert.areEqual(2, detail.records.size(), '一覧用の明細を返します。');
         }

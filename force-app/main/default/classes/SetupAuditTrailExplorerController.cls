@@ -168,7 +168,7 @@ public with sharing class SetupAuditTrailExplorerController {
             }
         }
         if (needsEmployeeActors) {
-            wrapper.employeeActorIds = employeeActors(criteria.cutoff);
+            wrapper.employeeActorIds = loadEmployeeActorIds(criteria.cutoff);
         }
         return wrapper;
     }
@@ -183,7 +183,13 @@ public with sharing class SetupAuditTrailExplorerController {
         return SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
     }
 
-    private static List<Id> employeeActors(Datetime cutoff) {
+    /**
+     * 一覧、CSV、月別分析で共通の基準時刻までに従業員操作を確認できた作成者を返す。
+     * @param cutoff 履歴を照合する上限時刻。
+     * @return 従業員操作の記録に含まれる作成者ID。
+     */
+    @AuraEnabled
+    public static List<Id> loadEmployeeActorIds(Datetime cutoff) {
         return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(cutoff ?? System.now()));
     }
 
@@ -195,7 +201,7 @@ public with sharing class SetupAuditTrailExplorerController {
         wrapper.cutoff = exportCutoff;
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
         if (criteria.nextId == null && !wrapper.records.isEmpty()) {
-            wrapper.employeeActorIds = employeeActors(exportCutoff);
+            wrapper.employeeActorIds = loadEmployeeActorIds(exportCutoff);
         }
         return wrapper;
     }
