@@ -1,0 +1,154 @@
+<template>
+    <main class="slds-p-around_medium">
+        <header class="slds-page-header slds-m-bottom_medium">
+            <div class="slds-page-header__row slds-grid_vertical-align-center slds-wrap">
+                <div class="slds-media slds-media_center slds-col">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:connected_apps" size="medium"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <h1 class="slds-page-header__title">OAuth トークン発行</h1>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="slds-box slds-theme_default slds-m-bottom_medium" aria-label="API 接続情報">
+            <dl>
+                <div class="slds-grid slds-wrap">
+                    <dt class="slds-text-title_bold slds-m-right_small">API 接続先</dt>
+                    <dd class="slds-hyphenate">{apiEndpointLabel}</dd>
+                </div>
+                <div class="slds-grid slds-wrap slds-m-top_x-small">
+                    <dt class="slds-text-title_bold slds-m-right_small">実行ユーザー（現在のログイン）</dt>
+                    <dd class="slds-hyphenate">{executionUserLabel}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <div class="slds-box slds-theme_default">
+            <template lwc:if={error}>
+                <p role="alert" class="slds-text-color_error slds-m-bottom_small">{error}</p>
+            </template>
+
+            <h2 class="slds-text-heading_small">アプリケーション情報</h2>
+            <lightning-input
+                data-config
+                name="clientId"
+                label="コンシューマー鍵"
+                value={clientId}
+                required
+                disabled={configDisabled}
+                onchange={handleConfigChange}
+            ></lightning-input>
+            <lightning-input
+                type="password"
+                name="clientSecret"
+                label="コンシューマーの秘密"
+                field-level-help="アプリケーションが秘密を要求する場合に入力してください。"
+                value={clientSecret}
+                disabled={configDisabled}
+                onchange={handleConfigChange}
+            ></lightning-input>
+            <lightning-input
+                data-config
+                name="redirectUri"
+                label="コールバック URL"
+                field-level-help="接続アプリケーションまたは外部クライアントアプリケーションに登録したコールバック URL を入力してください。"
+                value={redirectUri}
+                required
+                disabled={configDisabled}
+                onchange={handleConfigChange}
+            ></lightning-input>
+            <h2 class="slds-text-heading_small slds-m-top_large">トークン発行</h2>
+            <div class="slds-m-vertical_small">
+                <a
+                    lwc:if={authorizationHref}
+                    class="slds-button slds-button_brand"
+                    href={authorizationHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-disabled={startDisabled}
+                    onclick={handleAuthorize}
+                    onauxclick={handleAuxiliaryAuthorize}
+                >別タブで認可する</a>
+                <lightning-button
+                    lwc:else
+                    variant="brand"
+                    label={authorizeLabel}
+                    onclick={handleAuthorize}
+                    disabled={startDisabled}
+                ></lightning-button>
+            </div>
+
+            <lightning-textarea
+                label="認可後に表示された URL"
+                aria-describedby="authorization-url-help"
+                value={callbackUrl}
+                disabled={callbackDisabled}
+                onchange={handleCallbackChange}
+            ></lightning-textarea>
+            <p id="authorization-url-help" class="slds-text-body_small slds-m-top_x-small">
+                別タブのアドレスバーから URL 全体をコピーして貼り付けてください。エラー画面が表示されても、URL に認可コードが残っていれば使えます。
+                別タブが開かない場合は、「別タブで認可する」をもう一度押してください。
+            </p>
+            <template lwc:if={codeReady}>
+                <p role="status" class="slds-m-top_small">認可コードを受け取りました。</p>
+            </template>
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    label="トークンを発行"
+                    onclick={handleExchange}
+                    disabled={exchangeDisabled}
+                ></lightning-button>
+            </div>
+            <template lwc:if={exchanging}>
+                <div class="slds-is-relative slds-p-around_large">
+                    <lightning-spinner alternative-text="トークンを取得中" size="small"></lightning-spinner>
+                </div>
+            </template>
+            <template lwc:if={result}>
+                <section class="slds-box slds-theme_shade slds-m-top_large" aria-labelledby="token-result-heading">
+                    <h2 id="token-result-heading" class="slds-text-heading_small">トークン発行結果</h2>
+                    <section class="slds-box slds-theme_default slds-m-top_small" aria-labelledby="issued-tokens-heading">
+                        <h3 id="issued-tokens-heading" class="slds-text-title_bold">トークン</h3>
+                        <template for:each={tokenRows} for:item="row">
+                            <div key={row.name} class="slds-m-top_small">
+                                <template lwc:if={row.value}>
+                                    <lightning-textarea label={row.label} value={row.value} read-only></lightning-textarea>
+                                    <div class="slds-grid slds-wrap slds-grid_vertical-align-center slds-m-top_x-small">
+                                        <lightning-button
+                                            class="slds-m-right_small"
+                                            label="コピー"
+                                            title={row.label}
+                                            data-token={row.name}
+                                            onclick={handleCopy}
+                                        ></lightning-button>
+                                        <p role="status" class="slds-hyphenate">{row.copyMessage}</p>
+                                    </div>
+                                </template>
+                                <template lwc:else>
+                                    <p>{row.label}は応答に含まれていません。</p>
+                                </template>
+                            </div>
+                        </template>
+                    </section>
+                    <section class="slds-box slds-theme_default slds-m-top_small" aria-labelledby="issuance-info-heading">
+                        <h3 id="issuance-info-heading" class="slds-text-title_bold">発行情報</h3>
+                        <dl>
+                            <div class="slds-grid slds-wrap slds-m-top_x-small">
+                                <dt class="slds-text-title_bold slds-m-right_small">スコープ</dt>
+                                <dd class="slds-hyphenate">{result.scope}</dd>
+                            </div>
+                            <div class="slds-grid slds-wrap slds-m-top_x-small">
+                                <dt class="slds-text-title_bold slds-m-right_small">トークンタイプ</dt>
+                                <dd>{result.tokenType}</dd>
+                            </div>
+                        </dl>
+                    </section>
+                </section>
+            </template>
+        </div>
+    </main>
+</template>

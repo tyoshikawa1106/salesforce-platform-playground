@@ -82,7 +82,7 @@ export function buildSaveRequest(records, changes) {
 function createOptions(metadata, value) {
     // 未設定への変更を明示的な選択肢にする
     const options = [
-        { label: '（値をクリア）', value: '' },
+        { label: '-- なし --', value: '' },
         ...(metadata?.values || []).map((entry) => ({ label: entry.label, value: entry.value }))
     ];
     // 非アクティブな既存値も空欄に置き換えず表示

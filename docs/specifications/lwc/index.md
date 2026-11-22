@@ -16,6 +16,8 @@ Lightning Web Componentsで実装した機能の仕様書一覧です。Apex本�
 | 取引先一括更新                 | `accountMassUpdate`        | [取引先一括更新](account-mass-update/index.md)                         |
 | 組織エクスプローラー           | `orgExplorer`              | [組織エクスプローラー](org-explorer/index.md)                          |
 | オブジェクトエクスプローラー   | `objectExplorer`           | [オブジェクトエクスプローラー](object-explorer/index.md)               |
+| 設定変更履歴エクスプローラー   | `setupAuditTrailExplorer`  | [設定変更履歴エクスプローラー](setup-audit-trail-explorer/index.md)    |
 | 外部クライアントアプリ認証管理 | `externalClientAppManager` | [外部クライアントアプリ認証管理](external-client-app-manager/index.md) |
+| OAuth トークン発行             | `oauthTokenIssuance`       | [OAuth トークン発行](oauth-token-issuance/index.md)                    |
 
 例外捕捉・診断情報の生成・エラー表示は各LWCのController・Logic・HTMLで実装し、共通エラー部品には依存しません。

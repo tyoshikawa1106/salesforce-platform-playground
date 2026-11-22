@@ -1,21 +1,34 @@
 <template>
-    <template lwc:if={clientError}>
-        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-            <p>画面処理でエラーが発生しました。</p>
-            <template lwc:if={clientError.code}>
-                <p data-error-code>エラーコード：{clientError.code}</p>
-            </template>
-            <p data-error-location>処理場所：{clientError.location}</p>
-            <p data-error-type>エラー種別：{clientError.errorType}</p>
-            <template lwc:if={clientError.reason}>
-                <p data-error-reason>理由：{clientError.reason}</p>
-            </template>
-            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
-        </div>
-    </template>
-    <lightning-card title="取引先一括削除">
-        <div class="slds-p-around_medium">
-            <p>実行ユーザーが参照できる取引先を、削除権限に従って一括削除します。個人取引先も対象です。</p>
+    <main class="slds-p-around_medium">
+        <header class="slds-page-header slds-m-bottom_medium">
+            <div class="slds-page-header__row slds-grid_vertical-align-center slds-wrap">
+                <div class="slds-media slds-media_center slds-col">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="standard:account" size="medium" alternative-text=""></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <h1 class="slds-page-header__title">取引先一括削除</h1>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <template lwc:if={clientError}>
+            <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+                <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+            </div>
+        </template>
+        <div class="slds-box slds-theme_default slds-is-relative">
+            <p>実行ユーザーが参照できる取引先を、削除権限に従ってすべて削除します。個人取引先も対象です。</p>
             <p>個人取引先を削除すると、対応する取引先責任者も削除されます。処理結果はメールで通知します。</p>
             <template lwc:if={view.blockMessage}>
                 <p role="alert" class="slds-m-top_small">{view.blockMessage}</p>
@@ -50,5 +63,5 @@
                 </template>
             </div>
         </div>
-    </lightning-card>
+    </main>
 </template>

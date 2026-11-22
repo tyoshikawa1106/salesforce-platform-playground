@@ -45,6 +45,8 @@ Salesforce メタデータを取得・参照・編集・反映するときの実
 
 ## 取得後確認
 
+Salesforce 組織から取得した値を正とし、取得結果をそのまま保持します。取得後の差分を消すために、取得済みファイルを Git 上の値やプレースホルダーで上書きしません。Git 管理に含めるべきでないメタデータは、ユーザーの明示指示に基づき、取得値を保持したまま `.gitignore` の対象にします。追跡済みの場合は、ローカルファイルを保持したまま Git の追跡を外します。
+
 ignoreされているmetadataはGit差分に出ないことがあるため、必要に応じて対象ファイルやretrieve結果を個別に確認します。
 
 `npm run sf:retrieve` は各manifestを`--wait 120 --json`で実行し、取得component数、source形式の取得ファイル数、Metadata APIの取得ファイル数、metadata type別のAPIファイル数、所要時間をmanifest単位で表示します。長時間のretrieveでは30秒ごとに経過時間を表示します。

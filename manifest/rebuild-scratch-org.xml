@@ -63,6 +63,11 @@
         <members>ExternalClientAppManagerControllerTest</members>
         <members>ExternalClientAppManagerService</members>
         <members>ExternalClientAppManagerServiceTest</members>
+        <members>OAuthTokenIssuanceController</members>
+        <members>OAuthTokenIssuanceControllerTest</members>
+        <members>OAuthTokenIssuanceResult</members>
+        <members>OAuthTokenIssuanceService</members>
+        <members>OAuthTokenIssuanceServiceTest</members>
         <members>ObjectMetricCatalog</members>
         <members>ObjectMetricCatalogTest</members>
         <members>ObjectMetricsOverviewController</members>
@@ -179,6 +184,14 @@
         <members>UserLocaleSettingsServiceTest</members>
         <members>UserLocaleSettingsWrapper</members>
         <members>UserLocaleSettingsWrapperTest</members>
+        <members>SetupAuditTrailExplorerController</members>
+        <members>SetupAuditTrailExplorerControllerTest</members>
+        <members>SetupAuditTrailExplorerSelector</members>
+        <members>SetupAuditTrailExplorerSelectorTest</members>
+        <members>SetupAuditTrailExplorerService</members>
+        <members>SetupAuditTrailExplorerServiceTest</members>
+        <members>SetupAuditTrailExplorerWrapper</members>
+        <members>SetupAuditTrailExplorerWrapperTest</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -901,6 +914,7 @@
         <members>caseRelatedCaseList</members>
         <members>externalClientAppCredentialModal</members>
         <members>externalClientAppManager</members>
+        <members>oauthTokenIssuance</members>
         <members>objectMetricsOverview</members>
         <members>objectRecordFormModal</members>
         <members>objectRecordSearch</members>
@@ -917,6 +931,8 @@
         <members>salesforceApiUtils</members>
         <members>lwcLoggerUtils</members>
         <members>userLocaleSettings</members>
+        <members>setupAuditTrailChart</members>
+        <members>setupAuditTrailExplorer</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
@@ -991,14 +1007,12 @@
         <members>LwcAccountMassUpdate</members>
         <members>LwcAccountPdfExport</members>
         <members>LwcCaseEmailMessageList</members>
-        <members>LwcExternalClientAppManager</members>
-        <members>LwcObjectExplorer</members>
+        <members>LwcOAuthTokenIssuance</members>
         <members>LwcObjectMetricsOverview</members>
         <members>LwcObjectRecordSearch</members>
         <members>LwcOrgExplorer</members>
         <members>LwcTestDataDelete</members>
         <members>LwcUserLocaleSettings</members>
-        <members>SalesforceAPIPlaygroundIntegration</members>
         <members>SalesforceApplicationUser</members>
         <members>ScratchOrgMetadataDeployer</members>
         <members>sfdcInternalInt__sfdc_scrt2</members>
@@ -1279,9 +1293,11 @@
         <members>AccountDelete</members>
         <members>AccountMassUpdate</members>
         <members>ExternalClientAppManager</members>
+        <members>OAuthTokenIssuance</members>
         <members>TestDataDelete</members>
         <members>OrgExplorer</members>
         <members>ObjectExplorer</members>
+        <members>SetupAuditTrailExplorer</members>
         <name>CustomTab</name>
     </types>
     <version>68.0</version>

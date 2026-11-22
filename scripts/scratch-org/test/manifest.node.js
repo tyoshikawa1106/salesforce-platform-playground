@@ -11,13 +11,13 @@ const { repoRoot, scratchOrg } = require('../internal/context');
 // Scratch Org再構築manifestを読み込む。
 const manifest = fs.readFileSync(path.join(repoRoot, scratchOrg.manifest), 'utf8');
 
-// ローカルretrieveで生成されるGit管理外metadataを検証対象へ混ぜないため、Git管理中のsourceだけを取得する。
+// Git管理中で作業ツリーに存在するsourceを取得し、ローカル取得物と削除済みファイルを除外する。
 const trackedSourceFiles = execFileSync('git', ['ls-files', '-z', '--cached', '--', 'force-app/main/default'], {
     cwd: repoRoot,
     encoding: 'utf8'
 })
     .split('\0')
-    .filter(Boolean);
+    .filter((filePath) => filePath && fs.existsSync(path.join(repoRoot, filePath)));
 
 // manifestの全typesを、type名とmember一覧へ変換する。
 const manifestTypes = [...manifest.matchAll(/<types>([\s\S]*?)<\/types>/g)].map(([, typeBlock]) => ({
@@ -80,6 +80,7 @@ function getLightningComponentBundleNames() {
 
 // 取得済みsourceのうち、Scratch Org初期反映から意図的に除外するmetadataを定義する。
 const excludedSourceNames = {
+    PermissionSet: new Set(['LwcExternalClientAppManager', 'LwcObjectExplorer']),
     FlexiPage: new Set(['CommandCenterApp_UtilityBar']),
     Flow: new Set(['customer_satisfaction', 'net_promoter_score']),
     Layout: new Set([

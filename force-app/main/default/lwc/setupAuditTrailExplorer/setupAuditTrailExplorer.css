@@ -1,0 +1,122 @@
+:host {
+    --c-results-min-height: 6rem;
+    --c-history-font-size: 0.6875rem;
+}
+
+.filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+.c-search-lookup {
+    min-width: 0;
+}
+
+@media (max-width: 48rem) {
+    .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 30rem) {
+    .filters { grid-template-columns: minmax(0, 1fr); }
+}
+
+.c-search-lookup [role="listbox"] {
+    overflow-anchor: none;
+}
+
+.c-option-meta {
+    min-height: 1lh;
+}
+
+.c-search-lookup input {
+    text-overflow: ellipsis;
+}
+
+.c-inline-status {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.c-inline-spinner {
+    position: relative;
+    width: var(--slds-g-sizing-7, 1.5rem);
+    height: var(--slds-g-sizing-7, 1.5rem);
+    flex: none;
+}
+
+.c-tab-results {
+    position: relative;
+    min-height: var(--c-results-min-height);
+}
+.c-history-footer {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+    margin-top: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.pagination {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.c-history-footer > lightning-button {
+    grid-column: 3;
+    justify-self: end;
+}
+
+@media (max-width: 48rem) {
+    .c-history-footer {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .pagination, .c-history-footer > lightning-button {
+        grid-column: 1;
+    }
+    .pagination {
+        flex-wrap: wrap;
+    }
+}
+
+.month-navigation {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: var(--slds-g-spacing-3, 0.75rem);
+    border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+.month-navigation lightning-button:first-child {
+    justify-self: start;
+}
+.month-navigation lightning-button:last-child {
+    justify-self: end;
+}
+
+.c-history-viewport {
+    height: max(6.625rem, calc(100dvh - var(--c-history-page-inset, 0px) - 9.875rem));
+}
+
+.history-table {
+    font-size: var(--c-history-font-size);
+}
+
+.c-export-dialog {
+    margin: auto;
+    width: min(30rem, 90vw);
+    padding: 0;
+    background: var(--slds-g-color-surface-1, #fff);
+    color: var(--slds-g-color-on-surface-1, #181818);
+    border: 0;
+    border-radius: var(--slds-g-radius-border-3, 0.5rem);
+}
+
+.c-export-dialog::backdrop {
+    background: var(--slds-g-color-neutral-base-0, #000);
+    opacity: 0.45;
+}

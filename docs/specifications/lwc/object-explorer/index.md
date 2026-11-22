@@ -223,9 +223,9 @@ CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`また�
 
 外部クライアントアプリケーションは「管理者が承認したユーザーは事前承認済み」とし、システム管理者プロファイルを許可します。事前承認は利用許可であり、利用者ごとのOAuthトークン取得を代替しません。各利用者は個人設定の「外部ログイン情報」などから、自分のアカウントで認証します。有効な更新トークンがある場合はプラットフォームが更新し、期限切れ・取り消しなどで更新できない場合は再認証が必要です。
 
-External CredentialのPer User Principalは`SalesforceApiUserPrincipal`です。Principalアクセスは標準システム管理者プロファイルだけに付与し、権限セットからは付与しません。`LwcObjectExplorer`はController・タブへのアクセスだけを提供します。API利用権限やメタデータ変更権限は追加せず、認証した利用者が持つ権限を使用します。組織IDの確認は既存の`SalesforceApiClient`で維持します。API認証ユーザーIDとApex実行ユーザーIDの追加照合は行わないため、OAuth認証時に別アカウントを選択しない運用が必要です。
+External CredentialのPer User Principalは`SalesforceApiUserPrincipal`です。Principalアクセスは`LwcObjectExplorer`で付与します。Scratch Org初期構築では、接続定義と同じ段階で反映して作成ユーザーに割り当てます。`LwcObjectExplorer`はController・タブへのアクセスと、取引先およびテストで必要となる取引先のカスタム7項目の参照権限を付与します。同じ権限セットでAPIの有効化（`ApiEnabled`）とデータ分類の変更（`ModifyDataClassification`）を付与します。APIは認証した利用者の実効権限で実行されます。組織IDの確認は既存の`SalesforceApiClient`で維持します。API認証ユーザーIDとApex実行ユーザーIDの追加照合は行わないため、OAuth認証時に別アカウントを選択しない運用が必要です。
 
-Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報管理に登録します。ソース、Apex、文書には実値を保存しません。接続先は導入先組織のMy Domainを使い、Named Credentialの「HTTP 本文の数式を許可」を有効にします。認証プロバイダー・外部ログイン情報・指定ログイン情報・外部クライアントアプリケーションは組織固有の設定であり、Git管理対象外です。
+Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報管理に登録します。ソース、Apex、文書には実値を保存しません。接続先は導入先組織のMy Domainを使い、Named Credentialの「HTTP 本文の数式を許可」を有効にします。Scratch Org 初期構築には、組織固有値を実行時に設定する再現用定義を使用します。設定方法は[Scratch Org 再現ルール](../../../deployment/scratch-org-rebuild-rules.md#external-client-app-の扱い)を参照してください。
 
 ### 新しい組織への設定順序
 
@@ -235,7 +235,7 @@ Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報�
 4. プロバイダーの詳細画面に表示されたコールバックURLを、外部クライアントアプリケーションのコールバックURLへ登録します。コールバックURLを推測で組み立てません。
 5. OAuth Browser FlowのExternal Credentialを作成し、プロバイダーと関連付けます。スコープを`api refresh_token`、Per User Principalを`SalesforceApiUserPrincipal`とします。Named Principalは使用しません。
 6. 現在の組織を接続先とするNamed Credentialを`InternalSalesforceApi`として作成し、External Credentialへ関連付けます。「認証ヘッダーを生成」と「HTTP 本文の数式を許可」を有効にします。
-7. 設定の「プロファイル」から標準システム管理者を開き、「有効な外部ログイン情報プリンシパルアクセス」で`InternalSalesforceApi-SalesforceApiUserPrincipal`を有効にします。他のプロファイルと権限セットには付与しません。アプリケーションの事前承認とPrincipalアクセスは両方必要です。
+7. 利用者に`LwcObjectExplorer`を割り当てます。権限セットで`InternalSalesforceApi-SalesforceApiUserPrincipal`の利用を許可し、アプリケーションの事前承認も設定します。
 8. 利用者本人がOAuth認証し、Named Credential経由の取得、分類保存・再取得を確認します。本人以外のアカウントで認証しません。権限不足の場合は固定ユーザーへ切り替えず、操作を失敗させます。
 
 既存のNamed Principalから切り替える場合、共有トークンを利用者のトークンとして移行しません。切り替え前に関連設定とPrincipal権限を確認し、利用者の認証が済むまではAPI機能を利用できないことを周知します。失敗した場合は認証方式、コールバックURL、資格情報、Principalアクセス、認証ユーザーの権限を確認します。切り替えを取り消す場合は、組織管理者が変更前の設定と権限参照を復元します。固定ユーザー実行へ戻す場合は、その実行権限の違いを確認したうえで判断します。

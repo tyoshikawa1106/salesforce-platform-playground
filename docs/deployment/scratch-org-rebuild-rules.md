@@ -62,18 +62,24 @@ Installed Package の確認方法と反映順序は、[Scratch Org 再現の前�
 
 alias の付け方と Scratch definition の feature 判断は、[Scratch Org 再現の前提と設定](scratch-org-rebuild-reference.md)を参照します。
 
+## AI エージェントによる初期構築
+
+外部クライアントアプリの枠を作る場合は、作成済み Scratch Org を対象に、以下の [External Client App の手順](#external-client-app-の扱い) を個別に実行します。一括実行は ECA の OAuth 設定まで反映する別の経路です。
+
 ## 一括実行
 
 通常の Scratch Org 準備は、固定の `sf` コマンドとテストデータ投入コマンドを順に実行するスクリプトで行います。
 
 1. Scratch Org を作成する。
-2. manifest を`RunLocalTests`付きで deploy する。
-3. Scratch Org ユーザー用 Permission Set を割り当てる。
-4. 標準オブジェクトのテストデータを投入する。
+2. manifest を`NoTestRun`で deploy する。
+3. 設定に含まれる外部クライアントアプリを反映する。
+4. Scratch Org ユーザー用 Permission Set を割り当てる。
+5. Apex の `RunLocalTests` を実行し、完了を確認する。
+6. 標準オブジェクトのテストデータを投入する。
 
 途中で失敗した場合は、その時点で停止します。alias、duration、manifest、Permission Set、import plan は `scripts/scratch-org/scratch-org.json` で定義します。
 
-4番目のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
+最後のテストデータ投入では、作成済みScratch Orgの接続情報と組織種別を表示し、次の承認入力を待ちます。`y`または`Y`の場合だけ投入を開始します。
 
 ```text
 この接続組織で続行しますか？ [y/N]:
@@ -126,13 +132,13 @@ sf project deploy start --dry-run --source-dir force-app --target-org <scratch-o
 
 ### Scratch Org への deploy
 
-`manifest/rebuild-scratch-org.xml` と`RunLocalTests`で反映します。Apexテストが失敗した場合はdeployを失敗させ、一括実行ではPermission Set割り当てとテストデータ投入へ進みません。
+`manifest/rebuild-scratch-org.xml` を `NoTestRun` で反映します。Apex テストは Permission Set の割り当て後に実行し、失敗した場合はテストデータを投入しません。
 
 ```sh
 sf project deploy start \
     --manifest manifest/rebuild-scratch-org.xml \
     --target-org <scratch-org-alias> \
-    --test-level RunLocalTests \
+    --test-level NoTestRun \
     --wait 30
 ```
 
@@ -172,8 +178,20 @@ Settings や DuplicateRule を Scratch Org 専用に別管理して個別補正�
 
 ### External Client App の扱い
 
-External Client App は Salesforce 組織由来の OAuth link、実行ユーザー、配信状態、consumer key などを含みやすいため、通常の Scratch Org 初期反映には含めません。
-Scratch Org で External Client App まで検証する必要が出た場合は、初期反映手順とは別に、org 固有値を含まない方法を個別に設計します。
+アプリの枠を再現する場合は、[既存の ECA 用 manifest](../../manifest/rebuild-scratch-org-external-client-apps.xml) の `ExternalClientApplication` に列挙されたアプリを対象にします。ECA 本体と OAuth 定義は Git 管理対象外です。必要な本体の定義が手元にない場合は、認証済み Dev 組織から該当する `ExternalClientApplication` だけを取得します。Dev に存在しないアプリは取得できないため、反映対象と入手元を確認します。AI エージェントは次の順に進めます。
+
+1. CLI の組織一覧で接続先が対象の Scratch Org であることを確認し、アプリ一覧から未作成の API 名を特定する。
+2. 未作成のアプリだけを `--metadata` に指定し、既存のメタデータに対して `--dry-run` を実行する。複数件は `--metadata` を繰り返す。成功した範囲を同じ指定で実デプロイする。
+3. 本体の反映が失敗した場合は、エラーをアプリごとに確認する。既存の CLI 認証で対象 Scratch Org を開き、設定画面に作成機能がある場合は未作成のアプリだけを元の定義に従って設定する。対象組織で作成機能が使えない場合は、失敗した項目と理由を報告する。
+4. 組織のアプリ一覧で API 名と表示名を確認する。枠の作成はここで完了とする。OAuth 設定、ポリシー、資格情報の登録、疎通確認が必要な場合は別に扱う。
+
+```sh
+sf org list metadata --metadata-type ExternalClientApplication --target-org <scratch-org-alias>
+sf project deploy start --metadata 'ExternalClientApplication:<api-name>' --target-org <scratch-org-alias> --dry-run --wait 30
+sf project deploy start --metadata 'ExternalClientApplication:<api-name>' --target-org <scratch-org-alias> --wait 30
+```
+
+この手順では既存のソースを Salesforce CLI に直接渡します。メタデータのコピーや加工、ZIP の作成、スクリプトの変更は行いません。OAuth 設定とポリシーを含む manifest 全体では、コールバック URL、実行ユーザー、プロファイルなどの組織間差分により失敗することがあります。Dev の資格情報、組織固有値、取得ファイルは公開リポジトリへ保存しません。
 
 ### Permission Set 割り当て
 
@@ -186,11 +204,13 @@ Scratch Org の作成ユーザーには、次のPermission Setを割り当てま
 - `LwcAccountPdfExport`: 取引先PDF出力のApex入口とVisualforceページ
 - `LwcCaseEmailMessageList`: ケースメール一覧のApex入口
 - `LwcExternalClientAppManager`: 外部クライアントアプリ認証管理のApex入口・カスタム権限・タブ（API管理権限と認証設定は別途管理）
-- `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ（保存用の認証設定とプリンシパル利用権限は作成後に組織側で追加）
+- `LwcObjectExplorer`: 構造参照・分類参照編集のApex入口とタブ
 - `LwcObjectMetricsOverview`: 件数サマリーと配下のレコード検索のApex入口
 - `LwcObjectRecordSearch`: レコード検索のApex入口
 - `LwcOrgExplorer`: 組織エクスプローラーのApex入口とタブ
+- `LwcOAuthTokenIssuance`: OAuthトークン発行のApex入口とタブ
 - `LwcTestDataDelete`: テストデータ一括削除のApex入口とタブ
+- `LwcUserLocaleSettings`: 言語・地域のApex入口と項目権限
 
 自動割り当ての対象は `scripts/scratch-org/scratch-org.json` の `permissionSets` で管理し、スクリプトでは metadata deploy 後にまとめて割り当てます。一部でも失敗した場合は後続のテストデータ投入へ進みません。手動で個別実行する場合も同じ権限セットを割り当てます。
 
@@ -207,7 +227,9 @@ sf org assign permset \
     --name LwcObjectMetricsOverview \
     --name LwcObjectRecordSearch \
     --name LwcOrgExplorer \
+    --name LwcOAuthTokenIssuance \
     --name LwcTestDataDelete \
+    --name LwcUserLocaleSettings \
     --target-org <scratch-org-alias> \
     --json
 ```
@@ -280,7 +302,7 @@ Salesforce 組織へ反映する場合も、同じ作業対象 manifest を使�
 
 ## 確認
 
-初期反映ではdeploy内の`RunLocalTests`を必須とします。初期反映後にApexテストだけを再確認する場合は、次のコマンドを実行します。
+初期反映と権限セットの割り当て後に `RunLocalTests` を実行し、成功を確認します。Apex テストだけを再確認する場合は、次のコマンドを実行します。
 
 ```sh
 sf apex run test --test-level RunLocalTests --result-format human --target-org <scratch-org-alias>
@@ -288,7 +310,7 @@ sf apex run test --test-level RunLocalTests --result-format human --target-org <
 
 Scratch Org 初期反映対象を変更した場合は、次を確認します。
 
-- `manifest/rebuild-scratch-org.xml` のdeployが`RunLocalTests`を含めて成功すること
+- `manifest/rebuild-scratch-org.xml` の deploy と、権限セット割り当て後の `RunLocalTests` が成功すること
 - Scratch Org ユーザーに必要な Permission Set が割り当てられていること
 - テストデータ投入を依頼された場合は、投入 script と確認 SOQL が成功すること
 
