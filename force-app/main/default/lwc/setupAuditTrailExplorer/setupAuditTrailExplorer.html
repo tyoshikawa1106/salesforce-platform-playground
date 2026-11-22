@@ -85,18 +85,20 @@
                                         <template lwc:if={field.open}>
                                             <div class="slds-dropdown slds-dropdown_fluid">
                                                 <ul id={field.listId} class="slds-listbox slds-listbox_vertical slds-dropdown_length-5"
-                                                    role="listbox" aria-label={field.label} onmousedown={keepLookupFocus}>
+                                                    role="listbox" aria-label={field.label} onmousedown={keepLookupFocus} onscroll={scrollLookup}>
+                                                    <li role="presentation" aria-hidden="true" style={field.topStyle}></li>
                                                     <template for:each={field.options} for:item="option">
                                                         <li key={option.value} role="presentation">
                                                             <div id={option.id} class={option.className} role="option"
-                                                                aria-selected={option.active} data-value={option.value} onclick={selectLookupOption}>
+                                                                aria-setsize={field.total} aria-posinset={option.position} aria-selected={option.active} data-value={option.value} onclick={selectLookupOption}>
                                                                 <span class="slds-media__body slds-grid slds-grid_vertical">
                                                                     <span class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show">{option.label}</span>
-                                                                    <span lwc:if={option.code} class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show">{option.code}</span>
+                                                                    <span lwc:if={field.isUserLookup} class="c-option-meta slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show">{option.code}</span>
                                                                 </span>
                                                             </div>
                                                         </li>
                                                     </template>
+                                                    <li role="presentation" aria-hidden="true" style={field.bottomStyle}></li>
                                                 </ul>
                                                 <div lwc:if={optionsLoading} class="c-inline-status slds-p-horizontal_small slds-p-vertical_x-small">
                                                     <p role="status" class="slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>

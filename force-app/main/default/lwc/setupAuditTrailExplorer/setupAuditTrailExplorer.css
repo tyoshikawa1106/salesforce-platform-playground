@@ -21,6 +21,14 @@
     .filters { grid-template-columns: minmax(0, 1fr); }
 }
 
+.c-search-lookup [role="listbox"] {
+    overflow-anchor: none;
+}
+
+.c-option-meta {
+    min-height: 1lh;
+}
+
 .c-search-lookup input {
     text-overflow: ellipsis;
 }

@@ -7,7 +7,7 @@ import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController
 import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
-    CSV_HEADER, PAGE_SIZE, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
+    CSV_HEADER, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
     collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, remainingMatchRecords, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
@@ -75,6 +75,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     lookupTerm = '';
     // キーボードでの候補未選択を表す。
     lookupIndex = -1;
+    // 一致値は入力と月別候補が変わるまでキーボード操作とスクロールで共有する。
+    lookupMatches = [];
+    lookupStart = 0;
+    lookupRowHeight = 0;
+    revealLookupOption = false;
     // 候補取得の世代を識別する。
     optionsRequest = 0;
     // 候補を取得できなかった状態を表示に使う。
@@ -481,6 +486,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.delegateNames = delegateNames;
             // 並べ替えた候補をまとめて公開する。
             this.filterOptions = sortFilterOptions(groups);
+            this.updateLookupMatches();
         } catch {
             // 現在の候補要求の失敗だけを反映する。
             if (request === this.optionsRequest) {
@@ -508,11 +514,26 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return buildDateOptions(this.monthDate);
     }
 
+    get lookupSources() {
+        return { userOptions: this.userOptions, userNames: this.userNames, delegateNames: this.delegateNames, filterOptions: this.filterOptions };
+    }
+
+    // 編集中の欄だけを再検索し、変更後の候補は先頭から表示する。
+    updateLookupMatches() {
+        this.lookupMatches = matchingLookupValues(this.lookupField, this.lookupTerm, this.lookupSources);
+        this.lookupIndex = -1;
+        this.lookupStart = 0;
+        const list = this.template.querySelector('ul[role="listbox"]');
+        if (list) {
+            list.scrollTop = 0;
+        }
+    }
+
     // 選択状態と候補の取得状態を各検索欄に反映する。
     get filterFields() {
         // 入力中の条件を、確定済みの検索条件とは独立して表示する。
         return buildFilterFields({
-            userOptions: this.userOptions, userNames: this.userNames, delegateNames: this.delegateNames, filterOptions: this.filterOptions,
+            sources: this.lookupSources, matches: this.lookupMatches, start: this.lookupStart, rowHeight: this.lookupRowHeight,
             selectedValues: { userId: this.userId, namespacePrefix: this.namespacePrefix, action: this.action, section: this.section, delegateUser: this.delegateUser },
             lookupField: this.lookupField, lookupTerm: this.lookupTerm, lookupIndex: this.lookupIndex
         });
@@ -531,8 +552,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.lookupField = field;
             // 前の欄の検索文字を引き継がないようにする。
             this.lookupTerm = '';
-            // 移動先の候補を未選択にする。
-            this.lookupIndex = -1;
+            // 項目ごとに違う候補行の高さを再計測する。
+            this.lookupRowHeight = 0;
+            this.updateLookupMatches();
         }
         // 失敗状態では暗黙の再取得を避ける。
         if (!this.optionsError) {
@@ -547,14 +569,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.openLookup(event);
         // 現在の入力を検索条件に使う。
         this.lookupTerm = event.target.value;
-        // 新しい候補の先頭から移動できるようにする。
-        this.lookupIndex = -1;
+        this.updateLookupMatches();
     }
 
     // 入力中の検索状態を閉じる。
     closeLookup() {
         // 開いている欄の指定を外す。
         this.lookupField = '';
+        this.lookupMatches = [];
+        this.revealLookupOption = false;
         // 一時的な候補検索文字を取り除く。
         this.lookupTerm = '';
         // キーボードの選択位置を解除する。
@@ -609,30 +632,44 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 移動対象の候補を表示する。
             this.openLookup(event);
             // 展開中の欄の候補を取得する。
-            const field = this.filterFields.find(item => item.key === this.lookupField);
+            const count = this.lookupMatches.length;
             // 移動可能な候補があるかを確認する。
-            if (!field.options.length) {
+            if (!count) {
                 // 空の一覧で選択位置を作らないようにする。
                 return;
             }
             // 押された方向を候補位置の増減に変換する。
             const step = event.key === 'ArrowDown' ? 1 : -1;
             // 未選択時の上移動は末尾から始める。
-            const index = this.lookupIndex < 0 && step < 0 ? field.options.length - 1 : this.lookupIndex + step;
+            const index = this.lookupIndex < 0 && step < 0 ? count - 1 : this.lookupIndex + step;
             // 移動先を候補一覧の範囲に収める。
-            this.lookupIndex = Math.max(0, Math.min(index, field.options.length - 1));
+            this.lookupIndex = Math.max(0, Math.min(index, count - 1));
+            // 末尾へ直接移動しても対象の行だけをDOMに用意する。
+            if (this.lookupIndex < this.lookupStart || this.lookupIndex >= this.lookupStart + LOOKUP_WINDOW) {
+                this.lookupStart = Math.min(Math.max(0, count - LOOKUP_WINDOW), this.lookupIndex);
+            }
+            this.revealLookupOption = true;
         // 選択位置がある場合だけEnterで確定する。
         } else if (event.key === 'Enter' && this.lookupField && this.lookupIndex >= 0) {
             // 候補確定にEnterを使う。
             event.preventDefault();
-            // 確定対象の欄を探す。
-            const field = this.filterFields.find(item => item.key === this.lookupField);
-            // 現在の位置に対応する候補を取り出す。
-            const option = field.options[this.lookupIndex];
-            // 再描画後も候補が存在するか確認する。
-            if (option) {
-                // 選択した候補を検索条件に渡す。
-                this.applyFilter(field.key, option.value);
+            const value = this.lookupMatches[this.lookupIndex];
+            if (value !== undefined) {
+                this.applyFilter(this.lookupField, value);
+            }
+        }
+    }
+
+    // 可視範囲の少し前から候補を描画し、手動スクロールを選択位置に引き戻さない。
+    scrollLookup(event) {
+        const list = event.currentTarget;
+        const height = this.lookupRowHeight || list.querySelector('[role="option"]')?.getBoundingClientRect().height;
+        if (height) {
+            this.lookupRowHeight = height;
+            this.lookupStart = Math.min(Math.max(0, this.lookupMatches.length - LOOKUP_WINDOW),
+                Math.max(0, Math.floor(list.scrollTop / height) - 3));
+            if (this.lookupIndex < this.lookupStart || this.lookupIndex >= this.lookupStart + LOOKUP_WINDOW) {
+                this.lookupIndex = -1;
             }
         }
     }
@@ -648,7 +685,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             input?.focus();
         }
         // キーボードで候補を移動した場合に位置を調整する。
-        if (this.lookupIndex >= 0) {
+        if (this.lookupField) {
+            // SLDSの実測行高で非表示部分の余白を確保する。
+            const height = this.template.querySelector('ul[role="listbox"] [role="option"]')?.getBoundingClientRect().height;
+            if (height && height !== this.lookupRowHeight) {
+                this.lookupRowHeight = height;
+            }
+        }
+        if (this.revealLookupOption) {
+            this.revealLookupOption = false;
             // 選択した候補が一覧内に見えるようにする。
             this.template.querySelector('.slds-has-focus[role="option"]')?.scrollIntoView?.({ block: 'nearest' });
         }
@@ -848,6 +893,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.optionsRequest += 1;
             this.filterOptions = null;
             this.userOptions = {};
+            this.updateLookupMatches();
             this.optionsError = false;
             this.optionsLoading = false;
             this.pendingActors = undefined;
@@ -1417,6 +1463,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 this.optionsError = false;
                 // 表示順に並べた候補を検索欄へ渡す。
                 this.filterOptions = options.filterOptions;
+                this.updateLookupMatches();
             }
             // 全ページを取得した分析結果を再利用可能にする。
             this.chartReady = true;
