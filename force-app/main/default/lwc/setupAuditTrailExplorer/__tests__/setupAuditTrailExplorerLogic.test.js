@@ -1,4 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, historyRow, loginAsActors, remainingMatchRecords } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, remainingMatchRecords } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -104,4 +104,15 @@ it('keeps the Apex day key across midnight when the runtime formats month first'
     } finally {
         formatter.mockRestore();
     }
+});
+
+it('recognizes chart system actors without replacing known employees’ names or unconfirmed IDs', () => {
+    const buckets = [
+        { userId: 'auto', userType: 'AutomatedProcess', userName: 'Process Automated', loginName: 'auto' },
+        { userId: 'named', userName: '担当者' }, { userId: 'login', loginName: 'user' },
+        { userId: 'employee' }, { userId: 'unknown' }, {}
+    ];
+    expect(buckets.filter(needsChartEmployeeLabel).map(row => row.userId)).toEqual(['employee', 'unknown']);
+    labelChartActors(buckets, ['named', 'login', 'employee']);
+    expect(buckets.map(row => row.userName)).toEqual(['自動化プロセス', '担当者', undefined, '株式会社セールスフォース・ジャパン', undefined, undefined]);
 });

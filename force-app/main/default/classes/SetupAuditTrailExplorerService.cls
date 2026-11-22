@@ -226,6 +226,7 @@ public with sharing class SetupAuditTrailExplorerService {
                 bucket.day = day;
                 bucket.userId = row.CreatedById;
                 bucket.userName = row.CreatedBy?.Name;
+                bucket.userType = row.CreatedBy?.UserType;
                 bucket.loginName = row.CreatedBy?.Username;
                 bucket.action = row.Action;
                 bucket.section = row.Section;

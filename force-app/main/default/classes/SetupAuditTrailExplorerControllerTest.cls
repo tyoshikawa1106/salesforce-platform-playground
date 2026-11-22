@@ -1,6 +1,16 @@
 @IsTest
 private class SetupAuditTrailExplorerControllerTest {
     @IsTest
+    static void excludesEmployeeEvidenceAfterCutoff() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            List<Id> actors = SetupAuditTrailExplorerController.loadEmployeeActorIds(Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0));
+            Test.stopTest();
+            Assert.isTrue(actors.isEmpty(), '基準時刻より後の操作を照合に使いません。');
+        }
+    }
+
+    @IsTest
     static void limitsSearchToEarlierOfCutoffAndPeriodEnd() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();

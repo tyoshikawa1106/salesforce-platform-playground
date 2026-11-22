@@ -198,25 +198,41 @@ export function loginAsActors(pairs) {
 }
 
 // システムによる操作に対応する日本語ラベルを返す。
-function systemActorLabel(row, employeeActorIds) {
+function systemActorLabel(userType, username, confirmedEmployee) {
     // 日本語の自動化プロセスには標準CSVの種別名を出す。
-    if (LANG.startsWith('ja') && row.CreatedBy?.UserType === 'AutomatedProcess') {
+    if (LANG.startsWith('ja') && userType === 'AutomatedProcess') {
         // 自動化プロセスの内部ログイン名を表示名に変換する。
         return '自動化プロセス';
     }
     // ログイン名がない場合も、同じ作成者の従業員操作を確認できた場合だけ会社名を使う。
-    if (LANG.startsWith('ja') && !row.CreatedBy?.Username && employeeActorIds.has(row.CreatedById)) {
+    if (LANG.startsWith('ja') && !username && confirmedEmployee) {
         // 日本語の標準CSVでのSalesforce側の実行主体を表す。
         return '株式会社セールスフォース・ジャパン';
     }
     return undefined;
 }
 
+// 通常の表示名とログイン名の両方が空の日本語集計だけ、追加の照合を必要とする。
+export function needsChartEmployeeLabel(bucket) {
+    return LANG.startsWith('ja') && bucket.userId && !bucket.userName && !bucket.loginName && bucket.userType !== 'AutomatedProcess';
+}
+
+// 通常ユーザーの氏名と集計キーを保ち、判定できた実行者に日本語の表示名を付ける。
+export function labelChartActors(buckets, employeeActorIds) {
+    const employees = new Set(employeeActorIds);
+    for (const bucket of buckets) {
+        const label = systemActorLabel(bucket.userType, bucket.loginName, !bucket.userName && employees.has(bucket.userId));
+        if (label) {
+            bucket.userName = label;
+        }
+    }
+}
+
 // CSVには標準出力に合わせたログイン名を使用する。
 function csvUser(row, employeeActorIds, actors) {
     const logout = actors?.get(row.Id);
     return logout && needsLoginAsUser(row) ? logout.CreatedBy.Username :
-        systemActorLabel(row, employeeActorIds) || row.CreatedBy?.Username;
+        systemActorLabel(row.CreatedBy?.UserType, row.CreatedBy?.Username, employeeActorIds.has(row.CreatedById)) || row.CreatedBy?.Username;
 }
 
 // 履歴の本人と代理ユーザーを独立して氏名に変換し、照合できない場合は元の表記を保持する。
@@ -224,7 +240,7 @@ export function historyRow(row, employeeActorIds, actors, delegateNames) {
     const actor = actors?.get(row.Id) ?? row;
     return {
         ...row,
-        displayedUser: actor.CreatedBy?.Name || systemActorLabel(actor, employeeActorIds) || actor.CreatedBy?.Username,
+        displayedUser: actor.CreatedBy?.Name || systemActorLabel(actor.CreatedBy?.UserType, actor.CreatedBy?.Username, employeeActorIds.has(actor.CreatedById)) || actor.CreatedBy?.Username,
         displayedDelegate: delegateNames?.[row.DelegateUser?.toLowerCase()] ?? row.DelegateUser,
         displayedAction: displayAction(row)
     };
@@ -405,7 +421,7 @@ export function loginBucket(row, actors) {
     const actor = actors?.get(row.Id) ?? row;
     return {
         day: localDay(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
-        loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
+        userType: actor.CreatedBy?.UserType, loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
         namespacePrefix: row.ResponsibleNamespacePrefix, delegateUser: row.DelegateUser, count: 1
     };
 }
