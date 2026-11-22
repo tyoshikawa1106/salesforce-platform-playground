@@ -524,33 +524,59 @@ it.each([1, 1000])('shows 1 / 1 without adjacent pages for a monthly total of %i
     expect(pagination.querySelector('lightning-button')).toBeNull();
 });
 
-it('uses all completed chart pages including delegated logins for history pagination', async () => {
-    const login = { Action: 'suOrgAdminLogin', CreatedDate: '2026-11-01T12:00:00Z', CreatedById: 'target' };
+it('counts all chart pages including delegated logins and reuses the monthly result on revisit', async () => {
+    const login = { Action: 'suOrgAdminLogin', CreatedDate: cutoff, CreatedById: 'target' };
     load.request.mockImplementation(({ input }) => {
         if (!input.chart) {
             return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
         }
-        if (!input.day) {
-            return { buckets: [] };
-        }
         return input.nextId ? { buckets: [{ action: 'change', count: 500 }], records: [login] } :
             { buckets: [{ action: 'change', count: 500 }], nextId: 'more', nextTime: 'time' };
     });
-    const component = mount();
+    const root = mount().shadowRoot;
     await flush();
-    const [historyTab, chartTab] = component.shadowRoot.querySelectorAll('lightning-tab');
-    chartTab.dispatchEvent(new CustomEvent('active'));
+    const [history, chart] = root.querySelectorAll('lightning-tab');
+    expect(history.querySelector('section[aria-label="検索条件"]')).toBeTruthy();
+    expect(chart.querySelector('[data-field]')).toBeNull();
+    chart.dispatchEvent(new CustomEvent('active'));
     await flush();
-    component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
-        .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
-    await search(component);
-    historyTab.dispatchEvent(new CustomEvent('active'));
+    expect(root.querySelector('h2[aria-live]').textContent).toContain('1,001件');
+    expect(chart.querySelector('lightning-formatted-date-time').value).toBe(cutoff);
+    history.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
-    expect(countMatches.request).not.toHaveBeenCalled();
+    expect(history.textContent).toContain('1 / 2ページ');
+    root.querySelector('[data-step="-1"]').click();
+    await flush();
+    root.querySelector('[data-step="1"]').click();
+    await flush();
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(load.request.mock.calls.filter(([{ input }]) => input.chart)).toHaveLength(2);
+    expect(chart.querySelector('c-setup-audit-trail-chart').buckets).toHaveLength(2);
+    await expect(root.host).toBeAccessible();
 });
 
-it('keeps the completed analysis total when an earlier count response arrives late', async () => {
+it.each([true, false])('ignores an old monthly analysis after switching months (failure: %s)', async fails => {
+    let settle;
+    load.request.mockResolvedValueOnce({ records: [] })
+        .mockImplementationOnce(() => new Promise((resolve, reject) => {
+            settle = () => (fails ? reject(new Error('old month')) : resolve({ buckets: [{ action: 'old', count: 10 }] }));
+        }))
+        .mockResolvedValueOnce({ buckets: [{ action: 'current', count: 2 }] });
+    const root = mount().shadowRoot;
+    await flush();
+    const chart = root.querySelectorAll('lightning-tab')[1];
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    root.querySelector('[data-step="-1"]').click();
+    await flush();
+    settle();
+    await flush();
+    expect(chart.querySelector('c-setup-audit-trail-chart').buckets).toEqual([{ action: 'current', count: 2 }]);
+    expect(chart.querySelector('[role="alert"]')).toBeNull();
+});
+
+it('keeps a pending filtered count independent of the monthly analysis', async () => {
     let finishCount;
     countMatches.request.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
     load.request.mockImplementation(({ input }) => (input.chart ? { buckets: [{ action: 'change', count: 2001 }] } :
@@ -562,42 +588,49 @@ it('keeps the completed analysis total when an earlier count response arrives la
     const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
     chart.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
+    expect(load.request.mock.lastCall[0].input.action).toBeUndefined();
     finishCount(1001);
     await flush();
     history.dispatchEvent(new CustomEvent('active'));
     await flush();
-    expect(component.shadowRoot.textContent).toContain('1 / 3ページ');
+    expect(history.textContent).toContain('1 / 2ページ');
+    expect(history.querySelector('input[data-field="action"]').value).toBe('createdApexClass');
     expect(countMatches.request).toHaveBeenCalledTimes(1);
 });
 
-it('does not use an interrupted chart as the count for the history tab', async () => {
+it('finishes monthly analysis in the background without replacing a newer history search', async () => {
     let finishChart;
+    const newer = '2026-11-20T01:00:00.000Z';
+    startSearch.mockResolvedValueOnce(cutoff).mockResolvedValueOnce(newer);
+    countMonth.mockResolvedValueOnce(2500).mockResolvedValueOnce(3000);
     load.request.mockImplementation(({ input }) => {
         if (!input.chart) {
             return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
-        }
-        if (!input.day) {
-            return { buckets: [] };
         }
         return input.nextId ? new Promise(resolve => { finishChart = resolve; }) :
             { buckets: [{ action: 'change', count: 1 }], nextId: 'more', nextTime: 'time' };
     });
     countMatches.request.mockResolvedValue(1001);
     const component = mount();
+    const root = component.shadowRoot;
     await flush();
-    const [history, chart] = component.shadowRoot.querySelectorAll('lightning-tab');
+    const [history, chart] = root.querySelectorAll('lightning-tab');
     chart.dispatchEvent(new CustomEvent('active'));
     await flush();
-    component.shadowRoot.querySelector('lightning-combobox[data-field="day"]')
-        .dispatchEvent(new CustomEvent('change', { detail: { value: load.request.mock.calls[0][0].input.monthStart } }));
-    await search(component);
     history.dispatchEvent(new CustomEvent('active'));
-    await flush();
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
     finishChart({ buckets: [{ action: 'change', count: 2000 }] });
     await flush();
-    expect(component.shadowRoot.textContent).toContain('1 / 2ページ');
-    expect(countMatches.request).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('h2[aria-live]').textContent).toContain('3,000件');
+    expect(history.textContent).toContain('1 / 2ページ');
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(root.querySelector('h2[aria-live]').textContent).toContain('2,001件');
+    expect(load.request.mock.calls.filter(([{ input }]) => input.chart)).toHaveLength(2);
+    chart.querySelector('c-setup-audit-trail-chart').dispatchEvent(new CustomEvent('selectfilter', { detail: { day: '2026-11-02' } }));
+    await flush();
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: null, day: '2026-11-02', cutoff });
 });
 
 it.each([
@@ -733,7 +766,7 @@ it('shows actor and delegate names on screen and indexes the section across sour
             return input.nextId ? { records: [target] } : { records: [logout], nextId: 'cursor', nextTime: 'time' };
         }
         if (input.chart) {
-            return { buckets: [], records: input.recordIds.includes(target.Id) ? [target] : [] };
+            return { buckets: [], records: [target] };
         }
         return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'], delegateNames: { admin: '管理者' } };
     });
@@ -849,10 +882,10 @@ it('reloads candidates after each search even if a previous options request fini
 it.each([
     ['担当者', '担当者'],
     [null, 'viewer@example.invalid']
-])('keeps the filtered chart user label on drilldown with name %s', async (userName, label) => {
+])('replaces the day filter and keeps the monthly chart user label on drilldown with name %s', async (userName, label) => {
     const userId = 'target';
     load.request.mockImplementation(({ input }) => (input.chart
-        ? { buckets: [{ userId, userName, loginName: 'viewer@example.invalid', day: input.day, count: 1 }] }
+        ? { buckets: [{ userId, userName, loginName: 'viewer@example.invalid', day: input.monthStart, count: 1 }] }
         : { records: [] }));
     const component = mount();
     const root = component.shadowRoot;
@@ -866,7 +899,7 @@ it.each([
     chart.shadowRoot.querySelector('section[aria-label="ユーザー"] button').click();
     await flush();
     expect(root.querySelector('input[data-field="userId"]').value).toBe(label);
-    expect(load.request.mock.lastCall[0].input).toMatchObject({ day, userId, matchIndex: true });
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ day: null, userId, matchIndex: true });
     expect(loadFilterOptions).not.toHaveBeenCalled();
 });
 
@@ -986,6 +1019,8 @@ it('uses one server cutoff across views and renews it on explicit search', async
     chart.dispatchEvent(new CustomEvent('active'));
     await flush();
     expect(load.request.mock.calls.map(([{ input }]) => input.cutoff)).toEqual([cutoff, cutoff]);
+    component.shadowRoot.querySelectorAll('lightning-tab')[0].dispatchEvent(new CustomEvent('active'));
+    await flush();
     await search(component);
     expect(load.request.mock.lastCall[0].input.cutoff).toBe(newer);
     expect(countMonth.mock.calls.map(([input]) => input.cutoff)).toEqual([cutoff, newer]);
@@ -1037,7 +1072,7 @@ it('reuses five pages and refetches the evicted page with the original cutoff', 
     expect(root.querySelector('lightning-datatable').data[0].Id).toBe('1');
 });
 
-it('keeps the extra match from a source batch and uses the same cutoff for indexed analysis', async () => {
+it('preserves the indexed history page on a tab round trip and clears the section on drilldown', async () => {
     jest.replaceProperty(historyLogic, 'PAGE_SIZE', 2);
     const rows = ['c', 'b', 'a'].map(Id => ({ Id, CreatedDate: 'time' }));
     loadFilterOptions.mockResolvedValue({ options: { section: ['A'] } });
@@ -1046,7 +1081,7 @@ it('keeps the extra match from a source batch and uses the same cutoff for index
             return { records: input.nextId === 'b' ? rows.slice(2) : rows };
         }
         if (input.chart) {
-            return { buckets: [{ action: 'change', count: input.recordIds.length }] };
+            return { buckets: [{ action: 'change', count: rows.length }] };
         }
         return { records: rows.filter(row => input.recordIds?.includes(row.Id)) };
     });
@@ -1064,11 +1099,20 @@ it('keeps the extra match from a source batch and uses the same cutoff for index
     const chart = root.querySelector('c-setup-audit-trail-chart');
     expect(chart.buckets[0].count).toBe(3);
     expect(load.request.mock.calls.filter(([{ input }]) => input.matchIndex)).toHaveLength(1);
+    const reads = load.request.mock.calls.length;
+    root.querySelectorAll('lightning-tab')[0].dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['a']);
+    expect(root.querySelector('nav').textContent).toContain('2 / 2ページ');
+    chartTab.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(load.request.mock.calls).toHaveLength(reads);
     const starts = startSearch.mock.calls.length;
     chart.dispatchEvent(new CustomEvent('selectfilter', { detail: { action: 'change' } }));
     await flush();
     expect(startSearch).toHaveBeenCalledTimes(starts);
-    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'change', cutoff, recordIds: ['c', 'b'] });
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'change', cutoff, pageSize: 2 });
+    expect(load.request.mock.lastCall[0].input.section).toBeUndefined();
 });
 
 it('retains monthly lookup options from the chart until the next explicit search', async () => {
@@ -1204,7 +1248,7 @@ it('retries only the failed chart page with the same snapshot and counts it once
     expect(root.querySelector('c-setup-audit-trail-chart').buckets).toEqual([{ action: 'change', count: 3 }]);
 });
 
-it('discards a temporary chart failure after returning to the cached history tab', async () => {
+it('keeps a failed monthly analysis retry separate from the visible history tab', async () => {
     let failChart;
     load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }] })
         .mockImplementationOnce(() => new Promise((resolve, reject) => { failChart = reject; }));
@@ -1214,11 +1258,18 @@ it('discards a temporary chart failure after returning to the cached history tab
     chart.dispatchEvent(new CustomEvent('active'));
     await flush();
     history.dispatchEvent(new CustomEvent('active'));
+    load.request.mockRejectedValueOnce({ status: 503, body: { message: '集計エラー' } });
     failChart({ status: 503 });
     await flush();
-    expect(load.request).toHaveBeenCalledTimes(2);
-    expect(root.querySelector('lightning-datatable').data[0].Id).toBe('first');
-    expect(root.querySelector('[role="alert"]')).toBeNull();
+    expect(load.request).toHaveBeenCalledTimes(3);
+    expect(history.querySelector('lightning-datatable').data[0].Id).toBe('first');
+    expect(history.querySelector('[role="alert"]')).toBeNull();
+    expect(chart.querySelector('[role="alert"]').textContent).toContain('集計エラー');
+    load.request.mockResolvedValueOnce({ buckets: [] });
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(chart.querySelector('[role="alert"]')).toBeNull();
+    expect(chart.textContent).toContain('この月の設定変更履歴はありません。');
 });
 
 it('closes the unfinished lookup on reconnect and uses fresh candidates when reopened', async () => {
