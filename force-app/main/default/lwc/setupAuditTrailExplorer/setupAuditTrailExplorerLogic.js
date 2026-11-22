@@ -7,15 +7,19 @@ export const PAGE_SIZE = 1000;
 // 月別・全期間で同じ順に列を出力する。
 export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
 
-// 月移動ボタンの再描画でも同じタイムゾーンと書式を使う。
-const MONTH_FORMAT = new Intl.DateTimeFormat('en', { year: 'numeric', month: '2-digit', timeZone: TIME_ZONE });
+// 対象月と代理ログインの集計日に、実行ユーザーの暦と同じ年月日を使う。
+const DAY_FORMAT = new Intl.DateTimeFormat('en', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE
+});
 
-// 月選択の基準を実行ユーザーの暦に合わせる。
+function localDay(date) {
+    // 表示用の並び順や区切り文字に依存せず、Apex の Date と同じキーにする。
+    const parts = DAY_FORMAT.formatToParts(date);
+    return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
+}
+
 export function currentMonth() {
-    // 年と月を別々に取り出し、実行環境の日付順序に依存しないようにする。
-    const parts = MONTH_FORMAT.formatToParts(new Date());
-    // 月選択値と同じ年・月形式に揃える。
-    return parts.find(part => part.type === 'year').value + '-' + parts.find(part => part.type === 'month').value;
+    return localDay(new Date()).slice(0, 7);
 }
 
 // 月をまたぐ移動先を計算する。
@@ -383,14 +387,10 @@ export function mergeChartPage(totals, buckets) {
 }
 
 // Apexと同じ実行ユーザーの暦日で、代理ログインを分析の集計行に加える。
-const DAY_FORMAT = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE
-});
-
 export function loginBucket(row, actors) {
     const actor = actors?.get(row.Id) ?? row;
     return {
-        day: DAY_FORMAT.format(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
+        day: localDay(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
         loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
         namespacePrefix: row.ResponsibleNamespacePrefix, delegateUser: row.DelegateUser, count: 1
     };

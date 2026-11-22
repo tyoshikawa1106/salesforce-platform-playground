@@ -89,3 +89,19 @@ it('reuses only matches after the same ID and timestamp within the cached range'
     expect(remainingMatchRecords(batch, { nextId: 'b', nextTime: 'other' })).toBeUndefined();
     expect(remainingMatchRecords(batch, {})).toBeUndefined();
 });
+
+it('keeps the Apex day key across midnight when the runtime formats month first', () => {
+    const NativeFormatter = Intl.DateTimeFormat;
+    const formatter = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation((locale, options) =>
+        new NativeFormatter('en-US', options)
+    );
+    try {
+        jest.isolateModules(() => {
+            const { loginBucket } = require('../setupAuditTrailExplorerLogic');
+            expect(loginBucket({ CreatedDate: '2026-10-31T14:59:59Z' }).day).toBe('2026-10-31');
+            expect(loginBucket({ CreatedDate: '2026-10-31T15:00:00Z' }).day).toBe('2026-11-01');
+        });
+    } finally {
+        formatter.mockRestore();
+    }
+});

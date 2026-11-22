@@ -87,13 +87,14 @@ export default class SetupAuditTrailChart extends LightningElement {
                     if (row.filter) {
                         this.selections.set(id, row.filter);
                     }
+                    const description = describeRow(row);
                     return {
                         label: row.label,
                         tooltip: row.label,
-                        ...describeRow(row),
+                        ...description,
                         id,
                         formattedCount,
-                        buttonLabel: row.label + ' ' + formattedCount + '件',
+                        buttonLabel: (description.buttonName ?? row.label) + ' ' + formattedCount + '件',
                         style: 'width:' + (100 * row.count / max) + '%',
                         disabled: !row.filter
                     };
@@ -102,7 +103,14 @@ export default class SetupAuditTrailChart extends LightningElement {
         };
         const days = [...dates.values()].sort((a, b) => b.label.localeCompare(a.label));
         this.charts = [
-            makeChart('users', 'ユーザー', rank(users), row => ({ tooltip: loginNames.get(row.key) || row.label })),
+            makeChart('users', 'ユーザー', rank(users), row => {
+                // 同姓同名でも、棒にフォーカスした状態で対象ユーザーを識別できるようにする。
+                const identity = loginNames.get(row.key) || row.key;
+                return {
+                    tooltip: identity || row.label,
+                    buttonName: identity && identity !== row.label ? row.label + '（' + identity + '）' : row.label
+                };
+            }),
             makeChart('namespaces', '名前空間プレフィックス', rank(namespaces)),
             makeChart('actions', 'アクション', rank(actions)),
             makeChart('sections', 'セクション', rank(sections)),
