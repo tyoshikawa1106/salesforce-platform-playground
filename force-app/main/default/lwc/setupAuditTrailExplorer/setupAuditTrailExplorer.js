@@ -728,7 +728,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             ...(this.namespacePrefix ? { namespacePrefix: this.namespacePrefix } : {}),
             ...(this.delegateUser ? { delegateUser: this.delegateUser } : {})
         };
-        return this.refresh(keepCutoff);
+        return this.refresh({ keepCutoff, keepMonthData: keepCutoff });
     }
 
     // タブ切り替えに応じて必要な結果を取得する。
@@ -837,10 +837,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     // 新しい条件で先頭から取得し直す。
-    refresh(keepCutoff = false) {
+    refresh({ keepCutoff = false, keepMonthData = false } = {}) {
         if (!keepCutoff) {
             // 初期表示・再検索・月切り替えでは、新しい基準時刻で見出しも更新する。
             this.cutoffRequest = undefined;
+        }
+        if (!keepMonthData) {
             this.readMonthTotal();
             // 月全体の候補と代理ログイン照合は同じ基準時刻のドリルダウンで再利用する。
             this.optionsRequest += 1;
@@ -1133,8 +1135,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     async showDetailPage(result, cursor, isCurrent) {
         // 保持期限などで移動先が空になった場合は、有効な境界を先頭から取り直す。
         if (this.page > 1 && !result.records.length) {
-            // 確定済みの条件を保ち、古いページ位置と照合済みIDを破棄する。
-            await this.refresh();
+            // 検索時刻を保ち、期限切れの行を含む件数・候補・ページ境界を取り直す。
+            await this.refresh({ keepCutoff: true });
             // 空になったページの応答を新しい一覧へ反映しない。
             return;
         }

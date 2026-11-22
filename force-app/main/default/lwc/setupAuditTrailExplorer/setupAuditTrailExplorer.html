@@ -27,7 +27,7 @@
                 <h2 id="csv-title" class="slds-text-heading_medium">CSV出力</h2>
             </header>
             <div class="slds-modal__content slds-p-around_medium">
-                <p id="csv-description"><template lwc:if={exporting}>{exportRange}</template><template lwc:else>{exportConfirmation}</template></p>
+                <p id="csv-description"><template lwc:if={exporting}>{exportRange}</template><template lwc:else>{exportConfirmation}<br />表計算ソフトで開く場合は、各列を文字列として取り込んでください。</template></p>
                 <div lwc:if={exporting} class="c-inline-status slds-m-top_medium">
                     <p role="status">{exportProgress}</p>
                     <span class="c-inline-spinner">

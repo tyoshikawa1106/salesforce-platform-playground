@@ -914,6 +914,7 @@ it('can retry a failed filtered count without reloading the visible records', as
 });
 
 it('returns to available history if records beyond the saved cursor have expired', async () => {
+    startSearch.mockResolvedValueOnce(cutoff).mockResolvedValueOnce('2026-11-20T01:00:00.000Z');
     countMonth.mockResolvedValueOnce(1001).mockResolvedValueOnce(1);
     load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }], nextId: 'expired', nextTime: 'time' })
         .mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ records: [{ Id: 'remaining' }] });
@@ -922,6 +923,8 @@ it('returns to available history if records beyond the saved cursor have expired
     const root = component.shadowRoot;
     root.querySelector('nav lightning-button').click();
     await flush();
+    expect(load.request.mock.calls.map(([{ input }]) => input.cutoff)).toEqual([cutoff, cutoff, cutoff]);
+    expect(countMonth.mock.calls.map(([input]) => input.cutoff)).toEqual([cutoff, cutoff]);
     expect(root.querySelector('nav').textContent).toContain('1 / 1ページ');
     expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['remaining']);
     expect(root.querySelector('.month-navigation h2').textContent).toContain('（1件）');
