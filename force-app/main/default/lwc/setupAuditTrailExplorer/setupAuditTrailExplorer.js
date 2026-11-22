@@ -425,7 +425,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const names = {};
         const delegateNames = {};
         // 補正後のユーザーをID単位で保持し、取得済みの明細ページを解放する。
-        const loginUsers = new Map();
+        const loginUsernames = {};
+        const loginDisplayNames = {};
         // 全ページで同じ月を使う。
         const monthStart = this.monthDate;
         // 最初の候補ページから始める。
@@ -470,7 +471,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     for (const row of result.records) {
                         const actor = actors?.get(row.Id) ?? row;
                         if (actor.CreatedById && actor.CreatedBy?.Username) {
-                            loginUsers.set(actor.CreatedById, actor.CreatedBy);
+                            loginUsernames[actor.CreatedById] = actor.CreatedBy.Username;
+                        }
+                        if (actor.CreatedById && actor.CreatedBy?.Name) {
+                            loginDisplayNames[actor.CreatedById] = actor.CreatedBy.Name;
                         }
                     }
                 }
@@ -478,15 +482,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 cursor = pageCursor(result);
             } while (cursor.nextId);
             // 通常履歴と重なるIDには、従来と同じ順で照合済みの候補を適用する。
-            for (const [id, user] of loginUsers) {
-                users[id] = user.Username;
-                // 氏名が空でも選択後にログイン名を表示できるようにする。
-                names[id] = user.Name || user.Username;
-            }
-            // 全ページで見つかったユーザーを検索可能にする。
-            this.userOptions = users;
-            // 候補から外れた選択済みユーザーの表示名も保持する。
-            this.userNames = { ...this.userNames, ...users, ...names };
+            this.setUserLookup(Object.assign(users, loginUsernames), Object.assign(names, loginDisplayNames));
             this.delegateNames = delegateNames;
             // 並べ替えた候補をまとめて公開する。
             this.filterOptions = sortFilterOptions(groups);
@@ -516,6 +512,17 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     get dateOptions() {
         // 月境界を日付候補と共通の基準にする。
         return buildDateOptions(this.monthDate);
+    }
+
+    // 今月の候補に限って、ログイン名のないユーザーをIDで識別できるようにする。
+    setUserLookup(logins, names) {
+        const options = { ...logins };
+        for (const id of Object.keys(names)) {
+            options[id] ??= id;
+        }
+        this.userOptions = options;
+        // 検索済みのユーザーが候補から外れても、選択欄には元の氏名を表示する。
+        this.userNames = { ...this.userNames, ...logins, ...names };
     }
 
     get lookupSources() {
@@ -1466,9 +1473,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 // 集計行を一度走査して項目候補とユーザーの両方を取得する。
                 const options = collectFilterOptions(this.buckets);
                 // ログイン名と表示名で検索できるようにする。
-                this.userOptions = options.userOptions;
-                // 分析中に候補から外れた選択済みユーザーも識別できるようにする。
-                this.userNames = { ...this.userNames, ...options.userOptions, ...options.userNames };
+                this.setUserLookup(options.userOptions, options.userNames);
                 this.delegateNames = delegateNames;
                 // 並行していた候補取得の応答を無効にする。
                 this.optionsRequest += 1;

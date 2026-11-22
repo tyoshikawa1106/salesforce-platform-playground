@@ -125,11 +125,13 @@ public with sharing class SetupAuditTrailExplorerService {
             response.records.add(row);
             return;
         }
-        if (row.CreatedById == null || String.isBlank(row.CreatedBy?.Username)) {
+        if (row.CreatedById == null || row.CreatedBy == null) {
             return;
         }
         String userId = String.valueOf(row.CreatedById);
-        response.userOptions.put(userId, row.CreatedBy.Username);
+        if (String.isNotBlank(row.CreatedBy.Username)) {
+            response.userOptions.put(userId, row.CreatedBy.Username);
+        }
         if (String.isNotBlank(row.CreatedBy.Name)) {
             response.userNames.put(userId, row.CreatedBy.Name);
         }

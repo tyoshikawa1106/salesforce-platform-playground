@@ -32,6 +32,23 @@ private class SetupAuditTrailExplorerServiceTest {
         }
     }
 
+    /** ログイン名が取得できない作成者も、氏名とIDを候補として返す。 */
+    @IsTest
+    static void keepsNamedCreatorWithoutUsername() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            String userId = String.valueOf(UserInfo.getUserId());
+            SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize(
+                '{"CreatedById":"' + userId + '","CreatedBy":{"attributes":{"type":"User"},"Name":"監査担当"}}',
+                SetupAuditTrail.class
+            );
+            Test.startTest();
+            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.summarizeOptions(new List<SetupAuditTrail>{ row }, 1);
+            Test.stopTest();
+            Assert.areEqual('監査担当', result.userNames.get(userId), 'ログイン名が空でも氏名を返します。');
+            Assert.isFalse(result.userOptions.containsKey(userId), '取得できないログイン名は返しません。');
+        }
+    }
+
     @IsTest
     static void rejectsInvalidDay() {
         System.runAs(new User(Id = UserInfo.getUserId())) {

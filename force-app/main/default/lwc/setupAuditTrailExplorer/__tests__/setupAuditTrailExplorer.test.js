@@ -1267,3 +1267,34 @@ it('restores an open lookup and its typed search after recovering an expired pag
     expect(loadFilterOptions).toHaveBeenCalledTimes(2);
     expect(startSearch).toHaveBeenCalledTimes(1);
 });
+
+it.each(['lookup', 'chart'])('offers name-only users by ID from %s data, including delegated logins', async source => {
+    const delegated = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-01T00:00:00Z',
+        CreatedById: 'other', CreatedBy: { Name: '同じ氏名' } };
+    load.request.mockImplementation(({ input }) => (input.chart ?
+        { buckets: [{ userId: 'first', userName: '同じ氏名', count: 1 }, { userId: 'noLabel', count: 1 }], records: [delegated] } :
+        { records: [] }));
+    loadFilterOptions.mockResolvedValueOnce({ options: {}, userNames: { first: '同じ氏名' }, records: [delegated] });
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    if (source === 'chart') {
+        root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
+        await flush();
+        root.querySelectorAll('lightning-tab')[0].dispatchEvent(new CustomEvent('active'));
+        await flush();
+    }
+    const input = root.querySelector('input[data-field="userId"]');
+    input.click();
+    await flush();
+    expect([...root.querySelectorAll('[role="option"]')].map(option =>
+        [option.dataset.value, ...[...option.firstElementChild.children].map(line => line.textContent)]
+    ).sort()).toEqual([['first', '同じ氏名', 'first'], ['other', '同じ氏名', 'other']]);
+    input.value = 'other';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    root.querySelector('[role="option"]').click();
+    await search(component);
+    expect(load.request.mock.lastCall[0].input.userId).toBe('other');
+    expect(input.value).toBe('同じ氏名');
+});
