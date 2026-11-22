@@ -2,7 +2,7 @@
 
 ## 概要
 
-Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・分析し、対象月または保持期間内の履歴を CSV で保存できます。
+Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・分析し、履歴の検索結果、対象月全体、保持期間内の全履歴を CSV で保存できます。
 
 ## 目的・利用場面
 
@@ -37,9 +37,11 @@ Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・�
 
 月別・全期間とも、CSV操作で対象期間の確認ダイアログを開き、「出力」で取得を開始します。取得済み件数とエラーはダイアログ内に表示し、ダウンロード開始後に閉じます。「キャンセル」または Esc で中断できます。
 
-ファイル名は月別が `SetupAuditTrailMonthly<開始時刻>.csv`、全期間が `SetupAuditTrailAll<開始時刻>.csv` です。開始時刻には、出力操作時に端末で取得した Unix タイムスタンプ（ミリ秒）を使用します。
+履歴テーブル右下の「検索結果をCSV出力」は、表示中のページにかかわらず、最後に適用した条件と検索基準時刻で全ページの履歴を出力します。確認画面に対象月、適用済み条件、一致件数を表示します。セクションや代理ログインの照合が必要な場合は一覧と同じ判定で一致 ID を確定し、その ID に対応する CSV 明細を分割取得します。件数が確認時と異なる場合は再検索を案内します。履歴が空のときはボタンが無効になります。
 
-両方の CSV は BOM 付き UTF-8 です。レコードとセル内の改行には LF を使い、セル内の引用符は二重にします。履歴の文字は Unicode のまま出力します。表計算ソフトでは、先頭が `=` などの値が数式として解釈される場合があります。原文を確認する場合は、CSV のインポートで各列を文字列として指定します。
+ファイル名は検索結果が `SetupAuditTrailFiltered<開始時刻>.csv`、月別が `SetupAuditTrailMonthly<開始時刻>.csv`、全期間が `SetupAuditTrailAll<開始時刻>.csv` です。開始時刻には、出力操作時に端末で取得した Unix タイムスタンプ（ミリ秒）を使用します。
+
+いずれの CSV も BOM 付き UTF-8 です。レコードとセル内の改行には LF を使い、セル内の引用符は二重にします。履歴の文字は Unicode のまま出力します。表計算ソフトでは、先頭が `=` などの値が数式として解釈される場合があります。原文を確認する場合は、CSV のインポートで各列を文字列として指定します。
 
 | 列                             | 出力する値                                                                                     |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
@@ -64,7 +66,7 @@ Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・�
 
 ## テスト・確認観点
 
-`setupAuditTrailExplorer.test.js` は両方のダウンロード操作、ページ境界、ファイル名と CSV の内容を確認します。`setupAuditTrailExplorerLogic.test.js` は日付をまたぐ時刻、セル内改行、Unicode 文字を確認します。`SetupAuditTrailExplorerSelectorTest` と `SetupAuditTrailExplorerServiceTest` は検索条件とページ処理を検証します。
+`setupAuditTrailExplorer.test.js` は各ダウンロード操作、ページ境界、ファイル名と CSV の内容を確認します。`setupAuditTrailExplorerLogic.test.js` は日付をまたぐ時刻、セル内改行、Unicode 文字を確認します。`SetupAuditTrailExplorerSelectorTest` と `SetupAuditTrailExplorerServiceTest` は検索条件とページ処理を検証します。
 
 ## 制約・注意事項
 

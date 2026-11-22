@@ -325,6 +325,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         confirmCsv(component);
         clock.mockReturnValue(startedAt + 5000);
         await downloaded;
+        await flush();
 
         const queries = period === 'month'
             ? load.request.mock.calls.slice(2).map(([request]) => request.input)
@@ -783,6 +784,19 @@ it('shows actor and delegate names on screen and indexes the section across sour
     expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ recordIds: ['logout', 'login'] }) });
     expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '対象']);
     expect(countMatches.request).not.toHaveBeenCalled();
+    component.shadowRoot.querySelector('[data-result-export]').click();
+    await flush();
+    const dialog = component.shadowRoot.querySelector('dialog');
+    expect(dialog.textContent).toContain('全2件');
+    expect(dialog.textContent).toContain('セクション：ログイン');
+    load.request.mockRejectedValueOnce({ body: { message: 'CSV取得エラー' } });
+    confirmCsv(component);
+    await flush();
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ csv: true, userId: 'targetId', section: 'ログイン',
+        cutoff, recordIds: ['logout', 'login'] });
+    expect(dialog.querySelector('[role="alert"]').textContent).toBe('CSV取得エラー');
+    dialog.dispatchEvent(new CustomEvent('cancel', { cancelable: true }));
+
     const chartTab = [...component.shadowRoot.querySelectorAll('lightning-tab')].find(tab => tab.value === 'chart');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
@@ -1348,4 +1362,77 @@ it.each(['lookup', 'chart'])('offers name-only users by ID from %s data, includi
     await search(component);
     expect(load.request.mock.lastCall[0].input.userId).toBe('other');
     expect(input.value).toBe('同じ氏名');
+});
+
+it('exports all result pages with the applied action and original cutoff from the second history page', async () => {
+    jest.replaceProperty(historyLogic, 'PAGE_SIZE', 1);
+    const rows = ['first', 'second'].map(Id => ({ Id, CreatedDate: cutoff, Display: Id }));
+    const boundary = { nextId: 'first', nextTime: cutoff };
+    countMatches.request.mockResolvedValue(2);
+    load.request.mockImplementation(({ input }) => (input.nextId ? { records: [rows[1]] } : { records: [rows[0]], ...boundary }));
+    const component = mount();
+    const root = component.shadowRoot;
+    await flush();
+    await chooseLookup(component, 'action', 'createdApexClass');
+    await search(component);
+    root.querySelector('nav lightning-button').click();
+    await flush();
+    await chooseLookup(component, 'action', null);
+    const launcher = root.querySelector('[data-result-export]');
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:results');
+    URL.revokeObjectURL = jest.fn();
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+        launcher.click();
+        await flush();
+        expect(root.querySelector('dialog').textContent).toContain('アクション：createdApexClass');
+        expect(root.querySelector('dialog').textContent).toContain('全2件');
+        confirmCsv(component);
+        await flush();
+        const queries = load.request.mock.calls.map(([{ input }]) => input).filter(input => input.csv);
+        expect(queries[0].nextId).toBeUndefined();
+        expect(queries).toEqual([
+            expect.objectContaining({ action: 'createdApexClass', cutoff }),
+            expect.objectContaining({ action: 'createdApexClass', cutoff, ...boundary })
+        ]);
+        expect(click).toHaveBeenCalledTimes(1);
+        expect(root.querySelector('a[data-download]').download).toMatch(/^SetupAuditTrailFiltered\d+\.csv$/);
+        const reader = new FileReader();
+        const csv = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
+        reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
+        expect((await csv).split('\n').slice(1, 3)).toEqual([expect.stringContaining('"first"'), expect.stringContaining('"second"')]);
+    } finally {
+        component.remove();
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+    }
+});
+
+it('uses the same section match IDs for confirmation and export, and rejects incomplete CSV data', async () => {
+    const row = { Id: 'matches', CreatedDate: cutoff };
+    loadFilterOptions.mockResolvedValue({ options: { section: ['A'] } });
+    load.request.mockImplementation(({ input }) => {
+        if (input.csv) {
+            return { records: [] };
+        }
+        if (input.matchIndex && !input.nextId) {
+            return { records: [], nextId: 'other', nextTime: cutoff };
+        }
+        return { records: [row] };
+    });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'section', 'A');
+    await search(component);
+    component.shadowRoot.querySelector('[data-result-export]').click();
+    await flush();
+    expect(component.shadowRoot.querySelector('dialog').textContent).toContain('全1件');
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
+    confirmCsv(component);
+    await flush();
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ section: 'A', recordIds: ['matches'], cutoff, csv: true });
+    expect(component.shadowRoot.querySelector('dialog [role="alert"]').textContent).toContain('再検索');
+    expect(download).not.toHaveBeenCalled();
 });

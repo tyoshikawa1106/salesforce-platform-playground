@@ -28,6 +28,7 @@
             </header>
             <div class="slds-modal__content slds-p-around_medium">
                 <p id="csv-description"><template lwc:if={exporting}>{exportRange}</template><template lwc:else>{exportConfirmation}<br />表計算ソフトで開く場合は、各列を文字列として取り込んでください。</template></p>
+                <p lwc:if={resultExport} class="slds-m-top_small">{resultExport.labels}</p>
                 <div lwc:if={exporting} class="c-inline-status slds-m-top_medium">
                     <p role="status">{exportProgress}</p>
                     <span class="c-inline-spinner">
@@ -38,7 +39,7 @@
             </div>
             <footer class="slds-modal__footer">
                 <lightning-button label="キャンセル" onclick={closeExportDialog}></lightning-button>
-                <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={exporting}
+                <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={exportConfirmDisabled}
                     onclick={confirmExport}></lightning-button>
             </footer>
         </dialog>
@@ -147,18 +148,22 @@
                                         max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                                 </div>
                             </template>
-                            <nav class="pagination" aria-label="履歴のページ送り">
-                                <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
-                                <div class="c-page-summary c-inline-status">
-                                    <span aria-live="polite">{pageSummary}</span>
-                                    <lightning-button lwc:if={matchCountError} label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
-                                    <span lwc:if={probingNextPage} role="status">次の一致を確認中…</span>
-                                    <span lwc:if={matchLoading} class="c-inline-spinner">
-                                        <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
-                                    </span>
-                                </div>
-                                <lightning-button lwc:if={hasNextPage} label="次へ" disabled={loading} onclick={nextPage}></lightning-button>
-                            </nav>
+                            <div class="c-history-footer">
+                                <nav class="pagination" aria-label="履歴のページ送り">
+                                    <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
+                                    <div class="c-page-summary c-inline-status">
+                                        <span aria-live="polite">{pageSummary}</span>
+                                        <lightning-button lwc:if={matchCountError} label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
+                                        <span lwc:if={probingNextPage} role="status">次の一致を確認中…</span>
+                                        <span lwc:if={matchLoading} class="c-inline-spinner">
+                                            <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
+                                        </span>
+                                    </div>
+                                    <lightning-button lwc:if={hasNextPage} label="次へ" disabled={loading} onclick={nextPage}></lightning-button>
+                                </nav>
+                                <lightning-button data-result-export label="検索結果をCSV出力" disabled={resultExportDisabled}
+                                    onclick={openResultExport}></lightning-button>
+                            </div>
                         </div>
                     </lightning-tab>
                     <lightning-tab label="分析" value="chart" onactive={activateTab}>

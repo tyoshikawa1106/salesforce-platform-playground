@@ -306,15 +306,28 @@ export function matchingLookupValues(field, input, sources) {
         (field === 'userId' && sources.userOptions[value]?.toLocaleLowerCase().includes(term)));
 }
 
+const LOOKUP_FIELDS = [
+    { key: 'userId', label: 'ユーザー' },
+    { key: 'namespacePrefix', label: '名前空間プレフィックス' },
+    { key: 'action', label: 'アクション' },
+    { key: 'section', label: 'セクション' },
+    { key: 'delegateUser', label: '代理ユーザー' }
+];
+
+// 一覧に適用済みの条件を、検索欄と同じ表示名で確認できるようにする。
+export function appliedFilterLabels(filters, sources) {
+    const labels = filters.day ? ['日付：' + filters.day] : [];
+    for (const { key, label } of LOOKUP_FIELDS) {
+        if (filters[key]) {
+            labels.push(label + '：' + (lookupLabel(key, filters[key], sources) || filters[key]));
+        }
+    }
+    return labels;
+}
+
 // 各検索欄の表示値と現在位置に対応する候補を組み立てる。
 export function buildFilterFields({ sources, selectedValues, lookupField, lookupTerm, lookupIndex, matches, start, rowHeight }) {
-    return [
-        { key: 'userId', label: 'ユーザー' },
-        { key: 'namespacePrefix', label: '名前空間プレフィックス' },
-        { key: 'action', label: 'アクション' },
-        { key: 'section', label: 'セクション' },
-        { key: 'delegateUser', label: '代理ユーザー' }
-    ].map(({ key, label }) => {
+    return LOOKUP_FIELDS.map(({ key, label }) => {
         const isUserLookup = key === 'userId' || key === 'delegateUser';
         // 項目別の選択値を取り出す。
         const selected = selectedValues[key];
