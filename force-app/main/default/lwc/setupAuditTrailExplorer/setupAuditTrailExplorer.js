@@ -436,7 +436,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             do {
                 // 次の候補ページには直前のカーソルが必要。
                 // eslint-disable-next-line no-await-in-loop
-                const result = await loadFilterOptions({ criteriaJson: JSON.stringify({ monthStart, cutoff, ...cursor }) });
+                const result = await this.readPageWithRetry(loadFilterOptions,
+                    { criteriaJson: JSON.stringify({ monthStart, cutoff, ...cursor }) }, () => request === this.optionsRequest);
                 // 月切り替えや離脱後の応答を識別する。
                 if (request !== this.optionsRequest) {
                     // 無効になった候補の反映を止める。
@@ -980,15 +981,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
-    // 一時的な通信エラー時は同じCSVページを一度再取得する。
-    async readExportPage(fetchPage, query, isCurrent) {
+    // 一時的な通信エラー時は、現在の要求の失敗ページだけを同じ引数で一度再取得する。
+    async readPageWithRetry(fetchPage, query, isCurrent) {
         try {
             // 指定された境界から履歴を取得する。
             return await fetchPage(query);
         } catch (error) {
             // 離脱後の要求と一時的通信エラー以外を再試行から除く。
             if (!isCurrent() || ![0, 502, 503, 504].includes(error?.status)) {
-                // 元のエラーを出力処理へ伝える。
+                // 元のエラーを呼び出し元へ伝える。
                 throw error;
             }
             // 同じ取得条件を使って失敗したページだけを再試行する。
@@ -1000,7 +1001,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     async readCsvPage(fetchPage, query, request, context) {
         // 月別・全期間の既存のページ境界と再試行を共通で使う。
         const isCurrent = () => request === this.exportRequest;
-        const page = await this.readExportPage(fetchPage, query, isCurrent);
+        const page = await this.readPageWithRetry(fetchPage, query, isCurrent);
         // 離脱後や照合済みの出力では追加の要求を送らない。
         if (request === this.exportRequest && !context.actors && page.records.some(needsLoginAsUser)) {
             // 出力ごとに独立した照合結果を全明細ページで共有する。
@@ -1046,7 +1047,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         do {
             // 次ページは直前の応答で確定した上限と境界で取得する。
             // eslint-disable-next-line no-await-in-loop
-            const page = await this.readExportPage(loadLoginAsHistory, query, isCurrent);
+            const page = await this.readPageWithRetry(loadLoginAsHistory, query, isCurrent);
             if (!isCurrent()) {
                 return undefined;
             }
@@ -1067,7 +1068,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         do {
             // 次のページは直前の応答の境界に依存する。
             // eslint-disable-next-line no-await-in-loop
-            const page = await load({ criteriaJson: JSON.stringify({ ...query, ...cursor }) });
+            const page = await this.readPageWithRetry(load, { criteriaJson: JSON.stringify({ ...query, ...cursor }) }, isCurrent);
             if (!isCurrent()) {
                 return;
             }
@@ -1124,7 +1125,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 同じ元ページに次の一致がある場合は、採用した最終行の直後から再開する。
             const last = records[needed - 1];
             const next = records.length > needed ? { nextId: last.Id, nextTime: last.CreatedDate } : {};
-            const details = ids.length ? await load({ criteriaJson: JSON.stringify({ ...query, recordIds: ids }) }) : { records: [] };
+            const details = ids.length ? await this.readPageWithRetry(load,
+                { criteriaJson: JSON.stringify({ ...query, recordIds: ids }) }, isCurrent) : { records: [] };
             if (!isCurrent()) {
                 return;
             }
@@ -1357,7 +1359,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 1回の詳細な集計に渡すIDを制限し、次の要求は消費時に開始する。
             for (let offset = 0; offset < records.length && isCurrent(); offset += 2000) {
                 const recordIds = records.slice(offset, offset + 2000).map(row => row.Id);
-                yield load({ criteriaJson: JSON.stringify({ ...query, recordIds }) });
+                yield this.readPageWithRetry(load, { criteriaJson: JSON.stringify({ ...query, recordIds }) }, isCurrent);
             }
         }
     }
@@ -1408,7 +1410,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 } else if (this.usesMatchIndex) {
                     await this.readIndexedPage(query, cursor, isCurrent);
                 } else {
-                    const result = await load({ criteriaJson: JSON.stringify({ ...query, ...cursor }) });
+                    const result = await this.readPageWithRetry(load, { criteriaJson: JSON.stringify({ ...query, ...cursor }) }, isCurrent);
                     if (isCurrent()) {
                         await this.showDetailPage(result, pageCursor(result), isCurrent);
                     }
@@ -1445,6 +1447,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 検索中に中断された部分集計を件数として公開しない。
             if (this.hasFilters) {
                 this.setResultCount(chartCount);
+            } else {
+                // 月全体を走査済みなら、別途照会した件数や遅れて届く失敗で集計結果を上書きしない。
+                this.countRequest += 1;
+                this.monthTotal = chartCount;
+                this.monthTotalLoading = false;
+                this.monthTotalError = false;
             }
             // 全件の分析が完了した月だけ、分析結果を候補一覧に再利用する。
             if (!this.hasFilters && !this.filterOptions) {

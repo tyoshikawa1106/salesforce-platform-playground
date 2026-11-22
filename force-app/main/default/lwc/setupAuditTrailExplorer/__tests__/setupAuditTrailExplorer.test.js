@@ -1156,3 +1156,67 @@ it('keeps a long lookup bounded while scrolling, choosing the last item and sear
     expect(input.value).toBe(actions.at(-1));
     expect(loadFilterOptions).toHaveBeenCalledTimes(1);
 });
+
+it.each(['before', 'after'])('uses a complete monthly chart if the monthly count fails %s analysis', async timing => {
+    let failCount;
+    let finishChart;
+    countMonth.mockImplementationOnce(() => new Promise((resolve, reject) => { failCount = reject; }));
+    load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' })
+        .mockResolvedValueOnce({ buckets: [{ count: 1000 }], nextId: 'chart', nextTime: 'time' })
+        .mockImplementationOnce(() => new Promise(resolve => { finishChart = resolve; }));
+    const root = mount().shadowRoot;
+    const retryShown = () => [...root.querySelectorAll('lightning-button')].some(button => button.label === '総件数を再取得');
+    await flush();
+    const [history, chart] = root.querySelectorAll('lightning-tab');
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    if (timing === 'before') {
+        failCount(new Error('count'));
+        await flush();
+    }
+    expect(retryShown()).toBe(timing === 'before');
+    expect(root.querySelector('.month-navigation h2').textContent).not.toContain('件');
+    finishChart({ buckets: [{ count: 1 }] });
+    await flush();
+    if (timing === 'after') {
+        failCount(new Error('count'));
+        await flush();
+    }
+    expect(root.querySelector('.month-navigation h2').textContent).toContain('（1,001件）');
+    expect(retryShown()).toBe(false);
+    history.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(root.querySelector('nav').textContent).toContain('1 / 2ページ');
+    expect(countMonth).toHaveBeenCalledTimes(1);
+});
+
+it('retries only the failed chart page with the same snapshot and counts it once', async () => {
+    load.request.mockResolvedValueOnce({ records: [] })
+        .mockResolvedValueOnce({ buckets: [{ action: 'change', count: 2 }], nextId: 'next', nextTime: 'time' })
+        .mockRejectedValueOnce({ status: 503 })
+        .mockResolvedValueOnce({ buckets: [{ action: 'change', count: 1 }] });
+    const root = mount().shadowRoot;
+    await flush();
+    root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
+    await flush();
+    expect(load.request.mock.calls.map(([{ input }]) => input.nextId)).toEqual([undefined, undefined, 'next', 'next']);
+    expect(load.request.mock.calls[2]).toEqual(load.request.mock.calls[3]);
+    expect(root.querySelector('c-setup-audit-trail-chart').buckets).toEqual([{ action: 'change', count: 3 }]);
+});
+
+it('discards a temporary chart failure after returning to the cached history tab', async () => {
+    let failChart;
+    load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }] })
+        .mockImplementationOnce(() => new Promise((resolve, reject) => { failChart = reject; }));
+    const root = mount().shadowRoot;
+    await flush();
+    const [history, chart] = root.querySelectorAll('lightning-tab');
+    chart.dispatchEvent(new CustomEvent('active'));
+    await flush();
+    history.dispatchEvent(new CustomEvent('active'));
+    failChart({ status: 503 });
+    await flush();
+    expect(load.request).toHaveBeenCalledTimes(2);
+    expect(root.querySelector('lightning-datatable').data[0].Id).toBe('first');
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+});
