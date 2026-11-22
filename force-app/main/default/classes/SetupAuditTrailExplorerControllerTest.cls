@@ -39,6 +39,7 @@ private class SetupAuditTrailExplorerControllerTest {
             SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.load(
                 JSON.serialize(new Map<String, Object>{ 'monthStart' => Date.newInstance(2000, 1, 1), 'csv' => true })
             );
+            Assert.isNull(result.employeeActorIds, '空のCSVには作成者の照合が不要です。');
             Test.stopTest();
             Assert.isTrue(result.cutoff >= beforeRequest && result.cutoff <= System.now(), '過去月の作成者照合にも出力開始時刻を使います。');
             Assert.areEqual(0, result.records.size(), '保持期間外の月のCSV対象履歴はありません。');

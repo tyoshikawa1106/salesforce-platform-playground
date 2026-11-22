@@ -124,12 +124,20 @@ private class SetupAuditTrailExplorerServiceTest {
                 List<SetupAuditTrail>.class
             );
             SetupAuditTrail boundary = rows[1];
+            rows.add(new SetupAuditTrail());
+            Iterator<SObject> cursor = rows.iterator();
 
             Test.startTest();
-            Integer pageSize = SetupAuditTrailExplorerService.countCsvPageRows(rows, 3, 4);
-            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
+            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.collectCsvPage(cursor, 3, 4);
+            SetupAuditTrailExplorerWrapper oversized = SetupAuditTrailExplorerService.collectCsvPage(rows.iterator(), 3, 1);
+            SetupAuditTrailExplorerWrapper counted = SetupAuditTrailExplorerService.summarizeCsv(rows.iterator(), 2);
             Test.stopTest();
 
+            Assert.areEqual(1, oversized.records.size(), '先頭行だけで文字数を超えた場合も出力を進めます。');
+            Assert.areEqual(rows[0].Id, oversized.nextId, '超過した先頭行の次から再開します。');
+            Assert.areEqual(2, counted.records.size(), '文字数に余裕があっても件数上限で区切ります。');
+            Assert.areEqual(boundary.Id, counted.nextId, '件数で区切った場合も次の行を失いません。');
+            Assert.isTrue(cursor.hasNext(), '文字数上限を超えた後の行は読み取りません。');
             Assert.areEqual(2, result.records.size(), '4文字に収まる2行までを返します。');
             Assert.areEqual(boundary.Id, result.nextId, '最後に出力した行のIDから再開します。');
             Assert.areEqual(boundary.CreatedDate, result.nextTime, '最後に出力した行の日時から再開します。');
@@ -139,8 +147,10 @@ private class SetupAuditTrailExplorerServiceTest {
     @IsTest
     static void permitsFullCsvPageWhenBelowBudget() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
-            Integer pageSize = SetupAuditTrailExplorerService.csvPageSize(new List<SetupAuditTrail>(), 2000);
-            Assert.areEqual(2000, pageSize, '文字量が少ない場合は既定のページ上限を維持します。');
+            List<SObject> rows = new List<SObject>{new SetupAuditTrail(), new SetupAuditTrail()};
+            SetupAuditTrailExplorerWrapper page = SetupAuditTrailExplorerService.summarizeCsv(rows.iterator(), 2);
+            Assert.areEqual(2, page.records.size(), '件数上限ちょうどの全行を出力します。');
+            Assert.isNull(page.nextTime, '続きがなければカーソルを返しません。');
         }
     }
 }

@@ -50,35 +50,52 @@ public with sharing class SetupAuditTrailExplorerService {
     }
 
     /**
-     * CSVの文字量に応じたページ件数を求める。
-     * @param rows 取得した設定変更履歴。
-     * @param maximum 件数の上限。
-     * @return 取得件数またはページ件数。
+     * 件数・文字数の上限に収まるCSV明細と次ページの境界を取得
+     * @param rows 作成日時・ID降順の履歴
+     * @param maximum ページの件数上限
+     * @return 出力する行と、続きがある場合は最後に出力する行のカーソル
      */
-    public static Integer csvPageSize(List<SetupAuditTrail> rows, Integer maximum) {
-        return countCsvPageRows(rows, maximum, CSV_TEXT_BUDGET);
+    public static SetupAuditTrailExplorerWrapper summarizeCsv(Iterator<SObject> rows, Integer maximum) {
+        // 本文が長い履歴も一定の文字数に分割
+        return collectCsvPage(rows, maximum, CSV_TEXT_BUDGET);
     }
 
     /**
-     * 件数と文字数の両方の上限から、カーソルを進められるページ件数を求める
-     * @param rows 出力順に並べた履歴
-     * @param maximum ページの件数上限
-     * @param textBudget ページに含める文字数の上限
-     * @return 上限を超えた行の直前までの件数。先頭行が超過した場合は1件
+     * 少数の履歴で文字数境界を検証できるよう上限を指定してCSVページを構築
+     * @param rows 出力順の履歴
+     * @param maximum 件数の上限
+     * @param textBudget 文字数の上限
+     * @return 出力対象の明細と次ページの境界
      */
     @TestVisible
-    private static Integer countCsvPageRows(List<SetupAuditTrail> rows, Integer maximum, Integer textBudget) {
+    private static SetupAuditTrailExplorerWrapper collectCsvPage(Iterator<SObject> rows, Integer maximum, Integer textBudget) {
+        // 出力対象に決まった行だけを保持
+        SetupAuditTrailExplorerWrapper result = new SetupAuditTrailExplorerWrapper();
+        // 現在のページに含める文字数を累積
         Integer textLength = 0;
-        Integer available = Math.min(rows.size(), maximum);
-        for (Integer index = 0; index < available; index++) {
-            SetupAuditTrail row = rows[index];
+        // 続きの有無と文字数を確定できる行まで読み取り
+        while (rows.hasNext()) {
+            // 一度に1行の項目を評価
+            SetupAuditTrail row = (SetupAuditTrail) rows.next();
+            // CSVに使用する可変長項目を合算
             textLength += length(row.Display) + length(row.CreatedBy?.Username) +
                 length(row.ResponsibleNamespacePrefix) + length(row.Section) + length(row.DelegateUser);
-            if (textLength > textBudget) {
-                return Math.max(1, index);
+            // 先頭行だけで文字数を超えても必ず次へ進めるようにする
+            if (result.records.size() == maximum || (textLength > textBudget && !result.records.isEmpty())) {
+                // 今回の出力に含まれる最後の行から次のページを再開
+                SetupAuditTrail boundary = result.records[result.records.size() - 1];
+                // 同一作成日時の境界を識別
+                result.nextId = boundary.Id;
+                // 次のページで未出力の行を取得するため日時を保存
+                result.nextTime = boundary.CreatedDate;
+                // 残りの明細は後続ページで読み取り
+                break;
             }
+            // 上限内の行または最初の1行を出力対象に追加
+            result.records.add(row);
         }
-        return maximum;
+        // 最終ページはカーソルを空のまま返却
+        return result;
     }
 
     private static Integer length(String value) {

@@ -188,14 +188,13 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit, Datetime exportCutoff) {
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
-            criteria, SetupAuditTrailExplorerSelector.Projection.CSV, sizeLimit + 1
+        // CSVは上限を超えた行の直前で読み取りを終了
+        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeCsv(
+            SetupAuditTrailExplorerSelector.iterateCsvRows(criteria, sizeLimit + 1), sizeLimit
         );
-        Integer pageSize = SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit);
-        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
         wrapper.cutoff = exportCutoff;
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
-        if (criteria.nextId == null) {
+        if (criteria.nextId == null && !wrapper.records.isEmpty()) {
             wrapper.employeeActorIds = employeeActors(exportCutoff);
         }
         return wrapper;
