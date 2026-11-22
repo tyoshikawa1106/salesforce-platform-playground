@@ -159,6 +159,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.countRequest += 1;
         // 月別件数の再取得を可能にする。
         this.monthTotalLoading = false;
+        // 再接続時にフォーカスのない候補欄や古い入力文字を復元しない。
+        this.lookupToFocus = null;
+        this.closeLookup();
         // 離脱前の候補取得を無効にする。
         this.optionsRequest += 1;
         // 候補の再取得を可能にする。
@@ -899,6 +902,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.optionsLoading = false;
             this.pendingActors = undefined;
             this.screenActors = undefined;
+            // 自動復旧時に入力中の欄があれば、同じ検索文字で新しい候補の取得を続ける。
+            if (this.lookupField) {
+                this.readFilterOptions();
+            }
         }
         this.pageCache.clear();
         this.probeCursor = null;

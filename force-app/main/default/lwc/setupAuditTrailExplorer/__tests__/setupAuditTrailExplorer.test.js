@@ -1220,3 +1220,50 @@ it('discards a temporary chart failure after returning to the cached history tab
     expect(root.querySelector('lightning-datatable').data[0].Id).toBe('first');
     expect(root.querySelector('[role="alert"]')).toBeNull();
 });
+
+it('closes the unfinished lookup on reconnect and uses fresh candidates when reopened', async () => {
+    let finishOldOptions;
+    loadFilterOptions.mockImplementationOnce(() => new Promise(resolve => { finishOldOptions = resolve; }))
+        .mockResolvedValueOnce({ options: { action: ['current'] } });
+    load.request.mockResolvedValue({ records: [] });
+    const component = mount();
+    const action = () => component.shadowRoot.querySelector('input[data-field="action"]');
+    action().click();
+    await flush();
+    component.remove();
+    document.body.appendChild(component);
+    await flush();
+    expect(action().getAttribute('aria-expanded')).toBe('false');
+    expect(loadFilterOptions).toHaveBeenCalledTimes(1);
+    action().click();
+    await flush();
+    finishOldOptions({ options: { action: ['obsolete'] } });
+    await flush();
+    expect([...component.shadowRoot.querySelectorAll('[role="option"]')].map(row => row.dataset.value)).toEqual(['current']);
+});
+
+it('restores an open lookup and its typed search after recovering an expired page', async () => {
+    let finishPage;
+    let finishOldOptions;
+    load.request.mockResolvedValueOnce({ records: [{ Id: 'first' }], nextId: 'expired', nextTime: 'time' })
+        .mockImplementationOnce(() => new Promise(resolve => { finishPage = resolve; }))
+        .mockResolvedValueOnce({ records: [{ Id: 'remaining' }] });
+    loadFilterOptions.mockImplementationOnce(() => new Promise(resolve => { finishOldOptions = resolve; }))
+        .mockResolvedValueOnce({ options: { action: ['change', 'create'] } });
+    const root = mount().shadowRoot;
+    await flush();
+    root.querySelector('nav lightning-button').click();
+    const input = root.querySelector('input[data-field="action"]');
+    input.click();
+    input.value = 'chan';
+    input.dispatchEvent(new CustomEvent('input'));
+    await flush();
+    finishPage({ records: [] });
+    await flush();
+    finishOldOptions({ options: { action: ['changedObsolete'] } });
+    await flush();
+    expect(input.value).toBe('chan');
+    expect([...root.querySelectorAll('[role="option"]')].map(row => row.dataset.value)).toEqual(['change']);
+    expect(loadFilterOptions).toHaveBeenCalledTimes(2);
+    expect(startSearch).toHaveBeenCalledTimes(1);
+});
