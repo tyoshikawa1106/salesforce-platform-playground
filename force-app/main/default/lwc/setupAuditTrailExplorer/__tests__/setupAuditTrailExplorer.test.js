@@ -129,6 +129,10 @@ it('uses the recorded user for lookup and chart when the delegate is a different
     await flush();
     root.querySelector('input[data-field="userId"]').click();
     await flush();
+    const monthStart = load.request.mock.calls[0][0].input.monthStart;
+    expect(loadFilterOptions.mock.calls.map(([request]) => JSON.parse(request.criteriaJson))).toEqual([
+        { monthStart, cutoff }, { monthStart, cutoff, nextId: 'cursor', nextTime: 'time' }
+    ]);
     expect(root.querySelectorAll('[role="option"]')).toHaveLength(1);
     expect(root.querySelector('[role="option"]').textContent).toContain('対象');
     root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
@@ -971,7 +975,9 @@ it('uses one server cutoff across views and renews it on explicit search', async
     await flush();
     component.shadowRoot.querySelector('input[data-field="action"]').click();
     await flush();
-    expect(loadFilterOptions.mock.lastCall[0].cutoff).toBe(cutoff);
+    expect(JSON.parse(loadFilterOptions.mock.lastCall[0].criteriaJson)).toEqual({
+        monthStart: load.request.mock.calls[0][0].input.monthStart, cutoff
+    });
     const chart = component.shadowRoot.querySelector('lightning-tab[value="chart"]') ||
         [...component.shadowRoot.querySelectorAll('lightning-tab')].find(item => item.value === 'chart');
     chart.dispatchEvent(new CustomEvent('active'));

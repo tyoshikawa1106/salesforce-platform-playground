@@ -431,7 +431,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             do {
                 // 次の候補ページには直前のカーソルが必要。
                 // eslint-disable-next-line no-await-in-loop
-                const result = await loadFilterOptions({ monthStart, cutoff, ...cursor });
+                const result = await loadFilterOptions({ criteriaJson: JSON.stringify({ monthStart, cutoff, ...cursor }) });
                 // 月切り替えや離脱後の応答を識別する。
                 if (request !== this.optionsRequest) {
                     // 無効になった候補の反映を止める。

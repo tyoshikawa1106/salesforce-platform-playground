@@ -118,6 +118,20 @@ private class SetupAuditTrailExplorerControllerTest {
     }
 
     @IsTest
+    static void rejectsIncompleteLookupCursor() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            try {
+                SetupAuditTrailExplorerController.loadOptionsAt('{"monthStart":"2000-01-01","nextTime":"2000-01-02T00:00:00Z"}');
+                Assert.fail('候補の続きには日時とIDの両方が必要です。');
+            } catch (AuraHandledException expected) {
+                Assert.areEqual(0, Limits.getQueries(), '境界を確認してから照会します。');
+            }
+            Test.stopTest();
+        }
+    }
+
+    @IsTest
     static void readsEmptyMatchIndex() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();

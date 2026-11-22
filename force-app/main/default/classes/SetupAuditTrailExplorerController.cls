@@ -47,26 +47,26 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper loadDistinctFilterOptions(Date monthStart, Id nextId, Datetime nextTime) {
-        return loadOptionsAt(monthStart, nextId, nextTime, null);
-    }
-
-    /**
-     * 検索開始時点の候補をカーソル順に取得する。
-     * @param monthStart 表示月の初日。
-     * @param nextId 直前の履歴ID。
-     * @param nextTime 直前の履歴日時。
-     * @param cutoff 検索開始時刻。
-     * @return 表示月の候補と続きの境界。
-     */
-    @AuraEnabled
-    public static SetupAuditTrailExplorerWrapper loadOptionsAt(Date monthStart, Id nextId, Datetime nextTime, Datetime cutoff) {
         MonthRequest criteria = new MonthRequest();
         criteria.monthStart = monthStart;
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
-        criteria.cutoff = cutoff;
         setPeriod(criteria);
-        SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
+        return loadFilterOptions(criteria);
+    }
+
+    /**
+     * 検索開始時点の候補をカーソル順に取得する。
+     * @param criteriaJson 表示月の初日、検索開始時刻、続きの日時とIDを含む検索条件
+     * @return 表示月の候補と続きの境界
+     */
+    @AuraEnabled
+    public static SetupAuditTrailExplorerWrapper loadOptionsAt(String criteriaJson) {
+        return loadFilterOptions(readCriteria(criteriaJson));
+    }
+
+    private static SetupAuditTrailExplorerWrapper loadFilterOptions(MonthRequest criteria) {
+        SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.OPTIONS, CHART_PAGE_SIZE + 1
         );
