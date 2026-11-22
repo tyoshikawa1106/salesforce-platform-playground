@@ -50,7 +50,7 @@
     position: relative;
     min-height: var(--c-results-min-height);
 }
-.pagination {
+.c-history-footer {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
@@ -58,18 +58,29 @@
     margin-top: var(--slds-g-spacing-3, 0.75rem);
 }
 
-.pagination lightning-button:first-child {
-    grid-column: 1;
+.pagination {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.c-history-footer > lightning-button {
+    grid-column: 3;
     justify-self: end;
 }
 
-.c-page-summary {
-    grid-column: 2;
-}
-
-.pagination lightning-button:last-child {
-    grid-column: 3;
-    justify-self: start;
+@media (max-width: 48rem) {
+    .c-history-footer {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .pagination, .c-history-footer > lightning-button {
+        grid-column: 1;
+    }
+    .pagination {
+        flex-wrap: wrap;
+    }
 }
 
 .month-navigation {

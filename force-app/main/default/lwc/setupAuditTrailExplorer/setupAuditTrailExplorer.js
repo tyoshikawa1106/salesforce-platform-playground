@@ -8,7 +8,7 @@ import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerControll
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     CSV_HEADER, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, remainingMatchRecords, sortFilterOptions
+    appliedFilterLabels, collectLoginAsPairs, hasDelegateAsCreator, historyRow, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, remainingMatchRecords, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 履歴一覧で公開する項目と表示形式を定義する。
@@ -124,6 +124,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     exportRequest = 0;
     // 確認した出力期間を、ダウンロード開始まで保持する。
     exportPeriod;
+    // 確認中の検索結果の条件、基準時刻、照合済みIDを保持する。
+    resultExport;
     // 複数のCSV出力の同時開始を防ぐ。
     exporting = false;
     // CSV固有の失敗を履歴表示と別に扱う。
@@ -183,6 +185,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 再表示時の出力を可能にする。
         this.exporting = false;
         this.exportPeriod = null;
+        this.resultExport = null;
         this.template.querySelector('dialog[open]')?.close();
         // 表示中に作成したダウンロードURLを解放する。
         this.releaseDownload();
@@ -1246,12 +1249,61 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.readMatchCount();
     }
 
-    // 出力対象を明示し、一覧の絞り込みがCSVに影響しないことを確認できるようにする。
+    get resultExportDisabled() {
+        return this.loading || !this.listReady || !this.records.length;
+    }
+
+    get exportConfirmDisabled() {
+        return this.exporting || (this.exportPeriod === 'results' && !this.resultExport?.count);
+    }
+
+    // 出力の確認時に適用済み条件と件数を固定する。編集中の条件や現在のページは含めない。
+    async openResultExport() {
+        const labels = appliedFilterLabels(this.appliedFilters, this.lookupSources);
+        const query = this.searchCriteria;
+        const indexed = this.usesMatchIndex;
+        const knownCount = this.resultCount;
+        const request = ++this.exportRequest;
+        const isCurrent = () => request === this.exportRequest;
+        this.resultExport = { labels: labels.join(' ／ ') || '絞り込みなし' };
+        this.openExportDialog('results');
+        try {
+            query.cutoff = await this.getCutoff();
+            if (!isCurrent()) {
+                return;
+            }
+            let count = knownCount;
+            let ids;
+            if (indexed) {
+                // 明細の代わりに一致IDだけを保持し、確定した全件数と出力対象を揃える。
+                ids = [];
+                for await (const batch of this.matchingBatches(query, {}, isCurrent)) {
+                    ids.push(...batch.records.map(row => row.Id));
+                }
+                count = ids.length;
+            } else if (count === null) {
+                count = await this.readPageWithRetry(countMatches, { criteriaJson: JSON.stringify(query) }, isCurrent);
+            }
+            if (isCurrent()) {
+                this.resultExport = { ...this.resultExport, query, ids, count };
+            }
+        } catch (error) {
+            if (isCurrent()) {
+                this.exportError = error.body?.message || '検索結果の件数を取得できませんでした。閉じてもう一度お試しください。';
+            }
+        }
+    }
+
     get exportRange() {
         return this.exportPeriod === 'all' ? '保持期間内の全期間' : this.month;
     }
 
     get exportConfirmation() {
+        if (this.exportPeriod === 'results') {
+            const count = this.resultExport.count;
+            return count === undefined ? this.month + 'の検索結果の件数を確認中です。' :
+                this.month + 'の検索条件に一致する全' + COUNT_FORMAT.format(count) + '件をCSV出力しますか？';
+        }
         return this.exportRange + 'の設定変更履歴をすべてCSV出力しますか？';
     }
 
@@ -1282,24 +1334,50 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     closeExportDialog() {
-        const launcher = this.exportPeriod === 'all' ? 'lightning-button-menu' : '[data-monthly-export]';
+        const launcher = { all: 'lightning-button-menu', month: '[data-monthly-export]', results: '[data-result-export]' }[this.exportPeriod];
         // 中断後に応答が届いてもファイル作成や進捗更新を行わない。
         this.exportRequest += 1;
         this.exporting = false;
         this.exportPeriod = null;
+        this.resultExport = null;
         this.template.querySelector('dialog').close();
         this.template.querySelector(launcher)?.focus();
     }
 
     // 確認後だけCSV取得を開始し、成功したら確認画面を閉じる。
     confirmExport() {
-        if (!this.exportPeriod || this.exporting) {
+        if (!this.exportPeriod || this.exportConfirmDisabled) {
             return;
         }
         const all = this.exportPeriod === 'all';
-        const fileName = (all ? 'SetupAuditTrailAll' : 'SetupAuditTrailMonthly') + Date.now() + '.csv';
+        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailFiltered' }[this.exportPeriod];
+        const fileName = prefix + Date.now() + '.csv';
         this.exportCsv(fileName, all ? exportAllHistory : query => load({ criteriaJson: JSON.stringify(query) }),
-            all ? { cutoff: null } : { monthStart: this.monthDate, csv: true });
+            all ? { cutoff: null } : { monthStart: this.monthDate, ...this.resultExport?.query, csv: true });
+    }
+
+    // IDを指定する出力では照合順に分割し、各組の中でもCSVの文字数境界に従って取得する。
+    async *csvPages(fetchPage, query, request, context, ids) {
+        const groups = ids ? Math.ceil(ids.length / PAGE_SIZE) : 1;
+        for (let group = 0; group < groups; group++) {
+            const criteria = ids ? { ...query, recordIds: ids.slice(group * PAGE_SIZE, (group + 1) * PAGE_SIZE) } : query;
+            let cursor = {};
+            do {
+                if (request !== this.exportRequest) {
+                    return;
+                }
+                // eslint-disable-next-line no-await-in-loop
+                const result = await this.readCsvPage(fetchPage, { ...criteria, ...cursor }, request, context);
+                if (request !== this.exportRequest) {
+                    return;
+                }
+                yield result;
+                cursor = pageCursor(result);
+                if (result.cutoff) {
+                    cursor.cutoff = result.cutoff;
+                }
+            } while (cursor.nextId);
+        }
     }
 
     // 各ページを結合して一つのダウンロードを作る。
@@ -1316,9 +1394,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 今回の出力だけで使う作成者の照合結果を保持する。
         let employeeActorIds = new Set();
         // 代理ログインの照合結果はこの出力が終了するまで共有する。
-        const context = {};
-        // 最初のページは境界を指定しない。
-        let cursor = {};
+        const selection = this.resultExport;
+        const context = { actors: selection && this.historyContext.actors };
         // 取得完了まで追加の出力操作を止める。
         this.exporting = true;
         // 前回の出力エラーを取り下げる。
@@ -1327,15 +1404,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.exportedRows = 0;
         try {
             // 返された境界を使って全ページを順に取得する。
-            do {
-                // 次のページは直前の応答が返す境界から取得する。
-                // eslint-disable-next-line no-await-in-loop
-                const result = await this.readCsvPage(fetchPage, { ...query, ...cursor }, request, context);
-                // 離脱後のページが届いたかを確認する。
-                if (request !== this.exportRequest) {
-                    // 中断済みのCSVの生成を終了する。
-                    return;
-                }
+            for await (const result of this.csvPages(fetchPage, query, request, context, selection?.ids)) {
                 // 先頭ページの根拠を後続ページでも引き継ぐ。
                 if (result.employeeActorIds) {
                     // 作成者IDの照合で履歴ごとの再検索を避ける。
@@ -1345,14 +1414,14 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors)], { type: 'application/octet-stream' }));
                 // 今回のページで取得が完了した件数を加算する。
                 this.exportedRows += result.records.length;
-                // 次回要求に日時とIDの境界を引き継ぐ。
-                cursor = pageCursor(result);
-                // 月別・全期間とも、最初の取得で確定した照合時刻を引き継ぐ。
-                if (result.cutoff) {
-                    // 次のページとその再試行に同じ上限を指定する。
-                    cursor.cutoff = result.cutoff;
-                }
-            } while (cursor.nextId);
+            }
+            if (request !== this.exportRequest) {
+                return;
+            }
+            if (selection && this.exportedRows !== selection.count) {
+                this.exportError = '確認時と出力時の件数が異なります。履歴を再検索してください。';
+                return;
+            }
             // 以前の出力に使ったBlobを解放する。
             this.releaseDownload();
             // 全ページが揃ったCSVにダウンロードURLを発行する。
