@@ -4,7 +4,7 @@
             <div class="slds-page-header__row slds-grid_vertical-align-center slds-wrap">
                 <div class="slds-media slds-media_center slds-col">
                     <div class="slds-media__figure">
-                        <lightning-icon icon-name="standard:record_update" size="medium"></lightning-icon>
+                        <lightning-icon icon-name="standard:record_update" size="medium" alternative-text=""></lightning-icon>
                     </div>
                     <div class="slds-media__body">
                         <h1 class="slds-page-header__title">設定変更履歴エクスプローラー</h1>
@@ -12,9 +12,9 @@
                 </div>
                 <div class="slds-page-header__col-actions">
                     <lightning-button-group>
-                        <lightning-button label="CSV出力" title="対象月をCSV出力" disabled={exporting} onclick={exportMonth}></lightning-button>
+                        <lightning-button label="CSV出力" title="対象月をCSV出力" data-monthly-export onclick={openMonthlyExport}></lightning-button>
                         <lightning-button-menu alternative-text="CSV出力メニュー" menu-alignment="right"
-                            disabled={exporting} onselect={selectExportOption}>
+                            onselect={selectExportOption}>
                             <lightning-menu-item value="all" label="CSV出力 (全期間)"></lightning-menu-item>
                         </lightning-button-menu>
                     </lightning-button-group>
@@ -22,14 +22,27 @@
             </div>
         </header>
 
-        <div class="slds-box slds-theme_default">
-            <div lwc:if={exporting} class="c-inline-status slds-m-bottom_small">
-                <p role="status">{exportProgress}</p>
-                <span class="c-inline-spinner">
-                    <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
-                </span>
+        <dialog class="c-export-dialog" aria-labelledby="csv-title" aria-describedby="csv-description" oncancel={cancelExportDialog}>
+            <header class="slds-modal__header">
+                <h2 id="csv-title" class="slds-text-heading_medium">CSV出力</h2>
+            </header>
+            <div class="slds-modal__content slds-p-around_medium">
+                <p id="csv-description"><template lwc:if={exporting}>{exportRange}</template><template lwc:else>{exportConfirmation}<br />表計算ソフトで開く場合は、各列を文字列として取り込んでください。</template></p>
+                <div lwc:if={exporting} class="c-inline-status slds-m-top_medium">
+                    <p role="status">{exportProgress}</p>
+                    <span class="c-inline-spinner">
+                        <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
+                    </span>
+                </div>
+                <p lwc:if={exportError} role="alert" class="slds-text-color_error slds-m-top_medium">{exportError}</p>
             </div>
-            <template lwc:if={exportError}><p role="alert" class="slds-text-color_error slds-m-bottom_small">{exportError}</p></template>
+            <footer class="slds-modal__footer">
+                <lightning-button label="キャンセル" onclick={closeExportDialog}></lightning-button>
+                <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={exporting}
+                    onclick={confirmExport}></lightning-button>
+            </footer>
+        </dialog>
+        <div class="slds-box slds-theme_default">
             <div class="month-navigation slds-m-bottom_medium">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"
                     disabled={previousMonthDisabled} onclick={moveMonth}></lightning-button>
@@ -72,18 +85,20 @@
                                         <template lwc:if={field.open}>
                                             <div class="slds-dropdown slds-dropdown_fluid">
                                                 <ul id={field.listId} class="slds-listbox slds-listbox_vertical slds-dropdown_length-5"
-                                                    role="listbox" aria-label={field.label} onmousedown={keepLookupFocus}>
+                                                    role="listbox" aria-label={field.label} onmousedown={keepLookupFocus} onscroll={scrollLookup}>
+                                                    <li role="presentation" aria-hidden="true" style={field.topStyle}></li>
                                                     <template for:each={field.options} for:item="option">
                                                         <li key={option.value} role="presentation">
                                                             <div id={option.id} class={option.className} role="option"
-                                                                aria-selected={option.active} data-value={option.value} onclick={selectLookupOption}>
+                                                                aria-setsize={field.total} aria-posinset={option.position} aria-selected={option.active} data-value={option.value} onclick={selectLookupOption}>
                                                                 <span class="slds-media__body slds-grid slds-grid_vertical">
                                                                     <span class="slds-listbox__option-text slds-listbox__option-text_entity slds-truncate slds-show">{option.label}</span>
-                                                                    <span lwc:if={option.code} class="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show">{option.code}</span>
+                                                                    <span lwc:if={field.isUserLookup} class="c-option-meta slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate slds-show">{option.code}</span>
                                                                 </span>
                                                             </div>
                                                         </li>
                                                     </template>
+                                                    <li role="presentation" aria-hidden="true" style={field.bottomStyle}></li>
                                                 </ul>
                                                 <div lwc:if={optionsLoading} class="c-inline-status slds-p-horizontal_small slds-p-vertical_x-small">
                                                     <p role="status" class="slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>
@@ -122,7 +137,8 @@
                         <template lwc:if={emptyList}><p>条件に一致する設定変更履歴はありません。</p></template>
                         <template lwc:elseif={listReady}>
                             <div class="c-history-viewport">
-                                <lightning-datatable class="history-table" key-field="Id" data={records} columns={columns}
+                                <lightning-datatable class="history-table" key-field="Id" data={visibleRecords} columns={columns}
+                                    enable-infinite-loading={hasMoreRows} onloadmore={showMoreRows}
                                     max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                             </div>
                         </template>
@@ -130,6 +146,8 @@
                             <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
                             <div class="c-page-summary c-inline-status">
                                 <span aria-live="polite">{pageSummary}</span>
+                                <lightning-button lwc:if={matchCountError} label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
+                                <span lwc:if={probingNextPage} role="status">次の一致を確認中…</span>
                                 <span lwc:if={matchLoading} class="c-inline-spinner">
                                     <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
                                 </span>

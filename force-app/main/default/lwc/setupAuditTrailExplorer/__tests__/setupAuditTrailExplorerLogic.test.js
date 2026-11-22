@@ -1,4 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, historyRow, loginAsActors } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage, historyRow, loginAsActors, remainingMatchRecords } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -15,6 +15,8 @@ const logout = {
 it.each([
     ['unique across months and pages', [logout, login], 'target'],
     ['no logout', [login], 'admin'],
+    ['newer session still open', [{ ...login, Id: 'open', CreatedDate: '2026-11-01T02:00:00Z' }, logout, login], 'target'],
+    ['older login outside retention', [logout, login, { ...logout, CreatedDate: '2026-09-01T02:00:00Z' }], 'target'],
     ['different delegate', [{ ...logout, DelegateUser: 'other' }, login], 'admin'],
     ['different target', [{ ...logout, CreatedBy: { Name: '別人', Username: 'other' } }, login], 'admin'],
     ['missing actor ID', [{ ...logout, CreatedById: null }, login], 'admin'],
@@ -76,4 +78,30 @@ it('keeps history display names separate from CSV logins and preserves an unreso
     });
     expect(historyRow(row, new Set(), undefined, {}).displayedDelegate).toBe('Admin');
     expect(formatCsvPage([row])).toContain('"target","","' + row.Display + '","","Admin"');
+});
+
+it('reuses only matches after the same ID and timestamp within the cached range', () => {
+    const rows = ['b', 'a'].map(Id => ({ Id, CreatedDate: 'same' }));
+    const batch = { start: { nextId: 'c', nextTime: 'start' }, records: rows };
+    expect(remainingMatchRecords(batch, batch.start)).toBe(rows);
+    expect(remainingMatchRecords(batch, { nextId: 'b', nextTime: 'same' })).toEqual([rows[1]]);
+    expect(remainingMatchRecords(batch, { nextId: 'a', nextTime: 'same' })).toEqual([]);
+    expect(remainingMatchRecords(batch, { nextId: 'b', nextTime: 'other' })).toBeUndefined();
+    expect(remainingMatchRecords(batch, {})).toBeUndefined();
+});
+
+it('keeps the Apex day key across midnight when the runtime formats month first', () => {
+    const NativeFormatter = Intl.DateTimeFormat;
+    const formatter = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation((locale, options) =>
+        new NativeFormatter('en-US', options)
+    );
+    try {
+        jest.isolateModules(() => {
+            const { loginBucket } = require('../setupAuditTrailExplorerLogic');
+            expect(loginBucket({ CreatedDate: '2026-10-31T14:59:59Z' }).day).toBe('2026-10-31');
+            expect(loginBucket({ CreatedDate: '2026-10-31T15:00:00Z' }).day).toBe('2026-11-01');
+        });
+    } finally {
+        formatter.mockRestore();
+    }
 });

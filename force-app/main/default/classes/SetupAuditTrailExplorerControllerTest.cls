@@ -1,5 +1,20 @@
 @IsTest
 private class SetupAuditTrailExplorerControllerTest {
+    @IsTest
+    static void limitsSearchToEarlierOfCutoffAndPeriodEnd() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            Date month = Date.today().toStartOfMonth();
+            Datetime cutoff = SetupAuditTrailExplorerController.startSearch();
+            Map<String, Object> query = new Map<String, Object>{ 'monthStart' => month, 'cutoff' => cutoff };
+            Assert.areEqual(cutoff, SetupAuditTrailExplorerController.readCriteria(JSON.serialize(query)).endAt);
+            query.put('monthStart', month.addMonths(-1));
+            Assert.areEqual(SetupAuditTrailExplorerService.midnight(month),
+                SetupAuditTrailExplorerController.readCriteria(JSON.serialize(query)).endAt);
+            Test.stopTest();
+        }
+    }
+
     /** 照合履歴の上限は未指定なら組織時刻で決まり、指定済みなら維持される。 */
     @IsTest
     static void fixesLoginAsHistoryCutoff() {
@@ -20,12 +35,43 @@ private class SetupAuditTrailExplorerControllerTest {
     static void exportsEmptyMonthAsCsv() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
+            Datetime beforeRequest = System.now();
             SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.load(
                 JSON.serialize(new Map<String, Object>{ 'monthStart' => Date.newInstance(2000, 1, 1), 'csv' => true })
             );
+            Assert.isNull(result.employeeActorIds, '空のCSVには作成者の照合が不要です。');
             Test.stopTest();
+            Assert.isTrue(result.cutoff >= beforeRequest && result.cutoff <= System.now(), '過去月の作成者照合にも出力開始時刻を使います。');
             Assert.areEqual(0, result.records.size(), '保持期間外の月のCSV対象履歴はありません。');
             Assert.isNull(result.nextId, '0件なら続きのページはありません。');
+        }
+    }
+
+    @IsTest
+    static void preservesMonthlyExportCutoff() {
+        Datetime cutoff = Datetime.newInstanceGMT(2000, 1, 12, 0, 0, 0);
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            SetupAuditTrailExplorerWrapper page = SetupAuditTrailExplorerController.load(JSON.serialize(
+                new Map<String, Object>{ 'monthStart' => Date.newInstance(2000, 1, 1), 'csv' => true, 'cutoff' => cutoff,
+                    'nextTime' => cutoff, 'nextId' => UserInfo.getUserId() }
+            ));
+            Test.stopTest();
+            Assert.areEqual(cutoff, page.cutoff, '次ページでも最初の出力時刻を返します。');
+        }
+    }
+
+    @IsTest
+    static void rejectsMalformedSearch() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            try {
+                SetupAuditTrailExplorerController.load('{');
+                Assert.fail('形式が不正な検索は受け付けません。');
+            } catch (AuraHandledException expected) {
+                Assert.areEqual(0, Limits.getQueries(), '不正な入力では照会しません。');
+            }
+            Test.stopTest();
         }
     }
 
@@ -69,6 +115,20 @@ private class SetupAuditTrailExplorerControllerTest {
             Assert.isTrue(result.options.get('action').isEmpty(), '保持期間外の月に候補はありません。');
             Assert.isTrue(result.buckets.isEmpty(), '候補の応答に分析用のデータを含めません。');
             Assert.isNull(result.nextId, '0件なら続きはありません。');
+        }
+    }
+
+    @IsTest
+    static void rejectsIncompleteLookupCursor() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            try {
+                SetupAuditTrailExplorerController.loadOptionsAt('{"monthStart":"2000-01-01","nextTime":"2000-01-02T00:00:00Z"}');
+                Assert.fail('候補の続きには日時とIDの両方が必要です。');
+            } catch (AuraHandledException expected) {
+                Assert.areEqual(0, Limits.getQueries(), '境界を確認してから照会します。');
+            }
+            Test.stopTest();
         }
     }
 

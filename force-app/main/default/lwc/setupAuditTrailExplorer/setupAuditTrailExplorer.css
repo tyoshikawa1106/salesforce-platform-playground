@@ -21,6 +21,14 @@
     .filters { grid-template-columns: minmax(0, 1fr); }
 }
 
+.c-search-lookup [role="listbox"] {
+    overflow-anchor: none;
+}
+
+.c-option-meta {
+    min-height: 1lh;
+}
+
 .c-search-lookup input {
     text-overflow: ellipsis;
 }
@@ -85,4 +93,19 @@
 
 .history-table {
     font-size: var(--c-history-font-size);
+}
+
+.c-export-dialog {
+    margin: auto;
+    width: min(30rem, 90vw);
+    padding: 0;
+    background: var(--slds-g-color-surface-1, #fff);
+    color: var(--slds-g-color-on-surface-1, #181818);
+    border: 0;
+    border-radius: var(--slds-g-radius-border-3, 0.5rem);
+}
+
+.c-export-dialog::backdrop {
+    background: var(--slds-g-color-neutral-base-0, #000);
+    opacity: 0.45;
 }

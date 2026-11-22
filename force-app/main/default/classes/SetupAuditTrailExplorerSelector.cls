@@ -69,6 +69,26 @@ public with sharing class SetupAuditTrailExplorerSelector {
      * @return 指定条件の履歴レコード。
      */
     public static List<SetupAuditTrail> selectPage(Criteria criteria, Projection fieldSet, Integer sizeLimit) {
+        // 条件値はすべてバインド変数で渡す
+        Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
+        // 画面で必要なページを一括取得
+        return Database.queryWithBinds(pageQuery(criteria, fieldSet, binds), binds, AccessLevel.USER_MODE);
+    }
+
+    /**
+     * CSVの文字数上限に達した時点で読み取りを終了できる履歴の取得
+     * @param criteria 取得期間とページ境界
+     * @param sizeLimit 続きの有無を判定する1行を含む取得件数
+     * @return 作成日時・ID降順の履歴イテレータ
+     */
+    public static Iterator<SObject> iterateCsvRows(Criteria criteria, Integer sizeLimit) {
+        // 一覧と同じ期間・ページ条件を適用
+        Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
+        // 詳細行をページ全体のリストに展開せず順次読み取り
+        return Database.getQueryLocatorWithBinds(pageQuery(criteria, Projection.CSV, binds), binds, AccessLevel.USER_MODE).iterator();
+    }
+
+    private static String pageQuery(Criteria criteria, Projection fieldSet, Map<String, Object> binds) {
         String fields = DETAIL_ACTOR_FIELDS;
         if (fieldSet == Projection.CHART || fieldSet == Projection.OPTIONS) {
             fields = LOOKUP_FIELDS + ', Section';
@@ -79,7 +99,6 @@ public with sharing class SetupAuditTrailExplorerSelector {
         if (fieldSet == Projection.LOGIN_AS) {
             fields = 'Id, CreatedDate, Action, Display, DelegateUser, CreatedById, CreatedBy.Name, CreatedBy.Username';
         }
-        Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
         String query = 'SELECT ' + fields + ' FROM SetupAuditTrail' + filters(criteria, binds);
         if (fieldSet == Projection.LOGIN_AS) {
             query += ' AND Action IN (\'suOrgAdminLogin\', \'suOrgAdminLogout\')';
@@ -89,8 +108,8 @@ public with sharing class SetupAuditTrailExplorerSelector {
             binds.put('nextId', criteria.nextId);
             binds.put('nextTime', criteria.nextTime);
         }
-        query += ' ORDER BY CreatedDate DESC, Id DESC LIMIT :sizeLimit';
-        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+        // 同一日時の履歴も一意に並べて境界の直後から継続
+        return query + ' ORDER BY CreatedDate DESC, Id DESC LIMIT :sizeLimit';
     }
 
     private static String filters(Criteria criteria, Map<String, Object> binds) {

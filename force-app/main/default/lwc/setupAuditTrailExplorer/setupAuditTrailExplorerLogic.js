@@ -1,18 +1,25 @@
 import TIME_ZONE from '@salesforce/i18n/timeZone';
 import LANG from '@salesforce/i18n/lang';
 
+// 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
+export const PAGE_SIZE = 1000;
+
 // 月別・全期間で同じ順に列を出力する。
 export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
 
-// 月移動ボタンの再描画でも同じタイムゾーンと書式を使う。
-const MONTH_FORMAT = new Intl.DateTimeFormat('en', { year: 'numeric', month: '2-digit', timeZone: TIME_ZONE });
+// 対象月と代理ログインの集計日に、実行ユーザーの暦と同じ年月日を使う。
+const DAY_FORMAT = new Intl.DateTimeFormat('en', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE
+});
 
-// 月選択の基準を実行ユーザーの暦に合わせる。
+function localDay(date) {
+    // 表示用の並び順や区切り文字に依存せず、Apex の Date と同じキーにする。
+    const parts = DAY_FORMAT.formatToParts(date);
+    return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
+}
+
 export function currentMonth() {
-    // 年と月を別々に取り出し、実行環境の日付順序に依存しないようにする。
-    const parts = MONTH_FORMAT.formatToParts(new Date());
-    // 月選択値と同じ年・月形式に揃える。
-    return parts.find(part => part.type === 'year').value + '-' + parts.find(part => part.type === 'month').value;
+    return localDay(new Date()).slice(0, 7);
 }
 
 // 月をまたぐ移動先を計算する。
@@ -36,6 +43,23 @@ const CSV_DATE_FORMAT = new Intl.DateTimeFormat('ja-JP', {
 export function pageCursor({ nextId, nextTime }) {
     // 同一日時の履歴を区別できるようIDと日時を組にする。
     return { nextId, nextTime };
+}
+
+// 開始境界が直近の照合範囲内なら、その直後に続く一致行を返す。
+export function remainingMatchRecords(batch, start) {
+    if (!batch) {
+        return undefined;
+    }
+    if (start.nextId === batch.start.nextId && start.nextTime === batch.start.nextTime) {
+        return batch.records;
+    }
+    if (start.nextId) {
+        const index = batch.records.findIndex(row => row.Id === start.nextId && row.CreatedDate === start.nextTime);
+        if (index >= 0) {
+            return batch.records.slice(index + 1);
+        }
+    }
+    return undefined;
 }
 
 // ユーザー以外の検索候補を履歴から収集する。
@@ -139,14 +163,15 @@ export function collectLoginAsPairs(pairs, records) {
         pairs.set(key, group);
         // 同時刻や順序の逆転、操作の重なりがある組に許可元を割り当てない。
         const time = Date.parse(row.CreatedDate);
-        if (group.ambiguous || !(time < group.previousTime) || login !== Boolean(group.logout)) {
+        if (group.ambiguous || !(time < group.previousTime) ||
+            (group.previousTime !== Infinity && login !== Boolean(group.logout))) {
             group.ambiguous = true;
             continue;
         }
         group.previousTime = time;
         if (login) {
             // 作成者の表示名も本文に一致したログアウトだけをこのログインに対応付ける。
-            if (needsLoginAsUser(row) && row.Id && row.CreatedById && group.logout.CreatedBy?.Name === target &&
+            if (needsLoginAsUser(row) && row.Id && row.CreatedById && group.logout?.CreatedBy?.Name === target &&
                 group.logout.CreatedById && group.logout.CreatedById !== row.CreatedById && group.logout.CreatedBy.Username &&
                 group.logout.CreatedBy.Username.toLowerCase() !== row.DelegateUser.toLowerCase()) {
                 group.byLogin.set(row.Id, group.logout);
@@ -162,7 +187,8 @@ export function collectLoginAsPairs(pairs, records) {
 export function loginAsActors(pairs) {
     const actors = new Map();
     for (const group of pairs.values()) {
-        if (!group.ambiguous && !group.logout) {
+        // 保持期間の端で片側だけの操作があっても、対応の確定した履歴は利用できる。
+        if (!group.ambiguous) {
             for (const [id, logout] of group.byLogin) {
                 actors.set(id, logout);
             }
@@ -257,31 +283,39 @@ export function buildDateOptions(monthDate) {
     return [{ label: 'すべて', value: '' }, ...dates.map(value => ({ label: value, value }))];
 }
 
-// 各検索欄の表示値と候補を組み立てる。
-export function buildFilterFields({ userOptions, userNames, delegateNames, filterOptions, selectedValues, lookupField, lookupTerm, lookupIndex }) {
-    // ユーザー・名前空間・操作・代理ユーザーに対応する欄を作る。
+// 5行ほどの可視範囲と、その前後のスクロール用の行だけを描画する。
+export const LOOKUP_WINDOW = 16;
+
+// 候補と確定後の表示で同じ氏名を使う。
+function lookupLabel(field, value, { userNames, userOptions, delegateNames }) {
+    if (field === 'userId') {
+        return userNames[value] || userOptions[value] || '';
+    }
+    return field === 'delegateUser' ? delegateNames?.[value.toLowerCase()] || value : value;
+}
+
+// 入力または元データが変わった時だけ、月全体の候補を検索する。
+export function matchingLookupValues(field, input, sources) {
+    const candidates = field === 'userId' ? Object.keys(sources.userOptions) : sources.filterOptions?.[field] ?? [];
+    const term = input.trim().toLocaleLowerCase();
+    if (!term) {
+        return candidates;
+    }
+    return candidates.filter(value => value.toLocaleLowerCase().includes(term) ||
+        lookupLabel(field, value, sources).toLocaleLowerCase().includes(term) ||
+        (field === 'userId' && sources.userOptions[value]?.toLocaleLowerCase().includes(term)));
+}
+
+// 各検索欄の表示値と現在位置に対応する候補を組み立てる。
+export function buildFilterFields({ sources, selectedValues, lookupField, lookupTerm, lookupIndex, matches, start, rowHeight }) {
     return [
         { key: 'userId', label: 'ユーザー' },
-        { key: 'namespacePrefix', label: '名前空間プレフィックス', values: filterOptions?.namespacePrefix },
-        { key: 'action', label: 'アクション', values: filterOptions?.action },
-        { key: 'section', label: 'セクション', values: filterOptions?.section },
-        { key: 'delegateUser', label: '代理ユーザー', values: filterOptions?.delegateUser }
-    ].map(({ key, label, values }) => {
+        { key: 'namespacePrefix', label: '名前空間プレフィックス' },
+        { key: 'action', label: 'アクション' },
+        { key: 'section', label: 'セクション' },
+        { key: 'delegateUser', label: '代理ユーザー' }
+    ].map(({ key, label }) => {
         const isUserLookup = key === 'userId' || key === 'delegateUser';
-        // 候補一覧と選択後の欄に同じ氏名を使う。
-        const labelFor = value => {
-            // ユーザー欄はIDから表示名を解決する。
-            if (key === 'userId') {
-                // 候補が持つ最も具体的な名前を使う。
-                return userNames[value] || userOptions[value] || '';
-            }
-            // 代理ユーザーは履歴に記録されたログイン名から氏名を引く。
-            if (key === 'delegateUser') {
-                return delegateNames?.[value.toLowerCase()] || value;
-            }
-            // その他の項目は候補値をそのまま表示する。
-            return value;
-        };
         // 項目別の選択値を取り出す。
         const selected = selectedValues[key];
         // 閉じている欄は選択状態だけを表示する。
@@ -298,38 +332,31 @@ export function buildFilterFields({ userOptions, userNames, delegateNames, filte
             // 選択した値と解除操作のラベルを組み立てる。
             return {
                 ...field, clearLabel: label + 'の選択を解除',
-                inputValue: selected ? labelFor(selected) : '',
+                inputValue: selected ? lookupLabel(key, selected, sources) : '',
                 selectedIcon: isUserLookup ? 'standard:user' : 'standard:custom'
             };
         }
 
-        // 大文字小文字と前後の空白を無視して検索する。
-        const term = lookupTerm.trim().toLocaleLowerCase();
-        // 未取得の項目も空の候補として扱う。
-        const candidates = key === 'userId' ? Object.keys(userOptions) : values ?? [];
-        // ラベルに加えユーザーはIDとログイン名でも探せるようにする。
-        const matches = term
-            ? candidates.filter(value => labelFor(value).toLocaleLowerCase().includes(term) ||
-                (isUserLookup && value.toLocaleLowerCase().includes(term)) ||
-                (key === 'userId' && userOptions[value]?.toLocaleLowerCase().includes(term)))
-            : candidates;
         // 入力欄と候補一覧を関連付ける。
         const listId = key + '-options';
         // 開いた欄の表示とキーボードの選択状態を組み立てる。
         return {
-            ...field, listId,
+            ...field, listId, isUserLookup, total: matches.length,
+            topStyle: 'height:' + start * rowHeight + 'px',
+            bottomStyle: 'height:' + Math.max(0, matches.length - start - LOOKUP_WINDOW) * rowHeight + 'px',
             inputValue: lookupTerm,
             activeId: lookupIndex >= 0 ? listId + '-' + lookupIndex : undefined,
-            noMatches: Boolean(filterOptions) && matches.length === 0,
-            options: matches.map((value, index) => ({
-                label: labelFor(value),
-                code: key === 'delegateUser' && delegateNames?.[value.toLowerCase()] ? value :
-                    (key === 'userId' ? userOptions[value] : ''),
+            noMatches: Boolean(sources.filterOptions) && matches.length === 0,
+            options: matches.slice(start, start + LOOKUP_WINDOW).map((value, index) => ({
+                position: start + index + 1,
+                label: lookupLabel(key, value, sources),
+                code: key === 'delegateUser' && sources.delegateNames?.[value.toLowerCase()] ? value :
+                    (key === 'userId' ? sources.userOptions[value] : ''),
                 value,
-                id: listId + '-' + index,
-                active: index === lookupIndex,
+                id: listId + '-' + (start + index),
+                active: start + index === lookupIndex,
                 className: 'slds-listbox__option slds-listbox__option_entity slds-media slds-media_small' +
-                    (index === lookupIndex ? ' slds-has-focus' : '')
+                    (start + index === lookupIndex ? ' slds-has-focus' : '')
             }))
         };
     });
@@ -361,14 +388,10 @@ export function mergeChartPage(totals, buckets) {
 }
 
 // Apexと同じ実行ユーザーの暦日で、代理ログインを分析の集計行に加える。
-const DAY_FORMAT = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE
-});
-
 export function loginBucket(row, actors) {
     const actor = actors?.get(row.Id) ?? row;
     return {
-        day: DAY_FORMAT.format(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
+        day: localDay(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
         loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
         namespacePrefix: row.ResponsibleNamespacePrefix, delegateUser: row.DelegateUser, count: 1
     };

@@ -4,14 +4,25 @@ public with sharing class SetupAuditTrailExplorerController {
     private static final Integer CHART_PAGE_SIZE = 5000;
 
     /** 月内の検索期間と応答形式を受け取り、Selectorには確定した期間を渡す。 */
+    @TestVisible
     private class MonthRequest extends SetupAuditTrailExplorerSelector.Criteria {
         public Date monthStart;
         public Date day;
+        public Datetime cutoff;
         public String section;
         public Boolean chart;
         public Boolean includeDelegateNames;
         public Boolean csv;
         public Integer pageSize;
+    }
+
+    /**
+     * 一覧・分析の検索範囲を同じ組織時刻で固定する。
+     * @return 検索に含める履歴の作成日時の上限（この日時を含まない）。
+     */
+    @AuraEnabled
+    public static Datetime startSearch() {
+        return System.now();
     }
 
     /**
@@ -41,7 +52,21 @@ public with sharing class SetupAuditTrailExplorerController {
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
         setPeriod(criteria);
-        SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
+        return loadFilterOptions(criteria);
+    }
+
+    /**
+     * 検索開始時点の候補をカーソル順に取得する。
+     * @param criteriaJson 表示月の初日、検索開始時刻、続きの日時とIDを含む検索条件
+     * @return 表示月の候補と続きの境界
+     */
+    @AuraEnabled
+    public static SetupAuditTrailExplorerWrapper loadOptionsAt(String criteriaJson) {
+        return loadFilterOptions(readCriteria(criteriaJson));
+    }
+
+    private static SetupAuditTrailExplorerWrapper loadFilterOptions(MonthRequest criteria) {
+        SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.OPTIONS, CHART_PAGE_SIZE + 1
         );
@@ -74,10 +99,7 @@ public with sharing class SetupAuditTrailExplorerController {
         criteria.endAt = cutoff ?? System.now();
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
-        SetupAuditTrailExplorerWrapper wrapper = loadDetails(criteria, CSV_PAGE_SIZE);
-        // 後続ページでも同じ期間を照会できるよう、今回の検索に使った上限を返す。
-        wrapper.cutoff = criteria.endAt;
-        return wrapper;
+        return loadDetails(criteria, CSV_PAGE_SIZE, criteria.endAt);
     }
 
     /**
@@ -113,7 +135,7 @@ public with sharing class SetupAuditTrailExplorerController {
         MonthRequest criteria = readCriteria(criteriaJson);
         SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
         if (criteria.csv == true) {
-            return loadDetails(criteria, CSV_PAGE_SIZE);
+            return loadDetails(criteria, CSV_PAGE_SIZE, criteria.cutoff);
         }
         if (criteria.matchIndex == true) {
             List<SetupAuditTrail> matches = SetupAuditTrailExplorerSelector.selectPage(
@@ -146,7 +168,7 @@ public with sharing class SetupAuditTrailExplorerController {
             }
         }
         if (needsEmployeeActors) {
-            wrapper.employeeActorIds = employeeActors();
+            wrapper.employeeActorIds = employeeActors(criteria.cutoff);
         }
         return wrapper;
     }
@@ -161,26 +183,38 @@ public with sharing class SetupAuditTrailExplorerController {
         return SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
     }
 
-    private static List<Id> employeeActors() {
-        return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(System.now()));
+    private static List<Id> employeeActors(Datetime cutoff) {
+        return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(cutoff ?? System.now()));
     }
 
-    private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit) {
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
-            criteria, SetupAuditTrailExplorerSelector.Projection.CSV, sizeLimit + 1
+    private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit, Datetime exportCutoff) {
+        // CSVは上限を超えた行の直前で読み取りを終了
+        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeCsv(
+            SetupAuditTrailExplorerSelector.iterateCsvRows(criteria, sizeLimit + 1), sizeLimit
         );
-        Integer pageSize = SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit);
-        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
+        wrapper.cutoff = exportCutoff;
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
-        if (criteria.nextId == null) {
-            wrapper.employeeActorIds = employeeActors();
+        if (criteria.nextId == null && !wrapper.records.isEmpty()) {
+            wrapper.employeeActorIds = employeeActors(exportCutoff);
         }
         return wrapper;
     }
 
+    @TestVisible
     private static MonthRequest readCriteria(String criteriaJson) {
-        MonthRequest criteria = String.isBlank(criteriaJson) ? new MonthRequest() :
-            (MonthRequest) JSON.deserialize(criteriaJson, MonthRequest.class);
+        MonthRequest criteria;
+        try {
+            criteria = String.isBlank(criteriaJson) ? null : (MonthRequest) JSON.deserialize(criteriaJson, MonthRequest.class);
+        } catch (JSONException invalidJson) {
+            throw new AuraHandledException('検索条件の形式を確認してください。');
+        }
+        if (criteria == null) {
+            throw new AuraHandledException('検索条件を指定してください。');
+        }
+        if (criteria.csv == true && criteria.cutoff == null) {
+            // 過去月でも月末後に記録された代理ログアウトを出力開始時点まで照合する。
+            criteria.cutoff = System.now();
+        }
         setPeriod(criteria);
         return criteria;
     }
@@ -189,6 +223,7 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerService.checkPeriod(criteria.monthStart, criteria.day);
         criteria.startAt = SetupAuditTrailExplorerService.midnight(criteria.day ?? criteria.monthStart);
         Date endDay = criteria.day == null ? criteria.monthStart.addMonths(1) : criteria.day.addDays(1);
-        criteria.endAt = SetupAuditTrailExplorerService.midnight(endDay);
+        Datetime periodEnd = SetupAuditTrailExplorerService.midnight(endDay);
+        criteria.endAt = criteria.cutoff != null && criteria.cutoff < periodEnd ? criteria.cutoff : periodEnd;
     }
 }

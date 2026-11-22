@@ -22,9 +22,11 @@
                                     </span>
                                 </div>
                                 <div class="c-bar">
-                                    <button class="c-segment" type="button" style={row.style}
+                                    <button class="slds-button c-segment" type="button"
                                         title={row.buttonLabel} aria-label={row.buttonLabel} data-id={row.id}
-                                        disabled={row.disabled} onclick={selectSegment}></button>
+                                        disabled={row.disabled} onclick={selectSegment}>
+                                        <span class="c-bar-fill" style={row.style} aria-hidden="true"></span>
+                                    </button>
                                 </div>
                                 <span class="c-count">{row.formattedCount}</span>
                             </div>
