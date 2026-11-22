@@ -99,10 +99,7 @@ public with sharing class SetupAuditTrailExplorerController {
         criteria.endAt = cutoff ?? System.now();
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
-        SetupAuditTrailExplorerWrapper wrapper = loadDetails(criteria, CSV_PAGE_SIZE);
-        // 後続ページでも同じ期間を照会できるよう、今回の検索に使った上限を返す。
-        wrapper.cutoff = criteria.endAt;
-        return wrapper;
+        return loadDetails(criteria, CSV_PAGE_SIZE, criteria.endAt);
     }
 
     /**
@@ -138,7 +135,7 @@ public with sharing class SetupAuditTrailExplorerController {
         MonthRequest criteria = readCriteria(criteriaJson);
         SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
         if (criteria.csv == true) {
-            return loadDetails(criteria, CSV_PAGE_SIZE);
+            return loadDetails(criteria, CSV_PAGE_SIZE, criteria.cutoff);
         }
         if (criteria.matchIndex == true) {
             List<SetupAuditTrail> matches = SetupAuditTrailExplorerSelector.selectPage(
@@ -190,23 +187,35 @@ public with sharing class SetupAuditTrailExplorerController {
         return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(cutoff ?? System.now()));
     }
 
-    private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit) {
+    private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit, Datetime exportCutoff) {
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.CSV, sizeLimit + 1
         );
         Integer pageSize = SetupAuditTrailExplorerService.csvPageSize(rows, sizeLimit);
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, pageSize);
+        wrapper.cutoff = exportCutoff;
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
         if (criteria.nextId == null) {
-            wrapper.employeeActorIds = employeeActors(null);
+            wrapper.employeeActorIds = employeeActors(exportCutoff);
         }
         return wrapper;
     }
 
     @TestVisible
     private static MonthRequest readCriteria(String criteriaJson) {
-        MonthRequest criteria = String.isBlank(criteriaJson) ? new MonthRequest() :
-            (MonthRequest) JSON.deserialize(criteriaJson, MonthRequest.class);
+        MonthRequest criteria;
+        try {
+            criteria = String.isBlank(criteriaJson) ? null : (MonthRequest) JSON.deserialize(criteriaJson, MonthRequest.class);
+        } catch (JSONException invalidJson) {
+            throw new AuraHandledException('検索条件の形式を確認してください。');
+        }
+        if (criteria == null) {
+            throw new AuraHandledException('検索条件を指定してください。');
+        }
+        if (criteria.csv == true && criteria.cutoff == null) {
+            // 過去月でも月末後に記録された代理ログアウトを出力開始時点まで照合する。
+            criteria.cutoff = System.now();
+        }
         setPeriod(criteria);
         return criteria;
     }

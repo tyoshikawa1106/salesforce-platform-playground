@@ -956,7 +956,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 離脱後や照合済みの出力では追加の要求を送らない。
         if (request === this.exportRequest && !context.actors && page.records.some(needsLoginAsUser)) {
             // 出力ごとに独立した照合結果を全明細ページで共有する。
-            // 全期間では明細と同じ上限、月別では組織時刻を使って月外も照合する。
+            // 月外のログアウトも含め、明細の出力開始時刻までを照合する。
             context.actors = await this.readActors(page.cutoff, isCurrent);
         }
         // 明細の追加前に呼び出し元で要求の有効性を再確認する。
@@ -1192,11 +1192,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     closeExportDialog() {
+        const launcher = this.exportPeriod === 'all' ? 'lightning-button-menu' : '[data-monthly-export]';
         // 中断後に応答が届いてもファイル作成や進捗更新を行わない。
         this.exportRequest += 1;
         this.exporting = false;
         this.exportPeriod = null;
         this.template.querySelector('dialog').close();
+        this.template.querySelector(launcher)?.focus();
     }
 
     // 確認後だけCSV取得を開始し、成功したら確認画面を閉じる。
@@ -1255,7 +1257,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 this.exportedRows += result.records.length;
                 // 次回要求に日時とIDの境界を引き継ぐ。
                 cursor = pageCursor(result);
-                // 全期間CSVではSalesforceが照会に使った上限も引き継ぐ。
+                // 月別・全期間とも、最初の取得で確定した照合時刻を引き継ぐ。
                 if (result.cutoff) {
                     // 次のページとその再試行に同じ上限を指定する。
                     cursor.cutoff = result.cutoff;
@@ -1352,7 +1354,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 return;
             }
             if (!chart) {
-                if (this.probeCursor) {
+                if (this.listReady && this.probeCursor) {
                     this.loading = false;
                     await this.probeNextPage(query, isCurrent);
                 } else if (this.usesMatchIndex) {

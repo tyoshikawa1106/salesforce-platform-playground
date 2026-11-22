@@ -87,13 +87,17 @@
     font-size: var(--c-history-font-size);
 }
 
-.export-dialog {
+.c-export-dialog {
     margin: auto;
     width: min(30rem, 90vw);
+    padding: 0;
+    background: var(--slds-g-color-surface-1, #fff);
+    color: var(--slds-g-color-on-surface-1, #181818);
     border: 0;
     border-radius: var(--slds-g-radius-border-3, 0.5rem);
 }
 
-.export-dialog::backdrop {
-    background: rgb(0 0 0 / 45%);
+.c-export-dialog::backdrop {
+    background: var(--slds-g-color-neutral-base-0, #000);
+    opacity: 0.45;
 }

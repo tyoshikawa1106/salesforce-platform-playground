@@ -300,10 +300,12 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         loadLoginAsHistory.mockResolvedValueOnce({ records: [logout], cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate })
             .mockResolvedValueOnce({ records: [login], cutoff: serverCutoff });
         exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
-            cutoff: period === 'all' ? serverCutoff : null, employeeActorIds: ['employee'] })
-            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }, login], cutoff: period === 'all' ? serverCutoff : null });
+            cutoff: serverCutoff, employeeActorIds: ['employee'] })
+            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }, login], cutoff: serverCutoff });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
+        const launcher = period === 'all' ? menu : component.shadowRoot.querySelector('[data-monthly-export]');
+        const focusLauncher = jest.spyOn(launcher, 'focus');
         expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
         const startedAt = Date.UTC(2026, 10, 19, 13, 38, 7, 912);
         const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt);
@@ -326,9 +328,10 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         const monthQuery = { monthStart, csv: true };
         expect(queries).toEqual([
             period === 'month' ? monthQuery : { cutoff: null },
-            { ...(period === 'month' ? monthQuery : { cutoff: serverCutoff }), nextId: 'cursor', nextTime: 'time' }
+            { ...(period === 'month' ? monthQuery : {}), cutoff: serverCutoff, nextId: 'cursor', nextTime: 'time' }
         ]);
         expect(download).toHaveBeenCalledTimes(1);
+        expect(focusLauncher).toHaveBeenCalled();
         expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
         const [blob] = URL.createObjectURL.mock.calls[0];
         const csv = await new Promise((resolve, reject) => {
@@ -340,7 +343,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
         const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
         expect(loadLoginAsHistory.mock.calls.map(([query]) => query)).toEqual([
-            { cutoff: period === 'all' ? serverCutoff : null },
+            { cutoff: serverCutoff },
             { cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate }
         ]);
         expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン') +
@@ -1081,4 +1084,28 @@ it('retains monthly lookup options from the chart until the next explicit search
     await search(component);
     expect(await openSections()).toEqual(['B']);
     expect(loadFilterOptions).toHaveBeenCalledTimes(1);
+});
+
+it('retries the visible detail page before probing more matches after actor lookup fails', async () => {
+    jest.replaceProperty(historyLogic, 'PAGE_SIZE', 1);
+    const login = { Id: 'first', CreatedDate: cutoff, Action: 'suOrgAdminLogin', DelegateUser: 'admin',
+        CreatedBy: { Username: 'admin' }, Display: '対象 のログインアクセスを使用してログイン済み' };
+    loadFilterOptions.mockResolvedValue({ options: { section: ['A'] } });
+    loadLoginAsHistory.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ records: [] });
+    load.request.mockImplementation(({ input }) => {
+        if (input.matchIndex && !input.nextId) {
+            return { records: [login], nextId: login.Id, nextTime: cutoff };
+        }
+        return { records: input.recordIds ? [login] : [] };
+    });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'section', 'A');
+    await search(component);
+    const root = component.shadowRoot;
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    [...root.querySelectorAll('lightning-button')].find(button => button.label === '再試行').click();
+    await flush();
+    expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['first']);
+    expect(root.querySelector('nav').textContent).toContain('1 / 1ページ');
 });
