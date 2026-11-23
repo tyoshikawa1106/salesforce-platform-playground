@@ -84,8 +84,6 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         this.clientError = undefined;
     }
 
-    // レコードページから表示中CaseのIDを受け取る
-    @api recordId;
 
     // 表示中CaseのUI APIレスポンスを保持
     caseRecord;
@@ -114,6 +112,30 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     // 会社側の最新カード変換を識別
     accountCasesRequestId = 0;
 
+    // レコードページから表示中CaseのIDを受け取る
+    _recordId;
+    @api
+    get recordId() {
+        return this._recordId;
+    }
+
+    set recordId(value) {
+        // 同じケースへの再設定では表示を維持
+        if (value === this._recordId) return;
+        // 次のCase応答まで前のケースを表示しない
+        this._recordId = value;
+        this.caseHasLoaded = false;
+        this.clientError = undefined;
+        // 旧ケースを基に整形したカードを除き、同じ関連先の元データは再利用
+        this.contactCasesRequestId++;
+        this.accountCasesRequestId++;
+        this.contactCases = [];
+        this.accountCases = [];
+        // 関連先が同じ場合も新しいケースのカード生成が終わるまで待つ
+        if (this.contactCaseRecords) this.contactCasesHaveLoaded = false;
+        if (this.accountCaseRecords) this.accountCasesHaveLoaded = false;
+    }
+
     // 表示中Caseから顧客と会社を特定し、各タブの関連リスト取得を開始
     @wire(getRecord, {
         recordId: '$recordId',
@@ -125,6 +147,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         try {
             // 取得成功時は関連先の変更を判定して表示状態を更新
             if (data) {
+                // 15桁と18桁のIDを照合し、移動前のケースの応答を破棄
+                if (!this.recordId || data.id?.slice(0, 15) !== this.recordId.slice(0, 15)) return;
                 // 更新前のContactを保持して関連リストの切り替えを判定
                 const previousContactId = this.contactId;
                 // 更新前のAccountを保持して関連リストの切り替えを判定
@@ -208,7 +232,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         // 呼び出し元が待機しない非同期処理もこの画面で捕捉
         try {
             // 対象関連先の初回応答がまだなければ再生成しない
-            if (!this.contactCaseRecords) {
+            if (!this.caseHasLoaded || !this.contactCaseRecords) {
                 // 未取得または取得失敗の状態を維持
                 return;
             }
@@ -278,7 +302,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         // 呼び出し元が待機しない非同期処理もこの画面で捕捉
         try {
             // 対象関連先の初回応答がまだなければ再生成しない
-            if (!this.accountCaseRecords) {
+            if (!this.caseHasLoaded || !this.accountCaseRecords) {
                 // 未取得または取得失敗の状態を維持
                 return;
             }

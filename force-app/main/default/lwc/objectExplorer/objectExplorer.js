@@ -1,3 +1,4 @@
+import { getApexMessage, reduceErrors } from 'c/salesforceApiUtils';
 import { recordLog } from 'c/lwcLoggerUtils';
 import { LightningElement } from 'lwc';
 import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
@@ -306,6 +307,8 @@ export default class ObjectExplorer extends LightningElement {
     candidateView = objectOptionWindow([], -1, 0);
     // 候補取得中と該当なしを区別
     candidatesBusy = false;
+    // 候補取得のエラーを構造取得のエラーから独立して管理
+    candidateError;
     // 項目ラベルとAPI名に共通の検索語を保持
     fieldSearch = '';
     // 新しい選択の一覧を描画後に案内
@@ -605,7 +608,7 @@ export default class ObjectExplorer extends LightningElement {
             // 取得失敗の処理場所をこの画面内へ表示
             this.reportClientError(error, 'loadRoot', 'object-info');
             // Apexの公開メッセージだけを表示
-            this.error = error.body?.message || 'オブジェクト構造を取得できませんでした。';
+            this.error = getApexMessage(error, 'オブジェクト構造を取得できませんでした。');
         } finally {
             // 成功・失敗のどちらでも確定した図の表示へ戻す
             this.rootLoading = false;
@@ -630,7 +633,7 @@ export default class ObjectExplorer extends LightningElement {
             audit = await getFieldAudit({ objectName: data.apiName });
         } catch (error) {
             // 認証・監査情報の取得箇所を識別
-            const message = error.body?.message || '項目の作成・更新情報を取得できませんでした。API連携設定と権限を確認してください。';
+            const message = getApexMessage(error, '項目の作成・更新情報を取得できませんでした。API連携設定と権限を確認してください。');
             // 項目一覧を開いていなくても安全な失敗理由を表示
             this.reportClientError(error, 'readObjectInfo', 'field-audit', message);
             // 構造の閲覧は継続し、情報未取得を成功と見せない
@@ -870,6 +873,8 @@ export default class ObjectExplorer extends LightningElement {
     }
     // 標準・カスタムを区別せず検索語から候補を取得
     async searchCandidates(allowEmpty = false) {
+        // 前回の候補検索の失敗だけを解除
+        this.candidateError = undefined;
         // 新しい検索要求では以前のエラー位置を消す
         this.clientError = undefined;
         // 対象未指定の空欄や空白だけの入力で候補を自動表示しない
@@ -900,7 +905,9 @@ export default class ObjectExplorer extends LightningElement {
             // 検索先の失敗を空候補として扱わない
             this.reportClientError(error, 'searchCandidates', 'searchObjects');
             // 空の検索結果と取得失敗を区別
-            this.error = 'オブジェクト候補を取得できませんでした。';
+            this.candidateError = 'オブジェクト候補を取得できませんでした。';
+            // 取得失敗を候補0件として表示せず、クリックで再試行可能にする
+            this.closeCandidates();
         } finally {
             // 最新検索の取得中表示だけを解除
             if (sequence === this.searchSequence) { this.candidatesBusy = false; }
@@ -1006,7 +1013,7 @@ export default class ObjectExplorer extends LightningElement {
                 // 有効な要求の失敗だけを診断表示
                 this.reportClientError(error, 'handleCard', 'object-info');
                 // 表示できない理由を通知
-                this.error = error.body?.message || '詳細を取得できませんでした。';
+                this.error = getApexMessage(error, '詳細を取得できませんでした。');
             } finally {
                 // 現在の要求の終了時だけ読み込み表示を解除
                 if (sequence === this.detailSequence) { this.busy = false; }
@@ -1259,7 +1266,7 @@ export default class ObjectExplorer extends LightningElement {
             // 分類取得と画面モデルの生成失敗を識別
             this.reportClientError(error, 'loadClassifyData', 'classify-data');
             // 取得できなかった情報を未設定値として扱わない
-            this.classifyNotice = error.body?.message || 'データ分類を取得できませんでした。';
+            this.classifyNotice = getApexMessage(error, 'データ分類を取得できませんでした。');
         }
     }
     // 選択候補を行の高さに影響しない領域へ表示
@@ -1430,7 +1437,7 @@ export default class ObjectExplorer extends LightningElement {
             // 入力と選択値は維持し、失敗した候補の状態だけを解除
             this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerQuery: undefined, ownerLoading: false, ownerOpen: false, ownerActive: -1 } };
             // 検索に失敗した理由を通知
-            this.classifyNotice = error.body?.message || '所有者候補を取得できませんでした。';
+            this.classifyNotice = getApexMessage(error, '所有者候補を取得できませんでした。');
         }
     }
     // 候補を押しても検索入力からフォーカスを失わせない
@@ -1730,7 +1737,7 @@ export default class ObjectExplorer extends LightningElement {
                 // 現在の取込の失敗だけを表示する。
                 this.reportClientError(error, 'handleImportCsv', 'csv-import');
                 // エラー本文へファイル全体や内部例外を含めない
-                this.csvErrors = [{ line: 1, message: error.body?.message || error.message || 'CSVを確認できませんでした。' }];
+                this.csvErrors = [{ line: 1, message: reduceErrors(error, 'CSVを確認できませんでした。') }];
                 // 読取・照合失敗では元の入力をそのまま保持
                 this.classifyNotice = 'CSVを取り込めませんでした。入力内容は変更していません。';
             } finally {
@@ -1821,7 +1828,7 @@ export default class ObjectExplorer extends LightningElement {
             // 保存後の例外では成功を確認できた件数を維持
             if (phase === 'saving') {
                 // 自動再実行せず最新状態の確認を案内
-                this.classifyNotice = `成功確認済み${this.saveSuccessCount}件。処理を中断しました。${error?.body?.message || '最新状態を確認してから再操作してください。'}`;
+                this.classifyNotice = `成功確認済み${this.saveSuccessCount}件。処理を中断しました。${getApexMessage(error, '最新状態を確認してから再操作してください。')}`;
             } else {
                 // 準備失敗と確認画面の表示失敗を識別し、更新未実行を明示
                 this.classifyNotice = `${phase === 'confirmation' ? '保存確認画面の表示' : '保存内容の準備'}に失敗しました（${error?.name || 'Error'}）。保存は実行していません。`;

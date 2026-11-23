@@ -1,3 +1,4 @@
+import { getApexMessage, reduceErrors } from 'c/salesforceApiUtils';
 import { api } from 'lwc';
 import LightningModal from 'lightning/modal';
 import { confirmationText } from './setupAuditTrailExportModalLogic';
@@ -62,7 +63,7 @@ export default class SetupAuditTrailExportModal extends LightningModal {
             if (this.isCurrent()) this.selection = selection;
         } catch (error) {
             // 件数取得を再開できるように閉じて開き直す手順を表示する。
-            if (this.isCurrent()) this.error = error.body?.message || '検索結果の件数を取得できませんでした。閉じてもう一度お試しください。';
+            if (this.isCurrent()) this.error = getApexMessage(error, '検索結果の件数を取得できませんでした。閉じてもう一度お試しください。');
         }
     }
 
@@ -120,7 +121,7 @@ export default class SetupAuditTrailExportModal extends LightningModal {
                 // 同じ条件で再試行できるよう操作を戻す。
                 this.exporting = false;
                 // Apexからのエラーと件数照合の失敗を確認画面に表示する。
-                this.error = error.body?.message || error.message || 'CSVを出力できませんでした。';
+                this.error = reduceErrors(error, 'CSVを出力できませんでした。');
             }
         }
     }

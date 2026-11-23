@@ -124,10 +124,10 @@ export default class CaseEmailMessageList extends LightningElement {
             if (data !== undefined) {
                 // Apexの整数値をJavaScript数値へ統一
                 this.totalEmailMessageCount = Number(data);
-                // 再取得成功時は以前の全体エラーを解除
-                this.errorMessage = undefined;
                 // 手動再読み込み以外で未取得のCaseだけ初期ページを読み込む
                 if (!this.isRefreshing && this.loadedRecordId !== this.recordId) {
+                    // 件数取得から復旧した場合だけエラーを解除し、一覧の失敗は再試行まで保持
+                    this.errorMessage = undefined;
                     // 別Caseの一覧とページング状態を表示前に破棄
                     Object.assign(this, createEmptyPaginationState());
                     // 新しいCaseの初期ページを待つ状態へ戻す

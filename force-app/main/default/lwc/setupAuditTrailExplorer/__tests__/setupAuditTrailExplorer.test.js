@@ -1537,3 +1537,11 @@ it('uses the same section match IDs for confirmation and export, and rejects inc
     expect(currentDialog().querySelector('[role="alert"]').textContent).toContain('再検索');
     expect(download).not.toHaveBeenCalled();
 });
+
+it('未処理のApex例外を一覧取得の案内に置き換える', async () => {
+    const component = mount();
+    load.request.mockRejectedValueOnce({ body: { exceptionType: 'System.QueryException', message: 'Unexpected query failure' } });
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('設定変更履歴を取得できませんでした。');
+    expect(component.shadowRoot.textContent).not.toContain('Unexpected query failure');
+});

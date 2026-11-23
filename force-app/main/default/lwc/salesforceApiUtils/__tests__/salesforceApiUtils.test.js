@@ -1,4 +1,4 @@
-import { getErrorMessages, reduceErrors } from 'c/salesforceApiUtils';
+import { getApexMessage, getErrorMessages, reduceErrors } from 'c/salesforceApiUtils';
 
 describe('Salesforce API応答のメッセージ整形', () => {
     it('ApexとUI APIの異なる応答形式を入力順で表示する', () => {
@@ -28,6 +28,13 @@ describe('Salesforce API応答のメッセージ整形', () => {
         expect(reduceErrors(undefined, '代替案内')).toBe('');
         expect(reduceErrors([], '代替案内')).toBe('');
         expect(reduceErrors([null, { body: { message: '有効な案内' } }, undefined], '代替案内')).toBe('有効な案内');
+    });
+
+    it('未処理の例外詳細を隠し、処理済みの業務エラーは表示する', () => {
+        expect(getApexMessage({ body: { message: '' } }, '取得失敗')).toBe('取得失敗');
+        expect(reduceErrors({ body: { exceptionType: 'System.QueryException', message: 'query' } }, '取得失敗')).toBe('取得失敗');
+        expect(reduceErrors({ body: { stackTrace: 'Apex', message: 'internal' } }, '取得失敗')).toBe('取得失敗');
+        expect(reduceErrors({ body: { exceptionType: 'System.AuraHandledException', message: '対象月を確認してください。' } }, '取得失敗')).toBe('対象月を確認してください。');
     });
 
     it('入力の応答情報を書き換えない', () => {

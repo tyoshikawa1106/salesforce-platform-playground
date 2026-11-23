@@ -106,6 +106,26 @@ async function emitCountAndPage(count, page) {
 }
 
 describe('c-case-email-message-list', () => {
+    it('件数の再配信後も一覧の取得失敗を保持する', async () => {
+        const element = createComponent();
+        getEmailMessages.mockRejectedValueOnce(new Error('read failed'));
+        getEmailMessageCount.emit(2);
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('read failed');
+        getEmailMessageCount.emit(2);
+        await flushPromises();
+        expect(getEmailMessages).toHaveBeenCalledTimes(1);
+        expect(element.shadowRoot.textContent).toContain('read failed');
+        expect(element.shadowRoot.textContent).not.toContain('このケースに紐づくメールメッセージはありません');
+        // 利用者の更新操作で一覧を取得できたら通常表示へ戻る
+        getEmailMessages.mockResolvedValueOnce(initialPage);
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('受信メール');
+        expect(element.shadowRoot.textContent).not.toContain('read failed');
+    });
+
     it.each(['initial', 'more'])('preserves count errors after an in-flight %s page and recovers on refresh', async (phase) => {
         const element = createComponent();
         if (phase === 'more') {

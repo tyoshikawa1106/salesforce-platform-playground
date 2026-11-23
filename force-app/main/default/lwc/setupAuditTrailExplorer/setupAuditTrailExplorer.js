@@ -1,3 +1,4 @@
+import { getApexMessage } from 'c/salesforceApiUtils';
 import { LightningElement } from 'lwc';
 import SetupAuditTrailExportModal from 'c/setupAuditTrailExportModal';
 import TIME_ZONE from '@salesforce/i18n/timeZone';
@@ -1325,7 +1326,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             }
         } catch (error) {
             // 現在の画面に属する開始・保存エラーだけを表示する。
-            if (!controller.signal.aborted) this.downloadError = error.body?.message || 'CSV出力を開始できませんでした。';
+            if (!controller.signal.aborted) this.downloadError = getApexMessage(error, 'CSV出力を開始できませんでした。');
         } finally {
             // 前のモーダルの終了で再接続後の操作を解除しない。
             if (this.exportController === controller) {
@@ -1479,7 +1480,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 現在の条件での取得失敗だけを表示する。
             if (request === this.request) {
                 // 失敗内容を履歴画面で確認できるようにする。
-                this.error = error.body?.message || '設定変更履歴を取得できませんでした。';
+                this.error = getApexMessage(error, '設定変更履歴を取得できませんでした。');
             }
         } finally {
             // 新しい要求の待機表示を保護する。
@@ -1548,7 +1549,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         } catch (error) {
             if (isCurrent()) {
                 // 取得失敗は分析タブだけに表示し、部分集計は公開しない。
-                this.analysisError = error.body?.message || '月全体の分析を取得できませんでした。';
+                this.analysisError = getApexMessage(error, '月全体の分析を取得できませんでした。');
             }
         } finally {
             if (isCurrent()) {

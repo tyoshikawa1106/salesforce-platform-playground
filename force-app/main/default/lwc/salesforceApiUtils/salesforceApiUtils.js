@@ -1,3 +1,18 @@
+// 公開用のApex例外は案内文を使い、未処理例外は操作ごとの案内へ置き換える
+export function getApexMessage(error, fallbackMessage) {
+    const body = error?.body;
+    // 未処理例外には例外型またはサーバー側のスタックが含まれる
+    if (isUnhandledApexError(body)) {
+        return fallbackMessage;
+    }
+    return body?.message || fallbackMessage;
+}
+
+// 公開用の例外型と、未処理例外に付与される情報を区別
+function isUnhandledApexError(body) {
+    return body?.stackTrace || (body?.exceptionType && !['AuraHandledException', 'System.AuraHandledException'].includes(body.exceptionType));
+}
+
 // Salesforceエラーから画面表示用メッセージ一覧を抽出
 export function getErrorMessages(errors, fallbackMessage) {
     // 単一エラーと複数エラーを同じ反復処理へ統一
@@ -24,7 +39,7 @@ export function getErrorMessages(errors, fallbackMessage) {
         }
 
         // Apex、JavaScript、代替文言の優先順で表示内容を確定
-        messages.push(error.body?.message ?? error.message ?? fallbackMessage);
+        messages.push(isUnhandledApexError(error.body) ? fallbackMessage : error.body?.message ?? error.message ?? fallbackMessage);
     }
 
     // 呼び出し側が用途に応じて整形できる配列を返却

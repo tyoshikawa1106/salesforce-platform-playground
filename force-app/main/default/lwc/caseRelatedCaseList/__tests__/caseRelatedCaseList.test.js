@@ -174,6 +174,19 @@ const getTabText = (tab) =>
         .join(' ');
 
 describe('c-case-related-case-list', () => {
+    it('次のケースを受信するまで旧ケースのカードを表示しない', async () => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        emitRelatedCases(CONTACT_RECORD_ID, [createRelatedCase({id:'500000000000002AAA',caseNumber:'PREVIOUS-RELATED-CASE'})]);
+        await flushPromises();
+        element.recordId = '500000000000099AAA';
+        await flushPromises();
+        expect(getRecord.getLastConfig().recordId).toBe(element.recordId);
+        expect(element.shadowRoot.querySelector('lightning-tab')).toBeNull();
+        expect(element.shadowRoot.querySelector('lightning-spinner')).not.toBeNull();
+    });
+
     beforeEach(() => {
         mockGenerateUrl.mockReset().mockResolvedValue('https://www.example.com');
     });

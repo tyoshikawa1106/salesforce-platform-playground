@@ -64,7 +64,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### 構成上の補足
 
-状態レコードのinsert・updateはControllerとQueueableがUSER_MODEで実行します。Serviceは保存対象の生成と判定・集計に限定し、区間集計と失敗判定では元のレコードを変更せず新しい状態を返します。Controllerは公開入口から検証し、テストのためのService・Selectorの差し替え用フィールドは持ちません。
+Controllerは開始時に状態レコードをUSER_MODEで作成し、Queueableは受付後の状態をUSER_MODEで更新します。開始処理が例外で終了した場合、作成したレコードもロールバックされます。Serviceは保存対象の生成と判定・集計に限定し、区間集計と失敗判定では元のレコードを変更せず新しい状態を返します。Controllerは公開入口から検証し、テストのためのService・Selectorの差し替え用フィールドは持ちません。
 
 ## 入力
 

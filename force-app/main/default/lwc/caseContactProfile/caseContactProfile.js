@@ -88,7 +88,20 @@ export default class CaseContactProfile extends NavigationMixin(
     }
 
     // レコードページから表示中CaseのIDを受け取る
-    @api recordId;
+    _recordId;
+    @api
+    get recordId() {
+        return this._recordId;
+    }
+
+    set recordId(value) {
+        // 同じケースへの再設定では表示を維持
+        if (value === this._recordId) return;
+        // 次のCase応答まで前のケースを表示しない
+        this._recordId = value;
+        this.hasLoaded = false;
+        this.clientError = undefined;
+    }
 
     // UI API項目から生成したプロフィール表示状態を保持
     profile = createProfile();
@@ -120,6 +133,8 @@ export default class CaseContactProfile extends NavigationMixin(
         try {
             // 取得成功時は関連先の変更を判定して表示を更新
             if (data) {
+                // 15桁と18桁のIDを照合し、移動前のケースの応答を破棄
+                if (!this.recordId || data.id?.slice(0, 15) !== this.recordId.slice(0, 15)) return;
                 // 更新前のContact IDを件数リセット判定用に保持
                 const previousContactId = this.contactId;
                 // 更新前のAccount IDを件数リセット判定用に保持
