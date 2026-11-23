@@ -81,12 +81,6 @@
                 <identifier>forceChatter_recordFeedContainer2</identifier>
             </componentInstance>
         </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentName>forceChatter:recordFeedContainer</componentName>
-                <identifier>forceChatter_recordFeedContainer3</identifier>
-            </componentInstance>
-        </itemInstances>
         <name>Facet-fa77327f-db0c-46e6-aafb-5c090b454b23</name>
         <type>Facet</type>
     </flexiPageRegions>
