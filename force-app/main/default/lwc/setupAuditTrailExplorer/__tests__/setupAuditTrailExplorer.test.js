@@ -1,4 +1,5 @@
 import { createElement } from 'lwc';
+import ExportModal from 'c/setupAuditTrailExportModal';
 import Explorer from 'c/setupAuditTrailExplorer';
 import * as historyLogic from '../setupAuditTrailExplorerLogic';
 import loadEmployeeActorIds from '@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds';
@@ -37,12 +38,24 @@ jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true })
 
 const countMonth = countMatches.month;
 const cutoff = '2026-11-19T10:00:00.000Z';
+let activeModal;
 
 beforeEach(() => {
     loadEmployeeActorIds.mockReset().mockResolvedValue([]);
     startSearch.mockReset().mockResolvedValue(cutoff);
-    HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
-    HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
+    // 標準オーバーレイの開閉だけを模擬し、実際のCSV確認コンポーネントを操作する。
+    jest.spyOn(ExportModal, 'open').mockImplementation(({ size, ...options }) => new Promise(resolve => {
+        const modal = createElement('c-setup-audit-trail-export-modal', { is: ExportModal });
+        expect(size).toBe('small');
+        Object.assign(modal, options);
+        activeModal = modal;
+        modal.closeHandler = result => {
+            modal.remove();
+            activeModal = undefined;
+            resolve(result);
+        };
+        document.body.appendChild(modal);
+    }));
     loadFilterOptions.mockResolvedValue({ options: { action: ['createdApexClass'], namespacePrefix: [], delegateUser: [] } });
     countMonth.mockResolvedValue(0);
     countMatches.request.mockResolvedValue(0);
@@ -53,8 +66,12 @@ jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virt
 
 const flush = () => new Promise(resolve => require('timers').setImmediate(resolve));
 
-function confirmCsv(component) {
-    const dialog = component.shadowRoot.querySelector('dialog[open]');
+function currentDialog() {
+    return activeModal?.shadowRoot;
+}
+
+function confirmCsv() {
+    const dialog = currentDialog();
     expect(dialog).not.toBeNull();
     [...dialog.querySelectorAll('lightning-button')].find(button => button.label === '出力').click();
 }
@@ -347,10 +364,10 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
         }
         await flush();
-        expect(component.shadowRoot.querySelector('dialog[open]').textContent).toContain(period === 'all' ? '全期間' : monthStart.slice(0, 7));
+        expect(currentDialog().textContent).toContain(period === 'all' ? '全期間' : monthStart.slice(0, 7));
         expect(exportAllHistory).not.toHaveBeenCalled();
         expect(load.request.mock.calls.some(([{ input }]) => input.csv)).toBe(false);
-        confirmCsv(component);
+        confirmCsv();
         clock.mockReturnValue(startedAt + 5000);
         await downloaded;
         await flush();
@@ -402,15 +419,15 @@ it('retries only the failed CSV page after a temporary connection error', async 
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(button => button.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
 
     expect(load.request).toHaveBeenCalledTimes(4);
     expect(load.request.mock.calls[2]).toEqual(load.request.mock.calls[3]);
     expect(load.request.mock.calls[3][0].input).toEqual(expect.objectContaining({ nextId: 'cursor', nextTime: 'time' }));
-    expect(component.shadowRoot.querySelector('[role="status"]').textContent)
+    expect(currentDialog().querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
-    expect(component.shadowRoot.querySelector('lightning-spinner').alternativeText).toBe('CSVを作成中');
+    expect(currentDialog().querySelector('lightning-spinner').alternativeText).toBe('CSVを作成中');
 });
 
 it('shows a CSV permission error without retrying', async () => {
@@ -420,13 +437,41 @@ it('shows a CSV permission error without retrying', async () => {
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(button => button.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
 
     expect(load.request).toHaveBeenCalledTimes(2);
-    expect(component.shadowRoot.querySelector('[role="alert"]').textContent)
+    expect(currentDialog().querySelector('[role="alert"]').textContent)
         .toContain('アクセス権限がありません。');
-    expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
+    expect(currentDialog().querySelector('lightning-spinner')).toBeNull();
+});
+
+it('retries from the same modal after an export error and downloads only the completed file', async () => {
+    load.request.mockResolvedValueOnce({ records: [] })
+        .mockRejectedValueOnce({ body: { message: '一時的に出力できません。' } })
+        .mockResolvedValueOnce({ records: [] });
+    const component = mount();
+    await flush();
+    component.shadowRoot.querySelector('[data-monthly-export]').click();
+    await expect(activeModal).toBeAccessible();
+    confirmCsv();
+    await flush();
+    expect(currentDialog().querySelector('[role="alert"]').textContent).toBe('一時的に出力できません。');
+    const previousCreate = URL.createObjectURL;
+    const previousRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:retry');
+    URL.revokeObjectURL = jest.fn();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+        confirmCsv();
+        await flush();
+        expect(download).toHaveBeenCalledTimes(1);
+        expect(currentDialog()).toBeUndefined();
+    } finally {
+        component.remove();
+        URL.createObjectURL = previousCreate;
+        URL.revokeObjectURL = previousRevoke;
+    }
 });
 
 it('stops fetching CSV pages when the component is removed', async () => {
@@ -439,7 +484,7 @@ it('stops fetching CSV pages when the component is removed', async () => {
     const button = [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(child => child.label === 'CSV出力');
     button.click();
-    confirmCsv(component);
+    confirmCsv();
     component.remove();
     finishPage({ records: [], nextId: 'cursor', nextTime: 'time' });
     await flush();
@@ -455,9 +500,9 @@ it('reports how many CSV rows have been fetched while waiting for the next page'
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(child => child.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
-    expect(component.shadowRoot.querySelector('[role="status"]').textContent)
+    expect(currentDialog().querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
     expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
@@ -472,7 +517,7 @@ it('stops fetching login-as evidence after leaving the page', async () => {
     const component = mount();
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
     component.remove();
     finishEvidence({ records: [], nextId: 'more', nextTime: 'time' });
@@ -814,16 +859,16 @@ it('shows actor and delegate names on screen and indexes the section across sour
     expect(countMatches.request).not.toHaveBeenCalled();
     component.shadowRoot.querySelector('[data-result-export]').click();
     await flush();
-    const dialog = component.shadowRoot.querySelector('dialog');
+    const dialog = currentDialog();
     expect(dialog.textContent).toContain('全2件');
     expect(dialog.textContent).toContain('セクション：ログイン');
     load.request.mockRejectedValueOnce({ body: { message: 'CSV取得エラー' } });
-    confirmCsv(component);
+    confirmCsv();
     await flush();
     expect(load.request.mock.lastCall[0].input).toMatchObject({ csv: true, userId: 'targetId', section: 'ログイン',
         cutoff, recordIds: ['logout', 'login'] });
     expect(dialog.querySelector('[role="alert"]').textContent).toBe('CSV取得エラー');
-    dialog.dispatchEvent(new CustomEvent('cancel', { cancelable: true }));
+    [...dialog.querySelectorAll('lightning-button')].find(button => button.label === 'キャンセル').click();
 
     const chartTab = [...component.shadowRoot.querySelectorAll('lightning-tab')].find(tab => tab.value === 'chart');
     chartTab.dispatchEvent(new CustomEvent('active'));
@@ -1076,13 +1121,13 @@ it('cancels a confirmed CSV export and ignores its outstanding page', async () =
     await flush();
     const root = component.shadowRoot;
     root.querySelector('lightning-button-menu').dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
-    confirmCsv(component);
+    confirmCsv();
     await flush();
-    expect(root.querySelector('dialog [role="status"]').textContent).toContain('0件取得済み');
-    root.querySelector('dialog').dispatchEvent(new CustomEvent('cancel', { cancelable: true }));
+    expect(currentDialog().querySelector('[role="status"]').textContent).toContain('0件取得済み');
+    activeModal.close();
     finish({ records: [], nextId: 'later', nextTime: 'time' });
     await flush();
-    expect(root.querySelector('dialog[open]')).toBeNull();
+    expect(currentDialog()).toBeUndefined();
     expect(exportAllHistory).toHaveBeenCalledTimes(1);
 });
 
@@ -1415,9 +1460,9 @@ it('exports all result pages with the applied action and original cutoff from th
     try {
         launcher.click();
         await flush();
-        expect(root.querySelector('dialog').textContent).toContain('アクション：createdApexClass');
-        expect(root.querySelector('dialog').textContent).toContain('全2件');
-        confirmCsv(component);
+        expect(currentDialog().textContent).toContain('アクション：createdApexClass');
+        expect(currentDialog().textContent).toContain('全2件');
+        confirmCsv();
         await flush();
         const queries = load.request.mock.calls.map(([{ input }]) => input).filter(input => input.csv);
         expect(queries[0].nextId).toBeUndefined();
@@ -1456,11 +1501,11 @@ it('uses the same section match IDs for confirmation and export, and rejects inc
     await search(component);
     component.shadowRoot.querySelector('[data-result-export]').click();
     await flush();
-    expect(component.shadowRoot.querySelector('dialog').textContent).toContain('全1件');
+    expect(currentDialog().textContent).toContain('全1件');
     const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
-    confirmCsv(component);
+    confirmCsv();
     await flush();
     expect(load.request.mock.lastCall[0].input).toMatchObject({ section: 'A', recordIds: ['matches'], cutoff, csv: true });
-    expect(component.shadowRoot.querySelector('dialog [role="alert"]').textContent).toContain('再検索');
+    expect(currentDialog().querySelector('[role="alert"]').textContent).toContain('再検索');
     expect(download).not.toHaveBeenCalled();
 });

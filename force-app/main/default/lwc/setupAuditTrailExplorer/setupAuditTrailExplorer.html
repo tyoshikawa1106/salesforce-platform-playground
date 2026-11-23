@@ -22,27 +22,7 @@
             </div>
         </header>
 
-        <dialog class="c-export-dialog" aria-labelledby="csv-title" aria-describedby="csv-description" oncancel={cancelExportDialog}>
-            <header class="slds-modal__header">
-                <h2 id="csv-title" class="slds-text-heading_medium">CSV出力</h2>
-            </header>
-            <div class="slds-modal__content slds-p-around_medium">
-                <p id="csv-description"><template lwc:if={exporting}>{exportRange}</template><template lwc:else>{exportConfirmation}<br />表計算ソフトで開く場合は、各列を文字列として取り込んでください。</template></p>
-                <p lwc:if={resultExport} class="slds-m-top_small">{resultExport.labels}</p>
-                <div lwc:if={exporting} class="c-inline-status slds-m-top_medium">
-                    <p role="status">{exportProgress}</p>
-                    <span class="c-inline-spinner">
-                        <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
-                    </span>
-                </div>
-                <p lwc:if={exportError} role="alert" class="slds-text-color_error slds-m-top_medium">{exportError}</p>
-            </div>
-            <footer class="slds-modal__footer">
-                <lightning-button label="キャンセル" onclick={closeExportDialog}></lightning-button>
-                <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={exportConfirmDisabled}
-                    onclick={confirmExport}></lightning-button>
-            </footer>
-        </dialog>
+        <p lwc:if={downloadError} role="alert" class="slds-text-color_error slds-m-bottom_small">{downloadError}</p>
         <div class="slds-box slds-theme_default">
             <div class="month-navigation slds-m-bottom_medium">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"

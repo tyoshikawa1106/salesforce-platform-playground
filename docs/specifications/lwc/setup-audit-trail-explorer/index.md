@@ -10,7 +10,7 @@ Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・�
 
 ## 対象実装・メタデータ
 
-- カスタムタブ `SetupAuditTrailExplorer` が画面の入口です。`setupAuditTrailExplorer.js` が取得と画面操作を制御し、`setupAuditTrailExplorerLogic.js` が表示値と CSV 明細を組み立てます。`setupAuditTrailChart.js` が集計結果を表示します。
+- カスタムタブ `SetupAuditTrailExplorer` が画面の入口です。`setupAuditTrailExplorer.js` が取得と画面操作を制御し、`setupAuditTrailExplorerLogic.js` が表示値と CSV 明細を組み立てます。`setupAuditTrailChart.js` が集計結果を表示します。`setupAuditTrailExportModal.js` が標準モーダルでCSV出力の確認・進捗・エラーを表示し、`setupAuditTrailExportModalLogic.js` が対象範囲と件数の確認文を組み立てます。
 - `SetupAuditTrailExplorerController` が一覧・集計・候補・CSV の要求を受け付け、`SetupAuditTrailExplorerSelector` が履歴を取得します。`SetupAuditTrailExplorerService` が期間・ページ境界の検証と結果の整形を行い、`SetupAuditTrailExplorerWrapper` が明細・集計・次ページの境界を返します。
 
 ## 入力
@@ -35,7 +35,7 @@ Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・�
 
 履歴タブでは、表自体の高さを Salesforce の本文領域一画面分から 9.875rem（通常行で約5行分）を引いた高さに調整します。表までページをスクロールすると、その中で履歴の行をスクロールできます。ページ送りは表の下に表示します。
 
-月別・全期間とも、CSV操作で対象期間の確認ダイアログを開き、「出力」で取得を開始します。取得済み件数とエラーはダイアログ内に表示し、ダウンロード開始後に閉じます。「キャンセル」または Esc で中断できます。
+月別・全期間とも、CSV操作で対象期間の確認ダイアログを開き、「出力」で取得を開始します。取得済み件数とエラーはダイアログ内に表示し、全ページの取得が完了するとモーダルが閉じ、ダウンロードを開始します。「キャンセル」または Esc で中断できます。
 
 履歴テーブル右下の「検索結果をCSV出力」は、表示中のページにかかわらず、最後に適用した条件と検索基準時刻で全ページの履歴を出力します。確認画面に対象月、適用済み条件、一致件数を表示します。セクションや代理ログインの照合が必要な場合は一覧と同じ判定で一致 ID を確定し、その ID に対応する CSV 明細を分割取得します。件数が確認時と異なる場合は再検索を案内します。履歴が空のときはボタンが無効になります。
 
