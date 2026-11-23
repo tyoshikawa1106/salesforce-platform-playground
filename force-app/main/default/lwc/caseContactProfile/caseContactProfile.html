@@ -18,17 +18,19 @@
         aria-busy={isLoading}
         aria-label="取引先責任者プロフィール"
     >
-        <h2 slot="title" class="slds-truncate" title={contactName}>
-            <template lwc:if={contactRecordUrl}>
-                <a
-                    href={contactRecordUrl}
-                    target="_blank"
-                    rel="noopener"
-                    >{contactName}</a
-                >
-            </template>
-            <template lwc:else>{contactName}</template>
-        </h2>
+        <template lwc:if={hasLoaded}>
+            <h2 slot="title" class="slds-truncate" title={contactName}>
+                <template lwc:if={contactRecordUrl}>
+                    <a
+                        href={contactRecordUrl}
+                        target="_blank"
+                        rel="noopener"
+                        >{contactName}</a
+                    >
+                </template>
+                <template lwc:else>{contactName}</template>
+            </h2>
+        </template>
         <template lwc:if={isLoading}>
             <div
                 class="c-customer-card slds-p-horizontal_medium slds-p-bottom_medium slds-is-relative"
