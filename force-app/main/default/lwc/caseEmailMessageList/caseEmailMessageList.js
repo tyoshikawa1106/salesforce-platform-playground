@@ -232,6 +232,16 @@ export default class CaseEmailMessageList extends LightningElement {
         return this.emailMessages.length > 0;
     }
 
+    // 一覧が空の場合は、取得済みの総件数に応じて案内を切り替える
+    get emptyListMessage() {
+        // 件数と一覧の再取得が完了してから結果を表示
+        if (!this.hasLoaded || this.isBusy) return '';
+        // 別々に取得した件数と一覧に食い違いがあれば手動更新を案内
+        return this.totalEmailMessageCount > 0
+            ? '件数と一覧が一致していません。「再読み込み」で最新のメールを確認してください。'
+            : 'このケースに紐づくメールメッセージはありません。';
+    }
+
     // 取得状態と総件数を反映したカードタイトルを返却
     get cardTitle() {
         // 取得状態と総件数に応じたタイトル生成をLogicへ委譲
