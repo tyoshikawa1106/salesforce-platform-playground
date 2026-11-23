@@ -551,6 +551,22 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
 });
 
+it('renders the remaining local rows as the table approaches the end of a batch', async () => {
+    const records = Array.from({ length: 51 }, (_, index) => ({ Id: String(index + 1) }));
+    load.request.mockResolvedValueOnce({ records });
+    const component = mount();
+    await flush();
+    const table = component.shadowRoot.querySelector('lightning-datatable');
+    expect(table.data).toHaveLength(50);
+    expect(Number(table.loadMoreOffset)).toBeGreaterThanOrEqual(600);
+    expect(table.enableInfiniteLoading).toBe(true);
+    table.dispatchEvent(new CustomEvent('loadmore'));
+    await flush();
+    expect(table.data.map(row => row.Id)).toEqual(records.map(row => row.Id));
+    expect(table.enableInfiniteLoading).toBe(false);
+    expect(load.request).toHaveBeenCalledTimes(1);
+});
+
 it('moves through adjacent pages and resets the cursor only after search', async () => {
     countMonth.mockResolvedValue(2002);
     load.request.mockImplementation(({ input: { nextId, action } }) => {
@@ -567,7 +583,13 @@ it('moves through adjacent pages and resets the cursor only after search', async
     await flush();
     expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['次へ']);
     expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 1000, chart: false });
+    let finishPage;
+    load.request.mockImplementationOnce(() => new Promise(resolve => { finishPage = resolve; }));
     button('次へ').click();
+    await flush();
+    expect(root.querySelector('.c-history-viewport')).not.toBeNull();
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    finishPage({ records: [{ Id: 'cursor-2' }], nextId: 'cursor-3', nextTime: 'time' });
     await flush();
     expect(root.textContent).toContain('2 / 3ページ');
     expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(1000);
@@ -1153,9 +1175,15 @@ it('reuses five pages and refetches the evicted page with the original cutoff', 
     await visit([2, 3, 4, 5, 6], '次へ');
     await visit([5, 4, 3, 2], '前へ');
     expect(load.request).toHaveBeenCalledTimes(6);
+    let finishPage;
+    load.request.mockImplementationOnce(() => new Promise(resolve => { finishPage = resolve; }));
     await move('前へ');
     expect(load.request).toHaveBeenCalledTimes(7);
     expect(load.request.mock.lastCall[0].input).toMatchObject({ cutoff });
+    expect(root.querySelector('.c-history-viewport')).not.toBeNull();
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    finishPage({ records: [{ Id: '1' }], nextId: '2', nextTime: 'time' });
+    await flush();
     expect(root.querySelector('lightning-datatable').data[0].Id).toBe('1');
 });
 
