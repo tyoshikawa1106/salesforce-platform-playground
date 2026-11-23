@@ -784,9 +784,11 @@ export default class ObjectExplorer extends LightningElement {
             this.reportClientError(error, 'handleCandidateScroll', 'ui-event');
         }
     }
-    async handleClearObject() {
+    async handleClearObject(event) {
         // 画面イベントの例外をコンポーネント外へ伝播させない
         try {
+            // モード切替による初期化と、ルックアップ自身からの解除を区別する。
+            const lookup = event?.currentTarget;
             // 取得や保存の途中では適用対象を変更しない
             if (this.busy) { return false; }
             // 確認中に別の対象へ切り替わった場合は解除しない
@@ -832,6 +834,11 @@ export default class ObjectExplorer extends LightningElement {
             this.error = '';
             // 関連・項目・変更件数を空の対象に同期
             this.rebuild();
+            // 解除前の読み取り専用欄が検索欄に置き換わってからフォーカスを戻す。
+            if (lookup) {
+                await Promise.resolve();
+                lookup.focusSearchInput();
+            }
             // 呼び出し元は対象の解除が確定した場合だけ種別を変更
             return true;
 

@@ -38,6 +38,11 @@ export default class ObjectExplorerLookup extends LightningElement {
         }
     }
 
+    // 対象の解除後、利用者がそのまま次の検索語を入力できるようにする。
+    @api focusSearchInput() {
+        this.template.querySelector('input:not([readonly])')?.focus();
+    }
+
     // 入力した検索語を親へ通知
     handleSearch(event) {
         // 取得処理は親の要求世代で制御
