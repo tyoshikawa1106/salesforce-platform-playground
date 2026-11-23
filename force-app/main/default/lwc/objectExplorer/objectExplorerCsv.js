@@ -1,5 +1,5 @@
 import { classifyInput, normalizeClassify, createOwnerOptions } from './objectExplorerClassifyLogic';
-import { compareFieldLabels, structureRows } from './objectExplorerFieldLogic';
+import { compareFieldLabels, formatStructureRows } from './objectExplorerFieldLogic';
 
 // 出力と読取で同じ列名・順序を使用し、表示ラベルで項目を推測しない
 const CLASSIFY_CSV_COLUMNS = ['ObjectLabel', 'ObjectApiName', 'FieldLabel', 'FieldApiName', 'ComplianceGroup', 'SecurityClassification', 'BusinessStatus', 'BusinessOwnerId'];
@@ -8,17 +8,18 @@ const CLASSIFY_CSV_LABELS = ['オブジェクトラベル', 'オブジェクトA
 // ブラウザの入力検証とDOMのエラー表示を一定の規模へ制限
 export const CLASSIFY_CSV_LIMITS = Object.freeze({ rows: 10000, bytes: 5 * 1024 * 1024, owners: 500 });
 
+// 構造一覧の列と保存済み分類の列順を固定する。
+const STRUCTURE_CSV_LABELS = ['項目ラベル', 'API名', 'データ型', 'カスタム', '作成日', '最終更新日', 'コンプライアンス分類', 'データ機密度', '項目の利用状況', 'データ所有者ID'];
+
 // 構造CSVは項目定義6列に保存済み分類4列を加えて全件出力
-export function structureCsv(fields, locale, timeZone, classifyData = {}) {
+function structureCells(fields, locale, timeZone, classifyData) {
     // 項目定義を同じ表示モデルへ変換
-    const rows = structureRows(fields, locale, timeZone).map((field) => {
+    return formatStructureRows(fields, locale, timeZone).map((field) => {
         // 編集可否では除外せず、取得できた保存済みの分類を同じ項目へ対応付ける
         const info = classifyData[field.apiName] || {};
         // 分類未取得の項目も行を保持し、分類欄は空欄で出力
         return [field.label, field.apiName, field.typeLabel, field.custom ? 'True' : 'false', field.createdAudit.text, field.modifiedAudit.text, info.complianceGroup, info.securityClassification, info.businessStatus, info.ownerId];
     });
-    // オブジェクト名はファイル名に保持し、分類列は分類CSVと同じAPI値を使用
-    return encodeCsv([['項目ラベル', 'API名', 'データ型', 'カスタム', '作成日', '最終更新日', 'コンプライアンス分類', 'データ機密度', '項目の利用状況', 'データ所有者ID'], ...rows]);
 }
 
 // Salesforce利用者のタイムゾーンで出力日時をファイル名へ付加
@@ -31,16 +32,16 @@ export function csvFileName(objectName, isReference, date, timeZone) {
     return `${objectName}-${isReference ? 'fields' : 'classify'}-${values.year}${values.month}${values.day}${values.hour}${values.minute}${values.second}.csv`;
 }
 
-// BOMと引用符で文字コード・セル境界・改行を保持
+// グループ内のセル境界と改行を保持
 function encodeCsv(rows) {
     // falseや0もそのまま出力し、引用符だけをエスケープ
-    return '\uFEFF' + rows.map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    return rows.map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
 }
 
 // 編集可能な項目をページ・検索条件から独立して出力
-export function classifyCsv(objectName, fields, classifyData, edits, objectLabel = objectName) {
-    // 一覧と同じ編集可否で分類未取得・編集不可を除外
-    const rows = fields.filter((field) => classifyData[field.apiName]?.editable).sort(compareFieldLabels).map((field) => {
+function classifyCells(objectName, fields, classifyData, edits, objectLabel) {
+    // 選択済みの項目から分類CSVの各セルを取り出す
+    return fields.map((field) => {
         // 同じAPI名の取得済み分類を出力の基準にする
         const info = classifyData[field.apiName];
         // 編集中の行は入力値、それ以外は取得値を使用
@@ -50,8 +51,29 @@ export function classifyCsv(objectName, fields, classifyData, edits, objectLabel
         // 項目一覧にある全対象をAPI名のまま保持
         return [objectLabel, objectName, field.label || field.apiName, field.apiName, values.complianceGroup, values.securityClassification, values.businessStatus, ownerId];
     });
-    // Excelでも文字コードとセル境界を維持できるようBOMと引用符を付与
-    return encodeCsv([CLASSIFY_CSV_LABELS, ...rows]);
+}
+
+// 確認件数と出力順には同じ対象項目を使用する。
+export function csvFields(fields, reference, classification) {
+    // 構造は全項目、分類は編集可能な項目をラベル順に出力する。
+    return fields.filter(field => reference || classification[field.apiName]?.editable).sort(compareFieldLabels);
+}
+
+// BOM・見出しを一度だけ付け、実際に整形した明細の累積件数を返す。
+export function* csvParts({ fields, reference, locale, timeZone, classification = {}, edits, objectName, objectLabel = objectName }) {
+    // 空の対象でも既存と同じ見出しを持つCSVにする。
+    yield { text: '\uFEFF' + encodeCsv([reference ? STRUCTURE_CSV_LABELS : CLASSIFY_CSV_LABELS]), count: 0 };
+    // 分割の間に呼び出し側で進捗表示とキャンセルを処理する。
+    const size = 25;
+    // 並べ替え済みの項目を重複なく処理する。
+    for (let index = 0; index < fields.length; index += size) {
+        // 最終グループの実件数もそのまま使用する。
+        const group = fields.slice(index, index + size);
+        // 各モードの列定義と同じ規則でセルを整形する。
+        const rows = reference ? structureCells(group, locale, timeZone, classification) : classifyCells(objectName, group, classification, edits, objectLabel);
+        // 見出しと各グループの境界だけに改行を付ける。
+        yield { text: '\r\n' + encodeCsv(rows), count: index + rows.length };
+    }
 }
 
 // 読取専用行は保存済み分類と所有者IDが同じ場合だけ読み飛ばす

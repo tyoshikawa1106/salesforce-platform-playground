@@ -29,16 +29,8 @@ export function structureFieldView(fields, locale, timeZone, previous) {
     return { source: fields, locale, timeZone, rows: formatStructureRows(fields, locale, timeZone) };
 }
 
-// 構造CSVの未整列の全項目を画面と同じ行順へ揃える
-export function structureRows(fields, locale, timeZone) {
-    // 取得済みの項目定義は変更せず一度だけ並べ替える
-    const sorted = [...fields].sort(compareFieldLabels);
-    // 画面と同じ日時・ユーザー名の表示値を生成
-    return formatStructureRows(sorted, locale, timeZone);
-}
-
 // 整列済み項目の表示値を生成し、画面とCSVで形式を共用
-function formatStructureRows(fields, locale, timeZone) {
+export function formatStructureRows(fields, locale, timeZone) {
     // 対象なしでフォーマッターを生成しない
     if (!fields.length) { return []; }
     // Salesforceの言語とタイムゾーンに合わせ、分単位まで表示

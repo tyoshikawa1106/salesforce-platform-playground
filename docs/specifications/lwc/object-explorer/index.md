@@ -18,10 +18,11 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### 画面・JavaScript
 
-| 種別 | 実装・設定                                                                                                  | 役割                                                               |
-| ---- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| LWC  | [objectExplorer](../../../../force-app/main/default/lwc/objectExplorer/objectExplorer.js)                   | LWCと同BundleのLogic・CSV・分類入力・項目整形モジュール、HTML・CSS |
-| LWC  | [objectExplorerLookup](../../../../force-app/main/default/lwc/objectExplorerLookup/objectExplorerLookup.js) | LWC（対象候補の表示と値だけの操作通知）                            |
+| 種別 | 実装・設定                                                                                                                    | 役割                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| LWC  | [objectExplorer](../../../../force-app/main/default/lwc/objectExplorer/objectExplorer.js)                                     | LWCと同BundleのLogic・CSV・分類入力・項目整形モジュール、HTML・CSS |
+| LWC  | [objectExplorerLookup](../../../../force-app/main/default/lwc/objectExplorerLookup/objectExplorerLookup.js)                   | LWC（対象候補の表示と値だけの操作通知）                            |
+| LWC  | [setupAuditTrailExportModal](../../../../force-app/main/default/lwc/setupAuditTrailExportModal/setupAuditTrailExportModal.js) | 設定変更履歴と共通のCSV出力確認・進捗・再試行                      |
 
 ### Apexコードと対応テスト
 
@@ -195,7 +196,7 @@ CSVはUTF-8（BOMあり・なし）を使用し、5MiB以下、データ10000行
 
 両モードの項目一覧はデータ型の右に「カスタム」列を設け、DescribeのisCustom()の値を該当する項目に枠なしのチェックアイコンを表示し、該当しない項目は空欄にします。読み上げではカスタム項目・標準項目を区別します。項目API名の末尾からは推測しません。構造CSVは同じ位置にカスタム列を追加し、チェックありを「True」、なしを「false」で出力します。分類CSVの入力用列は維持します。
 
-CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`または`オブジェクトAPI名-classify-YYYYMMDDHHmmss.csv`とします。日時は確認ダイアログでOKを選択した後の出力時点を、Salesforce利用者のタイムゾーンで秒単位まで使用します。
+CSVファイル名は`オブジェクトAPI名-fields-YYYYMMDDHHmmss.csv`または`オブジェクトAPI名-classify-YYYYMMDDHHmmss.csv`とします。日時は確認画面で「出力」を選択した後の出力時点を、Salesforce利用者のタイムゾーンで秒単位まで使用します。
 
 ## 出力・更新対象
 
@@ -242,7 +243,7 @@ Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報�
 
 項目検索は「項目名」の1入力欄とし、どちらかに部分一致する項目を表示します。検索は前後空白・大文字小文字を区別せず、データ型の条件と組み合わせます。
 
-両モードのCSVダウンロードは確認メッセージのOK選択後に開始します。確認中に対象やモードが変わった場合は出力しません。オブジェクト構造では全項目の項目ラベル・API名・データ型・カスタム・作成日・最終更新日を画面と同じ順序・表示値で出力します。確認後に保存済み分類を取得して追加4列へ反映し、取得処理の失敗時はダウンロードを中止して画面内へエラーを表示します。分類の編集権限は必要とせず、絞り込み・ページ位置に依存しません。
+両モードのCSVダウンロードは設定変更履歴と共通の確認画面に対象と明細数を表示し、「出力」で開始します。作成中は「CSVを作成中（N件取得済み）」に、見出しを除いてCSVに追加した累積明細数を表示します。キャンセルや画面離脱では部分ファイルを保存せず、取得失敗時は同じ確認画面から再試行できます。確認中に対象やモードが変わった場合は出力しません。オブジェクト構造では全項目の項目ラベル・API名・データ型・カスタム・作成日・最終更新日を画面と同じ順序・表示値で出力します。確認後に保存済み分類を取得して追加4列へ反映し、取得処理の失敗時はダウンロードを中止して画面内へエラーを表示します。分類の編集権限は必要とせず、絞り込み・ページ位置に依存しません。
 
 項目名の入力ヒントは「ラベルまたはAPI名で検索」とし、データ型と項目名はこの順に縦に並べ、CSV操作は右側へ配置します。
 

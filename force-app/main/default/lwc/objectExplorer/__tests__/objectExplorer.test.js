@@ -10,6 +10,7 @@ import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAud
 import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
 import saveClassifyData from '@salesforce/apex/ObjectExplorerController.saveClassifyData';
 import LightningConfirm from 'lightning/confirm';
+import CsvExportModal from 'c/setupAuditTrailExportModal';
 import searchClassifyOwners from '@salesforce/apex/ObjectExplorerController.searchClassifyOwners';
 import * as objectExplorerLogic from '../objectExplorerLogic';
 
@@ -22,6 +23,7 @@ jest.mock('@salesforce/apex/ObjectExplorerController.resolveClassifyOwners', () 
 jest.mock('@salesforce/apex/ObjectExplorerController.saveClassifyData', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ __esModule: true, default: false }), { virtual: true });
 jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ __esModule: true, default: true }), { virtual: true });
+jest.mock('c/setupAuditTrailExportModal', () => ({ __esModule: true, default: { open: jest.fn() } }));
 jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
 
 jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
@@ -432,46 +434,73 @@ it('分類は編集不可・未取得を一覧から除外し、件数を揃え�
     expect(element.shadowRoot.textContent).toContain('1項目');
 });
 
-it('構造CSVは分類取得失敗時にダウンロードせず処理場所を表示する', async () => {
+function exportButton(element) {
+    return [...element.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSVダウンロード');
+}
+
+it('構造CSVの取得に失敗した場合は同じモーダルで再試行できる', async () => {
     const element = createComponent();
     await flush();
     await pickAccount(element);
-    getClassifyData.mockRejectedValueOnce({ body: { message: '分類取得失敗' } });
-    const exportButton = [...element.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'CSVダウンロード');
-    exportButton.click();
+    let finish;
+    CsvExportModal.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    exportButton(element).click();
+    const { buildFile, exportSubject } = CsvExportModal.open.mock.calls[0][0];
+    expect(exportSubject).toContain('項目定義 全1件');
+    getClassifyData.mockRejectedValueOnce(new Error('分類取得失敗'));
+    await expect(buildFile(undefined, () => true, jest.fn())).rejects.toThrow('データ分類を取得できませんでした');
     await flush();
-    expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
     expect(element.shadowRoot.querySelector('.c-client-error').textContent).toContain('handleExportCsv');
-    expect(exportButton.disabled).toBe(false);
+    const progress = jest.fn();
+    await buildFile(undefined, () => true, progress);
+    expect(progress.mock.calls).toEqual([[0], [1]]);
+    finish(false);
+    await flush();
 });
 
-it('構造CSVの確認後に保存済み分類を取得して出力する', async () => {
+it.each(['reference', 'classify'])('確認・進捗とCSVの明細数が一致し、離脱時にURLを解放する（%s）', async mode => {
+    const fields = Array.from({ length: 53 }, (_, i) => ({ ...objectInfo.fields[0], apiName: 'F' + i }));
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields });
+    getClassifyData.mockResolvedValue({ ...classify, rows: Object.fromEntries(fields.map((field, i) => [field.apiName, { ...classify.rows.Name, editable: i >= 3 }])) });
     const createUrl = URL.createObjectURL;
     const revokeUrl = URL.revokeObjectURL;
     URL.createObjectURL = jest.fn(() => 'blob:test');
     URL.revokeObjectURL = jest.fn();
-    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     try {
         const element = createComponent();
-    await flush();
+        await flush();
+        if (mode === 'classify') {
+            element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: mode } }));
+            await flush();
+        }
         await pickAccount(element);
-        expect(getClassifyData).not.toHaveBeenCalled();
-        const button = [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === 'CSVダウンロード');
-        LightningConfirm.open.mockResolvedValueOnce(false);
-        button.click();
+        const count = mode === 'reference' ? 53 : 50;
+        CsvExportModal.open.mockResolvedValueOnce(false);
+        exportButton(element).click();
         await flush();
-        expect(getClassifyData).not.toHaveBeenCalled();
-        button.click();
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+        let finish;
+        CsvExportModal.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        exportButton(element).click();
+        exportButton(element).click();
+        expect(CsvExportModal.open).toHaveBeenCalledTimes(2);
+        const { buildFile, exportSubject } = CsvExportModal.open.mock.calls[1][0];
+        expect(exportSubject).toContain('全' + count + '件');
+        const progress = jest.fn();
+        await buildFile(undefined, () => true, progress);
+        expect(progress.mock.calls.flat()).toEqual(mode === 'reference' ? [0, 25, 50, 53] : [0, 25, 50]);
+        finish(true);
         await flush();
-        expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
+        expect(click.mock.instances[0]).toBe(element.shadowRoot.querySelector('[data-download]'));
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-        const text = await new Promise((resolve) => {
+        const text = await new Promise(resolve => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
             reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
         });
-        expect(text).toContain('データ所有者ID');
-        expect(text).toContain('名前');
+        expect(text.split('\r\n')).toHaveLength(count + 1);
+        element.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
     } finally {
         URL.createObjectURL = createUrl;
@@ -479,6 +508,31 @@ it('構造CSVの確認後に保存済み分類を取得して出力する', asyn
     }
 });
 
+it('途中キャンセルと再接続の後は、古いモーダルから出力しない', async () => {
+    const fields = Array.from({ length: 51 }, (_, index) => ({ ...objectInfo.fields[0], apiName: 'F' + index }));
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields });
+    const element = createComponent();
+    await flush();
+    await pickAccount(element);
+    let finish;
+    CsvExportModal.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    exportButton(element).click();
+    const { buildFile, ownerSignal } = CsvExportModal.open.mock.calls[0][0];
+    let open = true;
+    const progress = jest.fn(count => { open = count < 25; });
+    await buildFile(undefined, () => open, progress);
+    expect(progress.mock.calls).toEqual([[0], [25]]);
+    element.remove();
+    document.body.appendChild(element);
+    expect(ownerSignal.aborted).toBe(true);
+    getClassifyData.mockClear();
+    await buildFile(undefined, () => true, progress);
+    expect(getClassifyData).not.toHaveBeenCalled();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
+    finish(true);
+    await flush();
+    expect(download).not.toHaveBeenCalled();
+});
 
 it.each(['reference', 'classify'])('0件時の案内は一覧の全列に広がる（%s）', async (mode) => {
     const element = createComponent();
