@@ -1,5 +1,7 @@
 import { createElement } from 'lwc';
+import { getLayout } from 'lightning/uiLayoutApi';
 import { getRecord } from 'lightning/uiRecordApi';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
 import CaseRelatedCaseList from 'c/caseRelatedCaseList';
 
@@ -31,12 +33,32 @@ const flushPromises = async () => {
     await Promise.resolve();
 };
 
+const caseFields = {
+    Subject: { label: 'Issue summary' },
+    Status: { label: 'Status' },
+    Type: { label: 'Case type' },
+    CreatedDate: { label: 'Opened on' },
+    ClosedDate: { label: 'Closed on' },
+    AccountId: { label: 'Company' },
+    ContactId: { label: 'Contact' }
+};
+
+const emitLayout = (fields) => {
+    const layoutItems = Object.entries(fields).map(([apiName, { label }]) => ({
+        label,
+        layoutComponents: [{ componentType: 'Field', apiName }]
+    }));
+    getLayout.emit({ sections: [{ layoutRows: [{ layoutItems }] }] });
+};
+
 const createComponent = () => {
     const element = createElement('c-case-related-case-list', {
         is: CaseRelatedCaseList
     });
     element.recordId = CASE_RECORD_ID;
     document.body.appendChild(element);
+    getObjectInfo.emit({ defaultRecordTypeId: '012000000000000AAA' });
+    emitLayout(caseFields);
     return element;
 };
 
@@ -46,12 +68,11 @@ const createCaseRecord = ({
     caseNumber = '00001000',
     subject = '現在の問い合わせ',
     status = '対応中',
-    reason = '操作方法',
+    caseType = '質問',
     createdDate = '2026-07-18T01:30:00.000Z',
     closedDate = null,
     accountName = 'サンプル取引先',
-    contactName = '山田 太郎',
-    ownerName = 'サポート担当'
+    contactName = '山田 太郎'
 } = {}) => ({
     apiName: 'Case',
     fields: {
@@ -61,7 +82,7 @@ const createCaseRecord = ({
         CaseNumber: { value: caseNumber },
         Subject: { value: subject },
         Status: { value: status },
-        Reason: { value: reason },
+        Type: { value: caseType },
         CreatedDate: { value: createdDate },
         ClosedDate: { value: closedDate },
         Account: {
@@ -79,12 +100,6 @@ const createCaseRecord = ({
                       fields: { Name: { value: contactName } }
                   }
                 : null
-        },
-        Owner: {
-            value: {
-                apiName: 'User',
-                fields: { Name: { value: ownerName } }
-            }
         }
     },
     id: CASE_RECORD_ID
@@ -95,21 +110,20 @@ const createRelatedCase = ({
     caseNumber,
     subject = 'ログイン方法を確認したい',
     status = '新規',
-    reason = '機能不備',
+    caseType = '問題',
     accountId = ACCOUNT_RECORD_ID,
     accountName = '関連取引先',
     contactId = CONTACT_RECORD_ID,
     contactName = '佐藤 花子',
     createdDate = '2026-07-17T01:30:00.000Z',
-    closedDate = '2026-07-19T01:30:00.000Z',
-    ownerName = '関連ケース担当'
+    closedDate = '2026-07-19T01:30:00.000Z'
 }) => ({
     apiName: 'Case',
     fields: {
         CaseNumber: { value: caseNumber },
         Subject: { value: subject },
         Status: { value: status },
-        Reason: { value: reason },
+        Type: { value: caseType },
         AccountId: { value: accountId },
         Account: {
             value: {
@@ -125,13 +139,7 @@ const createRelatedCase = ({
             }
         },
         CreatedDate: { value: createdDate },
-        ClosedDate: { value: closedDate },
-        Owner: {
-            value: {
-                apiName: 'User',
-                fields: { Name: { value: ownerName } }
-            }
-        }
+        ClosedDate: { value: closedDate }
     },
     id
 });
@@ -266,13 +274,12 @@ describe('c-case-related-case-list', () => {
                 optionalFields: [
                     'Case.Subject',
                     'Case.Status',
-                    'Case.Reason',
+                    'Case.Type',
                     'Case.ClosedDate',
                     'Case.AccountId',
                     'Case.Account.Name',
                     'Case.ContactId',
-                    'Case.Contact.Name',
-                    'Case.Owner.Name'
+                    'Case.Contact.Name'
                 ],
                 sortBy: ['-Case.CreatedDate']
             })
@@ -345,14 +352,25 @@ describe('c-case-related-case-list', () => {
             )
         ).toBe(true);
         expect(getTabText(tabs[1])).toContain('契約内容を確認したい');
-        expect(getTabText(tabs[1])).toContain('状況 新規');
-        expect(getTabText(tabs[1])).toContain('原因 機能不備');
-        expect(getTabText(tabs[1])).toContain('オープン日');
-        expect(getTabText(tabs[1])).toContain('クローズ日');
-        expect(getTabText(tabs[1])).toContain('ケース日数 2日');
-        expect(getTabText(tabs[1])).toContain('取引先 関連取引先');
-        expect(getTabText(tabs[1])).toContain('取引先責任者 佐藤 花子');
-        expect(getTabText(tabs[1])).toContain('所有者 関連ケース担当');
+        const expectedDetails = {
+            [caseFields.Subject.label]: '契約内容を確認したい',
+            [caseFields.Status.label]: '新規',
+            [caseFields.Type.label]: '問題',
+            [caseFields.CreatedDate.label]: '2026-07-17T01:30:00.000Z',
+            [caseFields.ClosedDate.label]: '2026-07-19T01:30:00.000Z',
+            [caseFields.AccountId.label]: '関連取引先',
+            [caseFields.ContactId.label]: '佐藤 花子'
+        };
+        for (const tile of tiles) {
+            const labels = [...tile.querySelectorAll('dl dt')];
+            expect(labels.map((label) => label.textContent)).toEqual(Object.keys(expectedDetails));
+            expect(tile.querySelectorAll('dt + dd')).toHaveLength(labels.length);
+        }
+        for (const label of accountTiles[1].querySelectorAll('dt')) {
+            const field = label.nextElementSibling;
+            const dateTime = field.querySelector('lightning-formatted-date-time');
+            expect(dateTime ? dateTime.value : field.textContent.trim()).toBe(expectedDetails[label.textContent]);
+        }
         expect(
             getTileDetailLink(accountTiles[1], '関連取引先')
         ).toEqual(
@@ -374,6 +392,27 @@ describe('c-case-related-case-list', () => {
             ])
         ).toHaveLength(8);
         await expect(element).toBeAccessible();
+    });
+
+    it('項目ラベルの変更を反映し、定義を参照できない項目は値とともに隠す', async () => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord());
+        await flushPromises();
+        emitRelatedCases(CONTACT_RECORD_ID, []);
+        await flushPromises();
+        expect(getLayout.getLastConfig()).toMatchObject({ recordTypeId: '012000000000000AAA', mode: 'View', layoutType: 'Full' });
+        getRecord.emit({ ...createCaseRecord(), recordTypeId: '012000000000001AAA' });
+        await flushPromises();
+        expect(getLayout.getLastConfig().recordTypeId).toBe('012000000000001AAA');
+        emitLayout({ Subject: { label: 'Inquiry title' } });
+        await flushPromises();
+
+        const [card] = getTabTiles(element.shadowRoot.querySelector('lightning-tab'));
+        expect([...card.querySelectorAll('dt')].map((term) => term.textContent)).toEqual(['Inquiry title']);
+        expect(card.querySelector('dd').textContent.trim()).toBe('現在の問い合わせ');
+        getLayout.error();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('項目情報を読み込めませんでした');
     });
 
     it('renders the current case without a link when it is the only related case', async () => {
