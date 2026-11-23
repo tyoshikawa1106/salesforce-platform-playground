@@ -1461,17 +1461,22 @@ export default class ObjectExplorer extends LightningElement {
         }
     }
     // 選択解除も所有者IDの明示的な変更として保持
-    handleOwnerClear(event) {
+    async handleOwnerClear(event) {
         // 画面イベントの例外をコンポーネント外へ伝播させない
         try {
             // 操作した行だけを特定
             const apiName = event.currentTarget.dataset.field;
             // 保存中と権限不足の操作は受け付けない
             if (!this.canEditClassifyData || this.busy || !this.classifyEdits[apiName]) { return; }
+            // 再描画で解除ボタンが消える前に、同じ行の所有者欄を保持する。
+            const lookup = event.currentTarget.closest('.c-owner-lookup');
             // IDと表示名を一緒に解除して古い検索応答を無効化
             this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...this.classifyEdits[apiName], owner: { value: '', label: '' }, ownerSearch: '', ownerOpen: false, ownerActive: -1, ownerRequest: ++this.ownerSequence, inputErrors: { ...this.classifyEdits[apiName].inputErrors, owner: '' }, error: '' } };
             // 値または入力エラーの変更を保存可否へ反映
             this.refreshClassifySummary();
+            // 読み取り専用欄が空の検索欄に切り替わった後、次の入力を受け付ける。
+            await Promise.resolve();
+            lookup.querySelector('input:not([readonly])')?.focus();
 
         } catch (error) {
             // 処理名を付けてこの画面内へエラーを表示
