@@ -42,6 +42,12 @@
             </template>
 
             <div class="c-counts slds-p-around_small" aria-busy={isBusy}>
+                <div lwc:if={showBoardSpinner} class="c-board-loading slds-is-relative">
+                    <lightning-spinner
+                        alternative-text="データボードを読み込んでいます"
+                        size="small"
+                    ></lightning-spinner>
+                </div>
                 <template for:each={countCards} for:item="card">
                     <div key={card.key} class="c-count-card-cell slds-grid">
                         <button
@@ -73,7 +79,7 @@
                                     </span>
                                 </h2>
                                 <div
-                                    class="c-count-card-content slds-col slds-tile__detail slds-grid_vertical-align-center slds-grid slds-grid_align-center"
+                                    class="c-count-card-content slds-is-relative slds-col slds-tile__detail slds-grid_vertical-align-center slds-grid slds-grid_align-center"
                                 >
                                     <template lwc:if={card.loading}>
                                         <lightning-spinner

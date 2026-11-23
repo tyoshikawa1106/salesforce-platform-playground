@@ -70,6 +70,41 @@ describe('c-object-metrics-overview', () => {
         jest.clearAllMocks();
     });
 
+    it('初回応答までは一覧に読み込み領域を確保し、カード取得後に取り除く', async () => {
+        const element = createComponent();
+        await flushPromises();
+
+        const board = element.shadowRoot.querySelector('.c-counts');
+        expect(board.getAttribute('aria-busy')).toBe('true');
+        expect(board.querySelector('.c-board-loading lightning-spinner').alternativeText)
+            .toBe('データボードを読み込んでいます');
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        expect(board.getAttribute('aria-busy')).toBe('false');
+        expect(board.querySelector('.c-board-loading')).toBeNull();
+        expect(board.querySelectorAll('article')).toHaveLength(2);
+    });
+
+    it('空の取得結果から再読み込みする間だけ一覧のスピナーを表示する', async () => {
+        const element = createComponent();
+        getObjectMetrics.emit({ metrics: [] });
+        await flushPromises();
+        const board = element.shadowRoot.querySelector('.c-counts');
+        expect(board.querySelector('.c-board-loading')).toBeNull();
+
+        let resolveRefresh;
+        refreshApex.mockReturnValueOnce(new Promise((resolve) => { resolveRefresh = resolve; }));
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        expect(board.querySelector('.c-board-loading lightning-spinner')).not.toBeNull();
+
+        resolveRefresh();
+        await flushPromises();
+        expect(board.querySelector('.c-board-loading')).toBeNull();
+    });
+
     it('renders object metric cards from Apex data', async () => {
         const element = createComponent();
 
@@ -173,6 +208,7 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
 
         const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
+        expect(element.shadowRoot.querySelector('.c-board-loading')).toBeNull();
         expect(alert?.textContent).toEqual(
             expect.stringContaining('データボードを読み込めませんでした。')
         );
@@ -196,8 +232,9 @@ describe('c-object-metrics-overview', () => {
 
         expect(refreshApex).toHaveBeenCalledTimes(1);
         expect(
-            element.shadowRoot.querySelectorAll('lightning-spinner')
+            element.shadowRoot.querySelectorAll('article .c-count-card-content lightning-spinner')
         ).toHaveLength(2);
+        expect(element.shadowRoot.querySelector('.c-board-loading')).toBeNull();
 
         resolveRefresh();
         await flushPromises();

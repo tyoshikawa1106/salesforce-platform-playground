@@ -4,7 +4,13 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.c-count-card {
+.c-board-loading {
+    grid-column: 1 / -1;
+}
+
+.c-board-loading,
+.c-count-card,
+.c-count-card-button {
     height: var(--slds-g-sizing-12, 5rem);
 }
 
@@ -18,7 +24,6 @@
     color: inherit;
     cursor: pointer;
     font: inherit;
-    height: var(--slds-g-sizing-12, 5rem);
     padding: 0;
     text-align: inherit;
 }
