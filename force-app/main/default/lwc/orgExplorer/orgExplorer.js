@@ -833,6 +833,8 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     // 標準モーダルで直下ロールを提示し、確定結果だけを既存の選択処理へ渡す。
     async handleHierarchyToggle(event) {
         // 表示や選択の失敗を組織図全体へ伝播させない。
+        const generation = this._generation;
+        // 閉じるまで同じ表示条件の選択として扱う。
         try {
             // 未選択・取得中・二重起動ではモーダルを開かない。
             if (this.hierarchyDisabled || this.roleHierarchy) return;
@@ -845,13 +847,13 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
                 hierarchy: this.roleHierarchy
             });
             // キャンセル結果では表示対象を変更しない。
-            if (key) this.handleHierarchySelect(key);
+            if (key && generation === this._generation) this.handleHierarchySelect(key);
         } catch (error) {
             // 入力値を含めず操作箇所を報告する。
-            this.reportClientError(error, 'handleHierarchyToggle', 'ui-event');
+            if (generation === this._generation) this.reportClientError(error, 'handleHierarchyToggle', 'ui-event');
         } finally {
             // モーダル終了後に次の起動を許可する。
-            this.roleHierarchy = null;
+            if (generation === this._generation) this.roleHierarchy = null;
         }
     }
     // 一覧に表示中の直下ロールだけを次の起点として採用する。
