@@ -24,7 +24,7 @@ jest.mock('@salesforce/apex/ObjectExplorerController.saveClassifyData', () => ({
 jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ __esModule: true, default: false }), { virtual: true });
 jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ __esModule: true, default: true }), { virtual: true });
 jest.mock('c/setupAuditTrailExportModal', () => ({ __esModule: true, default: { open: jest.fn() } }));
-jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
+jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }));
 
 jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl', () => ({ default: jest.fn() }), { virtual: true });
@@ -1151,6 +1151,37 @@ it.each([['005000000000001', 'standard:user'], ['00G000000000001', 'standard:gro
     expect(element.shadowRoot.querySelector('input[data-field="Name"]').value).toBe('');
     expect(element.shadowRoot.querySelector('input[data-field="Name"]').readOnly).toBe(false);
     expect(saveClassifyData).not.toHaveBeenCalled();
+});
+
+it.each(['Delete', '解除ボタン'])('%sで所有者を解除すると同じ行の検索欄にフォーカスが戻る', async operation => {
+    const secondField = { ...objectInfo.fields[0], apiName: 'Phone', label: 'B' };
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields: [{ ...objectInfo.fields[0], label: 'A' }, secondField] });
+    getClassifyData.mockResolvedValue({ ...classify, rows: {
+        ...classify.rows,
+        Phone: { ...classify.rows.Name, ownerId: '005000000000001', ownerLabel: '所有者' }
+    } });
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    const lookups = element.shadowRoot.querySelectorAll('.c-owner-lookup');
+    expect(lookups).toHaveLength(2);
+    const row = lookups[1];
+    expect(row.dataset.field).toBe('Phone');
+    const selected = row.querySelector('input[readonly]');
+    if (operation === 'Delete') {
+        selected.focus();
+        selected.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    } else {
+        row.querySelector('lightning-button-icon').click();
+    }
+    await flush();
+    const input = row.querySelector('input:not([readonly])');
+    expect(input).not.toBeNull();
+    expect(element.shadowRoot.activeElement).toBe(input);
+    expect(input.value).toBe('');
+    expect(searchClassifyOwners).not.toHaveBeenCalled();
 });
 
 it('複数選択ダイアログは選択値を維持してEscapeで閉じ、再度開ける', async () => {
