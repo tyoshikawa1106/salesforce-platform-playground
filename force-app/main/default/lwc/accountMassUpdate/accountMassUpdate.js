@@ -160,8 +160,8 @@ export default class AccountMassUpdate extends LightningElement {
     }
 
     get emptyResult() {
-        // 未検索の案内とゼロ件の結果を区別
-        return this.pageConfirmedEmpty && !this.busy;
+        // 正常に0件と確認し、保存に失敗して保持した行もない場合だけ案内
+        return this.pageConfirmedEmpty && !this.busy && this.records.length === 0;
     }
 
     handleFilter(event) {

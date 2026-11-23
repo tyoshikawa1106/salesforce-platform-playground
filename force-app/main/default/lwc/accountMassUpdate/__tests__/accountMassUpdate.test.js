@@ -238,6 +238,29 @@ describe('取引先一括更新画面', () => {
         );
     });
 
+    it('保存後の検索が0件でも入力を保持した失敗行があれば該当なしと表示しない', async () => {
+        const element = await createComponent();
+        await search(element);
+        edit(element);
+        await flush();
+        saveAccounts.mockResolvedValue({ successIds: [], errors: { [record.Id]: '対象を更新できません。' } });
+        searchAccounts.mockResolvedValue({ ...response, records: [], hasNext: false });
+
+        button(element, '変更を保存').click();
+        await flush();
+
+        expect(element.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(1);
+        expect(element.shadowRoot.querySelector('[data-field="Rating"]').value).toBe('Cold');
+        expect(element.shadowRoot.textContent).toContain('対象を更新できません。');
+        expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
+        expect(element.shadowRoot.textContent).not.toContain('条件に一致する法人取引先はありません。');
+
+        button(element, '検索').click();
+        await flush();
+        expect(element.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(0);
+        expect(element.shadowRoot.textContent).toContain('条件に一致する法人取引先はありません。');
+    });
+
     it('保存後の再取得失敗を保存失敗として表示せず成功行の再送を防ぐ', async () => {
         const element = await createComponent();
         await search(element);
