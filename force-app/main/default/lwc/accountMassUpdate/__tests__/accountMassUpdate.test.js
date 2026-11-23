@@ -121,6 +121,50 @@ describe('取引先一括更新画面', () => {
         expect(button(element, '変更を保存').disabled).toBe(false);
     });
 
+    it.each(['次へ', '検索'])('再接続前の「%s」の確認結果で編集内容や新しい確認を変更しない', async label => {
+        searchAccounts.mockResolvedValue({ ...response, hasNext: true });
+        const element = await createComponent();
+        await search(element);
+        edit(element);
+        await flush();
+        let oldConfirm;
+        let newConfirm;
+        LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { oldConfirm = resolve; }))
+            .mockImplementationOnce(() => new Promise(resolve => { newConfirm = resolve; }));
+        button(element, label).click();
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        button(element, '次へ').click();
+        oldConfirm(true);
+        await flush();
+        expect(searchAccounts).toHaveBeenCalledTimes(1);
+        expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
+        expect(button(element, '次へ').disabled).toBe(true);
+        newConfirm(false);
+        await flush();
+        expect(button(element, '次へ').disabled).toBe(false);
+    });
+
+    it('検索応答待ちで再接続しても古いページを適用しない', async () => {
+        searchAccounts.mockResolvedValue({ ...response, hasNext: true });
+        const element = await createComponent();
+        await search(element);
+        edit(element);
+        await flush();
+        let finish;
+        searchAccounts.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        button(element, '次へ').click();
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        finish(response);
+        await flush();
+        expect(element.shadowRoot.textContent).toContain('現在のページ：1');
+        expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
+    });
+
     it('ページ取得失敗でも変更を維持し、成功時だけ次ページへ移動する', async () => {
         searchAccounts.mockResolvedValueOnce({ ...response, hasNext: true });
         const element = await createComponent();

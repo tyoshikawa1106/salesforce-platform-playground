@@ -103,6 +103,30 @@ it('ロール未選択では階層ボタンを無効にし、上司モードに�
     await flush();
     expect(element.shadowRoot.querySelector('[data-role-hierarchy-toggle]')).toBeNull();
 });
+it('再接続前のモーダル終了で新しいロール選択を解除しない', async () => {
+    const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '支部', parentKey: 'ROLE:root' };
+    rolePages.mockResolvedValue({ nodes: [rootTarget, child], hasMore: false });
+    let oldSelection;
+    let newSelection;
+    OrgExplorerHierarchyModal.open.mockImplementationOnce(() => new Promise(resolve => { oldSelection = resolve; }))
+        .mockImplementationOnce(() => new Promise(resolve => { newSelection = resolve; }));
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    const open = () => element.shadowRoot.querySelector('[data-hierarchy-direction="children"]').click();
+    open();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    open();
+    oldSelection(child.key);
+    await flush();
+    expect(rolePages).not.toHaveBeenCalledWith({ request: expect.objectContaining({ parentId: 'child' }) });
+    newSelection(child.key);
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.targetId).toBe('child');
+});
+
 it('階層一覧で直下ロールを選択すると既存の起点・構造取得へ反映する', async () => {
     const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '支部', parentKey: 'ROLE:root' };
     const grandchild = { ...child, key: 'ROLE:grandchild', recordId: 'grandchild', label: '係', parentKey: 'ROLE:child' };

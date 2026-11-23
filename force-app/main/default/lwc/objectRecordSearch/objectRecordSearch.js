@@ -147,6 +147,12 @@ export default class ObjectRecordSearch extends LightningElement {
             this.componentConnected = false;
             // 再接続で接続フラグが戻っても古い操作を無効にする
             this.connectionVersion += 1;
+            // 古いフォームの終了を待たず、再接続先で別のフォームを開けるようにする。
+            this.showRecordForm = false;
+            // 前の編集対象を次の画面に持ち越さない。
+            this.formRecordId = undefined;
+            // 次回の作成・編集ボタンへ現在の設定を反映する。
+            this.updateFormState();
             // 待機後の接続確認でモーダル表示を中止
             this.pendingEditLayout?.();
             // 待機の参照を解放
@@ -849,7 +855,7 @@ export default class ObjectRecordSearch extends LightningElement {
                     isFileUpload: this.formViewState.isFileUploadObject
                 });
                 // キャンセルや標準の閉じる操作では一覧を再取得しない
-                if (result) {
+                if (result && connectionVersion === this.connectionVersion) {
                     // 保存・アップロードの確定結果を通知
                     this.showToast(result.title, result.message, 'success');
                     // 再取得の失敗と保存結果を分けて親へ変更を通知
@@ -857,6 +863,8 @@ export default class ObjectRecordSearch extends LightningElement {
                 }
             } catch (error) {
                 // 例外本文を記録せず、失敗した処理だけを通知
+                if (connectionVersion !== this.connectionVersion) return;
+                // 現在のフォームの失敗だけを表示する。
                 this.reportClientError(error, 'openRecordForm', 'processing');
                 // モーダル起動に失敗しても利用者が再試行できるようにする
                 this.showToast(
@@ -865,12 +873,15 @@ export default class ObjectRecordSearch extends LightningElement {
                     'error'
                 );
             } finally {
-                // 閉じたフォームの編集対象を次の操作へ持ち越さない
-                this.formRecordId = undefined;
-                // 派生状態の再生成が失敗しても再起動を可能にしておく
-                this.showRecordForm = false;
-                // 作成モードの派生状態へ戻す
-                this.updateFormState();
+                // 前の画面の終了処理が新しいフォームを閉じないようにする。
+                if (connectionVersion === this.connectionVersion) {
+                    // 閉じたフォームの編集対象を次の操作へ持ち越さない
+                    this.formRecordId = undefined;
+                    // 派生状態の再生成が失敗しても再起動を可能にしておく
+                    this.showRecordForm = false;
+                    // 作成モードの派生状態へ戻す
+                    this.updateFormState();
+                }
             }
         } catch (error) {
             // 未処理のPromise拒否を画面外へ伝播させない

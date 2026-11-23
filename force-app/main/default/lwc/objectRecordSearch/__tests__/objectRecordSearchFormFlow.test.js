@@ -206,6 +206,33 @@ describe('c-object-record-search form flows', () => {
         expect(getModal()).not.toBe(firstModal);
     });
 
+    it.each(['success', 'error'])('離脱前のフォームの%sで再接続先の一覧やフォームを変更しない', async outcome => {
+        const element = await createRecordFormReadyComponent();
+        let finishOld;
+        let finishNew;
+        ObjectRecordFormModal.open.mockImplementationOnce(() => new Promise((resolve, reject) => {
+            finishOld = outcome === 'success' ? () => resolve({ title: '作成しました' }) : () => reject(new Error('終了済み'));
+        })).mockImplementationOnce(() => new Promise(resolve => { finishNew = resolve; }));
+        await openNewRecordForm(element);
+        element.remove();
+        document.body.appendChild(element);
+        await flushPromises();
+        const changed = jest.fn();
+        const toast = jest.fn();
+        element.addEventListener('recordschanged', changed);
+        element.addEventListener('lightning__showtoast', toast);
+        await openNewRecordForm(element);
+        finishOld();
+        await flushPromises();
+        await openNewRecordForm(element);
+        expect(ObjectRecordFormModal.open).toHaveBeenCalledTimes(2);
+        expect(changed).not.toHaveBeenCalled();
+        expect(toast).not.toHaveBeenCalled();
+        expect(refreshApex).not.toHaveBeenCalled();
+        finishNew(undefined);
+        await flushPromises();
+    });
+
     it('モーダルの起動失敗を通知して再試行できる', async () => {
         const element = await createRecordFormReadyComponent();
         const toast = jest.fn();
