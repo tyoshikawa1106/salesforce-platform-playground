@@ -1203,3 +1203,18 @@ it('複数選択ダイアログは選択値を維持してEscapeで閉じ、再�
     expect(element.shadowRoot.querySelector('lightning-checkbox-group').value).toEqual(['GDPR', 'PII']);
     await expect(element).toBeAccessible();
 });
+
+it('候補の取得失敗と0件を区別し、再試行後は案内を解除する', async () => {
+    const element = createComponent();
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    searchObjects.mockRejectedValueOnce(new Error('failed'));
+    lookup.dispatchEvent(new CustomEvent('lookupopen'));
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('オブジェクト候補を取得できませんでした。');
+    expect(lookup.shadowRoot.textContent).not.toContain('候補がありません。');
+    lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: 'Account' } }));
+    await flush();
+    expect(lookup.candidateView.items.length).toBe(1);
+    expect(element.shadowRoot.textContent).not.toContain('オブジェクト候補を取得できませんでした。');
+});

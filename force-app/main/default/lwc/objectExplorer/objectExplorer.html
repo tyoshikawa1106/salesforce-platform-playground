@@ -57,6 +57,9 @@
                 disabled={busy}
             ></lightning-radio-group>
         </div>
+        <template lwc:if={candidateError}>
+            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{candidateError}</div>
+        </template>
         <template lwc:if={error}>
             <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{error}</div>
         </template>
