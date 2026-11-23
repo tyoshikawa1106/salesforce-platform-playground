@@ -166,6 +166,37 @@ it('メール型への絞り込み後も機密度と利用状況を同じ項目�
     expect(element.shadowRoot.querySelector('[data-field="Email__c"][data-property="businessStatus"]').value).toBe('Active');
     expect(element.shadowRoot.querySelector('[data-field="Name"][data-property="businessStatus"]').value).toBeUndefined();
 });
+it.each(['Delete', '解除ボタン'])('%sで対象を解除すると新しい検索欄にフォーカスが戻る', async (operation) => {
+    const element = createComponent();
+    await flush();
+    await pickAccount(element);
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    const input = lookup.shadowRoot.querySelector('input');
+    input.focus();
+    if (operation === 'Delete') {
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    } else {
+        lookup.shadowRoot.querySelector('lightning-button-icon').click();
+    }
+    await flush();
+    const search = lookup.shadowRoot.querySelector('input:not([readonly])');
+    expect(search).not.toBeNull();
+    expect(lookup.shadowRoot.activeElement).toBe(search);
+    expect(search.getAttribute('aria-expanded')).toBe('false');
+});
+
+it('表示モード変更に伴う対象解除では検索欄へフォーカスを移さない', async () => {
+    const element = createComponent();
+    await flush();
+    await pickAccount(element);
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    const search = lookup.shadowRoot.querySelector('input:not([readonly])');
+    expect(search).not.toBeNull();
+    expect(lookup.shadowRoot.activeElement).not.toBe(search);
+});
+
 it('破棄確認のキャンセルでは対象と分類の入力を維持する', async () => {
     const element = createComponent();
     await flush();
