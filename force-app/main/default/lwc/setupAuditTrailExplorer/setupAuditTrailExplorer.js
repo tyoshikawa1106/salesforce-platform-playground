@@ -1,4 +1,5 @@
 import { LightningElement } from 'lwc';
+import SetupAuditTrailExportModal from 'c/setupAuditTrailExportModal';
 import TIME_ZONE from '@salesforce/i18n/timeZone';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
 import loadEmployeeActorIds from '@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds';
@@ -121,18 +122,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     error = '';
     // 履歴の最新の要求を識別する。
     request = 0;
-    // 出力の中断後に届く応答を識別する。
-    exportRequest = 0;
-    // 確認した出力期間を、ダウンロード開始まで保持する。
-    exportPeriod;
-    // 確認中の検索結果の条件、基準時刻、照合済みIDを保持する。
-    resultExport;
-    // 複数のCSV出力の同時開始を防ぐ。
-    exporting = false;
-    // CSV固有の失敗を履歴表示と別に扱う。
-    exportError = '';
-    // 出力ページの累積件数を進捗表示に使う。
-    exportedRows = 0;
+    // 画面離脱時に開いている確認画面と取得中の要求を一緒に終了する。
+    exportController;
+    // 確認画面を開けない場合や保存を開始できない場合は呼び出し元に表示する。
+    downloadError;
     // ダウンロードに使ったBlobを後から解放できるようにする。
     downloadUrl;
     // 対象月の総件数が未確定の状態を区別する。
@@ -181,13 +174,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.matchRequest += 1;
         // 絞り込み件数の再取得を可能にする。
         this.matchLoading = false;
-        // 進行中のCSVページを破棄対象にする。
-        this.exportRequest += 1;
-        // 再表示時の出力を可能にする。
-        this.exporting = false;
-        this.exportPeriod = null;
-        this.resultExport = null;
-        this.template.querySelector('dialog[open]')?.close();
+        // 開いている標準モーダルを閉じ、遅れて完了したCSVを破棄する。
+        this.exportController?.abort();
+        // 再接続後は新しい出力を開始できるようにする。
+        this.exportController = undefined;
         // 表示中に作成したダウンロードURLを解放する。
         this.releaseDownload();
     }
@@ -207,12 +197,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     get monthDate() {
         // 月の初日を日付形式で返す。
         return this.month + '-01';
-    }
-
-    // 取得の途中経過を表示する。
-    get exportProgress() {
-        // 完了済みのページだけを件数に含める。
-        return 'CSVを作成中（' + this.exportedRows + '件取得済み）';
     }
 
     // 絞り込みが確定しているか判定する。
@@ -1047,12 +1031,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     // 代理ログインを初めて含む明細ページでだけ照合を開始する。
-    async readCsvPage(fetchPage, query, request, context) {
+    async readCsvPage(fetchPage, query, isCurrent, context) {
         // 月別・全期間の既存のページ境界と再試行を共通で使う。
-        const isCurrent = () => request === this.exportRequest;
         const page = await this.readPageWithRetry(fetchPage, query, isCurrent);
         // 離脱後や照合済みの出力では追加の要求を送らない。
-        if (request === this.exportRequest && !context.actors && page.records.some(needsLoginAsUser)) {
+        if (isCurrent() && !context.actors && page.records.some(needsLoginAsUser)) {
             // 出力ごとに独立した照合結果を全明細ページで共有する。
             // 月外のログアウトも含め、明細の出力開始時刻までを照合する。
             context.actors = await this.readActors(page.cutoff, isCurrent);
@@ -1254,122 +1237,121 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return this.loading || !this.listReady || !this.records.length;
     }
 
-    get exportConfirmDisabled() {
-        return this.exporting || (this.exportPeriod === 'results' && !this.resultExport?.count);
+    // 絞り込みは確認画面を開いた時点の条件と基準時刻で固定する。
+    openResultExport() {
+        // 条件の表示名は検索欄の編集途中の値から独立させる。
+        const labels = appliedFilterLabels(this.appliedFilters, this.lookupSources).join(' ／ ') || '絞り込みなし';
+        // 検索結果だけ件数の確定を待ってから出力を許可する。
+        this.openExportDialog('results', labels);
     }
 
-    // 出力の確認時に適用済み条件と件数を固定する。編集中の条件や現在のページは含めない。
-    async openResultExport() {
-        const labels = appliedFilterLabels(this.appliedFilters, this.lookupSources);
+    // 表示ページとは独立して一致ID、件数、基準時刻を確定する。
+    async prepareResultExport(isCurrent) {
+        // 件数取得の途中で条件を読み直さないようにする。
         const query = this.searchCriteria;
+        // 明細と同じ照合方式を使って出力対象を決める。
         const indexed = this.usesMatchIndex;
-        const knownCount = this.resultCount;
-        const request = ++this.exportRequest;
-        const isCurrent = () => request === this.exportRequest;
-        this.resultExport = { labels: labels.join(' ／ ') || '絞り込みなし' };
-        this.openExportDialog('results');
-        try {
-            query.cutoff = await this.getCutoff();
-            if (!isCurrent()) {
-                return;
+        // 確定済みの件数は問い合わせを増やさず再利用する。
+        let count = this.resultCount;
+        // 履歴と同じ基準時刻をすべてのページに引き継ぐ。
+        query.cutoff = await this.getCutoff();
+        // 確認画面を閉じた後に追加の件数照会を送らない。
+        if (!isCurrent()) return undefined;
+        // 照合が必要な検索は一致IDを確認と出力で共用する。
+        if (indexed) {
+            // ページをまたぐ一致IDを順番に保持する。
+            const ids = [];
+            // 一覧の照合と同じ判定を使う。
+            for await (const batch of this.matchingBatches(query, {}, isCurrent)) {
+                // 明細の代わりに一致IDだけを保持する。
+                ids.push(...batch.records.map(row => row.Id));
             }
-            let count = knownCount;
-            let ids;
-            if (indexed) {
-                // 明細の代わりに一致IDだけを保持し、確定した全件数と出力対象を揃える。
-                ids = [];
-                for await (const batch of this.matchingBatches(query, {}, isCurrent)) {
-                    ids.push(...batch.records.map(row => row.Id));
-                }
-                count = ids.length;
-            } else if (count === null) {
-                count = await this.readPageWithRetry(countMatches, { criteriaJson: JSON.stringify(query) }, isCurrent);
-            }
-            if (isCurrent()) {
-                this.resultExport = { ...this.resultExport, query, ids, count };
-            }
-        } catch (error) {
-            if (isCurrent()) {
-                this.exportError = error.body?.message || '検索結果の件数を取得できませんでした。閉じてもう一度お試しください。';
-            }
+            // 件数と出力対象を同じ集合から返す。
+            return { query, ids, count: ids.length };
         }
-    }
-
-    get exportRange() {
-        return this.exportPeriod === 'all' ? '保持期間内の全期間' : this.month;
-    }
-
-    get exportConfirmation() {
-        if (this.exportPeriod === 'results') {
-            const count = this.resultExport.count;
-            return count === undefined ? this.month + 'の検索結果の件数を確認中です。' :
-                this.month + 'の検索条件に一致する全' + COUNT_FORMAT.format(count) + '件をCSV出力しますか？';
+        // 一覧で件数を確定していない場合だけ問い合わせる。
+        if (count === null) {
+            // 出力時に使う条件と基準時刻を渡す。
+            count = await this.readPageWithRetry(countMatches, { criteriaJson: JSON.stringify(query) }, isCurrent);
         }
-        return this.exportRange + 'の設定変更履歴をすべてCSV出力しますか？';
+        // 直接検索の明細は固定した条件を使って全ページ取得する。
+        return { query, count };
     }
 
     // ツールバーの主ボタンは選択月を出力対象にする。
     openMonthlyExport() {
+        // 一覧の絞り込み条件から独立した月別出力を確認する。
         this.openExportDialog('month');
     }
 
     // メニューで全期間を選んだ場合も同じ確認画面を使う。
     selectExportOption(event) {
+        // 全期間を選んだ場合だけ対応する取得方法を使う。
         if (event.detail.value === 'all') {
+            // 保持期間全体を確認画面に明示する。
             this.openExportDialog('all');
         }
     }
 
-    // ネイティブダイアログでフォーカスを閉じ込め、閉じると元の操作へ戻す。
-    openExportDialog(period) {
-        this.exportPeriod = period;
-        this.exportError = '';
-        // 背景の履歴画面を操作できない間に対象期間を確認する。
-        this.template.querySelector('dialog').showModal();
-    }
-
-    // Escとキャンセルボタンで同じ中断処理を使う。
-    cancelExportDialog(event) {
-        event.preventDefault();
-        this.closeExportDialog();
-    }
-
-    closeExportDialog() {
-        const launcher = { all: 'lightning-button-menu', month: '[data-monthly-export]', results: '[data-result-export]' }[this.exportPeriod];
-        // 中断後に応答が届いてもファイル作成や進捗更新を行わない。
-        this.exportRequest += 1;
-        this.exporting = false;
-        this.exportPeriod = null;
-        this.resultExport = null;
-        this.template.querySelector('dialog').close();
-        this.template.querySelector(launcher)?.focus();
-    }
-
-    // 確認後だけCSV取得を開始し、成功したら確認画面を閉じる。
-    confirmExport() {
-        if (!this.exportPeriod || this.exportConfirmDisabled) {
-            return;
+    // 標準モーダルが出力完了で閉じた場合だけダウンロードを開始する。
+    async openExportDialog(period, filters) {
+        // 一つの操作で複数の確認画面を開かない。
+        if (this.exportController) return;
+        // 再接続や別の出力と進行中の操作を区別する。
+        const controller = new AbortController();
+        // 呼び出し元の離脱時に確認画面へ中断を伝える。
+        this.exportController = controller;
+        // 再試行前に前回の開始エラーを取り下げる。
+        this.downloadError = undefined;
+        // 表示と取得で同じ月を使う。
+        const month = this.month;
+        // 完成したファイルはモーダルの終了理由を確認するまで保存しない。
+        let file;
+        // 標準の閉じる操作・Esc・キャンセルはいずれも保存を開始しない。
+        try {
+            // 検索結果の確定とページ取得を、各モーダルの有効期間に限定する。
+            const completed = await SetupAuditTrailExportModal.open({
+                size: 'small', label: 'CSV出力', period, month, filters, ownerSignal: controller.signal,
+                prepareSelection: isCurrent => this.prepareResultExport(isCurrent),
+                buildFile: async (selection, isCurrent, progress) => {
+                    // 取得結果をモーダル間で共有しない。
+                    file = await this.buildCsv(period, month, selection, isCurrent, progress);
+                }
+            });
+            // 中断または画面離脱後に完成したファイルを保存しない。
+            if (completed && file && !controller.signal.aborted) {
+                // ダウンロードURLは呼び出し元で次の出力または離脱まで管理する。
+                this.downloadCsv(file);
+            }
+        } catch (error) {
+            // 現在の画面に属する開始・保存エラーだけを表示する。
+            if (!controller.signal.aborted) this.downloadError = error.body?.message || 'CSV出力を開始できませんでした。';
+        } finally {
+            // 前のモーダルの終了で再接続後の操作を解除しない。
+            if (this.exportController === controller) {
+                // 次の出力を受け付ける。
+                this.exportController = undefined;
+                // メニュー項目から開いた場合も、元の起点にキーボード操作を戻す。
+                const launcher = { all: 'lightning-button-menu', month: '[data-monthly-export]', results: '[data-result-export]' }[period];
+                // 起点が現在も表示されている場合だけフォーカスを戻す。
+                this.template.querySelector(launcher)?.focus();
+            }
         }
-        const all = this.exportPeriod === 'all';
-        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailFiltered' }[this.exportPeriod];
-        const fileName = prefix + Date.now() + '.csv';
-        this.exportCsv(fileName, all ? exportAllHistory : query => load({ criteriaJson: JSON.stringify(query) }),
-            all ? { cutoff: null } : { monthStart: this.monthDate, ...this.resultExport?.query, csv: true });
     }
 
     // IDを指定する出力では照合順に分割し、各組の中でもCSVの文字数境界に従って取得する。
-    async *csvPages(fetchPage, query, request, context, ids) {
+    async *csvPages(fetchPage, query, isCurrent, context, ids) {
         const groups = ids ? Math.ceil(ids.length / PAGE_SIZE) : 1;
         for (let group = 0; group < groups; group++) {
             const criteria = ids ? { ...query, recordIds: ids.slice(group * PAGE_SIZE, (group + 1) * PAGE_SIZE) } : query;
             let cursor = {};
             do {
-                if (request !== this.exportRequest) {
+                if (!isCurrent()) {
                     return;
                 }
                 // eslint-disable-next-line no-await-in-loop
-                const result = await this.readCsvPage(fetchPage, { ...criteria, ...cursor }, request, context);
-                if (request !== this.exportRequest) {
+                const result = await this.readCsvPage(fetchPage, { ...criteria, ...cursor }, isCurrent, context);
+                if (!isCurrent()) {
                     return;
                 }
                 yield result;
@@ -1381,74 +1363,63 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
-    // 各ページを結合して一つのダウンロードを作る。
-    async exportCsv(fileName, fetchPage, query) {
-        // ほかのCSV出力が進行中か確認する。
-        if (this.exporting) {
-            // 同時に二つのダウンロードを開始しないようにする。
-            return;
-        }
-        // 今回の出力要求を識別する。
-        const request = ++this.exportRequest;
+    // 全ページと確認時の件数が揃ったCSVだけを保存可能にする。
+    async buildCsv(period, month, selection, isCurrent, progress) {
+        // ファイル名は確認操作を行った時刻を基準にする。
+        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailFiltered' }[period];
+        // 取得にかかった時間でファイル名を変更しない。
+        const fileName = prefix + Date.now() + '.csv';
+        // 全期間だけ専用のApexメソッドから取得する。
+        const fetchPage = period === 'all' ? exportAllHistory : query => load({ criteriaJson: JSON.stringify(query) });
+        // 月別と検索結果では確認時の条件を復元する。
+        const query = period === 'all' ? { cutoff: null } : { monthStart: month + '-01', ...selection?.query, csv: true };
         // UTF-8のBOMと列名をファイルの先頭に置く。
         const chunks = ['\uFEFF', CSV_HEADER];
-        // 今回の出力だけで使う作成者の照合結果を保持する。
+        // 作成者の照合結果を出力単位で共有する。
         let employeeActorIds = new Set();
-        // 代理ログインの照合結果はこの出力が終了するまで共有する。
-        const selection = this.resultExport;
+        // 検索結果の出力では一覧で取得済みの照合結果を利用する。
         const context = { actors: selection && this.historyContext.actors };
-        // 取得完了まで追加の出力操作を止める。
-        this.exporting = true;
-        // 前回の出力エラーを取り下げる。
-        this.exportError = '';
-        // 現在の出力の進捗をゼロから数える。
-        this.exportedRows = 0;
-        try {
-            // 返された境界を使って全ページを順に取得する。
-            for await (const result of this.csvPages(fetchPage, query, request, context, selection?.ids)) {
-                // 先頭ページの根拠を後続ページでも引き継ぐ。
-                if (result.employeeActorIds) {
-                    // 作成者IDの照合で履歴ごとの再検索を避ける。
-                    employeeActorIds = new Set(result.employeeActorIds);
-                }
-                // ページ単位でUTF-8に符号化し、完了済みページの文字列を保持しない。
-                chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors)], { type: 'application/octet-stream' }));
-                // 今回のページで取得が完了した件数を加算する。
-                this.exportedRows += result.records.length;
+        // 再試行の進捗はゼロから数える。
+        let rows = 0;
+        // 返された境界を使って全ページを順に取得する。
+        for await (const result of this.csvPages(fetchPage, query, isCurrent, context, selection?.ids)) {
+            // 先頭ページの根拠を後続ページでも引き継ぐ。
+            if (result.employeeActorIds) {
+                // 作成者IDの照合で履歴ごとの再検索を避ける。
+                employeeActorIds = new Set(result.employeeActorIds);
             }
-            if (request !== this.exportRequest) {
-                return;
-            }
-            if (selection && this.exportedRows !== selection.count) {
-                this.exportError = '確認時と出力時の件数が異なります。履歴を再検索してください。';
-                return;
-            }
-            // 以前の出力に使ったBlobを解放する。
-            this.releaseDownload();
-            // 全ページが揃ったCSVにダウンロードURLを発行する。
-            this.downloadUrl = URL.createObjectURL(new Blob(chunks, { type: 'application/octet-stream' }));
-            // テンプレートのダウンロード用リンクを取得する。
-            const link = this.template.querySelector('a[data-download]');
-            // 生成したCSVをリンク先に設定する。
-            link.href = this.downloadUrl;
-            // ページ取得を始めた時点のファイル名で保存する。
-            link.download = fileName;
-            // 完成したCSVの保存を開始する。
-            link.click();
-            this.closeExportDialog();
-        } catch (error) {
-            // 現在の出力のエラーだけを画面に示す。
-            if (request === this.exportRequest) {
-                // Salesforceの応答に応じて出力失敗を通知する。
-                this.exportError = error.body?.message || 'CSVを出力できませんでした。';
-            }
-        } finally {
-            // 現在の出力だけが操作ロックを解除できるようにする。
-            if (request === this.exportRequest) {
-                // 次のCSV出力を可能にする。
-                this.exporting = false;
-            }
+            // ページ単位でUTF-8に符号化し、完了済みページの文字列を保持しない。
+            chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors)], { type: 'application/octet-stream' }));
+            // 完了済みの明細だけを進捗に含める。
+            rows += result.records.length;
+            // 確認画面で取得済み件数を更新する。
+            progress(rows);
         }
+        // 中断したときは部分的なファイルを作らない。
+        if (!isCurrent()) return undefined;
+        // 確認時の一致件数と出力件数が違う場合は保存前に知らせる。
+        if (selection && rows !== selection.count) {
+            // 検索条件を再確認できる文面をモーダル内に表示する。
+            throw new Error('確認時と出力時の件数が異なります。履歴を再検索してください。');
+        }
+        // 中断されずに確認画面が閉じるまでBlobのまま保持する。
+        return { blob: new Blob(chunks, { type: 'application/octet-stream' }), fileName };
+    }
+
+    // 全ページが揃い、確認画面が出力完了で閉じた場合だけ保存する。
+    downloadCsv({ blob, fileName }) {
+        // 以前の出力に使ったBlobを解放する。
+        this.releaseDownload();
+        // 次の出力または画面離脱までURLを保持する。
+        this.downloadUrl = URL.createObjectURL(blob);
+        // 自分のテンプレート内のリンクから保存する。
+        const link = this.template.querySelector('a[data-download]');
+        // 生成したCSVをリンク先に設定する。
+        link.href = this.downloadUrl;
+        // ページ取得を始めた時点のファイル名で保存する。
+        link.download = fileName;
+        // 完成したCSVの保存を開始する。
+        link.click();
     }
 
     // 一覧取得の失敗後に再度読み込む。

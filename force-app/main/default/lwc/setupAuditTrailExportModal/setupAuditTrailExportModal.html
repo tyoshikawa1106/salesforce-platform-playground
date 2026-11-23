@@ -1,0 +1,19 @@
+<template>
+    <lightning-modal-header label="CSV出力"></lightning-modal-header>
+    <lightning-modal-body>
+        <p lwc:if={exporting}>{range}</p>
+        <p lwc:else>{confirmation}<br />表計算ソフトで開く場合は、各列を文字列として取り込んでください。</p>
+        <p lwc:if={filters} class="slds-m-top_small">{filters}</p>
+        <div lwc:if={exporting} class="slds-grid slds-grid_vertical-align-center slds-m-top_medium">
+            <p role="status">CSVを作成中（{rows}件取得済み）</p>
+            <span class="slds-is-relative slds-icon_container slds-icon_small slds-m-left_small">
+                <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
+            </span>
+        </div>
+        <p lwc:if={error} role="alert" class="slds-text-color_error slds-m-top_medium">{error}</p>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button label="キャンセル" onclick={handleCancel}></lightning-button>
+        <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={confirmDisabled} onclick={handleExport}></lightning-button>
+    </lightning-modal-footer>
+</template>
