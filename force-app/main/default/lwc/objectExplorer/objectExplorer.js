@@ -9,6 +9,7 @@ import timeZone from '@salesforce/i18n/timeZone';
 import hasModifyDataClassification from '@salesforce/userPermission/ModifyDataClassification';
 import hasCustomizeApplication from '@salesforce/userPermission/CustomizeApplication';
 import LightningConfirm from 'lightning/confirm';
+import CsvExportModal from 'c/setupAuditTrailExportModal';
 import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
 import saveClassifyData from '@salesforce/apex/ObjectExplorerController.saveClassifyData';
 import searchClassifyOwners from '@salesforce/apex/ObjectExplorerController.searchClassifyOwners';
@@ -16,10 +17,33 @@ import resolveClassifyOwners from '@salesforce/apex/ObjectExplorerController.res
 import searchObjects from '@salesforce/apex/ObjectExplorerController.searchObjects';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
 import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAudit';
-import { CLASSIFY_CSV_LIMITS, apiDiagnosticCode, classifySaveErrors, clientErrorDetails, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
+import { CLASSIFY_CSV_LIMITS, apiDiagnosticCode, classifySaveErrors, clientErrorDetails, classifyOwnerBatches, mergeClassifyOwners, csvFields, csvParts, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
 
 // 固定ヘッダー内で一度に表示する項目数
 const FIELD_PAGE_SIZE = 400;
+
+// 各グループの描画後に次の明細を作成し、取消済みのファイルは返さない。
+function buildCsvBlob(groups, current, progress) {
+    // 完了したグループのテキストだけを保持する。
+    const parts = [];
+    // 描画を挟むことで進捗の読み上げとキャンセル操作を受け付ける。
+    function appendNext() {
+        // キャンセル後は次のグループもファイルも作成しない。
+        if (!current()) return undefined;
+        // 次のグループを必要になった時点で整形する。
+        const { value, done } = groups.next();
+        // 全件を処理した場合だけブラウザへ渡せるファイルにする。
+        if (done) return new Blob(parts, { type: 'text/plain' });
+        // 見出しを含むCSVテキストを順番に保持する。
+        parts.push(value.text);
+        // 見出しを除いた累積明細数を通知する。
+        progress(value.count);
+        // 次の描画で出力の継続可否を再確認する。
+        return new Promise(requestAnimationFrame).then(appendNext);
+    }
+    // 先頭の見出しから作成を開始する。
+    return appendNext();
+}
 
 // 起点の探索と選択オブジェクトの詳細を制御
 export default class ObjectExplorer extends LightningElement {
@@ -418,6 +442,12 @@ export default class ObjectExplorer extends LightningElement {
         try {
             // 確認待ちや非同期応答が残っていても終了済み画面では保存しない
             this.componentConnected = false;
+            // 前の画面で開始した出力は再接続しても保存しない。
+            this.exportController?.abort();
+            // 再接続後の新しい出力を許可する。
+            this.exportController = undefined;
+            // 保存に使用した一時URLを解放する。
+            this.releaseDownload();
             // 復帰後も離脱前の確認・認証待ち・保存応答を無効にする
             this.saveOperationVersion += 1;
             // 古い保存が復帰後の操作をロックし続けないよう終了する
@@ -1481,65 +1511,88 @@ export default class ObjectExplorer extends LightningElement {
             this.reportClientError(error, 'handleOwnerSelect', 'ui-event');
         }
     }
-    // モードごとの全項目CSVを確認後に出力
-    async handleExportCsv() {
-        // 画面イベントの例外をコンポーネント外へ伝播させない
-        try {
-            // 分類未取得・保存中・未確定入力の値を出力しない
-            if (this.csvExportDisabled) { return; }
-            // 確認中の対象やモード変更を別のCSV出力へ混在させない
-            const detail = this.detail;
-            // 表示モードに応じたCSVの種類を固定
-            const mode = this.mode;
-            // 利用者がOKを選択した場合だけファイルを生成
-            const confirmed = await LightningConfirm.open({ label: 'CSVダウンロード', message: `${detail.label} (${detail.apiName})の全項目をCSV出力しますか？`, theme: 'info' });
-            // キャンセル・対象変更・保存開始時は出力を中止
-            if (!confirmed || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
-            // 構造CSVには出力時点の保存済み分類を追加
-            let classification = this.classifyData;
-            // 閲覧用の分類取得を使い、編集権限や未保存の入力へ依存しない
-            if (mode === 'reference') {
-                // 分類取得中の重複操作と対象変更を防ぐ
-                this.busy = true;
-                try {
-                    // 取得失敗時は外側の例外処理へ渡し、不完全なCSVをダウンロードしない
-                    const result = await getClassifyData({ objectName: detail.apiName });
-                    // 分類一覧の編集状態とは分けて保存済み値を保持
-                    classification = result.rows;
-                } finally {
-                    // 取得成功・失敗とも操作を再開
-                    this.busy = false;
-                }
-                // 非同期取得中に終了した画面や別対象の結果を出力しない
-                if (!this.componentConnected || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
-            }
-            // 項目定義と分類で出力列を分け、どちらも一覧の全件を対象にする
-            const text = this.isReference ? structureCsv(detail.fields, locale, timeZone, classification) : classifyCsv(detail.apiName, detail.fields, this.classifyData, this.classifyEdits, detail.label);
-            // CSVはSalesforce Filesへアップロードせずローカルへ保存
-            const blob = new Blob([text], { type: 'text/plain' });
-            // メモリ上のファイルだけをダウンロード対象へ指定
-            const url = URL.createObjectURL(blob);
-            // ダウンロードのための要素は処理中だけ保持
-            const anchor = document.createElement('a');
-            // 別のサイトへデータを送信しない
-            anchor.href = url;
-            // 対象の正式API名と利用者のタイムゾーンでの出力日時を含める
-            anchor.download = csvFileName(detail.apiName, this.isReference, new Date(), timeZone);
-            // ブラウザがダウンロードを開始できる位置へ接続
-            document.body.appendChild(anchor);
-            try {
-                // 利用者が指定したCSV出力を開始
-                anchor.click();
-            } finally {
-                // 一時要素を画面へ残さない
-                anchor.remove();
-                // ブラウザの一時URLを解放
-                URL.revokeObjectURL(url);
-            }
+    // 確認から保存まで同時に一つの出力だけを所有する。
+    exportController;
+    // ブラウザの保存開始後も次の出力または離脱までURLを維持する。
+    downloadUrl;
 
+    // 保持中のCSVをブラウザから解放する。
+    releaseDownload() {
+        // 初回は解放対象がない。
+        if (!this.downloadUrl) return;
+        // 直前のファイルだけを解放する。
+        URL.revokeObjectURL(this.downloadUrl);
+        // 同じURLを二重に解放しない。
+        this.downloadUrl = undefined;
+    }
+
+    // モードごとの対象件数を確認し、共通モーダルで進捗を表示する。
+    async handleExportCsv() {
+        // 確認中の連打と不完全な入力からの出力を防ぐ。
+        if (this.exportController || this.csvExportDisabled) return;
+        // 画面を離れると同じインスタンスへ戻っても無効になる。
+        const controller = new AbortController();
+        // 次の確認を開始するまでこの操作だけを追跡する。
+        this.exportController = controller;
+        try {
+            // 確認した対象・モード・編集値を一つの出力に固定する。
+            const detail = this.detail;
+            // 項目定義と分類は列数と対象項目が異なる。
+            const reference = this.isReference;
+            // 分類モードでは確認時点の入力を使用する。
+            const edits = this.classifyEdits;
+            // 対象の判定と件数表示に同じ一覧を使う。
+            const savedClassification = this.classifyData;
+            // 確認に表示した対象を出力時にも使用する。
+            const fields = csvFields(detail.fields, reference, savedClassification);
+            // 離脱や対象変更後に古いファイルを保存しない。
+            const current = () => !controller.signal.aborted && this.detail === detail && this.isReference === reference && !this.csvExportDisabled;
+            // 全件の作成とモーダルの正常終了が揃った場合だけ保存する。
+            let file;
+            // 設定変更履歴と同じ確認・進捗・キャンセル・再試行を使う。
+            const completed = await CsvExportModal.open({
+                size: 'small', label: 'CSV出力', ownerSignal: controller.signal,
+                exportSubject: `${detail.label}（${detail.apiName}）の${reference ? '項目定義' : 'データ分類'} 全${fields.length.toLocaleString('ja-JP')}件`,
+                buildFile: async (_selection, isOpen, progress) => {
+                    // 閉じたモーダルから読み取りを開始しない。
+                    if (!current() || !isOpen()) return;
+                    // 構造CSVの保存済み分類だけを出力時に取得する。
+                    let classification = savedClassification;
+                    try {
+                        // 編集権限がなくても閲覧可能な保存済み分類を利用する。
+                        if (reference) classification = (await getClassifyData({ objectName: detail.apiName })).rows;
+                    } catch (error) {
+                        // 失敗した処理位置を記録し、モーダルには再試行の案内を返す。
+                        if (current() && isOpen()) this.reportClientError(error, 'handleExportCsv', 'ui-event');
+                        // 応答本文や内部情報は利用者向けの案内へ転記しない。
+                        throw new Error('データ分類を取得できませんでした。もう一度出力してください。');
+                    }
+                    // 進捗とファイル本体に同じ順序・同じ明細を使う。
+                    const groups = csvParts({ fields, reference, locale, timeZone, classification, edits, objectName: detail.apiName, objectLabel: detail.label });
+                    // 全件が揃った場合だけモーダル終了後の保存対象にする。
+                    file = await buildCsvBlob(groups, () => current() && isOpen(), progress);
+                }
+            });
+            // 閉じるアニメーション中に対象を離れた場合も保存しない。
+            if (!completed || !file || !current()) return;
+            // 直前のダウンロード用URLと入れ替える。
+            this.releaseDownload();
+            // テンプレート内のリンクからローカルへ保存する。
+            this.downloadUrl = URL.createObjectURL(file);
+            // このコンポーネントに属するリンクだけを使用する。
+            const link = this.template.querySelector('[data-download]');
+            // ファイル名には対象API名と利用者のタイムゾーンを使用する。
+            link.download = csvFileName(detail.apiName, reference, new Date(), timeZone);
+            // 作成したファイルだけを保存先へ渡す。
+            link.href = this.downloadUrl;
+            // 完成したCSVのダウンロードを開始する。
+            link.click();
         } catch (error) {
-            // 処理名を付けてこの画面内へエラーを表示
-            this.reportClientError(error, 'handleExportCsv', 'ui-event');
+            // モーダル自体やダウンロードの失敗を親画面で通知する。
+            if (!controller.signal.aborted) this.reportClientError(error, 'handleExportCsv', 'ui-event');
+        } finally {
+            // 古い処理で新しい出力のロックを解除しない。
+            if (this.exportController === controller) this.exportController = undefined;
         }
     }
     // CSVを全件確認した後で入力欄へ反映し、保存は既存ボタンへ委ねる

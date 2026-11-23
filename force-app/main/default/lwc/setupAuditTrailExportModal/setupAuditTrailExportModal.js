@@ -4,6 +4,8 @@ import { confirmationText } from './setupAuditTrailExportModalLogic';
 
 // 確認、取得進捗、失敗時の再試行を一つの標準モーダル内で扱う。
 export default class SetupAuditTrailExportModal extends LightningModal {
+    // 項目CSVではオブジェクト名、種類と対象件数を受け取る。
+    @api exportSubject;
     // 確認対象の月と期間を呼び出し時点に固定する。
     @api month;
     // 月別、全期間、検索結果のいずれかを受け取る。
@@ -73,13 +75,13 @@ export default class SetupAuditTrailExportModal extends LightningModal {
     // 全期間の表示と対象月の表示を切り替える。
     get range() {
         // 進捗中もどの範囲を出力しているか表示する。
-        return this.period === 'all' ? '保持期間内の全期間' : this.month;
+        return this.exportSubject || (this.period === 'all' ? '保持期間内の全期間' : this.month);
     }
 
     // 取得の前後で同じ出力範囲を案内する。
     get confirmation() {
         // 件数の未確定とゼロ件を区別する。
-        return confirmationText(this.period, this.range, this.selection?.count);
+        return this.exportSubject ? this.exportSubject + 'をCSV出力しますか？' : confirmationText(this.period, this.range, this.selection?.count);
     }
 
     // 取得中と検索結果が未確定または空のときは実行できない。

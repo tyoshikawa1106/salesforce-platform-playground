@@ -39,6 +39,44 @@ describe('取引先一括削除画面', () => {
         jest.resetAllMocks();
     });
 
+    it('再接続前の確認が成立しても送信せず、新しい確認のロックを維持する', async () => {
+        let finishOld;
+        let finishNew;
+        AccountDeleteConfirm.open.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }))
+            .mockImplementationOnce(() => new Promise(resolve => { finishNew = resolve; }));
+        const element = await mount();
+        executeButton(element).click();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        executeButton(element).click();
+        finishOld(true);
+        await flush();
+        expect(startRun).not.toHaveBeenCalled();
+        expect(executeButton(element).disabled).toBe(true);
+        finishNew(false);
+        await flush();
+        expect(executeButton(element).disabled).toBe(false);
+    });
+
+    it('送信後の再接続では受付結果を待ち、削除を二重に開始しない', async () => {
+        let finish;
+        AccountDeleteConfirm.open.mockResolvedValueOnce(true);
+        startRun.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        const element = await mount();
+        executeButton(element).click();
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(executeButton(element).disabled).toBe(true);
+        executeButton(element).click();
+        finish({ jobId: 'accepted' });
+        await flush();
+        expect(startRun).toHaveBeenCalledTimes(1);
+        expect(executeButton(element).disabled).toBe(true);
+    });
+
     it('個人取引先と関連データへの影響を表示する', async () => {
         const element = await mount();
         expect(element.shadowRoot.textContent).toContain('個人取引先も対象');
