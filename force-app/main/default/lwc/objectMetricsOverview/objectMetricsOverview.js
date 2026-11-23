@@ -87,10 +87,10 @@ export default class ObjectMetricsOverview extends LightningElement {
         return createCountCards(this.metricItems, this.isBusy);
     }
 
-    // カードがまだない間は一覧全体に読み込み状態を表示
-    get showBoardSpinner() {
-        // カード取得後の再読み込みは各カードの件数欄で表示
-        return this.isBusy && this.metricItems.length === 0;
+    // 応答前に先行表示したカードは選択を保留
+    get disableCardNavigation() {
+        // 件数応答でカードの対象が確定してから検索画面へ遷移可能にする
+        return this.metricItems.length === 0;
     }
 
     // 初回取得と手動再取得をまとめた操作中状態を返却

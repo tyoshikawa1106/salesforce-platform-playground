@@ -4,11 +4,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.c-board-loading {
-    grid-column: 1 / -1;
-}
-
-.c-board-loading,
 .c-count-card,
 .c-count-card-button {
     height: var(--slds-g-sizing-12, 5rem);
