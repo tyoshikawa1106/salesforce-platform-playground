@@ -665,6 +665,91 @@ it('認証状態の初期確認中は操作領域を表示しない', async () =
     expect(element.shadowRoot.textContent).toContain('認証状態を確認しています');
 });
 
+it('再接続前の解除確認は送信せず、新しい解除確認のロックを維持する', async () => {
+    const element = createComponent();
+    await flush();
+    let oldConfirm;
+    let newConfirm;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { oldConfirm = resolve; }))
+        .mockImplementationOnce(() => new Promise(resolve => { newConfirm = resolve; }));
+    const revoke = () => element.shadowRoot.querySelector('[data-authentication-revoke]');
+    revoke().click();
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    revoke().click();
+    oldConfirm(true);
+    await flush();
+    expect(revokeApiAuthentication).not.toHaveBeenCalled();
+    expect(revoke().disabled).toBe(true);
+    newConfirm(false);
+    await flush();
+    expect(revoke().disabled).toBe(false);
+});
+
+it('送信済みの認証解除は再接続後も完了を待ってから状態を照会する', async () => {
+    const element = createComponent();
+    await flush();
+    let finish;
+    revokeApiAuthentication.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    element.shadowRoot.querySelector('[data-authentication-revoke]').click();
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: '認証してください。' });
+    finish();
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(2);
+    expect(revokeApiAuthentication).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('.c-authentication a')).not.toBeNull();
+});
+
+it('再接続前の破棄確認で分類入力やモードを変更しない', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    let confirm;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { confirm = resolve; }));
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'reference' } }));
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    confirm(true);
+    await flush();
+    expect(element.shadowRoot.querySelector('.c-mode').value).toBe('classify');
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+});
+
+it('画面離脱でCSVの取込確認を中断して未保存入力を維持する', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    let confirm;
+    const confirming = new Promise(resolve => {
+        LightningConfirm.open.mockImplementationOnce(() => {
+            resolve();
+            return new Promise(finish => { confirm = finish; });
+        });
+    });
+    const csv = 'ObjectApiName,FieldApiName,ComplianceGroup,SecurityClassification,BusinessStatus,BusinessOwnerId\nAccount,Name,,,,';
+    const input = element.shadowRoot.querySelector('.c-csv-import lightning-input');
+    Object.defineProperty(input, 'files', { value: [new File([csv], 'classify.csv')] });
+    input.dispatchEvent(new CustomEvent('change'));
+    await confirming;
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    confirm(true);
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('.c-csv-import lightning-input').disabled).toBe(false);
+    expect(element.shadowRoot.textContent).not.toContain('CSVから1項目');
+    expect(saveClassifyData).not.toHaveBeenCalled();
+});
+
 it('認証解除をキャンセルした場合は資格情報と未保存入力を保持する', async () => {
     const element = createComponent();
     await editClassify(element);
