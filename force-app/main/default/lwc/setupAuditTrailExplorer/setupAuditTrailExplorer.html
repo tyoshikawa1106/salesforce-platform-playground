@@ -124,9 +124,12 @@
                             <template lwc:elseif={listReady}>
                                 <div class="c-history-viewport">
                                     <lightning-datatable class="history-table" key-field="Id" data={visibleRecords} columns={columns}
-                                        enable-infinite-loading={hasMoreRows} onloadmore={showMoreRows}
+                                        enable-infinite-loading={hasMoreRows} load-more-offset="800" onloadmore={showMoreRows}
                                         max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                                 </div>
+                            </template>
+                            <template lwc:elseif={loading}>
+                                <div lwc:if={records.length} class="c-history-viewport" aria-hidden="true"></div>
                             </template>
                             <div class="c-history-footer">
                                 <nav class="pagination" aria-label="履歴のページ送り">
