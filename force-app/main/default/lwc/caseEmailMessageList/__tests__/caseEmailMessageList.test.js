@@ -349,6 +349,31 @@ describe('c-case-email-message-list', () => {
         await expect(element).toBeAccessible();
     });
 
+    it.each([0, 1])('初回件数%sから件数が正で一覧が空になった場合は再読み込みを案内する', async (initialCount) => {
+        const element = createComponent();
+        await emitCountAndPage(initialCount, emptyPage);
+        if (initialCount === 0) {
+            getEmailMessageCount.emit(1);
+            await flushPromises();
+        }
+
+        const reloadNotice = '件数と一覧が一致していません。「再読み込み」で最新のメールを確認してください。';
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (1)');
+        expect(element.shadowRoot.textContent).toContain(reloadNotice);
+        expect(element.shadowRoot.textContent).not.toContain('このケースに紐づくメールメッセージはありません。');
+        expect(getEmailMessages).toHaveBeenCalledTimes(1);
+
+        refreshApex.mockImplementationOnce(async () => { getEmailMessageCount.emit(1); });
+        getEmailMessages.mockResolvedValueOnce({ ...emptyPage, emailMessages: [emailMessages[0]] });
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain('受信メール');
+        expect(element.shadowRoot.textContent).not.toContain(reloadNotice);
+        expect(getEmailMessages).toHaveBeenCalledTimes(2);
+    });
+
     it('renders an empty state when no email messages exist', async () => {
         const element = createComponent();
 

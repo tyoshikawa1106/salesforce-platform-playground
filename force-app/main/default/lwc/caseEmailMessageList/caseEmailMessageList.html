@@ -209,11 +209,11 @@
                 </template>
             </template>
 
-            <template lwc:elseif={hasLoaded}>
+            <template lwc:elseif={emptyListMessage}>
                 <p
                     class="slds-p-vertical_large slds-text-align_center slds-text-color_weak"
                 >
-                    このケースに紐づくメールメッセージはありません。
+                    {emptyListMessage}
                 </p>
             </template>
         </div>
