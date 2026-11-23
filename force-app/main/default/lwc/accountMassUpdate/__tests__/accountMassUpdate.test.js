@@ -82,6 +82,18 @@ function edit(element, value = 'Cold') {
 }
 
 describe('取引先一括更新画面', () => {
+    it('検索が失敗したときは前の検索の0件案内を表示しない', async () => {
+        const element = await createComponent();
+        searchAccounts.mockResolvedValueOnce({ ...response, records: [] });
+        button(element, '検索').click();
+        await flush();
+        searchAccounts.mockResolvedValueOnce({ errorMessage: '取得失敗' });
+        button(element, '検索').click();
+        await flush();
+        expect(element.shadowRoot.textContent).toContain('取得失敗');
+        expect(element.shadowRoot.textContent).not.toContain('条件に一致する法人取引先はありません');
+    });
+
     beforeEach(() => {
         searchAccounts.mockResolvedValue(response);
         LightningConfirm.open.mockResolvedValue(true);
@@ -237,6 +249,7 @@ describe('取引先一括更新画面', () => {
         await flush();
         expect(element.shadowRoot.textContent).toContain('1件を保存しました');
         expect(element.shadowRoot.textContent).toContain('再取得に失敗');
+        expect(element.shadowRoot.textContent).not.toContain('条件に一致する法人取引先はありません');
         expect(button(element, '変更を保存').disabled).toBe(true);
     });
 

@@ -68,6 +68,8 @@ export default class AccountMassUpdate extends LightningElement {
     hasNext = false;
     // 未検索と検索結果ゼロ件を区別
     searched = false;
+    // 最後に取得に成功したページが0件だった場合だけ案内する
+    pageConfirmedEmpty = false;
     // 検索・保存・確認中の重複操作を防止
     busy = false;
     // 検索とページ移動の確認・取得を同じ要求として追跡する。
@@ -159,7 +161,7 @@ export default class AccountMassUpdate extends LightningElement {
 
     get emptyResult() {
         // 未検索の案内とゼロ件の結果を区別
-        return this.searched && !this.busy && this.records.length === 0;
+        return this.pageConfirmedEmpty && !this.busy;
     }
 
     handleFilter(event) {
@@ -274,6 +276,8 @@ export default class AccountMassUpdate extends LightningElement {
                 if (!confirmed || request !== this.navigationRequest) return;
             }
             // 検索中に離脱した場合も応答を反映しない。
+            // 新しいページを取得するまで0件とは確定できない
+            this.pageConfirmedEmpty = false;
             await this.fetchPage(target, anchor, filters, request);
         } catch (error) {
             // 以前の画面に属する失敗を現在のエラーにしない。
@@ -402,6 +406,8 @@ export default class AccountMassUpdate extends LightningElement {
                 .map((record) => failedMap.get(record.Id) || freshMap.get(record.Id))
                 .filter(Boolean);
             // 保存前の境界より後ろの行へ進める状態を維持
+            // 再取得したページ全体で該当件数を確認
+            this.pageConfirmedEmpty = result.records.length === 0;
             this.hasNext = this.hasNext || result.hasNext;
             // 最新の項目更新権限を反映
             this.editableFields = result.editableFields;
@@ -455,6 +461,8 @@ export default class AccountMassUpdate extends LightningElement {
         this.message = '';
         // 検索結果の表示を有効化
         this.searched = true;
+        // 正常応答の件数を表示判定に使う
+        this.pageConfirmedEmpty = result.records.length === 0;
         // 検索成功後だけ失敗した選択肢の再取得を許可する
         this.failedPicklistTypes.clear();
         // 表示する行のレコードタイプ別選択肢を準備
