@@ -933,6 +933,7 @@
         <members>userLocaleSettings</members>
         <members>setupAuditTrailChart</members>
         <members>setupAuditTrailExplorer</members>
+        <members>setupAuditTrailExportModal</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
