@@ -87,6 +87,12 @@ export default class ObjectMetricsOverview extends LightningElement {
         return createCountCards(this.metricItems, this.isBusy);
     }
 
+    // 応答前に先行表示したカードは選択を保留
+    get disableCardNavigation() {
+        // 件数応答でカードの対象が確定してから検索画面へ遷移可能にする
+        return this.metricItems.length === 0;
+    }
+
     // 初回取得と手動再取得をまとめた操作中状態を返却
     get isBusy() {
         // いずれかの読込処理中は操作を抑止
