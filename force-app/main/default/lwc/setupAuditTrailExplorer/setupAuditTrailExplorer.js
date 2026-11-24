@@ -1355,6 +1355,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 if (!isCurrent()) {
                     return;
                 }
+                // 月別・全期間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
+                if (context.period !== 'results' && cursor.nextId && result.records.length === 0) {
+                    throw new Error('続きの履歴を取得できなかったため、CSVを保存しませんでした。もう一度出力してください。');
+                }
                 yield result;
                 cursor = pageCursor(result);
                 if (result.cutoff) {
@@ -1379,7 +1383,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 作成者の照合結果を出力単位で共有する。
         let employeeActorIds = new Set();
         // 検索結果の出力では一覧で取得済みの照合結果を利用する。
-        const context = { actors: selection && this.historyContext.actors };
+        const context = { period, actors: selection && this.historyContext.actors };
         // 再試行の進捗はゼロから数える。
         let rows = 0;
         // 返された境界を使って全ページを順に取得する。

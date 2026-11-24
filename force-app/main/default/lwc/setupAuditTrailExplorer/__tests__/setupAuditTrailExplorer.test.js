@@ -410,6 +410,47 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
     }
 });
 
+it.each(['month', 'all'])('rejects an empty continuation for %s but allows an empty first page on retry', async period => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:audit');
+    URL.revokeObjectURL = jest.fn();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    load.request.mockResolvedValue({ records: [] });
+    const component = mount();
+    try {
+        await flush();
+        const fetchPage = period === 'all' ? exportAllHistory : load.request;
+        fetchPage.mockResolvedValueOnce({ records: [{ Id: 'last', CreatedDate: cutoff }], nextId: 'last', nextTime: cutoff, cutoff })
+            .mockResolvedValueOnce({ records: [], cutoff })
+            .mockResolvedValueOnce({ records: [], cutoff });
+        if (period === 'all') {
+            component.shadowRoot.querySelector('lightning-button-menu').dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
+        } else {
+            component.shadowRoot.querySelector('[data-monthly-export]').click();
+        }
+        confirmCsv();
+        await flush();
+        expect(download).not.toHaveBeenCalled();
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+        expect(currentDialog().querySelector('[role="alert"]').textContent)
+            .toBe('続きの履歴を取得できなかったため、CSVを保存しませんでした。もう一度出力してください。');
+
+        confirmCsv();
+        await flush();
+        expect(download).toHaveBeenCalledTimes(1);
+        expect(currentDialog()).toBeUndefined();
+        const reader = new FileReader();
+        const contents = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
+        reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
+        expect(await contents).toBe(historyLogic.CSV_HEADER);
+    } finally {
+        component.remove();
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+    }
+});
+
 it('retries only the failed CSV page after a temporary connection error', async () => {
     const page = { records: [{ CreatedDate: '2026-11-18T00:00:00Z' }], nextId: 'cursor', nextTime: 'time' };
     load.request.mockResolvedValueOnce({ records: [] })
