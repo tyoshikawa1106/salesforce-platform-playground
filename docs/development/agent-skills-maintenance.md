@@ -34,45 +34,6 @@ npx --yes skills@1.9.0 add https://github.com/forcedotcom/sf-skills/tree/main/sk
 
 機能別にコミットする場合は、先に `add` の `--skill` にそのグループの名前を並べ、スキル本体と CLI が生成した `skills-lock.json` を一緒にコミットします。最後に上の全件取得で、追加漏れと取得元の記録を揃えます。
 
-## 4. 差分をレビューし、同期結果を検証する
+全件取得後に `npx --yes skills@1.9.0 check --project` を再実行し、更新・削除候補が残っていないことを確認します。PR では `.agents/skills/` と `skills-lock.json` の差分を一緒にレビューします。
 
-```sh
-git status --short --untracked-files=all
-git diff -- .agents/skills/ skills-lock.json
-npx --yes skills@1.9.0 check --project
-```
-
-新規ファイルは `git status` で確認し、ステージ後に `git diff --cached` で内容をレビューします。差分があればコミットし、差分がなければ現在の `HEAD` で次の照合を実行します。
-
-以下は macOS・Linux などのシェルで使用できます。コミット済みのロックファイルから取得元コミットを読み、登録名とパスを照合します。さらに Git ツリー ID を比較して、スキル本体のファイル内容と実行権限を確認します。
-
-```sh
-upstream_dir=$(mktemp -d) &&
-git clone -q --no-checkout --single-branch --branch main https://github.com/forcedotcom/sf-skills.git "$upstream_dir" &&
-node - "$upstream_dir" <<'NODE'
-const { execFileSync } = require('node:child_process')
-const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim()
-const upstream = (...args) => git('-C', process.argv[2], ...args)
-
-const lock = JSON.parse(git('show', 'HEAD:skills-lock.json'))
-const entries = Object.entries(lock.skills).filter(([, skill]) => skill.source === 'forcedotcom/sf-skills')
-const commits = new Set(entries.map(([, skill]) => skill.commit))
-const [sha] = commits
-if (commits.size !== 1 || !/^[0-9a-f]{40}$/.test(sha)) throw Error('取得元コミットを一つに特定できません')
-
-const paths = upstream('ls-tree', '-r', '--name-only', sha, 'skills').split('\n')
-const expected = paths.filter(path => /^skills\/[^/]+\/SKILL\.md$/.test(path)).sort()
-const registered = entries.map(([name, skill]) => {
-  if (skill.skillPath !== `skills/${name}/SKILL.md`) throw Error(`登録パス不一致: ${name}`)
-  return skill.skillPath
-}).sort()
-
-if (JSON.stringify(registered) !== JSON.stringify(expected)) throw Error('スキルの登録に過不足があります')
-if (git('rev-parse', 'HEAD:.agents/skills') !== upstream('rev-parse', sha + ':skills')) {
-  throw Error('コミット済みのスキルと取得元のファイルに差があります')
-}
-console.log(`一致: ${registered.length} 件、取得元 ${sha}`)
-NODE
-```
-
-照合に成功したら、表示された件数と取得元コミットを PR に記録します。不一致があれば、同期対象の漏れやコミットに含め忘れたファイルを確認し、必要な取得・コミットと照合をやり直します。取得元に不具合や競合マーカーが残っている場合は PR に記録し、取得元での修正を次回の同期で取り込みます。個別ファイルやロックのハッシュは手編集しません。
+取得元の不具合や競合マーカーは PR に記録し、取得元での修正を次の同期で取り込みます。スキル本体やロックのハッシュは手編集しません。
