@@ -341,6 +341,46 @@
       "skillPath": "skills/dx-scratch-def-configure/SKILL.md",
       "computedHash": "f59f02088aece60fae9b2fd746aa7b636729c5f8ac7eccc504012bef37c85e6b"
     },
+    "education-cloud-academic-calendar-generate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/education-cloud-academic-calendar-generate/SKILL.md",
+      "computedHash": "7ed0920f77a0ac2ae59219a0bb07e651d26ce6d03c762374055c90fee1e254ec"
+    },
+    "education-cloud-course-catalog-migrate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/education-cloud-course-catalog-migrate/SKILL.md",
+      "computedHash": "b340d5dd54ab3dc36967fc16aa13996cb612d450419e194f316524a96368f19f"
+    },
+    "education-cloud-domain-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/education-cloud-domain-configure/SKILL.md",
+      "computedHash": "941cc0702531791539e6e52f9a2cfd529b83f96db6c9e50124b2b7fe2e71bfc4"
+    },
+    "education-cloud-multi-campus-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/education-cloud-multi-campus-configure/SKILL.md",
+      "computedHash": "02b6bcf0773949e5ecf85c90d24b62a69a1cfcce7e57cbc9bd7ff9c4f725e3dc"
+    },
+    "education-cloud-student-recruitment-agent-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/education-cloud-student-recruitment-agent-configure/SKILL.md",
+      "computedHash": "b3792654b39dcc84cfdc5ce526e408a369a50fbfab84a4bcc1173dde33cfb585"
+    },
     "experience-accessibility-validate": {
       "source": "forcedotcom/sf-skills",
       "ref": "main",
@@ -807,6 +847,38 @@
       "skillPath": "skills/mobile-platform-offline-validate/SKILL.md",
       "computedHash": "9270d1ea8aef63a3fe3bdad6d185eb21f470ae26dcff57dcf8e4b9efbb3e8972",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
+    },
+    "nonprofit-fundraising-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/nonprofit-fundraising-configure/SKILL.md",
+      "computedHash": "f409996e78f3ff9d11fbdc32282b321aad4efcb1ed6764a6f454180187cbadf9"
+    },
+    "nonprofit-volunteer-management-model-get": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/nonprofit-volunteer-management-model-get/SKILL.md",
+      "computedHash": "749ca0eed5e7205e9d0dacfe683f7dc8a971ed8102959b5eb25b8a9e857071da"
+    },
+    "nonprofit-volunteer-management-records-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/nonprofit-volunteer-management-records-create/SKILL.md",
+      "computedHash": "f995b214e48a54fcb0e4abfb2b40ca4a84dc353c6285daa1641bd57fa956daef"
+    },
+    "nonprofit-volunteer-management-structure-generate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/nonprofit-volunteer-management-structure-generate/SKILL.md",
+      "computedHash": "a57bb50d28c6faef28bf858824f5cc036ae5221130ad3b2b08577a598db99863"
     },
     "omnistudio-callable-apex-generate": {
       "source": "forcedotcom/sf-skills",
