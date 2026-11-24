@@ -279,7 +279,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/experience-ui-bundle-deploy/SKILL.md",
-      "computedHash": "05e704f8c4871f224acc6124d659425153d1033ddc7ee27a1f024e04fd87cf44"
+      "computedHash": "19d4b6fc55c18d5d5f9974e4ef82f18c9ae4b5de58e85cb924a80f42e5e68bf9",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "experience-ui-bundle-features-generate": {
       "source": "forcedotcom/sf-skills",
