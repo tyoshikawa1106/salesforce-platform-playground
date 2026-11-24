@@ -1340,6 +1340,198 @@
       "sourceType": "github",
       "skillPath": "skills/service-itsm-teams-itservice-configure/SKILL.md",
       "computedHash": "3d1ecc21ef4953908894ae96f50b0edef61cced66f45299de1a2c1438bbe5560"
+    },
+    "service-omni-agent-users-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-agent-users-create/SKILL.md",
+      "computedHash": "a2f794b00d3af3dd471cd596c31477110060022bbae6cb5dfb083ca855599747"
+    },
+    "service-omni-agent-work-sharing-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-agent-work-sharing-configure/SKILL.md",
+      "computedHash": "ee84e6764ebcbf25e4a947102ada872d923f9ddc989ac3e7268bfd3d5d3d15b1"
+    },
+    "service-omni-attribute-routing-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-attribute-routing-configure/SKILL.md",
+      "computedHash": "02b71ef7a38b054f06d3a7ea314405a5a838de2713353c9021d338ff7b52053d"
+    },
+    "service-omni-base-settings-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-base-settings-configure/SKILL.md",
+      "computedHash": "421c00eceee98539d8ae967d1c2a5ff89655d20efbb9de393d1c9f79928c6356"
+    },
+    "service-omni-channel-inventory-analyze": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-channel-inventory-analyze/SKILL.md",
+      "computedHash": "a2659e103aa15d3401cbfacb91f966fc244fd0570630d6ce8e6d24a936024a01"
+    },
+    "service-omni-channel-limits-analyze": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-channel-limits-analyze/SKILL.md",
+      "computedHash": "add61a06ec1c7ccc2b1d43ea9f463fc3a1c47ec015f93d730ada404f9c293ae2"
+    },
+    "service-omni-channel-setup-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-channel-setup-coordinate/SKILL.md",
+      "computedHash": "9a87ea845f966235100c0a94d2465a7c8297d54fbc09cb1db6d85e32be0d89fc"
+    },
+    "service-omni-command-center-analyze": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-command-center-analyze/SKILL.md",
+      "computedHash": "f4db4664cebd83dc02a4c226e0a0eac7a6e935ab0361ff874f2ed9b307dd2c41"
+    },
+    "service-omni-command-center-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-command-center-configure/SKILL.md",
+      "computedHash": "08edc33839bbfcc93cb5ed94f030a8cc617d2281c1f8d1bd246c9d7d23a117b1"
+    },
+    "service-omni-permission-set-assign": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-permission-set-assign/SKILL.md",
+      "computedHash": "8a8392e9d590aa858056e49007d5df93c6d990ecd090af79352208034c8f373a"
+    },
+    "service-omni-presence-status-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-presence-status-deploy/SKILL.md",
+      "computedHash": "ad653825c6076191f110a0147679ce29552ef6dfcd0219102c9636f552b55db0"
+    },
+    "service-omni-presence-user-config-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-presence-user-config-deploy/SKILL.md",
+      "computedHash": "ed51d1ba18b8042b12ce7fe305e6ea2dbbab627b837dc31231e735c89a226268"
+    },
+    "service-omni-queue-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-queue-deploy/SKILL.md",
+      "computedHash": "13e01e31787d052ceb7e0163b58389fd9e52542c5bc09cb46d35ae91ca4eb500"
+    },
+    "service-omni-queue-members-assign": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-queue-members-assign/SKILL.md",
+      "computedHash": "066a739cf4993a9c2bbb2830c23040ab5bb36b2d31a343de1df0b8ac02c4e5ec"
+    },
+    "service-omni-queue-routing-config-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-queue-routing-config-deploy/SKILL.md",
+      "computedHash": "d30a1d7da293c61302d7ed92caa1b9a2b28d8a12bd07d831526d357c6c532cd1"
+    },
+    "service-omni-routing-flow-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-routing-flow-deploy/SKILL.md",
+      "computedHash": "a25c786eeb6b9aba880fc2a7b31cbc5be9903c9dadc092c3cbda54fe946d7c5c"
+    },
+    "service-omni-service-channel-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-service-channel-configure/SKILL.md",
+      "computedHash": "cf292f18bf525e753c8b3b73dc83b6d552737e8380b73f6fe7305a6fb74c3816"
+    },
+    "service-omni-sidebar-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-sidebar-configure/SKILL.md",
+      "computedHash": "9dc33fddb2fce644939d8a039048742e6ba9e2ea586c430c8ffb44ffdcd51066"
+    },
+    "service-omni-skills-based-routing-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-skills-based-routing-configure/SKILL.md",
+      "computedHash": "10252ef67ec2dcee19886a879480ceb1fd28ad29860f784c738646bd1bd42773"
+    },
+    "service-omni-supervisor-config-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-supervisor-config-deploy/SKILL.md",
+      "computedHash": "e9bf4d1fdcb06081bfa2e8696fbc5cd7a3d46b9351cf8471aebaf7bf522e5499"
+    },
+    "service-omni-supervisor-permset-assign": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-supervisor-permset-assign/SKILL.md",
+      "computedHash": "a900084103f2b3f25683b67189f1a343272c614af4b02f6da2eb0eed5713dd14"
+    },
+    "service-omni-supervisor-surface-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-supervisor-surface-deploy/SKILL.md",
+      "computedHash": "ffef7617b59984f452200ac23db78058f84e7380fbe1bc58c07b62f00ea262ec"
+    },
+    "service-omni-supervisor-users-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-supervisor-users-create/SKILL.md",
+      "computedHash": "4479deed8a6b8df14f544feb7d62857c4b55a7d39648298442809a88252eb394"
+    },
+    "service-omni-work-skill-routing-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-omni-work-skill-routing-configure/SKILL.md",
+      "computedHash": "a56ac99b1415554cbb4a1f176ba6d059e51e20e36fcdef934e69710908862d3e"
     }
   }
 }
