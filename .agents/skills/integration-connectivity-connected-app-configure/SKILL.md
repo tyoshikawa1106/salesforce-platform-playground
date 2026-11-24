@@ -4,6 +4,23 @@ description: "Salesforce Connected Apps and External Client Apps OAuth configura
 allowed-tools: Bash Read Write Edit Glob Grep WebFetch AskUserQuestion TodoWrite
 metadata:
   version: "1.1"
+  domains: ["Integration"]
+  minApiVersion: "57.0"
+  relatedSkills:
+    - "integration-connectivity-generate"
+    - "platform-apex-generate"
+    - "platform-metadata-deploy"
+  cliTools:
+    - tool: ["curl"]
+      semver: ">=7.0.0"
+    - tool: ["jq"]
+      semver: ">=1.7.0"
+    - tool: ["openssl"]
+      semver: ">=1.1.0"
+    - tool: ["python3"]
+      semver: ">=3.10.0"
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # integration-connectivity-connected-app-configure: Salesforce Connected Apps & External Client Apps
@@ -21,8 +38,8 @@ Use this skill when the user needs **OAuth app configuration** in Salesforce: Co
 
 **Out of scope — delegate elsewhere:**
 - Configuring Named Credentials or runtime callouts → [integration-connectivity-generate](../integration-connectivity-generate/SKILL.md)
-- Deploying metadata to orgs → [platform-metadata-deploy](../platform-metadata-deploy/SKILL.md)
-- Writing Apex token-handling code → [platform-apex-generate](../platform-apex-generate/SKILL.md)
+- Deploying metadata to orgs → the `platform-metadata-deploy` skill
+- Writing Apex token-handling code → the `platform-apex-generate` skill
 
 ---
 
@@ -189,8 +206,8 @@ Score: <x>/120
 | Need | Delegate to | Reason |
 |---|---|---|
 | Named Credential / callout runtime config | [integration-connectivity-generate](../integration-connectivity-generate/SKILL.md) | runtime integration setup |
-| Deploy app metadata | [platform-metadata-deploy](../platform-metadata-deploy/SKILL.md) | org validation and deployment |
-| Apex token or refresh handling | [platform-apex-generate](../platform-apex-generate/SKILL.md) | implementation logic |
+| Deploy app metadata | `platform-metadata-deploy` skill | org validation and deployment |
+| Apex token or refresh handling | `platform-apex-generate` skill | implementation logic |
 
 ---
 

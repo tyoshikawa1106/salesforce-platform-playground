@@ -3,6 +3,25 @@ name: integration-connectivity-generate
 description: "Salesforce integration architecture and runtime plumbing with 120-point scoring. Use this skill to set up Named Credentials, External Credentials, External Services, REST/SOAP callout patterns, Platform Events, and Change Data Capture. TRIGGER when: user sets up Named Credentials, External Services, REST/SOAP callouts, Platform Events, CDC, or touches .namedCredential-meta.xml files. DO NOT TRIGGER when: Connected App/OAuth config (use integration-connectivity-connected-app-configure), Apex-only logic (use platform-apex-generate), data import/export (use platform-data-manage), or CDC channel-membership metadata such as PlatformEventChannel, PlatformEventChannelMember, or EnrichedField (use integration-eventing-cdc-configure)."
 metadata:
   version: "1.1"
+  domains: ["Integration"]
+  minApiVersion: "61.0"
+  relatedSkills:
+    - "agentforce-generate"
+    - "automation-flow-generate"
+    - "integration-connectivity-connected-app-configure"
+    - "integration-eventing-cdc-configure"
+    - "platform-apex-generate"
+    - "platform-data-manage"
+    - "platform-metadata-deploy"
+  cliTools:
+    - tool: ["jq"]
+      semver: ">=1.6.0"
+    - tool: ["npm"]
+      semver: ">=9.0.0"
+    - tool: ["python3"]
+      semver: ">=3.10.0"
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # integration-connectivity-generate: Salesforce Integration Patterns Expert
@@ -20,9 +39,9 @@ Use `integration-connectivity-generate` when the work involves:
 
 Delegate elsewhere when the user is:
 - configuring the OAuth app itself → [integration-connectivity-connected-app-configure](../integration-connectivity-connected-app-configure/SKILL.md)
-- writing Apex-only business logic → [platform-apex-generate](../platform-apex-generate/SKILL.md)
-- deploying metadata → [platform-metadata-deploy](../platform-metadata-deploy/SKILL.md)
-- importing/exporting data → [platform-data-manage](../platform-data-manage/SKILL.md)
+- writing Apex-only business logic → the `platform-apex-generate` skill
+- deploying metadata → the `platform-metadata-deploy` skill
+- importing/exporting data → the `platform-data-manage` skill
 
 ---
 
@@ -74,9 +93,9 @@ Check:
 
 ### 5. Hand off deployment or implementation details
 Use:
-- [platform-metadata-deploy](../platform-metadata-deploy/SKILL.md) for deployment
-- [platform-apex-generate](../platform-apex-generate/SKILL.md) for deeper service / retry code
-- [automation-flow-generate](../automation-flow-generate/SKILL.md) for declarative HTTP callout orchestration
+- the `platform-metadata-deploy` skill for deployment
+- the `platform-apex-generate` skill for deeper service / retry code
+- the `automation-flow-generate` skill for declarative HTTP callout orchestration
 
 ---
 
@@ -123,10 +142,10 @@ Next step: <deploy, register, test, or implement>
 | Need | Delegate to | Reason |
 |---|---|---|
 | OAuth app setup | [integration-connectivity-connected-app-configure](../integration-connectivity-connected-app-configure/SKILL.md) | consumer key / cert / app config |
-| advanced callout service code | [platform-apex-generate](../platform-apex-generate/SKILL.md) | Apex implementation |
-| declarative HTTP callout / Flow wrapper | [automation-flow-generate](../automation-flow-generate/SKILL.md) | Flow orchestration |
-| deploy integration metadata | [platform-metadata-deploy](../platform-metadata-deploy/SKILL.md) | validation and rollout |
-| use integration from Agentforce | [agentforce-generate](../agentforce-generate/SKILL.md) | agent action composition |
+| advanced callout service code | `platform-apex-generate` skill | Apex implementation |
+| declarative HTTP callout / Flow wrapper | `automation-flow-generate` skill | Flow orchestration |
+| deploy integration metadata | `platform-metadata-deploy` skill | validation and rollout |
+| use integration from Agentforce | `agentforce-generate` skill | agent action composition |
 
 ---
 
