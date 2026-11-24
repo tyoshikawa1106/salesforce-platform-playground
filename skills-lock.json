@@ -171,31 +171,36 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-devops-test-failures-analyze/SKILL.md",
-      "computedHash": "5fb42280cb1a207c608302c9cd4bc8140c173ae25e3a2e88f17c19fe4f2cca66"
+      "computedHash": "66c9dab68ed025882ab5d90483a5caecd268a71ffcc925e385059d1f80542288",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-devops-test-pipeline-configure": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-devops-test-pipeline-configure/SKILL.md",
-      "computedHash": "e9e76aa2b81a9982863f68b426a67b2a8df39de77edc8b1a2dc31290a92367b4"
+      "computedHash": "5107bac6fd38644e3ae6f579d136427eacb0eec08189e8629b24daead3f57aca",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-devops-test-suite-assignments-configure": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-devops-test-suite-assignments-configure/SKILL.md",
-      "computedHash": "012307a363d51da7d8d3920c790337c421f871dd8c0c1a226a7a7bd7f5aff371"
+      "computedHash": "3991e40b09e2344b720220317ce19cb919ca8df2c334206f44a50117d413d18e",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-devops-test-suite-run": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-devops-test-suite-run/SKILL.md",
-      "computedHash": "2180263f4ad3093c5cc9493a32366fbfb2cfd1a42c6c89c526202d3f4f77088e"
+      "computedHash": "6179aa15b571441e7aa62e8f17eda5b653d040323a01031fbb31c073297af6c6",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-devops-work-item-manage": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-devops-work-item-manage/SKILL.md",
-      "computedHash": "de1d51071b8611026a84afb3d2af14131f546ae7fdb821fc237183dbcb46cfad"
+      "computedHash": "4de4a9a9ec82ad80bfbea85fa9c4ad956fcc857d3dfebed1679c2c25e95b1667",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-org-manage": {
       "source": "forcedotcom/sf-skills",
