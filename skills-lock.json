@@ -54,19 +54,22 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/commerce-b2b-open-code-components-integrate/SKILL.md",
-      "computedHash": "1341a5a4fe5ea5ac83b82f95ae4a422a9e052d4606fa3ce2525223003d1e0e82"
+      "computedHash": "1799392b8570cea78b3fb6930232e0069a7a65ecac9c81ed6989a4f3d0ec138f",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "commerce-b2b-open-code-components-replace": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/commerce-b2b-open-code-components-replace/SKILL.md",
-      "computedHash": "46184690654053474cd7ac347a3c4e640503fd3b194e2947a4834bb3d8087549"
+      "computedHash": "3ed2defbd18f2bcdfb0da3b872fb14f4ad46528a4558aa6af9659cd233493f12",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "commerce-b2b-store-create": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/commerce-b2b-store-create/SKILL.md",
-      "computedHash": "3c6fdefdbebfbb7b944d653184cea1c5823b54f446040bcdcdc6dfc103012113"
+      "computedHash": "60c9458bf9dea72637f11131684a22ace88f48601b5cea4a9f97c207f1ebf883",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "data360-activate": {
       "source": "forcedotcom/sf-skills",
