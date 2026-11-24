@@ -198,25 +198,29 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-org-manage/SKILL.md",
-      "computedHash": "172364d42f46fd2ab149b3cd1f8ad42882ae0adc3aa9821ca2d20554f785861d"
+      "computedHash": "8311b91a5ce954ea6f494d3afeffd185bdb609f1bd53e1de0e3846b6db797345",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-org-permission-set-assign": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-org-permission-set-assign/SKILL.md",
-      "computedHash": "d3975dbbe68f00a0c52560afc727e3a159aba17efc1cb3bddd04b7fefb2ef56f"
+      "computedHash": "6f7d578a59d01bea3a234c423fdc312d791040b99994ab927a7f45f1967a40b6",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-org-switch": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-org-switch/SKILL.md",
-      "computedHash": "c7c500447b9fabe1e554b70dc17123b8d53a5e4ead3dde61f30bf6bcff0ba8e5"
+      "computedHash": "f68d8801427fcf5f70e72738dba221a5735987f01c193b0f9e05f3acd12159b8",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-org-trial-expiration-check": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-org-trial-expiration-check/SKILL.md",
-      "computedHash": "1b71f6506600551809efd3020c219b20de74abe1aa60c432fca0214f1cdb5477"
+      "computedHash": "b6a8045df6103351725bca038d46401a92623a46bf053bd882cdde74418e8cdb",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-pkg-post-install-configure": {
       "source": "forcedotcom/sf-skills",
