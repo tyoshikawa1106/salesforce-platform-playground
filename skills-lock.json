@@ -5,7 +5,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/agentforce-architecture-analyze/SKILL.md",
-      "computedHash": "0e49d1f8bc8371633c8cf7f9b2083ce9858fe0d13bf391348b5fd536a0178974"
+      "computedHash": "673370c23dc274f74ec4f796ef79e053a074c4458d930a5effe20102f7fbe432",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "agentforce-bot-upgrade": {
       "source": "forcedotcom/sf-skills",
@@ -18,7 +19,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/agentforce-d360-analyze/SKILL.md",
-      "computedHash": "4a667b20850ac22870773b6a25ceabb0e5be2588b10b63869fb811b7b938c8b9"
+      "computedHash": "b7a1305ae3852103cf80fe29f6763076177c080013246c19723c84363ebf296c",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "agentforce-generate": {
       "source": "forcedotcom/sf-skills",
@@ -31,7 +33,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/agentforce-observe/SKILL.md",
-      "computedHash": "42633ab59fdf1e5327f2abf880960767eda41700bb69dc903f150d97e6081661"
+      "computedHash": "95024af08e498ef0bc8ced8a76652f8b6d0863edb8b8e3db02f39909edf76b4f",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "agentforce-test": {
       "source": "forcedotcom/sf-skills",
@@ -577,13 +580,15 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-tracing-agentforce-configure/SKILL.md",
-      "computedHash": "961f571e04be462facf51581a88fa330e3436dd9f0f54291636ab08f74506177"
+      "computedHash": "9e6ef83f99172c102f10948426da9f3692b75f827f9d19995c0c56fb0cd3be62",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-tracing-configure": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-tracing-configure/SKILL.md",
-      "computedHash": "213511c940593ced96794129a5f4f73140a06a707f2e01564d2d9a91d25182c5"
+      "computedHash": "ecb01916ca25233b9a044d7d2d21dfb886bdced834d59a682ac449d2095a1665",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-trust-archive-manage": {
       "source": "forcedotcom/sf-skills",
