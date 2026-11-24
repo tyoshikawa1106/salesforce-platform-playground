@@ -11,7 +11,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/agentforce-bot-upgrade/SKILL.md",
-      "computedHash": "83c7ba8ddcf421b6ddb5ee9e7d27e7857e73fae2255996b49507959d076117ab"
+      "computedHash": "0d959ab82900314b7ecdedf117d219bdeed6f71e1473ab4e5587cbf3cec4610a",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "agentforce-d360-analyze": {
       "source": "forcedotcom/sf-skills",
