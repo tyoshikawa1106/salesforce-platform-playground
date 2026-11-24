@@ -1,10 +1,10 @@
-import { csvHeader, formatCsvPage, historyRow, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
+import { historyColumnDefinitions, formatCsvPage, historyRow, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
 
 it('escapes metadata labels that contain CSV separators', () => {
-    expect(csvHeader({ CreatedDate: 'Date', Username: 'User', ResponsibleNamespacePrefix: 'Namespace', Action: 'A, B',
-        Display: 'C"D', Section: 'E\nF', DelegateUser: 'Delegate' })).toBe('Date,User,Namespace,"A, B","C""D","E\nF",Delegate\n');
+    expect(historyColumnDefinitions({ CreatedDate: 'Date', Username: 'User', ResponsibleNamespacePrefix: 'Namespace', Action: 'A, B',
+        Display: 'C"D', Section: 'E\nF', DelegateUser: 'Delegate' }).csvHeader).toBe('Date,User,Namespace,"A, B","C""D","E\nF",Delegate\n');
 });
 
 it.each([

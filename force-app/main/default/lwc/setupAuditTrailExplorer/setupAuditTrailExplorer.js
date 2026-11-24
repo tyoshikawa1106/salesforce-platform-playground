@@ -9,7 +9,7 @@ import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerControlle
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
-    historyColumns, csvHeader, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
+    historyColumnDefinitions, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
     appliedFilterLabels, historyRow, filterOptionGroups, formatCsvPage, mergeChartPage, offsetMonth, pageCursor, matchPageBoundary, remainingMatchRecords, sameRecordIds, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
@@ -31,9 +31,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         if (!this.columnsRequest) {
             // 成功した列定義をページ移動や後続の出力でも使う。
             this.columnsRequest = getColumnLabels().then(labels => {
-                this.exportHeader = csvHeader(labels);
-                this.columns = historyColumns(labels);
-                return this.columns;
+                const { columns, csvHeader } = historyColumnDefinitions(labels);
+                this.columns = columns;
+                this.exportHeader = csvHeader;
             }).catch(error => {
                 // 次の一覧取得またはCSV出力で項目定義を再取得できるようにする。
                 this.columnsRequest = undefined;

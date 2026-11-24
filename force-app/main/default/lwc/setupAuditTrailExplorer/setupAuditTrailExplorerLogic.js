@@ -3,40 +3,34 @@ import TIME_ZONE from '@salesforce/i18n/timeZone';
 // 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
 export const PAGE_SIZE = 1000;
 
-// 履歴一覧で公開する項目と表示形式を定義する。
-const COLUMNS = [
-    { fieldName: 'CreatedDate', type: 'date', initialWidth: 185, typeAttributes: {
+// CSVの列順。画面ではDisplayをActionと同じセルに表示する。
+const HISTORY_FIELDS = [
+    ['CreatedDate', { type: 'date', initialWidth: 185, typeAttributes: {
         year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
         timeZone: TIME_ZONE
-    }},
-    { fieldName: 'displayedUser', labelField: 'Username', initialWidth: 300, wrapText: true },
-    { fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
-    { fieldName: 'actionDetail', labelField: 'Action', wrapText: true },
-    { fieldName: 'Section', initialWidth: 240, wrapText: true },
-    { fieldName: 'DelegateUser', initialWidth: 175, wrapText: true }
+    }}],
+    ['Username', { fieldName: 'displayedUser', initialWidth: 300, wrapText: true }],
+    ['ResponsibleNamespacePrefix', { initialWidth: 165, wrapText: true }],
+    ['Action', { fieldName: 'actionDetail', wrapText: true }],
+    ['Display', null],
+    ['Section', { initialWidth: 240, wrapText: true }],
+    ['DelegateUser', { initialWidth: 175, wrapText: true }]
 ];
 
-// 出力対象の項目定義を一覧の列設定に反映する。
-export function historyColumns(labels) {
-    return COLUMNS.map(({ labelField, ...column }) => {
-        // 一覧の操作コードとCSVの本文には、それぞれの項目ラベルを使う。
-        const label = labels[labelField ?? column.fieldName];
-        if (!label) {
-            throw new Error('設定変更履歴の項目ラベルを取得できませんでした。');
-        }
-        return { ...column, label, hideDefaultActions: true, cellAttributes: { class: 'slds-text-body_small' } };
-    });
-}
-
-// 項目ラベル内のカンマ・引用符・改行は一つのCSVセルに収める。
-export function csvHeader(labels) {
-    // CSVでは操作コードと本文に独立した項目ラベルを付ける。
-    const fields = ['CreatedDate', 'Username', 'ResponsibleNamespacePrefix', 'Action', 'Display', 'Section', 'DelegateUser'];
-    return fields.map(field => {
+// Salesforceの項目ラベルから一覧とCSVの見出しを作る。
+export function historyColumnDefinitions(labels) {
+    const columns = [];
+    const header = [];
+    for (const [field, settings] of HISTORY_FIELDS) {
         const label = labels[field];
         if (!label) throw new Error('設定変更履歴の項目ラベルを取得できませんでした。');
-        return /[,"\r\n]/.test(label) ? csvCell(label) : label;
-    }).join(',') + '\n';
+        header.push(/[,"\r\n]/.test(label) ? csvCell(label) : label);
+        if (settings) {
+            columns.push({ fieldName: field, ...settings, label, hideDefaultActions: true,
+                cellAttributes: { class: 'slds-text-body_small' } });
+        }
+    }
+    return { columns, csvHeader: header.join(',') + '\n' };
 }
 
 // 初期表示の対象月には実行ユーザーのタイムゾーンを使う。
@@ -169,7 +163,8 @@ export function historyRow(row) {
 // 履歴の文字を一つのCSVセルに収める。
 function csvCell(value) {
     // セル内の改行を保持し、引用符を二重にして囲む。
-    return '"' + String(value ?? '').replaceAll('"', '""') + '"';
+    const text = String(value ?? '');
+    return '"' + (text.includes('"') ? text.replaceAll('"', '""') : text) + '"';
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
