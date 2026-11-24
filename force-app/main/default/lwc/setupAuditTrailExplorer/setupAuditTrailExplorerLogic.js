@@ -107,24 +107,6 @@ export function sortFilterOptions(groups) {
     ]));
 }
 
-// 日本語の標準CSVで確認した、組織のEntityDefinitionから取得できない標準オブジェクトの表示名。
-const PERMISSION_OBJECT_LABELS = new Map([
-    ['AiMetadataSyncStatus', 'AiMetadataSyncStatuses'],
-    ['ArchiveJobSession', 'アーカイブジョブセッション'],
-    ['AuthDomainStatusEvent', '認証ドメイン状況イベント'],
-    ['FlowAutosaveInterviewStatus', 'Flow Autosave Interview Statuses'],
-    ['GisPrvdCnctrJobDefinition', 'GIS プロバイダーコネクタジョブ定義'],
-    ['GisPrvdCnctrJobObjFilter', 'GIS プロバイダーコネクタジョブオブジェクト検索条件'],
-    ['GisPrvdCnctrJobObjFldMap', 'GIS プロバイダーコネクタジョブオブジェクト項目の対応付け'],
-    ['GisPrvdCnctrJobObject', 'GIS プロバイダーコネクタジョブオブジェクト'],
-    ['PrivacyBatchReservation', 'プライバシー一括予約'],
-    ['PrivacyJobSessionDefinition', 'プライバシージョブセッション定義'],
-    ['PrivacyProcessorOrchestrator', 'プライバシープロセッサーオーケストレーター'],
-    ['PrivacySessionQueue', 'プライバシーセッションキュー'],
-    ['RebatePayoutSnapshot', 'Rebate Payout Snapshots'],
-    ['WebCartDocument', 'Web Cart Documents']
-]);
-
 // 操作別の定型部分を取り除き、ログインとログアウトの対象表示名を比較する。
 const LOGIN_SUFFIX = ' のログインアクセスを使用してログイン済み';
 // ログアウト行の本文に記録された許可元の表示名を取り出す。
@@ -236,26 +218,14 @@ function csvUser(row, employeeActorIds, actors) {
 }
 
 // 履歴の本人と代理ユーザーを独立して氏名に変換し、照合できない場合は元の表記を保持する。
-export function historyRow(row, employeeActorIds, actors, delegateNames) {
+export function historyRow(row, employeeActorIds, actors, delegateNames, localizedActions) {
     const actor = actors?.get(row.Id) ?? row;
     return {
         ...row,
         displayedUser: actor.CreatedBy?.Name || systemActorLabel(actor.CreatedBy?.UserType, actor.CreatedBy?.Username, employeeActorIds.has(actor.CreatedById)) || actor.CreatedBy?.Username,
         displayedDelegate: delegateNames?.[row.DelegateUser?.toLowerCase()] ?? row.DelegateUser,
-        displayedAction: displayAction(row)
+        displayedAction: localizedActions?.[row.Id] ?? row.Display
     };
-}
-
-// 権限セットのオブジェクト権限変更に限り、本文の対象オブジェクト名を整える。
-export function displayAction(row) {
-    // 他の操作や言語はAPIが返した本文を使用する。
-    if (row.Action !== 'PermSetEntityPermChanged' || !LANG.startsWith('ja')) {
-        // 通常の監査本文は原文を保持する。
-        return row.Display;
-    }
-    // 権限セット名や権限値に含まれる同じ文字列を置換しないよう、対象名の位置を限定する。
-    return row.Display?.replace(/^(権限セット .+ を変更: )([A-Za-z][A-Za-z0-9_]*)(?= オブジェクト権限を )/u,
-        (matched, prefix, objectName) => prefix + (PERMISSION_OBJECT_LABELS.get(objectName) ?? objectName));
 }
 
 // 履歴の文字を一つのCSVセルに収める。
@@ -265,7 +235,7 @@ function csvCell(value) {
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
-export function formatCsvPage(records, employeeActorIds = new Set(), actors) {
+export function formatCsvPage(records, employeeActorIds = new Set(), actors, localizedActions) {
     // 同じ秒に続く履歴で日時の書式変換を共有する。
     let lastDate;
     // 直前の履歴に対応する日時文字列を保持する。
@@ -281,7 +251,7 @@ export function formatCsvPage(records, employeeActorIds = new Set(), actors) {
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
         return [formattedDate, csvUser(row, employeeActorIds, actors), row.ResponsibleNamespacePrefix,
-            displayAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
+            localizedActions?.[row.Id] ?? row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }
 

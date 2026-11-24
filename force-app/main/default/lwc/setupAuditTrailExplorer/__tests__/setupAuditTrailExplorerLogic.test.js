@@ -58,11 +58,11 @@ it('formats only identified actors and the object name in a permission-set chang
     const permission = '権限セット WebCartDocument を変更: WebCartDocument オブジェクト権限を 参照 に変更';
     const common = { CreatedDate: '2026-11-18T00:00:00Z', Display: permission };
     const csv = formatCsvPage([
-        { ...common, Action: 'PermSetEntityPermChanged', CreatedBy: { UserType: 'AutomatedProcess', Username: 'auto' } },
+        { ...common, Id: 'permission', Action: 'PermSetEntityPermChanged', CreatedBy: { UserType: 'AutomatedProcess', Username: 'auto' } },
         { ...common, CreatedById: 'unknown', DelegateUser: 'delegate' },
         { ...common, CreatedById: 'employee', CreatedBy: { Username: 'visible' } },
         { ...common, Action: 'PermSetEntityPermChanged', Display: permission.replace(': WebCartDocument', ': OtherObject') }
-    ], new Set(['employee']));
+    ], new Set(['employee']), undefined, { permission: permission.replace(': WebCartDocument', ': Web Cart Documents') });
     expect(csv.split('\n').slice(0, 4)).toEqual([
         '"2026/11/18 9:00:00 JST","自動化プロセス","","権限セット WebCartDocument を変更: Web Cart Documents オブジェクト権限を 参照 に変更","",""',
         '"2026/11/18 9:00:00 JST","","","' + permission + '","","delegate"',

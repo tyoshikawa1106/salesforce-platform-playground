@@ -1,5 +1,39 @@
 @IsTest
 private class SetupAuditTrailExplorerServiceTest {
+    /** 権限変更の対象名だけを実行ユーザーの選択リスト表示名に変換 */
+    @IsTest
+    static void localizesPermissionObjectFromPicklist() {
+        User reader = TestDataFactory.createUser('履歴テスト', TestDataFactory.SaveMode.DO_NOT_INSERT);
+        System.runAs(reader) {
+            String label;
+            Schema.SObjectField objectTypeField = ObjectPermissions.Fields.SobjectType;
+            for (Schema.PicklistEntry item : objectTypeField.getDescribe().getPicklistValues()) {
+                if (item.getValue() == 'Account') {
+                    label = item.getLabel();
+                    break;
+                }
+            }
+            Assert.isNotNull(label, '取引先の選択リスト表示名を照合に使用します。');
+            String prefix = '権限セット Account を変更: ';
+            String suffix = ' オブジェクト権限を Account に変更';
+            String key = SetupAuditTrail.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix();
+            List<SetupAuditTrail> rows = new List<SetupAuditTrail>();
+            for (String target : new List<String>{'Account', 'UnlistedTypeForTest', '既に表示名', 'Account'}) {
+                Integer index = rows.size();
+                rows.add((SetupAuditTrail) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+                    'Id' => key + '00000000000' + index,
+                    'Action' => index == 3 ? 'OtherAction' : 'PermSetEntityPermChanged',
+                    'Display' => prefix + target + suffix
+                }), SetupAuditTrail.class));
+            }
+            Test.startTest();
+            Map<Id, String> actions = SetupAuditTrailExplorerService.localizePermissionActions(rows);
+            Test.stopTest();
+            Assert.areEqual(new Map<Id, String>{rows[0].Id => prefix + label + suffix}, actions,
+                '対応がある権限変更だけで対象名を置換し、ほかの語は保持します。');
+        }
+    }
+
     /** 従業員操作を明示した同一の作成者を一度だけ採用する。 */
     @IsTest
     static void identifiesOnlyConfirmedEmployeeActors() {

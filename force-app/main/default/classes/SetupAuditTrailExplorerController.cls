@@ -159,6 +159,8 @@ public with sharing class SetupAuditTrailExplorerController {
             criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
         );
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
+        // 取得した明細に対応する表示用の本文を付加
+        wrapper.localizedActions = SetupAuditTrailExplorerService.localizePermissionActions(wrapper.records);
         wrapper.delegateNames = delegateNamesFor(wrapper.records);
         Boolean needsEmployeeActors = false;
         for (SetupAuditTrail row : wrapper.records) {
@@ -198,6 +200,8 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeCsv(
             SetupAuditTrailExplorerSelector.iterateCsvRows(criteria, sizeLimit + 1), sizeLimit
         );
+        // 取得した明細に対応する表示用の本文を付加
+        wrapper.localizedActions = SetupAuditTrailExplorerService.localizePermissionActions(wrapper.records);
         wrapper.cutoff = exportCutoff;
         // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
         if (criteria.nextId == null && !wrapper.records.isEmpty()) {

@@ -1224,7 +1224,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
         const employees = new Set(result.employeeActorIds);
         // ページを開くたびに表示範囲を先頭へ戻す。
-        this.setPageRecords(result.records.map(row => historyRow(row, employees, this.historyContext.actors, result.delegateNames)));
+        this.setPageRecords(result.records.map(row => historyRow(row, employees, this.historyContext.actors, result.delegateNames, result.localizedActions)));
         this.rememberNextPage(cursor);
         if (!this.probeCursor) {
             this.cachePage();
@@ -1390,7 +1390,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 employeeActorIds = new Set(result.employeeActorIds);
             }
             // ページ単位でUTF-8に符号化し、完了済みページの文字列を保持しない。
-            chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors)], { type: 'application/octet-stream' }));
+            chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors, result.localizedActions)], { type: 'application/octet-stream' }));
             // 完了済みの明細だけを進捗に含める。
             rows += result.records.length;
             // 確認画面で取得済み件数を更新する。

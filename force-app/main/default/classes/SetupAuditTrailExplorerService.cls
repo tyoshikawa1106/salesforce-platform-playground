@@ -1,6 +1,79 @@
 /** 検索期間を検証し、設定変更履歴を画面用に整形する。 */
 public with sharing class SetupAuditTrailExplorerService {
     private static final Integer CSV_TEXT_BUDGET = 500000;
+    private static final Pattern PERMISSION_OBJECT = Pattern.compile(
+        '^権限セット .+ を変更: ([A-Za-z][A-Za-z0-9_]*)(?= オブジェクト権限を )'
+    );
+
+    /**
+     * 権限セットのオブジェクト権限変更に対する日本語の表示本文
+     * @param rows 一覧またはCSVの明細ページ
+     * @return 標準選択リストの表示名で置換できた本文と履歴IDの対応
+     */
+    public static Map<Id, String> localizePermissionActions(List<SetupAuditTrail> rows) {
+        // 同じページの変換結果と選択リストを共有
+        PermissionActionFormatter formatter = new PermissionActionFormatter(rows);
+        // 補正対象外の行は呼び出し元で元の本文を使用
+        return formatter.actions;
+    }
+
+    /** 明細ページ単位の権限変更本文とオブジェクト表示名の照合 */
+    private class PermissionActionFormatter {
+        public Map<Id, String> actions = new Map<Id, String>();
+        private Map<String, String> labels;
+
+        /**
+         * ページ内の日本語の権限変更から表示用本文を作成
+         * @param rows 一覧またはCSVの取得済み明細
+         */
+        public PermissionActionFormatter(List<SetupAuditTrail> rows) {
+            // 日本語の履歴書式にだけ変換を適用
+            if (!UserInfo.getLanguage().startsWith('ja')) {
+                return;
+            }
+            // 各行で同じページの選択リストを使用
+            for (SetupAuditTrail row : rows) {
+                addAction(row);
+            }
+        }
+
+        private void addAction(SetupAuditTrail row) {
+            // 同じ文言を含む別操作を変換対象から除外
+            if (row.Action != 'PermSetEntityPermChanged') {
+                return;
+            }
+            // 対象オブジェクト名の位置を特定
+            Matcher objectName = PERMISSION_OBJECT.matcher(row.Display ?? '');
+            // 既に翻訳された本文や異なる書式は原文を使用
+            if (!objectName.find()) {
+                return;
+            }
+            // 対象名がある場合だけ選択リストを読み込む
+            if (labels == null) {
+                loadLabels();
+            }
+            // 同じ語が他の位置にもある場合は対象名だけを置換
+            String apiName = objectName.group(1);
+            // 現在の選択リストにない対象は原文を使用
+            String label = labels.get(apiName);
+            // 標準の表示名を取得できた明細だけに適用
+            if (label != null) {
+                actions.put(row.Id, row.Display.substring(0, objectName.start(1)) + label + row.Display.substring(objectName.end(1)));
+            }
+        }
+
+        private void loadLabels() {
+            // ページ内の対象を同じ表示名で変換
+            labels = new Map<String, String>();
+            // オブジェクト権限の対象を表す選択リスト項目
+            Schema.SObjectField objectTypeField = ObjectPermissions.Fields.SobjectType;
+            // 実行ユーザーの言語で対象名を取得
+            for (Schema.PicklistEntry item : objectTypeField.getDescribe().getPicklistValues()) {
+                // 翻訳済みの表示名をAPI名で参照
+                labels.put(item.getValue(), item.getLabel());
+            }
+        }
+    }
 
     /**
      * 履歴の本文がSalesforce従業員の操作と明示する作成者だけを採用する。

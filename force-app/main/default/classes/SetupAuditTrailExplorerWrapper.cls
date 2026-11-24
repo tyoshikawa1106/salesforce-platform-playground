@@ -1,6 +1,8 @@
 /** 設定変更履歴のページと集計結果を画面に返す。 */
 public class SetupAuditTrailExplorerWrapper {
     @AuraEnabled public List<SetupAuditTrail> records { get; set; }
+    // 権限変更の対象名を表示名に変換した行だけ、履歴IDから本文を参照
+    @AuraEnabled public Map<Id, String> localizedActions { get; set; }
     @AuraEnabled public List<Bucket> buckets { get; set; }
     @AuraEnabled public Map<String, List<String>> options { get; set; }
     @AuraEnabled public Map<String, String> userOptions { get; set; }

@@ -350,7 +350,8 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             .mockResolvedValueOnce({ records: [login], cutoff: serverCutoff });
         exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
             cutoff: serverCutoff, employeeActorIds: ['employee'] })
-            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }, login], cutoff: serverCutoff });
+            .mockResolvedValueOnce({ records: [{ ...row, Id: 'permission', CreatedById: 'employee', CreatedBy: null }, login],
+                localizedActions: { permission: '権限セット変更後の表示名' }, cutoff: serverCutoff });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
         const launcher = period === 'all' ? menu : component.shadowRoot.querySelector('[data-monthly-export]');
@@ -396,7 +397,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             { cutoff: serverCutoff },
             { cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate }
         ]);
-        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン') +
+        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン').replace('=原文,""引用""\n続き🧪', '権限セット変更後の表示名') +
             '"2026/11/18 9:00:00 JST","target@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
             .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrailAll') + startedAt + '.csv');
@@ -864,7 +865,7 @@ it('shows actor and delegate names on screen and indexes the section across sour
         if (input.chart) {
             return { buckets: [], records: [target] };
         }
-        return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'], delegateNames: { admin: '管理者' } };
+        return { records: input.recordIds ? [logout, target] : [target, changed], localizedActions: { changed: '権限セット X を変更: アーカイブジョブセッション オブジェクト権限を 参照' }, employeeActorIds: ['service'], delegateNames: { admin: '管理者' } };
     });
     const component = mount();
     await flush();
@@ -1470,7 +1471,8 @@ it('exports all result pages with the applied action and original cutoff from th
     const rows = ['first', 'second'].map(Id => ({ Id, CreatedDate: cutoff, Display: Id }));
     const boundary = { nextId: 'first', nextTime: cutoff };
     countMatches.request.mockResolvedValue(2);
-    load.request.mockImplementation(({ input }) => (input.nextId ? { records: [rows[1]] } : { records: [rows[0]], ...boundary }));
+    load.request.mockImplementation(({ input }) => (input.nextId
+        ? { records: [rows[1]], localizedActions: { second: '取得した表示名' } } : { records: [rows[0]], ...boundary }));
     const component = mount();
     const root = component.shadowRoot;
     await flush();
@@ -1503,7 +1505,7 @@ it('exports all result pages with the applied action and original cutoff from th
         const reader = new FileReader();
         const csv = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
         reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
-        expect((await csv).split('\n').slice(1, 3)).toEqual([expect.stringContaining('"first"'), expect.stringContaining('"second"')]);
+        expect((await csv).split('\n').slice(1, 3)).toEqual([expect.stringContaining('"first"'), expect.stringContaining('"取得した表示名"')]);
     } finally {
         component.remove();
         URL.createObjectURL = originalCreate;
