@@ -18,6 +18,23 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     /**
+     * 一覧とCSVに出す項目の表示ラベルを取得する。
+     * @return 実行ユーザーの言語で取得した項目API名とラベルの対応。
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, String> getColumnLabels() {
+        Map<String, String> labels = new Map<String, String>();
+        for (Schema.SObjectField field : new List<Schema.SObjectField>{
+            SetupAuditTrail.CreatedDate, User.Username, SetupAuditTrail.ResponsibleNamespacePrefix,
+            SetupAuditTrail.Display, SetupAuditTrail.Section, SetupAuditTrail.DelegateUser
+        }) {
+            Schema.DescribeFieldResult definition = field.getDescribe();
+            labels.put(definition.getName(), definition.getLabel());
+        }
+        return labels;
+    }
+
+    /**
      * 一覧・分析の検索範囲を同じ組織時刻で固定する。
      * @return 検索に含める履歴の作成日時の上限（この日時を含まない）。
      */

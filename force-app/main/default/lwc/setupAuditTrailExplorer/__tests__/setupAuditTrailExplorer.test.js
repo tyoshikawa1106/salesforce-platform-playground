@@ -2,6 +2,7 @@ import { createElement } from 'lwc';
 import ExportModal from 'c/setupAuditTrailExportModal';
 import Explorer from 'c/setupAuditTrailExplorer';
 import * as historyLogic from '../setupAuditTrailExplorerLogic';
+import getColumnLabels from '@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
 import startSearch from '@salesforce/apex/SetupAuditTrailExplorerController.startSearch';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt';
@@ -31,11 +32,17 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt', ()
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory', () => ({ default: jest.fn() }), { virtual: true });
 
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels', () => ({ default: jest.fn() }), { virtual: true });
+
+const labels = { CreatedDate: '作成日', Username: 'ユーザー名', ResponsibleNamespacePrefix: 'ソースの名前空間プレフィックス',
+    Display: '表示', Section: 'セクション', DelegateUser: '代理ユーザー' };
+const expectedHeader = '作成日,ユーザー名,ソースの名前空間プレフィックス,表示,セクション,代理ユーザー\n';
 const countMonth = countMatches.month;
 const cutoff = '2026-11-19T10:00:00.000Z';
 let activeModal;
 
 beforeEach(() => {
+    getColumnLabels.mockReset().mockResolvedValue(labels);
     startSearch.mockReset().mockResolvedValue(cutoff);
     // 標準オーバーレイの開閉だけを模擬し、実際のCSV確認コンポーネントを操作する。
     jest.spyOn(ExportModal, 'open').mockImplementation(({ size, ...options }) => new Promise(resolve => {
@@ -106,6 +113,19 @@ afterEach(() => {
     countMonth.mockReset();
     countMatches.request.mockReset();
     jest.restoreAllMocks();
+});
+
+it('uses the field labels returned by Salesforce when the list is retried', async () => {
+    load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
+    getColumnLabels.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ ...labels, Display: '本文' });
+    const root = mount().shadowRoot;
+    await flush();
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    [...root.querySelectorAll('lightning-button')].find(button => button.label === '再試行').click();
+    await flush();
+    expect(root.querySelector('lightning-datatable').columns.map(column => column.label)).toEqual([
+        '作成日', 'ユーザー名', 'ソースの名前空間プレフィックス', '本文', 'セクション', '代理ユーザー'
+    ]);
 });
 
 it('merges chart buckets across pages and reuses them as filter options', async () => {
@@ -347,7 +367,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             reader.onerror = () => reject(reader.error);
             reader.readAsText(blob, 'utf-8');
         });
-        const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
+        const header = expectedHeader;
         const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\r\n続き🧪","Apps","delegate@example.invalid"\n';
         expect(csv).toBe(header + line + line.replace('audit@example.invalid', '') +
             '"2026/11/18 9:00:00 JST","delegate@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
@@ -395,7 +415,7 @@ it.each(['month', 'all'])('rejects an empty continuation for %s but allows an em
         const reader = new FileReader();
         const contents = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
         reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
-        expect(await contents).toBe(historyLogic.CSV_HEADER);
+        expect(await contents).toBe(expectedHeader);
     } finally {
         component.remove();
         URL.createObjectURL = originalCreate;

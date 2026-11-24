@@ -1,6 +1,10 @@
-import { CSV_HEADER, formatCsvPage, historyRow, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
+import { csvHeader, formatCsvPage, historyRow, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
+
+it('escapes metadata labels that contain CSV separators', () => {
+    expect(csvHeader([{ label: 'A, B' }, { label: 'C"D' }, { label: 'E\nF' }])).toBe('"A, B","C""D","E\nF"\n');
+});
 
 it('formats midnight and afternoon in local time and retains Unicode across line breaks', () => {
     const records = [
@@ -13,10 +17,9 @@ it('formats midnight and afternoon in local time and retains Unicode across line
     );
 });
 
-it('uses Japanese export labels and keeps the source action and section in their original language', () => {
+it('keeps the source action and section in their original language', () => {
     const row = { CreatedDate: '2026-09-15T00:00:00Z', CreatedBy: { UserType: 'AutomatedProcess' },
         Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
-    expect(CSV_HEADER).toBe('日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n');
     expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","","","' + row.Display + '","Manage Users",""\n');
 });
 

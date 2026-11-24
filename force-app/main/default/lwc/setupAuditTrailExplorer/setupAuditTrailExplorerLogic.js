@@ -3,8 +3,35 @@ import TIME_ZONE from '@salesforce/i18n/timeZone';
 // 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
 export const PAGE_SIZE = 1000;
 
-// 月別・6ヶ月間で同じ順に列を出力する。
-export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
+// 履歴一覧で公開する項目と表示形式を定義する。
+const COLUMNS = [
+    { fieldName: 'CreatedDate', type: 'date', initialWidth: 185, typeAttributes: {
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZone: TIME_ZONE
+    }},
+    { fieldName: 'displayedUser', initialWidth: 300, wrapText: true },
+    { fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
+    { fieldName: 'Display', wrapText: true },
+    { fieldName: 'Section', initialWidth: 240, wrapText: true },
+    { fieldName: 'DelegateUser', initialWidth: 175, wrapText: true }
+];
+
+// データテーブルの列順をCSVの見出しにも使用する。
+export function historyColumns(labels) {
+    return COLUMNS.map(column => {
+        // 表示用に取り出したログイン名にはUser.Usernameの定義を使う。
+        const label = labels[column.fieldName === 'displayedUser' ? 'Username' : column.fieldName];
+        if (!label) {
+            throw new Error('設定変更履歴の項目ラベルを取得できませんでした。');
+        }
+        return { ...column, label, hideDefaultActions: true, cellAttributes: { class: 'slds-text-body_small' } };
+    });
+}
+
+// 項目ラベル内のカンマ・引用符・改行は一つのCSVセルに収める。
+export function csvHeader(columns) {
+    return columns.map(({ label }) => (/[,"\r\n]/.test(label) ? csvCell(label) : label)).join(',') + '\n';
+}
 
 // 初期表示の対象月には実行ユーザーのタイムゾーンを使う。
 const DAY_FORMAT = new Intl.DateTimeFormat('en', {

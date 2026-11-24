@@ -2,32 +2,17 @@ import { getApexMessage } from 'c/salesforceApiUtils';
 import { LightningElement } from 'lwc';
 import SetupAuditTrailExportModal from 'c/setupAuditTrailExportModal';
 import TIME_ZONE from '@salesforce/i18n/timeZone';
+import getColumnLabels from '@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
 import startSearch from '@salesforce/apex/SetupAuditTrailExplorerController.startSearch';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
-    CSV_HEADER, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
+    historyColumns, csvHeader, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
     appliedFilterLabels, historyRow, filterOptionGroups, formatCsvPage, mergeChartPage, offsetMonth, pageCursor, matchPageBoundary, remainingMatchRecords, sameRecordIds, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
-// 履歴一覧で公開する項目と表示形式を定義する。
-const COLUMNS = [
-    { label: '日付', fieldName: 'CreatedDate', type: 'date', initialWidth: 185, typeAttributes: {
-        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
-        timeZone: TIME_ZONE
-    }},
-    { label: 'ユーザー', fieldName: 'displayedUser', initialWidth: 300, wrapText: true },
-    { label: '名前空間プレフィックス', fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
-    { label: 'アクション', fieldName: 'Display', wrapText: true },
-    { label: 'セクション', fieldName: 'Section', initialWidth: 240, wrapText: true },
-    { label: '代理ユーザー', fieldName: 'DelegateUser', initialWidth: 175, wrapText: true }
-].map(column => ({
-    ...column,
-    hideDefaultActions: true,
-    cellAttributes: { class: 'slds-text-body_small' }
-}));
 // 取得済みの明細をスクロールに合わせて表へ追加する単位。
 const RENDER_BATCH_SIZE = 50;
 // 見出しの件数に桁区切りを付ける。
@@ -36,7 +21,24 @@ const COUNT_FORMAT = new Intl.NumberFormat('ja-JP');
 // 履歴の検索・分析とCSV出力の操作を受け付ける。
 export default class SetupAuditTrailExplorer extends LightningElement {
     // 履歴一覧の列構成を表に渡す。
-    columns = COLUMNS;
+    columns;
+    // 一覧とCSVが同時に開かれた場合も項目定義の取得を共有する。
+    columnsRequest;
+
+    loadColumns() {
+        if (!this.columnsRequest) {
+            // 成功した列定義をページ移動や後続の出力でも使う。
+            this.columnsRequest = getColumnLabels().then(labels => {
+                this.columns = historyColumns(labels);
+                return this.columns;
+            }).catch(error => {
+                // 次の一覧取得またはCSV出力で項目定義を再取得できるようにする。
+                this.columnsRequest = undefined;
+                throw error;
+            });
+        }
+        return this.columnsRequest;
+    }
     // 分析の基準時刻を履歴と同じタイムゾーンで表示する。
     timeZone = TIME_ZONE;
     // 初期表示をユーザーの現在月に合わせる。
@@ -1294,8 +1296,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const fileName = prefix + monthPart + '.csv';
         // 6ヶ月間だけ専用のApexメソッドから取得する。
         const fetchPage = period === 'all' ? exportAllHistory : pageQuery => load({ criteriaJson: JSON.stringify(pageQuery) });
+        // 一覧を開く前に出力した場合も、同じ項目定義を取得する。
+        const columns = this.columns ?? await this.loadColumns();
         // UTF-8のBOMと列名をファイルの先頭に置く。
-        const chunks = ['\uFEFF', CSV_HEADER];
+        const chunks = ['\uFEFF', csvHeader(columns)];
         // 再試行の進捗はゼロから数える。
         let rows = 0;
         // 返された境界を使って全ページを順に取得する。
@@ -1372,7 +1376,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const cursor = this.pageStarts[this.page - 1];
         const isCurrent = () => request === this.request;
         try {
-            query.cutoff = await this.getCutoff();
+            // 明細と列見出しが同じ画面で揃うよう、基準時刻と項目定義を取得する。
+            [query.cutoff] = await Promise.all([this.getCutoff(), this.loadColumns()]);
             if (!isCurrent()) {
                 return;
             }
