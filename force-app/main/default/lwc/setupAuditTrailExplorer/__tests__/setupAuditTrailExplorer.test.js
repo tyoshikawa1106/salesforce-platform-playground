@@ -34,7 +34,6 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt', ()
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory', () => ({ default: jest.fn() }), { virtual: true });
-jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 const countMonth = countMatches.month;
 const cutoff = '2026-11-19T10:00:00.000Z';

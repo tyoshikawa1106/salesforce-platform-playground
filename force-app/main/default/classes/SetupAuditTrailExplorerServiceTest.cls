@@ -19,24 +19,19 @@ private class SetupAuditTrailExplorerServiceTest {
             String suffix = ' オブジェクト権限を Account に変更';
             String key = SetupAuditTrail.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix();
             List<SetupAuditTrail> rows = new List<SetupAuditTrail>();
-            for (String target : new List<String>{'Account', 'UnlistedTypeForTest', '既に表示名', 'Account'}) {
+            for (String target : new List<String>{'Account', 'UnlistedTypeForTest', '既に表示名', 'Account', 'Account'}) {
                 Integer index = rows.size();
                 rows.add((SetupAuditTrail) JSON.deserialize(JSON.serialize(new Map<String, Object>{
                     'Id' => key + '00000000000' + index,
                     'Action' => index == 3 ? 'OtherAction' : 'PermSetEntityPermChanged',
-                    'Display' => prefix + target + suffix
+                    'Display' => index == 4 ? 'Changed permission set Sample: Account object permissions were changed' : prefix + target + suffix
                 }), SetupAuditTrail.class));
             }
             Test.startTest();
-            Map<Id, String> japanese = new SetupAuditTrailExplorerService.PermissionActionFormatter(rows, 'ja').actions;
-            Map<Id, String> english = new SetupAuditTrailExplorerService.PermissionActionFormatter(rows, 'en_US').actions;
-            Map<Id, String> current = SetupAuditTrailExplorerService.localizePermissionActions(rows);
+            Map<Id, String> actions = SetupAuditTrailExplorerService.localizePermissionActions(rows);
             Test.stopTest();
-            Assert.areEqual(new Map<Id, String>{rows[0].Id => prefix + label + suffix}, japanese,
-                '対応がある権限変更だけで対象名を置換し、ほかの語は保持します。');
-            Assert.isTrue(english.isEmpty(), '日本語以外では本文を置換しません。');
-            Assert.areEqual(UserInfo.getLanguage().startsWith('ja') ? japanese : english, current,
-                '公開メソッドは実行ユーザーの言語を使います。');
+            Assert.areEqual(new Map<Id, String>{rows[0].Id => prefix + label + suffix}, actions,
+                '日本語書式で対象が特定できた権限変更だけを置換します。');
         }
     }
 

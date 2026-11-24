@@ -1,5 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
-jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
+import { CSV_HEADER, collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
 
@@ -52,6 +51,23 @@ it('formats midnight and afternoon in local time and retains Unicode across line
         '"2026/11/18 0:01:02 JST","","","日本語\nภาษาไทย\n続き","",""\n' +
         '"2026/11/18 23:03:04 JST","","","","",""\n'
     );
+});
+
+it.each([
+    ['employee', '株式会社セールスフォース・ジャパン'],
+    ['other', ''],
+    [null, '']
+])('requires matching employee evidence for a creator without a login: %s', (id, expected) => {
+    const row = { CreatedDate: '2026-06-01T00:00:00Z', CreatedById: id, CreatedBy: {} };
+    const evidence = new Set(['employee']);
+    expect(formatCsvPage([row], evidence)).toBe('"2026/06/01 9:00:00 JST","' + expected + '","","","",""\n');
+});
+
+it('uses Japanese export labels and keeps the source action and section in their original language', () => {
+    const row = { CreatedDate: '2026-09-15T00:00:00Z', CreatedBy: { UserType: 'AutomatedProcess' },
+        Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
+    expect(CSV_HEADER).toBe('日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n');
+    expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","自動化プロセス","","' + row.Display + '","Manage Users",""\n');
 });
 
 it('formats only identified actors and the object name in a permission-set change', () => {

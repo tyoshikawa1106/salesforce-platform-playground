@@ -1,5 +1,4 @@
 import TIME_ZONE from '@salesforce/i18n/timeZone';
-import LANG from '@salesforce/i18n/lang';
 
 // 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
 export const PAGE_SIZE = 1000;
@@ -203,21 +202,21 @@ export function loginAsActors(pairs) {
 // システムによる操作に対応する日本語ラベルを返す。
 function systemActorLabel(userType, username, confirmedEmployee) {
     // 日本語の自動化プロセスには標準CSVの種別名を出す。
-    if (LANG.startsWith('ja') && userType === 'AutomatedProcess') {
+    if (userType === 'AutomatedProcess') {
         // 自動化プロセスの内部ログイン名を表示名に変換する。
         return '自動化プロセス';
     }
     // ログイン名がない場合も、同じ作成者の従業員操作を確認できた場合だけ会社名を使う。
-    if (LANG.startsWith('ja') && !username && confirmedEmployee) {
+    if (!username && confirmedEmployee) {
         // 日本語の標準CSVでのSalesforce側の実行主体を表す。
         return '株式会社セールスフォース・ジャパン';
     }
     return undefined;
 }
 
-// 通常の表示名とログイン名の両方が空の日本語集計だけ、追加の照合を必要とする。
+// 通常の表示名とログイン名の両方が空の集計だけ、追加の照合を必要とする。
 export function needsChartEmployeeLabel(bucket) {
-    return LANG.startsWith('ja') && bucket.userId && !bucket.userName && !bucket.loginName && bucket.userType !== 'AutomatedProcess';
+    return bucket.userId && !bucket.userName && !bucket.loginName && bucket.userType !== 'AutomatedProcess';
 }
 
 // 通常ユーザーの氏名と集計キーを保ち、判定できた実行者に日本語の表示名を付ける。
