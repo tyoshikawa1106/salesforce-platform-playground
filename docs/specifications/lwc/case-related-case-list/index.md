@@ -47,7 +47,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 1. Lightning Data Serviceの`getRecord`で表示中CaseのContactとAccountを取得します。
 2. `getRelatedListRecords`でContactとAccountそれぞれの`Cases`関連リストを取得します。
 3. 関連ケースを`CreatedDate`の降順で表示上限まで取得します。
-4. 表示中Caseをアンカー要素のないリンクなし表示で必ず含め、「現在のケース」バッジを表示します。別ケースと合わせて表示上限に収め、`CreatedDate`の降順で表示します。
+4. 表示中Caseをアンカー要素のないリンクなし表示で必ず含め、ケース番号の右隣に「現在のケース」バッジを表示します。別ケースと合わせて表示上限に収め、`CreatedDate`の降順で表示します。
 5. ケース番号の下には件名（Subject）を全幅で表示し、続く3行を Status・Type、CreatedDate・ClosedDate、AccountId・ContactId の2列で表示します。表示ラベルは `getLayout` で表示中のCaseの詳細レイアウト（Full・View）から取得し、両タブで共有します。レイアウト上で単独の項目として参照できるものを表示します。参照項目の値にはリンク先の名前を使います。
 6. 「顧客」タブと「会社」タブを`lightning-tabset`の標準タブで切り替え、カード外周とタブ領域の間に余白を設けます。タブ内コンテンツには左右の余白を設けません。
 7. 表示中Case以外は、ケース番号から対象Caseレコードへ移動できるURLを`NavigationMixin.GenerateUrl`で生成し、別タブで開きます。

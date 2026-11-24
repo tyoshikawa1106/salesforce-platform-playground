@@ -382,7 +382,7 @@ describe('c-case-related-case-list', () => {
             expect.objectContaining({ target: '_blank', rel: 'noopener' })
         );
         expect(
-            [...element.shadowRoot.querySelectorAll('lightning-badge')].map(
+            [...element.shadowRoot.querySelectorAll('h3 + lightning-badge')].map(
                 (badge) => badge.label
             )
         ).toEqual(['現在のケース', '現在のケース']);

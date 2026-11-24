@@ -77,33 +77,35 @@
                                         class="slds-box slds-box_small slds-m-bottom_small"
                                     >
                                         <div class="c-case-tile slds-tile">
-                                            <h3
-                                                class="slds-text-heading_small slds-truncate"
-                                                title={relatedCase.caseNumber}
-                                            >
-                                                <template
-                                                    lwc:if={relatedCase.hasUrl}
+                                            <div class="slds-grid slds-grid_vertical-align-center">
+                                                <h3
+                                                    class="slds-text-heading_small slds-truncate"
+                                                    title={relatedCase.caseNumber}
                                                 >
-                                                    <a
-                                                        href={relatedCase.url}
-                                                        target="_blank"
-                                                        rel="noopener"
-                                                        >{relatedCase.caseNumber}</a
+                                                    <template
+                                                        lwc:if={relatedCase.hasUrl}
                                                     >
-                                                </template>
-                                                <template lwc:else>
-                                                    {relatedCase.caseNumber}
-                                                </template>
-                                            </h3>
-                                            <div class="slds-tile__detail">
+                                                        <a
+                                                            href={relatedCase.url}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >{relatedCase.caseNumber}</a
+                                                        >
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.caseNumber}
+                                                    </template>
+                                                </h3>
                                                 <template
                                                     lwc:if={relatedCase.isCurrentCase}
                                                 >
                                                     <lightning-badge
-                                                        class="slds-m-top_x-small"
+                                                        class="slds-m-left_small slds-shrink-none"
                                                         label="現在のケース"
                                                     ></lightning-badge>
                                                 </template>
+                                            </div>
+                                            <div class="slds-tile__detail">
                                                 <dl class="slds-grid slds-wrap slds-border_top slds-m-top_small slds-hyphenate">
                                                     <div lwc:if={caseFields.Subject} class="slds-size_1-of-1 slds-p-top_small">
                                                         <dt class="slds-text-title">{caseFields.Subject.label}</dt>
@@ -238,33 +240,35 @@
                                         class="slds-box slds-box_small slds-m-bottom_small"
                                     >
                                         <div class="c-case-tile slds-tile">
-                                            <h3
-                                                class="slds-text-heading_small slds-truncate"
-                                                title={relatedCase.caseNumber}
-                                            >
-                                                <template
-                                                    lwc:if={relatedCase.hasUrl}
+                                            <div class="slds-grid slds-grid_vertical-align-center">
+                                                <h3
+                                                    class="slds-text-heading_small slds-truncate"
+                                                    title={relatedCase.caseNumber}
                                                 >
-                                                    <a
-                                                        href={relatedCase.url}
-                                                        target="_blank"
-                                                        rel="noopener"
-                                                        >{relatedCase.caseNumber}</a
+                                                    <template
+                                                        lwc:if={relatedCase.hasUrl}
                                                     >
-                                                </template>
-                                                <template lwc:else>
-                                                    {relatedCase.caseNumber}
-                                                </template>
-                                            </h3>
-                                            <div class="slds-tile__detail">
+                                                        <a
+                                                            href={relatedCase.url}
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            >{relatedCase.caseNumber}</a
+                                                        >
+                                                    </template>
+                                                    <template lwc:else>
+                                                        {relatedCase.caseNumber}
+                                                    </template>
+                                                </h3>
                                                 <template
                                                     lwc:if={relatedCase.isCurrentCase}
                                                 >
                                                     <lightning-badge
-                                                        class="slds-m-top_x-small"
+                                                        class="slds-m-left_small slds-shrink-none"
                                                         label="現在のケース"
                                                     ></lightning-badge>
                                                 </template>
+                                            </div>
+                                            <div class="slds-tile__detail">
                                                 <dl class="slds-grid slds-wrap slds-border_top slds-m-top_small slds-hyphenate">
                                                     <div lwc:if={caseFields.Subject} class="slds-size_1-of-1 slds-p-top_small">
                                                         <dt class="slds-text-title">{caseFields.Subject.label}</dt>
