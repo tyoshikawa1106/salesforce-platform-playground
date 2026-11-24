@@ -127,19 +127,22 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/design-systems-slds-apply/SKILL.md",
-      "computedHash": "c6719215d38348b66d3294715f9bb7d39632f242958d0708900062e43719bf87"
+      "computedHash": "6cec94ddabcd1e98d620598ca52707227fc563a2d9741a8be69c6d6127ee1dd9",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "design-systems-slds-validate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/design-systems-slds-validate/SKILL.md",
-      "computedHash": "9bcf6be7a9670a0553848481352c92ad62f5096d298371ba3c696dc6a108146c"
+      "computedHash": "052eeabb4ec01fb8cd0f1ee53cd362b411c5ff1ba8e82aa36d13065f89e0669f",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "design-systems-slds2-migrate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/design-systems-slds2-migrate/SKILL.md",
-      "computedHash": "14d6d7e21a2431b7333b028156919946e4068fed08bd39227ae3769444c4741f"
+      "computedHash": "52abe2e6b18b11d083d051773f4f7ba2e759a17d1db18995befbf9679e8779eb",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-app-analytics-query": {
       "source": "forcedotcom/sf-skills",
@@ -243,7 +246,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/experience-cms-brand-apply/SKILL.md",
-      "computedHash": "8baf7529e9adacf18e870fd194af7ac731d45792106418f34242708f8be2e87d"
+      "computedHash": "2d06033a7e8bd4d75cd8226949d9496acb653aabd2cd7b49be54e599e3525d5b",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "experience-content-media-search": {
       "source": "forcedotcom/sf-skills",
@@ -255,7 +259,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/experience-lwc-generate/SKILL.md",
-      "computedHash": "d4d20294a618b275f9b711f2a35ec455f2d2b080cf7651ad7365652354c830b9"
+      "computedHash": "c810baadd659b1dd423c8f4f35ca9a670cfc76e0c9bc3e89feca98b1c433508d",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "experience-ui-bundle-agentforce-client-generate": {
       "source": "forcedotcom/sf-skills",

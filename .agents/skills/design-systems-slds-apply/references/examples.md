@@ -53,7 +53,7 @@ For the modal body spacing, use utility classes:
 
 **Search:** `node scripts/search-icons.cjs --query "warning"`
 
-```
+```text
 Found: utility:warning (score: 100, match: exact)
 ```
 
