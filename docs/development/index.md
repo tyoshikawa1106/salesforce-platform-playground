@@ -5,7 +5,7 @@
 | タイトル                                                                   | 概要                                     |
 | -------------------------------------------------------------------------- | ---------------------------------------- |
 | [AI エージェント開発ルール](agent-development-rules.md)                    | 共通作業、コードコメント、検証           |
-| [Salesforce Agent Skills のメンテナンス](agent-skills-maintenance.md)      | スキルの全件同期と検証                   |
+| [Salesforce Agent Skills のメンテナンス](agent-skills-maintenance.md)      | スキルの更新と全件同期                   |
 | [Apex 開発ルール](apex-rules.md)                                           | Apex の実装、テスト、検証                |
 | [GitHub 運用ルール](github-rules.md)                                       | ブランチ、コミット、PR、マージの共通手順 |
 | [リポジトリ固有 GitHub 運用ルール](github-repository-rules.md)             | Issue、Project、Milestone、Release、CI   |
