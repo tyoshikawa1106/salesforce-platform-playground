@@ -144,7 +144,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-app-analytics-query/SKILL.md",
-      "computedHash": "74a664f456a284d724832bcbd5b00b2db088e6a901d7186c71779cfc8aabc14d"
+      "computedHash": "a8a46e75877a33207f429707c2bac9146fab94f75d508d5577ddec1cb9a0b05e",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-code-analyzer-configure": {
       "source": "forcedotcom/sf-skills",
@@ -234,7 +235,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-pkg-post-install-configure/SKILL.md",
-      "computedHash": "ded5280e8495c3943ec206a1440b98be6fdec09f1f5607e2bcfdee832ea84c99"
+      "computedHash": "2402d134b65abd7cb7e253e745c98734df73d6da2a1706ee300cc0a2b366e877",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "experience-cms-brand-apply": {
       "source": "forcedotcom/sf-skills",
@@ -420,7 +422,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-agentexchange-partner-offers-configure/SKILL.md",
-      "computedHash": "5edcc1233530a84de05e7d004f3dcbc0bb0b0641bcd0742abc82f2fa3f27bba6"
+      "computedHash": "55657ff39db479ad3d77e7aaeec89c43cf4e9a9c9076155db9d60235c640542d",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-agentsetup-categories-fetch": {
       "source": "forcedotcom/sf-skills",
