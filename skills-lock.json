@@ -402,49 +402,57 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-callable-apex-generate/SKILL.md",
-      "computedHash": "c6235fadffa4fa210838d00109ab2f851ca8c533010f7f06d940b75df437b4dd"
+      "computedHash": "9c70800bb9886685ed188a006ccb7eea3b780ac9e92cfa76d491ce47623c4436",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-datamapper-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-datamapper-generate/SKILL.md",
-      "computedHash": "8661d97c1fcc6d16a9d08b3f6d2af5c1e6abf9bb254318d16759c663a36f57cf"
+      "computedHash": "b118251f8d8228190a5e9e85a444bf545e1c3b909d9d5bc040301d8c6883fb3b",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-datapacks-deploy": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-datapacks-deploy/SKILL.md",
-      "computedHash": "dd837f721de783b5fe7412e45c3e0bd0b9b12092722946ad96db6b53586804bc"
+      "computedHash": "c3ea614f5916db0e0ab302c289b1fc1b8d989a90b669c00744e4537cdf7b61ea",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-dependencies-analyze": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-dependencies-analyze/SKILL.md",
-      "computedHash": "71a5138217ca54c437a939f62f7ef33c5361a08a45a5532e4822cb596ba6385f"
+      "computedHash": "36db7d6ec362105cd14746c4a7524288823b2ad280750d0d98ac2b64b3422302",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-epc-catalog-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-epc-catalog-generate/SKILL.md",
-      "computedHash": "8d4f482fb2bdfdeee620a3148054736e05c6e9abe2adb2222df5239ccd9617e9"
+      "computedHash": "7205b922c361e05fedefab36728254eba1b47c8a4dd04eec93760f668646c462",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-flexcard-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-flexcard-generate/SKILL.md",
-      "computedHash": "8004c2b4c5e86ed12a5dd3e57e9af1e65178ea69eca804b255922624f8d1bb67"
+      "computedHash": "7b00248966c7802279b2dcc1dac201b39be0541bd7d3f0a874feb65bc05fb9c8",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-integration-procedure-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-integration-procedure-generate/SKILL.md",
-      "computedHash": "3cd986c022307bba3c06e565905918d824e49d5229a7a2c7440f1227480202cd"
+      "computedHash": "aac16d1e6905119c71abe48302765bbe272506fd34f87e5e202c4c7776fd8b5e",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-omniscript-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/omnistudio-omniscript-generate/SKILL.md",
-      "computedHash": "2ddb3abf187e0eb1bfb817205db9f38157855347cdc35875f613d321189743a6"
+      "computedHash": "9bfc185103e8d917c00327e292a19b8ab219277f9b2fa21e2048aba86ec0b2da",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-agentexchange-partner-offers-configure": {
       "source": "forcedotcom/sf-skills",
