@@ -12,12 +12,13 @@ public with sharing class SetupAuditTrailExplorerService {
      */
     public static Map<Id, String> localizePermissionActions(List<SetupAuditTrail> rows) {
         // 同じページの変換結果と選択リストを共有
-        PermissionActionFormatter formatter = new PermissionActionFormatter(rows);
+        PermissionActionFormatter formatter = new PermissionActionFormatter(rows, UserInfo.getLanguage());
         // 補正対象外の行は呼び出し元で元の本文を使用
         return formatter.actions;
     }
 
     /** 明細ページ単位の権限変更本文とオブジェクト表示名の照合 */
+    @TestVisible
     private class PermissionActionFormatter {
         public Map<Id, String> actions = new Map<Id, String>();
         private Map<String, String> labels;
@@ -25,10 +26,11 @@ public with sharing class SetupAuditTrailExplorerService {
         /**
          * ページ内の日本語の権限変更から表示用本文を作成
          * @param rows 一覧またはCSVの取得済み明細
+         * @param language 実行ユーザーの言語
          */
-        public PermissionActionFormatter(List<SetupAuditTrail> rows) {
+        public PermissionActionFormatter(List<SetupAuditTrail> rows, String language) {
             // 日本語の履歴書式にだけ変換を適用
-            if (!UserInfo.getLanguage().startsWith('ja')) {
+            if (!language.startsWith('ja')) {
                 return;
             }
             // 各行で同じページの選択リストを使用
