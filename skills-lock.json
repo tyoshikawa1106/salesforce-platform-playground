@@ -502,7 +502,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-dataspace-access-configure/SKILL.md",
-      "computedHash": "853d71de4138cfbbc479317ba2b81afba4f356b285235dc58406449134e91eb8"
+      "computedHash": "9d44ddd5d51993a2ad27a1678d6ebac5de2d7d3b3911c81c52301c158074ed46",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-docs-get": {
       "source": "forcedotcom/sf-skills",
@@ -574,7 +575,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-policy-rule-generate/SKILL.md",
-      "computedHash": "821f518b8e6b929b449cee637fafceb38cd56168beeb7609c8991386bcb1abfc"
+      "computedHash": "2e80edbe0b250980bcc298cca9fdfb484c495a0f94a03c5d08c84bd5fa9e434a",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-sharing-owd-configure": {
       "source": "forcedotcom/sf-skills",

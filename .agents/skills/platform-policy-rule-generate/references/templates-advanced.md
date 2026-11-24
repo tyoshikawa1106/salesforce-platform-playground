@@ -1,10 +1,12 @@
-# Advanced Templates — Multi-Condition, Hierarchy, Unauthorable
+# Advanced Templates — API-only Multi-Condition, Hierarchy, Unauthorable
 
 Each template is a verified shape from a passing test fixture. Copy, then change names/values.
 
 ---
 
-## Multi-Condition with Custom Conjunction (AND/OR mix)
+> These examples are API-only exceptions. Do not copy them for the default UI-compatible output without explicit operator confirmation.
+
+## API-only Multi-Condition with Custom Conjunction (AND/OR mix)
 
 Source: `conjunctionExpressionSteelthread`
 
@@ -24,7 +26,7 @@ Source: `conjunctionExpressionSteelthread`
 </unlessPolicyRuleDefinitionClauseConjunction>
 ```
 
-> Note: `<unlessPolicyRuleDefinitionClauseConjunction>` blocks are **not UI-editable** — silently dropped on first save. Prefer WHEN + negated operator for UI-compatible policies.
+> Note: `<unlessPolicyRuleDefinitionClauseConjunction>` blocks are **not UI-editable** — silently dropped on first save. Never author UNLESS; always use WHEN + negated operator (see `policy-shapes.md` "Deny unless"). This block is shown only so you can recognize it in retrieved API-only policies.
 
 ---
 
@@ -53,6 +55,6 @@ Source: `conditionWithHierarchy`
 
 `IDENTIFIED_RECORD` policies cannot be authored as XML. The required `RuleContextPath.SESSION_CONSUMER_ID` is not in `RuleContextPathType`.
 
-To author one: write a runtime `RuleProvider` using `AgenticPolicyRuleProviderService.java:130-260` as the canonical builder.
+To author one: implement it as a runtime `RuleProvider` in the consuming service, not via MDAPI XML.
 
 **Do not** synthesize a placeholder XML using `<contextPath>SESSION_CONSUMER_ID</contextPath>` — the value is not in `RuleContextPathType` and the deploy will fail.
