@@ -2,34 +2,17 @@ import { getApexMessage } from 'c/salesforceApiUtils';
 import { LightningElement } from 'lwc';
 import SetupAuditTrailExportModal from 'c/setupAuditTrailExportModal';
 import TIME_ZONE from '@salesforce/i18n/timeZone';
+import getColumnLabels from '@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
-import loadEmployeeActorIds from '@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds';
 import startSearch from '@salesforce/apex/SetupAuditTrailExplorerController.startSearch';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
-import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
-    CSV_HEADER, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    appliedFilterLabels, collectLoginAsPairs, hasDelegateAsCreator, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, loginBucket, filterOptionGroups, formatCsvPage, mergeChartPage, needsLoginAsUser, offsetMonth, pageCursor, matchPageBoundary, remainingMatchRecords, sameRecordIds, sortFilterOptions
+    historyColumnDefinitions, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
+    appliedFilterLabels, historyRow, filterOptionGroups, formatCsvPage, mergeChartPage, offsetMonth, pageCursor, matchPageBoundary, remainingMatchRecords, sameRecordIds, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
-// 履歴一覧で公開する項目と表示形式を定義する。
-const COLUMNS = [
-    { label: '日付', fieldName: 'CreatedDate', type: 'date', initialWidth: 185, typeAttributes: {
-        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
-        timeZone: TIME_ZONE
-    }},
-    { label: 'ユーザー', fieldName: 'displayedUser', initialWidth: 300, wrapText: true },
-    { label: '名前空間プレフィックス', fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
-    { label: 'アクション', fieldName: 'displayedAction', wrapText: true },
-    { label: 'セクション', fieldName: 'Section', initialWidth: 240, wrapText: true },
-    { label: '代理ユーザー', fieldName: 'displayedDelegate', initialWidth: 175, wrapText: true }
-].map(column => ({
-    ...column,
-    hideDefaultActions: true,
-    cellAttributes: { class: 'slds-text-body_small' }
-}));
 // 取得済みの明細をスクロールに合わせて表へ追加する単位。
 const RENDER_BATCH_SIZE = 50;
 // 見出しの件数に桁区切りを付ける。
@@ -38,7 +21,27 @@ const COUNT_FORMAT = new Intl.NumberFormat('ja-JP');
 // 履歴の検索・分析とCSV出力の操作を受け付ける。
 export default class SetupAuditTrailExplorer extends LightningElement {
     // 履歴一覧の列構成を表に渡す。
-    columns = COLUMNS;
+    columns;
+    // 同じ項目定義からCSV用の7列の見出しを保持する。
+    exportHeader;
+    // 一覧とCSVが同時に開かれた場合も項目定義の取得を共有する。
+    columnsRequest;
+
+    loadColumns() {
+        if (!this.columnsRequest) {
+            // 成功した列定義をページ移動や後続の出力でも使う。
+            this.columnsRequest = getColumnLabels().then(labels => {
+                const { columns, csvHeader } = historyColumnDefinitions(labels);
+                this.columns = columns;
+                this.exportHeader = csvHeader;
+            }).catch(error => {
+                // 次の一覧取得またはCSV出力で項目定義を再取得できるようにする。
+                this.columnsRequest = undefined;
+                throw error;
+            });
+        }
+        return this.columnsRequest;
+    }
     // 分析の基準時刻を履歴と同じタイムゾーンで表示する。
     timeZone = TIME_ZONE;
     // 初期表示をユーザーの現在月に合わせる。
@@ -55,7 +58,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     section = null;
     // 直近の5ページは表示用の行を再利用する。ページ境界は別に保持する。
     pageCache = new Map();
-    // 同じ時点の履歴、検索候補、分析で基準時刻と代理ログイン照合を共有する。
+    // 同じ時点の履歴、検索候補、分析で基準時刻を共有する。
     historyContext = {};
     // 取得済みの月に戻ったとき、同じ基準時刻の分析を再表示する。
     monthlyAnalyses = new Map();
@@ -64,7 +67,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     analysisContext;
     analysisLoading = false;
     analysisError = '';
-    // 現在の分析で照合まで終わった履歴件数だけを表示する。
+    // 現在の分析で集計が終わった履歴件数だけを表示する。
     analysisRows = 0;
 
     get analysisProgressLabel() {
@@ -157,7 +160,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     disconnectedCallback() {
         // 表示を終えた画面のサイズ監視を解除する。
         window.removeEventListener('resize', this.fitHistoryViewport);
-        // 離脱前の代理ログイン照合を打ち切る。
+        // 離脱前の検索基準時刻を破棄する。
         this.historyContext = {};
         // 再接続後に前の月次分析や遅れて届いた応答を反映しない。
         this.analysisContext = undefined;
@@ -382,6 +385,22 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return context.cutoffRequest;
     }
 
+    // 月別・絞り込みの件数照会を、検索結果CSVの確認画面でも共有する。
+    pendingCounts;
+
+    fetchCount = criteria => {
+        // 月、適用済み条件、検索基準時刻が一致する要求だけをまとめる。
+        const criteriaJson = JSON.stringify(criteria);
+        // 再検索後に旧照会が完了しても、新しい検索の要求には触れない。
+        const pendingCounts = this.pendingCounts;
+        if (!pendingCounts.has(criteriaJson)) {
+            // 成功・失敗とも完了後に外し、後続の再取得を妨げない。
+            const pending = countMatches({ criteriaJson }).finally(() => pendingCounts.delete(criteriaJson));
+            pendingCounts.set(criteriaJson, pending);
+        }
+        return pendingCounts.get(criteriaJson);
+    };
+
     // 月別件数を最新の見出しへ反映する。
     async readMonthTotal() {
         // 今回の月別件数要求を識別する。
@@ -399,7 +418,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             if (request !== this.countRequest) {
                 return;
             }
-            const total = await countMatches({ criteriaJson: JSON.stringify({ monthStart, cutoff }) });
+            const total = await this.fetchCount({ monthStart, cutoff });
             // 表示月が変わっていない場合に採用する。
             if (request === this.countRequest) {
                 // 見出しに取得済み件数を渡す。
@@ -440,9 +459,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // ユーザーIDと表示名の対応を集める。
         const names = {};
         const delegateNames = {};
-        // 補正後のユーザーをID単位で保持し、取得済みの明細ページを解放する。
-        const loginUsernames = {};
-        const loginDisplayNames = {};
         // 全ページで同じ月を使う。
         const monthStart = this.monthDate;
         // 最初の候補ページから始める。
@@ -476,29 +492,11 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 // 表示名をページ間で統合する。
                 Object.assign(names, result.userNames);
                 Object.assign(delegateNames, result.delegateNames);
-                // 代理ログインはこのページのうちにユーザー候補へ変換する。
-                if (result.records?.length) {
-                    // 必要な場合だけ画面で共有する照合結果を待つ。
-                    // eslint-disable-next-line no-await-in-loop
-                    const actors = await this.actorsForLogins(result.records);
-                    if (request !== this.optionsRequest) {
-                        return;
-                    }
-                    for (const row of result.records) {
-                        const actor = actors?.get(row.Id) ?? row;
-                        if (actor.CreatedById && actor.CreatedBy?.Username) {
-                            loginUsernames[actor.CreatedById] = actor.CreatedBy.Username;
-                        }
-                        if (actor.CreatedById && actor.CreatedBy?.Name) {
-                            loginDisplayNames[actor.CreatedById] = actor.CreatedBy.Name;
-                        }
-                    }
-                }
                 // 次ページの開始境界を引き継ぐ。
                 cursor = pageCursor(result);
             } while (cursor.nextId);
-            // 通常履歴と重なるIDには、従来と同じ順で照合済みの候補を適用する。
-            this.setUserLookup(Object.assign(users, loginUsernames), Object.assign(names, loginDisplayNames));
+            // 全ページの作成者を検索候補に反映する。
+            this.setUserLookup(users, names);
             this.delegateNames = delegateNames;
             // 並べ替えた候補をまとめて公開する。
             this.filterOptions = sortFilterOptions(groups);
@@ -827,7 +825,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const { userId, action, day, namespacePrefix, section, delegateUser } = event.detail;
         // 新しい履歴検索を挟んだ場合だけ、候補と件数も分析時点に戻す。
         if (this.historyContext !== this.analysis.context) {
-            // 対応する代理ログイン照合と基準時刻を明細要求で共有する。
+            // 分析の基準時刻を明細要求で共有する。
             this.historyContext = this.analysis.context;
             // 現在の候補は別時点のため、分析済みの候補に置き換える。
             this.filterOptions = null;
@@ -899,7 +897,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             if (request !== this.matchRequest) {
                 return;
             }
-            const count = await countMatches({ criteriaJson: JSON.stringify({ ...criteria, cutoff }) });
+            const count = await this.fetchCount({ ...criteria, cutoff });
             // 要求後に検索条件が変わっていないか確認する。
             if (request === this.matchRequest) {
                 // 最新の一致件数をページ表示に渡す。
@@ -928,8 +926,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.historyContext = {};
         }
         if (!keepMonthData) {
+            // 再検索と期限切れからの復旧では件数も取り直す。
+            this.pendingCounts = new Map();
             this.readMonthTotal();
-            // 月全体の候補と代理ログイン照合は同じ基準時刻のドリルダウンで再利用する。
+            // 月全体の候補は同じ基準時刻のドリルダウンで再利用する。
             this.optionsRequest += 1;
             this.filterOptions = null;
             this.userOptions = {};
@@ -1038,64 +1038,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
-    // 代理ログインを初めて含む明細ページでだけ照合を開始する。
-    async readCsvPage(fetchPage, query, isCurrent, context) {
-        // 月別・6ヶ月間の既存のページ境界と再試行を共通で使う。
-        const page = await this.readPageWithRetry(fetchPage, query, isCurrent);
-        // 離脱後や照合済みの出力では追加の要求を送らない。
-        if (isCurrent() && !context.actors && page.records.some(needsLoginAsUser)) {
-            // 出力ごとに独立した照合結果を全明細ページで共有する。
-            // 月外のログアウトも含め、明細の出力開始時刻までを照合する。
-            context.actors = await this.readActors(page.cutoff, isCurrent);
-        }
-        // 明細の追加前に呼び出し元で要求の有効性を再確認する。
-        return page;
-    }
-
-    // 分析・候補用の代理ログインには本文がないため、作成者だけで照合要否を判定する。
-    actorsForLogins(logins, context = this.historyContext) {
-        // 作成者が判明している行だけなら照合ページを取得しない。
-        return context.actors ?? (logins.some(hasDelegateAsCreator) ? this.readScreenActors(context) : undefined);
-    }
-
-    // 同じ基準時刻に属する一覧・分析・候補の照合を一度だけ開始する。
-    readScreenActors(context = this.historyContext) {
-        if (!context.pendingActors) {
-            // 履歴再検索中も、分析が同じ時点を参照している間は照合を継続する。
-            const isCurrent = () => context === this.historyContext || context === this.analysisContext;
-            context.pendingActors = this.getCutoff(context).then(cutoff => this.readActors(cutoff, isCurrent)).then(actors => {
-                // 取得済みの対応表を同じ時点の各利用元へ渡す。
-                context.actors = actors;
-                return actors;
-            }).finally(() => {
-                // 失敗した照合は同じ検索でも再試行できる。
-                context.pendingActors = undefined;
-            });
-        }
-        return context.pendingActors;
-    }
-
-    // 保持期間全体でログインとログアウトを照合し、完了した結果だけを返す。
-    async readActors(cutoff, isCurrent) {
-        const pairs = new Map();
-        let query = { cutoff: cutoff ?? null };
-        do {
-            // 次ページは直前の応答で確定した上限と境界で取得する。
-            // eslint-disable-next-line no-await-in-loop
-            const page = await this.readPageWithRetry(loadLoginAsHistory, query, isCurrent);
-            if (!isCurrent()) {
-                return undefined;
-            }
-            collectLoginAsPairs(pairs, page.records);
-            query = { cutoff: page.cutoff, ...pageCursor(page) };
-        } while (query.nextId);
-        return loginAsActors(pairs);
-    }
-
-    // セクションまたは代理ログイン補正を含み得るユーザー検索だけが照合を必要とする。
+    // セクション検索では元ページを走査して一致する履歴IDを取得する。
     get usesMatchIndex() {
-        const { section, userId, action } = this.appliedFilters;
-        return Boolean(section || (userId && (!action || action === 'suOrgAdminLogin')));
+        return Boolean(this.appliedFilters.section);
     }
 
     // 日時とIDの境界を前の応答から引き継ぎ、照会したページを一つずつ渡す。
@@ -1124,19 +1069,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             }
         }
         for await (const page of this.sourcePages({ ...query, matchIndex: true }, start, isCurrent)) {
-            // 代理ログインを含むユーザー検索にだけ、共通の作成者照合を適用する。
-            if (query.userId && !this.historyContext.actors && page.records.some(row => row.Action === 'suOrgAdminLogin')) {
-                await this.readScreenActors();
-                if (!isCurrent()) {
-                    return;
-                }
-            }
-            // 元ページの末尾を境界にし、一致しなかった範囲をもう一度走査しない。
-            const records = query.userId ? page.records.filter(row =>
-                (this.historyContext.actors?.get(row.Id)?.CreatedById ?? row.CreatedById) === query.userId) : page.records;
-            if (!isCurrent()) {
-                return;
-            }
+            const records = page.records;
             const cursor = pageCursor(page);
             this.matchBatch = { start, records, cursor };
             yield { records, cursor };
@@ -1172,7 +1105,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             }
             // ちょうど満杯で続きが未確認のときだけ、元ページ境界を保存する。
             this.probeCursor = boundary.probe;
-            await this.showDetailPage(details, boundary.next, isCurrent);
+            await this.showDetailPage(details, boundary.next);
             if (!isCurrent()) {
                 return;
             }
@@ -1219,8 +1152,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
-    // 照合した利用者と代理ユーザーの氏名を履歴一覧に表示する。
-    async showDetailPage(result, cursor, isCurrent) {
+    // 取得した履歴の明細とページ境界を一覧に反映する。
+    async showDetailPage(result, cursor) {
         // 保持期限などで移動先が空になった場合は、有効な境界を先頭から取り直す。
         if (this.page > 1 && !result.records.length) {
             // 検索時刻を保ち、期限切れの行を含む件数・候補・ページ境界を取り直す。
@@ -1228,15 +1161,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             // 空になったページの応答を新しい一覧へ反映しない。
             return;
         }
-        if (!this.historyContext.actors && result.records.some(needsLoginAsUser)) {
-            await this.readScreenActors();
-            if (!isCurrent()) {
-                return;
-            }
-        }
-        const employees = new Set(result.employeeActorIds);
-        // ページを開くたびに表示範囲を先頭へ戻す。
-        this.setPageRecords(result.records.map(row => historyRow(row, employees, this.historyContext.actors, result.delegateNames, result.localizedActions)));
+        // 現在ページの履歴を取得した順に表示する。
+        this.setPageRecords(result.records.map(historyRow));
         this.rememberNextPage(cursor);
         if (!this.probeCursor) {
             this.cachePage();
@@ -1264,6 +1190,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const query = this.searchCriteria;
         // 明細と同じ照合方式を使って出力対象を決める。
         const indexed = this.usesMatchIndex;
+        // 未指定の絞り込みは月合計と同じ件数条件を使う。
+        const filtered = this.hasFilters;
         // 確定済みの件数は問い合わせを増やさず再利用する。
         let count = this.resultCount;
         // 履歴と同じ基準時刻をすべてのページに引き継ぐ。
@@ -1285,7 +1213,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 一覧で件数を確定していない場合だけ問い合わせる。
         if (count === null) {
             // 出力時に使う条件と基準時刻を渡す。
-            count = await this.readPageWithRetry(countMatches, { criteriaJson: JSON.stringify(query) }, isCurrent);
+            const criteria = filtered ? query : { monthStart: query.monthStart, cutoff: query.cutoff };
+            count = await this.readPageWithRetry(this.fetchCount, criteria, isCurrent);
         }
         // 直接検索の明細は固定した条件を使って全ページ取得する。
         return { query, count };
@@ -1297,9 +1226,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.openExportDialog('month');
     }
 
-    // メニューで6ヶ月間を選んだ場合も同じ確認画面を使う。
+    // メニューで全期間を選んだ場合も同じ確認画面を使う。
     selectExportOption(event) {
-        // 6ヶ月間を選んだ場合だけ対応する取得方法を使う。
+        // 全期間を選んだ場合だけ対応する取得方法を使う。
         if (event.detail.value === 'all') {
             // 保持期間全体を確認画面に明示する。
             this.openExportDialog('all');
@@ -1318,6 +1247,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.downloadError = undefined;
         // 表示と取得で同じ月を使う。
         const month = this.month;
+        // 同じダイアログでの再出力には、最初の出力で確定した条件を使う。
+        const query = period === 'all' ? {} : { monthStart: month + '-01', csv: true };
         // 完成したファイルはモーダルの終了理由を確認するまで保存しない。
         let file;
         // 標準の閉じる操作・Esc・キャンセルはいずれも保存を開始しない。
@@ -1327,8 +1258,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 size: 'small', label: 'CSV出力', period, month, filters, ownerSignal: controller.signal,
                 prepareSelection: isCurrent => this.prepareResultExport(isCurrent),
                 buildFile: async (selection, isCurrent, progress) => {
-                    // 取得結果をモーダル間で共有しない。
-                    file = await this.buildCsv(period, month, selection, isCurrent, progress);
+                    // 検索結果には一覧で適用した条件と基準時刻を使う。
+                    Object.assign(query, selection?.query);
+                    // 月別・全期間は最初の明細要求より先にサーバー時刻を確定する。
+                    query.cutoff ??= await startSearch();
+                    // 時刻の取得中にキャンセルされた場合は明細を要求しない。
+                    if (isCurrent()) file = await this.buildCsv(period, query, selection, isCurrent, progress);
                 }
             });
             // 中断または画面離脱後に完成したファイルを保存しない。
@@ -1353,7 +1288,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     }
 
     // IDを指定する出力では照合順に分割し、各組の中でもCSVの文字数境界に従って取得する。
-    async *csvPages(fetchPage, query, isCurrent, context, ids) {
+    async *csvPages(fetchPage, query, isCurrent, period, ids) {
         const groups = ids ? Math.ceil(ids.length / PAGE_SIZE) : 1;
         for (let group = 0; group < groups; group++) {
             const criteria = ids ? { ...query, recordIds: ids.slice(group * PAGE_SIZE, (group + 1) * PAGE_SIZE) } : query;
@@ -1363,51 +1298,39 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     return;
                 }
                 // eslint-disable-next-line no-await-in-loop
-                const result = await this.readCsvPage(fetchPage, { ...criteria, ...cursor }, isCurrent, context);
+                const result = await this.readPageWithRetry(fetchPage, { ...criteria, ...cursor }, isCurrent);
                 if (!isCurrent()) {
                     return;
                 }
-                // 月別・6ヶ月間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
-                if (context.period !== 'results' && cursor.nextId && result.records.length === 0) {
+                // 月別・全期間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
+                if (period !== 'results' && cursor.nextId && result.records.length === 0) {
                     throw new Error('続きの履歴を取得できなかったため、CSVを保存しませんでした。もう一度出力してください。');
                 }
                 yield result;
                 cursor = pageCursor(result);
-                if (result.cutoff) {
-                    cursor.cutoff = result.cutoff;
-                }
             } while (cursor.nextId);
         }
     }
 
     // 全ページと確認時の件数が揃ったCSVだけを保存可能にする。
-    async buildCsv(period, month, selection, isCurrent, progress) {
-        // 月別と検索結果では確認時の条件を復元する。
-        const query = period === 'all' ? { cutoff: null } : { monthStart: month + '-01', ...selection?.query, csv: true };
-        // ファイル名の対象年月は実際の取得条件から取り、6ヶ月間の出力には付けない。
+    async buildCsv(period, query, selection, isCurrent, progress) {
+        // ファイル名の対象年月は実際の取得条件から取り、全期間の出力には付けない。
         const monthPart = query.monthStart ? query.monthStart.slice(0, 7).replace('-', '') : '';
         const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailSearchResults' }[period];
         // 出力種別と対象年月で保存名を決める。
         const fileName = prefix + monthPart + '.csv';
-        // 6ヶ月間だけ専用のApexメソッドから取得する。
+        // 全期間だけ専用のApexメソッドから取得する。
         const fetchPage = period === 'all' ? exportAllHistory : pageQuery => load({ criteriaJson: JSON.stringify(pageQuery) });
+        // 一覧を開く前に出力した場合も、同じ項目定義を取得する。
+        if (!this.columns) await this.loadColumns();
         // UTF-8のBOMと列名をファイルの先頭に置く。
-        const chunks = ['\uFEFF', CSV_HEADER];
-        // 作成者の照合結果を出力単位で共有する。
-        let employeeActorIds = new Set();
-        // 検索結果の出力では一覧で取得済みの照合結果を利用する。
-        const context = { period, actors: selection && this.historyContext.actors };
+        const chunks = ['\uFEFF', this.exportHeader];
         // 再試行の進捗はゼロから数える。
         let rows = 0;
         // 返された境界を使って全ページを順に取得する。
-        for await (const result of this.csvPages(fetchPage, query, isCurrent, context, selection?.ids)) {
-            // 先頭ページの根拠を後続ページでも引き継ぐ。
-            if (result.employeeActorIds) {
-                // 作成者IDの照合で履歴ごとの再検索を避ける。
-                employeeActorIds = new Set(result.employeeActorIds);
-            }
+        for await (const result of this.csvPages(fetchPage, query, isCurrent, period, selection?.ids)) {
             // ページ単位でUTF-8に符号化し、完了済みページの文字列を保持しない。
-            chunks.push(new Blob([formatCsvPage(result.records, employeeActorIds, context.actors, result.localizedActions)], { type: 'application/octet-stream' }));
+            chunks.push(new Blob([formatCsvPage(result.records)], { type: 'application/octet-stream' }));
             // 完了済みの明細だけを進捗に含める。
             rows += result.records.length;
             // 確認画面で取得済み件数を更新する。
@@ -1478,7 +1401,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const cursor = this.pageStarts[this.page - 1];
         const isCurrent = () => request === this.request;
         try {
-            query.cutoff = await this.getCutoff();
+            // 明細と列見出しが同じ画面で揃うよう、基準時刻と項目定義を取得する。
+            [query.cutoff] = await Promise.all([this.getCutoff(), this.loadColumns()]);
             if (!isCurrent()) {
                 return;
             }
@@ -1490,7 +1414,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             } else {
                 const result = await this.readPageWithRetry(load, { criteriaJson: JSON.stringify({ ...query, ...cursor }) }, isCurrent);
                 if (isCurrent()) {
-                    await this.showDetailPage(result, pageCursor(result), isCurrent);
+                    await this.showDetailPage(result, pageCursor(result));
                 }
             }
         } catch (error) {
@@ -1508,32 +1432,25 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         }
     }
 
-    // 全ページを走査し、通常操作と代理ログインをそれぞれ照合済みの集計にまとめる。
-    async collectAnalysisPages(query, context, isCurrent) {
+    // 全ページを走査し、履歴の作成者ごとに各ページの集計をまとめる。
+    async collectAnalysisPages(query, isCurrent) {
         // 集計中の内容は要求ごとに保持し、完了するまで画面の確定値から分離する。
         const totals = new Map();
-        const loginTotals = new Map();
         // 候補取得が済んでいるときはその時点の代理ユーザー名を引き継ぐ。
         const delegateNames = query.includeDelegateNames ? {} : { ...this.delegateNames };
         // 画面の進捗は別の月へ移動した時にリセットされるため、合計は要求内で数える。
         let count = 0;
         // 同じ基準時刻とカーソルを使って元ページの終端まで進める。
         for await (const page of this.sourcePages(query, {}, isCurrent)) {
-            // 代理ログインがあるページだけ、対象ユーザーを照合する。
-            const logins = page.records ?? [];
-            const actors = logins.length ? await this.actorsForLogins(logins, context) : undefined;
-            // 月を切り替えた場合は、このページの集計と進捗を破棄する。
-            if (!isCurrent()) return null;
-            // 通常操作と代理ログインは、同じ集計軸でもそれぞれの表示順を維持する。
+            // ページの集計を加算して取得済みの件数を更新する。
             count += mergeChartPage(totals, page.buckets);
-            count += mergeChartPage(loginTotals, logins.map(row => loginBucket(row, actors)));
             // このページで判明した代理ユーザー名を候補に加える。
             Object.assign(delegateNames, page.delegateNames);
-            // 照合まで終わった行だけを利用者へ知らせる。
+            // 集計済みの行だけを利用者へ知らせる。
             this.analysisRows = count;
         }
         // カーソルを最後まで読んだ集計を返し、呼び出し側で現在の月にだけ公開する。
-        return { count, delegateNames, buckets: [...totals.values(), ...loginTotals.values()] };
+        return { count, delegateNames, buckets: [...totals.values()] };
     }
 
     // 選択月を条件に一度だけ走査し、同じ月の履歴検索中も取得を継続する。
@@ -1560,16 +1477,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             const includeDelegateNames = context !== this.historyContext || !this.filterOptions;
             const query = { monthStart: month + '-01', chart: true, cutoff, includeDelegateNames };
             // 月全体の走査後、表示が切り替わっていれば結果を破棄する。
-            const analysis = await this.collectAnalysisPages(query, context, isCurrent);
+            const analysis = await this.collectAnalysisPages(query, isCurrent);
             if (!isCurrent()) return;
-            // Salesforce従業員を含む可能性がある集計だけ、作成者の証跡を取得する。
-            const { buckets } = analysis;
-            const employeeActorIds = buckets.some(needsChartEmployeeLabel)
-                ? await this.readPageWithRetry(loadEmployeeActorIds, { cutoff }, isCurrent) : [];
-            if (!isCurrent()) {
-                return;
-            }
-            labelChartActors(buckets, employeeActorIds);
             this.analysis = { context, cutoff, ...analysis };
             this.monthlyAnalyses.set(month, this.analysis);
             if (context === this.historyContext) {

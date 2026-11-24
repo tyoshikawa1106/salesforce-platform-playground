@@ -3,10 +3,37 @@ import TIME_ZONE from '@salesforce/i18n/timeZone';
 // 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
 export const PAGE_SIZE = 1000;
 
-// 月別・6ヶ月間で同じ順に列を出力する。
-export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
+// CSVの列順。画面ではDisplayをActionと同じセルに表示する。
+const HISTORY_FIELDS = [
+    ['CreatedDate', { type: 'date', initialWidth: 185, typeAttributes: {
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZone: TIME_ZONE
+    }}],
+    ['Username', { fieldName: 'displayedUser', initialWidth: 300, wrapText: true }],
+    ['ResponsibleNamespacePrefix', { initialWidth: 165, wrapText: true }],
+    ['Action', { fieldName: 'actionDetail', wrapText: true }],
+    ['Display', null],
+    ['Section', { initialWidth: 240, wrapText: true }],
+    ['DelegateUser', { initialWidth: 175, wrapText: true }]
+];
 
-// 対象月と代理ログインの集計日に、実行ユーザーの暦と同じ年月日を使う。
+// Salesforceの項目ラベルから一覧とCSVの見出しを作る。
+export function historyColumnDefinitions(labels) {
+    const columns = [];
+    const header = [];
+    for (const [field, settings] of HISTORY_FIELDS) {
+        const label = labels[field];
+        if (!label) throw new Error('設定変更履歴の項目ラベルを取得できませんでした。');
+        header.push(/[,"\r\n]/.test(label) ? csvCell(label) : label);
+        if (settings) {
+            columns.push({ fieldName: field, ...settings, label, hideDefaultActions: true,
+                cellAttributes: { class: 'slds-text-body_small' } });
+        }
+    }
+    return { columns, csvHeader: header.join(',') + '\n' };
+}
+
+// 初期表示の対象月には実行ユーザーのタイムゾーンを使う。
 const DAY_FORMAT = new Intl.DateTimeFormat('en', {
     year: 'numeric', month: '2-digit', day: '2-digit', timeZone: TIME_ZONE
 });
@@ -127,135 +154,21 @@ export function sortFilterOptions(groups) {
     ]));
 }
 
-// 操作別の定型部分を取り除き、ログインとログアウトの対象表示名を比較する。
-const LOGIN_SUFFIX = ' のログインアクセスを使用してログイン済み';
-// ログアウト行の本文に記録された許可元の表示名を取り出す。
-const LOGOUT_SUFFIX = ' のログインアクセスを使用してログアウト済み';
-
-// 代理ユーザー名の大文字小文字を揃え、対象表示名を完全一致で照合する。
-function loginAsKey(delegate, target) {
-    // 名前に区切り文字が含まれても異なる組を混同しないようにする。
-    return JSON.stringify([delegate.toLowerCase(), target]);
-}
-
-// 作成者に代理ユーザー自身が記録されたログインだけが照合の対象になる。
-export function hasDelegateAsCreator(row) {
-    // 履歴とユーザーのログイン名の大文字小文字を区別しない。
-    return Boolean(row.DelegateUser) && row.CreatedBy?.Username?.toLowerCase() === row.DelegateUser.toLowerCase();
-}
-
-// 作成者に代理ユーザー自身が記録された日本語の代理ログインだけを照合する。
-export function needsLoginAsUser(row) {
-    // 通常の作成者や、許可元を既に取得できた履歴には補正を行わない。
-    return row.Action === 'suOrgAdminLogin' && hasDelegateAsCreator(row) && row.Display?.endsWith(LOGIN_SUFFIX);
-}
-
-// 同じ代理人・対象の履歴を新しい順に読み、各ログインの直後のログアウトを記録する。
-export function collectLoginAsPairs(pairs, records) {
-    for (const row of records) {
-        // 日本語の本文で確認できる対象名は空白や記号を含めて比較する。
-        const login = row.Action === 'suOrgAdminLogin';
-        const suffix = login ? LOGIN_SUFFIX : LOGOUT_SUFFIX;
-        if (!row.DelegateUser || !row.Display?.endsWith(suffix) || row.Display.length === suffix.length) {
-            continue;
-        }
-        const target = row.Display.slice(0, -suffix.length);
-        const key = loginAsKey(row.DelegateUser, target);
-        const group = pairs.get(key) ?? { byLogin: new Map(), previousTime: Infinity };
-        pairs.set(key, group);
-        // 同時刻や順序の逆転、操作の重なりがある組に許可元を割り当てない。
-        const time = Date.parse(row.CreatedDate);
-        if (group.ambiguous || !(time < group.previousTime) ||
-            (group.previousTime !== Infinity && login !== Boolean(group.logout))) {
-            group.ambiguous = true;
-            continue;
-        }
-        group.previousTime = time;
-        if (login) {
-            // 作成者の表示名も本文に一致したログアウトだけをこのログインに対応付ける。
-            if (needsLoginAsUser(row) && row.Id && row.CreatedById && group.logout?.CreatedBy?.Name === target &&
-                group.logout.CreatedById && group.logout.CreatedById !== row.CreatedById && group.logout.CreatedBy.Username &&
-                group.logout.CreatedBy.Username.toLowerCase() !== row.DelegateUser.toLowerCase()) {
-                group.byLogin.set(row.Id, group.logout);
-            }
-            group.logout = null;
-        } else {
-            group.logout = row;
-        }
-    }
-}
-
-// 一意に対応した組だけを履歴IDで参照し、検索と表示に同じ作成者を使う。
-export function loginAsActors(pairs) {
-    const actors = new Map();
-    for (const group of pairs.values()) {
-        // 保持期間の端で片側だけの操作があっても、対応の確定した履歴は利用できる。
-        if (!group.ambiguous) {
-            for (const [id, logout] of group.byLogin) {
-                actors.set(id, logout);
-            }
-        }
-    }
-    return actors;
-}
-
-// システムによる操作に対応する日本語ラベルを返す。
-function systemActorLabel(userType, username, confirmedEmployee) {
-    // 日本語の自動化プロセスには標準CSVの種別名を出す。
-    if (userType === 'AutomatedProcess') {
-        // 自動化プロセスの内部ログイン名を表示名に変換する。
-        return '自動化プロセス';
-    }
-    // ログイン名がない場合も、同じ作成者の従業員操作を確認できた場合だけ会社名を使う。
-    if (!username && confirmedEmployee) {
-        // 日本語の標準CSVでのSalesforce側の実行主体を表す。
-        return '株式会社セールスフォース・ジャパン';
-    }
-    return undefined;
-}
-
-// 通常の表示名とログイン名の両方が空の集計だけ、追加の照合を必要とする。
-export function needsChartEmployeeLabel(bucket) {
-    return bucket.userId && !bucket.userName && !bucket.loginName && bucket.userType !== 'AutomatedProcess';
-}
-
-// 通常ユーザーの氏名と集計キーを保ち、判定できた実行者に日本語の表示名を付ける。
-export function labelChartActors(buckets, employeeActorIds) {
-    const employees = new Set(employeeActorIds);
-    for (const bucket of buckets) {
-        const label = systemActorLabel(bucket.userType, bucket.loginName, !bucket.userName && employees.has(bucket.userId));
-        if (label) {
-            bucket.userName = label;
-        }
-    }
-}
-
-// CSVには標準出力に合わせたログイン名を使用する。
-function csvUser(row, employeeActorIds, actors) {
-    const logout = actors?.get(row.Id);
-    return logout && needsLoginAsUser(row) ? logout.CreatedBy.Username :
-        systemActorLabel(row.CreatedBy?.UserType, row.CreatedBy?.Username, employeeActorIds.has(row.CreatedById)) || row.CreatedBy?.Username;
-}
-
-// 履歴の本人と代理ユーザーを独立して氏名に変換し、照合できない場合は元の表記を保持する。
-export function historyRow(row, employeeActorIds, actors, delegateNames, localizedActions) {
-    const actor = actors?.get(row.Id) ?? row;
-    return {
-        ...row,
-        displayedUser: actor.CreatedBy?.Name || systemActorLabel(actor.CreatedBy?.UserType, actor.CreatedBy?.Username, employeeActorIds.has(actor.CreatedById)) || actor.CreatedBy?.Username,
-        displayedDelegate: delegateNames?.[row.DelegateUser?.toLowerCase()] ?? row.DelegateUser,
-        displayedAction: localizedActions?.[row.Id] ?? row.Display
-    };
+// 一覧だけに操作コードと本文を並べ、元の項目はCSV用に保持する。
+export function historyRow(row) {
+    const actionDetail = [row.Action && '[' + row.Action + ']', row.Display].filter(Boolean).join('\n');
+    return { ...row, displayedUser: row.CreatedBy?.Username, actionDetail };
 }
 
 // 履歴の文字を一つのCSVセルに収める。
 function csvCell(value) {
-    // セル内の改行をLFに揃え、引用符を二重にして囲む。
-    return '"' + String(value ?? '').replace(/\r\n?/g, '\n').replaceAll('"', '""') + '"';
+    // セル内の改行を保持し、引用符を二重にして囲む。
+    const text = String(value ?? '');
+    return '"' + (text.includes('"') ? text.replaceAll('"', '""') : text) + '"';
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
-export function formatCsvPage(records, employeeActorIds = new Set(), actors, localizedActions) {
+export function formatCsvPage(records) {
     // 同じ秒に続く履歴で日時の書式変換を共有する。
     let lastDate;
     // 直前の履歴に対応する日時文字列を保持する。
@@ -270,8 +183,8 @@ export function formatCsvPage(records, employeeActorIds = new Set(), actors, loc
             formattedDate = CSV_DATE_FORMAT.format(new Date(lastDate));
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
-        return [formattedDate, csvUser(row, employeeActorIds, actors), row.ResponsibleNamespacePrefix,
-            localizedActions?.[row.Id] ?? row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
+        return [formattedDate, row.CreatedBy?.Username, row.ResponsibleNamespacePrefix,
+            row.Action, row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }
 
@@ -404,14 +317,4 @@ export function mergeChartPage(totals, buckets) {
         }
     }
     return count;
-}
-
-// Apexと同じ実行ユーザーの暦日で、代理ログインを分析の集計行に加える。
-export function loginBucket(row, actors) {
-    const actor = actors?.get(row.Id) ?? row;
-    return {
-        day: localDay(new Date(row.CreatedDate)), userId: actor.CreatedById, userName: actor.CreatedBy?.Name,
-        userType: actor.CreatedBy?.UserType, loginName: actor.CreatedBy?.Username, action: row.Action, section: row.Section,
-        namespacePrefix: row.ResponsibleNamespacePrefix, delegateUser: row.DelegateUser, count: 1
-    };
 }

@@ -1,45 +1,19 @@
-import { CSV_HEADER, collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
+import { historyColumnDefinitions, formatCsvPage, historyRow, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
 
-const login = {
-    Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
-    CreatedDate: '2026-10-31T14:59:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin'
-};
-const logout = {
-    Id: 'logout', Action: 'suOrgAdminLogout', Display: '対象 のログインアクセスを使用してログアウト済み',
-    CreatedDate: '2026-10-31T15:01:00Z', CreatedById: 'user', CreatedBy: { Name: '対象', Username: 'target' }, DelegateUser: 'admin'
-};
-
-it.each([
-    ['unique across months and pages', [logout, login], 'target'],
-    ['no logout', [login], 'admin'],
-    ['newer session still open', [{ ...login, Id: 'open', CreatedDate: '2026-11-01T02:00:00Z' }, logout, login], 'target'],
-    ['older login outside retention', [logout, login, { ...logout, CreatedDate: '2026-09-01T02:00:00Z' }], 'target'],
-    ['different delegate', [{ ...logout, DelegateUser: 'other' }, login], 'admin'],
-    ['different target', [{ ...logout, CreatedBy: { Name: '別人', Username: 'other' } }, login], 'admin'],
-    ['missing actor ID', [{ ...logout, CreatedById: null }, login], 'admin'],
-    ['same timestamp', [{ ...logout, CreatedDate: login.CreatedDate }, login], 'admin'],
-    ['duplicate login', [logout, login, { ...login, Id: 'another' }], 'admin'],
-    ['duplicate logout', [logout, login, { ...logout, Id: 'another' }], 'admin']
-])('uses the verified login-as user only if unambiguous: %s', (description, rows, expected) => {
-    const pairs = new Map();
-    rows.forEach(row => collectLoginAsPairs(pairs, [row]));
-    expect(formatCsvPage([login], new Set(), loginAsActors(pairs))).toBe(
-        '"2026/10/31 23:59:00 JST","' + expected + '","","' + login.Display + '","","admin"\n'
-    );
+it('escapes metadata labels that contain CSV separators', () => {
+    expect(historyColumnDefinitions({ CreatedDate: 'Date', Username: 'User', ResponsibleNamespacePrefix: 'Namespace', Action: 'A, B',
+        Display: 'C"D', Section: 'E\nF', DelegateUser: 'Delegate' }).csvHeader).toBe('Date,User,Namespace,"A, B","C""D","E\nF",Delegate\n');
 });
 
-it('matches separate sessions of the same delegate and target across pages by login ID', () => {
-    const laterLogin = { ...login, Id: 'later', CreatedDate: '2026-11-02T03:00:00Z' };
-    const laterLogout = { ...logout, Id: 'laterLogout', CreatedDate: '2026-11-02T03:00:05Z',
-        CreatedById: 'anotherTarget', CreatedBy: { Name: '対象', Username: 'secondTarget' } };
-    const pairs = new Map();
-    collectLoginAsPairs(pairs, [laterLogout]);
-    collectLoginAsPairs(pairs, [laterLogin, logout]);
-    collectLoginAsPairs(pairs, [login]);
-    expect(formatCsvPage([laterLogin, login], new Set(), loginAsActors(pairs)).split('\n').slice(0, 2).map(line => line.split(',')[1]))
-        .toEqual(['"secondTarget"', '"target"']);
+it.each([
+    ['PermSetEntityPermChanged', 'Changed permission set Sample', '[PermSetEntityPermChanged]\nChanged permission set Sample'],
+    ['suOrgAdminLogin', null, '[suOrgAdminLogin]'],
+    [null, '本文', '本文'],
+    [null, null, '']
+])('renders the recorded action and description on separate lines', (Action, Display, expected) => {
+    expect(historyRow({ Action, Display }).actionDetail).toBe(expected);
 });
 
 it('formats midnight and afternoon in local time and retains Unicode across line breaks', () => {
@@ -48,52 +22,26 @@ it('formats midnight and afternoon in local time and retains Unicode across line
         { CreatedDate: '2026-11-18T14:03:04Z' }
     ];
     expect(formatCsvPage(records)).toBe(
-        '"2026/11/18 0:01:02 JST","","","日本語\nภาษาไทย\n続き","",""\n' +
-        '"2026/11/18 23:03:04 JST","","","","",""\n'
+        '"2026/11/18 0:01:02 JST","","","","日本語\rภาษาไทย\n続き","",""\n' +
+        '"2026/11/18 23:03:04 JST","","","","","",""\n'
     );
 });
 
-it.each([
-    ['employee', '株式会社セールスフォース・ジャパン'],
-    ['other', ''],
-    [null, '']
-])('requires matching employee evidence for a creator without a login: %s', (id, expected) => {
-    const row = { CreatedDate: '2026-06-01T00:00:00Z', CreatedById: id, CreatedBy: {} };
-    const evidence = new Set(['employee']);
-    expect(formatCsvPage([row], evidence)).toBe('"2026/06/01 9:00:00 JST","' + expected + '","","","",""\n');
-});
-
-it('uses Japanese export labels and keeps the source action and section in their original language', () => {
+it('keeps the source action and section in their original language', () => {
     const row = { CreatedDate: '2026-09-15T00:00:00Z', CreatedBy: { UserType: 'AutomatedProcess' },
-        Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
-    expect(CSV_HEADER).toBe('日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n');
-    expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","自動化プロセス","","' + row.Display + '","Manage Users",""\n');
+        Action: 'PermSetEntityPermChanged', Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
+    expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","","","PermSetEntityPermChanged","' + row.Display + '","Manage Users",""\n');
 });
 
-it('formats only identified actors and the object name in a permission-set change', () => {
-    const permission = '権限セット WebCartDocument を変更: WebCartDocument オブジェクト権限を 参照 に変更';
-    const common = { CreatedDate: '2026-11-18T00:00:00Z', Display: permission };
-    const csv = formatCsvPage([
-        { ...common, Id: 'permission', Action: 'PermSetEntityPermChanged', CreatedBy: { UserType: 'AutomatedProcess', Username: 'auto' } },
-        { ...common, CreatedById: 'unknown', DelegateUser: 'delegate' },
-        { ...common, CreatedById: 'employee', CreatedBy: { Username: 'visible' } },
-        { ...common, Action: 'PermSetEntityPermChanged', Display: permission.replace(': WebCartDocument', ': OtherObject') }
-    ], new Set(['employee']), undefined, { permission: permission.replace(': WebCartDocument', ': Web Cart Documents') });
-    expect(csv.split('\n').slice(0, 4)).toEqual([
-        '"2026/11/18 9:00:00 JST","自動化プロセス","","権限セット WebCartDocument を変更: Web Cart Documents オブジェクト権限を 参照 に変更","",""',
-        '"2026/11/18 9:00:00 JST","","","' + permission + '","","delegate"',
-        '"2026/11/18 9:00:00 JST","visible","","' + permission + '","",""',
-        '"2026/11/18 9:00:00 JST","","","' + permission.replace(': WebCartDocument', ': OtherObject') + '","",""'
-    ]);
-});
-
-it('keeps history display names separate from CSV logins and preserves an unresolved delegate', () => {
-    const row = { ...logout, DelegateUser: 'Admin' };
-    expect(historyRow(row, new Set(), undefined, { admin: '管理者' })).toMatchObject({
-        displayedUser: '対象', displayedDelegate: '管理者'
-    });
-    expect(historyRow(row, new Set(), undefined, {}).displayedDelegate).toBe('Admin');
-    expect(formatCsvPage([row])).toContain('"target","","' + row.Display + '","","Admin"');
+it.each([
+    [{ Name: '表示名のみ' }, ''],
+    [{ Username: 'auto', UserType: 'AutomatedProcess' }, 'auto'],
+    [null, '']
+])('preserves the recorded username and action for the table and CSV', (creator, username) => {
+    const row = { CreatedDate: '2026-11-18T00:00:00Z', CreatedById: 'id', CreatedBy: creator,
+        Display: '権限セット X を変更: Account オブジェクト権限を 参照', DelegateUser: 'Admin' };
+    expect(historyRow(row)).toEqual({ ...row, displayedUser: creator?.Username, actionDetail: row.Display });
+    expect(formatCsvPage([row])).toBe('"2026/11/18 9:00:00 JST","' + username + '","","","' + row.Display + '","","Admin"\n');
 });
 
 describe('matched page boundaries', () => {
@@ -135,31 +83,4 @@ it('reuses only matches after the same ID and timestamp within the cached range'
     expect(remainingMatchRecords(batch, { nextId: 'a', nextTime: 'same' })).toEqual([]);
     expect(remainingMatchRecords(batch, { nextId: 'b', nextTime: 'other' })).toBeUndefined();
     expect(remainingMatchRecords(batch, {})).toBeUndefined();
-});
-
-it('keeps the Apex day key across midnight when the runtime formats month first', () => {
-    const NativeFormatter = Intl.DateTimeFormat;
-    const formatter = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation((locale, options) =>
-        new NativeFormatter('en-US', options)
-    );
-    try {
-        jest.isolateModules(() => {
-            const { loginBucket } = require('../setupAuditTrailExplorerLogic');
-            expect(loginBucket({ CreatedDate: '2026-10-31T14:59:59Z' }).day).toBe('2026-10-31');
-            expect(loginBucket({ CreatedDate: '2026-10-31T15:00:00Z' }).day).toBe('2026-11-01');
-        });
-    } finally {
-        formatter.mockRestore();
-    }
-});
-
-it('recognizes chart system actors without replacing known employees’ names or unconfirmed IDs', () => {
-    const buckets = [
-        { userId: 'auto', userType: 'AutomatedProcess', userName: 'Process Automated', loginName: 'auto' },
-        { userId: 'named', userName: '担当者' }, { userId: 'login', loginName: 'user' },
-        { userId: 'employee' }, { userId: 'unknown' }, {}
-    ];
-    expect(buckets.filter(needsChartEmployeeLabel).map(row => row.userId)).toEqual(['employee', 'unknown']);
-    labelChartActors(buckets, ['named', 'login', 'employee']);
-    expect(buckets.map(row => row.userName)).toEqual(['自動化プロセス', '担当者', undefined, '株式会社セールスフォース・ジャパン', undefined, undefined]);
 });

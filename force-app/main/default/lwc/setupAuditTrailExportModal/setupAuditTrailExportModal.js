@@ -9,7 +9,7 @@ export default class SetupAuditTrailExportModal extends LightningModal {
     @api exportSubject;
     // 確認対象の月と期間を呼び出し時点に固定する。
     @api month;
-    // 月別、6ヶ月間、検索結果のいずれかを受け取る。
+    // 月別、全期間、検索結果のいずれかを受け取る。
     @api period;
     // 適用済みの検索条件を件数と一緒に確認できるようにする。
     @api filters;
@@ -53,7 +53,7 @@ export default class SetupAuditTrailExportModal extends LightningModal {
         }
         // 所有画面の離脱時に標準モーダルを閉じる。
         this.ownerSignal.addEventListener('abort', this.handleCancel);
-        // 月別・6ヶ月間では事前の件数照会を必要としない。
+        // 月別・全期間では事前の件数照会を必要としない。
         if (this.period !== 'results') return;
         // 検索条件と件数が確定するまで出力ボタンを無効にする。
         try {
@@ -73,7 +73,7 @@ export default class SetupAuditTrailExportModal extends LightningModal {
         this.ownerSignal.removeEventListener('abort', this.handleCancel);
     }
 
-    // 6ヶ月間の表示と対象月の表示を切り替える。
+    // 全期間の表示と対象月の表示を切り替える。
     get range() {
         // 進捗中もどの範囲を出力しているか表示する。
         return this.exportSubject || (this.period === 'all' ? '取得可能な全期間' : this.month);
