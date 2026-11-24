@@ -67,7 +67,7 @@ public with sharing class SetupAuditTrailExplorerController {
 
     private static SetupAuditTrailExplorerWrapper loadFilterOptions(MonthRequest criteria) {
         SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+        List<SetupAuditTrail> rows = readSourcePage(
             criteria, SetupAuditTrailExplorerSelector.Projection.OPTIONS, CHART_PAGE_SIZE + 1
         );
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeOptions(rows, CHART_PAGE_SIZE);
@@ -117,7 +117,7 @@ public with sharing class SetupAuditTrailExplorerController {
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
         Integer sizeLimit = 200;
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+        List<SetupAuditTrail> rows = readSourcePage(
             criteria, SetupAuditTrailExplorerSelector.Projection.LOGIN_AS, sizeLimit + 1
         );
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
@@ -138,13 +138,13 @@ public with sharing class SetupAuditTrailExplorerController {
             return loadDetails(criteria, CSV_PAGE_SIZE, criteria.cutoff);
         }
         if (criteria.matchIndex == true) {
-            List<SetupAuditTrail> matches = SetupAuditTrailExplorerSelector.selectPage(
+            List<SetupAuditTrail> matches = readSourcePage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.MATCH_INDEX, CHART_PAGE_SIZE + 1
             );
             return SetupAuditTrailExplorerService.summarizeMatches(matches, CHART_PAGE_SIZE, criteria.section);
         }
         if (criteria.chart == true) {
-            List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+            List<SetupAuditTrail> rows = readSourcePage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.CHART, CHART_PAGE_SIZE + 1
             );
             SetupAuditTrailExplorerWrapper chart = SetupAuditTrailExplorerService.summarizeChart(rows, CHART_PAGE_SIZE);
@@ -173,6 +173,17 @@ public with sharing class SetupAuditTrailExplorerController {
             wrapper.employeeActorIds = loadEmployeeActorIds(criteria.cutoff);
         }
         return wrapper;
+    }
+
+    // 先読みで存在を確認した元行を検証してから、集計やセクション絞り込みで応答を縮小する。
+    private static List<SetupAuditTrail> readSourcePage(
+        SetupAuditTrailExplorerSelector.Criteria criteria, SetupAuditTrailExplorerSelector.Projection projection, Integer sizeLimit
+    ) {
+        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(criteria, projection, sizeLimit);
+        if (criteria.nextId != null && rows.isEmpty()) {
+            throw new AuraHandledException('続きの履歴を取得できませんでした。もう一度取得してください。');
+        }
+        return rows;
     }
 
     private static Map<String, String> delegateNamesFor(List<SetupAuditTrail> rows) {
@@ -221,9 +232,9 @@ public with sharing class SetupAuditTrailExplorerController {
         if (criteria == null) {
             throw new AuraHandledException('検索条件を指定してください。');
         }
-        if (criteria.csv == true && criteria.cutoff == null) {
+        if (criteria.csv == true) {
             // 過去月でも月末後に記録された代理ログアウトを出力開始時点まで照合する。
-            criteria.cutoff = System.now();
+            criteria.cutoff = criteria.cutoff ?? System.now();
         }
         setPeriod(criteria);
         return criteria;

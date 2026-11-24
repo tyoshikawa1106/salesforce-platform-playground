@@ -64,6 +64,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     analysisContext;
     analysisLoading = false;
     analysisError = '';
+    // 現在の分析で照合まで終わった履歴件数だけを表示する。
+    analysisRows = 0;
+
+    get analysisProgressLabel() {
+        // 件数照会の完了を待たずにページごとの実績を伝える。
+        return '分析中（' + COUNT_FORMAT.format(this.analysisRows) + '件集計済み）';
+    }
     // 一致がちょうど1ページ分の場合は、先に表示して次の一致を探す。
     probeCursor;
     // 同じ履歴検索のページ移動で直近の照合結果を再利用する。
@@ -1158,6 +1165,13 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             if (!isCurrent()) {
                 return;
             }
+            // 一致IDと明細の並びを照合し、欠けたページを一覧や件数に使わない。
+            if (ids.length !== details.records.length || ids.some((id, index) => details.records[index].Id !== id)) {
+                // 再取得時には欠けたIDを使い回さず、元の履歴から読み直す。
+                this.matchBatch = undefined;
+                this.error = '検索結果の履歴が変わりました。再試行するか、もう一度検索してください。';
+                return;
+            }
             // ちょうど満杯で続きが未確認のときだけ、元ページ境界を保存する。
             this.probeCursor = !next.nextId && ids.length === PAGE_SIZE && cursor.nextId ? cursor : null;
             await this.showDetailPage(details, next, isCurrent);
@@ -1505,6 +1519,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const context = this.historyContext;
         this.analysisContext = context;
         const isCurrent = () => this.analysisContext === context && this.month === month;
+        // 再試行や別の月では集計済み件数を先頭から数える。
+        this.analysisRows = 0;
         this.analysisLoading = true;
         this.analysisError = '';
         try {
@@ -1532,6 +1548,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     }
                     count += mergeChartPage(loginTotals, result.records.map(row => loginBucket(row, actors)));
                 }
+                // 月変更や離脱で無効になった分析の進捗は反映しない。
+                if (!isCurrent()) return;
+                // 通常の集計と代理ログインの照合が揃ったページだけを進捗へ加える。
+                this.analysisRows = count;
             }
             if (!isCurrent()) {
                 return;

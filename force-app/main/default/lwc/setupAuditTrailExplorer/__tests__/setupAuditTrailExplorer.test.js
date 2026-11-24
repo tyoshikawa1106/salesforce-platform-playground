@@ -1377,6 +1377,7 @@ it.each(['before', 'after'])('uses a complete monthly chart if the monthly count
     }
     expect(retryShown()).toBe(timing === 'before');
     expect(root.querySelector('.month-navigation h2').textContent).not.toContain('件');
+    expect(root.querySelector('.c-tab-results [role="status"]').textContent).toContain('1,000件集計済み');
     finishChart({ buckets: [{ count: 1 }] });
     await flush();
     if (timing === 'after') {
@@ -1587,4 +1588,24 @@ it('未処理のApex例外を一覧取得の案内に置き換える', async () 
     await flush();
     expect(component.shadowRoot.textContent).toContain('設定変更履歴を取得できませんでした。');
     expect(component.shadowRoot.textContent).not.toContain('Unexpected query failure');
+});
+
+it('照合IDの一部が消えた一覧は再試行時にIDから読み直す', async () => {
+    const rows = ['a', 'b'].map(Id => ({ Id, CreatedDate: cutoff }));
+    let changed = false;
+    loadFilterOptions.mockResolvedValue({ options: { section: ['A'] } });
+    load.request.mockImplementation(({ input }) => {
+        if (input.matchIndex) return { records: changed ? rows.slice(0, 1) : rows };
+        if (input.recordIds) changed = true;
+        return { records: rows.slice(0, 1) };
+    });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'section', 'A');
+    await search(component);
+    const root = component.shadowRoot;
+    expect(root.querySelector('[role="alert"]').textContent).toContain('検索結果の履歴が変わりました。');
+    [...root.querySelectorAll('lightning-button')].find(button => button.label === '再試行').click();
+    await flush();
+    expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['a']);
 });

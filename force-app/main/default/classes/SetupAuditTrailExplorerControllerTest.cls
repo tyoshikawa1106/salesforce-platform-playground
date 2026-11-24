@@ -143,6 +143,22 @@ private class SetupAuditTrailExplorerControllerTest {
     }
 
     @IsTest
+    static void rejectsMissingSourceContinuation() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            String request = JSON.serialize(new Map<String, Object>{
+                'monthStart' => Date.newInstance(2000, 1, 1), 'matchIndex' => true, 'section' => '設定',
+                'nextId' => UserInfo.getUserId(), 'nextTime' => Datetime.newInstanceGMT(2000, 1, 2, 0, 0, 0)
+            });
+            try {
+                SetupAuditTrailExplorerController.load(request);
+                Assert.fail('照合前の元ページが空なら完了にできません。');
+            } catch (AuraHandledException expected) {
+                Assert.isNotNull(expected, '再取得が必要なエラーを返します。');
+            }
+        }
+    }
+
+    @IsTest
     static void readsEmptyMatchIndex() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
