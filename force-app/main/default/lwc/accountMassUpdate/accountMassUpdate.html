@@ -91,7 +91,7 @@
             <template lwc:if={busy}
                 ><lightning-spinner alternative-text="処理中" size="small"></lightning-spinner
             ></template>
-            <template lwc:if={emptyResult}><p>条件に一致する法人取引先はありません。</p></template>
+            <template lwc:if={emptyResult}><p>{emptyMessage}</p></template>
             <template lwc:if={searched}>
                 <div class="c-table-scroll slds-scrollable" data-empty={emptyResult} tabindex="0" role="region" aria-label="法人取引先の編集一覧">
                     <table class="slds-table slds-table_bordered slds-table_cell-buffer">
