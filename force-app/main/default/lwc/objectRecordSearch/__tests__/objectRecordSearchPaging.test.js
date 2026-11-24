@@ -262,3 +262,15 @@ describe('c-object-record-search paging and sorting', () => {
         });
     });
 });
+
+it('空の後続ページから前へ戻れる', async () => {
+    const element = createComponent();
+    searchRecords.emit({ ...searchResponse, hasNextPage: true, paginationCursor: 'cursor', nextIndex: 50 });
+    await flushPromises();
+    findButton(element, '次へ').click();
+    await flushPromises();
+    searchRecords.emit({ ...searchResponse, pageNumber: 2, records: [], hasNextPage: false, paginationCursor: 'cursor', nextIndex: 0 });
+    await flushPromises();
+    expect(element.shadowRoot.textContent).toContain('このページに表示できるレコードはありません。');
+    expect(findButton(element, '前へ').disabled).toBe(false);
+});
