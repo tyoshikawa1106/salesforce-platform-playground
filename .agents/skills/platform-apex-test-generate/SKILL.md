@@ -1,8 +1,16 @@
 ---
 name: platform-apex-test-generate
-description: "Generate and validate Apex test classes with TestDataFactory patterns, bulk testing (251+ records), mocking strategies, assertion best practices, and disciplined test-fix loops. Use this skill when creating new Apex test classes, improving test coverage, debugging and fixing failing Apex tests, running test execution and coverage analysis, or implementing testing patterns for triggers, services, controllers, batch jobs, queueables, and integrations. Triggers on *Test.cls, *_Test.cls files, sf apex run test workflows, coverage reports, test-fix loops. Do NOT trigger for production Apex code (use platform-apex-generate) or Jest/LWC tests."
+description: "Use to generate and validate Apex test classes with TestDataFactory patterns, bulk testing (251+ records), mocking, assertions, and disciplined test-fix loops. Use when creating Apex test classes (for triggers, services, controllers, batch jobs, queueables, and callouts), improving coverage, debugging or fixing failing Apex tests, or running test/coverage analysis. Triggers on *Test.cls files, sf apex run test, coverage reports. Do NOT trigger for production Apex (use platform-apex-generate) or Jest/LWC tests."
 metadata:
-  version: "1.0"
+  version: "1.1"
+  domains: ["Platform"]
+  minApiVersion: "66.0"
+  relatedSkills:
+    - "platform-apex-generate"
+    - "integration-apex-symbol-table-query"
+  cliTools:
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # Generating Apex Tests
@@ -16,6 +24,8 @@ Generate production-ready Apex test classes and run disciplined test-fix loops w
 3. **Isolate test data** — every `@TestSetup` must delegate record creation to a `TestDataFactory` class. If none exists, create one first. Never build record lists inline in `@TestSetup`. Never rely on org data (`SeeAllData=false`) or hardcoded IDs. For duplicate rule handling, see [references/test-data-factory.md](references/test-data-factory.md)
 4. **Assert meaningfully** — use exact expected values computed from test data setup. NEVER use range assertions or approximate counts when the value is deterministic. Always include failure messages. See [references/assertion-patterns.md](references/assertion-patterns.md)
 5. **Use `Assert` class only** — `Assert.areEqual`, `Assert.isTrue`, `Assert.fail`, etc. Never use legacy `System.assert`, `System.assertEquals`, or `System.assertNotEquals`
+   - Only these `Assert` methods exist: `areEqual`, `areNotEqual`, `isTrue`, `isFalse`, `isNull`, `isNotNull`, `fail`, `isInstanceOfType`, `isNotInstanceOfType`. There is no `areSame` / `areNotSame` -- to check identity or equality of SObjects, compare `Id` or specific fields with `Assert.areEqual`
+   - `trigger` is a reserved word in Apex -- never use it as a variable name (e.g., use `cronTrigger` for a `CronTrigger` record; query `CronTrigger` fields `CronExpression`, `State`, `TimesTriggered`, `NextFireTime`, and `CronJobDetail.Name` from that variable)
 6. **Mock external boundaries** — use `HttpCalloutMock` for callouts, `Test.setFixedSearchResults` for SOSL, DML mock classes for database isolation. Design for testability via constructor injection. See [references/mocking-patterns.md](references/mocking-patterns.md)
 7. **Test negative paths** — validate error handling and exception scenarios, not just happy paths
 8. **Wrap with start/stop** — pair `Test.startTest()` with `Test.stopTest()` to reset governor limits and force async execution
@@ -44,7 +54,7 @@ Always wrap the code under test in `Test.startTest()` / `Test.stopTest()`:
 
 Before generating or fixing tests, identify:
 
-- the target production class(es) under test
+- the target production class(es) under test; use the `integration-apex-symbol-table-query` skill to get their exact method signatures, fields, and inner types rather than inferring them. If the org does not support it (API v67.0+ required) or the call fails, read the source instead
 - existing test classes, test data factories, and setup helpers
 - desired test scope (single class, specific methods, suite, or local tests)
 - coverage threshold (75% minimum for deploy, 90%+ recommended)
@@ -148,6 +158,7 @@ Focus on:
 - failing methods — exception types and stack traces
 - uncovered lines and weak coverage areas
 - whether failures indicate bad test data, brittle assertions, or broken production logic
+- when class metadata crosses from versions 66.0 and below to 67.0 and above, check explicit sharing, decide user/system mode per operation, grant required CRUD/FLS in test users or permission sets, and rerun affected tests
 
 ### Step 5 — Fix Loop
 

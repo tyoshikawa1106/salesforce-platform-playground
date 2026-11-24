@@ -452,25 +452,29 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-apex-generate/SKILL.md",
-      "computedHash": "40a9386f79a5af71c49a129dd4998f0948a0dba5f36fac56acb7be06a38a010d"
+      "computedHash": "43812fc749a6abdb0b1017bfda48c10ae04a5d625c5b35623c85db52348f2ec0",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-apex-logs-debug": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-apex-logs-debug/SKILL.md",
-      "computedHash": "f8cf76d5aae4689030f5278010fcf687661bbe68e402893d194d92812ba774c3"
+      "computedHash": "a5e18b55c5e15b91f931ed1953099ab3e375f1eff153264dee5ee2693f9d0f24",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-apex-test-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-apex-test-generate/SKILL.md",
-      "computedHash": "69b15f1137a1f4f28a7bbabbbf2a808499116c55250e4f77f35fbf9b510b13e6"
+      "computedHash": "14e06c0d7effb7c46fe7a52f98bb1e0fe168d6e16767abc9622db51f19bd6b54",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-apex-test-run": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-apex-test-run/SKILL.md",
-      "computedHash": "f43f753e685f0d77c0bc7375102ed08fbd60c3df1879d3ffa98abc5f1ea31dc5"
+      "computedHash": "7af31f0610a56fdc7396f478aab1f5d5f2957021fb655e27a657dce4997f4240",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-custom-application-generate": {
       "source": "forcedotcom/sf-skills",
