@@ -1124,6 +1124,222 @@
       "skillPath": "skills/sales-agentforce-pipeline-management-configure/SKILL.md",
       "computedHash": "8616c7037c1b7fabf923ba758caba9408871d6e0a7556ff8e0aeb7ae952dfacd",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
+    },
+    "service-itsm-agentic-setup-agent-runtime-access-assign": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-agent-runtime-access-assign/SKILL.md",
+      "computedHash": "ee893bc5eaf1ced7dd533b68a165bde58ff15f8f7e74d4f6e327564a126d654b"
+    },
+    "service-itsm-agentic-setup-agentforce-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-agentforce-coordinate/SKILL.md",
+      "computedHash": "7d912301b6f06a2a2b024d3f964928fa79e18dac5764975a7b34a5e910bae215"
+    },
+    "service-itsm-agentic-setup-agentforce-studio-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-agentforce-studio-configure/SKILL.md",
+      "computedHash": "9c6f3c868aeed86e7b37b5cdecd94977cc0041ff6fe1e962ee28e131411959cb"
+    },
+    "service-itsm-agentic-setup-agentforce-studio-validate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-agentforce-studio-validate/SKILL.md",
+      "computedHash": "9a659cd344d8c5a733f6cb46e995a02a5c7d95e80c6eec197af0aa40ea7e35bf"
+    },
+    "service-itsm-agentic-setup-cmdb-access-assign": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-cmdb-access-assign/SKILL.md",
+      "computedHash": "05eaf879ba873888ce3d8fa48520524eb52e5456dc02d97c1386ef1cab60d74b"
+    },
+    "service-itsm-agentic-setup-cmdb-bundle-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-cmdb-bundle-deploy/SKILL.md",
+      "computedHash": "c596faace05b48e96db384323b05c3faf2a3acda2e30bd86ee45d345642f436f"
+    },
+    "service-itsm-agentic-setup-cmdb-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-cmdb-configure/SKILL.md",
+      "computedHash": "5be109ec8700f6fc74e948b93b8f7316abd10998169a63f8d46da37acc62c3a1"
+    },
+    "service-itsm-agentic-setup-cmdb-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-cmdb-coordinate/SKILL.md",
+      "computedHash": "5d889caf7f97b39d5dd30b10fce7cef005b5a1cc26948f78f308c9aabb1235f8"
+    },
+    "service-itsm-agentic-setup-cmdb-discovery-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-cmdb-discovery-configure/SKILL.md",
+      "computedHash": "dedc8f8764047a0156f2caf3599b053848f5cb08ec70b9a30a0a83a125615941"
+    },
+    "service-itsm-agentic-setup-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-configure/SKILL.md",
+      "computedHash": "1e7dc1312c187374985484ae50b64f09ef5d50295d777c0a0ab67bd0cd42e69d"
+    },
+    "service-itsm-agentic-setup-employee-agent-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-employee-agent-configure/SKILL.md",
+      "computedHash": "e33482af1ce04c055568ba23895eac2f92f230658c9c735a44b1e1b393d886e4"
+    },
+    "service-itsm-agentic-setup-fulfiller-agent-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-fulfiller-agent-configure/SKILL.md",
+      "computedHash": "8292b89fd0a8b51d69dad608c0f3adfdce52a0d911b2794cc4cd76863681de5f"
+    },
+    "service-itsm-agentic-setup-incident-management": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-incident-management/SKILL.md",
+      "computedHash": "5e5654d583d2ab533fb785e146d541458cacb94612e5c863bf99893656838b95"
+    },
+    "service-itsm-agentic-setup-incident-sla-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-incident-sla-configure/SKILL.md",
+      "computedHash": "e8959b8ae509c030dac4a1c054d2484fcab516eeba7d6bf14821cab036a90110"
+    },
+    "service-itsm-agentic-setup-itsm-agentforce-permset-assign": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-itsm-agentforce-permset-assign/SKILL.md",
+      "computedHash": "e1bce725ff91ed2732d1e4778807b3e33a3d25c24e28990b750f88484eb1e38b"
+    },
+    "service-itsm-agentic-setup-uel-user-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-agentic-setup-uel-user-create/SKILL.md",
+      "computedHash": "05f07de83a0f11a4d5c5ba895b1bf8059cb6948c0f0dfea6ba1379baa4ed6598"
+    },
+    "service-itsm-channels-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-channels-coordinate/SKILL.md",
+      "computedHash": "9e141dcd2227d18ae7aa0150551fe68017e360f4753f7d0dd1103cb30eefc821"
+    },
+    "service-itsm-incident-mgmt-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-incident-mgmt-configure/SKILL.md",
+      "computedHash": "9f773fcc50840c1464008e9c432ee3f12d5260e1da04ae978c2425fc40dad7ea"
+    },
+    "service-itsm-incident-priority-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-incident-priority-configure/SKILL.md",
+      "computedHash": "6cec1527c76094fdafc8a7d3be736bda22aa9d7512a5023b085bbb42b9294d45"
+    },
+    "service-itsm-slack-itservice-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-slack-itservice-configure/SKILL.md",
+      "computedHash": "e28e6fb83ae5b1ad26598207339f6b280b80526b1d9c41a9891d9ab8437e793a"
+    },
+    "service-itsm-swarming-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-swarming-configure/SKILL.md",
+      "computedHash": "065fc8ede5dddd7baeebc0ce537d6c58a3075d0791be962b9e29d63aba507c95"
+    },
+    "service-itsm-teams-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-teams-configure/SKILL.md",
+      "computedHash": "c20bb5c38c549e0b1a6824e9c2d2e89c1976e79706fa62ceede10514a1fd3792"
+    },
+    "service-itsm-teams-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-teams-coordinate/SKILL.md",
+      "computedHash": "e250904ba3ef06c10e373116d6f20af92742e56c959b8747c6d226c3bea41c24"
+    },
+    "service-itsm-teams-debug": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-teams-debug/SKILL.md",
+      "computedHash": "bba2f2a0562931157cd074b2b8ba94dcabf9811180194b4776c82da65e5241ff"
+    },
+    "service-itsm-teams-employee-agent-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-teams-employee-agent-configure/SKILL.md",
+      "computedHash": "939b9c8445382a72727c4baab8e4497efd6e93f5853802a2c3d8b1aaeceb7220"
+    },
+    "service-itsm-teams-itdesk-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-teams-itdesk-configure/SKILL.md",
+      "computedHash": "b30176fce60f00bb88b18d230539766599aefbd91ebe35f7d592e57d4d7baf20"
+    },
+    "service-itsm-teams-itservice-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-itsm-teams-itservice-configure/SKILL.md",
+      "computedHash": "3d1ecc21ef4953908894ae96f50b0edef61cced66f45299de1a2c1438bbe5560"
     }
   }
 }
