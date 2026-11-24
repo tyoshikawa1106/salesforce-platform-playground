@@ -159,6 +159,11 @@ export default class AccountMassUpdate extends LightningElement {
         return this.pageIndex + 1;
     }
 
+    get emptyMessage() {
+        // 途中ページの空結果を検索範囲全体の0件と区別する。
+        return this.pageIndex > 0 ? 'このページに表示できる法人取引先はありません。前のページへ戻れます。' : '条件に一致する法人取引先はありません。';
+    }
+
     get emptyResult() {
         // 正常に0件と確認し、保存に失敗して保持した行もない場合だけ案内
         return this.pageConfirmedEmpty && !this.busy && this.records.length === 0;

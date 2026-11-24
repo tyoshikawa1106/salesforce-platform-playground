@@ -1,5 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, remainingMatchRecords } from '../setupAuditTrailExplorerLogic';
-jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
+import { CSV_HEADER, collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
 
@@ -54,15 +53,32 @@ it('formats midnight and afternoon in local time and retains Unicode across line
     );
 });
 
+it.each([
+    ['employee', '株式会社セールスフォース・ジャパン'],
+    ['other', ''],
+    [null, '']
+])('requires matching employee evidence for a creator without a login: %s', (id, expected) => {
+    const row = { CreatedDate: '2026-06-01T00:00:00Z', CreatedById: id, CreatedBy: {} };
+    const evidence = new Set(['employee']);
+    expect(formatCsvPage([row], evidence)).toBe('"2026/06/01 9:00:00 JST","' + expected + '","","","",""\n');
+});
+
+it('uses Japanese export labels and keeps the source action and section in their original language', () => {
+    const row = { CreatedDate: '2026-09-15T00:00:00Z', CreatedBy: { UserType: 'AutomatedProcess' },
+        Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
+    expect(CSV_HEADER).toBe('日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n');
+    expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","自動化プロセス","","' + row.Display + '","Manage Users",""\n');
+});
+
 it('formats only identified actors and the object name in a permission-set change', () => {
     const permission = '権限セット WebCartDocument を変更: WebCartDocument オブジェクト権限を 参照 に変更';
     const common = { CreatedDate: '2026-11-18T00:00:00Z', Display: permission };
     const csv = formatCsvPage([
-        { ...common, Action: 'PermSetEntityPermChanged', CreatedBy: { UserType: 'AutomatedProcess', Username: 'auto' } },
+        { ...common, Id: 'permission', Action: 'PermSetEntityPermChanged', CreatedBy: { UserType: 'AutomatedProcess', Username: 'auto' } },
         { ...common, CreatedById: 'unknown', DelegateUser: 'delegate' },
         { ...common, CreatedById: 'employee', CreatedBy: { Username: 'visible' } },
         { ...common, Action: 'PermSetEntityPermChanged', Display: permission.replace(': WebCartDocument', ': OtherObject') }
-    ], new Set(['employee']));
+    ], new Set(['employee']), undefined, { permission: permission.replace(': WebCartDocument', ': Web Cart Documents') });
     expect(csv.split('\n').slice(0, 4)).toEqual([
         '"2026/11/18 9:00:00 JST","自動化プロセス","","権限セット WebCartDocument を変更: Web Cart Documents オブジェクト権限を 参照 に変更","",""',
         '"2026/11/18 9:00:00 JST","","","' + permission + '","","delegate"',
@@ -78,6 +94,37 @@ it('keeps history display names separate from CSV logins and preserves an unreso
     });
     expect(historyRow(row, new Set(), undefined, {}).displayedDelegate).toBe('Admin');
     expect(formatCsvPage([row])).toContain('"target","","' + row.Display + '","","Admin"');
+});
+
+describe('matched page boundaries', () => {
+    const rows = ['c', 'b', 'a'].map(Id => ({ Id, CreatedDate: 'same' }));
+    const cursor = { nextId: 'source', nextTime: 'later' };
+
+    it('resumes after the last displayed ID even on the final source page', () => {
+        expect(matchPageBoundary(rows, 2, {})).toEqual({ next: { nextId: 'b', nextTime: 'same' }, probe: null });
+    });
+
+    it('probes ahead only when a full page ends at a source boundary', () => {
+        expect(matchPageBoundary(rows, 3, cursor)).toEqual({ next: {}, probe: cursor });
+        expect(matchPageBoundary(rows, 3, {})).toEqual({ next: {}, probe: null });
+    });
+
+    it('keeps collecting matches until the source is exhausted', () => {
+        expect(matchPageBoundary(rows, 4, cursor)).toBeNull();
+        expect(matchPageBoundary([], 4, cursor)).toBeNull();
+        expect(matchPageBoundary([], 4, {})).toEqual({ next: {}, probe: null });
+    });
+
+    it.each([
+        [[], [], true],
+        [['a', 'b'], ['a', 'b'], true],
+        [['a', 'b'], ['b', 'a'], false],
+        [['a', 'b'], ['a', 'a'], false],
+        [['a', 'b'], ['a'], false],
+        [['a'], ['a', 'b'], false]
+    ])('compares requested IDs %j with detail IDs %j', (ids, details, expected) => {
+        expect(sameRecordIds(ids, details.map(Id => ({ Id })))).toBe(expected);
+    });
 });
 
 it('reuses only matches after the same ID and timestamp within the cached range', () => {

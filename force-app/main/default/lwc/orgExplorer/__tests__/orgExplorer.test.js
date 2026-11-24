@@ -1498,3 +1498,32 @@ it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知�
         expect(log).not.toHaveBeenCalled();
     } finally { log.mockRestore(); }
 });
+
+it('ロールの続きが消えたときは不完全な組織図を表示しない', async () => {
+    rolePages.mockImplementation(({ request }) => Promise.resolve(request.cursor
+        ? { nodes: [], hasMore: false }
+        : { nodes: [rootTarget], hasMore: true, nextCursor: 'next-role' }));
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('続きのロールを取得できませんでした。');
+    expect(element.shadowRoot.querySelector('c-org-explorer-canvas')?.model?.rows ?? []).toHaveLength(0);
+});
+
+it('メンバーの続きが空でも前のページに戻れる', async () => {
+    rolePages.mockImplementation(({ request }) => Promise.resolve(request.scope === 'ROLE_STRUCTURE'
+        ? { nodes: [rootTarget], hasMore: false }
+        : { nodes: request.startIndex ? [] : [user], hasMore: !request.startIndex, paginationCursor: 'members', nextIndex: request.startIndex ? 51 : 50, memberTotalCount: 51 }));
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('nodeselect', { detail: { key: rootTarget.key } }));
+    await flush();
+    element.shadowRoot.querySelector('[data-direction="next"]').click();
+    await flush();
+    const details = element.shadowRoot.querySelector('c-org-explorer-details');
+    expect(details.shadowRoot.textContent).toContain('このページに表示できるメンバーはいません。');
+    element.shadowRoot.querySelector('[data-direction="previous"]').click();
+    await flush();
+    expect(details.rows).toHaveLength(1);
+});

@@ -1,10 +1,9 @@
 import TIME_ZONE from '@salesforce/i18n/timeZone';
-import LANG from '@salesforce/i18n/lang';
 
 // 一覧の取得件数、照合の区切り、表示行番号に共通のページサイズを使う。
 export const PAGE_SIZE = 1000;
 
-// 月別・全期間で同じ順に列を出力する。
+// 月別・6ヶ月間で同じ順に列を出力する。
 export const CSV_HEADER = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
 
 // 対象月と代理ログインの集計日に、実行ユーザーの暦と同じ年月日を使う。
@@ -43,6 +42,27 @@ const CSV_DATE_FORMAT = new Intl.DateTimeFormat('ja-JP', {
 export function pageCursor({ nextId, nextTime }) {
     // 同一日時の履歴を区別できるようIDと日時を組にする。
     return { nextId, nextTime };
+}
+
+// 一致行を取り込んだ後の一覧ページの境界を決める。まだ表示件数が足りなければ次の元ページを待つ。
+export function matchPageBoundary(records, placesLeft, sourceCursor) {
+    // このバッチ内に次の一致行があれば、最後に表示する行の直後から再開できる。
+    if (records.length > placesLeft) {
+        // 作成日時が同じ履歴をID順に区別する。
+        const last = records[placesLeft - 1];
+        return { next: { nextId: last.Id, nextTime: last.CreatedDate }, probe: null };
+    }
+    // 元データの終端なら、表示件数にかかわらず次ページはない。
+    if (!sourceCursor.nextId) return { next: {}, probe: null };
+    // ちょうど満杯なら表示を先に行い、その先に一致行があるかを調べる。
+    if (records.length === placesLeft) return { next: {}, probe: sourceCursor };
+    // 一致行が不足しているので、次の元ページからもこの表示ページに取り込む。
+    return null;
+}
+
+// 取得中の削除・重複・取り違えを表示前に検出するため、件数と各位置のIDを照合する。
+export function sameRecordIds(ids, records) {
+    return ids.length === records.length && ids.every((id, index) => id === records[index].Id);
 }
 
 // 開始境界が直近の照合範囲内なら、その直後に続く一致行を返す。
@@ -106,24 +126,6 @@ export function sortFilterOptions(groups) {
         field, [...groups[field]].sort((left, right) => left.localeCompare(right, 'ja'))
     ]));
 }
-
-// 日本語の標準CSVで確認した、組織のEntityDefinitionから取得できない標準オブジェクトの表示名。
-const PERMISSION_OBJECT_LABELS = new Map([
-    ['AiMetadataSyncStatus', 'AiMetadataSyncStatuses'],
-    ['ArchiveJobSession', 'アーカイブジョブセッション'],
-    ['AuthDomainStatusEvent', '認証ドメイン状況イベント'],
-    ['FlowAutosaveInterviewStatus', 'Flow Autosave Interview Statuses'],
-    ['GisPrvdCnctrJobDefinition', 'GIS プロバイダーコネクタジョブ定義'],
-    ['GisPrvdCnctrJobObjFilter', 'GIS プロバイダーコネクタジョブオブジェクト検索条件'],
-    ['GisPrvdCnctrJobObjFldMap', 'GIS プロバイダーコネクタジョブオブジェクト項目の対応付け'],
-    ['GisPrvdCnctrJobObject', 'GIS プロバイダーコネクタジョブオブジェクト'],
-    ['PrivacyBatchReservation', 'プライバシー一括予約'],
-    ['PrivacyJobSessionDefinition', 'プライバシージョブセッション定義'],
-    ['PrivacyProcessorOrchestrator', 'プライバシープロセッサーオーケストレーター'],
-    ['PrivacySessionQueue', 'プライバシーセッションキュー'],
-    ['RebatePayoutSnapshot', 'Rebate Payout Snapshots'],
-    ['WebCartDocument', 'Web Cart Documents']
-]);
 
 // 操作別の定型部分を取り除き、ログインとログアウトの対象表示名を比較する。
 const LOGIN_SUFFIX = ' のログインアクセスを使用してログイン済み';
@@ -200,21 +202,21 @@ export function loginAsActors(pairs) {
 // システムによる操作に対応する日本語ラベルを返す。
 function systemActorLabel(userType, username, confirmedEmployee) {
     // 日本語の自動化プロセスには標準CSVの種別名を出す。
-    if (LANG.startsWith('ja') && userType === 'AutomatedProcess') {
+    if (userType === 'AutomatedProcess') {
         // 自動化プロセスの内部ログイン名を表示名に変換する。
         return '自動化プロセス';
     }
     // ログイン名がない場合も、同じ作成者の従業員操作を確認できた場合だけ会社名を使う。
-    if (LANG.startsWith('ja') && !username && confirmedEmployee) {
+    if (!username && confirmedEmployee) {
         // 日本語の標準CSVでのSalesforce側の実行主体を表す。
         return '株式会社セールスフォース・ジャパン';
     }
     return undefined;
 }
 
-// 通常の表示名とログイン名の両方が空の日本語集計だけ、追加の照合を必要とする。
+// 通常の表示名とログイン名の両方が空の集計だけ、追加の照合を必要とする。
 export function needsChartEmployeeLabel(bucket) {
-    return LANG.startsWith('ja') && bucket.userId && !bucket.userName && !bucket.loginName && bucket.userType !== 'AutomatedProcess';
+    return bucket.userId && !bucket.userName && !bucket.loginName && bucket.userType !== 'AutomatedProcess';
 }
 
 // 通常ユーザーの氏名と集計キーを保ち、判定できた実行者に日本語の表示名を付ける。
@@ -236,26 +238,14 @@ function csvUser(row, employeeActorIds, actors) {
 }
 
 // 履歴の本人と代理ユーザーを独立して氏名に変換し、照合できない場合は元の表記を保持する。
-export function historyRow(row, employeeActorIds, actors, delegateNames) {
+export function historyRow(row, employeeActorIds, actors, delegateNames, localizedActions) {
     const actor = actors?.get(row.Id) ?? row;
     return {
         ...row,
         displayedUser: actor.CreatedBy?.Name || systemActorLabel(actor.CreatedBy?.UserType, actor.CreatedBy?.Username, employeeActorIds.has(actor.CreatedById)) || actor.CreatedBy?.Username,
         displayedDelegate: delegateNames?.[row.DelegateUser?.toLowerCase()] ?? row.DelegateUser,
-        displayedAction: displayAction(row)
+        displayedAction: localizedActions?.[row.Id] ?? row.Display
     };
-}
-
-// 権限セットのオブジェクト権限変更に限り、本文の対象オブジェクト名を整える。
-export function displayAction(row) {
-    // 他の操作や言語はAPIが返した本文を使用する。
-    if (row.Action !== 'PermSetEntityPermChanged' || !LANG.startsWith('ja')) {
-        // 通常の監査本文は原文を保持する。
-        return row.Display;
-    }
-    // 権限セット名や権限値に含まれる同じ文字列を置換しないよう、対象名の位置を限定する。
-    return row.Display?.replace(/^(権限セット .+ を変更: )([A-Za-z][A-Za-z0-9_]*)(?= オブジェクト権限を )/u,
-        (matched, prefix, objectName) => prefix + (PERMISSION_OBJECT_LABELS.get(objectName) ?? objectName));
 }
 
 // 履歴の文字を一つのCSVセルに収める。
@@ -265,7 +255,7 @@ function csvCell(value) {
 }
 
 // 両方の出力期間で同じ規則を使って明細ページを書き出す。
-export function formatCsvPage(records, employeeActorIds = new Set(), actors) {
+export function formatCsvPage(records, employeeActorIds = new Set(), actors, localizedActions) {
     // 同じ秒に続く履歴で日時の書式変換を共有する。
     let lastDate;
     // 直前の履歴に対応する日時文字列を保持する。
@@ -281,7 +271,7 @@ export function formatCsvPage(records, employeeActorIds = new Set(), actors) {
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
         return [formattedDate, csvUser(row, employeeActorIds, actors), row.ResponsibleNamespacePrefix,
-            displayAction(row), row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
+            localizedActions?.[row.Id] ?? row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }
 

@@ -493,3 +493,15 @@ describe('処理場所付きエラー表示', () => {
         await expect(element).toBeAccessible();
     });
 });
+
+it('件数取得後に末尾のメールが消えたら再読み込みを案内する', async () => {
+    const element = createComponent();
+    await emitCountAndPage(3, initialPage);
+    getEmailMessages.mockResolvedValueOnce({ ...emptyPage, paginationCursor, nextIndex: 51 });
+    element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
+    await flushPromises();
+    await flushPromises();
+    expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
+    expect(element.shadowRoot.querySelectorAll('ul.slds-timeline h3 a')).toHaveLength(2);
+    expect(element.shadowRoot.textContent).toContain('件数と一覧が一致していません。');
+});

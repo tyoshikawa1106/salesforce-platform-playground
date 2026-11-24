@@ -233,6 +233,12 @@ export default class CaseEmailMessageList extends LightningElement {
     }
 
     // 一覧が空の場合は、取得済みの総件数に応じて案内を切り替える
+    get showCountMismatch() {
+        // 最終ページまで取得したときだけ、標準カーソルの表示上限内で件数を照合する。
+        return this.hasLoaded && !this.isBusy && !this.hasNextPage &&
+            this.emailMessages.length !== Math.min(this.totalEmailMessageCount, 100000);
+    }
+
     get emptyListMessage() {
         // 件数と一覧の再取得が完了してから結果を表示
         if (!this.hasLoaded || this.isBusy) return '';

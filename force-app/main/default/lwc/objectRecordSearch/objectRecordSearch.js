@@ -457,6 +457,8 @@ export default class ObjectRecordSearch extends LightningElement {
 
     // 検索条件の有無に応じた空状態メッセージを返却
     get emptyMessage() {
+        // カーソル作成後の削除で途中ページだけが空になる場合を区別する。
+        if (this.pageNumber > 1) return 'このページに表示できるレコードはありません。前のページへ戻れます。';
         // 検索実行後は条件不一致であることを明示
         if (this.searchTerm) {
             // 検索条件に一致しない空状態文言を返却

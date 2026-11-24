@@ -53,6 +53,9 @@
                     </p>
                 </template>
 
+                <p lwc:if={showCountMismatch} class="slds-p-bottom_small slds-text-color_weak" role="status">
+                    件数と一覧が一致していません。「再読み込み」で最新のメールを確認してください。
+                </p>
                 <ul
                     class="slds-timeline"
                     aria-label="メールメッセージの活動履歴"

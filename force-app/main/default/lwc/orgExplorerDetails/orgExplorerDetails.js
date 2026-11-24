@@ -28,7 +28,7 @@ export default class OrgExplorerDetails extends LightningElement {
     // 空一覧と未選択を区別して案内する。
     get emptyMessage() {
         // 表示条件の対象を明示する。
-        return 'この条件で表示できるメンバーはいません。';
+        return this.rowNumberOffset > 0 ? 'このページに表示できるメンバーはいません。' : 'この条件で表示できるメンバーはいません。';
     }
     // 起点カードを選ぶ操作を案内する。
     get selectionMessage() {

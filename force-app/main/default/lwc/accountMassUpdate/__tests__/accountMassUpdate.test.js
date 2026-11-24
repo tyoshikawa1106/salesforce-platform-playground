@@ -458,3 +458,14 @@ describe('処理場所付きエラー表示', () => {
         await expect(element).toBeAccessible();
     });
 });
+
+it('途中ページが空ならそのページの案内と前へ戻る操作を表示する', async () => {
+    searchAccounts.mockResolvedValueOnce({ ...response, hasNext: true })
+        .mockResolvedValueOnce({ ...response, records: [], hasNext: false });
+    const element = await createComponent();
+    await search(element);
+    button(element, '次へ').click();
+    await flush();
+    expect(button(element, '前へ').disabled).toBe(false);
+    expect(element.shadowRoot.textContent).toContain('このページに表示できる法人取引先はありません。');
+});

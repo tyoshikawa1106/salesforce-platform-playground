@@ -15,7 +15,7 @@
                         <lightning-button label="CSV出力" title="対象月をCSV出力" data-monthly-export onclick={openMonthlyExport}></lightning-button>
                         <lightning-button-menu alternative-text="CSV出力メニュー" menu-alignment="right"
                             onselect={selectExportOption}>
-                            <lightning-menu-item value="all" label="CSV出力 (全期間)"></lightning-menu-item>
+                            <lightning-menu-item value="all" label="CSV出力 (6ヶ月間)"></lightning-menu-item>
                         </lightning-button-menu>
                     </lightning-button-group>
                 </div>
@@ -155,7 +155,12 @@
                                 <div role="alert" class="slds-text-color_error slds-m-vertical_small">{analysisError}</div>
                                 <lightning-button label="再試行" onclick={readAnalysis}></lightning-button>
                             </template>
-                            <lightning-spinner lwc:if={analysisLoading} size="small" alternative-text="月全体の分析を取得中"></lightning-spinner>
+                            <div lwc:if={analysisLoading} class="c-inline-status slds-p-vertical_small">
+                                <span class="c-inline-spinner" aria-hidden="true">
+                                    <lightning-spinner size="small" alternative-text="月全体の分析を取得中"></lightning-spinner>
+                                </span>
+                                <span role="status">{analysisProgressLabel}</span>
+                            </div>
                             <p lwc:if={analysis} class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
                                 月全体・<lightning-formatted-date-time value={analysis.cutoff} year="numeric" month="2-digit" day="2-digit"
                                     hour="2-digit" minute="2-digit" time-zone={timeZone}></lightning-formatted-date-time> 時点
