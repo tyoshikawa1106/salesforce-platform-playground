@@ -95,6 +95,70 @@
       "computedHash": "60c9458bf9dea72637f11131684a22ace88f48601b5cea4a9f97c207f1ebf883",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
+    "commerce-react-storefront-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/commerce-react-storefront-create/SKILL.md",
+      "computedHash": "74804d5c0e902e0a4fe5c3bb4ea4a2dbf99cd48527f989e605b08c6bf50d2639"
+    },
+    "consumer-goods-accruals-datakit-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-accruals-datakit-deploy/SKILL.md",
+      "computedHash": "ade82543ed88541927c57b6b0df698cc18a4ea4b5a6cb0daa489e57a7692c7d6"
+    },
+    "consumer-goods-promotion-bo-api-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-promotion-bo-api-deploy/SKILL.md",
+      "computedHash": "e1cfc348f142a4a8b8656101dac65473a70439c7615c5ffd38ede2bea50bd5ad"
+    },
+    "consumer-goods-rtr-datacloud-export-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-rtr-datacloud-export-configure/SKILL.md",
+      "computedHash": "d24dd9b4abecdf9d3c262d094b1bfcf67717c2367a25a752517c39a5adf3e8a7"
+    },
+    "consumer-goods-sync-management-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-sync-management-configure/SKILL.md",
+      "computedHash": "f54403da5a3bdd96759443de297fa2f0192bac6d8179ef02549e11e697a4ada6"
+    },
+    "consumer-goods-tpe-dashboard-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-tpe-dashboard-configure/SKILL.md",
+      "computedHash": "340ad3c8063741a824fcfc065c3db6266785f52c899272aeba244fdbe613ab32"
+    },
+    "consumer-goods-tpe-dashboard-custom-kpi-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-tpe-dashboard-custom-kpi-configure/SKILL.md",
+      "computedHash": "dab52c4376a322359842abfb78758c970e31583e4a515dd09bb5c8534d502cb1"
+    },
+    "consumer-goods-tpe-datakit-deploy": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/consumer-goods-tpe-datakit-deploy/SKILL.md",
+      "computedHash": "fadb26bf554c8e2b1e17218c0642a3a8217a42276a00cff7da134d7075ddb8b4"
+    },
     "data360-code-extension-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
