@@ -1,16 +1,6 @@
 @IsTest
 private class SetupAuditTrailExplorerControllerTest {
     @IsTest
-    static void excludesEmployeeEvidenceAfterCutoff() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            Test.startTest();
-            List<Id> actors = SetupAuditTrailExplorerController.loadEmployeeActorIds(Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0));
-            Test.stopTest();
-            Assert.isTrue(actors.isEmpty(), '基準時刻より後の操作を照合に使いません。');
-        }
-    }
-
-    @IsTest
     static void limitsSearchToEarlierOfCutoffAndPeriodEnd() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
@@ -25,22 +15,6 @@ private class SetupAuditTrailExplorerControllerTest {
         }
     }
 
-    /** 照合履歴の上限は未指定なら組織時刻で決まり、指定済みなら維持される。 */
-    @IsTest
-    static void fixesLoginAsHistoryCutoff() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            Datetime past = Datetime.newInstanceGMT(2000, 1, 1, 0, 0, 0);
-            Test.startTest();
-            Datetime beforeRequest = System.now();
-            SetupAuditTrailExplorerWrapper first = SetupAuditTrailExplorerController.loadLoginAsHistory(null, null, null);
-            SetupAuditTrailExplorerWrapper historical = SetupAuditTrailExplorerController.loadLoginAsHistory(past, null, null);
-            Test.stopTest();
-            Assert.isTrue(first.cutoff >= beforeRequest && first.cutoff <= System.now(), '初回の取得上限は組織時刻です。');
-            Assert.areEqual(past, historical.cutoff, '指定した上限で照合します。');
-            Assert.isTrue(historical.records.isEmpty(), '指定日時以降の行を含みません。');
-        }
-    }
-
     @IsTest
     static void exportsEmptyMonthAsCsv() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -49,9 +23,8 @@ private class SetupAuditTrailExplorerControllerTest {
             SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.load(
                 JSON.serialize(new Map<String, Object>{ 'monthStart' => Date.newInstance(2000, 1, 1), 'csv' => true })
             );
-            Assert.isNull(result.employeeActorIds, '空のCSVには作成者の照合が不要です。');
             Test.stopTest();
-            Assert.isTrue(result.cutoff >= beforeRequest && result.cutoff <= System.now(), '過去月の作成者照合にも出力開始時刻を使います。');
+            Assert.isTrue(result.cutoff >= beforeRequest && result.cutoff <= System.now(), '過去月の出力にも出力開始時刻を使います。');
             Assert.areEqual(0, result.records.size(), '保持期間外の月のCSV対象履歴はありません。');
             Assert.isNull(result.nextId, '0件なら続きのページはありません。');
         }
@@ -149,12 +122,11 @@ private class SetupAuditTrailExplorerControllerTest {
             Assert.isTrue(rejectsAfterSourceQuery('chart'), 'chart の元ページが0件なら取得を中止します。');
             Assert.isTrue(rejectsAfterSourceQuery('options'), 'options の元ページが0件なら取得を中止します。');
             Assert.isTrue(rejectsAfterSourceQuery('matchIndex'), 'matchIndex の元ページが0件なら取得を中止します。');
-            Assert.isTrue(rejectsAfterSourceQuery('actors'), 'actors の元ページが0件なら取得を中止します。');
             Test.stopTest();
         }
     }
 
-    // 保持期間外の境界を渡し、4経路とも元行の照会直後に取得を中断することを確認する。
+    // 保持期間外の境界を渡し、各経路とも元行の照会直後に取得を中断することを確認する。
     private static Boolean rejectsAfterSourceQuery(String route) {
         Datetime boundary = Datetime.newInstanceGMT(2000, 1, 2, 0, 0, 0);
         Map<String, Object> criteria = new Map<String, Object>{
@@ -162,9 +134,7 @@ private class SetupAuditTrailExplorerControllerTest {
         };
         Integer queries = Limits.getQueries();
         try {
-            if (route == 'actors') {
-                SetupAuditTrailExplorerController.loadLoginAsHistory(boundary, UserInfo.getUserId(), boundary);
-            } else if (route == 'options') {
+            if (route == 'options') {
                 SetupAuditTrailExplorerController.loadOptionsAt(JSON.serialize(criteria));
             } else {
                 criteria.put(route, true);
