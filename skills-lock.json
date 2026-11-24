@@ -211,6 +211,14 @@
       "computedHash": "c810baadd659b1dd423c8f4f35ca9a670cfc76e0c9bc3e89feca98b1c433508d",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
+    "experience-search-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/experience-search-coordinate/SKILL.md",
+      "computedHash": "4ff0499d8b5f7285df4b414085c4823a648a8aa53d045ee3500f7db2dbeb9586"
+    },
     "experience-ui-bundle-agentforce-client-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
@@ -406,6 +414,14 @@
       "skillPath": "skills/platform-agentexchange-partner-offers-configure/SKILL.md",
       "computedHash": "55657ff39db479ad3d77e7aaeec89c43cf4e9a9c9076155db9d60235c640542d",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
+    },
+    "platform-agenticsetup-categories-get": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/platform-agenticsetup-categories-get/SKILL.md",
+      "computedHash": "0d2310c825712bfa8dd22e1b1a5d35926506de2efba980becdcad7dafa72270f"
     },
     "platform-apex-generate": {
       "source": "forcedotcom/sf-skills",
