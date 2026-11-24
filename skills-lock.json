@@ -863,6 +863,22 @@
       "skillPath": "skills/field-service-work-rule-designer-configure/SKILL.md",
       "computedHash": "ae9b3db1c946a0a2a43524c1adbe1152a190334610aadadb13876304b3748d81"
     },
+    "industries-patient-card-generate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/industries-patient-card-generate/SKILL.md",
+      "computedHash": "1d7052aca3aab6d6f4e04d1d1c1e74596d0caffe1db97111758b4002d2e5affc"
+    },
+    "insurance-brokerage-agency-billing-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/insurance-brokerage-agency-billing-configure/SKILL.md",
+      "computedHash": "0295054218a9ecfad8c4e6605dc6579b5bd36167891b976322967ebf82f8b149"
+    },
     "integration-connectivity-connected-app-configure": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
@@ -890,6 +906,38 @@
       "skillPath": "skills/integration-eventing-subscription-configure/SKILL.md",
       "computedHash": "f3699f6fdd7614d1f2a77b094333950c22277d033cfd007c6761f83dad211644",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
+    },
+    "life-sciences-fieldsalesrep-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/life-sciences-fieldsalesrep-coordinate/SKILL.md",
+      "computedHash": "8e2e7b9dbec74e70ce8015a7cdec34f64f925b8f23d6773e1bad8689db078dfb"
+    },
+    "life-sciences-kam-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/life-sciences-kam-coordinate/SKILL.md",
+      "computedHash": "e62978e57132f460ed78671bf6f8ac2549ce3595fdd3433be3fda6a12268235a"
+    },
+    "life-sciences-prerequisites-validate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/life-sciences-prerequisites-validate/SKILL.md",
+      "computedHash": "4920525e31906b4b2458c090f876598c863f901d46bbfd80e17548309f65dc8e"
+    },
+    "life-sciences-territory-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/life-sciences-territory-configure/SKILL.md",
+      "computedHash": "0b9d29f3700680dd5499261eb4fff777e741e1e57ae40faa4e687c2007f63163"
     },
     "mobile-apps-create": {
       "source": "forcedotcom/sf-skills",
