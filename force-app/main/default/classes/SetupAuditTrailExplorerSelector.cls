@@ -3,6 +3,7 @@ public with sharing class SetupAuditTrailExplorerSelector {
     private static final String DETAIL_FIELDS = 'Id, CreatedDate, CreatedBy.Username, ResponsibleNamespacePrefix, Display, Section, DelegateUser';
     private static final String OPTION_FIELDS = 'Id, CreatedDate, Action, ResponsibleNamespacePrefix, DelegateUser';
     private static final String LOOKUP_FIELDS = OPTION_FIELDS + ', CreatedById, CreatedBy.Name, CreatedBy.Username';
+
     /** 検索条件とページ境界を保持する。 */
     public virtual class Criteria {
         public Id userId;
@@ -31,7 +32,7 @@ public with sharing class SetupAuditTrailExplorerSelector {
         return names;
     }
 
-    public enum Projection { DETAIL, CHART, OPTIONS, CSV, MATCH_INDEX }
+    public enum Projection { DETAIL, CHART, OPTIONS, MATCH_INDEX }
 
     /**
      * 条件に一致する履歴件数を取得する。
@@ -56,19 +57,6 @@ public with sharing class SetupAuditTrailExplorerSelector {
         Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
         // 画面で必要なページを一括取得
         return Database.queryWithBinds(pageQuery(criteria, fieldSet, binds), binds, AccessLevel.USER_MODE);
-    }
-
-    /**
-     * CSVの文字数上限に達した時点で読み取りを終了できる履歴の取得
-     * @param criteria 取得期間とページ境界
-     * @param sizeLimit 続きの有無を判定する1行を含む取得件数
-     * @return 作成日時・ID降順の履歴イテレータ
-     */
-    public static Iterator<SObject> iterateCsvRows(Criteria criteria, Integer sizeLimit) {
-        // 一覧と同じ期間・ページ条件を適用
-        Map<String, Object> binds = new Map<String, Object>{ 'endAt' => criteria.endAt, 'sizeLimit' => sizeLimit };
-        // 詳細行をページ全体のリストに展開せず順次読み取り
-        return Database.getQueryLocatorWithBinds(pageQuery(criteria, Projection.CSV, binds), binds, AccessLevel.USER_MODE).iterator();
     }
 
     private static String pageQuery(Criteria criteria, Projection fieldSet, Map<String, Object> binds) {

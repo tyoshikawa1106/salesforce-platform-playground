@@ -107,20 +107,26 @@ private class SetupAuditTrailExplorerServiceTest {
                 List<SetupAuditTrail>.class
             );
             SetupAuditTrail boundary = rows[1];
-            rows.add(new SetupAuditTrail());
-            Iterator<SObject> cursor = rows.iterator();
+            SetupAuditTrailExplorerService.CsvPage textPage = new SetupAuditTrailExplorerService.CsvPage(3);
+            textPage.textBudget = 4;
+            SetupAuditTrailExplorerService.CsvPage smallPage = new SetupAuditTrailExplorerService.CsvPage(3);
+            smallPage.textBudget = 1;
+            SetupAuditTrailExplorerService.CsvPage countPage = new SetupAuditTrailExplorerService.CsvPage(2);
 
             Test.startTest();
-            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.collectCsvPage(cursor, 3, 4);
-            SetupAuditTrailExplorerWrapper oversized = SetupAuditTrailExplorerService.collectCsvPage(rows.iterator(), 3, 1);
-            SetupAuditTrailExplorerWrapper counted = SetupAuditTrailExplorerService.summarizeCsv(rows.iterator(), 2);
+            Assert.isTrue(textPage.append(new List<SetupAuditTrail>{rows[0]}));
+            Assert.isFalse(textPage.append(new List<SetupAuditTrail>{rows[1], rows[2]}));
+            Assert.isFalse(smallPage.append(rows));
+            Assert.isFalse(countPage.append(rows));
             Test.stopTest();
 
+            SetupAuditTrailExplorerWrapper result = textPage.result;
+            SetupAuditTrailExplorerWrapper oversized = smallPage.result;
+            SetupAuditTrailExplorerWrapper counted = countPage.result;
             Assert.areEqual(1, oversized.records.size(), '先頭行だけで文字数を超えた場合も出力を進めます。');
             Assert.areEqual(rows[0].Id, oversized.nextId, '超過した先頭行の次から再開します。');
             Assert.areEqual(2, counted.records.size(), '文字数に余裕があっても件数上限で区切ります。');
             Assert.areEqual(boundary.Id, counted.nextId, '件数で区切った場合も次の行を失いません。');
-            Assert.isTrue(cursor.hasNext(), '文字数上限を超えた後の行は読み取りません。');
             Assert.areEqual(2, result.records.size(), '4文字に収まる2行までを返します。');
             Assert.areEqual(boundary.Id, result.nextId, '最後に出力した行のIDから再開します。');
             Assert.areEqual(boundary.CreatedDate, result.nextTime, '最後に出力した行の日時から再開します。');
@@ -130,8 +136,10 @@ private class SetupAuditTrailExplorerServiceTest {
     @IsTest
     static void permitsFullCsvPageWhenBelowBudget() {
         System.runAs(testUser) {
-            List<SObject> rows = new List<SObject>{new SetupAuditTrail(), new SetupAuditTrail()};
-            SetupAuditTrailExplorerWrapper page = SetupAuditTrailExplorerService.summarizeCsv(rows.iterator(), 2);
+            List<SetupAuditTrail> rows = new List<SetupAuditTrail>{new SetupAuditTrail(), new SetupAuditTrail()};
+            SetupAuditTrailExplorerService.CsvPage complete = new SetupAuditTrailExplorerService.CsvPage(2);
+            Assert.isTrue(complete.append(rows));
+            SetupAuditTrailExplorerWrapper page = complete.result;
             Assert.areEqual(2, page.records.size(), '件数上限ちょうどの全行を出力します。');
             Assert.isNull(page.nextTime, '続きがなければカーソルを返しません。');
         }

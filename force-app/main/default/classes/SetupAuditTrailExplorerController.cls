@@ -161,10 +161,21 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit, Datetime exportCutoff) {
-        // CSVは上限を超えた行の直前で読み取りを終了
-        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeCsv(
-            SetupAuditTrailExplorerSelector.iterateCsvRows(criteria, sizeLimit + 1), sizeLimit
-        );
+        SetupAuditTrailExplorerService.CsvPage page = new SetupAuditTrailExplorerService.CsvPage(sizeLimit);
+        // 一覧と同じ照会で原文を取得し、大きな本文を一括でヒープに載せない。
+        while (true) {
+            Integer batchSize = Math.min(200, sizeLimit - page.result.records.size() + 1);
+            List<SetupAuditTrail> batch = SetupAuditTrailExplorerSelector.selectPage(
+                criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, batchSize
+            );
+            if (!page.append(batch) || batch.size() < batchSize) {
+                break;
+            }
+            SetupAuditTrail last = batch[batch.size() - 1];
+            criteria.nextTime = last.CreatedDate;
+            criteria.nextId = last.Id;
+        }
+        SetupAuditTrailExplorerWrapper wrapper = page.result;
         wrapper.cutoff = exportCutoff;
         return wrapper;
     }
