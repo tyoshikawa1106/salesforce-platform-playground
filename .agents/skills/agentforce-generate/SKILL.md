@@ -1,22 +1,58 @@
 ---
 name: agentforce-generate
-description: "Build, modify, debug, and deploy agents with Agentforce Agent Script. TRIGGER when: user creates, modifies, or asks about .agent files or aiAuthoringBundle metadata; changes agent behavior, responses, or conversation logic; designs agent actions, tools, subagents, or flow control; writes or reviews an Agent Spec; previews, debugs, deploys, publishes, or tests agents; uses Agent Script CLI commands (sf agent generate/preview/publish/test). DO NOT TRIGGER when: Apex development, Flow building, Prompt Template authoring, Experience Cloud configuration, or general Salesforce CLI tasks unrelated to Agent Script."
-compatibility: "Requires Agentforce license, API v66.0+, Einstein Agent User"
+description: "Build, modify, audit, repair, optimize, debug, and deploy agents with Agentforce Agent Script. TRIGGER when: user creates, reviews, or changes .agent files or aiAuthoringBundle metadata; asks to fix AgentScript, audit an existing agent, run an AgentScript health check, common-pitfall review, or baseline-versus-candidate repair loop; changes a response, action, subagent, route, state flow, or Agent Spec; migrates or upgrades a legacy GenAiPlannerBundle Agentforce agent (NOT an Einstein Bot) to an aiAuthoringBundle (Agent Script) agent; previews, debugs, deploys, publishes, or tests agents; uses sf agent generate/preview/publish/test; or manages Agentforce MCP servers, tools, assets, or authentication. DO NOT TRIGGER when: Apex, Flow, Prompt Template, Experience Cloud, or general Salesforce CLI work is unrelated to Agent Script; the source is an Einstein Bot (BotDefinition/BotVersion) — use agentforce-bot-upgrade; or the primary input is a production session or trace ID rather than an agent artifact."
 metadata:
-  version: "1.0"
+  version: "0.11"
+  domains: ["Agentforce"]
+  minApiVersion: "66.0"
+  relatedSkills:
+    - "agentforce-bot-upgrade"
+    - "agentforce-observe"
+    - "agentforce-test"
+    - "automation-flow-generate"
+    - "integration-connectivity-generate"
+    - "platform-apex-generate"
+    - "platform-metadata-deploy"
+  cliTools:
+    - tool: ["corepack"]
+      semver: ">=0.25.0"
+    - tool: ["curl"]
+      semver: ">=7.0.0"
+    - tool: ["git"]
+      semver: ">=2.0.0"
+    - tool: ["jq"]
+      semver: ">=1.6.0"
+    - tool: ["node"]
+      semver: ">=20.0.0"
+    - tool: ["npm"]
+      semver: ">=9.0.0"
+    - tool: ["pnpm"]
+      semver: ">=8.0.0"
+    - tool: ["python3"]
+      semver: ">=3.10.0"
+    - tool: ["sf"]
+      semver: ">=2.139.6"
 ---
 
 # Agent Script Skill
 
 ## What This Skill Is For
 
-Agent Script is Salesforce's scripting language for authoring next-generation AI agents on the Atlas Reasoning Engine. Introduced in 2025 with zero training data in any AI model. Everything needed to write, modify, diagnose, or deploy Agent Script agents is in this skill's reference files.
+This skill is for developing Agentforce agents, primarily with Agent Script, Salesforce's scripting language for AI agents.
 
-**⚠️CRITICAL:** Agent Script is NOT AppleScript, JavaScript, Python, or any other
+Org-backed workflows require an Agentforce license, API v66.0 or later, and an
+Einstein Agent User. Static authoring and review can proceed without org access.
+
+**CRITICAL:** Agent Script is NOT AppleScript, JavaScript, Python, or any other
 language. Do NOT confuse Agent Script syntax or semantics with any other
 language you have been trained on.
 
-Agent Script agents are defined by `AiAuthoringBundle` metadata — a directory with a `.agent` file containing Agent Script source that describes actions, instructions, subagents, flow control, and configuration; and a `bundle-meta.xml` file containing bundle metadata. Agents process utterances by routing through subagents, each with instructions and actions backed by Apex, Flows, Prompt Templates, and other types of backing logic.
+Agent Script agents are defined by `AiAuthoringBundle` metadata: an
+`<ApiName>.agent` file (agent behavior) plus a sibling
+`<ApiName>.bundle-meta.xml` file (bundle metadata). The directory and both
+filenames must use the same case-sensitive API name; a literal
+`bundle-meta.xml` filename is not deployable. Actions can be implemented with
+invocable Apex, autolaunched Flows, Prompt Templates, and other supported types.
 
 This skill covers the full Agent Script lifecycle: designing agents,
 writing Agent Script code, validating and debugging, deploying and
@@ -24,9 +60,16 @@ publishing, and testing.
 
 ## How to Use This Skill
 
-This file maps user intent to task domains and relevant reference files in `references/`. Detailed knowledge includes syntax rules, design patterns, CLI commands, debugging workflows, and more.
+This file maps user intent to task domains and relevant reference files in `references/`. Treat this file as the execution router for end-to-end agent development, and use references for deep detail.
 
-Identify user intent from task descriptions. ALWAYS read indicated reference files BEFORE starting work.
+Identify user intent from task descriptions. Read only the reference explicitly
+required by the active step or needed for the current decision. Every
+**Reference Files** section is a lookup index, not a preload list; do not load
+files for later or inapplicable steps.
+
+For a comprehensive health check, common-pitfall audit, or audit-fix-evaluate
+loop over an existing agent, use the **Audit and Repair an Existing Agent**
+task domain below as part of the same authoring lifecycle.
 
 ## Rules That Always Apply
 
@@ -34,376 +77,327 @@ Identify user intent from task descriptions. ALWAYS read indicated reference fil
 
 2. **Verify target org.** Before any org interaction, run `sf config get target-org --json` to confirm a target org is set. If none configured, ask the user to set one with `sf config set target-org <alias>`.
 
-3. **Diagnose before you fix.** When validating/debugging agent behavior,
-   ALWAYS `--use-live-actions` to preview authoring bundles. Send utterances
-   then read resulting session traces to ground your understanding of the
-   agent's behavior. Trace files reveal subagent selection, action I/O, and
-   LLM reasoning. DO NOT modify `.agent` files or backing logic without
-   this grounding. See [Validation & Debugging](references/agent-validation-and-debugging.md)
-   for trace file locations and diagnostic patterns.
+3. **Diagnose in proportion to the change.** For syntax or local static defects,
+   run the supported local parser/compiler first, then add target-org validation
+   when available.
+   For behavioral defects, preserve a baseline and use preview plus traces.
+   For a Surface repair, freeze the exact accepted edit list, then inspect the
+   final diff and revert every other hunk, including block-scalar or metadata
+   normalization. In a smallest-change repair, keep optional cosmetic findings
+   advisory unless the user explicitly includes cleanup in scope; valid syntax
+   with no diagnostic or use-case consequence is not an extra repair.
+   Simulation can establish routing and action selection; use
+   `--use-live-actions` only with explicit approval, a verified non-production
+   environment, and safe test data. Do not claim an external effect from
+   simulation or response text. See
+   [Validation & Debugging](references/agent-validation-and-debugging.md).
 
-4. **Spec approval is a hard gate.** Never proceed past Agent Spec
-   creation without explicit user approval.
+4. **Use a proportionate spec gate.** Obtain explicit Agent Spec approval for
+   greenfield agents and Structural or Rewrite changes. A user-authorized,
+   well-specified local repair does not require recreating or reapproving the
+   entire spec; record the affected use case and preserve the existing design.
+   When the user supplies a sufficiently detailed design and explicitly says it
+   is already approved, treat that as the approved spec: do not recreate it or
+   stop for another approval unless requirements are missing or materially change.
+
+5. **Don't stall.** After a step completes successfully, announce the
+   next step and start it. Do not wait for the user to say "what's next"
+   or "ok, continue." Checkpoints that require explicit user approval include:
+   (a) Agent Spec approval when required by Rule 4, (b) the pre-Publish
+   CHECKPOINT, (c) destructive or consequential external operations, and (d)
+   any A/B branch the skill explicitly surfaces (e.g., Data Cloud not
+   provisioned during ADL setup). Long-running async work like ADL
+   indexing should run in the background while the skill continues with
+   work that doesn't depend on the result.
+
+6. **Draft-first lifecycle.** During normal authoring, stay in draft iteration:
+   edit `.agent` + action implementations, validate, deploy, and preview as many
+   times as needed. Do NOT publish/activate by default. Publish + activate are
+   explicit release actions that require the user to confirm they are ready to
+   commit the current draft to metadata and expose it to end users.
+
+7. **Start with one execution block and no mutable state.** A focused agent puts
+   reasoning and actions directly in `start_agent`. Add a subagent only for a
+   real objective, instruction, action, authority, or escalation boundary. Add
+   persistent state only for a named deterministic consumer and give it a
+   complete lifecycle. Ordinary continuity stays in surviving history. Apply
+   the concrete checks in [The Zen of AgentScript](references/zen-of-agentscript.md)
+   and [Posture & Determinism](references/posture-and-determinism.md).
+
+8. **Use supported control flow.** Use the canonical conditional forms and
+   never generate a nested `if`, which Agentforce lint rejects. See
+   [Conditional Control Flow Syntax](references/agent-script-core-language.md#conditional-control-flow-syntax),
+   then run full bundle validation.
+
+9. **Action implementation is a user decision.** During planning/spec work,
+   default new actions to `NEEDS STUB` placeholders. Always ask the user whether
+   they want to scan org/project for existing implementations and/or generate
+   new Apex/Flow/Prompt implementations before taking either path.
+
+10. **Give each reachable branch one next outcome.** Choose exactly one primary
+    outcome: answer, ask, invoke an action, transition, refuse, or escalate.
+    The compiler selects a subagent `system.instructions` override instead of
+    the global value, and the current runtime assembles effective system and
+    resolved reasoning text for the model. Keep authoring constructs out of
+    model-facing text. See
+    [Instruction Resolution](references/instruction-resolution.md).
+
+11. **Use portable structural indentation.** Generate new `.agent` files with
+    4 spaces per level. Preserve a consistently indented legacy file during a
+    surgical edit, or normalize the whole file as a separate validated change.
+
+12. **Do not let prompt formatting impersonate control flow.** Indentation,
+    numbered steps, and words such as `Show`, `Ask`, `Call`, `Set`, or `STOP`
+    inside `|` text are model instructions, not executable scope. Gate actions
+    independently. Use one `|` per contiguous prompt block; repeated adjacent
+    markers do not create stages or priority. Do not use
+    `@utils.setVariables` to force a turn boundary or another reasoning
+    iteration. Apply the checklist in
+    [Common Control-Flow Pitfalls](references/common-control-flow-pitfalls.md).
+
+13. **Choose who owns each decision.** Use runtime predicates when an exact
+    machine-known fact has a consequence that must remain stable. Use model
+    instructions when semantic intent, ambiguity, recovery, or
+    situation-aware judgment makes flexibility more valuable. A model cannot
+    read stored variable values unless prompt text injects them with
+    `{!@variables.X}`; interpolation reveals a value but does not make the
+    model's comparison deterministic. Apply the tradeoff test in
+    [Posture & Determinism](references/posture-and-determinism.md).
+
+14. **Compile AgentScript locally first, cheaply, and visibly.** For every
+    authoring, repair, or audit task with an existing `.agent` file, attempt the
+    bundled local index/compiler before org-side validation or a completion
+    report. Run
+    `node <skill-directory>/scripts/index-agent.mjs <agent-file>`. If the SDK
+    cannot load, follow
+    [AgentScript Compiler Setup](references/agentscript-toolchain.md), retry,
+    and use its bounded npm/source fallback. Fix every severity-1 diagnostic
+    and rerun until clean. Report the provider and exact version or commit.
+    Org access does not replace this cheap local pass. If both local setup paths
+    fail, continue with target-org validation or a bounded static review and
+    state **compiler not used** with the cause; do not stall the task or imply
+    that a suggested future command was validation. **Offline** or
+    **non-interactive** mode does not waive this step: it prohibits network and
+    org operations, not the bundled local compiler.
+
+15. **Keep the authoring-bundle shape deployable.** Under
+    `aiAuthoringBundles/<ApiName>/`, require exactly the matching pair
+    `<ApiName>.agent` and `<ApiName>.bundle-meta.xml`. Do not shorten the
+    metadata filename to `bundle-meta.xml`. Preserve scaffolded or retrieved
+    metadata rather than rewriting its schema. A new CLI-scaffolded bundle
+    normally uses `<bundleType>AGENT</bundleType>`; an existing descriptor can
+    instead use the established `fullName`/`type`/`status` shape, with optional
+    `label` and `description`. Do not create a partial hybrid or invent fields.
+    Local compilation of the `.agent` file does not verify the metadata
+    filename or XML, so check both before reporting validation success.
 
 ## Task Domains
 
-Every task domain below has **Required Steps**. Follow verbatim, in order. Do not substitute your own plan or skip steps.
+Choose the domain that matches the user's current objective. Read its named
+references before acting; the links are load instructions, not an optional
+bibliography. Follow only the applicable workflow and preserve any satisfied
+prerequisites. The normal lifecycle is design -> draft -> validate/preview ->
+explicitly approved release.
 
 ### Create an Agent
 
-User wants to build new agent from scratch. ALWAYS use Agent Script. Work with User to understand the agent's purpose, subagents, and actions using plain language without Salesforce-specific terminology.
+Use for a new agent or authoring bundle.
 
-#### Required Steps
-
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
-
-1. **Design** — Read [Design & Agent Spec](references/agent-design-and-spec-creation.md) to draft an Agent Spec. Always ask if you should scan for existing backing logic. Unless instructed otherwise, scan by reading `sfdx-project.json` to identify package directories, then search each for `@InvocableMethod` in `classes/`, `AutoLaunchedFlow` in `flows/`, and template metadata in `promptTemplates/`. Mark matches `EXISTS`; unmatched actions `NEEDS STUB`. Also scan `objects/` for `.object-meta.xml` to discover custom objects — related objects often contain data the agent should expose even when not mentioned in the prompt. **Always save Agent Spec as file.**
-2. **STOP for user approval of Agent Spec.** Present to user. Ask for approval or feedback. **Do not proceed** without approval. Once approved, proceed without stopping unless a step fails.
-3. **Validate environment prerequisites** — Read [Design & Agent Spec](references/agent-design-and-spec-creation.md), Section 3 (Environment Prerequisites). Based on agent type from design, validate org environment:
-   - **Employee agent**: Confirm config block does NOT include `default_agent_user`, `connection messaging:`, or MessagingSession linked variables. Remove if present. See [Examples](references/examples.md) for a complete employee agent example.
-   - **Service agent**: Query org for Einstein Agent User. If one exists, confirm username with user. If none, guide user through creation. See [CLI for Agents](references/salesforce-cli-for-agents.md), Section 12 for creation steps and [Agent User Setup](references/agent-user-setup.md) for required permissions.
-   **Do not proceed to code generation until environment is validated.**
-4. **Generate authoring bundle** —
-   `sf agent generate authoring-bundle --json --no-spec --name "<Label>" --api-name <Developer_Name>`
-5. **Write code** — Read [Core Language](references/agent-script-core-language.md) for syntax, block structure, and anti-patterns. Edit generated `.agent` file using reference files and templates. Do not create `.agent` or `bundle-meta.xml` files manually.
-6. **Validate compilation** —
-   `sf agent validate authoring-bundle --json --api-name <Developer_Name>`
-   If validation fails, read [Validation & Debugging](references/agent-validation-and-debugging.md) to diagnose and fix, then re-validate. ALWAYS fix syntax and structural errors before generating backing logic.
-7. **Generate backing logic** — For each action marked NEEDS STUB:
-   `sf template generate apex class --name <ClassName> --output-dir <PACKAGE_DIR>/main/default/classes`
-   Replace class body with invocable pattern from [Design & Agent Spec](references/agent-design-and-spec-creation.md). ALWAYS deploy:
-   `sf project deploy start --json --metadata ApexClass:<ClassName>`
-   ALWAYS fix deploy errors BEFORE generating and deploying next stub.
-8. **Validate behavior** — Read [Validation & Debugging](references/agent-validation-and-debugging.md) for preview workflow and session trace analysis.
-   `sf agent preview start --json --use-live-actions --authoring-bundle <Developer_Name>`
-   If actions query data, ground test utterances with:
-   `sf data query --json -q "SELECT <Relevant_Fields> FROM <SObject> LIMIT 100"`
-   Send test utterances with:
-   `sf agent preview send --json --authoring-bundle <Developer_Name> --session-id <ID> -u "<message>"`
-   Confirm subagent routing, gating, and action invocations match Agent Spec. If behavior diverges, switch to **Diagnose Behavioral Issues** workflow. Return AFTER correcting issues.
-   **CHECKPOINT — Do NOT proceed to Publish unless ALL are true:**
-   - `validate authoring-bundle` passes with zero errors
-   - Live preview (`--use-live-actions`) tested with representative utterances per subagent
-   - Traces confirm correct subagent routing and action invocation
-   - User explicitly approves deployment
-9. **Publish** — Publish validates metadata structure, not agent behavior. Every publish creates permanent version number.
-   `sf agent publish authoring-bundle --json --api-name <Developer_Name>`
-   If publish fails, follow troubleshooting checklist in [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md), Section 5 before retrying.
-10. **Activate** — Makes new version available to users.
-    `sf agent activate --json --api-name <Developer_Name>`
-11. **Verify published agent** — Preview user-facing behavior AFTER activation with
-    `sf agent preview start --json --api-name <Developer_Name>`
-    Use `--api-name`, not `--authoring-bundle`.
-12. **Configure end-user access** — ONLY for employee agents. Read [Agent Access Guide](references/agent-access-guide.md) to configure perms and assign access.
-
-#### Reference Files
-
-1. [CLI for Agents](references/salesforce-cli-for-agents.md) — exact
-   command syntax for generate, validate, deploy, publish, activate;
-   Section 12 for Einstein Agent User creation
-2. [Core Language](references/agent-script-core-language.md) — execution
-   model, syntax, block structure, anti-patterns
-3. [Design & Agent Spec](references/agent-design-and-spec-creation.md) —
-   subagent graph design, flow control patterns, Agent Spec production,
-   backing logic analysis; Section 3 for environment prerequisites
-4. [Subagent Map Diagrams](references/agent-subagent-map-diagrams.md) —
-   Mermaid diagram conventions for visualizing the agent's subagent graph
-5. [Agent User Setup & Permissions](references/agent-user-setup.md) —
-   permission set assignment, object permissions, cross-subagent validation
-6. [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) —
-   directory structure, bundle metadata; publish troubleshooting
-7. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   validate the agent compiles, preview to confirm behavior
-8. [Agent Access Guide](references/agent-access-guide.md) — end-user
-   access permissions, visibility troubleshooting
-9. [Known Issues](references/known-issues.md) — only load when errors
-   persist after code fixes
-10. [Architecture Patterns](references/architecture-patterns.md) — hub-and-spoke, verification gate, post-action loop
-11. [Complex Data Types](references/complex-data-types.md) — type mapping decision tree
-12. [Safety Review](references/safety-review-reference.md) — 7-category safety review
-13. [Discover Reference](references/discover-reference.md) — target discovery CLI
-14. [Scaffold Reference](references/scaffold-reference.md) — stub generation CLI
-15. [Deploy Reference](references/deploy-reference.md) — deployment lifecycle, error recovery
+1. Read [Design & Agent Spec](references/agent-design-and-spec-creation.md),
+   then use an already-approved, sufficiently detailed supplied design as the
+   build contract without regenerating or reapproving it. Otherwise capture the
+   requirements in a saved Agent Spec and obtain explicit approval. Keep new
+   action implementations as `NEEDS STUB` until the user chooses whether to
+   reuse implementations, generate them, or leave placeholders.
+2. Read the applicable sections of [CLI for Agents](references/salesforce-cli-for-agents.md)
+   and validate the target-org prerequisites before org work. For document
+   grounding, read [Data Library](references/data-library-reference.md). For a
+   voice agent, read [Voice Modality](references/voice-modality-reference.md)
+   and [Voice Latency](references/voice-latency-heuristics.md).
+3. Generate the authoring bundle with Salesforce CLI. Edit the scaffolded
+   `<ApiName>.agent` and preserve the matching `<ApiName>.bundle-meta.xml`.
+   Read [Core Language](references/agent-script-core-language.md),
+   [Instruction Resolution](references/instruction-resolution.md), and the
+   applicable templates before writing.
+4. Run the local compiler required by Rule 14. When an authenticated target org
+   is available, also validate the authoring bundle in the org. Fix blocking
+   diagnostics before implementing or deploying action dependencies.
+5. Generate action implementations only when the user selected that path.
+   Validate and deploy one dependency at a time.
+6. Preview the draft and inspect traces using
+   [Validation & Debugging](references/agent-validation-and-debugging.md).
+   Cover realistic happy, adjacent, recovery, and cancellation paths.
+7. Stay in the draft loop. Publish and activate only after the release gates in
+   **Deploy, Publish, and Activate** pass and the user explicitly approves.
 
 ### Comprehend an Existing Agent
 
-User wants to understand Agent Script agent they didn't write or need to revisit. May point to `AiAuthoringBundle` directory or ask "what does this agent do?" or "I need to fix this agent but I don't understand how it works.".
+Use when the user wants to understand an existing bundle.
 
-#### Required Steps
+1. Locate the package and matching authoring-bundle files.
+2. Read [Core Language](references/agent-script-core-language.md), then map the
+   subagent graph, deterministic blocks, model instructions, actions, variables,
+   and action implementations.
+3. Read [Design & Agent Spec](references/agent-design-and-spec-creation.md) and
+   reverse-engineer a saved Agent Spec. Use
+   [Subagent Map Diagrams](references/agent-subagent-map-diagrams.md) for the
+   graph. Annotate source only when the user requests it.
+4. Flag supported anti-patterns, distinguishing observed behavior from static
+   inference. Load [Known Issues](references/known-issues.md) only for an
+   otherwise unexplained workaround.
 
-1. **Locate agent** — Read `sfdx-project.json` to identify package directories. Find `AiAuthoringBundle` directory within them. Read `.agent` file and `bundle-meta.xml`.
-2. **Read code** — Read [Core Language](references/agent-script-core-language.md) for syntax and execution model BEFORE parsing `.agent` file.
-3. **Map backing logic** — For each action with `target`, locate backing implementation (Apex class, Flow, Prompt Template) in project. Note input/output contracts.
-4. **Reverse-engineer Agent Spec** — Read [Design & Agent Spec](references/agent-design-and-spec-creation.md) for Agent Spec structure. Produce Agent Spec from code and save as file.
-5. **Produce Subagent Map diagram** — Read [Subagent Map Diagrams](references/agent-subagent-map-diagrams.md) for Mermaid conventions. Generate flowchart of subagent graph showing transitions, gates, and action associations.
-6. **Annotate source** — Ask if user wants Agent Script source annotated with explanations. If requested, add inline comments to `.agent` file explaining flow control decisions, gating rationale, and subagent relationships.
-7. **Present to user** — Share Agent Spec, Subagent Map, and annotated source if produced. Check Anti-Patterns section in Core Language reference and flag any matches found in code.
+### Audit and Repair an Existing Agent
 
-#### Reference Files
+Use for “fix my AgentScript,” health checks, common-pitfall reviews, and
+baseline-versus-candidate repair loops.
 
-1. [Core Language](references/agent-script-core-language.md) — syntax,
-   execution model, anti-patterns
-2. [Design & Agent Spec](references/agent-design-and-spec-creation.md) —
-   Agent Spec structure, flow control pattern recognition
-3. [Subagent Map Diagrams](references/agent-subagent-map-diagrams.md) —
-   Mermaid conventions for subagent graph visualization
-4. [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) —
-   directory conventions, bundle metadata
-5. [Known Issues](references/known-issues.md) — only load when code
-   contains unexplained workaround patterns
+1. Read [Audit and Repair](references/agent-audit-and-repair.md), then follow its
+   linked scope/path-review and repair/report workflow in order.
+2. Use the [Diagnostic Catalog](references/agent-audit-diagnostic-catalog.md)
+   and its focused diagnostic references only for categories present in the
+   artifact. Use [Common Control-Flow Pitfalls](references/common-control-flow-pitfalls.md)
+   and its focused references for suspected prompt/control-flow defects.
+3. Freeze accepted Surface edits before changing the artifact. For Structural
+   or Rewrite work, obtain the approval required by Rule 4.
+4. Compile locally, compare the unchanged baseline and candidate against the
+   same use cases, and follow
+   [Audit Evaluation Loop](references/agent-audit-evaluation-loop.md).
+5. Report Surface, Structural, and Rewrite assessments separately. Stay
+   draft-only unless the user separately requests a release operation.
+
+#### Audit Reference Files
+
+- [Audit Scope and Path Review](references/agent-audit-scope-path-review.md)
+- [Audit Repair and Report](references/agent-audit-repair-report.md)
+- [Audit Candidate Verification](references/agent-audit-candidate-verification.md)
+- [Instruction and Routing Diagnostics](references/agent-audit-diagnostics-instructions-routing.md)
+- [Action and State Diagnostics](references/agent-audit-diagnostics-actions-state.md)
+- [Architecture and Evaluation Diagnostics](references/agent-audit-diagnostics-architecture-evaluation.md)
+- [Action and Sequencing Pitfalls](references/control-flow-actions-sequencing.md)
+- [Lifecycle and Side-Effect Pitfalls](references/control-flow-lifecycle-side-effects.md)
+- [AgentScript Compiler Setup](references/agentscript-toolchain.md)
 
 ### Modify an Existing Agent
 
-User wants to add, remove, or change subagents, actions, instructions, or flow control on existing agent. May describe change in plain language ("add a billing subagent") or reference specific Agent Script constructs.
+Use for an approved change to an existing response, route, action, subagent,
+state flow, grounding source, or modality.
 
-#### Required Steps
-
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
-
-1. **Comprehend** — If no Agent Spec exists, reverse-engineer first by following "Comprehend an Existing Agent" workflow above.
-2. **Update Agent Spec** — Read [Design & Agent Spec](references/agent-design-and-spec-creation.md) for flow control patterns and backing logic analysis. Modify Agent Spec to reflect intended changes. For new actions, always ask if you should scan for existing backing logic. Unless instructed otherwise, scan by reading `sfdx-project.json` to identify package directories, then search each for `@InvocableMethod` in `classes/`, `AutoLaunchedFlow` in `flows/`, and template metadata in `promptTemplates/`. Mark matches `EXISTS`; unmatched actions `NEEDS STUB`. **Always save updated Agent Spec as file.**
-3. **STOP for user approval of updated Agent Spec.** Present to user. Ask for approval or feedback. **Do not proceed** without approval. Once approved, proceed without stopping unless a step fails.
-4. **Edit code** — Read [Core Language](references/agent-script-core-language.md) for syntax and anti-patterns. Edit `.agent` file to implement approved changes.
-5. **Validate compilation** —
-   `sf agent validate authoring-bundle --json --api-name <Developer_Name>`
-   If validation fails, read [Validation & Debugging](references/agent-validation-and-debugging.md) to diagnose and fix, then re-validate.
-6. **Generate new backing logic** — For each new action marked NEEDS STUB:
-   `sf template generate apex class --name <ClassName> --output-dir <PACKAGE_DIR>/main/default/classes`
-   Replace class body with invocable pattern from [Design & Agent Spec](references/agent-design-and-spec-creation.md). ALWAYS deploy:
-   `sf project deploy start --json --metadata ApexClass:<ClassName>`
-   ALWAYS fix deploy errors BEFORE generating and deploying next stub. Skip if no new actions added.
-7. **Validate behavior** — Read [Validation & Debugging](references/agent-validation-and-debugging.md) for preview workflow and session trace analysis.
-   `sf agent preview start --json --use-live-actions --authoring-bundle <Developer_Name>`
-   If actions query data, ground test utterances with:
-   `sf data query --json -q "SELECT <Relevant_Fields> FROM <SObject> LIMIT 100"`
-   Send test utterances with:
-   `sf agent preview send --json --authoring-bundle <Developer_Name> --session-id <ID> -u "<message>"`
-   Test changed paths first, then adjacent paths to catch regressions in existing behavior.
-   **CHECKPOINT — Do NOT proceed to Publish unless ALL are true:**
-   - `validate authoring-bundle` passes with zero errors
-   - Live preview (`--use-live-actions`) tested with representative utterances per subagent
-   - Traces confirm correct subagent routing and action invocation
-   - User explicitly approves deployment
-8. **Publish** — Publish validates metadata structure, not agent behavior. Every publish creates permanent version number.
-   `sf agent publish authoring-bundle --json --api-name <Developer_Name>`
-   If publish fails, follow troubleshooting checklist in [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md), Section 5 before retrying.
-9. **Activate** — Makes new version available to users.
-   `sf agent activate --json --api-name <Developer_Name>`
-10. **Verify published agent** — Preview user-facing behavior AFTER activation with
-    `sf agent preview start --json --api-name <Developer_Name>`
-    Use `--api-name`, not `--authoring-bundle`.
-
-#### Reference Files
-
-1. [CLI for Agents](references/salesforce-cli-for-agents.md) — exact
-   command syntax for validate, deploy, preview, publish, activate
-2. [Core Language](references/agent-script-core-language.md) — syntax,
-   anti-patterns
-3. [Design & Agent Spec](references/agent-design-and-spec-creation.md) —
-   Agent Spec updates, backing logic analysis
-4. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   compilation diagnosis, preview workflow, session trace analysis
-5. [Known Issues](references/known-issues.md) — only load when errors
-   persist after code fixes
+1. Comprehend the affected paths first. For a material design change, update the
+   Agent Spec and obtain approval; for a narrow specified repair, record the
+   affected use case without forcing a full spec rewrite.
+2. Read [Core Language](references/agent-script-core-language.md) and only the
+   feature references needed for the change. Preserve unrelated metadata,
+   contracts, formatting, and behavior.
+3. Edit the existing bundle in place. Generate action implementations only when
+   explicitly requested.
+4. Compile locally and, when available, validate against the target org. Preview
+   every changed and adjacent path and inspect traces. Iterate in draft.
+5. Use the release workflow only if the user separately requests release.
 
 ### Diagnose Compilation Errors
 
-User has Agent Script that won't compile. Errors surface from `sf agent validate` or `sf agent preview start`, or User describes symptoms like "I'm getting a validation error."
+1. Capture the exact reported errors and run the Rule 14 local compiler.
+2. When an authenticated target org is available, run org validation; use live
+   preview only when compilation succeeds but runtime preparation still fails.
+3. Classify and repair each concrete error using
+   [Validation & Debugging](references/agent-validation-and-debugging.md) and
+   [Core Language](references/agent-script-core-language.md).
+4. Rerun the surfaces that exposed the error. Report exact executed checks,
+   remaining limitations, and no unexecuted command as validation evidence.
 
-#### Required Steps
+### Diagnose Behavioral or Production Issues
 
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
+For a local behavioral problem, preserve a baseline, preview with realistic
+utterances, and inspect traces using
+[Validation & Debugging](references/agent-validation-and-debugging.md). Confirm
+which subagent, action calls, action results, state changes, and final response
+actually occurred before editing.
 
-1. **Reproduce error** — Run
-   `sf agent validate authoring-bundle --json --api-name <Developer_Name>`
-   to capture basic compile errors. If no errors, run
-   `sf agent preview start --json --use-live-actions --authoring-bundle <Developer_Name>`
-   to capture complex compile errors. If user provides specific error output, ALWAYS reproduce to confirm.
-2. **Classify error** — Read [Validation & Debugging](references/agent-validation-and-debugging.md) for error taxonomy. Map each error message to root cause category.
-3. **Locate fault** — Read [Core Language](references/agent-script-core-language.md) to understand correct syntax. Find specific line(s) in `.agent` file that cause each error.
-4. **Fix code** — Apply targeted fixes. Check Anti-Patterns section in Core Language reference to ensure you're not introducing known bad pattern.
-5. **Re-validate** — Run
-   `sf agent validate authoring-bundle --json --api-name <Developer_Name>`
-   then run
-   `sf agent preview start --json --use-live-actions --authoring-bundle <Developer_Name>`
-   Repeat steps 2–5 if errors persist.
-6. **Explain fix** — Tell user what was wrong and what you changed. Explain root cause in terms of *Core Language* agent execution model.
-
-#### Reference Files
-
-1. [Core Language](references/agent-script-core-language.md) — syntax,
-   block structure, anti-patterns
-2. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   error taxonomy, error-to-root-cause mapping
-3. [Known Issues](references/known-issues.md) — only load when error
-   doesn't match user code; may be a platform bug
-4. [Production Gotchas](references/production-gotchas.md) — only load
-   when error involves reserved keywords or lifecycle hook syntax
-
-### Diagnose Behavioral Issues
-
-Agent compiles, preview can start and `--use-live-actions`, but agent does not behave as expected. User describes symptoms like "the agent keeps going to the wrong subagent" or "the action isn't being called." Fundamentally different from `validate` or `preview start` errors — code is valid but behavior is wrong.
-
-#### Required Steps
-
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
-
-1. **Establish baseline** — Read Agent Spec. If no Agent Spec exists, follow *Comprehend an Existing Agent* workflow to reverse-engineer one, then continue.
-2. **Form hypotheses** — Read [Core Language](references/agent-script-core-language.md) for execution model. Based on user's description, list candidate root causes. Think through: subagent routing, gating conditions, action availability, instruction clarity, variable state, and transition timing.
-3. **Reproduce in preview** — Read [Validation & Debugging](references/agent-validation-and-debugging.md) for preview workflow and session trace analysis. Start preview session:
-   `sf agent preview start --json --use-live-actions --authoring-bundle <Developer_Name>`
-   then send test messages covering EACH subagent with `sf agent preview send`. One message is not enough — confirm behavior per subagent before proceeding.
-4. **Analyze session traces** — Examine trace output to confirm subagent selection, action availability/execution, LLM reasoning, and where behavior diverges from Agent Spec. Do NOT skip this step — preview output alone is insufficient for diagnosis.
-5. **Identify root cause** — Match trace evidence to hypotheses. Consult *Core Language reference and Gating Patterns* in [Design & Agent Spec](references/agent-design-and-spec-creation.md) reference to confirm absence of anti-patterns.
-6. **Fix code** — Apply targeted fix. If fix involves flow control changes, update Agent Spec to match.
-7. **Re-validate and re-preview** — Repeat steps 3–6 until behavior matches Agent Spec or you confirm a platform limitation. Run `validate authoring-bundle`, then `preview start --use-live-actions` to verify fix using same utterances. Then test adjacent paths that might be affected by your changes.
-8. **Explain fix** — Tell user what was wrong and what you changed. Explain root cause in terms of *Core Language* agent execution model.
-
-#### Reference Files
-
-1. [Core Language](references/agent-script-core-language.md) — execution
-   model, anti-patterns
-2. [Design & Agent Spec](references/agent-design-and-spec-creation.md) —
-   Agent Spec as behavioral baseline, gating patterns
-3. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   preview workflow, session trace analysis
-4. [Known Issues](references/known-issues.md) — only load when behavior
-   is wrong but code logic is correct
+For a production session or trace ID, use **agentforce-observe** for retrieval
+and reconstruction. Return here only when evidence identifies an AgentScript
+change. Never invent unavailable action inputs, outputs, or model reasoning.
 
 ### Deploy, Publish, and Activate
 
-User wants to take working agent from local development to running state in Salesforce org. Involves deploying `AiAuthoringBundle` and its dependencies, publishing to commit version, then activating to make it live.
-
-#### Required Steps
-
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
-
-1. **Validate compilation** —
-   `sf agent validate authoring-bundle --json --api-name <Developer_Name>`
-   Do not proceed if validation fails.
-2. **Deploy bundle and dependencies** — Read [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) for dependency management and deploy commands. Deploy `AiAuthoringBundle` and all backing logic (Apex classes, Flows, Prompt Templates) and dependencies to org.
-3. **Live preview** — Read [Validation & Debugging](references/agent-validation-and-debugging.md) for preview workflow and session trace analysis.
-   `sf agent preview start --json --use-live-actions --authoring-bundle <Developer_Name>`
-   then send test utterances with:
-   `sf agent preview send --json --authoring-bundle <Developer_Name> --session-id <ID> -u "<message>"`
-   Test key conversation paths to validate agent behavior when backed by live actions.
-   **CHECKPOINT — Do NOT proceed to Publish unless ALL are true:**
-   - `validate authoring-bundle` passes with zero errors
-   - Live preview (`--use-live-actions`) tested with representative utterances per subagent
-   - Traces confirm correct subagent routing and action invocation
-   - User explicitly approves deployment
-4. **Publish** — Publish validates metadata structure, not agent behavior. DO NOT publish as part of a dev/test inner loop. ONLY publish as the FINAL step prior to activating the agent and surfacing it to end users.
-   `sf agent publish authoring-bundle --json --api-name <Developer_Name>`
-   If publish fails, follow *Troubleshooting Publish Failures* in [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) before retrying.
-5. **Activate** — Makes new version available to users.
-   `sf agent activate --json --api-name <Developer_Name>`
-6. **Verify published agent** — Preview user-facing behavior AFTER activation with
-    `sf agent preview start --json --api-name <Developer_Name>`
-    Use `--api-name`, not `--authoring-bundle`.
-7. **Configure end-user access** — ONLY for employee agents. Read [Agent Access Guide](references/agent-access-guide.md) to configure perms and assign access.
-
-#### Reference Files
-
-1. [CLI for Agents](references/salesforce-cli-for-agents.md) — exact
-   command syntax for deploy, publish, activate, deactivate
-2. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   compilation validation, preview workflow
-3. [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) —
-   dependency management, deploy commands; publish troubleshooting
-4. [Agent Access Guide](references/agent-access-guide.md) — end-user
-   access permissions, visibility troubleshooting
-5. [Known Issues](references/known-issues.md) — only load when deploy
-   hangs, publish fails, or activate fails unexpectedly
-
-### Diagnose Production Issues
-
-User's agent is published and active but experiencing issues not caught during preview. Includes credit overconsumption, token or size limit failures, loop guardrail interruptions, reserved keyword runtime errors, VS Code sync failures, or unexpected behavioral differences between preview and production.
-
-#### Required Steps
-
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
-
-1. **Classify issue** — Determine whether this is billing/cost concern, runtime limit, naming conflict, tooling issue, or behavioral difference between preview and production.
-2. **Check known production gotchas** — Read [Production Gotchas](references/production-gotchas.md) for credit consumption, token limits, loop guardrails, reserved keywords, lifecycle hooks, and VS Code workarounds.
-3. **Compare preview vs production behavior** — If issue is behavioral, preview published agent with
-   `sf agent preview start --json --api-name <Developer_Name>`
-   (not `--authoring-bundle`). Compare against live-actions authoring bundle preview `--authoring-bundle <Developer_Name> --use-live-actions` to isolate preview-vs-production differences.
-4. **Check known issues** — Read [Known Issues](references/known-issues.md) for platform bugs that may explain production-only failures.
-5. **Fix and republish** — Apply fixes, validate, re-preview, publish, activate, verify. Follow Deploy, Publish, and Activate steps.
-6. **Explain diagnosis** — Tell user what was happening and what you changed. Explain root cause.
-
-#### Reference Files
-
-1. [Production Gotchas](references/production-gotchas.md) — credit
-   consumption, token limits, loop guardrails, reserved keywords,
-   lifecycle hooks, VS Code workarounds
-2. [CLI for Agents](references/salesforce-cli-for-agents.md) — command
-   syntax for preview, publish, activate
-3. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   preview workflow, session trace analysis
-4. [Known Issues](references/known-issues.md) — only load when issue may
-   be a platform bug
+1. Read [CLI for Agents](references/salesforce-cli-for-agents.md),
+   [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md), and
+   [Deploy](references/deploy-reference.md).
+2. Compile locally and validate against the target org. Deploy the bundle and
+   dependencies, then run live preview with realistic coverage and inspect
+   traces. Do not proceed through a blocking result.
+3. Present the exact target org and version state. Obtain explicit user approval
+   before publishing or activating.
+4. Publish, activate, and verify the user-facing agent only after approval.
+5. **Voice agents — wiring a telephony channel is a separate, opt-in step; never
+   auto-wire it.** Attaching a phone number creates real routing infrastructure
+   (flows, a queue, an active `MessagingChannel`) and consumes a provisioned
+   number, so do it only when the user **explicitly asks** and has supplied a
+   **provisioned phone number** (confirm it exists — do not assume or invent
+   one). If either is missing, stop and say what's needed. When both hold, attach
+   it headless via the CLI — do not send the user to Agent Builder. Follow
+   [Headless Telephony CLI](references/voice-telephony-cli.md).
 
 ### Delete or Rename an Agent
 
-User wants to remove agent or change its name. Maintenance tasks complicated by `AiAuthoringBundle` versioning and published version dependencies.
-
-#### Required Steps
-
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
-
-1. **Understand current state** — Read [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) for versioning, delete mechanics, and rename mechanics. Identify whether agent has been published, how many versions exist, and whether it's currently active.
-2. **Deactivate if active** —
-   `sf agent deactivate --json --api-name <Developer_Name>`
-   Active agent cannot be deleted or renamed.
-3. **Execute operation** — For delete: follow delete mechanics in Metadata & Lifecycle reference. For rename: follow rename mechanics in same reference.
-4. **Clean up orphans** — Check for and remove orphaned metadata: Bot, BotVersion, GenAiPlannerBundle, GenAiPlugin, GenAiFunction. Metadata & Lifecycle reference details what to look for.
-5. **Validate** — Confirm operation completed cleanly. For rename, validate new bundle compiles and preview to confirm behavior.
-
-#### Reference Files
-
-1. [CLI for Agents](references/salesforce-cli-for-agents.md) — exact
-   command syntax for delete, deactivate, retrieve
-2. [Validation & Debugging](references/agent-validation-and-debugging.md) —
-   compilation validation, preview workflow
-3. [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md) —
-   delete mechanics, rename mechanics, orphan cleanup
+Read the delete/rename sections of [CLI for Agents](references/salesforce-cli-for-agents.md)
+and [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md). Enumerate
+references and dependencies, show the exact affected bundle, and obtain explicit
+confirmation before deletion. For rename, create and validate the replacement
+before deleting the original; verify orphaned metadata afterward.
 
 ### Test an Agent
 
-User wants to create automated tests for Agent Script agent. Involves writing `AiEvaluationDefinition` test specs in YAML format that define test scenarios, expected behaviors, and quality metrics.
+Use **agentforce-test** for test-spec design, security coverage, metadata
+creation, execution, and result analysis. First map the Agent Spec and all
+reachable routes/actions into coverage targets. Confirm before adding security
+tests or running tests that can invoke live actions.
+
+### Migrate a Legacy Agent to Agent Script
+
+User wants to upgrade a legacy `GenAiPlannerBundle` agent into an NGA `AiAuthoringBundle` (Agent Script) agent. May say "migrate my legacy agent", "upgrade to the new builder", "convert agent", "start migration", or mention `genAiPlannerBundle` / `aiAuthoringBundle` migration. (Distinct from Einstein **Bot** upgrades — this covers existing Agentforce **agents**. To convert an Einstein **Bot** into a new agent, use the **agentforce-bot-upgrade** skill instead.)
 
 #### Required Steps
 
-Read [CLI for Agents](references/salesforce-cli-for-agents.md) for exact command syntax.
+Read [Upgrade a Legacy Agent to Agent Script](references/upgrade-legacy-agent-to-agentscript.md) for the full workflow, exact commands, and the NGA-vs-legacy discriminator. In brief:
 
-1. **Establish coverage baseline** — Read Agent Spec. If no Agent Spec exists, reverse-engineer first by following Comprehend steps. Map every subagent, action, and flow control path to identify what needs test coverage.
-2. **Design test scenarios** — For test design methodology, expectations, metrics, test spec YAML format, and templates, use **agentforce-test** skill. That skill owns all testing content. For each coverage target, write one or more test scenarios: user utterance, expected subagent routing, expected action invocations, and expected agent response. Include both happy paths and edge cases.
-3. **Write test spec YAML** — Use template and reference files from **agentforce-test** skill. Save to `specs/<Agent_API_Name>-testSpec.yaml` in SFDX project.
-4. **Create test metadata** — Generate `AiEvaluationDefinition` from test spec using CLI.
-5. **Deploy test** — Deploy `AiEvaluationDefinition` to org.
-6. **Run tests** — Execute test run using CLI. Capture results.
-7. **Analyze results** — Compare actual outcomes against expectations. For failures, identify whether issue is in agent code, backing logic, or test spec itself.
-8. **Iterate** — Fix agent code or test spec as needed, redeploy, and re-run until coverage targets are met.
+1. **Set up the project** — **Confirm the target org via a selectable menu — never assume the default org** (show `sf org list`, mark the default, require an explicit pick). Confirm a DX project (create one if needed); run all retrieves from inside it.
+2. **Pick the legacy agent version** — Two-screen selection: choose the agent, then a **non-NGA** version. Exclude versions whose planner `PlannerType` is `Atlas__ConcurrentMultiAgentOrchestration` (already NGA).
+3. **Migrate via the Connect API** — POST the chosen `botVersionId` to `migrateAgentToNga`. Mutating call; confirm org + id first. Run it in a **subagent** so the large response (inline `agentScript`) does not bloat context — return only `bundleVersionApiName` (+ `conversionWarnings`, `agentResponse`).
+4. **Retrieve the new bundle** — Pull the `AiAuthoringBundle` into the project (by `bundleVersionApiName`, or map `bundleVersionId → fullName` as fallback).
+5. **Analyze, optimize, iterate** — The migration is a mechanical transform that ignores Agent Script primitives. Hand off to **Comprehend an Existing Agent**, then **Optimize an Agent**, then validate/preview.
 
 #### Reference Files
 
-1. [CLI for Agents](references/salesforce-cli-for-agents.md) — exact
-   command syntax for test create, test run, test results
-2. [Core Language](references/agent-script-core-language.md) — agent
-   structure for designing meaningful tests
-3. [Design & Agent Spec](references/agent-design-and-spec-creation.md) —
-   Agent Spec as test coverage baseline
-4. **agentforce-test** skill — test spec YAML format, expectations,
-   metrics, test design methodology, and test spec template
+1. [Upgrade a Legacy Agent to Agent Script](references/upgrade-legacy-agent-to-agentscript.md) — full step-by-step workflow, commands, and discriminator logic
+2. [Core Language](references/agent-script-core-language.md) — read the migrated `.agent` structure
+
+### Optimize an Agent
+
+1. Read [Core Language](references/agent-script-core-language.md) and scan every
+   reachable path using [Common Control-Flow Pitfalls](references/common-control-flow-pitfalls.md).
+2. Load only applicable optimization references: data flow, deterministic
+   logic, reference syntax, human handoff, and voice readiness.
+3. Report evidence-backed improvements and obtain approval before editing.
+4. Apply only approved changes, compile locally, validate against the org when
+   available, and report the resulting evidence.
+
+### Manage MCP Servers
+
+Read [MCP Server Management](references/mcp-management-reference.md) before any
+MCP operation. Verify the target org, use `--json`, keep secrets off command
+lines, review tools before allowlisting, and require confirmation for destructive
+or consequential changes.
 
 ## The Agent Spec
 
-**Agent Spec** is the central artifact this skill produces and consumes. A structured design document representing agent's purpose, subagent graph, actions with backing logic, variables, gating logic, and behavioral intent.
+**Agent Spec** is the central artifact this skill produces and consumes. A structured design document representing agent purpose, user outcomes, subagent graph, actions and implementations, variables, subagent posture, deterministic controls (when needed), and behavioral intent.
 
-Agent Specs evolve with the agent. Sparse during agent creation (purpose, topics, directional notes). Fleshed out during agent build (flowchart, backing logic mapped, gating documented). Reverse-engineered when comprehending existing agents. Critical for advanced troubleshooting, providing reference to compare expected vs. actual behavior. During testing, test coverage maps against it.
+Agent Specs evolve with the agent. Sparse during agent creation (purpose, use cases, planned placeholders). Fleshed out during agent build (flowchart, action implementations mapped, posture choices documented, deterministic controls added only where justified). Reverse-engineered when comprehending existing agents. Critical for advanced troubleshooting, providing reference to compare expected vs. actual behavior. During testing, test coverage maps against it.
 
-Always produce or update Agent Spec as first step of any operation that changes or analyzes agent. It is consistent grounding to work from, and a durable artifact a developer can review.
+Produce or update an Agent Spec for greenfield work, material design changes,
+or analysis whose result changes the documented contract. For a narrow,
+already-specified repair, record the affected use case and evidence without
+forcing a full spec rewrite.
 
 Read [Design & Agent Spec](references/agent-design-and-spec-creation.md) for Agent Spec structure and production methodology.
 
@@ -413,27 +407,51 @@ The `assets/` directory contains templates and examples. Read when you need a st
 
 - **`assets/agent-spec-template.md`** — Agent Spec template with all sections and placeholder content. Copy to `<AgentName>-AgentSpec.md` in project directory, then fill in during design. Save Agent Spec as file — significant design artifact that benefits from proper rendering, especially Mermaid Subagent Map diagram.
 
-- **`assets/local-info-agent-annotated.agent`** — Complete annotated example based on Local Info Agent, showing all major Agent Script constructs in context with inline comments explaining why each construct is used. Read when you need concrete reference for how concepts compose into working agent, or as fallback when focused examples in reference files aren't sufficient.
+- **`assets/agents/local-info-agent-annotated.agent`** — Complete annotated example based on Local Info Agent, showing all major Agent Script constructs in context with inline comments explaining why each construct is used. Read when you need concrete reference for how concepts compose into working agent, or as fallback when focused examples in reference files aren't sufficient.
 
-- **`assets/template-single-subagent.agent`** — Minimal agent with one subagent. Copy and modify for simple agents.
+- **`assets/agents/template-single-subagent.agent`** — Compatibility-named focused starter with one `start_agent` execution block and no router or subagent blocks.
 
-- **`assets/template-multi-subagent.agent`** — Minimal agent with multiple subagents and transitions. Copy and modify for complex agents.
+- **`assets/agents/template-multi-subagent.agent`** — Minimal agent with multiple subagents and transitions. Copy and modify for complex agents.
+
+- **`assets/agents/router-first.agent`** — Transition-only router example with
+  HyperClassifier and concise router instructions.
+
+- **`assets/agents/verification-gate.agent`** — Identity/authorization gate
+  with protected action availability.
+
+- **`assets/agents/simple-qa.agent`**, **`production-faq.agent`**, and
+  **`order-service.agent`** — Complete examples at increasing behavioral and
+  action complexity.
+
+- **`assets/patterns/README.md`** — Route to focused complete patterns for
+  callbacks, input binding, lifecycle, delegation, and multi-step workflows.
+  Use a pattern only when its stated use-case preconditions apply.
 
 - **`assets/invocable-apex-template.cls`** — Reference for invocable Apex
-  classes. Copy and modify when complex Apex backing logic is desired.
+  classes. Copy and modify when complex Apex action implementations are desired.
 
 ## Important Constraints
 
-- **Use only Salesforce CLI and Salesforce org.** Do not reference or depend on other skills, MCP servers, or external tooling. All commands use `sf` (Salesforce CLI).
+- **Use supported tooling for the evidence needed.** Use Salesforce CLI and the
+  target org for org-backed validation and release operations. Use the published
+  AgentScript SDK for local parse/compile checks, and invoke related skills only
+  within their documented boundaries.
 
-- **Only certain backing logic types are valid for actions.** For example, only invocable Apex (not arbitrary Apex classes) can back action. Similar constraints may apply to Flows and Prompt Templates. When wiring actions to backing logic, consult Design & Agent Spec reference file for valid types and stubbing methodology.
+- **Only certain implementation types are valid for actions.** For example, only invocable Apex (not arbitrary Apex classes) can back an action. Similar constraints may apply to Flows and Prompt Templates. When wiring actions to implementations, consult Design & Agent Spec reference file for valid types and stubbing methodology.
 
 - **`sf agent generate test-spec` is not for agentic use.** It is interactive, REPL-style command designed for humans. When creating test specs, start from boilerplate template in assets instead.
 
 ## Common Issues Quick Reference
 
 **`Internal Error, try again later` during publish:**
-Invalid or missing `default_agent_user`. Re-run query from [Design & Agent Spec](references/agent-design-and-spec-creation.md), Section 3. Do not invent username.
+Server-side compile failure. The 500 doesn't tell you which check failed — walk all four causes in order before asking the user what's wrong. Do NOT stop at cause 1.
+
+1. **Agent type mismatch on `access.default_agent_user`.** Employee agents normally omit `access.default_agent_user`; service agents MUST have it (and the user must hold an Einstein Agent license). See [Design & Agent Spec](references/agent-design-and-spec-creation.md), Section 3. Re-run the query — do not invent the username.
+2. **Action definition missing `outputs:` block.** If any action has `target:` and `inputs:` but no `outputs:`, the server-side compiler can't generate return bindings. CLI `validate` and LSP both PASS — only publish fails. See [Known Issues](references/known-issues.md), Issue 15.
+3. **Other structural drift in the `.agent` file.** Diff against a known-good bundle in the same org:
+   `sf project retrieve start --metadata "AiAuthoringBundle:<known-working-agent>" --output-dir /tmp/diff-bundle --json`
+   Compare keyword-by-keyword. Look for missing required-but-undocumented fields, block-ordering drift, or DSL keywords your bundle uses that aren't in the working one.
+4. **Genuine transient backend error.** If 1–3 are clean and the response `requestId` differs across retries, wait 60 s and retry once.
 
 **`Unable to access Salesforce Agent APIs...` during preview:**
 `default_agent_user` lacks permissions. See [Agent User Setup & Permissions](references/agent-user-setup.md). Do NOT publish as fix — `--use-live-actions` does not require published agent.
@@ -447,72 +465,26 @@ Planner validates ALL actions across ALL subagents at startup. One missing permi
 **Apex action returns empty results in live preview but works in simulated:**
 `WITH USER_MODE` + missing object permissions = silent failure (0 rows, no error). See [Agent User Setup & Permissions](references/agent-user-setup.md), Section 6.2.
 
-## Syntax Quick Reference
+**Agent published, ADL indexed (`retrieverId` populated), but every grounded question returns empty `knowledgeSummary` / "I don't have that information":**
+The Einstein Agent User lacks Data Cloud access. Two things to check, in order:
+1. **Permset/PSL not assigned.** Run the verification queries from [Agent User Setup, Step 3b.3](references/agent-user-setup.md). If no Data Cloud permset/PSL appears, run the discovery-then-assign procedure (priority: `GenieDataPlatformStarterPsl` PSL → `GenieUserEnhancedSecurity` PS → `DataCloudUser` PS → `DataCloudArchitect` PS).
+2. **Data Space scope not granted on the permset.** Currently no API. Setup → Permission Sets → click the assigned permset → "Data Cloud Data Space Management" under Apps → Edit → add the ADL's data space (usually `default`) → Save. See [Agent User Setup, Step 3b.4](references/agent-user-setup.md).
 
-- Block order: `system:` → `config:` → `variables:` → `connection:` → `knowledge:` → `language:` → `start_agent agent_router:` → `subagent:` blocks
-- Indentation: **4 spaces** per indent level. Never use tabs. Mixing spaces and tabs breaks the parser.
-- Booleans: `True`/`False` (capitalized)
-- Strings: always double-quoted
-- Numeric action I/O: bare `number` works for variables but **fails at publish** in action I/O. Use `object` + `complex_data_type_name` for numeric action parameters. See [Complex Data Types](references/complex-data-types.md) for the full decision tree.
-- `after_reasoning:` has NO `instructions:` wrapper
-- No `else if` — use compound `if x and y:` or sequential flat ifs
-- Reserved `@InvocableVariable` names: `model`, `description`, `label` — cannot be used as Apex parameter names
-- `@inputs` and `@outputs` are ephemeral: `@inputs` only in `with`; `@outputs` only in `set`/`if` immediately after the action. `@inputs` in `set` = silent failure.
+## Quick Links (Deep Detail Lives in References)
 
-See [Complex Data Types](references/complex-data-types.md) for the full Lightning type mapping decision tree. See [Instruction Resolution](references/instruction-resolution.md) for the 3-phase runtime model.
-
-## Architecture Patterns
-
-Three primary FSM patterns. Full details with code in [Architecture Patterns](references/architecture-patterns.md).
-
-- **Hub-and-Spoke** (most common): `start_agent` routes to specialized subagents. Each subagent has "back to hub" transition. Do NOT create a separate routing subagent.
-- **Verification Gate**: Identity verification before protected subagents. `available when` guards on protected transitions.
-- **Post-Action Loop**: Post-action checks at TOP of `instructions: ->` trigger on re-resolution after action completes.
-
-## Scoring Rubric
-
-Score every generated agent on 100 points across 7 categories: Structure (15), Safety (15), Deterministic Logic (20), Instruction Resolution (20), FSM Architecture (10), Action Configuration (10), Deployment Readiness (10).
-
-See [Scoring Rubric](references/scoring-rubric.md) for the complete rubric.
-
-## Review Mode
-
-When user provides an existing `.agent` file (e.g., `review path/to/file.agent`):
-
-1. Read the file
-2. Score against the 100-point rubric
-3. List every issue grouped by category
-4. Provide corrected code snippets
-5. Offer to apply fixes
-
-## Safety Review
-
-7-category LLM-driven safety review for `.agent` files. Integrated into Phase 0 of authoring and deployment. Categories: Identity & Transparency, User Safety, Data Handling, Content Safety, Fairness, Deception, Scope & Boundaries.
-
-See [Safety Review](references/safety-review-reference.md) for the complete framework, severity levels, false positive guidance, and adversarial test prompts.
-
-## Discover & Scaffold
-
-Validate action targets exist in org and generate stubs for missing ones.
-
-See [Discover Reference](references/discover-reference.md) and [Scaffold Reference](references/scaffold-reference.md).
-
-**CRITICAL:** Stubs must return realistic data, not `'TODO'`. Placeholder responses cause SMALL_TALK grounding because the LLM falls back to training data.
-
-## Deploy Lifecycle
-
-Validate → deploy metadata → publish bundle → activate. See [Deploy Reference](references/deploy-reference.md) for phases, error recovery, CI/CD, and rollback.
-
-## Template Assets
-
-Ready-to-use `.agent` templates in `assets/agents/` (hello-world, simple-qa, multi-subagent, production-faq, order-service, verification-gate). See also `assets/patterns/` for 11+ reusable design patterns and [Examples](references/examples.md) for inline walkthroughs.
-
-## Additional References
-
-| Topic | File |
-|-------|------|
-| Architecture patterns | [architecture-patterns.md](references/architecture-patterns.md) |
-| Type mapping decision tree | [complex-data-types.md](references/complex-data-types.md) |
-| Feature validity by context | [feature-validity.md](references/feature-validity.md) |
-| Instruction resolution model | [instruction-resolution.md](references/instruction-resolution.md) |
-| Complete agent examples | [examples.md](references/examples.md) |
+- Syntax and execution model: [Core Language](references/agent-script-core-language.md)
+- Agent design/spec process: [Design & Agent Spec](references/agent-design-and-spec-creation.md)
+- Posture dial (agentic vs deterministic): [Posture & Determinism](references/posture-and-determinism.md)
+- Concrete authoring invariants: [The Zen of AgentScript](references/zen-of-agentscript.md)
+- Pattern selection by scenario: [Patterns by Requirement](references/patterns-by-requirement.md)
+- Architecture mechanics, HyperClassifier routing, and migration: [Architecture Patterns](references/architecture-patterns.md)
+- Validation, preview, and traces: [Validation & Debugging](references/agent-validation-and-debugging.md)
+- Deploy/publish/activate lifecycle: [Deploy Reference](references/deploy-reference.md)
+- Metadata lifecycle and publish troubleshooting: [Metadata & Lifecycle](references/agent-metadata-and-lifecycle.md)
+- ADL provisioning and wiring: [Data Library Reference](references/data-library-reference.md)
+- Agent access and permissions: [Agent Access Guide](references/agent-access-guide.md), [Agent User Setup](references/agent-user-setup.md)
+- Voice modality and telephony agents: [Voice Modality Reference](references/voice-modality-reference.md)
+- Safety review framework: [Safety Review](references/safety-review-reference.md)
+- Rubric and review scoring: [Scoring Rubric](references/scoring-rubric.md)
+- Optimization patterns: [Pattern 1 — Data Flow](references/optimization-pattern-1-data-flow.md), [Pattern 2 — Deterministic Logic](references/optimization-pattern-2-deterministic-logic.md), [Pattern 3 — Reference Syntax](references/optimization-pattern-3-reference-syntax.md), [Pattern 4 — Escalation](references/optimization-pattern-4-escalation.md)
+- MCP server registration and tool whitelisting: [MCP Server Management](references/mcp-management-reference.md)

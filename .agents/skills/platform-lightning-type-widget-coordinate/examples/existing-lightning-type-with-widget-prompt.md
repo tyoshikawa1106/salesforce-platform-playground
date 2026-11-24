@@ -30,7 +30,7 @@ LIGHTNING TYPE:
   Name: OrderSummary
   Source: existing in local project
   Path: force-app/main/default/lightningTypes/OrderSummary/schema.json
-  Renderer (wires the Lightning Type to the widget): force-app/main/default/lightningTypes/OrderSummary/lightningDesktopGenAi/renderer.json
+  Renderer (wires the Lightning Type to the widget): force-app/main/default/lightningTypes/OrderSummary/renderer.json
   Schema fingerprint (captured before any sub-skill runs): <hex>
   Apex class FQN: orders__OrderSummary
 
@@ -66,10 +66,10 @@ User picks Approve.
 **Phase 4 — Generation.** Load `platform-widget-generate`. Hand it the Lightning Type schema path, the Apex class FQN (`orders__OrderSummary`), and the widget name. The widget skill derives its `schema.json` from the Apex class's `@AuraEnabled` fields:
 
 - Primitive fields → primitive `lightning:type`.
-- Singular nested inner class (e.g. `Address shippingAddress`) → `lightning__objectType`; bound in the widget body via dot-notation `{!$attrs.shippingAddress.city}`, `{!$attrs.shippingAddress.zip}`.
+- Singular nested inner class (e.g. `Address shippingAddress`) → `lightning:type: "@apexClassType/orders__OrderSummary$Address"`; bound in the widget body via dot-notation `{!$attrs.shippingAddress.city}`, `{!$attrs.shippingAddress.zip}`.
 - `List<LineItem> lineItems` → `lightning__listType`; iterated with `forEach`/`forItem` and bound via `{!$item.<innerField>}`.
 
-The skill omits `lastUpdatedTime` per the build plan and writes the three widget files. Then author `force-app/main/default/lightningTypes/OrderSummary/lightningDesktopGenAi/renderer.json` using the widget-rendition pattern, binding each widget attribute via `{!$attrs.<schemaPropertyName>}`. (If `renderer.json` already exists referencing a different widget or a custom LWC, STOP and surface the conflict.)
+The skill omits `lastUpdatedTime` per the build plan and writes the three widget files. Then author `force-app/main/default/lightningTypes/OrderSummary/renderer.json` using the widget-rendition pattern, binding each widget attribute via `{!$attrs.<schemaPropertyName>}`. (If `renderer.json` already exists referencing a different widget or a custom LWC, STOP and surface the conflict.)
 
 **Phase 5 — Validation.** The widget skill reports its own self-validation results. This orchestrator runs:
 

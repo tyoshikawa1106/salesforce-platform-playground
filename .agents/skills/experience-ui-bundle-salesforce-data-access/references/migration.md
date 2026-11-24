@@ -1,5 +1,11 @@
 # Migration — old Data SDK → `@salesforce/platform-sdk`
 
+> **Behavior mirror — `@salesforce/platform-sdk` `docs/data/`, as of v11.70.0.** When the package
+> is installed, its shipped `docs/data/` folder is the authoritative, version-current source
+> ([tier-2b](../SKILL.md#ground-the-sdk-behavior-on-the-installed-docs-tier-2b)) — let it win. This
+> file restates that behavior as a self-contained fallback for when the folder is absent (older SDK,
+> or a types-only build); it reflects the SDK version above and may lag a newer install.
+
 The Data SDK changed in two breaking ways (PR #502, shipped in `@salesforce/platform-sdk`
 v10.10.1):
 
@@ -12,6 +18,11 @@ v10.10.1):
 
 This is the **only** document where the dead callable API appears, for comparison. Everywhere
 else in this skill uses the new API exclusively.
+
+> The **new-side** code below is illustrative of the transition, not the source of truth for the
+> current call contract. For the authoritative new signatures, read the installed
+> `dist/*.d.ts` — [tier-2a](../SKILL.md#ground-the-sdk-contract-on-the-installed-types-tier-2a).
+> If a new-side snippet here has drifted from the installed declaration, the declaration wins.
 
 ---
 

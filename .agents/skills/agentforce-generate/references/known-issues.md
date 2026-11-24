@@ -109,7 +109,6 @@ Unresolved platform bugs, limitations, and edge cases that affect Agent Script d
   - Will a new metadata type be introduced for Agent Script tests?
   - Can `AiEvaluationDefinition` be used with Agent Script agents?
   - Is there a roadmap for test portability?
-- **References**: See `references/custom-eval-investigation.md` in `agentforce-test` for related findings on custom evaluation data structure issues.
 
 ---
 
@@ -239,13 +238,23 @@ Unresolved platform bugs, limitations, and edge cases that affect Agent Script d
 ---
 
 ### Issue 18: `connection messaging:` only generates `Messaging` plannerSurface — `CustomerWebClient` dropped on every publish
-- **Status**: OPEN
+- **Status**: RESOLVED (2026-07-23) — the `connection customer_web_client:` DSL block now compiles a `CustomerWebClient` plannerSurface directly. No post-publish patch is needed.
 - **Date Discovered**: 2026-02-17
-- **Affects**: Agent Builder Preview, Agent Runtime API testing, CLI testing (`sf agent test`, `sf agent preview`)
-- **Symptom**: After `sf agent publish authoring-bundle`, the compiled GenAiPlannerBundle only contains a `Messaging` plannerSurface. `CustomerWebClient` is never auto-generated. Agent Builder Preview shows "Something went wrong. Refresh and try again." because it requires `CustomerWebClient`.
-- **Root Cause**: The `connection messaging:` DSL block only generates a `Messaging` plannerSurface during compilation. There is no `connection customerwebclient:` DSL syntax — attempting it causes `ERROR_HTTP_404` on publish. The compiler has no mechanism to auto-generate `CustomerWebClient`.
-- **Impact**: Every publish overwrites the GenAiPlannerBundle, dropping any manually-added `CustomerWebClient` surface. This requires a post-publish patch after EVERY publish.
-- **Workaround — 6-Step Post-Publish Patch Workflow:**
+- **Resolution**: Author the surface with the **`connection customer_web_client:`** block (underscores) in the `.agent` file — see [Voice Modality Reference](voice-modality-reference.md) "Connection Blocks" and [actions-reference.md](actions-reference.md) "Supported Channels". The original failed attempt used `connection customerwebclient:` (no underscores), which does not exist and returns `ERROR_HTTP_404`; the correct token is `customer_web_client`. **Verified 2026-07-23**: published `Pizza_Order_Agent_Voice` to `storm` and retrieved the compiled `GenAiPlannerBundle` — it contains **both** `Messaging` and `CustomerWebClient` `<plannerSurfaces>`, auto-generated from the DSL, with no manual patch:
+  ```xml
+  <plannerSurfaces>
+      <surface>SurfaceAction__Messaging</surface>
+      <surfaceType>Messaging</surfaceType>
+  </plannerSurfaces>
+  <plannerSurfaces>
+      <surface>SurfaceAction__CustomerWebClient</surface>
+      <surfaceType>CustomerWebClient</surfaceType>
+  </plannerSurfaces>
+  ```
+- **Affects (historical)**: Agent Builder Preview, Agent Runtime API testing, CLI testing (`sf agent test`, `sf agent preview`)
+- **Symptom (historical)**: After `sf agent publish authoring-bundle`, the compiled GenAiPlannerBundle only contained a `Messaging` plannerSurface. `CustomerWebClient` was never auto-generated. Agent Builder Preview showed "Something went wrong. Refresh and try again." because it requires `CustomerWebClient`.
+- **Root Cause (historical)**: The `connection messaging:` DSL block alone only generates a `Messaging` plannerSurface. At the time there was no known DSL syntax to emit `CustomerWebClient`; `connection customerwebclient:` (no underscores) caused `ERROR_HTTP_404`. The `connection customer_web_client:` (underscored) block that resolves this was not yet in use.
+- **Historical fallback — 6-Step Post-Publish Patch Workflow** (only if a specific org's compiler still drops the surface):
   1. `sf agent publish authoring-bundle --json --api-name AgentName -o TARGET_ORG` → creates new version (e.g., v22)
   2. `sf project retrieve start --json --metadata "GenAiPlannerBundle:AgentName_vNN" -o TARGET_ORG` → retrieve compiled bundle
   3. Manually add second `<plannerSurfaces>` block to the XML with `<surfaceType>CustomerWebClient</surfaceType>` (copy the existing `Messaging` block, change surfaceType and surface fields)
@@ -286,7 +295,7 @@ Unresolved platform bugs, limitations, and edge cases that affect Agent Script d
 
   # ✅ CORRECT — executable statement present
   if @variables.premium == True:
-    | Welcome back, valued premium member!
+    | Greet the returning premium member.
   ```
 - **Open Questions**: Will the compiler emit a warning for empty `if` bodies?
 
@@ -313,6 +322,56 @@ Unresolved platform bugs, limitations, and edge cases that affect Agent Script d
   sf data query --json --query "SELECT Id, VersionNumber, Status FROM BotVersion WHERE BotDefinition.DeveloperName = 'MyAgent'" -o ORG
   ```
 - **Open Questions**: None — this is by design.
+
+---
+
+### Issue 21: Migration breaks for agents whose developer name ends in `_<digits>`
+- **Status**: WORKAROUND
+- **Date Discovered**: 2026-08-19
+- **Affects**: `migrateAgentToNga` (legacy → NGA) for any agent whose
+  `developer_name` ends in an underscore followed by digits — e.g. `Agent_01`,
+  `Support_Bot_2`, `Order_Agent_007`. The trailing `_<digits>` pattern is
+  `_\d+$`.
+- **Symptom**: The migration call itself may succeed and the migrated agent is
+  viewable/editable **in the Agent Builder UI**, but the bundle **cannot be
+  worked on from the terminal**. The versioning treatment of the
+  `AiAuthoringBundle` is wrong: the tooling conflates the `_<digits>` name suffix
+  with a bundle **version** suffix (`<name>_<version>`), so `sf project retrieve`
+  / `sf project deploy` / `sf agent validate|publish` mis-resolve the `fullName`
+  and version, and edits cannot be round-tripped.
+- **Root Cause**: `AiAuthoringBundle` uses a `<developer_name>_<version>`
+  `fullName` convention (see Issue on the retrieve/deploy folder-name trap in
+  [upgrade-legacy-agent-to-agentscript.md](upgrade-legacy-agent-to-agentscript.md)).
+  When the developer name **itself** ends in `_<digits>`, that trailing segment
+  is ambiguous with the version segment, so the bundle's version handling is
+  parsed incorrectly.
+- **Workaround**: Rename the agent's `developer_name` to break up the trailing
+  digits **before** migrating — insert a non-digit character so the name no
+  longer matches `_\d+$`. A minimal change is enough:
+  - `Agent_01` → `Agent_v01`
+  - `Order_Agent_007` → `Order_Agent_v007`
+
+  **Warning: Renaming has ripple effects.** The agent is referenced by developer name
+  in several places that must all be updated to the new name, or they break:
+  - **Email Configurations** for the Agentforce Service Agent (and any other
+    channel/config records keyed on the agent name).
+  - **Deploy configs** — `package.xml` and any `AiAuthoringBundle` /
+    `GenAiPlannerBundle` member entries that name the agent.
+  - **Integrations using the Agent API** — any external caller that targets the
+    agent by developer name.
+
+  Because of this blast radius, prefer renaming **before** the agent accrues
+  downstream references. This skill migrates agents from the terminal (`sf` CLI /
+  source-controlled workflow), so a `_<digits>` developer name is a **hard
+  blocker** for it: the rename above is mandatory before the skill can migrate the
+  agent. (The Agent Builder UI can still open a migrated `_<digits>` agent for
+  viewing — that is platform behavior, not a path this skill offers, and it does
+  not remove the terminal round-trip breakage.)
+- **Open Questions**:
+  - Will `migrateAgentToNga` / the bundle tooling be fixed to treat a
+    `_<digits>`-suffixed developer name distinctly from a version suffix?
+  - Is there a supported rename path that cascades to Email Configurations and
+    API integrations automatically?
 
 ---
 
@@ -350,4 +409,4 @@ When an issue is resolved:
 
 ---
 
-*Last updated: 2026-03-04*
+*Last updated: 2026-08-19*

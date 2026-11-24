@@ -2,8 +2,16 @@
 name: platform-apex-generate
 description: "Primary Apex authoring skill for class generation, refactoring, and review. ALWAYS ACTIVATE when the user mentions Apex, .cls, triggers, or asks to create/refactor a class (service, selector, domain, batch, queueable, schedulable, invocable, DTO, utility, interface, abstract, exception, REST resource). Use this skill for requests involving SObject CRUD, mapping collections, fetching related records, scheduled jobs, batch jobs, trigger design, @AuraEnabled controllers, @RestResource endpoints, custom REST APIs, or code review of existing Apex."
 metadata:
-  version: "1.0"
+  version: "1.1"
+  domains: ["Platform"]
   minApiVersion: "66.0"
+  relatedSkills:
+    - "platform-apex-test-generate"
+    - "dx-code-analyzer-run"
+    - "integration-apex-symbol-table-query"
+  cliTools:
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # Generating Apex
@@ -41,6 +49,7 @@ All steps are sequential. Do not skip, merge, or reorder. If blocked, stop and a
    - Service-Selector-Domain layering, logging utilities
    - Existing classes/triggers and current trigger framework or handler pattern
    - Whether Trigger Actions Framework (TAF) is already in use
+   - Signatures of classes and built-in types you will call or extend: use `integration-apex-symbol-table-query` (API v67.0+); if unavailable, read the source
 
 2. **Choose the smallest correct pattern** (see Type-Specific Guidance below)
 
@@ -51,22 +60,22 @@ All steps are sequential. Do not skip, merge, or reorder. If blocked, stop and a
 
 4. **Author with guardrails** -- apply every rule in the Rules section below
    - Generate `{ClassName}.cls` with ApexDoc
-   - Generate `{ClassName}.cls-meta.xml`   
+   - Generate `{ClassName}.cls-meta.xml`
 
-5. **Generate test classes** -- Load the skill `platform-apex-test-generate` to create `{ClassName}Test.cls` and `{ClassName}Test.cls-meta.xml`.  Apex tests are always required to be generated to deploy. No test file creation or edits can occur without loading the  `platform-apex-test-generate` skill to generate tests.
+5. **Generate test classes** -- Load the skill `platform-apex-test-generate` to create `{ClassName}Test.cls` and `{ClassName}Test.cls-meta.xml`. Apex tests are required to deploy; never create or edit test files without loading it.
 
 ### Phase 2 — Validate (required before reporting)
 
-Writing files is the midpoint, not the finish line. Steps 6 and 7 each require a tool invocation and produce output that must appear in the Step 8 report. Do not summarize or present the report until both steps have run and their output is captured.
+Steps 6 and 7 each require a tool invocation and produce output that must appear in the Step 8 report. Do not present the report until both have run and their output is captured.
 
 6. **Run code analyzer**
-   - Invoke MCP `run_code_analyzer` on all generated/updated `.cls` files.
+   - Use the `dx-code-analyzer-run` skill on all generated/updated `.cls` files.
    - Remediate all `sev0`, `sev1`, and `sev2` violations; re-run until clean.
-   - Capture the final tool output verbatim for the report.
-   - Fallback: `sf code-analyzer run --target <target>`. If both are unavailable, record `run_code_analyzer=unavailable: <error>` in the report.
+   - Keep the final tool output verbatim for the report.
+   - Fallback: `sf code-analyzer run --target <target>`. If both are unavailable, record `code_analyzer=unavailable: <error>` in the report.
 
 7. **Execute Apex tests**
-   - Run org tests including `{ClassName}Test` via `sf apex run test` or MCP.
+   - Run org tests including `{ClassName}Test` via `sf apex run test`.
    - Delegate all test generation/fixes/coverage work to `platform-apex-test-generate`; iterate until the tests pass.
    - Capture pass/fail counts and coverage percentage for the report.
    - If unavailable, record `test_execution=unavailable: <error>` in the report.
@@ -74,9 +83,9 @@ Writing files is the midpoint, not the finish line. Steps 6 and 7 each require a
 ### Phase 3 — Report
 
 8. **Report** -- use the output format at the bottom of this file.
-   - The `Analyzer` line must contain the actual Step 6 tool output (or `run_code_analyzer=unavailable: <reason>` after attempting invocation).
-   - The `Testing` line must contain the actual Step 7 results (or `test_execution=unavailable: <reason>` after attempting invocation).
-   - A report missing either line is incomplete. Always attempt the tool invocation before recording unavailable.
+   - The `Analyzer` line must contain the actual Step 6 tool output (or `code_analyzer=unavailable: <reason>` after attempting it).
+   - The `Testing` line must contain the actual Step 7 results (or `test_execution=unavailable: <reason>` after attempting it).
+   - A report missing either line is incomplete; always attempt the invocation before recording unavailable.
 
 ---
 
@@ -117,6 +126,7 @@ If any constraint would be violated in generated code, **stop and explain the pr
 - `SELECT *` does not exist in SOQL -- always specify the exact fields needed
 - Apply `LIMIT` clauses to bound result sets; use `ORDER BY` for deterministic results
 - When querying Custom Metadata Types (objects ending with `__mdt`), do NOT use SOQL — use the built-in methods (`{CustomMdt__mdt}.getAll().values()`, `getInstance()`, etc.)
+- Queries executed in `without sharing` keyword classes with API versions 67.0 and up will throw when the running user does not have the proper field or object-level security. If API versions are being updated, ensure queries are safeguarded properly, and that tests are updated accordingly. Only explicitly justified usages of `SYSTEM_MODE` variants within queries should be allowed by default.
 
 ### Caching
 
@@ -126,7 +136,7 @@ If any constraint would be violated in generated code, **stop and explain the pr
 ### Security
 
 - Default to `with sharing`; document justification for `without sharing` or `inherited sharing`
-- `WITH USER_MODE` in SOQL and `AccessLevel.USER_MODE` for `Database` DML for CRUD/FLS enforcement
+- `WITH USER_MODE` in SOQL and `AccessLevel.USER_MODE` for `Database` DML for CRUD/FLS enforcement — these are the defaults for _all_ Apex classes with API versions of 67.0 or higher
 - Validate dynamic field/operator names via allowlist or `Schema.describe`
 - Named Credentials for all external credentials/API keys
 - `AuraHandledException` for `@AuraEnabled` user-facing errors (no internal details)
@@ -153,7 +163,7 @@ Before finalizing, verify: CRUD/FLS enforced (SOQL + DML) · explicit sharing ke
 - Add guard clauses for null/empty inputs at the top of every public method; match style to context: `return` early in private/trigger-handler methods, `throw` exceptions in public APIs, `record.addError()` in validation services
 - Return empty collections instead of `null`
 - Use safe navigation (`?.`) for chained property access
-- Never dereference `map.get(key)` inline unless presence is guaranteed; use `containsKey`, assignment+null check, or safe navigation first
+- Never dereference `map.get(key)` inline unless presence is guaranteed; use `containsKey`, assignment + null check, or safe navigation first
 - Use null coalescing (`??`) for default values
 - Prefer `String.isBlank(value)` over manual checks like `value == null || value.trim().isEmpty()`
 
@@ -220,7 +230,7 @@ Method-level format:
 ### Code Structure & Architecture
 
 - Single responsibility per class; max 500 lines -- split when exceeded
-- Return Early: validate preconditions at method top, return/throw immediately
+- Return early: validate preconditions at method top, return/throw immediately
 - Extract private helpers for methods over ~40 lines
 - Use Dependency Injection (constructor/method params) for testability
 - Prefer composition and narrow interfaces over deep inheritance; extend via new implementations, not modifications
@@ -385,7 +395,7 @@ Files: <paths>
 Design: <pattern / framework choices>
 Workflow: all steps completed (1-8); any N/A justified
 Risks: <security, bulkification, async, dependency notes>
-Analyzer: <REQUIRED -- paste actual run_code_analyzer output or state "run_code_analyzer=unavailable: <reason>">
+Analyzer: <REQUIRED -- paste actual code analyzer output or state "code_analyzer=unavailable: <reason>">
 Testing: <REQUIRED -- paste actual test execution results (pass/fail, coverage) or state "test_execution=unavailable: <reason>">
 Deploy: <dry-run or next step>
 ```

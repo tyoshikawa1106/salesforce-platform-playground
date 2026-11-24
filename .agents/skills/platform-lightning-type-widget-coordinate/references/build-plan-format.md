@@ -16,7 +16,7 @@ LIGHTNING TYPE:
   Name: <TypeName>
   Source: <existing in local project | retrieved from org | newly created>
   Path: <pkgDir>/lightningTypes/<TypeName>/schema.json
-  Renderer (wires the Lightning Type to the widget): <pkgDir>/lightningTypes/<TypeName>/lightningDesktopGenAi/renderer.json
+  Renderer (wires the Lightning Type to the widget): <pkgDir>/lightningTypes/<TypeName>/renderer.json
   Schema fingerprint (captured before any sub-skill runs): <hex SHA-256>   # omit when source is "newly created"
   Apex class FQN: <namespace>__<ClassName>[$<InnerClass>]   # outer-class form, or inner-class form when the CLT roots on a specific inner class
 
@@ -44,6 +44,7 @@ VALIDATIONS THAT WILL RUN AFTER GENERATION:
     - widget schema.json parses and has the required root keys
     - every leaf in properties has a lightning:type
     - every {!$attrs.X} (and {!$attrs.<outer>.<inner>} for nested objects, {!$item.X} inside forEach) resolves
+    - every tile/button carries an actions.click entry using action/openLink or action/sendMessage
     - <name>.uiwidget-meta.xml is well-formed XML, root is <UiWidgetBundle>, and declares <widgetType>JSON</widgetType>
   Cross-skill checks (run by this orchestrator):
     - lightning-type-unchanged: when an existing Lightning Type was used as input, its schema.json is byte-identical to the version captured before this run

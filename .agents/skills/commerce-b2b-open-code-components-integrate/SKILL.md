@@ -1,9 +1,18 @@
 ---
 name: commerce-b2b-open-code-components-integrate
 description: "Integrate Salesforce B2B Commerce open source components from GitHub into B2B Commerce stores. Use when users mention \"integrate open code components\", \"open source B2B commerce\", \"add open code components\", \"forcedotcom/b2b-commerce-open-source-components\", or want to add open source commerce components to their store. Copies all components and labels so they become available in Experience Builder."
-allowed-tools: Bash(git clone:*) Bash(cp:*) Read
+allowed-tools: Bash(git clone:*) Bash(cp:*) Bash(sf org list:*) Bash(sf config get:*) Bash(sf project retrieve start:*) Read
 metadata:
   version: "1.0"
+  domains: ["Commerce", "Experience"]
+  minApiVersion: "56.0"
+  relatedSkills:
+    - "commerce-b2b-store-create"
+  cliTools:
+    - tool: ["git"]
+      semver: ">=2.0.0"
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 ## When to Use This Skill
@@ -90,8 +99,8 @@ Copy all components and labels from cloned repo to site directory:
 5. Report: "Copied X components and Y label sets"
 
 **Output:**
-```
-✅ Integration Complete!
+```text
+Integration Complete!
 
 Copied: X components and Y label sets to <store-name>
 
@@ -117,7 +126,7 @@ Next Steps:
 **User:** "1"
 
 **Agent:** "I'm checking if your project already has B2B store metadata locally..."
-- ✓ Found store metadata for My_B2B_Store1
+- [done] Found store metadata for My_B2B_Store1
 
 **Agent:** "I'm checking if open code components already exist in your store's site metadata..."
 
@@ -130,10 +139,10 @@ Next Steps:
 
 **Agent:** "I'm now copying all open code LWC components from the cloned repository into your store's site metadata directory..."
 **Agent:** "I'm copying the associated label files that these components need..."
-- ✓ Copied 45 components and 38 label sets
+- [done] Copied 45 components and 38 label sets
 
-```
-✅ Integration Complete!
+```text
+Integration Complete!
 
 Copied: 45 components and 38 label sets to My_B2B_Store1
 

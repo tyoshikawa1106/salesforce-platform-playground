@@ -1,8 +1,24 @@
 ---
 name: platform-data-manage
-description: "Salesforce data operations with 130-point scoring. Use this skill to create, update, delete, bulk import/export, generate test data, and clean up org records using sf CLI and anonymous Apex. TRIGGER when: user creates test data, performs bulk import/export, uses sf data CLI commands, needs data factory patterns for Apex tests, or needs to seed/clean records in a Salesforce org. DO NOT TRIGGER when: SOQL query writing only (use platform-soql-query), Apex test execution (use platform-apex-test-run), or metadata deployment (use platform-metadata-deploy)."
+description: "Salesforce data operations with 130-point scoring. Use to create, update, delete, bulk import/export, generate test data, and clean up org records via sf CLI and anonymous Apex. TRIGGER on creating test data, bulk import/export, sf data CLI commands, data-factory patterns for Apex tests, or seeding/cleaning org records. DO NOT TRIGGER for SOQL query writing only (use platform-soql-query), Apex test execution (use platform-apex-test-run), or metadata deployment (use platform-metadata-deploy)."
 metadata:
   version: "1.1"
+  domains: ["Platform"]
+  relatedSkills:
+    - "automation-flow-generate"
+    - "platform-apex-generate"
+    - "platform-apex-test-run"
+    - "platform-custom-field-generate"
+    - "platform-custom-object-generate"
+    - "platform-metadata-deploy"
+    - "platform-soql-query"
+  cliTools:
+    - tool: ["sf"]
+      semver: ">=2.0.0"
+    - tool: ["jq"]
+      semver: ">=1.6.0"
+    - tool: ["python3"]
+      semver: ">=3.8.0"
 ---
 
 # Salesforce Data Operations Expert (platform-data-manage)
