@@ -15,7 +15,7 @@ Skills 本体は `forcedotcom/sf-skills` の取得元にあるオリジナル状
 
 ### 更新
 
-導入済みスキルの更新、取得元との全件同期、PR での差分レビューは、[Salesforce Agent Skills のメンテナンス](../development/agent-skills-maintenance.md)に従います。
+スキルの更新と取得元で削除されたスキルの扱いは、[Salesforce Agent Skills のメンテナンス](../development/agent-skills-maintenance.md)を参照してください。
 
 ## 参照時の扱い
 
