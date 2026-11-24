@@ -751,7 +751,7 @@ it('limits month navigation to the current month and the six preceding months', 
     await flush();
     expect(next.disabled).toBe(true);
     expect(previous.disabled).toBe(false);
-    expect(component.shadowRoot.querySelector('.month-navigation h2').textContent).toMatch(/^\d{4}年\d{1,2}月（0件）$/);
+    expect(component.shadowRoot.querySelector('.c-month-navigation h2').textContent).toMatch(/^\d{4}年\d{1,2}月（0件）$/);
     for (let offset = 0; offset < 6; offset += 1) {
         previous.click();
     }
@@ -777,10 +777,10 @@ it.each([true, false])('clears data loading spinners after requests settle (succ
     const component = mount();
     const root = component.shadowRoot;
     await flush();
-    expect(root.querySelector('.month-navigation lightning-spinner').alternativeText).toBe('月の総件数を取得中');
+    expect(root.querySelector('.c-month-navigation lightning-spinner').alternativeText).toBe('月の総件数を取得中');
     await chooseLookup(component, 'action', 'createdApexClass');
     await search(component);
-    expect(root.querySelector('.pagination lightning-spinner').alternativeText).toBe('絞り込み件数を取得中');
+    expect(root.querySelector('.c-pagination lightning-spinner').alternativeText).toBe('絞り込み件数を取得中');
 
     if (succeeds) {
         resolveRequests();
@@ -936,7 +936,7 @@ it('refreshes monthly pagination and ignores the previous monthly count after se
     finishInitialCount(1000);
     await flush();
     const root = component.shadowRoot;
-    expect(root.querySelector('.month-navigation h2').textContent).toContain('1,001件');
+    expect(root.querySelector('.c-month-navigation h2').textContent).toContain('1,001件');
     [...root.querySelectorAll('nav lightning-button')].find(button => button.label === '次へ').click();
     await flush();
     expect(root.querySelector('nav').textContent).toContain('2 / 2ページ');
@@ -1048,7 +1048,7 @@ it('returns to available history if records beyond the saved cursor have expired
     expect(countMonth.mock.calls.map(([input]) => input.cutoff)).toEqual([cutoff, cutoff]);
     expect(root.querySelector('nav').textContent).toContain('1 / 1ページ');
     expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['remaining']);
-    expect(root.querySelector('.month-navigation h2').textContent).toContain('（1件）');
+    expect(root.querySelector('.c-month-navigation h2').textContent).toContain('（1件）');
 });
 
 it('shows a full matched page while probing later source batches and resumes at the next match', async () => {
@@ -1317,7 +1317,7 @@ it.each(['before', 'after'])('uses a complete monthly chart if the monthly count
         await flush();
     }
     expect(retryShown()).toBe(timing === 'before');
-    expect(root.querySelector('.month-navigation h2').textContent).not.toContain('件');
+    expect(root.querySelector('.c-month-navigation h2').textContent).not.toContain('件');
     expect(root.querySelector('.c-tab-results [role="status"]').textContent).toContain('1,000件集計済み');
     finishChart({ buckets: [{ count: 1 }] });
     await flush();
@@ -1325,7 +1325,7 @@ it.each(['before', 'after'])('uses a complete monthly chart if the monthly count
         failCount(new Error('count'));
         await flush();
     }
-    expect(root.querySelector('.month-navigation h2').textContent).toContain('（1,001件）');
+    expect(root.querySelector('.c-month-navigation h2').textContent).toContain('（1,001件）');
     expect(retryShown()).toBe(false);
     history.dispatchEvent(new CustomEvent('active'));
     await flush();
@@ -1446,6 +1446,29 @@ it.each(['lookup', 'chart'])('offers name-only users by ID from %s data, includi
     await search(component);
     expect(load.request.mock.lastCall[0].input.userId).toBe('other');
     expect(input.value).toBe('同じ氏名');
+});
+
+it.each([false, true])('shares the pending list count with CSV confirmation (filtered: %s)', async filtered => {
+    const counter = filtered ? countMatches.request : countMonth;
+    let finishCount;
+    counter.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'next', nextTime: cutoff });
+    const component = mount();
+    await flush();
+    if (filtered) {
+        await chooseLookup(component, 'action', 'createdApexClass');
+        await search(component);
+    }
+    component.shadowRoot.querySelector('[data-result-export]').click();
+    await flush();
+    expect(currentDialog().textContent).toContain('件数を確認中');
+    expect(countMatches.request).toHaveBeenCalledTimes(filtered ? 1 : 0);
+    expect(countMonth).toHaveBeenCalledTimes(filtered ? 2 : 1);
+
+    finishCount(1001);
+    await flush();
+    expect(currentDialog().textContent).toContain('全1,001件');
+    expect(component.shadowRoot.querySelector('nav').textContent).toContain('1 / 2ページ');
 });
 
 it('exports all result pages with the applied action and original cutoff from the second history page', async () => {

@@ -24,7 +24,7 @@
 
         <p lwc:if={downloadError} role="alert" class="slds-text-color_error slds-m-bottom_small">{downloadError}</p>
         <div class="slds-box slds-theme_default">
-            <div class="month-navigation slds-m-bottom_medium">
+            <div class="c-month-navigation slds-m-bottom_medium">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"
                     disabled={previousMonthDisabled} onclick={moveMonth}></lightning-button>
                 <div class="c-inline-status">
@@ -49,7 +49,7 @@
                 <lightning-tabset active-tab-value={tab}>
                     <lightning-tab label="履歴" value="list" onactive={activateTab}>
                         <section class="slds-box slds-box_small slds-m-bottom_small" aria-label="検索条件">
-                            <div class="filters">
+                            <div class="c-filters">
                                 <lightning-combobox label="日付" data-field="day" value={selectedDay}
                                     options={dateOptions} onchange={changeFilter}></lightning-combobox>
                                 <template for:each={filterFields} for:item="field">
@@ -123,7 +123,7 @@
                             <template lwc:if={emptyList}><p>条件に一致する設定変更履歴はありません。</p></template>
                             <template lwc:elseif={listReady}>
                                 <div class="c-history-viewport">
-                                    <lightning-datatable class="history-table" key-field="Id" data={visibleRecords} columns={columns}
+                                    <lightning-datatable class="c-history-table" key-field="Id" data={visibleRecords} columns={columns}
                                         enable-infinite-loading={hasMoreRows} load-more-offset="800" onloadmore={showMoreRows}
                                         max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                                 </div>
@@ -131,8 +131,8 @@
                             <template lwc:elseif={loading}>
                                 <div lwc:if={records.length} class="c-history-viewport" aria-hidden="true"></div>
                             </template>
-                            <div class="c-history-footer">
-                                <nav class="pagination" aria-label="履歴のページ送り">
+                            <div class="c-history-footer slds-m-top_small">
+                                <nav class="c-pagination" aria-label="履歴のページ送り">
                                     <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
                                     <div class="c-page-summary c-inline-status">
                                         <span aria-live="polite">{pageSummary}</span>

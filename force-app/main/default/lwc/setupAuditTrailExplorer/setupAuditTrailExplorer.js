@@ -385,6 +385,22 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         return context.cutoffRequest;
     }
 
+    // 月別・絞り込みの件数照会を、検索結果CSVの確認画面でも共有する。
+    pendingCounts;
+
+    fetchCount = criteria => {
+        // 月、適用済み条件、検索基準時刻が一致する要求だけをまとめる。
+        const criteriaJson = JSON.stringify(criteria);
+        // 再検索後に旧照会が完了しても、新しい検索の要求には触れない。
+        const pendingCounts = this.pendingCounts;
+        if (!pendingCounts.has(criteriaJson)) {
+            // 成功・失敗とも完了後に外し、後続の再取得を妨げない。
+            const pending = countMatches({ criteriaJson }).finally(() => pendingCounts.delete(criteriaJson));
+            pendingCounts.set(criteriaJson, pending);
+        }
+        return pendingCounts.get(criteriaJson);
+    };
+
     // 月別件数を最新の見出しへ反映する。
     async readMonthTotal() {
         // 今回の月別件数要求を識別する。
@@ -402,7 +418,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             if (request !== this.countRequest) {
                 return;
             }
-            const total = await countMatches({ criteriaJson: JSON.stringify({ monthStart, cutoff }) });
+            const total = await this.fetchCount({ monthStart, cutoff });
             // 表示月が変わっていない場合に採用する。
             if (request === this.countRequest) {
                 // 見出しに取得済み件数を渡す。
@@ -881,7 +897,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             if (request !== this.matchRequest) {
                 return;
             }
-            const count = await countMatches({ criteriaJson: JSON.stringify({ ...criteria, cutoff }) });
+            const count = await this.fetchCount({ ...criteria, cutoff });
             // 要求後に検索条件が変わっていないか確認する。
             if (request === this.matchRequest) {
                 // 最新の一致件数をページ表示に渡す。
@@ -910,6 +926,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             this.historyContext = {};
         }
         if (!keepMonthData) {
+            // 再検索と期限切れからの復旧では件数も取り直す。
+            this.pendingCounts = new Map();
             this.readMonthTotal();
             // 月全体の候補は同じ基準時刻のドリルダウンで再利用する。
             this.optionsRequest += 1;
@@ -1172,6 +1190,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const query = this.searchCriteria;
         // 明細と同じ照合方式を使って出力対象を決める。
         const indexed = this.usesMatchIndex;
+        // 未指定の絞り込みは月合計と同じ件数条件を使う。
+        const filtered = this.hasFilters;
         // 確定済みの件数は問い合わせを増やさず再利用する。
         let count = this.resultCount;
         // 履歴と同じ基準時刻をすべてのページに引き継ぐ。
@@ -1193,7 +1213,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 一覧で件数を確定していない場合だけ問い合わせる。
         if (count === null) {
             // 出力時に使う条件と基準時刻を渡す。
-            count = await this.readPageWithRetry(countMatches, { criteriaJson: JSON.stringify(query) }, isCurrent);
+            const criteria = filtered ? query : { monthStart: query.monthStart, cutoff: query.cutoff };
+            count = await this.readPageWithRetry(this.fetchCount, criteria, isCurrent);
         }
         // 直接検索の明細は固定した条件を使って全ページ取得する。
         return { query, count };
