@@ -145,16 +145,34 @@ private class SetupAuditTrailExplorerControllerTest {
     @IsTest
     static void rejectsMissingSourceContinuation() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
-            String request = JSON.serialize(new Map<String, Object>{
-                'monthStart' => Date.newInstance(2000, 1, 1), 'matchIndex' => true, 'section' => '設定',
-                'nextId' => UserInfo.getUserId(), 'nextTime' => Datetime.newInstanceGMT(2000, 1, 2, 0, 0, 0)
-            });
-            try {
-                SetupAuditTrailExplorerController.load(request);
-                Assert.fail('照合前の元ページが空なら完了にできません。');
-            } catch (AuraHandledException expected) {
-                Assert.isNotNull(expected, '再取得が必要なエラーを返します。');
+            Test.startTest();
+            Assert.isTrue(rejectsAfterSourceQuery('chart'), 'chart の元ページが0件なら取得を中止します。');
+            Assert.isTrue(rejectsAfterSourceQuery('options'), 'options の元ページが0件なら取得を中止します。');
+            Assert.isTrue(rejectsAfterSourceQuery('matchIndex'), 'matchIndex の元ページが0件なら取得を中止します。');
+            Assert.isTrue(rejectsAfterSourceQuery('actors'), 'actors の元ページが0件なら取得を中止します。');
+            Test.stopTest();
+        }
+    }
+
+    // 保持期間外の境界を渡し、4経路とも元行の照会直後に取得を中断することを確認する。
+    private static Boolean rejectsAfterSourceQuery(String route) {
+        Datetime boundary = Datetime.newInstanceGMT(2000, 1, 2, 0, 0, 0);
+        Map<String, Object> criteria = new Map<String, Object>{
+            'monthStart' => Date.newInstance(2000, 1, 1), 'nextTime' => boundary, 'nextId' => UserInfo.getUserId()
+        };
+        Integer queries = Limits.getQueries();
+        try {
+            if (route == 'actors') {
+                SetupAuditTrailExplorerController.loadLoginAsHistory(boundary, UserInfo.getUserId(), boundary);
+            } else if (route == 'options') {
+                SetupAuditTrailExplorerController.loadOptionsAt(JSON.serialize(criteria));
+            } else {
+                criteria.put(route, true);
+                SetupAuditTrailExplorerController.load(JSON.serialize(criteria));
             }
+            return false;
+        } catch (AuraHandledException expected) {
+            return Limits.getQueries() == queries + 1;
         }
     }
 
