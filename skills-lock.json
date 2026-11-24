@@ -40,7 +40,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/agentforce-test/SKILL.md",
-      "computedHash": "e4d766c9b4d2547eb098471d5d8917591d7376dfdc50191cee5288df14d14e85"
+      "computedHash": "e92d96b889a49c95c961486e213a1cafb6ac0472919d68e164c45bacf95daf06",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "automation-flow-generate": {
       "source": "forcedotcom/sf-skills",
