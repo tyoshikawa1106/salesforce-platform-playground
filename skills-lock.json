@@ -487,7 +487,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-custom-field-generate/SKILL.md",
-      "computedHash": "2e458a7dbb5ac958180243f7204c9c11519eae888f95c4ccceee246ed60060d1"
+      "computedHash": "ee387801db0a9ffeb696622d063c098f710ea29c7344ddcee7d962f99a43be06",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-custom-lightning-type-generate": {
       "source": "forcedotcom/sf-skills",
@@ -500,13 +501,15 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-custom-object-generate/SKILL.md",
-      "computedHash": "ae4a7fa3774e7e2ab5f13e7595ea3de9610c1716d9db36eb5054235163d76332"
+      "computedHash": "da07efea237f68628b839ea5effbe2628f810e55af11cd4c0ed4eb8e6fa512df",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-custom-report-type-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-custom-report-type-generate/SKILL.md",
-      "computedHash": "6b8ae66bcb0993752b99c8506c062ec4d2081886ac421da521ba64156e148c48"
+      "computedHash": "376571b46f8b06e9d6ba44f6e51ff493227413b8fec3e92209dd9e7818ddd5ae",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-custom-tab-generate": {
       "source": "forcedotcom/sf-skills",
@@ -651,13 +654,15 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-validation-rule-generate/SKILL.md",
-      "computedHash": "930effd3fc1915feda0d45deb7b5acea36ff7c7e7613aebe79e4677d412ae807"
+      "computedHash": "a783f1d788f2c9c314a82aefe875c241f9ff7947e186a65e28a6596ebf669966",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-value-set-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-value-set-generate/SKILL.md",
-      "computedHash": "e97f3136a074a026a087fab38baea5b101e4b082d4930e965549fe5fdb75faa8"
+      "computedHash": "dfb93f986f318c06ff1c9f4a09c084a4f165c799b38e36f449d8f8ad757d514f",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-widget-generate": {
       "source": "forcedotcom/sf-skills",
