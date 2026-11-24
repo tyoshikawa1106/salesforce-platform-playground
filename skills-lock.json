@@ -542,7 +542,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-encryption-configure/SKILL.md",
-      "computedHash": "64391d0c3070c1a1ef5e9246ad267692e2ba3b21ee6ceb9d25b197bc5c4f2645"
+      "computedHash": "cb0168d57d754a42c04685aef0d46471729fb24a6d22ea3062bb2a139702e522",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-flexipage-generate": {
       "source": "forcedotcom/sf-skills",
@@ -603,7 +604,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-permission-set-generate/SKILL.md",
-      "computedHash": "067d34d04b507d6b1313e67ea0e08d04c4efa6089da153fe31406a3ac3d70342"
+      "computedHash": "08afe336271c80a97d032e87065cd1d0d5d79204d118ce0491f7d944303bcb2d",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-policy-rule-generate": {
       "source": "forcedotcom/sf-skills",
@@ -616,13 +618,15 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-sharing-owd-configure/SKILL.md",
-      "computedHash": "4abadbeb43f35682764a4632f4b3bd23d7c4f00b334beb6a8b533d4f033e0054"
+      "computedHash": "593945d5fc8082a44d79c3cad39fbcdd12777fa5015bdceec1e858e17218cc46",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-sharing-rules-generate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-sharing-rules-generate/SKILL.md",
-      "computedHash": "edae32a72c90d0507eb93a7d806f22d4aa1c1f1d2194a3a144eb281a80387154"
+      "computedHash": "d0a76d52fddc66376b0fcfd931b6bd651ff4a3285db1722f263c56e5fbf9d7a8",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-soql-query": {
       "source": "forcedotcom/sf-skills",
