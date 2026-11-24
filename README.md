@@ -40,7 +40,7 @@
 
 ## 開発環境
 
-ローカルで開発するには、以下が必要です。
+ローカル開発で使用するツールと環境です。
 
 - Salesforce 開発組織
 - Salesforce CLI
@@ -49,6 +49,7 @@
 - npm
 - OpenJDK
 - Python 3.10 以上
+- Skills CLI
 
 ## セットアップ手順
 
@@ -287,7 +288,29 @@ npm run sf:convert:profile
 
 `forcedotcom/sf-skills` は、Salesforce の GitHub organization が公開している AI エージェント向けスキル集です。Apex、Flow、メタデータ、SOQL、Apex テストなどの Salesforce 関連作業で、実装や確認観点の参考情報として利用します。
 
-Skills 本体は `.agents/skills/`、取得元と内容の識別情報は `skills-lock.json` で Git 管理しているため、追加の導入作業は不要です。プロジェクト固有の判断と実行条件は `AGENTS.md` と `docs/` を優先します。
+スキル本体は `.agents/skills/`、取得元と内容の識別情報は `skills-lock.json` で Git 管理します。プロジェクト固有の判断と実行条件は `AGENTS.md` と `docs/` を優先します。
+
+### スキルのインストール
+
+プロジェクトのルートで次のコマンドを実行します。
+
+```sh
+npx skills add forcedotcom/sf-skills
+```
+
+`npx` は、必要に応じて Skills CLI を npm キャッシュに自動でインストールしてから実行します。`Need to install` と表示されたら、`y` で許可します。
+
+選択画面が表示されたら、使用するスキルとエージェントを選び、インストール先にプロジェクトを指定します。
+
+### Skills CLI
+
+AI エージェントスキルの更新に使用します。次のコマンドで、`npx` が実行する CLI のバージョンを確認できます。
+
+```sh
+npx skills --version
+```
+
+`Need to install` と表示された場合、`y` を入力すると表示された版を取得して実行します。
 
 ## 参考サイト
 
