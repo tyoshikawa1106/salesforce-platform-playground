@@ -21,7 +21,7 @@
 
 Agent Script operates in two phases: deterministic resolution, then LLM reasoning.
 
-**Phase 1: Deterministic Resolution.** The runtime executes a subagent's reasoning instructions top to bottom — evaluating `if`/`else` conditions, running actions via `run`, and setting variables via `set`. The LLM is NOT involved yet. The runtime builds a prompt string by accumulating `|` pipe text and resolving conditional logic. If a `transition` command occurs, the runtime discards the current prompt and starts fresh with the target subagent.
+**Phase 1: Deterministic Resolution.** The runtime executes a subagent's reasoning instructions top to bottom — evaluating `if`/`else` conditions, running actions via `run`, and setting variables via `set`. The LLM is NOT involved yet. The runtime builds a prompt string by accumulating `|` pipe text and resolving conditional logic. If a `transition` command occurs, the current subagent stops resolving and the target subagent begins its lifecycle with shared state and conversation history retained.
 
 **Phase 2: LLM Reasoning.** The runtime passes the resolved prompt to the LLM along with any reasoning actions (tools) the subagent exposes. The LLM decides what to do — it can call available actions but cannot modify the prompt text. It only reasons against what Phase 1 resolved.
 
@@ -36,8 +36,8 @@ subagent check_order:
                     with id = @variables.order_id
                     set @variables.status = @outputs.status
 
-            | Your order status is {!@variables.status}.
-              You can modify it using the {!@actions.update_order} action.
+            | Tell the user the exact order status is {!@variables.status} and
+              use {!@actions.update_order} for a requested modification.
 
         actions:
             update: @actions.update_order
@@ -46,20 +46,22 @@ subagent check_order:
 
 If `@variables.order_id` is `"1001"` and the `fetch_order` action returns `status = "shipped"`, the runtime resolves to this prompt:
 
-```
+```text
 Your order status is shipped.
 You can modify it using the update_order action.
 ```
 
 The LLM then receives this prompt plus the `update` tool and decides whether to call it based on what the user asks.
 
-This split is critical: **deterministic logic controls WHAT the agent knows (via resolved prompt), and the LLM controls WHETHER and HOW to act on that knowledge**.
+This split is critical: **deterministic resolution controls which authored
+prompt text and tools reach the planner; the LLM chooses its text and
+model-selected actions within that resolved context**.
 
 ---
 
 ## 2. File Structure and Block Ordering
 
-An Agent Script file (`.agent` extension) contains eight top-level blocks in this mandatory order:
+An Agent Script file (`.agent` extension) contains eight top-level blocks. The recommended order when generating new agents is:
 
 ```agentscript
 system:
@@ -80,6 +82,9 @@ knowledge:
 language:
     ...
 
+modality voice:
+    ...
+
 start_agent agent_router:
     ...
 
@@ -89,16 +94,25 @@ subagent my_subagent:
 
 **Required blocks:** `system`, `config`, `start_agent`, and at least one `subagent`.
 
-**Optional blocks:** `variables`, `connections`, `knowledge`, `language`. Omit them if not needed.
+**Optional blocks:** `variables`, `connections`, `knowledge`, `language`, `modality voice`. Omit them if not needed.
+
+**Note:** The compiler does not enforce top-level block ordering. Use the order above when generating new files, but do not reorder existing files that use a different order — they are equally valid.
+
+This page is a practical authoring reference, not an exhaustive schema for
+every supported compiler or target version. In repair work, do not delete an
+existing construct merely because an abbreviated list or example on this page
+omits it. Preserve accepted constructs unless the selected compiler, target-org
+validator, or concrete runtime evidence identifies a defect.
 
 **Within `start_agent` and `subagent` blocks**, the internal ordering is:
 
-1. `description` (required)
-2. `system` (optional — subagent-level override of global system instructions)
-3. `before_reasoning` (optional — runs before reasoning phase)
-4. `reasoning` (required)
-5. `after_reasoning` (optional — runs after reasoning phase)
-6. `actions` (optional — action definitions)
+1. `label` (optional human-readable display name)
+2. `description` (required)
+3. `system` (optional — subagent-level override of global system instructions)
+4. `before_reasoning` (optional — runs before reasoning phase)
+5. `reasoning` (required)
+6. `after_reasoning` (optional — runs after reasoning phase)
+7. `actions` (optional — action definitions)
 
 ---
 
@@ -115,9 +129,18 @@ subagent my_subagent:
 
 Example: `check_order_status` is valid. `check_order__status` is invalid (consecutive underscores).
 
-**Indentation:** Use 4 spaces per indent level. NEVER use tabs. Mixing spaces and tabs breaks the parser. All lines at the same nesting level must use the same indentation.
+**Indentation:** Generate new files with 4 spaces per structural level. Four spaces
+is the formatter default and repository convention, not a grammar minimum: the
+language accepts any deeper space indentation relative to the parent. Spaces are
+the specification's standard; tabs are not portable because their behavior is
+implementation-defined. Never mix structural tabs and spaces in one file. When
+making a surgical edit to a consistently tab-indented legacy file, either preserve
+that style and validate against the target runtime or normalize all structural
+indentation as a separate change. Never partially normalize a file or blanket-
+replace tabs inside template content. Lines at the same nesting level must use the
+same indentation width.
 
-Each nesting level adds 4 spaces. The hierarchy follows the block structure — subagent → reasoning → instructions → logic/prompt:
+Each nesting level adds one indent. The hierarchy follows the block structure — subagent → reasoning → instructions → logic/prompt:
 
 ```agentscript
 subagent process_order:
@@ -220,38 +243,68 @@ system:
         error: "Sorry, something went wrong. Please try again."
 ```
 
+The selected global or subagent `system.instructions` value is rendered on
+each reasoning iteration and may contain merge fields such as
+`{!@variables.account_status}`. It is declarative prompt text, not a procedure:
+do not use `instructions: ->`, `run`, `set`, `if`, or `transition` inside a
+system block. Put deterministic procedures in the supported lifecycle or
+reasoning procedure blocks. Interpolation exposes a current value to the
+model; it does not make the model's use of that value deterministic.
+
 The `instructions` field is required and contains text directives sent to the LLM in every reasoning phase. Subagent-level system blocks can override this.
 
-Both `welcome` and `error` messages are required.
+The `messages` block is optional. When a target or use case requires custom
+welcome or error copy, define the relevant messages and validate them against
+that target. Do not add messages, rewrite an existing instruction scalar, or
+change tone during a bounded repair without an accepted finding tied to an
+affected use case.
 
-**Config block** contains agent metadata:
+**Access and config blocks** contain runtime identity and agent metadata:
 
 ```agentscript
+access:
+    default_agent_user: "agent@example.com"
+
 config:
     developer_name: "Customer_Service_Agent"
     agent_label: "Customer Service"
     description: "Handles customer inquiries"
     agent_type: "AgentforceServiceAgent"
-    default_agent_user: "agent@example.com"
 ```
+
+The `access:` form is covered by the compiler workflow in
+[AgentScript Compiler Setup](agentscript-toolchain.md). Public npm packages,
+public source, and target-org compilers can differ; record the local provider
+and validate against the deployment org before release.
 
 **Required fields:**
 - `developer_name` (NOT `agent_name`) — unique identifier following naming rules. Must exactly match the AiAuthoringBundle directory name (e.g., if the directory is `aiAuthoringBundles/Travel_Advisor/`, then `developer_name` must be `"Travel_Advisor"`). A mismatch causes deploy failures.
+
+**Recommended explicit field for newly authored bundles:**
 - `agent_type` — `"AgentforceServiceAgent"` or `"AgentforceEmployeeAgent"`. Determines deployment context and whether `default_agent_user` is required:
   - `"AgentforceServiceAgent"` — customer-facing, deployed via messaging channels. **Requires `default_agent_user`** with Einstein Agent license.
   - `"AgentforceEmployeeAgent"` — internal employee-facing. Agent Script files with this agent type MUST NOT include:
-    - `default_agent_user`
+    - `access.default_agent_user`
     - MessagingSession linked variables (`EndUserId`, `RoutableId`, `ContactId`, `EndUserLanguage`)
     - Escalation subagent with `@utils.escalate`
     - `connection messaging:` block
+
+  Existing bundles and compiler versions can accept an omitted `agent_type`;
+  some environments apply a default. Do not add or change it during a bounded
+  repair merely to complete the schema. Require a target diagnostic or a
+  user-declared deployment context, and do not infer employee versus service
+  type from wording or from the absence of channel-specific constructs alone.
+  When creating a new bundle, set it explicitly and validate the related
+  access and connection contracts against the target org.
 
   **Common mistake — service-agent constructs on employee agent:**
 
   ```agentscript
   # WRONG — employee agent with service-agent constructs
+  access:
+      default_agent_user: "agent@org.ext"    # PROHIBITED — causes "Internal Error"
   config:
       agent_type: "AgentforceEmployeeAgent"
-      default_agent_user: "agent@org.ext"    # PROHIBITED — causes "Internal Error"
   variables:
       EndUserId: linked string               # SERVICE ONLY — no messaging session
           source: @MessagingSession.MessagingEndUserId
@@ -261,11 +314,11 @@ config:
   # RIGHT — clean employee agent config
   config:
       agent_type: "AgentforceEmployeeAgent"
-      # No default_agent_user, no MessagingSession vars, no connection block
+      # No access block, MessagingSession vars, or connection block
   ```
 
 **Conditionally required fields:**
-- `default_agent_user` — **required for `AgentforceServiceAgent`, prohibited for `AgentforceEmployeeAgent`**. This is the Salesforce username of the Einstein Agent User that runs agent actions on behalf of the customer. The user must exist in the target org, be active, and have the Einstein Agent license assigned.
+- `access.default_agent_user` — **required for `AgentforceServiceAgent`, normally omitted for `AgentforceEmployeeAgent`**. This is the Salesforce username of the Einstein Agent User that runs agent actions on behalf of the customer. The user must exist in the target org, be active, and have the Einstein Agent license assigned.
 
   **⚠️ CRITICAL: Setting `default_agent_user` on an `AgentforceEmployeeAgent` causes publish and preview to fail with an unhelpful "unknown error" or "Internal Error, try again later" message.** The error gives no indication that `default_agent_user` is the cause. If you encounter this error on an employee agent, check whether `default_agent_user` is set and remove it.
 
@@ -370,6 +423,7 @@ In prompt text (inside `|` pipe sections), always use `{!@variables.X}` with bra
 
 ```agentscript
 subagent order_lookup:
+    label: "Order Lookup"
     description: "Handle customer order inquiries"
 
     reasoning:
@@ -391,7 +445,16 @@ subagent order_lookup:
 
 **Description is required** — the LLM uses this to understand when the subagent is relevant.
 
-**Subagent-level system override** (optional) — override global system instructions for this subagent only:
+**Label is optional** — use `label` on `start_agent` or `subagent` when a
+human-readable display name is useful. It is distinct from top-level
+`config.agent_label`. Preserve an existing `label` during repair unless the
+selected compiler or deployment target rejects it.
+
+**Subagent-level system override** (optional) — replaces global system
+instructions for this subagent and does not merge with them. Omit the override
+when global instructions should remain intact. If an override is necessary,
+repeat every durable identity, safety, and scope invariant the subagent must
+retain:
 
 ```agentscript
 subagent product_specialist:
@@ -405,12 +468,13 @@ subagent product_specialist:
 
 **Internal block ordering within a subagent**:
 
-1. `description`
-2. `system` (optional override)
-3. `before_reasoning` (optional)
-4. `reasoning` (required)
-5. `after_reasoning` (optional)
-6. `actions` (optional definitions)
+1. `label` (optional display name)
+2. `description`
+3. `system` (optional override)
+4. `before_reasoning` (optional)
+5. `reasoning` (required)
+6. `after_reasoning` (optional)
+7. `actions` (optional definitions)
 
 **Before/after reasoning directive blocks**:
 
@@ -437,6 +501,20 @@ Directive blocks use the arrow syntax (`->`) for logic but no LLM reasoning. The
 ## 8. Reasoning Instructions
 
 Reasoning instructions combine deterministic logic and prompt text. The runtime resolves deterministic parts first, then sends the resulting prompt to the LLM for reasoning.
+
+The resolved prompt is rebuilt for every reasoning iteration. A completed tool
+batch normally leads to another iteration unless execution hands off, pauses,
+is cancelled, or reaches a limit. Keep the prompt short and task-local: current
+objective, relevant state, action guidance, exclusions, and stop conditions. Keep persona,
+tone, disclosure, safety, and broad scope rules in the effective system layer.
+Treat effective system and reasoning text as cumulative unless the target
+runtime's public, versioned contract guarantees different precedence, so the
+two surfaces must agree. In particular, do not combine an unconditional global
+instruction to answer or help with instructions that require routing,
+verification, refusal, or escalation without answering. Do not rely on
+structured active-subagent identity or direct variable-store access unless the
+runtime explicitly provides it; state the concrete operating task. See
+[Instruction Resolution](instruction-resolution.md#scope-response-duties-by-branch).
 
 **Arrow syntax (`->`) for logic blocks**:
 
@@ -490,51 +568,58 @@ instructions: ->
         | Suggest self-service options.
 ```
 
-Within `->` blocks, a line without `|` continues the previous line. A new `|` starts a new line:
+Within `->` blocks, a line without `|` continues the current prompt fragment.
+Use one `|` per contiguous block and align continuation lines beneath its
+content:
 
 ```agentscript
 instructions: ->
     | This is a long instruction that
       continues on the next physical line.
-    | This starts a new logical line.
+      This remains part of the same prompt block.
 ```
 
-**If/Else (no "else if", no nested if)**:
+Start another `|` after a runtime statement or conditional boundary when a new
+prompt fragment is structurally required. Repeating `|` on every adjacent
+sentence is valid syntax, but it does not create steps or control flow.
+
+### Conditional Control Flow Syntax
+
+When authoring a new two-way branch whose alternatives are exclusive, prefer
+`if / else`:
 
 ```agentscript
-# ✅ CORRECT — simple if/else
-if @variables.status == "pending":
-    run @actions.notify_pending
+if @variables.count < 5:
+    run @actions.small
 else:
-    run @actions.notify_complete
+    run @actions.large
+```
 
-# ❌ WRONG — else if not supported
+For three or more alternatives where exactly one branch should run, use an
+`if / else if / else` chain. The first matching branch wins:
+
+```agentscript
 if @variables.count < 5:
     run @actions.small
 else if @variables.count < 10:
     run @actions.medium
-
-# ❌ WRONG — nested if inside else is also invalid
-if @variables.status == "pending":
-    run @actions.queue_pending
 else:
-    if @variables.status == "closed":
-        run @actions.archive
+    run @actions.large
 ```
 
-For multi-branch logic, use compound conditions (`if A and B:`) or flatten to sequential `if` statements.
+Spell the clause `else if`; Python-style `elif` is not valid AgentScript. Do not
+place a separate `if` inside a conditional body: true user-written nested
+conditionals are unsupported. Combine predicates with `and` or `or`, or use an
+`else if` chain.
 
-**Inline action invocation (`run @actions.X`)**:
+Sequential top-level `if` statements execute independently. Use them when more
+than one branch may need to run, or when their predicates are intentionally and
+provably mutually exclusive. For new alternative branches, an `else if` chain
+usually expresses first-match priority more clearly. In a bounded repair, do
+not rewrite equivalent, mutually exclusive conditions solely to normalize
+style; require a diagnostic, overlap, gap, priority error, or affected use case.
 
-```agentscript
-run @actions.check_inventory
-    with product_id = @variables.selected_product
-    set @variables.stock_level = @outputs.available_quantity
-```
-
-The `run` command executes the action deterministically — the runtime runs it before the LLM reasons. Use `with` to pass inputs (bound to variables or literal values). Use `set` to capture outputs into variables.
-
-**Post-action directives** (only for `@actions`, not `@utils`):
+A direct post-action `if` in a `run @actions.*` body is also supported:
 
 ```agentscript
 run @actions.process_order
@@ -546,7 +631,19 @@ run @actions.process_order
         transition to @subagent.error_handling
 ```
 
-After an action completes, you can check outputs and transition.
+**Inline action invocation (`run @actions.X`)**:
+
+```agentscript
+run @actions.check_inventory
+    with product_id = @variables.selected_product
+    set @variables.stock_level = @outputs.available_quantity
+```
+
+The `run` command executes the action deterministically — the runtime runs it before the LLM reasons. Use `with` to pass inputs (bound to variables or literal values). Use `set` to capture outputs into variables.
+
+**Post-action directives** work only for `@actions`, not `@utils`. After an
+action completes, you can check outputs and transition as shown in the
+conditional syntax section above.
 
 **Scope lifecycle — `@inputs` and `@outputs` are ephemeral:**
 - `@inputs`: only in `with` directives during invocation. NOT in `set`/`if` after execution.
@@ -571,16 +668,29 @@ All logic is resolved first; only matching `|` pipe lines are included in the pr
 
 ```agentscript
 instructions: ->
-    | Welcome!
+    | Welcome the user.
     if @variables.is_returning:
-        | Nice to see you again.
+        | Acknowledge that they are returning.
     else:
-        | Let's get started.
-    | How can I help?
+        | Greet them as a new user.
+    | Ask how you can help.
 
 # If is_returning == False, the prompt becomes:
-# "Welcome! Let's get started. How can I help?"
+# "Welcome the user. Greet them as a new user. Ask how you can help."
 ```
+
+Indentation and step numbering inside the emitted pipe text affect only the
+text shown to the model. They do not create nested executable scope. Likewise,
+words such as `Show`, `Ask`, `Call`, `Set`, `STOP`, and `Continue` inside pipe
+text are natural-language instructions, not AgentScript directives.
+
+Action availability is resolved independently from prompt layout. Mentioning an
+action beneath one conditional pipe block does not hide that action when the
+condition is false. Use `available when` when an action must exist only for a
+machine-known branch.
+
+For a review checklist and paired examples, see
+[Common Control-Flow Pitfalls](common-control-flow-pitfalls.md).
 
 ---
 
@@ -656,7 +766,7 @@ reasoning:
         if @variables.order_id != "":
             | Show order details for {!@variables.order_id}.
         else:
-            | I need an order ID to help you.
+            | Ask the user for the order ID needed to continue.
 ```
 
 ---
@@ -716,7 +826,7 @@ actions:
 - `is_displayable` (boolean) — controls whether output is shown to the customer
 - `complex_data_type_name` — required for complex data types like SObject references (e.g., `"lightning__recordInfoType"`), Apex inner classes, and custom Lightning types. Not needed for simple types like `date`, `integer`, or `datetime` — use the simple type directly.
 
-**Parameter names must exactly match the backing logic interface — including case.** Read the target class before writing the action definition.
+**Parameter names must exactly match the action implementation interface — including case.** Read the target class before writing the action definition.
 
 Given this Apex class:
 
@@ -877,7 +987,8 @@ run @actions.fetch_order
 
 Utility functions control flow and state. They do not call external systems.
 
-**`@utils.transition to`** — permanent one-way handoff to another subagent:
+**`@utils.transition to`** — non-returning handoff to another subagent (there
+is no automatic return to the source):
 
 ```agentscript
 reasoning:
@@ -887,7 +998,10 @@ reasoning:
             available when @variables.cart_has_items == True
 ```
 
-Transition discards the current subagent's prompt and starts fresh with the target subagent.
+Transition stops the current subagent before another planner call and starts
+the target subagent's lifecycle and prompt resolution. Shared state and
+conversation history persist, and the target may later transition elsewhere,
+including back to the source when the design allows it.
 
 **`@utils.escalate`** — route to a human agent (**service agents only** — requires a `connection messaging:` block, which is only valid for `AgentforceServiceAgent`; do not use in employee agents):
 
@@ -899,7 +1013,9 @@ reasoning:
             available when @variables.needs_human == True
 ```
 
-Escalation ends the current conversation and routes to the escalation system defined in the connection block.
+Escalation ends the current agent turn and hands control to the escalation path
+defined by the connection block. What the downstream human-support session
+does next is outside the AgentScript utility's authoring contract.
 
 **`@utils.setVariables`** — LLM-driven variable capture (slot-filling):
 
@@ -912,7 +1028,19 @@ reasoning:
             with budget = ...
 ```
 
-The LLM extracts values from the conversation and populates the specified variables.
+The LLM extracts values from the conversation and populates the specified
+variables through a model-selected tool call. The call updates state but does
+not itself define a turn boundary. Any later reasoning or response follows the
+runtime's normal tool-loop behavior; do not use `setVariables` to force either
+an end or another reasoning iteration.
+
+Do not confuse an instruction to call `setVariables` with the call itself.
+During prompt construction, deterministic `run`, `set`, and `if` statements
+resolve and all `|` text is assembled before the model runs. A `|` instruction
+therefore cannot pause deterministic resolution while the model captures a
+value. For inseparable "capture X, then act on X" behavior, use planner
+slot-fill directly on the real action, deterministic chaining, or one
+purpose-built implementation that owns the complete sequence.
 
 **`@subagent.X`** — delegation to another subagent with return:
 
@@ -926,19 +1054,26 @@ reasoning:
 
 Calling a subagent as a tool runs that subagent's reasoning, then returns control to the calling subagent.
 
-**Post-action directives apply only to `@actions`, not `@utils`**:
+**Utility actions do not expose `@outputs`**:
 
 ```agentscript
-# WRONG — utilities don't support set
+# WRONG — escalation has no output to bind
 escalate: @utils.escalate
-    set @variables.escalated = True
+    set @variables.result = @outputs.status
 
-# CORRECT — only @actions support set
+# CORRECT — backing action output can be captured
 process: @actions.process_order
     set @variables.result = @outputs.status
+
+# SPECIAL CASE — setVariables supports direct state assignments
+mark_ready: @utils.setVariables
+    set @variables.status = "ready"
 ```
 
-Utilities cannot have output, so `set` is invalid.
+Utilities do not provide action outputs, so output-based post-action directives
+are invalid. `@utils.setVariables` is the state-update utility: it supports
+`with` clauses and direct `set @variables...` clauses. It does not support
+follow-up `run` statements or transitions.
 
 ---
 

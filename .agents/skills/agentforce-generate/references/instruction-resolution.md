@@ -5,190 +5,264 @@
 
 ---
 
-## 1. Three Phases of Instruction Resolution
+## 1. Runtime Lifecycle
 
-Agent Script instructions go through three distinct phases at runtime. Understanding these phases is critical for writing effective instructions and debugging unexpected behavior.
+AgentScript defines deterministic lifecycle hooks around an iterative LLM
+reasoning loop:
 
+```text
+before_reasoning (once per subagent execution)
+    -> render effective system.instructions and resolve
+       reasoning.instructions (every reasoning iteration)
+    -> LLM returns text and zero or more tool calls
+       -> tool calls: execute the planned batch; unless control hands off or
+          execution stops, render both instruction surfaces for another
+          reasoning iteration
+       -> no tool calls: advance to after_reasoning
+    -> after_reasoning (once per subagent execution, if reached)
 ```
-Phase 1: Pre-LLM Setup
-   (deterministic -- runs before the LLM sees anything)
-       |
-       v
-Phase 2: LLM Reasoning
-   (non-deterministic -- LLM processes the assembled prompt)
-       |
-       v
-Phase 3: Post-Action Loop
-   (deterministic -- runs after an action completes, then loops back to Phase 1)
-```
+
+Do not confuse a new reasoning iteration after a tool call with
+`after_reasoning`. The latter does not run after each tool.
 
 ---
 
-## 2. Phase 1: Pre-LLM Resolution
+## 2. Instruction Surfaces
 
-During Phase 1, the Agent Script runtime evaluates deterministic constructs in `instructions: ->` blocks. This happens BEFORE the LLM sees any text.
+| Surface | Runtime meaning | Authoring use |
+|---|---|---|
+| Global `system.instructions` | Default declarative system prompt, rendered on each reasoning iteration | Durable identity, safety, scope, and response invariants |
+| Subagent `system.instructions` | Declarative system prompt rendered on each reasoning iteration; replaces the global value for that subagent | Rare specialist override that restates every invariant still required |
+| `reasoning.instructions` | Runtime-resolved instructions rebuilt on every reasoning iteration | Current objective, relevant state, action guidance, and stop conditions |
+| `before_reasoning` | Deterministic procedure that runs once before the reasoning loop | Preconditions, data preparation, and early transitions |
+| `after_reasoning` | Deterministic procedure that runs if execution reaches the hook after the reasoning loop | Final state updates and post-response transitions |
 
-### What Happens in Phase 1
+Omit a subagent system override when the global instructions already apply. If
+an override is necessary, copy the durable invariants that subagent must retain;
+the compiler selects the subagent value instead of the global value.
+
+Treat effective system and reasoning instructions as cumulative. Do not depend
+on a model provider separating or prioritizing the AgentScript surfaces
+differently unless the target runtime's public, versioned contract guarantees
+that behavior. Their combined meaning must contain no contradiction, duplicate
+policy, or reliance on one layer overriding the other.
+
+### System Instructions Are Dynamic Prompt Context, Not a Procedure
+
+`system.instructions` may contain merge fields such as
+`{!@variables.account_status}`. The runtime renders the selected global or
+subagent value on each reasoning iteration, so a later iteration can receive
+the current value.
+
+System instructions are declarative prompt text. They do not support the
+procedural `instructions: ->` form or runtime statements such as `run`, `set`,
+`if`, or `transition`. Put deterministic procedures in lifecycle or reasoning
+procedure blocks. A merge field only exposes a rendered value to the model; it
+does not turn a system instruction into a runtime predicate or guarantee that
+the model follows a requested branch.
+
+### Separate AgentScript Control from Model Instructions
+
+Subagents and variables are AgentScript runtime concepts, not model knowledge.
+The compiler and runtime select the current execution block, evaluate
+conditions, run deterministic actions, update state, interpolate values, and
+expose the currently available tools. Portable model instructions must not
+depend on a provider exposing structured execution-block identity or direct
+variable-store access unless the target runtime's public contract guarantees
+it.
+
+Developer documentation may explain subagents and variables because authors
+need that mental model. Text sent to the model must instead state the concrete
+task and response duty. Do not tell the model to inspect the active subagent or
+read `@variables`.
+
+### Scope Response Duties by Branch
+
+Do not put an unconditional response duty in the global layer when any branch
+must route, verify, clarify, refuse, close, or escalate without answering. This
+conflict is especially common in router-first agents:
+
+```agentscript
+# WRONG: the effective prompt says both answer and do not answer.
+system:
+    instructions: "Answer the user's questions helpfully."
+start_agent agent_router:
+    reasoning:
+        instructions: ->
+            | Do not answer. Route the request.
+
+# RIGHT: the global rule allows the current operating task to set posture.
+system:
+    instructions: |
+        Perform only the current operating task described below. Answer the
+        underlying request only when that task calls for an answer. Otherwise
+        route, verify, clarify, refuse, or escalate as directed.
+```
+
+Review the effective pair for every execution branch: global or replacement
+system instructions plus the branch's resolved reasoning instructions. A scope
+narrowing is compatible only when the global layer already permits that
+narrowing. For every reachable LLM call, that effective pair must prescribe one
+unambiguous response posture. A subagent system replacement must restate every
+durable invariant it retains.
+
+### Instruction Rendering Before Each LLM Call
+
+Before every reasoning iteration, the runtime renders the selected
+`system.instructions` value and evaluates deterministic constructs in
+`reasoning.instructions: ->`. This happens before the LLM sees either effective
+instruction surface.
+
+### What Happens During Resolution
 
 1. **`if`/`else` evaluation**: Conditions are evaluated against current variable values. Only the matching branch is included in the prompt.
 2. **Variable injection**: `{!@variables.X}` tokens are replaced with current values.
 3. **`run` execution**: Deterministic `run @actions.X` calls execute and their outputs are captured.
 4. **`set` execution**: Variable assignments execute immediately.
-5. **`transition to`**: If reached, the subagent switch happens immediately (LLM is never called).
+5. **`transition to`**: If reached during deterministic resolution, control
+   hands to the target before the current subagent invokes its planner.
 
-### Phase 1 Example
+### Resolution Example
 
 Given this instruction block:
 
-```
+```agentscript
 reasoning:
    instructions: ->
-      # 1. Post-action check (from previous loop)
-      if @variables.refund_approved == True:
-         | Your refund has been processed. Reference: {!@variables.refund_id}
+      # Completed-state check from a previous tool call
+      if @variables.order_status != "":
+         | Report order status {!@variables.order_status}, then stop.
          transition to @subagent.confirmation
 
-      # 2. Pre-LLM data loading
-      if @variables.data_loaded == False:
-         run @actions.load_customer_profile
-            with customer_id = @variables.customer_id
-            set @variables.risk_score = @outputs.risk_score
-            set @variables.tier = @outputs.tier
-         set @variables.data_loaded = True
-
-      # 3. Dynamic instructions
-      | Customer tier: {!@variables.tier}, Risk score: {!@variables.risk_score}
-
-      if @variables.risk_score >= 80:
-         | HIGH RISK -- Offer full cash refund to retain this customer.
-         | Do NOT offer store credit. Prioritize retention.
-
-      if @variables.risk_score < 80:
-         | STANDARD -- Offer $10 store credit as goodwill.
-         | Only escalate to cash refund if customer insists.
+      | Collect the order number, then use {!@actions.lookup_order} once.
 ```
 
-**First turn resolution** (variables at defaults):
-
-- `refund_approved == True` -> False. Skip this block.
-- `data_loaded == False` -> True. Execute `run @actions.load_customer_profile`. Variables now set.
-- Set `data_loaded = True`.
-- Inject `{!@variables.tier}` -> `"gold"`, `{!@variables.risk_score}` -> `85`.
-- `risk_score >= 80` -> True. Include high-risk instructions.
-- `risk_score < 80` -> False. Skip standard instructions.
-
-**What the LLM actually sees**:
+Before lookup, the LLM sees only:
+```text
+Collect the order number, then use lookup_order once.
 ```
-Customer tier: gold, Risk score: 85
-HIGH RISK -- Offer full cash refund to retain this customer.
-Do NOT offer store credit. Prioritize retention.
-```
+
+After the tool stores `order_status`, the instructions are rebuilt. The
+completed-state branch resolves and transitions without asking the LLM to call
+the tool again.
 
 ---
 
-## 3. Phase 2: LLM Processing
+## 3. LLM Processing
 
-In Phase 2, the LLM receives the assembled prompt and produces a response. The LLM sees:
+The AgentScript authoring contract defines deterministic resolution and the
+inputs exposed to reasoning, not an exact provider message count. Reasoning
+receives:
 
-### The 4-Message Prompt Structure
+- One authored node-instruction value: the subagent system override when
+  present, otherwise the global `system.instructions`. Runtime base prompts and
+  metadata may add other system content outside AgentScript. Merge fields in
+  the selected value are rendered for the current reasoning iteration.
+- Conversation history.
+- The resolved `reasoning.instructions`, when non-empty.
+- The currently available tools and their schemas.
 
-The Agent Script runtime assembles a 4-message prompt for the LLM:
-
-| # | Message Role | Content Source | Purpose |
-|---|---|---|---|
-| 1 | **System** | `system: instructions:` + agent metadata | Global persona, safety rules, capabilities |
-| 2 | **System** | `subagent: reasoning: instructions:` (resolved from Phase 1) | Subagent-specific operating instructions |
-| 3 | **User/Assistant** | Conversation history (all turns) | Context for the current request |
-| 4 | **System** | Available actions + their descriptions | Tool palette the LLM can choose from |
+Do not document or test an exact four-message structure. Tool schemas are not
+necessarily encoded as a chat message, and message transport is not the
+AgentScript authoring contract.
 
 ### What the LLM Decides
 
-Based on the assembled prompt, the LLM:
-
-1. **Selects an action** (if applicable) from the available actions list
-2. **Fills slot parameters** (`...` values) from conversation context
-3. **Generates a text response** to send to the user
-4. **Decides whether to transition** (if a transition action is available and appropriate)
+Based on the assembled prompt, an LLM result may contain text and zero or more
+available action calls. For an action call, the model selects the action and
+fills slot parameters (`...`) from conversation context. A model-selected
+transition is an action call; it is not a separate deterministic decision.
 
 ### What the LLM Does NOT See
 
-- Raw `if`/`else` blocks (already resolved in Phase 1)
-- `run` statements (already executed in Phase 1)
+- Raw `if`/`else` blocks (already resolved before the iteration)
+- Structured AgentScript execution-block identity or direct variable-store
+  access unless the target runtime explicitly provides it
+- `run` statements (already executed before the iteration)
 - `set` statements (already executed)
 - `available when` conditions (already evaluated -- hidden actions are simply absent)
-- `after_reasoning` blocks (run after the LLM, not shown to it)
+- `after_reasoning` source code (it is a runtime hook when reached, not authored
+  prompt text)
 
 ---
 
-## 4. Phase 3: Post-Action Loop
+## 4. Tool Loop and Re-Resolution
 
-After the LLM selects and executes an action, the system loops back to Phase 1 for **re-resolution**. This is the post-action loop pattern described in the SKILL.md architecture section.
+The runtime may execute several model-selected calls from one planner result.
+After that batch, it either follows a handoff or stop condition, or begins
+another reasoning iteration and rebuilds both instruction surfaces from
+current state.
 
 ### Loop Sequence
 
-```
-1. Phase 1 resolves instructions (first time)
-2. Phase 2: LLM reasons and selects an action
-3. Action executes -> outputs captured in variables
-4. Phase 1 re-resolves instructions (with updated variables)
-   - Post-action checks at TOP of instructions fire
+```text
+1. Resolve reasoning instructions
+2. LLM returns text and zero or more tool calls
+3. Planned tool calls execute -> configured outputs are captured
+4. Re-resolve reasoning instructions with updated variables
+   - State-dependent checks are evaluated again
    - New data is injected into the prompt
-5. Phase 2: LLM reasons again with updated context
-6. Repeat until: transition, escalation, or no action selected
+5. LLM reasons again with updated context
+6. Repeat unless execution hands off, pauses, reaches a limit, is cancelled, or
+   the planner returns no tool calls
 ```
 
-### Why Post-Action Checks Go at the TOP
+When the planner returns no tool calls, execution advances to
+`after_reasoning`. A handoff, cancellation, confirmation pause, or runtime
+limit can take a different path.
 
-Place post-action checks at the TOP of `instructions: ->` so they fire immediately on re-resolution:
+### Post-Action Checks Need Exclusive Control
 
-```
+Placing a completed-state check near the top makes its precedence visible, but
+position alone does not suppress later prompt fragments. Use mutually
+exclusive predicates, `else`, or an actual transition when the completed path
+must exclude first-entry guidance:
+
+```agentscript
 reasoning:
    instructions: ->
-      # POST-ACTION CHECK (at TOP -- fires on re-resolution)
+      # Completed state owns this path.
       if @variables.order_cancelled == True:
-         | Your order has been cancelled successfully.
          transition to @subagent.confirmation
 
-      # These instructions are for the FIRST entry (before action runs)
-      | I can help you cancel your order.
-      | What is your order number?
+      else:
+         | Explain that you can help cancel the order and ask for its order
+           number.
 ```
 
-If the check were at the BOTTOM, the LLM would see the "ask for order number" instructions again even after the cancellation succeeded, causing confusion.
+Without the `else` or transition, completed-state and first-entry duties can be
+assembled in the same iteration. Here the target confirmation subagent owns the
+success response. A transition exits the current subagent before its planner
+runs; merely moving a prompt fragment does not.
 
 ---
 
-## 5. Recommended Instruction Order
+## 5. Concise Reasoning Instructions
 
-Within a `instructions: ->` block, follow this order for maximum clarity:
+Keep `reasoning.instructions` task-local. Include only information that can
+change the current tool choice or response:
 
-```
+1. Checks backed by trusted outcomes or material invariants.
+2. Deterministic data loading required for this iteration.
+3. The current objective and only the resolved state it consumes.
+4. Action guidance, exclusions, and a stop condition.
+
+Do not add a variable or branch merely to remind the model what happened in
+surviving conversation history.
+
+Keep persona, tone, disclosure, safety, and broad scope rules in the effective
+system layer. Put tool-specific trigger details in action descriptions instead
+of repeating them in the reasoning instructions.
+
+```agentscript
 reasoning:
    instructions: ->
-      # 1. POST-ACTION CHECKS (deterministic transitions)
-      if @variables.action_completed == True:
-         transition to @subagent.next_step
-
-      # 2. PRE-LLM DATA LOADING (deterministic actions)
-      if @variables.data_needed == True:
-         run @actions.load_data
-            with id = @variables.record_id
-            set @variables.loaded_data = @outputs.result
-
-      # 3. CONDITIONAL INSTRUCTIONS (based on state)
+      # Trusted verification output controls the protected capability.
       if @variables.is_verified == True:
-         | Full access granted. You can:
-         | - View account details
-         | - Make changes
-         | - Request refunds
+         | Complete the requested account task using the available action once.
 
       if @variables.is_verified == False:
-         | Please verify your identity first.
-         | I need your email address and order number.
-
-      # 4. STATIC INSTRUCTIONS (always included)
-      | Be concise and professional.
-      | Always confirm before making changes.
+         | Ask for the minimum information needed to verify identity. Do not use account-changing actions.
 ```
 
 ---
@@ -199,16 +273,16 @@ reasoning:
 
 Prevent access to sensitive actions until identity is verified:
 
-```
+```agentscript
 reasoning:
    instructions: ->
       if @variables.is_verified == False:
-         | You must verify your identity before I can help with account changes.
-         | Please provide your email address.
+         | Explain that identity verification is required before account
+           changes and ask for the user's email address.
 
       if @variables.is_verified == True:
-         | Identity verified. I can now help with account changes.
-         | What would you like to do?
+         | Confirm successful verification and ask what account change the user
+           wants to make.
 
    actions:
       update_account: @actions.update_account_info
@@ -218,13 +292,15 @@ reasoning:
          with value = ...
 ```
 
-The `available when` guard hides the action from the LLM until verification passes. The conditional instructions tell the user what to do.
+The `available when` guard hides the action from the LLM until verification
+passes. The conditional instructions tell the model which response duty is
+current.
 
 ### Pattern 2: Data-Dependent Instructions
 
 Load data first, then tailor instructions based on the result:
 
-```
+```agentscript
 reasoning:
    instructions: ->
       run @actions.get_account_status
@@ -233,101 +309,96 @@ reasoning:
          set @variables.balance = @outputs.balance
 
       | Account status: {!@variables.account_status}
-      | Current balance: {!@variables.balance}
+        Current balance: {!@variables.balance}
 
       if @variables.account_status == "delinquent":
          | IMPORTANT: This account is delinquent.
-         | Collect payment before processing any other requests.
-         | Offer payment plan options if customer cannot pay in full.
+           Collect payment before processing any other requests.
+           Offer payment plan options if customer cannot pay in full.
 
       if @variables.account_status == "active":
          | This account is in good standing.
-         | Process requests normally.
+           Process requests normally.
 ```
 
 ### Pattern 3: Action Chaining
 
 Execute one action, then use its output to drive the next:
 
-```
+```agentscript
 reasoning:
    instructions: ->
       # Post-action check: case was created in previous loop
       if @variables.case_id != "":
-         | Case {!@variables.case_id} has been created.
          run @actions.assign_case
             with case_id = @variables.case_id
             with priority = @variables.priority
          transition to @subagent.case_confirmation
 
-      | I need to collect some information to create a support case.
-      | What is the issue you're experiencing?
+      | Explain that issue details are needed to create a support case and ask
+        the user to describe the issue.
 ```
 
-### Pattern 4: Multi-Condition Routing
+### Pattern 4: Machine-Known Gate
 
-Route based on multiple variable values:
+Use compound conditions when trusted machine state controls a material
+capability. Do not persist the user's current intent merely to route it; let the
+router infer current intent from the latest turn and conversation history.
 
-```
+```agentscript
 reasoning:
    instructions: ->
-      if @variables.intent == "billing" and @variables.is_verified == True:
-         | I can help with your billing question.
-         transition to @subagent.billing_support
+      if @variables.is_verified == True and @variables.account_locked == False:
+         | Complete the requested account task using the available action.
 
-      if @variables.intent == "billing" and @variables.is_verified == False:
-         | For billing questions, I need to verify your identity first.
-         transition to @subagent.identity_verification
+      if @variables.is_verified == False:
+         | Ask for the minimum information needed to verify identity.
 
-      if @variables.intent == "general":
-         | How can I help you today?
+      if @variables.account_locked == True:
+         | Do not use account-changing actions. Explain how to unlock the
+           account or escalate.
 ```
 
 ---
 
 ## 7. Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Nested If Blocks
+### Anti-Pattern 1: Re-Explaining Language Syntax
 
-```
-# WRONG -- Agent Script does not support nested if or else if
-if @variables.tier == "gold":
-   if @variables.is_verified == True:
-      | VIP treatment
-   else:
-      | Verify first
+Keep this reference focused on instruction resolution. For supported flat
+conditions, nested-condition limitations, and post-action conditionals, use the
+canonical
+[Conditional Control Flow Syntax](agent-script-core-language.md#conditional-control-flow-syntax)
+section.
 
-# CORRECT -- Use compound conditions
-if @variables.tier == "gold" and @variables.is_verified == True:
-   | VIP treatment
+### Anti-Pattern 2: Conflicting Entry and Completed-State Text
 
-if @variables.tier == "gold" and @variables.is_verified == False:
-   | Verify first
-```
-
-### Anti-Pattern 2: Post-Action Check at Bottom
-
-```
-# WRONG -- Check at bottom; LLM sees stale instructions on re-resolution
+```agentscript
+# WRONG -- both fragments can survive when order_status is populated
 reasoning:
    instructions: ->
-      | What is your order number?
+      | Ask for the order number.
 
       if @variables.order_status != "":
-         transition to @subagent.show_status
+         | Report the current order status.
 
-# CORRECT -- Check at TOP
+# CORRECT -- the predicates make the duties exclusive
 reasoning:
    instructions: ->
       if @variables.order_status != "":
-         transition to @subagent.show_status
-
-      | What is your order number?
+         | Report the current order status.
+      else:
+         | Ask for the order number.
 ```
+
+Moving a condition to the top can make precedence easier to read, but the
+runtime resolves the whole procedure before invoking the planner. Position
+alone does not exclude another prompt fragment. Use exclusive predicates or a
+reached transition when only one duty should survive.
 
 ### Anti-Pattern 3: Persona in Subagent Instructions
 
-```
+```text
 # WRONG -- Persona text duplicated in every subagent
 reasoning:
    instructions: |
@@ -348,7 +419,7 @@ subagent order_support:
 
 ### Anti-Pattern 4: Using `|` When `->` Is Needed
 
-```
+```agentscript
 # WRONG -- Using literal mode when conditionals are needed
 reasoning:
    instructions: |
@@ -366,36 +437,74 @@ reasoning:
 
 ### Anti-Pattern 5: Missing Variable Injection Syntax
 
-```
+```agentscript
 # WRONG -- Variable name as literal text
 reasoning:
    instructions: ->
-      | Your order ID is @variables.order_id
+      | Tell the user their order ID is @variables.order_id.
 
 # CORRECT -- Use injection syntax
 reasoning:
    instructions: ->
-      | Your order ID is {!@variables.order_id}
+      | Tell the user their order ID is {!@variables.order_id}.
 ```
 
-### Anti-Pattern 6: `run` Inside `after_reasoning`
+### Pattern: `after_reasoning` Lifecycle Actions
 
-While `run` compiles inside `after_reasoning:`, its runtime behavior is inconsistent across bundle types. Prefer using `run` in `reasoning: instructions: ->` or `reasoning: actions:` instead.
+`run` is supported in `after_reasoning` through the common action mechanism.
+The block runs when the subagent's reasoning loop reaches that lifecycle hook,
+including a planner result with no tool calls. It is not an after-every-tool
+hook and can be bypassed by other terminal paths such as a handoff. Use it only
+when the follow-up belongs at that lifecycle point.
 
-```
-# RISKY -- run in after_reasoning has inconsistent behavior
+Do not use this lifecycle hook for an irreversible action merely because it is
+deterministic; consequential-action preconditions still need explicit guards.
+
+```agentscript
+# Log every completed reasoning turn.
 after_reasoning:
    run @actions.log_event
       with event = "turn_completed"
+```
 
-# SAFER -- Use instructions: -> for deterministic runs
+### Anti-Pattern 7: Prose-Based Conditional Logic
+
+```agentscript
+# WRONG -- Conditional behavior described in prose; the LLM must interpret
+# these directives and may ignore, reorder, or misapply them
 reasoning:
    instructions: ->
-      # Post-action logging
-      if @variables.last_action != "":
-         run @actions.log_event
-            with event = @variables.last_action
+      | If the user is a VIP, offer priority support.
+        If they haven't been verified, ask for verification first.
+        If the refund has been approved, confirm it and end the conversation.
+        Check availability before booking.
+
+# CORRECT when the conditions are trusted machine facts protecting material
+# invariants. The LLM sees only the matching operating instructions.
+reasoning:
+   instructions: ->
+      if @variables.refund_approved == True:
+         transition to @subagent.confirmation
+
+      if @variables.refund_approved == False and @variables.customer_verified == False:
+         | Explain that identity verification is required before proceeding and
+           ask for the user's email address.
+
+      if @variables.refund_approved == False and @variables.customer_verified == True:
+         | Help with the current account request.
+
+      if @variables.refund_approved == False and @variables.customer_verified == True and @variables.customer_tier == "vip":
+         | Mention that priority support is available.
 ```
+
+Why this matters: machine-known authorization, confirmation, action-result, and
+external-ordering conditions must not depend on model discretion. AgentScript
+resolves those branches before the model sees the prompt.
+
+Do not manufacture state merely so conversational judgment can become an
+`if/else`. Use a deterministic branch only when a named runtime consumer and
+material cause justify it. Reserve prose for current intent, tone, phrasing,
+and other decisions the model should interpret from the conversation.
 
 ---
 
@@ -405,7 +514,7 @@ reasoning:
 
 Static text passed directly to the LLM. No evaluation occurs:
 
-```
+```agentscript
 instructions: |
    Help the customer with their order.
    Be professional and concise.
@@ -413,33 +522,34 @@ instructions: |
 
 Or with the `|` prefix on each line (inside procedural mode):
 
-```
+```agentscript
 instructions: ->
    | Help the customer with their order.
-   | Be professional and concise.
+     Be professional and concise.
 ```
 
 ### Procedural Mode (`->`)
 
 Enables conditionals, variable injection, and deterministic actions:
 
-```
+```agentscript
 instructions: ->
    if @variables.condition == True:
-      | Text shown when condition is true.
+      | Instruction included when the condition is true.
    else:
-      | Text shown when condition is false.
+      | Instruction included when the condition is false.
 ```
 
 ### Variable Injection
 
-```
-| Your order {!@variables.order_id} is {!@variables.status}.
+```agentscript
+| Tell the user order {!@variables.order_id} has status
+  {!@variables.status}.
 ```
 
 ### Deterministic Run
 
-```
+```agentscript
 run @actions.load_data
    with param = @variables.value
    set @variables.result = @outputs.field
@@ -447,19 +557,19 @@ run @actions.load_data
 
 ### Deterministic Set
 
-```
+```agentscript
 set @variables.counter = @variables.counter + 1
 ```
 
 ### Deterministic Transition
 
-```
+```agentscript
 transition to @subagent.next_subagent
 ```
 
 ### Conditional Transition
 
-```
+```agentscript
 if @variables.all_collected == True:
    transition to @subagent.confirmation
 ```
@@ -472,7 +582,7 @@ To verify how instructions were resolved at runtime, use the trace files generat
 
 ### Trace File Location
 
-```
+```text
 .sfdx/agents/{BundleName}/sessions/{sessionId}/traces/{planId}.json
 ```
 
@@ -492,7 +602,7 @@ jq -r '.planTrace.steps[] | select(.type == "ACTION_STEP") | {name: .name, pre: 
   ~/.sf/sfdx/agents/MyAgent/sessions/*/traces/*.json
 ```
 
-### Verifying Phase 1 Resolution
+### Verifying Per-Iteration Resolution
 
 To confirm that `if`/`else` blocks resolved correctly, compare the trace's `LLM_STEP` input against your `instructions: ->` block. The LLM input should contain only the branches that matched, with all `{!@variables.X}` tokens replaced with actual values.
 
@@ -509,21 +619,24 @@ For production agents, use the Session Trace Data Model (STDM) in Data Cloud to 
 
 ## 10. Resolution Across Subagent Transitions
 
-When a subagent transition occurs (via `@utils.transition to @subagent.X` or `transition to @subagent.X`), instruction resolution starts fresh in the new subagent:
+When a subagent transition occurs (via `@utils.transition to @subagent.X` or
+`transition to @subagent.X`), the current subagent stops resolving and the
+target subagent begins its lifecycle. Conversation history and shared state are
+retained:
 
 1. The current subagent's remaining instructions are NOT processed
 2. The new subagent's `before_reasoning:` runs (if present)
-3. The new subagent's `reasoning: instructions:` resolves from Phase 1
+3. The new subagent's `reasoning: instructions:` resolves for its first iteration
 4. The LLM receives the new subagent's assembled prompt
 
 **Important**: Variables persist across transitions. A variable set in Subagent A is available in Subagent B. This is how you pass data between subagents:
 
-```
+```agentscript
 # Subagent A: Collect data
 subagent collect_info:
    reasoning:
       instructions: ->
-         | Please provide your order number.
+         | Ask for the user's order number.
       actions:
          capture_order: @actions.get_order_id
             with input = ...
