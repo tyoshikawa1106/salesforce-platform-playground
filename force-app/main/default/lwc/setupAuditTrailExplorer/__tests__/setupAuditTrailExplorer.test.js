@@ -325,6 +325,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         await search(component);
         const exportPage = period === 'month' ? load.request : exportAllHistory;
         const serverCutoff = '2026-11-19T13:43:07.912Z';
+        startSearch.mockResolvedValueOnce(serverCutoff);
         const login = { ...row, Id: 'login', Action: 'suOrgAdminLogin', CreatedById: 'admin', CreatedBy: { Username: row.DelegateUser },
             Display: '対象 のログインアクセスを使用してログイン済み' };
         exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
@@ -335,7 +336,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
         const launcher = period === 'all' ? menu : component.shadowRoot.querySelector('[data-monthly-export]');
         const focusLauncher = jest.spyOn(launcher, 'focus');
-        expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (6ヶ月間)');
+        expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
         if (period === 'month') {
             [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
         } else {
@@ -354,7 +355,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             : exportAllHistory.mock.calls.map(([request]) => request);
         const monthQuery = { monthStart, csv: true };
         expect(queries).toEqual([
-            period === 'month' ? monthQuery : { cutoff: null },
+            { ...(period === 'month' ? monthQuery : {}), cutoff: serverCutoff },
             { ...(period === 'month' ? monthQuery : {}), cutoff: serverCutoff, nextId: 'cursor', nextTime: 'time' }
         ]);
         expect(download).toHaveBeenCalledTimes(1);
@@ -395,7 +396,12 @@ it.each(['month', 'all'])('rejects an empty continuation for %s but allows an em
         const fetchPage = period === 'all' ? exportAllHistory : load.request;
         fetchPage.mockResolvedValueOnce({ records: [{ Id: 'last', CreatedDate: cutoff }], nextId: 'last', nextTime: cutoff, cutoff })
             .mockResolvedValueOnce({ records: [], cutoff })
-            .mockResolvedValueOnce({ records: [], cutoff });
+            .mockImplementationOnce(request => {
+                const retry = period === 'all' ? request : request.input;
+                return Promise.resolve({ records: retry.cutoff === cutoff ? [] : [{ CreatedDate: cutoff, Display: '初回出力後の履歴' }] });
+            });
+        // 再試行で時刻を取り直すと、初回の範囲外の履歴が返る。
+        startSearch.mockResolvedValueOnce(cutoff).mockResolvedValue('2026-11-19T11:00:00.000Z');
         if (period === 'all') {
             component.shadowRoot.querySelector('lightning-button-menu').dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
         } else {
@@ -499,6 +505,7 @@ it('stops fetching CSV pages when the component is removed', async () => {
         .find(child => child.label === 'CSV出力');
     button.click();
     confirmCsv();
+    await flush();
     component.remove();
     finishPage({ records: [], nextId: 'cursor', nextTime: 'time' });
     await flush();

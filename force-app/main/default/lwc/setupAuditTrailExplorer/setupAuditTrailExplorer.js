@@ -1205,9 +1205,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.openExportDialog('month');
     }
 
-    // メニューで6ヶ月間を選んだ場合も同じ確認画面を使う。
+    // メニューで全期間を選んだ場合も同じ確認画面を使う。
     selectExportOption(event) {
-        // 6ヶ月間を選んだ場合だけ対応する取得方法を使う。
+        // 全期間を選んだ場合だけ対応する取得方法を使う。
         if (event.detail.value === 'all') {
             // 保持期間全体を確認画面に明示する。
             this.openExportDialog('all');
@@ -1226,6 +1226,8 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.downloadError = undefined;
         // 表示と取得で同じ月を使う。
         const month = this.month;
+        // 同じダイアログでの再出力には、最初の出力で確定した条件を使う。
+        const query = period === 'all' ? {} : { monthStart: month + '-01', csv: true };
         // 完成したファイルはモーダルの終了理由を確認するまで保存しない。
         let file;
         // 標準の閉じる操作・Esc・キャンセルはいずれも保存を開始しない。
@@ -1235,8 +1237,12 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 size: 'small', label: 'CSV出力', period, month, filters, ownerSignal: controller.signal,
                 prepareSelection: isCurrent => this.prepareResultExport(isCurrent),
                 buildFile: async (selection, isCurrent, progress) => {
-                    // 取得結果をモーダル間で共有しない。
-                    file = await this.buildCsv(period, month, selection, isCurrent, progress);
+                    // 検索結果には一覧で適用した条件と基準時刻を使う。
+                    Object.assign(query, selection?.query);
+                    // 月別・全期間は最初の明細要求より先にサーバー時刻を確定する。
+                    query.cutoff ??= await startSearch();
+                    // 時刻の取得中にキャンセルされた場合は明細を要求しない。
+                    if (isCurrent()) file = await this.buildCsv(period, query, selection, isCurrent, progress);
                 }
             });
             // 中断または画面離脱後に完成したファイルを保存しない。
@@ -1275,29 +1281,24 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 if (!isCurrent()) {
                     return;
                 }
-                // 月別・6ヶ月間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
+                // 月別・全期間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
                 if (period !== 'results' && cursor.nextId && result.records.length === 0) {
                     throw new Error('続きの履歴を取得できなかったため、CSVを保存しませんでした。もう一度出力してください。');
                 }
                 yield result;
                 cursor = pageCursor(result);
-                if (result.cutoff) {
-                    cursor.cutoff = result.cutoff;
-                }
             } while (cursor.nextId);
         }
     }
 
     // 全ページと確認時の件数が揃ったCSVだけを保存可能にする。
-    async buildCsv(period, month, selection, isCurrent, progress) {
-        // 月別と検索結果では確認時の条件を復元する。
-        const query = period === 'all' ? { cutoff: null } : { monthStart: month + '-01', ...selection?.query, csv: true };
-        // ファイル名の対象年月は実際の取得条件から取り、6ヶ月間の出力には付けない。
+    async buildCsv(period, query, selection, isCurrent, progress) {
+        // ファイル名の対象年月は実際の取得条件から取り、全期間の出力には付けない。
         const monthPart = query.monthStart ? query.monthStart.slice(0, 7).replace('-', '') : '';
         const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailSearchResults' }[period];
         // 出力種別と対象年月で保存名を決める。
         const fileName = prefix + monthPart + '.csv';
-        // 6ヶ月間だけ専用のApexメソッドから取得する。
+        // 全期間だけ専用のApexメソッドから取得する。
         const fetchPage = period === 'all' ? exportAllHistory : pageQuery => load({ criteriaJson: JSON.stringify(pageQuery) });
         // 一覧を開く前に出力した場合も、同じ項目定義を取得する。
         if (!this.columns) await this.loadColumns();
