@@ -381,19 +381,22 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/mobile-apps-create/SKILL.md",
-      "computedHash": "a078f551df0778d991c655f20824ecd6a1daeb569ac33d925da03ae195a5f6c3"
+      "computedHash": "8db85a83a7608f880ed2c70d29a9fd090c2aba49799e9b51ef35d21cbe37a0fa",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "mobile-platform-native-capabilities-integrate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/mobile-platform-native-capabilities-integrate/SKILL.md",
-      "computedHash": "0ad759701215d88a312765ce32c8f11bf89f9e7775102d4d4a339dea19c84019"
+      "computedHash": "6e5811cb8d771e39ad261a157f34bcb352ffc404d54c46a2e1e52919c27eb16c",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "mobile-platform-offline-validate": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/mobile-platform-offline-validate/SKILL.md",
-      "computedHash": "71b98c8de5a47fef7eca7a9262b76d6680de1f1fe281ea00263873734ae45493"
+      "computedHash": "9270d1ea8aef63a3fe3bdad6d185eb21f470ae26dcff57dcf8e4b9efbb3e8972",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "omnistudio-callable-apex-generate": {
       "source": "forcedotcom/sf-skills",
