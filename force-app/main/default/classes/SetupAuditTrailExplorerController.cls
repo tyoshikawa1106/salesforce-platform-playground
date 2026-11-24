@@ -86,7 +86,7 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     /**
-     * 保持期間内の履歴をCSV用に分割取得する。
+     * 標準CSVと同じ過去180日間の履歴を分割取得する。
      * @param cutoff 初回は未指定。続きは最初の応答で返した取得上限。
      * @param nextId 直前ページの境界レコードID。
      * @param nextTime 直前ページの境界日時。
@@ -97,6 +97,8 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
         SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
         criteria.endAt = cutoff ?? System.now();
+        // 初回の基準時刻に期間の両端を固定し、APIで参照可能な期間外の履歴を除く。
+        criteria.startAt = criteria.endAt.addDays(-180);
         criteria.nextId = nextId;
         criteria.nextTime = nextTime;
         return loadDetails(criteria, CSV_PAGE_SIZE, criteria.endAt);
