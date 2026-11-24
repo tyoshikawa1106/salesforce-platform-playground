@@ -150,19 +150,22 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-code-analyzer-configure/SKILL.md",
-      "computedHash": "07bcf2185e2a89700fd71e60846081f7f5b449ecda36c9d74ad61fbd2b37fcfe"
+      "computedHash": "3f4739bb6e77fbd058e100edd225a62444c7488cb4313462cdc1ace49504990c",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-code-analyzer-custom-rule-create": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-code-analyzer-custom-rule-create/SKILL.md",
-      "computedHash": "a5f2f422cd2602aea8ff094951b7677ffb9104e066ce916847026cbc74c4b098"
+      "computedHash": "3ce3a4925491a62f90a78bc976f98b743bf12a9af5bd2d00b54e14d1218ff1ed",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-code-analyzer-run": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/dx-code-analyzer-run/SKILL.md",
-      "computedHash": "4d81e640ef42c572e52c3cff19cc145a51182615f570852be30f61d7b0a5ade9"
+      "computedHash": "98fb9ef4472b05631787929fccca0653bfb996151b641b10ddbb4c8a52ec7014",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "dx-devops-test-failures-analyze": {
       "source": "forcedotcom/sf-skills",

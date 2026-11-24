@@ -3,22 +3,23 @@ name: dx-code-analyzer-configure
 description: "Set up, configure, and troubleshoot Salesforce Code Analyzer for any project. Handles installation, prerequisite checks, diagnosing broken setups, creating and editing code-analyzer.yml overrides, engine-specific settings, ignore patterns, severity overrides, and CI/CD pipeline setup. TRIGGER when: user says 'set up code analyzer', 'configure code analyzer', 'install code analyzer', 'code analyzer not working', 'fix my setup', 'scan failing', 'check my setup', 'enable/disable engine', 'exclude files', 'change severity', 'set up GitHub Actions', 'set up CI/CD', 'add to pipeline', 'pipeline fail', 'update my workflow', 'quality gate', 'fail on violations', 'scan changed files only', 'add SARIF', 'code-analyzer.yml', 'ESLint config', 'increase SFGE memory', or reports errors running Code Analyzer. DO NOT TRIGGER when: user wants to run a scan (use dx-code-analyzer-run), fix violations, explain rules, create custom rules (use dx-code-analyzer-custom-rule-create), or suppress violations."
 metadata:
   version: "1.0"
+  domains: ["Developer Experience"]
   relatedSkills:
-    - "dx-code-analyzer-run"
     - "dx-code-analyzer-custom-rule-create"
+    - "dx-code-analyzer-run"
   cliTools:
     - tool: ["sf"]
       semver: ">=2.0.0"
+    - tool: ["curl"]
+      semver: ">=7.0.0"
     - tool: ["java"]
       semver: ">=11.0.0"
     - tool: ["node"]
       semver: ">=18.0.0"
-    - tool: ["python3"]
-      semver: ">=3.10.0"
-    - tool: ["git"]
-      semver: ">=2.0.0"
     - tool: ["npm"]
       semver: ">=9.0.0"
+    - tool: ["python3"]
+      semver: ">=3.10.0"
 ---
 
 # Configuring Code Analyzer Skill
@@ -51,7 +52,7 @@ This skill manages the `code-analyzer.yml` configuration file — the single sou
 
 ## Tool Usage Rules
 
-**Allowed:** Bash (sf, java, node, python3, git, npm), Read, Write, Edit
+**Allowed:** Bash (sf, java, node, python3, npm), Read, Write, Edit
 **Forbidden:** MCP tools, Agent tool, Web tools, other skills, `which`, `find`, `locate`, searching for binaries
 
 ---
@@ -359,7 +360,7 @@ rules:
 
 ### 6.1 Rule Name Resolution (Fuzzy Matching)
 
-**⚠️ CRITICAL:** A misspelled or partial rule name in `code-analyzer.yml` is SILENTLY IGNORED — no error, the override just won't apply.
+**CRITICAL:** A misspelled or partial rule name in `code-analyzer.yml` is SILENTLY IGNORED — no error, the override just won't apply.
 
 **When users reference rules by approximate names** (e.g., "the doc rule", "CRUD violation", "hardcoded values"), resolve to exact names BEFORE writing YAML:
 
