@@ -47,7 +47,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/automation-flow-generate/SKILL.md",
-      "computedHash": "c2d6afde6686767577f64ffbd1c9ad80414a3b967048cfa4498aefcab858ca40"
+      "computedHash": "ca7f213f85ea3ec1d4ac9d7c614f93c23df1e0036516b3eeb7cae9d9c88399a9",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "commerce-b2b-open-code-components-integrate": {
       "source": "forcedotcom/sf-skills",
