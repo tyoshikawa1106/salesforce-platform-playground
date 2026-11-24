@@ -45,6 +45,27 @@ export function pageCursor({ nextId, nextTime }) {
     return { nextId, nextTime };
 }
 
+// 一致行を取り込んだ後の一覧ページの境界を決める。まだ表示件数が足りなければ次の元ページを待つ。
+export function matchPageBoundary(records, placesLeft, sourceCursor) {
+    // このバッチ内に次の一致行があれば、最後に表示する行の直後から再開できる。
+    if (records.length > placesLeft) {
+        // 作成日時が同じ履歴をID順に区別する。
+        const last = records[placesLeft - 1];
+        return { next: { nextId: last.Id, nextTime: last.CreatedDate }, probe: null };
+    }
+    // 元データの終端なら、表示件数にかかわらず次ページはない。
+    if (!sourceCursor.nextId) return { next: {}, probe: null };
+    // ちょうど満杯なら表示を先に行い、その先に一致行があるかを調べる。
+    if (records.length === placesLeft) return { next: {}, probe: sourceCursor };
+    // 一致行が不足しているので、次の元ページからもこの表示ページに取り込む。
+    return null;
+}
+
+// 取得中の削除・重複・取り違えを表示前に検出するため、件数と各位置のIDを照合する。
+export function sameRecordIds(ids, records) {
+    return ids.length === records.length && ids.every((id, index) => id === records[index].Id);
+}
+
 // 開始境界が直近の照合範囲内なら、その直後に続く一致行を返す。
 export function remainingMatchRecords(batch, start) {
     if (!batch) {

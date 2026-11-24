@@ -1,4 +1,4 @@
-import { collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, remainingMatchRecords } from '../setupAuditTrailExplorerLogic';
+import { collectLoginAsPairs, formatCsvPage, historyRow, labelChartActors, needsChartEmployeeLabel, loginAsActors, matchPageBoundary, remainingMatchRecords, sameRecordIds } from '../setupAuditTrailExplorerLogic';
 jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
@@ -78,6 +78,37 @@ it('keeps history display names separate from CSV logins and preserves an unreso
     });
     expect(historyRow(row, new Set(), undefined, {}).displayedDelegate).toBe('Admin');
     expect(formatCsvPage([row])).toContain('"target","","' + row.Display + '","","Admin"');
+});
+
+describe('matched page boundaries', () => {
+    const rows = ['c', 'b', 'a'].map(Id => ({ Id, CreatedDate: 'same' }));
+    const cursor = { nextId: 'source', nextTime: 'later' };
+
+    it('resumes after the last displayed ID even on the final source page', () => {
+        expect(matchPageBoundary(rows, 2, {})).toEqual({ next: { nextId: 'b', nextTime: 'same' }, probe: null });
+    });
+
+    it('probes ahead only when a full page ends at a source boundary', () => {
+        expect(matchPageBoundary(rows, 3, cursor)).toEqual({ next: {}, probe: cursor });
+        expect(matchPageBoundary(rows, 3, {})).toEqual({ next: {}, probe: null });
+    });
+
+    it('keeps collecting matches until the source is exhausted', () => {
+        expect(matchPageBoundary(rows, 4, cursor)).toBeNull();
+        expect(matchPageBoundary([], 4, cursor)).toBeNull();
+        expect(matchPageBoundary([], 4, {})).toEqual({ next: {}, probe: null });
+    });
+
+    it.each([
+        [[], [], true],
+        [['a', 'b'], ['a', 'b'], true],
+        [['a', 'b'], ['b', 'a'], false],
+        [['a', 'b'], ['a', 'a'], false],
+        [['a', 'b'], ['a'], false],
+        [['a'], ['a', 'b'], false]
+    ])('compares requested IDs %j with detail IDs %j', (ids, details, expected) => {
+        expect(sameRecordIds(ids, details.map(Id => ({ Id })))).toBe(expected);
+    });
 });
 
 it('reuses only matches after the same ID and timestamp within the cached range', () => {
