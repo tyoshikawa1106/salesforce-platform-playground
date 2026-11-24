@@ -1,10 +1,23 @@
 import {
     createCaseCard,
-    formatCaseDays,
+    getCaseLayoutFields,
     selectRelatedCaseRecords
 } from '../caseRelatedCaseListLogic';
 
 describe('caseRelatedCaseListLogic', () => {
+    it('単独の日付項目のラベルを使い、作成者の複合表示と空欄を除外する', () => {
+        const date = { componentType: 'Field', apiName: 'CreatedDate' };
+        const layoutItems = [
+            { label: 'Date opened', layoutComponents: [date] },
+            { label: 'Created by', layoutComponents: [{ componentType: 'Field', apiName: 'CreatedById' }, date] },
+            { label: '', layoutComponents: [] }
+        ];
+        expect(getCaseLayoutFields({ sections: [{ layoutRows: [{ layoutItems }] }] })).toEqual({
+            CreatedDate: { label: 'Date opened' }
+        });
+        expect(getCaseLayoutFields(undefined)).toEqual({});
+    });
+
     it('表示中Caseを含めて作成日時の降順で最大20件を選別する', () => {
         const records = Array.from({ length: 21 }, (_, index) => ({
             id: `5000000000000${String(index).padStart(2, '0')}`,
@@ -27,22 +40,6 @@ describe('caseRelatedCaseListLogic', () => {
         ]);
     });
 
-    it('クローズ済みとオープン中のケース日数を算出する', () => {
-        const openedAt = '2026-07-01T00:00:00.000Z';
-
-        expect(
-            formatCaseDays(openedAt, '2026-07-04T12:00:00.000Z')
-        ).toBe('3日');
-        expect(
-            formatCaseDays(
-                openedAt,
-                undefined,
-                Date.parse('2026-07-06T23:59:59.000Z')
-            )
-        ).toBe('5日');
-        expect(formatCaseDays(undefined, undefined)).toBe('-');
-    });
-
     it('参照できない値を代替表示へ変換してカードを生成する', () => {
         expect(
             createCaseCard({
@@ -50,36 +47,32 @@ describe('caseRelatedCaseListLogic', () => {
                 caseNumber: undefined,
                 subject: undefined,
                 status: undefined,
-                reason: undefined,
+                caseType: undefined,
                 createdDate: '2026-07-19T00:00:00.000Z',
                 closedDate: undefined,
                 accountName: undefined,
                 contactName: undefined,
-                ownerName: undefined,
                 isCurrentCase: true,
                 url: undefined,
                 accountUrl: undefined,
-                contactUrl: undefined,
-                now: Date.parse('2026-07-20T00:00:00.000Z')
+                contactUrl: undefined
             })
         ).toEqual({
             id: '500000000000001',
             caseNumber: '-',
             subject: '（件名なし）',
             status: '-',
-            reason: '-',
+            caseType: '-',
             createdDate: '2026-07-19T00:00:00.000Z',
             hasClosedDate: false,
             closedDate: undefined,
             closedDateText: '-',
-            caseDays: '1日',
             accountName: '-',
             hasAccountUrl: false,
             accountUrl: undefined,
             contactName: '-',
             hasContactUrl: false,
             contactUrl: undefined,
-            ownerName: '-',
             isCurrentCase: true,
             hasUrl: false,
             url: undefined
