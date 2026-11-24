@@ -1,0 +1,226 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "wsdl_segment",
+    "field_reference"
+  ],
+  "title": "DevopsTestExecution - Data API",
+  "description": "Tracks the execution of individual tests within a test suite execution. It records execution timing, status, results, severity, error messages, and related reporting information, enabling teams to monitor, analyze, and troubleshoot test outcomes as part of the DevOps testing process. This object is available in API version 67.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "refers_to"
+  ],
+  "fields": {
+    "DevopsTestId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "References the test definition associated with this execution record.",
+      "relationship_name": "DevopsTest",
+      "refers_to": "DevopsTest"
+    },
+    "DevopsTestSuiteExecutionId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "References the test suite execution that contains this test execution.",
+      "relationship_name": "DevopsTestSuiteExecution",
+      "refers_to": "DevopsTestSuiteExecution"
+    },
+    "ExecutionEndTime": {
+      "type": "dateTime",
+      "properties": "Create, Filter, Nillable, Sort, Update",
+      "description": "Stores the date and time when the test execution completed."
+    },
+    "ExecutionStartTime": {
+      "type": "dateTime",
+      "properties": "Create, Filter, Sort, Update",
+      "description": "Stores the date and time when the test execution started."
+    },
+    "ExternalTestRef": {
+      "type": "string",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "Stores the identifier or reference of the test in an external testing system."
+    },
+    "LastReferencedDate": {
+      "type": "dateTime",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The timestamp when the current user last accessed this record indirectly, such as through a related record or list view."
+    },
+    "LastViewedDate": {
+      "type": "dateTime",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The timestamp when the current user last viewed this record or list view. If this value is null, and LastReferenceDate is not null, the user accessed this record or list view indirectly."
+    },
+    "LearnMore": {
+      "type": "url",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "Stores a URL that provides additional information or guidance related to the test result."
+    },
+    "Message": {
+      "type": "string",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "Stores a summary message or outcome associated with the test execution."
+    },
+    "Name": {
+      "type": "string",
+      "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+      "description": "System-generated unique identifier for the test execution record."
+    },
+    "OwnerId": {
+      "type": "reference",
+      "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+      "description": "Identifies the user or queue that owns the test execution record.",
+      "relationship_name": "Owner",
+      "refers_to": "Group, User"
+    },
+    "ReportUrl": {
+      "type": "url",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "Stores a URL linking to the detailed execution report."
+    },
+    "ResultDetails": {
+      "type": "textarea",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "Stores detailed information about the execution results, including failures and outcomes."
+    },
+    "SampleCode": {
+      "type": "textarea",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "Stores sample code, snippets, or examples related to the test execution result."
+    },
+    "Severity": {
+      "type": "picklist",
+      "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+      "description": "Indicates the severity level associated with the test result. Possible values range from 5 (lowest) to 1 (highest). The default value is 5."
+    },
+    "Status": {
+      "type": "picklist",
+      "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+      "description": "Indicates the current execution status of the test. Possible values are: Error Failed InProgress Passed The default value is Passed."
+    }
+  },
+  "wsdl_segment": "```xml\n<complexType name=\"DevopsTestExecution\">\n  <complexContent>\n    <extension base=\"ens:sObject\">\n      <sequence>\n        <element name=\"ApprovalSubmissions\" nillable=\"true\" minOccurs=\"0\" type=\"tns:QueryResult\"/>\n        <element name=\"ApprovalWorkItems\" nillable=\"true\" minOccurs=\"0\" type=\"tns:QueryResult\"/>\n        <element name=\"CreatedBy\" nillable=\"true\" minOccurs=\"0\" type=\"ens:User\"/>\n        <element name=\"CreatedById\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"CreatedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"DevopsTest\" nillable=\"true\" minOccurs=\"0\" type=\"ens:DevopsTest\"/>\n        <element name=\"DevopsTestId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"DevopsTestSuiteExecution\" nillable=\"true\" minOccurs=\"0\" type=\"ens:DevopsTestSuiteExecution\"/>\n        <element name=\"DevopsTestSuiteExecutionId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"ExecutionEndTime\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"ExecutionStartTime\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"ExternalTestRef\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"FlowOrchestrationWorkItems\" nillable=\"true\" minOccurs=\"0\" type=\"tns:QueryResult\"/>\n        <element name=\"IsDeleted\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:boolean\"/>\n        <element name=\"LastModifiedBy\" nillable=\"true\" minOccurs=\"0\" type=\"ens:User\"/>\n        <element name=\"LastModifiedById\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"LastModifiedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"LastReferencedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"LastViewedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"LearnMore\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"Message\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"Name\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"Owner\" nillable=\"true\" minOccurs=\"0\" type=\"ens:sObject\"/>\n        <element name=\"OwnerId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"ProcessInstances\" nillable=\"true\" minOccurs=\"0\" type=\"tns:QueryResult\"/>\n        <element name=\"ProcessSteps\" nillable=\"true\" minOccurs=\"0\" type=\"tns:QueryResult\"/>\n        <element name=\"ReportUrl\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"ResultDetails\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"SampleCode\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"Severity\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"Shares\" nillable=\"true\" minOccurs=\"0\" type=\"tns:QueryResult\"/>\n        <element name=\"Status\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:string\"/>\n        <element name=\"SystemModstamp\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"UserRecordAccess\" nillable=\"true\" minOccurs=\"0\" type=\"ens:UserRecordAccess\"/>\n      </sequence>\n    </extension>\n  </complexContent>\n</complexType>\n<simpleType name=\"ID\">\n  <restriction base=\"xsd:string\">\n    <length value=\"18\"/>\n    <pattern value=\"[a-zA-Z0-9]{18}\"/>\n  </restriction>\n</simpleType>\n<simpleType name=\"QueryLocator\">\n  <restriction base=\"xsd:string\"/>\n</simpleType>\n<complexType name=\"QueryResult\">\n  <sequence>\n    <element name=\"done\" type=\"xsd:boolean\"/>\n    <element name=\"queryLocator\" type=\"tns:QueryLocator\" nillable=\"true\"/>\n    <element name=\"records\" type=\"ens:sObject\" nillable=\"true\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>\n    <element name=\"size\" type=\"xsd:int\"/>\n  </sequence>\n</complexType>\n```",
+  "field_reference": {
+    "CreatedById": {
+      "field_label": "Created By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "CreatedDate": {
+      "field_label": "Created Date",
+      "type": "datetime"
+    },
+    "CurrencyIsoCode": {
+      "field_label": "Currency ISO Code",
+      "type": "picklist",
+      "length": "3"
+    },
+    "DevopsTestId": {
+      "field_label": "DevopsTest ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "DevopsTestSuiteExecutionId": {
+      "field_label": "DevopsTestSuiteExecution ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "ExecutionEndTime": {
+      "field_label": "Execution End Time",
+      "type": "datetime"
+    },
+    "ExecutionStartTime": {
+      "field_label": "Execution Start Time",
+      "type": "datetime"
+    },
+    "ExternalTestRef": {
+      "field_label": "External Test Ref",
+      "type": "string",
+      "length": "25"
+    },
+    "Id": {
+      "field_label": "Test Execution ID",
+      "type": "id",
+      "length": "18"
+    },
+    "IsDeleted": {
+      "field_label": "Deleted",
+      "type": "boolean"
+    },
+    "LastModifiedById": {
+      "field_label": "Last Modified By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "LastModifiedDate": {
+      "field_label": "Last Modified Date",
+      "type": "datetime"
+    },
+    "LastReferencedDate": {
+      "field_label": "Last Referenced Date",
+      "type": "datetime"
+    },
+    "LastViewedDate": {
+      "field_label": "Last Viewed Date",
+      "type": "datetime"
+    },
+    "LearnMore": {
+      "field_label": "Learn More",
+      "type": "url",
+      "length": "255"
+    },
+    "Message": {
+      "field_label": "Message",
+      "type": "string",
+      "length": "255"
+    },
+    "Name": {
+      "field_label": "Name",
+      "type": "string",
+      "length": "255"
+    },
+    "OwnerId": {
+      "field_label": "Owner ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "ReportUrl": {
+      "field_label": "Report URL",
+      "type": "url",
+      "length": "255"
+    },
+    "ResultDetails": {
+      "field_label": "Result Details",
+      "type": "textarea",
+      "length": "255"
+    },
+    "SampleCode": {
+      "field_label": "Sample Code",
+      "type": "textarea",
+      "length": "255"
+    },
+    "Severity": {
+      "field_label": "Severity",
+      "type": "picklist",
+      "length": "255"
+    },
+    "Status": {
+      "field_label": "Status",
+      "type": "picklist",
+      "length": "255"
+    },
+    "SystemModstamp": {
+      "field_label": "System Modstamp",
+      "type": "datetime"
+    }
+  },
+  "field_reference_columns": [
+    "field_label",
+    "type",
+    "length"
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "usage",
+    "field_reference"
+  ],
+  "title": "PersnlBatchDecision - Data API",
+  "description": "Represents a batch personalization that delivers personalization decisions (content or recommendations) to a customer segment. Available in API version 64.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "refers_to"
+  ],
+  "fields": {
+    "ActivationTriggerType": {
+      "type": "picklist",
+      "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+      "description": "Type of trigger that activates the batch personalization decision. The default value is None and possible values are: Automatic—Automatically On Job Completion None"
+    },
+    "BatchStatus": {
+      "type": "picklist",
+      "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+      "description": "Status of the batch personalization decision. The default value is Active and possible values are: Active Error Paused"
+    },
+    "DataSpaceId": {
+      "type": "reference",
+      "properties": "Filter, Group, Sort",
+      "description": "The ID of the data space from where batch personalization decision resources originate.",
+      "relationship_name": "DataSpace",
+      "refers_to": "DataSpace"
+    },
+    "Description": {
+      "type": "string",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "Text description of the batch personalization decision."
+    },
+    "DeveloperName": {
+      "type": "string",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The unique name of the batch personalization decision in the API."
+    },
+    "ErrorCode": {
+      "type": "picklist",
+      "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+      "description": "The issue that’s causing an error. The default value is None and possible values are: ConfigurationMissingError—A required configuration setting is missing. DpcJobError—A problem occurred during processing. Internal Error—An internal error occurred during processing. ModelValidationError—The model is invalid. None"
+    },
+    "RefreshMode": {
+      "type": "picklist",
+      "properties": "Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort",
+      "description": "How the batch personalization data is refreshed. The default value is FULL_REFRESH and possible values are: FULL_REFRESH—Generates new decisions for all members in a segment. INCREMENTAL—Generates decisions only for the new members added to the segment after the last run."
+    },
+    "Name": {
+      "type": "string",
+      "properties": "Filter, Group, idLookup, Sort",
+      "description": "The name of the batch personalization decision.",
+      "required": true
+    }
+  },
+  "usage": "PersnlBatchDecision provides details about refresh modes, model versions, and refresh states for specific market segments.",
+  "field_reference": {
+    "ActivationTriggerType": {
+      "field_label": "Activation Trigger Type",
+      "type": "picklist",
+      "length": "255"
+    },
+    "BatchStatus": {
+      "field_label": "State",
+      "type": "picklist",
+      "length": "255"
+    },
+    "CreatedById": {
+      "field_label": "Created By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "CreatedDate": {
+      "field_label": "Created Date",
+      "type": "datetime"
+    },
+    "DataSpaceId": {
+      "field_label": "Data Space ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "Description": {
+      "field_label": "Description",
+      "type": "string",
+      "length": "255"
+    },
+    "DeveloperName": {
+      "field_label": "Batch Personalization API Name",
+      "type": "string",
+      "length": "80"
+    },
+    "ErrorCode": {
+      "field_label": "Fault Code",
+      "type": "picklist",
+      "length": "255"
+    },
+    "Id": {
+      "field_label": "Batch Personalization ID",
+      "type": "id",
+      "length": "18"
+    },
+    "IsDeleted": {
+      "field_label": "Deleted",
+      "type": "boolean"
+    },
+    "IsRemote": {
+      "field_label": "Is Remote",
+      "type": "boolean"
+    },
+    "LastModifiedById": {
+      "field_label": "Last Modified By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "LastModifiedDate": {
+      "field_label": "Last Modified Date",
+      "type": "datetime"
+    },
+    "LastReferencedDate": {
+      "field_label": "Last Referenced Date",
+      "type": "datetime"
+    },
+    "LastRefresh": {
+      "field_label": "Last Refreshed On",
+      "type": "datetime"
+    },
+    "LastSuccessfulRefresh": {
+      "field_label": "Last Successful Refresh",
+      "type": "datetime"
+    },
+    "LastViewedDate": {
+      "field_label": "Last Viewed Date",
+      "type": "datetime"
+    },
+    "LatestRefreshedStatus": {
+      "field_label": "Last Refresh Status",
+      "type": "picklist",
+      "length": "255"
+    },
+    "MarketSegmentId": {
+      "field_label": "Segment ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "ModelRevision": {
+      "field_label": "Model Revision",
+      "type": "int",
+      "digits": "9"
+    },
+    "ModelVersion": {
+      "field_label": "Model Version",
+      "type": "int",
+      "digits": "9"
+    },
+    "Name": {
+      "field_label": "Batch Personalization Name",
+      "type": "string",
+      "length": "255"
+    },
+    "RefreshMode": {
+      "field_label": "Refresh Type",
+      "type": "picklist",
+      "length": "255"
+    },
+    "Status": {
+      "field_label": "Status",
+      "type": "picklist",
+      "length": "255"
+    },
+    "SystemModstamp": {
+      "field_label": "System Modstamp",
+      "type": "datetime"
+    }
+  },
+  "field_reference_columns": [
+    "field_label",
+    "type",
+    "length",
+    "digits"
+  ]
+}

@@ -1,0 +1,341 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "special_access_rules",
+    "field_reference"
+  ],
+  "title": "ListEmailMonthlyMetric - Data API",
+  "description": "Represents the monthly engagement metrics for a single list email. This object is available in API version 49.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "relationship_type",
+    "refers_to"
+  ],
+  "fields": {
+    "AllEmailsBouncedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The total hard and soft bounces that were triggered for this list email in the month. This field is a calculated field."
+    },
+    "AllEmailsDeliveredCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who successfully received this list email in the month. This field is a calculated field."
+    },
+    "AllEmailsHardBouncedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The total hard bounces that were triggered for this list email in the month."
+    },
+    "AllEmailsLinkClickedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of link clicks by the recipients of this list email in the month."
+    },
+    "AllEmailsOpenedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who opened this list email in the month."
+    },
+    "AllEmailsOutOfOfficeCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of out-of-office replies that were triggered for this list email in the month."
+    },
+    "AllEmailsRepliedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of replies to this list email in the month."
+    },
+    "AllEmailsSentCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients to whom this list email was sent in the month."
+    },
+    "AllEmailsSoftBouncedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The total soft bounces that were triggered for this list email in the month."
+    },
+    "HardBounceTrackableSends": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who were sent this list email with hard bounce tracking in the month. Available in API version 53.0 and later."
+    },
+    "LinkClickTrackableSends": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who were sent this list email with link click tracking in the month. Available in API version 53.0 and later."
+    },
+    "ListEmailId": {
+      "type": "reference",
+      "properties": "Filter, Group, Sort",
+      "description": "The ID of the related list email. This field is a relationship field.",
+      "relationship_name": "ListEmail",
+      "relationship_type": "Lookup",
+      "refers_to": "ListEmail"
+    },
+    "Month": {
+      "type": "date",
+      "properties": "Filter, Group, Sort",
+      "description": "The month in which the engagement occurred."
+    },
+    "MonthInt": {
+      "type": "int",
+      "properties": "Filter, Group, idLookup, Sort",
+      "description": "The month in which the engagement occurred, in yyyymm format."
+    },
+    "OpenTrackableSends": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who were sent this list email with open tracking in the month. Available in API version 53.0 and later."
+    },
+    "OutOfOfficeTrackableSends": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who were sent this list email with out-of-office tracking in the month. Available in API version 53.0 and later."
+    },
+    "ReplyTrackableSends": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who were sent this list email with reply tracking in the month. Available in API version 53.0 and later."
+    },
+    "SoftBounceTrackableSends": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of recipients who were sent this list email with soft bounce tracking in the month. Available in API version 53.0 and later."
+    },
+    "TrackableSendHardBounceRate": {
+      "type": "percent",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The percentage of recipients for whom this list email, sent with hard bounce tracking, resulted in a hard bounce in the month. Available in API version 54.0 and later. This field is a calculated field."
+    },
+    "TrackableSendLinkClickRate": {
+      "type": "percent",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The percentage of recipients who clicked on a link in this list email that was sent with link click tracking in the month. Available in API version 53.0 and later. This field is a calculated field."
+    },
+    "TrackableSendOpenRate": {
+      "type": "percent",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The percentage of recipients who opened this list email that was sent with open tracking in the month. Available in API version 53.0 and later. This field is a calculated field."
+    },
+    "TrackableSendOutOfOfficeRate": {
+      "type": "percent",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The percentage of recipients for whom the list email, sent with out-of-office tracking, resulted in an out-of-office reply in the month. Available in API version 54.0 and later. This field is a calculated field."
+    },
+    "TrackableSendReplyRate": {
+      "type": "percent",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The percentage of recipients for whom this list email, sent with reply tracking, resulted in a reply in the month. Available in API version 53.0 and later. This field is a calculated field."
+    },
+    "TrackableSendSoftBounceRate": {
+      "type": "percent",
+      "properties": "Filter, Nillable, Sort",
+      "description": "The percentage of recipients for whom this list email, sent with soft bounce tracking, resulted in a soft bounce in the month. Available in API version 54.0 and later. This field is a calculated field."
+    },
+    "UniqueEmailsLinkClickedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of unique recipients who clicked a link in this list email in the month."
+    },
+    "UniqueEmailsOpenedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of unique recipients who opened this list email in the month."
+    },
+    "UniqueEmailsRepliedCount": {
+      "type": "int",
+      "properties": "Filter, Group, Nillable, Sort",
+      "description": "The number of unique recipients who replied to this list email in the month."
+    }
+  },
+  "special_access_rules": "Sales Engagement must be enabled.",
+  "field_reference": {
+    "AllEmailsBouncedCount": {
+      "field_label": "All Emails Bounced Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsDeliveredCount": {
+      "field_label": "All Emails Delivered Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsHardBouncedCount": {
+      "field_label": "All Emails Hard Bounced Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsLinkClickedCount": {
+      "field_label": "All Emails Link Clicked Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsOpenedCount": {
+      "field_label": "All Emails Opened Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsOutOfOfficeCount": {
+      "field_label": "All Emails Out of Office Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsRepliedCount": {
+      "field_label": "All Emails Replied Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsSentCount": {
+      "field_label": "All Emails Sent Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "AllEmailsSoftBouncedCount": {
+      "field_label": "All Emails Soft Bounced Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "CreatedById": {
+      "field_label": "Created By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "CreatedDate": {
+      "field_label": "Created Date",
+      "type": "datetime"
+    },
+    "HardBounceTrackableSends": {
+      "field_label": "Hard Bounce Trackable Sends",
+      "type": "int",
+      "digits": "9"
+    },
+    "Id": {
+      "field_label": "List Email Monthly Metric ID",
+      "type": "id",
+      "length": "18"
+    },
+    "IsDeleted": {
+      "field_label": "Deleted",
+      "type": "boolean"
+    },
+    "LastModifiedById": {
+      "field_label": "Last Modified By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "LastModifiedDate": {
+      "field_label": "Last Modified Date",
+      "type": "datetime"
+    },
+    "LinkClickTrackableSends": {
+      "field_label": "Link Click Trackable Sends",
+      "type": "int",
+      "digits": "9"
+    },
+    "ListEmailId": {
+      "field_label": "List Email ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "Month": {
+      "field_label": "Month",
+      "type": "date"
+    },
+    "MonthInt": {
+      "field_label": "Month Int",
+      "type": "int",
+      "digits": "9"
+    },
+    "OpenTrackableSends": {
+      "field_label": "Open Trackable Sends",
+      "type": "int",
+      "digits": "9"
+    },
+    "OutOfOfficeTrackableSends": {
+      "field_label": "Out Of Office Trackable Sends",
+      "type": "int",
+      "digits": "9"
+    },
+    "ReplyTrackableSends": {
+      "field_label": "Reply Trackable Sends",
+      "type": "int",
+      "digits": "9"
+    },
+    "SoftBounceTrackableSends": {
+      "field_label": "Soft Bounce Trackable Sends",
+      "type": "int",
+      "digits": "9"
+    },
+    "SystemModstamp": {
+      "field_label": "System Modstamp",
+      "type": "datetime"
+    },
+    "TrackableSendHardBounceRate": {
+      "field_label": "Trackable Send Hard Bounce Rate",
+      "type": "percent",
+      "precision": "5",
+      "scale": "2"
+    },
+    "TrackableSendLinkClickRate": {
+      "field_label": "Trackable Send Link Click Rate",
+      "type": "percent",
+      "precision": "5",
+      "scale": "2"
+    },
+    "TrackableSendOpenRate": {
+      "field_label": "Trackable Send Open Rate",
+      "type": "percent",
+      "precision": "5",
+      "scale": "2"
+    },
+    "TrackableSendOutOfOfficeRate": {
+      "field_label": "Trackable Send Out Of Office Rate",
+      "type": "percent",
+      "precision": "5",
+      "scale": "2"
+    },
+    "TrackableSendReplyRate": {
+      "field_label": "Trackable Send Reply Rate",
+      "type": "percent",
+      "precision": "5",
+      "scale": "2"
+    },
+    "TrackableSendSoftBounceRate": {
+      "field_label": "Trackable Send Soft Bounce Rate",
+      "type": "percent",
+      "precision": "5",
+      "scale": "2"
+    },
+    "UniqueEmailsLinkClickedCount": {
+      "field_label": "Unique Emails Link Clicked Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "UniqueEmailsOpenedCount": {
+      "field_label": "Unique Emails Opened Count",
+      "type": "int",
+      "digits": "9"
+    },
+    "UniqueEmailsRepliedCount": {
+      "field_label": "Unique Emails Replied Count",
+      "type": "int",
+      "digits": "9"
+    }
+  },
+  "field_reference_columns": [
+    "field_label",
+    "type",
+    "digits",
+    "length",
+    "precision",
+    "scale"
+  ]
+}

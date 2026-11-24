@@ -1,0 +1,106 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "special_access_rules",
+    "usage",
+    "field_reference"
+  ],
+  "title": "PplnInspListViewCalcClmn - Data API",
+  "description": "Represents a column configuration for a pipeline inspection list view. Determines which calculated columns appear in a pipeline or intelligence view and their display order. This object is available in API version 66.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "relationship_type",
+    "refers_to"
+  ],
+  "fields": {
+    "ColumnName": {
+      "type": "picklist",
+      "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+      "description": "The type of calculated column to display in the pipeline or intelligence view. Possible values are: ActivityHeatmap–Activity metrics for the record. AgentActivity–Agentforce activity associated with the record. Contacts–Contacts associated with the record. CriticalInsights–Alerts and critical insights for the record. NextOpportunityDate–Next close date for an associated opportunity. OpenOpportunityValue–Total value of open opportunities associated with the record. SalesMethodology–Sales methodology progress for the record."
+    },
+    "ColumnWidth": {
+      "type": "int",
+      "properties": "Create, Filter, Group, Nillable, Sort, Update",
+      "description": "The width of the column in pixels. If null, the default column width is used."
+    },
+    "PipelineInspectionListViewId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort",
+      "description": "The ID of the pipeline inspection list view that this calculated column belongs to. This is a relationship field.",
+      "relationship_name": "PipelineInspectionListView",
+      "relationship_type": "Lookup",
+      "refers_to": "PipelineInspectionListView"
+    },
+    "SortOrder": {
+      "type": "int",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "The position of the calculated column in the list view. Determines the display order of columns from left to right."
+    }
+  },
+  "special_access_rules": "To access this object, enable the Pipeline Inspection user permission and the Pipeline Inspection setting.",
+  "usage": "Use this object to configure which calculated columns appear in a pipeline inspection list view and in what order. Each record represents one column in a specific view. Query this object to retrieve the column configuration for a given PipelineInspectionListView record.",
+  "field_reference": {
+    "ColumnName": {
+      "field_label": "Column Name",
+      "type": "picklist",
+      "length": "255"
+    },
+    "ColumnWidth": {
+      "field_label": "Column Width",
+      "type": "int",
+      "digits": "9"
+    },
+    "CreatedById": {
+      "field_label": "Created By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "CreatedDate": {
+      "field_label": "Created Date",
+      "type": "datetime"
+    },
+    "Id": {
+      "field_label": "Pipeline Inspection List View Calculated Column ID",
+      "type": "id",
+      "length": "18"
+    },
+    "IsDeleted": {
+      "field_label": "Deleted",
+      "type": "boolean"
+    },
+    "LastModifiedById": {
+      "field_label": "Last Modified By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "LastModifiedDate": {
+      "field_label": "Last Modified Date",
+      "type": "datetime"
+    },
+    "PipelineInspectionListViewId": {
+      "field_label": "Pipeline Inspection List View ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "SortOrder": {
+      "field_label": "Sort Order",
+      "type": "int",
+      "digits": "9"
+    },
+    "SystemModstamp": {
+      "field_label": "System Modstamp",
+      "type": "datetime"
+    }
+  },
+  "field_reference_columns": [
+    "field_label",
+    "type",
+    "length",
+    "digits"
+  ]
+}

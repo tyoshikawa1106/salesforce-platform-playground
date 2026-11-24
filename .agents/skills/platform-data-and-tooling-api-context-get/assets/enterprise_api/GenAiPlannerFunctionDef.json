@@ -1,0 +1,83 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "special_access_rules",
+    "field_reference"
+  ],
+  "title": "GenAiPlannerFunctionDef - Data API",
+  "description": "Represents a relationship between the agent planner service and agent actions. This object is available in API version 60.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "relationship_type",
+    "refers_to"
+  ],
+  "fields": {
+    "PlannerId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "This field is a relationship field.",
+      "relationship_name": "Planner",
+      "relationship_type": "Lookup",
+      "refers_to": "GenAiPlannerDefinition"
+    },
+    "Plugin": {
+      "type": "picklist",
+      "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+      "description": "A set of actions that contextualize the agent planner service."
+    }
+  },
+  "special_access_rules": "To access this object, Agents must be enabled in your org.",
+  "field_reference": {
+    "CreatedById": {
+      "field_label": "Created By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "CreatedDate": {
+      "field_label": "Created Date",
+      "type": "datetime"
+    },
+    "Id": {
+      "field_label": "Generative AI Planner Function Definition ID",
+      "type": "id",
+      "length": "18"
+    },
+    "IsDeleted": {
+      "field_label": "Deleted",
+      "type": "boolean"
+    },
+    "LastModifiedById": {
+      "field_label": "Last Modified By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "LastModifiedDate": {
+      "field_label": "Last Modified Date",
+      "type": "datetime"
+    },
+    "PlannerId": {
+      "field_label": "Generative AI Planner Definition ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "Plugin": {
+      "field_label": "Generative AI Plugin Definition ID",
+      "type": "picklist",
+      "length": "255"
+    },
+    "SystemModstamp": {
+      "field_label": "System Modstamp",
+      "type": "datetime"
+    }
+  },
+  "field_reference_columns": [
+    "field_label",
+    "type",
+    "length"
+  ]
+}
