@@ -522,7 +522,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-data-manage/SKILL.md",
-      "computedHash": "4f78742ef65f5d86eb8cff3f0d620392a1d57507aa803e7972261548b61d1f0f"
+      "computedHash": "2c63fd860322ed26e31e6a0ecaf117cde2ff28a6ad55921ac60cea061fe7b0e1",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-dataspace-access-configure": {
       "source": "forcedotcom/sf-skills",
@@ -632,7 +633,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-soql-query/SKILL.md",
-      "computedHash": "654fcdddb83b2f03d68bec8c74519ee62db351e80f50c256a1b9115313b39646"
+      "computedHash": "d761957a0de0151abd8b4c88087862568a5f661a825701f5d0c8acfd8323bdb4",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-tracing-agentforce-configure": {
       "source": "forcedotcom/sf-skills",
@@ -652,7 +654,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-trust-archive-manage/SKILL.md",
-      "computedHash": "425fffbf9a4dbc89d90f4316240095aa54066f6a7349cecbd9523f775e8080a0"
+      "computedHash": "dbfbff11b0e8987f4516f07924f661d7696cca5a6c94418a837dcd543f17cacd",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-validation-rule-generate": {
       "source": "forcedotcom/sf-skills",
