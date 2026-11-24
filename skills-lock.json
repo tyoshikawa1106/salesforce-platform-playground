@@ -37,12 +37,36 @@
       "computedHash": "3bf8e4c4d64e65e65c92a6d52532c6f72f10976fae81f024d54e9b826b87e9ce",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
+    "agentforce-hyperclassifier-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/agentforce-hyperclassifier-configure/SKILL.md",
+      "computedHash": "237b5b3c0d484220c0072116a7b3fd207883347f166ef74b4fb6d0139ac87d77"
+    },
     "agentforce-observe": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/agentforce-observe/SKILL.md",
       "computedHash": "95024af08e498ef0bc8ced8a76652f8b6d0863edb8b8e3db02f39909edf76b4f",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
+    },
+    "agentforce-offline-experimentation-run": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/agentforce-offline-experimentation-run/SKILL.md",
+      "computedHash": "a961c3c8ced6c5c166d5d21d5461d4068ca5d60543cb1482217c8629b42c3614"
+    },
+    "agentforce-persona-generate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/agentforce-persona-generate/SKILL.md",
+      "computedHash": "b9781df561a1e5a792b70bdd300c640ec96ca2852cb03cce8fb780d641cdf48c"
     },
     "agentforce-test": {
       "source": "forcedotcom/sf-skills",
@@ -158,6 +182,14 @@
       "sourceType": "github",
       "skillPath": "skills/consumer-goods-tpe-datakit-deploy/SKILL.md",
       "computedHash": "fadb26bf554c8e2b1e17218c0642a3a8217a42276a00cff7da134d7075ddb8b4"
+    },
+    "crm-analytics-wave-generate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/crm-analytics-wave-generate/SKILL.md",
+      "computedHash": "39ee8f60eb66724dc49b956f7d50899253b7185f54ee305e48cc393b5775fd03"
     },
     "data360-code-extension-generate": {
       "source": "forcedotcom/sf-skills",
@@ -939,6 +971,14 @@
       "skillPath": "skills/life-sciences-territory-configure/SKILL.md",
       "computedHash": "0b9d29f3700680dd5499261eb4fff777e741e1e57ae40faa4e687c2007f63163"
     },
+    "marketing-message-test": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/marketing-message-test/SKILL.md",
+      "computedHash": "159d8394558b15f15ae7877ac60eaec2abf6774156174a86f89210b53ebfe840"
+    },
     "mobile-apps-create": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
@@ -1404,6 +1444,14 @@
       "skillPath": "skills/sales-agentforce-pipeline-management-configure/SKILL.md",
       "computedHash": "8616c7037c1b7fabf923ba758caba9408871d6e0a7556ff8e0aeb7ae952dfacd",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
+    },
+    "sales-call-scoring-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/sales-call-scoring-configure/SKILL.md",
+      "computedHash": "b7e87653d57b9eb837c90a5b73ad1ef824d99cf2ba755bed86e9a4448d2766a9"
     },
     "service-agentforce-channel-configure": {
       "source": "forcedotcom/sf-skills",
@@ -1956,6 +2004,14 @@
       "sourceType": "github",
       "skillPath": "skills/service-omni-work-skill-routing-configure/SKILL.md",
       "computedHash": "a56ac99b1415554cbb4a1f176ba6d059e51e20e36fcdef934e69710908862d3e"
+    },
+    "tableau-next-asset-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/tableau-next-asset-create/SKILL.md",
+      "computedHash": "55ab9ea1fdd6c7bc8e1e66a0dd6631efe6c30ab1d05ec36ac465b2dfe1f15da2"
     }
   }
 }
