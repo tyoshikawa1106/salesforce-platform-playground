@@ -1040,7 +1040,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 代理ログインを初めて含む明細ページでだけ照合を開始する。
     async readCsvPage(fetchPage, query, isCurrent, context) {
-        // 月別・全期間の既存のページ境界と再試行を共通で使う。
+        // 月別・6ヶ月間の既存のページ境界と再試行を共通で使う。
         const page = await this.readPageWithRetry(fetchPage, query, isCurrent);
         // 離脱後や照合済みの出力では追加の要求を送らない。
         if (isCurrent() && !context.actors && page.records.some(needsLoginAsUser)) {
@@ -1297,9 +1297,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         this.openExportDialog('month');
     }
 
-    // メニューで全期間を選んだ場合も同じ確認画面を使う。
+    // メニューで6ヶ月間を選んだ場合も同じ確認画面を使う。
     selectExportOption(event) {
-        // 全期間を選んだ場合だけ対応する取得方法を使う。
+        // 6ヶ月間を選んだ場合だけ対応する取得方法を使う。
         if (event.detail.value === 'all') {
             // 保持期間全体を確認画面に明示する。
             this.openExportDialog('all');
@@ -1367,7 +1367,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 if (!isCurrent()) {
                     return;
                 }
-                // 月別・全期間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
+                // 月別・6ヶ月間で直前に存在を確認した続きが消えた場合は、部分CSVを保存しない。
                 if (context.period !== 'results' && cursor.nextId && result.records.length === 0) {
                     throw new Error('続きの履歴を取得できなかったため、CSVを保存しませんでした。もう一度出力してください。');
                 }
@@ -1383,10 +1383,10 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 全ページと確認時の件数が揃ったCSVだけを保存可能にする。
     async buildCsv(period, month, selection, isCurrent, progress) {
         // ファイル名は確認操作を行った時刻を基準にする。
-        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailFiltered' }[period];
+        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrail180Days', results: 'SetupAuditTrailFiltered' }[period];
         // 取得にかかった時間でファイル名を変更しない。
         const fileName = prefix + Date.now() + '.csv';
-        // 全期間だけ専用のApexメソッドから取得する。
+        // 6ヶ月間だけ専用のApexメソッドから取得する。
         const fetchPage = period === 'all' ? exportAllHistory : query => load({ criteriaJson: JSON.stringify(query) });
         // 月別と検索結果では確認時の条件を復元する。
         const query = period === 'all' ? { cutoff: null } : { monthStart: month + '-01', ...selection?.query, csv: true };

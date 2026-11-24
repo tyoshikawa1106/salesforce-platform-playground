@@ -355,7 +355,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
         const launcher = period === 'all' ? menu : component.shadowRoot.querySelector('[data-monthly-export]');
         const focusLauncher = jest.spyOn(launcher, 'focus');
-        expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
+        expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (6ヶ月間)');
         const startedAt = Date.UTC(2026, 10, 19, 13, 38, 7, 912);
         const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt);
         if (period === 'month') {
@@ -364,7 +364,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
         }
         await flush();
-        expect(currentDialog().textContent).toContain(period === 'all' ? '全期間' : monthStart.slice(0, 7));
+        expect(currentDialog().textContent).toContain(period === 'all' ? '過去180日間' : monthStart.slice(0, 7));
         expect(exportAllHistory).not.toHaveBeenCalled();
         expect(load.request.mock.calls.some(([{ input }]) => input.csv)).toBe(false);
         confirmCsv();
@@ -399,7 +399,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン').replace('=原文,""引用""\n続き🧪', '権限セット変更後の表示名') +
             '"2026/11/18 9:00:00 JST","target@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
-            .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrailAll') + startedAt + '.csv');
+            .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrail180Days') + startedAt + '.csv');
         component.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:audit');
     } finally {
