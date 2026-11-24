@@ -22,6 +22,8 @@ const COUNT_FORMAT = new Intl.NumberFormat('ja-JP');
 export default class SetupAuditTrailExplorer extends LightningElement {
     // 履歴一覧の列構成を表に渡す。
     columns;
+    // 同じ項目定義からCSV用の7列の見出しを保持する。
+    exportHeader;
     // 一覧とCSVが同時に開かれた場合も項目定義の取得を共有する。
     columnsRequest;
 
@@ -29,6 +31,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         if (!this.columnsRequest) {
             // 成功した列定義をページ移動や後続の出力でも使う。
             this.columnsRequest = getColumnLabels().then(labels => {
+                this.exportHeader = csvHeader(labels);
                 this.columns = historyColumns(labels);
                 return this.columns;
             }).catch(error => {
@@ -1297,9 +1300,9 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // 6ヶ月間だけ専用のApexメソッドから取得する。
         const fetchPage = period === 'all' ? exportAllHistory : pageQuery => load({ criteriaJson: JSON.stringify(pageQuery) });
         // 一覧を開く前に出力した場合も、同じ項目定義を取得する。
-        const columns = this.columns ?? await this.loadColumns();
+        if (!this.columns) await this.loadColumns();
         // UTF-8のBOMと列名をファイルの先頭に置く。
-        const chunks = ['\uFEFF', csvHeader(columns)];
+        const chunks = ['\uFEFF', this.exportHeader];
         // 再試行の進捗はゼロから数える。
         let rows = 0;
         // 返された境界を使って全ページを順に取得する。

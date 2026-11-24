@@ -3,7 +3,17 @@ import { csvHeader, formatCsvPage, historyRow, matchPageBoundary, remainingMatch
 jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virtual: true });
 
 it('escapes metadata labels that contain CSV separators', () => {
-    expect(csvHeader([{ label: 'A, B' }, { label: 'C"D' }, { label: 'E\nF' }])).toBe('"A, B","C""D","E\nF"\n');
+    expect(csvHeader({ CreatedDate: 'Date', Username: 'User', ResponsibleNamespacePrefix: 'Namespace', Action: 'A, B',
+        Display: 'C"D', Section: 'E\nF', DelegateUser: 'Delegate' })).toBe('Date,User,Namespace,"A, B","C""D","E\nF",Delegate\n');
+});
+
+it.each([
+    ['PermSetEntityPermChanged', 'Changed permission set Sample', '[PermSetEntityPermChanged]\nChanged permission set Sample'],
+    ['suOrgAdminLogin', null, '[suOrgAdminLogin]'],
+    [null, '本文', '本文'],
+    [null, null, '']
+])('renders the recorded action and description on separate lines', (Action, Display, expected) => {
+    expect(historyRow({ Action, Display }).actionDetail).toBe(expected);
 });
 
 it('formats midnight and afternoon in local time and retains Unicode across line breaks', () => {
@@ -12,15 +22,15 @@ it('formats midnight and afternoon in local time and retains Unicode across line
         { CreatedDate: '2026-11-18T14:03:04Z' }
     ];
     expect(formatCsvPage(records)).toBe(
-        '"2026/11/18 0:01:02 JST","","","日本語\rภาษาไทย\n続き","",""\n' +
-        '"2026/11/18 23:03:04 JST","","","","",""\n'
+        '"2026/11/18 0:01:02 JST","","","","日本語\rภาษาไทย\n続き","",""\n' +
+        '"2026/11/18 23:03:04 JST","","","","","",""\n'
     );
 });
 
 it('keeps the source action and section in their original language', () => {
     const row = { CreatedDate: '2026-09-15T00:00:00Z', CreatedBy: { UserType: 'AutomatedProcess' },
-        Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
-    expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","","","' + row.Display + '","Manage Users",""\n');
+        Action: 'PermSetEntityPermChanged', Display: 'Changed permission set Sample: Account object permissions were changed', Section: 'Manage Users' };
+    expect(formatCsvPage([row])).toBe('"2026/09/15 9:00:00 JST","","","PermSetEntityPermChanged","' + row.Display + '","Manage Users",""\n');
 });
 
 it.each([
@@ -30,8 +40,8 @@ it.each([
 ])('preserves the recorded username and action for the table and CSV', (creator, username) => {
     const row = { CreatedDate: '2026-11-18T00:00:00Z', CreatedById: 'id', CreatedBy: creator,
         Display: '権限セット X を変更: Account オブジェクト権限を 参照', DelegateUser: 'Admin' };
-    expect(historyRow(row)).toEqual({ ...row, displayedUser: creator?.Username });
-    expect(formatCsvPage([row])).toBe('"2026/11/18 9:00:00 JST","' + username + '","","' + row.Display + '","","Admin"\n');
+    expect(historyRow(row)).toEqual({ ...row, displayedUser: creator?.Username, actionDetail: row.Display });
+    expect(formatCsvPage([row])).toBe('"2026/11/18 9:00:00 JST","' + username + '","","","' + row.Display + '","","Admin"\n');
 });
 
 describe('matched page boundaries', () => {

@@ -9,18 +9,18 @@ const COLUMNS = [
         year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
         timeZone: TIME_ZONE
     }},
-    { fieldName: 'displayedUser', initialWidth: 300, wrapText: true },
+    { fieldName: 'displayedUser', labelField: 'Username', initialWidth: 300, wrapText: true },
     { fieldName: 'ResponsibleNamespacePrefix', initialWidth: 165, wrapText: true },
-    { fieldName: 'Display', wrapText: true },
+    { fieldName: 'actionDetail', labelField: 'Action', wrapText: true },
     { fieldName: 'Section', initialWidth: 240, wrapText: true },
     { fieldName: 'DelegateUser', initialWidth: 175, wrapText: true }
 ];
 
-// データテーブルの列順をCSVの見出しにも使用する。
+// 出力対象の項目定義を一覧の列設定に反映する。
 export function historyColumns(labels) {
-    return COLUMNS.map(column => {
-        // 表示用に取り出したログイン名にはUser.Usernameの定義を使う。
-        const label = labels[column.fieldName === 'displayedUser' ? 'Username' : column.fieldName];
+    return COLUMNS.map(({ labelField, ...column }) => {
+        // 一覧の操作コードとCSVの本文には、それぞれの項目ラベルを使う。
+        const label = labels[labelField ?? column.fieldName];
         if (!label) {
             throw new Error('設定変更履歴の項目ラベルを取得できませんでした。');
         }
@@ -29,8 +29,14 @@ export function historyColumns(labels) {
 }
 
 // 項目ラベル内のカンマ・引用符・改行は一つのCSVセルに収める。
-export function csvHeader(columns) {
-    return columns.map(({ label }) => (/[,"\r\n]/.test(label) ? csvCell(label) : label)).join(',') + '\n';
+export function csvHeader(labels) {
+    // CSVでは操作コードと本文に独立した項目ラベルを付ける。
+    const fields = ['CreatedDate', 'Username', 'ResponsibleNamespacePrefix', 'Action', 'Display', 'Section', 'DelegateUser'];
+    return fields.map(field => {
+        const label = labels[field];
+        if (!label) throw new Error('設定変更履歴の項目ラベルを取得できませんでした。');
+        return /[,"\r\n]/.test(label) ? csvCell(label) : label;
+    }).join(',') + '\n';
 }
 
 // 初期表示の対象月には実行ユーザーのタイムゾーンを使う。
@@ -154,9 +160,10 @@ export function sortFilterOptions(groups) {
     ]));
 }
 
-// データテーブルで参照できるように作成者のログイン名を取り出す。
+// 一覧だけに操作コードと本文を並べ、元の項目はCSV用に保持する。
 export function historyRow(row) {
-    return { ...row, displayedUser: row.CreatedBy?.Username };
+    const actionDetail = [row.Action && '[' + row.Action + ']', row.Display].filter(Boolean).join('\n');
+    return { ...row, displayedUser: row.CreatedBy?.Username, actionDetail };
 }
 
 // 履歴の文字を一つのCSVセルに収める。
@@ -182,7 +189,7 @@ export function formatCsvPage(records) {
         }
         // ユーザー・本文をCSV用に整形し、代理ユーザーを独立した列に保存する。
         return [formattedDate, row.CreatedBy?.Username, row.ResponsibleNamespacePrefix,
-            row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
+            row.Action, row.Display, row.Section, row.DelegateUser].map(csvCell).join(',') + '\n';
     }).join('');
 }
 

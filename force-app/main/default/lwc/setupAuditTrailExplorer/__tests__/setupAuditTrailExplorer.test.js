@@ -35,8 +35,8 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory',
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels', () => ({ default: jest.fn() }), { virtual: true });
 
 const labels = { CreatedDate: '作成日', Username: 'ユーザー名', ResponsibleNamespacePrefix: 'ソースの名前空間プレフィックス',
-    Display: '表示', Section: 'セクション', DelegateUser: '代理ユーザー' };
-const expectedHeader = '作成日,ユーザー名,ソースの名前空間プレフィックス,表示,セクション,代理ユーザー\n';
+    Action: 'アクション', Display: '表示', Section: 'セクション', DelegateUser: '代理ユーザー' };
+const expectedHeader = '作成日,ユーザー名,ソースの名前空間プレフィックス,アクション,表示,セクション,代理ユーザー\n';
 const countMonth = countMatches.month;
 const cutoff = '2026-11-19T10:00:00.000Z';
 let activeModal;
@@ -117,14 +117,14 @@ afterEach(() => {
 
 it('uses the field labels returned by Salesforce when the list is retried', async () => {
     load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
-    getColumnLabels.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ ...labels, Display: '本文' });
+    getColumnLabels.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ ...labels, Action: 'Action' });
     const root = mount().shadowRoot;
     await flush();
     expect(root.querySelector('lightning-datatable')).toBeNull();
     [...root.querySelectorAll('lightning-button')].find(button => button.label === '再試行').click();
     await flush();
     expect(root.querySelector('lightning-datatable').columns.map(column => column.label)).toEqual([
-        '作成日', 'ユーザー名', 'ソースの名前空間プレフィックス', '本文', 'セクション', '代理ユーザー'
+        '作成日', 'ユーザー名', 'ソースの名前空間プレフィックス', 'Action', 'セクション', '代理ユーザー'
     ]);
 });
 
@@ -368,9 +368,9 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             reader.readAsText(blob, 'utf-8');
         });
         const header = expectedHeader;
-        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\r\n続き🧪","Apps","delegate@example.invalid"\n';
+        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","","=原文,""引用""\r\n続き🧪","Apps","delegate@example.invalid"\n';
         expect(csv).toBe(header + line + line.replace('audit@example.invalid', '') +
-            '"2026/11/18 9:00:00 JST","delegate@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
+            '"2026/11/18 9:00:00 JST","delegate@example.invalid","sample","suOrgAdminLogin","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
             .toBe(period === 'month' ? 'SetupAuditTrailMonthly' + monthStart.slice(0, 7).replace('-', '') + '.csv' : 'SetupAuditTrailAll.csv');
         component.remove();
@@ -843,7 +843,7 @@ it('shows recorded usernames and actions on screen and indexes the section acros
     const table = () => component.shadowRoot.querySelector('lightning-datatable');
     expect(table().data.map(row => row.displayedUser)).toEqual(['admin', undefined]);
     expect(table().data.map(row => row.DelegateUser)).toEqual(['admin', undefined]);
-    expect(table().data[1].Display).toBe(changed.Display);
+    expect(table().data[1].actionDetail).toBe('[PermSetEntityPermChanged]\n' + changed.Display);
     await chooseLookup(component, 'section', 'ログイン');
     await chooseLookup(component, 'userId', 'targetId');
     await search(component);

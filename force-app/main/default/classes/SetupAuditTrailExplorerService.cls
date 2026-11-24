@@ -56,7 +56,7 @@ public with sharing class SetupAuditTrailExplorerService {
          */
         public Boolean append(List<SetupAuditTrail> rows) {
             for (SetupAuditTrail row : rows) {
-                textLength += length(row.Display) + length(row.CreatedBy?.Username) +
+                textLength += length(row.Action) + length(row.Display) + length(row.CreatedBy?.Username) +
                     length(row.ResponsibleNamespacePrefix) + length(row.Section) + length(row.DelegateUser);
                 if (result.records.size() == maximum || (textLength > textBudget && !result.records.isEmpty())) {
                     SetupAuditTrail last = result.records[result.records.size() - 1];

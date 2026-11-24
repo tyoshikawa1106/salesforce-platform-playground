@@ -26,7 +26,7 @@ public with sharing class SetupAuditTrailExplorerController {
         Map<String, String> labels = new Map<String, String>();
         for (Schema.SObjectField field : new List<Schema.SObjectField>{
             SetupAuditTrail.CreatedDate, User.Username, SetupAuditTrail.ResponsibleNamespacePrefix,
-            SetupAuditTrail.Display, SetupAuditTrail.Section, SetupAuditTrail.DelegateUser
+            SetupAuditTrail.Action, SetupAuditTrail.Display, SetupAuditTrail.Section, SetupAuditTrail.DelegateUser
         }) {
             Schema.DescribeFieldResult definition = field.getDescribe();
             labels.put(definition.getName(), definition.getLabel());

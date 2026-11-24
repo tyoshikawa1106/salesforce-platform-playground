@@ -1,6 +1,6 @@
 /** ユーザーモードで期間内の設定変更履歴を分割して取得する。 */
 public with sharing class SetupAuditTrailExplorerSelector {
-    private static final String DETAIL_FIELDS = 'Id, CreatedDate, CreatedBy.Username, ResponsibleNamespacePrefix, Display, Section, DelegateUser';
+    private static final String DETAIL_FIELDS = 'Id, CreatedDate, CreatedBy.Username, ResponsibleNamespacePrefix, Action, Display, Section, DelegateUser';
     private static final String OPTION_FIELDS = 'Id, CreatedDate, Action, ResponsibleNamespacePrefix, DelegateUser';
     private static final String LOOKUP_FIELDS = OPTION_FIELDS + ', CreatedById, CreatedBy.Name, CreatedBy.Username';
 

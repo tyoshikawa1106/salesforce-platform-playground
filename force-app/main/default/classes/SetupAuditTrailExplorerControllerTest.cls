@@ -4,8 +4,9 @@ private class SetupAuditTrailExplorerControllerTest {
     static void returnsLabelsForTheExportedFields() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Map<String, String> labels = SetupAuditTrailExplorerController.getColumnLabels();
-            Assert.areEqual(new Set<String>{'CreatedDate', 'Username', 'ResponsibleNamespacePrefix', 'Display', 'Section', 'DelegateUser'}, labels.keySet());
+            Assert.areEqual(new Set<String>{'CreatedDate', 'Username', 'ResponsibleNamespacePrefix', 'Action', 'Display', 'Section', 'DelegateUser'}, labels.keySet());
             Assert.areEqual(User.Username.getDescribe().getLabel(), labels.get('Username'));
+            Assert.areEqual(SetupAuditTrail.Action.getDescribe().getLabel(), labels.get('Action'));
             Assert.areEqual(SetupAuditTrail.Display.getDescribe().getLabel(), labels.get('Display'));
         }
     }

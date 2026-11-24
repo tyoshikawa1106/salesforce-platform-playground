@@ -101,7 +101,7 @@ private class SetupAuditTrailExplorerServiceTest {
     static void capsCsvPagesWithoutDroppingTheNextCursor() {
         System.runAs(testUser) {
             List<SetupAuditTrail> rows = (List<SetupAuditTrail>) JSON.deserialize(
-                '[{"Id":"0Ym000000000003","CreatedDate":"2026-11-01T00:02:00.000Z","Display":"変更"},' +
+                '[{"Id":"0Ym000000000003","CreatedDate":"2026-11-01T00:02:00.000Z","Action":"A","Display":"更"},' +
                 '{"Id":"0Ym000000000002","CreatedDate":"2026-11-01T00:01:00.000Z","Section":"設定"},' +
                 '{"Id":"0Ym000000000001","CreatedDate":"2026-11-01T00:00:00.000Z","Display":"次"}]',
                 List<SetupAuditTrail>.class
