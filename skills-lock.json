@@ -702,7 +702,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/sales-agentforce-pipeline-management-configure/SKILL.md",
-      "computedHash": "7c0a809d909449fdfff97d78186e86e5186779a3414cf07b9850f6b4fe12c4ff"
+      "computedHash": "8616c7037c1b7fabf923ba758caba9408871d6e0a7556ff8e0aeb7ae952dfacd",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     }
   }
 }
