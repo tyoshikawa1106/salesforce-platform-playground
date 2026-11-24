@@ -492,7 +492,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-custom-lightning-type-generate/SKILL.md",
-      "computedHash": "a1042df0ace03bcb29c8d693517c41391a927429d5bd72e315d1bf5edcfba854"
+      "computedHash": "63a24499504fb40f6af384581fa9b9c7ea671a0fcf8aba1b4716f604275653c0",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-custom-object-generate": {
       "source": "forcedotcom/sf-skills",
@@ -554,7 +555,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-lightning-type-widget-coordinate/SKILL.md",
-      "computedHash": "8f193bfabb6a8148a86cc431ff8d8b3c678d890d2069aa858585b4dda7521119"
+      "computedHash": "ada1c4b7141728080fa646beeeebe273733cf32ae3a2845c496fe915b4d124d1",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "platform-list-view-generate": {
       "source": "forcedotcom/sf-skills",
@@ -656,7 +658,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/platform-widget-generate/SKILL.md",
-      "computedHash": "a9564cb5eecd7366c072dd750d06cfa43e5dfca6bd9c31e3329cf99a06cf0e92"
+      "computedHash": "f45f60082055ad95610af1badbf62563e088b0701a0bf28a382e65a56e19aec1",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "sales-agentforce-pipeline-management-configure": {
       "source": "forcedotcom/sf-skills",
