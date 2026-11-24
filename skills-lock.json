@@ -1,6 +1,14 @@
 {
   "version": 2,
   "skills": {
+    "afcc-setup-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/afcc-setup-coordinate/SKILL.md",
+      "computedHash": "906b0f25614c9fc4a3193562f56510f8da8a4b123ab4ac37006e6392b4ad5754"
+    },
     "agentforce-architecture-analyze": {
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
@@ -1125,6 +1133,142 @@
       "computedHash": "8616c7037c1b7fabf923ba758caba9408871d6e0a7556ff8e0aeb7ae952dfacd",
       "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
+    "service-agentforce-channel-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-agentforce-channel-configure/SKILL.md",
+      "computedHash": "0a5b0e4db887ead747cbe46cac2b1fee21bd602f61a279fcb9a5b7195f51f643"
+    },
+    "service-agentforce-contact-center-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-agentforce-contact-center-coordinate/SKILL.md",
+      "computedHash": "9bb3637f6896bfeb171b2bde7ddb7c9ceb351855ab886be42d6a2a990115fe8b"
+    },
+    "service-agentforce-human-escalation-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-agentforce-human-escalation-configure/SKILL.md",
+      "computedHash": "4a5ab076ae7b008dcc667fb06543263c40b4bcdc43de4f72c97ea0848e0169cb"
+    },
+    "service-catalog-template-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-catalog-template-coordinate/SKILL.md",
+      "computedHash": "f2b749c94624cea123487346989905a964794456a536695314e3eb9be78ac231"
+    },
+    "service-concierge-portal-generate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-concierge-portal-generate/SKILL.md",
+      "computedHash": "a05102bb2da6cb51b2fea2d128605f405ef62de3f930bc032c4f70082166beab"
+    },
+    "service-de-channel-activate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-de-channel-activate/SKILL.md",
+      "computedHash": "5cabd488f1d5150e3eb3757d294f7ff7af172cb3de93d9a1235ef1704397f497"
+    },
+    "service-de-channel-create": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-de-channel-create/SKILL.md",
+      "computedHash": "76a08a912ca82a303ae39e4b161f604a00c21dd0caa269d41393e857ca609997"
+    },
+    "service-de-channel-routing-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-de-channel-routing-configure/SKILL.md",
+      "computedHash": "407e7397e0809aba62f24d9c4b635331554cd87ca482101f4fe9b15c4246e9d8"
+    },
+    "service-de-channel-settings-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-de-channel-settings-configure/SKILL.md",
+      "computedHash": "8c34e0dc73d884294ddab1d07b8b2eb2853cb38159ce270d018d8f31af297924"
+    },
+    "service-de-headless-channel-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-de-headless-channel-configure/SKILL.md",
+      "computedHash": "e15c7de4fbba3db39312de7cdfdcedea117347737e3b510f4f1658952784fb84"
+    },
+    "service-de-waba-integrate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-de-waba-integrate/SKILL.md",
+      "computedHash": "4e7d1dac19344eccbe0e8ba77dd69dcd97cd6e38d27ff00e1c063fbff987f519"
+    },
+    "service-digital-engagement-channel-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-digital-engagement-channel-configure/SKILL.md",
+      "computedHash": "a0a90d7986a7078a71be10dab5c8b372c144d030d9c75ebdde0a15cc74ea9b30"
+    },
+    "service-digital-engagement-deployment-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-digital-engagement-deployment-configure/SKILL.md",
+      "computedHash": "39e781bf1ef24d35375f87bf86b0207da3123bee2ccf7104b1ca6391439b98e2"
+    },
+    "service-digital-engagement-messaging-site-integrate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-digital-engagement-messaging-site-integrate/SKILL.md",
+      "computedHash": "e45ec08253eff95547d8c2e5cb585816d59f49b923049414fc1f092ab4975e25"
+    },
+    "service-e911-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-e911-configure/SKILL.md",
+      "computedHash": "cb0866fafd88b758524daf11420641a63f1e29d507159dfd1fe0a7cdb0f9e12a"
+    },
+    "service-email-to-case-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-email-to-case-configure/SKILL.md",
+      "computedHash": "c11a2f48975de7ad77477809a01d069892f790f18f829142922835791a9de1d7"
+    },
+    "service-helpagent-coordinate": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-helpagent-coordinate/SKILL.md",
+      "computedHash": "afae56174f41c4230eaf3598d55aaafb8f85365b5d5b8f0d5c5af63363b30c42"
+    },
     "service-itsm-agentic-setup-agent-runtime-access-assign": {
       "source": "forcedotcom/sf-skills",
       "ref": "main",
@@ -1340,6 +1484,14 @@
       "sourceType": "github",
       "skillPath": "skills/service-itsm-teams-itservice-configure/SKILL.md",
       "computedHash": "3d1ecc21ef4953908894ae96f50b0edef61cced66f45299de1a2c1438bbe5560"
+    },
+    "service-native-voice-recording-transcription-configure": {
+      "source": "forcedotcom/sf-skills",
+      "ref": "main",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4",
+      "sourceType": "github",
+      "skillPath": "skills/service-native-voice-recording-transcription-configure/SKILL.md",
+      "computedHash": "60238396690a9075993170abfc789a81d94cd9f9c51aeab438d1da9989c2601f"
     },
     "service-omni-agent-users-create": {
       "source": "forcedotcom/sf-skills",
