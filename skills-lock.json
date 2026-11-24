@@ -78,7 +78,8 @@
       "source": "forcedotcom/sf-skills",
       "sourceType": "github",
       "skillPath": "skills/data360-code-extension-generate/SKILL.md",
-      "computedHash": "dd34d7386a5bdf9cf00816d408e94e703b700a454e061a3d0012a8d02f95af9c"
+      "computedHash": "cf0c2e49f66e60a5b98f70279480208fb648bb8a0ad8f74f7ac9a32de1fb41ee",
+      "commit": "b09f91fe832e19b1f8c5eddd3bfb418640d997b4"
     },
     "data360-connect": {
       "source": "forcedotcom/sf-skills",
