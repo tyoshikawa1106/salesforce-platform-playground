@@ -76,7 +76,7 @@ export default class SetupAuditTrailExportModal extends LightningModal {
     // 6ヶ月間の表示と対象月の表示を切り替える。
     get range() {
         // 進捗中もどの範囲を出力しているか表示する。
-        return this.exportSubject || (this.period === 'all' ? '過去180日間' : this.month);
+        return this.exportSubject || (this.period === 'all' ? '取得可能な全期間' : this.month);
     }
 
     // 取得の前後で同じ出力範囲を案内する。

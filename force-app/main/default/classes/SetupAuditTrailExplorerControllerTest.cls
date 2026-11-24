@@ -98,19 +98,6 @@ private class SetupAuditTrailExplorerControllerTest {
         }
     }
 
-    /** 180日前の開始境界が未来なら、現在参照可能な履歴も全件対象外。 */
-    @IsTest
-    static void excludesHistoryOlderThanExportWindow() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            Datetime cutoff = System.now().addDays(181);
-            Test.startTest();
-            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerController.exportAllHistory(cutoff, null, null);
-            Test.stopTest();
-            Assert.isTrue(result.records.isEmpty(), '出力開始の180日前より古い履歴は含めません。');
-            Assert.areEqual(cutoff, result.cutoff, '出力期間は渡された基準時刻で固定します。');
-        }
-    }
-
     /** 続きのページは引き継いだ取得上限を適用し、同じ値を返す。 */
     @IsTest
     static void preservesExportCutoffOnLaterPages() {

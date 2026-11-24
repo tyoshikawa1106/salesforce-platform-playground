@@ -1382,14 +1382,15 @@ export default class SetupAuditTrailExplorer extends LightningElement {
 
     // 全ページと確認時の件数が揃ったCSVだけを保存可能にする。
     async buildCsv(period, month, selection, isCurrent, progress) {
-        // ファイル名は確認操作を行った時刻を基準にする。
-        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrail180Days', results: 'SetupAuditTrailFiltered' }[period];
-        // 取得にかかった時間でファイル名を変更しない。
-        const fileName = prefix + Date.now() + '.csv';
-        // 6ヶ月間だけ専用のApexメソッドから取得する。
-        const fetchPage = period === 'all' ? exportAllHistory : query => load({ criteriaJson: JSON.stringify(query) });
         // 月別と検索結果では確認時の条件を復元する。
         const query = period === 'all' ? { cutoff: null } : { monthStart: month + '-01', ...selection?.query, csv: true };
+        // ファイル名の対象年月は実際の取得条件から取り、6ヶ月間の出力には付けない。
+        const monthPart = query.monthStart ? query.monthStart.slice(0, 7).replace('-', '') : '';
+        const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailSearchResults' }[period];
+        // 出力種別と対象年月で保存名を決める。
+        const fileName = prefix + monthPart + '.csv';
+        // 6ヶ月間だけ専用のApexメソッドから取得する。
+        const fetchPage = period === 'all' ? exportAllHistory : pageQuery => load({ criteriaJson: JSON.stringify(pageQuery) });
         // UTF-8のBOMと列名をファイルの先頭に置く。
         const chunks = ['\uFEFF', CSV_HEADER];
         // 作成者の照合結果を出力単位で共有する。
