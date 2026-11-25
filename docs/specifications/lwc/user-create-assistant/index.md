@@ -10,12 +10,12 @@ Salesforce アプリの「OAuth トークン発行」の次に配置する、新
 
 ## 対象実装・メタデータ
 
-| 実装                                                                                                                                                                                                                                                                                                 | 役割                                                 |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| [画面](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistant.html)・[Controller](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistant.js)・[表示ロジック](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistantLogic.js) | コピー元選択、左右のフォーム、入力検証、保存、再試行 |
-| [UserCreateAssistantController](../../../../force-app/main/default/classes/UserCreateAssistantController.cls)                                                                                                                                                                                        | 元ユーザーの変更、新規作成、権限割り当ての一括保存   |
-| [UserCreateAssistantService](../../../../force-app/main/default/classes/UserCreateAssistantService.cls)・[Selector](../../../../force-app/main/default/classes/UserCreateAssistantSelector.cls)・[Wrapper](../../../../force-app/main/default/classes/UserCreateAssistantWrapper.cls)                | 表示項目、保存要求、ユーザー・割り当ての取得         |
-| [タブ](../../../../force-app/main/default/tabs/UserCreateAssistant.tab-meta.xml)・[Salesforce アプリ](../../../../force-app/main/default/applications/Salesforce.app-meta.xml)                                                                                                                       | ナビゲーションからの起動                             |
+| 実装                                                                                                                                                                                                                                                                                                 | 役割                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [画面](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistant.html)・[Controller](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistant.js)・[表示ロジック](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistantLogic.js) | コピー元選択、左右のフォーム、入力検証、保存       |
+| [UserCreateAssistantController](../../../../force-app/main/default/classes/UserCreateAssistantController.cls)                                                                                                                                                                                        | 元ユーザーの変更、新規作成、権限割り当ての一括保存 |
+| [UserCreateAssistantService](../../../../force-app/main/default/classes/UserCreateAssistantService.cls)・[Selector](../../../../force-app/main/default/classes/UserCreateAssistantSelector.cls)・[Wrapper](../../../../force-app/main/default/classes/UserCreateAssistantWrapper.cls)                | 表示項目、保存要求、ユーザー・割り当ての取得       |
+| [タブ](../../../../force-app/main/default/tabs/UserCreateAssistant.tab-meta.xml)・[Salesforce アプリ](../../../../force-app/main/default/applications/Salesforce.app-meta.xml)                                                                                                                       | ナビゲーションからの起動                           |
 
 [UserCreateAssistantFieldCatalog](../../../../force-app/main/default/classes/UserCreateAssistantFieldCatalog.cls) が項目定義と参照範囲を決定し、[UserCreateAssistantFieldInput](../../../../force-app/main/default/classes/UserCreateAssistantFieldInput.cls) が保存値の検証と型変換を担当します。
 
@@ -23,7 +23,7 @@ Salesforce アプリの「OAuth トークン発行」の次に配置する、新
 
 - 地理位置情報は緯度と経度を個別の数値で表示・入力します。複数選択リストは選択済みの値を表示し、編集時は各パネルの横幅を使い、「選択可能」と「選択済み」の間で候補を移動します。
 - 連動選択リストの候補は左右それぞれの制御項目に従います。コピー先に引き継げない選択値は「選択対象外」と表示し、選び直すか解除してから確認画面に進みます。確認中に候補が更新され、選択値が対象外になった場合もフォームに戻ります。
-- 取得エラー時は通知内の「再読み込み」で再試行できます。ボタンは本文の右側、狭い画面では本文の下に左揃えで表示します。連動候補の再読み込みでは、左右の入力内容と作成オプションを保持します。
+- 権限確認・取得・入力・保存のエラーは、画面見出し直下の共通の通知枠に表示します。
 - リッチテキストは書式付きで表示・編集し、元の本文に含まれる画像もコピーします。保存前のファイルアップロードを防ぐため、ツールバーの画像・リンク挿入ボタンを非表示にします。
 - 氏名・ユーザー名からコピー元を選びます。新規側の編集可能項目には、選択時点の元ユーザーの値を設定します。空欄にできる項目は、コピー元が空欄なら新規側にも空欄を引き継ぎます。ユーザー名やニックネームなど、一意性が必要な値は保存前に調整します。ユーザーライセンス・ロール・プロファイルは両側とも参照専用です。
 - コピー元の無効化は初期状態でオフです。ログイン中の本人を選ぶと、無効化はオフのまま操作できず、本人をコピー元として新規ユーザーを作成できます。他のユーザーを選んで無効化をオンにすると元側の編集可能項目を変更できます。オフに戻すと元側の編集を取り消し、新規側の入力は保持します。
@@ -55,7 +55,7 @@ User を作成し、成功したユーザーへのリンクを表示します。
 - 確認画面を開く前に左右のユーザー名を比較し、同じ場合は新規側のユーザー名欄に理由を表示します。エラーの概要はページ見出しの直下に表示し、通知へフォーカスを移します。
 - 元ユーザーの更新、新規作成、権限割り当ては同じトランザクションで行います。どれかが失敗すると、元ユーザーの無効化を含めて取り消します。
 - 保存失敗時は入力とチェック状態を保持します。権限割り当てでライセンスが不足した場合は、該当する引き継ぎをオフにして再試行できます。ユーザーライセンス自体の枠不足はユーザー作成時に通知します。
-- コピー元の切り替え中は前の取得結果を無視します。保存中はフォームをロックし、二重送信を防ぎます。保存中に連動候補の取得が失敗しても、作成に成功した場合は成功結果だけを表示します。保存も失敗した場合は入力を保持し、候補を再取得してから再試行できます。
+- コピー元の切り替え中は前の取得結果を無視します。保存中はフォームをロックし、二重送信を防ぎます。保存中に連動候補の取得が失敗しても、作成に成功した場合は成功結果だけを表示します。保存も失敗した場合はフォームを閉じ、保存と候補取得の両方のエラーを同じ通知に表示します。
 
 ## 関連コンポーネント
 

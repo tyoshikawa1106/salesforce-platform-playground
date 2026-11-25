@@ -9,7 +9,7 @@ import { buildConfirmationSections, buildFieldLines, buildPanel, getDraftValue, 
 
 const MASTER_RECORD_TYPE_ID = '012000000000000AAA';
 const ACCESS_ERROR_PREFIX = '利用権限の確認：';
-const DEPENDENCY_ERROR = '連動選択リストの候補を取得できませんでした。再読み込みしてください。';
+const DEPENDENCY_ERROR = '連動選択リストの候補を取得できませんでした。';
 const MATCHING_USERNAME = '新規ユーザーの「ユーザー名」がコピー元と同じです。右側の「ユーザー名」に、別の未使用のユーザー名を入力してください。';
 
 // 参照元の選択から入力、割り当てを含む作成までを制御
@@ -37,7 +37,7 @@ export default class UserCreateAssistant extends LightningElement {
     }
 
     async loadSourceProfiles() {
-        // 接続または再試行のたびに現在の権限で検索条件を取得する
+        // 画面の接続時に現在の権限で検索条件を取得する
         const request = ++this.profileRequest;
         this.sourceProfileIds = undefined;
         this.profileError = undefined;
@@ -48,7 +48,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.sourceProfileIds = profiles;
             // 再接続時は保持した入力値でフォームを復元し、中断した取得だけを再開する
             if (this.panels) this.rebuildPanels();
-            else if (this.sourceId && !this.saving) this.handleRetry();
+            else if (this.sourceId && this.loading && !this.fields.length && !this.saving) this.loadSource();
         } catch (error) {
             if (request !== this.profileRequest) return;
             if (!this.handleAccessDenial(error)) this.profileError = 'コピー元の検索条件を取得できませんでした。';
@@ -141,19 +141,6 @@ export default class UserCreateAssistant extends LightningElement {
         this.loadSource();
     }
 
-    handleRetry() {
-        // 保存の完了前に検索や候補の再取得を開始しない
-        if (this.saving) return;
-        if (this.fields.some(field => field.controllerName)) {
-            // 項目と入力値を保持し、失敗した選択肢だけを再取得する。
-            this.loading = true;
-            this.errorMessage = undefined;
-            this.dependencyRecordTypeId = MASTER_RECORD_TYPE_ID;
-        } else {
-            this.loadSource();
-        }
-    }
-
     dependencyRecordTypeId;
 
     @wire(getPicklistValuesByRecordType, { objectApiName: USER_OBJECT, recordTypeId: '$dependencyRecordTypeId' })
@@ -164,7 +151,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.closeConfirmation();
             this.dependencyRecordTypeId = undefined;
             this.loading = false;
-            // 保存中はフォームをロックしたまま、結果に応じて再取得を案内する
+            // 保存中はフォームをロックしたまま、保存結果を待つ
             if (this.saving) return;
             this.panels = undefined;
             this.showError(DEPENDENCY_ERROR);
@@ -187,7 +174,7 @@ export default class UserCreateAssistant extends LightningElement {
         // 古い項目定義を保持しない
         this.fields = [];
         this.dependencyRecordTypeId = undefined;
-        // 再試行時に古いエラー表示を閉じる
+        // 対象が変わったら以前のエラーを閉じる
         this.errorMessage = undefined;
         // 未選択なら読み込みを終了
         this.loading = Boolean(this.sourceId);
@@ -308,9 +295,12 @@ export default class UserCreateAssistant extends LightningElement {
         }
     }
 
-    get showRetry() {
-        // 読み込みと保存の失敗で復旧操作を区別
-        return !this.panels && !this.loading && Boolean(this.sourceId);
+    get displayedError() {
+        return this.sourceProfileIds ? this.errorMessage : this.profileError;
+    }
+
+    get checkingAccess() {
+        return !this.sourceProfileIds && !this.profileError;
     }
 
     get saveLabel() {
@@ -319,6 +309,7 @@ export default class UserCreateAssistant extends LightningElement {
     }
 
     get errorHeading() {
+        if (!this.sourceProfileIds) return undefined;
         return this.panels ? 'ユーザーを作成できませんでした' : 'コピー元ユーザーを読み込めませんでした';
     }
 
@@ -454,7 +445,7 @@ export default class UserCreateAssistant extends LightningElement {
             if (this.handleAccessDenial(error)) return;
             // 入力とチェック状態を維持して再試行できるようにする
             const message = error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
-            // 保存中に候補も失効していれば、入力を残して候補だけを読み直す
+            // 保存中に候補も失効していれば、編集を閉じて両方のエラーを表示する
             if (!this.dependencyRecordTypeId && this.fields.some(field => field.controllerName)) {
                 this.panels = undefined;
                 this.showError(message + ' ' + DEPENDENCY_ERROR);
