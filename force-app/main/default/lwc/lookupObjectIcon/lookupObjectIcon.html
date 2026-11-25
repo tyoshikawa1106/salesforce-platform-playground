@@ -1,4 +1,4 @@
 <template>
     <img lwc:if={iconUrl} src={iconUrl} onerror={handleImageError} class={imageClass} style={imageStyle} alt={alternativeText} />
-    <lightning-icon lwc:else icon-name={fallbackIcon} size={size} alternative-text={alternativeText}></lightning-icon>
+    <lightning-icon lwc:else icon-name={fallbackIcon} data-icon={fallbackIcon} size={size} alternative-text={alternativeText}></lightning-icon>
 </template>
