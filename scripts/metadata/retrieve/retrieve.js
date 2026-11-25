@@ -2,6 +2,7 @@
 // 用途: Default Target Orgから、責務別のmanifestに定義したメタデータを順番に取得する。
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
@@ -151,26 +152,26 @@ function validateManifestDefinitions(splitSources, expectedApiVersion) {
 }
 
 // リポジトリ内の分割manifestとSalesforce project設定を読み込んで検証する。
-function validateRetrieveManifestPlan() {
+function validateRetrieveManifestPlan(projectRoot = repoRoot) {
     // すべての分割manifestが存在することを確認する。
     for (const manifest of manifests) {
         // 1件でも不足していればretrieveを開始しない。
-        if (!fs.existsSync(path.join(repoRoot, manifest))) {
+        if (!fs.existsSync(path.join(projectRoot, manifest))) {
             // 不足しているmanifestを利用者へ表示する。
             throw new Error(`retrieve対象のmanifestが見つかりません: ${manifest}`);
         }
     }
 
     // sfdx-project.jsonからこのprojectの基準API versionを取得する。
-    const projectConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sfdx-project.json'), 'utf8'));
+    const projectConfig = JSON.parse(fs.readFileSync(path.join(projectRoot, 'sfdx-project.json'), 'utf8'));
     // 分割manifestをラベル付きXML文字列として読み込む。
     const splitSources = manifests.map((manifest) => ({
         label: manifest,
-        source: fs.readFileSync(path.join(repoRoot, manifest), 'utf8')
+        source: fs.readFileSync(path.join(projectRoot, manifest), 'utf8')
     }));
 
     // 読み込んだ全分割manifestの構造とAPI versionを検証する。
-    return validateManifestDefinitions(splitSources, projectConfig.sourceApiVersion);
+    return { ...validateManifestDefinitions(splitSources, projectConfig.sourceApiVersion), splitSources };
 }
 
 // Salesforce CLIのwarning要素を利用者向けの1行へ変換する。
@@ -526,6 +527,7 @@ function printRetrieveSummary(summary, elapsedMilliseconds) {
 // manifestの確認後、承認された組織からメタデータを取得する。
 async function main({
     argv = process.argv.slice(2),
+    projectRoot = repoRoot,
     createPrompt,
     clearIntervalCommand = clearInterval,
     now = Date.now,
@@ -549,7 +551,7 @@ async function main({
     // ファイル不足、構造不正、version差を同じ構成エラーとして扱う。
     try {
         // 現在のリポジトリにあるretrieve計画をローカルだけで検証する。
-        manifestPlan = validateRetrieveManifestPlan();
+        manifestPlan = validateRetrieveManifestPlan(projectRoot);
     } catch (error) {
         // 不完全なmanifestで一部retrieveを開始しない。
         console.error(`エラー: retrieve manifestの確認に失敗しました: ${error.message}`);
@@ -563,9 +565,9 @@ async function main({
     );
 
     // retrieve対象のDefault Target Orgを確定し、認証済み組織情報を表示する。
-    const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
+    const targetOrg = getDefaultTargetOrg({ repoRoot: projectRoot, runSfCommand: runSfWithOutputCommand });
     // aliasまたはusernameに一致する1組織の表示情報と種別を確定する。
-    const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfWithOutputCommand, targetOrg });
+    const orgInfo = getTargetOrgInfo({ repoRoot: projectRoot, runSfCommand: runSfWithOutputCommand, targetOrg });
     // 利用者が接続先を確認できる最小項目を表示する。
     printTargetOrgInfo(orgInfo);
 
@@ -591,11 +593,46 @@ async function main({
         return 0;
     }
 
+    // 取得中に元のmanifestが編集されても、検査時の内容から取得する。
+    const manifestDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-retrieve-'));
+    try {
+        // 全取得の完了まで一時manifestを保持する。
+        return await retrieveManifests({
+            splitSources: manifestPlan.splitSources,
+            manifestDirectory,
+            targetOrg: orgInfo.username,
+            projectRoot,
+            runRetrieveCommand,
+            now,
+            setIntervalCommand,
+            clearIntervalCommand
+        });
+    } finally {
+        // 途中の失敗時にもこの実行の一時manifestを片付ける。
+        fs.rmSync(manifestDirectory, { recursive: true, force: true });
+    }
+}
+
+// 検査したmanifestを承認済みの組織から定義順に取得する。
+async function retrieveManifests({
+    splitSources,
+    manifestDirectory,
+    targetOrg,
+    projectRoot,
+    runRetrieveCommand,
+    now,
+    setIntervalCommand,
+    clearIntervalCommand
+}) {
     // 最後まで実行した後に要確認manifestをまとめて報告する。
     const partialResults = [];
 
     // manifestの定義順にメタデータを取得する。
-    for (const [index, manifest] of manifests.entries()) {
+    for (const [index, { label: manifest, source }] of splitSources.entries()) {
+        // CLIが読むファイルには検査済みの内容を渡す。
+        const manifestPath = path.join(manifestDirectory, path.basename(manifest));
+        // リポジトリ側のファイルは再読込しない。
+        fs.writeFileSync(manifestPath, source);
         // 失敗時に停止位置を特定できるよう、処理前に対象manifestを明示する。
         console.log(`[${index + 1}/${manifests.length}] ${path.basename(manifest)} を取得します。`);
         // 追加API呼び出しなしでmanifest単位の所要時間を測定する。
@@ -624,14 +661,14 @@ async function main({
                     'retrieve',
                     'start',
                     '--manifest',
-                    manifest,
+                    manifestPath,
                     '--target-org',
                     targetOrg,
                     '--wait',
                     String(retrieveWaitMinutes),
                     '--json'
                 ],
-                repoRoot
+                projectRoot
             );
         } finally {
             // 次のmanifestへ進む前に現在の定期表示を解除する。

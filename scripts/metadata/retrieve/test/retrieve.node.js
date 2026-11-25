@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { XMLParser, XMLValidator } = require('fast-xml-parser');
@@ -120,7 +121,7 @@ function createRetrieveArgs(manifest) {
         '--manifest',
         manifest,
         '--target-org',
-        'test-org',
+        'user@example.com',
         '--wait',
         '120',
         '--json'
@@ -450,8 +451,42 @@ test('承認された場合はすべてのmanifestを同じTarget Orgから定�
 
     // 確認済みのTarget Orgを明示し、すべてのmanifestが定義順に取得されることを確認する。
     assert.equal(status, 0);
-    assert.deepEqual(commandArgs, manifests.map(createRetrieveArgs));
+    assert.deepEqual(
+        commandArgs,
+        manifests.map((name) => createRetrieveArgs(path.join(path.dirname(commandArgs[0][4]), path.basename(name))))
+    );
     assert.equal(prompt.isClosed(), true);
+});
+
+test('承認中に分割manifestを編集しても検査済みの内容を取得する', async (t) => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'retrieve-test-'));
+    t.after(() => fs.rmSync(projectRoot, { force: true, recursive: true }));
+    fs.mkdirSync(path.join(projectRoot, 'manifest'));
+    fs.copyFileSync(path.join(repoRoot, 'sfdx-project.json'), path.join(projectRoot, 'sfdx-project.json'));
+    for (const manifest of manifests) {
+        fs.copyFileSync(path.join(repoRoot, manifest), path.join(projectRoot, manifest));
+    }
+    const first = path.join(projectRoot, manifests[0]);
+    const original = fs.readFileSync(first, 'utf8');
+    let checkedPath;
+    const status = await main({
+        argv: [],
+        projectRoot,
+        runSfWithOutputCommand: createOrgInfoCommand(),
+        createPrompt() {
+            fs.writeFileSync(first, '<changed/>');
+            return createPrompt('y').prompt;
+        },
+        runRetrieveCommand(args) {
+            if (!checkedPath) {
+                checkedPath = args[args.indexOf('--manifest') + 1];
+                assert.equal(fs.readFileSync(checkedPath, 'utf8'), original);
+            }
+            return createRetrieveResult();
+        }
+    });
+    assert.equal(status, 0);
+    assert.equal(fs.existsSync(checkedPath), false);
 });
 
 test('manifestの定義順に取得し、warningがあっても後続をすべて実行する', async () => {
@@ -472,7 +507,10 @@ test('manifestの定義順に取得し、warningがあっても後続をすべ�
 
     // warningを最終的な要確認結果にしつつ、全manifestを定義順に実行する。
     assert.equal(status, 1);
-    assert.deepEqual(commandArgs, manifests.map(createRetrieveArgs));
+    assert.deepEqual(
+        commandArgs,
+        manifests.map((name) => createRetrieveArgs(path.join(path.dirname(commandArgs[0][4]), path.basename(name))))
+    );
     assert.equal(prompt.isClosed(), true);
 });
 
@@ -499,7 +537,10 @@ test('Salesforce CLIのhard failureでは後続manifestを実行しない', asyn
     // CLI失敗はwarningと区別し、発生したmanifestで停止する。
     assert.equal(status, 1);
     assert.equal(commandArgs.length, 2);
-    assert.deepEqual(commandArgs[1], createRetrieveArgs(manifests[1]));
+    assert.deepEqual(
+        commandArgs[1],
+        createRetrieveArgs(path.join(path.dirname(commandArgs[0][4]), path.basename(manifests[1])))
+    );
     assert.equal(prompt.isClosed(), true);
 });
 

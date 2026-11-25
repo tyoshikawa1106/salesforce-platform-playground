@@ -93,12 +93,12 @@ Default Target Orgを認証済み組織一覧と照合し、対象組織を表�
 
 ### 4. manifestを順番に取得する
 
-各manifestについて、次に相当するコマンドを実行します。
+組織確認前に検査したmanifestの内容を実行専用の一時ファイルに書き出し、表示した組織のユーザー名を指定して順番に取得します。
 
 ```sh
 sf project retrieve start \
-  --manifest manifest/retrieve-profile.xml \
-  --target-org <Default Target Org> \
+  --manifest <一時ディレクトリ>/retrieve-profile.xml \
+  --target-org <確認したusername> \
   --wait 120 \
   --json
 ```
@@ -162,7 +162,7 @@ hard failureの場合は、発生したmanifestの結果を表示し、後続man
 
 - `sfdx-project.json`で定義された既定package directory配下のmetadataを、Salesforce CLIのsource形式retrieve結果で作成または更新します。
 - manifest単位の取得結果、件数、warning、注意、エラー、所要時間を標準出力または標準エラーへ表示します。
-- スクリプト独自のログファイル、結果JSON、manifestコピーは作成しません。
+- 一時manifestは取得処理の終了時に削除します。スクリプト独自のログファイルと結果JSONは作成しません。
 
 ## 権限・実行条件
 
