@@ -121,7 +121,7 @@ it('左右の初期状態と引き継ぎを表示し、保存エラー後も入�
     await toggle(root,'copyPermissionSets',false);
     submit(root);
     await flush();
-    expect(saveUser).toHaveBeenLastCalledWith({request:{sourceId:'one',deactivateSource:false,copyPermissionSets:false,copyPermissionSetGroups:true,sendResetEmail:false,sourceValuesJson:'{}',targetValuesJson:'{"LastName":"新規"}'}});
+    expect(saveUser).toHaveBeenLastCalledWith({request:{sourceId:'one',deactivateSource:false,copyPermissionSets:false,copyPermissionSetGroups:true,sendResetEmail:true,sourceValuesJson:'{}',targetValuesJson:'{"LastName":"新規"}'}});
     expect(root.querySelector('a').getAttribute('href')).toBe('/lightning/r/User/new/view');
 });
 it('参照先を ID 入力に切り替えた後も、元側の表示切替で新規側の編集を保持する', async () => {
@@ -209,7 +209,7 @@ it('未編集の新規項目も保存し、明示的なクリアとコピー元�
     expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:true});
 });
 
-it.each([true, false])('有効状態が %s のコピー元でも新規側は有効で作成し、選択時だけ通知する', async (initial) => {
+it.each([[true, true], [false, false]])('コピー元の有効状態が %s でも新規側は有効で、メール送信の選択 %s を確認・保存に反映する', async (initial, sendEmail) => {
     getForm.mockResolvedValue({fields: [
         {apiName:'IsActive', label:'有効', type:'checkbox', value:String(initial), canCreate:true},
         {apiName:'Email', label:'メール', type:'email', value:'new@example.invalid', canCreate:true}
@@ -221,12 +221,13 @@ it.each([true, false])('有効状態が %s のコピー元でも新規側は有�
     const target = root.querySelector('.c-target lightning-input');
     expect(source).toMatchObject({type:'checkbox', checked:initial, readOnly:true});
     expect(target).toMatchObject({type:'checkbox', checked:true, readOnly:true});
-    expect(option(root,'sendResetEmail').checked).toBe(false);
-    await toggle(root,'sendResetEmail',true);
+    expect(option(root,'sendResetEmail').checked).toBe(true);
+    if (!sendEmail) await toggle(root,'sendResetEmail',false);
     const dialog = review(root); await flush();
-    expect(dialog.textContent).toContain('送信する');
+    const emailSetting = [...dialog.querySelectorAll('dt')].find(label => label.textContent === 'パスワードリセットメール');
+    expect(emailSetting.nextElementSibling.textContent).toBe(sendEmail ? '送信する' : '送信しない');
     expect(dialog.textContent).toContain('new@example.invalid');
     dialog.querySelectorAll('lightning-button')[1].click(); await flush();
-    expect(saveUser.mock.calls[0][0].request.sendResetEmail).toBe(true);
+    expect(saveUser.mock.calls[0][0].request.sendResetEmail).toBe(sendEmail);
     expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).IsActive).toBe(true);
 });

@@ -110,6 +110,10 @@
 }
 
 @media (max-width: 30em) {
+    .c-options {
+        padding-inline: var(--slds-g-spacing-2, 0.5rem);
+    }
+
     .c-confirmation-row {
         grid-template-columns: 1fr;
         gap: var(--slds-g-spacing-1, 0.25rem);

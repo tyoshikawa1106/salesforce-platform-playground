@@ -34,23 +34,19 @@
             </p>
         </section>
         <template lwc:if={panels}>
-            <section class="slds-box slds-theme_default slds-m-top_medium" aria-label="作成オプション">
+            <section class="slds-box slds-theme_default slds-m-top_medium c-options" aria-label="作成オプション">
                 <div class="slds-grid slds-wrap slds-gutters">
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                         <lightning-input type="checkbox" name="deactivateSource" label="コピー元ユーザーを無効化する"
                             checked={deactivateSource} disabled={saving} onchange={handleOptionChange}></lightning-input>
+                        <lightning-input class="slds-m-top_x-small" type="checkbox" name="sendResetEmail" label="パスワードリセットメールを送信"
+                            checked={sendResetEmail} disabled={saving} onchange={handleOptionChange}></lightning-input>
                     </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                         <lightning-input type="checkbox" name="copyPermissionSets" label="権限セットを引き継ぐ"
                             checked={copyPermissionSets} disabled={saving} onchange={handleOptionChange}></lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
-                        <lightning-input type="checkbox" name="copyPermissionSetGroups" label="権限セットグループを引き継ぐ"
+                        <lightning-input class="slds-m-top_x-small" type="checkbox" name="copyPermissionSetGroups" label="権限セットグループを引き継ぐ"
                             checked={copyPermissionSetGroups} disabled={saving} onchange={handleOptionChange}></lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
-                        <lightning-input type="checkbox" name="sendResetEmail" label="新規ユーザーにパスワードリセットメールを送信する"
-                            checked={sendResetEmail} disabled={saving} onchange={handleOptionChange}></lightning-input>
                     </div>
                 </div>
             </section>

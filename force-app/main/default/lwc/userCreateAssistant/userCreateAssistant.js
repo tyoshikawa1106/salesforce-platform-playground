@@ -33,8 +33,8 @@ export default class UserCreateAssistant extends LightningElement {
     copyPermissionSets = true;
     // グループだけを独立して除外できるようにする
     copyPermissionSetGroups = true;
-    // 新規ユーザー宛ての通知は明示選択時だけ要求
-    sendResetEmail = false;
+    // 新規ユーザーにはパスワードリセットメールを送る設定で開始
+    sendResetEmail = true;
     // 読み込み中に空のフォームを表示しない
     loading = false;
     // DML が完了するまで二重送信と対象切り替えを禁止
@@ -73,7 +73,7 @@ export default class UserCreateAssistant extends LightningElement {
         this.copyPermissionSets = true;
         // グループ引き継ぎも初期状態に戻す
         this.copyPermissionSetGroups = true;
-        this.sendResetEmail = false;
+        this.sendResetEmail = true;
         // 前回の完了通知を閉じる
         this.createdUrl = undefined;
         // 選択中のユーザーに応じて参照元を表示
