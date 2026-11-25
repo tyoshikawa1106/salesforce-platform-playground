@@ -12,125 +12,132 @@
                 </div>
             </div>
         </header>
-        <div lwc:if={errorMessage} role="alert" tabindex="-1" lwc:ref="errorSummary" class="c-error-summary slds-box slds-theme_default slds-m-bottom_medium">
-            <div class="slds-text-color_error slds-hyphenate">
-                <p><strong>{errorHeading}</strong></p>
-                <p>{errorMessage}</p>
-            </div>
-            <lightning-button lwc:if={showRetry} label="再読み込み" onclick={handleRetry}></lightning-button>
+        <div lwc:if={profileError} role="alert" class="slds-box slds-m-bottom_medium">
+            <p>{profileError}</p>
+            <lightning-button label="再読み込み" onclick={loadSourceProfiles}></lightning-button>
         </div>
-        <section class="slds-box slds-theme_default" aria-label="コピー元ユーザーの選択">
-            <lightning-record-picker
-                label="コピー元ユーザー"
-                object-api-name="User"
-                matching-info={matchingInfo}
-                filter={sourceFilter}
-                display-info={displayInfo}
-                value={sourceId}
-                disabled={saving}
-                onchange={handleSourceChange}
-            ></lightning-record-picker>
-            <p lwc:if={loading} class="slds-m-top_small" role="status">ユーザー情報を読み込み中です。</p>
-            <p lwc:if={createdUrl} role="status" class="slds-m-top_small">
-                ユーザーを作成しました。<a href={createdUrl}>作成したユーザーを開く</a>
-            </p>
-        </section>
-        <template lwc:if={panels}>
-            <section class="slds-box slds-theme_default slds-m-top_medium c-options" aria-label="作成オプション">
-                <div class="slds-grid slds-wrap slds-gutters">
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                        <lightning-input type="checkbox" name="deactivateSource" label="コピー元ユーザーを無効化する"
-                            checked={deactivateSource} disabled={saving} onchange={handleOptionChange}></lightning-input>
-                        <lightning-input class="slds-m-top_x-small" type="checkbox" name="sendResetEmail" label="パスワードリセットメールを送信"
-                            checked={sendResetEmail} disabled={saving} onchange={handleOptionChange}></lightning-input>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                        <lightning-input type="checkbox" name="copyPermissionSets" label="権限セットを引き継ぐ"
-                            checked={copyPermissionSets} disabled={saving} onchange={handleOptionChange}></lightning-input>
-                        <lightning-input class="slds-m-top_x-small" type="checkbox" name="copyPermissionSetGroups" label="権限セットグループを引き継ぐ"
-                            checked={copyPermissionSetGroups} disabled={saving} onchange={handleOptionChange}></lightning-input>
-                    </div>
+        <template lwc:elseif={sourceProfileIds}>
+            <div lwc:if={errorMessage} role="alert" tabindex="-1" lwc:ref="errorSummary" class="c-error-summary slds-box slds-theme_default slds-m-bottom_medium">
+                <div class="slds-text-color_error slds-hyphenate">
+                    <p><strong>{errorHeading}</strong></p>
+                    <p>{errorMessage}</p>
                 </div>
+                <lightning-button lwc:if={showRetry} label="再読み込み" onclick={handleRetry}></lightning-button>
+            </div>
+            <section class="slds-box slds-theme_default" aria-label="コピー元ユーザーの選択">
+                <lightning-record-picker
+                    label="コピー元ユーザー"
+                    object-api-name="User"
+                    matching-info={matchingInfo}
+                    filter={sourceFilter}
+                    display-info={displayInfo}
+                    value={sourceId}
+                    disabled={sourcePickerDisabled}
+                    onchange={handleSourceChange}
+                ></lightning-record-picker>
+                <p lwc:if={loading} class="slds-m-top_small" role="status">ユーザー情報を読み込み中です。</p>
+                <p lwc:if={createdUrl} role="status" class="slds-m-top_small">
+                    ユーザーを作成しました。<a href={createdUrl}>作成したユーザーを開く</a>
+                </p>
             </section>
-            <div class="c-comparison slds-m-top_medium" style={gridStyle}>
-                <template for:each={panels} for:item="panel">
-                    <section key={panel.side} class={panel.panelClass} aria-label={panel.label}>
-                        <h2 class="slds-text-heading_small">{panel.label}</h2>
-                        <template for:each={panel.rows} for:item="line">
-                            <div key={line.key} class={line.className}>
-                                <template for:each={line.cells} for:item="row">
-                                    <div key={row.key} class="slds-has-flexi-truncate">
-                                        <h3 lwc:if={row.section} class="slds-section__title slds-theme_shade slds-m-top_x-small slds-p-horizontal_small slds-p-vertical_x-small">{row.title}</h3>
-                                        <h4 lwc:elseif={row.group} class="slds-text-heading_small slds-m-top_x-small slds-p-bottom_xx-small slds-border_bottom">{row.title}</h4>
-                                        <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
-                                        <template lwc:elseif={row.readOnlyCheckbox}>
-                                            <lightning-input type="checkbox" label={row.label} checked={row.checked} variant="label-stacked" read-only></lightning-input>
-                                            <span lwc:if={row.pendingDeactivation} class="slds-text-body_small">無効（保存時）</span>
-                                        </template>
-                                        <dl lwc:elseif={row.readOnly} class="slds-form-element">
-                                            <dt class="slds-form-element__label">{row.label}</dt>
-                                            <dd class="slds-form-element__static slds-hyphenate">
-                                                <lightning-formatted-rich-text lwc:if={row.richText} value={row.display}></lightning-formatted-rich-text>
-                                                <span lwc:else>{row.display}</span>
-                                            </dd>
-                                        </dl>
-                                        <lightning-combobox lwc:elseif={row.picklist} label={row.label} value={row.value} options={row.options}
-                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-combobox>
-                                        <lightning-input-rich-text lwc:elseif={row.richText} label={row.label} label-visible value={row.value} disabled-categories="INSERT_CONTENT"
-                                            required={row.required} data-rich="true" data-limit={row.maxLength} data-side={panel.side} data-name={row.name}
-                                            disabled={saving} onchange={handleFieldChange}></lightning-input-rich-text>
-                                        <lightning-textarea lwc:elseif={row.textarea} label={row.label} value={row.value} max-length={row.maxLength}
-                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-textarea>
-                                        <lightning-dual-listbox lwc:elseif={row.multi} label={row.label} source-label="選択可能" selected-label="選択済み" size="4" disable-reordering value={row.value} options={row.options}
-                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-dual-listbox>
-                                        <lightning-record-picker lwc:elseif={row.reference} label={row.label} value={row.value} object-api-name={row.referenceTo}
-                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange} onerror={handleLookupError}></lightning-record-picker>
-                                        <lightning-input lwc:elseif={row.idInput} type="text" label={row.label} value={row.value} pattern="[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?"
-                                            placeholder="参照先のレコード ID" required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
-                                        <lightning-input lwc:elseif={row.checkbox} type="checkbox" label={row.label} checked={row.checked} variant="label-stacked"
-                                            data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
-                                        <lightning-input lwc:else type={row.inputType} label={row.label} value={row.value} max-length={row.maxLength} step={row.step}
-                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
-                    </section>
-                </template>
-                <div class="c-direction" aria-hidden="true">
-                    <lightning-icon icon-name="utility:forward" size="small" alternative-text=""></lightning-icon>
+            <template lwc:if={panels}>
+                <section class="slds-box slds-theme_default slds-m-top_medium c-options" aria-label="作成オプション">
+                    <div class="slds-grid slds-wrap slds-gutters">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input type="checkbox" name="deactivateSource" label="コピー元ユーザーを無効化する"
+                                checked={deactivateSource} disabled={disableDeactivation} onchange={handleOptionChange}></lightning-input>
+                            <lightning-input class="slds-m-top_x-small" type="checkbox" name="sendResetEmail" label="パスワードリセットメールを送信"
+                                checked={sendResetEmail} disabled={saving} onchange={handleOptionChange}></lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input type="checkbox" name="copyPermissionSets" label="権限セットを引き継ぐ"
+                                checked={copyPermissionSets} disabled={saving} onchange={handleOptionChange}></lightning-input>
+                            <lightning-input class="slds-m-top_x-small" type="checkbox" name="copyPermissionSetGroups" label="権限セットグループを引き継ぐ"
+                                checked={copyPermissionSetGroups} disabled={saving} onchange={handleOptionChange}></lightning-input>
+                        </div>
+                    </div>
+                </section>
+                <div class="c-comparison slds-m-top_medium" style={gridStyle}>
+                    <template for:each={panels} for:item="panel">
+                        <section key={panel.side} class={panel.panelClass} aria-label={panel.label}>
+                            <h2 class="slds-text-heading_small">{panel.label}</h2>
+                            <template for:each={panel.rows} for:item="line">
+                                <div key={line.key} class={line.className}>
+                                    <template for:each={line.cells} for:item="row">
+                                        <div key={row.key} class="slds-has-flexi-truncate">
+                                            <h3 lwc:if={row.section} class="slds-section__title slds-theme_shade slds-m-top_x-small slds-p-horizontal_small slds-p-vertical_x-small">{row.title}</h3>
+                                            <h4 lwc:elseif={row.group} class="slds-text-heading_small slds-m-top_x-small slds-p-bottom_xx-small slds-border_bottom">{row.title}</h4>
+                                            <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
+                                            <template lwc:elseif={row.readOnlyCheckbox}>
+                                                <lightning-input type="checkbox" label={row.label} checked={row.checked} variant="label-stacked" read-only></lightning-input>
+                                                <span lwc:if={row.pendingDeactivation} class="slds-text-body_small">無効（保存時）</span>
+                                            </template>
+                                            <dl lwc:elseif={row.readOnly} class="slds-form-element">
+                                                <dt class="slds-form-element__label">{row.label}</dt>
+                                                <dd class="slds-form-element__static slds-hyphenate">
+                                                    <lightning-formatted-rich-text lwc:if={row.richText} value={row.display}></lightning-formatted-rich-text>
+                                                    <span lwc:else>{row.display}</span>
+                                                </dd>
+                                            </dl>
+                                            <lightning-combobox lwc:elseif={row.picklist} label={row.label} value={row.value} options={row.options}
+                                                required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-combobox>
+                                            <lightning-input-rich-text lwc:elseif={row.richText} label={row.label} label-visible value={row.value} disabled-categories="INSERT_CONTENT"
+                                                required={row.required} data-rich="true" data-limit={row.maxLength} data-side={panel.side} data-name={row.name}
+                                                disabled={saving} onchange={handleFieldChange}></lightning-input-rich-text>
+                                            <lightning-textarea lwc:elseif={row.textarea} label={row.label} value={row.value} max-length={row.maxLength}
+                                                required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-textarea>
+                                            <lightning-dual-listbox lwc:elseif={row.multi} label={row.label} source-label="選択可能" selected-label="選択済み" size="4" disable-reordering value={row.value} options={row.options}
+                                                required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-dual-listbox>
+                                            <lightning-record-picker lwc:elseif={row.reference} label={row.label} value={row.value} object-api-name={row.referenceTo}
+                                                required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange} onerror={handleLookupError}></lightning-record-picker>
+                                            <lightning-input lwc:elseif={row.idInput} type="text" label={row.label} value={row.value} pattern="[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?"
+                                                placeholder="参照先のレコード ID" required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                                            <lightning-input lwc:elseif={row.checkbox} type="checkbox" label={row.label} checked={row.checked} variant="label-stacked"
+                                                data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                                            <lightning-input lwc:else type={row.inputType} label={row.label} value={row.value} max-length={row.maxLength} step={row.step}
+                                                required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </section>
+                    </template>
+                    <div class="c-direction" aria-hidden="true">
+                        <lightning-icon icon-name="utility:forward" size="small" alternative-text=""></lightning-icon>
+                    </div>
                 </div>
+            </template>
+            <div lwc:if={panels} class="slds-m-top_medium slds-text-align_right">
+                <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
+                <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
             </div>
+            <dialog lwc:ref="confirmation" class="c-confirmation slds-theme_default" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
+                <header class="slds-p-around_medium">
+                    <h2 id="confirmation-title" class="slds-text-heading_small">ユーザーの作成を確認</h2>
+                </header>
+                <div lwc:if={confirmationSections} class="c-confirmation-body">
+                    <template for:each={confirmationSections} for:item="section">
+                        <section key={section.title} class="c-confirmation-section slds-border_top">
+                            <h3 class="slds-text-title_bold">{section.title}</h3>
+                            <dl>
+                                <div for:each={section.rows} for:item="row" key={row.label} class="c-confirmation-row">
+                                    <dt>{row.label}</dt>
+                                    <dd>
+                                        <lightning-input lwc:if={row.checkbox} type="checkbox" label={row.label} variant="label-hidden" checked={row.checked} read-only></lightning-input>
+                                        <span lwc:else>{row.value}</span>
+                                    </dd>
+                                </div>
+                            </dl>
+                            <p lwc:if={section.deactivating} class="slds-m-top_small"><strong>作成時にコピー元の変更を保存し、無効化します。</strong></p>
+                        </section>
+                    </template>
+                </div>
+                <footer class="slds-border_top slds-p-around_medium slds-text-align_right">
+                    <lightning-button label="キャンセル" onclick={closeConfirmation}></lightning-button>
+                    <lightning-button class="slds-m-left_small" label={saveLabel} variant="brand" onclick={handleConfirmedSave}></lightning-button>
+                </footer>
+            </dialog>
         </template>
-        <div lwc:if={panels} class="slds-m-top_medium slds-text-align_right">
-            <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
-            <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
-        </div>
-        <dialog lwc:ref="confirmation" class="c-confirmation slds-theme_default" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
-            <header class="slds-p-around_medium">
-                <h2 id="confirmation-title" class="slds-text-heading_small">ユーザーの作成を確認</h2>
-            </header>
-            <div lwc:if={confirmationSections} class="c-confirmation-body">
-                <template for:each={confirmationSections} for:item="section">
-                    <section key={section.title} class="c-confirmation-section slds-border_top">
-                        <h3 class="slds-text-title_bold">{section.title}</h3>
-                        <dl>
-                            <div for:each={section.rows} for:item="row" key={row.label} class="c-confirmation-row">
-                                <dt>{row.label}</dt>
-                                <dd>
-                                    <lightning-input lwc:if={row.checkbox} type="checkbox" label={row.label} variant="label-hidden" checked={row.checked} read-only></lightning-input>
-                                    <span lwc:else>{row.value}</span>
-                                </dd>
-                            </div>
-                        </dl>
-                        <p lwc:if={section.deactivating} class="slds-m-top_small"><strong>作成時にコピー元の変更を保存し、無効化します。</strong></p>
-                    </section>
-                </template>
-            </div>
-            <footer class="slds-border_top slds-p-around_medium slds-text-align_right">
-                <lightning-button label="キャンセル" onclick={closeConfirmation}></lightning-button>
-                <lightning-button class="slds-m-left_small" label={saveLabel} variant="brand" onclick={handleConfirmedSave}></lightning-button>
-            </footer>
-        </dialog>
+        <p lwc:else role="status">利用権限を確認しています。</p>
     </main>
 </template>

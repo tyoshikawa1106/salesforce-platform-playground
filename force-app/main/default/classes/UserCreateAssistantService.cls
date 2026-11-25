@@ -3,6 +3,29 @@ public with sharing class UserCreateAssistantService {
     // 日付・日時・時刻の値だけを標準の JSON 形式に変換
     private static final Set<String> TEMPORAL_TYPES = new Set<String>{'datetime','time','date'};
 
+    /** アシスタントの利用に必要な User オブジェクト権限とシステム権限を確認
+     * @param permissions 現在ユーザーの実効権限
+     * @throws AuraHandledException 必要な権限が揃わない場合
+     */
+    public void requireAccess(List<UserPermissionAccess> permissions) {
+        requirePermission(!permissions.isEmpty(), '利用権限の確認：実行ユーザーのシステム権限を取得できませんでした。');
+        UserPermissionAccess current = permissions[0];
+        requirePermission(current.PermissionsViewSetup, '利用権限の確認：「設定・定義を参照」権限が必要です。');
+        requirePermission(current.PermissionsManageUsers, '利用権限の確認：「ユーザーの管理」権限が必要です。');
+        Schema.DescribeSObjectResult users = User.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED);
+        requirePermission(users.isAccessible(), '利用権限の確認：ユーザーオブジェクトの参照権限が必要です。');
+        requirePermission(users.isCreateable(), '利用権限の確認：ユーザーオブジェクトの作成権限が必要です。');
+        requirePermission(users.isUpdateable(), '利用権限の確認：ユーザーオブジェクトの編集権限が必要です。');
+    }
+
+    private void requirePermission(Boolean granted, String message) {
+        if (granted != true) {
+            AuraHandledException error = new AuraHandledException(message);
+            error.setMessage(message);
+            throw error;
+        }
+    }
+
     /**
      * 表示項目に対応する検証済みの SOQL 投影を生成
      * @param orderedNames Describe で参照可能と判定した標準画面順の項目
@@ -57,20 +80,7 @@ public with sharing class UserCreateAssistantService {
         FieldPresentation presentation = new FieldPresentation(source);
         // 画面用の値はサーバーで許可した項目だけから生成
         for (String name : orderedNames) {
-            // 読み取り専用の派生ライセンスを表示
-            if (name == 'UserLicenseId') {
-                // ライセンス情報を取得できた場合だけ表示名を使用
-                String license = presentation.getLicenseName();
-                // 利用者向けにライセンスの名前を返す
-                form.fields.add(new Map<String,Object>{
-                    'apiName'=>name, 'groupLabel'=>groups.get(name), 'label'=>'ユーザーライセンス',
-                    'type'=>'readonly', 'displayValue'=>license ?? '参照不可', 'value'=>license,
-                    'canCreate'=>false, 'canUpdate'=>false, 'required'=>false, 'custom'=>false
-                });
-            } else {
-                // 通常の項目は Describe と保存済み値から生成
-                form.fields.add(presentation.createRow(UserCreateAssistantFieldCatalog.getUserField(name), groups.get(name)));
-            }
+            form.fields.add(presentation.createRow(name, groups.get(name)));
         }
         // 行の一覧を返却
         return form;
@@ -94,9 +104,17 @@ public with sharing class UserCreateAssistantService {
             return (String)license?.get('Name');
         }
 
-        private Map<String,Object> createRow(Schema.DescribeFieldResult field, String groupLabel) {
-            // 型と編集可否の判定に正規の識別子を使用
-            String name = field.getName();
+        private Map<String,Object> createRow(String name, String groupLabel) {
+            // ユーザーライセンスは直接編集できない関連先の表示項目
+            if (name == 'UserLicenseId') {
+                String license = getLicenseName();
+                return new Map<String,Object>{
+                    'apiName'=>name, 'groupLabel'=>groupLabel, 'label'=>'ユーザーライセンス',
+                    'type'=>'readonly', 'displayValue'=>license ?? '参照不可', 'value'=>license,
+                    'canCreate'=>false, 'canUpdate'=>false, 'required'=>false, 'custom'=>false
+                };
+            }
+            Schema.DescribeFieldResult field = UserCreateAssistantFieldCatalog.getUserField(name);
             // 参照項目や選択リストでは表示と入力の値を区別
             String inputType = UserCreateAssistantFieldCatalog.getInputType(field);
             // Apex 固有の日時表現をクライアントに渡さない
@@ -121,6 +139,7 @@ public with sharing class UserCreateAssistantService {
                 'apiName'=>name,'label'=>field.getLabel(),'groupLabel'=>groupLabel,'custom'=>field.isCustom(),
                 'type'=>field.getType() == Schema.DisplayType.Boolean ? 'checkbox' : inputType,
                 'value'=>raw,'displayValue'=>display,'required'=>UserCreateAssistantFieldCatalog.isRequired(field),
+                'nillable'=>field.isNillable(),
                 'canCreate'=>editable && field.isCreateable(),'canUpdate'=>editable && name != 'IsActive' && field.isUpdateable(),
                 'richText'=>field.getType() == Schema.DisplayType.TextArea && field.isHtmlFormatted(),
                 'controllerName'=>field.getController()?.getDescribe().getName(),

@@ -13,6 +13,7 @@ private with sharing class UserCreateAssistantControllerTest {
             insert source;
             Test.startTest();
             UserCreateAssistantWrapper form = UserCreateAssistantController.getForm(source.Id);
+            List<Id> profileIds = UserCreateAssistantController.getSourceProfileIds();
             Test.stopTest();
             Map<String, Object> lastName;
             for (Map<String, Object> field : form.fields) {
@@ -21,6 +22,7 @@ private with sharing class UserCreateAssistantControllerTest {
                 }
             }
             Assert.isNotNull(lastName, '参照元の姓をフォームに含める');
+            Assert.isTrue(profileIds.contains(source.ProfileId), '社内ユーザーをピッカーから検索できる');
             Assert.areEqual(source.LastName, lastName.get('value'), '選択したレコードを表示する');
         }
 
