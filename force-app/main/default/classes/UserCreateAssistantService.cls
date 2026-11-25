@@ -1,5 +1,8 @@
 /** ユーザー作成時の表示項目・固定項目・権限割り当ての組み立て */
 public with sharing class UserCreateAssistantService {
+    // 日付・日時・時刻の値だけを標準の JSON 形式に変換
+    private static final Set<String> TEMPORAL_TYPES = new Set<String>{'datetime','time','date'};
+
     /**
      * 表示項目に対応する検証済みの SOQL 投影を生成
      * @param orderedNames Describe で参照可能と判定した標準画面順の項目
@@ -51,13 +54,13 @@ public with sharing class UserCreateAssistantService {
         // 利用者に表示する行をまとめる
         UserCreateAssistantWrapper form = new UserCreateAssistantWrapper();
         // 同じ表示規約で各行を整形
-        FieldPresentation presentation = new FieldPresentation();
+        FieldPresentation presentation = new FieldPresentation(source);
         // 画面用の値はサーバーで許可した項目だけから生成
         for (String name : orderedNames) {
             // 読み取り専用の派生ライセンスを表示
             if (name == 'UserLicenseId') {
                 // ライセンス情報を取得できた場合だけ表示名を使用
-                String license = getLicenseName(source);
+                String license = presentation.getLicenseName();
                 // 利用者向けにライセンスの名前を返す
                 form.fields.add(new Map<String,Object>{
                     'apiName'=>name, 'groupLabel'=>groups.get(name), 'label'=>'ユーザーライセンス',
@@ -66,56 +69,50 @@ public with sharing class UserCreateAssistantService {
                 });
             } else {
                 // 通常の項目は Describe と保存済み値から生成
-                form.fields.add(presentation.createRow(source, UserCreateAssistantFieldCatalog.getUserField(name), groups.get(name)));
+                form.fields.add(presentation.createRow(UserCreateAssistantFieldCatalog.getUserField(name), groups.get(name)));
             }
         }
         // 行の一覧を返却
         return form;
     }
 
-    private String getLicenseName(User source) {
-        // 個別の関連先に参照権限がない場合は非公開として扱う
-        SObject profile = (SObject)source.getPopulatedFieldsAsMap().get('Profile');
-        // 取得できた関連レコードだけを参照
-        SObject license = (SObject)profile?.getPopulatedFieldsAsMap().get('UserLicense');
-        // 値を取得できない状態を固定項目の表示へ伝える
-        return (String)license?.get('Name');
-    }
-
     /** 項目型・参照先・選択肢に応じた既存値と入力条件の表示 */
     private class FieldPresentation {
-        private Map<String,Object> createRow(User source, Schema.DescribeFieldResult field, String groupLabel) {
+        private final Map<String,Object> values;
+
+        /**
+         * 照会したユーザーの項目値と関連レコードを表示行間で共有
+         * @param source 参照権限に従って取得したコピー元
+         */
+        private FieldPresentation(User source) {
+            values = source.getPopulatedFieldsAsMap();
+        }
+
+        private String getLicenseName() {
+            SObject profile = (SObject)values.get('Profile');
+            SObject license = (SObject)profile?.getPopulatedFieldsAsMap().get('UserLicense');
+            return (String)license?.get('Name');
+        }
+
+        private Map<String,Object> createRow(Schema.DescribeFieldResult field, String groupLabel) {
             // 型と編集可否の判定に正規の識別子を使用
             String name = field.getName();
             // 参照項目や選択リストでは表示と入力の値を区別
             String inputType = UserCreateAssistantFieldCatalog.getInputType(field);
             // Apex 固有の日時表現をクライアントに渡さない
-            String raw = formatValue(source.get(name), inputType);
+            String raw = formatValue(values.get(name), inputType);
             // 取得できた関連先名を優先
             String display = raw;
-            // 参照先の解決に成功した項目だけ参照名へ変換
-            String relation = UserCreateAssistantFieldCatalog.getNamedRelation(field);
-            // 関連レコードのない場合は空値を維持
-            if (relation != null && source.getPopulatedFieldsAsMap().containsKey(relation)) {
-                display = (String) source.getSObject(relation).get('Name');
+            // 関連レコードを取得できた項目だけ、名称を表示できるか照合
+            SObject related = (SObject)values.get(field.getRelationshipName());
+            if (related != null && UserCreateAssistantFieldCatalog.getNamedRelation(field) != null) {
+                display = (String)related.get('Name');
             }
             // 選択肢のラベルを入力と表示の双方で使用
             List<Map<String,String>> options = new List<Map<String,String>>();
             // 選択リストだけ候補を展開
             if (inputType == 'picklist' || inputType == 'multipicklist') {
-                // 現在値に対応するラベルを登録順でまとめる
-                Map<String,String> labels = new Map<String,String>();
-                // 有効な選択肢に限定し、過去値の表示名も保持
-                for (Schema.PicklistEntry entry : field.getPicklistValues()) {
-                    // 既存値を人が読める項目表示名に変換
-                    labels.put(entry.getValue(), entry.getLabel());
-                    // 新しい入力には有効な値だけを表示
-                    if (entry.isActive()) {
-                        options.add(new Map<String,String>{'value'=>entry.getValue(), 'label'=>entry.getLabel()});
-                    }
-                }
-                // 複数選択の区切りを表示用に変換
-                display = formatChoices(raw, labels);
+                display = formatChoices(field, raw, options);
             }
             // サーバーとクライアントで同じ固定条件を使用
             Boolean editable = inputType != 'readonly';
@@ -130,19 +127,28 @@ public with sharing class UserCreateAssistantService {
             };
         }
 
-        private String formatChoices(String raw, Map<String,String> labels) {
-            // 未設定ならラベルを空のまま維持
-            if (String.isBlank(raw)) {
-                return null;
+        private String formatChoices(Schema.DescribeFieldResult field, String raw, List<Map<String,String>> options) {
+            // 保存済みの選択値だけをラベル変換の対象とし、複数選択の順序を保持
+            List<String> selected = String.isBlank(raw) ? new List<String>() : raw.split(';');
+            Map<String,String> labels = new Map<String,String>();
+            for (String value : selected) {
+                labels.put(value, value);
             }
-            // 値の並びを保って変換
-            List<String> display = new List<String>();
-            // 現在候補にない保存済み値はそのまま表示
-            for (String value : raw.split(';')) {
-                display.add(labels.containsKey(value) ? labels.get(value) : value);
+            for (Schema.PicklistEntry entry : field.getPicklistValues()) {
+                String value = entry.getValue();
+                String label = entry.getLabel();
+                if (entry.isActive()) {
+                    options.add(new Map<String,String>{'value'=>value, 'label'=>label});
+                }
+                // 無効化済みの選択値も元ユーザーの表示名に変換
+                if (labels.containsKey(value)) {
+                    labels.put(value, label);
+                }
             }
-            // 複数値も読みやすい区切りで提示
-            return String.join(display, '、');
+            for (Integer i = 0; i < selected.size(); i++) {
+                selected[i] = labels.get(selected[i]);
+            }
+            return selected.isEmpty() ? null : String.join(selected, '、');
         }
 
         private String formatValue(Object value, String inputType) {
@@ -151,7 +157,7 @@ public with sharing class UserCreateAssistantService {
                 return null;
             }
             // 日付・日時・時刻を標準の入力形式にする
-            if (new Set<String>{'datetime','time','date'}.contains(inputType)) {
+            if (TEMPORAL_TYPES.contains(inputType)) {
                 return (String) JSON.deserializeUntyped(JSON.serialize(value));
             }
             // それ以外のスカラーは画面に渡せる文字列にそろえる

@@ -63,8 +63,11 @@ public with sharing class UserCreateAssistantFieldCatalog {
         // 繰り返し取得しても以前の項目名を残さない
         orderedNames = new List<String>();
         Map<String,String> groups = new Map<String,String>();
+        Set<String> remainingNames = USER_FIELDS.keySet().clone();
         // 設定画面の順序で標準項目を登録
         for (String name : STANDARD_NAMES) {
+            // Describe のキーは小文字。標準項目の再分類を省く
+            remainingNames.remove(name.toLowerCase());
             if (name == 'UserLicenseId') {
                 groups.put(name, STANDARD_SECTIONS.get(name));
                 orderedNames.add(name);
@@ -73,18 +76,21 @@ public with sharing class UserCreateAssistantFieldCatalog {
             }
         }
         // 組織固有の項目も安定した順序で追加
-        List<String> additionalNames = new List<String>(USER_FIELDS.keySet());
+        List<String> additionalNames = new List<String>(remainingNames);
         additionalNames.sort();
         for (String name : additionalNames) {
-            addFormField(groups, name);
+            // カスタム項目（緯度・経度を含む）は個別に判定し、対象外の標準名は Describe 前に除外
+            if (name.contains('__') || !EXCLUDED_STANDARD.matcher(name).find()) {
+                addFormField(groups, name);
+            }
         }
         return groups;
     }
 
     private void addFormField(Map<String,String> groups, String name) {
         Schema.DescribeFieldResult field = getUserField(name);
-        // 組織に存在し、まだ表示順に登録していない項目だけを分類
-        if (field == null || groups.containsKey(field.getName())) {
+        // 組織で利用できる項目だけを分類
+        if (field == null) {
             return;
         }
         String groupLabel = getFormGroup(field);
