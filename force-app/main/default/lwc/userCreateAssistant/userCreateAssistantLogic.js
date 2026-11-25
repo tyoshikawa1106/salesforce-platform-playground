@@ -46,7 +46,7 @@ function getEntries(fields) {
 }
 
 // コピー元・新規ユーザーごとの表示値と編集部品を選択
-function makeCell(field, source, draft, deactivate) {
+function makeCell(field, source, draft, deactivate, originalController) {
     // ライセンス、プロファイル、ロールは保存時もサーバーがコピー元から決定
     const fixed = LOCKED.has(field.apiName);
     // コピー元の有効状態は無効化オプションによってのみ変更
@@ -62,16 +62,30 @@ function makeCell(field, source, draft, deactivate) {
     // チェックを外した状態も有効な入力値として扱う
     const required = editable && type !== 'checkbox' && field.required;
     // 標準選択リストの任意項目は明示的な解除も許容
-    const choices = field.options || [];
+    let choices = field.options || [];
+    if (field.controllerName) {
+        const dependency = field.dependency;
+        let controller = Object.hasOwn(draft, field.controllerName) ? draft[field.controllerName] : source ? originalController : null;
+        if (source && deactivate && field.controllerName === 'IsActive') controller = false;
+        const index = dependency?.controllerValues?.[String(controller)];
+        choices = dependency?.values.filter(option => option.validFor.includes(index)) || [];
+    }
     // 多値項目の保存形式と画面上の配列を変換
     const value = type === 'multipicklist' ? String(raw ?? '').split(';').filter(Boolean) : raw == null ? null : String(raw);
+    // 保存済みの候補外値を明示し、選び直すか解除できるようにする。
+    const selected = type === 'multipicklist' ? value : [value];
+    const unavailable = editable && (type === 'picklist' || type === 'multipicklist')
+        ? selected.filter(item => item && !choices.some(choice => choice.value === item)) : [];
+    const invalidChoice = unavailable.length > 0 && (!source || Object.hasOwn(draft, field.apiName) || Object.hasOwn(draft, field.controllerName)
+        || field.controllerName === 'IsActive' && deactivate);
+    choices = choices.concat(unavailable.map(item => ({ label: item + '（選択対象外）', value: item })));
     // 列の入力可否、型と表示値をまとめて返す
     return {
         key: field.apiName, name: field.apiName, label: field.label, value, required,
         display: (source || fixed) && display != null && display !== '' ? String(display) : '—',
         readOnly: !editable, readOnlyCheckbox: !editable && type === 'checkbox' && raw != null, checkbox: type === 'checkbox',
         pendingDeactivation, checked: !pendingDeactivation && String(raw) === 'true',
-        picklist: type === 'picklist', multi: type === 'multipicklist', textarea: type === 'textarea',
+        richText: field.richText, invalidChoice, picklist: type === 'picklist', multi: type === 'multipicklist', textarea: type === 'textarea',
         reference: type === 'reference' && !field.referenceIdInput, referenceTo: field.referenceTo,
         idInput: type === 'referenceId' || (type === 'reference' && field.referenceIdInput),
         options: editable && type === 'picklist' && !required ? [{ label: '未選択', value: '' }, ...choices] : choices,
@@ -93,9 +107,11 @@ export function initialTargetValues(fields) {
 export function buildFieldLines(fields) {
     // 左右共通の行順を組み立てる
     const lines = [];
+    const originals = new Map(fields.map(field => [field.apiName, field.value]));
     // 見出しと空の案内は単独で一行を使う
     for (const entry of getEntries(fields)) {
         // 直前の行に相方のない項目があれば隣に配置する
+        if (entry.field?.controllerName) entry.originalController = originals.get(entry.field.controllerName);
         const previous = lines[lines.length - 1];
         if (entry.field && previous?.paired && previous.entries.length === 1) {
             previous.entries.push(entry);
@@ -118,7 +134,7 @@ export function buildPanel(lines, side, draft, deactivate = false) {
         rows: lines.map((line) => ({
             key: line.key,
             className: line.paired ? 'c-field-pair' : undefined,
-            cells: line.entries.map((entry) => (entry.field ? makeCell(entry.field, source, draft, deactivate) : entry))
+            cells: line.entries.map((entry) => (entry.field ? makeCell(entry.field, source, draft, deactivate, entry.originalController) : entry))
         }))
     };
 }

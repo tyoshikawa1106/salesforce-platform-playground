@@ -1,4 +1,6 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, wire } from 'lwc';
+import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+import USER_OBJECT from '@salesforce/schema/User';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 import { buildConfirmationSections, buildFieldLines, buildPanel, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
@@ -80,6 +82,23 @@ export default class UserCreateAssistant extends LightningElement {
         this.loadSource();
     }
 
+    dependencyRecordTypeId;
+
+    @wire(getPicklistValuesByRecordType, { objectApiName: USER_OBJECT, recordTypeId: '$dependencyRecordTypeId' })
+    loadDependencies({data, error}) {
+        if (!this.dependencyRecordTypeId || (!data && !error)) return;
+        const dependencies = data?.picklistFieldValues;
+        if (!dependencies || this.fields.some(field => field.controllerName && !dependencies[field.apiName])) {
+            this.loading = false;
+            this.panels = undefined;
+            this.showError('連動選択リストの候補を取得できませんでした。再読み込みしてください。');
+            return;
+        }
+        this.fields = this.fields.map(field => (field.controllerName ? {...field, dependency: dependencies[field.apiName]} : field));
+        this.rebuildPanels();
+        this.loading = false;
+    }
+
     async loadSource() {
         // この読み込みに固有の世代を確定
         const request = ++this.generation;
@@ -90,6 +109,7 @@ export default class UserCreateAssistant extends LightningElement {
         this.fieldLines = undefined;
         // 古い項目定義を保持しない
         this.fields = [];
+        this.dependencyRecordTypeId = undefined;
         // 再試行時に古いエラー表示を閉じる
         this.errorMessage = undefined;
         // 未選択なら読み込みを終了
@@ -106,13 +126,18 @@ export default class UserCreateAssistant extends LightningElement {
             // コピー元の後続編集から独立した初期値を保存時にも使用
             this.targetDraft = initialTargetValues(this.fields);
             // 対象が確定した時点で両側の項目を構築
-            this.rebuildPanels();
+            if (this.fields.some(field => field.controllerName)) {
+                // User はマスターレコードタイプの選択肢を使用する。
+                this.dependencyRecordTypeId = '012000000000000AAA';
+            } else {
+                this.rebuildPanels();
+            }
         } catch (error) {
             // 別のユーザーに対する失敗を表示しない
             if (request === this.generation) this.showError(error.body?.message || 'コピー元ユーザーを読み込めませんでした。');
         } finally {
             // 現在の要求の完了時だけ読み込み表示を終了
-            if (request === this.generation) this.loading = false;
+            if (request === this.generation && !this.dependencyRecordTypeId) this.loading = false;
         }
     }
 
@@ -188,6 +213,10 @@ export default class UserCreateAssistant extends LightningElement {
             // 入力を失敗後の再試行にも使えるよう保持
             draft[name] = normalized;
         }
+        if (field.type === 'picklist' || field.type === 'multipicklist' || this.fields.some(item => item.controllerName === name)) {
+            const panel = buildPanel(this.fieldLines, side, draft, this.deactivateSource);
+            this.panels = this.panels.map(existing => (existing.side === side ? panel : existing));
+        }
     }
 
     get showRetry() {
@@ -250,9 +279,16 @@ export default class UserCreateAssistant extends LightningElement {
         if (this.saving || this.confirmationSections || !this.panels) return;
         this.clearUsernameError();
         // 必須・入力形式の問題をすべての編集欄に表示
-        const invalid = Array.from(this.template.querySelectorAll('[data-side]')).filter((input) => !input.checkValidity());
+        const invalid = Array.from(this.template.querySelectorAll('[data-side]')).filter(input => {
+            if (input.dataset.rich === undefined) return !input.checkValidity();
+            // リッチテキストは標準の制約検証 API を持たない。画像だけの入力も有効。
+            const html = input.value || '';
+            const content = html.replace(/<[^>]*>|&nbsp;/gi, '').trim() || /<img\b/i.test(html);
+            input.valid = (!input.required || Boolean(content)) && (!Number(input.dataset.limit) || html.length <= Number(input.dataset.limit));
+            return !input.valid;
+        });
         // 基本コンポーネントが返した個別の理由を表示
-        invalid.forEach((input) => input.reportValidity());
+        invalid.forEach((input) => input.reportValidity?.());
         // 入力エラーを上部の通知にまとめる
         if (invalid.length) {
             // コピー元・新規のどちらにある項目かを示す
@@ -261,6 +297,13 @@ export default class UserCreateAssistant extends LightningElement {
             // サーバーへの作成要求を保留
             return;
         }
+        const invalidChoices = this.panels.flatMap(panel => panel.rows.flatMap(line => line.cells
+            .filter(cell => cell.invalidChoice).map(cell => panel.label + 'の「' + cell.label + '」')));
+        if (invalidChoices.length) {
+            this.showError(invalidChoices.join('、') + ' に選択対象外の値があります。選び直すか解除してください。');
+            return;
+        }
+        if (this.reportMatchingUsername()) return;
         // 前回失敗の表示を解除
         this.errorMessage = undefined;
         // 表示中のフォームから確認内容を確定
@@ -285,7 +328,6 @@ export default class UserCreateAssistant extends LightningElement {
         if (!this.confirmationSections || this.saving || !this.panels) return;
         // 入力エラーがあればモーダルを閉じたフォームに表示
         this.closeConfirmation();
-        if (this.reportMatchingUsername()) return;
         try {
             this.saving = true;
             // コピー元の変更と割り当ては同じ保存要求で実行
@@ -300,6 +342,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.createdUrl = '/lightning/r/User/' + id + '/view';
             // 次回は元ユーザーの最新状態を取り直す
             this.sourceId = undefined;
+            this.dependencyRecordTypeId = undefined;
             // 入力済み項目を画面から除去
             this.panels = undefined;
             this.fieldLines = undefined;

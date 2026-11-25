@@ -1,6 +1,7 @@
 import { createElement } from 'lwc';
 import UserCreateAssistant from 'c/userCreateAssistant';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
+import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 
 jest.mock('@salesforce/apex/UserCreateAssistantController.getForm', () => ({ default: jest.fn() }), { virtual: true });
@@ -53,7 +54,12 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     select(root, 'one'); await flush();
     await toggle(root,'deactivateSource',true);
     await toggle(root,'copyPermissionSetGroups',false);
+    const username = root.querySelector('[data-side="target"][data-name="Username"]');
     const dialog = review(root); await flush();
+    expect(dialog.open).toBe(false);
+    expect(root.querySelector('[role="alert"]').textContent).toContain('コピー元と同じ');
+    edit(username, 'new@example.invalid');
+    review(root); await flush();
     expect(dialog.open).toBe(true);
     expect([...dialog.querySelectorAll('h3')].map(el => el.textContent)).toEqual(['コピー元ユーザー','新規ユーザー','権限の引き継ぎ']);
     expect([...dialog.querySelectorAll('section:first-child dt')].map(el => el.textContent)).toEqual(['氏名','メール','ユーザー名','有効']);
@@ -65,10 +71,11 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     expect(dialog.open).toBe(false);
     expect(saveUser).not.toHaveBeenCalled();
     expect(root.querySelector('[role="alert"]')).toBeNull();
-    submit(root); await flush();
+    edit(username, 'COPY@example.invalid');
+    review(root); await flush();
+    expect(dialog.open).toBe(false);
     expect(root.querySelector('[role="alert"]').textContent).toContain('コピー元と同じ');
     expect(saveUser).not.toHaveBeenCalled();
-    const username = root.querySelector('[data-side="target"][data-name="Username"]');
     const banner = root.querySelector('[role="alert"]');
     expect(root.querySelector('main > header').nextElementSibling).toBe(banner);
     expect(banner.querySelector('a, lightning-button')).toBeNull();
@@ -230,4 +237,70 @@ it.each([[true, true], [false, false]])('コピー元の有効状態が %s で�
     dialog.querySelectorAll('lightning-button')[1].click(); await flush();
     expect(saveUser.mock.calls[0][0].request.sendResetEmail).toBe(sendEmail);
     expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).IsActive).toBe(true);
+});
+
+it('対象外の値を明示し、制御項目を左右独立に評価して選び直した値だけを保存する', async () => {
+    const choices = ['Green','Blue'].map(value => ({value, label:value}));
+    getForm.mockResolvedValue({fields:[
+        {apiName:'Enabled__c', label:'制御', type:'checkbox', value:'true', canCreate:true, canUpdate:true},
+        {apiName:'Colors__c', label:'色', type:'multipicklist', controllerName:'Enabled__c', custom:true,
+            canCreate:true, canUpdate:true, value:'Green;Retired', displayValue:'緑、旧値', options:choices}
+    ]});
+    const root = mount().shadowRoot;
+    select(root, 'one'); await flush();
+    getPicklistValuesByRecordType.emit({picklistFieldValues:{Colors__c:{
+        controllerValues:{true:1,false:0}, values:choices.map((choice,i)=>({...choice,validFor:[1-i]}))
+    }}});
+    await flush();
+    const group = side => root.querySelector('.c-' + side + ' lightning-checkbox-group');
+    expect(root.querySelector('.c-source').textContent).toContain('緑、旧値');
+    expect(group('target').options.map(o => o.label)).toEqual(['Green','Retired（選択対象外）']);
+    expect(review(root).open).toBe(false); await flush();
+    expect(root.querySelector('[role="alert"]').textContent).toContain('選択対象外');
+    edit(group('target'), ['Green']); await flush();
+    await toggle(root, 'deactivateSource', true);
+    const control = root.querySelector('.c-target [data-name="Enabled__c"]');
+    control.checked = false;
+    control.dispatchEvent(new CustomEvent('change')); await flush();
+    expect(group('source').options[0].value).toBe('Green');
+    expect(group('target').options.map(o => o.label)).toEqual(['Blue','Green（選択対象外）']);
+    expect(review(root).open).toBe(false);
+    edit(group('target'), ['Blue']); await flush();
+    submit(root); await flush();
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson)).toMatchObject({Colors__c:'Blue',Enabled__c:false});
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.sourceValuesJson)).toEqual({});
+});
+
+it('リッチテキストを書式付きで表示し、必須・文字数を確認して編集後の HTML を保存する', async () => {
+    getForm.mockResolvedValue({fields:[{apiName:'Note__c',label:'備考',type:'textarea',richText:true,
+        canCreate:true,required:true,maxLength:40,value:'<p><b>元</b></p>'}]});
+    const root = mount().shadowRoot;
+    select(root,'one'); await flush();
+    expect(root.querySelector('lightning-formatted-rich-text').value).toBe('<p><b>元</b></p>');
+    const editor = root.querySelector('lightning-input-rich-text');
+    const expectInvalid = async (invalid) => {
+        edit(editor, invalid);
+        expect(review(root).open).toBe(false);
+        await flush();
+        expect(root.querySelector('[role="alert"]').textContent).toContain('備考');
+    };
+    await expectInvalid('<p><br></p>');
+    await expectInvalid('長'.repeat(41));
+    edit(editor,'<p><b>編集</b></p>');
+    submit(root); await flush();
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).Note__c).toBe('<p><b>編集</b></p>');
+});
+
+it('無効になった単一選択値を解除すると任意項目を空で保存できる', async () => {
+    getForm.mockResolvedValue({fields:[{apiName:'Choice__c',label:'区分',type:'picklist',canCreate:true,
+        value:'Old',options:[{label:'現行',value:'Current'}]}]});
+    const root = mount().shadowRoot;
+    select(root,'one'); await flush();
+    const choice = root.querySelector('.c-target lightning-combobox');
+    expect(choice.options).toContainEqual({label:'Old（選択対象外）',value:'Old'});
+    expect(review(root).open).toBe(false);
+    edit(choice, ''); await flush();
+    expect(choice.options.map(item=>item.value)).toEqual(['','Current']);
+    submit(root); await flush();
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson)).toEqual({Choice__c:null});
 });

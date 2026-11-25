@@ -122,6 +122,8 @@ public with sharing class UserCreateAssistantService {
                 'type'=>field.getType() == Schema.DisplayType.Boolean ? 'checkbox' : inputType,
                 'value'=>raw,'displayValue'=>display,'required'=>UserCreateAssistantFieldCatalog.isRequired(field),
                 'canCreate'=>editable && field.isCreateable(),'canUpdate'=>editable && name != 'IsActive' && field.isUpdateable(),
+                'richText'=>field.getType() == Schema.DisplayType.TextArea && field.isHtmlFormatted(),
+                'controllerName'=>field.getController()?.getDescribe().getName(),
                 'options'=>options,'referenceTo'=>inputType == 'reference' ? field.getReferenceTo()[0].getDescribe(SObjectDescribeOptions.DEFERRED).getName() : null,
                 'maxLength'=>field.getLength(),'scale'=>field.getScale()
             };

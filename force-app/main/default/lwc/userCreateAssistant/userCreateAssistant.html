@@ -67,10 +67,16 @@
                                         </template>
                                         <dl lwc:elseif={row.readOnly} class="slds-form-element">
                                             <dt class="slds-form-element__label">{row.label}</dt>
-                                            <dd class="slds-form-element__static slds-hyphenate">{row.display}</dd>
+                                            <dd class="slds-form-element__static slds-hyphenate">
+                                                <lightning-formatted-rich-text lwc:if={row.richText} value={row.display}></lightning-formatted-rich-text>
+                                                <span lwc:else>{row.display}</span>
+                                            </dd>
                                         </dl>
                                         <lightning-combobox lwc:elseif={row.picklist} label={row.label} value={row.value} options={row.options}
                                             required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-combobox>
+                                        <lightning-input-rich-text lwc:elseif={row.richText} label={row.label} label-visible value={row.value}
+                                            required={row.required} data-rich="true" data-limit={row.maxLength} data-side={panel.side} data-name={row.name}
+                                            disabled={saving} onchange={handleFieldChange}></lightning-input-rich-text>
                                         <lightning-textarea lwc:elseif={row.textarea} label={row.label} value={row.value} max-length={row.maxLength}
                                             required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-textarea>
                                         <lightning-checkbox-group lwc:elseif={row.multi} label={row.label} value={row.value} options={row.options}
