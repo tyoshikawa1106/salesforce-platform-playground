@@ -524,6 +524,7 @@ it.each(['reference', 'classify'])('確認・進捗とCSVの明細数が一致�
         finish(true);
         await flush();
         expect(click.mock.instances[0]).toBe(element.shadowRoot.querySelector('[data-download]'));
+        expect(click.mock.instances[0].download).toMatch(new RegExp('^Account-' + (mode === 'reference' ? 'fields' : 'classify') + '_\\d{8}_\\d{9}\\.csv$'));
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
         const text = await new Promise(resolve => {
             const reader = new FileReader();

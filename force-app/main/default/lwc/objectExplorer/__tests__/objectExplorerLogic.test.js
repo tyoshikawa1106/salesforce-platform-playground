@@ -1,9 +1,15 @@
 import {
     applyClassifyBatch, applyClassifyCsv, buildRelationBoard, clientErrorDetails,
-    classifyBatches, classifyChanges, csvFields, csvParts, classifyFieldView,
+    classifyBatches, classifyChanges, csvFileName, csvFields, csvParts, classifyFieldView,
     classifyInput, classifySummary, createClassifyEdits,
     fieldListView, objectOptionScrollTop, objectOptionWindow, readClassifyCsv, visibleRelations
 } from '../objectExplorerLogic';
+
+it('構造と分類のCSV名に利用者のタイムゾーンで出力日時を付ける', () => {
+    const at = new Date('2026-11-24T15:00:00.123Z');
+    expect(csvFileName('Account', true, at, 'Asia/Tokyo')).toBe('Account-fields_20261125_000000123.csv');
+    expect(csvFileName('Account', false, at, 'Asia/Tokyo')).toBe('Account-classify_20261125_000000123.csv');
+});
 
 function classifyCsv(objectName, fields, classification, edits, objectLabel) {
     return [...csvParts({ fields: csvFields(fields, false, classification), classification, edits, objectName, objectLabel })].map(part => part.text).join('');
