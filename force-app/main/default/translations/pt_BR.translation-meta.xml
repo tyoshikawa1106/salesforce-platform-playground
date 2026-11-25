@@ -36,6 +36,10 @@
         <label><!-- テストデータ一括削除 --></label>
         <name>TestDataDelete</name>
     </customTabs>
+    <customTabs>
+        <label><!-- ユーザー作成アシスタント --></label>
+        <name>UserCreateAssistant</name>
+    </customTabs>
     <flowDefinitions>
         <flows>
             <choices>
