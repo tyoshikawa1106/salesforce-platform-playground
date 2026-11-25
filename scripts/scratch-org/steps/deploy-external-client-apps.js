@@ -10,6 +10,7 @@ const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
 const { withRestSecretAccess } = require('../internal/eca-rest-secret-access');
 const { registerProviderCredentials } = require('../internal/eca-provider-credentials');
+const { hasPersonAccounts, preparePermissions } = require('../internal/rebuild-permissions');
 const { prepareEcaPackage, resolvePolicyNames } = require('../internal/eca-package');
 
 // 確認済みのScratch OrgへGit管理のECAを反映する。
@@ -98,6 +99,8 @@ function main({
                     appLabels: scratchOrg.externalClientAppLabels
                 });
 
+                // 完全な OAuth 構築でも個人取引先に必要な参照依存を補う。
+                preparePermissions(packageDirectory, hasPersonAccounts(orgInfo.username, runSfQuery), false);
                 // ECAと接続定義の作成後、Salesforceが生成するポリシーを更新する。
                 for (const deploymentDirectory of [packageDirectory, ...(hasPolicies ? [policyDirectory] : [])]) {
                     // 後段では組織が生成したポリシーの実名を確認し、別名の新規作成を防ぐ。

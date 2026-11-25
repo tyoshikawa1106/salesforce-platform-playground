@@ -152,6 +152,8 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         '--name',
         'LwcTestDataDelete',
         '--name',
+        'LwcUserCreateAssistant',
+        '--name',
         'LwcUserLocaleSettings',
         '--target-org',
         'scratch-test@example.invalid',
@@ -187,6 +189,10 @@ test('明示されたaliasのScratch Orgだけを削除する', () => {
 
 // CLIの種別確認も注入し、単体テストから実組織へ接続しない。
 function scratchOrgQuery(args, workingDirectory) {
+    if (args.includes('--use-tooling-api'))
+        return { status: 0, stdout: JSON.stringify({ status: 0, result: { totalSize: 0, records: [] } }) };
+    if (args.includes('--query') && args[args.indexOf('--query') + 1].startsWith('SELECT PermissionSet.Name'))
+        return { status: 0, stdout: JSON.stringify({ status: 0, result: { totalSize: 0, records: [] } }) };
     if (args[0] === 'data') {
         assert.deepEqual(args, [
             'data',
@@ -301,7 +307,7 @@ test('割り当て済みならCLIの重複割り当てを避けmanifest反映へ
     const status = deployMetadata({
         argv: ['--alias', 'test-scratch-org'],
         runSfQuery(args, directory) {
-            if (args[0] === 'org') return scratchOrgQuery(args, directory);
+            if (args[0] === 'org' || args.includes('--use-tooling-api')) return scratchOrgQuery(args, directory);
             return {
                 status: 0,
                 stdout: JSON.stringify({ status: 0, result: { totalSize: 1, records: [{ Id: 'assignment-id' }] } })
@@ -360,4 +366,103 @@ test('Scratch Orgの実行ユーザーでApexテストの完了を待ち、失�
         }
     });
     assert.equal(status, 42);
+});
+
+for (const [personAccounts, shellsOnly] of [
+    [true, false],
+    [false, true],
+    [true, true]
+]) {
+    test(`初期パッケージの権限と後始末: 個人取引先=${personAccounts} 枠のみ=${shellsOnly}`, () => {
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const { XMLParser } = require('fast-xml-parser');
+        const parse = new XMLParser({ parseTagValue: false });
+        let directory;
+        const names = ['LwcAccountDelete', ...(shellsOnly ? ['LwcExternalClientAppManager', 'LwcObjectExplorer'] : [])];
+        const status = deployMetadata({
+            argv: ['--alias', 'test-scratch-org', ...(shellsOnly ? ['--shells-only'] : [])],
+            runSfQuery(args, cwd) {
+                if (!args.includes('--use-tooling-api')) return scratchOrgQuery(args, cwd);
+                const records = personAccounts ? [{ QualifiedApiName: 'IsPersonAccount' }] : [];
+                return {
+                    status: 0,
+                    stdout: JSON.stringify({ status: 0, result: { totalSize: records.length, records } })
+                };
+            },
+            runSfCommand(args) {
+                if (args.includes('--output-dir')) {
+                    directory = args[args.indexOf('--output-dir') + 1];
+                    const manifest = parse.parse(fs.readFileSync(args[args.indexOf('--manifest') + 1], 'utf8'));
+                    const members = manifest.Package.types.find((type) => type.name === 'PermissionSet').members;
+                    assert.equal(members.includes('LwcObjectExplorer'), shellsOnly);
+                    assert.equal(members.includes('LwcExternalClientAppManager'), shellsOnly);
+                    fs.mkdirSync(path.join(directory, 'permissionsets'), { recursive: true });
+                    for (const name of names)
+                        fs.copyFileSync(
+                            path.join(
+                                repoRoot,
+                                'force-app/main/default/permissionsets',
+                                name + '.permissionset-meta.xml'
+                            ),
+                            path.join(directory, 'permissionsets', name + '.permissionset')
+                        );
+                }
+                if (args.includes('--metadata-dir')) {
+                    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch-test@example.invalid');
+                    for (const name of names) {
+                        const original = parse.parse(
+                            fs.readFileSync(
+                                path.join(
+                                    repoRoot,
+                                    'force-app/main/default/permissionsets',
+                                    name + '.permissionset-meta.xml'
+                                ),
+                                'utf8'
+                            )
+                        ).PermissionSet;
+                        const modified = parse.parse(
+                            fs.readFileSync(path.join(directory, 'permissionsets', name + '.permissionset'), 'utf8')
+                        ).PermissionSet;
+                        if (shellsOnly) delete original.externalCredentialPrincipalAccesses;
+                        if (
+                            personAccounts &&
+                            [original.objectPermissions].flat().some((row) => row?.object === 'Account')
+                        ) {
+                            const rows = [modified.objectPermissions].flat();
+                            const contact = rows.find((row) => row.object === 'Contact');
+                            assert.equal(contact.allowRead, 'true');
+                            assert.deepEqual(
+                                Object.values(contact).filter((value) => value === 'true'),
+                                ['true']
+                            );
+                            modified.objectPermissions = rows.find((row) => row.object === 'Account');
+                        }
+                        assert.deepEqual(modified, original);
+                    }
+                }
+                return 0;
+            }
+        });
+        assert.equal(status, 0);
+        assert.equal(fs.existsSync(directory), false);
+    });
+}
+
+test('全権限セットを付与済みの再開では二重割り当てを要求しない', () => {
+    const records = scratchOrg.permissionSets.map((Name) => ({ PermissionSet: { Name } }));
+    assert.equal(
+        assignPermissionSet({
+            argv: ['--alias', 'test-scratch-org'],
+            runSfQuery: (args, cwd) =>
+                args[0] === 'org'
+                    ? scratchOrgQuery(args, cwd)
+                    : {
+                          status: 0,
+                          stdout: JSON.stringify({ status: 0, result: { totalSize: records.length, records } })
+                      },
+            runSfCommand: assert.fail
+        }),
+        0
+    );
 });

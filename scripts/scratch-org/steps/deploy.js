@@ -1,6 +1,10 @@
-// 実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>]
+// 実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>] [--shells-only]
 // 用途: setup.jsから呼び出し、Scratch Orgへ初期メタデータを反映する。
 
+const { mkdtempSync, rmSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const path = require('node:path');
+const { addAppSets, hasPersonAccounts, preparePermissions } = require('../internal/rebuild-permissions');
 const { runSf, runSfWithOutput } = require('../../common/run-command');
 // 保存済み組織情報を使い再構築先の種別を確認する。
 const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
@@ -8,13 +12,19 @@ const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
 
 // helpと引数エラーで同じ実行例を表示する。
-const usage = '実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>]';
+const usage = '実行コマンド: node scripts/scratch-org/steps/deploy.js [--alias <alias>] [--shells-only]';
 
 // Scratch Org再現用に限定したmanifestを、作成済みのaliasへ反映する。
 function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery = runSfWithOutput } = {}) {
+    // 枠のみの指定を一度だけ取り出し、残りは共通の引数検証へ渡す。
+    const options = [...argv];
+    // 通常の一括構築では完全な OAuth 用権限セットを後段で反映する。
+    const shellsOnly = options.includes('--shells-only');
+    // 重複した指定は共通パーサーでエラーにする。
+    if (shellsOnly) options.splice(options.indexOf('--shells-only'), 1);
     // 未指定時は再現設定のaliasを使い、指定時は検証済みaliasへ限定する。
     return runAliasCommand({
-        argv,
+        argv: options,
         defaultAlias: scratchOrg.alias,
         usage,
         execute(alias) {
@@ -93,23 +103,58 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery =
                 // 必須権限を用意できなければ、同じ権限不足で本体反映を失敗させない。
                 if (assignmentStatus !== 0) return assignmentStatus;
             }
-            // Apexテストは必要な権限セットを割り当てた後に別ステップで実行する。
-            return runSfCommand(
-                [
-                    'project',
-                    'deploy',
-                    'start',
-                    '--manifest',
-                    scratchOrg.manifest,
-                    '--target-org',
-                    orgInfo.username,
-                    '--test-level',
-                    'NoTestRun',
-                    '--wait',
-                    String(scratchOrg.waitMinutes)
-                ],
-                repoRoot
-            );
+            // 送信先の有効機能を調べ、必要な権限だけを追加する。
+            const personAccounts = hasPersonAccounts(orgInfo.username, runSfQuery);
+            // すべての経路で同じ組織とテスト条件を指定する。
+            const deploy = (scope) =>
+                runSfCommand(
+                    [
+                        'project',
+                        'deploy',
+                        'start',
+                        ...scope,
+                        '--target-org',
+                        orgInfo.username,
+                        '--test-level',
+                        'NoTestRun',
+                        '--wait',
+                        String(scratchOrg.waitMinutes)
+                    ],
+                    repoRoot
+                );
+            // 加工が不要なら初期 manifest を直接使用する。
+            if (!personAccounts && !shellsOnly) return deploy(['--manifest', scratchOrg.manifest]);
+            // 取得済みの原本を保持して、再実行ごとに独立したパッケージを作成する。
+            const temporary = mkdtempSync(path.join(tmpdir(), 'scratch-rebuild-'));
+            try {
+                // 通常構築では元の manifest の範囲を維持する。
+                let manifest = path.join(repoRoot, scratchOrg.manifest);
+                // 枠のみの場合は OAuth 用パッケージにある画面権限も初期反映に含める。
+                if (shellsOnly) {
+                    // manifest への追加は送信用コピーに限定する。
+                    const shellManifest = path.join(temporary, 'package.xml');
+                    // 画面の利用権限だけを初期パッケージに追加する。
+                    addAppSets(manifest, shellManifest);
+                    // 変換入力をこの一時ファイルに切り替える。
+                    manifest = shellManifest;
+                }
+                // 変換結果を入力 manifest と別ディレクトリに置く。
+                const directory = path.join(temporary, 'metadata');
+                // 既存の package directory と CLI の変換規則を使う。
+                const status = runSfCommand(
+                    ['project', 'convert', 'source', '--manifest', manifest, '--output-dir', directory],
+                    repoRoot
+                );
+                // 不完全な変換結果は反映しない。
+                if (status !== 0) return status;
+                // 対象組織の依存関係に合わせた権限を同一の deploy に含める。
+                preparePermissions(directory, personAccounts, shellsOnly);
+                // 失敗時にはパッケージ全体がロールバックされる。
+                return deploy(['--metadata-dir', directory]);
+            } finally {
+                // 処理結果にかかわらず作業用パッケージを破棄する。
+                rmSync(temporary, { recursive: true, force: true });
+            }
         }
     });
 }

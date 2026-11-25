@@ -23,8 +23,22 @@ Salesforce上で使う画面・帳票について、機能別の入口、LWC、�
 | [オブジェクトエクスプローラー](lwc/object-explorer/index.md)        | `objectExplorer`                                        |
 | [取引先情報PDF](visualforce/account-pdf/index.md)                   | `Account.PdfExport` → `accountPdfExport` → `AccountPdf` |
 | [言語・地域](lwc/user-locale-settings/index.md)                     | `userLocaleSettings`                                    |
+| [ユーザー作成アシスタント](lwc/user-create-assistant/index.md)      | `userCreateAssistant`                                   |
 
 ## 機能別の構成
+
+### ユーザー作成アシスタント
+
+画面の構成と実行条件は[ユーザー作成アシスタント](lwc/user-create-assistant/index.md)を参照してください。
+
+| Apex                                                                                                        | 役割                               | テスト                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [UserCreateAssistantController](../../force-app/main/default/classes/UserCreateAssistantController.cls)     | 取得・保存とトランザクション制御   | [UserCreateAssistantControllerTest](../../force-app/main/default/classes/UserCreateAssistantControllerTest.cls)     |
+| [UserCreateAssistantService](../../force-app/main/default/classes/UserCreateAssistantService.cls)           | 表示内容と作成・付与対象の組み立て | [UserCreateAssistantServiceTest](../../force-app/main/default/classes/UserCreateAssistantServiceTest.cls)           |
+| [UserCreateAssistantSelector](../../force-app/main/default/classes/UserCreateAssistantSelector.cls)         | ユーザーと割り当ての照会           | [UserCreateAssistantSelectorTest](../../force-app/main/default/classes/UserCreateAssistantSelectorTest.cls)         |
+| [UserCreateAssistantFieldCatalog](../../force-app/main/default/classes/UserCreateAssistantFieldCatalog.cls) | 組織の User 項目定義と編集可否     | [UserCreateAssistantFieldCatalogTest](../../force-app/main/default/classes/UserCreateAssistantFieldCatalogTest.cls) |
+| [UserCreateAssistantFieldInput](../../force-app/main/default/classes/UserCreateAssistantFieldInput.cls)     | 入力値の検証と型変換               | [UserCreateAssistantFieldInputTest](../../force-app/main/default/classes/UserCreateAssistantFieldInputTest.cls)     |
+| [UserCreateAssistantWrapper](../../force-app/main/default/classes/UserCreateAssistantWrapper.cls)           | フォームと保存要求                 | [UserCreateAssistantWrapperTest](../../force-app/main/default/classes/UserCreateAssistantWrapperTest.cls)           |
 
 ### 言語・地域
 
