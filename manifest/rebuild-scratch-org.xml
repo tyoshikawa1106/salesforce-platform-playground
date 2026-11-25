@@ -932,6 +932,7 @@
         <members>salesforceApiUtils</members>
         <members>lwcLoggerUtils</members>
         <members>userLocaleSettings</members>
+        <members>userCreationAssistant</members>
         <members>setupAuditTrailChart</members>
         <members>setupAuditTrailExplorer</members>
         <members>setupAuditTrailExportModal</members>
@@ -1300,6 +1301,7 @@
         <members>OrgExplorer</members>
         <members>ObjectExplorer</members>
         <members>SetupAuditTrailExplorer</members>
+        <members>UserCreationAssistant</members>
         <name>CustomTab</name>
     </types>
     <version>68.0</version>

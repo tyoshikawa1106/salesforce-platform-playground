@@ -179,6 +179,10 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
+        <tab>UserCreationAssistant</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>standard-Account</tab>
         <visibility>Visible</visibility>
     </tabSettings>
