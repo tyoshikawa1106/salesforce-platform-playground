@@ -64,7 +64,13 @@ alias の付け方と Scratch definition の feature 判断は、[Scratch Org �
 
 ## AI エージェントによる初期構築
 
-外部クライアントアプリの枠を作る場合は、作成済み Scratch Org を対象に、以下の [External Client App の手順](#external-client-app-の扱い) を個別に実行します。一括実行は ECA の OAuth 設定まで反映する別の経路です。
+外部クライアントアプリの枠を作る場合は、作成済み Scratch Org で次の順に実行します。
+
+1. 初期反映に `node scripts/scratch-org/steps/deploy.js --alias <scratch-org-alias> --shells-only` を使います。アプリ認証管理とオブジェクトエクスプローラーの権限セットは、外部認証情報のプリンシパルへのアクセスを除いて初期反映します。
+2. [External Client App の手順](#external-client-app-の扱い)で枠を作成します。
+3. 同じ alias で `assign-permission-set.js`、`run-apex-tests.js`、`import-test-data.js` の各ステップを順に実行します。
+
+一括実行は ECA の OAuth 設定まで反映する別の経路です。
 
 ## 一括実行
 
@@ -135,12 +141,10 @@ sf project deploy start --dry-run --source-dir force-app --target-org <scratch-o
 `manifest/rebuild-scratch-org.xml` を `NoTestRun` で反映します。Apex テストは Permission Set の割り当て後に実行し、失敗した場合はテストデータを投入しません。
 
 ```sh
-sf project deploy start \
-    --manifest manifest/rebuild-scratch-org.xml \
-    --target-org <scratch-org-alias> \
-    --test-level NoTestRun \
-    --wait 30
+node scripts/scratch-org/steps/deploy.js --alias <scratch-org-alias>
 ```
+
+実行先の取引先に `IsPersonAccount` 項目がある場合、取引先の参照を付与する権限セットには、取引先責任者の参照も一時パッケージで補います。完全な OAuth 構築では後段で反映する権限セットにも同じ条件を適用します。
 
 ### 反映 scope
 
@@ -213,27 +217,10 @@ Scratch Org の作成ユーザーには、次のPermission Setを割り当てま
 - `LwcUserCreateAssistant`: ユーザー作成アシスタントのApex入口とタブ
 - `LwcUserLocaleSettings`: 言語・地域のApex入口と項目権限
 
-自動割り当ての対象は `scripts/scratch-org/scratch-org.json` の `permissionSets` で管理し、スクリプトでは metadata deploy 後にまとめて割り当てます。一部でも失敗した場合は後続のテストデータ投入へ進みません。手動で個別実行する場合も同じ権限セットを割り当てます。
+自動割り当ての対象は `scripts/scratch-org/scratch-org.json` の `permissionSets` で管理し、スクリプトは metadata deploy 後に有効な直接割り当てを照合し、不足分だけを割り当てます。一部でも失敗した場合は後続のテストデータ投入へ進みません。手動で個別実行する場合も同じ権限セットを割り当てます。
 
 ```sh
-sf org assign permset \
-    --name SalesforceApplicationUser \
-    --name LwcAccountDataQualityScan \
-    --name LwcAccountDelete \
-    --name LwcAccountMassUpdate \
-    --name LwcAccountPdfExport \
-    --name LwcCaseEmailMessageList \
-    --name LwcExternalClientAppManager \
-    --name LwcObjectExplorer \
-    --name LwcObjectMetricsOverview \
-    --name LwcObjectRecordSearch \
-    --name LwcOrgExplorer \
-    --name LwcOAuthTokenIssuance \
-    --name LwcTestDataDelete \
-    --name LwcUserCreateAssistant \
-    --name LwcUserLocaleSettings \
-    --target-org <scratch-org-alias> \
-    --json
+node scripts/scratch-org/steps/assign-permission-set.js --alias <scratch-org-alias>
 ```
 
 割り当て結果の成功を確認します。取引先一括削除・一括更新のデータ権限は既存の設定に従い、権限セットの割り当てだけで更新・削除処理は開始しません。必要なデータ権限と表示条件は[取引先一括更新の仕様](../specifications/lwc/account-mass-update/index.md#権限実行条件)を参照してください。

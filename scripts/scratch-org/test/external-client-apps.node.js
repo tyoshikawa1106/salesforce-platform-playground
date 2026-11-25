@@ -101,6 +101,8 @@ function makePackage(directory) {
 }
 
 function scratchQuery(args) {
+    if (args.includes('--use-tooling-api'))
+        return { status: 0, stdout: JSON.stringify({ status: 0, result: { totalSize: 0, records: [] } }) };
     if (args[0] === 'data') {
         assert.match(args[args.indexOf('--query') + 1], /Profile.Name IN \('System Administrator', 'システム管理者'\)/);
         return {
