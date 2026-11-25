@@ -5,6 +5,7 @@ import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 import { buildConfirmationSections, buildFieldLines, buildPanel, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
 
+const MASTER_RECORD_TYPE_ID = '012000000000000AAA';
 const MATCHING_USERNAME = '新規ユーザーの「ユーザー名」がコピー元と同じです。右側の「ユーザー名」に、別の未使用のユーザー名を入力してください。';
 
 // 参照元の選択から入力、割り当てを含む作成までを制御
@@ -50,7 +51,7 @@ export default class UserCreateAssistant extends LightningElement {
 
     connectedCallback() {
         // 離脱によって中断した読み込みだけを再開
-        if (this.sourceId && !this.panels && !this.saving) this.loadSource();
+        if (this.sourceId && !this.panels && !this.saving) this.handleRetry();
     }
 
     disconnectedCallback() {
@@ -82,6 +83,17 @@ export default class UserCreateAssistant extends LightningElement {
         this.loadSource();
     }
 
+    handleRetry() {
+        if (this.fields.some(field => field.controllerName)) {
+            // 項目と入力値を保持し、失敗した選択肢だけを再取得する。
+            this.loading = true;
+            this.errorMessage = undefined;
+            this.dependencyRecordTypeId = MASTER_RECORD_TYPE_ID;
+        } else {
+            this.loadSource();
+        }
+    }
+
     dependencyRecordTypeId;
 
     @wire(getPicklistValuesByRecordType, { objectApiName: USER_OBJECT, recordTypeId: '$dependencyRecordTypeId' })
@@ -89,6 +101,8 @@ export default class UserCreateAssistant extends LightningElement {
         if (!this.dependencyRecordTypeId || (!data && !error)) return;
         const dependencies = data?.picklistFieldValues;
         if (!dependencies || this.fields.some(field => field.controllerName && !dependencies[field.apiName])) {
+            this.closeConfirmation();
+            this.dependencyRecordTypeId = undefined;
             this.loading = false;
             this.panels = undefined;
             this.showError('連動選択リストの候補を取得できませんでした。再読み込みしてください。');
@@ -97,6 +111,7 @@ export default class UserCreateAssistant extends LightningElement {
         this.fields = this.fields.map(field => (field.controllerName ? {...field, dependency: dependencies[field.apiName]} : field));
         this.rebuildPanels();
         this.loading = false;
+        if (this.confirmationSections && this.reportInvalidChoices()) this.closeConfirmation();
     }
 
     async loadSource() {
@@ -128,7 +143,7 @@ export default class UserCreateAssistant extends LightningElement {
             // 対象が確定した時点で両側の項目を構築
             if (this.fields.some(field => field.controllerName)) {
                 // User はマスターレコードタイプの選択肢を使用する。
-                this.dependencyRecordTypeId = '012000000000000AAA';
+                this.dependencyRecordTypeId = MASTER_RECORD_TYPE_ID;
             } else {
                 this.rebuildPanels();
             }
@@ -274,6 +289,16 @@ export default class UserCreateAssistant extends LightningElement {
         return true;
     }
 
+    reportInvalidChoices() {
+        const invalidChoices = this.panels.flatMap(panel => panel.rows.flatMap(line => line.cells
+            .filter(cell => cell.invalidChoice).map(cell => panel.label + 'の「' + cell.label + '」')));
+        if (invalidChoices.length) {
+            this.showError(invalidChoices.join('、') + ' に選択対象外の値があります。選び直すか解除してください。');
+            return true;
+        }
+        return false;
+    }
+
     handleSave() {
         // 二重送信や未選択状態での作成を抑止
         if (this.saving || this.confirmationSections || !this.panels) return;
@@ -297,12 +322,7 @@ export default class UserCreateAssistant extends LightningElement {
             // サーバーへの作成要求を保留
             return;
         }
-        const invalidChoices = this.panels.flatMap(panel => panel.rows.flatMap(line => line.cells
-            .filter(cell => cell.invalidChoice).map(cell => panel.label + 'の「' + cell.label + '」')));
-        if (invalidChoices.length) {
-            this.showError(invalidChoices.join('、') + ' に選択対象外の値があります。選び直すか解除してください。');
-            return;
-        }
+        if (this.reportInvalidChoices()) return;
         if (this.reportMatchingUsername()) return;
         // 前回失敗の表示を解除
         this.errorMessage = undefined;

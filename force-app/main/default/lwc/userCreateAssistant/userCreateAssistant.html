@@ -15,7 +15,7 @@
         <div lwc:if={errorMessage} role="alert" tabindex="-1" lwc:ref="errorSummary" class="slds-box slds-theme_default slds-text-color_error slds-m-bottom_medium">
             <p><strong>{errorHeading}</strong></p>
             <p>{errorMessage}</p>
-            <lightning-button lwc:if={showRetry} class="slds-m-left_small" label="再読み込み" onclick={loadSource}></lightning-button>
+            <lightning-button lwc:if={showRetry} class="slds-m-left_small" label="再読み込み" onclick={handleRetry}></lightning-button>
         </div>
         <section class="slds-box slds-theme_default" aria-label="コピー元ユーザーの選択">
             <lightning-record-picker
@@ -74,7 +74,7 @@
                                         </dl>
                                         <lightning-combobox lwc:elseif={row.picklist} label={row.label} value={row.value} options={row.options}
                                             required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-combobox>
-                                        <lightning-input-rich-text lwc:elseif={row.richText} label={row.label} label-visible value={row.value}
+                                        <lightning-input-rich-text lwc:elseif={row.richText} label={row.label} label-visible value={row.value} disabled-categories="INSERT_CONTENT"
                                             required={row.required} data-rich="true" data-limit={row.maxLength} data-side={panel.side} data-name={row.name}
                                             disabled={saving} onchange={handleFieldChange}></lightning-input-rich-text>
                                         <lightning-textarea lwc:elseif={row.textarea} label={row.label} value={row.value} max-length={row.maxLength}

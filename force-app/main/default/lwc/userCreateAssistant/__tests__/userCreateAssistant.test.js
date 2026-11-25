@@ -304,3 +304,71 @@ it('無効になった単一選択値を解除すると任意項目を空で保�
     submit(root); await flush();
     expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson)).toEqual({Choice__c:null});
 });
+
+const dependentForm = [...fields,
+    { apiName: 'Flag__c', type: 'checkbox', value: 'true', canCreate: true },
+    { apiName: 'Color__c', label: '色', type: 'picklist', controllerName: 'Flag__c', value: 'Green', canCreate: true }
+];
+
+function emitColors(validFor) {
+    getPicklistValuesByRecordType.emit({ picklistFieldValues: {
+        Color__c: { controllerValues: { true: 0, false: 1 }, values: [{ label: '緑', value: 'Green', validFor }] }
+    } });
+}
+
+it('候補取得の失敗後は左右の編集と作成オプションを保持し、候補だけを再取得する', async () => {
+    getForm.mockResolvedValue({ fields: dependentForm });
+    const root = mount().shadowRoot;
+    select(root, 'one'); await flush();
+    emitColors([0]); await flush();
+    await toggle(root, 'deactivateSource', true);
+    await toggle(root, 'sendResetEmail', false);
+    edit(input(root, 'source'), '旧担当者');
+    edit(input(root, 'target'), '新担当者');
+    const dialog = review(root);
+    expect(dialog.open).toBe(true);
+    getPicklistValuesByRecordType.error(); await flush();
+    expect(dialog.open).toBe(false);
+    root.querySelector('[role="alert"] lightning-button').click(); await flush();
+    emitColors([0]); await flush();
+    expect(getForm).toHaveBeenCalledTimes(1);
+    expect(input(root, 'source').value).toBe('旧担当者');
+    expect(input(root, 'target').value).toBe('新担当者');
+    submit(root); await flush();
+    const { sourceValuesJson, targetValuesJson, sendResetEmail } = saveUser.mock.calls[0][0].request;
+    expect(JSON.parse(sourceValuesJson).LastName).toBe('旧担当者');
+    expect(JSON.parse(targetValuesJson).LastName).toBe('新担当者');
+    expect(sendResetEmail).toBe(false);
+});
+
+it('確認中の候補更新で選択が無効になると確認を閉じ、修正後の値だけを送信する', async () => {
+    getForm.mockResolvedValue({ fields: dependentForm });
+    const root = mount().shadowRoot;
+    select(root, 'one'); await flush();
+    emitColors([0]); await flush();
+    const dialog = review(root); await flush();
+    emitColors([0, 1]); await flush();
+    expect(dialog.open).toBe(true);
+    emitColors([1]); await flush();
+    expect(dialog.open).toBe(false);
+    expect(root.querySelector('[role="alert"]').textContent).toContain('新規ユーザーの「色」');
+    dialog.querySelectorAll('lightning-button')[1].click();
+    expect(saveUser).not.toHaveBeenCalled();
+    edit(root.querySelector('.c-target lightning-combobox'), ''); await flush();
+    submit(root); await flush();
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).Color__c).toBeNull();
+});
+
+it('画像を含む既存の HTML を未編集のまま新規側へコピーする', async () => {
+    const html = '<p><img src="/resource/ExampleImage" alt="既存画像"></p>';
+    getForm.mockResolvedValue({ fields: [{ apiName: 'Note__c', label: '備考', type: 'textarea',
+        richText: true, value: html, canCreate: true, required: true }] });
+    const root = mount().shadowRoot;
+    select(root, 'one'); await flush();
+    expect(root.querySelector('.c-source lightning-formatted-rich-text').value).toBe(html);
+    expect(root.querySelector('.c-target lightning-input-rich-text')).toMatchObject({
+        disabledCategories: 'INSERT_CONTENT', value: html
+    });
+    submit(root); await flush();
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).Note__c).toBe(html);
+});
