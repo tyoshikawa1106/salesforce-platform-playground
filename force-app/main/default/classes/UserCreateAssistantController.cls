@@ -151,7 +151,8 @@ public with sharing class UserCreateAssistantController {
         }
         // 無効化だけではユーザー名の一意制約を解除できない
         if (code == 'DUPLICATE_USERNAME') {
-            return new AuraHandledException(action + '使用されていないユーザー名を指定してください。');
+            String side = stage == 'source' ? 'コピー元ユーザー' : '新規ユーザー';
+            return new AuraHandledException('このユーザー名はすでに使われています。「' + side + '」の「ユーザー名」に別の未使用の値を入力してください。');
         }
         // 他の一意項目の重複も入力内容から修正できるよう案内
         if (code.contains('DUPLICATE')) {

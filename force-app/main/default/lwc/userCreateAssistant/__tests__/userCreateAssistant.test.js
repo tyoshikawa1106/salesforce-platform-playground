@@ -1,10 +1,12 @@
 import { createElement } from 'lwc';
+import LightningConfirm from 'lightning/confirm';
 import UserCreateAssistant from 'c/userCreateAssistant';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 
 jest.mock('@salesforce/apex/UserCreateAssistantController.getForm', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.saveUser', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('lightning/confirm', () => ({ open: jest.fn() }), { virtual: true });
 const fields = [{ apiName: 'LastName', label: '姓', type: 'text', value: '参照元', canCreate: true, canUpdate: true, required: true }];
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
 function deferred() {
@@ -34,7 +36,36 @@ function submit(root) {
     root.querySelectorAll('[data-side]').forEach((el) => { el.checkValidity = () => true; });
     [...root.querySelectorAll('lightning-button')].find((el) => el.variant === 'brand').click();
 }
+beforeEach(() => { LightningConfirm.open.mockResolvedValue(true); });
 afterEach(() => { document.body.replaceChildren(); jest.resetAllMocks(); });
+it('確認で対象と各設定を示し、キャンセルとユーザー名の重複では保存しない', async () => {
+    getForm.mockResolvedValue({fields: [
+        {apiName:'Username', label:'ユーザー名', type:'email', value:'copy@example.invalid', canCreate:true, canUpdate:true},
+        {apiName:'IsActive', type:'checkbox', value:'true', canCreate:true}
+    ]});
+    const root = mount().shadowRoot;
+    select(root, 'one'); await flush();
+    await toggle(root,'deactivateSource',true);
+    await toggle(root,'copyPermissionSetGroups',false);
+    LightningConfirm.open.mockResolvedValueOnce(false);
+    submit(root); await flush();
+    const {message} = LightningConfirm.open.mock.calls[0][0];
+    for (const line of ['copy@example.invalid（有効）','無効化する','権限セット：引き継ぐ','権限セットグループ：引き継がない']) {
+        expect(message).toContain(line);
+    }
+    expect(saveUser).not.toHaveBeenCalled();
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+    submit(root); await flush();
+    expect(root.querySelector('[role="alert"]').textContent).toContain('コピー元と同じ');
+    expect(saveUser).not.toHaveBeenCalled();
+    const username = root.querySelector('[data-side="target"][data-name="Username"]');
+    const focus = jest.spyOn(username, 'focus');
+    root.querySelector('[role="alert"] lightning-button').click();
+    expect(focus).toHaveBeenCalled();
+    edit(username, 'new@example.invalid');
+    submit(root); await flush();
+    expect(saveUser).toHaveBeenCalledTimes(1);
+});
 it.each([[['Green'], 'Green'], [[], '']])('複数選択の初期値から %j に変更して新規側だけを保存する', async (selected, stored) => {
     const colors = ['Green', 'Blue'];
     getForm.mockResolvedValue({fields: [{apiName:'Colors__c', label:'色', type:'multipicklist', custom:true,
@@ -111,6 +142,7 @@ it('送信済みの無効化付き保存は再接続後も二重実行せず、�
     edit(input(root,'source'),'旧');
     edit(input(root,'target'),'新');
     submit(root); submit(root);
+    await flush();
     el.remove(); document.body.appendChild(el); await flush();
     expect(root.querySelector('lightning-record-picker').disabled).toBe(true);
     expect(saveUser).toHaveBeenCalledTimes(1);

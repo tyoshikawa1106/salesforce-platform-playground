@@ -1,7 +1,10 @@
 import { LightningElement } from 'lwc';
+import LightningConfirm from 'lightning/confirm';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 import { buildPanels, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
+
+const MATCHING_USERNAME = '新規ユーザーの「ユーザー名」がコピー元と同じです。右側の「ユーザー名」に、別の未使用のユーザー名を入力してください。';
 
 // 参照元の選択から入力、割り当てを含む作成までを制御
 export default class UserCreateAssistant extends LightningElement {
@@ -33,6 +36,7 @@ export default class UserCreateAssistant extends LightningElement {
     loading = false;
     // DML が完了するまで二重送信と対象切り替えを禁止
     saving = false;
+    confirming = false;
     // 入力に影響を与えずエラーを表示
     errorMessage;
     // 作成後に参照可能な新規ユーザーへのリンク
@@ -157,6 +161,7 @@ export default class UserCreateAssistant extends LightningElement {
         const field = this.fields.find((item) => item.apiName === name);
         // 編集可否の切替後に届いた不要な入力を除外
         if (this.saving || (side === 'source' && !this.deactivateSource) || !field) return;
+        if (name === 'Username') this.clearUsernameError();
         // 選択リストなどの表示形式をサーバー保存形式に変換
         const normalized = getDraftValue(value);
         // 最初の値と同じ元側項目の不要な更新を防ぐ
@@ -179,9 +184,62 @@ export default class UserCreateAssistant extends LightningElement {
         return this.deactivateSource ? 'コピー元を無効化してユーザーを作成' : 'ユーザーを作成';
     }
 
+    get errorHeading() {
+        return this.panels ? 'ユーザーを作成できませんでした' : 'コピー元ユーザーを読み込めませんでした';
+    }
+
+    get sourceUsername() {
+        return this.fields.find((field) => field.apiName === 'Username')?.value;
+    }
+
+    get confirmationMessage() {
+        const transfer = (enabled) => (enabled ? '引き継ぐ' : '引き継がない');
+        const status = this.targetDraft.IsActive ? '有効' : '無効';
+        return [
+            '新規ユーザー：' + (this.targetDraft.Username || '—') + '（' + status + '）',
+            'コピー元：' + (this.sourceUsername || '—'),
+            'コピー元の処理：' + (this.deactivateSource ? '左側の変更を保存し、無効化する' : '変更しない'),
+            '権限セット：' + transfer(this.copyPermissionSets),
+            '権限セットグループ：' + transfer(this.copyPermissionSetGroups)
+        ].join('\n');
+    }
+
+    get hasMatchingUsernameError() {
+        return this.errorMessage === MATCHING_USERNAME;
+    }
+
+    get targetUsernameInput() {
+        return this.template.querySelector('[data-side="target"][data-name="Username"]');
+    }
+
+    focusTargetUsername() {
+        this.targetUsernameInput?.focus();
+    }
+
+    clearUsernameError() {
+        if (!this.hasMatchingUsernameError) return;
+        const input = this.targetUsernameInput;
+        input?.setCustomValidity('');
+        input?.reportValidity();
+        this.errorMessage = undefined;
+    }
+
+    reportMatchingUsername() {
+        const source = this.deactivateSource ? this.sourceDraft.Username ?? this.sourceUsername : this.sourceUsername;
+        const target = this.targetDraft.Username;
+        if (!target || target.trim().toLowerCase() !== source?.trim().toLowerCase()) return false;
+        this.errorMessage = MATCHING_USERNAME;
+        const input = this.targetUsernameInput;
+        input.setCustomValidity(this.errorMessage);
+        input.reportValidity();
+        input.focus();
+        return true;
+    }
+
     async handleSave() {
         // 二重送信や未選択状態での作成を抑止
-        if (this.saving || !this.panels) return;
+        if (this.saving || this.confirming || !this.panels) return;
+        this.clearUsernameError();
         // 必須・入力形式の問題をすべての編集欄に表示
         const invalid = Array.from(this.template.querySelectorAll('[data-side]')).filter((input) => !input.checkValidity());
         // 基本コンポーネントが返した個別の理由を表示
@@ -193,11 +251,17 @@ export default class UserCreateAssistant extends LightningElement {
             // サーバーへの作成要求を保留
             return;
         }
-        // 同じ入力での二重送信を防ぐ
-        this.saving = true;
         // 前回失敗の表示を解除
         this.errorMessage = undefined;
         try {
+            this.confirming = true;
+            const generation = this.generation;
+            const confirmed = await LightningConfirm.open({
+                label: 'ユーザーの作成を確認', message: this.confirmationMessage,
+                theme: this.deactivateSource ? 'warning' : 'default'
+            });
+            if (!confirmed || this.generation !== generation || this.reportMatchingUsername()) return;
+            this.saving = true;
             // コピー元の変更と割り当ては同じ保存要求で実行
             const id = await saveUser({ request: {
                 sourceId: this.sourceId, deactivateSource: this.deactivateSource,
@@ -222,6 +286,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.errorMessage = error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
         } finally {
             // 再接続時も送信済みの要求が完了するまでロックを維持
+            this.confirming = false;
             this.saving = false;
         }
     }

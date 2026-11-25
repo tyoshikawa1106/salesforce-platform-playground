@@ -90,7 +90,9 @@
             </div>
         </template>
         <div lwc:if={errorMessage} role="alert" class="slds-box slds-theme_default slds-text-color_error slds-m-top_medium">
-            {errorMessage}
+            <p><strong>{errorHeading}</strong></p>
+            <p>{errorMessage}</p>
+            <lightning-button lwc:if={hasMatchingUsernameError} variant="base" label="新規ユーザーの「ユーザー名」を修正" onclick={focusTargetUsername}></lightning-button>
             <lightning-button lwc:if={showRetry} class="slds-m-left_small" label="再読み込み" onclick={loadSource}></lightning-button>
         </div>
         <div lwc:if={panels} class="slds-m-top_medium slds-text-align_right">
