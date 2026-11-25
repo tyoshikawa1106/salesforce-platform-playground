@@ -1,3 +1,10 @@
+.c-error-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+
 .c-comparison {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -57,6 +64,11 @@
 }
 
 @media (max-width: 35.99em) {
+    .c-error-summary {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: start;
+    }
+
     .c-field-pair {
         grid-template-columns: minmax(0, 1fr);
     }

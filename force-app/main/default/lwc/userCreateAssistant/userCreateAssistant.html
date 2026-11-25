@@ -12,10 +12,12 @@
                 </div>
             </div>
         </header>
-        <div lwc:if={errorMessage} role="alert" tabindex="-1" lwc:ref="errorSummary" class="slds-box slds-theme_default slds-text-color_error slds-m-bottom_medium">
-            <p><strong>{errorHeading}</strong></p>
-            <p>{errorMessage}</p>
-            <lightning-button lwc:if={showRetry} class="slds-m-left_small" label="再読み込み" onclick={handleRetry}></lightning-button>
+        <div lwc:if={errorMessage} role="alert" tabindex="-1" lwc:ref="errorSummary" class="c-error-summary slds-box slds-theme_default slds-m-bottom_medium">
+            <div class="slds-text-color_error slds-hyphenate">
+                <p><strong>{errorHeading}</strong></p>
+                <p>{errorMessage}</p>
+            </div>
+            <lightning-button lwc:if={showRetry} label="再読み込み" onclick={handleRetry}></lightning-button>
         </div>
         <section class="slds-box slds-theme_default" aria-label="コピー元ユーザーの選択">
             <lightning-record-picker
