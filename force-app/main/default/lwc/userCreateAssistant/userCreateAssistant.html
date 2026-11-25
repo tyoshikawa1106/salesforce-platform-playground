@@ -12,6 +12,11 @@
                 </div>
             </div>
         </header>
+        <div lwc:if={errorMessage} role="alert" tabindex="-1" lwc:ref="errorSummary" class="slds-box slds-theme_default slds-text-color_error slds-m-bottom_medium">
+            <p><strong>{errorHeading}</strong></p>
+            <p>{errorMessage}</p>
+            <lightning-button lwc:if={showRetry} class="slds-m-left_small" label="再読み込み" onclick={loadSource}></lightning-button>
+        </div>
         <section class="slds-box slds-theme_default" aria-label="コピー元ユーザーの選択">
             <lightning-record-picker
                 label="コピー元ユーザー"
@@ -31,17 +36,21 @@
         <template lwc:if={panels}>
             <section class="slds-box slds-theme_default slds-m-top_medium" aria-label="作成オプション">
                 <div class="slds-grid slds-wrap slds-gutters">
-                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                         <lightning-input type="checkbox" name="deactivateSource" label="コピー元ユーザーを無効化する"
                             checked={deactivateSource} disabled={saving} onchange={handleOptionChange}></lightning-input>
                     </div>
-                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                         <lightning-input type="checkbox" name="copyPermissionSets" label="権限セットを引き継ぐ"
                             checked={copyPermissionSets} disabled={saving} onchange={handleOptionChange}></lightning-input>
                     </div>
-                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                         <lightning-input type="checkbox" name="copyPermissionSetGroups" label="権限セットグループを引き継ぐ"
                             checked={copyPermissionSetGroups} disabled={saving} onchange={handleOptionChange}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                        <lightning-input type="checkbox" name="sendResetEmail" label="新規ユーザーにパスワードリセットメールを送信する"
+                            checked={sendResetEmail} disabled={saving} onchange={handleOptionChange}></lightning-input>
                     </div>
                 </div>
             </section>
@@ -89,12 +98,6 @@
                 </div>
             </div>
         </template>
-        <div lwc:if={errorMessage} role="alert" class="slds-box slds-theme_default slds-text-color_error slds-m-top_medium">
-            <p><strong>{errorHeading}</strong></p>
-            <p>{errorMessage}</p>
-            <lightning-button lwc:if={hasMatchingUsernameError} variant="base" label="新規ユーザーの「ユーザー名」を修正" onclick={focusTargetUsername}></lightning-button>
-            <lightning-button lwc:if={showRetry} class="slds-m-left_small" label="再読み込み" onclick={loadSource}></lightning-button>
-        </div>
         <div lwc:if={panels} class="slds-m-top_medium slds-text-align_right">
             <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
             <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
@@ -110,9 +113,13 @@
                         <dl>
                             <div for:each={section.rows} for:item="row" key={row.label} class="c-confirmation-row">
                                 <dt>{row.label}</dt>
-                                <dd><strong lwc:if={row.warning} class="slds-theme_warning">{row.value}</strong><span lwc:else>{row.value}</span></dd>
+                                <dd>
+                                    <lightning-input lwc:if={row.checkbox} type="checkbox" label={row.label} variant="label-hidden" checked={row.checked} read-only></lightning-input>
+                                    <span lwc:else>{row.value}</span>
+                                </dd>
                             </div>
                         </dl>
+                        <p lwc:if={section.deactivating} class="slds-m-top_small"><strong>作成時にコピー元の変更を保存し、無効化します。</strong></p>
                     </section>
                 </template>
             </div>

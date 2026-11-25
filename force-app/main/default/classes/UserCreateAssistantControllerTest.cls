@@ -58,13 +58,15 @@ private with sharing class UserCreateAssistantControllerTest {
             insert direct;
             insert new PermissionSetAssignment(AssigneeId = source.Id, PermissionSetId = direct.Id);
             UserCreateAssistantWrapper request = buildRequest(source, target);
+            request.sendResetEmail = true;
             Test.startTest();
             Id createdId = UserCreateAssistantController.saveUser(request);
             Test.stopTest();
-            User created = [SELECT LastName, ProfileId, UserRoleId, Username FROM User WHERE Id = :createdId];
+            User created = [SELECT IsActive, LastName, ProfileId, UserRoleId, Username FROM User WHERE Id = :createdId];
             User original = [SELECT IsActive, LastName FROM User WHERE Id = :source.Id];
             Assert.areEqual(target.get('Username'), created.Username, '入力されたユーザー名で新規作成');
             Assert.areEqual(target.get('LastName'), created.LastName, '新規側の氏名を使用');
+            Assert.isTrue(created.IsActive, '新規ユーザーは有効で作成');
             Assert.areEqual(role.Id, created.UserRoleId, '元のロールを引き継ぐ');
             Assert.areEqual(source.ProfileId, created.ProfileId, '元のライセンスに対応する同じプロファイルを使う');
             Assert.isTrue(original.IsActive, '通常の作成ではコピー元を有効のままにする');
@@ -72,6 +74,32 @@ private with sharing class UserCreateAssistantControllerTest {
             Assert.areEqual(0, [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :createdId AND PermissionSetId = :direct.Id], 'チェックを外した権限セットは付与しない');
         }
 
+    }
+
+    /** 無効を指定した旧クライアントからの作成要求を拒否 */
+    @IsTest
+    static void rejectsInactiveTarget() {
+        System.runAs(testUser) {
+            User source = buildUser('無効な元');
+            source.IsActive = false;
+            insert source;
+            Map<String, Object> target = buildTarget('新規');
+            target.put('IsActive', false);
+            UserCreateAssistantWrapper request = buildRequest(source, target);
+            Test.startTest();
+            try {
+                UserCreateAssistantController.saveUser(request);
+                Assert.fail('無効な新規ユーザーは作成できない');
+            } catch (AuraHandledException expected) {
+                Assert.isNotNull(expected.getMessage(), '有効状態のエラーを返す');
+            }
+            target.put('IsActive', true);
+            request.targetValuesJson = JSON.serialize(target);
+            Id createdId = UserCreateAssistantController.saveUser(request);
+            Test.stopTest();
+            Assert.isTrue([SELECT IsActive FROM User WHERE Id = :createdId].IsActive, '無効なコピー元からも有効なユーザーを作成');
+            Assert.isFalse([SELECT IsActive FROM User WHERE Id = :source.Id].IsActive, 'コピー元は無効なまま');
+        }
     }
 
     /** 元の利用者を編集・無効化して有効な割り当てを引き継ぐ */

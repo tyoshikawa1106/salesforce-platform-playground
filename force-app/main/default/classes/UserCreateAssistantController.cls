@@ -59,7 +59,7 @@ public with sharing class UserCreateAssistantController {
             // 元ユーザーの最新の固定項目を取得
             List<User> sources = selector.getSourceForSave(request.sourceId);
             // 固定値と入力された値を持つ新規ユーザーを生成
-            User target = service.prepareUser(sources, request.targetValuesJson, UserCreateAssistantFieldInput.Side.TARGET);
+            User target = prepareActiveTarget(sources, request.targetValuesJson);
             // 無効化前に割り当ての状態を保存
             List<PermissionSetAssignment> assignments = new List<PermissionSetAssignment>();
             // 引き継ぎを選択した場合だけ元ユーザーの割り当てを取得
@@ -95,6 +95,9 @@ public with sharing class UserCreateAssistantController {
                 // いずれかに失敗すると全処理を取り消す
                 insert as user grants;
             }
+            // 権限付与まで成功した新規ユーザーだけに標準のリセット通知を要求
+            stage = 'email';
+            sendResetEmailIfRequested(target.Id, request.sendResetEmail);
             // すべての設定が成功したユーザーだけを通知
             return target.Id;
         } catch (Exception e) {
@@ -105,10 +108,29 @@ public with sharing class UserCreateAssistantController {
         }
     }
 
+    private static User prepareActiveTarget(List<User> sources, String targetValuesJson) {
+        User target = service.prepareUser(sources, targetValuesJson, UserCreateAssistantFieldInput.Side.TARGET);
+        // 無効での作成を要求する旧画面からは、元ユーザーに変更を加える前に戻す
+        if (target.IsActive != true) {
+            throw new AuraHandledException('新規ユーザーは有効で作成します。画面を開き直してください。');
+        }
+        return target;
+    }
+
+    private static void sendResetEmailIfRequested(Id createdUserId, Boolean requested) {
+        // 作成要求に通知の指定がない場合も通常どおり完了する
+        if (requested == true) {
+            System.resetPassword(createdUserId, true);
+        }
+    }
+
     private static AuraHandledException getSaveError(Exception e, String stage, List<PermissionSetAssignment> grants) {
         // 安全な検証メッセージはそのまま返却
         if (e instanceof AuraHandledException) {
             return (AuraHandledException)e;
+        }
+        if (stage == 'email') {
+            return new AuraHandledException('パスワードリセットメールの送信を要求できませんでした。送信権限・組織のメール設定を確認してください。ユーザー作成は取り消しました。');
         }
         // 権限付与の失敗では解除して再試行する対象を示す
         if (stage == 'grant') {

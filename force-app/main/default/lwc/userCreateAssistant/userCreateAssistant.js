@@ -31,6 +31,8 @@ export default class UserCreateAssistant extends LightningElement {
     copyPermissionSets = true;
     // グループだけを独立して除外できるようにする
     copyPermissionSetGroups = true;
+    // 新規ユーザー宛ての通知は明示選択時だけ要求
+    sendResetEmail = false;
     // 読み込み中に空のフォームを表示しない
     loading = false;
     // DML が完了するまで二重送信と対象切り替えを禁止
@@ -69,6 +71,7 @@ export default class UserCreateAssistant extends LightningElement {
         this.copyPermissionSets = true;
         // グループ引き継ぎも初期状態に戻す
         this.copyPermissionSetGroups = true;
+        this.sendResetEmail = false;
         // 前回の完了通知を閉じる
         this.createdUrl = undefined;
         // 選択中のユーザーに応じて参照元を表示
@@ -103,7 +106,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.rebuildPanels();
         } catch (error) {
             // 別のユーザーに対する失敗を表示しない
-            if (request === this.generation) this.errorMessage = error.body?.message || 'コピー元ユーザーを読み込めませんでした。';
+            if (request === this.generation) this.showError(error.body?.message || 'コピー元ユーザーを読み込めませんでした。');
         } finally {
             // 現在の要求の完了時だけ読み込み表示を終了
             if (request === this.generation) this.loading = false;
@@ -136,6 +139,8 @@ export default class UserCreateAssistant extends LightningElement {
         } else if (name === 'copyPermissionSets') {
             // 個別に割り当てた権限セットの引き継ぎを選択
             this.copyPermissionSets = checked;
+        } else if (name === 'sendResetEmail') {
+            this.sendResetEmail = checked;
         } else if (name === 'copyPermissionSetGroups') {
             // 権限セットグループの引き継ぎを選択
             this.copyPermissionSetGroups = checked;
@@ -204,8 +209,14 @@ export default class UserCreateAssistant extends LightningElement {
         return this.template.querySelector('[data-side="target"][data-name="Username"]');
     }
 
-    focusTargetUsername() {
-        this.targetUsernameInput?.focus();
+    async showError(message) {
+        // エラーを描画してから見出し直下の通知へ移動する。
+        this.errorMessage = message;
+        await Promise.resolve();
+        if (this.errorMessage === message && this.isConnected) {
+            this.refs.errorSummary?.focus();
+            this.refs.errorSummary?.scrollIntoView?.({ block: 'center' });
+        }
     }
 
     clearUsernameError() {
@@ -220,11 +231,10 @@ export default class UserCreateAssistant extends LightningElement {
         const source = this.deactivateSource ? this.sourceDraft.Username ?? this.sourceUsername : this.sourceUsername;
         const target = this.targetDraft.Username;
         if (!target || target.trim().toLowerCase() !== source?.trim().toLowerCase()) return false;
-        this.errorMessage = MATCHING_USERNAME;
+        this.showError(MATCHING_USERNAME);
         const input = this.targetUsernameInput;
         input.setCustomValidity(this.errorMessage);
         input.reportValidity();
-        input.focus();
         return true;
     }
 
@@ -236,18 +246,21 @@ export default class UserCreateAssistant extends LightningElement {
         const invalid = Array.from(this.template.querySelectorAll('[data-side]')).filter((input) => !input.checkValidity());
         // 基本コンポーネントが返した個別の理由を表示
         invalid.forEach((input) => input.reportValidity());
-        // 最初の入力エラーにフォーカスを移す
+        // 入力エラーを上部の通知にまとめる
         if (invalid.length) {
-            // 長いフォームでも修正箇所へ直接移動
-            invalid[0].focus();
+            // コピー元・新規のどちらにある項目かを示す
+            const labels = invalid.map(input => (input.dataset.side === 'source' ? 'コピー元' : '新規') + 'の「' + input.label + '」');
+            this.showError(labels.join('、') + ' の入力内容を確認してください。');
             // サーバーへの作成要求を保留
             return;
         }
         // 前回失敗の表示を解除
         this.errorMessage = undefined;
         // 表示中のフォームから確認内容を確定
-        this.confirmationSections = buildConfirmationSections(this.sourceUsername, this.targetDraft,
-            this.deactivateSource, this.copyPermissionSets, this.copyPermissionSetGroups);
+        this.confirmationSections = buildConfirmationSections(this.fields, this.sourceDraft, this.targetDraft, {
+            deactivateSource: this.deactivateSource, copyPermissionSets: this.copyPermissionSets,
+            copyPermissionSetGroups: this.copyPermissionSetGroups, sendResetEmail: this.sendResetEmail
+        });
         // ブラウザのモーダル表示で背景の操作とフォーカスを制限
         this.refs.confirmation.showModal();
     }
@@ -272,6 +285,7 @@ export default class UserCreateAssistant extends LightningElement {
             const id = await saveUser({ request: {
                 sourceId: this.sourceId, deactivateSource: this.deactivateSource,
                 copyPermissionSets: this.copyPermissionSets, copyPermissionSetGroups: this.copyPermissionSetGroups,
+                sendResetEmail: this.sendResetEmail,
                 sourceValuesJson: JSON.stringify(this.deactivateSource ? this.sourceDraft : {}),
                 targetValuesJson: JSON.stringify(this.targetDraft)
             } });
@@ -289,7 +303,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.targetDraft = {};
         } catch (error) {
             // 入力とチェック状態を維持して再試行できるようにする
-            this.errorMessage = error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
+            this.showError(error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。');
         } finally {
             // 再接続時も送信済みの要求が完了するまでロックを維持
             this.saving = false;

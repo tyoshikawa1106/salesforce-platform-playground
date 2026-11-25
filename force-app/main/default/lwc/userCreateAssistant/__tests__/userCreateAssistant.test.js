@@ -55,10 +55,12 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     await toggle(root,'copyPermissionSetGroups',false);
     const dialog = review(root); await flush();
     expect(dialog.open).toBe(true);
-    expect([...dialog.querySelectorAll('h3')].map(el => el.textContent)).toEqual(['新規ユーザー','コピー元ユーザー','権限の引き継ぎ']);
-    expect([...dialog.querySelectorAll('dd')].map(el => el.textContent)).toEqual([
-        'copy@example.invalid','有効','copy@example.invalid','変更を保存して無効化する','引き継ぐ','引き継がない'
+    expect([...dialog.querySelectorAll('h3')].map(el => el.textContent)).toEqual(['コピー元ユーザー','新規ユーザー','権限の引き継ぎ']);
+    expect([...dialog.querySelectorAll('section:first-child dt')].map(el => el.textContent)).toEqual(['氏名','メール','ユーザー名','有効']);
+    expect([...dialog.querySelectorAll('lightning-input')].map(el => [el.label, el.checked, el.readOnly])).toEqual([
+        ['有効', false, true], ['有効', true, true]
     ]);
+    expect(dialog.textContent).toContain('無効化します');
     dialog.querySelector('lightning-button').click(); await flush();
     expect(dialog.open).toBe(false);
     expect(saveUser).not.toHaveBeenCalled();
@@ -67,9 +69,10 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     expect(root.querySelector('[role="alert"]').textContent).toContain('コピー元と同じ');
     expect(saveUser).not.toHaveBeenCalled();
     const username = root.querySelector('[data-side="target"][data-name="Username"]');
-    const focus = jest.spyOn(username, 'focus');
-    root.querySelector('[role="alert"] lightning-button').click();
-    expect(focus).toHaveBeenCalled();
+    const banner = root.querySelector('[role="alert"]');
+    expect(root.querySelector('main > header').nextElementSibling).toBe(banner);
+    expect(banner.querySelector('a, lightning-button')).toBeNull();
+    expect(root.activeElement).toBe(banner);
     edit(username, 'new@example.invalid');
     submit(root); await flush();
     expect(saveUser).toHaveBeenCalledTimes(1);
@@ -118,7 +121,7 @@ it('左右の初期状態と引き継ぎを表示し、保存エラー後も入�
     await toggle(root,'copyPermissionSets',false);
     submit(root);
     await flush();
-    expect(saveUser).toHaveBeenLastCalledWith({request:{sourceId:'one',deactivateSource:false,copyPermissionSets:false,copyPermissionSetGroups:true,sourceValuesJson:'{}',targetValuesJson:'{"LastName":"新規"}'}});
+    expect(saveUser).toHaveBeenLastCalledWith({request:{sourceId:'one',deactivateSource:false,copyPermissionSets:false,copyPermissionSetGroups:true,sendResetEmail:false,sourceValuesJson:'{}',targetValuesJson:'{"LastName":"新規"}'}});
     expect(root.querySelector('a').getAttribute('href')).toBe('/lightning/r/User/new/view');
 });
 it('対象変更・切断前の応答を破棄し、現在のユーザーだけ再取得する', async () => {
@@ -182,23 +185,27 @@ it('未編集の新規項目も保存し、明示的なクリアとコピー元�
     submit(root); await flush();
     const {sourceValuesJson,targetValuesJson}=saveUser.mock.calls[0][0].request;
     expect(JSON.parse(sourceValuesJson)).toEqual({LastName:'元だけ変更'});
-    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:false});
+    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:true});
 });
 
-it.each([true, false])('有効チェックをコピー元（%s）から反転して新規側だけ保存できる', async (initial) => {
-    getForm.mockResolvedValue({fields: [{apiName:'IsActive', label:'有効', type:'checkbox', value:String(initial), canCreate:true, required:true}]});
+it.each([true, false])('有効状態が %s のコピー元でも新規側は有効で作成し、選択時だけ通知する', async (initial) => {
+    getForm.mockResolvedValue({fields: [
+        {apiName:'IsActive', label:'有効', type:'checkbox', value:String(initial), canCreate:true},
+        {apiName:'Email', label:'メール', type:'email', value:'new@example.invalid', canCreate:true}
+    ]});
     saveUser.mockResolvedValue('new');
     const root = mount().shadowRoot;
     select(root,'source'); await flush();
     const source = root.querySelector('.c-source lightning-input');
-    const target = root.querySelector('[data-side="target"][data-name="IsActive"]');
-    expect(source).toMatchObject({type:'checkbox', checked:initial, readOnly:true, variant:'label-stacked'});
-    expect(target).toMatchObject({type:'checkbox', checked:initial, variant:'label-stacked'});
-    expect(target.required).toBeFalsy();
-    target.checked = !initial;
-    target.dispatchEvent(new CustomEvent('change'));
-    submit(root); await flush();
-    const {sourceValuesJson,targetValuesJson} = saveUser.mock.calls[0][0].request;
-    expect(JSON.parse(sourceValuesJson)).toEqual({});
-    expect(JSON.parse(targetValuesJson)).toEqual({IsActive:!initial});
+    const target = root.querySelector('.c-target lightning-input');
+    expect(source).toMatchObject({type:'checkbox', checked:initial, readOnly:true});
+    expect(target).toMatchObject({type:'checkbox', checked:true, readOnly:true});
+    expect(option(root,'sendResetEmail').checked).toBe(false);
+    await toggle(root,'sendResetEmail',true);
+    const dialog = review(root); await flush();
+    expect(dialog.textContent).toContain('送信する');
+    expect(dialog.textContent).toContain('new@example.invalid');
+    dialog.querySelectorAll('lightning-button')[1].click(); await flush();
+    expect(saveUser.mock.calls[0][0].request.sendResetEmail).toBe(true);
+    expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).IsActive).toBe(true);
 });

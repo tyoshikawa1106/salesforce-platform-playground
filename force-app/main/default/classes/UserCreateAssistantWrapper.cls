@@ -16,6 +16,9 @@ public with sharing class UserCreateAssistantWrapper {
     // グループ単位の割り当てを引き継ぐ
     @AuraEnabled
     public Boolean copyPermissionSetGroups;
+    // 作成したユーザーだけにパスワードリセットメールを送信
+    @AuraEnabled
+    public Boolean sendResetEmail;
     // コピー元の変更項目だけを受け取る
     @AuraEnabled
     public String sourceValuesJson { get; set; }
@@ -31,6 +34,7 @@ public with sharing class UserCreateAssistantWrapper {
         fields = new List<Map<String, Object>>();
         // コピー元は既定で参照のみ
         deactivateSource = false;
+        sendResetEmail = false;
         // 直接の割り当ては既定で引き継ぐ
         copyPermissionSets = true;
         // グループの割り当ても既定で引き継ぐ

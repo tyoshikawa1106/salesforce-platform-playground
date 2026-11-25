@@ -53,7 +53,7 @@ function makeCell(field, source, draft, deactivate) {
     const active = field.apiName === 'IsActive';
     const pendingDeactivation = source && active && deactivate;
     // 元側は明示的に編集を許可した場合だけ入力部品へ切り替える
-    const editable = !fixed && (source ? deactivate && field.canUpdate && !active : field.canCreate) && field.type !== 'readonly';
+    const editable = !fixed && !active && (source ? deactivate && field.canUpdate : field.canCreate) && field.type !== 'readonly';
     // 未入力と利用者が明示的に空にした値を区別
     const raw = Object.hasOwn(draft, field.apiName) ? draft[field.apiName] : source ? field.value : null;
     // 元の設定に影響する操作を読み取り欄に反映
@@ -86,7 +86,7 @@ export function initialTargetValues(fields) {
     // 未設定の項目は組織側の既定値に委ね、false と数値のゼロは引き継ぐ
     return Object.fromEntries(fields
         .filter((field) => field.canCreate && field.type !== 'readonly' && !LOCKED.has(field.apiName) && field.value != null)
-        .map((field) => [field.apiName, field.type === 'checkbox' ? String(field.value) === 'true' : field.value]));
+        .map((field) => [field.apiName, field.type === 'checkbox' ? field.apiName === 'IsActive' || String(field.value) === 'true' : field.value]));
 }
 
 // 見出しをまたがず、同じ区分の連続した項目を横に2つずつ並べる
@@ -130,21 +130,34 @@ export function getDraftValue(value) {
     return Array.isArray(value) ? value.join(';') : value === '' ? null : value;
 }
 
-// 確認時点の設定を見出しと項目ごとの行にまとめる。
-export function buildConfirmationSections(sourceUsername, target, deactivate, copySets, copyGroups) {
-    // コピー元の無効化は色だけに依存せず、処理内容も明記する。
+// 入力画面と同じ順序で対象ユーザーの識別情報と作成後の状態を表示する。
+function confirmationUserRows(user, active) {
+    // 日本語画面では姓・名の順に並べ、未入力の名前部分は省く。
+    const name = [user.LastName, user.FirstName, user.MiddleName, user.Suffix].filter(Boolean).join(' ');
     return [
+        { label: '氏名', value: name || '—' },
+        { label: 'メール', value: user.Email || '—' },
+        { label: 'ユーザー名', value: user.Username || '—' },
+        { label: '有効', checkbox: active != null, checked: active, value: '参照不可' }
+    ];
+}
+
+// 確認時点の編集内容を固定し、対象と権限を区分ごとに表示する。
+export function buildConfirmationSections(fields, sourceDraft, target, options) {
+    // 無効化するときは、保存が予定されているコピー元の変更も示す。
+    const source = Object.fromEntries(fields.map(field => [field.apiName, field.value]));
+    if (options.deactivateSource) Object.assign(source, sourceDraft);
+    const sourceActive = source.IsActive == null ? null : String(source.IsActive) === 'true';
+    return [
+        { title: 'コピー元ユーザー', rows: confirmationUserRows(source, options.deactivateSource ? false : sourceActive),
+            deactivating: options.deactivateSource },
         { title: '新規ユーザー', rows: [
-            { label: 'ユーザー名', value: target.Username || '—' },
-            { label: '作成時の状態', value: target.IsActive ? '有効' : '無効' }
-        ] },
-        { title: 'コピー元ユーザー', rows: [
-            { label: 'ユーザー名', value: sourceUsername || '—' },
-            { label: '作成時の処理', value: deactivate ? '変更を保存して無効化する' : '変更しない', warning: deactivate }
+            ...confirmationUserRows(target, true),
+            { label: 'パスワードリセットメール', value: options.sendResetEmail ? '送信する' : '送信しない' }
         ] },
         { title: '権限の引き継ぎ', rows: [
-            { label: '権限セット', value: copySets ? '引き継ぐ' : '引き継がない' },
-            { label: '権限セットグループ', value: copyGroups ? '引き継ぐ' : '引き継がない' }
+            { label: '権限セット', value: options.copyPermissionSets ? '引き継ぐ' : '引き継がない' },
+            { label: '権限セットグループ', value: options.copyPermissionSetGroups ? '引き継ぐ' : '引き継がない' }
         ] }
     ];
 }

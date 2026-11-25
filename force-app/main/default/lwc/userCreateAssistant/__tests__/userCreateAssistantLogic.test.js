@@ -31,9 +31,14 @@ it('無効化中は元側の編集可能項目だけを開き、編集中の多�
     expect(getDraftValue('')).toBeNull();
 });
 
-it('ユーザー名を別々に表示し、無効な新規ユーザーと引き継ぎの個別設定を識別する', () => {
-    const sections = buildConfirmationSections('old@example.invalid', { Username: 'new@example.invalid', IsActive: false }, false, false, true);
-    expect(sections.map(section => section.rows.map(entry => entry.value))).toEqual([
-        ['new@example.invalid', '無効'], ['old@example.invalid', '変更しない'], ['引き継がない', '引き継ぐ']
-    ]);
+it.each([[true, false, true], [false, false, false], [true, true, false]])('元の有効状態 %s、無効化 %s で識別情報と保存後のチェック状態を返す', (initial, deactivateSource, expected) => {
+    const source = {LastName:'旧姓', FirstName:'花子', Username:'old@example.invalid', Email:'oldmail@example.invalid', IsActive:String(initial)};
+    const target = {LastName:'新姓', FirstName:'太郎', Username:'new@example.invalid', Email:'newmail@example.invalid'};
+    const sections = buildConfirmationSections(Object.entries(source).map(([apiName,value]) => ({apiName,value})),
+        {LastName:'変更姓'}, target, {deactivateSource, copyPermissionSets:false, copyPermissionSetGroups:true, sendResetEmail:false});
+    expect(sections[0].rows.slice(0,3).map(entry => entry.value)).toEqual([deactivateSource ? '変更姓 花子' : '旧姓 花子', source.Email, source.Username]);
+    expect(sections[1].rows.slice(0,3).map(entry => entry.value)).toEqual(['新姓 太郎', target.Email, target.Username]);
+    expect(sections[0].rows[3]).toMatchObject({label:'有効', checkbox:true, checked:expected});
+    expect(sections[1].rows[3]).toMatchObject({label:'有効', checkbox:true, checked:true});
+    expect(sections[2].rows.map(entry => entry.value)).toEqual(['引き継がない', '引き継ぐ']);
 });
