@@ -56,7 +56,7 @@ export default class LookupObjectIcon extends LightningElement {
 
     // 定義未取得・未対応・画像未設定でもルックアップの操作を継続できる。
     get fallbackIcon() {
-        // 種別固有の代替がなければ汎用オブジェクトを表示する。
-        return FALLBACK_ICONS[this.objectApiName] || 'standard:custom_entity';
+        // 種別固有の代替がなければ立方体のカスタムアイコンを表示する。
+        return FALLBACK_ICONS[this.objectApiName] || 'custom:custom57';
     }
 }
