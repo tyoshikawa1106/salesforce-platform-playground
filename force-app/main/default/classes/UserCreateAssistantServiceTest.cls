@@ -43,6 +43,30 @@ private with sharing class UserCreateAssistantServiceTest {
 
     }
 
+    /** 取引先責任者に紐づくユーザーを表示・無効化・作成のコピー元にできない */
+    @IsTest
+    static void rejectsContactLinkedSource() {
+        List<User> sources = new List<User>{new User(Id = sampleId(User.SObjectType), ContactId = sampleId(Contact.SObjectType))};
+        System.runAs(testUser) {
+            Test.startTest();
+            try {
+                service.createForm(new Map<String,String>(), new List<String>(), sources);
+                Assert.fail('取引先責任者に紐づくユーザーの読み込みを拒否');
+            } catch (AuraHandledException expected) {
+                Assert.isNotNull(expected.getMessage(), 'コピー元の再選択を案内');
+            }
+            for (UserCreateAssistantFieldInput.Side side : UserCreateAssistantFieldInput.Side.values()) {
+                try {
+                    service.prepareUser(sources, '{"LastName":"検証"}', side);
+                    Assert.fail('保存時にもコミュニティユーザーを拒否');
+                } catch (AuraHandledException expected) {
+                    Assert.isNotNull(expected.getMessage(), '外部ユーザーの無効化も新規側の作成も拒否');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 変更したコピー元の項目だけを更新対象にする */
     @IsTest
     static void preparesSparseSourceUpdate() {

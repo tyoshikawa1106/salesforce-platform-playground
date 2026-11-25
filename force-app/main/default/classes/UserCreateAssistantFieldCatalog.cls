@@ -2,7 +2,7 @@
 public with sharing class UserCreateAssistantFieldCatalog {
     // ユーザー編集ページに対応する項目をセクション順に列挙
     private static final List<String> STANDARD_GROUPS = new List<String>{
-        'ユーザー情報|LastName FirstName MiddleName Suffix Alias Email Username CommunityNickname Title CompanyName Department Division UserRoleId UserLicenseId ProfileId IsActive ContactId EmployeeNumber',
+        'ユーザー情報|LastName FirstName MiddleName Suffix Alias Email Username CommunityNickname Title CompanyName Department Division UserRoleId UserLicenseId ProfileId IsActive EmployeeNumber',
         'ユーザー権限|UserPermissionsMarketingUser UserPermissionsOfflineUser UserPermissionsKnowledgeUser UserPermissionsInteractionUser UserPermissionsSupportUser UserPermissionsSFContentUser UserPermissionsSiteforceContributorUser UserPermissionsSiteforcePublisherUser ForecastEnabled',
         '連絡先情報|Phone Extension Fax MobilePhone PostalCode StateCode State City Street CountryCode Country',
         'シングルサインオン情報|FederationIdentifier',
@@ -18,7 +18,7 @@ public with sharing class UserCreateAssistantFieldCatalog {
     };
     // 管理画面以外の標準属性、認証やログインに関わる派生属性を除外
     private static final Pattern EXCLUDED_STANDARD = Pattern.compile(
-        '(?i)^userpreferences|^emailpreferences|password|token|digest|auth|secret|portal|verified|^(id|name|address|userrecordaccessid|senderemail)$'
+        '(?i)^userpreferences|^emailpreferences|password|token|digest|auth|secret|portal|verified|^(id|contactid|name|address|userrecordaccessid|senderemail)$'
     );
     // 基本入力と Salesforce の型の対応
     private static final Map<String,String> INPUT_TYPES = new Map<String,String>{
@@ -129,9 +129,9 @@ public with sharing class UserCreateAssistantFieldCatalog {
         if (LOCKED.contains(field.getName()) || field.isCalculated() || field.isAutoNumber()) {
             return 'readonly';
         }
-        // 複数の参照先を持つ項目は選択対象を限定できない
+        // 代理承認者は User・Group のどちらも指定できる ID 入力にする
         if (field.getType() == Schema.DisplayType.Reference && field.getReferenceTo().size() != 1) {
-            return 'readonly';
+            return field.getName() == 'DelegatedApproverId' ? 'referenceId' : 'readonly';
         }
         // 対応外の複合項目も値の参照だけ許可
         String type = INPUT_TYPES.get(String.valueOf(field.getType()).toUpperCase());

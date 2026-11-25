@@ -7,6 +7,8 @@ import { buildPanels, getDraftValue, initialTargetValues } from './userCreateAss
 export default class UserCreateAssistant extends LightningElement {
     // 同姓同名の利用者をユーザー名でも検索
     matchingInfo = { primaryField: { fieldPath: 'Name' }, additionalFields: [{ fieldPath: 'Username' }] };
+    // 取引先責任者に紐づくユーザーはコピー対象外
+    sourceFilter = { criteria: [{ fieldPath: 'ContactId', operator: 'eq', value: null }] };
     // 候補の氏名にユーザー名を併記
     displayInfo = { primaryField: 'Name', additionalFields: ['Username'] };
     // 現在の参照元を識別
@@ -156,7 +158,7 @@ export default class UserCreateAssistant extends LightningElement {
         // 編集可否の切替後に届いた不要な入力を除外
         if (this.saving || (side === 'source' && !this.deactivateSource) || !field) return;
         // 選択リストなどの表示形式をサーバー保存形式に変換
-        const normalized = getDraftValue(name, value);
+        const normalized = getDraftValue(value);
         // 最初の値と同じ元側項目の不要な更新を防ぐ
         if (side === 'source' && String(field.value ?? '') === String(normalized ?? '')) {
             // 差分だけをサーバーに送信

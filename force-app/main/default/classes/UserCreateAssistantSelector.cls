@@ -12,7 +12,7 @@ public with sharing class UserCreateAssistantSelector {
             return new List<User>();
         }
         // 項目はサーバーで決定し、レコードIDをバインド
-        String query = 'SELECT ' + String.join(queryFields, ',') + ' FROM User WHERE Id = :sourceId LIMIT 1';
+        String query = 'SELECT ' + String.join(queryFields, ',') + ' FROM User WHERE Id = :sourceId AND ContactId = null LIMIT 1';
         // 利用者の参照可能範囲に絞って取得
         return Database.queryWithBinds(query, new Map<String, Object>{ 'sourceId' => sourceId }, AccessLevel.USER_MODE);
     }
@@ -28,7 +28,7 @@ public with sharing class UserCreateAssistantSelector {
             return new List<User>();
         }
         // 固定値は画面から受け取らずコピー元の最新設定を使用
-        return [SELECT Id, ProfileId, UserRoleId FROM User WHERE Id = :sourceId WITH USER_MODE LIMIT 1];
+        return [SELECT Id, ProfileId, UserRoleId, ContactId FROM User WHERE Id = :sourceId WITH USER_MODE LIMIT 1];
     }
 
     /**

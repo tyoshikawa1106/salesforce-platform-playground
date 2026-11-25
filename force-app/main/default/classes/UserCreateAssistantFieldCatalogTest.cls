@@ -17,6 +17,7 @@ private with sharing class UserCreateAssistantFieldCatalogTest {
             Assert.areEqual(groups.get('ProfileId'), groups.get('UserLicenseId'), 'プロファイルとライセンスを同じ区分に表示');
             Assert.areEqual('地域の設定', groups.get('TimeZoneSidKey'), '地域関連の項目をまとめる');
             Assert.isFalse(groups.containsKey('Id'), 'レコード ID はフォーム項目に含めない');
+            Assert.isFalse(groups.containsKey('ContactId'), '取引先責任者 ID は表示・保存の対象外');
         }
 
     }
@@ -86,6 +87,9 @@ private with sharing class UserCreateAssistantFieldCatalogTest {
             Test.stopTest();
             Assert.areEqual('readonly', fixedType, 'プロファイルは固定');
             Assert.areEqual('reference', referenceType, '上司はユーザーを参照');
+            Assert.areEqual('checkbox', UserCreateAssistantFieldCatalog.getInputType(User.IsActive.getDescribe()), '有効はチェックボックス');
+            Assert.areEqual('referenceId', UserCreateAssistantFieldCatalog.getInputType(User.DelegatedApproverId.getDescribe()), '代理承認者は複数の参照先を ID で指定');
+            Assert.areEqual('text', UserCreateAssistantFieldCatalog.getInputType(User.FederationIdentifier.getDescribe()), 'SAML 統合 ID はテキストで入力');
             Assert.isTrue(mustSelectActive, '有効状態は新規側で選択する');
             Assert.isFalse(needsPhone, '任意の標準項目を必須にしない');
         }

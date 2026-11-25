@@ -17,6 +17,7 @@
                 label="コピー元ユーザー"
                 object-api-name="User"
                 matching-info={matchingInfo}
+                filter={sourceFilter}
                 display-info={displayInfo}
                 value={sourceId}
                 disabled={saving}
@@ -55,6 +56,10 @@
                                         <h3 lwc:if={row.section} class="slds-section__title slds-theme_shade slds-m-top_x-small slds-p-horizontal_small slds-p-vertical_x-small">{row.title}</h3>
                                         <h4 lwc:elseif={row.group} class="slds-text-heading_small slds-m-top_x-small slds-p-bottom_xx-small slds-border_bottom">{row.title}</h4>
                                         <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
+                                        <template lwc:elseif={row.readOnlyCheckbox}>
+                                            <lightning-input type="checkbox" label={row.label} checked={row.checked} variant="label-stacked" read-only></lightning-input>
+                                            <span lwc:if={row.pendingDeactivation} class="slds-text-body_small">無効（保存時）</span>
+                                        </template>
                                         <dl lwc:elseif={row.readOnly} class="slds-form-element">
                                             <dt class="slds-form-element__label">{row.label}</dt>
                                             <dd class="slds-form-element__static slds-hyphenate">{row.display}</dd>
@@ -69,7 +74,7 @@
                                             required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange} onerror={handleLookupError}></lightning-record-picker>
                                         <lightning-input lwc:elseif={row.idInput} type="text" label={row.label} value={row.value} pattern="[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?"
                                             placeholder="参照先のレコード ID" required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
-                                        <lightning-input lwc:elseif={row.checkbox} type="checkbox" label={row.label} checked={row.checked}
+                                        <lightning-input lwc:elseif={row.checkbox} type="checkbox" label={row.label} checked={row.checked} variant="label-stacked"
                                             data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
                                         <lightning-input lwc:else type={row.inputType} label={row.label} value={row.value} max-length={row.maxLength} step={row.step}
                                             required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>

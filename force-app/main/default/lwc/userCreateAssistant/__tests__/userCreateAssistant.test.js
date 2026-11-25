@@ -42,6 +42,7 @@ it('左右の初期状態と引き継ぎを表示し、保存エラー後も入�
     select(root, 'one');
     await flush();
     expect(root.querySelector('h1').textContent).toBe('ユーザー作成アシスタント');
+    expect(root.querySelector('lightning-record-picker').filter.criteria).toEqual([{fieldPath:'ContactId',operator:'eq',value:null}]);
     expect(root.querySelectorAll('section.c-panel.slds-box')).toHaveLength(2);
     expect(root.querySelector('.c-source').textContent).toContain('参照元');
     expect(input(root,'source')).toBeNull();
@@ -124,5 +125,23 @@ it('未編集の新規項目も保存し、明示的なクリアとコピー元�
     submit(root); await flush();
     const {sourceValuesJson,targetValuesJson}=saveUser.mock.calls[0][0].request;
     expect(JSON.parse(sourceValuesJson)).toEqual({LastName:'元だけ変更'});
-    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:'false'});
+    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:false});
+});
+
+it.each([true, false])('有効チェックをコピー元（%s）から反転して新規側だけ保存できる', async (initial) => {
+    getForm.mockResolvedValue({fields: [{apiName:'IsActive', label:'有効', type:'checkbox', value:String(initial), canCreate:true, required:true}]});
+    saveUser.mockResolvedValue('new');
+    const root = mount().shadowRoot;
+    select(root,'source'); await flush();
+    const source = root.querySelector('.c-source lightning-input');
+    const target = root.querySelector('[data-side="target"][data-name="IsActive"]');
+    expect(source).toMatchObject({type:'checkbox', checked:initial, readOnly:true, variant:'label-stacked'});
+    expect(target).toMatchObject({type:'checkbox', checked:initial, variant:'label-stacked'});
+    expect(target.required).toBeFalsy();
+    target.checked = !initial;
+    target.dispatchEvent(new CustomEvent('change'));
+    submit(root); await flush();
+    const {sourceValuesJson,targetValuesJson} = saveUser.mock.calls[0][0].request;
+    expect(JSON.parse(sourceValuesJson)).toEqual({});
+    expect(JSON.parse(targetValuesJson)).toEqual({IsActive:!initial});
 });

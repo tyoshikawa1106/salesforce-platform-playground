@@ -7,7 +7,7 @@ public with sharing class UserCreateAssistantService {
      */
     public List<String> getQueryFields(List<String> orderedNames) {
         // 固定ライセンスの参照先を追加
-        List<String> columns = new List<String>{'Id'};
+        List<String> columns = new List<String>{'Id', 'ContactId'};
         // 関連先の表示名を取得できない場合も基本フォームを使用可能にする
         if (Profile.UserLicenseId.getDescribe().isAccessible() && UserLicense.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).isAccessible()
             && UserLicense.Name.getDescribe().isAccessible()) {
@@ -122,7 +122,8 @@ public with sharing class UserCreateAssistantService {
             // 項目型と行の権限を明示
             return new Map<String,Object>{
                 'apiName'=>name,'label'=>field.getLabel(),'groupLabel'=>groupLabel,'custom'=>field.isCustom(),
-                'type'=>inputType,'value'=>raw,'displayValue'=>display,'required'=>UserCreateAssistantFieldCatalog.isRequired(field),
+                'type'=>field.getType() == Schema.DisplayType.Boolean ? 'checkbox' : inputType,
+                'value'=>raw,'displayValue'=>display,'required'=>UserCreateAssistantFieldCatalog.isRequired(field),
                 'canCreate'=>editable && field.isCreateable(),'canUpdate'=>editable && name != 'IsActive' && field.isUpdateable(),
                 'options'=>options,'referenceTo'=>inputType == 'reference' ? field.getReferenceTo()[0].getDescribe(SObjectDescribeOptions.DEFERRED).getName() : null,
                 'maxLength'=>field.getLength(),'scale'=>field.getScale()
@@ -161,7 +162,7 @@ public with sharing class UserCreateAssistantService {
 
     private static User requireSource(List<User> sources) {
         // 不可視レコードと未選択を同じ案内にする
-        if (sources == null || sources.isEmpty()) {
+        if (sources == null || sources.isEmpty() || sources[0].ContactId != null) {
             throw new AuraHandledException('コピー元ユーザーを選び直してください。');
         }
         // 選択 ID で絞った唯一の行を使用

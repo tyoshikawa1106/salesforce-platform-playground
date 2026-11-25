@@ -2,8 +2,6 @@
 const LOCKED = new Set(['ProfileId', 'UserRoleId', 'UserLicenseId']);
 // 日本語表示ラベルを基準にし、同一ラベルの場合も順序を安定させる
 const collator = new Intl.Collator('ja', { numeric: true });
-// 有効状態は新規作成時に明示的に選ぶ
-const ACTIVE_OPTIONS = [{ label: '有効', value: 'true' }, { label: '無効', value: 'false' }];
 
 // 両側に同じ順序の見出しと項目を配置
 function getEntries(fields) {
@@ -53,30 +51,29 @@ function makeCell(field, source, draft, deactivate) {
     const fixed = LOCKED.has(field.apiName);
     // コピー元の有効状態は無効化オプションによってのみ変更
     const active = field.apiName === 'IsActive';
+    const pendingDeactivation = source && active && deactivate;
     // 元側は明示的に編集を許可した場合だけ入力部品へ切り替える
     const editable = !fixed && (source ? deactivate && field.canUpdate && !active : field.canCreate) && field.type !== 'readonly';
     // 未入力と利用者が明示的に空にした値を区別
     const raw = Object.hasOwn(draft, field.apiName) ? draft[field.apiName] : source ? field.value : null;
     // 元の設定に影響する操作を読み取り欄に反映
-    const original = field.displayValue ?? field.value;
-    // 参照専用の真偽値にも読みやすい日本語を使う
-    const display = field.type === 'checkbox' && field.value != null ? (String(field.value) === 'true' ? 'はい' : 'いいえ') : original;
-    // 入力種別に必要な属性だけをテンプレートで選ぶ
-    const type = active ? 'picklist' : field.type;
-    // 必須真偽値の不正な「チェック必須」を避け、有効状態には選択肢を使用
-    const required = editable && type !== 'checkbox' && (field.required || active);
+    const display = field.displayValue ?? field.value;
+    const type = field.type;
+    // チェックを外した状態も有効な入力値として扱う
+    const required = editable && type !== 'checkbox' && field.required;
     // 標準選択リストの任意項目は明示的な解除も許容
-    const choices = active ? ACTIVE_OPTIONS : (field.options || []);
+    const choices = field.options || [];
     // 多値項目の保存形式と画面上の配列を変換
     const value = type === 'multipicklist' ? String(raw ?? '').split(';').filter(Boolean) : raw == null ? null : String(raw);
     // 列の入力可否、型と表示値をまとめて返す
     return {
         key: field.apiName, name: field.apiName, label: field.label, value, required,
-        display: source && active && deactivate ? '無効（保存時）' : (source || fixed) && display != null && display !== '' ? String(display) : '—',
-        readOnly: !editable, checkbox: type === 'checkbox', checked: String(raw) === 'true',
+        display: (source || fixed) && display != null && display !== '' ? String(display) : '—',
+        readOnly: !editable, readOnlyCheckbox: !editable && type === 'checkbox' && raw != null, checkbox: type === 'checkbox',
+        pendingDeactivation, checked: !pendingDeactivation && String(raw) === 'true',
         picklist: type === 'picklist', multi: type === 'multipicklist', textarea: type === 'textarea',
         reference: type === 'reference' && !field.referenceIdInput, referenceTo: field.referenceTo,
-        idInput: type === 'reference' && field.referenceIdInput,
+        idInput: type === 'referenceId' || (type === 'reference' && field.referenceIdInput),
         options: type === 'picklist' && !required ? [{ label: '未選択', value: '' }, ...choices] : choices,
         inputType: type === 'datetime' ? 'datetime' : type,
         step: type === 'number' ? String(10 ** -(field.scale || 0)) : undefined,
@@ -89,7 +86,7 @@ export function initialTargetValues(fields) {
     // 未設定の項目は組織側の既定値に委ね、false と数値のゼロは引き継ぐ
     return Object.fromEntries(fields
         .filter((field) => field.canCreate && field.type !== 'readonly' && !LOCKED.has(field.apiName) && field.value != null)
-        .map((field) => [field.apiName, field.value]));
+        .map((field) => [field.apiName, field.type === 'checkbox' ? String(field.value) === 'true' : field.value]));
 }
 
 // 見出しをまたがず、同じ区分の連続した項目を横に2つずつ並べる
@@ -128,9 +125,7 @@ export function buildPanels(fields, deactivate, sourceDraft, targetDraft) {
 }
 
 // 画面操作の型に合わせて保存用の値へ正規化
-export function getDraftValue(field, value) {
-    // 有効状態は空選択と無効を区別して送信
-    if (field === 'IsActive') return value === 'true';
+export function getDraftValue(value) {
     // 多値選択は Salesforce の保存形式にそろえる
     return Array.isArray(value) ? value.join(';') : value === '' ? null : value;
 }
