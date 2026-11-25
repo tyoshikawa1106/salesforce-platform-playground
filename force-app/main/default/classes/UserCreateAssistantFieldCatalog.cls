@@ -22,7 +22,7 @@ public with sharing class UserCreateAssistantFieldCatalog {
     );
     // 基本入力と Salesforce の型の対応
     private static final Map<String,String> INPUT_TYPES = new Map<String,String>{
-        'STRING'=>'text','ENCRYPTEDSTRING'=>'text','TEXTAREA'=>'textarea','EMAIL'=>'email','URL'=>'url','PHONE'=>'tel',
+        'STRING'=>'text','TEXTAREA'=>'textarea','EMAIL'=>'email','URL'=>'url','PHONE'=>'tel',
         'INTEGER'=>'number','LONG'=>'number','DOUBLE'=>'number','CURRENCY'=>'number','PERCENT'=>'number',
         'DATE'=>'date','DATETIME'=>'datetime','TIME'=>'time','BOOLEAN'=>'checkbox','PICKLIST'=>'picklist',
         'MULTIPICKLIST'=>'multipicklist','REFERENCE'=>'reference','COMBOBOX'=>'text'
@@ -57,12 +57,17 @@ public with sharing class UserCreateAssistantFieldCatalog {
             // 項目ごとの参照権限と API 名を解決
             Schema.DescribeFieldResult field = USER_FIELDS.get(name).getDescribe();
             // 定義済みの項目順は維持
-            if (!groups.containsKey(field.getName()) && field.isAccessible()) {
+            if (!groups.containsKey(field.getName()) && isFormField(field)) {
                 addAdditionalField(groups, field);
             }
         }
         // 読み取り・保存で同じ項目集合を共有
         return groups;
+    }
+
+    private Boolean isFormField(Schema.DescribeFieldResult field) {
+        // 暗号化項目の値は参照権限にかかわらず取得・保存の許可リストから外す
+        return field.isAccessible() && !field.isEncrypted() && field.getType() != Schema.DisplayType.EncryptedString;
     }
 
     private void addStandardFields(Map<String,String> groups, List<String> parts) {
@@ -71,7 +76,7 @@ public with sharing class UserCreateAssistantFieldCatalog {
             // ライセンスはプロファイルから取得する派生項目
             Schema.SObjectField token = USER_FIELDS.get(name);
             // 住所文字列と選択リストの二重表示を防止
-            if (name == 'UserLicenseId' || (token != null && token.getDescribe().isAccessible() && !hasAddressCode(name))) {
+            if (name == 'UserLicenseId' || (token != null && isFormField(token.getDescribe()) && !hasAddressCode(name))) {
                 groups.put(name, parts[0]);
                 // 表示の行順は Map と独立して保持
                 orderedNames.add(name);
