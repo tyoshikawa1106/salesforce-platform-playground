@@ -116,9 +116,9 @@ for (const [failureIndex, step] of ['権限セット反映', '権限割り当て
 }
 
 test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () => {
-    // Permission SetとaliasがSalesforce CLIへ渡ることを確認する。
+    // Permission Setと照合済みユーザー名がSalesforce CLIへ渡ることを確認する。
     const args = captureSfCall((runSfCommand) =>
-        assignPermissionSet({ argv: ['--alias', 'test-scratch-org'], runSfCommand })
+        assignPermissionSet({ argv: ['--alias', 'test-scratch-org'], runSfCommand, runSfQuery: scratchOrgQuery })
     );
 
     assert.deepEqual(args, [
@@ -154,7 +154,7 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         '--name',
         'LwcUserLocaleSettings',
         '--target-org',
-        'test-scratch-org',
+        'scratch-test@example.invalid',
         '--json'
     ]);
 });
@@ -226,38 +226,40 @@ for (const [name, orgEdition, isSandbox] of [
     ['Developer Edition', 'Developer Edition', false],
     ['Sandbox', 'Enterprise Edition', true]
 ]) {
-    test(`${name}には再構築deployを実行しない`, () => {
-        const org = {
-            alias: 'test-scratch-org',
-            username: 'test@example.invalid',
-            instanceUrl: 'https://org.example.invalid',
-            orgId: 'test-org',
-            orgEdition,
-            isSandbox
-        };
-        let deployed = false;
-        const status = deployMetadata({
-            argv: ['--alias', 'test-scratch-org'],
-            runSfCommand() {
-                deployed = true;
-            },
-            runSfQuery() {
-                return {
-                    status: 0,
-                    stdout: JSON.stringify({
+    for (const operation of [deployMetadata, assignPermissionSet]) {
+        test(`${name}には再構築の${operation === deployMetadata ? 'deploy' : '権限割り当て'}を実行しない`, () => {
+            const org = {
+                alias: 'test-scratch-org',
+                username: 'test@example.invalid',
+                instanceUrl: 'https://org.example.invalid',
+                orgId: 'test-org',
+                orgEdition,
+                isSandbox
+            };
+            let deployed = false;
+            const status = operation({
+                argv: ['--alias', 'test-scratch-org'],
+                runSfCommand() {
+                    deployed = true;
+                },
+                runSfQuery() {
+                    return {
                         status: 0,
-                        result: {
-                            nonScratchOrgs: [org],
-                            sandboxes: isSandbox ? [org] : [],
-                            scratchOrgs: []
-                        }
-                    })
-                };
-            }
+                        stdout: JSON.stringify({
+                            status: 0,
+                            result: {
+                                nonScratchOrgs: [org],
+                                sandboxes: isSandbox ? [org] : [],
+                                scratchOrgs: []
+                            }
+                        })
+                    };
+                }
+            });
+            assert.equal(status, 1);
+            assert.equal(deployed, false);
         });
-        assert.equal(status, 1);
-        assert.equal(deployed, false);
-    });
+    }
 }
 
 for (const [name, response] of [

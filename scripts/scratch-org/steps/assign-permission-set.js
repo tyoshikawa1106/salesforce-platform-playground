@@ -1,7 +1,8 @@
 // 実行コマンド: node scripts/scratch-org/steps/assign-permission-set.js [--alias <alias>]
 // 用途: setup.jsから呼び出し、Scratch OrgへPermission Setを割り当てる。
 
-const { runSf } = require('../../common/run-command');
+const { runSf, runSfWithOutput } = require('../../common/run-command');
+const { getTargetOrgInfo, orgTypes } = require('../../common/target-org');
 const { repoRoot, scratchOrg } = require('../internal/context');
 const { runAliasCommand } = require('../internal/command');
 
@@ -9,13 +10,19 @@ const { runAliasCommand } = require('../internal/command');
 const usage = '実行コマンド: node scripts/scratch-org/steps/assign-permission-set.js [--alias <alias>]';
 
 // 設定ファイルで指定したPermission SetをScratch Orgの実行ユーザーへ割り当てる。
-function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
+function main({ argv = process.argv.slice(2), runSfCommand = runSf, runSfQuery = runSfWithOutput } = {}) {
     // 未指定時は再現設定のaliasを使い、指定時は検証済みaliasへ限定する。
     return runAliasCommand({
         argv,
         defaultAlias: scratchOrg.alias,
         usage,
         execute(alias) {
+            // 単独実行でも権限付与先がScratch Orgであることを確認する。
+            const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfQuery, targetOrg: alias });
+            // 通常組織のユーザーには再構築用の権限を付与しない。
+            if (orgInfo.type !== orgTypes.SCRATCH) {
+                throw new Error('再構築用の権限割り当てはScratch Orgだけに実行できます。');
+            }
             // 機能専用権限も同じ作成ユーザーへ付与できるようCLI引数を組み立てる。
             const permissionSetArgs = scratchOrg.permissionSets.flatMap((name) => ['--name', name]);
             // 一部の割り当て失敗も終了状態へ反映し、後続のデータ投入を停止する。
@@ -28,7 +35,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf } = {}) {
                     ...permissionSetArgs,
                     // 呼び出し元から受け取った組織へ割り当て先を限定する。
                     '--target-org',
-                    alias,
+                    orgInfo.username,
                     '--json'
                 ],
                 repoRoot
