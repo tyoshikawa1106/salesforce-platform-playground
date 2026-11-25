@@ -60,7 +60,7 @@ Salesforce CLIが成功を返したら実削除
 
 ### 1. manifest検査
 
-組織へ接続する前に`manifest/destructiveChanges.xml`を読み、次を確認します。
+組織へ接続する前に両方のmanifestの内容を読み込み、削除対象について次を確認します。承認後、その内容を実行ごとの一時ディレクトリに書き出し、dry-runと実削除に同じ2ファイルを渡します。処理の終了時に一時ディレクトリを削除します。
 
 - `REPLACE_WITH_`で始まるプレースホルダーが残っていないこと
 - `<types>`が1件以上あり、開始タグと終了タグの数が一致すること
@@ -81,6 +81,8 @@ Salesforce CLIのDefault Target Orgを認証済み組織一覧と照合し、ali
 ・URL: <instance-url>
 ・Org Type: <組織種別>
 ```
+
+開始と進捗照会には、確認画面に表示したusernameを使用します。
 
 Default Target Orgが未設定、対象を一意に特定できない、または組織種別を判定できない場合は、承認入力とdeployを開始しません。
 
@@ -118,9 +120,9 @@ dry-runによるメタデータ削除の検証を開始します。
 
 ```sh
 sf project deploy start \
-    --manifest manifest/destructivePackage.xml \
-    --post-destructive-changes manifest/destructiveChanges.xml \
-    --target-org <default-target-org> \
+    --manifest <一時ディレクトリ>/destructivePackage.xml \
+    --post-destructive-changes <一時ディレクトリ>/destructiveChanges.xml \
+    --target-org <確認したusername> \
     --dry-run \
     --async \
     --json
@@ -141,7 +143,7 @@ deploy job ID: 0AfXXXXXXXXXXXXXXX
 ```sh
 sf project deploy report \
     --job-id 0AfXXXXXXXXXXXXXXX \
-    --target-org <default-target-org> \
+    --target-org <確認したusername> \
     --json
 ```
 
@@ -183,9 +185,9 @@ dry-runと同じTarget Orgとmanifestを使用し、`--dry-run`を外して次�
 
 ```sh
 sf project deploy start \
-    --manifest manifest/destructivePackage.xml \
-    --post-destructive-changes manifest/destructiveChanges.xml \
-    --target-org <default-target-org> \
+    --manifest <一時ディレクトリ>/destructivePackage.xml \
+    --post-destructive-changes <一時ディレクトリ>/destructiveChanges.xml \
+    --target-org <確認したusername> \
     --async \
     --json
 ```
@@ -259,7 +261,7 @@ job IDの取得後にreport応答を解析または検証できない場合は�
 <dry-runまたはdestructive deploy>の進捗監視を終了しました。
 エラー: <監視エラー>
 組織上のdeployは継続している可能性があります。
-結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <default-target-org>
+結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <確認したusername>
 ```
 
 ### Ctrl+C
@@ -272,7 +274,7 @@ job IDの取得後にreport応答を解析または検証できない場合は�
 
 ```text
 進捗監視を終了しました。組織上のdeployは継続している可能性があります。
-結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <default-target-org>
+結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <確認したusername>
 ```
 
 ### 完了結果が成功条件を満たさない場合
