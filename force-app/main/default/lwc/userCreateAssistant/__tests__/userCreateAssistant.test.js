@@ -221,11 +221,15 @@ it('送信済みの無効化付き保存は再接続後も二重実行せず、�
     pending.resolve('new'); await flush();
     expect(root.querySelector('.c-source')).toBeNull();
 });
-it('取得エラーから同じ対象を読み直せる', async () => {
+it('取得エラーを表示し、コピー元を選び直すとフォームを開く', async () => {
     getForm.mockRejectedValueOnce({body:{message:'取得失敗'}}).mockResolvedValueOnce({fields});
     const root = (await mount()).shadowRoot;
     select(root,'one'); await flush();
-    root.querySelector('lightning-button').click(); await flush();
+    const alert = root.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('取得失敗');
+    expect(alert.querySelector('lightning-button')).toBeNull();
+    select(root, null); await flush();
+    select(root, 'one'); await flush();
     expect(root.querySelector('.c-target')).toBeTruthy();
     expect(root.querySelector('[role="alert"]')).toBeNull();
 });
@@ -360,25 +364,27 @@ it.each([
     'ユーザーオブジェクトの参照権限が必要です。',
     'ユーザーオブジェクトの作成権限が必要です。',
     'ユーザーオブジェクトの編集権限が必要です。'
-])('権限エラー「%s」を表示し、再確認してから検索を開く', async reason => {
+])('権限エラー「%s」を共通の通知に表示し、検索を閉じる', async reason => {
     const access = deferred();
     getSourceProfileIds.mockReturnValueOnce(access.promise);
     const root = (await mount()).shadowRoot;
     expect(root.querySelector('lightning-record-picker')).toBeNull();
     access.reject(accessError(reason)); await flush();
-    expect(root.querySelector('[role="alert"]').textContent).toContain(reason);
+    const alert = root.querySelector('[role="alert"]');
+    expect(alert.textContent).toBe(reason);
+    expect(alert.querySelector('lightning-button')).toBeNull();
+    expect(root.querySelector('[role="status"]')).toBeNull();
     expect(root.querySelector('lightning-record-picker')).toBeNull();
     expect(getForm).not.toHaveBeenCalled();
-    root.querySelector('[role="alert"] lightning-button').click(); await flush();
-    expect(root.querySelector('lightning-record-picker').disabled).toBe(false);
+    expect(getSourceProfileIds).toHaveBeenCalledTimes(1);
 });
 
-it('検索条件の取得失敗から再取得できる', async () => {
+it('検索条件の取得失敗を表示し、検索を閉じる', async () => {
     getSourceProfileIds.mockRejectedValueOnce(new Error('network'));
     const root = (await mount()).shadowRoot;
     expect(root.querySelector('[role="alert"]').textContent).toContain('検索条件を取得できませんでした');
-    root.querySelector('[role="alert"] lightning-button').click(); await flush();
-    expect(root.querySelector('lightning-record-picker')).toBeTruthy();
+    expect(root.querySelector('lightning-record-picker')).toBeNull();
+    expect(root.querySelector('[role="alert"] lightning-button')).toBeNull();
 });
 
 it('コピー元取得時に権限を失った場合は検索を閉じる', async () => {
@@ -390,7 +396,7 @@ it('コピー元取得時に権限を失った場合は検索を閉じる', asyn
     expect(root.querySelector('[role="alert"]').textContent).toContain(reason);
 });
 
-it('保存時に権限を失った場合は入力を閉じ、再確認後はコピー元の選択から始める', async () => {
+it('保存時に権限を失った場合は入力と検索を閉じる', async () => {
     getForm.mockResolvedValue({ fields });
     const reason = 'ユーザーオブジェクトの編集権限が必要です。';
     saveUser.mockRejectedValueOnce(accessError(reason));
@@ -399,9 +405,7 @@ it('保存時に権限を失った場合は入力を閉じ、再確認後はコ�
     submit(root); await flush();
     expect(root.querySelector('.c-target')).toBeNull();
     expect(root.querySelector('[role="alert"]').textContent).toContain(reason);
-    root.querySelector('[role="alert"] lightning-button').click(); await flush();
-    expect(root.querySelector('lightning-record-picker').value).toBeUndefined();
-    expect(root.querySelector('.c-target')).toBeNull();
+    expect(root.querySelector('lightning-record-picker')).toBeNull();
 });
 
 async function failDependenciesWhileSaving() {
@@ -426,39 +430,29 @@ it('保存中の候補取得エラーは再読み込みを促さず、作成成�
     expect(root.textContent).not.toContain('読み込み中');
 });
 
-it('保存と候補取得がともに失敗した場合は入力を保持して候補を読み直す', async () => {
+it('保存と候補取得の失敗を一つの通知に表示する', async () => {
     const { root, save } = await failDependenciesWhileSaving();
     save.reject({ body: { message: '保存失敗' } }); await flush();
-    expect(root.querySelector('[role="alert"]').textContent).toContain('保存失敗');
-    root.querySelector('[role="alert"] lightning-button').click(); await flush();
-    emitColors([0]); await flush();
-    expect(input(root, 'target').value).toBe('編集した姓');
-    expect(getForm).toHaveBeenCalledTimes(1);
+    const alerts = root.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toContain('保存失敗');
+    expect(alerts[0].textContent).toContain('連動選択リストの候補を取得できませんでした。');
+    expect(alerts[0].querySelector('lightning-button')).toBeNull();
+    expect(root.querySelector('.c-target')).toBeNull();
 });
 
-it('候補取得の失敗後は左右の編集と作成オプションを保持し、候補だけを再取得する', async () => {
+it('候補取得に失敗すると確認画面を閉じ、エラーを表示して保存を止める', async () => {
     getForm.mockResolvedValue({ fields: dependentForm });
     const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     emitColors([0]); await flush();
-    await toggle(root, 'deactivateSource', true);
-    await toggle(root, 'sendResetEmail', false);
-    edit(input(root, 'source'), '旧担当者');
-    edit(input(root, 'target'), '新担当者');
     const dialog = review(root);
     expect(dialog.open).toBe(true);
     getPicklistValuesByRecordType.error(); await flush();
     expect(dialog.open).toBe(false);
-    root.querySelector('[role="alert"] lightning-button').click(); await flush();
-    emitColors([0]); await flush();
-    expect(getForm).toHaveBeenCalledTimes(1);
-    expect(input(root, 'source').value).toBe('旧担当者');
-    expect(input(root, 'target').value).toBe('新担当者');
-    submit(root); await flush();
-    const { sourceValuesJson, targetValuesJson, sendResetEmail } = saveUser.mock.calls[0][0].request;
-    expect(JSON.parse(sourceValuesJson).LastName).toBe('旧担当者');
-    expect(JSON.parse(targetValuesJson).LastName).toBe('新担当者');
-    expect(sendResetEmail).toBe(false);
+    expect(root.querySelector('[role="alert"]').textContent).toContain('連動選択リストの候補を取得できませんでした。');
+    expect(root.querySelector('.c-target')).toBeNull();
+    expect(saveUser).not.toHaveBeenCalled();
 });
 
 it('確認中の候補更新で選択が無効になると確認を閉じ、修正後の値だけを送信する', async () => {
