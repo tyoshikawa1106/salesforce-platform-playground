@@ -176,6 +176,18 @@
         <members>ObjectExplorerServiceTest</members>
         <members>ObjectExplorerFieldService</members>
         <members>ObjectExplorerFieldServiceTest</members>
+        <members>UserCreateAssistantController</members>
+        <members>UserCreateAssistantControllerTest</members>
+        <members>UserCreateAssistantFieldCatalog</members>
+        <members>UserCreateAssistantFieldCatalogTest</members>
+        <members>UserCreateAssistantFieldInput</members>
+        <members>UserCreateAssistantFieldInputTest</members>
+        <members>UserCreateAssistantSelector</members>
+        <members>UserCreateAssistantSelectorTest</members>
+        <members>UserCreateAssistantService</members>
+        <members>UserCreateAssistantServiceTest</members>
+        <members>UserCreateAssistantWrapper</members>
+        <members>UserCreateAssistantWrapperTest</members>
         <members>UserLocaleSettingsController</members>
         <members>UserLocaleSettingsControllerTest</members>
         <members>UserLocaleSettingsSelector</members>
@@ -1015,6 +1027,7 @@
         <members>LwcObjectRecordSearch</members>
         <members>LwcOrgExplorer</members>
         <members>LwcTestDataDelete</members>
+        <members>LwcUserCreateAssistant</members>
         <members>LwcUserLocaleSettings</members>
         <members>SalesforceApplicationUser</members>
         <members>ScratchOrgMetadataDeployer</members>

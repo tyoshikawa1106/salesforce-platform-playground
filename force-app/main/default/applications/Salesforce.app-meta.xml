@@ -51,9 +51,9 @@
     <tabs>OrgExplorer</tabs>
     <tabs>ObjectExplorer</tabs>
     <tabs>SetupAuditTrailExplorer</tabs>
-    <tabs>UserCreateAssistant</tabs>
     <tabs>ExternalClientAppManager</tabs>
     <tabs>OAuthTokenIssuance</tabs>
+    <tabs>UserCreateAssistant</tabs>
     <tabs>AccountMassUpdate</tabs>
     <tabs>AccountDelete</tabs>
     <tabs>TestDataDelete</tabs>

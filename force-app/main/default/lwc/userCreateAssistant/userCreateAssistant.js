@@ -1,43 +1,224 @@
-import { LightningElement, wire } from 'lwc';
-import { getRecord } from 'lightning/uiRecordApi';
-import NAME from '@salesforce/schema/User.Name';
-import USERNAME from '@salesforce/schema/User.Username';
-import EMAIL from '@salesforce/schema/User.Email';
-import { getSourceRows } from './userCreateAssistantLogic';
+import { LightningElement } from 'lwc';
+import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
+import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
+import { buildPanels, getDraftValue } from './userCreateAssistantLogic';
 
-// 氏名に加えてログイン用のユーザー名からも候補を検索
-const MATCHING_INFO = { primaryField: { fieldPath: 'Name' }, additionalFields: [{ fieldPath: 'Username' }] };
-// 同姓同名の候補をユーザー名で区別
-const DISPLAY_INFO = { primaryField: 'Name', additionalFields: ['Username'] };
-
-// 新規ユーザーを作成する際の参照元を選択
+// 参照元の選択から入力、割り当てを含む作成までを制御
 export default class UserCreateAssistant extends LightningElement {
-    // 未選択時はレコードの取得を保留
+    // 同姓同名の利用者をユーザー名でも検索
+    matchingInfo = { primaryField: { fieldPath: 'Name' }, additionalFields: [{ fieldPath: 'Username' }] };
+    // 候補の氏名にユーザー名を併記
+    displayInfo = { primaryField: 'Name', additionalFields: ['Username'] };
+    // 現在の参照元を識別
     sourceId;
-    // 基本コンポーネントに検索条件を渡す
-    matchingInfo = MATCHING_INFO;
-    // 基本コンポーネントに候補の表示項目を渡す
-    displayInfo = DISPLAY_INFO;
+    // 取得時の値を編集前の基準として保持
+    fields = [];
+    // 読み込みの前後で別の対象に切り替わったことを検出
+    generation = 0;
+    // 利用者の選択以外の入力を読み込み完了後に表示
+    panels;
+    // 元側の変更と新規側の入力を別々に記録
+    sourceDraft = {};
+    // 必須項目も空欄から入力を開始
+    targetDraft = {};
+    // コピー元の編集は明示的に選択した場合だけ許可
+    deactivateSource = false;
+    // 直接割り当てとグループの両方を初期選択
+    copyPermissionSets = true;
+    // グループだけを独立して除外できるようにする
+    copyPermissionSetGroups = true;
+    // 読み込み中に空のフォームを表示しない
+    loading = false;
+    // DML が完了するまで二重送信と対象切り替えを禁止
+    saving = false;
+    // 入力に影響を与えずエラーを表示
+    errorMessage;
+    // 作成後に参照可能な新規ユーザーへのリンク
+    createdUrl;
 
-    // 閲覧できる項目だけを現在の選択に応じて取得
-    @wire(getRecord, { recordId: '$sourceId', fields: [NAME], optionalFields: [USERNAME, EMAIL] })
-    source;
+    connectedCallback() {
+        // 離脱によって中断した読み込みだけを再開
+        if (this.sourceId && !this.panels && !this.saving) this.loadSource();
+    }
 
-    // 選択・解除を同じ検索欄から受け付ける
+    disconnectedCallback() {
+        // 画面を離れる前に発行した読み込みの応答を無効化
+        this.generation += 1;
+    }
+
     handleSourceChange(event) {
-        // 解除時は取得条件とプレビューを同時にリセット
+        // 送信済みの作成要求が終わるまでその対象を維持
+        if (this.saving) return;
+        // 選択解除時は未入力画面に戻し、別の利用者の情報を残さない
         this.sourceId = event.detail.recordId || undefined;
+        // 対象を変更したら前の元側編集を破棄
+        this.sourceDraft = {};
+        // 新しい対象からは独立した新規入力を開始
+        this.targetDraft = {};
+        // 元ユーザーを変更しない初期状態へ戻す
+        this.deactivateSource = false;
+        // 新規作成ごとに直接割り当ての引き継ぎを有効化
+        this.copyPermissionSets = true;
+        // グループ引き継ぎも初期状態に戻す
+        this.copyPermissionSetGroups = true;
+        // 前回の完了通知を閉じる
+        this.createdUrl = undefined;
+        // 選択中のユーザーに応じて参照元を表示
+        this.loadSource();
     }
 
-    // 取得済みの項目を参照元の確認欄へ渡す
-    get rows() {
-        // 選択変更前のレコードは表示しない
-        return getSourceRows(this.sourceId, this.source.data);
+    async loadSource() {
+        // この読み込みに固有の世代を確定
+        const request = ++this.generation;
+        // 前のユーザーの項目を直ちに画面から消す
+        this.panels = undefined;
+        // 古い項目定義を保持しない
+        this.fields = [];
+        // 再試行時に古いエラー表示を閉じる
+        this.errorMessage = undefined;
+        // 未選択なら読み込みを終了
+        this.loading = Boolean(this.sourceId);
+        // 対象が確定した場合だけ問い合わせる
+        if (!this.sourceId) return;
+        try {
+            // 型やアクセス権をコピー元と同じ応答で取得
+            const form = await getForm({ sourceId: this.sourceId });
+            // 対象切替や画面離脱前の応答を破棄
+            if (request !== this.generation) return;
+            // フィールド定義をフォームの基準値として保存
+            this.fields = form.fields;
+            // 対象が確定した時点で両側の項目を構築
+            this.rebuildPanels();
+        } catch (error) {
+            // 別のユーザーに対する失敗を表示しない
+            if (request === this.generation) this.errorMessage = error.body?.message || 'コピー元ユーザーを読み込めませんでした。';
+        } finally {
+            // 現在の要求の完了時だけ読み込み表示を終了
+            if (request === this.generation) this.loading = false;
+        }
     }
 
-    // 現在の選択に対応する表示項目の取得完了を判定
-    get hasRows() {
-        // 空の表示枠を残さず、読み込み中の表示に切り替える
-        return this.rows.length > 0;
+    rebuildPanels() {
+        // 取得時の値と未保存の入力を左右に振り分ける
+        this.panels = buildPanels(this.fields, this.deactivateSource, this.sourceDraft, this.targetDraft);
+    }
+
+    get gridStyle() {
+        // 左右のボックスで同じグリッド行を共有し、入力形式が違っても項目を揃える
+        return '--user-create-rows:' + (1 + (this.panels?.[0].rows.length || 0));
+    }
+
+    handleOptionChange(event) {
+        // 保存中はすでに送信した条件を維持
+        if (this.saving) return;
+        // オプションに対応する状態だけを更新
+        const { name, checked } = event.target;
+        // 無効化を解除するときは元側の未保存変更も取り消す
+        if (name === 'deactivateSource') {
+            // 元側の表示モードを切り替える
+            this.deactivateSource = checked;
+            // 編集を取り消して選択時の値へ戻す
+            if (!checked) this.sourceDraft = {};
+            // 新規側の入力を引き継ぎながら元側の部品を変更
+            this.rebuildPanels();
+        } else if (name === 'copyPermissionSets') {
+            // 個別に割り当てた権限セットの引き継ぎを選択
+            this.copyPermissionSets = checked;
+        } else if (name === 'copyPermissionSetGroups') {
+            // 権限セットグループの引き継ぎを選択
+            this.copyPermissionSetGroups = checked;
+        }
+    }
+
+    handleLookupError(event) {
+        // 標準ピッカーが対象オブジェクトの情報を扱えない場合に ID 入力へ切り替える
+        if (!['ERR_RP002', 'ERR_RP003'].includes(event.detail?.error?.errorCode)) return;
+        // 同じ参照先を持つ項目に同じ入力方法を適用
+        const objectName = event.currentTarget.objectApiName;
+        // 型の異なる項目や別オブジェクトの検索は維持
+        this.fields = this.fields.map((field) => (field.referenceTo === objectName ? { ...field, referenceIdInput: true } : field));
+        // 切り替え時に左右の入力内容を保持
+        this.rebuildPanels();
+    }
+
+    handleFieldChange(event) {
+        // 変更元の入力欄を特定
+        const { side, name } = event.currentTarget.dataset;
+        // 基本コンポーネントごとの値を選択解除も含めて受け取る
+        const value = event.currentTarget.type === 'checkbox' ? event.currentTarget.checked :
+            event.detail && 'recordId' in event.detail ? event.detail.recordId : event.detail?.value ?? event.currentTarget.value;
+        // 最新の入力だけを保存要求に反映
+        const draft = side === 'source' ? this.sourceDraft : this.targetDraft;
+        // 同じ値に戻した元側項目を更新対象から外す
+        const field = this.fields.find((item) => item.apiName === name);
+        // 編集可否の切替後に届いた不要な入力を除外
+        if (this.saving || (side === 'source' && !this.deactivateSource) || !field) return;
+        // 選択リストなどの表示形式をサーバー保存形式に変換
+        const normalized = getDraftValue(name, value);
+        // 最初の値と同じ元側項目の不要な更新を防ぐ
+        if (side === 'source' && String(field.value ?? '') === String(normalized ?? '')) {
+            // 差分だけをサーバーに送信
+            delete draft[name];
+        } else {
+            // 入力を失敗後の再試行にも使えるよう保持
+            draft[name] = normalized;
+        }
+    }
+
+    get showRetry() {
+        // 読み込みと保存の失敗で復旧操作を区別
+        return !this.panels && !this.loading && Boolean(this.sourceId);
+    }
+
+    get saveLabel() {
+        // 無効化を伴う操作は保存前にボタンでも明示
+        return this.deactivateSource ? 'コピー元を無効化してユーザーを作成' : 'ユーザーを作成';
+    }
+
+    async handleSave() {
+        // 二重送信や未選択状態での作成を抑止
+        if (this.saving || !this.panels) return;
+        // 必須・入力形式の問題をすべての編集欄に表示
+        const invalid = Array.from(this.template.querySelectorAll('[data-side]')).filter((input) => !input.checkValidity());
+        // 基本コンポーネントが返した個別の理由を表示
+        invalid.forEach((input) => input.reportValidity());
+        // 最初の入力エラーにフォーカスを移す
+        if (invalid.length) {
+            // 長いフォームでも修正箇所へ直接移動
+            invalid[0].focus();
+            // サーバーへの作成要求を保留
+            return;
+        }
+        // 同じ入力での二重送信を防ぐ
+        this.saving = true;
+        // 前回失敗の表示を解除
+        this.errorMessage = undefined;
+        try {
+            // コピー元の変更と割り当ては同じ保存要求で実行
+            const id = await saveUser({ request: {
+                sourceId: this.sourceId, deactivateSource: this.deactivateSource,
+                copyPermissionSets: this.copyPermissionSets, copyPermissionSetGroups: this.copyPermissionSetGroups,
+                sourceValuesJson: JSON.stringify(this.deactivateSource ? this.sourceDraft : {}),
+                targetValuesJson: JSON.stringify(this.targetDraft)
+            } });
+            // 作成完了を表示し、同じ入力を再送できない状態に戻す
+            this.createdUrl = '/lightning/r/User/' + id + '/view';
+            // 次回は元ユーザーの最新状態を取り直す
+            this.sourceId = undefined;
+            // 入力済み項目を画面から除去
+            this.panels = undefined;
+            // 個人情報を含む編集中の値を解放
+            this.fields = [];
+            // 編集済みの元側項目を消去
+            this.sourceDraft = {};
+            // 作成済みの入力を消去
+            this.targetDraft = {};
+        } catch (error) {
+            // 入力とチェック状態を維持して再試行できるようにする
+            this.errorMessage = error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
+        } finally {
+            // 再接続時も送信済みの要求が完了するまでロックを維持
+            this.saving = false;
+        }
     }
 }

@@ -19,6 +19,7 @@
         "LwcObjectRecordSearch",
         "LwcOrgExplorer",
         "LwcTestDataDelete",
+        "LwcUserCreateAssistant",
         "LwcUserLocaleSettings"
     ],
     "waitMinutes": 30,

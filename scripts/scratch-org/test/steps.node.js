@@ -152,6 +152,8 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         '--name',
         'LwcTestDataDelete',
         '--name',
+        'LwcUserCreateAssistant',
+        '--name',
         'LwcUserLocaleSettings',
         '--target-org',
         'scratch-test@example.invalid',

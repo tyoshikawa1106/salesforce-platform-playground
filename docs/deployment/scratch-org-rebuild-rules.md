@@ -210,6 +210,7 @@ Scratch Org の作成ユーザーには、次のPermission Setを割り当てま
 - `LwcOrgExplorer`: 組織エクスプローラーのApex入口とタブ
 - `LwcOAuthTokenIssuance`: OAuthトークン発行のApex入口とタブ
 - `LwcTestDataDelete`: テストデータ一括削除のApex入口とタブ
+- `LwcUserCreateAssistant`: ユーザー作成アシスタントのApex入口とタブ
 - `LwcUserLocaleSettings`: 言語・地域のApex入口と項目権限
 
 自動割り当ての対象は `scripts/scratch-org/scratch-org.json` の `permissionSets` で管理し、スクリプトでは metadata deploy 後にまとめて割り当てます。一部でも失敗した場合は後続のテストデータ投入へ進みません。手動で個別実行する場合も同じ権限セットを割り当てます。
@@ -229,6 +230,7 @@ sf org assign permset \
     --name LwcOrgExplorer \
     --name LwcOAuthTokenIssuance \
     --name LwcTestDataDelete \
+    --name LwcUserCreateAssistant \
     --name LwcUserLocaleSettings \
     --target-org <scratch-org-alias> \
     --json
