@@ -1,4 +1,4 @@
-import { getSourceRows } from '../userCreationAssistantLogic';
+import { getSourceRows } from '../userCreateAssistantLogic';
 
 const record = { id: 'one', fields: { Name: { value: '利用者' }, Email: { value: null } } };
 

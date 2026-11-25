@@ -1,11 +1,11 @@
 import { createElement } from 'lwc';
 import { getRecord } from 'lightning/uiRecordApi';
-import UserCreationAssistant from 'c/userCreationAssistant';
+import UserCreateAssistant from 'c/userCreateAssistant';
 
 afterEach(() => document.body.replaceChildren());
 
 it('選択後に参照元を表示し、別の選択への応答を待つ間や解除後は以前の情報を隠す', async () => {
-    const element = createElement('c-user-creation-assistant', { is: UserCreationAssistant });
+    const element = createElement('c-user-create-assistant', { is: UserCreateAssistant });
     document.body.appendChild(element);
     const root = element.shadowRoot;
     const picker = root.querySelector('lightning-record-picker');

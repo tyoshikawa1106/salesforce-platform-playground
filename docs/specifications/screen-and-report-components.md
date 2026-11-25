@@ -23,7 +23,7 @@ Salesforce上で使う画面・帳票について、機能別の入口、LWC、�
 | [オブジェクトエクスプローラー](lwc/object-explorer/index.md)        | `objectExplorer`                                        |
 | [取引先情報PDF](visualforce/account-pdf/index.md)                   | `Account.PdfExport` → `accountPdfExport` → `AccountPdf` |
 | [言語・地域](lwc/user-locale-settings/index.md)                     | `userLocaleSettings`                                    |
-| [ユーザー作成アシスタント](lwc/user-creation-assistant/index.md)    | `userCreationAssistant`                                 |
+| [ユーザー作成アシスタント](lwc/user-create-assistant/index.md)      | `userCreateAssistant`                                   |
 
 ## 機能別の構成
 

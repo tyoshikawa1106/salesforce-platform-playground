@@ -3,7 +3,7 @@ import { getRecord } from 'lightning/uiRecordApi';
 import NAME from '@salesforce/schema/User.Name';
 import USERNAME from '@salesforce/schema/User.Username';
 import EMAIL from '@salesforce/schema/User.Email';
-import { getSourceRows } from './userCreationAssistantLogic';
+import { getSourceRows } from './userCreateAssistantLogic';
 
 // 氏名に加えてログイン用のユーザー名からも候補を検索
 const MATCHING_INFO = { primaryField: { fieldPath: 'Name' }, additionalFields: [{ fieldPath: 'Username' }] };
@@ -11,7 +11,7 @@ const MATCHING_INFO = { primaryField: { fieldPath: 'Name' }, additionalFields: [
 const DISPLAY_INFO = { primaryField: 'Name', additionalFields: ['Username'] };
 
 // 新規ユーザーを作成する際の参照元を選択
-export default class UserCreationAssistant extends LightningElement {
+export default class UserCreateAssistant extends LightningElement {
     // 未選択時はレコードの取得を保留
     sourceId;
     // 基本コンポーネントに検索条件を渡す

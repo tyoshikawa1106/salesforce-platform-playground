@@ -10,8 +10,8 @@ Salesforce アプリから既存ユーザーを検索し、新規作成時に参
 
 ## 対象実装・メタデータ
 
-- [画面](../../../../force-app/main/default/lwc/userCreationAssistant/userCreationAssistant.html)、[Controller](../../../../force-app/main/default/lwc/userCreationAssistant/userCreationAssistant.js)、[表示ロジック](../../../../force-app/main/default/lwc/userCreationAssistant/userCreationAssistantLogic.js)が検索と選択結果の表示を担当します。
-- [タブ](../../../../force-app/main/default/tabs/UserCreationAssistant.tab-meta.xml)を[Salesforce アプリ](../../../../force-app/main/default/applications/Salesforce.app-meta.xml)のナビゲーションに登録します。
+- [画面](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistant.html)、[Controller](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistant.js)、[表示ロジック](../../../../force-app/main/default/lwc/userCreateAssistant/userCreateAssistantLogic.js)が検索と選択結果の表示を担当します。
+- [タブ](../../../../force-app/main/default/tabs/UserCreateAssistant.tab-meta.xml)を[Salesforce アプリ](../../../../force-app/main/default/applications/Salesforce.app-meta.xml)のナビゲーションに登録します。
 
 ## 入力
 
