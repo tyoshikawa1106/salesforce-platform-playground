@@ -45,7 +45,7 @@ it('左右の初期状態と引き継ぎを表示し、保存エラー後も入�
     expect(root.querySelectorAll('section.c-panel.slds-box')).toHaveLength(2);
     expect(root.querySelector('.c-source').textContent).toContain('参照元');
     expect(input(root,'source')).toBeNull();
-    expect(input(root,'target').value).toBeNull();
+    expect(input(root,'target').value).toBe('参照元');
     expect(option(root,'deactivateSource').checked).toBe(false);
     expect(option(root,'copyPermissionSets').checked).toBe(true);
     expect(option(root,'copyPermissionSetGroups').checked).toBe(true);
@@ -107,4 +107,22 @@ it('取得エラーから同じ対象を読み直せる', async () => {
     root.querySelector('lightning-button').click(); await flush();
     expect(root.querySelector('.c-target')).toBeTruthy();
     expect(root.querySelector('[role="alert"]')).toBeNull();
+});
+
+it('未編集の新規項目も保存し、明示的なクリアとコピー元の編集を区別する', async () => {
+    getForm.mockResolvedValue({fields: [...fields,
+        {apiName:'Department', label:'部署', type:'text', value:'営業', canCreate:true, canUpdate:true},
+        {apiName:'ProfileId', type:'readonly', value:'profile', canCreate:false},
+        {apiName:'IsActive', type:'checkbox', value:'false', canCreate:true}
+    ]});
+    saveUser.mockResolvedValue('new');
+    const root = mount().shadowRoot;
+    select(root,'one'); await flush();
+    await toggle(root,'deactivateSource',true);
+    edit(input(root,'source'),'元だけ変更');
+    edit(root.querySelector('[data-side="target"][data-name="Department"]'),'');
+    submit(root); await flush();
+    const {sourceValuesJson,targetValuesJson}=saveUser.mock.calls[0][0].request;
+    expect(JSON.parse(sourceValuesJson)).toEqual({LastName:'元だけ変更'});
+    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:'false'});
 });

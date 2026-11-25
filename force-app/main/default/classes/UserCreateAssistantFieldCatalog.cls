@@ -4,7 +4,7 @@ public with sharing class UserCreateAssistantFieldCatalog {
     private static final List<String> STANDARD_GROUPS = new List<String>{
         'ユーザー情報|LastName FirstName MiddleName Suffix Alias Email Username CommunityNickname Title CompanyName Department Division UserRoleId UserLicenseId ProfileId IsActive ContactId EmployeeNumber',
         'ユーザー権限|UserPermissionsMarketingUser UserPermissionsOfflineUser UserPermissionsKnowledgeUser UserPermissionsInteractionUser UserPermissionsSupportUser UserPermissionsSFContentUser UserPermissionsSiteforceContributorUser UserPermissionsSiteforcePublisherUser ForecastEnabled',
-        '連絡先情報|Phone Extension Fax MobilePhone Street City StateCode State PostalCode CountryCode Country',
+        '連絡先情報|Phone Extension Fax MobilePhone PostalCode StateCode State City Street CountryCode Country',
         'シングルサインオン情報|FederationIdentifier',
         '承認者設定|DelegatedApproverId ManagerId',
         '地域の設定|TimeZoneSidKey LocaleSidKey LanguageLocaleKey EmailEncodingKey DefaultCurrencyIsoCode',

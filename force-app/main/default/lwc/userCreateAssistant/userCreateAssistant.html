@@ -47,30 +47,34 @@
             <div class="c-comparison slds-m-top_medium" style={gridStyle}>
                 <template for:each={panels} for:item="panel">
                     <section key={panel.side} class={panel.panelClass} aria-label={panel.label}>
-                        <h2 class="slds-text-heading_medium">{panel.label}</h2>
-                        <template for:each={panel.rows} for:item="row">
-                            <div key={row.key} class="slds-has-flexi-truncate">
-                                <h3 lwc:if={row.section} class="slds-text-title_bold slds-text-color_weak">{row.title}</h3>
-                                <h4 lwc:elseif={row.group} class="slds-section__title slds-theme_shade slds-p-horizontal_small">{row.title}</h4>
-                                <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
-                                <dl lwc:elseif={row.readOnly} class="slds-form-element">
-                                    <dt class="slds-form-element__label">{row.label}</dt>
-                                    <dd class="slds-form-element__static slds-hyphenate">{row.display}</dd>
-                                </dl>
-                                <lightning-combobox lwc:elseif={row.picklist} label={row.label} value={row.value} options={row.options}
-                                    required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-combobox>
-                                <lightning-textarea lwc:elseif={row.textarea} label={row.label} value={row.value} max-length={row.maxLength}
-                                    required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-textarea>
-                                <lightning-checkbox-group lwc:elseif={row.multi} label={row.label} value={row.value} options={row.options}
-                                    required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-checkbox-group>
-                                <lightning-record-picker lwc:elseif={row.reference} label={row.label} value={row.value} object-api-name={row.referenceTo}
-                                    required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange} onerror={handleLookupError}></lightning-record-picker>
-                                <lightning-input lwc:elseif={row.idInput} type="text" label={row.label} value={row.value} pattern="[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?"
-                                    placeholder="参照先のレコード ID" required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
-                                <lightning-input lwc:elseif={row.checkbox} type="checkbox" label={row.label} checked={row.checked}
-                                    data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
-                                <lightning-input lwc:else type={row.inputType} label={row.label} value={row.value} max-length={row.maxLength} step={row.step}
-                                    required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                        <h2 class="slds-text-heading_small">{panel.label}</h2>
+                        <template for:each={panel.rows} for:item="line">
+                            <div key={line.key} class={line.className}>
+                                <template for:each={line.cells} for:item="row">
+                                    <div key={row.key} class="slds-has-flexi-truncate">
+                                        <h3 lwc:if={row.section} class="slds-section__title slds-theme_shade slds-m-top_x-small slds-p-horizontal_small slds-p-vertical_x-small">{row.title}</h3>
+                                        <h4 lwc:elseif={row.group} class="slds-text-heading_small slds-m-top_x-small slds-p-bottom_xx-small slds-border_bottom">{row.title}</h4>
+                                        <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
+                                        <dl lwc:elseif={row.readOnly} class="slds-form-element">
+                                            <dt class="slds-form-element__label">{row.label}</dt>
+                                            <dd class="slds-form-element__static slds-hyphenate">{row.display}</dd>
+                                        </dl>
+                                        <lightning-combobox lwc:elseif={row.picklist} label={row.label} value={row.value} options={row.options}
+                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-combobox>
+                                        <lightning-textarea lwc:elseif={row.textarea} label={row.label} value={row.value} max-length={row.maxLength}
+                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-textarea>
+                                        <lightning-checkbox-group lwc:elseif={row.multi} label={row.label} value={row.value} options={row.options}
+                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-checkbox-group>
+                                        <lightning-record-picker lwc:elseif={row.reference} label={row.label} value={row.value} object-api-name={row.referenceTo}
+                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange} onerror={handleLookupError}></lightning-record-picker>
+                                        <lightning-input lwc:elseif={row.idInput} type="text" label={row.label} value={row.value} pattern="[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?"
+                                            placeholder="参照先のレコード ID" required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                                        <lightning-input lwc:elseif={row.checkbox} type="checkbox" label={row.label} checked={row.checked}
+                                            data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                                        <lightning-input lwc:else type={row.inputType} label={row.label} value={row.value} max-length={row.maxLength} step={row.step}
+                                            required={row.required} data-side={panel.side} data-name={row.name} disabled={saving} onchange={handleFieldChange}></lightning-input>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </section>

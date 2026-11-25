@@ -1,7 +1,7 @@
 import { LightningElement } from 'lwc';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
-import { buildPanels, getDraftValue } from './userCreateAssistantLogic';
+import { buildPanels, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
 
 // 参照元の選択から入力、割り当てを含む作成までを制御
 export default class UserCreateAssistant extends LightningElement {
@@ -19,7 +19,7 @@ export default class UserCreateAssistant extends LightningElement {
     panels;
     // 元側の変更と新規側の入力を別々に記録
     sourceDraft = {};
-    // 必須項目も空欄から入力を開始
+    // 新規側の初期値とその後の編集を保持
     targetDraft = {};
     // コピー元の編集は明示的に選択した場合だけ許可
     deactivateSource = false;
@@ -87,6 +87,8 @@ export default class UserCreateAssistant extends LightningElement {
             if (request !== this.generation) return;
             // フィールド定義をフォームの基準値として保存
             this.fields = form.fields;
+            // コピー元の後続編集から独立した初期値を保存時にも使用
+            this.targetDraft = initialTargetValues(this.fields);
             // 対象が確定した時点で両側の項目を構築
             this.rebuildPanels();
         } catch (error) {

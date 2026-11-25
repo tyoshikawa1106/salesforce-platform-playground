@@ -84,15 +84,46 @@ function makeCell(field, source, draft, deactivate) {
     };
 }
 
+// 新規作成で設定できる値だけを元ユーザーの保存値から取り込む
+export function initialTargetValues(fields) {
+    // 未設定の項目は組織側の既定値に委ね、false と数値のゼロは引き継ぐ
+    return Object.fromEntries(fields
+        .filter((field) => field.canCreate && field.type !== 'readonly' && !LOCKED.has(field.apiName) && field.value != null)
+        .map((field) => [field.apiName, field.value]));
+}
+
+// 見出しをまたがず、同じ区分の連続した項目を横に2つずつ並べる
+function pairEntries(entries) {
+    // 左右共通の行順を組み立てる
+    const lines = [];
+    // 見出しと空の案内は単独で一行を使う
+    for (const entry of entries) {
+        // 直前の行に相方のない項目があれば隣に配置する
+        const previous = lines[lines.length - 1];
+        if (entry.field && previous?.paired && previous.entries.length === 1) {
+            previous.entries.push(entry);
+        } else {
+            // 最初の項目のキーを行の識別にも使う
+            lines.push({ key: entry.key, paired: Boolean(entry.field), entries: [entry] });
+        }
+    }
+    // 各パネルで同じ組み合わせを利用する
+    return lines;
+}
+
 // 左右のパネルを対応する項目行と見出しで構成
 export function buildPanels(fields, deactivate, sourceDraft, targetDraft) {
     // 標準項目の表示順と組織ごとのカスタム項目を一度だけ整列
-    const entries = getEntries(fields);
+    const lines = pairEntries(getEntries(fields));
     // 左右の項目を独立した入力状態へ結び付ける
     return ['source', 'target'].map((side) => ({
         side, label: side === 'source' ? 'コピー元ユーザー' : '新規ユーザー',
         panelClass: 'c-panel c-' + side + ' slds-box slds-theme_default',
-        rows: entries.map((entry) => (entry.field ? makeCell(entry.field, side === 'source', side === 'source' ? sourceDraft : targetDraft, deactivate) : entry))
+        rows: lines.map((line) => ({
+            key: line.key,
+            className: line.paired ? 'c-field-pair' : undefined,
+            cells: line.entries.map((entry) => (entry.field ? makeCell(entry.field, side === 'source', side === 'source' ? sourceDraft : targetDraft, deactivate) : entry))
+        }))
     }));
 }
 
