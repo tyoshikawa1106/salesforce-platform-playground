@@ -8,17 +8,25 @@ public with sharing class UserCreateAssistantWrapper {
     @AuraEnabled
     public Id sourceId { get; set; }
     // コピー元の更新・無効化を要求
+    // LWC の入力値を受け取る自動 setter に限り、Boolean 引数の警告を抑止する。
+    @SuppressWarnings('PMD.AvoidBooleanMethodParameters')
     @AuraEnabled
-    public Boolean deactivateSource;
+    public Boolean deactivateSource { get; set; }
     // 権限セットの直接割り当てを引き継ぐ
+    // LWC の入力値を受け取る自動 setter に限り、Boolean 引数の警告を抑止する。
+    @SuppressWarnings('PMD.AvoidBooleanMethodParameters')
     @AuraEnabled
-    public Boolean copyPermissionSets;
+    public Boolean copyPermissionSets { get; set; }
     // グループ単位の割り当てを引き継ぐ
+    // LWC の入力値を受け取る自動 setter に限り、Boolean 引数の警告を抑止する。
+    @SuppressWarnings('PMD.AvoidBooleanMethodParameters')
     @AuraEnabled
-    public Boolean copyPermissionSetGroups;
+    public Boolean copyPermissionSetGroups { get; set; }
     // 作成したユーザーだけにパスワードリセットメールを送信
+    // LWC の入力値を受け取る自動 setter に限り、Boolean 引数の警告を抑止する。
+    @SuppressWarnings('PMD.AvoidBooleanMethodParameters')
     @AuraEnabled
-    public Boolean sendResetEmail;
+    public Boolean sendResetEmail { get; set; }
     // コピー元の変更項目だけを受け取る
     @AuraEnabled
     public String sourceValuesJson { get; set; }
