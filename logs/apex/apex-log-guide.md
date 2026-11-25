@@ -6,7 +6,28 @@
 
 ## 使いどころ
 
-Apex、Flow、Trigger、Validation Rule などの org 上の実行ログを確認するときに使います。まずログ一覧で対象を探し、必要なログだけ `logs/apex/` に保存します。
+Apex、Flow、Trigger、Validation Rule などの org 上の実行ログを確認するときに使います。すでに記録された操作を調べる場合は、[ログ一覧](#ログ一覧)で対象を探し、必要なログだけ `logs/apex/` に保存します。
+
+## 特定ユーザーの操作を記録する
+
+対象ユーザーで操作を再現する前に、対象組織のデバッグレベルを確認します。Apex の実行を調べるときは `ApexCode`、SOQL や DML を調べるときは `Database` の設定を見て、目的に合う行の `DeveloperName` を使います。
+
+```sh
+sf data query --target-org '<alias>' --use-tooling-api \
+  --query 'SELECT DeveloperName, ApexCode, Database FROM DebugLevel'
+```
+
+次の例では、`<user-id>` に操作を再現するユーザーの ID、`<debug-level-name>` に選んだ `DeveloperName` を指定し、そのユーザーのログを15分間有効にします。`--duration` を省略すると30分間有効です。[Salesforce CLI リファレンス](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_apex_trace_create.html)
+
+```sh
+sf apex trace create --target-org '<alias>' \
+  --traced-entity-id '<user-id>' \
+  --debug-level '<debug-level-name>' \
+  --log-type USER_DEBUG \
+  --duration 15
+```
+
+作成時に表示される ID はトレースフラグを識別します。有効時間内に対象ユーザーで操作を再現し、[ログ一覧](#ログ一覧)で実行時刻とユーザーが一致するログの ID を確認して、[ログ保存](#ログ保存)に使います。
 
 ## ログ一覧
 
