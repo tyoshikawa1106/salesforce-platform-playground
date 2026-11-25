@@ -928,6 +928,7 @@
         <members>orgExplorerSearch</members>
         <members>objectExplorer</members>
         <members>objectExplorerLookup</members>
+        <members>lookupObjectIcon</members>
         <members>salesforceApiUtils</members>
         <members>lwcLoggerUtils</members>
         <members>userLocaleSettings</members>
