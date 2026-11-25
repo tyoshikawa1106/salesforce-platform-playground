@@ -92,7 +92,7 @@ it.each([[['Green'], 'Green'], [[], '']])('複数選択の初期値から %j に
     const root = mount().shadowRoot;
     select(root, 'source');
     await flush();
-    const group = root.querySelector('.c-target lightning-checkbox-group');
+    const group = root.querySelector('.c-target lightning-dual-listbox');
     expect(group.value).toEqual(colors);
     edit(group, selected);
     submit(root);
@@ -252,7 +252,7 @@ it('対象外の値を明示し、制御項目を左右独立に評価して選�
         controllerValues:{true:1,false:0}, values:choices.map((choice,i)=>({...choice,validFor:[1-i]}))
     }}});
     await flush();
-    const group = side => root.querySelector('.c-' + side + ' lightning-checkbox-group');
+    const group = side => root.querySelector('.c-' + side + ' lightning-dual-listbox');
     expect(root.querySelector('.c-source').textContent).toContain('緑、旧値');
     expect(group('target').options.map(o => o.label)).toEqual(['Green','Retired（選択対象外）']);
     expect(review(root).open).toBe(false); await flush();

@@ -113,11 +113,13 @@ export function buildFieldLines(fields) {
         // 直前の行に相方のない項目があれば隣に配置する
         if (entry.field?.controllerName) entry.originalController = originals.get(entry.field.controllerName);
         const previous = lines[lines.length - 1];
-        if (entry.field && previous?.paired && previous.entries.length === 1) {
+        // 複数選択リストは候補と選択済みの二つの欄で一行を使う。
+        const paired = Boolean(entry.field) && entry.field.type !== 'multipicklist';
+        if (paired && previous?.paired && previous.entries.length === 1) {
             previous.entries.push(entry);
         } else {
             // 最初の項目のキーを行の識別にも使う
-            lines.push({ key: entry.key, paired: Boolean(entry.field), entries: [entry] });
+            lines.push({ key: entry.key, paired, entries: [entry] });
         }
     }
     // 各パネルで同じ組み合わせを利用する

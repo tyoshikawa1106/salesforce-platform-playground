@@ -15,7 +15,7 @@ it('カスタム項目は日本語順で両側に揃え、編集項目は元の�
     const right = buildPanel(lines, 'target', initialTargetValues(fields));
     expect(left.rows.map((r) => r.key)).toEqual(right.rows.map((r) => r.key));
     expect(left.rows.flatMap((line) => line.cells.map((r) => r.key)).slice(-3)).toEqual(['カスタム項目', 'A__c', 'B__c']);
-    expect(right.rows.at(-1).cells.map((r) => r.key)).toEqual(['A__c', 'B__c']);
+    expect(right.rows.at(-1).cells.map((r) => r.key)).toEqual(['B__c']);
     expect(row(right, 'B__c').value).toEqual(['one','two']);
     expect(row(left, 'LastName')).toMatchObject({ display: '元の姓', readOnly: true });
     expect(row(right, 'LastName')).toMatchObject({ value: '元の姓', readOnly: false });
