@@ -29,6 +29,24 @@ private with sharing class UserCreateAssistantFieldInputTest {
 
     }
 
+    /** 個別検証でもフォーム外の項目や表記違いの項目名は保存対象にしない */
+    @IsTest
+    static void rejectsUndisplayedAndNoncanonicalFields() {
+        System.runAs(testUser) {
+            Test.startTest();
+            for (String name : new List<String>{ 'ContactId', 'UserLicenseId', 'lastname', 'UnknownUserField__c' }) {
+                User draft = new User();
+                try {
+                    input.applyChanges(draft, JSON.serialize(new Map<String,Object>{name => null}), UserCreateAssistantFieldInput.Side.SOURCE);
+                    Assert.fail('受付対象外の項目を拒否');
+                } catch (AuraHandledException expected) {
+                    Assert.isTrue(draft.getPopulatedFieldsAsMap().isEmpty(), '対象外の項目を適用しない');
+                }
+            }
+            Test.stopTest();
+        }
+    }
+
     /** 参照モードの要求に含まれたコピー元変更を拒否 */
     @IsTest
     static void rejectsSourceChangesWithoutDeactivation() {

@@ -83,8 +83,8 @@ public with sharing class UserCreateAssistantController {
             stage = 'target';
             // 固定値を含むユーザーを実行者権限で作成
             insert as user target;
-            // 明示的に選択した割り当てのみを登録
-            if (assignAccess) {
+            // 引き継げる割り当てが存在する場合だけ新規ユーザーの自動付与と照合
+            if (!assignments.isEmpty()) {
                 stage = 'grant';
                 // 自動付与等による重複を検出
                 List<PermissionSetAssignment> existing = selector.getAssignments(target.Id);

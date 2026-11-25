@@ -10,6 +10,9 @@ public with sharing class UserCreateAssistantFieldCatalog {
         '地域の設定|TimeZoneSidKey LocaleSidKey LanguageLocaleKey EmailEncodingKey DefaultCurrencyIsoCode',
         '追加情報|CallCenterId IndividualId'
     };
+    // 標準項目の表示順と、個別の項目名から参照できるセクション定義
+    private static final List<String> STANDARD_NAMES = new List<String>();
+    private static final Map<String,String> STANDARD_SECTIONS = new Map<String,String>();
     // 固定項目はサーバーが選択元の保存済み値から解決
     private static final Set<String> LOCKED = new Set<String>{'ProfileId', 'UserRoleId', 'UserLicenseId'};
     // 組織の既定値があっても画面で明示的に指定する基本項目
@@ -20,6 +23,10 @@ public with sharing class UserCreateAssistantFieldCatalog {
     private static final Pattern EXCLUDED_STANDARD = Pattern.compile(
         '(?i)^userpreferences|^emailpreferences|password|token|digest|auth|secret|portal|verified|^(id|contactid|name|address|userrecordaccessid|senderemail)$'
     );
+    // 複合位置と暗号化テキストは表示・保存の対象外
+    private static final Set<Schema.DisplayType> EXCLUDED_TYPES = new Set<Schema.DisplayType>{
+        Schema.DisplayType.EncryptedString, Schema.DisplayType.Location
+    };
     // 基本入力と Salesforce の型の対応
     private static final Map<String,String> INPUT_TYPES = new Map<String,String>{
         'STRING'=>'text','TEXTAREA'=>'textarea','EMAIL'=>'email','URL'=>'url','PHONE'=>'tel',
@@ -30,8 +37,23 @@ public with sharing class UserCreateAssistantFieldCatalog {
     // 同じ要求の項目検証と表示で利用する User の Describe
     private static final Map<String, Schema.SObjectField> USER_FIELDS = User.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).fields.getMap();
 
+    // 組織で住所コードを参照できる場合は、対応する住所文字列の重複表示を防ぐ
+    private static final Map<String,Schema.SObjectField> ADDRESS_CODES = new Map<String,Schema.SObjectField>{
+        'State' => USER_FIELDS.get('StateCode'), 'Country' => USER_FIELDS.get('CountryCode')
+    };
+
     // 標準画面の順序と照会での優先順を明示した項目名一覧
     public List<String> orderedNames { get; private set; }
+
+    static {
+        for (String definition : STANDARD_GROUPS) {
+            List<String> parts = definition.split('\\|');
+            for (String name : parts[1].split(' ')) {
+                STANDARD_NAMES.add(name);
+                STANDARD_SECTIONS.put(name, parts[0]);
+            }
+        }
+    }
 
     /**
      * 実行者が参照できる画面項目を標準の区分に対応付ける
@@ -40,84 +62,70 @@ public with sharing class UserCreateAssistantFieldCatalog {
     public Map<String,String> getFieldGroups() {
         // 繰り返し取得しても以前の項目名を残さない
         orderedNames = new List<String>();
-        // 宣言順の標準項目を先に登録
         Map<String,String> groups = new Map<String,String>();
-        // セクション名と項目列を取り出す
-        for (String definition : STANDARD_GROUPS) {
-            List<String> parts = definition.split('\\|');
-            // 編集ページのセクションに対応する項目を追加
-            addStandardFields(groups, parts);
-        }
-        // 追加の項目も Map の走査順に依存させない
-        List<String> additionalNames = new List<String>(USER_FIELDS.keySet());
-        // 未定義の標準項目は安定した順序でセクション末尾に置く
-        additionalNames.sort();
-        // 組織に追加された項目と任意機能の項目を分類
-        for (String name : additionalNames) {
-            // 項目ごとの参照権限と API 名を解決
-            Schema.DescribeFieldResult field = USER_FIELDS.get(name).getDescribe();
-            // 定義済みの項目順は維持
-            if (!groups.containsKey(field.getName()) && isFormField(field)) {
-                addAdditionalField(groups, field);
+        // 設定画面の順序で標準項目を登録
+        for (String name : STANDARD_NAMES) {
+            if (name == 'UserLicenseId') {
+                groups.put(name, STANDARD_SECTIONS.get(name));
+                orderedNames.add(name);
+            } else {
+                addFormField(groups, name);
             }
         }
-        // 読み取り・保存で同じ項目集合を共有
+        // 組織固有の項目も安定した順序で追加
+        List<String> additionalNames = new List<String>(USER_FIELDS.keySet());
+        additionalNames.sort();
+        for (String name : additionalNames) {
+            addFormField(groups, name);
+        }
         return groups;
     }
 
-    private Boolean isFormField(Schema.DescribeFieldResult field) {
-        // 暗号化項目を除外し、地理位置情報は緯度・経度の数値項目だけを扱う
-        Schema.DisplayType type = field.getType();
-        return field.isAccessible() && !field.isEncrypted() && type != Schema.DisplayType.EncryptedString && type != Schema.DisplayType.Location;
-    }
-
-    private void addStandardFields(Map<String,String> groups, List<String> parts) {
-        // この組織・実行者で利用できる標準項目のみを表示
-        for (String name : parts[1].split(' ')) {
-            // ライセンスはプロファイルから取得する派生項目
-            Schema.SObjectField token = USER_FIELDS.get(name);
-            // 住所文字列と選択リストの二重表示を防止
-            if (name == 'UserLicenseId' || (token != null && isFormField(token.getDescribe()) && !hasAddressCode(name))) {
-                groups.put(name, parts[0]);
-                // 表示の行順は Map と独立して保持
-                orderedNames.add(name);
-            }
-        }
-    }
-
-    private void addAdditionalField(Map<String,String> groups, Schema.DescribeFieldResult field) {
-        // カスタム項目は計算項目を含め参照できるものを表示
-        if (field.isCustom()) {
-            groups.put(field.getName(), 'カスタム項目');
-            // ラベルの五十音順は画面側で組み立てる
-            orderedNames.add(field.getName());
+    private void addFormField(Map<String,String> groups, String name) {
+        Schema.DescribeFieldResult field = getUserField(name);
+        // 組織に存在し、まだ表示順に登録していない項目だけを分類
+        if (field == null || groups.containsKey(field.getName())) {
             return;
         }
-        // 標準画面の編集属性だけを追加し、個人設定・認証情報は省く
-        String name = field.getName();
-        // ユーザーの機能別権限をまとめて表示
-        if (isAdditionalStandard(field) && (field.isCreateable() || field.isUpdateable())) {
-            groups.put(name, name.toLowerCase().startsWith('userpermissions') ? 'ユーザー権限' : 'その他の標準項目');
-            // 設定画面に近い順序の後に追加する
-            orderedNames.add(name);
+        String groupLabel = getFormGroup(field);
+        if (groupLabel != null) {
+            groups.put(field.getName(), groupLabel);
+            orderedNames.add(field.getName());
         }
     }
 
-    private Boolean isAdditionalStandard(Schema.DescribeFieldResult field) {
+    /**
+     * 実行者がフォームで参照できる実項目の所属セクションを判定
+     * @param field 検証する User 項目の定義
+     * @return 表示対象のセクション、または対象外なら null
+     */
+    public static String getFormGroup(Schema.DescribeFieldResult field) {
+        String name = field.getName();
+        if (!isFormField(field) || ADDRESS_CODES.get(name)?.getDescribe().isAccessible() == true) {
+            return null;
+        }
+        if (STANDARD_SECTIONS.containsKey(name)) {
+            return STANDARD_SECTIONS.get(name);
+        }
+        if (field.isCustom()) {
+            return 'カスタム項目';
+        }
+        if (isAdditionalStandard(field) && (field.isCreateable() || field.isUpdateable())) {
+            return name.toLowerCase().startsWith('userpermissions') ? 'ユーザー権限' : 'その他の標準項目';
+        }
+        return null;
+    }
+
+    private static Boolean isFormField(Schema.DescribeFieldResult field) {
+        // 暗号化項目を除外し、地理位置情報は緯度・経度の数値項目だけを扱う
+        return field.isAccessible() && !field.isEncrypted() && !EXCLUDED_TYPES.contains(field.getType());
+    }
+
+    private static Boolean isAdditionalStandard(Schema.DescribeFieldResult field) {
         // 個人設定、認証・ログイン情報、システム識別情報は入力対象外
         String name = field.getName();
         // 認証情報や複合項目を汎用入力として公開しない
-        return !EXCLUDED_STANDARD.matcher(name).find() && !hasAddressCode(name) && getInputType(field) != 'readonly';
-    }
-
-    private Boolean hasAddressCode(String name) {
-        // 州・国を入力する場合だけ選択リストの有無を確認
-        if (name != 'Country' && name != 'State') {
-            return false;
-        }
-        // 有効な選択リストを優先
-        Schema.SObjectField code = USER_FIELDS.get(name + 'Code');
-        return code != null && code.getDescribe().isAccessible();
+        return !EXCLUDED_STANDARD.matcher(name).find() && getInputType(field) != 'readonly';
     }
 
     /**
@@ -137,7 +145,7 @@ public with sharing class UserCreateAssistantFieldCatalog {
         // 対応外の複合項目も値の参照だけ許可
         String type = INPUT_TYPES.get(String.valueOf(field.getType()).toUpperCase());
         // 未対応型に自由入力を許可しない
-        return type == null ? 'readonly' : type;
+        return type ?? 'readonly';
     }
 
     /**
@@ -153,12 +161,12 @@ public with sharing class UserCreateAssistantFieldCatalog {
 
     /**
      * フォーム項目の正規の User 項目定義を返す
-     * @param name 確認済みの API 名
-     * @return 項目の名前・型・権限
+     * @param name 照会する API 名
+     * @return 項目の名前・型・権限、または未定義なら null
      */
     public static Schema.DescribeFieldResult getUserField(String name) {
         // 呼び出しごとの同じ項目一覧の再取得を回避
-        return USER_FIELDS.get(name).getDescribe();
+        return USER_FIELDS.get(name)?.getDescribe();
     }
     /**
      * ユーザー作成時に既定値に依存せず入力する固定項目を取得

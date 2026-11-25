@@ -16,14 +16,12 @@ public with sharing class UserCreateAssistantFieldInput {
      * @param inputSide 適用先の区分
      */
     public void applyChanges(User record, String changesJson, Side inputSide) {
-        // 元・新規の双方で最新の権限を確認
-        Map<String,String> groups = new UserCreateAssistantFieldCatalog().getFieldGroups();
         // 任意の SObject 形式を直接 DML に渡さない
         Map<String,Object> changes = readChanges(changesJson);
         // 指定された項目に限定して更新内容を構築
         for (String name : changes.keySet()) {
             // サーバー側で編集可否を再判定
-            Schema.DescribeFieldResult field = requireWritable(name, groups, inputSide);
+            Schema.DescribeFieldResult field = requireWritable(name, inputSide);
             // 項目に対応した型で値を設定
             record.put(field.getName(), convertValue(field, changes.get(name)));
         }
@@ -75,13 +73,13 @@ public with sharing class UserCreateAssistantFieldInput {
         }
     }
 
-    private Schema.DescribeFieldResult requireWritable(String name, Map<String,String> groups, Side inputSide) {
-        // 標準・カスタムの表示対象、固定項目を先に検証
-        if (!groups.containsKey(name) || name == 'UserLicenseId' || (inputSide == Side.SOURCE && name == 'IsActive')) {
+    private Schema.DescribeFieldResult requireWritable(String name, Side inputSide) {
+        // 入力された項目だけを画面と同じ公開条件で検証
+        Schema.DescribeFieldResult field = UserCreateAssistantFieldCatalog.getUserField(name);
+        if (!name.equals(field?.getName()) || UserCreateAssistantFieldCatalog.getFormGroup(field) == null
+            || (inputSide == Side.SOURCE && name == 'IsActive')) {
             throw new AuraHandledException('変更できない項目が含まれています。画面を開き直してください。');
         }
-        // 利用者・操作ごとの項目権限を再確認
-        Schema.DescribeFieldResult field = UserCreateAssistantFieldCatalog.getUserField(name);
         // 作成・変更それぞれで許可された項目だけを扱う
         if (!canWriteField(field, inputSide)) {
             throw new AuraHandledException(field.getLabel() + ' を変更する権限を確認してください。');
