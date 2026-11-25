@@ -66,8 +66,9 @@ public with sharing class UserCreateAssistantFieldCatalog {
     }
 
     private Boolean isFormField(Schema.DescribeFieldResult field) {
-        // 暗号化項目の値は参照権限にかかわらず取得・保存の許可リストから外す
-        return field.isAccessible() && !field.isEncrypted() && field.getType() != Schema.DisplayType.EncryptedString;
+        // 暗号化項目を除外し、地理位置情報は緯度・経度の数値項目だけを扱う
+        Schema.DisplayType type = field.getType();
+        return field.isAccessible() && !field.isEncrypted() && type != Schema.DisplayType.EncryptedString && type != Schema.DisplayType.Location;
     }
 
     private void addStandardFields(Map<String,String> groups, List<String> parts) {

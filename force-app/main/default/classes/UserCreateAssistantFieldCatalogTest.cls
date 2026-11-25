@@ -22,9 +22,9 @@ private with sharing class UserCreateAssistantFieldCatalogTest {
 
     }
 
-    /** 表示順・照会列・書き込み許可リストは暗号化項目を含まない */
+    /** 表示順・照会列・書き込み許可リストは暗号化項目と地理位置の親項目を含まない */
     @IsTest
-    static void excludesEncryptedUserFields() {
+    static void excludesEncryptedAndCompoundLocationFields() {
 
         System.runAs(testUser) {
             Test.startTest();
@@ -34,7 +34,7 @@ private with sharing class UserCreateAssistantFieldCatalogTest {
             Assert.isTrue(columns.contains('Username'), '通常のユーザー項目は引き続き取得');
             for (Schema.SObjectField token : User.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).fields.getMap().values()) {
                 Schema.DescribeFieldResult field = token.getDescribe();
-                if (field.isEncrypted() || field.getType() == Schema.DisplayType.EncryptedString) {
+                if (field.isEncrypted() || field.getType() == Schema.DisplayType.EncryptedString || field.getType() == Schema.DisplayType.Location) {
                     Assert.isFalse(groups.containsKey(field.getName()), '入力項目から除外');
                     Assert.isFalse(catalog.orderedNames.contains(field.getName()), 'フォームの両列から除外');
                     Assert.isFalse(columns.contains(field.getName()), 'コピー元を読む SOQL から除外');

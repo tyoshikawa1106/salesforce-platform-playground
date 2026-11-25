@@ -35,6 +35,23 @@ function submit(root) {
     [...root.querySelectorAll('lightning-button')].find((el) => el.variant === 'brand').click();
 }
 afterEach(() => { document.body.replaceChildren(); jest.resetAllMocks(); });
+it.each([[['Green'], 'Green'], [[], '']])('複数選択の初期値から %j に変更して新規側だけを保存する', async (selected, stored) => {
+    const colors = ['Green', 'Blue'];
+    getForm.mockResolvedValue({fields: [{apiName:'Colors__c', label:'色', type:'multipicklist', custom:true,
+        canCreate:true, value:'Green;Blue', options:colors.map((value) => ({label:value, value}))}]});
+    saveUser.mockResolvedValue('new');
+    const root = mount().shadowRoot;
+    select(root, 'source');
+    await flush();
+    const group = root.querySelector('.c-target lightning-checkbox-group');
+    expect(group.value).toEqual(colors);
+    edit(group, selected);
+    submit(root);
+    await flush();
+    const request = saveUser.mock.calls[0][0].request;
+    expect(JSON.parse(request.targetValuesJson)).toEqual({Colors__c:stored});
+    expect(JSON.parse(request.sourceValuesJson)).toEqual({});
+});
 it('左右の初期状態と引き継ぎを表示し、保存エラー後も入力を保持して該当する割り当てだけ外せる', async () => {
     getForm.mockResolvedValue({fields});
     saveUser.mockRejectedValueOnce({body: { message: '権限セットの割り当てに失敗しました。' }}).mockResolvedValueOnce('new');
