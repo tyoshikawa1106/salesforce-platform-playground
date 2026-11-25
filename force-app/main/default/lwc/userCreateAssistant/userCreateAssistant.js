@@ -1,7 +1,7 @@
 import { LightningElement } from 'lwc';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
-import { buildConfirmationSections, buildPanels, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
+import { buildConfirmationSections, buildFieldLines, buildPanel, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
 
 const MATCHING_USERNAME = '新規ユーザーの「ユーザー名」がコピー元と同じです。右側の「ユーザー名」に、別の未使用のユーザー名を入力してください。';
 
@@ -19,6 +19,8 @@ export default class UserCreateAssistant extends LightningElement {
     fields = [];
     // 読み込みの前後で別の対象に切り替わったことを検出
     generation = 0;
+    // 左右で共有する見出し・項目順・2列の組み合わせ
+    fieldLines;
     // 利用者の選択以外の入力を読み込み完了後に表示
     panels;
     // 元側の変更と新規側の入力を別々に記録
@@ -85,6 +87,7 @@ export default class UserCreateAssistant extends LightningElement {
         this.closeConfirmation();
         // 前のユーザーの項目を直ちに画面から消す
         this.panels = undefined;
+        this.fieldLines = undefined;
         // 古い項目定義を保持しない
         this.fields = [];
         // 再試行時に古いエラー表示を閉じる
@@ -114,8 +117,12 @@ export default class UserCreateAssistant extends LightningElement {
     }
 
     rebuildPanels() {
-        // 取得時の値と未保存の入力を左右に振り分ける
-        this.panels = buildPanels(this.fields, this.deactivateSource, this.sourceDraft, this.targetDraft);
+        // コピー元や項目定義が変わったときに共通の行配置を確定
+        this.fieldLines = buildFieldLines(this.fields);
+        this.panels = [
+            buildPanel(this.fieldLines, 'source', this.sourceDraft, this.deactivateSource),
+            buildPanel(this.fieldLines, 'target', this.targetDraft)
+        ];
     }
 
     get gridStyle() {
@@ -134,8 +141,8 @@ export default class UserCreateAssistant extends LightningElement {
             this.deactivateSource = checked;
             // 編集を取り消して選択時の値へ戻す
             if (!checked) this.sourceDraft = {};
-            // 新規側の入力を引き継ぎながら元側の部品を変更
-            this.rebuildPanels();
+            // 元側だけを編集・参照表示に切り替え、新規側の入力部品を維持
+            this.panels = [buildPanel(this.fieldLines, 'source', this.sourceDraft, checked), this.panels[1]];
         } else if (name === 'copyPermissionSets') {
             // 個別に割り当てた権限セットの引き継ぎを選択
             this.copyPermissionSets = checked;
@@ -295,6 +302,7 @@ export default class UserCreateAssistant extends LightningElement {
             this.sourceId = undefined;
             // 入力済み項目を画面から除去
             this.panels = undefined;
+            this.fieldLines = undefined;
             // 個人情報を含む編集中の値を解放
             this.fields = [];
             // 編集済みの元側項目を消去

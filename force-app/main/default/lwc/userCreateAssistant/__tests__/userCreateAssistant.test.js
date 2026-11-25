@@ -124,6 +124,27 @@ it('左右の初期状態と引き継ぎを表示し、保存エラー後も入�
     expect(saveUser).toHaveBeenLastCalledWith({request:{sourceId:'one',deactivateSource:false,copyPermissionSets:false,copyPermissionSetGroups:true,sendResetEmail:false,sourceValuesJson:'{}',targetValuesJson:'{"LastName":"新規"}'}});
     expect(root.querySelector('a').getAttribute('href')).toBe('/lightning/r/User/new/view');
 });
+it('参照先を ID 入力に切り替えた後も、元側の表示切替で新規側の編集を保持する', async () => {
+    getForm.mockResolvedValue({fields: [...fields, {apiName:'ManagerId', label:'上司', type:'reference',
+        referenceTo:'User', canCreate:true, canUpdate:true}]});
+    const root = mount().shadowRoot;
+    select(root, 'one'); await flush();
+    const picker = root.querySelector('.c-target lightning-record-picker');
+    edit(input(root,'target'), '新規の姓');
+    picker.dispatchEvent(new CustomEvent('error', {detail:{error:{errorCode:'ERR_RP003'}}}));
+    await flush();
+    const manager = root.querySelector('.c-target lightning-input[data-name="ManagerId"]');
+    edit(manager, '005000000000001');
+    await toggle(root,'deactivateSource',true);
+    expect(root.querySelector('.c-source lightning-input[data-name="ManagerId"]')).toBeTruthy();
+    edit(input(root,'source'), '変更した元の姓');
+    await toggle(root,'deactivateSource',false);
+    await toggle(root,'deactivateSource',true);
+    expect(input(root,'source').value).toBe('参照元');
+    expect(input(root,'target').value).toBe('新規の姓');
+    expect(root.querySelector('.c-target [data-name="ManagerId"]').value).toBe('005000000000001');
+});
+
 it('対象変更・切断前の応答を破棄し、現在のユーザーだけ再取得する', async () => {
     const first=deferred(), second=deferred();
     getForm.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockResolvedValue({fields});

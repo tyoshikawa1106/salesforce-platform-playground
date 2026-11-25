@@ -74,7 +74,7 @@ function makeCell(field, source, draft, deactivate) {
         picklist: type === 'picklist', multi: type === 'multipicklist', textarea: type === 'textarea',
         reference: type === 'reference' && !field.referenceIdInput, referenceTo: field.referenceTo,
         idInput: type === 'referenceId' || (type === 'reference' && field.referenceIdInput),
-        options: type === 'picklist' && !required ? [{ label: '未選択', value: '' }, ...choices] : choices,
+        options: editable && type === 'picklist' && !required ? [{ label: '未選択', value: '' }, ...choices] : choices,
         inputType: type === 'datetime' ? 'datetime' : type,
         step: type === 'number' ? String(10 ** -(field.scale || 0)) : undefined,
         maxLength: field.maxLength > 0 ? field.maxLength : undefined
@@ -90,11 +90,11 @@ export function initialTargetValues(fields) {
 }
 
 // 見出しをまたがず、同じ区分の連続した項目を横に2つずつ並べる
-function pairEntries(entries) {
+export function buildFieldLines(fields) {
     // 左右共通の行順を組み立てる
     const lines = [];
     // 見出しと空の案内は単独で一行を使う
-    for (const entry of entries) {
+    for (const entry of getEntries(fields)) {
         // 直前の行に相方のない項目があれば隣に配置する
         const previous = lines[lines.length - 1];
         if (entry.field && previous?.paired && previous.entries.length === 1) {
@@ -108,20 +108,19 @@ function pairEntries(entries) {
     return lines;
 }
 
-// 左右のパネルを対応する項目行と見出しで構成
-export function buildPanels(fields, deactivate, sourceDraft, targetDraft) {
-    // 標準項目の表示順と組織ごとのカスタム項目を一度だけ整列
-    const lines = pairEntries(getEntries(fields));
-    // 左右の項目を独立した入力状態へ結び付ける
-    return ['source', 'target'].map((side) => ({
-        side, label: side === 'source' ? 'コピー元ユーザー' : '新規ユーザー',
+// 共通の項目配置から、指定した側の表示値と入力部品を構築
+export function buildPanel(lines, side, draft, deactivate = false) {
+    // コピー元を編集できる条件は無効化の選択に従う
+    const source = side === 'source';
+    return {
+        side, label: source ? 'コピー元ユーザー' : '新規ユーザー',
         panelClass: 'c-panel c-' + side + ' slds-box slds-theme_default',
         rows: lines.map((line) => ({
             key: line.key,
             className: line.paired ? 'c-field-pair' : undefined,
-            cells: line.entries.map((entry) => (entry.field ? makeCell(entry.field, side === 'source', side === 'source' ? sourceDraft : targetDraft, deactivate) : entry))
+            cells: line.entries.map((entry) => (entry.field ? makeCell(entry.field, source, draft, deactivate) : entry))
         }))
-    }));
+    };
 }
 
 // 画面操作の型に合わせて保存用の値へ正規化
