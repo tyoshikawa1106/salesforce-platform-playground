@@ -28,14 +28,14 @@ it('組織の画像と色を表示し、選択を切り替えた後の古い定�
     await Promise.resolve();
     getObjectInfo.emit({ apiName: 'Example__c', themeInfo: {} });
     await Promise.resolve();
-    expect(root.querySelector('lightning-icon').iconName).toBe('custom:custom57');
+    expect(root.querySelector('lightning-icon').iconName).toBe('custom:custom19');
 });
 
 it('定義のない検索条件と画像の読み込みに失敗した標準オブジェクトに代替を表示する', async () => {
     const element = createElement('c-lookup-object-icon', { is: LookupObjectIcon });
     document.body.appendChild(element);
     const root = element.shadowRoot;
-    expect(root.querySelector('lightning-icon').iconName).toBe('custom:custom57');
+    expect(root.querySelector('lightning-icon').iconName).toBe('custom:custom19');
     element.objectApiName = 'User';
     await Promise.resolve();
     getObjectInfo.emit({ apiName: 'User', themeInfo: { iconUrl: '/img/user.png' } });
