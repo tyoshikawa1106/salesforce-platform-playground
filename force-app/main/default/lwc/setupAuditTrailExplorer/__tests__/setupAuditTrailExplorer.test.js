@@ -373,7 +373,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         expect(csv).toBe(header + line + line.replace('audit@example.invalid', '') +
             '"2026/11/18 9:00:00 JST","delegate@example.invalid","sample","suOrgAdminLogin","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
-            .toBe(period === 'month' ? 'SetupAuditTrailMonthly' + monthStart.slice(0, 7).replace('-', '') + '.csv' : 'SetupAuditTrailAll.csv');
+            .toMatch(new RegExp('^' + (period === 'month' ? 'SetupAuditTrailMonthly' + monthStart.slice(0, 7).replace('-', '') : 'SetupAuditTrailAll') + '_\\d{17}\\.csv$'));
         component.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:audit');
     } finally {
@@ -1507,7 +1507,7 @@ it('exports all result pages with the applied action and original cutoff from th
         ]);
         expect(click).toHaveBeenCalledTimes(1);
         const exportMonth = queries[0].monthStart.slice(0, 7).replace('-', '');
-        expect(root.querySelector('a[data-download]').download).toBe('SetupAuditTrailSearchResults' + exportMonth + '.csv');
+        expect(root.querySelector('a[data-download]').download).toMatch(new RegExp('^SetupAuditTrailSearchResults' + exportMonth + '_\\d{17}\\.csv$'));
         const reader = new FileReader();
         const csv = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
         reader.readAsText(URL.createObjectURL.mock.calls[0][0]);

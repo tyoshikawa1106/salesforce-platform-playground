@@ -10,7 +10,7 @@ import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 import {
     historyColumnDefinitions, PAGE_SIZE, LOOKUP_WINDOW, matchingLookupValues, FILTER_OPTION_FIELDS, buildDateOptions, buildFilterFields, collectFilterOptions, currentMonth,
-    appliedFilterLabels, historyRow, filterOptionGroups, formatCsvPage, mergeChartPage, offsetMonth, pageCursor, matchPageBoundary, remainingMatchRecords, sameRecordIds, sortFilterOptions
+    appliedFilterLabels, auditCsvFileName, historyRow, filterOptionGroups, formatCsvPage, mergeChartPage, offsetMonth, pageCursor, matchPageBoundary, remainingMatchRecords, sameRecordIds, sortFilterOptions
 } from './setupAuditTrailExplorerLogic';
 
 // 取得済みの明細をスクロールに合わせて表へ追加する単位。
@@ -1317,8 +1317,6 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         // ファイル名の対象年月は実際の取得条件から取り、全期間の出力には付けない。
         const monthPart = query.monthStart ? query.monthStart.slice(0, 7).replace('-', '') : '';
         const prefix = { month: 'SetupAuditTrailMonthly', all: 'SetupAuditTrailAll', results: 'SetupAuditTrailSearchResults' }[period];
-        // 出力種別と対象年月で保存名を決める。
-        const fileName = prefix + monthPart + '.csv';
         // 全期間だけ専用のApexメソッドから取得する。
         const fetchPage = period === 'all' ? exportAllHistory : pageQuery => load({ criteriaJson: JSON.stringify(pageQuery) });
         // 一覧を開く前に出力した場合も、同じ項目定義を取得する。
@@ -1344,7 +1342,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
             throw new Error('確認時と出力時の件数が異なります。履歴を再検索してください。');
         }
         // 中断されずに確認画面が閉じるまでBlobのまま保持する。
-        return { blob: new Blob(chunks, { type: 'application/octet-stream' }), fileName };
+        return { blob: new Blob(chunks, { type: 'application/octet-stream' }), fileName: auditCsvFileName(prefix + monthPart, new Date()) };
     }
 
     // 全ページが揃い、確認画面が出力完了で閉じた場合だけ保存する。

@@ -11,11 +11,11 @@
                                 role="none"
                             >
                                 <span class="slds-icon_container slds-combobox__input-entity-icon">
-                                    <lightning-icon
-                                        icon-name={lookupIcon}
+                                    <c-lookup-object-icon
+                                        object-api-name={lookupObjectApiName}
                                         size="x-small"
                                         alternative-text={entityLabel}
-                                    ></lightning-icon>
+                                    ></c-lookup-object-icon>
                                 </span>
                                 <input
                                     id="selected-role"
@@ -104,11 +104,11 @@
                                                 onclick={handlePick}
                                             >
                                                 <span class="slds-media__figure"
-                                                    ><lightning-icon
-                                                        icon-name={lookupIcon}
+                                                    ><c-lookup-object-icon
+                                                        object-api-name={lookupObjectApiName}
                                                         size="small"
                                                         alternative-text={entityLabel}
-                                                    ></lightning-icon
+                                                    ></c-lookup-object-icon
                                                 ></span>
                                                 <span class="slds-media__body slds-grid slds-grid_vertical">
                                                     <span

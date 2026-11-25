@@ -83,7 +83,7 @@ Salesforce CLIのDefault Target Orgを認証済み組織一覧と照合し、ali
 
 Default Target Orgが未設定、対象を一意に特定できない、または組織種別を判定できない場合は、承認入力と組織テストを開始しません。
 
-Default Target Orgの取得と認証済み組織一覧の取得には、それぞれ2分のCLI実行時間上限を設定します。
+Default Target Orgの取得と認証済み組織一覧の取得には、それぞれ2分のCLI実行時間上限を設定します。事前設定の照会、テスト開始、進捗・結果確認には、照合で確定したユーザー名を指定します。
 
 ### 3. Apex並列実行設定の確認
 
@@ -129,7 +129,7 @@ Apexでは次のコマンドに相当する処理を実行します。
 sf apex run test \
     --test-level RunLocalTests \
     --code-coverage \
-    --target-org <default-target-org> \
+    --target-org <確認したusername> \
     --json
 ```
 
@@ -170,7 +170,7 @@ sf apex get test \
     --test-run-id 707XXXXXXXXXXXXXXX \
     --code-coverage \
     --result-format human \
-    --target-org <default-target-org>
+    --target-org <確認したusername>
 ```
 
 Flowでは先頭の`apex`を`flow`へ置き換えます。最終結果取得CLIにも2分の実行時間上限を設定します。
@@ -226,7 +226,7 @@ Flowテストの開始結果を取得できませんでした。組織上では�
 ```text
 組織テストの進捗監視を終了しました。
 組織上のテストは継続している可能性があります。
-結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <default-target-org>
+結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <確認したusername>
 ```
 
 ### Ctrl+C
@@ -237,7 +237,7 @@ Flowテストの開始結果を取得できませんでした。組織上では�
 
 ```text
 進捗監視を終了しました。組織上のテストは継続しています。
-結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <default-target-org>
+結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <確認したusername>
 ```
 
 終了コードにはSIGINTの慣例である`130`を使用します。

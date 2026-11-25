@@ -407,7 +407,7 @@ test('CLIは組織から再取得した一致結果をJSONへ保存する', asyn
         assert.deepEqual(calls[0], ['config', 'get', 'target-org', '--json']);
         assert.deepEqual(timeouts, [120_000, 120_000, 35 * 60 * 1_000]);
         assert.equal(calls[2].includes('PermissionSet:Example'), true);
-        assert.equal(calls[2][calls[2].indexOf('--target-org') + 1], 'target-org-a');
+        assert.equal(calls[2][calls[2].indexOf('--target-org') + 1], 'integration@example.com');
         assert.equal(outputLines.includes('保存結果確認: 一致1件、差異あり0件、差分0件'), true);
         // 日時別の比較レポートへ一致結果を保存する。
         const verificationDirectory = path.join(

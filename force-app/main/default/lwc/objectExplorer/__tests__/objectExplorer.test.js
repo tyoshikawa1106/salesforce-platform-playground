@@ -212,6 +212,8 @@ it.each([[true, false, true], [false, true, true], [false, false, false]])(
     '分類変更=%s、カスタマイズ=%sで編集表示=%s', async (modify, customize, editable) => {
         let element;
         const lwcRuntime = jest.requireActual('lwc');
+        const objectInfoAdapter = jest.requireActual('lightning/uiObjectInfoApi');
+        jest.doMock('lightning/uiObjectInfoApi', () => objectInfoAdapter);
         jest.doMock('lwc', () => lwcRuntime);
         jest.isolateModules(() => {
             require('@salesforce/userPermission/ModifyDataClassification').default = modify;
@@ -524,6 +526,7 @@ it.each(['reference', 'classify'])('確認・進捗とCSVの明細数が一致�
         finish(true);
         await flush();
         expect(click.mock.instances[0]).toBe(element.shadowRoot.querySelector('[data-download]'));
+        expect(click.mock.instances[0].download).toMatch(new RegExp('^Account-' + (mode === 'reference' ? 'fields' : 'classify') + '_\\d{17}\\.csv$'));
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
         const text = await new Promise(resolve => {
             const reader = new FileReader();
@@ -1127,7 +1130,7 @@ it('所有者検索中と結果なしを分け、古い応答で検索中表示�
     await expect(element).toBeAccessible();
 });
 
-it.each([['005000000000001', 'standard:user'], ['00G000000000001', 'standard:groups']])('所有者候補の種別を保ち、選択済み値をDeleteで解除できる: %s', async (value, icon) => {
+it.each([['005000000000001', 'User'], ['00G000000000001', 'Group']])('所有者候補の種別を保ち、選択済み値をDeleteで解除できる: %s', async (value, objectName) => {
     searchClassifyOwners.mockResolvedValue([{ value, label: '所有者候補', description: '種別' }]);
     const element = createComponent();
     await flush();
@@ -1142,7 +1145,7 @@ it.each([['005000000000001', 'standard:user'], ['00G000000000001', 'standard:gro
     await flush();
     const selected = element.shadowRoot.querySelector('input[data-field="Name"][readonly]');
     expect(selected.value).toBe('所有者候補');
-    expect(selected.parentElement.querySelector('lightning-icon').iconName).toBe(icon);
+    expect(selected.parentElement.querySelector('c-lookup-object-icon').objectApiName).toBe(objectName);
     selected.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', isComposing: true }));
     await flush();
     expect(element.shadowRoot.querySelector('input[data-field="Name"][readonly]')).not.toBeNull();

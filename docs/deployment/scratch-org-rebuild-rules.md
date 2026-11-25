@@ -94,7 +94,7 @@ node scripts/scratch-org/setup.js
 一括実行では、通常 `scratch-org` alias を使います。
 `--alias` を指定した場合は、その alias を作成と後続ステップで使います。
 
-途中で失敗した場合は、作成時に表示された alias を確認し、後続の該当手順にある個別 `sf` コマンドから再開します。一括実行の各ステップは `scripts/scratch-org/steps/` で管理し、`setup.js`から同じ`--alias`を渡して実行します。
+途中で失敗した場合は、作成時に表示された alias を確認し、後続の該当手順にある個別 `sf` コマンドから再開します。一括実行の各ステップは `scripts/scratch-org/steps/` で管理し、`setup.js`は作成応答のユーザー名を後続ステップの対象に指定します。
 
 `setup.js` は引数なし、または`--alias <alias>`を指定して実行します。`--help`または`-h`は使用方法だけを表示し、未知の引数がある場合はSalesforce CLIを呼び出さずエラー終了します。
 

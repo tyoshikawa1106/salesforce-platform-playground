@@ -588,6 +588,8 @@ async function main(
     let spool;
     // 再開データの復元が失敗した場合は、以前の途中CSVを上書きしない。
     let partialActive = false;
+    // 初回の再開記録を作れなかった場合、この実行が確保した途中CSVだけを片付ける。
+    let reservedPartial = false;
     // 正常終了した場合だけ再開データを片付ける。
     let completed = false;
     // エラー時もロックを解除し、再開記録は保持する。
@@ -638,6 +640,13 @@ async function main(
         const orgId = identities.find((org) => org.username === resolvedTargetOrg)?.orgId;
         // 識別できない組織で再開可能なデータを作らない。
         if (!orgId) throw new Error('再開用データの接続組織を識別できません。');
+        // 確認待ちの間に別の処理が公開したCSVを置換しないよう、再開記録の作成前に名前を確保する。
+        if (!options.resume) {
+            // 同名ファイルがあれば内容に触れずに停止する。
+            fs.writeFileSync(partialOutput, '', { flag: 'wx', mode: 0o600 });
+            // 排他的に新規作成できた場合だけ、この実行の所有として扱う。
+            reservedPartial = true;
+        }
         // 取得結果に関係する条件だけを固定し、分割サイズは再開時に調整できる。
         checkpoint = openCheckpoint(
             checkpointDirectory,
@@ -798,6 +807,8 @@ async function main(
                 writeLine(buildResumeCommand(options, mode, resolvedTargetOrg, output, cwd));
             }
         }
+        // 再開元を取得できなかった初回実行では、自分で確保した空ファイルだけを戻す。
+        if (reservedPartial && !checkpoint) fs.unlinkSync(partialOutput);
         // CSV作成用の作業領域は再開記録と別なので削除できる。
         if (spoolDirectory) fs.rmSync(spoolDirectory, { recursive: true, force: true });
     }

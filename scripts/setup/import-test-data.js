@@ -73,18 +73,16 @@ async function run({
         repoRoot
     });
 
-    // dry-runでは組織設定を読まないため、表示専用のtarget org名を使用する。
-    let targetOrg = '<default-target-org>';
-    // Scratch Org作成時の追加投入先だけを、確認済みユーザーで保持する。
-    let orgExplorerTargetOrg;
+    // 標準データとScratch Org用の追加データで、同じ組織確認結果を使う。
+    let orgInfo;
 
     // 実投入時だけ接続先の確定と利用者承認を行う。
     if (!args.dryRun) {
-        // 通常実行はDefault Target Org、Scratch Orgセットアップは作成済みaliasだけを内部的に使用する。
-        targetOrg = internalTargetOrg ?? getDefaultTargetOrg({ repoRoot, runSfCommand });
+        // 通常実行はDefault Target Org、Scratch Orgセットアップは作成結果から渡された接続先を使用する。
+        const configuredTargetOrg = internalTargetOrg ?? getDefaultTargetOrg({ repoRoot, runSfCommand });
 
         // 実投入前に、確定した1組織の表示情報と種別を確認する。
-        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg });
+        orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg: configuredTargetOrg });
 
         // Salesforce CLIの認証情報から必要な接続先情報だけを表示する。
         printTargetOrgInfo(orgInfo, writeLine);
@@ -92,12 +90,6 @@ async function run({
         // 本番相当の組織には承認を求めず、禁止条件として直ちに停止する。
         if (orgInfo.type === orgTypes.PRODUCTION) {
             throw new Error('本番環境へのテストデータ投入は許可されていません。');
-        }
-
-        // 通常投入へ追加せず、Scratch Org準備処理から指定されたScratchだけを対象とする。
-        if (internalTargetOrg && orgInfo.type === orgTypes.SCRATCH) {
-            // 後続処理でdefault target orgやaliasが変わっても接続先を維持する。
-            orgExplorerTargetOrg = orgInfo.username;
         }
 
         // 表示された接続組織を実行者が承認した場合だけ実投入へ進む。
@@ -132,15 +124,16 @@ async function run({
         runSfCommand,
         stderr,
         stdout,
-        targetOrg
+        // dry-runだけ表示用の値を使い、実投入には承認済みユーザーを指定する。
+        targetOrg: args.dryRun ? '<default-target-org>' : orgInfo.username
     });
 
     // 標準データの投入が成功したScratch Org準備処理だけで追加のテストデータを投入する。
-    if (orgExplorerTargetOrg) {
+    if (internalTargetOrg && orgInfo?.type === orgTypes.SCRATCH) {
         // Scratch限定判定と作成前確認を持つ既存入口を再利用する。
         const status = await runOrgExplorerSeedCommand({
             argv: [],
-            targetOrg: orgExplorerTargetOrg,
+            targetOrg: orgInfo.username,
             createPrompt,
             runSfCommand,
             stdout,

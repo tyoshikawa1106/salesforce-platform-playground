@@ -65,6 +65,14 @@ const CSV_DATE_FORMAT = new Intl.DateTimeFormat('ja-JP', {
     minute: '2-digit', second: '2-digit', hourCycle: 'h23'
 });
 
+// 取得条件の年月と区別できるよう、保存名の末尾に利用者の現地日時を付ける。
+export function auditCsvFileName(base, date) {
+    // 一覧と同じ利用者タイムゾーンで時刻の各部分を取り出す。
+    const values = Object.fromEntries(CSV_DATE_FORMAT.formatToParts(date).map(part => [part.type, part.value]));
+    // 明細表示では1桁になる時も、ファイル名では2桁にそろえる。
+    return `${base}_${values.year}${values.month}${values.day}${values.hour.padStart(2, '0')}${values.minute}${values.second}${String(date.getMilliseconds()).padStart(3, '0')}.csv`;
+}
+
 // 明細・分析・CSVの次回取得に必要な境界だけを引き継ぐ。
 export function pageCursor({ nextId, nextTime }) {
     // 同一日時の履歴を区別できるようIDと日時を組にする。
@@ -265,7 +273,7 @@ export function buildFilterFields({ sources, selectedValues, lookupField, lookup
             return {
                 ...field, clearLabel: label + 'の選択を解除',
                 inputValue: selected ? lookupLabel(key, selected, sources) : '',
-                selectedIcon: isUserLookup ? 'standard:user' : 'standard:custom'
+                objectApiName: isUserLookup ? 'User' : undefined
             };
         }
 

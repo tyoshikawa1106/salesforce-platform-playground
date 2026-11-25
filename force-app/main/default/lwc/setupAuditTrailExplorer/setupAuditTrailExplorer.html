@@ -60,7 +60,7 @@
                                                 <div class={field.comboboxClass}>
                                                     <div class={field.controlClass} role="none">
                                                         <span lwc:if={field.selected} class="slds-icon_container slds-combobox__input-entity-icon">
-                                                            <lightning-icon icon-name={field.selectedIcon} size="x-small" alternative-text=""></lightning-icon>
+                                                            <c-lookup-object-icon object-api-name={field.objectApiName} size="x-small" alternative-text=""></c-lookup-object-icon>
                                                         </span>
                                                         <input id={field.key} class={field.inputClass} type="text" role="combobox"
                                                             readonly={field.selected} aria-readonly={field.selected} aria-autocomplete="list"

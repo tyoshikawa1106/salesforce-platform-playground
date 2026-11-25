@@ -2,6 +2,7 @@
 // 用途: Default Target Orgを確認・承認し、dry-run成功後に同じ対象のメタデータを削除する。
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { createApprovalPrompt, isApproved } = require('../../common/approval');
 const { setImmediate: yieldToEvents } = require('node:timers/promises');
@@ -10,18 +11,20 @@ const { getDefaultTargetOrg, getTargetOrgInfo, orgTypes, printTargetOrgInfo } = 
 const { deployOperations, registerInterruptHandler, runAndMonitorDeploy } = require('./internal/deploy-runner');
 
 // manifestとSalesforce CLIの作業場所をリポジトリルートに揃える。
-const repoRoot = path.resolve(__dirname, '../../..');
+const defaultRepoRoot = path.resolve(__dirname, '../../..');
 
 // 削除deployに必要な通常manifestと、実際の削除対象を定義するmanifestを分ける。
 const packageManifest = 'manifest/destructivePackage.xml';
+// 削除対象の読み込み元を指定する。
 const destructiveManifest = 'manifest/destructiveChanges.xml';
 
 // 削除対象manifestに明示的な対象が設定されていることを組織照合前に確認する。
-function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
-    // 実行場所に依存せずリポジトリ管理の削除対象manifestを読み込む。
-    const manifestPath = path.join(repoRoot, destructiveManifest);
+function validateDestructiveManifest({
+    readFileSync = fs.readFileSync,
+    contents = readFileSync(path.join(defaultRepoRoot, destructiveManifest))
+} = {}) {
     // XMLの内容を文字列として検証する。
-    const manifest = readFileSync(manifestPath, 'utf8');
+    const manifest = contents.toString('utf8');
 
     // 作業用プレースホルダーを実在するmetadata名として扱わない。
     if (manifest.includes('REPLACE_WITH_')) {
@@ -30,6 +33,7 @@ function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
 
     // types要素の開始と終了が一致しないmanifestを部分的に解釈しない。
     const openingTypeCount = manifest.match(/<types>/g)?.length ?? 0;
+    // 閉じタグ数を数えて開始タグ数と照合する。
     const closingTypeCount = manifest.match(/<\/types>/g)?.length ?? 0;
 
     // 削除対象が空または不完全な状態では組織確認やSalesforce CLIを開始しない。
@@ -37,9 +41,13 @@ function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
         throw new Error('manifest/destructiveChanges.xmlに削除対象が設定されていません。');
     }
 
+    // 各metadata typeの要素を個別に検査する。
     for (const match of manifest.matchAll(/<types>([\s\S]*?)<\/types>/g)) {
+        // 検査するtypes要素の内容を取り出す。
         const typeBody = match[1];
+        // 空白を除いたmetadata type名を列挙する。
         const names = [...typeBody.matchAll(/<name>\s*([^<]+?)\s*<\/name>/g)].map((nameMatch) => nameMatch[1].trim());
+        // 明示指定された削除対象名を列挙する。
         const members = [...typeBody.matchAll(/<members>\s*([^<]+?)\s*<\/members>/g)].map((memberMatch) =>
             memberMatch[1].trim()
         );
@@ -59,6 +67,7 @@ function validateDestructiveManifest({ readFileSync = fs.readFileSync } = {}) {
 // 接続先と組織種別を確認し、必要な承認後にdry-runと実削除を順に実行する。
 async function main({
     argv = process.argv.slice(2),
+    repoRoot = defaultRepoRoot,
     createPrompt,
     runSfWithOutputCommand = runSfWithOutput,
     runSfWithOutputAsyncCommand = runSfWithOutputAsync,
@@ -69,22 +78,32 @@ async function main({
 } = {}) {
     // Target Orgや実行方法を外部引数で差し替えない。
     if (argv.length !== 0) {
+        // 不正な引数と利用可能なコマンドを通知する。
         console.error('エラー: このスクリプトは引数を受け付けません。');
+        // 引数なしの起動方法を案内する。
         console.error('実行コマンド: npm run sf:destructive');
+        // 組織への接続前に異常終了する。
         return 1;
     }
 
-    // 削除対象が未設定またはプレースホルダーの場合は組織へ接続しない。
-    validateManifest();
+    // 承認待ちやdry-run中の編集が削除対象に反映されないよう、最初に内容を確定する。
+    const destructiveContents = fs.readFileSync(path.join(repoRoot, destructiveManifest));
+    // 後でCLIへ渡す内容そのものを組織照合前に検査する。
+    validateManifest({ contents: destructiveContents });
+    // 通常manifestも同じ実行の入力として保持する。
+    const packageContents = fs.readFileSync(path.join(repoRoot, packageManifest));
 
-    // 削除対象のDefault Target Orgと、認証済み組織情報を取得する。
-    const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
-    // aliasまたはusernameに一致する1組織の表示情報と種別を確定する。
-    const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfWithOutputCommand, targetOrg });
+    // Default Target Orgのaliasまたはusernameを認証済み組織と照合する。
+    const defaultTarget = getDefaultTargetOrg({ repoRoot, runSfCommand: runSfWithOutputCommand });
+    // 承認に使う組織情報と種別を確定する。
+    const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runSfWithOutputCommand, targetOrg: defaultTarget });
+    // aliasの割り当てが変わっても、開始と監視には確認画面のusernameを使う。
+    const targetOrg = orgInfo.username;
 
     // 実行者が接続先を確認できるよう、必要な組織情報だけを表示する。
     printTargetOrgInfo(orgInfo);
 
+    // 追加承認が必要な組織種別を判別する。
     const isProductionLike = orgInfo.type === orgTypes.PRODUCTION || orgInfo.type === orgTypes.DEVELOPER_EDITION;
 
     // 接続先と組織種別の確認入力を受け付ける。
@@ -128,23 +147,33 @@ async function main({
     // 承認完了後に登録したハンドラーをfinallyで解除する。
     let unregisterInterrupt = () => {};
 
-    // 開始した操作の終了時に中断ハンドラーを解除する。
+    // 承認後にだけ、この実行のCLIに渡す一時ファイルの保存先を作る。
+    const manifestDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-destructive-'));
     try {
+        // 通常manifestの一時ファイル名を決める。
+        const packagePath = path.join(manifestDirectory, path.basename(packageManifest));
+        // 削除対象manifestは別ファイルとしてCLIへ渡す。
+        const destructivePath = path.join(manifestDirectory, path.basename(destructiveManifest));
+        // 実行開始時の通常manifestを書き出す。
+        fs.writeFileSync(packagePath, packageContents);
+        // 組織照合前に検査した削除対象をそのまま書き出す。
+        fs.writeFileSync(destructivePath, destructiveContents);
         // 通常manifestと削除対象manifestを明示し、テストレベルはSalesforce標準の判定に任せる。
         const deployArgs = [
             'project',
             'deploy',
             'start',
             '--manifest',
-            packageManifest,
+            packagePath,
             '--post-destructive-changes',
-            destructiveManifest,
+            destructivePath,
             '--target-org',
             targetOrg
         ];
 
         // 開始待ちと実削除への移行を含めてSIGINTを受け付ける。
         unregisterInterrupt = registerInterrupt(() => controller.abort());
+        // 検証の開始を表示する。
         writeLine('dry-runによるメタデータ削除の検証を開始します。');
 
         // 同じsignalを渡し、CLI開始から監視完了まで中断可能にする。
@@ -168,7 +197,9 @@ async function main({
             return 130;
         }
 
+        // 完了した検証の結果を表示する。
         writeLine('dry-runによるメタデータ削除の検証が成功しました。');
+        // dry-runから実削除への移行を通知する。
         writeLine('メタデータの実削除を開始します。');
 
         // dry-run成功後は、同じ対象組織・manifestをそのまま実削除へ引き渡す。
@@ -181,15 +212,19 @@ async function main({
             signal: controller.signal
         });
 
+        // 実削除が成功した場合だけ完了と事後確認を案内する。
         if (deployStatus === 0) {
             writeLine('メタデータの削除が完了しました。');
             writeLine('削除後の確認としてApexテストの実行を推奨します: npm run sf:test:apex');
         }
 
+        // 監視結果を終了コードとして返す。
         return deployStatus;
     } finally {
         // 実削除への移行まで保持した中断ハンドラーを解除する。
         unregisterInterrupt();
+        // 終了、中断、書き込みやCLIの失敗時もこの実行のコピーを削除する。
+        fs.rmSync(manifestDirectory, { recursive: true, force: true });
     }
 }
 

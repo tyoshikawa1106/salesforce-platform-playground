@@ -232,7 +232,7 @@ npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversio
 
 保存結果確認後に、Salesforce設定画面で対象Permission Setの「プロパティを編集」を開き、仮API名を最終API名へ変更します。API名変更後は生成XMLの仮API名と一致しなくなるため、保存結果確認スクリプトは変更前に実行します。
 
-保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。確認後の設定変更で取得先が変わらないよう、取得したDefault Target Orgを内部のSalesforce CLIへ固定して渡しますが、利用者からの`--target-org`は受け付けません。繰り返し要素と子要素の順序、同じ文字を表すXML文字参照、`objectPermissions.viewAllFields=false`の省略を無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
+保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。確認後の設定変更で取得先が変わらないよう、照合したユーザー名を内部のSalesforce CLIへ渡しますが、利用者からの`--target-org`は受け付けません。繰り返し要素と子要素の順序、同じ文字を表すXML文字参照、`objectPermissions.viewAllFields=false`の省略を無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
 保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
 
 生成元フォルダにPermission Set XMLがない場合は、組織への接続前に入力エラーとして停止します。retrieve成功後の再取得先が存在しない場合、空の場合、対象XMLが0件の場合は、生成元の全対象を`missingPermissionSetInOrg`として比較レポートへ保存し、終了コード1を返します。読み取りエラーや不正なXMLは欠落として扱わずエラーにします。

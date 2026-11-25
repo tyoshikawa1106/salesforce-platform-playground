@@ -1,5 +1,5 @@
 // 実行コマンド: node scripts/scratch-org/steps/create.js [--alias <alias>]
-// 用途: setup.jsから呼び出し、設定ファイルに従ってScratch Orgを作成する。
+// 用途: 設定ファイルに従ってScratch Orgを単独作成し、一括セットアップにも同じ作成引数を提供する。
 
 const { runSf } = require('../../common/run-command');
 const { repoRoot, scratchOrg } = require('../internal/context');
@@ -7,6 +7,22 @@ const { runAliasCommand } = require('../internal/command');
 
 // helpと引数エラーで同じ実行例を表示する。
 const usage = '実行コマンド: node scripts/scratch-org/steps/create.js [--alias <alias>]';
+
+// 単独作成と一括セットアップが同じ定義・alias・有効日数を使用する。
+function getCreateArgs(alias) {
+    // デフォルト組織を変更せず、作成先に指定のaliasを付ける。
+    return [
+        'org',
+        'create',
+        'scratch',
+        '--definition-file',
+        scratchOrg.definitionFile,
+        '--alias',
+        alias,
+        '--duration-days',
+        String(scratchOrg.durationDays)
+    ];
+}
 
 // 設定ファイルのdefinition、alias、有効日数を使用してScratch Orgを作成する。
 function main({ argv = process.argv.slice(2), runSfCommand = runSf, stdout = process.stdout } = {}) {
@@ -21,20 +37,7 @@ function main({ argv = process.argv.slice(2), runSfCommand = runSf, stdout = pro
             stdout.write(`使用するScratch Org alias: ${alias}\n`);
 
             // 再現設定のdefinitionと有効日数を明示してScratch Orgを作成する。
-            return runSfCommand(
-                [
-                    'org',
-                    'create',
-                    'scratch',
-                    '--definition-file',
-                    scratchOrg.definitionFile,
-                    '--alias',
-                    alias,
-                    '--duration-days',
-                    String(scratchOrg.durationDays)
-                ],
-                repoRoot
-            );
+            return runSfCommand(getCreateArgs(alias), repoRoot);
         }
     });
 }
@@ -46,4 +49,4 @@ if (require.main === module) {
 }
 
 // CLI引数の組み立てを組織接続なしでテストできるようmainを公開する。
-module.exports = { main };
+module.exports = { main, getCreateArgs };

@@ -28,8 +28,8 @@ export function csvFileName(objectName, isReference, date, timeZone) {
     const parts = new Intl.DateTimeFormat('en-US', { timeZone, numberingSystem: 'latn', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date);
     // 数字の構成要素だけを固定の年月日時分秒へ対応付け
     const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    // 深夜も00時として秒まで識別できる出力日時を使用
-    return `${objectName}-${isReference ? 'fields' : 'classify'}-${values.year}${values.month}${values.day}${values.hour}${values.minute}${values.second}.csv`;
+    // 利用者の現地日時をミリ秒まで連続した数字で表す。
+    return `${objectName}-${isReference ? 'fields' : 'classify'}_${values.year}${values.month}${values.day}${values.hour}${values.minute}${values.second}${String(date.getMilliseconds()).padStart(3, '0')}.csv`;
 }
 
 // グループ内のセル境界と改行を保持

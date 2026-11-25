@@ -140,7 +140,7 @@ function ownerLookupView(apiName, edit, info) {
     const active = candidates[edit?.ownerActive];
     // 表示名と候補の位置は同じIDに結び付ける
     return {
-        ownerIcon: owner.value.startsWith('00G') ? 'standard:groups' : 'standard:user',
+        ownerObjectApiName: owner.value.startsWith('00G') ? 'Group' : 'User',
         ownerTypeLabel: owner.value.startsWith('00G') ? '公開グループ' : 'ユーザー',
         ownerFormClass: `slds-combobox__form-element slds-input-has-icon ${owner.value ? 'slds-input-has-icon_left-right' : 'slds-input-has-icon_right'}`,
         ownerLabel: owner.value ? owner.label : '',  ownerSearch: edit?.ownerSearch || '', ownerSelected: Boolean(owner.value),

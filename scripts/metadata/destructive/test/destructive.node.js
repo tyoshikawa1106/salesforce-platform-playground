@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { main, validateDestructiveManifest } = require('../destructive');
@@ -279,6 +280,68 @@ test('Sandboxでは環境別の追加確認なしでdry-run後に実削除する
     assert.deepEqual(prompt.getQuestions(), ['この接続組織で続行しますか？ [y/N]: ']);
 });
 
+test('dry-run後にaliasを別組織へ変更しても開始と監視は承認済みの接続ユーザーを使う', async () => {
+    const approved = 'user@example.com';
+    let aliasUsername = approved;
+    const resolve = (value) => (value === 'test-org' ? aliasUsername : value);
+    const targets = [];
+
+    const status = await main({
+        argv: [],
+        validateManifest() {},
+        createPrompt: () => createPrompt(['y']).prompt,
+        runSfWithOutputCommand: createOrgInfoCommand(),
+        async runDeployCommand({ deployArgs, targetOrg }) {
+            targets.push([resolve(deployArgs[deployArgs.indexOf('--target-org') + 1]), resolve(targetOrg)]);
+            aliasUsername = 'other@example.com';
+            return 0;
+        }
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(targets, [
+        [approved, approved],
+        [approved, approved]
+    ]);
+});
+
+test('検査後に作業ツリーのmanifestが変わってもdry-runと実削除は同じ内容を使う', async (t) => {
+    const project = fs.mkdtempSync(path.join(os.tmpdir(), 'destructive-test-'));
+    t.after(() => fs.rmSync(project, { recursive: true, force: true }));
+    fs.mkdirSync(path.join(project, 'manifest'));
+    const packageFile = path.join(project, 'manifest/destructivePackage.xml');
+    const changesFile = path.join(project, 'manifest/destructiveChanges.xml');
+    const emptyPackage = '<Package><version>67.0</version></Package>';
+    const changes = '<Package><types><members>OldClass</members><name>ApexClass</name></types></Package>';
+    fs.writeFileSync(packageFile, emptyPackage);
+    fs.writeFileSync(changesFile, changes);
+    const contents = [];
+
+    const status = await main({
+        argv: [],
+        repoRoot: project,
+        createPrompt() {
+            fs.writeFileSync(packageFile, emptyPackage.replace('67.0', '65.0'));
+            return createPrompt(['y']).prompt;
+        },
+        runSfWithOutputCommand: createOrgInfoCommand(),
+        async runDeployCommand({ deployArgs }) {
+            const readArg = (flag) =>
+                fs.readFileSync(path.resolve(project, deployArgs[deployArgs.indexOf(flag) + 1]), 'utf8');
+            contents.push([readArg('--manifest'), readArg('--post-destructive-changes')]);
+            fs.writeFileSync(packageFile, emptyPackage.replace('67.0', '66.0'));
+            fs.writeFileSync(changesFile, changes.replace('OldClass', 'OtherClass'));
+            return 0;
+        }
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(contents, [
+        [emptyPackage, changes],
+        [emptyPackage, changes]
+    ]);
+});
+
 test('dry-runが失敗した場合は実削除を実行しない', async () => {
     const deploy = createDeployCommand([1]);
     const prompt = createPrompt(['y']);
@@ -319,22 +382,25 @@ test('本番環境では1回の実行でdry-run後に実削除し、Apexテス�
             lines.push(message);
         }
     });
+    const [dryRun, actual] = deploy.calls;
+    const manifestDirectory = path.dirname(dryRun.deployArgs[4]);
     const deployArgs = [
         'project',
         'deploy',
         'start',
         '--manifest',
-        'manifest/destructivePackage.xml',
+        path.join(manifestDirectory, 'destructivePackage.xml'),
         '--post-destructive-changes',
-        'manifest/destructiveChanges.xml',
+        path.join(manifestDirectory, 'destructiveChanges.xml'),
         '--target-org',
-        'test-org'
+        'user@example.com'
     ];
 
     assert.equal(status, 0);
     assert.equal(deploy.calls.length, 2);
     assert.deepEqual(deploy.calls[0].deployArgs, deployArgs);
-    assert.deepEqual(deploy.calls[1].deployArgs, deployArgs);
+    assert.deepEqual(actual.deployArgs, deployArgs);
+    assert.equal(fs.existsSync(manifestDirectory), false);
     assert.equal(deploy.calls[0].operation, deployOperations.DRY_RUN);
     assert.equal(deploy.calls[1].operation, deployOperations.DEPLOY);
     assert.deepEqual(prompt.getQuestions(), [

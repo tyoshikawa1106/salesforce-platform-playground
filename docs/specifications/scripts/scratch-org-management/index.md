@@ -12,7 +12,7 @@
 
 | 種別             | パス                                                                                      | 役割                                                     |
 | ---------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Node.js script   | `scripts/scratch-org/setup.js`                                                            | 準備stepを同じaliasで順番に実行する                      |
+| Node.js script   | `scripts/scratch-org/setup.js`                                                            | 作成した組織のユーザー名で準備stepを順番に実行する       |
 | Node.js script   | `scripts/scratch-org/delete.js`                                                           | 明示されたaliasのScratch Orgを削除する                   |
 | 設定             | `scripts/scratch-org/scratch-org.json`                                                    | 既定alias、期間、manifest、ECA、権限、待機時間を定義する |
 | Node.js modules  | `scripts/scratch-org/internal/`                                                           | alias引数、共通設定、終了状態を処理する                  |
@@ -44,14 +44,14 @@ node scripts/scratch-org/delete.js --alias <alias>
 
 ### Scratch Orgの準備
 
-1. `sf org create scratch`でScratch定義、alias、有効日数を指定して作成する。
+1. `sf org create scratch`でScratch定義、alias、有効日数を指定して作成する。一括実行ではJSON応答から新しい組織のユーザー名を取得し、作成に失敗した場合やユーザー名を取得できない場合は停止する。
 2. CLIの認証済み組織一覧で対象が一意のScratch Orgであることを確認し、そのusernameを接続先に固定する。`deploymentPermissionSet`に指定した権限セットだけを`NoTestRun`でdeployし、同じ実行者への割り当てを確認し、未割り当ての場合だけ付与してから、`manifest/rebuild-scratch-org.xml`を`NoTestRun`と設定済み待機時間でdeployする。
 3. `externalClientAppManifest` に指定されたローカルのECAメタデータを変換する。ECA本体、OAuth定義、外部認証IDプロバイダー、指定ログイン情報はGit管理対象外のため、一括実行の前にmanifestに記載された定義をローカルへ用意する。外部認証IDプロバイダーは`force-app/main/default/externalAuthIdentityProviders/`に配置する。取得した定義をそのまま使用し、接続先の変換は一時パッケージに限定する。一時パッケージでは、関連する認可URL、トークンURL、コールバックURL、指定ログイン情報の接続元が一致することを確認し、作成先のMy Domainへ差し替える。取得元のアプリ識別子、OAuthコンシューマー識別子、資格情報は一時パッケージから除く。`externalClientAppLabels` に指定したアプリの表示名は、一時パッケージでのみ差し替える。アプリの枠だけを作成する場合は[個別のCLI手順](../../../deployment/scratch-org-rebuild-rules.md#external-client-app-の扱い)を使う。作成aliasに対応する標準システム管理者をClient Credentials Flowの実行ユーザーとして一時パッケージに設定し、接続設定のURLを同じ組織のMy Domainに差し替え、全Client Credentials Flowの有効設定を保持し、ECA本体・接続定義を反映し、同じScratch Orgで生成されたOAuthポリシーを一時領域へ取得する。ECA参照から生成済みポリシーのAPI名を一意に照合し、その実名を使ってポリシーを更新する。プリンシパル利用権限を持つ`LwcExternalClientAppManager`と`LwcObjectExplorer`は接続定義と同じ段階で反映する。対応設定に従ってECAの鍵とシークレットを同じ組織の認証プロバイダーへ登録し、新規登録はPOST、登録済みはPUTを使う。Scratch OrgのREST APIによるシークレット参照が無効なら、資格情報登録時だけ有効にしてから元の設定に戻す。反映または資格情報登録が失敗した場合は後続を実行しない。
 4. `scratch-org.json`の`permissionSets`に列挙したPermission Setを、同じScratch Orgの作成ユーザーへまとめて割り当てる。共通アプリ用の`SalesforceApplicationUser`と、各LWCのApex入口・タブ・必要なカスタム権限を持つ`Lwc`プレフィックスの権限セットを対象にする。オブジェクトや項目の権限は各機能の既存設定に従う。オブジェクトエクスプローラーの分類変更には、別途標準の`CustomizeApplication`が必要で、この割り当てでは付与しない。CLIへ`--name`を繰り返し指定し、`--json`で結果を表示する。一部でも失敗した場合は非0終了し、後続のテストデータ投入を実行しない。
 5. オブジェクトエクスプローラーのテストに必要な取引先項目の参照権限は、作成ユーザーに割り当てる権限セットで確保する。権限セット割り当て後、同じScratch Orgの作成ユーザーで`RunLocalTests`を実行して完了まで監視する。失敗時はテストデータ投入へ進まない。
-6. 共通のテストデータ投入スクリプトへ作成済みalias、import plan、投入stepで定義した繰り返し回数を渡す。標準データの投入が成功し、対象がScratch Orgと確認できた場合は、同じ組織の確認済みユーザーをロール・ユーザーデータ作成処理へ内部的に引き継ぐ。追加投入でも種別を再判定し、接続先を表示して作成確認を求める。
+6. 共通のテストデータ投入スクリプトへ作成結果のユーザー名、import plan、投入stepで定義した繰り返し回数を渡す。標準データの投入が成功し、対象がScratch Orgと確認できた場合は、同じ組織の確認済みユーザーをロール・ユーザーデータ作成処理へ内部的に引き継ぐ。追加投入でも種別を再判定し、接続先を表示して作成確認を求める。
 
-各stepは子Node.jsプロセスとして順番に実行し、非0終了した時点で後続stepを実行しません。テストデータ投入stepでは接続組織を表示し、利用者の承認後に投入します。
+作成後の各stepは子Node.jsプロセスとして順番に実行し、非0終了した時点で後続stepを実行しません。テストデータ投入stepでは接続組織を表示し、利用者の承認後に投入します。
 
 deploy stepを単独で実行した場合も同じ組織種別の確認を行います。本番、Developer Edition、Sandbox、対象不明、CLI取得失敗、不完全な応答ではdeployを実行せず非0終了します。
 
@@ -73,7 +73,7 @@ OSの一時ディレクトリ配下に実行ごとの`scratch-org-eca-`接頭辞
 
 - 準備処理はScratch Orgを作成し、metadata、Permission Set、テストデータを反映します。
 - 削除処理はSalesforce CLIで確認されたScratch Orgを削除します。
-- setup開始時と作成stepで使用aliasを表示します。
+- setup開始時に作成用のaliasを表示します。権限セットの割り当ては単独実行でもScratch Orgであることを確認し、そのユーザー名へ割り当てます。
 - 失敗時は停止したstep名と子プロセスの終了コードを返します。
 
 ## 権限・実行条件
@@ -110,7 +110,7 @@ node --test scripts/scratch-org/test/*.node.js
 
 - setupはpackage installを実行しません。必要なpackageはmetadata反映前に個別にインストールします。
 - setupはmetadata deploy前のdry-runを自動実行しません。再構築scopeを変更した場合は運用ルールに従って別途確認します。
-- setupはDefault Target Orgを変更せず、作成時に確定したaliasを後続stepへ渡します。
+- setupはDefault Target Orgを変更せず、作成応答で確定したユーザー名を後続stepへ渡します。
 - Scratch Orgは接続中のSalesforce組織と完全一致する環境ではありません。
 - 実行時にDev組織へ接続してメタデータを取得する処理はありません。Dev組織でアプリを増減した場合は、組織固有値を除いたXML、専用manifest、必要なプロバイダー対応を更新します。件数や個別アプリ一覧を文書へ転記する必要はありません。
 - 本人認証のBrowser Flowでは、資格情報の登録後も利用者自身のOAuth認証が必要です。

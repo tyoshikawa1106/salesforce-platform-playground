@@ -197,7 +197,8 @@ for (const type of ['sandbox', 'scratch', 'developer']) {
         await runTest({
             argv: ['--only', 'standard-objects-accounts'],
             createPrompt: () => prompt.prompt,
-            runSfCommand: createRunSfCommand(() => {
+            runSfCommand: createRunSfCommand((args) => {
+                assert.equal(args[args.indexOf('--target-org') + 1], 'user@example.com');
                 apexExecutionCount += 1;
                 return { status: 0, stdout: '', stderr: '' };
             }, type)
@@ -231,7 +232,7 @@ test('Scratch Orgセットアップでは内部指定されたaliasを使用す�
     });
 
     assert.equal(configGetCount, 0);
-    assert.equal(apexArgs[apexArgs.indexOf('--target-org') + 1], 'test-org');
+    assert.equal(apexArgs[apexArgs.indexOf('--target-org') + 1], 'user@example.com');
 });
 
 test('Scratch Org準備では標準データ成功後に確認済みユーザーへロールとユーザーを投入する', async () => {

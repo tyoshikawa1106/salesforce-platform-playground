@@ -198,7 +198,8 @@ async function main(overrides = {}) {
         outputDirectory: retrievedDirectory,
         projectRoot,
         runSfWithOutputCommand,
-        targetOrg
+        // 表示した組織から取得し、比較レポートの対象と一致させる。
+        targetOrg: orgInfo.username
     });
     const comparison = comparePermissionSetDirectories({
         retrievedDirectory: path.join(retrievedDirectory, 'permissionsets'),

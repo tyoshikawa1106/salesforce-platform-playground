@@ -1446,6 +1446,55 @@ test('再開元と条件・ユーザー・項目順が異なる場合は検索�
     }
 });
 
+for (const mode of ['records', 'record-fields-preview']) {
+    test(`${mode}の確認待ちに別の出力が途中CSV名を確保した場合は完成品を保護する`, async (t) => {
+        const cwd = temporary(t);
+        fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+        const settings = { cwd, writeLine: quiet, runner: runnerFor(), createPrompt: approve };
+        const otherOutput = 'accounts.partial.csv';
+        const exportAccounts = main(['--output', 'accounts.csv'], {
+            ...settings,
+            mode,
+            createPrompt: () => ({
+                async question() {
+                    assert.equal(await main(['--output', otherOutput], settings), 0);
+                    return 'y';
+                },
+                close() {}
+            })
+        });
+
+        await assert.rejects(exportAccounts, { code: 'EEXIST' });
+        assert.equal(fs.readFileSync(path.join(cwd, otherOutput), 'utf8'), '"Name"\r\n"latest"\r\n');
+        assert.equal(fs.existsSync(path.join(cwd, 'accounts.csv')), false);
+        assert.equal(fs.existsSync(path.join(cwd, 'accounts.csv.resume')), false);
+    });
+}
+
+test('確認待ちに同名の再開フォルダが作成された場合は今回確保した途中CSVだけを片付ける', async (t) => {
+    const cwd = temporary(t);
+    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
+    const checkpoint = path.join(cwd, 'accounts.csv.resume');
+    await assert.rejects(
+        main(['--output', 'accounts.csv'], {
+            cwd,
+            writeLine: quiet,
+            runner: runnerFor(),
+            createPrompt: () => ({
+                async question() {
+                    fs.mkdirSync(checkpoint);
+                    return 'y';
+                },
+                close() {}
+            })
+        }),
+        { code: 'EEXIST' }
+    );
+
+    assert.ok(fs.statSync(checkpoint).isDirectory());
+    assert.equal(fs.existsSync(path.join(cwd, 'accounts.partial.csv')), false);
+});
+
 test('完成ファイルの公開失敗後は全項目を再検索せず保存だけを再開できる', async (t) => {
     const cwd = temporary(t);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
