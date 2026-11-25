@@ -122,10 +122,7 @@ function buildResumeCommand(options, mode, targetOrg, output, cwd, platform = pr
 // 拡張子の前に日本時間の年月日・時分秒・ミリ秒を付ける。
 function timestampedOutput(file, date) {
     // UTCに9時間を加え、実行端末のタイムゾーンに依存しない日時を得る。
-    const timestamp = new Date(date.getTime() + 9 * 60 * 60 * 1000)
-        .toISOString()
-        .replace(/[-:.Z]/g, '')
-        .replace('T', '_');
+    const timestamp = new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().replace(/[-:.TZ]/g, '');
     // ディレクトリと指定された拡張子を保ち、拡張子なしの場合はCSVとして保存する。
     const { dir, name, ext } = path.parse(file);
     return path.join(dir, `${name}_${timestamp}${ext || '.csv'}`);

@@ -24,7 +24,7 @@ const cli = (result) => ({ status: 0, stdout: JSON.stringify({ status: 0, result
 const quiet = () => {};
 // 日本時間の日付境界をまたぐ固定時刻で、新規実行と再開のファイル名を確認する。
 const exportTime = () => new Date('2026-11-24T15:00:00.123Z');
-const exportSuffix = '_20261125_000000123';
+const exportSuffix = '_20261125000000123';
 const savedCsv = (requested) => requested.replace(/\.csv$/, exportSuffix + '.csv');
 
 function resumeArgs(args) {
@@ -819,7 +819,7 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
             assert.equal(result.status, exitCode, result.stderr);
             const saved = fs.readdirSync(cwd).filter((name) => name.startsWith(`${mode}-${label}_`));
             assert.equal(saved.length, label === 'yes' ? 1 : 0);
-            if (saved.length) assert.match(saved[0], /_\d{8}_\d{9}\.csv$/);
+            if (saved.length) assert.match(saved[0], /_\d{17}\.csv$/);
             assert.match(
                 result.stdout,
                 mode === 'records' ? /補完なし/ : /対応する型はサンプル生成・その他は最新200件から値を採用し空欄補完/
@@ -1476,8 +1476,8 @@ test('同じ出力名を指定した並行実行はそれぞれの開始日時�
             createPrompt: approve
         });
     assert.deepEqual(await Promise.all([run(0, 'first'), run(1, 'second')]), [0, 0]);
-    assert.equal(fs.readFileSync(path.join(cwd, 'accounts_20261125_000000123.csv'), 'utf8'), '"Name"\r\n"first"\r\n');
-    assert.equal(fs.readFileSync(path.join(cwd, 'accounts_20261125_000000124.csv'), 'utf8'), '"Name"\r\n"second"\r\n');
+    assert.equal(fs.readFileSync(path.join(cwd, 'accounts_20261125000000123.csv'), 'utf8'), '"Name"\r\n"first"\r\n');
+    assert.equal(fs.readFileSync(path.join(cwd, 'accounts_20261125000000124.csv'), 'utf8'), '"Name"\r\n"second"\r\n');
 });
 
 for (const mode of ['records', 'record-fields-preview']) {
