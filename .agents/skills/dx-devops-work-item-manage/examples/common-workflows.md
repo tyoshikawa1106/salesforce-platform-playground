@@ -477,3 +477,84 @@ Real-world examples of typical work item operations in DevOps Center autonomous 
    ```
 
 > **Note:** The CLI will return a non-zero status with error name `PR_ALREADY_EXISTS` if a PR already exists for that work item.
+
+---
+
+## Workflow 16: Commit Through the DevOps Center API (with git fallback)
+
+**User request:** "Commit the HelloWorld class to WI-000001. My changes are in the dev org <dev-org>."
+
+**Steps:**
+
+1. **Preflight on the dev org** (both orgs must be authenticated):
+   ```bash
+   sf api request rest "/services/data/v67.0/connect/devops/doceConnectionType" --target-org <dev-org>
+   ```
+   `{"isCore": true}` → continue. A failed call or `isCore` not `true` → use the git path (Workflow 3).
+
+2. **Look up the work item on the hub** (status must be New, In Progress, In Review or Ready to Promote):
+   ```bash
+   sf devops project list --target-org <hub-org> --json
+   sf devops work-item list --project-id <project-id> --target-org <hub-org> --json \
+     | jq '.result.workItems[] | select(.name == "WI-000001")'
+   ```
+
+3. **Commit** (body is the inner object, no wrapper; take `workItemId`/`projectId` from step 2):
+   ```bash
+   BODY=$(mktemp)
+   cat > "$BODY" <<'JSON'
+   {"isCommitCore":"true","workItemId":"<work-item-id>","projectId":"<project-id>",
+    "workItemName":"WI-000001","workItemLink":"<work item url>","commitMessage":"Update HelloWorld",
+    "changes":[{"fullName":"HelloWorld","type":"ApexClass","operation":"modify"}]}
+   JSON
+   sf api request rest "/services/data/v67.0/connect/devops/commitChanges" --method POST --body @"$BODY" --target-org <dev-org>
+   rm "$BODY"
+   ```
+   Expect `{"reqId":"<uuid>","status":"SUCCESS"}` (accepted). If the call fails or `status` is `ERROR`, report the error (`CODE:message` in `reqId`) and stop.
+
+4. **Poll until `SUCCESS` or `ERROR`** (every 10 s, up to 12 min):
+   ```bash
+   sf data query --target-org <dev-org> --json \
+     -q "SELECT Status, Message, ErrorDetails FROM DevopsRequestInfo WHERE RequestToken = '<reqId>'"
+   ```
+
+5. **Confirm on the hub**, then offer to create the review:
+   ```bash
+   sf data query --target-org <hub-org> --json \
+     -q "SELECT Name, CommitReference FROM WorkItemComponentList WHERE WorkItemId = '<work-item-id>' ORDER BY CreatedDate"
+   ```
+   A new row with a `CommitReference` means the commit was recorded.
+
+**Fallback:** if the preflight fails, retrieve the changes with `sf project retrieve start --target-org <dev-org>` if they exist only in the dev org, set the work item to In Progress if it is New, then follow Workflow 3 and re-check the hub before creating the PR.
+
+---
+
+## Workflow 17: Create a Review Through the DevOps Center API
+
+**User request:** "Create a PR for WI-000012. My dev org is <dev-org>."
+
+**Steps:**
+
+1. **Preflight** as in the commit workflow (`doceConnectionType` on the dev org). A non-2xx response → use `sf devops review create --work-item-name WI-000012 --json`.
+
+2. **Look up the work item on the hub** (not Nevered, already committed):
+   ```bash
+   sf devops work-item list --project-id <project-id> --target-org <hub-org> --json
+   ```
+
+3. **Create the review** (body is the inner object, no wrapper):
+   ```bash
+   cat > review.json <<'JSON'
+   {"workItemId":"<work-item-id>","workItemName":"WI-000012",
+    "workItemLink":"https://<hub-host>/lightning/r/WorkItem/<work-item-id>/view"}
+   JSON
+   sf api request rest "/services/data/v68.0/connect/devops/createReview" --method POST --body @review.json --target-org <dev-org>
+   ```
+   Expect `{"status":"Success","reviewUrl":"https://github.com/<owner>/<repo>/pull/15",...}`. If `status` is `Error`, report the `CODE:detail` in `errorMessage` and stop.
+
+4. **Confirm on the hub** that WI-000012 is `IN_REVIEW` and `ReviewRemoteReference` is `15`:
+   ```bash
+   sf data query --target-org <hub-org> --json -q "SELECT Status, ReviewRemoteReference FROM WorkItem WHERE Id = '<work-item-id>'"
+   ```
+
+Repeating step 3 for the same work item returns the same `reviewUrl`, so it is safe to retry.

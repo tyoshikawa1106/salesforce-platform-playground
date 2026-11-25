@@ -10,6 +10,7 @@ import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAud
 import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
 import saveClassifyData from '@salesforce/apex/ObjectExplorerController.saveClassifyData';
 import LightningConfirm from 'lightning/confirm';
+import CsvExportModal from 'c/setupAuditTrailExportModal';
 import searchClassifyOwners from '@salesforce/apex/ObjectExplorerController.searchClassifyOwners';
 import * as objectExplorerLogic from '../objectExplorerLogic';
 
@@ -22,7 +23,8 @@ jest.mock('@salesforce/apex/ObjectExplorerController.resolveClassifyOwners', () 
 jest.mock('@salesforce/apex/ObjectExplorerController.saveClassifyData', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/userPermission/ModifyDataClassification', () => ({ __esModule: true, default: false }), { virtual: true });
 jest.mock('@salesforce/userPermission/CustomizeApplication', () => ({ __esModule: true, default: true }), { virtual: true });
-jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
+jest.mock('c/setupAuditTrailExportModal', () => ({ __esModule: true, default: { open: jest.fn() } }));
+jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }));
 
 jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl', () => ({ default: jest.fn() }), { virtual: true });
@@ -164,6 +166,37 @@ it('メール型への絞り込み後も機密度と利用状況を同じ項目�
     expect(element.shadowRoot.querySelector('[data-field="Email__c"][data-property="businessStatus"]').value).toBe('Active');
     expect(element.shadowRoot.querySelector('[data-field="Name"][data-property="businessStatus"]').value).toBeUndefined();
 });
+it.each(['Delete', '解除ボタン'])('%sで対象を解除すると新しい検索欄にフォーカスが戻る', async (operation) => {
+    const element = createComponent();
+    await flush();
+    await pickAccount(element);
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    const input = lookup.shadowRoot.querySelector('input');
+    input.focus();
+    if (operation === 'Delete') {
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    } else {
+        lookup.shadowRoot.querySelector('lightning-button-icon').click();
+    }
+    await flush();
+    const search = lookup.shadowRoot.querySelector('input:not([readonly])');
+    expect(search).not.toBeNull();
+    expect(lookup.shadowRoot.activeElement).toBe(search);
+    expect(search.getAttribute('aria-expanded')).toBe('false');
+});
+
+it('表示モード変更に伴う対象解除では検索欄へフォーカスを移さない', async () => {
+    const element = createComponent();
+    await flush();
+    await pickAccount(element);
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    const search = lookup.shadowRoot.querySelector('input:not([readonly])');
+    expect(search).not.toBeNull();
+    expect(lookup.shadowRoot.activeElement).not.toBe(search);
+});
+
 it('破棄確認のキャンセルでは対象と分類の入力を維持する', async () => {
     const element = createComponent();
     await flush();
@@ -432,46 +465,73 @@ it('分類は編集不可・未取得を一覧から除外し、件数を揃え�
     expect(element.shadowRoot.textContent).toContain('1項目');
 });
 
-it('構造CSVは分類取得失敗時にダウンロードせず処理場所を表示する', async () => {
+function exportButton(element) {
+    return [...element.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSVダウンロード');
+}
+
+it('構造CSVの取得に失敗した場合は同じモーダルで再試行できる', async () => {
     const element = createComponent();
     await flush();
     await pickAccount(element);
-    getClassifyData.mockRejectedValueOnce({ body: { message: '分類取得失敗' } });
-    const exportButton = [...element.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'CSVダウンロード');
-    exportButton.click();
+    let finish;
+    CsvExportModal.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    exportButton(element).click();
+    const { buildFile, exportSubject } = CsvExportModal.open.mock.calls[0][0];
+    expect(exportSubject).toContain('項目定義 全1件');
+    getClassifyData.mockRejectedValueOnce(new Error('分類取得失敗'));
+    await expect(buildFile(undefined, () => true, jest.fn())).rejects.toThrow('データ分類を取得できませんでした');
     await flush();
-    expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
     expect(element.shadowRoot.querySelector('.c-client-error').textContent).toContain('handleExportCsv');
-    expect(exportButton.disabled).toBe(false);
+    const progress = jest.fn();
+    await buildFile(undefined, () => true, progress);
+    expect(progress.mock.calls).toEqual([[0], [1]]);
+    finish(false);
+    await flush();
 });
 
-it('構造CSVの確認後に保存済み分類を取得して出力する', async () => {
+it.each(['reference', 'classify'])('確認・進捗とCSVの明細数が一致し、離脱時にURLを解放する（%s）', async mode => {
+    const fields = Array.from({ length: 53 }, (_, i) => ({ ...objectInfo.fields[0], apiName: 'F' + i }));
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields });
+    getClassifyData.mockResolvedValue({ ...classify, rows: Object.fromEntries(fields.map((field, i) => [field.apiName, { ...classify.rows.Name, editable: i >= 3 }])) });
     const createUrl = URL.createObjectURL;
     const revokeUrl = URL.revokeObjectURL;
     URL.createObjectURL = jest.fn(() => 'blob:test');
     URL.revokeObjectURL = jest.fn();
-    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     try {
         const element = createComponent();
-    await flush();
+        await flush();
+        if (mode === 'classify') {
+            element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: mode } }));
+            await flush();
+        }
         await pickAccount(element);
-        expect(getClassifyData).not.toHaveBeenCalled();
-        const button = [...element.shadowRoot.querySelectorAll('lightning-button')].find((item) => item.label === 'CSVダウンロード');
-        LightningConfirm.open.mockResolvedValueOnce(false);
-        button.click();
+        const count = mode === 'reference' ? 53 : 50;
+        CsvExportModal.open.mockResolvedValueOnce(false);
+        exportButton(element).click();
         await flush();
-        expect(getClassifyData).not.toHaveBeenCalled();
-        button.click();
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+        let finish;
+        CsvExportModal.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        exportButton(element).click();
+        exportButton(element).click();
+        expect(CsvExportModal.open).toHaveBeenCalledTimes(2);
+        const { buildFile, exportSubject } = CsvExportModal.open.mock.calls[1][0];
+        expect(exportSubject).toContain('全' + count + '件');
+        const progress = jest.fn();
+        await buildFile(undefined, () => true, progress);
+        expect(progress.mock.calls.flat()).toEqual(mode === 'reference' ? [0, 25, 50, 53] : [0, 25, 50]);
+        finish(true);
         await flush();
-        expect(getClassifyData).toHaveBeenCalledWith({ objectName: 'Account' });
+        expect(click.mock.instances[0]).toBe(element.shadowRoot.querySelector('[data-download]'));
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-        const text = await new Promise((resolve) => {
+        const text = await new Promise(resolve => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
             reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
         });
-        expect(text).toContain('データ所有者ID');
-        expect(text).toContain('名前');
+        expect(text.split('\r\n')).toHaveLength(count + 1);
+        element.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
     } finally {
         URL.createObjectURL = createUrl;
@@ -479,6 +539,31 @@ it('構造CSVの確認後に保存済み分類を取得して出力する', asyn
     }
 });
 
+it('途中キャンセルと再接続の後は、古いモーダルから出力しない', async () => {
+    const fields = Array.from({ length: 51 }, (_, index) => ({ ...objectInfo.fields[0], apiName: 'F' + index }));
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields });
+    const element = createComponent();
+    await flush();
+    await pickAccount(element);
+    let finish;
+    CsvExportModal.open.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    exportButton(element).click();
+    const { buildFile, ownerSignal } = CsvExportModal.open.mock.calls[0][0];
+    let open = true;
+    const progress = jest.fn(count => { open = count < 25; });
+    await buildFile(undefined, () => open, progress);
+    expect(progress.mock.calls).toEqual([[0], [25]]);
+    element.remove();
+    document.body.appendChild(element);
+    expect(ownerSignal.aborted).toBe(true);
+    getClassifyData.mockClear();
+    await buildFile(undefined, () => true, progress);
+    expect(getClassifyData).not.toHaveBeenCalled();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
+    finish(true);
+    await flush();
+    expect(download).not.toHaveBeenCalled();
+});
 
 it.each(['reference', 'classify'])('0件時の案内は一覧の全列に広がる（%s）', async (mode) => {
     const element = createComponent();
@@ -609,6 +694,91 @@ it('認証状態の初期確認中は操作領域を表示しない', async () =
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
     expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
     expect(element.shadowRoot.textContent).toContain('認証状態を確認しています');
+});
+
+it('再接続前の解除確認は送信せず、新しい解除確認のロックを維持する', async () => {
+    const element = createComponent();
+    await flush();
+    let oldConfirm;
+    let newConfirm;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { oldConfirm = resolve; }))
+        .mockImplementationOnce(() => new Promise(resolve => { newConfirm = resolve; }));
+    const revoke = () => element.shadowRoot.querySelector('[data-authentication-revoke]');
+    revoke().click();
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    revoke().click();
+    oldConfirm(true);
+    await flush();
+    expect(revokeApiAuthentication).not.toHaveBeenCalled();
+    expect(revoke().disabled).toBe(true);
+    newConfirm(false);
+    await flush();
+    expect(revoke().disabled).toBe(false);
+});
+
+it('送信済みの認証解除は再接続後も完了を待ってから状態を照会する', async () => {
+    const element = createComponent();
+    await flush();
+    let finish;
+    revokeApiAuthentication.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    element.shadowRoot.querySelector('[data-authentication-revoke]').click();
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED', message: '認証してください。' });
+    finish();
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(2);
+    expect(revokeApiAuthentication).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('.c-authentication a')).not.toBeNull();
+});
+
+it('再接続前の破棄確認で分類入力やモードを変更しない', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    let confirm;
+    LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { confirm = resolve; }));
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'reference' } }));
+    await flush();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    confirm(true);
+    await flush();
+    expect(element.shadowRoot.querySelector('.c-mode').value).toBe('classify');
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+});
+
+it('画面離脱でCSVの取込確認を中断して未保存入力を維持する', async () => {
+    const element = createComponent();
+    await editClassify(element);
+    let confirm;
+    const confirming = new Promise(resolve => {
+        LightningConfirm.open.mockImplementationOnce(() => {
+            resolve();
+            return new Promise(finish => { confirm = finish; });
+        });
+    });
+    const csv = 'ObjectApiName,FieldApiName,ComplianceGroup,SecurityClassification,BusinessStatus,BusinessOwnerId\nAccount,Name,,,,';
+    const input = element.shadowRoot.querySelector('.c-csv-import lightning-input');
+    Object.defineProperty(input, 'files', { value: [new File([csv], 'classify.csv')] });
+    input.dispatchEvent(new CustomEvent('change'));
+    await confirming;
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    confirm(true);
+    await flush();
+    expect(element.shadowRoot.querySelector('[data-property="businessStatus"]').value).toBe('Active');
+    expect(element.shadowRoot.querySelector('.c-csv-import lightning-input').disabled).toBe(false);
+    expect(element.shadowRoot.textContent).not.toContain('CSVから1項目');
+    expect(saveClassifyData).not.toHaveBeenCalled();
 });
 
 it('認証解除をキャンセルした場合は資格情報と未保存入力を保持する', async () => {
@@ -983,6 +1153,37 @@ it.each([['005000000000001', 'standard:user'], ['00G000000000001', 'standard:gro
     expect(saveClassifyData).not.toHaveBeenCalled();
 });
 
+it.each(['Delete', '解除ボタン'])('%sで所有者を解除すると同じ行の検索欄にフォーカスが戻る', async operation => {
+    const secondField = { ...objectInfo.fields[0], apiName: 'Phone', label: 'B' };
+    getObjectInfo.mockResolvedValue({ ...objectInfo, fields: [{ ...objectInfo.fields[0], label: 'A' }, secondField] });
+    getClassifyData.mockResolvedValue({ ...classify, rows: {
+        ...classify.rows,
+        Phone: { ...classify.rows.Name, ownerId: '005000000000001', ownerLabel: '所有者' }
+    } });
+    const element = createComponent();
+    await flush();
+    element.shadowRoot.querySelector('.c-mode').dispatchEvent(new CustomEvent('change', { detail: { value: 'classify' } }));
+    await flush();
+    await pickAccount(element);
+    const lookups = element.shadowRoot.querySelectorAll('.c-owner-lookup');
+    expect(lookups).toHaveLength(2);
+    const row = lookups[1];
+    expect(row.dataset.field).toBe('Phone');
+    const selected = row.querySelector('input[readonly]');
+    if (operation === 'Delete') {
+        selected.focus();
+        selected.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', cancelable: true }));
+    } else {
+        row.querySelector('lightning-button-icon').click();
+    }
+    await flush();
+    const input = row.querySelector('input:not([readonly])');
+    expect(input).not.toBeNull();
+    expect(element.shadowRoot.activeElement).toBe(input);
+    expect(input.value).toBe('');
+    expect(searchClassifyOwners).not.toHaveBeenCalled();
+});
+
 it('複数選択ダイアログは選択値を維持してEscapeで閉じ、再度開ける', async () => {
     getClassifyData.mockResolvedValue({ ...classify, options: { ...classify.options, ComplianceGroup: ['GDPR', 'PII'].map((value) => ({ value, label: value })) } });
     const element = createComponent();
@@ -1001,4 +1202,19 @@ it('複数選択ダイアログは選択値を維持してEscapeで閉じ、再�
     await flush();
     expect(element.shadowRoot.querySelector('lightning-checkbox-group').value).toEqual(['GDPR', 'PII']);
     await expect(element).toBeAccessible();
+});
+
+it('候補の取得失敗と0件を区別し、再試行後は案内を解除する', async () => {
+    const element = createComponent();
+    await flush();
+    const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
+    searchObjects.mockRejectedValueOnce(new Error('failed'));
+    lookup.dispatchEvent(new CustomEvent('lookupopen'));
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('オブジェクト候補を取得できませんでした。');
+    expect(lookup.shadowRoot.textContent).not.toContain('候補がありません。');
+    lookup.dispatchEvent(new CustomEvent('searchchange', { detail: { value: 'Account' } }));
+    await flush();
+    expect(lookup.candidateView.items.length).toBe(1);
+    expect(element.shadowRoot.textContent).not.toContain('オブジェクト候補を取得できませんでした。');
 });

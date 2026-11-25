@@ -3,10 +3,13 @@ name: experience-ui-bundle-custom-app-generate
 description: "MUST activate when the project contains a uiBundles/*/src/ directory and the task involves creating or configuring a Custom Application for hosting a UI bundle in Lightning Experience. Use this skill when creating a CustomApplication metadata record to surface the UI bundle in the App Launcher. Activate when files matching applications/*.app-meta.xml exist and need modification, or when the user wants to expose their app via the Lightning App Launcher without a Digital Experience Site. Do NOT use platform-custom-application-generate for this — UI bundle apps do not use tabs, action overrides, or flexipages."
 metadata:
   version: "1.0"
-  minApiVersion: "51.0"
+  domains: ["Experience", "Platform"]
+  minApiVersion: "65.0"
   relatedSkills:
     - "platform-custom-application-generate"
   cliTools:
+    - tool: ["node"]
+      semver: ">=18.0.0"
     - tool: ["sf"]
       semver: ">=2.0.0"
   mcpTools:
@@ -75,7 +78,7 @@ Use the default template in the doc below. Values in `{braces}` are resolved pro
 ### Step 5: Update UI Bundle Meta XML
 This step edits an **existing** file — it never creates a new one. `UIBundle` is a bundle-style metadata type: its meta XML normally lives inside its own folder at `uiBundles/{appName}/{appName}.uibundle-meta.xml`, alongside the bundle's other source files (e.g. `index.html`, `src/`). Some older or hand-authored projects may instead have it at the flat path `uiBundles/{appName}.uibundle-meta.xml` (no subfolder).
 
-Run `scripts/resolve-uibundle-path.sh "{appName}"` — it prints the path of the existing meta XML (preferring the nested layout, falling back to the flat layout). Edit that exact file in place; do not create a second file at the other path or migrate it to a different layout as part of this skill.
+Run `node scripts/resolve-uibundle-path.mjs "{appName}"` — it prints the path of the existing meta XML (preferring the nested layout, falling back to the flat layout). Always invoke via `node` (never as a bare executable) so this works on Windows as well as macOS/Linux. Edit that exact file in place; do not create a second file at the other path or migrate it to a different layout as part of this skill.
 
 If Step 2 confirmed the `target` field exists on `UIBundle`, add `<target>CustomApplication</target>` inside the existing `<UIBundle>` element of that file, preserving every other existing element and value untouched (skip this step entirely if the field doesn't exist in the org's API version — do not create the file or add `<target>` in that case).
 

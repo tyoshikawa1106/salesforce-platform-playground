@@ -10,10 +10,28 @@ public with sharing class SetupAuditTrailExplorerController {
         public Date day;
         public Datetime cutoff;
         public String section;
+        public Boolean matchIndex;
         public Boolean chart;
         public Boolean includeDelegateNames;
         public Boolean csv;
         public Integer pageSize;
+    }
+
+    /**
+     * 一覧とCSVに出す項目の表示ラベルを取得する。
+     * @return 実行ユーザーの言語で取得した項目API名とラベルの対応。
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, String> getColumnLabels() {
+        Map<String, String> labels = new Map<String, String>();
+        for (Schema.SObjectField field : new List<Schema.SObjectField>{
+            SetupAuditTrail.CreatedDate, User.Username, SetupAuditTrail.ResponsibleNamespacePrefix,
+            SetupAuditTrail.Action, SetupAuditTrail.Display, SetupAuditTrail.Section, SetupAuditTrail.DelegateUser
+        }) {
+            Schema.DescribeFieldResult definition = field.getDescribe();
+            labels.put(definition.getName(), definition.getLabel());
+        }
+        return labels;
     }
 
     /**
@@ -67,7 +85,7 @@ public with sharing class SetupAuditTrailExplorerController {
 
     private static SetupAuditTrailExplorerWrapper loadFilterOptions(MonthRequest criteria) {
         SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+        List<SetupAuditTrail> rows = readSourcePage(
             criteria, SetupAuditTrailExplorerSelector.Projection.OPTIONS, CHART_PAGE_SIZE + 1
         );
         SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeOptions(rows, CHART_PAGE_SIZE);
@@ -86,7 +104,7 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     /**
-     * 保持期間内の履歴をCSV用に分割取得する。
+     * 実行ユーザーが参照できる全履歴を分割取得する。
      * @param cutoff 初回は未指定。続きは最初の応答で返した取得上限。
      * @param nextId 直前ページの境界レコードID。
      * @param nextTime 直前ページの境界日時。
@@ -103,29 +121,6 @@ public with sharing class SetupAuditTrailExplorerController {
     }
 
     /**
-     * 月境界をまたぐ代理ログインを照合するため、保持期間内の入退場履歴だけを取得する。
-     * @param cutoff 照合上限。未指定なら初回の組織時刻。
-     * @param nextId 直前ページの境界レコードID。
-     * @param nextTime 直前ページの境界日時。
-     * @return 照合行、固定した上限と次のページ境界。
-     */
-    @AuraEnabled
-    public static SetupAuditTrailExplorerWrapper loadLoginAsHistory(Datetime cutoff, Id nextId, Datetime nextTime) {
-        SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
-        SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
-        criteria.endAt = cutoff ?? System.now();
-        criteria.nextId = nextId;
-        criteria.nextTime = nextTime;
-        Integer sizeLimit = 200;
-        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
-            criteria, SetupAuditTrailExplorerSelector.Projection.LOGIN_AS, sizeLimit + 1
-        );
-        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
-        wrapper.cutoff = criteria.endAt;
-        return wrapper;
-    }
-
-    /**
      * 対象月の履歴を用途に応じて分割取得する。
      * @param criteriaJson クライアントが指定した検索条件、用途、ページ境界。
      * @return 取得ページと続きのカーソル。
@@ -138,13 +133,13 @@ public with sharing class SetupAuditTrailExplorerController {
             return loadDetails(criteria, CSV_PAGE_SIZE, criteria.cutoff);
         }
         if (criteria.matchIndex == true) {
-            List<SetupAuditTrail> matches = SetupAuditTrailExplorerSelector.selectPage(
+            List<SetupAuditTrail> matches = readSourcePage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.MATCH_INDEX, CHART_PAGE_SIZE + 1
             );
             return SetupAuditTrailExplorerService.summarizeMatches(matches, CHART_PAGE_SIZE, criteria.section);
         }
         if (criteria.chart == true) {
-            List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
+            List<SetupAuditTrail> rows = readSourcePage(
                 criteria, SetupAuditTrailExplorerSelector.Projection.CHART, CHART_PAGE_SIZE + 1
             );
             SetupAuditTrailExplorerWrapper chart = SetupAuditTrailExplorerService.summarizeChart(rows, CHART_PAGE_SIZE);
@@ -158,19 +153,18 @@ public with sharing class SetupAuditTrailExplorerController {
         List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(
             criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, sizeLimit + 1
         );
-        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
-        wrapper.delegateNames = delegateNamesFor(wrapper.records);
-        Boolean needsEmployeeActors = false;
-        for (SetupAuditTrail row : wrapper.records) {
-            if (row.CreatedById != null && String.isBlank(row.CreatedBy?.Username)) {
-                needsEmployeeActors = true;
-                break;
-            }
+        return SetupAuditTrailExplorerService.summarizeDetails(rows, sizeLimit);
+    }
+
+    // 先読みで存在を確認した元行を検証してから、集計やセクション絞り込みで応答を縮小する。
+    private static List<SetupAuditTrail> readSourcePage(
+        SetupAuditTrailExplorerSelector.Criteria criteria, SetupAuditTrailExplorerSelector.Projection projection, Integer sizeLimit
+    ) {
+        List<SetupAuditTrail> rows = SetupAuditTrailExplorerSelector.selectPage(criteria, projection, sizeLimit);
+        if (criteria.nextId != null && rows.isEmpty()) {
+            throw new AuraHandledException('続きの履歴を取得できませんでした。もう一度取得してください。');
         }
-        if (needsEmployeeActors) {
-            wrapper.employeeActorIds = loadEmployeeActorIds(criteria.cutoff);
-        }
-        return wrapper;
+        return rows;
     }
 
     private static Map<String, String> delegateNamesFor(List<SetupAuditTrail> rows) {
@@ -183,26 +177,23 @@ public with sharing class SetupAuditTrailExplorerController {
         return SetupAuditTrailExplorerSelector.selectDelegateNames(delegates);
     }
 
-    /**
-     * 一覧、CSV、月別分析で共通の基準時刻までに従業員操作を確認できた作成者を返す。
-     * @param cutoff 履歴を照合する上限時刻。
-     * @return 従業員操作の記録に含まれる作成者ID。
-     */
-    @AuraEnabled
-    public static List<Id> loadEmployeeActorIds(Datetime cutoff) {
-        return SetupAuditTrailExplorerService.employeeActorIds(SetupAuditTrailExplorerSelector.selectEmployeeActions(cutoff ?? System.now()));
-    }
-
     private static SetupAuditTrailExplorerWrapper loadDetails(SetupAuditTrailExplorerSelector.Criteria criteria, Integer sizeLimit, Datetime exportCutoff) {
-        // CSVは上限を超えた行の直前で読み取りを終了
-        SetupAuditTrailExplorerWrapper wrapper = SetupAuditTrailExplorerService.summarizeCsv(
-            SetupAuditTrailExplorerSelector.iterateCsvRows(criteria, sizeLimit + 1), sizeLimit
-        );
-        wrapper.cutoff = exportCutoff;
-        // 月別でも全期間でも、作成者確認は出力ごとに一度で済ませる。
-        if (criteria.nextId == null && !wrapper.records.isEmpty()) {
-            wrapper.employeeActorIds = loadEmployeeActorIds(exportCutoff);
+        SetupAuditTrailExplorerService.CsvPage page = new SetupAuditTrailExplorerService.CsvPage(sizeLimit);
+        // 一覧と同じ照会で原文を取得し、大きな本文を一括でヒープに載せない。
+        while (true) {
+            Integer batchSize = Math.min(200, sizeLimit - page.result.records.size() + 1);
+            List<SetupAuditTrail> batch = SetupAuditTrailExplorerSelector.selectPage(
+                criteria, SetupAuditTrailExplorerSelector.Projection.DETAIL, batchSize
+            );
+            if (!page.append(batch) || batch.size() < batchSize) {
+                break;
+            }
+            SetupAuditTrail last = batch[batch.size() - 1];
+            criteria.nextTime = last.CreatedDate;
+            criteria.nextId = last.Id;
         }
+        SetupAuditTrailExplorerWrapper wrapper = page.result;
+        wrapper.cutoff = exportCutoff;
         return wrapper;
     }
 
@@ -217,9 +208,9 @@ public with sharing class SetupAuditTrailExplorerController {
         if (criteria == null) {
             throw new AuraHandledException('検索条件を指定してください。');
         }
-        if (criteria.csv == true && criteria.cutoff == null) {
-            // 過去月でも月末後に記録された代理ログアウトを出力開始時点まで照合する。
-            criteria.cutoff = System.now();
+        if (criteria.csv == true) {
+            // 後続ページも同じ取得開始時刻に固定する。
+            criteria.cutoff = criteria.cutoff ?? System.now();
         }
         setPeriod(criteria);
         return criteria;

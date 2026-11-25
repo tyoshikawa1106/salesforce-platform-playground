@@ -1,9 +1,24 @@
 import {
     applyClassifyBatch, applyClassifyCsv, buildRelationBoard, clientErrorDetails,
-    classifyBatches, classifyChanges, classifyCsv, classifyFieldView,
+    classifyBatches, classifyChanges, csvFields, csvParts, classifyFieldView,
     classifyInput, classifySummary, createClassifyEdits,
-    fieldListView, objectOptionScrollTop, objectOptionWindow, readClassifyCsv, structureCsv, visibleRelations
+    fieldListView, objectOptionScrollTop, objectOptionWindow, readClassifyCsv, visibleRelations
 } from '../objectExplorerLogic';
+
+function classifyCsv(objectName, fields, classification, edits, objectLabel) {
+    return [...csvParts({ fields: csvFields(fields, false, classification), classification, edits, objectName, objectLabel })].map(part => part.text).join('');
+}
+function structureCsv(fields, locale, timeZone, classification) {
+    return [...csvParts({ fields: csvFields(fields, true), reference: true, locale, timeZone, classification })].map(part => part.text).join('');
+}
+
+it.each([true, false])('出力対象が0件なら見出しだけのCSVを生成する（構造=%s）', reference => {
+    const parts = [...csvParts({ fields: [], reference })];
+    expect(parts).toHaveLength(1);
+    expect(parts[0].count).toBe(0);
+    expect(parts[0].text.startsWith('\uFEFF"')).toBe(true);
+    expect(parts[0].text).not.toContain('\r\n');
+});
 
 const fields = [
     { apiName: 'Phone', label: '電話', type: 'PHONE', typeLabel: '電話', custom: false },

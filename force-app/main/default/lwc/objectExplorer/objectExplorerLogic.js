@@ -327,7 +327,7 @@ export function applyClassifyBatch(changes, edits, classifyData, results) {
 
 export { classifyInput, normalizeClassify, createOwnerOptions };
 export { structureFieldView } from './objectExplorerFieldLogic';
-export { CLASSIFY_CSV_LIMITS, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv } from './objectExplorerCsv';
+export { CLASSIFY_CSV_LIMITS, classifyOwnerBatches, mergeClassifyOwners, csvFields, csvParts, csvFileName, readClassifyCsv, applyClassifyCsv } from './objectExplorerCsv';
 // エラーの位置だけを抽出し、URL・入力値・API応答本文を診断情報へ含めない
 export function clientErrorDetails(error, operation, phase) {
     // 例外の種類とSalesforce応答形式の判定はこの画面で管理

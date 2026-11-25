@@ -118,6 +118,22 @@ const createCaseRecord = ({
 });
 
 describe('c-case-contact-profile', () => {
+    it('ケース切替直後は旧プロフィールとリンクを表示しない', async () => {
+        const element = createComponent();
+        getRecord.emit(createCaseRecord({contactName: 'previous-case-contact'}));
+        await flushPromises();
+        element.recordId = '500000000000099AAA';
+        await flushPromises();
+        expect(getRecord.getLastConfig().recordId).toBe(element.recordId);
+        getRecord.emit(createCaseRecord({ contactName: 'previous-case-contact' }));
+        await flushPromises();
+        expect(element.shadowRoot.textContent).not.toContain('previous-case-contact');
+        expect(element.shadowRoot.querySelector('a')).toBeNull();
+        getRecord.emit({ ...createCaseRecord({ contactName: '新しい顧客' }), id: element.recordId });
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('新しい顧客');
+    });
+
     beforeEach(() => {
         mockGenerateUrl.mockReset().mockImplementation((page) => Promise.resolve('/' + page.attributes.recordId));
     });

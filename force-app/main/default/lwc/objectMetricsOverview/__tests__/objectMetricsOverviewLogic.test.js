@@ -1,9 +1,19 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
     createCountCards,
     normalizeMetricItems
 } from '../objectMetricsOverviewLogic';
 
 describe('objectMetricsOverviewLogic', () => {
+    it('先行表示の全カードがApexカタログの順序・キー・名前・アイコンに一致する', () => {
+        const source = readFileSync(join(__dirname, '../../../classes/ObjectMetricCatalog.cls'), 'utf8');
+        const definition = /new MetricDefinition\(\s*'([^']+)',\s*'[^']+',\s*present\('([^']+)',\s*'([^']+)'\)\s*\)/g;
+        const expected = [...source.matchAll(definition)].map(([, key, label, iconName]) => ({ key, label, iconName }));
+        expect(expected).toHaveLength((source.match(/new MetricDefinition\(/g) || []).length);
+        expect(createCountCards([], true).map(({ key, label, iconName }) => ({ key, label, iconName }))).toEqual(expected);
+    });
+
     it('Apex応答を画面管理用の件数項目へ正規化する', () => {
         expect(
             normalizeMetricItems([

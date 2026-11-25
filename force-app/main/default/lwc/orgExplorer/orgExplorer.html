@@ -121,7 +121,7 @@
                 <template lwc:if={memberNotice}>
                     <p class="slds-text-body_small slds-text-color_weak" role="status">{memberNotice}</p>
                 </template>
-                <template lwc:if={hasMemberRows}>
+                <template lwc:if={showMemberPagination}>
                     <div class="c-controls slds-m-top_medium slds-grid slds-grid_vertical-align-center slds-wrap" data-member-pagination role="group" aria-label={memberPagingLabel}>
                         <lightning-button
                             type="button"

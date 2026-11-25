@@ -48,14 +48,14 @@
     <tabs>standard-ProcessInstanceWorkitem</tabs>
     <tabs>standard-DeleteEvent</tabs>
     <tabs>standard-LightningInstrumentation</tabs>
+    <tabs>OrgExplorer</tabs>
+    <tabs>ObjectExplorer</tabs>
+    <tabs>SetupAuditTrailExplorer</tabs>
+    <tabs>ExternalClientAppManager</tabs>
+    <tabs>OAuthTokenIssuance</tabs>
     <tabs>AccountMassUpdate</tabs>
     <tabs>AccountDelete</tabs>
     <tabs>TestDataDelete</tabs>
-    <tabs>OrgExplorer</tabs>
-    <tabs>ObjectExplorer</tabs>
-    <tabs>ExternalClientAppManager</tabs>
-    <tabs>OAuthTokenIssuance</tabs>
-    <tabs>SetupAuditTrailExplorer</tabs>
     <uiType>Lightning</uiType>
     <utilityBar>Salesforce_UtilityBar</utilityBar>
 </CustomApplication>

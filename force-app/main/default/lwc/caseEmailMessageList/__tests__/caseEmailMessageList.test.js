@@ -106,6 +106,26 @@ async function emitCountAndPage(count, page) {
 }
 
 describe('c-case-email-message-list', () => {
+    it('件数の再配信後も一覧の取得失敗を保持する', async () => {
+        const element = createComponent();
+        getEmailMessages.mockRejectedValueOnce(new Error('read failed'));
+        getEmailMessageCount.emit(2);
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('read failed');
+        getEmailMessageCount.emit(2);
+        await flushPromises();
+        expect(getEmailMessages).toHaveBeenCalledTimes(1);
+        expect(element.shadowRoot.textContent).toContain('read failed');
+        expect(element.shadowRoot.textContent).not.toContain('このケースに紐づくメールメッセージはありません');
+        // 利用者の更新操作で一覧を取得できたら通常表示へ戻る
+        getEmailMessages.mockResolvedValueOnce(initialPage);
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+        expect(element.shadowRoot.textContent).toContain('受信メール');
+        expect(element.shadowRoot.textContent).not.toContain('read failed');
+    });
+
     it.each(['initial', 'more'])('preserves count errors after an in-flight %s page and recovers on refresh', async (phase) => {
         const element = createComponent();
         if (phase === 'more') {
@@ -329,6 +349,31 @@ describe('c-case-email-message-list', () => {
         await expect(element).toBeAccessible();
     });
 
+    it.each([0, 1])('初回件数%sから件数が正で一覧が空になった場合は再読み込みを案内する', async (initialCount) => {
+        const element = createComponent();
+        await emitCountAndPage(initialCount, emptyPage);
+        if (initialCount === 0) {
+            getEmailMessageCount.emit(1);
+            await flushPromises();
+        }
+
+        const reloadNotice = '件数と一覧が一致していません。「再読み込み」で最新のメールを確認してください。';
+        expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (1)');
+        expect(element.shadowRoot.textContent).toContain(reloadNotice);
+        expect(element.shadowRoot.textContent).not.toContain('このケースに紐づくメールメッセージはありません。');
+        expect(getEmailMessages).toHaveBeenCalledTimes(1);
+
+        refreshApex.mockImplementationOnce(async () => { getEmailMessageCount.emit(1); });
+        getEmailMessages.mockResolvedValueOnce({ ...emptyPage, emailMessages: [emailMessages[0]] });
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        await flushPromises();
+
+        expect(element.shadowRoot.textContent).toContain('受信メール');
+        expect(element.shadowRoot.textContent).not.toContain(reloadNotice);
+        expect(getEmailMessages).toHaveBeenCalledTimes(2);
+    });
+
     it('renders an empty state when no email messages exist', async () => {
         const element = createComponent();
 
@@ -447,4 +492,16 @@ describe('処理場所付きエラー表示', () => {
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
+});
+
+it('件数取得後に末尾のメールが消えたら再読み込みを案内する', async () => {
+    const element = createComponent();
+    await emitCountAndPage(3, initialPage);
+    getEmailMessages.mockResolvedValueOnce({ ...emptyPage, paginationCursor, nextIndex: 51 });
+    element.shadowRoot.querySelector('lightning-button:not([data-client-error-dismiss])').click();
+    await flushPromises();
+    await flushPromises();
+    expect(element.shadowRoot.querySelector('lightning-card').title).toBe('メールログ (3)');
+    expect(element.shadowRoot.querySelectorAll('ul.slds-timeline h3 a')).toHaveLength(2);
+    expect(element.shadowRoot.textContent).toContain('件数と一覧が一致していません。');
 });

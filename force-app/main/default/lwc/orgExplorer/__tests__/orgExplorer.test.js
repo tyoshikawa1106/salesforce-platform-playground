@@ -103,6 +103,30 @@ it('ロール未選択では階層ボタンを無効にし、上司モードに�
     await flush();
     expect(element.shadowRoot.querySelector('[data-role-hierarchy-toggle]')).toBeNull();
 });
+it('再接続前のモーダル終了で新しいロール選択を解除しない', async () => {
+    const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '支部', parentKey: 'ROLE:root' };
+    rolePages.mockResolvedValue({ nodes: [rootTarget, child], hasMore: false });
+    let oldSelection;
+    let newSelection;
+    OrgExplorerHierarchyModal.open.mockImplementationOnce(() => new Promise(resolve => { oldSelection = resolve; }))
+        .mockImplementationOnce(() => new Promise(resolve => { newSelection = resolve; }));
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    const open = () => element.shadowRoot.querySelector('[data-hierarchy-direction="children"]').click();
+    open();
+    element.remove();
+    document.body.appendChild(element);
+    await flush();
+    open();
+    oldSelection(child.key);
+    await flush();
+    expect(rolePages).not.toHaveBeenCalledWith({ request: expect.objectContaining({ parentId: 'child' }) });
+    newSelection(child.key);
+    await flush();
+    expect(element.shadowRoot.querySelector('c-org-explorer-search').selectedTarget.targetId).toBe('child');
+});
+
 it('階層一覧で直下ロールを選択すると既存の起点・構造取得へ反映する', async () => {
     const child = { ...rootTarget, key: 'ROLE:child', recordId: 'child', label: '支部', parentKey: 'ROLE:root' };
     const grandchild = { ...child, key: 'ROLE:grandchild', recordId: 'grandchild', label: '係', parentKey: 'ROLE:child' };
@@ -1473,4 +1497,33 @@ it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知�
         expect(element.shadowRoot.querySelector('[data-client-error]')).not.toBeNull();
         expect(log).not.toHaveBeenCalled();
     } finally { log.mockRestore(); }
+});
+
+it('ロールの続きが消えたときは不完全な組織図を表示しない', async () => {
+    rolePages.mockImplementation(({ request }) => Promise.resolve(request.cursor
+        ? { nodes: [], hasMore: false }
+        : { nodes: [rootTarget], hasMore: true, nextCursor: 'next-role' }));
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('続きのロールを取得できませんでした。');
+    expect(element.shadowRoot.querySelector('c-org-explorer-canvas')?.model?.rows ?? []).toHaveLength(0);
+});
+
+it('メンバーの続きが空でも前のページに戻れる', async () => {
+    rolePages.mockImplementation(({ request }) => Promise.resolve(request.scope === 'ROLE_STRUCTURE'
+        ? { nodes: [rootTarget], hasMore: false }
+        : { nodes: request.startIndex ? [] : [user], hasMore: !request.startIndex, paginationCursor: 'members', nextIndex: request.startIndex ? 51 : 50, memberTotalCount: 51 }));
+    const element = createElement('c-org-explorer', { is: OrgExplorer });
+    document.body.appendChild(element);
+    await flush();
+    element.shadowRoot.querySelector('c-org-explorer-canvas').dispatchEvent(new CustomEvent('nodeselect', { detail: { key: rootTarget.key } }));
+    await flush();
+    element.shadowRoot.querySelector('[data-direction="next"]').click();
+    await flush();
+    const details = element.shadowRoot.querySelector('c-org-explorer-details');
+    expect(details.shadowRoot.textContent).toContain('このページに表示できるメンバーはいません。');
+    element.shadowRoot.querySelector('[data-direction="previous"]').click();
+    await flush();
+    expect(details.rows).toHaveLength(1);
 });

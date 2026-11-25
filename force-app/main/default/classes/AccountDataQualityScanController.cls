@@ -76,12 +76,11 @@ public with sharing class AccountDataQualityScanController {
             return new AccountDataQualityScanWrapper(READ_ACCESS_MESSAGE);
         }
         assertCanStartScan();
-        DataQualityScan__c scanRecord;
         try {
             // 利用者が参照できる取引先を固定する Cursor を作成
             Database.Cursor accountCursor = selector.createAccountCursor();
             // Cursor 件数を初期値にした待機中スキャンを作成
-            scanRecord = service.createPendingScan(accountCursor.getNumRecords(), UserInfo.getUserId());
+            DataQualityScan__c scanRecord = service.createPendingScan(accountCursor.getNumRecords(), UserInfo.getUserId());
             // 待機中スキャンを利用者権限で保存
             insert as user scanRecord;
             // Cursor 分割処理を非同期キューへ登録
@@ -93,11 +92,6 @@ public with sharing class AccountDataQualityScanController {
         } catch (AccountDataQualityScanService.ScanException e) {
             throw createAuraHandledException(e.getMessage());
         } catch (Exception e) {
-            if (scanRecord != null && scanRecord.Id != null) {
-                DataQualityScan__c failedScan = service.markFailed(scanRecord, AccountDataQualityScanService.SAFE_FAILURE_MESSAGE);
-                // 開始途中の失敗状態を利用者権限で保存
-                update as user failedScan;
-            }
             throw createAuraHandledException('スキャンを開始できませんでした。権限を確認してもう一度お試しください。');
         }
     }

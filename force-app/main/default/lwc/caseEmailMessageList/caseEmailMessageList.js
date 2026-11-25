@@ -124,10 +124,10 @@ export default class CaseEmailMessageList extends LightningElement {
             if (data !== undefined) {
                 // Apexの整数値をJavaScript数値へ統一
                 this.totalEmailMessageCount = Number(data);
-                // 再取得成功時は以前の全体エラーを解除
-                this.errorMessage = undefined;
                 // 手動再読み込み以外で未取得のCaseだけ初期ページを読み込む
                 if (!this.isRefreshing && this.loadedRecordId !== this.recordId) {
+                    // 件数取得から復旧した場合だけエラーを解除し、一覧の失敗は再試行まで保持
+                    this.errorMessage = undefined;
                     // 別Caseの一覧とページング状態を表示前に破棄
                     Object.assign(this, createEmptyPaginationState());
                     // 新しいCaseの初期ページを待つ状態へ戻す
@@ -230,6 +230,22 @@ export default class CaseEmailMessageList extends LightningElement {
     get hasEmailMessages() {
         // 一覧の要素数をテンプレート用真偽値へ変換
         return this.emailMessages.length > 0;
+    }
+
+    // 一覧が空の場合は、取得済みの総件数に応じて案内を切り替える
+    get showCountMismatch() {
+        // 最終ページまで取得したときだけ、標準カーソルの表示上限内で件数を照合する。
+        return this.hasLoaded && !this.isBusy && !this.hasNextPage &&
+            this.emailMessages.length !== Math.min(this.totalEmailMessageCount, 100000);
+    }
+
+    get emptyListMessage() {
+        // 件数と一覧の再取得が完了してから結果を表示
+        if (!this.hasLoaded || this.isBusy) return '';
+        // 別々に取得した件数と一覧に食い違いがあれば手動更新を案内
+        return this.totalEmailMessageCount > 0
+            ? '件数と一覧が一致していません。「再読み込み」で最新のメールを確認してください。'
+            : 'このケースに紐づくメールメッセージはありません。';
     }
 
     // 取得状態と総件数を反映したカードタイトルを返却

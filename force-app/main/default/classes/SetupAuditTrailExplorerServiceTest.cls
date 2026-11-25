@@ -1,27 +1,10 @@
 @IsTest
 private class SetupAuditTrailExplorerServiceTest {
-    /** 従業員操作を明示した同一の作成者を一度だけ採用する。 */
-    @IsTest
-    static void identifiesOnlyConfirmedEmployeeActors() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            SetupAuditTrail employee = (SetupAuditTrail) JSON.deserialize(JSON.serialize(new Map<String, Object>{
-                'CreatedById' => UserInfo.getUserId(), 'Display' => 'Salesforce 従業員がケースに対応'
-            }), SetupAuditTrail.class);
-            SetupAuditTrail other = (SetupAuditTrail) JSON.deserialize(
-                '{"CreatedById":"005000000000001","Display":"別の操作"}', SetupAuditTrail.class
-            );
-            Test.startTest();
-            List<Id> actors = SetupAuditTrailExplorerService.employeeActorIds(
-                new List<SetupAuditTrail>{employee, employee, other}
-            );
-            Test.stopTest();
-            Assert.areEqual(new List<Id>{UserInfo.getUserId()}, actors, '根拠のある作成者だけを出力に渡します。');
-        }
-    }
+    private static User testUser = new User(Id = UserInfo.getUserId());
 
     @IsTest
     static void includesDistinctSectionOptions() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize('{"Section":"Apex クラス"}', SetupAuditTrail.class);
             Test.startTest();
             SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.summarizeOptions(
@@ -35,10 +18,10 @@ private class SetupAuditTrailExplorerServiceTest {
     /** ログイン名が取得できない作成者も、氏名とIDを候補として返す。 */
     @IsTest
     static void keepsNamedCreatorWithoutUsername() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             String userId = String.valueOf(UserInfo.getUserId());
             SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize(
-                '{"CreatedById":"' + userId + '","CreatedBy":{"attributes":{"type":"User"},"Name":"監査担当"}}',
+                '{"Action":"suOrgAdminLogin","CreatedById":"' + userId + '","CreatedBy":{"attributes":{"type":"User"},"Name":"監査担当"}}',
                 SetupAuditTrail.class
             );
             Test.startTest();
@@ -51,7 +34,7 @@ private class SetupAuditTrailExplorerServiceTest {
 
     @IsTest
     static void rejectsInvalidDay() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             try {
                 SetupAuditTrailExplorerService.checkPeriod(Date.newInstance(2026, 11, 1), Date.newInstance(2026, 12, 1));
                 Assert.fail('対象月と一致しない日付を拒否する必要があります。');
@@ -63,7 +46,7 @@ private class SetupAuditTrailExplorerServiceTest {
 
     @IsTest
     static void rejectsIncompleteCursor() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             try {
                 SetupAuditTrailExplorerService.checkCursor(null, System.now());
                 Assert.fail('日時だけのページ条件を拒否する必要があります。');
@@ -75,9 +58,9 @@ private class SetupAuditTrailExplorerServiceTest {
 
     @IsTest
     static void summarizesPageAndReturnsCursor() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             SetupAuditTrail row = (SetupAuditTrail) JSON.deserialize(
-                '{"CreatedDate":"2026-11-01T00:00:00.000Z","Action":"PermSetCreate","CreatedBy":{"attributes":{"type":"User"},"UserType":"AutomatedProcess"}}', SetupAuditTrail.class
+                '{"CreatedDate":"2026-11-01T00:00:00.000Z","Action":"suOrgAdminLogin","CreatedById":"005000000000001"}', SetupAuditTrail.class
             );
             List<SetupAuditTrail> rows = new List<SetupAuditTrail>{row, row, row};
             SetupAuditTrailExplorerService.checkCursor(null, null);
@@ -89,7 +72,6 @@ private class SetupAuditTrailExplorerServiceTest {
             Assert.isNotNull(midnight, '日付を検索境界に変換します。');
             Assert.areEqual(row.CreatedDate, result.nextTime, '次のページの境界を返します。');
             Assert.areEqual(1, result.buckets.size(), '同じ操作を一つに集計します。');
-            Assert.areEqual('AutomatedProcess', result.buckets[0].userType, '作成者種別を集計後も判別できます。');
             Assert.areEqual(2, result.buckets[0].count, '次ページの行を集計から除きます。');
             Assert.areEqual(2, detail.records.size(), '一覧用の明細を返します。');
         }
@@ -97,7 +79,7 @@ private class SetupAuditTrailExplorerServiceTest {
 
     @IsTest
     static void keepsSourceCursorAcrossEmptySectionPage() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             SetupAuditTrail other = (SetupAuditTrail) JSON.deserialize(
                 '{"Id":"0Ym000000000001","CreatedDate":"2026-11-01T00:00:00.000Z","Section":"Apps"}', SetupAuditTrail.class
             );
@@ -117,28 +99,34 @@ private class SetupAuditTrailExplorerServiceTest {
     /** 文字数上限ちょうどの行を含め、その行の日時とIDを次ページの境界に使う */
     @IsTest
     static void capsCsvPagesWithoutDroppingTheNextCursor() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(testUser) {
             List<SetupAuditTrail> rows = (List<SetupAuditTrail>) JSON.deserialize(
-                '[{"Id":"0Ym000000000003","CreatedDate":"2026-11-01T00:02:00.000Z","Display":"変更"},' +
+                '[{"Id":"0Ym000000000003","CreatedDate":"2026-11-01T00:02:00.000Z","Action":"A","Display":"更"},' +
                 '{"Id":"0Ym000000000002","CreatedDate":"2026-11-01T00:01:00.000Z","Section":"設定"},' +
                 '{"Id":"0Ym000000000001","CreatedDate":"2026-11-01T00:00:00.000Z","Display":"次"}]',
                 List<SetupAuditTrail>.class
             );
             SetupAuditTrail boundary = rows[1];
-            rows.add(new SetupAuditTrail());
-            Iterator<SObject> cursor = rows.iterator();
+            SetupAuditTrailExplorerService.CsvPage textPage = new SetupAuditTrailExplorerService.CsvPage(3);
+            textPage.textBudget = 4;
+            SetupAuditTrailExplorerService.CsvPage smallPage = new SetupAuditTrailExplorerService.CsvPage(3);
+            smallPage.textBudget = 1;
+            SetupAuditTrailExplorerService.CsvPage countPage = new SetupAuditTrailExplorerService.CsvPage(2);
 
             Test.startTest();
-            SetupAuditTrailExplorerWrapper result = SetupAuditTrailExplorerService.collectCsvPage(cursor, 3, 4);
-            SetupAuditTrailExplorerWrapper oversized = SetupAuditTrailExplorerService.collectCsvPage(rows.iterator(), 3, 1);
-            SetupAuditTrailExplorerWrapper counted = SetupAuditTrailExplorerService.summarizeCsv(rows.iterator(), 2);
+            Assert.isTrue(textPage.append(new List<SetupAuditTrail>{rows[0]}));
+            Assert.isFalse(textPage.append(new List<SetupAuditTrail>{rows[1], rows[2]}));
+            Assert.isFalse(smallPage.append(rows));
+            Assert.isFalse(countPage.append(rows));
             Test.stopTest();
 
+            SetupAuditTrailExplorerWrapper result = textPage.result;
+            SetupAuditTrailExplorerWrapper oversized = smallPage.result;
+            SetupAuditTrailExplorerWrapper counted = countPage.result;
             Assert.areEqual(1, oversized.records.size(), '先頭行だけで文字数を超えた場合も出力を進めます。');
             Assert.areEqual(rows[0].Id, oversized.nextId, '超過した先頭行の次から再開します。');
             Assert.areEqual(2, counted.records.size(), '文字数に余裕があっても件数上限で区切ります。');
             Assert.areEqual(boundary.Id, counted.nextId, '件数で区切った場合も次の行を失いません。');
-            Assert.isTrue(cursor.hasNext(), '文字数上限を超えた後の行は読み取りません。');
             Assert.areEqual(2, result.records.size(), '4文字に収まる2行までを返します。');
             Assert.areEqual(boundary.Id, result.nextId, '最後に出力した行のIDから再開します。');
             Assert.areEqual(boundary.CreatedDate, result.nextTime, '最後に出力した行の日時から再開します。');
@@ -147,9 +135,11 @@ private class SetupAuditTrailExplorerServiceTest {
 
     @IsTest
     static void permitsFullCsvPageWhenBelowBudget() {
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            List<SObject> rows = new List<SObject>{new SetupAuditTrail(), new SetupAuditTrail()};
-            SetupAuditTrailExplorerWrapper page = SetupAuditTrailExplorerService.summarizeCsv(rows.iterator(), 2);
+        System.runAs(testUser) {
+            List<SetupAuditTrail> rows = new List<SetupAuditTrail>{new SetupAuditTrail(), new SetupAuditTrail()};
+            SetupAuditTrailExplorerService.CsvPage complete = new SetupAuditTrailExplorerService.CsvPage(2);
+            Assert.isTrue(complete.append(rows));
+            SetupAuditTrailExplorerWrapper page = complete.result;
             Assert.areEqual(2, page.records.size(), '件数上限ちょうどの全行を出力します。');
             Assert.isNull(page.nextTime, '続きがなければカーソルを返しません。');
         }

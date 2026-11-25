@@ -36,9 +36,12 @@ Determine which approach based on user request:
 
 ### 2. Verify Dev Hub authentication
 
-Check if Dev Hub is authenticated:
+Check if Dev Hub is authenticated (this mirrors the canonical Step 2 in `SKILL.md` — follow that as the source of truth):
 - If `--target-dev-hub` not provided, check `sf config get target-dev-hub`
-- If no Dev Hub configured, prompt user to authenticate: `sf org login web --set-default-dev-hub`
+- If that is empty, enumerate every `sf org list --json` bucket (`devHubs`, `nonScratchOrgs`, `other`, `sandboxes`, `scratchOrgs`) for entries with `isDevHub: true`, then resolve by count:
+  - **Exactly one** → use that username.
+  - **Two or more** → ask the user which one; never pick arbitrarily.
+  - **Zero** → no hub is authenticated. Do NOT run `sf org create` (there is nothing to pass to `--target-dev-hub`). Stop and advise the user to authenticate: `sf org login web --set-default-dev-hub`.
 
 ### 3. Build the command
 
@@ -68,7 +71,7 @@ sf org create scratch --source-org <id> --target-dev-hub <alias> --alias <name> 
 - `--duration-days <days>` — Set expiration (default 7, max 30)
 - `--set-default` — Make this the default org
 - `--no-track-source` — Disable source tracking for CI/CD performance
-- `--wait <minutes>` — Wait for completion (default 5 minutes, min 2)
+- `--wait <minutes>` — Number of minutes to wait for the org to be ready
 - `--async` — Return immediately, don't wait for completion
 
 **⚠️ CRITICAL: This is a BLOCKING command**
@@ -138,7 +141,7 @@ This JSON response means: org is created, authenticated, and ready for `sf org o
 | `Snapshot not found` | Snapshot doesn't exist in this Dev Hub — run `sf org list snapshot` to see available |
 | `sourceOrg value must be 15 or 18 characters` | Org shape ID format incorrect — use output from `sf org list shape` |
 | `The org could not be created` | Generic creation failure — check Dev Hub limits, licensing, or try again |
-| Timeout during creation (exit code 69) | Command timed out waiting for org. CLI displays the resume command with Request ID. User can run the displayed command or increase `--wait` time (min 2 minutes) for next attempt |
+| Timeout during creation (exit code 69) | Command timed out waiting for org. CLI displays the resume command with Request ID. User can run the displayed command or increase `--wait` time for next attempt |
 | `Definition file not found` | Path to definition file is incorrect — verify file exists |
 | Partner editions unavailable | Partner editions only work if Dev Hub is a Partner Business Org |
 

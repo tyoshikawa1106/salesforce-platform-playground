@@ -1,0 +1,87 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "usage",
+    "wsdl_segment",
+    "field_reference"
+  ],
+  "title": "EntitySubscription - Data API",
+  "description": "Represents a subscription for a user following a record or another user. This object is available in API version 34.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "relationship_type",
+    "refers_to"
+  ],
+  "fields": {
+    "NetworkId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Nillable, Sort",
+      "description": "ID of the Experience Cloud site where the user is following the record or user. This field is available in API version 26.0 and later, if digital experiences is enabled for your org."
+    },
+    "ParentId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort",
+      "description": "ID of the record or user which the user is following. This is a polymorphic relationship field.",
+      "relationship_name": "Parent",
+      "relationship_type": "Lookup",
+      "refers_to": "Account, Accreditation, ActivationTarget, ActivationTrgtIntOrgAccess, ApiAnomalyEventStore, AssessmentIndicatorDefinition, AssessmentTask, AssessmentTaskContentDocument, AssessmentTaskDefinition, AssessmentTaskIndDefinition, AssessmentTaskOrder, Asset, AssetRelationship, AssignedResource, Award, BoardCertification, BusinessLicense, BusinessMilestone, BusinessProfile, Campaign, CareBarrier, CareBarrierDeterminant, CareBarrierType, CareDeterminant, CareDeterminantType, CareDiagnosis, CareInterventionType, CareMetricTarget, CareObservation, CareObservationComponent, CarePgmProvHealthcareProvider, CarePreauth, CarePreauthItem, CareProgram, CareProgramCampaign, CareProgramEligibilityRule, CareProgramEnrollee, CareProgramEnrolleeProduct, CareProgramEnrollmentCard, CareProgramGoal, CareProgramProduct, CareProgramProvider, CareProgramTeamMember, CareProviderAdverseAction, CareProviderFacilitySpecialty, CareProviderSearchableField, CareRegisteredDevice, CareRequest, CareRequestDrug, CareRequestExtension, CareRequestItem, CareSpecialty, CareSpecialtyTaxonomy, CareTaxonomy, Case, CodeSet, CollaborationGroup, CommSubscription, CommSubscriptionChannelType, CommSubscriptionConsent, CommSubscriptionTiming, ConsumptionSchedule, Contact, ContactEncounter, ContactEncounterParticipant, ContentDocument, Contract, CoverageBenefit, CoverageBenefitItem, CredentialStuffingEventStore, CreditMemo, CreditMemoLine, Dashboard, DashboardComponent, DataStream, DelegatedAccount, DocumentChecklistItem, EngagementChannelType, EnhancedLetterhead, EnrollmentEligibilityCriteria, Event, HealthcareFacility, HealthcareFacilityNetwork, HealthcarePayerNetwork, HealthcarePractitionerFacility, HealthcareProvider, HealthcareProviderNpi, HealthcareProviderSpecialty, HealthcareProviderTaxonomy, Identifier, Image, IndividualApplication, Invoice, InvoiceLine, Lead, Location, MarketSegment, MarketSegmentActivation, MemberPlan, MessagingSession, MktCalculatedInsight, OperatingHours, Opportunity, Order, OrderItem, OtherComponentTask, PartyConsent, PersonEducation, PersonLanguage, PersonLifeEvent, PersonName, PlanBenefit, PlanBenefitItem, Product2, ProductFulfillmentLocation, ProductItem, ProductItemTransaction, ProductRequest, ProductRequestLineItem, ProductRequired, ProductTransfer, ProfileSkill, ProfileSkillEndorsement, ProfileSkillUser, ProviderSearchSyncLog, PurchaserPlan, PurchaserPlanAssn, ReceivedDocument, Report, ReportAnomalyEventStore, ResourceAbsence, ResourcePreference, ReturnOrder, ReturnOrderLineItem, ServiceAppointment, ServiceResource, ServiceResourceSkill, ServiceTerritory, ServiceTerritoryMember, ServiceTerritoryWorkType, SessionHijackingEventStore, Shift, Shipment, ShipmentItem, Site, SkillRequirement, SocialPost, Solution, Task, ThreatDetectionFeedback, Topic, User, Visit, VisitedParty, Visitor, VoiceCall, VolunteerProject, WorkBadgeDefinition, WorkOrder, WorkOrderLineItem, WorkType, WorkTypeGroup, WorkTypeGroupMember",
+      "required": true
+    },
+    "SubscriberId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort",
+      "description": "ID of the user who is following the record or user. This is a relationship field.",
+      "relationship_name": "Subscriber",
+      "relationship_type": "Lookup",
+      "refers_to": "User",
+      "required": true
+    }
+  },
+  "usage": "Consider this when following records and users: If you deactivate a user, any EntitySubscription where the user is associated with the ParentId or SubscriberId field, meaning all subscriptions both to and from the user, are soft deleted. If the user is reactivated, the subscriptions are restored. However, if you deactivate multiple users at once and these users follow each other, their subscriptions are hard deleted. In this case, the user-to-user EntitySubscription is deleted twice (double deleted). Such subscriptions can’t be restored upon user reactivation. When using query() with EntitySubscription,\n\n- Users can only follow records that they can see.\n- Users can see which records other users are following, unless they don’t have access to the records.\n- Administrators and users with the “Modify All Data” permission can configure a user to follow records that the user has read access to.\n- Administrators and users with the “Modify All Data” permission can configure users to stop following records.\n- Following topics is available in API version 29.0 and later. For this reason, a topic ID is now a supported value for the ParentId field.\n\n- Note the following SOQL restriction. No SOQL limit if logged-in user has “View All Data” permission. If not, specify a LIMIT clause of 1,000 records or fewer.\n- A query using a WHERE clause can only filter by fields on the EntitySubscription object.\n- If user sharing is enabled and the querying user is not an administrator, a SOQL query must be constrained either by the ParentId or SubscriberId. Otherwise, the query behavior at run time is undefined, meaning the result set can be incomplete or inconsistent from invocation to invocation. For an unconstrained query, the sharing check limits imposed on a non-adminstrative user are likely to be exceeded before the query completes, because access checks are run against both parent and subject, for each row of the result set. We recommend using the Connect REST API to query EntitySubscription data instead of running a SOQL query.\n- Users without the “View All Data” permission Need read access on the object associated with the ParentId field to see which users are following records for the object. Can use an ORDER BY clause in a query only to order by fields on the EntitySubscription object. For example, if the subscription relates to an Account record, the query can ORDER BY ParentId, but it can’t ORDER BY Account.Name. Don’t always get all matching subscriptions when running a query. For these users, a query evaluates visibility criteria on a maximum of 500 records to reduce the prospect of long-running queries. If a user runs a query to see the CEO's subscriptions, it might scan a large number of records. The query only returns matches within the first 500 records scanned. It is possible that there are more subscriptions that are visible to the user, but they are not returned. To mitigate this, we recommend using a WHERE clause, if possible, to reduce the scope of the query.\n\n- Need read access on the object associated with the ParentId field to see which users are following records for the object.\n- Can use an ORDER BY clause in a query only to order by fields on the EntitySubscription object. For example, if the subscription relates to an Account record, the query can ORDER BY ParentId, but it can’t ORDER BY Account.Name.\n- Don’t always get all matching subscriptions when running a query. For these users, a query evaluates visibility criteria on a maximum of 500 records to reduce the prospect of long-running queries. If a user runs a query to see the CEO's subscriptions, it might scan a large number of records. The query only returns matches within the first 500 records scanned. It is possible that there are more subscriptions that are visible to the user, but they are not returned. To mitigate this, we recommend using a WHERE clause, if possible, to reduce the scope of the query.",
+  "wsdl_segment": "```xml\n<complexType name=\"EntitySubscription\">\n  <complexContent>\n    <extension base=\"ens:sObject\">\n      <sequence>\n        <element name=\"CreatedBy\" nillable=\"true\" minOccurs=\"0\" type=\"ens:sObject\"/>\n        <element name=\"CreatedById\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"CreatedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"IsDeleted\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:boolean\"/>\n        <element name=\"Parent\" nillable=\"true\" minOccurs=\"0\" type=\"ens:sObject\"/>\n        <element name=\"ParentId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"Subscriber\" nillable=\"true\" minOccurs=\"0\" type=\"ens:User\"/>\n        <element name=\"SubscriberId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n      </sequence>\n    </extension>\n  </complexContent>\n</complexType>\n<simpleType name=\"ID\">\n  <restriction base=\"xsd:string\">\n    <length value=\"18\"/>\n    <pattern value=\"[a-zA-Z0-9]{18}\"/>\n  </restriction>\n</simpleType>\n```",
+  "field_reference": {
+    "CreatedById": {
+      "field_label": "Created By ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "CreatedDate": {
+      "field_label": "Created Date",
+      "type": "datetime"
+    },
+    "Id": {
+      "field_label": "Entity Subscription ID",
+      "type": "id",
+      "length": "18"
+    },
+    "IsDeleted": {
+      "field_label": "Deleted",
+      "type": "boolean"
+    },
+    "NetworkId": {
+      "field_label": "Network ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "ParentId": {
+      "field_label": "Parent ID",
+      "type": "reference",
+      "length": "18"
+    },
+    "SubscriberId": {
+      "field_label": "Subscriber ID",
+      "type": "reference",
+      "length": "18"
+    }
+  },
+  "field_reference_columns": [
+    "field_label",
+    "type",
+    "length"
+  ]
+}

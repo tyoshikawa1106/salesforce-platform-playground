@@ -1,3 +1,4 @@
+import { getApexMessage, reduceErrors } from 'c/salesforceApiUtils';
 import { recordLog } from 'c/lwcLoggerUtils';
 import { LightningElement } from 'lwc';
 import getApiAuthentication from '@salesforce/apex/ObjectExplorerController.getApiAuthentication';
@@ -9,6 +10,7 @@ import timeZone from '@salesforce/i18n/timeZone';
 import hasModifyDataClassification from '@salesforce/userPermission/ModifyDataClassification';
 import hasCustomizeApplication from '@salesforce/userPermission/CustomizeApplication';
 import LightningConfirm from 'lightning/confirm';
+import CsvExportModal from 'c/setupAuditTrailExportModal';
 import getClassifyData from '@salesforce/apex/ObjectExplorerController.getClassifyData';
 import saveClassifyData from '@salesforce/apex/ObjectExplorerController.saveClassifyData';
 import searchClassifyOwners from '@salesforce/apex/ObjectExplorerController.searchClassifyOwners';
@@ -16,10 +18,33 @@ import resolveClassifyOwners from '@salesforce/apex/ObjectExplorerController.res
 import searchObjects from '@salesforce/apex/ObjectExplorerController.searchObjects';
 import getObjectInfo from '@salesforce/apex/ObjectExplorerController.getObjectInfo';
 import getFieldAudit from '@salesforce/apex/ObjectExplorerController.getFieldAudit';
-import { CLASSIFY_CSV_LIMITS, apiDiagnosticCode, classifySaveErrors, clientErrorDetails, classifyOwnerBatches, mergeClassifyOwners, classifyCsv, structureCsv, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
+import { CLASSIFY_CSV_LIMITS, apiDiagnosticCode, classifySaveErrors, clientErrorDetails, classifyOwnerBatches, mergeClassifyOwners, csvFields, csvParts, csvFileName, readClassifyCsv, applyClassifyCsv, structureFieldView, fieldListView, classifySummary, visibleRelations, buildRelationBoard, classifyBatches, applyClassifyBatch, classifyFieldView, createClassifyEdits, classifyChanges, createOwnerOptions, classifyInput, objectOptionWindow, objectOptionScrollTop, objectOptionStart } from './objectExplorerLogic';
 
 // 固定ヘッダー内で一度に表示する項目数
 const FIELD_PAGE_SIZE = 400;
+
+// 各グループの描画後に次の明細を作成し、取消済みのファイルは返さない。
+function buildCsvBlob(groups, current, progress) {
+    // 完了したグループのテキストだけを保持する。
+    const parts = [];
+    // 描画を挟むことで進捗の読み上げとキャンセル操作を受け付ける。
+    function appendNext() {
+        // キャンセル後は次のグループもファイルも作成しない。
+        if (!current()) return undefined;
+        // 次のグループを必要になった時点で整形する。
+        const { value, done } = groups.next();
+        // 全件を処理した場合だけブラウザへ渡せるファイルにする。
+        if (done) return new Blob(parts, { type: 'text/plain' });
+        // 見出しを含むCSVテキストを順番に保持する。
+        parts.push(value.text);
+        // 見出しを除いた累積明細数を通知する。
+        progress(value.count);
+        // 次の描画で出力の継続可否を再確認する。
+        return new Promise(requestAnimationFrame).then(appendNext);
+    }
+    // 先頭の見出しから作成を開始する。
+    return appendNext();
+}
 
 // 起点の探索と選択オブジェクトの詳細を制御
 export default class ObjectExplorer extends LightningElement {
@@ -106,6 +131,10 @@ export default class ObjectExplorer extends LightningElement {
         // 確認中・保存中・未認証の重複操作を受け付けない
         if (!this.apiAuthenticationReady || this.apiAuthenticationDisabled || this.saving) return;
         // 確認を表示している間も画面操作と二重実行を止める
+        const version = this.connectionVersion;
+        // 離脱時に確認待ちだけを解除可能にする。
+        this.pendingInput = 'revoke';
+        // 確認待ちの二重操作を止める。
         this.busy = true;
         // 確認画面の失敗と解除要求後の結果不明を区別する
         let submitted = false;
@@ -116,13 +145,15 @@ export default class ObjectExplorer extends LightningElement {
             // 標準の確認ダイアログで本人の意思を確認する
             const confirmed = await LightningConfirm.open({ label: '認証解除', message, theme: 'warning' });
             // キャンセルや画面終了後は資格情報を変更しない
-            if (!confirmed || !this.componentConnected) return;
+            if (!confirmed || version !== this.connectionVersion || !this.componentConnected) return;
             // ここから先の通信失敗では解除済みかどうかを断定しない
             submitted = true;
             // 実行ユーザー本人の固定した資格情報だけを解除する
+            this.pendingInput = undefined;
+            // 送信済みの解除と再接続後の状態取得の順序を固定する。
+            this.revokePending = true;
+            // 本人の資格情報だけを解除する。
             await revokeApiAuthentication();
-            // 解除待機中に終了した画面へ結果を反映しない
-            if (!this.componentConnected) return;
             // 旧対象へ返る非同期応答を無効化する
             this.detailSequence += 1;
             // 分類の古い読取結果も破棄する
@@ -139,24 +170,34 @@ export default class ObjectExplorer extends LightningElement {
             this.apiAuthenticationStatus = 'CHECKING';
             this.apiAuthenticationMessage = '';
             this.apiAuthenticationUrl = '';
-            // 標準APIの状態から認証案内と新しい認証URLを取得する
-            await this.refreshApiAuthentication();
+
         } catch (error) {
             // 通信失敗を解除成功とも解除失敗とも断定しない
-            if (this.componentConnected && submitted) {
+            if (submitted) {
                 // 状態が不明な間は操作領域を表示しない
                 this.apiAuthenticationStatus = 'UNAVAILABLE';
                 this.apiAuthenticationUrl = '';
                 // 元の例外や資格情報を表示しない固定案内を使用する
                 this.apiAuthenticationMessage = 'API認証の解除結果を確認できませんでした。画面を再読み込みして確認してください。';
-            } else if (this.componentConnected) {
+            } else if (version === this.connectionVersion && this.componentConnected) {
                 // 確認の失敗では認証状態や未保存入力を変更しない
                 this.reportClientError(error, 'handleApiAuthenticationRevoke', 'confirmation');
             }
+            // 結果不明や確認失敗では自動で認証確認を再送しない。
+            return;
         } finally {
             // キャンセルや例外でも操作中状態を解除する
-            this.busy = false;
+            if (submitted || version === this.connectionVersion) {
+                // 現在の確認または送信済みの要求だけがロックを解放する。
+                this.pendingInput = undefined;
+                // ロック解除後は接続時の認証確認を許可する。
+                this.revokePending = false;
+                // 新しい操作を受け付ける。
+                this.busy = false;
+            }
         }
+        // 解除が完了してから現在の接続で認証状態を再確認する。
+        if (this.componentConnected) this.apiAuthenticationPromise = this.refreshApiAuthentication();
     }
     // エラー時だけ処理場所を表示し、通常の操作では診断表示を出さない
     clientError;
@@ -180,14 +221,18 @@ export default class ObjectExplorer extends LightningElement {
     }
     // DOMプロパティの公開範囲に依存せず画面の接続状態を管理
     componentConnected = false;
+    // 確認・取込中の離脱では、その操作が保持するロックだけを解放する。
+    pendingInput;
+    // 解除を送信した後は結果の確定まで再接続時の認証確認を待つ。
+    revokePending = false;
     // 確認と分割保存を開始した画面接続を識別する
-    saveOperationVersion = 0;
+    connectionVersion = 0;
     // LWCの標準ライフサイクルで画面の利用開始を記録
     connectedCallback() {
         // 画面が有効な間だけ保存確認や非同期応答を受け付ける
         this.componentConnected = true;
         // 初回は認証状態を確認し、未選択のオブジェクトを自動選択しない
-        this.apiAuthenticationPromise = this.refreshApiAuthentication();
+        if (!this.revokePending) this.apiAuthenticationPromise = this.refreshApiAuthentication();
     }
     // 初期状態は参照専用
     mode = 'reference';
@@ -262,6 +307,8 @@ export default class ObjectExplorer extends LightningElement {
     candidateView = objectOptionWindow([], -1, 0);
     // 候補取得中と該当なしを区別
     candidatesBusy = false;
+    // 候補取得のエラーを構造取得のエラーから独立して管理
+    candidateError;
     // 項目ラベルとAPI名に共通の検索語を保持
     fieldSearch = '';
     // 新しい選択の一覧を描画後に案内
@@ -418,8 +465,25 @@ export default class ObjectExplorer extends LightningElement {
         try {
             // 確認待ちや非同期応答が残っていても終了済み画面では保存しない
             this.componentConnected = false;
+            // 前の画面で開始した出力は再接続しても保存しない。
+            this.exportController?.abort();
+            // 再接続後の新しい出力を許可する。
+            this.exportController = undefined;
+            // 保存に使用した一時URLを解放する。
+            this.releaseDownload();
             // 復帰後も離脱前の確認・認証待ち・保存応答を無効にする
-            this.saveOperationVersion += 1;
+            this.connectionVersion += 1;
+            // 確認待ち・CSV読取中の画面ロックを次の接続へ持ち越さない。
+            if (this.pendingInput) {
+                // 前の取込進捗を終了し、未保存入力は維持する。
+                if (this.pendingInput === 'import') this.classifyNotice = '';
+                // 新しい確認・取込を開始できる状態へ戻す。
+                this.pendingInput = undefined;
+                // 保存など他の操作が所有するロックには触れない。
+                this.busy = false;
+            }
+            // 送信済みの解除に先行して認証済み画面を再表示しない。
+            if (this.revokePending) this.apiAuthenticationStatus = 'CHECKING';
             // 古い保存が復帰後の操作をロックし続けないよう終了する
             if (this.saving) {
                 // 送信済み要求は完了し得るため、古い分類を保存基準にしない
@@ -544,7 +608,7 @@ export default class ObjectExplorer extends LightningElement {
             // 取得失敗の処理場所をこの画面内へ表示
             this.reportClientError(error, 'loadRoot', 'object-info');
             // Apexの公開メッセージだけを表示
-            this.error = error.body?.message || 'オブジェクト構造を取得できませんでした。';
+            this.error = getApexMessage(error, 'オブジェクト構造を取得できませんでした。');
         } finally {
             // 成功・失敗のどちらでも確定した図の表示へ戻す
             this.rootLoading = false;
@@ -569,7 +633,7 @@ export default class ObjectExplorer extends LightningElement {
             audit = await getFieldAudit({ objectName: data.apiName });
         } catch (error) {
             // 認証・監査情報の取得箇所を識別
-            const message = error.body?.message || '項目の作成・更新情報を取得できませんでした。API連携設定と権限を確認してください。';
+            const message = getApexMessage(error, '項目の作成・更新情報を取得できませんでした。API連携設定と権限を確認してください。');
             // 項目一覧を開いていなくても安全な失敗理由を表示
             this.reportClientError(error, 'readObjectInfo', 'field-audit', message);
             // 構造の閲覧は継続し、情報未取得を成功と見せない
@@ -723,9 +787,11 @@ export default class ObjectExplorer extends LightningElement {
             this.reportClientError(error, 'handleCandidateScroll', 'ui-event');
         }
     }
-    async handleClearObject() {
+    async handleClearObject(event) {
         // 画面イベントの例外をコンポーネント外へ伝播させない
         try {
+            // モード切替による初期化と、ルックアップ自身からの解除を区別する。
+            const lookup = event?.currentTarget;
             // 取得や保存の途中では適用対象を変更しない
             if (this.busy) { return false; }
             // 確認中に別の対象へ切り替わった場合は解除しない
@@ -771,6 +837,11 @@ export default class ObjectExplorer extends LightningElement {
             this.error = '';
             // 関連・項目・変更件数を空の対象に同期
             this.rebuild();
+            // 解除前の読み取り専用欄が検索欄に置き換わってからフォーカスを戻す。
+            if (lookup) {
+                await Promise.resolve();
+                lookup.focusSearchInput();
+            }
             // 呼び出し元は対象の解除が確定した場合だけ種別を変更
             return true;
 
@@ -802,6 +873,8 @@ export default class ObjectExplorer extends LightningElement {
     }
     // 標準・カスタムを区別せず検索語から候補を取得
     async searchCandidates(allowEmpty = false) {
+        // 前回の候補検索の失敗だけを解除
+        this.candidateError = undefined;
         // 新しい検索要求では以前のエラー位置を消す
         this.clientError = undefined;
         // 対象未指定の空欄や空白だけの入力で候補を自動表示しない
@@ -832,7 +905,9 @@ export default class ObjectExplorer extends LightningElement {
             // 検索先の失敗を空候補として扱わない
             this.reportClientError(error, 'searchCandidates', 'searchObjects');
             // 空の検索結果と取得失敗を区別
-            this.error = 'オブジェクト候補を取得できませんでした。';
+            this.candidateError = 'オブジェクト候補を取得できませんでした。';
+            // 取得失敗を候補0件として表示せず、クリックで再試行可能にする
+            this.closeCandidates();
         } finally {
             // 最新検索の取得中表示だけを解除
             if (sequence === this.searchSequence) { this.candidatesBusy = false; }
@@ -938,7 +1013,7 @@ export default class ObjectExplorer extends LightningElement {
                 // 有効な要求の失敗だけを診断表示
                 this.reportClientError(error, 'handleCard', 'object-info');
                 // 表示できない理由を通知
-                this.error = error.body?.message || '詳細を取得できませんでした。';
+                this.error = getApexMessage(error, '詳細を取得できませんでした。');
             } finally {
                 // 現在の要求の終了時だけ読み込み表示を解除
                 if (sequence === this.detailSequence) { this.busy = false; }
@@ -1108,15 +1183,21 @@ export default class ObjectExplorer extends LightningElement {
         // 変更がなければ確認せず遷移
         if (!this.changeCount && !this.inputErrorCount) { this.classifyEdits = {}; return true; }
         // 破棄確認の表示失敗でも遷移や未保存入力の破棄を行わない
+        const version = this.connectionVersion;
+        // 確認結果が戻った時に同じ画面か照合する。
         try {
             // 破棄を明示的に選んだ場合だけ移動
             const confirmed = await LightningConfirm.open({ message: '未保存のデータ分類があります。変更を破棄して移動しますか？', label: '未保存の変更', theme: 'warning' });
             // キャンセル時は入力を維持
+            if (version !== this.connectionVersion) return false;
+            // 現在の画面の同意だけを編集状態へ反映する。
             if (confirmed) { this.classifyEdits = {}; this.refreshClassifySummary(); }
             // 呼び出し元で遷移を判断
             return confirmed;
         } catch (error) {
             // 確認画面の失敗箇所を表示し、既存の画面を維持
+            if (version !== this.connectionVersion) return false;
+            // 現在の確認で発生した失敗を表示する。
             this.reportClientError(error, 'confirmDiscard', 'confirmation');
             // 表示失敗を破棄への同意として扱わない
             return false;
@@ -1185,7 +1266,7 @@ export default class ObjectExplorer extends LightningElement {
             // 分類取得と画面モデルの生成失敗を識別
             this.reportClientError(error, 'loadClassifyData', 'classify-data');
             // 取得できなかった情報を未設定値として扱わない
-            this.classifyNotice = error.body?.message || 'データ分類を取得できませんでした。';
+            this.classifyNotice = getApexMessage(error, 'データ分類を取得できませんでした。');
         }
     }
     // 選択候補を行の高さに影響しない領域へ表示
@@ -1356,7 +1437,7 @@ export default class ObjectExplorer extends LightningElement {
             // 入力と選択値は維持し、失敗した候補の状態だけを解除
             this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...state, ownerQuery: undefined, ownerLoading: false, ownerOpen: false, ownerActive: -1 } };
             // 検索に失敗した理由を通知
-            this.classifyNotice = error.body?.message || '所有者候補を取得できませんでした。';
+            this.classifyNotice = getApexMessage(error, '所有者候補を取得できませんでした。');
         }
     }
     // 候補を押しても検索入力からフォーカスを失わせない
@@ -1387,17 +1468,22 @@ export default class ObjectExplorer extends LightningElement {
         }
     }
     // 選択解除も所有者IDの明示的な変更として保持
-    handleOwnerClear(event) {
+    async handleOwnerClear(event) {
         // 画面イベントの例外をコンポーネント外へ伝播させない
         try {
             // 操作した行だけを特定
             const apiName = event.currentTarget.dataset.field;
             // 保存中と権限不足の操作は受け付けない
             if (!this.canEditClassifyData || this.busy || !this.classifyEdits[apiName]) { return; }
+            // 再描画で解除ボタンが消える前に、同じ行の所有者欄を保持する。
+            const lookup = event.currentTarget.closest('.c-owner-lookup');
             // IDと表示名を一緒に解除して古い検索応答を無効化
             this.classifyEdits = { ...this.classifyEdits, [apiName]: { ...this.classifyEdits[apiName], owner: { value: '', label: '' }, ownerSearch: '', ownerOpen: false, ownerActive: -1, ownerRequest: ++this.ownerSequence, inputErrors: { ...this.classifyEdits[apiName].inputErrors, owner: '' }, error: '' } };
             // 値または入力エラーの変更を保存可否へ反映
             this.refreshClassifySummary();
+            // 読み取り専用欄が空の検索欄に切り替わった後、次の入力を受け付ける。
+            await Promise.resolve();
+            lookup.querySelector('input:not([readonly])')?.focus();
 
         } catch (error) {
             // 処理名を付けてこの画面内へエラーを表示
@@ -1481,65 +1567,88 @@ export default class ObjectExplorer extends LightningElement {
             this.reportClientError(error, 'handleOwnerSelect', 'ui-event');
         }
     }
-    // モードごとの全項目CSVを確認後に出力
-    async handleExportCsv() {
-        // 画面イベントの例外をコンポーネント外へ伝播させない
-        try {
-            // 分類未取得・保存中・未確定入力の値を出力しない
-            if (this.csvExportDisabled) { return; }
-            // 確認中の対象やモード変更を別のCSV出力へ混在させない
-            const detail = this.detail;
-            // 表示モードに応じたCSVの種類を固定
-            const mode = this.mode;
-            // 利用者がOKを選択した場合だけファイルを生成
-            const confirmed = await LightningConfirm.open({ label: 'CSVダウンロード', message: `${detail.label} (${detail.apiName})の全項目をCSV出力しますか？`, theme: 'info' });
-            // キャンセル・対象変更・保存開始時は出力を中止
-            if (!confirmed || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
-            // 構造CSVには出力時点の保存済み分類を追加
-            let classification = this.classifyData;
-            // 閲覧用の分類取得を使い、編集権限や未保存の入力へ依存しない
-            if (mode === 'reference') {
-                // 分類取得中の重複操作と対象変更を防ぐ
-                this.busy = true;
-                try {
-                    // 取得失敗時は外側の例外処理へ渡し、不完全なCSVをダウンロードしない
-                    const result = await getClassifyData({ objectName: detail.apiName });
-                    // 分類一覧の編集状態とは分けて保存済み値を保持
-                    classification = result.rows;
-                } finally {
-                    // 取得成功・失敗とも操作を再開
-                    this.busy = false;
-                }
-                // 非同期取得中に終了した画面や別対象の結果を出力しない
-                if (!this.componentConnected || this.detail !== detail || this.mode !== mode || this.csvExportDisabled) { return; }
-            }
-            // 項目定義と分類で出力列を分け、どちらも一覧の全件を対象にする
-            const text = this.isReference ? structureCsv(detail.fields, locale, timeZone, classification) : classifyCsv(detail.apiName, detail.fields, this.classifyData, this.classifyEdits, detail.label);
-            // CSVはSalesforce Filesへアップロードせずローカルへ保存
-            const blob = new Blob([text], { type: 'text/plain' });
-            // メモリ上のファイルだけをダウンロード対象へ指定
-            const url = URL.createObjectURL(blob);
-            // ダウンロードのための要素は処理中だけ保持
-            const anchor = document.createElement('a');
-            // 別のサイトへデータを送信しない
-            anchor.href = url;
-            // 対象の正式API名と利用者のタイムゾーンでの出力日時を含める
-            anchor.download = csvFileName(detail.apiName, this.isReference, new Date(), timeZone);
-            // ブラウザがダウンロードを開始できる位置へ接続
-            document.body.appendChild(anchor);
-            try {
-                // 利用者が指定したCSV出力を開始
-                anchor.click();
-            } finally {
-                // 一時要素を画面へ残さない
-                anchor.remove();
-                // ブラウザの一時URLを解放
-                URL.revokeObjectURL(url);
-            }
+    // 確認から保存まで同時に一つの出力だけを所有する。
+    exportController;
+    // ブラウザの保存開始後も次の出力または離脱までURLを維持する。
+    downloadUrl;
 
+    // 保持中のCSVをブラウザから解放する。
+    releaseDownload() {
+        // 初回は解放対象がない。
+        if (!this.downloadUrl) return;
+        // 直前のファイルだけを解放する。
+        URL.revokeObjectURL(this.downloadUrl);
+        // 同じURLを二重に解放しない。
+        this.downloadUrl = undefined;
+    }
+
+    // モードごとの対象件数を確認し、共通モーダルで進捗を表示する。
+    async handleExportCsv() {
+        // 確認中の連打と不完全な入力からの出力を防ぐ。
+        if (this.exportController || this.csvExportDisabled) return;
+        // 画面を離れると同じインスタンスへ戻っても無効になる。
+        const controller = new AbortController();
+        // 次の確認を開始するまでこの操作だけを追跡する。
+        this.exportController = controller;
+        try {
+            // 確認した対象・モード・編集値を一つの出力に固定する。
+            const detail = this.detail;
+            // 項目定義と分類は列数と対象項目が異なる。
+            const reference = this.isReference;
+            // 分類モードでは確認時点の入力を使用する。
+            const edits = this.classifyEdits;
+            // 対象の判定と件数表示に同じ一覧を使う。
+            const savedClassification = this.classifyData;
+            // 確認に表示した対象を出力時にも使用する。
+            const fields = csvFields(detail.fields, reference, savedClassification);
+            // 離脱や対象変更後に古いファイルを保存しない。
+            const current = () => !controller.signal.aborted && this.detail === detail && this.isReference === reference && !this.csvExportDisabled;
+            // 全件の作成とモーダルの正常終了が揃った場合だけ保存する。
+            let file;
+            // 設定変更履歴と同じ確認・進捗・キャンセル・再試行を使う。
+            const completed = await CsvExportModal.open({
+                size: 'small', label: 'CSV出力', ownerSignal: controller.signal,
+                exportSubject: `${detail.label}（${detail.apiName}）の${reference ? '項目定義' : 'データ分類'} 全${fields.length.toLocaleString('ja-JP')}件`,
+                buildFile: async (_selection, isOpen, progress) => {
+                    // 閉じたモーダルから読み取りを開始しない。
+                    if (!current() || !isOpen()) return;
+                    // 構造CSVの保存済み分類だけを出力時に取得する。
+                    let classification = savedClassification;
+                    try {
+                        // 編集権限がなくても閲覧可能な保存済み分類を利用する。
+                        if (reference) classification = (await getClassifyData({ objectName: detail.apiName })).rows;
+                    } catch (error) {
+                        // 失敗した処理位置を記録し、モーダルには再試行の案内を返す。
+                        if (current() && isOpen()) this.reportClientError(error, 'handleExportCsv', 'ui-event');
+                        // 応答本文や内部情報は利用者向けの案内へ転記しない。
+                        throw new Error('データ分類を取得できませんでした。もう一度出力してください。');
+                    }
+                    // 進捗とファイル本体に同じ順序・同じ明細を使う。
+                    const groups = csvParts({ fields, reference, locale, timeZone, classification, edits, objectName: detail.apiName, objectLabel: detail.label });
+                    // 全件が揃った場合だけモーダル終了後の保存対象にする。
+                    file = await buildCsvBlob(groups, () => current() && isOpen(), progress);
+                }
+            });
+            // 閉じるアニメーション中に対象を離れた場合も保存しない。
+            if (!completed || !file || !current()) return;
+            // 直前のダウンロード用URLと入れ替える。
+            this.releaseDownload();
+            // テンプレート内のリンクからローカルへ保存する。
+            this.downloadUrl = URL.createObjectURL(file);
+            // このコンポーネントに属するリンクだけを使用する。
+            const link = this.template.querySelector('[data-download]');
+            // ファイル名には対象API名と利用者のタイムゾーンを使用する。
+            link.download = csvFileName(detail.apiName, reference, new Date(), timeZone);
+            // 作成したファイルだけを保存先へ渡す。
+            link.href = this.downloadUrl;
+            // 完成したCSVのダウンロードを開始する。
+            link.click();
         } catch (error) {
-            // 処理名を付けてこの画面内へエラーを表示
-            this.reportClientError(error, 'handleExportCsv', 'ui-event');
+            // モーダル自体やダウンロードの失敗を親画面で通知する。
+            if (!controller.signal.aborted) this.reportClientError(error, 'handleExportCsv', 'ui-event');
+        } finally {
+            // 古い処理で新しい出力のロックを解除しない。
+            if (this.exportController === controller) this.exportController = undefined;
         }
     }
     // CSVを全件確認した後で入力欄へ反映し、保存は既存ボタンへ委ねる
@@ -1557,6 +1666,12 @@ export default class ObjectExplorer extends LightningElement {
             // 分類の取得世代と同じ境界でCSVを照合
             const sequence = this.classifySequence;
             // ファイル読取と候補確認の間は編集・対象変更を抑止
+            const version = this.connectionVersion;
+            // 接続・対象・分類が一致する操作だけが結果を所有する。
+            const current = () => version === this.connectionVersion && this.componentConnected && this.detail === detail && this.classifySequence === sequence;
+            // 画面離脱時に読取や確認を中断できるようにする。
+            this.pendingInput = 'import';
+            // 取込中の入力変更を止める。
             this.busy = true;
             // 前回のCSVエラーだけを解除
             this.csvErrors = [];
@@ -1577,7 +1692,7 @@ export default class ObjectExplorer extends LightningElement {
                     reader.readAsText(file, 'UTF-8');
                 });
                 // 別の画面・対象の分類へ読取結果を対応付けない
-                if (!this.componentConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
+                if (!current()) { return; }
                 // CSVの列・項目・候補値を既存の入力規則で確認
                 const parsed = readClassifyCsv(text, detail.apiName, this.classifyEdits, this.classifyOptions, this.classifyData, detail.fields);
                 // 行エラーがあれば所有者検索も入力反映も行わない
@@ -1587,14 +1702,14 @@ export default class ObjectExplorer extends LightningElement {
                 // 分割照合の途中で入力を反映せず、すべての結果を待つ
                 const owners = await batches.reduce((pending, batch) => pending.then(async (known) => {
                     // 別の画面・対象へ移った後は追加要求を送らない
-                    if (!this.componentConnected || this.detail !== detail || this.classifySequence !== sequence) { return known; }
+                    if (!current()) { return known; }
                     // 所有者の読取だけを小分けに実行
                     const response = await resolveClassifyOwners({ idsJson: JSON.stringify(batch) });
                     // 各バッチのID対応を検証してから集約
                     return mergeClassifyOwners(batch, response, known);
                 }), Promise.resolve({}));
                 // 所有者確認中の画面変更を採用しない
-                if (!this.componentConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
+                if (!current()) { return; }
                 // 対象外の手入力は維持し、CSVの同じ行だけへ合成
                 const result = applyClassifyCsv(parsed.rows, owners, this.classifyEdits, ++this.ownerSequence);
                 // IDの不足や無効ユーザーも全体を反映しない
@@ -1604,10 +1719,12 @@ export default class ObjectExplorer extends LightningElement {
                     // 保存は行わず画面の未保存入力だけを置き換える
                     const confirmed = await LightningConfirm.open({ label: 'CSVの反映', message: 'CSVに含まれる項目の未保存変更を置き換えますか？CSVにない項目の変更は保持します。', theme: 'warning' });
                     // キャンセルでは入力と保存基準を維持
+                    if (!current()) return;
+                    // 現在の画面だけにキャンセルを通知する。
                     if (!confirmed) { this.classifyNotice = 'CSVの反映を中止しました。入力内容は変更していません。'; return; }
                 }
                 // 確認ダイアログの待機中も同じ対象であることを確認
-                if (!this.componentConnected || this.detail !== detail || this.classifySequence !== sequence) { return; }
+                if (!current()) { return; }
                 // 全件の検証後だけ既存の編集状態へ適用
                 this.classifyEdits = result.edits;
                 // 値または入力エラーの変更を保存可否へ反映
@@ -1616,14 +1733,21 @@ export default class ObjectExplorer extends LightningElement {
                 this.classifyNotice = `CSVから${parsed.rows.length}項目を入力欄へ反映しました。変更内容を確認して「保存」を押してください。`;
             } catch (error) {
                 // ファイル本文を記録せずCSV処理の失敗箇所を表示
+                if (!current()) return;
+                // 現在の取込の失敗だけを表示する。
                 this.reportClientError(error, 'handleImportCsv', 'csv-import');
                 // エラー本文へファイル全体や内部例外を含めない
-                this.csvErrors = [{ line: 1, message: error.body?.message || error.message || 'CSVを確認できませんでした。' }];
+                this.csvErrors = [{ line: 1, message: reduceErrors(error, 'CSVを確認できませんでした。') }];
                 // 読取・照合失敗では元の入力をそのまま保持
                 this.classifyNotice = 'CSVを取り込めませんでした。入力内容は変更していません。';
             } finally {
                 // 元の要求の対象だけ操作を再開
-                if (this.detail === detail && this.classifySequence === sequence) { this.busy = false; }
+                if (current()) {
+                    // この接続の取込処理を終了する。
+                    this.pendingInput = undefined;
+                    // 他の接続のロックには触れない。
+                    this.busy = false;
+                }
             }
 
         } catch (error) {
@@ -1642,7 +1766,7 @@ export default class ObjectExplorer extends LightningElement {
     // 変更内容を確認して少数ずつ保存
     async handleSaveClassifyData() {
         // 再接続後の新しい操作とこの保存を区別する
-        const operationVersion = this.saveOperationVersion;
+        const operationVersion = this.connectionVersion;
         // 例外が発生した処理段階を保存前と保存中で区別
         let phase = 'preparation';
         // 二重クリックの早期終了で先行処理のロックを解除しない
@@ -1683,7 +1807,7 @@ export default class ObjectExplorer extends LightningElement {
             // 確認画面には更新する項目数だけを案内
             const confirmed = await LightningConfirm.open({ label: '保存の確認', message: `${changes.length}項目のデータ分類を保存しますか？`, theme: 'warning' });
             // 確認した対象が有効な間だけ更新を開始
-            if (!this.componentConnected || operationVersion !== this.saveOperationVersion || this.detail !== detail || this.classifySequence !== sequence) { return; }
+            if (!this.componentConnected || operationVersion !== this.connectionVersion || this.detail !== detail || this.classifySequence !== sequence) { return; }
             // キャンセルと表示失敗を混同しない
             if (!confirmed) { this.classifyNotice = '保存をキャンセルしました。'; return; }
             // 保存開始後は未実行と案内せず確認済みの件数を表示
@@ -1693,25 +1817,25 @@ export default class ObjectExplorer extends LightningElement {
             // 固定したオブジェクトと変更内容を少数ずつ順に処理
             await this.saveClassifyRows(detail.apiName, changes, operationVersion);
             // 古い保存の完了案内で復帰後の状態を上書きしない
-            if (!this.componentConnected || operationVersion !== this.saveOperationVersion) { return; }
+            if (!this.componentConnected || operationVersion !== this.connectionVersion) { return; }
             // 完了時には成功・失敗を混同せず表示
             this.classifyNotice = this.saveFailureCount ? `保存結果：成功${this.saveSuccessCount}件・失敗${this.saveFailureCount}件。失敗した項目の編集内容は保持しています。` : `${this.saveSuccessCount}項目のデータ分類を保存しました。`;
         } catch (error) {
             // 離脱前の失敗を復帰後の操作へ反映しない
-            if (!this.componentConnected || operationVersion !== this.saveOperationVersion) { return; }
+            if (!this.componentConnected || operationVersion !== this.connectionVersion) { return; }
             // 保存の準備・確認表示・API実行を識別して画面内へ表示
             this.reportClientError(error, 'handleSaveClassifyData', phase);
             // 保存後の例外では成功を確認できた件数を維持
             if (phase === 'saving') {
                 // 自動再実行せず最新状態の確認を案内
-                this.classifyNotice = `成功確認済み${this.saveSuccessCount}件。処理を中断しました。${error?.body?.message || '最新状態を確認してから再操作してください。'}`;
+                this.classifyNotice = `成功確認済み${this.saveSuccessCount}件。処理を中断しました。${getApexMessage(error, '最新状態を確認してから再操作してください。')}`;
             } else {
                 // 準備失敗と確認画面の表示失敗を識別し、更新未実行を明示
                 this.classifyNotice = `${phase === 'confirmation' ? '保存確認画面の表示' : '保存内容の準備'}に失敗しました（${error?.name || 'Error'}）。保存は実行していません。`;
             }
         } finally {
             // この要求が開始した場合だけ保存処理の操作ロックを解除
-            if (ownsSaveLock && operationVersion === this.saveOperationVersion) {
+            if (ownsSaveLock && operationVersion === this.connectionVersion) {
                 // 保存処理の操作ロックを解除
                 this.saving = false;
                 // 成功・部分失敗・例外のすべてで固定表示を終了
@@ -1728,7 +1852,7 @@ export default class ObjectExplorer extends LightningElement {
         // 保存操作全体の開始時だけ実接続先をサーバーで確認
         const authenticated = await this.refreshApiAuthentication();
         // 認証確認中の離脱・再接続後に一つ目の保存を送らない
-        if (!this.componentConnected || operationVersion !== this.saveOperationVersion) { return; }
+        if (!this.componentConnected || operationVersion !== this.connectionVersion) { return; }
         // 確認できなければ一つ目のバッチも送信しない
         if (!authenticated) { throw new Error('保存開始前のAPI接続・接続先組織を確認できませんでした。保存は実行していません。認証状態と接続設定を確認してください。'); }
         // API上限に合わせた保存単位を作成
@@ -1738,13 +1862,13 @@ export default class ObjectExplorer extends LightningElement {
         // 前の一括保存の確認後に次へ進み、同時送信しない
         await batches.reduce((pending, batch) => pending.then(async () => {
             // 画面離脱後は未送信のバッチを開始しない
-            if (!this.componentConnected || operationVersion !== this.saveOperationVersion) { return; }
+            if (!this.componentConnected || operationVersion !== this.connectionVersion) { return; }
             // 未確定の項目を処理済みに数えない
             this.classifyNotice = `${processed} / ${changes.length}項目を処理済み…`;
             // 各行の対象・基準値・編集値を同じ要求へまとめる
             const results = await saveClassifyData({ objectName, changesJson: JSON.stringify(batch) });
             // 送信済み要求の応答で新しい画面状態を変更しない
-            if (!this.componentConnected || operationVersion !== this.saveOperationVersion) { return; }
+            if (!this.componentConnected || operationVersion !== this.connectionVersion) { return; }
             // 応答順に依存せずAPI名と所有者IDを照合
             const updated = applyClassifyBatch(batch, this.classifyEdits, this.classifyData, results);
             // 表示行を更新する前に成功項目の保存値を揃える

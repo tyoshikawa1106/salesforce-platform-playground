@@ -25,7 +25,7 @@ Output: per-DMO JSON artifacts plus three derived files under `~/.vibe/data/agen
 
 | Tool | Why |
 |---|---|
-| `sf` CLI (authenticated against the target org) | Shells `sf org display --target-org <alias> --json` for the Data Cloud Query REST API access token |
+| `sf` CLI (authenticated against the target org) | Must provide `sf org auth show-access-token` (preflighted at startup). Shells `sf org display --target-org <alias> --json` for the instance URL and `sf org auth show-access-token --target-org <alias> --json --no-prompt` for the Data Cloud Query REST API access token |
 | Data Cloud enabled on the target org | Required — the STDM + GenAI DMOs must have materialized for the session |
 | Python 3.10+ | `pathlib`, dataclasses, `\|` union types |
 
@@ -50,7 +50,7 @@ See `SKILL.md` for the full TRIGGER conditions, flag table, and the "DC-only bli
 
 Three stages, each independently runnable:
 
-```
+```text
 fetch_dc.py     →  24 dc.<name>.json + dc._session_manifest.json   (DC Query REST waterfall)
 assemble_dc.py  →  dc._session_tree.json                           (in-memory hierarchical join)
 render_dc.py    →  dc._session_summary.md                          (markdown rendering)
@@ -87,7 +87,7 @@ For design-time architecture questions (topic/action tree, flow inventory, Apex 
 
 ## Layout
 
-```
+```text
 agentforce-d360-analyze/
 ├── SKILL.md                               ← runtime-parsed entry point (TRIGGER / DO NOT TRIGGER, flags, prompts)
 ├── README.md                              ← this file

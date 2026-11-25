@@ -70,6 +70,50 @@ describe('c-object-metrics-overview', () => {
         jest.clearAllMocks();
     });
 
+    it('初回描画からカード名とアイコンを表示し、件数応答を同じカードへ反映する', async () => {
+        const element = createComponent();
+        const board = element.shadowRoot.querySelector('.c-counts');
+        const cards = [...board.querySelectorAll('button')];
+        const account = cards[0];
+
+        expect(board.getAttribute('aria-busy')).toBe('true');
+        expect(cards).toHaveLength(27);
+        expect(cards.every((card) => card.disabled)).toBe(true);
+        expect(cards.every((card) => card.querySelector('lightning-spinner'))).toBe(true);
+        expect(account.textContent).toContain('取引先');
+        expect(account.querySelector('lightning-icon').iconName).toBe('standard:account');
+        expect(account.querySelector('lightning-spinner').alternativeText).toBe('取引先の件数を読み込んでいます');
+
+        getObjectMetrics.emit(countResponse);
+        await flushPromises();
+
+        expect(board.getAttribute('aria-busy')).toBe('false');
+        expect(board.querySelectorAll('button')).toHaveLength(2);
+        expect(board.querySelector('button')).toBe(account);
+        expect(account.disabled).toBe(false);
+        expect(account.textContent).toContain('50,000+');
+        expect(board.querySelector('lightning-spinner')).toBeNull();
+    });
+
+    it('空結果の再取得中もカードを先行表示し、完了したら応答に従う', async () => {
+        const element = createComponent();
+        getObjectMetrics.emit({ metrics: [] });
+        await flushPromises();
+        const board = element.shadowRoot.querySelector('.c-counts');
+        expect(board.querySelector('article')).toBeNull();
+
+        let resolveRefresh;
+        refreshApex.mockReturnValueOnce(new Promise((resolve) => { resolveRefresh = resolve; }));
+        element.shadowRoot.querySelector('lightning-button-icon').click();
+        await flushPromises();
+        expect(board.querySelectorAll('article lightning-spinner')).toHaveLength(27);
+        expect(board.querySelector('button').disabled).toBe(true);
+
+        resolveRefresh();
+        await flushPromises();
+        expect(board.querySelector('article')).toBeNull();
+    });
+
     it('renders object metric cards from Apex data', async () => {
         const element = createComponent();
 
@@ -173,6 +217,7 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
 
         const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
+        expect(element.shadowRoot.querySelector('article')).toBeNull();
         expect(alert?.textContent).toEqual(
             expect.stringContaining('データボードを読み込めませんでした。')
         );
@@ -196,8 +241,9 @@ describe('c-object-metrics-overview', () => {
 
         expect(refreshApex).toHaveBeenCalledTimes(1);
         expect(
-            element.shadowRoot.querySelectorAll('lightning-spinner')
+            element.shadowRoot.querySelectorAll('article .c-count-card-content lightning-spinner')
         ).toHaveLength(2);
+        expect(element.shadowRoot.querySelector('button[data-key="accounts"]').disabled).toBe(false);
 
         resolveRefresh();
         await flushPromises();

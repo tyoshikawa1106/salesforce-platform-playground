@@ -68,8 +68,29 @@ export default class AccountMassUpdate extends LightningElement {
     hasNext = false;
     // 未検索と検索結果ゼロ件を区別
     searched = false;
+    // 最後に取得に成功したページが0件だった場合だけ案内する
+    pageConfirmedEmpty = false;
     // 検索・保存・確認中の重複操作を防止
     busy = false;
+    // 検索とページ移動の確認・取得を同じ要求として追跡する。
+    navigationRequest;
+
+    // 離脱前の読み取りと破棄確認を無効にし、送信済みの保存は従来どおり追跡する。
+    disconnectedCallback() {
+        // 検索またはページ移動が所有するロックだけを解放する。
+        if (this.navigationRequest) this.finishNavigation();
+    }
+
+    // 現在の入力・ページを保ったまま移動操作を再開する。
+    finishNavigation() {
+        // 前の要求に画面更新を許可しない。
+        this.navigationRequest = undefined;
+        // 次の検索・編集操作を許可する。
+        this.busy = false;
+        // 一覧の入力可否を現在の状態へ揃える。
+        this.refreshRows();
+    }
+
     // 画面全体のエラーを保持
     errorMessage = '';
     // 保存処理の結果を案内
@@ -138,9 +159,14 @@ export default class AccountMassUpdate extends LightningElement {
         return this.pageIndex + 1;
     }
 
+    get emptyMessage() {
+        // 途中ページの空結果を検索範囲全体の0件と区別する。
+        return this.pageIndex > 0 ? 'このページに表示できる法人取引先はありません。前のページへ戻れます。' : '条件に一致する法人取引先はありません。';
+    }
+
     get emptyResult() {
-        // 未検索の案内とゼロ件の結果を区別
-        return this.searched && !this.busy && this.records.length === 0;
+        // 正常に0件と確認し、保存に失敗して保持した行もない場合だけ案内
+        return this.pageConfirmedEmpty && !this.busy && this.records.length === 0;
     }
 
     handleFilter(event) {
@@ -202,35 +228,8 @@ export default class AccountMassUpdate extends LightningElement {
             if (!valid || this.errorMessage) {
                 return;
             }
-            // 確認モーダル中も二重操作を防止
-            this.busy = true;
-            // 入力値と変更状態を一覧へ反映
-            this.refreshRows();
-            try {
-                // 未保存の変更があるときだけ破棄を確認
-                if (
-                    this.changeCount &&
-                    !(await LightningConfirm.open({
-                        message: '未保存の変更を破棄して再検索しますか？',
-                        label: '変更の破棄を確認',
-                        variant: 'header'
-                    }))
-                ) {
-                    return;
-                }
-                // 応答成功までは現在の結果を保持
-                await this.fetchPage(0, null, { ...this.filters });
-            } catch (caughtError) {
-                // 例外本文を記録せず、失敗した処理だけを通知
-                this.reportClientError(caughtError, 'handleSearch', 'processing');
-                // 現在の編集内容を維持して再試行を案内
-                this.errorMessage = '検索できませんでした。条件と権限を確認して再実行してください。';
-            } finally {
-                // 失敗や取消でも操作可能へ戻す
-                this.busy = false;
-                // 入力値と変更状態を一覧へ反映
-                this.refreshRows();
-            }
+            // 破棄確認から先頭ページの取得までを同じ要求で管理する。
+            await this.navigate(0, null, { ...this.filters }, true);
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示
             this.reportClientError(boundaryError, 'handleSearch', 'ui-event');
@@ -250,41 +249,51 @@ export default class AccountMassUpdate extends LightningElement {
             if ((next && !this.hasNext) || (!next && this.pageIndex === 0)) {
                 return;
             }
-            // 確認中も画面操作を停止
-            this.busy = true;
-            // 入力値と変更状態を一覧へ反映
-            this.refreshRows();
-            try {
-                // 同意がなければ現在ページの変更を維持
-                if (
-                    this.changeCount &&
-                    !(await LightningConfirm.open({
-                        message: '未保存の変更を破棄してページを移動しますか？',
-                        label: '変更の破棄を確認',
-                        variant: 'header'
-                    }))
-                ) {
-                    return;
-                }
-                // 次ページは保持済みの末尾境界、前ページは履歴を使用
-                const target = this.pageIndex + (next ? 1 : -1);
-                // 保存後に末尾行の参照権限がなくなっても移動できる
-                const anchor = next ? this.nextAnchor : this.anchors[target];
-                await this.fetchPage(target, anchor, this.appliedFilters);
-            } catch (caughtError) {
-                // 例外本文を記録せず、失敗した処理だけを通知
-                this.reportClientError(caughtError, 'handlePage', 'processing');
-                // ページ移動失敗では編集内容を残す
-                this.errorMessage = 'ページを取得できませんでした。再実行してください。';
-            } finally {
-                // すべての終了経路で操作を再開
-                this.busy = false;
-                // 入力値と変更状態を一覧へ反映
-                this.refreshRows();
-            }
+            // ページ移動先は確認を開始したときの境界に固定する。
+            const target = this.pageIndex + (next ? 1 : -1);
+            // 前後のページ境界と適用済み条件を引き継ぐ。
+            await this.navigate(target, next ? this.nextAnchor : this.anchors[target], this.appliedFilters, false);
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示
             this.reportClientError(boundaryError, 'handlePage', 'ui-event');
+        }
+    }
+
+    // 未保存入力の破棄確認と検索を連続した一つの操作として扱う。
+    async navigate(target, anchor, filters, searching) {
+        // 同じ条件で再実行した場合も以前の応答を識別する。
+        const request = Symbol();
+        // この要求だけが画面とロックを更新できる。
+        this.navigationRequest = request;
+        // 確認中と取得中の操作を止める。
+        this.busy = true;
+        // 一覧の入力可否を更新する。
+        this.refreshRows();
+        // 現在の結果は取得成功まで保持する。
+        try {
+            // 入力を破棄する場合だけ確認する。
+            if (this.changeCount) {
+                // 検索とページ移動の目的を確認文に示す。
+                const message = searching ? '未保存の変更を破棄して再検索しますか？' : '未保存の変更を破棄してページを移動しますか？';
+                // キャンセルと古い画面の同意からは照会しない。
+                const confirmed = await LightningConfirm.open({ message, label: '変更の破棄を確認', variant: 'header' });
+                // 現在の画面で確認できた場合だけ取得へ進む。
+                if (!confirmed || request !== this.navigationRequest) return;
+            }
+            // 検索中に離脱した場合も応答を反映しない。
+            // 新しいページを取得するまで0件とは確定できない
+            this.pageConfirmedEmpty = false;
+            await this.fetchPage(target, anchor, filters, request);
+        } catch (error) {
+            // 以前の画面に属する失敗を現在のエラーにしない。
+            if (request !== this.navigationRequest) return;
+            // 診断用に操作を区別する。
+            this.reportClientError(error, searching ? 'handleSearch' : 'handlePage', 'processing');
+            // 未保存の変更を維持して再操作を案内する。
+            this.errorMessage = searching ? '検索できませんでした。条件と権限を確認して再実行してください。' : 'ページを取得できませんでした。再実行してください。';
+        } finally {
+            // 古い確認や照会の終了では新しい操作を解放しない。
+            if (request === this.navigationRequest) this.finishNavigation();
         }
     }
 
@@ -402,6 +411,8 @@ export default class AccountMassUpdate extends LightningElement {
                 .map((record) => failedMap.get(record.Id) || freshMap.get(record.Id))
                 .filter(Boolean);
             // 保存前の境界より後ろの行へ進める状態を維持
+            // 再取得したページ全体で該当件数を確認
+            this.pageConfirmedEmpty = result.records.length === 0;
             this.hasNext = this.hasNext || result.hasNext;
             // 最新の項目更新権限を反映
             this.editableFields = result.editableFields;
@@ -418,9 +429,11 @@ export default class AccountMassUpdate extends LightningElement {
         }
     }
 
-    async fetchPage(target, anchor, filters) {
+    async fetchPage(target, anchor, filters, request) {
         // 日付の空文字をApexで許容するnullへ変換して検索
         const result = await searchAccounts(this.searchRequest(filters, anchor));
+        // 現在の画面が開始した検索だけで一覧や未保存入力を更新する。
+        if (request !== this.navigationRequest) return;
         // 権限や条件のエラーでは表示中の入力を破棄しない
         if (result.errorMessage) {
             // サーバーで判定した拒否理由を表示
@@ -453,6 +466,8 @@ export default class AccountMassUpdate extends LightningElement {
         this.message = '';
         // 検索結果の表示を有効化
         this.searched = true;
+        // 正常応答の件数を表示判定に使う
+        this.pageConfirmedEmpty = result.records.length === 0;
         // 検索成功後だけ失敗した選択肢の再取得を許可する
         this.failedPicklistTypes.clear();
         // 表示する行のレコードタイプ別選択肢を準備

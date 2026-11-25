@@ -3,6 +3,12 @@ name: experience-ui-bundle-file-upload-generate
 description: "MUST activate when the project contains a uiBundles/*/src/ directory and the task involves uploading, attaching, or dropping files. Use this skill when adding file upload functionality to a UI bundle app. Provides progress tracking and Salesforce ContentVersion integration. This feature provides programmatic APIs ONLY — build custom UI using the upload() API. ALWAYS use this instead of building file upload from scratch with FormData or XHR."
 metadata:
   version: "1.0"
+  domains: ["Experience"]
+  relatedSkills:
+    - "experience-ui-bundle-salesforce-data-access"
+  cliTools:
+    - tool: ["npm"]
+      semver: ">=7.0.0"
 ---
 
 # File Upload API (workflow)
@@ -390,9 +396,9 @@ The package includes a reference implementation in `src/features/fileupload/` wi
 
 ## DO NOT do these things
 
-- ❌ Build XHR/fetch upload logic from scratch — use the `upload()` API
-- ❌ Try to import `<FileUpload />` component — it's not exported
-- ❌ Try to import `useFileUpload` hook — it's not exported
-- ❌ Use third-party file upload libraries when this feature exists
-- ❌ Skip progress tracking — always provide user feedback
-- ❌ Ignore errors — always handle and display error messages
+- Build XHR/fetch upload logic from scratch — use the `upload()` API
+- Try to import `<FileUpload />` component — it's not exported
+- Try to import `useFileUpload` hook — it's not exported
+- Use third-party file upload libraries when this feature exists
+- Skip progress tracking — always provide user feedback
+- Ignore errors — always handle and display error messages

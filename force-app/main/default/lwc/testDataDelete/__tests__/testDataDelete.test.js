@@ -51,6 +51,44 @@ describe('削除の確認と受付', () => {
         }
         jest.resetAllMocks();
     });
+    it('再接続前の確認が成立しても送信せず、新しい確認のロックを維持する', async () => {
+        let finishOld;
+        let finishNew;
+        LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }))
+            .mockImplementationOnce(() => new Promise(resolve => { finishNew = resolve; }));
+        const element = await mount();
+        buttons(element)[0].click();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        buttons(element)[0].click();
+        finishOld(true);
+        await flush();
+        expect(startRun).not.toHaveBeenCalled();
+        expect(buttons(element)[0].disabled).toBe(true);
+        finishNew(false);
+        await flush();
+        expect(buttons(element)[0].disabled).toBe(false);
+    });
+
+    it('送信後の再接続では受付結果を待ち、削除を二重に開始しない', async () => {
+        let finish;
+        LightningConfirm.open.mockResolvedValueOnce(true);
+        startRun.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        const element = await mount();
+        buttons(element)[0].click();
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        expect(buttons(element)[0].disabled).toBe(true);
+        buttons(element)[0].click();
+        finish({ ...initial, jobId: 'accepted', executionState: 'RUNNING' });
+        await flush();
+        expect(startRun).toHaveBeenCalledTimes(1);
+        expect(buttons(element)[0].disabled).toBe(true);
+    });
+
     it('順序・残件数を表示しアクセシビリティを満たす', async () => {
         const element = await mount();
         expect(element.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(2);

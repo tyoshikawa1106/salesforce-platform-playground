@@ -3,6 +3,9 @@ import { clientErrorDetails } from './caseRelatedCaseListLogic';
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { getFieldValue, getRecord } from 'lightning/uiRecordApi';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+import { getLayout } from 'lightning/uiLayoutApi';
+import CASE_OBJECT from '@salesforce/schema/Case';
 import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
 import CASE_ID_FIELD from '@salesforce/schema/Case.Id';
 import CASE_ACCOUNT_ID_FIELD from '@salesforce/schema/Case.AccountId';
@@ -11,12 +14,13 @@ import CASE_NUMBER_FIELD from '@salesforce/schema/Case.CaseNumber';
 import CASE_CREATED_DATE_FIELD from '@salesforce/schema/Case.CreatedDate';
 import CASE_CLOSED_DATE_FIELD from '@salesforce/schema/Case.ClosedDate';
 import CASE_STATUS_FIELD from '@salesforce/schema/Case.Status';
-import CASE_REASON_FIELD from '@salesforce/schema/Case.Reason';
+import CASE_TYPE_FIELD from '@salesforce/schema/Case.Type';
 import CASE_SUBJECT_FIELD from '@salesforce/schema/Case.Subject';
 import CASE_ACCOUNT_NAME_FIELD from '@salesforce/schema/Case.Account.Name';
 import CASE_CONTACT_NAME_FIELD from '@salesforce/schema/Case.Contact.Name';
 import {
     createCaseCard,
+    getCaseLayoutFields,
     selectRelatedCaseRecords
 } from './caseRelatedCaseListLogic';
 
@@ -28,11 +32,10 @@ const CASE_OPTIONAL_FIELDS = [
     CASE_ACCOUNT_ID_FIELD,
     CASE_SUBJECT_FIELD,
     CASE_STATUS_FIELD,
-    CASE_REASON_FIELD,
+    CASE_TYPE_FIELD,
     CASE_CLOSED_DATE_FIELD,
     CASE_ACCOUNT_NAME_FIELD,
-    CASE_CONTACT_NAME_FIELD,
-    'Case.Owner.Name'
+    CASE_CONTACT_NAME_FIELD
 ];
 // 一覧の識別と並び順に必要なケース番号、作成日時を取得
 const RELATED_CASE_FIELDS = ['Case.CaseNumber', 'Case.CreatedDate'];
@@ -40,13 +43,12 @@ const RELATED_CASE_FIELDS = ['Case.CaseNumber', 'Case.CreatedDate'];
 const RELATED_CASE_OPTIONAL_FIELDS = [
     'Case.Subject',
     'Case.Status',
-    'Case.Reason',
+    'Case.Type',
     'Case.ClosedDate',
     'Case.AccountId',
     'Case.Account.Name',
     'Case.ContactId',
-    'Case.Contact.Name',
-    'Case.Owner.Name'
+    'Case.Contact.Name'
 ];
 // ContactとAccountで共通するケース関連リストを指定
 const CASES_RELATED_LIST_ID = 'Cases';
@@ -84,8 +86,32 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         this.clientError = undefined;
     }
 
-    // レコードページから表示中CaseのIDを受け取る
-    @api recordId;
+    // レコードタイプを持たないCaseでは実行ユーザーの既定レイアウトを参照
+    @wire(getObjectInfo, { objectApiName: CASE_OBJECT })
+    caseObjectInfo;
+
+    get layoutRecordTypeId() {
+        return this.caseRecord?.recordTypeId ?? this.caseObjectInfo.data?.defaultRecordTypeId;
+    }
+
+    // 表示中のCase詳細と同じ参照レイアウトの項目ラベルを両タブで共有
+    caseFields = {};
+    layoutError;
+
+    @wire(getLayout, {
+        objectApiName: CASE_OBJECT,
+        recordTypeId: '$layoutRecordTypeId',
+        layoutType: 'Full',
+        mode: 'View'
+    })
+    wiredCaseLayout({ data, error }) {
+        this.caseFields = getCaseLayoutFields(data);
+        this.layoutError = error;
+    }
+
+    get hasLayoutError() {
+        return this.layoutError || (!this.layoutRecordTypeId && this.caseObjectInfo.error);
+    }
 
     // 表示中CaseのUI APIレスポンスを保持
     caseRecord;
@@ -114,6 +140,30 @@ export default class CaseRelatedCaseList extends NavigationMixin(
     // 会社側の最新カード変換を識別
     accountCasesRequestId = 0;
 
+    // レコードページから表示中CaseのIDを受け取る
+    _recordId;
+    @api
+    get recordId() {
+        return this._recordId;
+    }
+
+    set recordId(value) {
+        // 同じケースへの再設定では表示を維持
+        if (value === this._recordId) return;
+        // 次のCase応答まで前のケースを表示しない
+        this._recordId = value;
+        this.caseHasLoaded = false;
+        this.clientError = undefined;
+        // 旧ケースを基に整形したカードを除き、同じ関連先の元データは再利用
+        this.contactCasesRequestId++;
+        this.accountCasesRequestId++;
+        this.contactCases = [];
+        this.accountCases = [];
+        // 関連先が同じ場合も新しいケースのカード生成が終わるまで待つ
+        if (this.contactCaseRecords) this.contactCasesHaveLoaded = false;
+        if (this.accountCaseRecords) this.accountCasesHaveLoaded = false;
+    }
+
     // 表示中Caseから顧客と会社を特定し、各タブの関連リスト取得を開始
     @wire(getRecord, {
         recordId: '$recordId',
@@ -125,6 +175,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         try {
             // 取得成功時は関連先の変更を判定して表示状態を更新
             if (data) {
+                // 15桁と18桁のIDを照合し、移動前のケースの応答を破棄
+                if (!this.recordId || data.id?.slice(0, 15) !== this.recordId.slice(0, 15)) return;
                 // 更新前のContactを保持して関連リストの切り替えを判定
                 const previousContactId = this.contactId;
                 // 更新前のAccountを保持して関連リストの切り替えを判定
@@ -208,7 +260,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         // 呼び出し元が待機しない非同期処理もこの画面で捕捉
         try {
             // 対象関連先の初回応答がまだなければ再生成しない
-            if (!this.contactCaseRecords) {
+            if (!this.caseHasLoaded || !this.contactCaseRecords) {
                 // 未取得または取得失敗の状態を維持
                 return;
             }
@@ -278,7 +330,7 @@ export default class CaseRelatedCaseList extends NavigationMixin(
         // 呼び出し元が待機しない非同期処理もこの画面で捕捉
         try {
             // 対象関連先の初回応答がまだなければ再生成しない
-            if (!this.accountCaseRecords) {
+            if (!this.caseHasLoaded || !this.accountCaseRecords) {
                 // 未取得または取得失敗の状態を維持
                 return;
             }
@@ -412,8 +464,8 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                     subject: getFieldValue(record, CASE_SUBJECT_FIELD),
                     // UI APIから参照可能な状況を渡す
                     status: getFieldValue(record, CASE_STATUS_FIELD),
-                    // UI APIから参照可能な原因を渡す
-                    reason: getFieldValue(record, CASE_REASON_FIELD),
+                    // UI APIから参照可能な種別を渡す
+                    caseType: getFieldValue(record, CASE_TYPE_FIELD),
                     // UI APIから取得したクローズ日時を渡す
                     closedDate: getFieldValue(record, CASE_CLOSED_DATE_FIELD),
                     // UI APIから取得した作成日時を渡す
@@ -431,12 +483,6 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                         record,
                         CASE_CONTACT_NAME_FIELD
                     ),
-                    // UI APIから参照可能な所有者名を渡す
-                    ownerName: this.getRelationshipFieldValue(
-                        record,
-                        'Owner',
-                        'Name'
-                    ),
                     // 現在Caseの識別表示へ使う状態を渡す
                     isCurrentCase,
                     // 現在Case以外だけ生成したCase URLを渡す
@@ -448,13 +494,6 @@ export default class CaseRelatedCaseList extends NavigationMixin(
                 });
             })
         );
-    }
-
-    // 多態参照を含むUI APIの関連レコード項目を安全に取得
-    getRelationshipFieldValue(record, relationshipName, fieldName) {
-        // 関連レコードまたは項目を参照できない場合は未取得として返却
-        return record?.fields?.[relationshipName]?.value?.fields?.[fieldName]
-            ?.value;
     }
 
     // Lightning Experienceに適したレコードURLを生成

@@ -3,6 +3,17 @@ name: omnistudio-omniscript-generate
 description: "OmniStudio OmniScript creation and validation with 120-point scoring. Use when building guided digital experiences, multi-step forms, or interactive processes that orchestrate Integration Procedures and Data Mappers. TRIGGER when: user creates OmniScripts, designs step flows, configures element types, or reviews existing OmniScript configurations. DO NOT TRIGGER when: building FlexCards (use omnistudio-flexcard-generate), creating Integration Procedures directly (use omnistudio-integration-procedure-generate), or analyzing dependencies (use omnistudio-dependencies-analyze)."
 metadata:
   version: "1.0"
+  domains: ["OmniStudio"]
+  minApiVersion: "66.0"
+  relatedSkills:
+    - "omnistudio-datamapper-generate"
+    - "omnistudio-dependencies-analyze"
+    - "omnistudio-flexcard-generate"
+    - "omnistudio-integration-procedure-generate"
+    - "platform-metadata-deploy"
+  cliTools:
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # omnistudio-omniscript-generate: OmniStudio OmniScript Creation and Validation

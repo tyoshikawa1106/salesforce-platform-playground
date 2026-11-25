@@ -22,29 +22,9 @@
             </div>
         </header>
 
-        <dialog class="c-export-dialog" aria-labelledby="csv-title" aria-describedby="csv-description" oncancel={cancelExportDialog}>
-            <header class="slds-modal__header">
-                <h2 id="csv-title" class="slds-text-heading_medium">CSV出力</h2>
-            </header>
-            <div class="slds-modal__content slds-p-around_medium">
-                <p id="csv-description"><template lwc:if={exporting}>{exportRange}</template><template lwc:else>{exportConfirmation}<br />表計算ソフトで開く場合は、各列を文字列として取り込んでください。</template></p>
-                <p lwc:if={resultExport} class="slds-m-top_small">{resultExport.labels}</p>
-                <div lwc:if={exporting} class="c-inline-status slds-m-top_medium">
-                    <p role="status">{exportProgress}</p>
-                    <span class="c-inline-spinner">
-                        <lightning-spinner size="small" alternative-text="CSVを作成中"></lightning-spinner>
-                    </span>
-                </div>
-                <p lwc:if={exportError} role="alert" class="slds-text-color_error slds-m-top_medium">{exportError}</p>
-            </div>
-            <footer class="slds-modal__footer">
-                <lightning-button label="キャンセル" onclick={closeExportDialog}></lightning-button>
-                <lightning-button class="slds-m-left_small" variant="brand" label="出力" disabled={exportConfirmDisabled}
-                    onclick={confirmExport}></lightning-button>
-            </footer>
-        </dialog>
+        <p lwc:if={downloadError} role="alert" class="slds-text-color_error slds-m-bottom_small">{downloadError}</p>
         <div class="slds-box slds-theme_default">
-            <div class="month-navigation slds-m-bottom_medium">
+            <div class="c-month-navigation slds-m-bottom_medium">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"
                     disabled={previousMonthDisabled} onclick={moveMonth}></lightning-button>
                 <div class="c-inline-status">
@@ -69,7 +49,7 @@
                 <lightning-tabset active-tab-value={tab}>
                     <lightning-tab label="履歴" value="list" onactive={activateTab}>
                         <section class="slds-box slds-box_small slds-m-bottom_small" aria-label="検索条件">
-                            <div class="filters">
+                            <div class="c-filters">
                                 <lightning-combobox label="日付" data-field="day" value={selectedDay}
                                     options={dateOptions} onchange={changeFilter}></lightning-combobox>
                                 <template for:each={filterFields} for:item="field">
@@ -143,13 +123,16 @@
                             <template lwc:if={emptyList}><p>条件に一致する設定変更履歴はありません。</p></template>
                             <template lwc:elseif={listReady}>
                                 <div class="c-history-viewport">
-                                    <lightning-datatable class="history-table" key-field="Id" data={visibleRecords} columns={columns}
-                                        enable-infinite-loading={hasMoreRows} onloadmore={showMoreRows}
+                                    <lightning-datatable class="c-history-table" key-field="Id" data={visibleRecords} columns={columns}
+                                        enable-infinite-loading={hasMoreRows} load-more-offset="800" onloadmore={showMoreRows}
                                         max-column-width="3000" hide-checkbox-column show-row-number-column row-number-offset={rowNumberOffset}></lightning-datatable>
                                 </div>
                             </template>
-                            <div class="c-history-footer">
-                                <nav class="pagination" aria-label="履歴のページ送り">
+                            <template lwc:elseif={loading}>
+                                <div lwc:if={records.length} class="c-history-viewport" aria-hidden="true"></div>
+                            </template>
+                            <div class="c-history-footer slds-m-top_small">
+                                <nav class="c-pagination" aria-label="履歴のページ送り">
                                     <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
                                     <div class="c-page-summary c-inline-status">
                                         <span aria-live="polite">{pageSummary}</span>
@@ -172,7 +155,12 @@
                                 <div role="alert" class="slds-text-color_error slds-m-vertical_small">{analysisError}</div>
                                 <lightning-button label="再試行" onclick={readAnalysis}></lightning-button>
                             </template>
-                            <lightning-spinner lwc:if={analysisLoading} size="small" alternative-text="月全体の分析を取得中"></lightning-spinner>
+                            <div lwc:if={analysisLoading} class="c-inline-status slds-p-vertical_small">
+                                <span class="c-inline-spinner" aria-hidden="true">
+                                    <lightning-spinner size="small" alternative-text="月全体の分析を取得中"></lightning-spinner>
+                                </span>
+                                <span role="status">{analysisProgressLabel}</span>
+                            </div>
                             <p lwc:if={analysis} class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
                                 月全体・<lightning-formatted-date-time value={analysis.cutoff} year="numeric" month="2-digit" day="2-digit"
                                     hour="2-digit" minute="2-digit" time-zone={timeZone}></lightning-formatted-date-time> 時点

@@ -47,12 +47,23 @@ export default class TestDataDelete extends LightningElement {
     // 応答欠落を失敗確定や未受付として扱わない
     acceptanceUnknown = false;
 
+    // 確認と照会を開始した画面の世代を識別する。
+    connectionVersion = 0;
+    // 受付要求の送信後は再接続しても結果が戻るまで開始をロックする。
+    startPending = false;
+
+    // 離脱した画面の確認結果と照会結果を無効にする。
+    disconnectedCallback() {
+        // 同じインスタンスが再接続しても古い確認は再利用しない。
+        this.connectionVersion += 1;
+    }
+
     // 配置時に現在の実行条件と残件数を確認
     connectedCallback() {
         // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
             // 初期状態では全件削除を開始しない
-            this.loadView();
+            if (!this.startPending) this.loadView();
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示
             this.reportClientError(boundaryError, 'connectedCallback', 'lifecycle');
@@ -73,6 +84,8 @@ export default class TestDataDelete extends LightningElement {
 
     // 固定対象の残件数を照会して最新の実行状態へ更新
     async loadView() {
+        // 再接続後に新しい照会結果だけを反映する。
+        const version = this.connectionVersion;
         // 古い残件数を今回の確認結果へ混ぜない
         this.isBusy = true;
         // 新しい問い合わせのエラーだけを表示
@@ -82,7 +95,11 @@ export default class TestDataDelete extends LightningElement {
         // 実効権限を確認した後で各オブジェクトを照会
         try {
             // 受付したIDがある場合だけ指定して取得
-            this.response = await getView({ jobId: this.acceptedJobId || null });
+            const response = await getView({ jobId: this.acceptedJobId || null });
+            // 離脱後の応答で新しい画面を上書きしない。
+            if (version !== this.connectionVersion) return;
+            // 現在の照会で確認した権限とジョブを反映する。
+            this.response = response;
             // 権限がない場合はデータ照会を行わない
             if (this.response.errorMessage) {
                 // 拒否理由は表示モデルから描画
@@ -92,6 +109,8 @@ export default class TestDataDelete extends LightningElement {
             const objectNames = getAvailableObjectNames(this.response);
             // 独立した件数取得をまとめて待機
             const results = await Promise.all(objectNames.map((objectName) => getRemaining({ objectName })));
+            // 再接続した画面へ前回の件数を反映しない。
+            if (version !== this.connectionVersion) return;
             // 権限拒否の応答をゼロ件として取り込まない
             for (const result of results) {
                 // 実効権限の変更などで照会が拒否された場合は開始を抑止
@@ -107,8 +126,12 @@ export default class TestDataDelete extends LightningElement {
                 this.counts = { ...this.counts, [result.objectName]: result.remaining };
             }
             // 件数確認中に始まったジョブも最後に再確認
-            this.response = await getView({ jobId: this.acceptedJobId || null });
+            const latest = await getView({ jobId: this.acceptedJobId || null });
+            // 件数取得後の再照会にも同じ世代を適用する。
+            if (version === this.connectionVersion) this.response = latest;
         } catch (caughtError) {
+            // 以前の照会の失敗を現在の画面へ表示しない。
+            if (version !== this.connectionVersion) return;
             // 例外本文を記録せず、失敗した処理だけを通知
             this.reportClientError(caughtError, 'loadView', 'processing');
             // 組織の例外やレコード内容を表示しない
@@ -117,7 +140,7 @@ export default class TestDataDelete extends LightningElement {
             this.response = undefined;
         } finally {
             // 読み取りの再実行を許可
-            this.isBusy = false;
+            if (version === this.connectionVersion) this.isBusy = false;
         }
     }
 
@@ -130,6 +153,8 @@ export default class TestDataDelete extends LightningElement {
                 // サーバーへ要求しない
                 return;
             }
+            // 確認開始時の画面だけが受付要求を送れる。
+            const version = this.connectionVersion;
             // 確認ダイアログの重複も抑止
             this.isBusy = true;
             // 前の通信エラーを解除
@@ -146,7 +171,7 @@ export default class TestDataDelete extends LightningElement {
                     theme: 'error'
                 });
                 // キャンセル時は以前の追跡状態を維持
-                if (!confirmed) {
+                if (confirmed !== true || version !== this.connectionVersion) {
                     // 削除要求を送らない
                     return;
                 }
@@ -155,12 +180,16 @@ export default class TestDataDelete extends LightningElement {
                 // 要求送信後の通信失敗は受付不明にする
                 requested = true;
                 // サーバーで実効権限・環境・重複を再確認
+                this.startPending = true;
+                // 受付応答を同じインスタンスで追跡する。
                 this.response = await startRun({ confirmation: 'DELETE_ALL' });
                 // 正常な拒否応答は受付不明にしない
                 this.acceptedJobId = this.response.jobId || '';
                 // 削除中の件数は再取得するまで表示しない
                 this.counts = {};
             } catch (caughtError) {
+                // 前の画面の確認失敗を新しい操作へ混ぜない。
+                if (!requested && version !== this.connectionVersion) return;
                 // 例外本文を記録せず、失敗した処理だけを通知
                 this.reportClientError(caughtError, 'handleExecute', 'processing');
                 // ダイアログだけの失敗で受付不明にしない
@@ -173,7 +202,9 @@ export default class TestDataDelete extends LightningElement {
                     : '削除確認を表示できませんでした。再確認してください。';
             } finally {
                 // 結果照会を可能にする
-                this.isBusy = false;
+                if (requested) this.startPending = false;
+                // 古い確認の終了で再接続後の確認や照会を解放しない。
+                if (requested || version === this.connectionVersion) this.isBusy = false;
             }
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示

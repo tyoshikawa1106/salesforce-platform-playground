@@ -1,0 +1,72 @@
+{
+  "sections": [
+    "title",
+    "description",
+    "fields",
+    "wsdl_segment"
+  ],
+  "title": "LicenseDefinitionCustomPermission - Data API",
+  "description": "Represents a licensed custom permission that controls access to a license's features when included in a custom permission set license definition. This object is available in API version 66.0 and later.",
+  "fields_columns": [
+    "type",
+    "properties",
+    "description",
+    "relationship_name",
+    "relationship_type",
+    "refers_to"
+  ],
+  "fields": {
+    "CreatedById": {
+      "type": "reference",
+      "properties": "Defaulted on create, Filter",
+      "description": "ID of the User who created this record."
+    },
+    "CreatedDate": {
+      "type": "dateTime",
+      "properties": "Defaulted on create, Filter",
+      "description": "Date and time when this record was created."
+    },
+    "Id": {
+      "type": "id",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "Unique record ID."
+    },
+    "IsDeleted": {
+      "type": "boolean",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "When true, the record has been deleted."
+    },
+    "LastModifiedById": {
+      "type": "reference",
+      "properties": "Defaulted on create, Filter",
+      "description": "ID of the User who last updated this record."
+    },
+    "LastModifiedDate": {
+      "type": "dateTime",
+      "properties": "Defaulted on create, filter",
+      "description": "Date and time when a user last modified this record."
+    },
+    "LicenseDefinitionId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "ID of the custom permission set license definition that contains the licensed custom permission. This is a relationship field.",
+      "relationship_name": "LicenseDefinition",
+      "relationship_type": "Lookup",
+      "refers_to": "PermissionSetLicenseDefinition"
+    },
+    "LicensedCustomPermissionId": {
+      "type": "reference",
+      "properties": "Create, Filter, Group, Sort, Update",
+      "description": "ID of the licensed custom permission that you're including in the permission set license definition. On the CustomPermission object, the isLicensed field must equal true. This is a relationship field.",
+      "relationship_name": "LicensedCustomPermission",
+      "relationship_type": "Lookup",
+      "refers_to": "CustomPermission"
+    },
+    "SystemModstamp": {
+      "type": "dateTime",
+      "properties": "Defaulted on create, filter",
+      "description": "In general, SystemModstamp shows the date and time when a user or automated process last modified the record. However, in certain cases, SystemModstamp doesn’t capture every field change. For example, if object A retrieves values from object B, then the changes to field values in records on object B are reflected in the SystemModstamp field for records on object B, but not on object A."
+    }
+  },
+  "wsdl_segment": "```xml\n<simpleType name=\"ID\">\n  <restriction base=\"xsd:string\">\n    <length value=\"18\"/>\n    <pattern value=\"[a-zA-Z0-9]{18}\"/>\n  </restriction>\n</simpleType>\n<complexType name=\"LicenseDefinitionCustomPermission\">\n  <complexContent>\n    <extension base=\"ens:sObject\">\n      <sequence>\n        <element name=\"CreatedBy\" nillable=\"true\" minOccurs=\"0\" type=\"ens:User\"/>\n        <element name=\"CreatedById\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"CreatedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"IsDeleted\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:boolean\"/>\n        <element name=\"LastModifiedBy\" nillable=\"true\" minOccurs=\"0\" type=\"ens:User\"/>\n        <element name=\"LastModifiedById\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"LastModifiedDate\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n        <element name=\"LicenseDefinition\" nillable=\"true\" minOccurs=\"0\" type=\"ens:PermissionSetLicenseDefinition\"/>\n        <element name=\"LicenseDefinitionId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"LicensedCustomPermission\" nillable=\"true\" minOccurs=\"0\" type=\"ens:CustomPermission\"/>\n        <element name=\"LicensedCustomPermissionId\" nillable=\"true\" minOccurs=\"0\" type=\"tns:ID\"/>\n        <element name=\"SystemModstamp\" nillable=\"true\" minOccurs=\"0\" type=\"xsd:dateTime\"/>\n      </sequence>\n    </extension>\n  </complexContent>\n</complexType>\n```"
+}

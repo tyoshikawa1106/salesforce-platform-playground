@@ -405,6 +405,11 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // 古い応答や取得失敗を部分木へ統合しない。
         if (!this.accepted(response) || this._structureToken !== state.token) return;
         // 表示モデルへ公開していない取得中の索引だけにページ分を追加する。
+        // ロールの継続は可視行を先読みしているため、空なら構造を公開する前に中止する。
+        if (cursor && this.mode === 'ROLE' && !response.nodes.length) {
+            this.error = '続きのロールを取得できませんでした。表示条件を切り替えて再取得してください。';
+            return;
+        }
         Object.assign(state.nodes, structurePageNodes(response));
         // 続きがある間は部分的な組織図を公開しない。
         if (response.hasMore) {
@@ -636,10 +641,10 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         // ロール名は維持し、上司の場合だけ役職を補足する。
         return memberSelectionLabel(this.memberTarget, this.mode);
     }
-    // 一覧が空のときはページ操作と番号を表示しない。
-    get hasMemberRows() {
-        // 表示中の行の有無にページ操作を合わせる。
-        return this.memberRows.length > 0;
+    // 途中のページが空でも前後の取得位置へ移動できるようにする。
+    get showMemberPagination() {
+        // 標準カーソルが示す位置と取得済みのページ位置を使う。
+        return this.memberRows.length > 0 || this.memberIndex > 0 || Boolean(this.memberNextIndex);
     }
     // 前ページがない場合や取得中は操作を無効にする。
     get memberPreviousDisabled() {
@@ -833,6 +838,8 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
     // 標準モーダルで直下ロールを提示し、確定結果だけを既存の選択処理へ渡す。
     async handleHierarchyToggle(event) {
         // 表示や選択の失敗を組織図全体へ伝播させない。
+        const generation = this._generation;
+        // 閉じるまで同じ表示条件の選択として扱う。
         try {
             // 未選択・取得中・二重起動ではモーダルを開かない。
             if (this.hierarchyDisabled || this.roleHierarchy) return;
@@ -845,13 +852,13 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
                 hierarchy: this.roleHierarchy
             });
             // キャンセル結果では表示対象を変更しない。
-            if (key) this.handleHierarchySelect(key);
+            if (key && generation === this._generation) this.handleHierarchySelect(key);
         } catch (error) {
             // 入力値を含めず操作箇所を報告する。
-            this.reportClientError(error, 'handleHierarchyToggle', 'ui-event');
+            if (generation === this._generation) this.reportClientError(error, 'handleHierarchyToggle', 'ui-event');
         } finally {
             // モーダル終了後に次の起動を許可する。
-            this.roleHierarchy = null;
+            if (generation === this._generation) this.roleHierarchy = null;
         }
     }
     // 一覧に表示中の直下ロールだけを次の起点として採用する。

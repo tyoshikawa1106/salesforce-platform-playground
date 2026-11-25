@@ -1,12 +1,12 @@
 import { createElement } from 'lwc';
+import ExportModal from 'c/setupAuditTrailExportModal';
 import Explorer from 'c/setupAuditTrailExplorer';
 import * as historyLogic from '../setupAuditTrailExplorerLogic';
-import loadEmployeeActorIds from '@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds';
+import getColumnLabels from '@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels';
 import countMatches from '@salesforce/apex/SetupAuditTrailExplorerController.countMatches';
 import startSearch from '@salesforce/apex/SetupAuditTrailExplorerController.startSearch';
 import loadFilterOptions from '@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt';
 import exportAllHistory from '@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory';
-import loadLoginAsHistory from '@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory';
 import load from '@salesforce/apex/SetupAuditTrailExplorerController.load';
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => {
@@ -16,7 +16,6 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.load', () => {
     }) => request({ input: JSON.parse(criteriaJson) }), { request }) };
 }, { virtual: true });
 
-jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadEmployeeActorIds', () => ({ default: jest.fn() }), { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.startSearch', () => ({ default: jest.fn() }), { virtual: true });
 
@@ -32,17 +31,32 @@ jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.countMatches', () 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadOptionsAt', () => ({ default: jest.fn() }), { virtual: true });
 
 jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.exportAllHistory', () => ({ default: jest.fn() }), { virtual: true });
-jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.loadLoginAsHistory', () => ({ default: jest.fn() }), { virtual: true });
-jest.mock('@salesforce/i18n/lang', () => ({ default: 'ja' }), { virtual: true });
 
+jest.mock('@salesforce/apex/SetupAuditTrailExplorerController.getColumnLabels', () => ({ default: jest.fn() }), { virtual: true });
+
+const labels = { CreatedDate: '作成日', Username: 'ユーザー名', ResponsibleNamespacePrefix: 'ソースの名前空間プレフィックス',
+    Action: 'アクション', Display: '表示', Section: 'セクション', DelegateUser: '代理ユーザー' };
+const expectedHeader = '作成日,ユーザー名,ソースの名前空間プレフィックス,アクション,表示,セクション,代理ユーザー\n';
 const countMonth = countMatches.month;
 const cutoff = '2026-11-19T10:00:00.000Z';
+let activeModal;
 
 beforeEach(() => {
-    loadEmployeeActorIds.mockReset().mockResolvedValue([]);
+    getColumnLabels.mockReset().mockResolvedValue(labels);
     startSearch.mockReset().mockResolvedValue(cutoff);
-    HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
-    HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
+    // 標準オーバーレイの開閉だけを模擬し、実際のCSV確認コンポーネントを操作する。
+    jest.spyOn(ExportModal, 'open').mockImplementation(({ size, ...options }) => new Promise(resolve => {
+        const modal = createElement('c-setup-audit-trail-export-modal', { is: ExportModal });
+        expect(size).toBe('small');
+        Object.assign(modal, options);
+        activeModal = modal;
+        modal.closeHandler = result => {
+            modal.remove();
+            activeModal = undefined;
+            resolve(result);
+        };
+        document.body.appendChild(modal);
+    }));
     loadFilterOptions.mockResolvedValue({ options: { action: ['createdApexClass'], namespacePrefix: [], delegateUser: [] } });
     countMonth.mockResolvedValue(0);
     countMatches.request.mockResolvedValue(0);
@@ -53,8 +67,12 @@ jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virt
 
 const flush = () => new Promise(resolve => require('timers').setImmediate(resolve));
 
-function confirmCsv(component) {
-    const dialog = component.shadowRoot.querySelector('dialog[open]');
+function currentDialog() {
+    return activeModal?.shadowRoot;
+}
+
+function confirmCsv() {
+    const dialog = currentDialog();
     expect(dialog).not.toBeNull();
     [...dialog.querySelectorAll('lightning-button')].find(button => button.label === '出力').click();
 }
@@ -91,11 +109,23 @@ afterEach(() => {
     document.body.replaceChildren();
     loadFilterOptions.mockReset();
     exportAllHistory.mockReset();
-    loadLoginAsHistory.mockReset();
     load.request.mockReset();
     countMonth.mockReset();
     countMatches.request.mockReset();
     jest.restoreAllMocks();
+});
+
+it('uses the field labels returned by Salesforce when the list is retried', async () => {
+    load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
+    getColumnLabels.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ ...labels, Action: 'Action' });
+    const root = mount().shadowRoot;
+    await flush();
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    [...root.querySelectorAll('lightning-button')].find(button => button.label === '再試行').click();
+    await flush();
+    expect(root.querySelector('lightning-datatable').columns.map(column => column.label)).toEqual([
+        '作成日', 'ユーザー名', 'ソースの名前空間プレフィックス', 'Action', 'セクション', '代理ユーザー'
+    ]);
 });
 
 it('merges chart buckets across pages and reuses them as filter options', async () => {
@@ -123,9 +153,7 @@ it('merges chart buckets across pages and reuses them as filter options', async 
     expect(loadFilterOptions).not.toHaveBeenCalled();
 });
 
-it('labels confirmed employees across chart pages and opens history with their original ID', async () => {
-    const company = '株式会社セールスフォース・ジャパン';
-    loadEmployeeActorIds.mockResolvedValue(['employee']);
+it('counts unnamed creators across chart pages with their original IDs', async () => {
     load.request.mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce({ buckets: [{ userId: 'employee', action: 'first', count: 1 }], nextId: 'row', nextTime: cutoff })
         .mockResolvedValueOnce({ buckets: [{ userId: 'employee', action: 'next', count: 2 }, { userId: 'other', action: 'other', count: 4 }] })
@@ -135,39 +163,11 @@ it('labels confirmed employees across chart pages and opens history with their o
     root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
     await flush();
     const chart = root.querySelector('c-setup-audit-trail-chart');
-    expect(loadEmployeeActorIds.mock.calls).toEqual([[{ cutoff }]]);
     expect(chart.buckets).toEqual([
-        { userId: 'employee', userName: company, action: 'first', count: 1 },
-        { userId: 'employee', userName: company, action: 'next', count: 2 },
+        { userId: 'employee', action: 'first', count: 1 },
+        { userId: 'employee', action: 'next', count: 2 },
         { userId: 'other', action: 'other', count: 4 }
     ]);
-    chart.dispatchEvent(new CustomEvent('selectfilter', { detail: { userId: 'employee', userName: company } }));
-    await flush();
-    expect(root.querySelector('input[data-field="userId"]').value).toBe(company);
-    expect(load.request.mock.lastCall[0].input).toMatchObject({ userId: 'employee', cutoff });
-});
-
-it('uses the recorded user for lookup and chart when the delegate is a different user', async () => {
-    const login = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-02T03:00:00Z',
-        CreatedById: 'target', CreatedBy: { Name: '対象', Username: 'target@example.invalid' }, DelegateUser: 'admin@example.invalid' };
-    load.request.mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ buckets: [], records: [login] });
-    loadFilterOptions.mockResolvedValueOnce({ options: {}, records: [login], nextId: 'cursor', nextTime: 'time' })
-        .mockResolvedValueOnce({ options: {}, userOptions: { target: 'target@example.invalid' }, userNames: { target: '別表記' } });
-    const root = mount().shadowRoot;
-    await flush();
-    root.querySelector('input[data-field="userId"]').click();
-    await flush();
-    const monthStart = load.request.mock.calls[0][0].input.monthStart;
-    expect(loadFilterOptions.mock.calls.map(([request]) => JSON.parse(request.criteriaJson))).toEqual([
-        { monthStart, cutoff }, { monthStart, cutoff, nextId: 'cursor', nextTime: 'time' }
-    ]);
-    expect(root.querySelectorAll('[role="option"]')).toHaveLength(1);
-    expect(root.querySelector('[role="option"]').textContent).toContain('対象');
-    root.querySelectorAll('lightning-tab')[1].dispatchEvent(new CustomEvent('active'));
-    await flush();
-    expect(load.request.mock.lastCall[0].input.includeDelegateNames).toBe(false);
-    expect(root.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({ userId: 'target', count: 1 });
-    expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
 
 it('loads candidates on demand and applies selected filters only on search', async () => {
@@ -325,33 +325,28 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
         await search(component);
         const exportPage = period === 'month' ? load.request : exportAllHistory;
         const serverCutoff = '2026-11-19T13:43:07.912Z';
+        startSearch.mockResolvedValueOnce(serverCutoff);
         const login = { ...row, Id: 'login', Action: 'suOrgAdminLogin', CreatedById: 'admin', CreatedBy: { Username: row.DelegateUser },
             Display: '対象 のログインアクセスを使用してログイン済み' };
-        const logout = { ...row, Id: 'logout', Action: 'suOrgAdminLogout', CreatedById: 'target', CreatedDate: '2026-11-18T00:05:00Z',
-            CreatedBy: { Name: '対象', Username: 'target@example.invalid' }, Display: '対象 のログインアクセスを使用してログアウト済み' };
-        loadLoginAsHistory.mockResolvedValueOnce({ records: [logout], cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate })
-            .mockResolvedValueOnce({ records: [login], cutoff: serverCutoff });
         exportPage.mockResolvedValueOnce({ records: [row], nextId: 'cursor', nextTime: 'time',
-            cutoff: serverCutoff, employeeActorIds: ['employee'] })
-            .mockResolvedValueOnce({ records: [{ ...row, CreatedById: 'employee', CreatedBy: null }, login], cutoff: serverCutoff });
+            cutoff: serverCutoff })
+            .mockResolvedValueOnce({ records: [{ ...row, Id: 'permission', CreatedById: 'employee', CreatedBy: null }, login],
+                cutoff: serverCutoff });
         const monthStart = load.request.mock.calls[0][0].input.monthStart;
         const menu = component.shadowRoot.querySelector('lightning-button-menu');
         const launcher = period === 'all' ? menu : component.shadowRoot.querySelector('[data-monthly-export]');
         const focusLauncher = jest.spyOn(launcher, 'focus');
         expect(menu.querySelector('lightning-menu-item').label).toBe('CSV出力 (全期間)');
-        const startedAt = Date.UTC(2026, 10, 19, 13, 38, 7, 912);
-        const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt);
         if (period === 'month') {
             [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
         } else {
             menu.dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
         }
         await flush();
-        expect(component.shadowRoot.querySelector('dialog[open]').textContent).toContain(period === 'all' ? '全期間' : monthStart.slice(0, 7));
+        expect(currentDialog().textContent).toContain(period === 'all' ? '取得可能な全期間' : monthStart.slice(0, 7));
         expect(exportAllHistory).not.toHaveBeenCalled();
         expect(load.request.mock.calls.some(([{ input }]) => input.csv)).toBe(false);
-        confirmCsv(component);
-        clock.mockReturnValue(startedAt + 5000);
+        confirmCsv();
         await downloaded;
         await flush();
 
@@ -360,7 +355,7 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             : exportAllHistory.mock.calls.map(([request]) => request);
         const monthQuery = { monthStart, csv: true };
         expect(queries).toEqual([
-            period === 'month' ? monthQuery : { cutoff: null },
+            { ...(period === 'month' ? monthQuery : {}), cutoff: serverCutoff },
             { ...(period === 'month' ? monthQuery : {}), cutoff: serverCutoff, nextId: 'cursor', nextTime: 'time' }
         ]);
         expect(download).toHaveBeenCalledTimes(1);
@@ -373,18 +368,60 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             reader.onerror = () => reject(reader.error);
             reader.readAsText(blob, 'utf-8');
         });
-        const header = '日付,ユーザー,ソースの名前空間プレフィックス,アクション,セクション,代理ユーザー\n';
-        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","=原文,""引用""\n続き🧪","Apps","delegate@example.invalid"\n';
-        expect(loadLoginAsHistory.mock.calls.map(([query]) => query)).toEqual([
-            { cutoff: serverCutoff },
-            { cutoff: serverCutoff, nextId: 'logout', nextTime: logout.CreatedDate }
-        ]);
-        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '株式会社セールスフォース・ジャパン') +
-            '"2026/11/18 9:00:00 JST","target@example.invalid","sample","' + login.Display + '","Apps","delegate@example.invalid"\n');
+        const header = expectedHeader;
+        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","","=原文,""引用""\r\n続き🧪","Apps","delegate@example.invalid"\n';
+        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '') +
+            '"2026/11/18 9:00:00 JST","delegate@example.invalid","sample","suOrgAdminLogin","' + login.Display + '","Apps","delegate@example.invalid"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
-            .toBe((period === 'month' ? 'SetupAuditTrailMonthly' : 'SetupAuditTrailAll') + startedAt + '.csv');
+            .toBe(period === 'month' ? 'SetupAuditTrailMonthly' + monthStart.slice(0, 7).replace('-', '') + '.csv' : 'SetupAuditTrailAll.csv');
         component.remove();
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:audit');
+    } finally {
+        component.remove();
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+    }
+});
+
+it.each(['month', 'all'])('rejects an empty continuation for %s but allows an empty first page on retry', async period => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:audit');
+    URL.revokeObjectURL = jest.fn();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    load.request.mockResolvedValue({ records: [] });
+    const component = mount();
+    try {
+        await flush();
+        const fetchPage = period === 'all' ? exportAllHistory : load.request;
+        fetchPage.mockResolvedValueOnce({ records: [{ Id: 'last', CreatedDate: cutoff }], nextId: 'last', nextTime: cutoff, cutoff })
+            .mockResolvedValueOnce({ records: [], cutoff })
+            .mockImplementationOnce(request => {
+                const retry = period === 'all' ? request : request.input;
+                return Promise.resolve({ records: retry.cutoff === cutoff ? [] : [{ CreatedDate: cutoff, Display: '初回出力後の履歴' }] });
+            });
+        // 再試行で時刻を取り直すと、初回の範囲外の履歴が返る。
+        startSearch.mockResolvedValueOnce(cutoff).mockResolvedValue('2026-11-19T11:00:00.000Z');
+        if (period === 'all') {
+            component.shadowRoot.querySelector('lightning-button-menu').dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
+        } else {
+            component.shadowRoot.querySelector('[data-monthly-export]').click();
+        }
+        confirmCsv();
+        await flush();
+        expect(download).not.toHaveBeenCalled();
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+        expect(currentDialog().querySelector('[role="alert"]').textContent)
+            .toBe('続きの履歴を取得できなかったため、CSVを保存しませんでした。もう一度出力してください。');
+
+        confirmCsv();
+        await flush();
+        expect(download).toHaveBeenCalledTimes(1);
+        expect(currentDialog()).toBeUndefined();
+        const reader = new FileReader();
+        const contents = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
+        reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
+        expect(await contents).toBe(expectedHeader);
     } finally {
         component.remove();
         URL.createObjectURL = originalCreate;
@@ -402,15 +439,15 @@ it('retries only the failed CSV page after a temporary connection error', async 
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(button => button.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
 
     expect(load.request).toHaveBeenCalledTimes(4);
     expect(load.request.mock.calls[2]).toEqual(load.request.mock.calls[3]);
     expect(load.request.mock.calls[3][0].input).toEqual(expect.objectContaining({ nextId: 'cursor', nextTime: 'time' }));
-    expect(component.shadowRoot.querySelector('[role="status"]').textContent)
+    expect(currentDialog().querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
-    expect(component.shadowRoot.querySelector('lightning-spinner').alternativeText).toBe('CSVを作成中');
+    expect(currentDialog().querySelector('lightning-spinner').alternativeText).toBe('CSVを作成中');
 });
 
 it('shows a CSV permission error without retrying', async () => {
@@ -420,13 +457,41 @@ it('shows a CSV permission error without retrying', async () => {
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(button => button.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
 
     expect(load.request).toHaveBeenCalledTimes(2);
-    expect(component.shadowRoot.querySelector('[role="alert"]').textContent)
+    expect(currentDialog().querySelector('[role="alert"]').textContent)
         .toContain('アクセス権限がありません。');
-    expect(component.shadowRoot.querySelector('lightning-spinner')).toBeNull();
+    expect(currentDialog().querySelector('lightning-spinner')).toBeNull();
+});
+
+it('retries from the same modal after an export error and downloads only the completed file', async () => {
+    load.request.mockResolvedValueOnce({ records: [] })
+        .mockRejectedValueOnce({ body: { message: '一時的に出力できません。' } })
+        .mockResolvedValueOnce({ records: [] });
+    const component = mount();
+    await flush();
+    component.shadowRoot.querySelector('[data-monthly-export]').click();
+    await expect(activeModal).toBeAccessible();
+    confirmCsv();
+    await flush();
+    expect(currentDialog().querySelector('[role="alert"]').textContent).toBe('一時的に出力できません。');
+    const previousCreate = URL.createObjectURL;
+    const previousRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:retry');
+    URL.revokeObjectURL = jest.fn();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+        confirmCsv();
+        await flush();
+        expect(download).toHaveBeenCalledTimes(1);
+        expect(currentDialog()).toBeUndefined();
+    } finally {
+        component.remove();
+        URL.createObjectURL = previousCreate;
+        URL.revokeObjectURL = previousRevoke;
+    }
 });
 
 it('stops fetching CSV pages when the component is removed', async () => {
@@ -439,7 +504,8 @@ it('stops fetching CSV pages when the component is removed', async () => {
     const button = [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(child => child.label === 'CSV出力');
     button.click();
-    confirmCsv(component);
+    confirmCsv();
+    await flush();
     component.remove();
     finishPage({ records: [], nextId: 'cursor', nextTime: 'time' });
     await flush();
@@ -455,30 +521,10 @@ it('reports how many CSV rows have been fetched while waiting for the next page'
     await flush();
     [...component.shadowRoot.querySelectorAll('lightning-button')]
         .find(child => child.label === 'CSV出力').click();
-    confirmCsv(component);
+    confirmCsv();
     await flush();
-    expect(component.shadowRoot.querySelector('[role="status"]').textContent)
+    expect(currentDialog().querySelector('[role="status"]').textContent)
         .toBe('CSVを作成中（1件取得済み）');
-    expect(loadLoginAsHistory).not.toHaveBeenCalled();
-});
-
-it('stops fetching login-as evidence after leaving the page', async () => {
-    let finishEvidence;
-    load.request.mockResolvedValueOnce({ records: [] }).mockResolvedValueOnce({ records: [{
-        Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
-        CreatedBy: { Username: 'admin' }, DelegateUser: 'admin'
-    }] });
-    loadLoginAsHistory.mockImplementationOnce(() => new Promise(resolve => { finishEvidence = resolve; }));
-    const component = mount();
-    await flush();
-    [...component.shadowRoot.querySelectorAll('lightning-button')].find(button => button.label === 'CSV出力').click();
-    confirmCsv(component);
-    await flush();
-    component.remove();
-    finishEvidence({ records: [], nextId: 'more', nextTime: 'time' });
-    await flush();
-    expect(loadLoginAsHistory).toHaveBeenCalledTimes(1);
-    expect(load.request).toHaveBeenCalledTimes(2);
 });
 
 it('keeps the current result when the normalized action filter is unchanged', async () => {
@@ -506,6 +552,22 @@ it('shows the monthly count and keeps it when a list filter changes', async () =
     expect(component.shadowRoot.textContent).toContain('月（21,638件）');
 });
 
+it('renders the remaining local rows as the table approaches the end of a batch', async () => {
+    const records = Array.from({ length: 51 }, (_, index) => ({ Id: String(index + 1) }));
+    load.request.mockResolvedValueOnce({ records });
+    const component = mount();
+    await flush();
+    const table = component.shadowRoot.querySelector('lightning-datatable');
+    expect(table.data).toHaveLength(50);
+    expect(Number(table.loadMoreOffset)).toBeGreaterThanOrEqual(600);
+    expect(table.enableInfiniteLoading).toBe(true);
+    table.dispatchEvent(new CustomEvent('loadmore'));
+    await flush();
+    expect(table.data.map(row => row.Id)).toEqual(records.map(row => row.Id));
+    expect(table.enableInfiniteLoading).toBe(false);
+    expect(load.request).toHaveBeenCalledTimes(1);
+});
+
 it('moves through adjacent pages and resets the cursor only after search', async () => {
     countMonth.mockResolvedValue(2002);
     load.request.mockImplementation(({ input: { nextId, action } }) => {
@@ -522,7 +584,13 @@ it('moves through adjacent pages and resets the cursor only after search', async
     await flush();
     expect([...root.querySelectorAll('nav lightning-button')].map(item => item.label)).toEqual(['次へ']);
     expect(load.request.mock.calls[0][0].input).toMatchObject({ pageSize: 1000, chart: false });
+    let finishPage;
+    load.request.mockImplementationOnce(() => new Promise(resolve => { finishPage = resolve; }));
     button('次へ').click();
+    await flush();
+    expect(root.querySelector('.c-history-viewport')).not.toBeNull();
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    finishPage({ records: [{ Id: 'cursor-2' }], nextId: 'cursor-3', nextTime: 'time' });
     await flush();
     expect(root.textContent).toContain('2 / 3ページ');
     expect(root.querySelector('lightning-datatable').rowNumberOffset).toBe(1000);
@@ -554,12 +622,12 @@ it.each([1, 1000])('shows 1 / 1 without adjacent pages for a monthly total of %i
 });
 
 it('counts all chart pages including delegated logins and reuses the monthly result on revisit', async () => {
-    const login = { Action: 'suOrgAdminLogin', CreatedDate: cutoff, CreatedById: 'target' };
+    const login = { action: 'suOrgAdminLogin', userId: 'target', count: 1 };
     load.request.mockImplementation(({ input }) => {
         if (!input.chart) {
             return { records: [{ Id: 'first' }], nextId: 'detail', nextTime: 'time' };
         }
-        return input.nextId ? { buckets: [{ action: 'change', count: 500 }], records: [login] } :
+        return input.nextId ? { buckets: [{ action: 'change', count: 500 }, login] } :
             { buckets: [{ action: 'change', count: 500 }], nextId: 'more', nextTime: 'time' };
     });
     const root = mount().shadowRoot;
@@ -683,7 +751,7 @@ it('limits month navigation to the current month and the six preceding months', 
     await flush();
     expect(next.disabled).toBe(true);
     expect(previous.disabled).toBe(false);
-    expect(component.shadowRoot.querySelector('.month-navigation h2').textContent).toMatch(/^\d{4}年\d{1,2}月（0件）$/);
+    expect(component.shadowRoot.querySelector('.c-month-navigation h2').textContent).toMatch(/^\d{4}年\d{1,2}月（0件）$/);
     for (let offset = 0; offset < 6; offset += 1) {
         previous.click();
     }
@@ -709,10 +777,10 @@ it.each([true, false])('clears data loading spinners after requests settle (succ
     const component = mount();
     const root = component.shadowRoot;
     await flush();
-    expect(root.querySelector('.month-navigation lightning-spinner').alternativeText).toBe('月の総件数を取得中');
+    expect(root.querySelector('.c-month-navigation lightning-spinner').alternativeText).toBe('月の総件数を取得中');
     await chooseLookup(component, 'action', 'createdApexClass');
     await search(component);
-    expect(root.querySelector('.pagination lightning-spinner').alternativeText).toBe('絞り込み件数を取得中');
+    expect(root.querySelector('.c-pagination lightning-spinner').alternativeText).toBe('絞り込み件数を取得中');
 
     if (succeeds) {
         resolveRequests();
@@ -747,26 +815,6 @@ it.each([true, false])('clears the filter candidate spinner after loading (succe
     expect(root.querySelector('lightning-spinner')).toBeNull();
 });
 
-it('shares an in-flight actor lookup between the table and the open user lookup', async () => {
-    const login = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-21T01:00:00Z',
-        Display: '対象 のログインアクセスを使用してログイン済み', DelegateUser: 'admin', CreatedById: 'admin', CreatedBy: { Username: 'admin' } };
-    const logout = { ...login, Id: 'logout', Action: 'suOrgAdminLogout', CreatedDate: '2026-11-21T02:00:00Z',
-        Display: '対象 のログインアクセスを使用してログアウト済み', CreatedById: 'target', CreatedBy: { Name: '対象', Username: 'target' } };
-    let finish;
-    loadLoginAsHistory.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
-    load.request.mockResolvedValue({ records: [login] });
-    loadFilterOptions.mockResolvedValue({ options: {}, records: [login] });
-    const root = mount().shadowRoot;
-    await flush();
-    root.querySelector('input[data-field="userId"]').click();
-    await flush();
-    finish({ records: [logout, login] });
-    await flush();
-    expect(loadLoginAsHistory).toHaveBeenCalledTimes(1);
-    expect(root.querySelector('lightning-datatable').data[0].displayedUser).toBe('対象');
-    expect(root.querySelector('[role="option"]').dataset.value).toBe('target');
-});
-
 it('queries ordinary actions for the selected creator with normal detail pagination', async () => {
     loadFilterOptions.mockResolvedValue({ options: { action: ['changedApexClass'] }, userOptions: { target: 'target' } });
     load.request.mockResolvedValue({ records: [] });
@@ -778,58 +826,56 @@ it('queries ordinary actions for the selected creator with normal detail paginat
     expect(load.request.mock.calls.map(([{ input }]) => input.matchIndex)).toEqual([undefined, undefined]);
     expect(load.request.mock.lastCall[0].input).toMatchObject({ action: 'changedApexClass', userId: 'target', pageSize: 1000 });
     expect(countMatches.request).not.toHaveBeenCalled();
-    expect(loadLoginAsHistory).not.toHaveBeenCalled();
 });
 
-it('shows actor and delegate names on screen and indexes the section across source pages', async () => {
+it('shows recorded usernames and actions on screen and indexes the section across source pages', async () => {
     const target = { Id: 'login', Action: 'suOrgAdminLogin', Display: '対象 のログインアクセスを使用してログイン済み',
         CreatedDate: '2026-11-02T03:00:00Z', CreatedById: 'admin', CreatedBy: { Username: 'admin' }, DelegateUser: 'admin', Section: 'ログイン' };
     const logout = { ...target, Id: 'logout', Action: 'suOrgAdminLogout', Display: '対象 のログインアクセスを使用してログアウト済み',
         CreatedDate: '2026-11-02T03:00:05Z', CreatedById: 'targetId', CreatedBy: { Name: '対象', Username: 'target' } };
     const changed = { Id: 'changed', CreatedById: 'service', Action: 'PermSetEntityPermChanged', Section: '権限',
         Display: '権限セット X を変更: ArchiveJobSession オブジェクト権限を 参照' };
-    loadLoginAsHistory.mockResolvedValue({ records: [logout, target] });
     loadFilterOptions.mockResolvedValue({ options: { section: ['ログイン', '権限'] }, userOptions: { targetId: 'target' } });
     load.request.mockImplementation(({ input }) => {
         if (input.matchIndex) {
-            return input.nextId ? { records: [target] } : { records: [logout], nextId: 'cursor', nextTime: 'time' };
+            return input.nextId ? { records: [] } : { records: [logout], nextId: 'cursor', nextTime: 'time' };
         }
         if (input.chart) {
-            return { buckets: [], records: [target] };
+            return { buckets: [{ userId: 'admin', loginName: 'admin', day: '2026-11-02', section: 'ログイン', count: 1 }] };
         }
-        return { records: input.recordIds ? [logout, target] : [target, changed], employeeActorIds: ['service'], delegateNames: { admin: '管理者' } };
+        return { records: input.recordIds ? [logout] : [target, changed] };
     });
     const component = mount();
     await flush();
     const table = () => component.shadowRoot.querySelector('lightning-datatable');
-    expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '株式会社セールスフォース・ジャパン']);
-    expect(table().data.map(row => row.displayedDelegate)).toEqual(['管理者', undefined]);
-    expect(table().data[1].displayedAction).toContain('アーカイブジョブセッション');
+    expect(table().data.map(row => row.displayedUser)).toEqual(['admin', undefined]);
+    expect(table().data.map(row => row.DelegateUser)).toEqual(['admin', undefined]);
+    expect(table().data[1].actionDetail).toBe('[PermSetEntityPermChanged]\n' + changed.Display);
     await chooseLookup(component, 'section', 'ログイン');
     await chooseLookup(component, 'userId', 'targetId');
     await search(component);
     await flush();
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ recordIds: ['logout', 'login'] }) });
-    expect(table().data.map(row => row.displayedUser)).toEqual(['対象', '対象']);
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ recordIds: ['logout'] }) });
+    expect(table().data.map(row => row.displayedUser)).toEqual(['target']);
     expect(countMatches.request).not.toHaveBeenCalled();
     component.shadowRoot.querySelector('[data-result-export]').click();
     await flush();
-    const dialog = component.shadowRoot.querySelector('dialog');
-    expect(dialog.textContent).toContain('全2件');
+    const dialog = currentDialog();
+    expect(dialog.textContent).toContain('全1件');
     expect(dialog.textContent).toContain('セクション：ログイン');
     load.request.mockRejectedValueOnce({ body: { message: 'CSV取得エラー' } });
-    confirmCsv(component);
+    confirmCsv();
     await flush();
     expect(load.request.mock.lastCall[0].input).toMatchObject({ csv: true, userId: 'targetId', section: 'ログイン',
-        cutoff, recordIds: ['logout', 'login'] });
+        cutoff, recordIds: ['logout'] });
     expect(dialog.querySelector('[role="alert"]').textContent).toBe('CSV取得エラー');
-    dialog.dispatchEvent(new CustomEvent('cancel', { cancelable: true }));
+    [...dialog.querySelectorAll('lightning-button')].find(button => button.label === 'キャンセル').click();
 
     const chartTab = [...component.shadowRoot.querySelectorAll('lightning-tab')].find(tab => tab.value === 'chart');
     chartTab.dispatchEvent(new CustomEvent('active'));
     await flush();
     expect(component.shadowRoot.querySelector('c-setup-audit-trail-chart').buckets[0]).toMatchObject({
-        userId: 'targetId', loginName: 'target', day: '2026-11-02', section: 'ログイン'
+        userId: 'admin', loginName: 'admin', day: '2026-11-02', section: 'ログイン'
     });
 });
 
@@ -890,7 +936,7 @@ it('refreshes monthly pagination and ignores the previous monthly count after se
     finishInitialCount(1000);
     await flush();
     const root = component.shadowRoot;
-    expect(root.querySelector('.month-navigation h2').textContent).toContain('1,001件');
+    expect(root.querySelector('.c-month-navigation h2').textContent).toContain('1,001件');
     [...root.querySelectorAll('nav lightning-button')].find(button => button.label === '次へ').click();
     await flush();
     expect(root.querySelector('nav').textContent).toContain('2 / 2ページ');
@@ -941,7 +987,7 @@ it.each([
     chart.shadowRoot.querySelector('section[aria-label="ユーザー"] button').click();
     await flush();
     expect(root.querySelector('input[data-field="userId"]').value).toBe(label);
-    expect(load.request.mock.lastCall[0].input).toMatchObject({ day: null, userId, matchIndex: true });
+    expect(load.request.mock.lastCall[0].input).toMatchObject({ day: null, userId, pageSize: 1000 });
     expect(loadFilterOptions).not.toHaveBeenCalled();
 });
 
@@ -1002,7 +1048,7 @@ it('returns to available history if records beyond the saved cursor have expired
     expect(countMonth.mock.calls.map(([input]) => input.cutoff)).toEqual([cutoff, cutoff]);
     expect(root.querySelector('nav').textContent).toContain('1 / 1ページ');
     expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['remaining']);
-    expect(root.querySelector('.month-navigation h2').textContent).toContain('（1件）');
+    expect(root.querySelector('.c-month-navigation h2').textContent).toContain('（1件）');
 });
 
 it('shows a full matched page while probing later source batches and resumes at the next match', async () => {
@@ -1076,13 +1122,13 @@ it('cancels a confirmed CSV export and ignores its outstanding page', async () =
     await flush();
     const root = component.shadowRoot;
     root.querySelector('lightning-button-menu').dispatchEvent(new CustomEvent('select', { detail: { value: 'all' } }));
-    confirmCsv(component);
+    confirmCsv();
     await flush();
-    expect(root.querySelector('dialog [role="status"]').textContent).toContain('0件取得済み');
-    root.querySelector('dialog').dispatchEvent(new CustomEvent('cancel', { cancelable: true }));
+    expect(currentDialog().querySelector('[role="status"]').textContent).toContain('0件取得済み');
+    activeModal.close();
     finish({ records: [], nextId: 'later', nextTime: 'time' });
     await flush();
-    expect(root.querySelector('dialog[open]')).toBeNull();
+    expect(currentDialog()).toBeUndefined();
     expect(exportAllHistory).toHaveBeenCalledTimes(1);
 });
 
@@ -1108,9 +1154,15 @@ it('reuses five pages and refetches the evicted page with the original cutoff', 
     await visit([2, 3, 4, 5, 6], '次へ');
     await visit([5, 4, 3, 2], '前へ');
     expect(load.request).toHaveBeenCalledTimes(6);
+    let finishPage;
+    load.request.mockImplementationOnce(() => new Promise(resolve => { finishPage = resolve; }));
     await move('前へ');
     expect(load.request).toHaveBeenCalledTimes(7);
     expect(load.request.mock.lastCall[0].input).toMatchObject({ cutoff });
+    expect(root.querySelector('.c-history-viewport')).not.toBeNull();
+    expect(root.querySelector('lightning-datatable')).toBeNull();
+    finishPage({ records: [{ Id: '1' }], nextId: '2', nextTime: 'time' });
+    await flush();
     expect(root.querySelector('lightning-datatable').data[0].Id).toBe('1');
 });
 
@@ -1181,15 +1233,19 @@ it('retains monthly lookup options from the chart until the next explicit search
     expect(loadFilterOptions).toHaveBeenCalledTimes(1);
 });
 
-it('retries the visible detail page before probing more matches after actor lookup fails', async () => {
+it('retries the visible detail page before probing more matches after detail retrieval fails', async () => {
     jest.replaceProperty(historyLogic, 'PAGE_SIZE', 1);
     const login = { Id: 'first', CreatedDate: cutoff, Action: 'suOrgAdminLogin', DelegateUser: 'admin',
         CreatedBy: { Username: 'admin' }, Display: '対象 のログインアクセスを使用してログイン済み' };
     loadFilterOptions.mockResolvedValue({ options: { section: ['A'] } });
-    loadLoginAsHistory.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ records: [] });
+    let failDetail = true;
     load.request.mockImplementation(({ input }) => {
         if (input.matchIndex && !input.nextId) {
             return { records: [login], nextId: login.Id, nextTime: cutoff };
+        }
+        if (input.recordIds && failDetail) {
+            failDetail = false;
+            throw new Error('offline');
         }
         return { records: input.recordIds ? [login] : [] };
     });
@@ -1261,14 +1317,15 @@ it.each(['before', 'after'])('uses a complete monthly chart if the monthly count
         await flush();
     }
     expect(retryShown()).toBe(timing === 'before');
-    expect(root.querySelector('.month-navigation h2').textContent).not.toContain('件');
+    expect(root.querySelector('.c-month-navigation h2').textContent).not.toContain('件');
+    expect(root.querySelector('.c-tab-results [role="status"]').textContent).toContain('1,000件集計済み');
     finishChart({ buckets: [{ count: 1 }] });
     await flush();
     if (timing === 'after') {
         failCount(new Error('count'));
         await flush();
     }
-    expect(root.querySelector('.month-navigation h2').textContent).toContain('（1,001件）');
+    expect(root.querySelector('.c-month-navigation h2').textContent).toContain('（1,001件）');
     expect(retryShown()).toBe(false);
     history.dispatchEvent(new CustomEvent('active'));
     await flush();
@@ -1362,12 +1419,11 @@ it('restores an open lookup and its typed search after recovering an expired pag
 });
 
 it.each(['lookup', 'chart'])('offers name-only users by ID from %s data, including delegated logins', async source => {
-    const delegated = { Id: 'login', Action: 'suOrgAdminLogin', CreatedDate: '2026-11-01T00:00:00Z',
-        CreatedById: 'other', CreatedBy: { Name: '同じ氏名' } };
+    const delegated = { userId: 'other', userName: '同じ氏名', action: 'suOrgAdminLogin', count: 1 };
     load.request.mockImplementation(({ input }) => (input.chart ?
-        { buckets: [{ userId: 'first', userName: '同じ氏名', count: 1 }, { userId: 'noLabel', count: 1 }], records: [delegated] } :
+        { buckets: [{ userId: 'first', userName: '同じ氏名', count: 1 }, { userId: 'noLabel', count: 1 }, delegated] } :
         { records: [] }));
-    loadFilterOptions.mockResolvedValueOnce({ options: {}, userNames: { first: '同じ氏名' }, records: [delegated] });
+    loadFilterOptions.mockResolvedValueOnce({ options: {}, userNames: { first: '同じ氏名', other: '同じ氏名' } });
     const component = mount();
     const root = component.shadowRoot;
     await flush();
@@ -1392,12 +1448,36 @@ it.each(['lookup', 'chart'])('offers name-only users by ID from %s data, includi
     expect(input.value).toBe('同じ氏名');
 });
 
+it.each([false, true])('shares the pending list count with CSV confirmation (filtered: %s)', async filtered => {
+    const counter = filtered ? countMatches.request : countMonth;
+    let finishCount;
+    counter.mockImplementation(() => new Promise(resolve => { finishCount = resolve; }));
+    load.request.mockResolvedValue({ records: [{ Id: 'first' }], nextId: 'next', nextTime: cutoff });
+    const component = mount();
+    await flush();
+    if (filtered) {
+        await chooseLookup(component, 'action', 'createdApexClass');
+        await search(component);
+    }
+    component.shadowRoot.querySelector('[data-result-export]').click();
+    await flush();
+    expect(currentDialog().textContent).toContain('件数を確認中');
+    expect(countMatches.request).toHaveBeenCalledTimes(filtered ? 1 : 0);
+    expect(countMonth).toHaveBeenCalledTimes(filtered ? 2 : 1);
+
+    finishCount(1001);
+    await flush();
+    expect(currentDialog().textContent).toContain('全1,001件');
+    expect(component.shadowRoot.querySelector('nav').textContent).toContain('1 / 2ページ');
+});
+
 it('exports all result pages with the applied action and original cutoff from the second history page', async () => {
     jest.replaceProperty(historyLogic, 'PAGE_SIZE', 1);
     const rows = ['first', 'second'].map(Id => ({ Id, CreatedDate: cutoff, Display: Id }));
     const boundary = { nextId: 'first', nextTime: cutoff };
     countMatches.request.mockResolvedValue(2);
-    load.request.mockImplementation(({ input }) => (input.nextId ? { records: [rows[1]] } : { records: [rows[0]], ...boundary }));
+    load.request.mockImplementation(({ input }) => (input.nextId
+        ? { records: [rows[1]] } : { records: [rows[0]], ...boundary }));
     const component = mount();
     const root = component.shadowRoot;
     await flush();
@@ -1415,9 +1495,9 @@ it('exports all result pages with the applied action and original cutoff from th
     try {
         launcher.click();
         await flush();
-        expect(root.querySelector('dialog').textContent).toContain('アクション：createdApexClass');
-        expect(root.querySelector('dialog').textContent).toContain('全2件');
-        confirmCsv(component);
+        expect(currentDialog().textContent).toContain('アクション：createdApexClass');
+        expect(currentDialog().textContent).toContain('全2件');
+        confirmCsv();
         await flush();
         const queries = load.request.mock.calls.map(([{ input }]) => input).filter(input => input.csv);
         expect(queries[0].nextId).toBeUndefined();
@@ -1426,7 +1506,8 @@ it('exports all result pages with the applied action and original cutoff from th
             expect.objectContaining({ action: 'createdApexClass', cutoff, ...boundary })
         ]);
         expect(click).toHaveBeenCalledTimes(1);
-        expect(root.querySelector('a[data-download]').download).toMatch(/^SetupAuditTrailFiltered\d+\.csv$/);
+        const exportMonth = queries[0].monthStart.slice(0, 7).replace('-', '');
+        expect(root.querySelector('a[data-download]').download).toBe('SetupAuditTrailSearchResults' + exportMonth + '.csv');
         const reader = new FileReader();
         const csv = new Promise(resolve => { reader.onload = () => resolve(reader.result); });
         reader.readAsText(URL.createObjectURL.mock.calls[0][0]);
@@ -1456,11 +1537,39 @@ it('uses the same section match IDs for confirmation and export, and rejects inc
     await search(component);
     component.shadowRoot.querySelector('[data-result-export]').click();
     await flush();
-    expect(component.shadowRoot.querySelector('dialog').textContent).toContain('全1件');
+    expect(currentDialog().textContent).toContain('全1件');
     const download = jest.spyOn(HTMLAnchorElement.prototype, 'click');
-    confirmCsv(component);
+    confirmCsv();
     await flush();
     expect(load.request.mock.lastCall[0].input).toMatchObject({ section: 'A', recordIds: ['matches'], cutoff, csv: true });
-    expect(component.shadowRoot.querySelector('dialog [role="alert"]').textContent).toContain('再検索');
+    expect(currentDialog().querySelector('[role="alert"]').textContent).toContain('再検索');
     expect(download).not.toHaveBeenCalled();
+});
+
+it('未処理のApex例外を一覧取得の案内に置き換える', async () => {
+    const component = mount();
+    load.request.mockRejectedValueOnce({ body: { exceptionType: 'System.QueryException', message: 'Unexpected query failure' } });
+    await flush();
+    expect(component.shadowRoot.textContent).toContain('設定変更履歴を取得できませんでした。');
+    expect(component.shadowRoot.textContent).not.toContain('Unexpected query failure');
+});
+
+it('照合IDの一部が消えた一覧は再試行時にIDから読み直す', async () => {
+    const rows = ['a', 'b'].map(Id => ({ Id, CreatedDate: cutoff }));
+    let changed = false;
+    loadFilterOptions.mockResolvedValue({ options: { section: ['A'] } });
+    load.request.mockImplementation(({ input }) => {
+        if (input.matchIndex) return { records: changed ? rows.slice(0, 1) : rows };
+        if (input.recordIds) changed = true;
+        return { records: rows.slice(0, 1) };
+    });
+    const component = mount();
+    await flush();
+    await chooseLookup(component, 'section', 'A');
+    await search(component);
+    const root = component.shadowRoot;
+    expect(root.querySelector('[role="alert"]').textContent).toContain('検索結果の履歴が変わりました。');
+    [...root.querySelectorAll('lightning-button')].find(button => button.label === '再試行').click();
+    await flush();
+    expect(root.querySelector('lightning-datatable').data.map(row => row.Id)).toEqual(['a']);
 });

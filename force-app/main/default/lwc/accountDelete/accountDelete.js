@@ -42,12 +42,23 @@ export default class AccountDelete extends LightningElement {
     // この画面で受け付けた、または実行中に確認したジョブを保持
     acceptedJobId = '';
 
+    // 確認と照会を開始した画面の世代を識別する。
+    connectionVersion = 0;
+    // 受付要求の送信後は再接続しても結果が戻るまで開始をロックする。
+    startPending = false;
+
+    // 離脱した画面の確認結果と照会結果を無効にする。
+    disconnectedCallback() {
+        // 同じインスタンスが再接続しても古い確認は再利用しない。
+        this.connectionVersion += 1;
+    }
+
     // 配置時に現在の権限とジョブを確認
     connectedCallback() {
         // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
             // 初期画面を取得結果から構成
-            this.loadView();
+            if (!this.startPending) this.loadView();
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示
             this.reportClientError(boundaryError, 'connectedCallback', 'lifecycle');
@@ -68,6 +79,8 @@ export default class AccountDelete extends LightningElement {
 
     // 最新の権限とジョブを画面へ読み込む
     async loadView() {
+        // 再接続後に新しい照会結果だけを反映する。
+        const version = this.connectionVersion;
         // 読み込み中は開始操作を抑止
         this.isBusy = true;
         // 前回の通信エラーを解除
@@ -75,12 +88,18 @@ export default class AccountDelete extends LightningElement {
         // 受付済み状態を残したまま再取得
         try {
             // サーバーから現在の応答を取得
-            this.response = await getView({ jobId: this.acceptedJobId || null });
+            const response = await getView({ jobId: this.acceptedJobId || null });
+            // 離脱後の応答で新しい画面を上書きしない。
+            if (version !== this.connectionVersion) return;
+            // 現在の照会で確認した権限とジョブを反映する。
+            this.response = response;
             // この画面で確認した実行中ジョブを、完了後も追跡する
             if (!this.acceptedJobId && this.view.hasRun) {
                 this.acceptedJobId = this.view.jobId;
             }
         } catch (caughtError) {
+            // 以前の照会の失敗を現在の画面へ表示しない。
+            if (version !== this.connectionVersion) return;
             // 例外本文を記録せず、失敗した処理だけを通知
             this.reportClientError(caughtError, 'loadView', 'processing');
             // 内部の例外内容を画面へ転記しない
@@ -89,7 +108,7 @@ export default class AccountDelete extends LightningElement {
             this.response = undefined;
         } finally {
             // 再取得操作を可能にする
-            this.isBusy = false;
+            if (version === this.connectionVersion) this.isBusy = false;
         }
     }
 
@@ -102,24 +121,34 @@ export default class AccountDelete extends LightningElement {
                 // 現在の画面を保持
                 return;
             }
+            // 確認開始時の画面だけが受付要求を送れる。
+            const version = this.connectionVersion;
             // モーダルを重複して開かない
             this.isBusy = true;
             // 新しい操作のエラーだけを表示
             this.errorMessage = '';
+            // 送信済みの受付結果は離脱後も追跡する。
+            let requested = false;
             // 確認と開始要求を順に実行
             try {
                 // 標準モーダルのフォーカス・Escape処理を利用
                 const confirmed = await AccountDeleteConfirm.open({ size: 'small', label: '取引先の削除確認' });
                 // キャンセルや閉じる操作ではApexを呼び出さない
-                if (confirmed !== true) {
+                if (confirmed !== true || version !== this.connectionVersion) {
                     // 状態変更なしで元の画面へ戻る
                     return;
                 }
+                // この操作が送信した受付だけを完了時に解放する。
+                requested = true;
                 // 最終的な環境・権限・重複判定をApexへ委譲
+                this.startPending = true;
+                // 受付応答を同じインスタンスで追跡する。
                 this.response = await startRun();
                 // ジョブIDがある場合だけ受付済みとして扱う
                 this.acceptedJobId = this.response?.jobId || '';
             } catch (caughtError) {
+                // 前の画面の確認失敗を新しい操作へ混ぜない。
+                if (!requested && version !== this.connectionVersion) return;
                 // 例外本文を記録せず、失敗した処理だけを通知
                 this.reportClientError(caughtError, 'handleExecute', 'processing');
                 // 受付の成否を断定せず再確認を案内
@@ -128,7 +157,9 @@ export default class AccountDelete extends LightningElement {
                 this.response = undefined;
             } finally {
                 // 通信終了後の状態更新を許可
-                this.isBusy = false;
+                if (requested) this.startPending = false;
+                // 古い確認の終了で再接続後の確認や照会を解放しない。
+                if (requested || version === this.connectionVersion) this.isBusy = false;
             }
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示

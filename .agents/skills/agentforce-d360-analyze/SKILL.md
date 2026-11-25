@@ -3,6 +3,15 @@ name: agentforce-d360-analyze
 description: "Data Cloud 360° view of a single Agentforce session. TRIGGER when user asks to trace, inspect, summarize, or describe a specific Agentforce session by session id (Agent Session UUID `019d…` or MessagingSession id `0Mw…`). Also triggers on session discovery — find/list/search sessions by time, agent, channel, outcome, or conversation text — when the user has no session id yet. DO NOT TRIGGER for design-time architecture questions (use agentforce-architecture-analyze instead) or for runtime perf/latency/SLO questions that require platform telemetry beyond Data Cloud."
 metadata:
   version: "1.0"
+  domains: ["Agentforce", "Data 360"]
+  minApiVersion: "66.0"
+  relatedSkills:
+    - "agentforce-architecture-analyze"
+  cliTools:
+    - tool: ["python3"]
+      semver: ">=3.10.0"
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # agentforce-d360-analyze — Data Cloud 360° session view
@@ -39,13 +48,27 @@ Artifacts always land under `~/.vibe/data/agentforce-d360-analyze/<org_id15>/<ag
 
 ## Resolving the script prefix
 
-The default install puts the skill under the runtime's plugin root. If the
-skill was cloned somewhere else (e.g. directly from the `forcedotcom/sf-skills`
-repo into a custom path), set `PLUGIN_ROOT` to point at the runtime's skills
-directory.
+`<SKILL_DIR>` = the absolute path to **this skill's own directory** (the folder holding this
+`SKILL.md`); resolve it from the skill path in context and substitute it below. Runtimes
+install skills in different places (`~/.claude/skills/`, `~/.vibe/skills/`, a plugin cache, a
+project `.claude/skills/`), so the block also probes the known install roots at runtime and
+uses the first that actually contains this skill's scripts. An exported `SKILL_ROOT` wins.
 
 ```bash
-prefix="${SKILL_ROOT:-${PLUGIN_ROOT:-$HOME/.vibe/skills}/agentforce-d360-analyze}/scripts"
+_skill=agentforce-d360-analyze
+for _c in "${SKILL_ROOT:-}" "<SKILL_DIR>" \
+          "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/$_skill}" \
+          "${VIBES_SKILLS_DIR:+$VIBES_SKILLS_DIR/$_skill}" \
+          "$HOME/.claude/skills/$_skill" "$PWD/.claude/skills/$_skill" \
+          "${PLUGIN_ROOT:-$HOME/.vibe/skills}/$_skill"; do
+  [ -n "$_c" ] || continue
+  # Some stagers (ADK eval) nest the bundled files under <skill>/artifacts/.
+  for _r in "$_c" "$_c/artifacts"; do
+    [ -f "$_r/scripts/fetch_dc.py" ] && { SKILL_ROOT="$_r"; break 2; }
+  done
+done
+[ -f "${SKILL_ROOT:-}/scripts/fetch_dc.py" ] || { echo "$_skill: scripts not found — set SKILL_ROOT to this skill's directory" >&2; exit 1; }
+prefix="$SKILL_ROOT/scripts"
 ```
 
 Every subsequent invocation in this doc uses `"$prefix/..."`.
@@ -55,28 +78,32 @@ Every subsequent invocation in this doc uses `"$prefix/..."`.
 When the user doesn't have a session id, run `discover_sessions.py` against the STDM session DMO. Prints a numbered picker; user picks one; proceed with the chosen UUID.
 
 ```bash
-python3 "$prefix/discover_sessions.py" --org <alias> [filters...]
+python3 "$prefix/discover_sessions.py" [--org <alias>] [filters...]
 ```
 
-**Filters** (all optional except `--org`): `--since <expr>` (default last 24h; accepts "last 2 hours", "today", ISO dates), `--agent <api-name>`, `--channel <Messaging|Builder|Voice>`, `--outcome <USER_ENDED|ESCALATED|TRANSFERRED|TIMEOUT|NOT_SET>`, `--grep <substring>` (conversation text), `--tz <IANA>`, `--limit <N>` (default 20).
+**`--org` is optional.** "My org", "our org", or no alias at all means the sf CLI default target org — omit `--org` and the script uses `sf config get target-org`. Pass `--org <alias>` only when the user names an alias. If no default is set the script exits with "no --org given and no default target org set"; relay its `sf config set target-org <alias>` hint and ask the user for an alias.
+
+**Filters** (all optional): `--since <expr>` (default last 24h; accepts "last 2 hours", "today", ISO dates), `--agent <api-name>`, `--channel <Messaging|Builder|Voice>`, `--outcome <USER_ENDED|ESCALATED|TRANSFERRED|TIMEOUT|NOT_SET>`, `--grep <substring>` (conversation text), `--tz <IANA>`, `--limit <N>` (default 20).
 
 **Output**: markdown table with `#`, `UUID`, `Start (UTC)`, `Agent`, `Channel`, `Duration`, `Outcome`. User replies with a number; proceed with that UUID.
 
 ## Pipeline — three stages
 
-```
+```text
 fetch_dc.py     →  24 dc.<name>.json + dc._session_manifest.json     (DC Query REST waterfall, 5 waves)
 assemble_dc.py  →  dc._session_tree.json                             (pure in-memory hierarchical join)
 render_dc.py    →  dc._session_summary.md                            (human summary, multi-section)
 ```
 
-Each stage is independently runnable. `fetch_dc.py --session <sid> --org <alias>` chains all three by default.
+Each stage is independently runnable. `fetch_dc.py --session <sid> [--org <alias>]` chains all three by default.
 
 ### Invocation
 
 ```bash
-python3 "$prefix/fetch_dc.py" --session <session-id-or-messaging-id> --org <alias>
+python3 "$prefix/fetch_dc.py" --session <session-id-or-messaging-id> [--org <alias>]
 ```
+
+`--org` is optional here too: without it (the user said "my org" or named no alias) the CLI default target org is used. With no default set, `fetch_dc.py` reports `DC_ACCESS_DENIED` with reason `no_org` (exit 10 when headless) — ask the user for an alias and re-run with `--org <alias>`.
 
 Flags: `--verbose` for per-DMO row counts; `--no-assemble` / `--no-render` to stop early. All entry scripts (`fetch_dc.py`, `assemble_dc.py`, `render_dc.py`, `resolve_session.py`, `discover_sessions.py`) accept `--data-dir <path>` and `--cache-dir <path>` to override the default `~/.vibe/{data,cache}/agentforce-d360-analyze/` roots — pass these when the host runtime needs artifacts under a different distribution layout.
 
@@ -84,7 +111,7 @@ Flags: `--verbose` for per-DMO row counts; `--no-assemble` / `--no-render` to st
 
 Everything lands under `~/.vibe/data/agentforce-d360-analyze/<org_id15>/<agent>__<ver>/<session_id>/` (default; override with `--data-dir <path>`):
 
-```
+```text
 dc.sessions.json              dc.steps.json                dc.gateway_requests.json
 dc.interactions.json          dc.messages.json             dc.gateway_responses.json
 dc.participants.json          dc.generations.json          dc.gateway_request_llm.json
@@ -125,7 +152,7 @@ If the user's question is about *why a particular topic or action was or wasn't 
 
 | Tool | Required |
 |---|---|
-| `sf` CLI (authenticated against the target org) | yes — `sf org login web --alias <alias>` |
+| `sf` CLI (authenticated against the target org) | yes — `sf org login web --alias <alias>`, and the CLI must provide `sf org auth show-access-token` (startup preflight enforces this) |
 | Data Cloud enabled on the target org | yes — the STDM + GenAI DMOs must have materialized for the session |
 | Python 3.10+ | yes — pipeline scripts |
 

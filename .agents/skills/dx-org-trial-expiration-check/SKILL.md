@@ -3,7 +3,10 @@ name: dx-org-trial-expiration-check
 description: "Check when Salesforce orgs expire (or already expired) and what to do about it, for one org, the default org, or across all authenticated orgs, using the Salesforce CLI (sf). Use when the user asks about org or trial expiration, \"when does my trial expire\", \"is my trial org still active\", \"how many days are left\", \"which orgs are expiring soon\", wants to filter orgs expiring within N days, needs machine-readable (JSON/CSV) output for cron or alerting, wants to back up an at-risk org before it lapses, or asks how to extend or renew an expiring trial or Developer Edition org. Covers trial editions, Developer Edition orgs (anything with a TrialExpirationDate), and scratch orgs (via sf org list). DO NOT TRIGGER for sandbox refresh timing, for creating, deleting, or switching the active org, or for non-Salesforce trials such as AWS, Netflix, or other vendors — this skill reads expiration and prints guidance, it does not modify orgs."
 allowed-tools: Read, Bash(bash), Bash(sf data query), Bash(sf org list), Bash(sf config get), Bash(jq), Bash(date)
 metadata:
+  relatedSkills:
+    - "dx-org-switch"
   version: "2.0"
+  domains: ["Developer Experience"]
   cliTools:
     - tool: ["jq"]
       semver: ">=1.6.0"
@@ -170,7 +173,7 @@ Org IDs of at-risk orgs so the steps are actionable:
   for LDV orgs. (Salesforce Help article 000387818.)
 - **Nonprofits:** email your Account Executive with subject "Trial Extension"
   and the trial-starter email, Org ID, and username; AMER
-  `PowerOfUsDesk@salesforce.com`, other regions `myaccount@salesforce.com` /
+  the Power of Us Desk, other regions My Account support /
   1-800-NO-SOFTWARE. Works even if already expired. (Article 004754220.)
 - **Developer Edition:** DE orgs have no subscription clock but are deactivated
   after prolonged inactivity (~180 days without a login); log in periodically.

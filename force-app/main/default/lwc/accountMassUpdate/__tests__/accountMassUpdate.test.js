@@ -82,6 +82,18 @@ function edit(element, value = 'Cold') {
 }
 
 describe('取引先一括更新画面', () => {
+    it('検索が失敗したときは前の検索の0件案内を表示しない', async () => {
+        const element = await createComponent();
+        searchAccounts.mockResolvedValueOnce({ ...response, records: [] });
+        button(element, '検索').click();
+        await flush();
+        searchAccounts.mockResolvedValueOnce({ errorMessage: '取得失敗' });
+        button(element, '検索').click();
+        await flush();
+        expect(element.shadowRoot.textContent).toContain('取得失敗');
+        expect(element.shadowRoot.textContent).not.toContain('条件に一致する法人取引先はありません');
+    });
+
     beforeEach(() => {
         searchAccounts.mockResolvedValue(response);
         LightningConfirm.open.mockResolvedValue(true);
@@ -119,6 +131,50 @@ describe('取引先一括更新画面', () => {
         expect(searchAccounts).toHaveBeenCalledTimes(1);
         expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
         expect(button(element, '変更を保存').disabled).toBe(false);
+    });
+
+    it.each(['次へ', '検索'])('再接続前の「%s」の確認結果で編集内容や新しい確認を変更しない', async label => {
+        searchAccounts.mockResolvedValue({ ...response, hasNext: true });
+        const element = await createComponent();
+        await search(element);
+        edit(element);
+        await flush();
+        let oldConfirm;
+        let newConfirm;
+        LightningConfirm.open.mockImplementationOnce(() => new Promise(resolve => { oldConfirm = resolve; }))
+            .mockImplementationOnce(() => new Promise(resolve => { newConfirm = resolve; }));
+        button(element, label).click();
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        await flush();
+        button(element, '次へ').click();
+        oldConfirm(true);
+        await flush();
+        expect(searchAccounts).toHaveBeenCalledTimes(1);
+        expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
+        expect(button(element, '次へ').disabled).toBe(true);
+        newConfirm(false);
+        await flush();
+        expect(button(element, '次へ').disabled).toBe(false);
+    });
+
+    it('検索応答待ちで再接続しても古いページを適用しない', async () => {
+        searchAccounts.mockResolvedValue({ ...response, hasNext: true });
+        const element = await createComponent();
+        await search(element);
+        edit(element);
+        await flush();
+        let finish;
+        searchAccounts.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        button(element, '次へ').click();
+        await flush();
+        element.remove();
+        document.body.appendChild(element);
+        finish(response);
+        await flush();
+        expect(element.shadowRoot.textContent).toContain('現在のページ：1');
+        expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
     });
 
     it('ページ取得失敗でも変更を維持し、成功時だけ次ページへ移動する', async () => {
@@ -182,6 +238,29 @@ describe('取引先一括更新画面', () => {
         );
     });
 
+    it('保存後の検索が0件でも入力を保持した失敗行があれば該当なしと表示しない', async () => {
+        const element = await createComponent();
+        await search(element);
+        edit(element);
+        await flush();
+        saveAccounts.mockResolvedValue({ successIds: [], errors: { [record.Id]: '対象を更新できません。' } });
+        searchAccounts.mockResolvedValue({ ...response, records: [], hasNext: false });
+
+        button(element, '変更を保存').click();
+        await flush();
+
+        expect(element.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(1);
+        expect(element.shadowRoot.querySelector('[data-field="Rating"]').value).toBe('Cold');
+        expect(element.shadowRoot.textContent).toContain('対象を更新できません。');
+        expect(element.shadowRoot.textContent).toContain('未保存の変更：1件');
+        expect(element.shadowRoot.textContent).not.toContain('条件に一致する法人取引先はありません。');
+
+        button(element, '検索').click();
+        await flush();
+        expect(element.shadowRoot.querySelectorAll('tbody tr')).toHaveLength(0);
+        expect(element.shadowRoot.textContent).toContain('条件に一致する法人取引先はありません。');
+    });
+
     it('保存後の再取得失敗を保存失敗として表示せず成功行の再送を防ぐ', async () => {
         const element = await createComponent();
         await search(element);
@@ -193,6 +272,7 @@ describe('取引先一括更新画面', () => {
         await flush();
         expect(element.shadowRoot.textContent).toContain('1件を保存しました');
         expect(element.shadowRoot.textContent).toContain('再取得に失敗');
+        expect(element.shadowRoot.textContent).not.toContain('条件に一致する法人取引先はありません');
         expect(button(element, '変更を保存').disabled).toBe(true);
     });
 
@@ -377,4 +457,15 @@ describe('処理場所付きエラー表示', () => {
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
+});
+
+it('途中ページが空ならそのページの案内と前へ戻る操作を表示する', async () => {
+    searchAccounts.mockResolvedValueOnce({ ...response, hasNext: true })
+        .mockResolvedValueOnce({ ...response, records: [], hasNext: false });
+    const element = await createComponent();
+    await search(element);
+    button(element, '次へ').click();
+    await flush();
+    expect(button(element, '前へ').disabled).toBe(false);
+    expect(element.shadowRoot.textContent).toContain('このページに表示できる法人取引先はありません。');
 });

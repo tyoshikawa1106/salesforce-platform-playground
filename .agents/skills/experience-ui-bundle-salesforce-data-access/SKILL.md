@@ -1,8 +1,22 @@
 ---
 name: experience-ui-bundle-salesforce-data-access
-description: "MUST activate when a uiBundles/*/src/ project does ANY Salesforce record operation — reading, creating, updating, deleting, or caching/refreshing query results. Triggers: code importing @salesforce/platform-sdk, calls to sdk.graphql.query / sdk.graphql.mutate / sdk.fetch, *.graphql files, stale data needing a force-refresh, or wiring up a UI bundle's data layer to read, write, or refresh Salesforce records. The default for new read/write work is the Read/Write workflow with the current @salesforce/platform-sdk API; only follow the migration path when EXISTING code already uses the old @salesforce/sdk-data callable form. Not for building app shell/UI, styling, file upload, or auth/search scaffolding — use the other ui-bundle-* skills. DO NOT TRIGGER when: OAuth setup, schema changes, Bulk/Tooling/Metadata API, or declarative automation."
+description: "MUST activate whenever a uiBundles/*/src/ project reads, writes, or displays Salesforce data — INCLUDING building a page, list, table, card grid, dashboard, or form that shows, filters, counts, or edits records of any object (e.g. Property__c, Account, Case), even when the prompt names only the UI or the object and never says query, GraphQL, or SDK. Records behind such a component come from Salesforce, so use this ALONGSIDE experience-ui-bundle-frontend-generate: that skill styles the component, this one wires its data. Also triggers on @salesforce/platform-sdk imports, sdk.graphql.query / mutate / sdk.fetch calls, *.graphql files, or stale data needing force-refresh. New read/write work uses the current @salesforce/platform-sdk API; migrate only EXISTING old @salesforce/sdk-data callable code. Not for pure styling/layout with no records, app shell, file upload, or auth/search scaffolding. DO NOT TRIGGER for OAuth, object/field schema changes, Bulk/Tooling/Metadata API, or declarative automation."
 metadata:
-  version: "2.1"
+  version: "2.2"
+  domains: ["Experience", "Platform"]
+  minApiVersion: "66.0"
+  relatedSkills:
+    - "experience-ui-bundle-frontend-generate"
+    - "platform-metadata-deploy"
+  cliTools:
+    - tool: ["node"]
+      semver: ">=18.0.0"
+    - tool: ["npm"]
+      semver: ">=9.0.0"
+    - tool: ["npx"]
+      semver: ">=9.0.0"
+    - tool: ["sf"]
+      semver: ">=2.0.0"
 ---
 
 # Salesforce Data Access (UI bundles)
@@ -17,10 +31,10 @@ This file is the **workflow + guardrail spine**. Depth lives in linked docs:
   commands) that compiles a small JSON spec into a schema-correct, guardrail-applied query +
   variables + types. The preferred way to author the GraphQL in steps below; falls back to the
   schema-grep script when unavailable.
-- **[references/sdk-api.md](references/sdk-api.md)** — the new call API: `query`/`mutate`,
-  `QueryResult`, typing, error-handling stances.
-- **[references/caching.md](references/caching.md)** — on-by-default cache + the **two refresh
-  modes** (`result.refresh`/`subscribe` vs per-call `cacheControl`).
+- **[references/sdk-api.md](references/sdk-api.md)** — `query`/`mutate` call surface + generated-type
+  placement; the behavior nuance (surfaces, error stances, `QueryResult`) grounds on **tier-2b**.
+- **[references/caching.md](references/caching.md)** — the on-by-default cache + two refresh modes;
+  behavior grounds on **tier-2b** `docs/data/` when installed, with the full version-stamped fallback here.
 - **[references/graphql-hand-authoring.md](references/graphql-hand-authoring.md)** — schema lookup, read /
   mutation templates, every platform guardrail (`@optional`, pagination, limits,
   semi-join, wrappers, error table…).
@@ -62,22 +76,69 @@ live in [references/sdk-api.md](references/sdk-api.md).
 
 ---
 
+## Ground the SDK contract on the installed types (tier-2a)
+
+`@salesforce/platform-sdk` force-publishes on a shared version line and moves
+fast. This SKILL's prose is a point-in-time snapshot of the call contract; the
+**installed declarations are authoritative for the version you actually have**.
+Before writing any `query`/`mutate`, read the installed types and let them win:
+
+- `node_modules/@salesforce/platform-sdk/dist/core/data.d.ts` — `query`/`mutate`
+  signatures, `QueryResult` (has `subscribe`/`refresh`) vs `MutationResult` (has
+  neither, by design), the `CacheControl` union, the default TTL.
+- `node_modules/@salesforce/platform-sdk/dist/data/index.d.ts` — `createDataSDK`,
+  `gql`, `NodeOfConnection`.
+
+**Precedence — installed `.d.ts` beats this SKILL's prose.** If a signature,
+type, or default here disagrees with the installed declaration, follow the
+declaration and note the drift; do not "correct" the types to match the prose.
+
+**Grounding ladder** (one model, two axes):
+
+| Tier | Grounds | Answers | Via |
+|---|---|---|---|
+| tier-1 | GraphQL **schema** | *what data exists* | graphiti / `graphql-search.sh` (Precondition #2) |
+| tier-2a | SDK **contract** | *how you call it* | the installed `.d.ts` above |
+| tier-2b | SDK **behavior** | *how it behaves* | the installed `docs/data/` folder (below) |
+| spine | this SKILL.md | workflow + guardrails that orchestrate all three; the fallback when a tier can't ground |
+
+**Fallback when the `.d.ts` is absent** — the package **is installed** but ships
+no declarations (a stale or types-stripped build artifact). Then use this SKILL's
+prose as best-effort. This fallback does **not** cover a missing package: if
+`@salesforce/platform-sdk` isn't installed, stop and install it (Precondition #1)
+— do not author calls from prose against a dependency you don't have.
+
+---
+
+## Ground the SDK behavior on the installed docs (tier-2b)
+
+The same package ships an authored **behavior** guide beside its types:
+`node_modules/@salesforce/platform-sdk/docs/data/` (numbered files, read them in order).
+Tier-2a's `.d.ts` fixes the call *contract*; this folder is authoritative for the *behavior* the
+contract doesn't spell out — the caching model, the surface `!`-vs-guard decision, error-handling
+stances, the migration mindset. **Read it before choosing a caching policy, a surface assertion, or
+an error stance, and let it win** — same precedence as tier-2a (the installed source beats this
+prose; when present it's the fuller, version-current copy).
+
+**Fallback when the folder is absent** (older SDK, or a types-only build): this SKILL keeps a thin
+per-behavior fallback — below and in each section — sized only to keep you moving; act on it. As
+with tier-2a, a missing *package* is different: if `@salesforce/platform-sdk` isn't installed, stop
+and install it (Precondition #1).
+
+---
+
 ## Surfaces — `sdk.graphql!` vs guard
 
-`createDataSDK()` runs on multiple surfaces, and **`sdk.graphql` / `sdk.fetch` are genuinely
-optional** (typed `graphql?: …`). Whether you may assert them with `!` depends entirely on
-where the bundle runs — this is the one surface decision that turns into a *runtime crash* if
-you get it wrong, so make it explicitly before writing any `query`/`mutate` call:
+`sdk.graphql` / `sdk.fetch` are genuinely optional (typed `graphql?: …`), and whether you may
+assert them with `!` is a *runtime-crash* decision — make it before writing any `query`/`mutate`.
+**Fallback rule: WebApp-only bundle → `sdk.graphql!` is safe; any bundle that might run
+off-WebApp (Mosaic / OpenAI / MCPApps) → guard first (`if (!sdk.graphql) return …`), then call.**
+If you cannot prove WebApp-only, guard — a bare `!` that later ships elsewhere throws
+`Cannot read properties of undefined` and TypeScript won't catch it (same for `sdk.fetch!`).
 
-| Surface(s) | `sdk.graphql` | Write |
-|---|---|---|
-| **WebApp only** | always present | `sdk.graphql!.query({...})` — `!` is safe; every shipped WebApp consumer uses it |
-| **Mosaic / OpenAI / MCPApps** (or any bundle that *might* run off-WebApp) | can be `undefined` | **guard first** (`if (!sdk.graphql) return …`), then call |
-
-Rule of thumb: **if you cannot prove the bundle is WebApp-only, guard.** A bare `sdk.graphql!`
-that later ships to another surface throws `Cannot read properties of undefined` at runtime —
-TypeScript won't catch it because `!` silences exactly that check (same applies to `sdk.fetch!`).
-The portable guard snippet lives in [references/sdk-api.md](references/sdk-api.md#sdkgraphql-vs-guard).
+The surface matrix, the portable guard snippet, and the full reasoning ground on **tier-2b**
+`docs/data/` (fallback above); the guard snippet is also in
+[references/sdk-api.md](references/sdk-api.md#sdkgraphql-vs-guard).
 
 ---
 
@@ -112,7 +173,7 @@ you grounded against the right file.
 
 | # | Requirement | Verify | If missing |
 |---|---|---|---|
-| 1 | `@salesforce/platform-sdk` installed | `package.json` in the UI bundle dir | Tell user to install it; cannot proceed |
+| 1 | `@salesforce/platform-sdk` installed **and its contract + behavior docs read** | `package.json` in the UI bundle dir lists it; then read `dist/core/data.d.ts` + `dist/data/index.d.ts` ([tier-2a](#ground-the-sdk-contract-on-the-installed-types-tier-2a)) **and** the `docs/data/` folder ([tier-2b](#ground-the-sdk-behavior-on-the-installed-docs-tier-2b)), and let them win over this SKILL's prose | Not installed → tell user to install it; cannot proceed. Installed but `.d.ts` / `docs/` absent (stale or types-only artifact) → use prose fallback |
 | 2 | A grounding tool resolves | **Preferred:** `npx graphiti sf-gql-discover '{"org":"<alias>","mode":"list_objects"}'` from the UI bundle dir returns objects. **Fallback:** `bash <skill-dir>/scripts/graphql-search.sh <Entity>` from the project root prints a lookup, not "schema.graphql not found" | No graphiti dep / org won't prime → use the script. Script can't find `schema.graphql` → pass `--schema <path>`, or `npm run graphql:schema` from the UI bundle dir. ([references/graphiti-cli.md](references/graphiti-cli.md) covers CLI setup) |
 | 3 | Target objects/fields deployed | The object appears in `sf-gql-discover` (or `graphql-search.sh <Entity>` returns output) | Entity absent usually means it isn't deployed (or the cache/schema is stale). Refresh: `npx graphiti sf-gql-connect '{"org":"<alias>","forceRefresh":true}'` (CLI) or `npm run graphql:schema` (script). If still absent, deploy the metadata (the **platform-metadata-deploy** skill handles this) and assign the permission sets, then re-check |
 
@@ -173,7 +234,8 @@ write GraphQL strings until the schema workflow is complete.
    ```
 
 Defend consuming code with `?.`/`??` (because `@optional` can omit fields). Error-handling
-stances (strict / tolerant / discriminated) and `NodeOfConnection` typing: [references/sdk-api.md](references/sdk-api.md).
+stances (strict / tolerant / discriminated) ground on **tier-2b** `docs/data/` (fallback:
+guardrail #1 — always check `result.errors`); `NodeOfConnection` typing in [references/sdk-api.md](references/sdk-api.md).
 
 ---
 
@@ -247,40 +309,28 @@ templates: [references/graphql-hand-authoring.md](references/graphql-hand-author
 
 ## Freshness & caching
 
-**Caching is ON by default on WebApp.** Every `sdk.graphql!.query()` is cached with a
-**300-second `max-age`** TTL — no opt-in flag, no factory, no import subpath. **Do not
-build your own cache** (no React Query, SWR, `localStorage`, or hand-rolled Map). The
-cache is **shared across SDK instances by `baseUrl`**: the same query+variables from a
-different `createDataSDK()` targeting the same host is a cache hit. Only non-empty,
-error-free `data` is cached. `mutate()` is never cached.
+Ground the cache model on **tier-2b** `docs/data/` — cache-key mechanics, what-gets-cached,
+the shared-by-`baseUrl` details, uncached-surface semantics, and the reactive-handle nuance all
+live there ([references/caching.md](references/caching.md) restates it as a version-stamped fallback). The
+**load-bearing fallback** (enough to act when the folder is absent):
 
-There are **two distinct freshness tools** — keep them separate:
-
-1. **Per-call `cacheControl`** — a one-shot policy override on the query options bag
-   (`"no-cache"` / `"only-if-cached"` / `{ type: "max-age", maxAge: <seconds> }`). The type and
-   exact per-value behavior live in [references/sdk-api.md](references/sdk-api.md#cachecontrol--the-per-call-cache-policy).
-   Take `cacheControl` as an optional param on the read function and expose each distinct policy as
-   a **thin named export in the same data-layer file** — a "call site" is a named export, not a new
-   React component. For `getAccounts(first, after?, cacheControl?)`: `export const refreshAccounts =
-   () => getAccounts(20, undefined, "no-cache")` (and likewise `offlineAccounts` → `"only-if-cached"`,
-   `shortLivedAccounts` → `{ type: "max-age", maxAge: 10 }`). Keep the policy in the data layer.
-2. **Reactive `subscribe` / `refresh`** — a stateful handle on a live `QueryResult`:
-   `result.subscribe(cb)` fires on every later snapshot, `result.refresh()` re-fetches bypassing
-   the cache and pushes to subscribers. Shape in [references/sdk-api.md](references/sdk-api.md#queryresultt--the-reactive-query-handle);
-   subscription lifecycle (always unsubscribe on teardown) in [references/caching.md](references/caching.md).
-
-| Want | Reach for |
-|---|---|
-| Freshness within ~5 min is fine | nothing (default cache) |
-| This one read must bypass the cache (refresh button) | `cacheControl: "no-cache"` |
-| Read only cached data, tolerate misses (offline-first) | `cacheControl: "only-if-cached"` — a miss is **expected, not an error**: it surfaces a `DataNotFoundError` on `result.errors` (no network, no throw). Check `result.errors`, render empty state, **do not throw and do not fall back to the network** — that defeats offline-first. |
-| Tighter/looser TTL for this query | `cacheControl: { type: "max-age", maxAge: 60 }` (`maxAge` is in **seconds**) |
-| Mounted component reflects updates over time | `result.subscribe(cb)` |
-| Re-fetch now + notify all subscribers (e.g. after a mutation) | `result.refresh()` |
-
-`cacheControl` is fire-and-forget at call time; `subscribe`/`refresh` is a live handle.
-Different mechanisms, different jobs — don't conflate "refresh" with "no-cache". Full
-behavior, the reactive-subscription lifecycle, and uncached-surface caveats: [references/caching.md](references/caching.md).
+- **Caching is ON by default on WebApp** — every `query()` cached at **300s**; no opt-in flag, no
+  factory, no `/cache` subpath. **Do not build your own cache** (React Query, SWR, `localStorage`,
+  hand-rolled `Map`). `mutate()` is never cached.
+- **Shared by host + API version** — the same query+variables from another `createDataSDK()`
+  targeting the same host **and** `apiVersion` is a cache hit = one network call; the per-instance
+  fetch pipeline stays isolated.
+- **Two distinct freshness tools — don't conflate them:**
+  1. **Per-call `cacheControl`** (one-shot policy on the options bag): `"no-cache"` (bypass, writes
+     back) / `"only-if-cached"` / `{ type: "max-age", maxAge: <seconds> }`; default 300s. Thread it as
+     an optional param on the read fn and expose each policy as a **thin named export** in the same
+     data-layer file (`refreshAccounts` → `"no-cache"`, `offlineAccounts` → `"only-if-cached"`, …). An
+     `"only-if-cached"` **miss** surfaces on `result.errors` with `extensions.code === "CACHE_MISS"` —
+     render an empty state, **do not** fall back to the network (that defeats offline-first).
+  2. **Reactive `subscribe` / `refresh`** (live handle on a `QueryResult`): `subscribe(cb)` fires on
+     **later** snapshots only (always `unsubscribe` on teardown); `refresh()` re-fetches, bypasses the
+     cache, pushes to subscribers — use it after a `mutate()` (which has no `refresh`). Multi-subscriber
+     fan-out / independence ground on **tier-2b** `docs/data/`.
 
 ---
 
@@ -385,6 +435,8 @@ silent runtime failures. (Details + templates: [references/graphql-hand-authorin
 ## Pre-flight checklist
 
 - [ ] Surface decided: `sdk.graphql!` only if WebApp-only; otherwise guard with `if (!sdk.graphql) …` ([Surfaces](#surfaces--sdkgraphql-vs-guard))
+- [ ] SDK contract grounded on installed `dist/*.d.ts` (types win over prose) ([tier-2a](#ground-the-sdk-contract-on-the-installed-types-tier-2a))
+- [ ] SDK behavior grounded on installed `docs/data/` (docs win over prose; fallback if absent) ([tier-2b](#ground-the-sdk-behavior-on-the-installed-docs-tier-2b))
 - [ ] Every field/entity verified — `sf-gql-discover` (preferred) or `graphql-search.sh` (fallback, against the right schema)
 - [ ] If compiled with graphiti: `warnings: []` confirmed (non-empty = degraded query, don't ship); `query` pasted verbatim
 - [ ] `@optional` on FLS-gated fields + relationships (NOT `Id`/`edges`/`node`/`pageInfo`); `?.`/`??` in consuming code
