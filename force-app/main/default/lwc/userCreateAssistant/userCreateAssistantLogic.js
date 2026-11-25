@@ -97,10 +97,10 @@ function makeCell(field, source, draft, deactivate, originalController) {
 
 // 新規作成で設定できる値だけを元ユーザーの保存値から取り込む
 export function initialTargetValues(fields) {
-    // 未設定の項目は組織側の既定値に委ね、false と数値のゼロは引き継ぐ
+    // 空にできる項目は null を明示して、作成時の既定値による置き換えを防ぐ
     return Object.fromEntries(fields
-        .filter((field) => field.canCreate && field.type !== 'readonly' && !LOCKED.has(field.apiName) && field.value != null)
-        .map((field) => [field.apiName, field.type === 'checkbox' ? field.apiName === 'IsActive' || String(field.value) === 'true' : field.value]));
+        .filter((field) => field.canCreate && field.type !== 'readonly' && !LOCKED.has(field.apiName) && (field.value != null || field.nillable))
+        .map((field) => [field.apiName, field.type === 'checkbox' ? field.apiName === 'IsActive' || String(field.value) === 'true' : field.value ?? null]));
 }
 
 // 見出しをまたがず、同じ区分の連続した項目を横に2つずつ並べる

@@ -3,7 +3,11 @@ import UserCreateAssistant from 'c/userCreateAssistant';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
+import CURRENT_USER_ID from '@salesforce/user/Id';
+import getSourceProfileIds from '@salesforce/apex/UserCreateAssistantController.getSourceProfileIds';
 
+jest.mock('@salesforce/apex/UserCreateAssistantController.getSourceProfileIds', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/user/Id', () => ({ default: '005000000000001AAA' }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.getForm', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.saveUser', () => ({ default: jest.fn() }), { virtual: true });
 const fields = [{ apiName: 'LastName', label: '姓', type: 'text', value: '参照元', canCreate: true, canUpdate: true, required: true }];
@@ -13,9 +17,10 @@ function deferred() {
     const promise = new Promise((ok, no) => { resolve = ok; reject = no; });
     return { promise, resolve, reject };
 }
-function mount() {
+async function mount() {
     const el = createElement('c-user-create-assistant', { is: UserCreateAssistant });
     document.body.appendChild(el);
+    await flush();
     return el;
 }
 const select = (root, recordId) => root.querySelector('lightning-record-picker').dispatchEvent(new CustomEvent('change', {detail: {recordId}}));
@@ -44,13 +49,38 @@ function submit(root) {
     const dialog = review(root);
     dialog.querySelectorAll('lightning-button')[1].click();
 }
+beforeEach(() => { getSourceProfileIds.mockResolvedValue(['internal']); });
 afterEach(() => { document.body.replaceChildren(); jest.resetAllMocks(); });
+it.each([15, 18])('本人の %i 桁 ID を選ぶと無効化を解除し、コピー元を変更せずに作成できる', async (length) => {
+    getForm.mockResolvedValue({ fields });
+    saveUser.mockResolvedValue('new');
+    const root = (await mount()).shadowRoot;
+    select(root, 'other'); await flush();
+    await toggle(root, 'deactivateSource', true);
+    edit(input(root, 'source'), '元の編集');
+
+    const selfId = CURRENT_USER_ID.slice(0, length);
+    select(root, selfId); await flush();
+    expect(option(root, 'deactivateSource')).toMatchObject({ checked: false, disabled: true });
+    expect(input(root, 'source')).toBeNull();
+    edit(input(root, 'target'), '新規');
+    submit(root); await flush();
+    expect(saveUser.mock.calls[0][0].request).toMatchObject({
+        sourceId: selfId, deactivateSource: false, sourceValuesJson: '{}', targetValuesJson: '{"LastName":"新規"}'
+    });
+
+    select(root, 'other'); await flush();
+    expect(option(root, 'deactivateSource')).toMatchObject({ checked: false, disabled: false });
+    await toggle(root, 'deactivateSource', true);
+    expect(input(root, 'source').value).toBe('参照元');
+});
+
 it('確認で対象と各設定を示し、キャンセルとユーザー名の重複では保存しない', async () => {
     getForm.mockResolvedValue({fields: [
         {apiName:'Username', label:'ユーザー名', type:'email', value:'copy@example.invalid', canCreate:true, canUpdate:true},
         {apiName:'IsActive', type:'checkbox', value:'true', canCreate:true}
     ]});
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     await toggle(root,'deactivateSource',true);
     await toggle(root,'copyPermissionSetGroups',false);
@@ -89,7 +119,7 @@ it.each([[['Green'], 'Green'], [[], '']])('複数選択の初期値から %j に
     getForm.mockResolvedValue({fields: [{apiName:'Colors__c', label:'色', type:'multipicklist', custom:true,
         canCreate:true, value:'Green;Blue', options:colors.map((value) => ({label:value, value}))}]});
     saveUser.mockResolvedValue('new');
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'source');
     await flush();
     const group = root.querySelector('.c-target lightning-dual-listbox');
@@ -104,11 +134,13 @@ it.each([[['Green'], 'Green'], [[], '']])('複数選択の初期値から %j に
 it('左右の初期状態と引き継ぎを表示し、保存エラー後も入力を保持して該当する割り当てだけ外せる', async () => {
     getForm.mockResolvedValue({fields});
     saveUser.mockRejectedValueOnce({body: { message: '権限セットの割り当てに失敗しました。' }}).mockResolvedValueOnce('new');
-    const el = mount(), root = el.shadowRoot;
+    const el = await mount(), root = el.shadowRoot;
     select(root, 'one');
     await flush();
     expect(root.querySelector('h1').textContent).toBe('ユーザー作成アシスタント');
-    expect(root.querySelector('lightning-record-picker').filter.criteria).toEqual([{fieldPath:'ContactId',operator:'eq',value:null}]);
+    expect(root.querySelector('lightning-record-picker').filter.criteria).toEqual([
+        {fieldPath:'ContactId',operator:'eq',value:null}, {fieldPath:'ProfileId',operator:'in',value:['internal']}
+    ]);
     expect(root.querySelectorAll('section.c-panel.slds-box')).toHaveLength(2);
     expect(root.querySelector('.c-source').textContent).toContain('参照元');
     expect(input(root,'source')).toBeNull();
@@ -134,7 +166,7 @@ it('左右の初期状態と引き継ぎを表示し、保存エラー後も入�
 it('参照先を ID 入力に切り替えた後も、元側の表示切替で新規側の編集を保持する', async () => {
     getForm.mockResolvedValue({fields: [...fields, {apiName:'ManagerId', label:'上司', type:'reference',
         referenceTo:'User', canCreate:true, canUpdate:true}]});
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     const picker = root.querySelector('.c-target lightning-record-picker');
     edit(input(root,'target'), '新規の姓');
@@ -155,7 +187,7 @@ it('参照先を ID 入力に切り替えた後も、元側の表示切替で新
 it('対象変更・切断前の応答を破棄し、現在のユーザーだけ再取得する', async () => {
     const first=deferred(), second=deferred();
     getForm.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockResolvedValue({fields});
-    const el=mount(), root=el.shadowRoot;
+    const el=await mount(), root=el.shadowRoot;
     select(root,'one'); select(root,'two');
     first.reject({body:{message:'古い失敗'}});
     await flush();
@@ -175,7 +207,7 @@ it('送信済みの無効化付き保存は再接続後も二重実行せず、�
     getForm.mockResolvedValue({fields});
     const pending=deferred();
     saveUser.mockReturnValue(pending.promise);
-    const el=mount(), root=el.shadowRoot;
+    const el=await mount(), root=el.shadowRoot;
     select(root,'one'); await flush();
     await toggle(root,'deactivateSource',true);
     edit(input(root,'source'),'旧');
@@ -191,7 +223,7 @@ it('送信済みの無効化付き保存は再接続後も二重実行せず、�
 });
 it('取得エラーから同じ対象を読み直せる', async () => {
     getForm.mockRejectedValueOnce({body:{message:'取得失敗'}}).mockResolvedValueOnce({fields});
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root,'one'); await flush();
     root.querySelector('lightning-button').click(); await flush();
     expect(root.querySelector('.c-target')).toBeTruthy();
@@ -201,11 +233,12 @@ it('取得エラーから同じ対象を読み直せる', async () => {
 it('未編集の新規項目も保存し、明示的なクリアとコピー元の編集を区別する', async () => {
     getForm.mockResolvedValue({fields: [...fields,
         {apiName:'Department', label:'部署', type:'text', value:'営業', canCreate:true, canUpdate:true},
+        {apiName:'Choice__c', label:'区分', type:'picklist', value:null, nillable:true, canCreate:true},
         {apiName:'ProfileId', type:'readonly', value:'profile', canCreate:false},
         {apiName:'IsActive', type:'checkbox', value:'false', canCreate:true}
     ]});
     saveUser.mockResolvedValue('new');
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root,'one'); await flush();
     await toggle(root,'deactivateSource',true);
     edit(input(root,'source'),'元だけ変更');
@@ -213,7 +246,7 @@ it('未編集の新規項目も保存し、明示的なクリアとコピー元�
     submit(root); await flush();
     const {sourceValuesJson,targetValuesJson}=saveUser.mock.calls[0][0].request;
     expect(JSON.parse(sourceValuesJson)).toEqual({LastName:'元だけ変更'});
-    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,IsActive:true});
+    expect(JSON.parse(targetValuesJson)).toEqual({LastName:'参照元',Department:null,Choice__c:null,IsActive:true});
 });
 
 it.each([[true, true], [false, false]])('コピー元の有効状態が %s でも新規側は有効で、メール送信の選択 %s を確認・保存に反映する', async (initial, sendEmail) => {
@@ -222,7 +255,7 @@ it.each([[true, true], [false, false]])('コピー元の有効状態が %s で�
         {apiName:'Email', label:'メール', type:'email', value:'new@example.invalid', canCreate:true}
     ]});
     saveUser.mockResolvedValue('new');
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root,'source'); await flush();
     const source = root.querySelector('.c-source lightning-input');
     const target = root.querySelector('.c-target lightning-input');
@@ -246,7 +279,7 @@ it('対象外の値を明示し、制御項目を左右独立に評価して選�
         {apiName:'Colors__c', label:'色', type:'multipicklist', controllerName:'Enabled__c', custom:true,
             canCreate:true, canUpdate:true, value:'Green;Retired', displayValue:'緑、旧値', options:choices}
     ]});
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     getPicklistValuesByRecordType.emit({picklistFieldValues:{Colors__c:{
         controllerValues:{true:1,false:0}, values:choices.map((choice,i)=>({...choice,validFor:[1-i]}))
@@ -274,7 +307,7 @@ it('対象外の値を明示し、制御項目を左右独立に評価して選�
 it('リッチテキストを書式付きで表示し、必須・文字数を確認して編集後の HTML を保存する', async () => {
     getForm.mockResolvedValue({fields:[{apiName:'Note__c',label:'備考',type:'textarea',richText:true,
         canCreate:true,required:true,maxLength:40,value:'<p><b>元</b></p>'}]});
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root,'one'); await flush();
     expect(root.querySelector('lightning-formatted-rich-text').value).toBe('<p><b>元</b></p>');
     const editor = root.querySelector('lightning-input-rich-text');
@@ -294,7 +327,7 @@ it('リッチテキストを書式付きで表示し、必須・文字数を確�
 it('無効になった単一選択値を解除すると任意項目を空で保存できる', async () => {
     getForm.mockResolvedValue({fields:[{apiName:'Choice__c',label:'区分',type:'picklist',canCreate:true,
         value:'Old',options:[{label:'現行',value:'Current'}]}]});
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root,'one'); await flush();
     const choice = root.querySelector('.c-target lightning-combobox');
     expect(choice.options).toContainEqual({label:'Old（選択対象外）',value:'Old'});
@@ -316,9 +349,96 @@ function emitColors(validFor) {
     } });
 }
 
+function accessError(reason) {
+    return { body: { message: '利用権限の確認：' + reason } };
+}
+
+it.each([
+    '実行ユーザーのシステム権限を取得できませんでした。',
+    '「設定・定義を参照」権限が必要です。',
+    '「ユーザーの管理」権限が必要です。',
+    'ユーザーオブジェクトの参照権限が必要です。',
+    'ユーザーオブジェクトの作成権限が必要です。',
+    'ユーザーオブジェクトの編集権限が必要です。'
+])('権限エラー「%s」を表示し、再確認してから検索を開く', async reason => {
+    const access = deferred();
+    getSourceProfileIds.mockReturnValueOnce(access.promise);
+    const root = (await mount()).shadowRoot;
+    expect(root.querySelector('lightning-record-picker')).toBeNull();
+    access.reject(accessError(reason)); await flush();
+    expect(root.querySelector('[role="alert"]').textContent).toContain(reason);
+    expect(root.querySelector('lightning-record-picker')).toBeNull();
+    expect(getForm).not.toHaveBeenCalled();
+    root.querySelector('[role="alert"] lightning-button').click(); await flush();
+    expect(root.querySelector('lightning-record-picker').disabled).toBe(false);
+});
+
+it('検索条件の取得失敗から再取得できる', async () => {
+    getSourceProfileIds.mockRejectedValueOnce(new Error('network'));
+    const root = (await mount()).shadowRoot;
+    expect(root.querySelector('[role="alert"]').textContent).toContain('検索条件を取得できませんでした');
+    root.querySelector('[role="alert"] lightning-button').click(); await flush();
+    expect(root.querySelector('lightning-record-picker')).toBeTruthy();
+});
+
+it('コピー元取得時に権限を失った場合は検索を閉じる', async () => {
+    const reason = '「ユーザーの管理」権限が必要です。';
+    getForm.mockRejectedValueOnce(accessError(reason));
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    expect(root.querySelector('lightning-record-picker')).toBeNull();
+    expect(root.querySelector('[role="alert"]').textContent).toContain(reason);
+});
+
+it('保存時に権限を失った場合は入力を閉じ、再確認後はコピー元の選択から始める', async () => {
+    getForm.mockResolvedValue({ fields });
+    const reason = 'ユーザーオブジェクトの編集権限が必要です。';
+    saveUser.mockRejectedValueOnce(accessError(reason));
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    submit(root); await flush();
+    expect(root.querySelector('.c-target')).toBeNull();
+    expect(root.querySelector('[role="alert"]').textContent).toContain(reason);
+    root.querySelector('[role="alert"] lightning-button').click(); await flush();
+    expect(root.querySelector('lightning-record-picker').value).toBeUndefined();
+    expect(root.querySelector('.c-target')).toBeNull();
+});
+
+async function failDependenciesWhileSaving() {
+    getForm.mockResolvedValue({ fields: dependentForm });
+    const save = deferred();
+    saveUser.mockReturnValue(save.promise);
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    emitColors([0]); await flush();
+    edit(input(root, 'target'), '編集した姓');
+    submit(root); await flush();
+    getPicklistValuesByRecordType.error(); await flush();
+    return { root, save };
+}
+
+it('保存中の候補取得エラーは再読み込みを促さず、作成成功後に通知を残さない', async () => {
+    const { root, save } = await failDependenciesWhileSaving();
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+    save.resolve('new'); await flush();
+    expect(root.querySelector('a').textContent).toContain('作成したユーザー');
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+    expect(root.textContent).not.toContain('読み込み中');
+});
+
+it('保存と候補取得がともに失敗した場合は入力を保持して候補を読み直す', async () => {
+    const { root, save } = await failDependenciesWhileSaving();
+    save.reject({ body: { message: '保存失敗' } }); await flush();
+    expect(root.querySelector('[role="alert"]').textContent).toContain('保存失敗');
+    root.querySelector('[role="alert"] lightning-button').click(); await flush();
+    emitColors([0]); await flush();
+    expect(input(root, 'target').value).toBe('編集した姓');
+    expect(getForm).toHaveBeenCalledTimes(1);
+});
+
 it('候補取得の失敗後は左右の編集と作成オプションを保持し、候補だけを再取得する', async () => {
     getForm.mockResolvedValue({ fields: dependentForm });
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     emitColors([0]); await flush();
     await toggle(root, 'deactivateSource', true);
@@ -343,7 +463,7 @@ it('候補取得の失敗後は左右の編集と作成オプションを保持�
 
 it('確認中の候補更新で選択が無効になると確認を閉じ、修正後の値だけを送信する', async () => {
     getForm.mockResolvedValue({ fields: dependentForm });
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     emitColors([0]); await flush();
     const dialog = review(root); await flush();
@@ -363,7 +483,7 @@ it('画像を含む既存の HTML を未編集のまま新規側へコピーす�
     const html = '<p><img src="/resource/ExampleImage" alt="既存画像"></p>';
     getForm.mockResolvedValue({ fields: [{ apiName: 'Note__c', label: '備考', type: 'textarea',
         richText: true, value: html, canCreate: true, required: true }] });
-    const root = mount().shadowRoot;
+    const root = (await mount()).shadowRoot;
     select(root, 'one'); await flush();
     expect(root.querySelector('.c-source lightning-formatted-rich-text').value).toBe(html);
     expect(root.querySelector('.c-target lightning-input-rich-text')).toMatchObject({

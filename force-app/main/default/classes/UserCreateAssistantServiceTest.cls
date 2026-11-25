@@ -5,6 +5,35 @@ private with sharing class UserCreateAssistantServiceTest {
     private static UserCreateAssistantService service = new UserCreateAssistantService();
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 権限の照会結果がない場合と2つのシステム権限が個別に不足する場合に利用を拒否 */
+    @IsTest
+    static void requiresBothSystemPermissions() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Assert.areEqual('利用権限の確認：実行ユーザーのシステム権限を取得できませんでした。', getAccessError(new List<UserPermissionAccess>()), '取得失敗を表示');
+            for (Boolean manageUsers : new List<Boolean>{ false, true }) {
+                Map<String, Boolean> flags = new Map<String, Boolean>{ 'PermissionsViewSetup' => false, 'PermissionsManageUsers' => manageUsers };
+                UserPermissionAccess current = (UserPermissionAccess) JSON.deserialize(JSON.serialize(flags), UserPermissionAccess.class);
+                Assert.areEqual('利用権限の確認：「設定・定義を参照」権限が必要です。', getAccessError(new List<UserPermissionAccess>{ current }), '設定参照を先に確認');
+            }
+            UserPermissionAccess missingManageUsers = (UserPermissionAccess) JSON.deserialize(
+                '{"PermissionsViewSetup":true,"PermissionsManageUsers":false}', UserPermissionAccess.class);
+            Assert.areEqual('利用権限の確認：「ユーザーの管理」権限が必要です。', getAccessError(new List<UserPermissionAccess>{ missingManageUsers }), 'ユーザー管理を確認');
+            Test.stopTest();
+        }
+
+    }
+
+    private static String getAccessError(List<UserPermissionAccess> permissions) {
+        try {
+            service.requireAccess(permissions);
+            return null;
+        } catch (AuraHandledException expected) {
+            return expected.getMessage();
+        }
+    }
+
     /** ライセンス・ロール・プロファイルとコピー元の表示値を保持 */
     @IsTest
     static void buildsReadOnlyAssignmentFields() {

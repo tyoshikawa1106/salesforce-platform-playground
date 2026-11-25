@@ -5,6 +5,38 @@ private with sharing class UserCreateAssistantSelectorTest {
     private static UserCreateAssistantSelector selector = new UserCreateAssistantSelector();
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 実行中の管理者に適用される設定参照・ユーザー管理権限を照会 */
+    @IsTest
+    static void readsCurrentUserPermissions() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            List<UserPermissionAccess> permissions = selector.getPermissions();
+            Test.stopTest();
+            Assert.areEqual(1, permissions.size(), '現在ユーザーの実効権限を取得');
+            Assert.isTrue(permissions[0].PermissionsViewSetup, '管理者は設定・定義を参照できる');
+            Assert.isTrue(permissions[0].PermissionsManageUsers, '管理者はユーザーを管理できる');
+        }
+
+    }
+
+    /** 取引先責任者の有無にかかわらず社外ライセンスを候補から除く */
+    @IsTest
+    static void excludesExternalProfiles() {
+
+        System.runAs(testUser) {
+            Test.startTest();
+            Set<Id> allowed = selector.getSourceProfileIds();
+            Test.stopTest();
+            Assert.isTrue(allowed.contains(UserInfo.getProfileId()), '実行中の社内管理者を候補に含める');
+            for (Profile item : [SELECT Id, UserLicense.LicenseDefinitionKey FROM Profile WHERE UserType != 'Standard']) {
+                Assert.areEqual(item.UserLicense.LicenseDefinitionKey == 'CSN_User', allowed.contains(item.Id),
+                    '社内の Chatter Free を許可し、外部およびシステムのプロファイルを除く');
+            }
+        }
+
+    }
+
     /** 表示項目と保存に必要な固定項目を同じユーザーから取得 */
     @IsTest
     static void loadsSelectedUserForDisplayAndSave() {

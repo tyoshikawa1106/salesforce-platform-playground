@@ -1,19 +1,75 @@
 import { LightningElement, wire } from 'lwc';
 import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import USER_OBJECT from '@salesforce/schema/User';
+import CURRENT_USER_ID from '@salesforce/user/Id';
+import getSourceProfileIds from '@salesforce/apex/UserCreateAssistantController.getSourceProfileIds';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 import { buildConfirmationSections, buildFieldLines, buildPanel, getDraftValue, initialTargetValues } from './userCreateAssistantLogic';
 
 const MASTER_RECORD_TYPE_ID = '012000000000000AAA';
+const ACCESS_ERROR_PREFIX = '利用権限の確認：';
+const DEPENDENCY_ERROR = '連動選択リストの候補を取得できませんでした。再読み込みしてください。';
 const MATCHING_USERNAME = '新規ユーザーの「ユーザー名」がコピー元と同じです。右側の「ユーザー名」に、別の未使用のユーザー名を入力してください。';
 
 // 参照元の選択から入力、割り当てを含む作成までを制御
 export default class UserCreateAssistant extends LightningElement {
     // 同姓同名の利用者をユーザー名でも検索
     matchingInfo = { primaryField: { fieldPath: 'Name' }, additionalFields: [{ fieldPath: 'Username' }] };
-    // 取引先責任者に紐づくユーザーはコピー対象外
-    sourceFilter = { criteria: [{ fieldPath: 'ContactId', operator: 'eq', value: null }] };
+    // Apex の保存条件と同じ社内プロファイルで検索する
+    sourceProfileIds;
+    // 初期取得の失敗と権限不足を画面に通知する
+    profileError;
+    // 離脱前に開始した権限確認の結果を破棄する
+    profileRequest = 0;
+
+    get sourceFilter() {
+        // 外部ユーザーおよび取引先責任者に紐づくユーザーを候補から除く
+        return { criteria: [
+            { fieldPath: 'ContactId', operator: 'eq', value: null },
+            { fieldPath: 'ProfileId', operator: 'in', value: this.sourceProfileIds }
+        ] };
+    }
+
+    get sourcePickerDisabled() {
+        // 検索条件が確定するまで、または保存中は選択を止める
+        return !this.sourceProfileIds?.length || this.saving;
+    }
+
+    async loadSourceProfiles() {
+        // 接続または再試行のたびに現在の権限で検索条件を取得する
+        const request = ++this.profileRequest;
+        this.sourceProfileIds = undefined;
+        this.profileError = undefined;
+        try {
+            const profiles = await getSourceProfileIds();
+            // 古い接続の結果でフォームを開かない
+            if (request !== this.profileRequest) return;
+            this.sourceProfileIds = profiles;
+            // 再接続時は保持した入力値でフォームを復元し、中断した取得だけを再開する
+            if (this.panels) this.rebuildPanels();
+            else if (this.sourceId && !this.saving) this.handleRetry();
+        } catch (error) {
+            if (request !== this.profileRequest) return;
+            if (!this.handleAccessDenial(error)) this.profileError = 'コピー元の検索条件を取得できませんでした。';
+        }
+    }
+
+    handleAccessDenial(error) {
+        // 実行中に権限を失った場合も、入力中のユーザー情報を画面から取り除く
+        const message = error.body?.message;
+        if (!message?.startsWith(ACCESS_ERROR_PREFIX)) return false;
+        this.profileRequest += 1;
+        this.sourceProfileIds = undefined;
+        this.sourceId = undefined;
+        this.sourceDraft = {};
+        this.targetDraft = {};
+        this.createdUrl = undefined;
+        this.loadSource();
+        this.profileError = message.slice(ACCESS_ERROR_PREFIX.length);
+        return true;
+    }
+
     // 候補の氏名にユーザー名を併記
     displayInfo = { primaryField: 'Name', additionalFields: ['Username'] };
     // 現在の参照元を識別
@@ -50,11 +106,13 @@ export default class UserCreateAssistant extends LightningElement {
     createdUrl;
 
     connectedCallback() {
-        // 離脱によって中断した読み込みだけを再開
-        if (this.sourceId && !this.panels && !this.saving) this.handleRetry();
+        // フォームを表示する前に利用権限を確認する
+        this.loadSourceProfiles();
     }
 
     disconnectedCallback() {
+        // 接続時の権限確認を無効にする
+        this.profileRequest += 1;
         // 画面を離れる前に発行した読み込みの応答を無効化
         this.generation += 1;
         // 再接続後は新しい確認操作から開始
@@ -84,6 +142,8 @@ export default class UserCreateAssistant extends LightningElement {
     }
 
     handleRetry() {
+        // 保存の完了前に検索や候補の再取得を開始しない
+        if (this.saving) return;
         if (this.fields.some(field => field.controllerName)) {
             // 項目と入力値を保持し、失敗した選択肢だけを再取得する。
             this.loading = true;
@@ -104,8 +164,10 @@ export default class UserCreateAssistant extends LightningElement {
             this.closeConfirmation();
             this.dependencyRecordTypeId = undefined;
             this.loading = false;
+            // 保存中はフォームをロックしたまま、結果に応じて再取得を案内する
+            if (this.saving) return;
             this.panels = undefined;
-            this.showError('連動選択リストの候補を取得できませんでした。再読み込みしてください。');
+            this.showError(DEPENDENCY_ERROR);
             return;
         }
         this.fields = this.fields.map(field => (field.controllerName ? {...field, dependency: dependencies[field.apiName]} : field));
@@ -149,7 +211,7 @@ export default class UserCreateAssistant extends LightningElement {
             }
         } catch (error) {
             // 別のユーザーに対する失敗を表示しない
-            if (request === this.generation) this.showError(error.body?.message || 'コピー元ユーザーを読み込めませんでした。');
+            if (request === this.generation && !this.handleAccessDenial(error)) this.showError(error.body?.message || 'コピー元ユーザーを読み込めませんでした。');
         } finally {
             // 現在の要求の完了時だけ読み込み表示を終了
             if (request === this.generation && !this.dependencyRecordTypeId) this.loading = false;
@@ -170,6 +232,16 @@ export default class UserCreateAssistant extends LightningElement {
         return '--user-create-rows:' + (1 + (this.panels?.[0].rows.length || 0));
     }
 
+    get isCurrentUserSource() {
+        // ピッカーとログインユーザーの ID を15桁・18桁のどちらでも照合する
+        return this.sourceId?.slice(0, 15) === CURRENT_USER_ID.slice(0, 15);
+    }
+
+    get disableDeactivation() {
+        // 本人の無効化と、保存中の選択変更を防ぐ
+        return this.isCurrentUserSource || this.saving;
+    }
+
     handleOptionChange(event) {
         // 保存中はすでに送信した条件を維持
         if (this.saving) return;
@@ -177,6 +249,8 @@ export default class UserCreateAssistant extends LightningElement {
         const { name, checked } = event.target;
         // 無効化を解除するときは元側の未保存変更も取り消す
         if (name === 'deactivateSource') {
+            // ログインユーザーの項目は常に参照専用に保つ
+            if (this.isCurrentUserSource) return;
             // 元側の表示モードを切り替える
             this.deactivateSource = checked;
             // 編集を取り消して選択時の値へ戻す
@@ -265,8 +339,8 @@ export default class UserCreateAssistant extends LightningElement {
         this.errorMessage = message;
         await Promise.resolve();
         if (this.errorMessage === message && this.isConnected) {
-            this.refs.errorSummary?.focus();
-            this.refs.errorSummary?.scrollIntoView?.({ block: 'center' });
+            this.refs?.errorSummary?.focus();
+            this.refs?.errorSummary?.scrollIntoView?.({ block: 'center' });
         }
     }
 
@@ -363,6 +437,9 @@ export default class UserCreateAssistant extends LightningElement {
             // 次回は元ユーザーの最新状態を取り直す
             this.sourceId = undefined;
             this.dependencyRecordTypeId = undefined;
+            // 保存成功後はこのフォームに対する通知を終了する
+            this.errorMessage = undefined;
+            this.loading = false;
             // 入力済み項目を画面から除去
             this.panels = undefined;
             this.fieldLines = undefined;
@@ -373,8 +450,17 @@ export default class UserCreateAssistant extends LightningElement {
             // 作成済みの入力を消去
             this.targetDraft = {};
         } catch (error) {
+            // 権限不足では保存の再試行より先に利用権限を再確認する
+            if (this.handleAccessDenial(error)) return;
             // 入力とチェック状態を維持して再試行できるようにする
-            this.showError(error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。');
+            const message = error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
+            // 保存中に候補も失効していれば、入力を残して候補だけを読み直す
+            if (!this.dependencyRecordTypeId && this.fields.some(field => field.controllerName)) {
+                this.panels = undefined;
+                this.showError(message + ' ' + DEPENDENCY_ERROR);
+            } else {
+                this.showError(message);
+            }
         } finally {
             // 再接続時も送信済みの要求が完了するまでロックを維持
             this.saving = false;

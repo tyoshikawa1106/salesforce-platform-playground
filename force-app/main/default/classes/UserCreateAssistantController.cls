@@ -6,12 +6,29 @@ public with sharing class UserCreateAssistantController {
     private static UserCreateAssistantSelector selector = new UserCreateAssistantSelector();
 
     /**
+     * コピー元の検索候補を社内ユーザーに限定するプロファイルを取得
+     * @return レコードピッカーの検索に使うプロファイル ID
+     */
+    @AuraEnabled
+    public static List<Id> getSourceProfileIds() {
+        checkCurrentUserAccess();
+        Set<Id> profileIds = selector.getSourceProfileIds();
+        return new List<Id>(profileIds);
+    }
+
+    private static void checkCurrentUserAccess() {
+        List<UserPermissionAccess> permissions = selector.getPermissions();
+        service.requireAccess(permissions);
+    }
+
+    /**
      * コピー元の現在値と画面で利用可能な入力条件を取得
      * @param sourceId 選択したコピー元ユーザー
      * @return 標準項目とカスタム項目の定義・値・表示名
      */
     @AuraEnabled
     public static UserCreateAssistantWrapper getForm(Id sourceId) {
+        checkCurrentUserAccess();
         // 選択元の情報を取得できない場合は画面向けの案内にする
         try {
             // 利用者権限から表示項目を確定
@@ -42,6 +59,7 @@ public with sharing class UserCreateAssistantController {
      */
     @AuraEnabled
     public static Id saveUser(UserCreateAssistantWrapper request) {
+        checkCurrentUserAccess();
         // 未指定の操作は保存開始前に拒否
         if (request == null) {
             throw new AuraHandledException('保存するユーザー情報を指定してください。');
@@ -129,15 +147,15 @@ public with sharing class UserCreateAssistantController {
         if (e instanceof AuraHandledException) {
             return (AuraHandledException)e;
         }
-        if (stage == 'email') {
-            return new AuraHandledException('パスワードリセットメールの送信を要求できませんでした。送信権限・組織のメール設定を確認してください。ユーザー作成は取り消しました。');
-        }
-        // 権限付与の失敗では解除して再試行する対象を示す
-        if (stage == 'grant') {
-            // エラー行の情報からどちらのチェックを外すか判定
-            String kind = getGrantKind(e, grants);
-            // 入力を保持したまま権限付与だけを外して再試行可能
-            return new AuraHandledException(kind + ' の引き継ぎに失敗しました。必要なライセンスと割り当て権限を確認するか、該当する引き継ぎをオフにしてください。');
+        // 通知と権限付与の失敗は、操作に応じた再試行方法を案内
+        switch on stage {
+            when 'email' {
+                return new AuraHandledException('パスワードリセットメールの送信を要求できませんでした。送信権限・組織のメール設定を確認してください。ユーザー作成は取り消しました。');
+            }
+            when 'grant' {
+                String kind = getGrantKind(e, grants);
+                return new AuraHandledException(kind + ' の引き継ぎに失敗しました。必要なライセンスと割り当て権限を確認するか、該当する引き継ぎをオフにしてください。');
+            }
         }
         // Salesforce の内部メッセージを公開せず原因を分類
         if (e instanceof DmlException) {
