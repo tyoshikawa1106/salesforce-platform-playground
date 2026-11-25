@@ -22,15 +22,6 @@ const describe = (...fields) => ({
 const response = (records) => ({ records, totalSize: records.length, done: true });
 const cli = (result) => ({ status: 0, stdout: JSON.stringify({ status: 0, result }) });
 const quiet = () => {};
-// 日本時間の日付境界をまたぐ固定時刻で、新規実行と再開のファイル名を確認する。
-const exportTime = () => new Date('2026-11-24T15:00:00.123Z');
-const exportSuffix = '_20261125000000123';
-const savedCsv = (requested) => requested.replace(/\.csv$/, exportSuffix + '.csv');
-
-function resumeArgs(args) {
-    return [...args.map((arg, index) => (args[index - 1] === '--output' ? savedCsv(arg) : arg)), '--resume'];
-}
-
 const approve = () => ({ question: async () => 'y', close: () => {} });
 const id = (n) => '001' + String(n).padStart(15, '0');
 const newest = { Id: id(3), CreatedDate: '2026-01-03T00:00:00.000+0000' };
@@ -75,7 +66,6 @@ async function main(args, dependencies) {
     // 各テストの入力は一時ディレクトリ内の明示ファイルに隔離する。
     const inputArgs = args.includes('--fields') ? args : ['--fields', 'fields.txt', ...args];
     return runMain(inputArgs, {
-        now: exportTime,
         ...dependencies,
         runner: async (command, ...rest) => {
             if (command[0] !== 'api') return runner(command, ...rest);
@@ -645,7 +635,7 @@ test('両形式の確認前メッセージで補完の有無を明示し指定�
                     assert.equal(messages[messages.findIndex((line) => line.startsWith('対象:')) - 1], '');
                     assert.equal(messages[messages.findIndex((line) => line.startsWith('出力先:')) + 1], '');
                     assert.ok(messages.includes('項目ファイル: fields.txt / 指定項目数: 2'));
-                    assert.ok(messages.includes(`出力先: ${savedCsv(output)}`));
+                    assert.ok(messages.includes(`出力先: ${output}`));
                     return 'y';
                 },
                 close() {}
@@ -654,9 +644,9 @@ test('両形式の確認前メッセージで補完の有無を明示し指定�
         assert.equal(code, 0);
         assert.ok(queries.every((q) => !q.includes('IsPersonAccount') && !q.includes('RecordTypeId =')));
         assert.equal(queries.length, mode === 'records' ? 2 : 3);
-        assert.ok(messages.includes(`出力: ${savedCsv(output)}`));
+        assert.ok(messages.includes(`出力: ${output}`));
         assert.ok(messages.every((line) => !line.includes(cwd)));
-        const csv = fs.readFileSync(path.join(cwd, savedCsv(output)), 'utf8');
+        const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
         assert.ok(
             csv.startsWith(
                 mode === 'records'
@@ -817,9 +807,7 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
                 { cwd, input, encoding: 'utf8', timeout: 10000 }
             );
             assert.equal(result.status, exitCode, result.stderr);
-            const saved = fs.readdirSync(cwd).filter((name) => name.startsWith(`${mode}-${label}_`));
-            assert.equal(saved.length, label === 'yes' ? 1 : 0);
-            if (saved.length) assert.match(saved[0], /_\d{17}\.csv$/);
+            assert.equal(fs.existsSync(output), label === 'yes');
             assert.match(
                 result.stdout,
                 mode === 'records' ? /補完なし/ : /対応する型はサンプル生成・その他は最新200件から値を採用し空欄補完/
@@ -827,7 +815,7 @@ test('両方の実行入口が承認・否認・EOFを処理し指定形式で�
             if (label === 'yes')
                 assert.ok(
                     fs
-                        .readFileSync(path.join(cwd, saved[0]), 'utf8')
+                        .readFileSync(output, 'utf8')
                         .startsWith(
                             mode === 'records'
                                 ? '"Name"\r\n'
@@ -1004,13 +992,9 @@ test('途中まで取得した後の失敗でも途中CSVと再開記録を保�
         (e) => e.code === 'INVALID_FIELD' && !e.message.includes('sensitive')
     );
     assert.equal(queries, 3);
-    assert.deepEqual(fs.readdirSync(cwd), [
-        'fields.txt',
-        `out${exportSuffix}.csv.resume`,
-        `out${exportSuffix}.partial.csv`
-    ]);
-    assert.ok(!fs.existsSync(path.join(cwd, `out${exportSuffix}.csv`)));
-    assert.ok(!fs.existsSync(path.join(cwd, `out${exportSuffix}.csv.resume/lock.json`)));
+    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', 'out.csv.resume', 'out.partial.csv']);
+    assert.ok(!fs.existsSync(path.join(cwd, 'out.csv')));
+    assert.ok(!fs.existsSync(path.join(cwd, 'out.csv.resume/lock.json')));
 });
 
 test('項目の分割後も全体の項目番号と補完状況を表示し、実値をログに含めない', async () => {
@@ -1098,7 +1082,7 @@ test('未確認項目を検索から外し、両形式で空欄の指定位置�
             });
             assert.equal(code, 1);
             assert.ok(queries.every((query) => !query.includes('Missing')));
-            const csv = fs.readFileSync(path.join(cwd, savedCsv(output)), 'utf8');
+            const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
             if (mode === 'records') {
                 assert.equal(
                     csv,
@@ -1159,7 +1143,7 @@ test('全項目が未確認でも余分な値検索をせず、対象なしで�
                 1
             );
             assert.equal(queries, 1);
-            const csv = fs.readFileSync(path.join(cwd, savedCsv(output)), 'utf8');
+            const csv = fs.readFileSync(path.join(cwd, output), 'utf8');
             if (mode === 'records') assert.equal(csv, empty ? '"Missing"\r\n' : '"Missing"\r\n""\r\n');
             else assert.equal(csv.includes('取得不可：API名が存在しない、または項目参照権限がありません'), !empty);
             assert.ok(messages.some((line) => line.startsWith('[1/1項目]\tMissing\t取得不可：')));
@@ -1239,13 +1223,13 @@ test('補完途中で停止しても値を保存し、固定IDの未完了項目
             }),
         /auth/
     );
-    const partial = fs.readFileSync(path.join(cwd, `resume${exportSuffix}.partial.csv`), 'utf8');
+    const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
     assert.match(partial, /"Name","Name","string","before","取得成功"/);
     assert.match(partial, /"Custom__pc","Custom__pc","string","","補完待ち",""/);
-    assert.ok(messages.some((line) => line.includes('--resume') && line.includes(savedCsv('resume.csv'))));
+    assert.ok(messages.some((line) => line.includes('--resume')));
     const queries = [];
     assert.equal(
-        await main(resumeArgs(args), {
+        await main([...args, '--resume'], {
             cwd,
             mode,
             createPrompt: approve,
@@ -1265,11 +1249,11 @@ test('補完途中で停止しても値を保存し、固定IDの未完了項目
     );
     assert.equal(queries.length, 1);
     assert.ok(queries[0].includes('Custom__pc != NULL'));
-    const result = fs.readFileSync(path.join(cwd, `resume${exportSuffix}.csv`), 'utf8');
+    const result = fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8');
     assert.match(result, /"Name","Name","string","before","取得成功"/);
     assert.match(result, /"Custom__pc","Custom__pc","string","filled","補完成功"/);
     assert.equal(result.split('\r\n').length, 4);
-    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', `resume${exportSuffix}.csv`]);
+    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', 'resume.csv']);
 });
 
 test('初回の分割取得で中断しても、残りの取得とCSV反映を終えてから補完する', async (t) => {
@@ -1287,7 +1271,7 @@ test('初回の分割取得で中断しても、残りの取得とCSV反映を�
         if (query.includes(' != NULL')) {
             supplements++;
             assert.ok(resuming);
-            const partial = fs.readFileSync(path.join(cwd, `phases${exportSuffix}.partial.csv`), 'utf8');
+            const partial = fs.readFileSync(path.join(cwd, 'phases.partial.csv'), 'utf8');
             assert.match(partial, /"Name","Name","string","","補完待ち",""/);
             assert.match(partial, /"Custom__pc","Custom__pc","string","baseline","取得成功"/);
             assert.ok(!partial.includes('未処理'));
@@ -1300,17 +1284,17 @@ test('初回の分割取得で中断しても、残りの取得とCSV反映を�
     const settings = { cwd, mode: 'record-fields-preview', runner, createPrompt: approve, writeLine: quiet };
     await assert.rejects(() => main(args, settings), /auth/);
     assert.equal(supplements, 0);
-    const partial = fs.readFileSync(path.join(cwd, `phases${exportSuffix}.partial.csv`), 'utf8');
+    const partial = fs.readFileSync(path.join(cwd, 'phases.partial.csv'), 'utf8');
     assert.match(partial, /補完待ち/);
     assert.match(partial, /未処理/);
     resuming = true;
-    assert.equal(await main(resumeArgs(args), settings), 0);
+    assert.equal(await main([...args, '--resume'], settings), 0);
     const resumed = queries.filter(([resume]) => resume).map(([, query]) => query);
     assert.equal(resumed.length, 2);
     assert.ok(resumed[0].startsWith('SELECT Id,Custom__pc '));
     assert.ok(resumed[1].includes('Name != NULL'));
     assert.equal(supplements, 1);
-    const completed = fs.readFileSync(path.join(cwd, `phases${exportSuffix}.csv`), 'utf8');
+    const completed = fs.readFileSync(path.join(cwd, 'phases.csv'), 'utf8');
     assert.match(completed, /"Name","Name","string","filled","補完成功"/);
     assert.ok(!completed.includes('PENDING_'));
 });
@@ -1340,19 +1324,19 @@ test('200件の候補と採用元を中断後も固定し、分割保存済み�
     };
     const settings = { cwd, mode: 'record-fields-preview', runner, createPrompt: approve, writeLine: quiet };
     await assert.rejects(() => main(args, settings), /interrupted/);
-    const partial = fs.readFileSync(path.join(cwd, `preview${exportSuffix}.partial.csv`), 'utf8');
+    const partial = fs.readFileSync(path.join(cwd, 'preview.partial.csv'), 'utf8');
     assert.ok(partial.includes(`"value1","補完成功","${selected[1].Id}"`));
     assert.match(partial, /"Custom__pc","Custom__pc","string","","未処理"/);
     resuming = true;
-    assert.equal(await main(resumeArgs(args), settings), 0);
+    assert.equal(await main([...args, '--resume'], settings), 0);
     assert.equal(resumedQueries.length, 1);
     assert.ok(resumedQueries[0].startsWith('SELECT Id,Custom__pc '));
     assert.ok(resumedQueries[0].includes(`Id IN (${selected.map((row) => `'${row.Id}'`).join(',')})`));
-    const completed = fs.readFileSync(path.join(cwd, `preview${exportSuffix}.csv`), 'utf8');
+    const completed = fs.readFileSync(path.join(cwd, 'preview.csv'), 'utf8');
     assert.ok(completed.includes(`"value1","補完成功","${selected[1].Id}"`));
     assert.ok(completed.includes(`"last-candidate","補完成功","${selected[199].Id}"`));
     assert.equal(completed.trimEnd().split('\r\n').length, 3);
-    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', `preview${exportSuffix}.csv`]);
+    assert.deepEqual(fs.readdirSync(cwd), ['fields.txt', 'preview.csv']);
 });
 
 test('横型は未完成行も再開記録へ保存し、再開後もレコードと列を混ぜない', async (t) => {
@@ -1380,12 +1364,9 @@ test('横型は未完成行も再開記録へ保存し、再開後もレコー�
             }),
         /interrupted/
     );
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), '"Name","Custom__pc"\r\n');
     assert.equal(
-        fs.readFileSync(path.join(cwd, `resume${exportSuffix}.partial.csv`), 'utf8'),
-        '"Name","Custom__pc"\r\n'
-    );
-    assert.equal(
-        await main(resumeArgs(args), {
+        await main([...args, '--resume'], {
             cwd,
             createPrompt: approve,
             writeLine: quiet,
@@ -1404,7 +1385,7 @@ test('横型は未完成行も再開記録へ保存し、再開後もレコー�
         0
     );
     assert.equal(
-        fs.readFileSync(path.join(cwd, `resume${exportSuffix}.csv`), 'utf8'),
+        fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8'),
         '"Name","Custom__pc"\r\n"first","first-value"\r\n"second","second-value"\r\n'
     );
 });
@@ -1431,14 +1412,15 @@ test('再開元と条件・ユーザー・項目順が異なる場合は検索�
             }),
         /stop/
     );
-    const partial = fs.readFileSync(path.join(cwd, `resume${exportSuffix}.partial.csv`), 'utf8');
+    const partial = fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8');
     for (const variant of ['count', 'fields', 'org', 'date']) {
         fs.writeFileSync(path.join(cwd, 'fields.txt'), variant === 'fields' ? 'Custom__pc\nName' : 'Name\nCustom__pc');
         await assert.rejects(
             () =>
                 main(
                     [
-                        ...resumeArgs(args),
+                        ...args,
+                        '--resume',
                         ...(variant === 'count' ? ['--record-limit', '3'] : []),
                         ...(variant === 'date' ? ['--created-before', '2026-10-01'] : [])
                     ],
@@ -1459,25 +1441,9 @@ test('再開元と条件・ユーザー・項目順が異なる場合は検索�
                 ),
             /一致しません/
         );
-        assert.equal(fs.readFileSync(path.join(cwd, `resume${exportSuffix}.partial.csv`), 'utf8'), partial);
-        assert.ok(!fs.existsSync(path.join(cwd, `resume${exportSuffix}.csv.resume/lock.json`)));
+        assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), partial);
+        assert.ok(!fs.existsSync(path.join(cwd, 'resume.csv.resume/lock.json')));
     }
-});
-
-test('同じ出力名を指定した並行実行はそれぞれの開始日時で保存する', async (t) => {
-    const cwd = temporary(t);
-    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
-    const run = (millisecond, value) =>
-        main(['--output', 'accounts.csv'], {
-            cwd,
-            now: () => new Date(exportTime().getTime() + millisecond),
-            runner: runnerFor([{ ...newest, Name: value }]),
-            writeLine: quiet,
-            createPrompt: approve
-        });
-    assert.deepEqual(await Promise.all([run(0, 'first'), run(1, 'second')]), [0, 0]);
-    assert.equal(fs.readFileSync(path.join(cwd, 'accounts_20261125000000123.csv'), 'utf8'), '"Name"\r\n"first"\r\n');
-    assert.equal(fs.readFileSync(path.join(cwd, 'accounts_20261125000000124.csv'), 'utf8'), '"Name"\r\n"second"\r\n');
 });
 
 for (const mode of ['records', 'record-fields-preview']) {
@@ -1485,13 +1451,13 @@ for (const mode of ['records', 'record-fields-preview']) {
         const cwd = temporary(t);
         fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
         const settings = { cwd, writeLine: quiet, runner: runnerFor(), createPrompt: approve };
-        const otherOutput = `accounts${exportSuffix}.partial.csv`;
+        const otherOutput = 'accounts.partial.csv';
         const exportAccounts = main(['--output', 'accounts.csv'], {
             ...settings,
             mode,
             createPrompt: () => ({
                 async question() {
-                    fs.writeFileSync(path.join(cwd, otherOutput), '"Name"\r\n"latest"\r\n', { flag: 'wx' });
+                    assert.equal(await main(['--output', otherOutput], settings), 0);
                     return 'y';
                 },
                 close() {}
@@ -1500,15 +1466,15 @@ for (const mode of ['records', 'record-fields-preview']) {
 
         await assert.rejects(exportAccounts, { code: 'EEXIST' });
         assert.equal(fs.readFileSync(path.join(cwd, otherOutput), 'utf8'), '"Name"\r\n"latest"\r\n');
-        assert.equal(fs.existsSync(path.join(cwd, `accounts${exportSuffix}.csv`)), false);
-        assert.equal(fs.existsSync(path.join(cwd, `accounts${exportSuffix}.csv.resume`)), false);
+        assert.equal(fs.existsSync(path.join(cwd, 'accounts.csv')), false);
+        assert.equal(fs.existsSync(path.join(cwd, 'accounts.csv.resume')), false);
     });
 }
 
 test('確認待ちに同名の再開フォルダが作成された場合は今回確保した途中CSVだけを片付ける', async (t) => {
     const cwd = temporary(t);
     fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
-    const checkpoint = path.join(cwd, `accounts${exportSuffix}.csv.resume`);
+    const checkpoint = path.join(cwd, 'accounts.csv.resume');
     await assert.rejects(
         main(['--output', 'accounts.csv'], {
             cwd,
@@ -1526,7 +1492,7 @@ test('確認待ちに同名の再開フォルダが作成された場合は今�
     );
 
     assert.ok(fs.statSync(checkpoint).isDirectory());
-    assert.equal(fs.existsSync(path.join(cwd, `accounts${exportSuffix}.partial.csv`)), false);
+    assert.equal(fs.existsSync(path.join(cwd, 'accounts.partial.csv')), false);
 });
 
 test('完成ファイルの公開失敗後は全項目を再検索せず保存だけを再開できる', async (t) => {
@@ -1545,9 +1511,9 @@ test('完成ファイルの公開失敗後は全項目を再検索せず保存�
     } finally {
         mock.mock.restore();
     }
-    assert.match(fs.readFileSync(path.join(cwd, `resume${exportSuffix}.partial.csv`), 'utf8'), /latest/);
+    assert.match(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), /latest/);
     assert.equal(
-        await main(resumeArgs(args), {
+        await main([...args, '--resume'], {
             cwd,
             writeLine: quiet,
             createPrompt: approve,
@@ -1558,25 +1524,7 @@ test('完成ファイルの公開失敗後は全項目を再検索せず保存�
         }),
         0
     );
-    assert.equal(fs.readFileSync(path.join(cwd, `resume${exportSuffix}.csv`), 'utf8'), '"Name"\r\n"latest"\r\n');
-});
-
-test('日時なしの旧出力名を指定した再開は同じ名前で完了する', async (t) => {
-    const cwd = temporary(t);
-    fs.writeFileSync(path.join(cwd, 'fields.txt'), 'Name');
-    const settings = { cwd, runner: runnerFor(), writeLine: quiet, createPrompt: approve };
-    const mock = t.mock.method(fs, 'linkSync', () => {
-        throw new Error('interrupted');
-    });
-    try {
-        await assert.rejects(main(['--output', 'legacy.csv'], settings), /interrupted/);
-    } finally {
-        mock.mock.restore();
-    }
-    fs.renameSync(path.join(cwd, `legacy${exportSuffix}.csv.resume`), path.join(cwd, 'legacy.csv.resume'));
-    fs.renameSync(path.join(cwd, `legacy${exportSuffix}.partial.csv`), path.join(cwd, 'legacy.partial.csv'));
-    assert.equal(await main(['--output', 'legacy.csv', '--resume'], settings), 0);
-    assert.ok(fs.existsSync(path.join(cwd, 'legacy.csv')));
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8'), '"Name"\r\n"latest"\r\n');
 });
 
 test('再開元の二重使用と確定断片の破損を拒否する', async (t) => {
@@ -1627,11 +1575,11 @@ test('レコード分割後の停止では完成行を途中公開し、未完�
             }),
         /timeout/
     );
-    assert.equal(fs.readFileSync(path.join(cwd, `resume${exportSuffix}.partial.csv`), 'utf8'), '"Name"\r\n"first"\r\n');
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.partial.csv'), 'utf8'), '"Name"\r\n"first"\r\n');
     // 強制終了で残った未確定ファイルは再開時に確定断片として扱わない。
-    fs.writeFileSync(path.join(cwd, `resume${exportSuffix}.csv.resume/chunk-00000001.json.tmp`), '{incomplete');
+    fs.writeFileSync(path.join(cwd, 'resume.csv.resume/chunk-00000001.json.tmp'), '{incomplete');
     assert.equal(
-        await main(resumeArgs(args), {
+        await main([...args, '--resume'], {
             cwd,
             createPrompt: approve,
             writeLine: quiet,
@@ -1645,10 +1593,7 @@ test('レコード分割後の停止では完成行を途中公開し、未完�
         }),
         0
     );
-    assert.equal(
-        fs.readFileSync(path.join(cwd, `resume${exportSuffix}.csv`), 'utf8'),
-        '"Name"\r\n"first"\r\n"second"\r\n'
-    );
+    assert.equal(fs.readFileSync(path.join(cwd, 'resume.csv'), 'utf8'), '"Name"\r\n"first"\r\n"second"\r\n');
 });
 
 test('強制終了したプロセスの保存値を復元し、同時再開は一つだけ許可する', { timeout: 15000 }, async (t) => {
@@ -1987,12 +1932,12 @@ test('補完のCLI失敗・時間超過を次項目へ波及させず、成功�
         assert.ok(index >= 0);
         assert.ok(!messages[index].includes(code));
         assert.ok(messages.every((line) => !/^検索エラー:|^CLI失敗の診断|^CLIエラー内容:/.test(line)));
-        const csv = fs.readFileSync(path.join(cwd, `skipped${exportSuffix}.csv`), 'utf8');
+        const csv = fs.readFileSync(path.join(cwd, 'skipped.csv'), 'utf8');
         assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${code}`, 'g')) || []).length, 1);
         assert.match(csv, /"Custom__pc","Custom__pc","string","recovered","補完成功"/);
         assert.ok(!csv.includes('登録レコードなし'));
         assert.ok(messages.some((line) => line.includes('全項目の処理と保存は完了')));
-        assert.ok(!fs.existsSync(path.join(cwd, `skipped${exportSuffix}.csv.resume`)));
+        assert.ok(!fs.existsSync(path.join(cwd, 'skipped.csv.resume')));
     }
 });
 
@@ -2224,7 +2169,7 @@ test('補完スキップ直後にCLIの原因文だけを表示し、診断の�
             expected === 'CLI_FAILED' ? 2 : 0
         );
         assert.ok(!messages.join('\n').includes('secret-value'));
-        const csv = fs.readFileSync(path.join(cwd, `failed${exportSuffix}.csv`), 'utf8');
+        const csv = fs.readFileSync(path.join(cwd, 'failed.csv'), 'utf8');
         assert.equal((csv.match(new RegExp(`補完スキップ[^\r\n]*${expected}`, 'g')) || []).length, 2);
         assert.ok(!csv.includes('登録レコードなし'));
         assert.ok(csv.includes('終了コード: 1'));
@@ -2297,12 +2242,12 @@ test('検索失敗を確定した後に中断しても、再開時は未検索�
         /auth/
     );
     assert.match(
-        fs.readFileSync(path.join(cwd, `resume-deferred${exportSuffix}.partial.csv`), 'utf8'),
+        fs.readFileSync(path.join(cwd, 'resume-deferred.partial.csv'), 'utf8'),
         /補完スキップ：CLI待機時間超過（CLI_TIMEOUT）/
     );
     resuming = true;
     assert.equal(
-        await main(resumeArgs(args), {
+        await main([...args, '--resume'], {
             cwd,
             mode: 'record-fields-preview',
             runner,
@@ -2315,7 +2260,7 @@ test('検索失敗を確定した後に中断しても、再開時は未検索�
     assert.ok(resumed.every((query) => !query.startsWith('SELECT Id,CreatedDate')));
     assert.equal(resumed.filter((query) => query.includes('Name')).length, 0);
     assert.ok(resumed.at(-1).includes('Custom__pc != NULL'));
-    const csv = fs.readFileSync(path.join(cwd, `resume-deferred${exportSuffix}.csv`), 'utf8');
+    const csv = fs.readFileSync(path.join(cwd, 'resume-deferred.csv'), 'utf8');
     assert.match(csv, /補完スキップ：CLI待機時間超過（CLI_TIMEOUT）/);
     assert.match(csv, /終了コード: 1 \/ 識別子: OriginalTimeout/);
     assert.match(csv, /補完経過: \d+\.\d秒/);
@@ -2392,8 +2337,8 @@ test('補完途中の中断でも置換済み行を復元し、同じ項目を�
     const settings = { cwd, mode: 'record-fields-preview', runner, writeLine: quiet, createPrompt: approve };
     await assert.rejects(() => main(['--output', 'late.csv'], settings), /auth/);
     phase = 1;
-    assert.equal(await main(resumeArgs(['--output', 'late.csv']), settings), 0);
-    const csv = fs.readFileSync(path.join(cwd, `late${exportSuffix}.csv`), 'utf8');
+    assert.equal(await main(['--output', 'late.csv', '--resume'], settings), 0);
+    const csv = fs.readFileSync(path.join(cwd, 'late.csv'), 'utf8');
     assert.equal((csv.match(/補完成功/g) || []).length, 6);
     assert.ok(!csv.includes('PENDING_RETRY'));
     assert.deepEqual(
@@ -2538,11 +2483,11 @@ test('生成対象だけのプレビューはレコード検索なしでCSVを�
     });
     await assert.rejects(() => main(args, settings), /publish failed/);
     link.mock.restore();
-    const partial = fs.readFileSync(path.join(cwd, `generated${exportSuffix}.partial.csv`), 'utf8');
+    const partial = fs.readFileSync(path.join(cwd, 'generated.partial.csv'), 'utf8');
     assert.match(partial, /"Email","Email","email","demo@example.com","サンプル生成",""/);
     assert.ok(!partial.includes('generated-preview'));
-    assert.equal(await main(resumeArgs(args), settings), 0);
-    assert.equal(fs.readFileSync(path.join(cwd, `generated${exportSuffix}.csv`), 'utf8'), partial);
+    assert.equal(await main([...args, '--resume'], settings), 0);
+    assert.equal(fs.readFileSync(path.join(cwd, 'generated.csv'), 'utf8'), partial);
 });
 
 test('横型ではメール・電話・テキストエリアも実値のまま取得する', async () => {

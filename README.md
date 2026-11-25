@@ -108,9 +108,8 @@ sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataTyp
 sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv
 # CSV形式表示 (対象組織を指定)
 sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv --target-org <alias>
-# CSVファイルエクスポート（日本時間の出力日時を付与）
-csv_stamp=$(node -p "new Date(Date.now() + 9 * 3600000).toISOString().replace(/[-:.TZ]/g, '')")
-sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv --output-file "export-out/account-fields_${csv_stamp}.csv"
+# CSVファイルエクスポート
+sf data query --use-tooling-api --query "SELECT Label, QualifiedApiName, DataType, Length, Precision, Scale FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Account' ORDER BY QualifiedApiName" --result-format csv --output-file export-out/account-fields.csv
 ```
 
 `scripts/record-export/config/fields.txt` に、取得するAPI名を出力順に1行ずつ記載します。
@@ -152,15 +151,15 @@ npm run sf:export:record-fields-preview -- --object Account --record-type-id <ID
 npm run sf:export:records -- --object Account --record-limit 2000 --record-type-id <ID>
 ```
 
-新規出力では、指定した名前の末尾に日本時間の出力日時が付きます（例 `account-preview_20261125143052123.csv`）。縦型は取得・補完のまとまりごと、横型は全項目が揃ったレコードごとに `.partial.csv` を更新します。
+出力先を指定して実行します。縦型は取得・補完のまとまりごと、横型は全項目が揃ったレコードごとに `.partial.csv` を更新します。
 
 ```sh
 # 出力先を指定して実行
 npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv
 npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv
-# 以下は例。中断時は表示された実ファイル名を含む再開コマンドを実行
-npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview_20261125143052123.csv --resume
-npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records_20261125143052123.csv --resume
+# 中断時は表示された再開コマンドを実行
+npm run sf:export:record-fields-preview -- --object Account --output export-out/account-preview.csv --resume
+npm run sf:export:records -- --object Account --record-limit 2000 --output export-out/account-records.csv --resume
 ```
 
 #### テストデータ操作

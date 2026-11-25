@@ -119,15 +119,6 @@ function buildResumeCommand(options, mode, targetOrg, output, cwd, platform = pr
     return `npm run sf:export:${mode} -- ${args.map((value, index) => (index % 2 ? quote(value) : value)).join(' ')} --resume`;
 }
 
-// 拡張子の前に日本時間の年月日・時分秒・ミリ秒を付ける。
-function timestampedOutput(file, date) {
-    // UTCに9時間を加え、実行端末のタイムゾーンに依存しない日時を得る。
-    const timestamp = new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().replace(/[-:.TZ]/g, '');
-    // ディレクトリと指定された拡張子を保ち、拡張子なしの場合はCSVとして保存する。
-    const { dir, name, ext } = path.parse(file);
-    return path.join(dir, `${name}_${timestamp}${ext || '.csv'}`);
-}
-
 // 入力ファイルの障害を、修正方法が分かる診断へ変換する。
 function readFieldNames(filePath) {
     // 読み込みの失敗と、読み込んだAPI名の検証を分ける。
@@ -418,7 +409,6 @@ async function main(
     args = process.argv.slice(2),
     {
         mode = 'records',
-        now = () => new Date(),
         cwd = process.cwd(),
         runner = runSfWithOutputAsync,
         writeLine = console.log,
@@ -483,17 +473,12 @@ async function main(
             `npm run sf:export:${mode} -- [--target-org ALIAS] [--object Account] [--fields scripts/record-export/config/fields.txt] [--record-type-id ID] [--created-before YYYY-MM-DD] ${mode === 'records' ? '[--record-limit 2000] ' : ''}[--fields-per-query NUMBER] [--output export-out/${mode}.csv] [--check-auth] [--resume]`
         );
         // ヘルプ表示は正常終了する。
-        // 新規実行と再開で指定する名前の違いを案内する。
-        writeLine(
-            '新規出力ではファイル名に日本時間の出力日時を付けます。--resumeには中断時に表示されたファイル名を指定してください。'
-        );
         return 0;
     }
     // 認証確認専用モードでは項目ファイルを要求しない。
     const names = options.checkAuth ? [] : readFieldNames(path.resolve(cwd, options.fields));
-    // 新規出力では指定名に日本時間の開始日時を付け、再開では案内済みの実ファイル名を使う。
-    const requestedOutput = path.resolve(cwd, options.output || `export-out/${mode}.csv`);
-    const output = options.resume ? requestedOutput : timestampedOutput(requestedOutput, now());
+    // 出力は既定でGit管理対象外のexport-outへ保存し、実行ごとに分ける。
+    const output = path.resolve(cwd, options.output || `export-out/${mode}-${Date.now()}.csv`);
     // 途中CSVと再開記録を完成CSVと明確に分ける。
     const partialOutput = output.endsWith('.csv') ? `${output.slice(0, -4)}.partial.csv` : `${output}.partial.csv`;
     // 元の出力名から再開フォルダを一意に決める。
