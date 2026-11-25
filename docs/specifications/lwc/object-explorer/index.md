@@ -198,7 +198,7 @@ CSVはUTF-8（BOMあり・なし）を使用し、5MiB以下、データ10000行
 
 両モードの項目一覧はデータ型の右に「カスタム」列を設け、DescribeのisCustom()の値を該当する項目に枠なしのチェックアイコンを表示し、該当しない項目は空欄にします。読み上げではカスタム項目・標準項目を区別します。項目API名の末尾からは推測しません。構造CSVは同じ位置にカスタム列を追加し、チェックありを「True」、なしを「false」で出力します。分類CSVの入力用列は維持します。
 
-CSVファイル名は`オブジェクトAPI名-fields_YYYYMMDD_HHmmssSSS.csv`または`オブジェクトAPI名-classify_YYYYMMDD_HHmmssSSS.csv`とします。日時は確認画面で「出力」を選択した後の出力時点を、Salesforce利用者のタイムゾーンでミリ秒まで使用します。
+CSVファイル名は`オブジェクトAPI名-fields_YYYYMMDDHHmmssSSS.csv`または`オブジェクトAPI名-classify_YYYYMMDDHHmmssSSS.csv`とします。日時は確認画面で「出力」を選択した後の出力時点を、Salesforce利用者のタイムゾーンでミリ秒まで使用します。
 
 ## 出力・更新対象
 

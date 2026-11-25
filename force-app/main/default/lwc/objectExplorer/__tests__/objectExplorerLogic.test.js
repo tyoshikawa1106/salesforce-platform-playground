@@ -7,8 +7,8 @@ import {
 
 it('構造と分類のCSV名に利用者のタイムゾーンで出力日時を付ける', () => {
     const at = new Date('2026-11-24T15:00:00.123Z');
-    expect(csvFileName('Account', true, at, 'Asia/Tokyo')).toBe('Account-fields_20261125_000000123.csv');
-    expect(csvFileName('Account', false, at, 'Asia/Tokyo')).toBe('Account-classify_20261125_000000123.csv');
+    expect(csvFileName('Account', true, at, 'Asia/Tokyo')).toBe('Account-fields_20261125000000123.csv');
+    expect(csvFileName('Account', false, at, 'Asia/Tokyo')).toBe('Account-classify_20261125000000123.csv');
 });
 
 function classifyCsv(objectName, fields, classification, edits, objectLabel) {
