@@ -28,7 +28,7 @@ Apex テストでは、組織内データに依存せず、各テストクラス
 
 ローカル検証後は、現在のdefault target orgだけを対象にします。スクリプトはSalesforce CLIの認証済み組織情報から、default target orgのalias、ユーザー名、URL、種別を表示します。利用者が別のTarget Orgを引数で指定することはできません。
 
-Scratch Orgセットアップでは、作成処理が確定したaliasを内部的に引き継ぎます。default target orgを変更せず、通常の投入コマンドとも混在させません。
+Scratch Orgセットアップでは、作成結果のユーザー名を内部的に引き継ぎます。default target orgを変更せず、通常の投入コマンドとも混在させません。
 
 Sandbox、Scratch Org、Developer Editionでは、表示された接続組織を`y`または`Y`で承認した場合だけ実投入へ進みます。本番環境へのテストデータ投入は禁止し、接続組織の情報を表示した後、承認を求めずにエラー終了します。対象組織を一意に特定できない場合や、組織種別を判定できない場合も実投入しません。
 

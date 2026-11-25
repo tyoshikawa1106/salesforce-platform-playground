@@ -80,11 +80,13 @@ async function run({
 
     // 実投入時だけ接続先の確定と利用者承認を行う。
     if (!args.dryRun) {
-        // 通常実行はDefault Target Org、Scratch Orgセットアップは作成済みaliasだけを内部的に使用する。
-        targetOrg = internalTargetOrg ?? getDefaultTargetOrg({ repoRoot, runSfCommand });
+        // 通常実行はDefault Target Org、Scratch Orgセットアップは作成結果から渡された接続先を使用する。
+        const configuredTargetOrg = internalTargetOrg ?? getDefaultTargetOrg({ repoRoot, runSfCommand });
 
         // 実投入前に、確定した1組織の表示情報と種別を確認する。
-        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg });
+        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand, targetOrg: configuredTargetOrg });
+        // 投入先を種別確認済みの組織に固定する。
+        targetOrg = orgInfo.username;
 
         // Salesforce CLIの認証情報から必要な接続先情報だけを表示する。
         printTargetOrgInfo(orgInfo, writeLine);
