@@ -100,7 +100,7 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
         });
 
         assert.equal(status, 0);
-        assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType }]);
+        assert.deepEqual(testRuns, [{ targetOrg: 'user@example.com', testType }]);
         assert.deepEqual(orgInfoTimeouts, Array(testType === 'apex' ? 3 : 2).fill(sfCommandTimeoutMs));
         assert.equal(prompt.isClosed(), true);
     });
@@ -156,7 +156,7 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
         });
 
         assert.equal(status, 0);
-        assert.deepEqual(testRuns, [{ targetOrg: 'test-org', testType }]);
+        assert.deepEqual(testRuns, [{ targetOrg: 'user@example.com', testType }]);
         assert.equal(prompt.isClosed(), true);
     });
 }

@@ -70,9 +70,11 @@ function createOrgTestMain({ testLabel, testType, usage }) {
             runSfWithOutputCommand(args, workingDirectory, undefined, undefined, sfCommandTimeoutMs);
 
         // テスト対象のDefault Target Orgと、認証済み組織情報を取得する。
-        const targetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runOrgInfoCommand });
+        const configuredTargetOrg = getDefaultTargetOrg({ repoRoot, runSfCommand: runOrgInfoCommand });
         // aliasまたはusernameに一致する1組織の表示情報と種別を確定する。
-        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runOrgInfoCommand, targetOrg });
+        const orgInfo = getTargetOrgInfo({ repoRoot, runSfCommand: runOrgInfoCommand, targetOrg: configuredTargetOrg });
+        // 事前設定の照会、テスト開始、進捗確認を同じ組織で行う。
+        const targetOrg = orgInfo.username;
 
         // 実行者が接続先を確認できるよう、必要な組織情報だけを表示する。
         printTargetOrgInfo(orgInfo);
