@@ -129,3 +129,22 @@ export function getDraftValue(value) {
     // 多値選択は Salesforce の保存形式にそろえる
     return Array.isArray(value) ? value.join(';') : value === '' ? null : value;
 }
+
+// 確認時点の設定を見出しと項目ごとの行にまとめる。
+export function buildConfirmationSections(sourceUsername, target, deactivate, copySets, copyGroups) {
+    // コピー元の無効化は色だけに依存せず、処理内容も明記する。
+    return [
+        { title: '新規ユーザー', rows: [
+            { label: 'ユーザー名', value: target.Username || '—' },
+            { label: '作成時の状態', value: target.IsActive ? '有効' : '無効' }
+        ] },
+        { title: 'コピー元ユーザー', rows: [
+            { label: 'ユーザー名', value: sourceUsername || '—' },
+            { label: '作成時の処理', value: deactivate ? '変更を保存して無効化する' : '変更しない', warning: deactivate }
+        ] },
+        { title: '権限の引き継ぎ', rows: [
+            { label: '権限セット', value: copySets ? '引き継ぐ' : '引き継がない' },
+            { label: '権限セットグループ', value: copyGroups ? '引き継ぐ' : '引き継がない' }
+        ] }
+    ];
+}

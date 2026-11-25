@@ -1,12 +1,10 @@
 import { createElement } from 'lwc';
-import LightningConfirm from 'lightning/confirm';
 import UserCreateAssistant from 'c/userCreateAssistant';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
 import saveUser from '@salesforce/apex/UserCreateAssistantController.saveUser';
 
 jest.mock('@salesforce/apex/UserCreateAssistantController.getForm', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.saveUser', () => ({ default: jest.fn() }), { virtual: true });
-jest.mock('lightning/confirm', () => ({ open: jest.fn() }), { virtual: true });
 const fields = [{ apiName: 'LastName', label: '姓', type: 'text', value: '参照元', canCreate: true, canUpdate: true, required: true }];
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
 function deferred() {
@@ -32,11 +30,19 @@ function edit(el, value) {
     el.value = value;
     el.dispatchEvent(new CustomEvent('change', {detail: {value}}));
 }
-function submit(root) {
+function review(root) {
     root.querySelectorAll('[data-side]').forEach((el) => { el.checkValidity = () => true; });
+    const dialog = root.querySelector('dialog');
+    // jsdom には HTMLDialogElement の表示・終了処理がない。
+    dialog.showModal = () => dialog.setAttribute('open', '');
+    dialog.close = () => dialog.removeAttribute('open');
     [...root.querySelectorAll('lightning-button')].find((el) => el.variant === 'brand').click();
+    return dialog;
 }
-beforeEach(() => { LightningConfirm.open.mockResolvedValue(true); });
+function submit(root) {
+    const dialog = review(root);
+    dialog.querySelectorAll('lightning-button')[1].click();
+}
 afterEach(() => { document.body.replaceChildren(); jest.resetAllMocks(); });
 it('確認で対象と各設定を示し、キャンセルとユーザー名の重複では保存しない', async () => {
     getForm.mockResolvedValue({fields: [
@@ -47,12 +53,14 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     select(root, 'one'); await flush();
     await toggle(root,'deactivateSource',true);
     await toggle(root,'copyPermissionSetGroups',false);
-    LightningConfirm.open.mockResolvedValueOnce(false);
-    submit(root); await flush();
-    const {message} = LightningConfirm.open.mock.calls[0][0];
-    for (const line of ['copy@example.invalid（有効）','無効化する','権限セット：引き継ぐ','権限セットグループ：引き継がない']) {
-        expect(message).toContain(line);
-    }
+    const dialog = review(root); await flush();
+    expect(dialog.open).toBe(true);
+    expect([...dialog.querySelectorAll('h3')].map(el => el.textContent)).toEqual(['新規ユーザー','コピー元ユーザー','権限の引き継ぎ']);
+    expect([...dialog.querySelectorAll('dd')].map(el => el.textContent)).toEqual([
+        'copy@example.invalid','有効','copy@example.invalid','変更を保存して無効化する','引き継ぐ','引き継がない'
+    ]);
+    dialog.querySelector('lightning-button').click(); await flush();
+    expect(dialog.open).toBe(false);
     expect(saveUser).not.toHaveBeenCalled();
     expect(root.querySelector('[role="alert"]')).toBeNull();
     submit(root); await flush();

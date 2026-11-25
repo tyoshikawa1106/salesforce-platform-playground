@@ -1,4 +1,4 @@
-import { buildPanels, getDraftValue, initialTargetValues } from '../userCreateAssistantLogic';
+import { buildConfirmationSections, buildPanels, getDraftValue, initialTargetValues } from '../userCreateAssistantLogic';
 
 const field = (apiName, label, type, extra = {}) => ({ apiName, label, type, canCreate: true, canUpdate: true, ...extra });
 const fields = [
@@ -29,4 +29,11 @@ it('無効化中は元側の編集可能項目だけを開き、編集中の多�
     expect(getDraftValue(['one','two'])).toBe('one;two');
     expect(getDraftValue(false)).toBe(false);
     expect(getDraftValue('')).toBeNull();
+});
+
+it('ユーザー名を別々に表示し、無効な新規ユーザーと引き継ぎの個別設定を識別する', () => {
+    const sections = buildConfirmationSections('old@example.invalid', { Username: 'new@example.invalid', IsActive: false }, false, false, true);
+    expect(sections.map(section => section.rows.map(entry => entry.value))).toEqual([
+        ['new@example.invalid', '無効'], ['old@example.invalid', '変更しない'], ['引き継がない', '引き継ぐ']
+    ]);
 });

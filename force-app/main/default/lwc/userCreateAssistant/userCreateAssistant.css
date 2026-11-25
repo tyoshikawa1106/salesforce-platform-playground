@@ -61,3 +61,57 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* ブラウザの最前面に置き、長いユーザー名も表示できる幅を確保する。 */
+.c-confirmation {
+    position: fixed;
+    inset: 0;
+    width: min(36rem, 94vw);
+    max-height: 90vh;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-radius: var(--slds-g-radius-border-3, 0.5rem);
+    box-shadow: var(--slds-g-shadow-3, 0 4px 12px #0003);
+}
+
+.c-confirmation[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.c-confirmation::backdrop {
+    background: color-mix(in srgb, var(--slds-g-color-neutral-base-10, #181818) 60%, transparent);
+}
+
+.c-confirmation-body {
+    overflow-y: auto;
+    padding-inline: var(--slds-g-spacing-4, 1rem);
+}
+
+.c-confirmation-section {
+    padding-block: var(--slds-g-spacing-4, 1rem);
+}
+
+.c-confirmation-row {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    gap: var(--slds-g-spacing-2, 0.5rem);
+    margin-block-start: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.c-confirmation-row dt {
+    color: var(--slds-g-color-on-surface-1, #444);
+}
+
+.c-confirmation-row dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 30em) {
+    .c-confirmation-row {
+        grid-template-columns: 1fr;
+        gap: var(--slds-g-spacing-1, 0.25rem);
+    }
+}

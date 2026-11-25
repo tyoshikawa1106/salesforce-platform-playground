@@ -99,5 +99,27 @@
             <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
             <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
         </div>
+        <dialog lwc:ref="confirmation" class="c-confirmation slds-theme_default" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
+            <header class="slds-p-around_medium">
+                <h2 id="confirmation-title" class="slds-text-heading_small">ユーザーの作成を確認</h2>
+            </header>
+            <div lwc:if={confirmationSections} class="c-confirmation-body">
+                <template for:each={confirmationSections} for:item="section">
+                    <section key={section.title} class="c-confirmation-section slds-border_top">
+                        <h3 class="slds-text-title_bold">{section.title}</h3>
+                        <dl>
+                            <div for:each={section.rows} for:item="row" key={row.label} class="c-confirmation-row">
+                                <dt>{row.label}</dt>
+                                <dd><strong lwc:if={row.warning} class="slds-theme_warning">{row.value}</strong><span lwc:else>{row.value}</span></dd>
+                            </div>
+                        </dl>
+                    </section>
+                </template>
+            </div>
+            <footer class="slds-border_top slds-p-around_medium slds-text-align_right">
+                <lightning-button label="キャンセル" onclick={closeConfirmation}></lightning-button>
+                <lightning-button class="slds-m-left_small" label={saveLabel} variant="brand" onclick={handleConfirmedSave}></lightning-button>
+            </footer>
+        </dialog>
     </main>
 </template>
