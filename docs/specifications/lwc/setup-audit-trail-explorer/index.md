@@ -41,7 +41,7 @@ Salesforce の設定変更履歴（`SetupAuditTrail`）を月単位で検索・�
 
 履歴テーブル右下の「検索結果をCSV出力」は、表示中のページにかかわらず、最後に適用した条件と検索基準時刻で全ページの履歴を出力します。確認画面に対象月、適用済み条件、一致件数を表示します。セクションで絞り込む場合は一覧と同じ判定で一致 ID を確定し、その ID に対応する CSV 明細を分割取得します。件数が確認時と異なる場合は再検索を案内します。履歴が空のときはボタンが無効になります。
 
-ファイル名は検索結果が `SetupAuditTrailSearchResultsYYYYMM_出力日時.csv`、月別が `SetupAuditTrailMonthlyYYYYMM_出力日時.csv`、全期間が `SetupAuditTrailAll_出力日時.csv` です。YYYYMM は取得条件の対象年月です。出力日時にはSalesforce利用者のタイムゾーンを使い、`YYYYMMDD_HHmmssSSS` 形式でミリ秒まで記録します。
+ファイル名は検索結果が `SetupAuditTrailSearchResultsYYYYMM_出力日時.csv`、月別が `SetupAuditTrailMonthlyYYYYMM_出力日時.csv`、全期間が `SetupAuditTrailAll_出力日時.csv` です。YYYYMM は取得条件の対象年月です。出力日時にはSalesforce利用者のタイムゾーンを使い、`YYYYMMDDHHmmssSSS` 形式でミリ秒まで記録します。
 
 検索結果・月別・全期間のCSVは、ユーザーの言語設定にかかわらず出力できます。一覧とCSVの列名は、実行ユーザーの言語で取得したSalesforceの項目ラベルです。「ユーザー名」には参照先の `User.Username` のラベルを使います。月別・検索結果・全期間のCSVは7列です。「アクション」列に `Action`、「表示」列に `Display` をそれぞれ原文のまま出力します。各行には下表のAPI項目の値を使い、取得値が空の列は空欄にします。
 

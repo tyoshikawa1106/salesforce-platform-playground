@@ -70,7 +70,7 @@ export function auditCsvFileName(base, date) {
     // 一覧と同じ利用者タイムゾーンで時刻の各部分を取り出す。
     const values = Object.fromEntries(CSV_DATE_FORMAT.formatToParts(date).map(part => [part.type, part.value]));
     // 明細表示では1桁になる時も、ファイル名では2桁にそろえる。
-    return `${base}_${values.year}${values.month}${values.day}_${values.hour.padStart(2, '0')}${values.minute}${values.second}${String(date.getMilliseconds()).padStart(3, '0')}.csv`;
+    return `${base}_${values.year}${values.month}${values.day}${values.hour.padStart(2, '0')}${values.minute}${values.second}${String(date.getMilliseconds()).padStart(3, '0')}.csv`;
 }
 
 // 明細・分析・CSVの次回取得に必要な境界だけを引き継ぐ。

@@ -4,7 +4,7 @@ jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Asia/Tokyo' }), { virt
 
 it('対象月を保持し、利用者のタイムゾーンで出力日時を付ける', () => {
     expect(auditCsvFileName('SetupAuditTrailMonthly202610', new Date('2026-11-24T15:00:00.123Z')))
-        .toBe('SetupAuditTrailMonthly202610_20261125_000000123.csv');
+        .toBe('SetupAuditTrailMonthly202610_20261125000000123.csv');
 });
 
 it('escapes metadata labels that contain CSV separators', () => {
