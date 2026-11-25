@@ -27,10 +27,10 @@ export default class OrgExplorerSearch extends LightningElement {
         // 上司はユーザーの氏名で選択する。
         return this.mode === 'MANAGER' ? '表示上司' : '表示ロール';
     }
-    // 候補の種別に対応する標準アイコンを使用する。
-    get lookupIcon() {
-        // 独自の画像を追加しない。
-        return this.mode === 'MANAGER' ? 'standard:user' : 'standard:hierarchy';
+    // 候補と選択欄に同じ参照先のオブジェクト定義を使う。
+    get lookupObjectApiName() {
+        // 上司はユーザー、ロールはユーザーロールの定義を参照する。
+        return this.mode === 'MANAGER' ? 'User' : 'UserRole';
     }
     // 入力欄に検索対象を示す。
     get lookupPlaceholder() {

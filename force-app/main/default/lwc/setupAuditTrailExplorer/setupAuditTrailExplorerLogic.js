@@ -273,7 +273,7 @@ export function buildFilterFields({ sources, selectedValues, lookupField, lookup
             return {
                 ...field, clearLabel: label + 'の選択を解除',
                 inputValue: selected ? lookupLabel(key, selected, sources) : '',
-                selectedIcon: isUserLookup ? 'standard:user' : 'standard:custom'
+                objectApiName: isUserLookup ? 'User' : undefined
             };
         }
 

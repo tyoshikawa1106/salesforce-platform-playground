@@ -114,8 +114,8 @@ it('選択済みロールを幅いっぱいのSLDS入力とアイコンで表示
     const selected = element.shadowRoot.querySelector('input[readonly]');
     expect(selected.value).toBe('経理部');
     expect(selected.classList.contains('slds-input')).toBe(true);
-    expect(element.shadowRoot.querySelector('.slds-combobox__input-entity-icon lightning-icon').iconName).toBe(
-        'standard:hierarchy'
+    expect(element.shadowRoot.querySelector('.slds-combobox__input-entity-icon c-lookup-object-icon').objectApiName).toBe(
+        'UserRole'
     );
     await expect(element).toBeAccessible();
     element.results = roles;
