@@ -50,8 +50,8 @@
                         <h2 class="slds-text-heading_medium">{panel.label}</h2>
                         <template for:each={panel.rows} for:item="row">
                             <div key={row.key} class="slds-has-flexi-truncate">
-                                <h3 lwc:if={row.section} class="slds-section__title slds-theme_shade slds-p-horizontal_small">{row.title}</h3>
-                                <h4 lwc:elseif={row.group} class="slds-text-title_bold slds-border_bottom">{row.title}</h4>
+                                <h3 lwc:if={row.section} class="slds-text-title_bold slds-text-color_weak">{row.title}</h3>
+                                <h4 lwc:elseif={row.group} class="slds-section__title slds-theme_shade slds-p-horizontal_small">{row.title}</h4>
                                 <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
                                 <dl lwc:elseif={row.readOnly} class="slds-form-element">
                                     <dt class="slds-form-element__label">{row.label}</dt>
