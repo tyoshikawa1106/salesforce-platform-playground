@@ -1388,7 +1388,7 @@ it('所属一覧の通信失敗をリンク生成失敗と誤表示せず、内�
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
         getCapabilities.mockRejectedValueOnce(new Error('private-value'));
         const element = createElement('c-orgExplorer', { is: OrgExplorer });
@@ -1399,9 +1399,8 @@ describe('処理場所付きエラー表示', () => {
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('orgExplorer.js / loadContext');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.querySelector('[data-client-error-dismiss]').click();
-        await Promise.resolve();
-        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+        expect(panel.querySelector('button, lightning-button, lightning-button-icon')).toBeNull();
+        expect(element.shadowRoot.querySelector('[data-client-error-dismiss]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });
@@ -1468,7 +1467,7 @@ it('子からの未知コードや自由文を診断理由とログへ採用し�
     } finally { log.mockRestore(); }
 });
 
-it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知して閉じた後は再表示する', async () => {
+it('正常時は診断を生成せず、同じ子の失敗が続いても診断は1件だけ表示する', async () => {
     const log = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
         const element = createElement('c-org-explorer', { is: OrgExplorer });
@@ -1489,13 +1488,7 @@ it('正常時は診断を生成せず、同じ子の失敗は一度だけ通知�
         expect(panel.textContent).toContain('ORG-JS-DOM-TARGET');
         expect(panel.textContent).not.toContain('canvas.js:1:2');
         await expect(element).toBeAccessible();
-        panel.querySelector('[data-client-error-dismiss]').click();
-        await flush();
-        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
-        fail();
-        await flush();
-        expect(element.shadowRoot.querySelector('[data-client-error]')).not.toBeNull();
-        expect(log).not.toHaveBeenCalled();
+        expect(element.shadowRoot.querySelectorAll('[data-client-error]')).toHaveLength(1);
     } finally { log.mockRestore(); }
 });
 

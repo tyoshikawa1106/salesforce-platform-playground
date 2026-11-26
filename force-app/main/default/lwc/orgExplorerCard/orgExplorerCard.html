@@ -1,7 +1,7 @@
 <template>
     <article class={node.cardClass}>
         <button
-            class="c-select slds-p-around_x-small slds-grid slds-grid_vertical-align-center"
+            class="c-select slds-text-align_left slds-p-around_x-small slds-grid slds-grid_vertical-align-center"
             type="button"
             aria-label={node.ariaLabel}
             aria-pressed={node.selected}
@@ -16,7 +16,7 @@
                 variant="circle"
                 aria-hidden="true"
             ></lightning-avatar>
-            <span class="c-caption">
+            <span class="c-caption slds-no-space">
                 <strong class="c-name slds-line-clamp_x-small" title={node.label}>{node.label}</strong>
                 <template lwc:if={node.managerCard}>
                     <span lwc:if={node.showDepartment} class="slds-truncate" title={node.departmentText}

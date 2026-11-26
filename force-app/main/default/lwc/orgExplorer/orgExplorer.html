@@ -1,22 +1,24 @@
 <template>
     <template lwc:if={clientError}>
-        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-            <p>画面処理でエラーが発生しました。</p>
-            <template lwc:if={clientError.code}>
-                <p data-error-code>エラーコード：{clientError.code}</p>
-            </template>
-            <p data-error-location>処理場所：{clientError.location}</p>
-            <p data-error-type>エラー種別：{clientError.errorType}</p>
-            <template lwc:if={clientError.reason}>
-                <p data-error-reason>理由：{clientError.reason}</p>
-            </template>
-            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+        <div data-client-error class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <div class="slds-media__body slds-hyphenate">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+            </div>
         </div>
     </template>
     <main class="slds-p-around_medium">
         <header class="slds-page-header slds-m-bottom_medium">
             <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
-                <div class="slds-media slds-media_center slds-col c-page-header-title">
+                <div class="slds-media slds-media_center slds-col slds-no-space">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:hierarchy" alternative-text="組織エクスプローラー" size="medium"></lightning-icon>
                     </div>
@@ -24,7 +26,7 @@
                         <h1 class="slds-page-header__title">組織エクスプローラー</h1>
                     </div>
                 </div>
-                <div class="slds-page-header__controls c-page-header-actions">
+                <div class="slds-page-header__controls slds-no-space">
                     <div class="c-controls slds-grid slds-grid_vertical-align-center slds-wrap" role="group" aria-label="表示条件">
                         <button
                             type="button"
@@ -59,9 +61,12 @@
                 </div>
             </div>
         </header>
-        <template lwc:if={error}><p role="alert" class="c-error slds-p-around_small slds-m-bottom_small">{error}</p></template>
+        <template lwc:if={error}><p role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <span class="slds-media__body slds-hyphenate">{error}</span>
+        </p></template>
         <div class="c-layout">
-            <section class="c-panel slds-box slds-theme_default c-chart slds-is-relative slds-grid slds-grid_vertical" aria-label="組織図">
+            <section class="c-panel slds-no-space slds-box slds-theme_default c-chart slds-is-relative slds-grid slds-grid_vertical" aria-label="組織図">
                 <h2 class="slds-no-flex slds-m-bottom_small">組織図</h2>
                 <template lwc:if={busy}>
                     <div class="c-loading slds-is-absolute">
@@ -81,8 +86,9 @@
                         ></lightning-button>
                         <lightning-button type="button" data-action="fit" onclick={handleViewport} label="全体を表示"></lightning-button>
                     </div>
-                    <section class="c-role-lookup slds-col_bump-left slds-grid slds-grid_vertical-align-end" aria-label={lookupSectionLabel}>
+                    <section class="c-role-lookup slds-no-space slds-col_bump-left slds-grid slds-grid_vertical-align-end" aria-label={lookupSectionLabel}>
                         <c-org-explorer-search
+                            class="slds-grow slds-no-space"
                             mode={mode}
                             term={term}
                             selected-target={candidateTarget}
@@ -104,7 +110,7 @@
                 </div>
                 <c-org-explorer-canvas class="slds-col" model={model} onnodeselect={handleSelect} onclienterror={handleCanvasError}></c-org-explorer-canvas>
             </section>
-            <section class="c-panel slds-box slds-theme_default" aria-label={memberListLabel}>
+            <section class="c-panel slds-no-space slds-box slds-theme_default" aria-label={memberListLabel}>
                 <c-org-explorer-details
                     mode={mode}
                     target-label={memberTargetLabel}
