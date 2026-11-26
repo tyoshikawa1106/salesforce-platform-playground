@@ -14,7 +14,7 @@
         </template>
         <header class="slds-page-header slds-m-bottom_medium">
             <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
-                <div class="slds-media slds-media_center slds-col c-page-header-title">
+                <div class="slds-media slds-media_center slds-col slds-no-space">
                     <div class="slds-media__figure">
                         <lightning-icon icon-name="standard:custom_entity" alternative-text="オブジェクトエクスプローラー" size="medium"></lightning-icon>
                     </div>
@@ -22,7 +22,7 @@
                         <h1 class="slds-page-header__title">オブジェクトエクスプローラー</h1>
                     </div>
                 </div>
-                <div class="slds-page-header__controls c-page-header-actions">
+                <div class="slds-page-header__controls slds-no-space">
                     <template lwc:if={apiAuthenticationReady}>
                         <lightning-button data-authentication-revoke label="認証解除" disabled={apiAuthenticationDisabled} onclick={handleApiAuthenticationRevoke}></lightning-button>
                     </template>
@@ -32,7 +32,7 @@
         <template lwc:if={apiAuthenticationRequired}>
             <div class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap" role="status">
                 <span>{apiAuthenticationMessage}</span>
-                <div class="c-authentication-actions slds-grid slds-grid_vertical-align-center">
+                <div class="slds-grid slds-grid_vertical-align-center">
                     <template lwc:if={apiAuthenticationRequired}>
                         <template lwc:if={apiAuthenticationUrl}>
                             <a class="slds-button slds-button_brand" href={apiAuthenticationUrl} target="_self" onclick={handleApiAuthenticationStart}>認証</a>
@@ -58,18 +58,27 @@
             ></lightning-radio-group>
         </div>
         <template lwc:if={candidateError}>
-            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{candidateError}</div>
+            <div class="slds-scoped-notification slds-media slds-media_center slds-theme_error" role="alert">
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <div class="slds-media__body slds-hyphenate">{candidateError}</div>
+            </div>
         </template>
         <template lwc:if={error}>
-            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">{error}</div>
+            <div class="slds-scoped-notification slds-media slds-media_center slds-theme_error" role="alert">
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <div class="slds-media__body slds-hyphenate">{error}</div>
+            </div>
         </template>
         <template lwc:if={clientError}>
-            <div class="slds-notify slds-notify_alert slds-alert_error c-client-error slds-show slds-m-bottom_small" role="alert">
-                <p>画面処理でエラーが発生しました。</p>
-                <p>エラーコード：{clientError.code}</p>
-                <p>処理場所：{clientError.location}</p>
-                <p>エラー種別：{clientError.errorType}</p>
-                <template lwc:if={clientError.message}><p>理由：{clientError.message}</p></template>
+            <div class="slds-scoped-notification slds-media slds-media_center slds-theme_error c-client-error slds-m-bottom_small" role="alert">
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <div class="slds-media__body slds-hyphenate">
+                    <p>画面処理でエラーが発生しました。</p>
+                    <p>エラーコード：{clientError.code}</p>
+                    <p>処理場所：{clientError.location}</p>
+                    <p>エラー種別：{clientError.errorType}</p>
+                    <template lwc:if={clientError.message}><p>理由：{clientError.message}</p></template>
+                </div>
             </div>
         </template>
         <section class="slds-box slds-theme_default slds-m-bottom_medium" aria-label={modeLabel}>
@@ -103,7 +112,7 @@
                         oncandidatescroll={handleCandidateScroll}
                     ></c-object-explorer-lookup>
                 </div>
-                <div class="c-toolbar-filters slds-col_bump-left slds-grid slds-grid_vertical-align-end slds-wrap">
+                <div class="slds-col_bump-left slds-grid slds-grid_vertical-align-end slds-wrap">
                     <template lwc:if={isReference}>
                         <div class="slds-form-element">
                             <span class="slds-form-element__label">参照元の種類</span>
@@ -130,7 +139,7 @@
                         <template lwc:if={busy}>
                             <lightning-spinner alternative-text="読み込み中…" size="medium"></lightning-spinner>
                         </template>
-                        <section class="c-relation-column" aria-label="参照元">
+                        <section class="slds-no-space" aria-label="参照元">
                             <div class="c-column-heading slds-m-bottom_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
                                 <h3>参照元</h3>
                                 <span class="c-hint slds-text-body_small">{incomingCount}</span>
@@ -158,15 +167,15 @@
                                             disabled={busy}
                                             aria-pressed={node.selected}
                                         >
-                                            <strong title={node.label} class="slds-truncate slds-shrink-none">{node.label}</strong>
-                                            <span class="c-api slds-text-body_small slds-truncate slds-shrink-none" title={node.apiName}>{node.apiName}</span>
-                                            <small class="slds-truncate slds-shrink-none">{node.count}</small>
+                                            <strong title={node.label} class="slds-no-space slds-truncate slds-shrink-none">{node.label}</strong>
+                                            <span class="c-api slds-text-body_small slds-no-space slds-truncate slds-shrink-none" title={node.apiName}>{node.apiName}</span>
+                                            <small class="slds-no-space slds-truncate slds-shrink-none">{node.count}</small>
                                             <template for:each={node.links} for:item="link">
-                                                <span key={link.key} class="slds-text-body_small slds-truncate slds-shrink-none" title={link.text}>
+                                                <span key={link.key} class="slds-text-body_small slds-no-space slds-truncate slds-shrink-none" title={link.text}>
                                                     {link.text}
                                                 </span>
                                             </template>
-                                            <template lwc:if={node.more}><small class="slds-truncate slds-shrink-none">{node.more}</small></template>
+                                            <template lwc:if={node.more}><small class="slds-no-space slds-truncate slds-shrink-none">{node.more}</small></template>
                                         </button>
                                     </template>
                                 </div>
@@ -175,7 +184,7 @@
                                 </template>
                             </div>
                         </section>
-                        <section class="c-origin-column slds-grid slds-grid_vertical" aria-label="対象オブジェクト">
+                        <section class="c-origin-column slds-no-space slds-grid slds-grid_vertical" aria-label="対象オブジェクト">
                             <div class="c-column-heading slds-m-bottom_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap"><h3>対象オブジェクト</h3></div>
                             <button
                                 type="button"
@@ -187,11 +196,11 @@
                                 disabled={busy}
                                 aria-pressed={board.root.selected}
                             >
-                                <strong title={board.root.label} class="slds-truncate slds-shrink-none">{board.root.label}</strong>
-                                <span class="c-api slds-text-body_small slds-truncate slds-shrink-none" title={board.root.apiName}>{board.root.apiName}</span>
+                                <strong title={board.root.label} class="slds-no-space slds-truncate slds-shrink-none">{board.root.label}</strong>
+                                <span class="c-api slds-text-body_small slds-no-space slds-truncate slds-shrink-none" title={board.root.apiName}>{board.root.apiName}</span>
                             </button>
                         </section>
-                        <section class="c-relation-column" aria-label="参照先">
+                        <section class="slds-no-space" aria-label="参照先">
                             <div class="c-column-heading slds-m-bottom_x-small slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap">
                                 <h3>参照先</h3>
                                 <span class="c-hint slds-text-body_small">{outgoingCount}</span>
@@ -219,15 +228,15 @@
                                             disabled={busy}
                                             aria-pressed={node.selected}
                                         >
-                                            <strong title={node.label} class="slds-truncate slds-shrink-none">{node.label}</strong>
-                                            <span class="c-api slds-text-body_small slds-truncate slds-shrink-none" title={node.apiName}>{node.apiName}</span>
-                                            <small class="slds-truncate slds-shrink-none">{node.count}</small>
+                                            <strong title={node.label} class="slds-no-space slds-truncate slds-shrink-none">{node.label}</strong>
+                                            <span class="c-api slds-text-body_small slds-no-space slds-truncate slds-shrink-none" title={node.apiName}>{node.apiName}</span>
+                                            <small class="slds-no-space slds-truncate slds-shrink-none">{node.count}</small>
                                             <template for:each={node.links} for:item="link">
-                                                <span key={link.key} class="slds-text-body_small slds-truncate slds-shrink-none" title={link.text}>
+                                                <span key={link.key} class="slds-text-body_small slds-no-space slds-truncate slds-shrink-none" title={link.text}>
                                                     {link.text}
                                                 </span>
                                             </template>
-                                            <template lwc:if={node.more}><small class="slds-truncate slds-shrink-none">{node.more}</small></template>
+                                            <template lwc:if={node.more}><small class="slds-no-space slds-truncate slds-shrink-none">{node.more}</small></template>
                                         </button>
                                     </template>
                                 </div>
@@ -260,7 +269,7 @@
                 <template lwc:if={selectedRelation}>
                     <div class="c-selected-relation slds-m-top_medium">
                         <h3>関連項目：{selectedRelation.title}</h3>
-                        <ul>
+                        <ul class="slds-list_dotted">
                             <template for:each={selectedRelation.links} for:item="link">
                                 <li key={link.field}>{link.text}</li>
                             </template>
@@ -268,7 +277,7 @@
                     </div>
                 </template>
                 <div class="c-filter-toolbar slds-m-vertical_medium slds-grid slds-grid_vertical-align-end">
-                    <div class="c-filters slds-grid slds-grid_vertical">
+                    <div class="c-filters slds-no-space slds-grid slds-grid_vertical">
                         <lightning-combobox
                             name="type"
                             label="データ型"
@@ -278,7 +287,7 @@
                             disabled={busy}
                         ></lightning-combobox>
                         <lightning-input
-                            class="c-field-search"
+                            class="c-field-search slds-no-space"
                             name="fieldSearch"
                             type="search"
                             label="項目名"
@@ -297,7 +306,7 @@
                         <div class="c-csv-tools slds-col_bump-left slds-grid slds-grid_vertical-align-end">
                             <lightning-button label="CSVダウンロード" onclick={handleExportCsv} disabled={csvExportDisabled}></lightning-button>
                             <template lwc:if={canEditClassifyData}>
-                                <div class="c-csv-import">
+                                <div class="c-csv-import slds-no-space">
                                     <div class="c-csv-label slds-grid slds-grid_vertical-align-center">
                                         <span class="slds-form-element__label">CSVインポート</span>
                                         <lightning-helptext content={csvHelp}></lightning-helptext>
@@ -309,27 +318,40 @@
                     </template>
                 </div>
                 <template lwc:if={isClassify}>
-                    <p class="c-classify-notice slds-m-bottom_small slds-p-around_small" role="status">{classifyNotice}</p>
+                    <p lwc:if={classifyNoticeIsError} class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+                        <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                        <span class="slds-media__body slds-hyphenate">{classifyNotice}</span>
+                    </p>
+                    <p lwc:else class="slds-scoped-notification slds-scoped-notification_light slds-m-bottom_small" role="status">{classifyNotice}</p>
                     <template lwc:if={hasCsvErrors}>
-                        <ul class="c-csv-errors slds-scrollable slds-m-bottom_small slds-p-around_small" aria-label="CSVの検証エラー" role="alert">
-                            <template for:each={csvErrors} for:item="error">
-                                <li key={error.line}>{error.line}行目：{error.message}</li>
-                            </template>
-                        </ul>
+                        <div class="slds-scoped-notification slds-media slds-media_center slds-theme_error c-csv-errors slds-scrollable slds-m-bottom_small" aria-label="CSVの検証エラー" role="alert">
+                            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                            <ul class="slds-media__body slds-hyphenate">
+                                <template for:each={csvErrors} for:item="error">
+                                    <li key={error.line}>{error.line}行目：{error.message}</li>
+                                </template>
+                            </ul>
+                        </div>
                     </template>
                 </template>
                 <template lwc:if={hasSaveErrors}>
-                    <section class="slds-text-color_error" role="alert" aria-label="保存失敗の詳細">
-                        <p>保存できなかった項目</p>
-                        <ul>
-                            <template for:each={saveErrors} for:item="failure">
-                                <li key={failure.apiName}>{failure.label}（{failure.apiName}）：{failure.message}</li>
-                            </template>
-                        </ul>
+                    <section class="slds-scoped-notification slds-media slds-media_center slds-theme_error" role="alert" aria-label="保存失敗の詳細">
+                        <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                        <div class="slds-media__body slds-hyphenate">
+                            <p>保存できなかった項目</p>
+                            <ul>
+                                <template for:each={saveErrors} for:item="failure">
+                                    <li key={failure.apiName}>{failure.label}（{failure.apiName}）：{failure.message}</li>
+                                </template>
+                            </ul>
+                        </div>
                     </section>
                 </template>
                 <template lwc:if={auditNotice}>
-                    <p class="c-classify-notice slds-m-bottom_small slds-p-around_small" role="status">{auditNotice}</p>
+                    <p class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+                        <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                        <span class="slds-media__body slds-hyphenate">{auditNotice}</span>
+                    </p>
                 </template>
                 <div class="c-table-scroll slds-scrollable" data-classify={isClassify}>
                     <table class="slds-table slds-table_cell-buffer slds-table_bordered">
@@ -362,7 +384,7 @@
                                                 <span class="slds-assistive-text">（変更あり）</span>
                                             </template>
                                             <p class="c-hint slds-text-body_small">{field.reason}</p>
-                                            <p class="slds-text-color_error">{field.error}</p>
+                                            <p lwc:if={field.error} class="slds-form-element__help slds-text-color_error">{field.error}</p>
                                         </template>
                                     </th>
                                     <td>{field.apiName}</td>
@@ -382,7 +404,7 @@
                                         </td>
                                     </template>
                                     <template lwc:if={isClassify}>
-                                        <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                        <td class="c-classify-cell slds-align-middle" aria-disabled={field.unavailable}>
                                             <template lwc:if={field.editing}>
                                                     <div
                                                         class={field.complianceComboboxClass}
@@ -445,7 +467,7 @@
                                                 </template>
                                                 <template lwc:else>{field.complianceLabel}</template>
                                             </td>
-                                            <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                            <td class="c-classify-cell slds-align-middle" aria-disabled={field.unavailable}>
                                                 <template lwc:if={field.editing}>
                                                     <lightning-combobox
                                                         variant="label-hidden"
@@ -462,7 +484,7 @@
                                                 </template>
                                                 <template lwc:else>{field.securityLabel}</template>
                                             </td>
-                                            <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                            <td class="c-classify-cell slds-align-middle" aria-disabled={field.unavailable}>
                                                 <template lwc:if={field.editing}>
                                                     <lightning-combobox
                                                         variant="label-hidden"
@@ -479,7 +501,7 @@
                                                 </template>
                                                 <template lwc:else>{field.businessLabel}</template>
                                             </td>
-                                            <td class="c-classify-cell" aria-disabled={field.unavailable}>
+                                            <td class="c-classify-cell slds-align-middle" aria-disabled={field.unavailable}>
                                                 <template lwc:if={field.editing}>
                                                     <div
                                                         class="c-owner-lookup slds-is-relative"

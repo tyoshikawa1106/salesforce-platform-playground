@@ -348,7 +348,7 @@ it('保存内容の準備でJS例外が起きても未実行を表示して再�
     jest.spyOn(objectExplorerLogic, 'classifyChanges').mockImplementationOnce(() => { throw new TypeError('sensitive input'); });
     element.shadowRoot.querySelector('.c-save-bar lightning-button').click();
     await flush();
-    expect(element.shadowRoot.textContent).toContain('保存内容の準備に失敗しました（TypeError）。保存は実行していません。');
+    expect([...element.shadowRoot.querySelectorAll('[role="alert"]')].map(alert => alert.textContent)).toContain('保存内容の準備に失敗しました（TypeError）。保存は実行していません。');
     expect(LightningConfirm.open).not.toHaveBeenCalled();
     expect(saveClassifyData).not.toHaveBeenCalled();
     expect(element.shadowRoot.querySelector('.c-save-bar lightning-button').disabled).toBe(false);

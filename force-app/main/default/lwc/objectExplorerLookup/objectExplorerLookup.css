@@ -1,3 +1,2 @@
 :host { display: block; }
-.c-object-search { min-width: 0; }
 .c-option-scroll { max-height: var(--slds-g-sizing-15, 20rem); overflow-y: auto; }
