@@ -95,6 +95,8 @@ function openCheckpoint(directory, context, resume) {
     const pending = new Set();
     // 対象IDは初回の選択を固定して使う。
     let selected = null;
+    // 取得順を一度確定し、途中公開・再開で同じ配列を使う。
+    let selectedIds = [];
     // 初期化中の失敗でも取得したロックを解放する。
     try {
         // 取得条件と対象選択を別々に確定できるようにする。
@@ -129,10 +131,11 @@ function openCheckpoint(directory, context, resume) {
                     (row) =>
                         !(context.generatedOnly && selected.length === 1 && row?.Id === GENERATED_RECORD_KEY) &&
                         !/^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/.test(row?.Id)
-                ) ||
-                new Set(selected.map((row) => row.Id)).size !== selected.length
+                )
             )
                 throw new Error('再開用の対象レコード情報が不正です。');
+            selectedIds = selected.map((row) => row.Id);
+            if (new Set(selectedIds).size !== selected.length) throw new Error('再開用の対象レコード情報が不正です。');
         }
     } catch (error) {
         // 他の実行のロックには触れず、今回取得したものだけを外す。
@@ -148,6 +151,7 @@ function openCheckpoint(directory, context, resume) {
         saveJson(path.join(directory, 'selected.json'), rows);
         // 後続の断片検証へ同じ集合を渡す。
         selected = rows;
+        selectedIds = rows.map((row) => row.Id);
     }
     // 保存済み断片は一件ずつ読み、CSV退避領域を再構築する。
     async function replay(append) {
@@ -157,7 +161,7 @@ function openCheckpoint(directory, context, resume) {
             .filter((name) => /^chunk-\d{8}\.json$/.test(name))
             .sort();
         // 選択前に断片がある状態は不正として停止する。
-        const ids = new Set((selected || []).map((row) => row.Id));
+        const ids = new Set(selectedIds);
         // 一度に保持する実値は一断片に限定する。
         for (const filename of chunks) {
             // 連番の欠落を部分取得として隠さない。
@@ -304,6 +308,9 @@ function openCheckpoint(directory, context, resume) {
     return {
         get selected() {
             return selected;
+        },
+        get selectedIds() {
+            return selectedIds;
         },
         offsets,
         select,

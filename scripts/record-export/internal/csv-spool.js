@@ -4,9 +4,7 @@ const path = require('node:path');
 const { csv, toCsv } = require('./collector');
 
 // 途中公開と完成時に、一定サイズのバッファだけでCSV断片をコピーする。
-function copyContents(file, destination) {
-    // 大きなレコードでもファイル全体を一度に読み込まない。
-    const buffer = Buffer.alloc(64 * 1024);
+function copyContents(file, destination, buffer) {
     // 対象断片だけを読み取り専用で開く。
     const source = fs.openSync(file, 'r');
     // コピー失敗時にも読み取り資源を解放する。
@@ -35,6 +33,8 @@ function copyContents(file, destination) {
 
 // 1応答分を超える値を保持せず、列の順序と完全性を保存時にも確認する。
 function createCsvSpool(directory, fields, mode, partialOutput) {
+    // 同期コピーが終わるたびに同じバッファを次の断片へ使い回す。
+    const buffer = Buffer.alloc(64 * 1024);
     // 表計算ソフトでは完成CSVと区別できる名前で途中結果を公開する。
     let currentPartial = partialOutput ? path.join(directory, 'partial.csv') : undefined;
     // 再構築中に失敗しても前回の途中CSVを壊さない。
@@ -133,7 +133,7 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
                 // Mapへの挿入順に依存せず項目位置で連結する。
                 for (let index = 0; index < fields.length; index++) {
                     // 確定した項目は実値と判定結果をそのままコピーする。
-                    if (previewFiles.has(index)) copyContents(previewFiles.get(index), destination);
+                    if (previewFiles.has(index)) copyContents(previewFiles.get(index), destination, buffer);
                     // 未取得の行も指定位置に置き、値なしや取得失敗とは区別する。
                     else
                         fs.writeFileSync(
@@ -171,7 +171,7 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
             // APIの応答順によらず選択順を維持する。
             while (publishedRows < ids.length && positions.get(ids[publishedRows]) === fields.length) {
                 // 一レコードの全項目が揃ってからファイルをコピーする。
-                copyContents(files.get(ids[publishedRows]), destination);
+                copyContents(files.get(ids[publishedRows]), destination, buffer);
                 // 横型CSVのレコード境界を確定する。
                 fs.writeFileSync(destination, '\r\n');
                 // 同じレコードを二度公開しない。
@@ -203,8 +203,8 @@ function createCsvSpool(directory, fields, mode, partialOutput) {
                 if (mode === 'record-fields-preview') {
                     // 後から置換した行も、元の項目位置で連結する。
                     for (let index = 0; index < fields.length; index++)
-                        copyContents(previewFiles.get(index), destination);
-                } else copyContents(files.get(id), destination);
+                        copyContents(previewFiles.get(index), destination, buffer);
+                } else copyContents(files.get(id), destination, buffer);
                 // 横型の各レコード末尾だけに行区切りを追加する。
                 if (mode === 'records') fs.writeFileSync(destination, '\r\n');
             }
