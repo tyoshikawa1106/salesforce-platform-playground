@@ -30,7 +30,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     loadColumns() {
         if (!this.columnsRequest) {
             // 成功した列定義をページ移動や後続の出力でも使う。
-            this.columnsRequest = getColumnLabels().then(labels => {
+            this.columnsRequest = this.observeAccess(getColumnLabels()).then(labels => {
                 const { columns, csvHeader } = historyColumnDefinitions(labels);
                 this.columns = columns;
                 this.exportHeader = csvHeader;
@@ -148,18 +148,59 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 月の切り替え前の件数応答を識別する。
     countRequest = 0;
 
-    // 表示開始時に当月の履歴を取得する。
-    connectedCallback() {
+    // 接続ごとに権限を確認し、前の接続の応答を無効にする。
+    accessVersion = 0;
+    accessGranted = false;
+    accessError = '';
+
+    // 表示開始時に履歴の参照権限を先に確認する。
+    async connectedCallback() {
         // 画面サイズ変更に一覧の高さを追従させる。
         window.addEventListener('resize', this.fitHistoryViewport);
-        // 表示中の条件で履歴を読み込む。
-        this.refresh();
+        // 接続時にだけ確認し、許可された検索基準時刻を一覧と件数にも使う。
+        const version = ++this.accessVersion;
+        this.accessError = '';
+        try {
+            const cutoff = await startSearch();
+            if (version !== this.accessVersion) return;
+            this.historyContext = { cutoffRequest: Promise.resolve(cutoff) };
+            this.accessGranted = true;
+        } catch (error) {
+            if (version === this.accessVersion) {
+                this.accessError = getApexMessage(error, '利用権限を確認できませんでした。もう一度お試しください。');
+            }
+            return;
+        }
+        this.refresh({ keepCutoff: true });
+    }
+
+    // 利用中にApexで権限不足が判明したときも、全操作と進行中の出力を終了する。
+    async observeAccess(request) {
+        const version = this.accessVersion;
+        try {
+            return await request;
+        } catch (error) {
+            const message = getApexMessage(error, '');
+            if (version === this.accessVersion && message.startsWith('利用権限の確認：')) {
+                this.endSession();
+                this.accessError = message;
+            }
+            throw error;
+        }
     }
 
     // 離脱前の要求が再表示後の状態に影響しないようにする。
     disconnectedCallback() {
         // 表示を終えた画面のサイズ監視を解除する。
         window.removeEventListener('resize', this.fitHistoryViewport);
+        this.endSession();
+    }
+
+    // 離脱時と権限喪失時のどちらも、進行中の処理を画面から切り離す。
+    endSession() {
+        this.accessVersion += 1;
+        this.accessGranted = false;
+        this.accessError = '';
         // 離脱前の検索基準時刻を破棄する。
         this.historyContext = {};
         // 再接続後に前の月次分析や遅れて届いた応答を反映しない。
@@ -374,7 +415,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     // 同時に開始する照会を一つの検索時刻に揃え、通信失敗後は再試行を許可する。
     getCutoff(context = this.historyContext) {
         if (!context.cutoffRequest) {
-            const pending = startSearch().catch(error => {
+            const pending = this.observeAccess(startSearch()).catch(error => {
                 if (context.cutoffRequest === pending) {
                     context.cutoffRequest = undefined;
                 }
@@ -395,7 +436,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
         const pendingCounts = this.pendingCounts;
         if (!pendingCounts.has(criteriaJson)) {
             // 成功・失敗とも完了後に外し、後続の再取得を妨げない。
-            const pending = countMatches({ criteriaJson }).finally(() => pendingCounts.delete(criteriaJson));
+            const pending = this.observeAccess(countMatches({ criteriaJson })).finally(() => pendingCounts.delete(criteriaJson));
             pendingCounts.set(criteriaJson, pending);
         }
         return pendingCounts.get(criteriaJson);
@@ -1026,7 +1067,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
     async readPageWithRetry(fetchPage, query, isCurrent) {
         try {
             // 指定された境界から履歴を取得する。
-            return await fetchPage(query);
+            return await this.observeAccess(fetchPage(query));
         } catch (error) {
             // 離脱後の要求と一時的通信エラー以外を再試行から除く。
             if (!isCurrent() || ![0, 502, 503, 504].includes(error?.status)) {
@@ -1034,7 +1075,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                 throw error;
             }
             // 同じ取得条件を使って失敗したページだけを再試行する。
-            return fetchPage(query);
+            return this.observeAccess(fetchPage(query));
         }
     }
 
@@ -1261,7 +1302,7 @@ export default class SetupAuditTrailExplorer extends LightningElement {
                     // 検索結果には一覧で適用した条件と基準時刻を使う。
                     Object.assign(query, selection?.query);
                     // 月別・全期間は最初の明細要求より先にサーバー時刻を確定する。
-                    query.cutoff ??= await startSearch();
+                    query.cutoff ??= await this.observeAccess(startSearch());
                     // 時刻の取得中にキャンセルされた場合は明細を要求しない。
                     if (isCurrent()) file = await this.buildCsv(period, query, selection, isCurrent, progress);
                 }

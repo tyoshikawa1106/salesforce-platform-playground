@@ -1,17 +1,16 @@
 <template>
     <div class="c-charts">
         <template for:each={charts} for:item="chart">
-            <section key={chart.key} class="c-chart" aria-label={chart.title}>
+            <section key={chart.key} class="c-chart slds-grid slds-grid_vertical" style={chart.countSpace} aria-label={chart.title}>
                 <h2 class="c-title slds-text-heading_small slds-p-horizontal_medium slds-p-vertical_small">{chart.title}</h2>
-                <div lwc:if={chart.hasRows} class="c-chart-body slds-p-horizontal_medium slds-p-vertical_small">
-                    <div class="c-chart-row c-axis">
-                        <span></span>
+                <div lwc:if={chart.hasRows} class="c-chart-body slds-grid slds-grid_vertical slds-p-horizontal_medium slds-p-vertical_small">
+                    <div class="c-chart-row c-axis slds-text-align_right">
+                        <span>件数</span>
                         <div class="c-ticks" aria-hidden="true">
                             <template for:each={chart.ticks} for:item="tick">
                                 <span key={tick.key}>{tick.label}</span>
                             </template>
                         </div>
-                        <span>件数</span>
                     </div>
                     <div class="c-chart-scroll" tabindex="0" role="group" aria-label={chart.title}>
                         <template for:each={chart.rows} for:item="row">
@@ -21,14 +20,14 @@
                                         {row.label}<template lwc:if={row.weekday}>（{row.weekday}）</template>
                                     </span>
                                 </div>
-                                <div class="c-bar">
-                                    <button class="slds-button c-segment" type="button"
+                                <div class="c-bar slds-grid slds-grid_vertical-align-center">
+                                    <button class="slds-button slds-no-space c-segment" type="button"
                                         title={row.buttonLabel} aria-label={row.buttonLabel} data-id={row.id}
                                         disabled={row.disabled} onclick={selectSegment}>
-                                        <span class="c-bar-fill" style={row.style} aria-hidden="true"></span>
+                                        <span class="c-bar-fill slds-shrink-none" style={row.style} aria-hidden="true"></span>
+                                        <span class="c-count slds-shrink-none slds-m-left_x-small" aria-hidden="true">{row.formattedCount}</span>
                                     </button>
                                 </div>
-                                <span class="c-count">{row.formattedCount}</span>
                             </div>
                         </template>
                     </div>

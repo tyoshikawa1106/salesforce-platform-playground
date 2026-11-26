@@ -40,7 +40,10 @@ it('keeps a rare action selectable independently of the width of its bar', async
     await Promise.resolve();
     const button = chart.shadowRoot.querySelector('button[aria-label="rare 1件"]');
     expect(button.style.width).toBe('');
-    expect(parseFloat(button.querySelector('[aria-hidden="true"]').style.width)).toBeLessThan(0.01);
+    const bar = button.querySelector('.c-bar-fill');
+    expect(parseFloat(bar.style.width)).toBeLessThan(0.01);
+    expect(bar.nextElementSibling.textContent).toBe('1');
+    expect(chart.shadowRoot.querySelector('button[aria-label="frequent 199,999件"] .c-count').textContent).toBe('199,999');
     const select = jest.fn();
     chart.addEventListener('selectfilter', select);
     button.click();

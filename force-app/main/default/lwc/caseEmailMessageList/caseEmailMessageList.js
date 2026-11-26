@@ -34,12 +34,6 @@ export default class CaseEmailMessageList extends LightningElement {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // レコードページから表示中CaseのIDを受け取る
     _recordId;
     // ケース切り替えと初期ページ再取得を識別する世代

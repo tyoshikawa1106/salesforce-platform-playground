@@ -45,12 +45,6 @@ export default class OrgExplorer extends NavigationMixin(LightningElement) {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // [初期値設定] 初期ロールのAPI名。空文字なら未選択で全ロールを表示する。
     @api defaultRootRoleApiName = 'SampleCompany';
     // [初期値設定] 無効ユーザー表示の初期状態。trueでON、falseでOFFにする。

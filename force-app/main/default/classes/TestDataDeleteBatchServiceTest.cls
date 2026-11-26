@@ -124,6 +124,7 @@ private with sharing class TestDataDeleteBatchServiceTest {
             TestDataDeleteBatchWrapper result = service
                 .checkExecution(plan, access(true), TestDataDeleteService.Environment.DEVELOPMENT);
             Assert.areEqual('', result.errorMessage, '適切な対象と権限を許可');
+            Assert.isTrue(result.targetObjectExists, '検証済みの取引先の存在をバッチへ返す');
             Test.stopTest();
         }
     }

@@ -7,11 +7,9 @@ h2 {
     font-size: var(--slds-g-font-scale-2, 1rem);
     font-weight: var(--slds-g-font-weight-7, 700);
 }
-.c-controls {
+.c-controls,
+.c-hierarchy-actions {
     gap: var(--slds-g-spacing-2, 0.5rem);
-}
-.c-panel {
-    min-width: 0;
 }
 .c-layout {
     display: grid;
@@ -19,11 +17,7 @@ h2 {
     gap: var(--slds-g-spacing-4, 1rem);
 }
 .c-chart {
-    box-sizing: border-box;
     block-size: calc(100dvh - var(--slds-g-sizing-13, 10rem) - var(--slds-g-sizing-9, 2rem));
-}
-.c-chart > c-org-explorer-canvas {
-    min-block-size: 0;
 }
 .c-toolbar {
     gap: var(--slds-g-spacing-4, 1rem);
@@ -31,20 +25,11 @@ h2 {
 .c-role-lookup {
     gap: var(--slds-g-spacing-2, 0.5rem);
     flex: 0 1 var(--slds-g-sizing-16, 30rem);
-    min-inline-size: 0;
-}
-.c-role-lookup > c-org-explorer-search {
-    flex: 1 1 auto;
-    min-inline-size: 0;
 }
 .c-role-lookup > .c-hierarchy-actions {
     white-space: nowrap;
 }
 
-.c-error {
-    border-inline-start: var(--slds-g-sizing-border-3, 3px) solid var(--slds-g-color-accent-2, #0176d3);
-    font-weight: var(--slds-g-font-weight-7, 700);
-}
 .c-loading {
     inset-block-start: var(--slds-g-spacing-4, 1rem);
     inset-inline-end: var(--slds-g-spacing-4, 1rem);
@@ -53,20 +38,7 @@ h2 {
     pointer-events: none;
 }
 
-/* エラーの長い処理名も画面内で折り返す */
-.c-client-error { overflow-wrap: anywhere; }
-
-.c-hierarchy-actions {
-    gap: var(--slds-g-spacing-2, 0.5rem);
-}
 /* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
 .c-page-header-row {
     gap: var(--slds-g-spacing-3, 0.75rem);
-}
-.c-page-header-title {
-    min-width: 0;
-}
-.c-page-header-actions {
-    flex: 0 1 auto;
-    min-width: 0;
 }

@@ -2,6 +2,33 @@
 private class SetupAuditTrailExplorerServiceTest {
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 従来の設定参照権限だけでは履歴を取得できず、権限の取得失敗も拒否 */
+    @IsTest
+    static void requiresAuditTrailPermission() {
+        System.runAs(testUser) {
+            UserPermissionAccess denied = (UserPermissionAccess) JSON.deserialize(
+                '{"PermissionsViewSetup":true,"PermissionsViewSetupAuditTrail":false}', UserPermissionAccess.class);
+            UserPermissionAccess allowed = (UserPermissionAccess) JSON.deserialize(
+                '{"PermissionsViewSetup":false,"PermissionsViewSetupAuditTrail":true}', UserPermissionAccess.class);
+            Test.startTest();
+            Assert.areEqual('利用権限の確認：「設定変更履歴の参照」権限が必要です。システム管理者にお問い合わせください。',
+                accessError(new List<UserPermissionAccess>{ denied }), '専用権限の不足を通知');
+            Assert.areEqual('利用権限の確認：権限を確認できませんでした。もう一度お試しください。',
+                accessError(new List<UserPermissionAccess>()), '確認不能時は利用を停止');
+            Assert.isNull(accessError(new List<UserPermissionAccess>{ allowed }), '専用権限があれば利用可能');
+            Test.stopTest();
+        }
+    }
+
+    private static String accessError(List<UserPermissionAccess> permissions) {
+        try {
+            SetupAuditTrailExplorerService.requireAccess(permissions);
+            return null;
+        } catch (AuraHandledException error) {
+            return error.getMessage();
+        }
+    }
+
     @IsTest
     static void includesDistinctSectionOptions() {
         System.runAs(testUser) {

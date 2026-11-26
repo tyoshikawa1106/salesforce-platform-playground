@@ -698,7 +698,7 @@ async function main(
             // 取得済みの値を再検索せずにそのまま保存する。
             await spool.append(...args);
             // 横型は完成したレコードだけを途中CSVへ表示する。
-            if (mode === 'records') spool.publishPartial((checkpoint.selected || []).map((row) => row.Id));
+            if (mode === 'records') spool.publishPartial(checkpoint.selectedIds);
         });
         // 復元できた場合だけ途中CSVを公開し、以降は順次追記する。
         spool.activatePartial();
@@ -713,17 +713,9 @@ async function main(
         // 初回取得の残りを終えた後だけ、未検索の空欄を補完する。
         options.resumeSupplements = resumeSupplements;
         // 補完範囲ごとに途中CSVの行をまとめて更新する。
-        options.onSupplementBatch = () =>
-            spool.publishPartial(
-                checkpoint.selected.map((row) => row.Id),
-                true
-            );
+        options.onSupplementBatch = () => spool.publishPartial(checkpoint.selectedIds, true);
         // 次の通信待ちへ入る前に、直前までの取得結果を全行の途中CSVへ反映する。
-        options.beforeSupplementQuery = () =>
-            spool.publishPartial(
-                checkpoint.selected.map((row) => row.Id),
-                true
-            );
+        options.beforeSupplementQuery = () => spool.publishPartial(checkpoint.selectedIds, true);
         // 対象IDを最初の値取得より前に確定する。
         options.onSelected = checkpoint.select;
         // 対象選択・適応分割・補完を共通の照合処理で実行する。
@@ -741,7 +733,7 @@ async function main(
                 // 既存の項目順検証を通してCSVを追記する。
                 await spool.append(...args);
                 // 全項目が揃った横型の行を順に公開する。
-                if (!args[6]?.replace) spool.publishPartial(checkpoint.selected.map((row) => row.Id));
+                if (!args[6]?.replace) spool.publishPartial(checkpoint.selectedIds);
             },
             updateLine
         );
@@ -779,10 +771,7 @@ async function main(
             // 公開失敗でチェックポイントの解放や元の例外処理を妨げない。
             try {
                 // 保存済み断片だけを公開し、未処理行は未処理のまま保持する。
-                spool.publishPartial(
-                    (checkpoint.selected || []).map((row) => row.Id),
-                    true
-                );
+                spool.publishPartial(checkpoint.selectedIds, true);
             } catch {
                 // 元の途中CSVと再開用データは削除せず、公開に失敗した事実を伝える。
                 writeLine('途中CSVの更新に失敗しました。再開用データは保持しています。');

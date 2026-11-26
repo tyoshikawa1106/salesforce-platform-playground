@@ -25,12 +25,6 @@ export default class ObjectRecordFormModal extends LightningModal {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // 親で権限確認した対象オブジェクトを標準フォームへ渡す
     @api objectApiName;
     // 操作結果の利用者向け名称を受け取る

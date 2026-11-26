@@ -13,8 +13,9 @@
             </div>
         </header>
         <div lwc:if={displayedError} role="alert" tabindex="-1" lwc:ref="errorSummary"
-            class="slds-box slds-theme_default slds-m-bottom_medium">
-            <div class="slds-text-color_error slds-hyphenate">
+            class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_medium">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <div class="slds-media__body slds-hyphenate">
                 <p lwc:if={errorHeading}><strong>{errorHeading}</strong></p>
                 <p>{displayedError}</p>
             </div>
@@ -107,18 +108,18 @@
                 <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
                 <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
             </div>
-            <dialog lwc:ref="confirmation" class="c-confirmation slds-theme_default" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
+            <dialog lwc:ref="confirmation" class="c-confirmation slds-theme_default slds-is-fixed slds-p-around_none slds-grid_vertical" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
                 <header class="slds-p-around_medium">
                     <h2 id="confirmation-title" class="slds-text-heading_small">ユーザーの作成を確認</h2>
                 </header>
-                <div lwc:if={confirmationSections} class="c-confirmation-body">
+                <div lwc:if={confirmationSections} class="c-confirmation-body slds-p-horizontal_medium">
                     <template for:each={confirmationSections} for:item="section">
-                        <section key={section.title} class="c-confirmation-section slds-border_top">
+                        <section key={section.title} class="slds-p-vertical_medium slds-border_top">
                             <h3 class="slds-text-title_bold">{section.title}</h3>
                             <dl>
-                                <div for:each={section.rows} for:item="row" key={row.label} class="c-confirmation-row">
+                                <div for:each={section.rows} for:item="row" key={row.label} class="c-confirmation-row slds-m-top_x-small">
                                     <dt>{row.label}</dt>
-                                    <dd>
+                                    <dd class="slds-m-around_none">
                                         <lightning-input lwc:if={row.checkbox} type="checkbox" label={row.label} variant="label-hidden" checked={row.checked} read-only></lightning-input>
                                         <span lwc:else>{row.value}</span>
                                     </dd>

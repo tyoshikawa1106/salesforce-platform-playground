@@ -24,10 +24,10 @@ async function mount() {
     return element;
 }
 function executeButton(element) {
-    return element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')[0];
+    return element.shadowRoot.querySelectorAll('lightning-button')[0];
 }
 function refreshButton(element) {
-    return element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')[1];
+    return element.shadowRoot.querySelectorAll('lightning-button')[1];
 }
 
 describe('取引先一括削除画面', () => {
@@ -264,7 +264,7 @@ describe('取引先一括削除画面', () => {
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
         getView.mockRejectedValueOnce(new Error('private-value'));
         const element = createElement('c-accountDelete', { is: AccountDelete });
@@ -275,9 +275,8 @@ describe('処理場所付きエラー表示', () => {
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('accountDelete.js / loadView');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.querySelector('[data-client-error-dismiss]').click();
-        await Promise.resolve();
-        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+        expect(panel.querySelector('button, lightning-button, lightning-button-icon')).toBeNull();
+        expect(element.shadowRoot.querySelector('[data-client-error-dismiss]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

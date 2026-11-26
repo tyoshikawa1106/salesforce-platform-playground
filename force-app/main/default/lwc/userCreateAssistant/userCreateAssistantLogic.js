@@ -132,7 +132,7 @@ export function buildPanel(lines, side, draft, deactivate = false) {
     const source = side === 'source';
     return {
         side, label: source ? 'コピー元ユーザー' : '新規ユーザー',
-        panelClass: 'c-panel c-' + side + ' slds-box slds-theme_default',
+        panelClass: 'c-panel slds-no-space c-' + side + ' slds-box slds-theme_default',
         rows: lines.map((line) => ({
             key: line.key,
             className: line.paired ? 'c-field-pair' : undefined,

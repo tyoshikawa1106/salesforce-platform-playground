@@ -175,7 +175,7 @@ function cardSelection(row, selected) {
     // 座標や所属情報を含めず、選択に依存する値だけを返す。
     return {
         selected,
-        cardClass: selected ? 'c-card c-selected' : 'c-card',
+        cardClass: 'c-card slds-scrollable_none' + (selected ? ' c-selected' : ''),
         ariaLabel: `${row.label} ${row.status}${row.memberCountText ? ` ${row.memberCountText}` : ''}${selected ? ' 選択中' : ''}`
     };
 }
@@ -238,6 +238,20 @@ export function buildView(graph, mode, fieldLabels = {}) {
     function measureReady(key) {
         // 計算済みの部分木を再利用する。
         if (layouts.has(key)) return layouts.get(key);
+        // 子が一つなら親子は同じ横座標になる。深い段を先頭に置いた輪郭に親を足す。
+        const childKeys = children.get(key);
+        const onlyChild = childKeys.length === 1 ? layouts.get(childKeys[0]) : null;
+        if (onlyChild) {
+            const { left, right, min, width } = onlyChild;
+            left.push(0);
+            right.push(0);
+            // 相対位置は既定の0。子には配置に使う値だけを残す。
+            onlyChild.left = [];
+            onlyChild.right = [];
+            const layout = { left, right, min, width, shifts: new Map() };
+            layouts.set(key, layout);
+            return layout;
+        }
         // 子部分木を並べた輪郭を保持する。
         const leftContour = [];
         // 深さごとの右端を保持する。
@@ -245,24 +259,26 @@ export function buildView(graph, mode, fieldLabels = {}) {
         // 各子の親からの横位置を保持する。
         const shifts = new Map();
         // 子部分木を取得順で配置する。
-        children.get(key).forEach((child) => {
+        childKeys.forEach((child) => {
             // 子の各深さの範囲を取得する。
             const layout = layouts.get(child) || { left: [0], right: [0] };
             // 最初の子は原点から配置する。
             let shift = 0;
             // 存在する深さ同士の重なりだけを避ける。
-            layout.left.forEach((edge, depth) => {
+            layout.left.forEach((edge, index) => {
+                const depth = layout.left.length - 1 - index;
                 // 同じ深さに既存のカードがある場合だけ間隔を取る。
                 if (rightContour[depth] !== undefined) shift = Math.max(shift, rightContour[depth] + columnStep - edge);
             });
             // 子の位置を保存する。
             shifts.set(child, shift);
             // 輪郭を今回の部分木へ更新する。
-            layout.left.forEach((edge, depth) => {
+            layout.left.forEach((edge, index) => {
+                const depth = layout.left.length - 1 - index;
                 // 既存の左端と新しい左端を統合する。
                 leftContour[depth] = Math.min(leftContour[depth] ?? Infinity, edge + shift);
                 // 右端も同じ位置補正で統合する。
-                rightContour[depth] = Math.max(rightContour[depth] ?? -Infinity, layout.right[depth] + shift);
+                rightContour[depth] = Math.max(rightContour[depth] ?? -Infinity, layout.right[index] + shift);
             });
         });
         // 親を最初と最後の子の中央へ置く。
@@ -272,9 +288,11 @@ export function buildView(graph, mode, fieldLabels = {}) {
         // 子の位置を親の原点からの相対座標へ揃える。
         for (const [child, shift] of shifts) shifts.set(child, shift - center);
         // 根を深さゼロに加えた左輪郭を作る。
-        const leftEdges = [0, ...leftContour.map((edge) => edge - center)];
+        const leftEdges = leftContour.reverse().map((edge) => edge - center);
+        leftEdges.push(0);
         // 同じ原点から右輪郭を作る。
-        const rightEdges = [0, ...rightContour.map((edge) => edge - center)];
+        const rightEdges = rightContour.reverse().map((edge) => edge - center);
+        rightEdges.push(0);
         // 外側の範囲は複数ルートの間隔に使う。
         const min = leftEdges.reduce((edge, value) => Math.min(edge, value), 0);
         // 部分木の必要な幅を確定する。

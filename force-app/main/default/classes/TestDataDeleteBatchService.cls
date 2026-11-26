@@ -38,7 +38,11 @@ public with sharing class TestDataDeleteBatchService {
         }
         // 固定計画の確認後にオブジェクト固有の実行条件を判定
         String objectName = wrapper.objectNames[wrapper.position];
-        wrapper.errorMessage = getObjectError(objectName, Schema.getGlobalDescribe().get(objectName));
+        Schema.SObjectType targetType = Schema.getGlobalDescribe().get(objectName);
+        // バッチ開始・終了の存在判定にも同じメタデータを使用
+        wrapper.targetObjectExists = targetType != null;
+        // 検証済みの削除計画に対するオブジェクト権限を確認
+        wrapper.errorMessage = getObjectError(objectName, targetType);
         return wrapper;
     }
 

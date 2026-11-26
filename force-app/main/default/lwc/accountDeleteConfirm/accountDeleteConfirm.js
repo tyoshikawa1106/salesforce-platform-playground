@@ -23,12 +23,6 @@ export default class AccountDeleteConfirm extends LightningModal {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // 削除を開始せず確認画面を閉じる
     handleCancel() {
         // 操作・取得・描画の入口で自画面の例外を捕捉

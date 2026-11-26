@@ -114,7 +114,11 @@ export function getTokenRows(result, copyFeedback) {
         rows.push({ name: 'idToken', label: 'ID トークン（OpenID Connect）', value: result.idToken });
     }
     // コピーしたトークンの行だけに通知を付ける
-    return rows.map((row) => ({ ...row, copyMessage: row.name === copyFeedback?.name ? copyFeedback.message : '' }));
+    return rows.map((row) => ({
+        ...row,
+        copyMessage: row.name === copyFeedback?.name ? copyFeedback.message : '',
+        copyFailed: row.name === copyFeedback?.name && copyFeedback.failed === true
+    }));
 }
 
 // Salesforce にログインするときのユーザー名を氏名に添える

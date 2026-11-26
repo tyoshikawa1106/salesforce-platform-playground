@@ -363,7 +363,7 @@ export default class OauthTokenIssuance extends LightningElement {
             // 現在表示中の結果にだけ手動コピーの案内を追加
             if (this.result === result && this.copyFeedback === feedback) {
                 // ブラウザがクリップボードへの書き込みを拒否してもコピーできるようにする
-                this.copyFeedback = { ...feedback, message: 'コピーできませんでした。項目の値を選択してコピーしてください。' };
+                this.copyFeedback = { ...feedback, failed: true, message: 'コピーできませんでした。項目の値を選択してコピーしてください。' };
             }
         }
     }

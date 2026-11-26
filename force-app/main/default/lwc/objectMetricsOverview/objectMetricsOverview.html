@@ -1,16 +1,18 @@
 <template>
     <template lwc:if={clientError}>
-        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-            <p>画面処理でエラーが発生しました。</p>
-            <template lwc:if={clientError.code}>
-                <p data-error-code>エラーコード：{clientError.code}</p>
-            </template>
-            <p data-error-location>処理場所：{clientError.location}</p>
-            <p data-error-type>エラー種別：{clientError.errorType}</p>
-            <template lwc:if={clientError.reason}>
-                <p data-error-reason>理由：{clientError.reason}</p>
-            </template>
-            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+        <div data-client-error class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <div class="slds-media__body slds-hyphenate">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+            </div>
         </div>
     </template>
     <template lwc:if={selectedMetricKey}>
@@ -33,19 +35,19 @@
 
             <template lwc:if={errorMessage}>
                 <div
-                    class="slds-notify slds-notify_alert slds-alert_error slds-m-horizontal_medium slds-m-bottom_medium"
+                    class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-horizontal_medium slds-m-bottom_medium"
                     role="alert"
                 >
-                    <span class="slds-assistive-text">Error</span>
-                    <h2>{errorMessage}</h2>
+                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                    <div class="slds-media__body slds-hyphenate"><h2>{errorMessage}</h2></div>
                 </div>
             </template>
 
             <div class="c-counts slds-p-around_small" aria-busy={isBusy}>
                 <template for:each={countCards} for:item="card">
-                    <div key={card.key} class="c-count-card-cell slds-grid">
+                    <div key={card.key} class="slds-no-space slds-grid">
                         <button
-                            class="c-count-card-button slds-size_full slds-show"
+                            class="c-count-card-button slds-button_reset slds-size_full slds-show"
                             disabled={disableCardNavigation}
                             type="button"
                             data-key={card.key}

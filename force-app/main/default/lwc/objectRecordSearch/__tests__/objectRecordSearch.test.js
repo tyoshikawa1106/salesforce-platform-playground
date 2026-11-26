@@ -415,7 +415,7 @@ describe('c-object-record-search', () => {
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         const element = createComponent();
@@ -425,9 +425,8 @@ describe('処理場所付きエラー表示', () => {
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('objectRecordSearch.js / wiredRecords');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.querySelector('[data-client-error-dismiss]').click();
-        await Promise.resolve();
-        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+        expect(panel.querySelector('button, lightning-button, lightning-button-icon')).toBeNull();
+        expect(element.shadowRoot.querySelector('[data-client-error-dismiss]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

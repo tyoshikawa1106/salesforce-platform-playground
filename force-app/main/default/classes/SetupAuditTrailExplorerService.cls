@@ -2,6 +2,26 @@
 public with sharing class SetupAuditTrailExplorerService {
     private static final Integer CSV_TEXT_BUDGET = 500000;
 
+    /** 履歴の参照権限を取得でき、明示的に付与されていることを確認
+     * @param permissions 実行ユーザーの実効権限
+     * @throws AuraHandledException 権限を確認できないか、権限が不足する場合
+     */
+    public static void requireAccess(List<UserPermissionAccess> permissions) {
+        // 権限不足と照会失敗で、それぞれの対処方法を伝える
+        String message;
+        if (permissions.isEmpty()) {
+            message = '利用権限の確認：権限を確認できませんでした。もう一度お試しください。';
+        } else if (permissions[0].PermissionsViewSetupAuditTrail != true) {
+            message = '利用権限の確認：「設定変更履歴の参照」権限が必要です。システム管理者にお問い合わせください。';
+        }
+        if (message != null) {
+            // 画面とApex呼び出し元に同じ拒否理由を返す
+            AuraHandledException error = new AuraHandledException(message);
+            error.setMessage(message);
+            throw error;
+        }
+    }
+
     /**
      * 指定月と日付の整合性を検証する。
      * @param monthStart 対象月の初日。

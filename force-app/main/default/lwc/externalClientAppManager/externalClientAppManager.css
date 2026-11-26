@@ -4,12 +4,8 @@
     color: var(--slds-g-color-on-surface-1, #181818);
 }
 
-.c-authentication {
-    gap: var(--slds-g-spacing-3, 0.75rem);
-}
-
-/* 長い設定案内を折り返し、アイコンと本文を並べる */
-.c-error-notice {
+.c-authentication,
+.c-page-header-row {
     gap: var(--slds-g-spacing-3, 0.75rem);
 }
 
@@ -35,16 +31,4 @@
     width: var(--slds-g-sizing-9, 2rem);
     height: var(--slds-g-sizing-9, 2rem);
     pointer-events: none;
-}
-
-/* SLDSのページヘッダーにタイトルと操作を配置し、狭い画面では折り返す */
-.c-page-header-row {
-    gap: var(--slds-g-spacing-3, 0.75rem);
-}
-.c-page-header-title {
-    min-width: 0;
-}
-.c-page-header-actions {
-    flex: 0 1 auto;
-    min-width: 0;
 }

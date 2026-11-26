@@ -21,4 +21,4 @@ Lightning Web Componentsで実装した機能の仕様書一覧です。Apex本�
 | 外部クライアントアプリ認証管理 | `externalClientAppManager` | [外部クライアントアプリ認証管理](external-client-app-manager/index.md) |
 | OAuth トークン発行             | `oauthTokenIssuance`       | [OAuth トークン発行](oauth-token-issuance/index.md)                    |
 
-例外捕捉・診断情報の生成・エラー表示は各LWCのController・Logic・HTMLで実装し、共通エラー部品には依存しません。
+画面・モーダル・検索候補に表示するエラーは、SLDS標準のScoped Notification（`slds-scoped-notification` と `slds-theme_error`）と `role="alert"` を使用します。診断情報を閉じるボタンは設けません。例外の処理、診断情報、フォーカス、回復操作は各LWCで管理します。項目・行のエラーは該当箇所のヘルプテキスト、標準トーストと標準入力コンポーネントの検証メッセージはSalesforceの標準表示を使用します。

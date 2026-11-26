@@ -26,9 +26,3 @@
     overflow-wrap: anywhere;
     white-space: pre-wrap;
 }
-
-.c-page-separator {
-    list-style: none;
-}
-/* エラーの長い処理名も画面内で折り返す */
-.c-client-error { overflow-wrap: anywhere; }

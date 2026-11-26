@@ -4,14 +4,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.c-form-section-field {
-    min-width: 0;
-}
-
 @media (max-width: 48em) {
     .c-form-section-fields {
         grid-template-columns: 1fr;
     }
 }
-/* エラーの長い処理名も画面内で折り返す */
-.c-client-error { overflow-wrap: anywhere; }

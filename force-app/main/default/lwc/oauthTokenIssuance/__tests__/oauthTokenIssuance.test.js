@@ -162,6 +162,13 @@ test('同じ画面に入力欄を残して、認可コードを交換し ID ト�
         await tick();
         expect(writeText).toHaveBeenCalledWith('access');
         expect(copyButton.nextElementSibling.textContent).toBe('アクセストークンをコピーしました。');
+        expect(copyButton.nextElementSibling.getAttribute('role')).toBe('status');
+        writeText.mockRejectedValueOnce(new Error('コピー失敗'));
+        copyButton.click();
+        await tick();
+        await tick();
+        expect(copyButton.nextElementSibling.getAttribute('role')).toBe('alert');
+        expect(copyButton.nextElementSibling.textContent).toContain('項目の値を選択してコピーしてください');
         expect(element.shadowRoot.querySelector('[data-token="refreshToken"]').nextElementSibling.textContent).toBe('');
     } finally {
         delete navigator.clipboard;

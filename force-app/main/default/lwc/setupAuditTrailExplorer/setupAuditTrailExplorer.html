@@ -10,7 +10,7 @@
                         <h1 class="slds-page-header__title">設定変更履歴エクスプローラー</h1>
                     </div>
                 </div>
-                <div class="slds-page-header__col-actions">
+                <div lwc:if={accessGranted} class="slds-page-header__col-actions">
                     <lightning-button-group>
                         <lightning-button label="CSV出力" title="対象月をCSV出力" data-monthly-export onclick={openMonthlyExport}></lightning-button>
                         <lightning-button-menu alternative-text="CSV出力メニュー" menu-alignment="right"
@@ -22,15 +22,22 @@
             </div>
         </header>
 
-        <p lwc:if={downloadError} role="alert" class="slds-text-color_error slds-m-bottom_small">{downloadError}</p>
-        <div class="slds-box slds-theme_default">
-            <div class="c-month-navigation slds-m-bottom_medium">
+        <p lwc:if={accessError} role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <span class="slds-media__body slds-hyphenate">{accessError}</span>
+        </p>
+        <div lwc:elseif={accessGranted} class="slds-box slds-theme_default">
+            <p lwc:if={downloadError} role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small">
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <span class="slds-media__body slds-hyphenate">{downloadError}</span>
+            </p>
+            <div class="c-month-navigation slds-m-bottom_medium slds-p-bottom_small slds-border_bottom">
                 <lightning-button label="前月" icon-name="utility:chevronleft" data-step="-1"
                     disabled={previousMonthDisabled} onclick={moveMonth}></lightning-button>
-                <div class="c-inline-status">
+                <div class="slds-grid slds-grid_vertical-align-center">
                     <h2 class="slds-text-heading_small" aria-live="polite">{monthHeading}</h2>
                     <template lwc:if={showMonthCountStatus}>
-                        <span lwc:if={monthTotalLoading} class="c-inline-spinner">
+                        <span lwc:if={monthTotalLoading} class="c-inline-spinner slds-is-relative slds-no-flex slds-m-left_x-small">
                             <lightning-spinner size="small" alternative-text="月の総件数を取得中"></lightning-spinner>
                         </span>
                     </template>
@@ -53,7 +60,7 @@
                                 <lightning-combobox label="日付" data-field="day" value={selectedDay}
                                     options={dateOptions} onchange={changeFilter}></lightning-combobox>
                                 <template for:each={filterFields} for:item="field">
-                                    <div key={field.key} class="c-search-lookup slds-form-element" onfocusout={leaveLookup}>
+                                    <div key={field.key} class="c-search-lookup slds-no-space slds-form-element" onfocusout={leaveLookup}>
                                         <label class="slds-form-element__label" for={field.key}>{field.label}</label>
                                         <div class="slds-form-element__control">
                                             <div class={field.containerClass}>
@@ -93,14 +100,17 @@
                                                                 </template>
                                                                 <li role="presentation" aria-hidden="true" style={field.bottomStyle}></li>
                                                             </ul>
-                                                            <div lwc:if={optionsLoading} class="c-inline-status slds-p-horizontal_small slds-p-vertical_x-small">
+                                                            <div lwc:if={optionsLoading} class="slds-grid slds-grid_vertical-align-center slds-p-horizontal_small slds-p-vertical_x-small">
                                                                 <p role="status" class="slds-text-body_small slds-text-color_weak">候補を読み込み中…</p>
-                                                                <span class="c-inline-spinner">
+                                                                <span class="c-inline-spinner slds-is-relative slds-no-flex slds-m-left_x-small">
                                                                     <lightning-spinner size="small" alternative-text="絞り込み候補を取得中"></lightning-spinner>
                                                                 </span>
                                                             </div>
                                                             <div lwc:elseif={optionsError} class="slds-p-horizontal_small slds-p-vertical_x-small">
-                                                                <p role="alert" class="slds-text-color_error">絞り込み候補を取得できませんでした。</p>
+                                                                <p role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error">
+                                                                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                                                                    <span class="slds-media__body slds-hyphenate">絞り込み候補を取得できませんでした。</span>
+                                                                </p>
                                                                 <lightning-button label="候補を再取得" data-field={field.key} onclick={retryLookupOptions}></lightning-button>
                                                             </div>
                                                             <p lwc:elseif={field.noMatches} role="status" class="slds-p-horizontal_small slds-p-vertical_x-small slds-text-body_small slds-text-color_weak">候補がありません。</p>
@@ -115,10 +125,13 @@
                             <lightning-button class="slds-m-top_small slds-show_inline-block" label="検索" variant="brand" onclick={search}></lightning-button>
                         </section>
                         <template lwc:if={error}>
-                            <div role="alert" class="slds-text-color_error slds-m-vertical_small">{error}</div>
+                            <div role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-vertical_small">
+                                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                                <div class="slds-media__body slds-hyphenate">{error}</div>
+                            </div>
                             <lightning-button label="再試行" onclick={retryRead}></lightning-button>
                         </template>
-                        <div class="c-tab-results">
+                        <div class="c-tab-results slds-is-relative">
                             <template lwc:if={loading}><lightning-spinner size="small" alternative-text="設定変更履歴を取得中"></lightning-spinner></template>
                             <template lwc:if={emptyList}><p>条件に一致する設定変更履歴はありません。</p></template>
                             <template lwc:elseif={listReady}>
@@ -132,13 +145,13 @@
                                 <div lwc:if={records.length} class="c-history-viewport" aria-hidden="true"></div>
                             </template>
                             <div class="c-history-footer slds-m-top_small">
-                                <nav class="c-pagination" aria-label="履歴のページ送り">
+                                <nav class="c-pagination slds-grid slds-grid_vertical-align-center slds-grid_align-center" aria-label="履歴のページ送り">
                                     <lightning-button lwc:if={hasPreviousPage} label="前へ" disabled={loading} onclick={previousPage}></lightning-button>
-                                    <div class="c-page-summary c-inline-status">
+                                    <div class="c-page-summary slds-grid slds-grid_vertical-align-center">
                                         <span aria-live="polite">{pageSummary}</span>
-                                        <lightning-button lwc:if={matchCountError} label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
-                                        <span lwc:if={probingNextPage} role="status">次の一致を確認中…</span>
-                                        <span lwc:if={matchLoading} class="c-inline-spinner">
+                                        <lightning-button lwc:if={matchCountError} class="slds-m-left_x-small" label="絞り込み件数を再取得" disabled={loading} onclick={readMatchCount}></lightning-button>
+                                        <span lwc:if={probingNextPage} class="slds-m-left_x-small" role="status">次の一致を確認中…</span>
+                                        <span lwc:if={matchLoading} class="c-inline-spinner slds-is-relative slds-no-flex slds-m-left_x-small">
                                             <lightning-spinner size="small" alternative-text="絞り込み件数を取得中"></lightning-spinner>
                                         </span>
                                     </div>
@@ -150,16 +163,19 @@
                         </div>
                     </lightning-tab>
                     <lightning-tab label="分析" value="chart" onactive={activateTab}>
-                        <div class="c-tab-results">
+                        <div class="c-tab-results slds-is-relative">
                             <template lwc:if={analysisError}>
-                                <div role="alert" class="slds-text-color_error slds-m-vertical_small">{analysisError}</div>
+                                <div role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-vertical_small">
+                                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                                    <div class="slds-media__body slds-hyphenate">{analysisError}</div>
+                                </div>
                                 <lightning-button label="再試行" onclick={readAnalysis}></lightning-button>
                             </template>
-                            <div lwc:if={analysisLoading} class="c-inline-status slds-p-vertical_small">
-                                <span class="c-inline-spinner" aria-hidden="true">
+                            <div lwc:if={analysisLoading} class="slds-grid slds-grid_vertical-align-center slds-p-vertical_small">
+                                <span class="c-inline-spinner slds-is-relative slds-no-flex" aria-hidden="true">
                                     <lightning-spinner size="small" alternative-text="月全体の分析を取得中"></lightning-spinner>
                                 </span>
-                                <span role="status">{analysisProgressLabel}</span>
+                                <span class="slds-m-left_x-small" role="status">{analysisProgressLabel}</span>
                             </div>
                             <p lwc:if={analysis} class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
                                 月全体・<lightning-formatted-date-time value={analysis.cutoff} year="numeric" month="2-digit" day="2-digit"
@@ -174,5 +190,6 @@
                 </lightning-tabset>
             </div>
         </div>
+        <p lwc:else role="status">利用権限を確認しています。</p>
     </main>
 </template>

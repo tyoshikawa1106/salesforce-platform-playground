@@ -115,6 +115,57 @@ afterEach(() => {
     jest.restoreAllMocks();
 });
 
+const accessDenied = { body: { message: '利用権限の確認：「設定変更履歴の参照」権限が必要です。システム管理者にお問い合わせください。' } };
+
+it('権限を確認できるまで履歴・分析・CSVの操作と取得を開始しない', async () => {
+    let deny;
+    startSearch.mockImplementationOnce(() => new Promise((resolve, reject) => { deny = reject; }));
+    const root = mount().shadowRoot;
+    expect(root.querySelector('[role="status"]').textContent).toContain('利用権限を確認');
+    expect(root.querySelector('lightning-button, lightning-tabset, lightning-button-menu')).toBeNull();
+    deny(accessDenied);
+    await flush();
+    expect(root.querySelector('[role="alert"]').textContent).toBe(accessDenied.body.message);
+    expect(root.querySelector('lightning-button')).toBeNull();
+    expect(root.querySelector('lightning-tabset, lightning-button-menu, lightning-datatable')).toBeNull();
+    for (const query of [getColumnLabels, countMonth, countMatches.request, load.request, loadFilterOptions, exportAllHistory]) {
+        expect(query).not.toHaveBeenCalled();
+    }
+    expect(startSearch).toHaveBeenCalledTimes(1);
+    await expect(root.host).toBeAccessible();
+});
+
+it('権限照会の通信失敗と再接続前の古い許可応答で機能を開かない', async () => {
+    let allow;
+    startSearch.mockImplementationOnce(() => new Promise(resolve => { allow = resolve; }))
+        .mockRejectedValueOnce(new Error('offline'));
+    const component = mount();
+    component.remove();
+    document.body.appendChild(component);
+    await flush();
+    allow(cutoff);
+    await flush();
+    const root = component.shadowRoot;
+    expect(root.querySelector('[role="alert"]').textContent).toContain('利用権限を確認できませんでした');
+    expect(root.querySelector('lightning-tabset, lightning-button-menu')).toBeNull();
+    expect(load.request).not.toHaveBeenCalled();
+});
+
+it('CSV取得時の権限喪失で履歴とモーダルを閉じ、部分ファイルを保存しない', async () => {
+    load.request.mockResolvedValueOnce({ records: [{ Id: 'visible' }] }).mockRejectedValueOnce(accessDenied);
+    const root = mount().shadowRoot;
+    await flush();
+    const download = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    root.querySelector('[data-monthly-export]').click();
+    await flush();
+    confirmCsv();
+    await flush();
+    expect(currentDialog()).toBeUndefined();
+    expect(root.querySelector('[role="alert"]').textContent).toBe(accessDenied.body.message);
+    expect(root.querySelector('lightning-datatable, lightning-tabset, [data-monthly-export]')).toBeNull();
+    expect(download).not.toHaveBeenCalled();
+});
+
 it('uses the field labels returned by Salesforce when the list is retried', async () => {
     load.request.mockResolvedValue({ records: [{ Id: 'row' }] });
     getColumnLabels.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ ...labels, Action: 'Action' });
@@ -746,9 +797,9 @@ it.each([
 it('limits month navigation to the current month and the six preceding months', async () => {
     load.request.mockResolvedValue({ records: [] });
     const component = mount();
+    await flush();
     const previous = component.shadowRoot.querySelector('[data-step="-1"]');
     const next = component.shadowRoot.querySelector('[data-step="1"]');
-    await flush();
     expect(next.disabled).toBe(true);
     expect(previous.disabled).toBe(false);
     expect(component.shadowRoot.querySelector('.c-month-navigation h2').textContent).toMatch(/^\d{4}年\d{1,2}月（0件）$/);
@@ -882,6 +933,7 @@ it('shows recorded usernames and actions on screen and indexes the section acros
 it('preserves the lookup through keyboard selection, IME composition and clearing', async () => {
     load.request.mockResolvedValue({ records: [] });
     const root = mount().shadowRoot;
+    await flush();
     const input = root.querySelector('input[data-field="action"]');
     const key = (value, composing = false) => input.dispatchEvent(new KeyboardEvent('keydown', { key: value, isComposing: composing }));
     input.focus();
@@ -912,6 +964,7 @@ it('allows retry inside the failed lookup and displays the returned options', as
     load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockRejectedValueOnce(new Error('error'));
     const root = mount().shadowRoot;
+    await flush();
     root.querySelector('input[data-field="action"]').focus();
     await flush();
     const dropdown = root.querySelector('.slds-dropdown');
@@ -1266,6 +1319,7 @@ it('keeps a long lookup bounded while scrolling, choosing the last item and sear
     loadFilterOptions.mockResolvedValue({ options: { action: actions } });
     load.request.mockResolvedValue({ records: [] });
     const root = mount().shadowRoot;
+    await flush();
     const input = root.querySelector('input[data-field="action"]');
     const key = value => input.dispatchEvent(new KeyboardEvent('keydown', { key: value }));
     input.focus();
@@ -1377,6 +1431,7 @@ it('closes the unfinished lookup on reconnect and uses fresh candidates when reo
         .mockResolvedValueOnce({ options: { action: ['current'] } });
     load.request.mockResolvedValue({ records: [] });
     const component = mount();
+    await flush();
     const action = () => component.shadowRoot.querySelector('input[data-field="action"]');
     action().click();
     await flush();

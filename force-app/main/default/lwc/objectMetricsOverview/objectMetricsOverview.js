@@ -30,12 +30,6 @@ export default class ObjectMetricsOverview extends LightningElement {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // Apexから取得した件数項目を表示順に保持
     metricItems = [];
     // 件数取得失敗時の利用者向けメッセージを保持

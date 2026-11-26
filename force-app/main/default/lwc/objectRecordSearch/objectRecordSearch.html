@@ -1,20 +1,22 @@
 <template>
     <template lwc:if={clientError}>
-        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-            <p>画面処理でエラーが発生しました。</p>
-            <template lwc:if={clientError.code}>
-                <p data-error-code>エラーコード：{clientError.code}</p>
-            </template>
-            <p data-error-location>処理場所：{clientError.location}</p>
-            <p data-error-type>エラー種別：{clientError.errorType}</p>
-            <template lwc:if={clientError.reason}>
-                <p data-error-reason>理由：{clientError.reason}</p>
-            </template>
-            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+        <div data-client-error class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <div class="slds-media__body slds-hyphenate">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+            </div>
         </div>
     </template>
     <lightning-card title={title} icon-name="utility:table">
-        <div slot="actions" class="c-actions">
+        <div slot="actions" class="slds-list_inline">
             <lightning-button-icon
                 alternative-text="データボードに戻る"
                 icon-name="utility:back"
@@ -22,6 +24,7 @@
                 title="データボードに戻る"
             ></lightning-button-icon>
             <lightning-button-icon
+                class="slds-m-left_xx-small"
                 alternative-text="再読み込み"
                 disabled={isBusy}
                 icon-name="utility:refresh"
@@ -32,12 +35,14 @@
 
         <template lwc:if={errorMessage}>
             <div
-                class="slds-notify slds-notify_alert slds-alert_error slds-m-horizontal_medium slds-m-bottom_medium"
+                class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-horizontal_medium slds-m-bottom_medium"
                 role="alert"
             >
-                <span class="slds-assistive-text">Error</span>
-                <h2>{errorTitle}</h2>
-                <p>{errorMessage}</p>
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <div class="slds-media__body slds-hyphenate">
+                    <h2>{errorTitle}</h2>
+                    <p>{errorMessage}</p>
+                </div>
             </div>
         </template>
 
@@ -56,7 +61,7 @@
                 ></lightning-input>
             </div>
             <div
-                class="c-toolbar-actions slds-col slds-no-flex slds-p-top_medium slds-grid_vertical-align-center slds-grid_align-end slds-wrap"
+                class="c-toolbar-actions slds-grid slds-col slds-no-flex slds-p-top_medium slds-grid_vertical-align-center slds-grid_align-end slds-wrap"
             >
                 <lightning-button
                     label="検索"

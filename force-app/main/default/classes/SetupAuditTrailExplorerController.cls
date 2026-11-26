@@ -23,6 +23,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled(cacheable=true)
     public static Map<String, String> getColumnLabels() {
+        requireCurrentUserAccess();
         Map<String, String> labels = new Map<String, String>();
         for (Schema.SObjectField field : new List<Schema.SObjectField>{
             SetupAuditTrail.CreatedDate, User.Username, SetupAuditTrail.ResponsibleNamespacePrefix,
@@ -40,6 +41,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static Datetime startSearch() {
+        requireCurrentUserAccess();
         return System.now();
     }
 
@@ -50,6 +52,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static Integer countMonth(Date monthStart) {
+        requireCurrentUserAccess();
         MonthRequest criteria = new MonthRequest();
         criteria.monthStart = monthStart;
         setPeriod(criteria);
@@ -65,6 +68,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper loadDistinctFilterOptions(Date monthStart, Id nextId, Datetime nextTime) {
+        requireCurrentUserAccess();
         MonthRequest criteria = new MonthRequest();
         criteria.monthStart = monthStart;
         criteria.nextId = nextId;
@@ -80,6 +84,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper loadOptionsAt(String criteriaJson) {
+        requireCurrentUserAccess();
         return loadFilterOptions(readCriteria(criteriaJson));
     }
 
@@ -100,6 +105,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static Integer countMatches(String criteriaJson) {
+        requireCurrentUserAccess();
         return SetupAuditTrailExplorerSelector.countMatches(readCriteria(criteriaJson));
     }
 
@@ -112,6 +118,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper exportAllHistory(Datetime cutoff, Id nextId, Datetime nextTime) {
+        requireCurrentUserAccess();
         SetupAuditTrailExplorerService.checkCursor(nextId, nextTime);
         SetupAuditTrailExplorerSelector.Criteria criteria = new SetupAuditTrailExplorerSelector.Criteria();
         criteria.endAt = cutoff ?? System.now();
@@ -127,6 +134,7 @@ public with sharing class SetupAuditTrailExplorerController {
      */
     @AuraEnabled
     public static SetupAuditTrailExplorerWrapper load(String criteriaJson) {
+        requireCurrentUserAccess();
         MonthRequest criteria = readCriteria(criteriaJson);
         SetupAuditTrailExplorerService.checkCursor(criteria.nextId, criteria.nextTime);
         if (criteria.csv == true) {
@@ -195,6 +203,11 @@ public with sharing class SetupAuditTrailExplorerController {
         SetupAuditTrailExplorerWrapper wrapper = page.result;
         wrapper.cutoff = exportCutoff;
         return wrapper;
+    }
+
+    /** すべての画面要求で、入力検証や履歴取得に先立って閲覧可否を確定 */
+    private static void requireCurrentUserAccess() {
+        SetupAuditTrailExplorerService.requireAccess(SetupAuditTrailExplorerSelector.getPermissions());
     }
 
     @TestVisible

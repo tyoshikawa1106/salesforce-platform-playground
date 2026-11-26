@@ -63,7 +63,7 @@ private class SetupAuditTrailExplorerControllerTest {
                 SetupAuditTrailExplorerController.load('{');
                 Assert.fail('形式が不正な検索は受け付けません。');
             } catch (AuraHandledException expected) {
-                Assert.areEqual(0, Limits.getQueries(), '不正な入力では照会しません。');
+                Assert.areEqual(1, Limits.getQueries(), '権限確認後、不正な入力では履歴を照会しません。');
             }
             Test.stopTest();
         }
@@ -120,7 +120,7 @@ private class SetupAuditTrailExplorerControllerTest {
                 SetupAuditTrailExplorerController.loadOptionsAt('{"monthStart":"2000-01-01","nextTime":"2000-01-02T00:00:00Z"}');
                 Assert.fail('候補の続きには日時とIDの両方が必要です。');
             } catch (AuraHandledException expected) {
-                Assert.areEqual(0, Limits.getQueries(), '境界を確認してから照会します。');
+                Assert.areEqual(1, Limits.getQueries(), '権限確認後、不正な境界では候補を照会しません。');
             }
             Test.stopTest();
         }
@@ -153,7 +153,7 @@ private class SetupAuditTrailExplorerControllerTest {
             }
             return false;
         } catch (AuraHandledException expected) {
-            return Limits.getQueries() == queries + 1;
+            return Limits.getQueries() == queries + 2;
         }
     }
 

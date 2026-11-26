@@ -1,16 +1,18 @@
 <template>
     <template lwc:if={clientError}>
-        <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-            <p>画面処理でエラーが発生しました。</p>
-            <template lwc:if={clientError.code}>
-                <p data-error-code>エラーコード：{clientError.code}</p>
-            </template>
-            <p data-error-location>処理場所：{clientError.location}</p>
-            <p data-error-type>エラー種別：{clientError.errorType}</p>
-            <template lwc:if={clientError.reason}>
-                <p data-error-reason>理由：{clientError.reason}</p>
-            </template>
-            <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+        <div data-client-error class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+            <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <div class="slds-media__body slds-hyphenate">
+                <p>画面処理でエラーが発生しました。</p>
+                <template lwc:if={clientError.code}>
+                    <p data-error-code>エラーコード：{clientError.code}</p>
+                </template>
+                <p data-error-location>処理場所：{clientError.location}</p>
+                <p data-error-type>エラー種別：{clientError.errorType}</p>
+                <template lwc:if={clientError.reason}>
+                    <p data-error-reason>理由：{clientError.reason}</p>
+                </template>
+            </div>
         </div>
     </template>
     <lightning-card title={cardTitle}>
@@ -36,20 +38,22 @@
 
             <template lwc:if={errorMessage}>
                 <p
-                    class="slds-p-vertical_medium slds-text-color_error"
+                    class="slds-scoped-notification slds-media slds-media_center slds-theme_error"
                     role="alert"
                 >
-                    {errorMessage}
+                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                    <span class="slds-media__body slds-hyphenate">{errorMessage}</span>
                 </p>
             </template>
 
             <template lwc:elseif={hasEmailMessages}>
                 <template lwc:if={loadMoreErrorMessage}>
                     <p
-                        class="slds-p-bottom_small slds-text-color_error"
+                        class="slds-scoped-notification slds-media slds-media_center slds-theme_error"
                         role="alert"
                     >
-                        {loadMoreErrorMessage}
+                        <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                        <span class="slds-media__body slds-hyphenate">{loadMoreErrorMessage}</span>
                     </p>
                 </template>
 
@@ -68,7 +72,7 @@
                         <template lwc:if={emailMessage.hasPageSeparator}>
                             <li
                                 key={emailMessage.pageSeparatorId}
-                                class="c-page-separator slds-p-vertical_small"
+                                class="slds-p-vertical_small"
                                 role="listitem"
                             >
                                 <div

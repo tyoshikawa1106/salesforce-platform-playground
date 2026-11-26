@@ -14,17 +14,19 @@
         </header>
 
         <template lwc:if={clientError}>
-            <div data-client-error class="c-client-error slds-box slds-m-bottom_small" role="alert">
-                <p>画面処理でエラーが発生しました。</p>
-                <template lwc:if={clientError.code}>
-                    <p data-error-code>エラーコード：{clientError.code}</p>
-                </template>
-                <p data-error-location>処理場所：{clientError.location}</p>
-                <p data-error-type>エラー種別：{clientError.errorType}</p>
-                <template lwc:if={clientError.reason}>
-                    <p data-error-reason>理由：{clientError.reason}</p>
-                </template>
-                <lightning-button data-client-error-dismiss label="エラー詳細を閉じる" onclick={handleClientErrorDismiss}></lightning-button>
+            <div data-client-error class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small" role="alert">
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <div class="slds-media__body slds-hyphenate">
+                    <p>画面処理でエラーが発生しました。</p>
+                    <template lwc:if={clientError.code}>
+                        <p data-error-code>エラーコード：{clientError.code}</p>
+                    </template>
+                    <p data-error-location>処理場所：{clientError.location}</p>
+                    <p data-error-type>エラー種別：{clientError.errorType}</p>
+                    <template lwc:if={clientError.reason}>
+                        <p data-error-reason>理由：{clientError.reason}</p>
+                    </template>
+                </div>
             </div>
         </template>
         <div class="slds-box slds-theme_default slds-is-relative">
@@ -33,10 +35,16 @@
                 実行ユーザーが照会できるファイルを、全バージョンまとめて削除します。標準価格表・ユーザー・権限セットなどの設定は削除しません。
             </p>
             <template lwc:if={view.blockMessage}>
-                <p role="alert" class="slds-m-top_small">{view.blockMessage}</p>
+                <p role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-top_small">
+                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                    <span class="slds-media__body slds-hyphenate">{view.blockMessage}</span>
+                </p>
             </template>
             <template lwc:if={errorMessage}>
-                <p role="alert" class="slds-m-top_small">{errorMessage}</p>
+                <p role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-top_small">
+                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                    <span class="slds-media__body slds-hyphenate">{errorMessage}</span>
+                </p>
             </template>
             <div class="slds-m-vertical_medium">
                 <lightning-button
