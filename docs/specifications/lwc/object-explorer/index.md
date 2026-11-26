@@ -226,7 +226,7 @@ CSVファイル名は`オブジェクトAPI名-fields_YYYYMMDDHHmmssSSS.csv`ま�
 
 外部クライアントアプリケーションは「管理者が承認したユーザーは事前承認済み」とし、システム管理者プロファイルを許可します。事前承認は利用許可であり、利用者ごとのOAuthトークン取得を代替しません。各利用者は個人設定の「外部ログイン情報」などから、自分のアカウントで認証します。有効な更新トークンがある場合はプラットフォームが更新し、期限切れ・取り消しなどで更新できない場合は再認証が必要です。
 
-External CredentialのPer User Principalは`SalesforceApiUserPrincipal`です。Principalアクセスは`LwcObjectExplorer`で付与します。Scratch Org初期構築では、接続定義と同じ段階で反映して作成ユーザーに割り当てます。`LwcObjectExplorer`はController・タブへのアクセスと、取引先およびテストで必要となる取引先のカスタム7項目の参照権限を付与します。同じ権限セットでAPIの有効化（`ApiEnabled`）とデータ分類の変更（`ModifyDataClassification`）を付与します。APIは認証した利用者の実効権限で実行されます。組織IDの確認は既存の`SalesforceApiClient`で維持します。API認証ユーザーIDとApex実行ユーザーIDの追加照合は行わないため、OAuth認証時に別アカウントを選択しない運用が必要です。
+External CredentialのPer User Principalは`SalesforceApiUserPrincipal`です。Principalアクセスは`LwcObjectExplorer`で付与します。Scratch Org初期構築では、接続定義と同じ段階で反映して作成ユーザーに割り当てます。`LwcObjectExplorer`はControllerとタブへのアクセス、および取引先と取引先責任者の参照権限を付与します。個別の項目の参照範囲は導入先で利用者に付与した項目権限に従います。導入とApexテストに特定のカスタム項目は必要ありません。同じ権限セットでAPIの有効化（`ApiEnabled`）とデータ分類の変更（`ModifyDataClassification`）を付与します。APIは認証した利用者の実効権限で実行されます。組織IDの確認は既存の`SalesforceApiClient`で維持します。API認証ユーザーIDとApex実行ユーザーIDの追加照合は行わないため、OAuth認証時に別アカウントを選択しない運用が必要です。
 
 Consumer KeyとConsumer SecretはExternal Auth Identity Providerの資格情報管理に登録します。ソース、Apex、文書には実値を保存しません。接続先は導入先組織のMy Domainを使い、Named Credentialの「HTTP 本文の数式を許可」を有効にします。Scratch Org 初期構築には、組織固有値を実行時に設定する再現用定義を使用します。設定方法は[Scratch Org 再現ルール](../../../deployment/scratch-org-rebuild-rules.md#external-client-app-の扱い)を参照してください。
 

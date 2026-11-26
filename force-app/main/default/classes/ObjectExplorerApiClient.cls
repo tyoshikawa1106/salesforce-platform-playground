@@ -18,6 +18,20 @@ public with sharing class ObjectExplorerApiClient {
     }
 
     /**
+     * Tooling APIへの分割要求がすべて完了したときだけ監査レコードを返す。
+     * @param batches 可視性と件数を確認した項目IDの集合
+     * @return 応答の完了を確認済みの監査レコード
+     */
+    public List<Map<String, Object>> readFieldAuditBatches(List<Set<Id>> batches) {
+        List<Map<String, Object>> records = new List<Map<String, Object>>();
+        ObjectExplorerFieldService service = new ObjectExplorerFieldService();
+        for (Set<Id> batch : batches) {
+            records.addAll(service.readAuditRecords(readFieldAudit(batch)));
+        }
+        return records;
+    }
+
+    /**
      * カスタム項目の最新定義と分類を一括取得
      * @param fullNames FieldDefinitionで確認した完全名、1～10件
      * @return 完全名をキーとする分類応答
