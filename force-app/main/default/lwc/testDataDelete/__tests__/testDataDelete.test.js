@@ -28,7 +28,7 @@ async function flush() {
     await Promise.resolve();
     await Promise.resolve();
 }
-const buttons = (element) => element.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])');
+const buttons = (element) => element.shadowRoot.querySelectorAll('lightning-button');
 async function mount() {
     const element = createElement('c-test-data-delete', { is: TestDataDelete });
     document.body.appendChild(element);
@@ -154,7 +154,7 @@ describe('削除の確認と受付', () => {
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じても画面を維持する', async () => {
+    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
         getView.mockRejectedValueOnce(new Error('private-value'));
         const element = createElement('c-testDataDelete', { is: TestDataDelete });
@@ -165,9 +165,8 @@ describe('処理場所付きエラー表示', () => {
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('testDataDelete.js / loadView');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
-        panel.querySelector('[data-client-error-dismiss]').click();
-        await Promise.resolve();
-        expect(element.shadowRoot.querySelector('[data-client-error]')).toBeNull();
+        expect(panel.querySelector('button, lightning-button, lightning-button-icon')).toBeNull();
+        expect(element.shadowRoot.querySelector('[data-client-error-dismiss]')).toBeNull();
         expect(element.isConnected).toBe(true);
         await expect(element).toBeAccessible();
     });

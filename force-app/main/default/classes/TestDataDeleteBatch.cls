@@ -33,8 +33,7 @@ public with sharing class TestDataDeleteBatch implements Database.Batchable<SObj
         }
         // 組織に存在しないoptional objectでは空のカーソルを使用
         String objectName = this.wrapper.objectNames[this.wrapper.position];
-        Boolean exists = Schema.getGlobalDescribe().containsKey(objectName);
-        if (!exists) {
+        if (!this.wrapper.targetObjectExists) {
             return Database.getQueryLocator('SELECT Id FROM Account WHERE Id = null');
         }
         // 連動削除と価格の依存順序に対応する抽出条件を使用
@@ -73,10 +72,9 @@ public with sharing class TestDataDeleteBatch implements Database.Batchable<SObj
         Id jobId = context.getJobId();
         List<AsyncApexJob> jobs = this.selector.getJob(jobId);
         String objectName = this.wrapper.objectNames[this.wrapper.position];
-        Boolean exists = Schema.getGlobalDescribe().containsKey(objectName);
         String recordFilter = this.service.getStageRecordFilter(this.wrapper);
         Integer remaining = 0;
-        if (exists) {
+        if (this.wrapper.targetObjectExists) {
             remaining = this.selector.getRemaining(objectName, recordFilter);
         }
         String stopReason = this.service.getStopReason(this.wrapper, jobs, remaining);

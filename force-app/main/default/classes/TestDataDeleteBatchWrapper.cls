@@ -11,6 +11,8 @@ public with sharing class TestDataDeleteBatchWrapper {
     public Integer failureCount;
     public List<String> errorCodes;
     public String errorMessage;
+    // 現在のトランザクションで検証した対象の存在を示す。
+    public transient Boolean targetObjectExists;
 
     /** 子から親への削除計画と未実行の集計値を初期化 */
     public TestDataDeleteBatchWrapper() {
