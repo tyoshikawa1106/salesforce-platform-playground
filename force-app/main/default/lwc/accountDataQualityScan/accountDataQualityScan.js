@@ -37,12 +37,6 @@ export default class AccountDataQualityScan extends LightningElement {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // Apexから取得した直近スキャンを保持
     scan;
     // 状態取得または開始失敗時の利用者向け文言を保持

@@ -3,14 +3,7 @@
     padding-block-end: var(--slds-g-sizing-16, 30rem);
 }
 
-th,
-td {
-    vertical-align: top;
-}
-
 .c-row-changed > th,
 .c-row-changed > td {
     background-color: var(--slds-g-color-warning-container-1, #fff7d6);
 }
-/* エラーの長い処理名も画面内で折り返す */
-.c-client-error { overflow-wrap: anywhere; }

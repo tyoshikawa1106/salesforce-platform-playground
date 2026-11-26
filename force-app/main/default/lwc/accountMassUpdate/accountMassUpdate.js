@@ -30,12 +30,6 @@ export default class AccountMassUpdate extends LightningElement {
         this.reportClientError(error, 'errorCallback', 'child-component');
     }
 
-    // 利用者が診断を閉じても業務上の失敗状態や入力は変えない
-    handleClientErrorDismiss() {
-        // 次の失敗は同じ処理であっても改めて表示する
-        this.clientError = undefined;
-    }
-
     // 日付範囲の解釈と一覧の日時表示を同じ利用者設定へ揃える
     timeZone = TIME_ZONE;
     // 入力中の条件は現在の検索結果の条件から分離
