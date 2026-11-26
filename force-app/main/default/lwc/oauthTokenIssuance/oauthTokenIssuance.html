@@ -28,7 +28,10 @@
 
         <div class="slds-box slds-theme_default">
             <template lwc:if={error}>
-                <p role="alert" class="slds-text-color_error slds-m-bottom_small">{error}</p>
+                <p role="alert" class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_small">
+                    <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                    <span class="slds-media__body slds-hyphenate">{error}</span>
+                </p>
             </template>
 
             <h2 class="slds-text-heading_small">アプリケーション情報</h2>
@@ -125,7 +128,8 @@
                                             data-token={row.name}
                                             onclick={handleCopy}
                                         ></lightning-button>
-                                        <p role="status" class="slds-hyphenate">{row.copyMessage}</p>
+                                        <p lwc:if={row.copyFailed} role="alert" class="slds-form-element__help slds-text-color_error">{row.copyMessage}</p>
+                                        <p lwc:else role="status" class="slds-hyphenate">{row.copyMessage}</p>
                                     </div>
                                 </template>
                                 <template lwc:else>

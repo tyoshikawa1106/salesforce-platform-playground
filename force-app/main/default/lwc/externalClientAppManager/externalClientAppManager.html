@@ -2,7 +2,7 @@
     <main aria-busy={busy} class="slds-p-around_medium">
         <header class="slds-page-header slds-m-bottom_medium">
             <div class="slds-page-header__row c-page-header-row slds-grid_vertical-align-center slds-wrap">
-                <div class="slds-media slds-media_center slds-col c-page-header-title">
+                <div class="slds-media slds-media_center slds-col slds-no-space">
                     <div class="slds-media__figure">
                         <lightning-icon
                             icon-name="standard:connected_apps"
@@ -14,7 +14,7 @@
                         <h1 class="slds-page-header__title">外部クライアントアプリ認証管理</h1>
                     </div>
                 </div>
-                <div class="slds-page-header__controls c-page-header-actions">
+                <div class="slds-page-header__controls slds-no-space">
                     <template lwc:if={authenticationReady}>
                         <lightning-button
                             label="認証解除"
@@ -280,16 +280,11 @@
         </template>
         <template lwc:if={error}>
             <div
-                class="c-error-notice slds-box slds-theme_error slds-m-top_medium slds-grid slds-grid_vertical-align-start"
+                class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-top_medium"
                 role="alert"
             >
-                <lightning-icon
-                    icon-name="utility:error"
-                    alternative-text="エラー"
-                    variant="inverse"
-                    size="small"
-                ></lightning-icon>
-                <p>{error}</p>
+                <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
+                <div class="slds-media__body slds-hyphenate"><p>{error}</p></div>
             </div>
         </template>
     </main>
