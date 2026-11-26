@@ -11,29 +11,13 @@ private with sharing class ObjectExplorerFieldServiceTest {
         System.runAs(testUser) {
             Test.startTest();
             Id fieldId = Id.valueOf('00N' + String.valueOf(1).leftPad(12, '0'));
-            List<FieldDefinition> definitions = (List<FieldDefinition>) JSON.deserialize(
-                JSON.serialize(
-                    new List<Object>{
-                        new Map<String, Object>{
-                            'QualifiedApiName' => 'Active__c',
-                            'DurableId' => 'Account.' + fieldId
-                        },
-                        new Map<String, Object>{
-                            'QualifiedApiName' => 'Unused__c',
-                            'DurableId' => 'Account.invalid'
-                        }
-                    }
-                ),
-                List<FieldDefinition>.class
-            );
-            Map<Id, String> targets = service.createAuditTargets(
-                Account.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED),
-                definitions
-            );
+            Map<Id, String> targets = new Map<Id, String>();
+            service.addAuditTarget(targets, 'Example__c', 'Account.' + fieldId);
+            service.addAuditTarget(targets, 'Unused__c', 'Account.invalid');
             Assert.areEqual(
-                new Map<Id, String>{ fieldId => 'Active__c' },
+                new Map<Id, String>{ fieldId => 'Example__c' },
                 targets,
-                '実在するカスタム項目を検証したIDだけへ対応付け'
+                '有効な項目IDだけに正式名を対応付け'
             );
             Test.stopTest();
         }

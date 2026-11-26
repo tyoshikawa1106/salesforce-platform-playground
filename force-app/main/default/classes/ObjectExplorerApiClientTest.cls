@@ -19,8 +19,11 @@ private with sharing class ObjectExplorerApiClientTest {
             }
             Assert.areEqual(0, Limits.getCallouts(), '不正な対象は送信しない');
             Test.setMock(HttpCalloutMock.class, new AuditMock());
-            Map<String,Object> result = fields.readFieldAudit(new Set<Id>{(Id)('00N' + '000000000001')});
-            Assert.areEqual(true, result.get('done'), '監査応答を処理側へ返却');
+            List<Set<Id>> batches = new List<Set<Id>>{
+                new Set<Id>{(Id)('00N' + '000000000001')}, new Set<Id>{(Id)('00N' + '000000000002')}
+            };
+            Assert.isTrue(fields.readFieldAuditBatches(batches).isEmpty(), '完了した2ページの空結果をまとめて返す');
+            Assert.areEqual(2, Limits.getCallouts(), '分割した各バッチを一度ずつ照会');
             Test.stopTest();
         }
     }

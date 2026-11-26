@@ -18,15 +18,26 @@ public with sharing class ObjectExplorerFieldService {
             Schema.DescribeFieldResult field = fields.get(definition.QualifiedApiName)?.getDescribe();
             // 参照可能なカスタム項目だけを採用
             if (field?.isAccessible() != true || !field.isCustom()) { continue; }
-            // 完全識別子から項目ID部分だけを取得
-            String fieldId = definition.DurableId?.substringAfter('.');
-            // カスタム項目のID形式以外を採用しない
-            if (!Pattern.matches('00N[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?', fieldId ?? '')) { continue; }
-            // 表示名を推測せず正式API名へ結び付ける
-            targets.put((Id)fieldId, field.getName());
+            addAuditTarget(targets, field.getName(), definition.DurableId);
         }
         // 呼出元でHTTP取得対象を確定
         return targets;
+    }
+
+    /**
+     * 参照可能なカスタム項目だけをTooling APIのIDに対応付ける。
+     * Describeに依存せず識別子の検証をテストできるようにする。
+     * @param targets 照会に使用するIDと正式名
+     * @param fieldName 確認済みの項目名
+     * @param durableId オブジェクト名を含む完全識別子
+     */
+    @TestVisible
+    private void addAuditTarget(Map<Id, String> targets, String fieldName, String durableId) {
+        String fieldId = durableId?.substringAfter('.');
+        if (Pattern.matches('00N[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?', fieldId ?? '')) {
+            // 検証済みのIDにだけ正式名を対応付ける
+            targets.put((Id)fieldId, fieldName);
+        }
     }
 
     /**

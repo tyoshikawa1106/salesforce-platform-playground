@@ -62,10 +62,26 @@ public with sharing class ObjectExplorerController {
     public static Map<String, Object> getClassifyData(String objectName) {
         // 公開入口から取得順序を持つ同じControllerへ委譲
         ObjectExplorerController controller = new ObjectExplorerController();
-        // 検証済みの一覧を構造化した応答として保持
-        Map<String, Object> data = controller.readClassifyView(objectName);
-        // 内部状態を公開せず画面用の値だけを返却
-        return data;
+        // 保存と共通のオブジェクト参照条件を適用
+        Schema.SObjectType objectType = controller.access.requireObject(objectName);
+        // 正式名で同じオブジェクトの分類を取得
+        String canonicalName = objectType.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
+        // 一覧はネイティブ項目定義から取得
+        List<FieldDefinition> records = controller.selector.selectFields(canonicalName);
+        // 所有者は項目単位で取得しない
+        Set<Id> ownerIds = controller.fieldService.collectOwnerIds(records);
+        // 表示名に必要なユーザーをまとめて取得
+        List<User> users = controller.selector.selectOwnerUsers(ownerIds);
+        // 公開グループも同じ所有者集合を使用
+        List<Group> groups = controller.selector.selectOwnerGroups(ownerIds);
+        // 表示ラベルは同じレコードのIDへ対応付け
+        Map<Id, String> ownerLabels = controller.ownerService.createOwnerLabels(users, groups);
+        // 分類の表示と編集可否を同じ対象から生成
+        Map<String, Object> rows = controller.fieldService.createRows(records, objectType, ownerLabels);
+        // 選択肢の値とラベルは組織定義を使用
+        Map<String, Object> options = controller.access.getOptions();
+        // 画面に必要な一覧と候補だけを公開
+        return new Map<String, Object>{'rows' => rows, 'options' => options};
     }
 
     /**
@@ -84,8 +100,19 @@ public with sharing class ObjectExplorerController {
             controller.requireEditAccess();
             // 要求の形式と件数を更新前に確定
             List<Object> changes = controller.requests.parseChanges(changesJson);
-            // 保存対象と結果の順序を同じ処理で管理
-            List<Object> results = controller.saveFields(objectName, changes);
+            // 表記揺れをDescribeの正式名へ統一
+            Schema.SObjectType objectType = controller.access.requireObject(objectName);
+            // 全更新対象で同じオブジェクトのDescribeを共用
+            Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
+            // API要求には確認済みの正式名だけを使用
+            String canonicalName = info.getName();
+            // 業務入力の確認は通信開始より前に完了
+            List<ObjectExplorerClassifyService.FieldContext> contexts = controller.requests.createFieldContexts(info, changes);
+            // 一括問い合わせの対象を同じ項目から生成
+            Set<String> names = controller.classifyService.getFieldNames(contexts);
+            // 定義はSelectorから未加工で取得
+            List<FieldDefinition> definitions = controller.selector.selectFieldsByNames(canonicalName, names);
+            List<Object> results = controller.saveDefinedFields(changes, contexts, definitions);
             // 確認済みの結果だけを画面へ返却
             return results;
         } catch (Exception error) {
@@ -141,52 +168,16 @@ public with sharing class ObjectExplorerController {
     }
 
     /**
-     * 一覧に必要な分類・所有者・選択肢を取得して組み立て
-     * @param objectName Describeで検証する対象
-     * @return 可視な分類と組織の選択肢
-     */
-    private Map<String, Object> readClassifyView(String objectName) {
-        // 保存と共通のオブジェクト参照条件を適用
-        Schema.SObjectType objectType = this.access.requireObject(objectName);
-        // 正式名で同じオブジェクトの分類を取得
-        String canonicalName = objectType.getDescribe(SObjectDescribeOptions.DEFERRED).getName();
-        // 一覧はネイティブ項目定義から取得
-        List<FieldDefinition> records = this.selector.selectFields(canonicalName);
-        // 所有者は項目単位で取得しない
-        Set<Id> ownerIds = this.fieldService.collectOwnerIds(records);
-        // 表示名に必要なユーザーをまとめて取得
-        List<User> users = this.selector.selectOwnerUsers(ownerIds);
-        // 公開グループも同じ所有者集合を使用
-        List<Group> groups = this.selector.selectOwnerGroups(ownerIds);
-        // 表示ラベルは同じレコードのIDへ対応付け
-        Map<Id, String> ownerLabels = this.ownerService.createOwnerLabels(users, groups);
-        // 分類の表示と編集可否を同じ対象から生成
-        Map<String, Object> rows = this.fieldService.createRows(records, objectType, ownerLabels);
-        // 選択肢の値とラベルは組織定義を使用
-        Map<String, Object> options = this.access.getOptions();
-        // 画面に必要な一覧と候補だけを公開
-        return new Map<String, Object>{'rows' => rows, 'options' => options};
-    }
-
-    /**
-     * 最新値の取得・項目別更新・再取得の順序を管理
-     * @param objectName 対象オブジェクト
-     * @param changes 形式と件数を確認済みの保存要求
+     * 参照・編集可否を確認した項目の分類を更新して再照合する。
+     * 組織にカスタム項目を追加せず混在バッチを検証できるよう内部処理をテストに公開する。
+     * @param changes 画面の変更要求
+     * @param contexts Describeで確認した対象と編集内容
+     * @param definitions 最新の項目定義
      * @return 入力と同じ順番の保存結果
      */
-    private List<Object> saveFields(String objectName, List<Object> changes) {
-        // 表記揺れをDescribeの正式名へ統一
-        Schema.SObjectType objectType = this.access.requireObject(objectName);
-        // 全更新対象で同じオブジェクトのDescribeを共用
-        Schema.DescribeSObjectResult info = objectType.getDescribe(SObjectDescribeOptions.DEFERRED);
-        // API要求には確認済みの正式名だけを使用
-        String canonicalName = info.getName();
-        // 業務入力の確認は通信開始より前に完了
-        List<ObjectExplorerClassifyService.FieldContext> contexts = this.requests.createFieldContexts(info, changes);
-        // 一括問い合わせの対象を同じ項目から生成
-        Set<String> names = this.classifyService.getFieldNames(contexts);
-        // 定義はSelectorから未加工で取得
-        List<FieldDefinition> definitions = this.selector.selectFieldsByNames(canonicalName, names);
+    @TestVisible
+    private List<Object> saveDefinedFields(List<Object> changes,
+            List<ObjectExplorerClassifyService.FieldContext> contexts, List<FieldDefinition> definitions) {
         // 完全な項目識別子との照合はServiceへ委譲
         contexts = this.requests.bindDefinitions(contexts, definitions);
         // 項目別失敗にもAPI要求の段階を残す
@@ -212,7 +203,7 @@ public with sharing class ObjectExplorerController {
             // 確定済みの拒否を維持して保存値を確認
             stage = '保存結果の再取得・照合';
             // 更新の受付だけで成功とせず保存値まで確認
-            contexts = verifyFields(canonicalName, contexts);
+            contexts = verifyFields(contexts[0].objectName, contexts);
         } catch (Exception error) {
             // 通信全体の失敗でも確定した項目別結果を維持
             Exception failure = error;
@@ -278,11 +269,10 @@ public with sharing class ObjectExplorerController {
         Map<String, ObjectExplorerClassifyService.FieldContext> selected = this.results.selectUpdates(contexts);
         if (selected.isEmpty()) { return contexts; }
         Map<String, Map<String, Object>> fields = new Map<String, Map<String, Object>>();
-        Set<String> customNames = new Set<String>();
+        Set<String> customNames = this.results.getCustomReadIndexes(contexts).keySet();
         for (String name : selected.keySet()) {
             selected.get(name).sent = true;
             fields.put(name, selected.get(name).metadata);
-            if (selected.get(name).customField) { customNames.add(name); }
         }
         try {
             Map<String, String> results = this.client.updateFields(fields, customNames);
@@ -353,13 +343,9 @@ public with sharing class ObjectExplorerController {
      */
     @AuraEnabled
     public static Map<String, Object> getFieldAudit(String objectName) {
-        // API呼出し前の失敗も区別して画面へ返す
-        String stage = '対象オブジェクト・項目の確認';
+        ObjectExplorerController controller = new ObjectExplorerController();
+        Map<Id, String> targets;
         try {
-            // 日時専用Serviceとネイティブ定義を同じ要求で使用
-            ObjectExplorerController controller = new ObjectExplorerController();
-            // 構造探索と日時情報の対応付けを分離
-            ObjectExplorerFieldService service = controller.fieldService;
             // 日時取得もオブジェクトの参照権限を照会前に確認
             Schema.SObjectType objectType = controller.access.requireObject(objectName);
             // 日時取得でも同じ要求のDescribeを後段へ渡す
@@ -369,33 +355,39 @@ public with sharing class ObjectExplorerController {
             // 項目識別子だけをまとめて取得
             List<FieldDefinition> definitions = controller.selector.selectFieldAuditTargets(canonicalName);
             // 可視なカスタム項目だけをIDへ対応付け
-            Map<Id, String> targets = service.createAuditTargets(info, definitions);
+            targets = controller.fieldService.createAuditTargets(info, definitions);
+        } catch (Exception e) {
+            // 対象確認の失敗は通信開始前の段階として公開する
+            throw SalesforceApiProtocol.publicException(e, '対象オブジェクト・項目の確認', ObjectExplorerAccessPolicy.errorPublication(e));
+        }
+        return controller.readFieldAudit(targets);
+    }
+
+    /**
+     * 可視性を確認した項目IDに対して監査情報を取得する。
+     * 組織の項目構成に依存せず、取得失敗を含む通信経路をテストする。
+     * @param targets 参照可能なカスタム項目のIDと正式名
+     * @return 項目ごとの日時とユーザー名
+     */
+    @TestVisible
+    private Map<String, Object> readFieldAudit(Map<Id, String> targets) {
+        String stage = '対象オブジェクト・項目の確認';
+        try {
             // URL長と取得件数を200件単位で制限
-            List<Set<Id>> batches = service.createAuditBatches(targets.keySet());
-            // REST通信は既存Clientを共有
-            ObjectExplorerApiClient client = new ObjectExplorerApiClient();
+            List<Set<Id>> batches = this.fieldService.createAuditBatches(targets.keySet());
             // カスタム項目がある場合だけ認証先組織を確認
             stage = 'API接続・接続先組織の確認';
             if (!batches.isEmpty()) { new SalesforceApiClient().verifyOrganization(); }
             // 全バッチの取得結果を対応付け前に保持
             stage = '項目の作成・更新情報のAPI取得';
-            List<Map<String, Object>> records = new List<Map<String, Object>>();
-            // 画面へ部分成功を返さず全件取得する
-            for (Set<Id> batch : batches) {
-                // 確認済みのIDだけを機能専用クライアントへ渡す
-                Map<String, Object> response = client.readFieldAudit(batch);
-                // 完了した応答だけを取り出す
-                List<Map<String, Object>> batchRecords = service.readAuditRecords(response);
-                // 後続のID検証に必要な元レコードを保持
-                records.addAll(batchRecords);
-            }
+            List<Map<String, Object>> records = this.client.readFieldAuditBatches(batches);
             // Userの参照可否を確認して人物IDをまとめる
             stage = '作成者・更新者の参照と項目の照合';
-            Set<Id> userIds = service.collectAuditUserIds(records);
+            Set<Id> userIds = this.fieldService.collectAuditUserIds(records);
             // 人物名とリンクには実行ユーザーの可視Userだけを使用
-            List<User> users = controller.selector.selectAuditUsers(userIds);
+            List<User> users = this.selector.selectAuditUsers(userIds);
             // 同じ項目の日時と可視な人物だけを表示モデルへ変換
-            Map<String, Object> result = service.createAuditView(targets, records, users);
+            Map<String, Object> result = this.fieldService.createAuditView(targets, records, users);
             // 検証済みの可視項目だけを返却
             return result;
         } catch (Exception error) {
