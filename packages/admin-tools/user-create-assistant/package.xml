@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>UserCreateAssistantController</members>
+        <members>UserCreateAssistantControllerTest</members>
+        <members>UserCreateAssistantFieldCatalog</members>
+        <members>UserCreateAssistantFieldCatalogTest</members>
+        <members>UserCreateAssistantFieldInput</members>
+        <members>UserCreateAssistantFieldInputTest</members>
+        <members>UserCreateAssistantSelector</members>
+        <members>UserCreateAssistantSelectorTest</members>
+        <members>UserCreateAssistantService</members>
+        <members>UserCreateAssistantServiceTest</members>
+        <members>UserCreateAssistantWrapper</members>
+        <members>UserCreateAssistantWrapperTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>userCreateAssistant</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>UserCreateAssistant</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>LwcUserCreateAssistant</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>68.0</version>
+</Package>

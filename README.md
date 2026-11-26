@@ -3,6 +3,7 @@
 ## ドキュメント
 
 - [Docs](docs/index.md)
+- [Salesforce 管理者向けツールのダウンロードと導入手順](packages/admin-tools/README.md)
 
 ## 開発ルール
 
