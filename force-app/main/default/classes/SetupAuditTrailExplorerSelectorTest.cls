@@ -1,5 +1,17 @@
 @IsTest
 private class SetupAuditTrailExplorerSelectorTest {
+    /** 現在の管理者の専用権限をユーザーモードで取得 */
+    @IsTest
+    static void readsCurrentUserPermission() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            List<UserPermissionAccess> permissions = SetupAuditTrailExplorerSelector.getPermissions();
+            Test.stopTest();
+            Assert.areEqual(1, permissions.size(), '現在のユーザーの権限を取得');
+            Assert.isTrue(permissions[0].PermissionsViewSetupAuditTrail, '履歴の専用権限を取得');
+        }
+    }
+
     @IsTest
     static void resolvesDelegateNamesByUsername() {
         System.runAs(new User(Id = UserInfo.getUserId())) {

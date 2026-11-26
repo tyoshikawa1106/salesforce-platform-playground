@@ -77,6 +77,8 @@ export default class SetupAuditTrailChart extends LightningElement {
                 key,
                 title,
                 hasRows: rows.length > 0,
+                // 最長の件数が最大の棒の右にも収まるよう、全行で同じ余白を使う。
+                countSpace: '--c-count-space:' + NUMBER_FORMAT.format(peak).length + 'ch',
                 ticks: Array.from({ length: 5 }, (_, index) => ({
                     key: index,
                     label: NUMBER_FORMAT.format(index * step)

@@ -4,6 +4,19 @@ public with sharing class SetupAuditTrailExplorerSelector {
     private static final String OPTION_FIELDS = 'Id, CreatedDate, Action, ResponsibleNamespacePrefix, DelegateUser';
     private static final String LOOKUP_FIELDS = OPTION_FIELDS + ', CreatedById, CreatedBy.Name, CreatedBy.Username';
 
+    /** 実行ユーザーの設定変更履歴の参照権限を取得
+     * @return 現在のセッションに適用される権限
+     */
+    public static List<UserPermissionAccess> getPermissions() {
+        try {
+            // 権限の付与元を問わず、現在のユーザーに対する実効値を取得
+            return [SELECT PermissionsViewSetupAuditTrail FROM UserPermissionAccess WITH USER_MODE LIMIT 1];
+        } catch (QueryException error) {
+            // 照会できない場合は権限未確認として扱う
+            return new List<UserPermissionAccess>();
+        }
+    }
+
     /** 検索条件とページ境界を保持する。 */
     public virtual class Criteria {
         public Id userId;
