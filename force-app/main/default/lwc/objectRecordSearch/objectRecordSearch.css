@@ -1,15 +1,9 @@
-.c-actions,
 .c-toolbar-actions {
-    display: inline-flex;
-    gap: var(--slds-g-spacing-1, 0.25rem);
+    gap: var(--slds-g-spacing-1, 0.25rem) var(--slds-g-spacing-3, 0.75rem);
 }
 
 .c-toolbar {
     gap: var(--slds-g-spacing-2, 0.5rem);
-}
-
-.c-toolbar-actions {
-    column-gap: var(--slds-g-spacing-3, 0.75rem);
 }
 
 .c-record-table {
@@ -29,5 +23,3 @@
         justify-content: flex-start;
     }
 }
-/* エラーの長い処理名も画面内で折り返す */
-.c-client-error { overflow-wrap: anywhere; }

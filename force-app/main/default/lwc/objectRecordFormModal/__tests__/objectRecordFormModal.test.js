@@ -9,7 +9,7 @@ describe('モーダル内の例外表示', () => {
         const modal = createElement('c-objectRecordFormModal', { is: ObjectRecordFormModal });
         modal.closeHandler = () => { throw new TypeError('private-value'); };
         document.body.appendChild(modal);
-        const cancel = [...modal.shadowRoot.querySelectorAll('lightning-button:not([data-client-error-dismiss])')].find((button) => button.label === 'キャンセル');
+        const cancel = [...modal.shadowRoot.querySelectorAll('lightning-button')].find((button) => button.label === 'キャンセル');
         cancel.click();
         await Promise.resolve();
         const panel = modal.shadowRoot.querySelector('[data-client-error]');

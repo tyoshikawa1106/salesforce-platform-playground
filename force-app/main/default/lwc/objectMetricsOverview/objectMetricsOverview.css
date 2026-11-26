@@ -9,20 +9,6 @@
     height: var(--slds-g-sizing-12, 5rem);
 }
 
-.c-count-card-cell {
-    min-width: 0;
-}
-
-.c-count-card-button {
-    background: transparent;
-    border: 0;
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    padding: 0;
-    text-align: inherit;
-}
-
 .c-count-card-content {
     min-height: var(--slds-g-sizing-9, 2rem);
 }
@@ -32,5 +18,3 @@
         grid-template-columns: 1fr;
     }
 }
-/* エラーの長い処理名も画面内で折り返す */
-.c-client-error { overflow-wrap: anywhere; }
