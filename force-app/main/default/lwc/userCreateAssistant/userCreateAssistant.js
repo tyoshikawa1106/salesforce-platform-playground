@@ -415,9 +415,7 @@ export default class UserCreateAssistant extends LightningElement {
             copyPermissionSetGroups: this.copyPermissionSetGroups, sendResetEmail: this.sendResetEmail
         });
         // ブラウザのモーダル表示で背景の操作とフォーカスを制限
-        try {
-            this.refs.confirmation.showModal();
-        } catch {
+        if (!this.openConfirmationDialog()) {
             // ネイティブダイアログを開けない場合も、同じ内容の確認後にだけ保存する。
             const sections = this.confirmationSections;
             const message = sections.map(section => [
@@ -434,6 +432,16 @@ export default class UserCreateAssistant extends LightningElement {
                 this.confirmationSections = undefined;
                 this.showError('確認画面を開けませんでした。ユーザーの作成は開始していません。画面を再読み込みしてください。');
             }
+        }
+    }
+
+    openConfirmationDialog() {
+        try {
+            const dialog = this.refs.confirmation;
+            dialog.showModal();
+            return dialog.open;
+        } catch {
+            return false;
         }
     }
 
