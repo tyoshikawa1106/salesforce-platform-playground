@@ -31,7 +31,7 @@
                 role="status"
             >
                 <span lwc:if={authenticationUrl}>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
-                <span lwc:elseif={busy}>認証状態を確認しています…</span>
+                <span lwc:elseif={busy}>{authenticationProgress}</span>
                 <div class="slds-grid slds-grid_vertical-align-center">
                     <template lwc:if={authenticationUrl}>
                         <a
