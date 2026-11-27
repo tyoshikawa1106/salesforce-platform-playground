@@ -31,6 +31,9 @@ jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthenticationUrl', (
 
 jest.mock('@salesforce/apex/ObjectExplorerController.revokeApiAuthentication', () => ({ default: jest.fn() }), { virtual: true });
 
+const nativeTimeout = AbortSignal.timeout;
+beforeAll(() => { AbortSignal.timeout = () => new AbortController().signal; });
+afterAll(() => { AbortSignal.timeout = nativeTimeout; });
 const flush = () => Array.from({ length: 30 }).reduce((p) => p.then(() => Promise.resolve()), Promise.resolve());
 const objectInfo = { apiName: 'Account', label: '取引先', fields: [{ apiName: 'Name', label: '名前', type: 'STRING', typeLabel: 'テキスト(255)', custom: false }], relations: [] };
 const classify = { rows: { Name: { editable: true, complianceGroup: '', securityClassification: '', businessStatus: '', ownerId: '', ownerLabel: '未設定' } }, options: { ComplianceGroup: [], SecurityClassification: [], BusinessStatus: [{ label: '使用中', value: 'Active' }] } };
@@ -652,7 +655,7 @@ it('未認証の場合は対象未選択でも共通のAPI認証を表示する'
     await flush();
     const link = element.shadowRoot.querySelector('.c-authentication a');
     expect(link.textContent).toBe('認証');
-    expect(element.shadowRoot.querySelector('.c-authentication lightning-button').label).toBe('接続を再確認');
+    expect(element.shadowRoot.querySelector('.c-authentication lightning-button')).toBeNull();
     expect(link.target).toBe('_self');
     expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
@@ -697,6 +700,32 @@ it('認証状態の初期確認中は操作領域を表示しない', async () =
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
     expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
     expect(element.shadowRoot.textContent).toContain('認証状態を確認しています');
+});
+
+it.each(['status', 'url'])('認証の %s が応答しない場合は再読み込みを案内し、遅延した応答を採用しない', async step => {
+    const clock = new AbortController();
+    const timer = jest.spyOn(AbortSignal, 'timeout').mockReturnValue(clock.signal);
+    let finish;
+    const pending = new Promise(resolve => { finish = resolve; });
+    if (step === 'status') getApiAuthentication.mockReturnValueOnce(pending);
+    else {
+        getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED' });
+        getApiAuthenticationUrl.mockReturnValueOnce(pending);
+    }
+    try {
+        const element = createComponent();
+        await flush();
+        expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
+        clock.abort();
+        await flush();
+        expect(element.shadowRoot.textContent).toContain('ページを再読み込み');
+        finish(step === 'status' ? { status: 'AUTHENTICATED' } : '/expired');
+        await flush();
+        expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
+        expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
+    } finally {
+        timer.mockRestore();
+    }
 });
 
 it('再接続前の解除確認は送信せず、新しい解除確認のロックを維持する', async () => {
@@ -978,21 +1007,20 @@ it('組織URLの検証に失敗した場合は接続先を案内しリンクを�
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
     expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
 });
-it('URL取得失敗でも最初の拒否理由を残し、同じ画面で個人設定で許可した接続を再確認する', async () => {
+it('URL取得失敗でも最初の拒否理由を残し、ページを開き直したときに認証状態を照合する', async () => {
     getApiAuthentication.mockResolvedValueOnce({ status: 'UNAVAILABLE', message: 'HTTP 403' });
     getApiAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
     const element = createComponent();
     await flush();
     expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
-    const retry = element.shadowRoot.querySelector('.c-authentication lightning-button');
-    expect(retry.label).toBe('接続を再確認');
+    expect(element.shadowRoot.textContent).toContain('SalesforceApiUserPrincipal');
     expect(element.shadowRoot.textContent).toContain('HTTP 403');
     expect(element.shadowRoot.textContent).toContain('API認証を開始できません');
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
     getApiAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED' });
-    retry.click();
-    retry.click();
+    element.remove();
+    document.body.appendChild(element);
     await flush();
     expect(getApiAuthentication).toHaveBeenCalledTimes(2);
     expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);

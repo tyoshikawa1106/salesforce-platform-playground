@@ -69,7 +69,8 @@
                     </section>
                 </template>
                 <div class="slds-p-top_medium">
-                    <lightning-button label="キャンセル" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    <p lwc:if={isSaving} role="status" class="slds-m-bottom_x-small">保存中です。先に閉じた場合は、一覧の［再読み込み］で結果を確認してください。</p>
+                    <lightning-button label={dismissLabel} onclick={handleCancel}></lightning-button>
                     <lightning-button
                         class="slds-m-left_x-small"
                         label="保存"

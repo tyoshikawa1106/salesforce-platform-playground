@@ -90,7 +90,7 @@ private with sharing class OrgExplorerSelectorTest {
             Test.startTest();
             OrgExplorerPageRequest request = new OrgExplorerPageRequest();
             request.includeInactive = true;
-            List<AggregateResult> groups = selector.selectManagerGroups(request, null);
+            List<AggregateResult> groups = selector.selectManagerGroups(request, root.Id);
             Set<Id> ids = new Set<Id>{ root.Id };
             ids.addAll(new Map<Id, User>(managers).keySet());
             List<User> records = selector.selectManagers(
@@ -187,12 +187,6 @@ private with sharing class OrgExplorerSelectorTest {
     @IsTest
     static void loadsRoleBranchesWithBoundedQueries() {
         System.runAs(testUser) {
-            List<UserRole> existingRoles = [SELECT Id FROM UserRole ORDER BY Id DESC LIMIT 1];
-            Id boundary = existingRoles.isEmpty()
-                ? Id.valueOf(
-                      UserRole.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() + '000000000000'
-                  )
-                : existingRoles[0].Id;
             UserRole root = new UserRole(Name = '構造試験会社', DeveloperName = 'StructureCompany');
             insert root;
             List<UserRole> roles = new List<UserRole>{
@@ -204,25 +198,29 @@ private with sharing class OrgExplorerSelectorTest {
             inactive.IsActive = false;
             inactive.UserRoleId = roles[0].Id;
             insert inactive;
+            // 実際のテストロールの直前から取得し、組織全体の先頭ページに依存しない。
+            List<UserRole> previous = [SELECT Id FROM UserRole WHERE Id < :root.Id ORDER BY Id DESC LIMIT 1];
+            Id boundary = previous.isEmpty() ? null : previous[0].Id;
             OrgExplorerPageRequest request = new OrgExplorerPageRequest();
             request.includeInactive = true;
             Test.startTest();
             Integer beforeQueries = Limits.getQueries();
             List<UserRole> records = selector.selectRoleStructurePage(boundary);
             Set<Id> ids = new Map<Id, UserRole>(records).keySet();
-            List<AggregateResult> counts = selector.countRoleMembers(ids, request);
+            Set<Id> roleIds = new Set<Id>(new Map<Id, UserRole>(roles).keySet());
+            roleIds.add(root.Id);
+            List<AggregateResult> counts = selector.countRoleMembers(roleIds, request);
             Integer queryCost = Limits.getQueries() - beforeQueries;
             request.includeInactive = false;
-            List<AggregateResult> activeOnly = selector.countRoleMembers(ids, request);
+            List<AggregateResult> activeOnly = selector.countRoleMembers(roleIds, request);
             List<UserRole> next = selector.selectRoleStructurePage(root.Id);
             Test.stopTest();
             Assert.areEqual(2, queryCost, '構造と人数をそれぞれ一括照会');
-            Assert.areEqual(3, records.size(), '親と複数の子を一度に取得');
-            Assert.areEqual(
-                new Map<Id, UserRole>(roles).keySet(),
-                new Map<Id, UserRole>(next).keySet(),
-                '取得済みの境界を除いて子ロールから継続'
-            );
+            Set<Id> children = new Map<Id, UserRole>(roles).keySet();
+            Assert.isTrue(ids.containsAll(children), '複数の子を一度に取得');
+            Set<Id> nextIds = new Map<Id, UserRole>(next).keySet();
+            Assert.isTrue(nextIds.containsAll(children), '子ロールを次ページで取得');
+            Assert.isFalse(nextIds.contains(root.Id), '取得済みの境界を除外');
             Assert.areEqual(1, countMap(counts).get(roles[0].Id), '直接所属の無効ユーザーを集計');
             Assert.isFalse(countMap(activeOnly).containsKey(roles[0].Id), '有効条件で除外');
             Assert.isTrue(ids.contains(root.Id), '起点も同じ構造取得に含む');

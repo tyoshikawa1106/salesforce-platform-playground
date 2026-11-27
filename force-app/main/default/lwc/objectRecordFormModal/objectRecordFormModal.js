@@ -37,7 +37,7 @@ export default class ObjectRecordFormModal extends LightningModal {
     @api formSections = [];
     // ContentDocumentでは標準アップロードへ切り替える
     @api isFileUpload = false;
-    // 保存の重複実行と閉じる操作を抑止
+    // 同じフォームからの保存要求の重複送信を防ぐ
     isSaving = false;
     // フォーム内で保存エラーを読み上げ可能にする
     errorMessage;
@@ -65,16 +65,12 @@ export default class ObjectRecordFormModal extends LightningModal {
             this.errorMessage = undefined;
             // 保存完了まで送信ボタンを無効化
             this.isSaving = true;
-            // 保存中は標準の閉じるボタンとEscapeによる破棄も抑止
-            this.disableClose = true;
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示
             // 入力検証で失敗した場合は標準フォームの送信を必ず止める
             event.preventDefault();
-            // 例外後も再入力と閉じる操作を可能にする
+            // 入力検証で失敗したら修正後の再送信を許可する
             this.isSaving = false;
-            // モーダルを操作不能のまま残さない
-            this.disableClose = false;
             this.reportClientError(boundaryError, 'handleSubmit', 'ui-event');
         }
     }
@@ -83,8 +79,6 @@ export default class ObjectRecordFormModal extends LightningModal {
     handleSuccess() {
         // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // 確定後は標準APIでモーダルを閉じられるようにする
-            this.disableClose = false;
             // 作成と更新を区別した通知内容を返す
             this.close(createCompletionResult({ recordId: this.recordId, objectLabel: this.objectLabel }));
         } catch (boundaryError) {
@@ -111,8 +105,6 @@ export default class ObjectRecordFormModal extends LightningModal {
         try {
             // 再入力後の保存を可能にする
             this.isSaving = false;
-            // Escapeと標準の閉じるボタンを再び有効にする
-            this.disableClose = false;
             // UI APIのメッセージがなければ対象名を含む案内へフォールバック
             this.errorMessage = createSaveError(event.detail, this.objectLabel);
             // 標準フォームの保存失敗にも処理場所を補足
@@ -123,14 +115,17 @@ export default class ObjectRecordFormModal extends LightningModal {
         }
     }
 
-    // 保存中以外のキャンセルだけ受け付ける
+    // 送信済みの要求と、入力中の取り消しを区別する。
+    get dismissLabel() {
+        return this.isSaving ? '閉じる' : 'キャンセル';
+    }
+
+    // 送信済みの要求はそのままにしてフォームを閉じる。
     handleCancel() {
         // 操作・取得・描画の入口で自画面の例外を捕捉
         try {
-            // disabledボタン以外からのイベントでも送信中の破棄を防止
-            if (!this.isSaving) {
-                this.close();
-            }
+            // 保存成功の通知は標準フォームから成功応答を受けたときだけ返す。
+            this.close();
         } catch (boundaryError) {
             // 利用者の入力や応答本文を含めず処理場所を表示
             this.reportClientError(boundaryError, 'handleCancel', 'ui-event');
