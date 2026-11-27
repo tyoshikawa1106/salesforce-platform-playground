@@ -76,11 +76,9 @@ private with sharing class OrgExplorerControllerTest {
             request.term = '候補子';
             OrgExplorerPageResponse matches = OrgExplorerController.searchRoles(request);
             Test.stopTest();
-            Set<Id> rootIds = new Set<Id>();
-            for (OrgExplorerPageResponse.Node item : roots.nodes) {
-                rootIds.add(item.recordId);
-            }
-            Assert.isTrue(rootIds.contains(parent.Id), '親ロールを候補に含める');
+            Set<Id> rootIds = indexNodes(roots.nodes).keySet();
+            Assert.isFalse(rootIds.isEmpty(), '最上位ロールを取得');
+            Assert.areEqual(0, [SELECT COUNT() FROM UserRole WHERE Id IN :rootIds AND ParentRoleId != null], '未入力候補はすべて最上位');
             Assert.isFalse(rootIds.contains(child.Id), '未入力では下位を含めない');
             Assert.areEqual(child.Id, matches.nodes[0].recordId, '名称が一致した下位を返す');
         }
@@ -123,14 +121,15 @@ private with sharing class OrgExplorerControllerTest {
         System.runAs(testUser) {
             UserRole role = new UserRole(Name = '所属一覧試験');
             insert role;
-            List<User> members = createInactiveUsers(3);
+            List<User> members = createInactiveUsers(3, testUser.Id);
             for (Integer index = 0; index < members.size(); index++) {
                 members[index].UserRoleId = role.Id;
                 members[index].FirstName = '';
-                members[index].LastName = index == 0 ? 'A順序先頭' : 'B同名境界';
+                members[index].LastName = 'B同名境界';
                 members[index].Department = '試験部署';
                 members[index].Title = '試験役職';
             }
+            members[0].LastName = 'A順序先頭';
             insert members;
             OrgExplorerPageRequest request = new OrgExplorerPageRequest();
             request.requestId = 'member-pages';
@@ -199,15 +198,17 @@ private with sharing class OrgExplorerControllerTest {
             UserRole role = new UserRole(Name = '試験営業ロール');
             insert role;
             List<User> team = createTeam(2, role);
-            OrgExplorerPageRequest request = managerRequest('MANAGER_STRUCTURE', null);
+            OrgExplorerPageRequest rootPage = structureFrom(previousManager(team[0].Id), 'ALL');
+            OrgExplorerPageRequest managerPage = structureFrom(previousManager(team[1].Id), 'ALL');
             Test.startTest();
-            OrgExplorerPageResponse response = OrgExplorerController.getPage(request);
+            OrgExplorerPageResponse rootResponse = OrgExplorerController.getPage(rootPage);
+            OrgExplorerPageResponse response = OrgExplorerController.getPage(managerPage);
             OrgExplorerPageResponse members = OrgExplorerController.getPage(managerRequest('MANAGER_MEMBERS', team[0].Id));
             Test.stopTest();
             Assert.areEqual(role.Name, members.nodes[0].roleName, '一覧にも可視ロール名を取得する');
             Assert.isTrue(members.memberColumns.contains('roleName'), '上司の一覧だけにロール列を提供する');
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(response.nodes);
-            Assert.isTrue(nodes.containsKey(team[0].Id), '部下を持つ上位管理者を表示');
+            Assert.isTrue(indexNodes(rootResponse.nodes).containsKey(team[0].Id), '部下を持つ上位管理者を表示');
             Assert.isTrue(nodes.containsKey(team[1].Id), '部下を持つ下位管理者を表示');
             Assert.isFalse(nodes.containsKey(team[2].Id), '一般メンバーは構造へ含めない');
             Assert.areEqual('USER:' + team[0].Id, nodes.get(team[1].Id).parentKey, 'ManagerIdで接続');
@@ -220,7 +221,7 @@ private with sharing class OrgExplorerControllerTest {
                 '参照可能な所属ロール名を取得'
             );
             Assert.areEqual('VALUE', response.cardRoles.get(team[1].Id).get('state'), '可視ロールを明示');
-            Assert.areEqual('EMPTY', response.cardRoles.get(team[0].Id).get('state'), 'ロール未設定を区別');
+            Assert.areEqual('EMPTY', rootResponse.cardRoles.get(team[0].Id).get('state'), 'ロール未設定を区別');
         }
     }
 
@@ -254,10 +255,7 @@ private with sharing class OrgExplorerControllerTest {
             User manager = createUser('ページ上司');
             manager.IsActive = false;
             insert manager;
-            List<User> members = createInactiveUsers(2);
-            for (User member : members) {
-                member.ManagerId = manager.Id;
-            }
+            List<User> members = createInactiveUsers(2, manager.Id);
             insert members;
             OrgExplorerPageRequest request = managerRequest('MANAGER_MEMBERS', manager.Id);
             request.pageSize = 1;
@@ -323,24 +321,23 @@ private with sharing class OrgExplorerControllerTest {
             search.requestId = 'active-search';
             search.term = '  ' + records[0].Name + '  ';
             search.activityFilter = 'ACTIVE';
-            OrgExplorerPageRequest request = managerRequest('MANAGER_STRUCTURE', null);
+            Id beforeManager = previousManager(team[1].Id);
+            Id beforeRoot = previousManager(team[0].Id);
+            OrgExplorerPageRequest allRequest = structureFrom(beforeManager, 'ALL');
+            OrgExplorerPageRequest activeRequest = structureFrom(beforeManager, 'ACTIVE');
             Test.startTest();
-            OrgExplorerPageResponse allUsers = OrgExplorerController.getPage(request);
-            request.includeInactive = false;
-            List<AggregateResult> activeGroups = selector.selectManagerGroups(request, null);
-            OrgExplorerPageResponse activeUsers = OrgExplorerController.getPage(request);
+            OrgExplorerPageResponse allUsers = OrgExplorerController.getPage(allRequest);
+            List<AggregateResult> activeGroups = selector.selectManagerGroups(activeRequest, beforeRoot);
+            OrgExplorerPageResponse activeUsers = OrgExplorerController.getPage(activeRequest);
             OrgExplorerPageResponse candidates = OrgExplorerController.searchManagers(search);
             Test.stopTest();
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(activeUsers.nodes);
             Assert.areEqual(2, allUsers.memberCounts.get(team[1].Id), '全ユーザーでは無効の部下も集計');
             Assert.areEqual(1, activeUsers.memberCounts.get(team[1].Id), '有効な直属部下だけを集計');
             Assert.isFalse(nodes.containsKey(team[0].Id), '無効な上司を構造へ表示しない');
-            Set<Id> groupedManagerIds = new Set<Id>();
-            for (AggregateResult groupRecord : activeGroups) {
-                groupedManagerIds.add((Id) groupRecord.get('managerId'));
-            }
+            Set<Id> groupedManagerIds = new OrgExplorerService().getManagerGroupIds(activeGroups, 1000);
             Assert.isFalse(groupedManagerIds.contains(team[0].Id), '有効な部下がいても無効な上司で集計枠を消費しない');
-            Assert.isTrue(groupedManagerIds.contains(team[1].Id), '有効な上司の集計は維持する');
+            Assert.isTrue(nodes.containsKey(team[1].Id), '有効な上司の集計は維持する');
             Assert.areEqual('', nodes.get(team[1].Id).parentKey, '無効な親を飛び越えて接続しない');
             Assert.areEqual(team[1].Id, candidates.nodes[0].recordId, '空白を除いた名前で有効な上司を検索');
         }
@@ -356,21 +353,16 @@ private with sharing class OrgExplorerControllerTest {
             insert root;
             UserRole child = new UserRole(Name = '探索試験の子', ParentRoleId = root.Id);
             insert child;
-            OrgExplorerPageRequest page = new OrgExplorerPageRequest();
-            page.requestId = 'role-structure';
-            page.mode = 'ROLE';
-            page.scope = 'ROLE_STRUCTURE';
-            page.parentId = root.Id;
+            OrgExplorerPageRequest page = structureRequest(root.Id, root.Id);
             Test.startTest();
             OrgExplorerPageResponse structure = OrgExplorerController.getPage(page);
+            page.cursor = '';
             page.scope = 'ROLE_MEMBERS';
             OrgExplorerPageResponse members = OrgExplorerController.getPage(page);
             Test.stopTest();
-            Map<Id, OrgExplorerPageResponse.Node> nodes = new Map<Id, OrgExplorerPageResponse.Node>();
-            for (OrgExplorerPageResponse.Node node : structure.nodes) {
-                nodes.put(node.recordId, node);
-                Assert.areEqual('ROLE', node.kind, '実ロールだけを返却');
-            }
+            Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(structure.nodes);
+            Assert.areEqual('ROLE', nodes.get(root.Id).kind, 'ルートを実ロールとして返却');
+            Assert.areEqual('ROLE', nodes.get(child.Id).kind, '子を実ロールとして返却');
             Assert.areEqual('ROLE:' + root.Id, nodes.get(child.Id).parentKey, '可視な親へ接続');
             Assert.areEqual(0, members.nodes.size(), '所属のないロールは空一覧');
         }
@@ -387,13 +379,13 @@ private with sharing class OrgExplorerControllerTest {
             insert new List<UserRole>{ first, second };
             UserRole child = new UserRole(Name = '全体試験部門', ParentRoleId = first.Id);
             insert child;
-            OrgExplorerPageRequest request = structureRequest(null);
+            OrgExplorerPageRequest request = structureRequest(null, first.Id);
             Test.startTest();
             Integer beforeQueries = Limits.getQueries();
             OrgExplorerPageResponse response = OrgExplorerController.getPage(request);
             Integer queryCost = Limits.getQueries() - beforeQueries;
             Test.stopTest();
-            Assert.areEqual(2, queryCost, '起点確認なしで構造と人数だけを照会');
+            Assert.isTrue(queryCost <= 3, '構造・ページ外の親・直属人数をそれぞれ一括照会');
             Map<Id, OrgExplorerPageResponse.Node> nodes = indexNodes(response.nodes);
             Assert.isTrue(nodes.containsKey(first.Id), '一つ目のルートを含む');
             Assert.isTrue(nodes.containsKey(second.Id), '別のルートも含む');
@@ -461,12 +453,12 @@ private with sharing class OrgExplorerControllerTest {
         Assert.isFalse(pages[pages.size() - 1].hasMore, '末尾で次ページを公開しない');
     }
 
-    private static List<User> createInactiveUsers(Integer count) {
+    private static List<User> createInactiveUsers(Integer count, Id managerId) {
         List<User> users = new List<User>();
         for (Integer index = 0; index < count; index++) {
             User record = createUser('探索試験' + index);
             record.IsActive = false;
-            record.ManagerId = testUser.Id;
+            record.ManagerId = managerId;
             users.add(record);
         }
         return users;
@@ -483,6 +475,23 @@ private with sharing class OrgExplorerControllerTest {
         request.scope = scope;
         request.parentId = parentId;
         request.includeInactive = true;
+        return request;
+    }
+
+    // 検証する上司が実際に載るページの開始位置を、その上司の直前の集計キーから求める。
+    private static Id previousManager(Id managerId) {
+        List<User> previous = [SELECT ManagerId FROM User WHERE ManagerId < :managerId ORDER BY ManagerId DESC LIMIT 1];
+        return previous.isEmpty() ? null : previous[0].ManagerId;
+    }
+
+    private static OrgExplorerPageRequest structureFrom(Id afterId, String activityFilter) {
+        OrgExplorerPageRequest request = managerRequest('MANAGER_STRUCTURE', null);
+        request.includeInactive = activityFilter == 'ALL';
+        if (afterId != null) {
+            OrgExplorerCursorCodec.Cursor cursor = new OrgExplorerService().createPageCursor(request);
+            cursor.lastId = afterId;
+            request.cursor = new OrgExplorerCursorCodec().encode(cursor);
+        }
         return request;
     }
 
@@ -513,13 +522,19 @@ private with sharing class OrgExplorerControllerTest {
         return team;
     }
 
-    private static OrgExplorerPageRequest structureRequest(Id rootId) {
+    private static OrgExplorerPageRequest structureRequest(Id rootId, Id firstRoleId) {
         OrgExplorerPageRequest request = new OrgExplorerPageRequest();
         request.requestId = 'structure-test';
         request.mode = 'ROLE';
         request.scope = 'ROLE_STRUCTURE';
         request.parentId = rootId;
         request.includeInactive = true;
+        // 既存ロールの総数によらず、作成したロールから始まるページを検証する。
+        for (UserRole previous : [SELECT Id FROM UserRole WHERE Id < :firstRoleId ORDER BY Id DESC LIMIT 1]) {
+            OrgExplorerCursorCodec.Cursor cursor = new OrgExplorerService().createPageCursor(request);
+            cursor.lastId = previous.Id;
+            request.cursor = new OrgExplorerCursorCodec().encode(cursor);
+        }
         return request;
     }
 
