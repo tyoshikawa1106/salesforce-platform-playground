@@ -1,22 +1,31 @@
 # 定期品質チェック結果報告スクリプト
 
-## 概要
+## 機能の用途
 
 GitHub Actionsの定期品質チェック結果を受け取り、チェックごとの障害検知Issueを作成、更新、復旧時にクローズするNode.jsスクリプトです。
 
-## 目的・利用場面
-
 定期品質チェックの継続障害を同じIssueへ集約し、後続の成功を復旧記録として残すために使用します。
 
-## 対象実装・メタデータ
+## 対象実装
 
-| 種別             | パス                                           | 役割                                         |
-| ---------------- | ---------------------------------------------- | -------------------------------------------- |
-| GitHub Actions   | `.github/workflows/ci.yml`                     | 定期チェック結果と実行情報を環境変数で渡す   |
-| Node.js script   | `scripts/ci/report-quality-check.js`           | GitHub Issueの作成、追記、クローズを制御する |
-| テストスクリプト | `scripts/ci/test/report-quality-check.node.js` | ブランチと結果別のGitHub CLI操作を検証する   |
+| 種別             | パス                                                                                     | 役割                                         |
+| ---------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------- |
+| GitHub Actions   | [ci.yml](../../../../.github/workflows/ci.yml)                                           | 定期チェック結果と実行情報を環境変数で渡す   |
+| Node.js script   | [report-quality-check.js](../../../../scripts/ci/report-quality-check.js)                | GitHub Issueの作成、追記、クローズを制御する |
+| テストスクリプト | [report-quality-check.node.js](../../../../scripts/ci/test/report-quality-check.node.js) | ブランチと結果別のGitHub CLI操作を検証する   |
 
-## 入力
+### 関連コンポーネント
+
+- [リポジトリ固有GitHub運用ルール](../../../development/github-repository-rules.md#github-actions)
+- `.github/workflows/ci.yml`
+
+## 対象ファイル・データ
+
+- GitHub Issueを作成、コメント、クローズします。
+- リポジトリのファイルやSalesforce組織は変更しません。
+- GitHub CLIの操作に失敗した場合は原因をGitHub Actionsログへ表示し、終了コード`1`を返します。
+
+## 実行方法・入力
 
 GitHub Actionsから次の環境変数を受け取ります。
 
@@ -37,7 +46,19 @@ GitHub Actionsから次の環境変数を受け取ります。
 
 結果は`failure`と`success`だけを処理し、`skipped`、`cancelled`、未定義値はIssueを変更しません。
 
-## 処理内容
+### 権限・実行条件
+
+- `.github/workflows/ci.yml`の報告jobは`issues: write`と`contents: read`を使用します。
+- GitHub CLIが利用でき、workflowの`GITHUB_TOKEN`と対象リポジトリが設定されている必要があります。
+- 通常はGitHub Actionsから実行し、利用者向けのローカル実行入口は設けません。
+
+## エラー判定
+
+- GitHub CLIの起動失敗と非0終了を報告処理の失敗として扱います。
+- open Issue一覧がJSON配列でない場合は、既存Issueの有無を推測せず停止します。
+- 一方のチェック処理で例外が発生した場合は、後続チェックを処理せず報告jobを失敗させます。
+
+## 処理詳細
 
 1. npmチェックとWindowsスクリプトチェックを別々の監視対象として処理する。
 2. `CI: <チェック名>が失敗しています`をタイトル検索条件にしてopen Issueの候補を取得し、完全一致するIssueを検索する。
@@ -48,45 +69,18 @@ GitHub Actionsから次の環境変数を受け取ります。
 
 日時は`YYYY-MM-DD HH:mm:ss JST`形式で記録します。
 
-## 出力・更新対象
-
-- GitHub Issueを作成、コメント、クローズします。
-- リポジトリのファイルやSalesforce組織は変更しません。
-- GitHub CLIの操作に失敗した場合は原因をGitHub Actionsログへ表示し、終了コード`1`を返します。
-
-## 権限・実行条件
-
-- `.github/workflows/ci.yml`の報告jobは`issues: write`と`contents: read`を使用します。
-- GitHub CLIが利用でき、workflowの`GITHUB_TOKEN`と対象リポジトリが設定されている必要があります。
-- 通常はGitHub Actionsから実行し、利用者向けのローカル実行入口は設けません。
-
-## エラー処理
-
-- GitHub CLIの起動失敗と非0終了を報告処理の失敗として扱います。
-- open Issue一覧がJSON配列でない場合は、既存Issueの有無を推測せず停止します。
-- 一方のチェック処理で例外が発生した場合は、後続チェックを処理せず報告jobを失敗させます。
-
-## 関連コンポーネント
-
-- [リポジトリ固有GitHub運用ルール](../../../development/github-repository-rules.md#github-actions)
-- `.github/workflows/ci.yml`
-
-## テスト・確認観点
-
-`scripts/ci/test/report-quality-check.node.js`で、対象外結果、初回失敗、継続失敗、復旧、対応Issueなし、JSON不正、GitHub CLI失敗、JST日時、古いコミットの成功・失敗を反映しないこと、mainのSHA取得失敗を確認します。
-
-```sh
-node --test scripts/ci/test/report-quality-check.node.js
-```
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 同一性はIssueタイトルの完全一致で判定します。
 - GitHub検索の候補から、Issueタイトルが完全一致するものだけを更新対象にします。
 - `skipped`と`cancelled`は成功または失敗とみなさず、既存Issueへ記録しません。
 - Issue本文とコメントにはworkflowから渡されたコミットと実行URLを記録します。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 未確認
 - Node.jsテストではGitHub CLI操作を模擬しています。GitHub Actions上でのIssue作成、継続失敗の追記、復旧クローズはworkflowの実行結果で確認します。
+
+### テストコードと確認内容
+
+[テストコードと確認内容](tests.md)

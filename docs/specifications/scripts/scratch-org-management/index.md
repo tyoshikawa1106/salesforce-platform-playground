@@ -1,19 +1,17 @@
 # Scratch Org管理スクリプト
 
-## 概要
+## 機能の用途
 
 設定ファイルに従ってScratch Orgの作成、metadata反映、Permission Set割り当て、Apexテスト、テストデータ投入を順番に行い、明示されたaliasのScratch Orgを削除するNode.jsスクリプトです。
 
-## 目的・利用場面
-
 このリポジトリの開発・確認環境をScratch Orgへ再現するときと、確認済みのScratch Orgを削除するときに使用します。
 
-## 対象実装・メタデータ
+## 対象実装
 
 | 種別             | パス                                                                                      | 役割                                                     |
 | ---------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Node.js script   | `scripts/scratch-org/setup.js`                                                            | 作成した組織のユーザー名で準備stepを順番に実行する       |
-| Node.js script   | `scripts/scratch-org/delete.js`                                                           | 明示されたaliasのScratch Orgを削除する                   |
+| Node.js script   | [setup.js](../../../../scripts/scratch-org/setup.js)                                      | 作成した組織のユーザー名で準備stepを順番に実行する       |
+| Node.js script   | [delete.js](../../../../scripts/scratch-org/delete.js)                                    | 明示されたaliasのScratch Orgを削除する                   |
 | 設定             | `scripts/scratch-org/scratch-org.json`                                                    | 既定alias、期間、manifest、ECA、権限、待機時間を定義する |
 | Node.js modules  | `scripts/scratch-org/internal/`                                                           | alias引数、共通設定、終了状態を処理する                  |
 | step scripts     | `scripts/scratch-org/steps/`                                                              | 作成、反映、ECA、権限、データ投入を個別実行する          |
@@ -24,7 +22,22 @@
 
 ECAの反映処理は`steps/deploy-external-client-apps.js`、パッケージの検証と組織固有値の置換は`internal/eca-package.js`、資格情報の登録は`internal/eca-provider-credentials.js`が担当します。いずれも`scripts/scratch-org/`配下にあります。ECAと関連メタデータの反映範囲は`manifest/rebuild-scratch-org-external-client-apps.xml`、プロバイダー名からECA名への対応は`scratch-org.json`の`externalClientAppProviders`を正とします。名前が同じであることは前提にしません。
 
-## 入力
+### 関連コンポーネント
+
+- [Scratch Org再現ルール](../../../deployment/scratch-org-rebuild-rules.md)
+- [Scratch Org再現の前提と設定](../../../deployment/scratch-org-rebuild-reference.md)
+- [Scratch Org manifest運用ルール](../../../deployment/scratch-org-manifest-rules.md)
+- [Scratch Org definition featureルール](../../../deployment/scratch-org-definition-feature-rules.md)
+- [テストデータ投入スクリプト](../test-data-import/index.md)
+
+## 対象ファイル・データ
+
+- 準備処理はScratch Orgを作成し、metadata、Permission Set、テストデータを反映します。
+- 削除処理はSalesforce CLIで確認されたScratch Orgを削除します。
+- setup開始時に作成用のaliasを表示します。権限セットの割り当ては単独実行でもScratch Orgであることを確認し、そのユーザー名へ割り当てます。
+- 失敗時は停止したstep名と子プロセスの終了コードを返します。
+
+## 実行方法・入力
 
 準備は次の形式で実行します。
 
@@ -40,7 +53,21 @@ node scripts/scratch-org/delete.js --alias <alias>
 
 各コマンドは `--help` または `-h` で使用方法を表示します。初期反映の `steps/deploy.js` は `--alias` と `--shells-only` を受け付けます。
 
-## 処理内容
+### 権限・実行条件
+
+- Node.jsとSalesforce CLIを利用でき、Scratch Orgを作成できるDev Hubが設定されている必要があります。
+- Scratch定義のfeatureと設定がDev Hubで利用できる必要があります。
+- metadata反映、Permission Set割り当て、Apexテスト、テストデータ投入に必要な権限が必要です。
+- 削除は利用者が対象を確認し、明示依頼した場合だけ実行します。
+
+## エラー判定
+
+- alias引数が不正な場合はSalesforce CLIを実行せず、エラーと使用方法を表示します。
+- 準備stepが失敗した場合は後続stepを実行しません。
+- 途中失敗時も、作成済みScratch Org、反映済みmetadata、割り当て済み権限、投入済みデータを自動でロールバックまたは削除しません。
+- テストデータ投入の承認拒否は投入を行わず正常終了するため、setup全体も正常終了します。
+
+## 処理詳細
 
 ### Scratch Orgの準備
 
@@ -69,44 +96,7 @@ OSの一時ディレクトリ配下に実行ごとの`scratch-org-eca-`接頭辞
 
 検証済みのaliasを`sf org delete scratch --target-org <alias>`へ渡します。`--no-prompt`を指定しないため、Salesforce CLIの削除確認が表示されます。
 
-## 出力・更新対象
-
-- 準備処理はScratch Orgを作成し、metadata、Permission Set、テストデータを反映します。
-- 削除処理はSalesforce CLIで確認されたScratch Orgを削除します。
-- setup開始時に作成用のaliasを表示します。権限セットの割り当ては単独実行でもScratch Orgであることを確認し、そのユーザー名へ割り当てます。
-- 失敗時は停止したstep名と子プロセスの終了コードを返します。
-
-## 権限・実行条件
-
-- Node.jsとSalesforce CLIを利用でき、Scratch Orgを作成できるDev Hubが設定されている必要があります。
-- Scratch定義のfeatureと設定がDev Hubで利用できる必要があります。
-- metadata反映、Permission Set割り当て、Apexテスト、テストデータ投入に必要な権限が必要です。
-- 削除は利用者が対象を確認し、明示依頼した場合だけ実行します。
-
-## エラー処理
-
-- alias引数が不正な場合はSalesforce CLIを実行せず、エラーと使用方法を表示します。
-- 準備stepが失敗した場合は後続stepを実行しません。
-- 途中失敗時も、作成済みScratch Org、反映済みmetadata、割り当て済み権限、投入済みデータを自動でロールバックまたは削除しません。
-- テストデータ投入の承認拒否は投入を行わず正常終了するため、setup全体も正常終了します。
-
-## 関連コンポーネント
-
-- [Scratch Org再現ルール](../../../deployment/scratch-org-rebuild-rules.md)
-- [Scratch Org再現の前提と設定](../../../deployment/scratch-org-rebuild-reference.md)
-- [Scratch Org manifest運用ルール](../../../deployment/scratch-org-manifest-rules.md)
-- [Scratch Org definition featureルール](../../../deployment/scratch-org-definition-feature-rules.md)
-- [テストデータ投入スクリプト](../test-data-import/index.md)
-
-## テスト・確認観点
-
-`scripts/scratch-org/test/*.node.js`で、alias、help、例外、step順序、失敗時停止、Salesforce CLI引数、設定参照、反映権限の範囲、権限準備からmanifest反映までの順序と各段階の失敗時停止、再構築manifestとGit管理sourceの整合を確認します。
-
-```sh
-node --test scripts/scratch-org/test/*.node.js
-```
-
-## 制約・注意事項
+### 制約・注意事項
 
 - setupはpackage installを実行しません。必要なpackageはmetadata反映前に個別にインストールします。
 - setupはmetadata deploy前のdry-runを自動実行しません。再構築scopeを変更した場合は運用ルールに従って別途確認します。
@@ -115,8 +105,12 @@ node --test scripts/scratch-org/test/*.node.js
 - 実行時にDev組織へ接続してメタデータを取得する処理はありません。Dev組織でアプリを増減した場合は、組織固有値を除いたXML、専用manifest、必要なプロバイダー対応を更新します。件数や個別アプリ一覧を文書へ転記する必要はありません。
 - 本人認証のBrowser Flowでは、資格情報の登録後も利用者自身のOAuth認証が必要です。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 未確認
 - Client Credentials Flowの作成管理者指定は、対象組織でのポリシー反映とトークン取得で確認します。API Only権限を管理者に自動付与しません。
 - Node.jsテストではSalesforce CLIと子プロセスを模擬しています。Scratch Orgの作成からデータ投入までの実動作は、対象Dev Hubのfeature、package、metadata、権限に依存します。
+
+### テストコードと確認内容
+
+[テストコードと確認内容](tests.md)

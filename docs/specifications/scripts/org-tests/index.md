@@ -1,31 +1,43 @@
 # 組織テスト実行スクリプト
 
-## 概要
+## 機能の用途
 
 Default Target Orgを確認し、ローカルApexテストまたはローカルFlowテストを非同期で開始して、完了後の結果とカバレッジを表示するNode.jsスクリプトです。
-
-## 目的・利用場面
 
 Sandbox、Scratch Org、Developer Edition、本番環境で、接続先を実行者が確認したうえで組織内のローカルテストを全件実行するときに使用します。
 
 ApexとFlowは別々の実行入口を持ち、必要なテスト種別だけを独立して確認できます。
 
-## 対象実装・メタデータ
+## 対象実装
 
-| 種別               | API名・ファイル名                             | 役割                                                   |
-| ------------------ | --------------------------------------------- | ------------------------------------------------------ |
-| npm script         | `sf:test:apex`                                | ローカルApexテストを実行する入口                       |
-| npm script         | `sf:test:flow`                                | ローカルFlowテストを実行する入口                       |
-| Node.js script     | `scripts/org-tests/run-apex-tests.js`         | Apex固有の表示とテスト種別を共通処理へ渡す             |
-| Node.js script     | `scripts/org-tests/run-flow-tests.js`         | Flow固有の表示とテスト種別を共通処理へ渡す             |
-| Node.js module     | `scripts/org-tests/internal/run-org-test.js`  | 接続先確認、承認、本番環境の追加確認を行う             |
-| Node.js module     | `scripts/org-tests/internal/test-runner.js`   | テストの開始、監視、中断、最終結果取得を行う           |
-| Node.js module     | `scripts/org-tests/internal/test-progress.js` | CLI応答解析、進捗照会、終了判定、進捗表示を行う        |
-| 共通Node.js module | `scripts/common/approval.js`                  | `y`または`Y`だけを承認として扱う                       |
-| 共通Node.js module | `scripts/common/target-org.js`                | Default Target Orgの情報取得、照合、組織種別判定を行う |
-| 共通Node.js module | `scripts/common/run-command.js`               | Salesforce CLIをshell経由なしで実行する                |
+| 種別               | API名・ファイル名                                                           | 役割                                                   |
+| ------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| npm script         | `sf:test:apex`                                                              | ローカルApexテストを実行する入口                       |
+| npm script         | `sf:test:flow`                                                              | ローカルFlowテストを実行する入口                       |
+| Node.js script     | [run-apex-tests.js](../../../../scripts/org-tests/run-apex-tests.js)        | Apex固有の表示とテスト種別を共通処理へ渡す             |
+| Node.js script     | [run-flow-tests.js](../../../../scripts/org-tests/run-flow-tests.js)        | Flow固有の表示とテスト種別を共通処理へ渡す             |
+| Node.js module     | [run-org-test.js](../../../../scripts/org-tests/internal/run-org-test.js)   | 接続先確認、承認、本番環境の追加確認を行う             |
+| Node.js module     | [test-runner.js](../../../../scripts/org-tests/internal/test-runner.js)     | テストの開始、監視、中断、最終結果取得を行う           |
+| Node.js module     | [test-progress.js](../../../../scripts/org-tests/internal/test-progress.js) | CLI応答解析、進捗照会、終了判定、進捗表示を行う        |
+| 共通Node.js module | [approval.js](../../../../scripts/common/approval.js)                       | `y`または`Y`だけを承認として扱う                       |
+| 共通Node.js module | [target-org.js](../../../../scripts/common/target-org.js)                   | Default Target Orgの情報取得、照合、組織種別判定を行う |
+| 共通Node.js module | [run-command.js](../../../../scripts/common/run-command.js)                 | Salesforce CLIをshell経由なしで実行する                |
 
-## 入力
+### 関連コンポーネント
+
+- [組織操作ルール](../../../deployment/org-operation-rules.md)
+- [メタデータ削除スクリプト](../metadata-deletion/index.md)
+- [リポジトリ構成](../../repository-structure.md)
+
+## 対象ファイル・データ
+
+- 接続組織情報、テストランID、進捗、最終結果、カバレッジを標準出力へ表示します。
+- テスト失敗、CLI失敗、JSON解析失敗などを標準エラー出力へ表示します。
+- リポジトリ内へテスト結果ファイルを作成しません。
+- Salesforce組織上には非同期テストランが作成されます。
+- スクリプトはテストランの自動再試行またはキャンセルを行いません。
+
+## 実行方法・入力
 
 実行コマンドは次の2種類です。追加のコマンドライン引数は受け付けません。
 
@@ -41,7 +53,68 @@ npm run sf:test:flow
 - テストクラス、テストメソッド、テストスイート、Flow名は個別指定できません。
 - 接続組織と、必要な場合は本番環境での実行について、標準入力から承認を受け付けます。
 
-## 処理内容
+### 権限・実行条件
+
+- Salesforce CLIが利用でき、Default Target Orgが設定済みである必要があります。
+- 対象組織が認証済み組織一覧に存在し、組織種別を判定できる必要があります。
+- Salesforce CLIの組織テスト実行に必要な権限が必要です。現行CLIでは`View All Data`権限が必要です。
+- Apexテストの直列実行は、対象組織の`Settings:Apex`にある`enableDisableParallelApexTesting`で管理します。スクリプトは現在値を確認しますが、設定を切り替えません。
+- Flowテストを直列化する設定として`enableDisableParallelApexTesting`を使用しません。
+
+## エラー判定
+
+### 開始失敗
+
+Salesforce CLIが構造化された失敗応答を返した場合は、エラー内容を表示して終了コード`1`を返します。
+
+開始CLIのタイムアウト、開始応答を受け取る前のCtrl+C、解析できないJSON、成功応答に有効なテストランIDがない場合は、組織上でテストが開始された可能性を否定できません。テスト種別に応じて次を表示し、自動再実行せず終了します。Ctrl+Cの場合の終了コードは`130`、それ以外は`1`です。
+
+```text
+Apexテストの開始結果を取得できませんでした。組織上では開始されている可能性があります。
+重複実行を避けるため、再実行する前にSalesforceの「Apexテスト実行」で状況を確認してください。
+```
+
+```text
+Flowテストの開始結果を取得できませんでした。組織上では開始されている可能性があります。
+重複実行を避けるため、再実行する前にSalesforceのテスト実行状況を確認してください。
+```
+
+### Apex並列実行設定の確認失敗
+
+設定取得のタイムアウト、CLI失敗、JSON解析失敗、不正な応答が発生した場合は、次の注意を標準エラー出力へ表示します。この確認だけを理由にテスト開始を中止しません。
+
+```text
+注意: Apexテストの並列実行設定を確認できませんでした。テストは続行できます: <原因>
+```
+
+### 監視失敗
+
+進捗照会のタイムアウト、CLI失敗、JSON解析失敗、不正な進捗応答が発生した場合は、組織上のテストをキャンセルせず終了コード`1`を返します。
+
+```text
+組織テストの進捗監視を終了しました。
+組織上のテストは継続している可能性があります。
+結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <確認したusername>
+```
+
+### Ctrl+C
+
+開始CLIの応答待ちでCtrl+Cを押した場合はローカルCLIを中断し、開始状況不明として自動再実行しないよう案内します。この時点ではテストランIDを取得できないため、結果確認コマンドは表示しません。
+
+テストランID取得後の監視中にCtrl+Cを押した場合は、実行中の進捗照会または次回照会までの待機と、ローカル監視だけを終了します。Salesforce組織上のテストはキャンセルしません。
+
+```text
+進捗監視を終了しました。組織上のテストは継続しています。
+結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <確認したusername>
+```
+
+終了コードにはSIGINTの慣例である`130`を使用します。
+
+### 最終結果取得失敗
+
+最終結果取得が非0終了した場合は、その終了コードを返し、同じテストランIDを使った結果確認コマンドを表示します。ApexまたはFlowテスト自体が失敗した場合も、Salesforce CLIの非0終了を変更しません。
+
+## 処理詳細
 
 現在の処理順序は次のとおりです。
 
@@ -177,102 +250,7 @@ Flowでは先頭の`apex`を`flow`へ置き換えます。最終結果取得CLI�
 
 Salesforce CLIが返す終了コードをスクリプトの終了コードとして使用します。テスト失敗または結果取得失敗で終了コードが非0の場合は、同じテストランIDを使った結果確認コマンドも表示します。
 
-## 出力・更新対象
-
-- 接続組織情報、テストランID、進捗、最終結果、カバレッジを標準出力へ表示します。
-- テスト失敗、CLI失敗、JSON解析失敗などを標準エラー出力へ表示します。
-- リポジトリ内へテスト結果ファイルを作成しません。
-- Salesforce組織上には非同期テストランが作成されます。
-- スクリプトはテストランの自動再試行またはキャンセルを行いません。
-
-## 権限・実行条件
-
-- Salesforce CLIが利用でき、Default Target Orgが設定済みである必要があります。
-- 対象組織が認証済み組織一覧に存在し、組織種別を判定できる必要があります。
-- Salesforce CLIの組織テスト実行に必要な権限が必要です。現行CLIでは`View All Data`権限が必要です。
-- Apexテストの直列実行は、対象組織の`Settings:Apex`にある`enableDisableParallelApexTesting`で管理します。スクリプトは現在値を確認しますが、設定を切り替えません。
-- Flowテストを直列化する設定として`enableDisableParallelApexTesting`を使用しません。
-
-## エラー処理
-
-### 開始失敗
-
-Salesforce CLIが構造化された失敗応答を返した場合は、エラー内容を表示して終了コード`1`を返します。
-
-開始CLIのタイムアウト、開始応答を受け取る前のCtrl+C、解析できないJSON、成功応答に有効なテストランIDがない場合は、組織上でテストが開始された可能性を否定できません。テスト種別に応じて次を表示し、自動再実行せず終了します。Ctrl+Cの場合の終了コードは`130`、それ以外は`1`です。
-
-```text
-Apexテストの開始結果を取得できませんでした。組織上では開始されている可能性があります。
-重複実行を避けるため、再実行する前にSalesforceの「Apexテスト実行」で状況を確認してください。
-```
-
-```text
-Flowテストの開始結果を取得できませんでした。組織上では開始されている可能性があります。
-重複実行を避けるため、再実行する前にSalesforceのテスト実行状況を確認してください。
-```
-
-### Apex並列実行設定の確認失敗
-
-設定取得のタイムアウト、CLI失敗、JSON解析失敗、不正な応答が発生した場合は、次の注意を標準エラー出力へ表示します。この確認だけを理由にテスト開始を中止しません。
-
-```text
-注意: Apexテストの並列実行設定を確認できませんでした。テストは続行できます: <原因>
-```
-
-### 監視失敗
-
-進捗照会のタイムアウト、CLI失敗、JSON解析失敗、不正な進捗応答が発生した場合は、組織上のテストをキャンセルせず終了コード`1`を返します。
-
-```text
-組織テストの進捗監視を終了しました。
-組織上のテストは継続している可能性があります。
-結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <確認したusername>
-```
-
-### Ctrl+C
-
-開始CLIの応答待ちでCtrl+Cを押した場合はローカルCLIを中断し、開始状況不明として自動再実行しないよう案内します。この時点ではテストランIDを取得できないため、結果確認コマンドは表示しません。
-
-テストランID取得後の監視中にCtrl+Cを押した場合は、実行中の進捗照会または次回照会までの待機と、ローカル監視だけを終了します。Salesforce組織上のテストはキャンセルしません。
-
-```text
-進捗監視を終了しました。組織上のテストは継続しています。
-結果確認: sf <apexまたはflow> get test --test-run-id <test-run-id> --code-coverage --result-format human --target-org <確認したusername>
-```
-
-終了コードにはSIGINTの慣例である`130`を使用します。
-
-### 最終結果取得失敗
-
-最終結果取得が非0終了した場合は、その終了コードを返し、同じテストランIDを使った結果確認コマンドを表示します。ApexまたはFlowテスト自体が失敗した場合も、Salesforce CLIの非0終了を変更しません。
-
-## 関連コンポーネント
-
-- [組織操作ルール](../../../deployment/org-operation-rules.md)
-- [メタデータ削除スクリプト](../metadata-deletion/index.md)
-- [リポジトリ構成](../../repository-structure.md)
-
-## テスト・確認観点
-
-Node.jsテストでは、次を確認します。
-
-- 引数指定とDefault Target Org未設定時に組織操作を開始しないこと
-- 接続組織と本番環境の承認境界
-- ApexとFlowで`RunLocalTests`とカバレッジを指定すること
-- 組織確認、設定確認、開始、進捗照会、最終結果取得の各CLIへ2分上限を渡すこと
-- Apexの並列実行オプションが有効な場合だけ注意を表示し、設定を確認できない場合もテストを止めないこと
-- `707`形式以外のテストランIDを拒否すること
-- 開始状況不明と構造化された開始失敗を区別すること
-- 完了後の最終結果取得、監視失敗、開始中と監視中のCtrl+C、結果取得失敗時の復旧案内
-- JSON応答、進捗項目、TTYと非TTYの表示
-
-実行コマンドは次のとおりです。
-
-```sh
-node --test scripts/org-tests/test/*.node.js
-```
-
-## 制約・注意事項
+### 制約・注意事項
 
 - `RunLocalTests`の対象範囲はSalesforce標準の定義に従います。
 - Apexでは、インストール済み管理パッケージとnamespaced unlocked packageのテストを実行しません。
@@ -282,8 +260,12 @@ node --test scripts/org-tests/test/*.node.js
 - カバレッジはSalesforce CLIが返す結果を表示し、スクリプト独自の合格率を追加しません。
 - ApexとFlowのテストだけでは、画面描画や外部システムの実動作を保証しません。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - Salesforce CLI更新時は、Apex／Flowの開始、結果取得、カバレッジに使用する引数と応答形式をhelpおよび対象組織で確認し、結果をPRとログへ記録します。
 - Node.jsテストのSalesforce CLI応答は模擬JSONです。実組織でのApex並列実行設定、Apexの完了後の最終結果とカバレッジ、Flowの開始から結果取得まで、日時付き進捗表示、長時間監視、Ctrl+C、タイムアウト時の表示は未確認です。
 - 承認済みの外部要求または業務契約との比較対象はありません。
+
+### テストコードと確認内容
+
+[テストコードと確認内容](tests.md)

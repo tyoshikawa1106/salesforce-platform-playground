@@ -1,29 +1,43 @@
 # メタデータ削除スクリプト
 
-## 概要
+## 機能の用途
 
 `npm run sf:destructive`を1回実行し、Default Target Orgの確認、dry-run、実削除、完了監視までを連続して行うNode.jsスクリプトです。削除対象はリポジトリ管理のmanifestで指定します。
-
-## 目的・利用場面
 
 Salesforce組織からmetadataを削除するときに接続先を確認し、Salesforceのdry-runが成功した対象だけを、同じ対象組織とmanifestで実削除するために使用します。
 
 本番実行前の確認、依存調査、復旧方針は[メタデータ削除ルール](../../../deployment/metadata-deletion-rules.md)に従います。
 
-## 対象実装・メタデータ
+## 対象実装
 
-| 種別               | API名・ファイル名                                        | 役割                                                   |
-| ------------------ | -------------------------------------------------------- | ------------------------------------------------------ |
-| npm script         | `sf:destructive`                                         | 利用者が実行する入口                                   |
-| Node.js script     | `scripts/metadata/destructive/destructive.js`            | manifest検査、接続先確認、承認、deploy順序を制御する   |
-| Node.js module     | `scripts/metadata/destructive/internal/deploy-runner.js` | deployの開始、監視、結果検証、中断処理を行う           |
-| manifest           | `manifest/destructivePackage.xml`                        | 削除deployに必要な通常manifest                         |
-| manifest           | `manifest/destructiveChanges.xml`                        | 削除するmetadata typeとfullNameを定義する              |
-| 共通Node.js module | `scripts/common/approval.js`                             | `y`または`Y`だけを承認として扱う                       |
-| 共通Node.js module | `scripts/common/target-org.js`                           | Default Target Orgの情報取得、照合、組織種別判定を行う |
-| 共通Node.js module | `scripts/common/run-command.js`                          | Salesforce CLIをshell経由なしで実行する                |
+| 種別               | API名・ファイル名                                                                      | 役割                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| npm script         | `sf:destructive`                                                                       | 利用者が実行する入口                                   |
+| Node.js script     | [destructive.js](../../../../scripts/metadata/destructive/destructive.js)              | manifest検査、接続先確認、承認、deploy順序を制御する   |
+| Node.js module     | [deploy-runner.js](../../../../scripts/metadata/destructive/internal/deploy-runner.js) | deployの開始、監視、結果検証、中断処理を行う           |
+| manifest           | `manifest/destructivePackage.xml`                                                      | 削除deployに必要な通常manifest                         |
+| manifest           | `manifest/destructiveChanges.xml`                                                      | 削除するmetadata typeとfullNameを定義する              |
+| 共通Node.js module | [approval.js](../../../../scripts/common/approval.js)                                  | `y`または`Y`だけを承認として扱う                       |
+| 共通Node.js module | [target-org.js](../../../../scripts/common/target-org.js)                              | Default Target Orgの情報取得、照合、組織種別判定を行う |
+| 共通Node.js module | [run-command.js](../../../../scripts/common/run-command.js)                            | Salesforce CLIをshell経由なしで実行する                |
 
-## 入力
+### 関連コンポーネント
+
+- [メタデータ削除ルール](../../../deployment/metadata-deletion-rules.md)
+- [組織操作ルール](../../../deployment/org-operation-rules.md)
+- [Repository Structure](../../repository-structure.md)
+- Salesforce CLIのMetadata API deploy
+
+## 対象ファイル・データ
+
+- dry-runはSalesforce組織のmetadataを変更しません。
+- 実削除は`manifest/destructiveChanges.xml`に指定したmetadataをDefault Target Orgから削除します。
+- スクリプトはローカルのmanifestとsourceを変更しません。
+- 標準出力には接続先、承認、進捗、job ID、完了案内を表示します。
+- 標準エラーにはmanifest、Salesforce CLI応答、成功判定のエラーを表示します。
+- 正常完了と利用者による承認拒否は終了コード`0`、失敗は`1`、Ctrl+Cによる監視中断は`130`を返します。
+
+## 実行方法・入力
 
 - 実行コマンドは次のとおりです。追加のコマンドライン引数は受け付けません。
 
@@ -36,7 +50,62 @@ Salesforce組織からmetadataを削除するときに接続先を確認し、Sa
 - 通常manifestには`manifest/destructivePackage.xml`を使用します。
 - 接続組織と、必要な場合は組織種別について、標準入力から承認を受け付けます。
 
-## 処理内容
+### 権限・実行条件
+
+- リポジトリの対応Node.jsバージョンとSalesforce CLIを使用できること
+- Salesforce CLIにDefault Target Orgが設定され、認証済み組織一覧から1件に特定できること
+- 実行者が対象metadataをdeployおよび削除できる権限を持つこと
+- `manifest/destructivePackage.xml`に追加・更新対象が含まれていないこと
+- `manifest/destructiveChanges.xml`に承認済みの削除対象だけが設定されていること
+- 本番実行前に、同じ削除対象をSandboxで削除し、Apexテストと対象に応じた画面、Flow、外部連携を確認していること
+
+## エラー判定
+
+### 引数とmanifestのエラー
+
+- 引数を指定した場合は、引数を受け付けないことと正しいnpmコマンドを表示し、Salesforce CLIを実行しません。
+- 削除対象が空、不完全、プレースホルダー、ワイルドカードの場合は、組織情報を取得せず終了します。
+
+### deploy開始結果が不明な場合
+
+deploy開始コマンドのタイムアウト、JSON解析不能、数値の`status`がない応答など、jobが作成された可能性を否定できない場合は、次の形式で自動再実行を禁止します。job IDを安全に取得できないため、reportコマンドは組み立てません。
+
+```text
+<dry-runまたはdestructive deploy>の開始状況を確認できません。自動で再実行しないでください。
+SalesforceのDeployment Statusで実行状況を確認してください。
+```
+
+Salesforce CLIから数値の非`0`の`status`を持つ構造化された開始失敗を取得できた場合は、確定した開始失敗としてエラーだけを表示します。プロセスの終了コードだけでは開始失敗を断定しません。
+
+### 監視応答を検証できない場合
+
+job IDの取得後にreport応答を解析または検証できない場合は、組織上のdeployが継続している可能性と結果確認コマンドを表示します。
+
+```text
+<dry-runまたはdestructive deploy>の進捗監視を終了しました。
+エラー: <監視エラー>
+組織上のdeployは継続している可能性があります。
+結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <確認したusername>
+```
+
+### Ctrl+C
+
+接続組織の承認と、本番・Developer Editionの追加承認をすべて終えた時点で、確認入力用のreadlineを閉じます。端末のraw入力を解除し、以後のCtrl+CをプロセスのSIGINTとして受け付けます。
+
+開始コマンド、進捗照会、次回pollまでの待機は非同期で実行し、Ctrl+CでローカルCLIと待機を中断します。中断状態はdry-runから実削除への移行まで共有し、終了コード`130`を変更せず返します。dry-run中または完了後に中断を受けた場合は実削除を開始しません。Salesforce組織上で開始済みのdeployはキャンセルしません。
+
+開始応答からjob IDを取得できない場合は、開始状況不明としてDeployment Statusの確認を案内します。job IDを取得できた場合は、同じjobの結果確認コマンドを表示します。
+
+```text
+進捗監視を終了しました。組織上のdeployは継続している可能性があります。
+結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <確認したusername>
+```
+
+### 完了結果が成功条件を満たさない場合
+
+最終状態、`success`、`checkOnly`が成功条件を満たさない場合は終了コード`1`を返し、job IDを指定した結果確認コマンドを表示します。dry-runの失敗時は実削除せず、実削除の失敗時は削除完了とApexテストの案内を表示しません。
+
+## 処理詳細
 
 現在の処理順序は次のとおりです。
 
@@ -217,106 +286,7 @@ dry-runと同じ方法で完了まで監視し、次を確認します。
 
 Apexテストは自動実行しません。
 
-## 出力・更新対象
-
-- dry-runはSalesforce組織のmetadataを変更しません。
-- 実削除は`manifest/destructiveChanges.xml`に指定したmetadataをDefault Target Orgから削除します。
-- スクリプトはローカルのmanifestとsourceを変更しません。
-- 標準出力には接続先、承認、進捗、job ID、完了案内を表示します。
-- 標準エラーにはmanifest、Salesforce CLI応答、成功判定のエラーを表示します。
-- 正常完了と利用者による承認拒否は終了コード`0`、失敗は`1`、Ctrl+Cによる監視中断は`130`を返します。
-
-## 権限・実行条件
-
-- リポジトリの対応Node.jsバージョンとSalesforce CLIを使用できること
-- Salesforce CLIにDefault Target Orgが設定され、認証済み組織一覧から1件に特定できること
-- 実行者が対象metadataをdeployおよび削除できる権限を持つこと
-- `manifest/destructivePackage.xml`に追加・更新対象が含まれていないこと
-- `manifest/destructiveChanges.xml`に承認済みの削除対象だけが設定されていること
-- 本番実行前に、同じ削除対象をSandboxで削除し、Apexテストと対象に応じた画面、Flow、外部連携を確認していること
-
-## エラー処理
-
-### 引数とmanifestのエラー
-
-- 引数を指定した場合は、引数を受け付けないことと正しいnpmコマンドを表示し、Salesforce CLIを実行しません。
-- 削除対象が空、不完全、プレースホルダー、ワイルドカードの場合は、組織情報を取得せず終了します。
-
-### deploy開始結果が不明な場合
-
-deploy開始コマンドのタイムアウト、JSON解析不能、数値の`status`がない応答など、jobが作成された可能性を否定できない場合は、次の形式で自動再実行を禁止します。job IDを安全に取得できないため、reportコマンドは組み立てません。
-
-```text
-<dry-runまたはdestructive deploy>の開始状況を確認できません。自動で再実行しないでください。
-SalesforceのDeployment Statusで実行状況を確認してください。
-```
-
-Salesforce CLIから数値の非`0`の`status`を持つ構造化された開始失敗を取得できた場合は、確定した開始失敗としてエラーだけを表示します。プロセスの終了コードだけでは開始失敗を断定しません。
-
-### 監視応答を検証できない場合
-
-job IDの取得後にreport応答を解析または検証できない場合は、組織上のdeployが継続している可能性と結果確認コマンドを表示します。
-
-```text
-<dry-runまたはdestructive deploy>の進捗監視を終了しました。
-エラー: <監視エラー>
-組織上のdeployは継続している可能性があります。
-結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <確認したusername>
-```
-
-### Ctrl+C
-
-接続組織の承認と、本番・Developer Editionの追加承認をすべて終えた時点で、確認入力用のreadlineを閉じます。端末のraw入力を解除し、以後のCtrl+CをプロセスのSIGINTとして受け付けます。
-
-開始コマンド、進捗照会、次回pollまでの待機は非同期で実行し、Ctrl+CでローカルCLIと待機を中断します。中断状態はdry-runから実削除への移行まで共有し、終了コード`130`を変更せず返します。dry-run中または完了後に中断を受けた場合は実削除を開始しません。Salesforce組織上で開始済みのdeployはキャンセルしません。
-
-開始応答からjob IDを取得できない場合は、開始状況不明としてDeployment Statusの確認を案内します。job IDを取得できた場合は、同じjobの結果確認コマンドを表示します。
-
-```text
-進捗監視を終了しました。組織上のdeployは継続している可能性があります。
-結果確認: sf project deploy report --job-id 0AfXXXXXXXXXXXXXXX --target-org <確認したusername>
-```
-
-### 完了結果が成功条件を満たさない場合
-
-最終状態、`success`、`checkOnly`が成功条件を満たさない場合は終了コード`1`を返し、job IDを指定した結果確認コマンドを表示します。dry-runの失敗時は実削除せず、実削除の失敗時は削除完了とApexテストの案内を表示しません。
-
-## 関連コンポーネント
-
-- [メタデータ削除ルール](../../../deployment/metadata-deletion-rules.md)
-- [組織操作ルール](../../../deployment/org-operation-rules.md)
-- [Repository Structure](../../repository-structure.md)
-- Salesforce CLIのMetadata API deploy
-
-## テスト・確認観点
-
-### 削除フロー
-
-次のコマンドで、manifest検査、接続先と組織種別の承認、dry-runと実削除の順序、CLI引数、完了メッセージを確認します。
-
-```sh
-node --test scripts/metadata/destructive/test/destructive.node.js
-```
-
-Sandboxと本番の全承認後、dry-run開始前に入力受付を閉じることを単体テストで確認します。端末への実際のCtrl+C入力は自動テストの対象外です。
-
-### deployの実行と監視
-
-次のコマンドで、非同期開始、5秒間隔のreport、CLI呼び出し上限、開始状況不明、監視エラー、開始・照会・poll待機中のCtrl+C、実削除移行前の中断、dry-run／実削除の成功判定を確認します。
-
-```sh
-node --test scripts/metadata/destructive/test/deploy-runner.node.js
-```
-
-リポジトリのNode.jsスクリプトテスト全体は次で実行します。
-
-```sh
-npm run test:scripts
-```
-
-テストはSalesforce CLI応答、確認入力、時間待機をモックし、Salesforce組織へ接続しません。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - dry-runと実削除ではテストレベルを明示しません。削除後のApexテストは別コマンドとして案内するだけで、自動実行しません。
 - ApexテストだけではVisualforce、画面描画、Flow、外部連携を保証できないため、削除対象に応じた確認が別途必要です。
@@ -326,9 +296,13 @@ npm run test:scripts
 - component件数、componentエラー、`rollbackOnError`、Apexテスト結果は、スクリプト独自の成功条件として重ねて判定しません。
 - Quick Deployは使用しません。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 未確認
 - 現行仕様は`destructive.js`、`deploy-runner.js`と対応するNode.jsテストから確認しています。
 - Node.jsテストのSalesforce CLI応答はすべてモックです。実際のdry-runと実削除で返るJSON形式、進捗、削除結果の出方は、承認済みの削除対象を使ったSandboxリハーサルで確認が必要です。
 - 承認済み要求の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
+
+### テストコードと確認内容
+
+[テストコードと確認内容](tests.md)
