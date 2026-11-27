@@ -207,7 +207,7 @@ private with sharing class OrgExplorerSelectorTest {
             Integer beforeQueries = Limits.getQueries();
             List<UserRole> records = selector.selectRoleStructurePage(boundary);
             Set<Id> ids = new Map<Id, UserRole>(records).keySet();
-            Set<Id> roleIds = new Map<Id, UserRole>(roles).keySet();
+            Set<Id> roleIds = new Set<Id>(new Map<Id, UserRole>(roles).keySet());
             roleIds.add(root.Id);
             List<AggregateResult> counts = selector.countRoleMembers(roleIds, request);
             Integer queryCost = Limits.getQueries() - beforeQueries;
