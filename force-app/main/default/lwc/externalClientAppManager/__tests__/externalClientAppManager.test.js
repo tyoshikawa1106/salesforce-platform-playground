@@ -51,6 +51,9 @@ function updateResponses() {
         .mockResolvedValueOnce({ state: 'complete', stages: [{ ...stage, state: 'rotated' }] });
 }
 describe('外部クライアントアプリ認証管理', () => {
+    const originalTimeout = AbortSignal.timeout;
+    beforeAll(() => { AbortSignal.timeout = () => new AbortController().signal; });
+    afterAll(() => { AbortSignal.timeout = originalTimeout; });
     afterEach(() => {
         document.body.replaceChildren();
         jest.resetAllMocks();
@@ -600,6 +603,34 @@ describe('外部クライアントアプリ認証管理', () => {
         expect(button(element, '認証')).toBeUndefined();
         expect(button(element, '接続を再確認')).toBeUndefined();
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
+    });
+    it.each(['認証状態の確認', '認証開始URLの取得'])('%sが応答しなくても再試行でき、古い応答を破棄する', async step => {
+        const original = AbortSignal.timeout;
+        let deadline;
+        AbortSignal.timeout = jest.fn(() => {
+            deadline = new AbortController();
+            return deadline.signal;
+        });
+        try {
+            let finish;
+            const pending = new Promise(resolve => { finish = resolve; });
+            const urlStep = step === '認証開始URLの取得';
+            (urlStep ? getAuthenticationUrl : getAuthentication).mockReturnValueOnce(pending);
+            const element = await createComponent({ status: 'REQUIRED' });
+            expect(AbortSignal.timeout).toHaveBeenCalledWith(30000);
+            deadline.abort();
+            await flush();
+            expect(element.shadowRoot.textContent).toContain(step + 'の応答がありません');
+            getAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED' });
+            button(element, '接続を再確認').click();
+            await flush();
+            finish(urlStep ? '/stale' : { status: 'NO_ACCESS' });
+            await flush();
+            expect(element.shadowRoot.querySelector('input[role="combobox"]')).not.toBeNull();
+            expect(element.shadowRoot.querySelector('.c-authentication')).toBeNull();
+        } finally {
+            AbortSignal.timeout = original;
+        }
     });
     it('認証し直して戻った画面では接続を確認して操作を許可する', async () => {
         const before = await createComponent({ status: 'UNAVAILABLE' });

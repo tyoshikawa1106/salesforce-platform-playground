@@ -16,6 +16,7 @@ import {
     normalizedApplicationId
 } from './externalClientAppManagerLogic';
 
+const AUTHENTICATION_WAIT_MS = 30000;
 const AUTH_URL_ERROR = '管理用APIの本人確認が完了せず、認証開始URLも取得できませんでした。個人設定でアクセスを許可した後は［接続を再確認］を押してください。';
 
 // 本人の認証と選択中アプリに対する操作順序を管理する
@@ -53,6 +54,31 @@ export default class ExternalClientAppManager extends LightningElement {
     // 画面を離れる前に開始した非同期処理を復帰後へ持ち越さない
     operationVersion = 0;
 
+    authenticationDeadline;
+
+    get authenticationProgress() {
+        return this.authenticationStatus === 'CHECKING' ? '認証状態を確認しています…' : '認証開始URLを取得しています…';
+    }
+
+    startAuthenticationTimer(operationVersion) {
+        this.stopAuthenticationTimer();
+        this.authenticationDeadline = AbortSignal.timeout(AUTHENTICATION_WAIT_MS);
+        this.authenticationDeadline.onabort = () => {
+            if (operationVersion !== this.operationVersion) return;
+            const step = this.authenticationStatus === 'CHECKING' ? '認証状態の確認' : '認証開始URLの取得';
+            this.operationVersion += 1;
+            this.error = step + 'の応答がありません。［接続を再確認］を押してください。';
+            this.authenticationStatus = 'UNAVAILABLE';
+            this.busy = false;
+            this.stopAuthenticationTimer();
+        };
+    }
+
+    stopAuthenticationTimer() {
+        if (this.authenticationDeadline) this.authenticationDeadline.onabort = null;
+        this.authenticationDeadline = undefined;
+    }
+
     get authenticationRequired() {
         // 接続確認に成功するまでは状態分類によらず認証操作を表示する
         return !this.authenticationReady;
@@ -79,6 +105,7 @@ export default class ExternalClientAppManager extends LightningElement {
     }
 
     disconnectedCallback() {
+        this.stopAuthenticationTimer();
         // 離脱前の検索結果で候補を開き直さない
         this.closeCandidates();
         // 送信済み要求は取り消さず、応答後の後続操作だけを無効化する
@@ -106,6 +133,7 @@ export default class ExternalClientAppManager extends LightningElement {
         this.busy = true;
         try {
             // 未認証の接続へアプリ一覧を要求しない
+            this.startAuthenticationTimer(operationVersion);
             let authentication;
             try {
                 authentication = await getAuthentication();
@@ -124,6 +152,7 @@ export default class ExternalClientAppManager extends LightningElement {
             }
             if (!this.authenticationReady) {
                 try {
+                    this.startAuthenticationTimer(operationVersion);
                     const url = await getAuthenticationUrl();
                     // 古い画面接続へ認証URLを戻さない
                     if (!this.isConnected || operationVersion !== this.operationVersion) return;
@@ -140,6 +169,7 @@ export default class ExternalClientAppManager extends LightningElement {
                     : AUTH_URL_ERROR;
                 return;
             }
+            this.stopAuthenticationTimer();
             // 選択済みならIDで照合し、未選択なら保持中の検索語で候補を再取得する
             const response = await execute({ input: { action: 'list', ...(this.appId ? { appId: this.appId } : { term: this.appTerm }) } });
             // 離脱または再接続後は後続のAPI送信と画面更新を行わない
@@ -174,7 +204,10 @@ export default class ExternalClientAppManager extends LightningElement {
             this.error = errorMessage(error);
         } finally {
             // 初期取得が完了してから選択を許可する
-            if (this.isConnected && operationVersion === this.operationVersion) this.busy = false;
+            if (this.isConnected && operationVersion === this.operationVersion) {
+                this.stopAuthenticationTimer();
+                this.busy = false;
+            }
         }
     }
 

@@ -61,29 +61,6 @@
     }
 }
 
-/* ブラウザの最前面に置き、長いユーザー名も表示できる幅を確保する。 */
-.c-confirmation {
-    inset: 0;
-    width: min(36rem, 94vw);
-    max-height: 90vh;
-    margin: auto;
-    border: 0;
-    border-radius: var(--slds-g-radius-border-3, 0.5rem);
-    box-shadow: var(--slds-g-shadow-3, 0 4px 12px #0003);
-}
-
-.c-confirmation[open] {
-    display: flex;
-}
-
-.c-confirmation::backdrop {
-    background: color-mix(in srgb, var(--slds-g-color-neutral-base-10, #181818) 60%, transparent);
-}
-
-.c-confirmation-body {
-    overflow-y: auto;
-}
-
 .c-confirmation-row {
     display: grid;
     grid-template-columns: 10rem minmax(0, 1fr);
