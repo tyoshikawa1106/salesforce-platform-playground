@@ -17,6 +17,8 @@ jest.mock('@salesforce/apex/ObjectExplorerController.getApiAuthentication', () =
 
 const flush = () => Array.from({ length: 30 }).reduce((p) => p.then(() => Promise.resolve()), Promise.resolve());
 beforeEach(() => {
+    // 読み取り専用画面の認証は即時完了する。jsdomで未実装の期限だけ補う。
+    AbortSignal.timeout ??= () => new AbortController().signal;
     jest.spyOn(console, 'error').mockImplementation(() => {});
     getApiAuthentication.mockResolvedValue({ status: 'AUTHENTICATED', message: '' });
     searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }]);

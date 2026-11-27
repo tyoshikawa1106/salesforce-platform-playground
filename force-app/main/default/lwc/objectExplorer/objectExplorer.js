@@ -61,19 +61,14 @@ export default class ObjectExplorer extends LightningElement {
     // 初期状態の確認完了前に認証が必要な通信を始めない
     apiAuthenticationPromise;
     // 接続確認に成功するまでは認証をやり直す導線を表示する
-    get apiAuthenticationRequired() { return !this.apiAuthenticationReady; }
+    get apiAuthenticationRequired() { return !this.apiAuthenticationReady && !this.apiAuthenticationPending; }
     // 認証を確認できた場合だけ探索・分類の操作領域を描画する
     get apiAuthenticationReady() { return this.apiAuthenticationStatus === 'AUTHENTICATED'; }
     // 初期確認の間に未認証の操作領域を一瞬表示しない
-    get apiAuthenticationPending() { return this.apiAuthenticationStatus === 'CHECKING'; }
+    get apiAuthenticationPending() { return this.apiAuthenticationStatus === 'CHECKING' || (this.apiAuthenticationChecking && !this.apiAuthenticationReady); }
+    get apiAuthenticationProgress() { return this.apiAuthenticationStatus === 'CHECKING' ? '認証状態を確認しています…' : '認証開始URLを取得しています…'; }
     // 状態確認中や保存中の再確認を抑止する
     get apiAuthenticationDisabled() { return this.apiAuthenticationChecking || this.busy || this.saving; }
-
-    get canRecheckApiAuthentication() { return this.apiAuthenticationRequired && !this.apiAuthenticationDisabled; }
-
-    handleApiAuthenticationRecheck() {
-        if (this.canRecheckApiAuthentication) this.apiAuthenticationPromise = this.refreshApiAuthentication();
-    }
 
     // 標準状態と実接続の結果を画面共通の案内へ反映する
     async refreshApiAuthentication() {
@@ -85,13 +80,19 @@ export default class ObjectExplorer extends LightningElement {
         this.apiAuthenticationChecking = true;
         // 前の認証フロー用URLを再利用しない
         this.apiAuthenticationUrl = '';
-        // 接続失敗を未認証へ変換しない境界で確認する
+        // 状態確認と開始URL取得の待機を合わせて30秒に制限する。
+        let deadline;
         try {
+            deadline = AbortSignal.timeout(30000);
+            const timeout = new Promise((resolve, reject) => {
+                deadline.onabort = () => reject(new Error('認証確認のタイムアウト'));
+            });
             // 実行ユーザーの標準認証状態と同一組織への接続を確認する
             let state;
             try {
-                state = await getApiAuthentication();
-            } catch {
+                state = await Promise.race([getApiAuthentication(), timeout]);
+            } catch (error) {
+                if (deadline.aborted) throw error;
                 // 接続確認の失敗だけでは標準認証URLの取得を妨げない
                 state = { status: 'UNAVAILABLE', message: 'Salesforce APIの認証状態を確認できませんでした。認証をやり直すか、接続設定と権限を確認してください。' };
             }
@@ -104,7 +105,7 @@ export default class ObjectExplorer extends LightningElement {
             // 接続確認と独立して認証をやり直すURLを取得する
             if (!this.apiAuthenticationReady) {
                 // 同じタブで標準OAuthへ移動するリンクを準備する
-                const url = await getApiAuthenticationUrl();
+                const url = await Promise.race([getApiAuthenticationUrl(), timeout]);
                 // 空のURLをクリック可能な認証操作とみなさない
                 if (!url) throw new Error('認証開始URLを確認できません。');
                 // 途中で別要求へ変わった場合はURLを破棄する
@@ -118,15 +119,21 @@ export default class ObjectExplorer extends LightningElement {
                 // 状態確認やURL取得の失敗を認証済み・未認証と推定しない
                 // API応答本文やURLをエラーへ含めない
                 const reason = this.apiAuthenticationStatus === 'UNAVAILABLE' ? this.apiAuthenticationMessage : '';
+                if (deadline?.aborted) {
+                    this.apiAuthenticationMessage = this.apiAuthenticationProgress + ' 30秒以内に応答がありませんでした。ページを再読み込みしてください。';
+                    this.apiAuthenticationStatus = 'UNAVAILABLE';
+                    return false;
+                }
                 const urlMessage = error?.body?.message?.startsWith('[OE-AUTH-URL]')
                     ? '認証開始 URL をこの組織の My Domain と照合できませんでした。'
-                    : 'API認証を開始できませんでした。認証開始URLを取得できません。';
+                    : 'API認証を開始できませんでした。外部ログイン情報 InternalSalesforceApi と、そのプリンシパル SalesforceApiUserPrincipal の利用権限を確認してページを再読み込みしてください。';
                 this.apiAuthenticationStatus = 'UNAVAILABLE';
                 this.apiAuthenticationMessage = [reason, urlMessage].filter(Boolean).join(' ');
             }
             // 古い表示状態を確認成功として使わない
             return false;
         } finally {
+            if (deadline) deadline.onabort = null;
             // 別要求の確認中表示を古い要求から解除しない
             if (sequence === this.apiAuthenticationSequence) this.apiAuthenticationChecking = false;
         }
