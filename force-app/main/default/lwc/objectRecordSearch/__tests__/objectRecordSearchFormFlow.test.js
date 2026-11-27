@@ -515,35 +515,32 @@ describe('c-object-record-search form flows', () => {
         await flushPromises();
 
         expect(findButton(getModal(), '保存').disabled).toBe(true);
-        expect(getModal().disableClose).toBe(true);
+        expect(getModal().disableClose).toBe(false);
         const duplicateSubmit = new CustomEvent('submit', { cancelable: true });
         getModalRoot().querySelector('lightning-record-edit-form').dispatchEvent(duplicateSubmit);
         expect(duplicateSubmit.defaultPrevented).toBe(true);
     });
 
-    it('保存中は標準モーダルを閉じられず、エラー後は再び閉じられる', async () => {
+    it.each(['閉じる', '標準'])('保存応答を待たずに%s操作で閉じても保存成功を通知しない', async (action) => {
         const element = await createRecordFormReadyComponent();
+        const changed = jest.fn();
+        element.addEventListener('recordschanged', changed);
         await openNewRecordForm(element);
-        getModalRoot().querySelectorAll('lightning-input-field').forEach((field) => {
-            field.reportValidity = jest.fn().mockReturnValue(true);
-        });
-        const form = getModalRoot().querySelector('lightning-record-edit-form');
-        form.dispatchEvent(new CustomEvent('submit'));
-        await flushPromises();
-
         const modal = getModal();
-        expect(modal.disableClose).toBe(true);
-        findButton(modal, 'キャンセル').click();
-        modal.close();
+        getModalRoot().querySelectorAll('lightning-input-field').forEach((field) => {
+            field.reportValidity = () => true;
+        });
+        getModalRoot().querySelector('lightning-record-edit-form').dispatchEvent(new CustomEvent('submit'));
         await flushPromises();
-        expect(getModalRoot().querySelector('lightning-record-edit-form')).toBe(form);
 
-        form.dispatchEvent(new CustomEvent('error', { detail: { message: '保存失敗' } }));
+        expect(findButton(modal, '閉じる').disabled).toBeFalsy();
+        if (action === '閉じる') findButton(modal, '閉じる').click();
+        else modal.close();
         await flushPromises();
-        expect(modal.disableClose).toBe(false);
-        findButton(modal, 'キャンセル').click();
-        await flushPromises();
+
         expect(getModal()).toBeNull();
+        expect(changed).not.toHaveBeenCalled();
+        expect(refreshApex).not.toHaveBeenCalled();
     });
 
     it('保存エラーにメッセージがない場合はフォーム内に代替案内を表示する', async () => {
