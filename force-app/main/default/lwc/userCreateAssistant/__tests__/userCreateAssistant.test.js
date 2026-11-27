@@ -541,6 +541,7 @@ it('Escapeで保存せずに戻り、再度開いて確定した結果が空な�
     await flush();
     expect(modal(root)).toBeNull();
     expect(saveUser).not.toHaveBeenCalled();
+    expect(root.activeElement).toBe(root.querySelector('h1'));
     await submit(root); await flush();
     expect(root.textContent).toContain('作成結果を確認できません');
 });

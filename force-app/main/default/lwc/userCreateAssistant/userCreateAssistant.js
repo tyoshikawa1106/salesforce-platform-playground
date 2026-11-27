@@ -426,15 +426,19 @@ export default class UserCreateAssistant extends LightningElement {
         this.confirmationSections = undefined;
     }
 
-    handleCancel() {
+    async returnToPageTop() {
         this.closeConfirmation();
-        Promise.resolve().then(() => this.refs?.review?.focus());
+        // モーダルが閉じ、背景の inert が解除されてから見出しに戻す。
+        await Promise.resolve();
+        this.refs?.pageTitle?.focus({ preventScroll: true });
+        // Lightning ページ内で実際にスクロールしているコンテナを先頭へ戻す。
+        this.refs?.background?.scrollIntoView?.({ block: 'start' });
     }
 
     handleConfirmationKey(event) {
         if (event.key === 'Escape') {
             event.preventDefault();
-            this.handleCancel();
+            this.returnToPageTop();
         } else if (event.key === 'Tab') {
             const { cancel, confirm } = this.refs;
             if ((event.shiftKey && event.target === cancel) || (!event.shiftKey && event.target === confirm)) {
@@ -448,7 +452,7 @@ export default class UserCreateAssistant extends LightningElement {
         // キャンセル後と二重送信は保存しない
         if (!this.confirmationSections || this.saving || !this.panels) return;
         // 確定操作で確認画面を閉じ、検証結果または保存状態をフォームに表示する。
-        this.confirmationSections = undefined;
+        this.returnToPageTop();
         let deadline;
         try {
             if (this.reportMatchingUsername()) return;
@@ -482,7 +486,7 @@ export default class UserCreateAssistant extends LightningElement {
             // 個人情報を含む編集中の値を解放
             this.fields = [];
             await Promise.resolve();
-            this.refs?.created?.focus();
+            this.refs?.created?.focus({ preventScroll: true });
             // 編集済みの元側項目を消去
             this.sourceDraft = {};
             // 作成済みの入力を消去
