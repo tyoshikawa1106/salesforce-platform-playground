@@ -17,7 +17,7 @@ import {
 } from './externalClientAppManagerLogic';
 
 const AUTHENTICATION_WAIT_MS = 30000;
-const AUTH_URL_ERROR = '管理用APIの本人確認が完了せず、認証開始URLも取得できませんでした。個人設定でアクセスを許可した後は［接続を再確認］を押してください。';
+const AUTH_URL_ERROR = '外部ログイン情報 ExternalClientAppManager の認証開始URLを取得できませんでした。接続設定とプリンシパルへのアクセス権を確認し、このページを再読み込みしてください。';
 
 // 本人の認証と選択中アプリに対する操作順序を管理する
 export default class ExternalClientAppManager extends LightningElement {
@@ -67,7 +67,7 @@ export default class ExternalClientAppManager extends LightningElement {
             if (operationVersion !== this.operationVersion) return;
             const step = this.authenticationStatus === 'CHECKING' ? '認証状態の確認' : '認証開始URLの取得';
             this.operationVersion += 1;
-            this.error = step + 'の応答がありません。［接続を再確認］を押してください。';
+            this.error = step + 'を開始してから30秒以内に応答がありませんでした。このページを再読み込みしてください。';
             this.authenticationStatus = 'UNAVAILABLE';
             this.busy = false;
             this.stopAuthenticationTimer();
@@ -89,14 +89,8 @@ export default class ExternalClientAppManager extends LightningElement {
         return this.authenticationStatus === 'AUTHENTICATED';
     }
 
-    get canRecheckAuthentication() {
-        return !this.busy && this.authenticationRequired;
-    }
-
-    handleAuthenticationRecheck() {
-        if (this.canRecheckAuthentication) {
-            this.loadApplications();
-        }
+    get showAuthenticationStatus() {
+        return this.authenticationRequired && (this.busy || Boolean(this.authenticationUrl));
     }
 
     connectedCallback() {
@@ -147,7 +141,7 @@ export default class ExternalClientAppManager extends LightningElement {
             this.authenticationStatus = authentication?.status || 'UNAVAILABLE';
             // 接続確認と独立した標準URLを使って認証をやり直せるようにする
             if (this.authenticationStatus === 'NO_ACCESS') {
-                this.error = 'この機能を利用するカスタム権限 ManageExternalClientAppCredentials がありません。利用者への権限セット LwcExternalClientAppManager の割り当てを確認してください。';
+                this.error = 'この機能を利用するカスタム権限 ManageExternalClientAppCredentials がありません。利用者への権限セット LwcExternalClientAppManager の割り当てを確認し、このページを再読み込みしてください。';
                 return;
             }
             if (!this.authenticationReady) {
