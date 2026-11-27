@@ -25,9 +25,17 @@ public with sharing class ObjectExplorerAuthenticationService {
      */
     public Map<String, Object> createAuthenticationFailure(Exception error) {
         // 接続先・ネットワーク・権限の失敗を認証失効と混同しない
-        Boolean rejected = error instanceof SalesforceApiClient.IntegrationException && error.getMessage().contains('[OE-AUTH-401]');
-        // 元の例外本文は応答へ渡さない
-        return createAuthenticationState(rejected ? ConnectApi.CredentialAuthenticationStatus.NotConfigured : null);
+        Map<String, Object> state = createAuthenticationState(null);
+        if (error instanceof SalesforceApiClient.IntegrationException) {
+            String reason = error.getMessage();
+            if (reason.startsWith('[OE-AUTH-401]')) { return createAuthenticationState(ConnectApi.CredentialAuthenticationStatus.NotConfigured); }
+            if (reason.startsWith('[OE-ORG-MISMATCH]')) {
+                state.put('message', '認証先の組織が一致しません。指定ログイン情報 InternalSalesforceApi の接続先と、認証した組織を確認してください。');
+            } else if (reason.startsWith('[OE-API-HTTP-403]')) {
+                state.put('message', 'Salesforce API がアクセスを拒否しました（HTTP 403）。認証したユーザーの API 利用権限とアクセス制限を確認してください。');
+            }
+        }
+        return state;
     }
 
     /**
@@ -37,10 +45,10 @@ public with sharing class ObjectExplorerAuthenticationService {
      */
     public String requireAuthenticationUrl(String value) {
         // 現在組織のHTTPSオリジンとパス境界を固定し、他ホストやユーザー情報を拒否する
-        String prefix = Url.getOrgDomainUrl().toExternalForm() + '/';
+        String authenticationUrl = SalesforceApiProtocol.organizationAuthenticationUrl(value);
         // 標準URLだけを受け付け、値やクエリ文字列は診断へ含めない
-        if (String.isBlank(value) || !value.startsWith(prefix)) { throw ObjectExplorerAccessPolicy.createException('API認証の開始URLを取得できませんでした。管理者に確認してください。'); }
+        if (authenticationUrl == null) { throw ObjectExplorerAccessPolicy.createException('[OE-AUTH-URL] API認証の開始URLを取得できませんでした。管理者に確認してください。'); }
         // 認証情報を記録せず利用者のリンクへ渡す
-        return value;
+        return authenticationUrl;
     }
 }

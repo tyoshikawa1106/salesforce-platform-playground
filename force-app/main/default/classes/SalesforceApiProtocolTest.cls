@@ -4,6 +4,22 @@ private with sharing class SalesforceApiProtocolTest {
     private static SalesforceApiProtocol.RecordReader reader = new SalesforceApiProtocol.RecordReader();
     private static User testUser = new User(Id = UserInfo.getUserId());
 
+    /** 標準認証URLの復元と接続先の制限を確認 */
+    @IsTest
+    static void normalizesOnlyCurrentOrganizationAuthenticationUrls() {
+        System.runAs(testUser) {
+            Test.startTest();
+            String origin = Url.getOrgDomainUrl().toExternalForm();
+            String url = origin + '/auth?state=a%2Bb%26c&next=%2Fhome';
+            String escaped = url.replace('&next=', '&amp;next=');
+            Assert.areEqual(url, SalesforceApiProtocol.organizationAuthenticationUrl(url), '既存のクエリ値を保持');
+            Assert.areEqual(url, SalesforceApiProtocol.organizationAuthenticationUrl(escaped), 'HTMLの区切りを復元');
+            Assert.areEqual(url, SalesforceApiProtocol.organizationAuthenticationUrl(EncodingUtil.urlEncode(escaped, 'UTF-8')), '外側を一度だけ復元');
+            Assert.isNull(SalesforceApiProtocol.organizationAuthenticationUrl(EncodingUtil.urlEncode(origin + '.invalid/auth', 'UTF-8')), '復元後も組織を照合');
+            Test.stopTest();
+        }
+    }
+
     /** 公開境界の例外メッセージを確認 */
     @IsTest
     static void preservesPublicBusinessFailure() {

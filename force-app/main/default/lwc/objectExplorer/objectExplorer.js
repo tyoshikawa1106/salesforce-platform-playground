@@ -69,6 +69,12 @@ export default class ObjectExplorer extends LightningElement {
     // 状態確認中や保存中の再確認を抑止する
     get apiAuthenticationDisabled() { return this.apiAuthenticationChecking || this.busy || this.saving; }
 
+    get canRecheckApiAuthentication() { return this.apiAuthenticationRequired && !this.apiAuthenticationDisabled; }
+
+    handleApiAuthenticationRecheck() {
+        if (this.canRecheckApiAuthentication) this.apiAuthenticationPromise = this.refreshApiAuthentication();
+    }
+
     // 標準状態と実接続の結果を画面共通の案内へ反映する
     async refreshApiAuthentication() {
         // 終了した画面から認証確認を開始しない
@@ -106,13 +112,17 @@ export default class ObjectExplorer extends LightningElement {
             }
             // 保存開始にも使うため、この要求で確認した結果を返す
             return this.apiAuthenticationReady;
-        } catch {
+        } catch (error) {
             // 古い要求の失敗で現在の認証を上書きしない
             if (this.componentConnected && sequence === this.apiAuthenticationSequence) {
                 // 状態確認やURL取得の失敗を認証済み・未認証と推定しない
-                this.apiAuthenticationStatus = 'UNAVAILABLE';
                 // API応答本文やURLをエラーへ含めない
-                this.apiAuthenticationMessage = 'API認証を開始できませんでした。接続設定と権限を管理者に確認してください。';
+                const reason = this.apiAuthenticationStatus === 'UNAVAILABLE' ? this.apiAuthenticationMessage : '';
+                const urlMessage = error?.body?.message?.startsWith('[OE-AUTH-URL]')
+                    ? '認証開始 URL をこの組織の My Domain と照合できませんでした。'
+                    : 'API認証を開始できませんでした。認証開始URLを取得できません。';
+                this.apiAuthenticationStatus = 'UNAVAILABLE';
+                this.apiAuthenticationMessage = [reason, urlMessage].filter(Boolean).join(' ');
             }
             // 古い表示状態を確認成功として使わない
             return false;

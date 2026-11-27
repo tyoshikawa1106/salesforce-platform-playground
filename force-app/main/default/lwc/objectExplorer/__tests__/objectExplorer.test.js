@@ -652,7 +652,7 @@ it('未認証の場合は対象未選択でも共通のAPI認証を表示する'
     await flush();
     const link = element.shadowRoot.querySelector('.c-authentication a');
     expect(link.textContent).toBe('認証');
-    expect(element.shadowRoot.querySelector('.c-authentication lightning-button')).toBeNull();
+    expect(element.shadowRoot.querySelector('.c-authentication lightning-button').label).toBe('接続を再確認');
     expect(link.target).toBe('_self');
     expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
@@ -969,16 +969,34 @@ it('確認不能でも認証リンクを表示し探索と保存は許可しな�
     expect(element.shadowRoot.querySelector('[data-authentication-revoke]')).toBeNull();
     expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
 });
-it('認証URL取得失敗でもボタンを隠さず無効化して理由を表示する', async () => {
-    getApiAuthentication.mockResolvedValueOnce({ status: 'UNAVAILABLE', message: '確認不能' });
+it('組織URLの検証に失敗した場合は接続先を案内しリンクを表示しない', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'REQUIRED' });
+    getApiAuthenticationUrl.mockRejectedValueOnce({ body: { message: '[OE-AUTH-URL] PRIVATE' } });
+    const element = createComponent();
+    await flush();
+    expect(element.shadowRoot.textContent).toContain('My Domain');
+    expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
+    expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
+});
+it('URL取得失敗でも最初の拒否理由を残し、同じ画面で個人設定で許可した接続を再確認する', async () => {
+    getApiAuthentication.mockResolvedValueOnce({ status: 'UNAVAILABLE', message: 'HTTP 403' });
     getApiAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
     const element = createComponent();
     await flush();
     expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
-    expect(element.shadowRoot.querySelector('.c-authentication lightning-button').disabled).toBe(true);
+    const retry = element.shadowRoot.querySelector('.c-authentication lightning-button');
+    expect(retry.label).toBe('接続を再確認');
+    expect(element.shadowRoot.textContent).toContain('HTTP 403');
     expect(element.shadowRoot.textContent).toContain('API認証を開始できません');
     expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
+    getApiAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED' });
+    retry.click();
+    retry.click();
+    await flush();
+    expect(getApiAuthentication).toHaveBeenCalledTimes(2);
+    expect(getApiAuthenticationUrl).toHaveBeenCalledTimes(1);
+    expect(element.shadowRoot.querySelector('.c-mode')).not.toBeNull();
 });
 
 it.each([[false, false], [true, false], [true, true]])('分類保存中の離脱=%s・応答失敗=%sで古い処理を継続しない', async (detach, rejectFirst) => {

@@ -33,12 +33,8 @@
             <div class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap" role="status">
                 <span>{apiAuthenticationMessage}</span>
                 <div class="slds-grid slds-grid_vertical-align-center">
-                    <template lwc:if={apiAuthenticationRequired}>
-                        <template lwc:if={apiAuthenticationUrl}>
-                            <a class="slds-button slds-button_brand" href={apiAuthenticationUrl} target="_self" onclick={handleApiAuthenticationStart}>認証</a>
-                        </template>
-                        <template lwc:else><lightning-button label="認証" disabled></lightning-button></template>
-                    </template>
+                    <a lwc:if={apiAuthenticationUrl} class="slds-button slds-button_brand" href={apiAuthenticationUrl} target="_self" onclick={handleApiAuthenticationStart}>認証</a>
+                    <lightning-button lwc:if={canRecheckApiAuthentication} class="slds-m-left_x-small" label="接続を再確認" onclick={handleApiAuthenticationRecheck}></lightning-button>
                 </div>
             </div>
         </template>

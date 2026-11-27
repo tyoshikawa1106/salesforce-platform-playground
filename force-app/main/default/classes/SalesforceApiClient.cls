@@ -52,13 +52,16 @@ public with sharing class SalesforceApiClient {
      */
     public ConnectApi.CredentialAuthenticationStatus getAuthenticationStatus() {
         // 対象を固定し、別利用者や共有Principalの認証情報を要求しない
-        ConnectApi.CredentialAuthenticationStatus status = credentialAccess.getStatus();
-        // 状態欠落を認証済み・未認証のいずれにも推測しない
-        if (status == null) { throw new IntegrationException('API認証の状態を確認できませんでした。'); }
-        // 保存済みトークンでは接続先の組織も通信境界で検証する
-        if (status == ConnectApi.CredentialAuthenticationStatus.Configured) { verifyOrganization(); }
-        // 資格情報の値やパラメーターは呼び出し元へ渡さない
-        return status;
+        ConnectApi.CredentialAuthenticationStatus status;
+        try {
+            status = credentialAccess.getStatus();
+        } catch (Exception unavailable) {
+            // 保存状態を取得できない場合も、同じ指定ログイン情報で接続先を照合する
+            status = null;
+        }
+        if (status != null && status != ConnectApi.CredentialAuthenticationStatus.Configured) { return status; }
+        verifyOrganization();
+        return ConnectApi.CredentialAuthenticationStatus.Configured;
     }
 
     /**

@@ -733,7 +733,7 @@ private with sharing class ObjectExplorerControllerTest {
                 ObjectExplorerController.getApiAuthenticationUrl();
                 Assert.fail('別ホストの認証URLを拒否');
             } catch (AuraHandledException e) {
-                Assert.areEqual('API認証の開始URLを取得できませんでした。管理者に確認してください。', e.getMessage(), 'URLの値を公開しない');
+                Assert.areEqual('[OE-AUTH-URL] API認証の開始URLを取得できませんでした。管理者に確認してください。', e.getMessage(), 'URLの値を公開しない');
             }
             Assert.areEqual(2, mock.urlRequests, '拒否したURLも標準APIから取得');
             ObjectExplorerController.revokeApiAuthentication();
