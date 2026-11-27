@@ -203,6 +203,8 @@ public with sharing class UserCreateAssistantController {
             return new AuraHandledException(action + '組織の入力規則を確認してください。ユーザー名の変更が制限されている場合は、新規側に別のユーザー名を入力してください。');
         }
         // 無効化の制約や入力・権限による拒否を知らせる
-        return new AuraHandledException(action + '入力値、管理権限、ユーザーの利用条件を確認してください。');
+        List<String> details = new List<String>{code};
+        details.addAll(e.getDmlFieldNames(0) ?? new List<String>());
+        return new AuraHandledException(action + 'Salesforce エラー（' + String.join(details, ' / ') + '）。入力値、管理権限、ユーザーの利用条件を確認してください。');
     }
 }

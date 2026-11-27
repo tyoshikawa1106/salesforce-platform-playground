@@ -36,10 +36,13 @@ private with sharing class ObjectExplorerAuthenticationServiceTest {
             Map<String, Object> rejected = service.createAuthenticationFailure(new SalesforceApiClient.IntegrationException('[OE-AUTH-401]'));
             Map<String, Object> forbidden = service.createAuthenticationFailure(new SalesforceApiClient.IntegrationException('[OE-API-HTTP-403]'));
             Map<String, Object> internalFailure = service.createAuthenticationFailure(new QueryException('PRIVATE_VALUE [OE-AUTH-401]'));
+            Map<String, Object> mismatch = service.createAuthenticationFailure(new SalesforceApiClient.IntegrationException('[OE-ORG-MISMATCH]'));
             Test.stopTest();
             Assert.areEqual('REQUIRED', rejected.get('status'), '通信境界の認証拒否だけ再認証を案内');
             Assert.areEqual('UNAVAILABLE', forbidden.get('status'), '権限不足を認証失効と混同しない');
-            Assert.areEqual(forbidden, internalFailure, '内部例外の本文や見かけのコードを公開しない');
+            Assert.isTrue(String.valueOf(forbidden.get('message')).contains('403'), '権限拒否の理由を通知');
+            Assert.isTrue(String.valueOf(mismatch.get('message')).contains('組織が一致'), '認証先の確認を案内');
+            Assert.areEqual('UNAVAILABLE', internalFailure.get('status'), '内部例外の見かけのコードを信用しない');
             Assert.isFalse(String.valueOf(internalFailure).contains('PRIVATE_VALUE'), '内部情報を公開しない');
         }
 
@@ -71,7 +74,7 @@ private with sharing class ObjectExplorerAuthenticationServiceTest {
                     service.requireAuthenticationUrl(invalid);
                     Assert.fail('現在組織のHTTPS接続先以外は拒否する');
                 } catch (AuraHandledException e) {
-                    Assert.areEqual('API認証の開始URLを取得できませんでした。管理者に確認してください。', e.getMessage(), '接続先を含まない固定案内を返す');
+                    Assert.areEqual('[OE-AUTH-URL] API認証の開始URLを取得できませんでした。管理者に確認してください。', e.getMessage(), '接続先を含まない固定案内を返す');
                 }
             }
             Test.stopTest();

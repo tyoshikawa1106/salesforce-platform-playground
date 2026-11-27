@@ -16,6 +16,8 @@ import {
     normalizedApplicationId
 } from './externalClientAppManagerLogic';
 
+const AUTH_URL_ERROR = '管理用APIの本人確認が完了せず、認証開始URLも取得できませんでした。個人設定でアクセスを許可した後は［接続を再確認］を押してください。';
+
 // 本人の認証と選択中アプリに対する操作順序を管理する
 export default class ExternalClientAppManager extends LightningElement {
     // 認証確認が終わるまで操作領域を隠す
@@ -59,6 +61,16 @@ export default class ExternalClientAppManager extends LightningElement {
     get authenticationReady() {
         // 本人確認済みの接続だけに操作を公開する
         return this.authenticationStatus === 'AUTHENTICATED';
+    }
+
+    get canRecheckAuthentication() {
+        return !this.busy && this.authenticationRequired;
+    }
+
+    handleAuthenticationRecheck() {
+        if (this.canRecheckAuthentication) {
+            this.loadApplications();
+        }
     }
 
     connectedCallback() {
@@ -106,6 +118,10 @@ export default class ExternalClientAppManager extends LightningElement {
             // サーバーで判定した状態だけを使用する
             this.authenticationStatus = authentication?.status || 'UNAVAILABLE';
             // 接続確認と独立した標準URLを使って認証をやり直せるようにする
+            if (this.authenticationStatus === 'NO_ACCESS') {
+                this.error = 'この機能を利用するカスタム権限 ManageExternalClientAppCredentials がありません。利用者への権限セット LwcExternalClientAppManager の割り当てを確認してください。';
+                return;
+            }
             if (!this.authenticationReady) {
                 try {
                     const url = await getAuthenticationUrl();
@@ -113,15 +129,15 @@ export default class ExternalClientAppManager extends LightningElement {
                     if (!this.isConnected || operationVersion !== this.operationVersion) return;
                     this.authenticationUrl = url || '';
                 } catch {
-                    // URLが作れない設定不備は無効ボタンと固定案内で示す
+                    // URLの取得失敗だけで設定や権限に原因を限定しない
                     if (!this.isConnected || operationVersion !== this.operationVersion) return;
-                    this.error = '認証を開始できません。接続設定と権限を管理者に確認してください。';
+                    this.error = AUTH_URL_ERROR;
                     return;
                 }
                 // 接続確認失敗を認証成功や明示的な失効と混同しない
                 this.error = this.authenticationUrl
                     ? (this.authenticationStatus === 'REQUIRED' ? '' : '認証状態を確認できません。認証をやり直すか、接続設定と権限を確認してください。')
-                    : '認証を開始できません。接続設定と権限を管理者に確認してください。';
+                    : AUTH_URL_ERROR;
                 return;
             }
             // 選択済みならIDで照合し、未選択なら保持中の検索語で候補を再取得する

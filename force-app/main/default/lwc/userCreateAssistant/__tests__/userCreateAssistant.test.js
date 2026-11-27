@@ -1,3 +1,4 @@
+import LightningConfirm from 'lightning/confirm';
 import { createElement } from 'lwc';
 import UserCreateAssistant from 'c/userCreateAssistant';
 import getForm from '@salesforce/apex/UserCreateAssistantController.getForm';
@@ -10,6 +11,7 @@ jest.mock('@salesforce/apex/UserCreateAssistantController.getSourceProfileIds', 
 jest.mock('@salesforce/user/Id', () => ({ default: '005000000000001AAA' }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.getForm', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.saveUser', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('lightning/confirm', () => ({ __esModule: true, default: { open: jest.fn() } }), { virtual: true });
 const fields = [{ apiName: 'LastName', label: '姓', type: 'text', value: '参照元', canCreate: true, canUpdate: true, required: true }];
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
 function deferred() {
@@ -49,6 +51,35 @@ function submit(root) {
     const dialog = review(root);
     dialog.querySelectorAll('lightning-button')[1].click();
 }
+it('コピー元の未変更項目は更新に含めず、変更した項目と新規側は検証する', async () => {
+    getForm.mockResolvedValue({ fields });
+    saveUser.mockResolvedValue('new');
+    const root = (await mount()).shadowRoot;
+    select(root, 'source');
+    await flush();
+    await toggle(root, 'deactivateSource', true);
+    const source = input(root, 'source');
+    const target = input(root, 'target');
+    source.checkValidity = jest.fn(() => false);
+    target.checkValidity = jest.fn(() => true);
+    const dialog = root.querySelector('dialog');
+    dialog.showModal = jest.fn();
+    const save = root.querySelector('.slds-text-align_right lightning-button');
+    edit(source, '変更');
+    save.click();
+    expect(dialog.showModal).not.toHaveBeenCalled();
+    expect(source.checkValidity).toHaveBeenCalledTimes(1);
+    edit(source, fields[0].value);
+    save.click();
+    expect(source.checkValidity).toHaveBeenCalledTimes(1);
+    expect(target.checkValidity).toHaveBeenCalledTimes(2);
+    expect(dialog.showModal).toHaveBeenCalledTimes(1);
+    dialog.querySelectorAll('lightning-button')[1].click();
+    await flush();
+    const request = saveUser.mock.calls[0][0].request;
+    expect(request.deactivateSource).toBe(true);
+    expect(JSON.parse(request.sourceValuesJson)).toEqual({});
+});
 beforeEach(() => { getSourceProfileIds.mockResolvedValue(['internal']); });
 afterEach(() => { document.body.replaceChildren(); jest.resetAllMocks(); });
 it.each([15, 18])('本人の %i 桁 ID を選ぶと無効化を解除し、コピー元を変更せずに作成できる', async (length) => {
@@ -485,4 +516,46 @@ it('画像を含む既存の HTML を未編集のまま新規側へコピーす�
     });
     submit(root); await flush();
     expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).Note__c).toBe(html);
+});
+
+
+it('確定後はダイアログの終了APIに依存せず保存要求を一度だけ送る', async () => {
+    getForm.mockResolvedValue({ fields });
+    saveUser.mockResolvedValue('new');
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    const dialog = review(root);
+    dialog.close = () => { throw new Error('close unavailable'); };
+    const confirm = dialog.querySelectorAll('lightning-button')[1];
+    confirm.click();
+    confirm.click();
+    await flush();
+    expect(saveUser).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('a[href="/lightning/r/User/new/view"]')).not.toBeNull();
+});
+it.each([true, false])('標準確認を代用し承認=%sのときだけ保存する', async confirmed => {
+    getForm.mockResolvedValue({ fields });
+    saveUser.mockResolvedValue(null);
+    LightningConfirm.open.mockResolvedValue(confirmed);
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    root.querySelectorAll('[data-side]').forEach(el => { el.checkValidity = () => true; });
+    root.querySelector('dialog').showModal = () => { throw new Error('unavailable'); };
+    [...root.querySelectorAll('lightning-button')].find(el => el.variant === 'brand').click();
+    await flush();
+    expect(LightningConfirm.open).toHaveBeenCalledWith(expect.objectContaining({message: expect.stringContaining('コピー元ユーザー')}));
+    expect(saveUser).toHaveBeenCalledTimes(confirmed ? 1 : 0);
+    expect(root.textContent.includes('作成結果を確認できません')).toBe(confirmed);
+});
+
+it('画面の入力検証が例外になった場合は保存前の失敗を表示する', async () => {
+    getForm.mockResolvedValue({ fields });
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    input(root, 'target').checkValidity = () => { throw new Error('PRIVATE'); };
+    [...root.querySelectorAll('lightning-button')].find(el => el.variant === 'brand').click();
+    await flush();
+    expect(root.querySelector('[role="alert"]').textContent).toContain('作成は開始していません');
+    expect(root.textContent).not.toContain('PRIVATE');
+    expect(saveUser).not.toHaveBeenCalled();
 });

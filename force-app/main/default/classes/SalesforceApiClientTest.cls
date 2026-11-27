@@ -333,6 +333,7 @@ private with sharing class SalesforceApiClientTest {
          * @return 指定した標準認証状態
          */
         public override ConnectApi.CredentialAuthenticationStatus getStatus() {
+            if (fail) { throw new CalloutException('PRIVATE_STATUS'); }
             return status;
         }
 
@@ -367,28 +368,40 @@ private with sharing class SalesforceApiClientTest {
         }
     }
 
-    /** 認証の必須値欠落を通信前に拒否 */
+    /** 状態取得の失敗や欠落時も接続先組織を検証 */
     @IsTest
-    static void rejectsMissingAuthenticationValues() {
+    static void verifiesConnectionWhenStatusUnavailable() {
         System.runAs(testUser) {
+            CredentialMock mock = new CredentialMock();
+            mock.status = null;
+            SalesforceApiClient.credentialAccess = mock;
+            String response = JSON.serialize(new Map<String, Object>{
+                'records' => new List<Object>{ new Map<String, Object>{ 'Id' => UserInfo.getOrganizationId() } }
+            });
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(200, response, null));
             Test.startTest();
-            assertMissingAuthentication();
-            Assert.areEqual(0, Limits.getCallouts(), '欠落した認証では通信しない');
+            Assert.areEqual(ConnectApi.CredentialAuthenticationStatus.Configured, client.getAuthenticationStatus(), '状態欠落時も同じ組織への実接続を確認');
+            mock.fail = true;
+            Assert.areEqual(ConnectApi.CredentialAuthenticationStatus.Configured, client.getAuthenticationStatus(), '状態取得例外でも実接続を確認');
+            Test.setMock(HttpCalloutMock.class, new DiagnosticMock(403, 'PRIVATE_API', null));
+            try {
+                client.getAuthenticationStatus();
+                Assert.fail('実接続の拒否は保存状態で上書きしない');
+            } catch (SalesforceApiClient.IntegrationException error) {
+                Assert.isTrue(error.getMessage().startsWith('[OE-API-HTTP-403]'), '接続先の拒否を伝える');
+            }
+            Assert.areEqual(3, Limits.getCallouts(), '毎回接続先を確認');
             Test.stopTest();
         }
     }
 
-        /** 状態とURLの欠落を固定エラーで確認 */
-    private static void assertMissingAuthentication() {
+    /** URLの欠落を固定エラーで拒否 */
+    @IsTest
+    static void rejectsMissingAuthenticationUrl() {
+        System.runAs(testUser) {
             CredentialMock mock = new CredentialMock();
-            mock.status = null;
             SalesforceApiClient.credentialAccess = mock;
-                try {
-                    client.getAuthenticationStatus();
-                    Assert.fail('必須値の欠落を拒否');
-                } catch (SalesforceApiClient.IntegrationException e) {
-                    Assert.isTrue(e.getMessage().contains('状態'), '欠落を明示したエラーで拒否');
-                }
+            Test.startTest();
             for (String value : new List<String>{ null, '', '   ' }) {
                 mock.authenticationUrl = value;
                 try {
@@ -398,8 +411,9 @@ private with sharing class SalesforceApiClientTest {
                     Assert.isTrue(e.getMessage().contains('開始'), '欠落を明示したエラーで拒否');
                 }
             }
-            Assert.areEqual(0, Limits.getCallouts(), '状態欠落では組織確認へ進まない');
+            Test.stopTest();
         }
+    }
 
     /** 認証拒否・権限拒否・サーバー障害を固定コードで区別 */
     @IsTest

@@ -93,12 +93,9 @@ public with sharing class ExternalClientAppManagerApiClient {
      * @return 現在組織のHTTPS認証開始URL
      */
     public String getAuthenticationUrl() {
-        String authenticationUrl = credentialAccess.getUrl();
+        String authenticationUrl = SalesforceApiProtocol.organizationAuthenticationUrl(credentialAccess.getUrl());
         // 認証先を任意の外部ホストへ差し替えさせない
-        if (
-            String.isBlank(authenticationUrl) ||
-            !authenticationUrl.startsWith(Url.getOrgDomainUrl().toExternalForm() + '/')
-        ) {
+        if (authenticationUrl == null) {
             throw new CalloutException('認証開始URLを確認できません。');
         }
         return authenticationUrl;

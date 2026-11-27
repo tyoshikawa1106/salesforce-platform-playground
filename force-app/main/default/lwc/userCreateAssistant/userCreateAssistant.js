@@ -1,5 +1,6 @@
 import { LightningElement, wire } from 'lwc';
 import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+import LightningConfirm from 'lightning/confirm';
 import USER_OBJECT from '@salesforce/schema/User';
 import CURRENT_USER_ID from '@salesforce/user/Id';
 import getSourceProfileIds from '@salesforce/apex/UserCreateAssistantController.getSourceProfileIds';
@@ -57,7 +58,7 @@ export default class UserCreateAssistant extends LightningElement {
 
     handleAccessDenial(error) {
         // 実行中に権限を失った場合も、入力中のユーザー情報を画面から取り除く
-        const message = error.body?.message;
+        const message = error?.body?.message;
         if (!message?.startsWith(ACCESS_ERROR_PREFIX)) return false;
         this.profileRequest += 1;
         this.sourceProfileIds = undefined;
@@ -198,7 +199,7 @@ export default class UserCreateAssistant extends LightningElement {
             }
         } catch (error) {
             // 別のユーザーに対する失敗を表示しない
-            if (request === this.generation && !this.handleAccessDenial(error)) this.showError(error.body?.message || 'コピー元ユーザーを読み込めませんでした。');
+            if (request === this.generation && !this.handleAccessDenial(error)) this.showError(error?.body?.message || 'コピー元ユーザーを読み込めませんでした。');
         } finally {
             // 現在の要求の完了時だけ読み込み表示を終了
             if (request === this.generation && !this.dependencyRecordTypeId) this.loading = false;
@@ -303,6 +304,10 @@ export default class UserCreateAssistant extends LightningElement {
         return !this.sourceProfileIds && !this.profileError;
     }
 
+    get canReviewSave() {
+        return Boolean(this.panels) && !this.saving;
+    }
+
     get saveLabel() {
         // 無効化を伴う操作は保存前にボタンでも明示
         return this.deactivateSource ? 'コピー元を無効化してユーザーを作成' : 'ユーザーを作成';
@@ -365,12 +370,25 @@ export default class UserCreateAssistant extends LightningElement {
     }
 
     handleSave() {
+        // 入力コンポーネントの検証や確認表示の例外を無反応にしない。
+        this.reviewSave().catch(() => {
+            this.confirmationSections = undefined;
+            this.showError('入力内容を確認できませんでした。ユーザーの作成は開始していません。');
+        });
+    }
+
+    async reviewSave() {
         // 二重送信や未選択状態での作成を抑止
         if (this.saving || this.confirmationSections || !this.panels) return;
         this.clearUsernameError();
         // 必須・入力形式の問題をすべての編集欄に表示
         const invalid = Array.from(this.template.querySelectorAll('[data-side]')).filter(input => {
-            if (input.dataset.rich === undefined) return !input.checkValidity();
+            // コピー元には変更項目だけを送る。既存の未変更値で更新全体を止めない。
+            if (input.dataset.side === 'source' && !Object.hasOwn(this.sourceDraft, input.dataset.name)) return false;
+            if (input.dataset.rich === undefined) {
+                const valid = input.checkValidity?.() ?? input.validity?.valid ?? input.reportValidity?.();
+                return valid !== true;
+            }
             // リッチテキストは標準の制約検証 API を持たない。画像だけの入力も有効。
             const html = input.value || '';
             const content = html.replace(/<[^>]*>|&nbsp;/gi, '').trim() || /<img\b/i.test(html);
@@ -397,7 +415,26 @@ export default class UserCreateAssistant extends LightningElement {
             copyPermissionSetGroups: this.copyPermissionSetGroups, sendResetEmail: this.sendResetEmail
         });
         // ブラウザのモーダル表示で背景の操作とフォーカスを制限
-        this.refs.confirmation.showModal();
+        try {
+            this.refs.confirmation.showModal();
+        } catch {
+            // ネイティブダイアログを開けない場合も、同じ内容の確認後にだけ保存する。
+            const sections = this.confirmationSections;
+            const message = sections.map(section => [
+                section.title, ...section.rows.map(row => row.label + '：' + (row.checkbox ? (row.checked ? 'はい' : 'いいえ') : row.value)),
+                ...(section.deactivating ? ['コピー元ユーザーを無効化します。'] : [])
+            ].join('\n')).join('\n\n');
+            try {
+                const confirmed = await LightningConfirm.open({ label: 'ユーザーの作成を確認', message });
+                if (this.confirmationSections !== sections || !this.isConnected) return;
+                if (confirmed) await this.handleConfirmedSave();
+                else this.closeConfirmation();
+            } catch {
+                if (this.confirmationSections !== sections) return;
+                this.confirmationSections = undefined;
+                this.showError('確認画面を開けませんでした。ユーザーの作成は開始していません。画面を再読み込みしてください。');
+            }
+        }
     }
 
     closeConfirmation() {
@@ -405,14 +442,22 @@ export default class UserCreateAssistant extends LightningElement {
         // 取り消し・離脱から古い確認結果を実行できないようにする
         this.confirmationSections = undefined;
         // 開いている場合だけフォームへフォーカスを戻す
-        if (this.refs?.confirmation?.open) this.refs.confirmation.close();
+        const dialog = this.refs?.confirmation;
+        if (dialog?.open) {
+            try {
+                dialog.close();
+            } catch {
+                // 終了メソッドを利用できない環境でも次の確認を妨げない。
+                dialog.open = false;
+            }
+        }
     }
 
     async handleConfirmedSave() {
         // キャンセル後と二重送信は保存しない
         if (!this.confirmationSections || this.saving || !this.panels) return;
-        // 入力エラーがあればモーダルを閉じたフォームに表示
-        this.closeConfirmation();
+        // 保存中はテンプレートがダイアログを取り除く。ブラウザの close() に保存を依存させない。
+        this.confirmationSections = undefined;
         try {
             this.saving = true;
             // コピー元の変更と割り当ては同じ保存要求で実行
@@ -424,6 +469,10 @@ export default class UserCreateAssistant extends LightningElement {
                 targetValuesJson: JSON.stringify(this.targetDraft)
             } });
             // 作成完了を表示し、同じ入力を再送できない状態に戻す
+            if (!id) {
+                this.showError('作成結果を確認できませんでした。再実行する前に、設定のユーザー一覧で新規ユーザー名を確認してください。');
+                return;
+            }
             this.createdUrl = '/lightning/r/User/' + id + '/view';
             // 次回は元ユーザーの最新状態を取り直す
             this.sourceId = undefined;
@@ -444,7 +493,7 @@ export default class UserCreateAssistant extends LightningElement {
             // 権限不足では保存の再試行より先に利用権限を再確認する
             if (this.handleAccessDenial(error)) return;
             // 入力とチェック状態を維持して再試行できるようにする
-            const message = error.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
+            const message = error?.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
             // 保存中に候補も失効していれば、編集を閉じて両方のエラーを表示する
             if (!this.dependencyRecordTypeId && this.fields.some(field => field.controllerName)) {
                 this.panels = undefined;

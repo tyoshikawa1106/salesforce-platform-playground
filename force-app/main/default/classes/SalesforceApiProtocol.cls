@@ -2,6 +2,25 @@
 public with sharing class SalesforceApiProtocol {
     // エラーが発生した要求だけで構築し、項目別の拒否が続いても再利用
     private static Set<String> allowedCodes;
+    /** 標準APIが返す認証URLの外側のエンコードを復元し、現在組織のHTTPS URLだけを返す。
+     * @param value 標準認証APIの応答
+     * @return 同じ組織の認証開始URL。確認できない場合はnull
+     */
+    public static String organizationAuthenticationUrl(String value) {
+        if (String.isBlank(value)) { return null; }
+        String prefix = Url.getOrgDomainUrl().toExternalForm() + '/';
+        // URL全体がエンコードされた場合だけ復元し、クエリ内のstateなどは再デコードしない。
+        if (value.startsWithIgnoreCase('https%3a%2f%2f')) {
+            try {
+                value = EncodingUtil.urlDecode(value, 'UTF-8');
+            } catch (StringException error) {
+                return null;
+            }
+        }
+        value = value.unescapeHtml4();
+        return value.startsWith(prefix) ? value : null;
+    }
+
     /**
      * 応答本文を含まないHTTP診断を作成
      * @param response HTTP失敗の応答

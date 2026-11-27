@@ -16,8 +16,10 @@ public with sharing class ExternalClientAppManagerController {
             // 保存状態だけでなくAPI接続の本人性を検証
             String status = client.getAuthenticationStatus();
             return new Map<String, Object>{ 'status' => status };
+        } catch (ExternalClientAppManagerService.ValidationException denied) {
+            return new Map<String, Object>{ 'status' => 'NO_ACCESS' };
         } catch (Exception error) {
-            // 設定不備や権限不足を未認証と推測しない
+            // 接続確認の失敗は未認証と区別する
             return new Map<String, Object>{ 'status' => 'UNAVAILABLE' };
         }
     }
