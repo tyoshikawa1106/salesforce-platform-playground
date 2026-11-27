@@ -577,19 +577,20 @@ describe('外部クライアントアプリ認証管理', () => {
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(execute).not.toHaveBeenCalled();
     });
-    it('URL取得失敗後も個人設定で許可した接続を同じ画面で再確認できる', async () => {
+    it('URL取得失敗後も個人設定で許可した接続をページを開き直すと確認できる', async () => {
         getAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
         const element = await createComponent({ status: 'UNAVAILABLE' });
         expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
         expect(button(element, '認証')).toBeUndefined();
-        expect(element.shadowRoot.textContent).toContain('認証開始URLも取得できませんでした');
+        expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain('ExternalClientAppManager の認証開始URLを取得できませんでした');
+        expect(element.shadowRoot.querySelector('.c-authentication')).toBeNull();
         expect(element.shadowRoot.textContent).not.toContain('認証ボタンをクリック');
         expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
         expect(execute).not.toHaveBeenCalled();
         getAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED' });
-        const retry = button(element, '接続を再確認');
-        retry.click();
-        retry.click();
+        expect(button(element, '接続を再確認')).toBeUndefined();
+        element.remove();
+        document.body.appendChild(element);
         await flush();
         expect(getAuthentication).toHaveBeenCalledTimes(2);
         expect(getAuthenticationUrl).toHaveBeenCalledTimes(1);
@@ -620,9 +621,14 @@ describe('外部クライアントアプリ認証管理', () => {
             expect(AbortSignal.timeout).toHaveBeenCalledWith(30000);
             deadline.abort();
             await flush();
-            expect(element.shadowRoot.textContent).toContain(step + 'の応答がありません');
+            const alert = element.shadowRoot.querySelector('[role="alert"]');
+            expect(alert.textContent).toContain(step + 'を開始してから30秒以内に応答がありませんでした');
+            expect(alert.textContent).toContain('再読み込み');
+            expect(element.shadowRoot.querySelector('.c-authentication')).toBeNull();
             getAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED' });
-            button(element, '接続を再確認').click();
+            expect(button(element, '接続を再確認')).toBeUndefined();
+            element.remove();
+            document.body.appendChild(element);
             await flush();
             finish(urlStep ? '/stale' : { status: 'NO_ACCESS' });
             await flush();

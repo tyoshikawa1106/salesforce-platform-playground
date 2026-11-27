@@ -25,30 +25,21 @@
                 </div>
             </div>
         </header>
-        <template lwc:if={authenticationRequired}>
+        <template lwc:if={showAuthenticationStatus}>
             <div
                 class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap"
                 role="status"
             >
                 <span lwc:if={authenticationUrl}>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
                 <span lwc:elseif={busy}>{authenticationProgress}</span>
-                <div class="slds-grid slds-grid_vertical-align-center">
-                    <template lwc:if={authenticationUrl}>
-                        <a
-                            class="slds-button slds-button_brand"
-                            href={authenticationUrl}
-                            target="_self"
-                            onclick={handleAuthenticationStart}
-                            >認証</a
-                        >
-                    </template>
-                    <lightning-button
-                        lwc:if={canRecheckAuthentication}
-                        class="slds-m-left_x-small"
-                        label="接続を再確認"
-                        onclick={handleAuthenticationRecheck}
-                    ></lightning-button>
-                </div>
+                <a
+                    lwc:if={authenticationUrl}
+                    class="slds-button slds-button_brand"
+                    href={authenticationUrl}
+                    target="_self"
+                    onclick={handleAuthenticationStart}
+                    >認証</a
+                >
             </div>
         </template>
         <template lwc:if={authenticationReady}>
