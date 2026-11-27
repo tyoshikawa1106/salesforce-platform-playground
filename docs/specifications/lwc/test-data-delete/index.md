@@ -1,20 +1,28 @@
 # テストデータ一括削除画面
 
-## 概要
+## 機能の用途
 
 開発組織で、テストデータ投入対象オブジェクトの全レコードを子から親へ削除する画面です。seedの識別値や投入履歴で絞り込みません。手動作成したレコードも削除します。
 
 確認中に画面を離れると、その確認は無効になります。再び開いた画面から開始するには改めて確認します。受付要求の送信後に同じ画面へ戻った場合は、送信済みの結果を待ちます。
 
-## 目的・利用場面
-
 開発用の投入データを再作成する前に、対象オブジェクトの全レコードを画面から削除します。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+- SandboxではないDeveloper Edition、または`IsSandbox=true`かつ`TrialExpirationDate`が未来のScratch Orgだけで開始する。一般Sandbox、本番、期限切れScratch、判定失敗は拒否する。
+- `UserPermissionAccess.PermissionsModifyAllData`が有効であること。プロファイル名や単独の権限セット割当から推測しない。
+- `PermissionsQueryAllFiles`は実行条件に含めない。ファイルの削除と残件数確認は実行ユーザーが照会できる範囲に限られ、照会できないファイルの削除完了は保証しない。
+- 存在する対象オブジェクトの参照・クエリ・削除権限が必要。
+- Salesforceアプリと`TestDataDelete`タブへのアクセスが必要。`SalesforceApplicationUser`でアプリを、`LwcTestDataDelete`でタブを表示する。
+- LWCから呼ぶ[TestDataDeleteController](../../../../force-app/main/default/classes/TestDataDeleteController.cls)へのアクセスが必要。`LwcTestDataDelete`でControllerの実行権限を付与する。`Modify All Data`は付与しないため、プロファイルなどで実効権限を別途満たす。
+- 残件数が未確認、全件ゼロ、権限不足、処理中、受付不明の場合は開始できない。
+
+## 対象メタデータ
 
 診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
-Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+Apex本体と対応するテストクラス、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
 
@@ -26,7 +34,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### Apexコードと対応テスト
 
-| Apex本体                                                                                                  | 役割                                                             | 同名Test                                                                                                          |
+| Apex本体                                                                                                  | 役割                                                             | 対応するテストクラス                                                                                              |
 | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | [TestDataDeleteBatch](../../../../force-app/main/default/classes/TestDataDeleteBatch.cls)                 | 対象オブジェクト全件を子から親へ直列削除                         | [TestDataDeleteBatchTest](../../../../force-app/main/default/classes/TestDataDeleteBatchTest.cls)                 |
 | [TestDataDeleteBatchSelector](../../../../force-app/main/default/classes/TestDataDeleteBatchSelector.cls) | バッチの実効権限、削除対象、標準ジョブを取得                     | [TestDataDeleteBatchSelectorTest](../../../../force-app/main/default/classes/TestDataDeleteBatchSelectorTest.cls) |
@@ -37,41 +45,83 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [TestDataDeleteService](../../../../force-app/main/default/classes/TestDataDeleteService.cls)             | テストデータ削除の共通定義・実行条件と画面応答                   | [TestDataDeleteServiceTest](../../../../force-app/main/default/classes/TestDataDeleteServiceTest.cls)             |
 | [TestDataDeleteWrapper](../../../../force-app/main/default/classes/TestDataDeleteWrapper.cls)             | 削除画面に返す実行条件、対象一覧、残件数、標準ジョブ             | [TestDataDeleteWrapperTest](../../../../force-app/main/default/classes/TestDataDeleteWrapperTest.cls)             |
 
-テストデータの準備は、対応する同名Testの内部で管理します。
+テストデータの準備は、対応する対応するテストクラスの内部で管理します。
 
 ### 設定・権限
 
-| 種別          | 実装・設定          | 役割                                                                               |
-| ------------- | ------------------- | ---------------------------------------------------------------------------------- |
-| 設定          | `TestDataDelete`    | CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。 |
-| PermissionSet | `LwcTestDataDelete` | PermissionSet: 削除タブの表示とControllerの実行権限。                              |
+| 種別       | 実装・設定                                       | 役割                                                                               |
+| ---------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 設定       | `TestDataDelete`                                 | CustomTab、「Salesforce」CustomApplication: 画面を開くためのタブとナビゲーション。 |
+| 権限セット | LWC：テストデータ一括削除（`LwcTestDataDelete`） | PermissionSet: 削除タブの表示とControllerの実行権限。                              |
 
-## 入力
+### 関連コンポーネント
 
-画面の「全件削除」と確認ダイアログの承認で開始します。オブジェクト名や順序を利用者が変更する機能はありません。受付時は確認文字列をApexへ渡しますが、認可は別途サーバーで判定します。
+- [テストデータ削除バッチ](../../apex/batches/test-data-delete/index.md)
+- [テストデータ投入](../../scripts/test-data-import/index.md)
+- [削除手順](../../../deployment/test-data-delete.md)
+- `TestDataDeleteService.getEnvironment`: dev・Scratchに限定する共通の判定。
+- `UserPermissionAccess`: 現在ユーザーの合成済み実効権限。
+- `AsyncApexJob`: 削除処理の標準ジョブ。
 
-## 処理内容
-
-1. 組織と実効権限を確認し、固定の対象一覧を表示する。
-2. 有効な各オブジェクトの残件数を別々のApex要求で取得する。権限不足・取得失敗はゼロ件と扱わない。
-3. 全件削除を確認後、Apexで権限と重複を再確認して最初のバッチを登録する。
-4. 「実行状況・残件数を確認」で標準ジョブと件数を再取得する。自動更新は行わない。
-
-## 出力・更新対象
+## アクセスするデータ・項目
 
 組織名、削除順序、オブジェクト名、残件数、実行中の有無、受付ジョブIDとその状態を表示します。実際の更新対象はバッチ仕様を参照してください。投入履歴・独自の実行ログ用オブジェクトは作成しません。
 
-## 権限・実行条件
+### SOQLで参照するデータ
 
-- SandboxではないDeveloper Edition、または`IsSandbox=true`かつ`TrialExpirationDate`が未来のScratch Orgだけで開始する。一般Sandbox、本番、期限切れScratch、判定失敗は拒否する。
-- `UserPermissionAccess.PermissionsModifyAllData`が有効であること。プロファイル名や単独の権限セット割当から推測しない。
-- `PermissionsQueryAllFiles`は実行条件に含めない。ファイルの削除と残件数確認は実行ユーザーが照会できる範囲に限られ、照会できないファイルの削除完了は保証しない。
-- 存在する対象オブジェクトの参照・クエリ・削除権限が必要。
-- Salesforceアプリと`TestDataDelete`タブへのアクセスが必要。`SalesforceApplicationUser`でアプリを、`LwcTestDataDelete`でタブを表示する。
-- LWCから呼ぶ[TestDataDeleteController](../../../../force-app/main/default/classes/TestDataDeleteController.cls)へのアクセスが必要。`LwcTestDataDelete`でControllerの実行権限を付与する。`Modify All Data`は付与しないため、プロファイルなどで実効権限を別途満たす。
-- 残件数が未確認、全件ゼロ、権限不足、処理中、受付不明の場合は開始できない。
+```sql
+SELECT IsSandbox, OrganizationType, TrialExpirationDate
+FROM Organization
+WITH SYSTEM_MODE
+LIMIT 1
+```
 
-## エラー処理
+```sql
+SELECT PermissionsModifyAllData
+FROM UserPermissionAccess
+WITH SYSTEM_MODE
+LIMIT 1
+```
+
+```sql
+SELECT Id, NumberOfErrors
+FROM AsyncApexJob
+WHERE Id = :jobId AND ApexClass.Name = 'TestDataDeleteBatch'
+WITH SYSTEM_MODE
+```
+
+```sql
+SELECT Id
+FROM AsyncApexJob
+WHERE ApexClass.Name = 'TestDataDeleteBatch' AND JobType = 'BatchApex' AND Id != :jobId AND Status IN ('Holding', 'Queued', 'Preparing', 'Processing')
+WITH SYSTEM_MODE
+LIMIT 1
+```
+
+```sql
+SELECT Id
+FROM AsyncApexJob
+WHERE ApexClass.Name = 'TestDataDeleteBatch' AND JobType = 'BatchApex' AND Status IN ('Holding', 'Queued', 'Preparing', 'Processing')
+WITH SYSTEM_MODE
+LIMIT 1
+```
+
+```sql
+SELECT Id, Status, JobItemsProcessed, TotalJobItems, NumberOfErrors
+FROM AsyncApexJob
+WHERE Id = :jobId AND CreatedById = :UserInfo.getUserId() AND ApexClass.Name = 'TestDataDeleteBatch' AND JobType = 'BatchApex'
+WITH SYSTEM_MODE
+```
+
+### クエリの組み立て
+
+取得項目や検索条件を指定する実装は、[TestDataDeleteBatchSelector.cls](../../../../force-app/main/default/classes/TestDataDeleteBatchSelector.cls)、[TestDataDeleteSelector.cls](../../../../force-app/main/default/classes/TestDataDeleteSelector.cls)で確認できます。
+
+## 操作
+
+画面の「全件削除」と確認ダイアログの承認で開始します。オブジェクト名や順序を利用者が変更する機能はありません。受付時は確認文字列をApexへ渡しますが、認可は別途サーバーで判定します。
+
+## エラー判定
 
 操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
@@ -81,30 +131,24 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 対象一覧・依存順序と許可する開発環境の判定は[TestDataDeleteService](../../../../force-app/main/default/classes/TestDataDeleteService.cls)で画面・バッチから共用します。画面はバッチ用Service・状態Wrapperへ依存しません。バッチも共通定義の参照に同じServiceを使用し、集計・継続判定はBatchServiceが担当します。[TestDataDeleteBatchWrapper](../../../../force-app/main/default/classes/TestDataDeleteBatchWrapper.cls)はバッチ間の位置・集計状態だけを保持します。一般Sandboxを許可しない既存の環境条件は維持します。
 
-## 関連コンポーネント
+## 処理詳細
 
-- [テストデータ削除バッチ](../../apex/batches/test-data-delete/index.md)
-- [テストデータ投入](../../scripts/test-data-import/index.md)
-- [削除手順](../../../deployment/test-data-delete.md)
-- `TestDataDeleteService.getEnvironment`: dev・Scratchに限定する共通の判定。
-- `UserPermissionAccess`: 現在ユーザーの合成済み実効権限。
-- `AsyncApexJob`: 削除処理の標準ジョブ。
+1. 組織と実効権限を確認し、固定の対象一覧を表示する。
+2. 有効な各オブジェクトの残件数を別々のApex要求で取得する。権限不足・取得失敗はゼロ件と扱わない。
+3. 全件削除を確認後、Apexで権限と重複を再確認して最初のバッチを登録する。
+4. 「実行状況・残件数を確認」で標準ジョブと件数を再取得する。自動更新は行わない。
 
-## テスト・確認観点
-
-- [TestDataDeleteControllerTest](../../../../force-app/main/default/classes/TestDataDeleteControllerTest.cls): 実効権限による拒否、確認なしの拒否、正規受付、重複起動、指定ジョブの取得。
-- [TestDataDeleteServiceTest](../../../../force-app/main/default/classes/TestDataDeleteServiceTest.cls): 対象外照会、全ファイル照会権限なしでの計画生成、実行環境。
-- [TestDataDeleteSelectorTest](../../../../force-app/main/default/classes/TestDataDeleteSelectorTest.cls): 削除済みを除く件数、未指定IDの検索抑止。
-- `testDataDelete.test.js`: 確認キャンセル、二重起動、権限・通信失敗、受付不明、アクセシビリティ。
-- `testDataDeleteLogic.test.js`: 未確認とゼロ件の区別、別ジョブとの混同防止、全体状態。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 各残件数はその行の照会時点の値で、全オブジェクトを同一トランザクションで集計したものではない。処理中のデータ投入・編集は停止する。
 - 画面は現在の残件数と標準ジョブ状態を示し、削除成功・失敗の累計は表示しない。バッチ間で引き継いだ累計件数は結果メールで通知する。独自の履歴レコードとして保存せず、画面再表示時に過去の累計を復元する機能は持たない。通知する件数の範囲と送信条件は[バッチ仕様の結果メール](../../apex/batches/test-data-delete/index.md#結果メール)を参照する。
 - 画面を閉じても受け付けたバッチは継続する。匿名Apex用の起動スクリプトやSchedulerは提供しない。Apexを実行・変更できる管理者からの呼び出しを技術的に封鎖する仕組みではない。
 - `TestDataDelete` Lightningタブを「Salesforce」アプリのナビゲーション末尾に配置する。アクセスできる管理者が画面を開いて実行する。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 なし。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)

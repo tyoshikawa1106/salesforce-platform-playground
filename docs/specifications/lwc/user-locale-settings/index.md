@@ -1,14 +1,19 @@
 # 言語・地域
 
-## 概要
+## 機能の用途
 
 Lightningホームでログインユーザーの言語と地域を参照・変更するLWCです。日本語と英語を先頭に表示し、言語変更時に地域の初期値を設定します。
 
-## 目的・利用場面
-
 個人設定画面へ移動せず、ホームで表示言語や日付・数値の地域設定を切り替えます。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+- `LwcUserLocaleSettings`は`UserLocaleSettingsController`へのアクセスだけを付与します。ユーザー管理権限は追加しません。
+- `with sharing`、`WITH USER_MODE`、`AccessLevel.USER_MODE`を使用します。
+- Userおよび対象2項目の更新可否をDescribeで確認し、権限不足では編集不可とします。保存時も再確認します。
+- ホームへの割り当ては既存の`HomeFlexiPage`を使用します。
+
+## 対象メタデータ
 
 | 実装・設定                                                                                                                 | 役割                                                       |
 | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -23,13 +28,51 @@ Lightningホームでログインユーザーの言語と地域を参照・変�
 | [LwcUserLocaleSettings](../../../../force-app/main/default/permissionsets/LwcUserLocaleSettings.permissionset-meta.xml)    | 公開Controllerへのアクセス                                 |
 | [HomeFlexiPage](../../../../force-app/main/default/flexipages/HomeFlexiPage.flexipage-meta.xml)                            | ホームのsidebar領域でアシスタントの直後に配置              |
 
-## 入力
+### 関連コンポーネント
+
+- Salesforce標準のUser、Lightningホーム、Lightning基本コンポーネント。
+- [LWC機能仕様一覧](../index.md)。
+
+### 対応するApexテスト
+
+| テスト対象のApexクラス         | テストクラス                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `UserLocaleSettingsController` | [UserLocaleSettingsControllerTest](../../../../force-app/main/default/classes/UserLocaleSettingsControllerTest.cls) |
+| `UserLocaleSettingsSelector`   | [UserLocaleSettingsSelectorTest](../../../../force-app/main/default/classes/UserLocaleSettingsSelectorTest.cls)     |
+| `UserLocaleSettingsService`    | [UserLocaleSettingsServiceTest](../../../../force-app/main/default/classes/UserLocaleSettingsServiceTest.cls)       |
+| `UserLocaleSettingsWrapper`    | [UserLocaleSettingsWrapperTest](../../../../force-app/main/default/classes/UserLocaleSettingsWrapperTest.cls)       |
+
+## アクセスするデータ・項目
+
+- 更新対象は本人の`User.LanguageLocaleKey`と`User.LocaleSidKey`です。
+- タイムゾーン、通貨、メール文字コード、他ユーザーの設定は更新しません。
+- 参照時は現在値の表示名を出し、候補から外れた値もコードを表示して保持します。
+
+### SOQLで参照するデータ
+
+```sql
+SELECT Id, LanguageLocaleKey, LocaleSidKey
+FROM User
+WHERE Id = :currentUserId
+WITH USER_MODE
+LIMIT 1
+```
+
+## 操作
 
 - 編集、言語・地域の選択、保存、キャンセル、取得失敗後の再読み込み。
 - 言語と地域の候補はUser項目のDescribe結果のうち有効な値です。
-- 公開保存APIの入力は言語コードと地域コードだけです。ユーザーIDや更新用SObjectは受け取りません。
+- 保存処理の入力は言語コードと地域コードだけです。ユーザーIDや更新用SObjectは受け取りません。
 
-## 処理内容
+## エラー判定
+
+- 取得失敗はエラーと再読み込みボタンを表示し、編集を禁止します。
+- 不正な候補・未入力・権限不足は更新前に拒否します。
+- 保存失敗は同じカード内に表示し、編集内容を保持して再試行できます。
+- 内部例外の本文・スタックトレースを表示・記録しません。
+- 保存成功後の再読み込みだけが失敗した場合は、保存済みであることと手動再読み込みの案内を表示します。
+
+## 処理詳細
 
 1. 接続時に`getSettings`で本人の最新設定を取得し、参照表示します。取得応答のクライアントキャッシュは使用しません。
 2. 編集時に保存値を編集用の値へコピーします。現在の言語と地域の組み合わせは変更しません。
@@ -47,46 +90,7 @@ Lightningホームでログインユーザーの言語と地域を参照・変�
 
 保存中に同じコンポーネントが再接続された場合は、保存の成功・拒否・通信失敗の応答を待ってから現在値を取得します。待機中は編集を禁止し、再接続を繰り返しても最新の接続だけが取得を開始します。切断前の保存応答によるページの再読み込みは行いません。
 
-## 出力・更新対象
-
-- 更新対象は本人の`User.LanguageLocaleKey`と`User.LocaleSidKey`です。
-- タイムゾーン、通貨、メール文字コード、他ユーザーの設定は更新しません。
-- 参照時は現在値の表示名を出し、候補から外れた値もコードを表示して保持します。
-
-## 権限・実行条件
-
-- `LwcUserLocaleSettings`は`UserLocaleSettingsController`へのアクセスだけを付与します。ユーザー管理権限は追加しません。
-- `with sharing`、`WITH USER_MODE`、`AccessLevel.USER_MODE`を使用します。
-- Userおよび対象2項目の更新可否をDescribeで確認し、権限不足では編集不可とします。保存時も再確認します。
-- ホームへの割り当ては既存の`HomeFlexiPage`を使用します。
-
-## エラー処理
-
-- 取得失敗はエラーと再読み込みボタンを表示し、編集を禁止します。
-- 不正な候補・未入力・権限不足は更新前に拒否します。
-- 保存失敗は同じカード内に表示し、編集内容を保持して再試行できます。
-- 内部例外の本文・スタックトレースを表示・記録しません。
-- 保存成功後の再読み込みだけが失敗した場合は、保存済みであることと手動再読み込みの案内を表示します。
-
-## 関連コンポーネント
-
-- Salesforce標準のUser、Lightningホーム、Lightning基本コンポーネント。
-- [LWC機能仕様一覧](../index.md)。
-
-## テスト・確認観点
-
-| テスト                             | 確認する振る舞い                                                                                   |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `UserLocaleSettingsControllerTest` | 本人設定の取得・保存、対象外項目の保持、不正入力時のDML抑止                                        |
-| `UserLocaleSettingsServiceTest`    | 現在値維持、対象なし、候補・権限検証、更新項目とユーザーの限定                                     |
-| `UserLocaleSettingsSelectorTest`   | ログインユーザーだけの取得                                                                         |
-| `UserLocaleSettingsWrapperTest`    | 初期値と未確定の更新対象                                                                           |
-| `userLocaleSettings.test.js`       | 参照・編集、キャンセル、自動連動と手動変更、二重保存防止、失敗時の再試行、再接続、アクセシビリティ |
-| `userLocaleSettingsLogic.test.js`  | 優先順、対応表、地域付き言語コード、一意な候補と曖昧な候補、保存入力の検証                         |
-
-Chromeでは言語・地域の参照、キーボードでの選択、キャンセル、保存後の標準画面の言語切り替えと地域の保持を確認します。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 画面の固定ラベルと案内は日本語です。選択肢の表示名はSalesforceの返却値を使用します。
 - 組織で有効な言語だけを選べます。この機能は組織の言語設定を変更しません。
@@ -94,8 +98,12 @@ Chromeでは言語・地域の参照、キーボードでの選択、キャン�
 - 保存は本人の2項目を同時に上書きします。別画面で同時に変更した場合の競合検知は行いません。
 - Apex Controllerの想定外例外の捕捉経路は、通常の管理者テストで再現できる障害を前提にしていません。カバレッジのための本体分岐は追加しません。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 未確認。
 - 実装と対応テストから現行動作を確認しています。独立した要求文書がないため、外部の要求正本との比較は未確認です。
 - 管理者以外のプロファイル・ライセンスによる自己更新の可否は、対象利用者の権限で確認が必要です。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)

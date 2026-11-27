@@ -1,20 +1,22 @@
 # 取引先一括削除画面
 
-## 概要
+## 機能の用途
 
 説明メッセージと実行ボタンから確認モーダルを表示し、取引先一括削除バッチを開始するLWCです。
 
 確認中に画面を離れると、その確認は無効になります。再び開いた画面から開始するには改めて確認します。受付要求の送信後に同じ画面へ戻った場合は、送信済みの結果を待ちます。
 
-## 目的・利用場面
-
 開発環境で、実行ユーザーが参照できる法人・個人取引先を一括削除するときに使用します。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+`LwcAccountDelete`権限セットは、機能の実行に必要なAccountの参照・編集・削除権限を付与します。画面の無効状態だけで保護せず、開始時および非同期の削除直前にもサーバーで検証します。
+
+## 対象メタデータ
 
 診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
-Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+Apex本体と対応するテストクラス、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
 
@@ -29,7 +31,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### Apexコードと対応テスト
 
-| Apex本体                                                                                                  | 役割                                                       | 同名Test                                                                                                          |
+| Apex本体                                                                                                  | 役割                                                       | 対応するテストクラス                                                                                              |
 | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | [AccountDeleteBatch](../../../../force-app/main/default/classes/AccountDeleteBatch.cls)                   | 参照可能な取引先を分割削除し、確定件数をfinishまで保持する | [AccountDeleteBatchTest](../../../../force-app/main/default/classes/AccountDeleteBatchTest.cls)                   |
 | [AccountDeleteBatchScheduler](../../../../force-app/main/default/classes/AccountDeleteBatchScheduler.cls) | 登録ユーザーの権限で取引先削除バッチを定期起動             | [AccountDeleteBatchSchedulerTest](../../../../force-app/main/default/classes/AccountDeleteBatchSchedulerTest.cls) |
@@ -42,16 +44,16 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [AccountDeleteWrapper](../../../../force-app/main/default/classes/AccountDeleteWrapper.cls)               | 画面に返す受付結果と標準ジョブの状態                       | [AccountDeleteWrapperTest](../../../../force-app/main/default/classes/AccountDeleteWrapperTest.cls)               |
 | [OrgEnvironment](../../../../force-app/main/default/classes/OrgEnvironment.cls)                           | 現在の Salesforce 組織の実行環境情報を提供                 | [OrgEnvironmentTest](../../../../force-app/main/default/classes/OrgEnvironmentTest.cls)                           |
 
-テストデータの準備は、対応する同名Testの内部で管理します。
+テストデータの準備は、対応する対応するテストクラスの内部で管理します。
 
 [AccountDeleteBatchScheduler](../../../../force-app/main/default/classes/AccountDeleteBatchScheduler.cls)は画面から直接呼ぶクラスではなく、同じ削除バッチを起動する定期実行の入口です。
 
 ### 設定・権限
 
-| 種別          | 実装・設定         | 役割                                                                                                                                                                |
-| ------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 設定          | `AccountDelete`    | 取引先一括削除の専用タブ。`Salesforce`アプリのナビゲーションで末尾の「テストデータ一括削除」の直前に配置                                                            |
-| PermissionSet | `LwcAccountDelete` | PermissionSet（表示ラベル: 「LWC：取引先一括削除」）: 専用タブ、関連Apexクラス、`RunAccountDelete`カスタム権限へのアクセス。Accountの参照・編集・削除権限を付与する |
+| 種別       | 実装・設定                                | 役割                                                                                                                                                                |
+| ---------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 設定       | `AccountDelete`                           | 取引先一括削除の専用タブ。`Salesforce`アプリのナビゲーションで末尾の「テストデータ一括削除」の直前に配置                                                            |
+| 権限セット | LWC：取引先一括削除（`LwcAccountDelete`） | PermissionSet（表示ラベル: 「LWC：取引先一括削除」）: 専用タブ、関連Apexクラス、`RunAccountDelete`カスタム権限へのアクセス。Accountの参照・編集・削除権限を付与する |
 
 ### 構成上の補足
 
@@ -59,19 +61,15 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 Controllerが`Database.executeBatch(new AccountDeleteBatch(), 2000)`で直接バッチを登録します。画面用Service・Selectorはバッチ用クラスを呼びません。画面表示とジョブ検索は画面側のクラスだけで完結します。
 
-## 入力
+### 関連コンポーネント
 
-初期表示で実行状態を取得します。「実行」で確認モーダルを開き、モーダルの「実行」で開始します。「キャンセル」や閉じる操作では起動しません。「状態を更新」で最新の権限とジョブを取得します。
+- [取引先一括削除バッチ](../../apex/batches/account-delete/index.md)
+- [取引先一括削除の定期実行](../../apex/schedulers/account-delete/index.md)
+- 標準`lightning/modal`: フォーカス管理と閉じる操作
 
-## 処理内容
+## アクセスするデータ・項目
 
-1. 初回表示では環境・権限の拒否理由と自身の直近実行を取得します。ジョブIDを保持した後の状態確認では、そのIDを検索条件に指定します。実行者・バッチクラス・ジョブ種別も限定し、該当しない場合は最新ジョブへ切り替えません。
-2. 参照できる全取引先が対象であること、個人取引先を削除すると対応する取引先責任者も削除されることを案内します。
-3. 確認中・通信中の二重操作を防止し、確認結果がtrueのときだけApexへ要求します。
-4. サーバーが返したジョブIDと受付メッセージを表示します。受付成功を削除完了とは扱いません。
-5. 同じジョブの終端状態を再取得するまで再実行を禁止します。
-
-## 出力・更新対象
+削除バッチは取引先のIDと名前を取得します。画面は `AsyncApexJob` を参照してバッチの受付と実行状況を表示します。
 
 画面には標準ジョブの状態とIDを表示します。削除の成功・失敗件数は結果メールで確認します。ジョブの完了だけでは全件の削除成功を意味しません。
 
@@ -83,11 +81,33 @@ Controllerが`Database.executeBatch(new AccountDeleteBatch(), 2000)`で直接バ
 
 画面を開いた時点ですでに終了しているジョブは、ジョブIDと処理状態を表示しません。画面上で受け付けたジョブ、または実行中に確認したジョブは、その画面を開いている間は終了状態まで表示します。画面を開き直すと、過去の終了結果は表示対象から外れます。
 
-## 権限・実行条件
+### SOQLで参照するデータ
 
-`LwcAccountDelete`権限セットは、機能の実行に必要なAccountの参照・編集・削除権限を付与します。画面の無効状態だけで保護せず、開始時および非同期の削除直前にもサーバーで検証します。
+```sql
+SELECT Id, Status, NumberOfErrors
+FROM AsyncApexJob
+WHERE Id = :jobId AND ApexClass.Name = 'AccountDeleteBatch' AND JobType = 'BatchApex'
+WITH SYSTEM_MODE
+LIMIT 1
+```
 
-## エラー処理
+```sql
+SELECT Id
+FROM AsyncApexJob
+WHERE ApexClass.Name = 'AccountDeleteBatch' AND JobType = 'BatchApex' AND Status IN ('Holding', 'Queued', 'Preparing', 'Processing')
+WITH SYSTEM_MODE
+LIMIT 1
+```
+
+### クエリの組み立て
+
+取得項目や検索条件を指定する実装は、[AccountDeleteBatchSelector.cls](../../../../force-app/main/default/classes/AccountDeleteBatchSelector.cls)、[AccountDeleteSelector.cls](../../../../force-app/main/default/classes/AccountDeleteSelector.cls)で確認できます。
+
+## 操作
+
+初期表示で実行状態を取得します。「実行」で確認モーダルを開き、モーダルの「実行」で開始します。「キャンセル」や閉じる操作では起動しません。「状態を更新」で最新の権限とジョブを取得します。
+
+## エラー判定
 
 操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
@@ -95,25 +115,23 @@ Controllerが`Database.executeBatch(new AccountDeleteBatch(), 2000)`で直接バ
 
 通信・モーダルの失敗では内部の例外を公開せず、固定メッセージを表示します。受付応答が不明な場合は開始ボタンを無効にし、状態更新とApexジョブの確認を案内します。受付後の取得失敗でも確認済みジョブIDを保持します。別ジョブの古い完了応答では再実行を許可しません。
 
-## 関連コンポーネント
+## 処理詳細
 
-- [取引先一括削除バッチ](../../apex/batches/account-delete/index.md)
-- [取引先一括削除の定期実行](../../apex/schedulers/account-delete/index.md)
-- 標準`lightning/modal`: フォーカス管理と閉じる操作
+1. 初回表示では環境・権限の拒否理由と自身の直近実行を取得します。ジョブIDを保持した後の状態確認では、そのIDを検索条件に指定します。実行者・バッチクラス・ジョブ種別も限定し、該当しない場合は最新ジョブへ切り替えません。
+2. 参照できる全取引先が対象であること、個人取引先を削除すると対応する取引先責任者も削除されることを案内します。
+3. 確認中・通信中の二重操作を防止し、確認結果がtrueのときだけApexへ要求します。
+4. サーバーが返したジョブIDと受付メッセージを表示します。受付成功を削除完了とは扱いません。
+5. 同じジョブの終端状態を再取得するまで再実行を禁止します。
 
-## テスト・確認観点
-
-削除結果の詳細上限は通常200件を維持し、`AccountDeleteBatchServiceTest`では内部コンストラクタに上限2件を渡して、失敗3件で上限未満・ちょうど・超過を確認します。実行者は標準システム管理者とし、プロファイル差異による権限拒否はテスト対象に含めません。通常処理に必要なカスタム権限は、既存の権限セット名に依存せずテスト内で準備します。
-
-環境・カスタム権限・取引先の参照と削除の両方の権限による許可・拒否は、内部メソッドに3つの判定値を引数で渡して確認します。環境、カスタム権限、CRUDの順で拒否理由を決定することも検証し、権限差異のあるユーザーは準備しません。拒否側は未保存の取引先3件を使い、開始拒否、削除直前の拒否、全件の失敗集計、詳細上限を検証します。公開入口は呼び出し時の実際の組織環境・権限で判定し、テストもその組織での許可・拒否と照合します。Batchの対象取得は拒否理由を引数で渡し、取引先1件が存在しても拒否時は空のQueryLocatorを返し、許可時はその1件を取得することを同名Testで検証します。
-
-`accountDelete.test.js`で確認・キャンセル・連打・権限拒否・通信失敗・再取得、`accountDeleteLogic.test.js`で状態判定、`accountDeleteConfirm.test.js`で親への確認結果を検証します。DOMのアクセシビリティを明示チェックします。標準モーダルの実ブラウザ挙動はChromeで別途確認します。
-
-## 制約・注意事項
+### 制約・注意事項
 
 専用の「取引先一括削除」タブから開けます。App Builderのアプリケーションページとホームページへも配置できます。特定のFlexiPageは変更しません。自動ポーリングは行いません。開始後に画面を閉じてもバッチは継続します。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 比較元はIssue #772。
 - 専用タブを入口として提供します。Chromeでの実削除操作と実メール配信は組織への反映後に確認します。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)

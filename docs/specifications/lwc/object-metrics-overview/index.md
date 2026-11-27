@@ -1,20 +1,25 @@
 # データボード
 
-## 概要
+## 機能の用途
 
 主要なSalesforce標準オブジェクトの参照可能なレコード件数をカードで一覧表示し、カードから汎用レコード検索画面へ遷移するLightning Web Componentです。
 
-## 目的・利用場面
-
 Lightningホームページで、主要データの件数を俯瞰し、確認したいオブジェクトのレコード一覧へ素早く移動するために利用します。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+- `LwcObjectMetricsOverview` Permission Setで、LWCから直接呼び出す[ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
+- 対象オブジェクトの参照権限が必要です。参照できないオブジェクトは件数を取得不能として扱います。
+- `with sharing` と `WITH USER_MODE` により、利用者の共有設定と参照権限を適用します。
+- LWCは `lightning__HomePage` に公開されています。
+
+## 対象メタデータ
 
 診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
 Salesforce API応答の表示メッセージ整形は内部APIモジュール[salesforceApiUtils](../../../../force-app/main/default/lwc/salesforceApiUtils/salesforceApiUtils.js)を使用します。Apex・UI API形式、複数メッセージの順序と代替文言は[共通テスト](../../../../force-app/main/default/lwc/salesforceApiUtils/__tests__/salesforceApiUtils.test.js)で確認します。エラー時の画面状態と復旧操作はこの画面で管理します。
 
-Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+Apex本体と対応するテストクラス、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
 
@@ -27,7 +32,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### Apexコードと対応テスト
 
-| Apex本体                                                                                                                  | 役割                                                               | 同名Test                                                                                                                          |
+| Apex本体                                                                                                                  | 役割                                                               | 対応するテストクラス                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | [ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)         | データボード LWC に表示するレコード件数サマリ提供                  | [ObjectMetricsOverviewControllerTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewControllerTest.cls)         |
 | [ObjectMetricsOverviewItemWrapper](../../../../force-app/main/default/classes/ObjectMetricsOverviewItemWrapper.cls)       | 1 つのオブジェクト件数カードを LWC に返す Wrapper                  | [ObjectMetricsOverviewItemWrapperTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewItemWrapperTest.cls)       |
@@ -37,15 +42,42 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | [ObjectMetricsOverviewSummaryWrapper](../../../../force-app/main/default/classes/ObjectMetricsOverviewSummaryWrapper.cls) | オブジェクト件数結果を LWC に返す Wrapper                          | [ObjectMetricsOverviewSummaryWrapperTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewSummaryWrapperTest.cls) |
 | [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls)                                 | データボードで扱うオブジェクト定義一元管理                         | [ObjectMetricCatalogTest](../../../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)                                 |
 
-テストデータの準備は、対応する同名Testの内部で管理します。
+テストデータの準備は、対応する対応するテストクラスの内部で管理します。
 
 ### 設定・権限
 
-| 種別          | 実装・設定                 | 役割                                                                                                                                  |
-| ------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| PermissionSet | `LwcObjectMetricsOverview` | [ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)のApexクラス実行権限 |
+| 種別       | 実装・設定                                                  | 役割                                                                                                                                  |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 権限セット | LWC：オブジェクト件数サマリー（`LwcObjectMetricsOverview`） | [ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)のApexクラス実行権限 |
 
-## 入力
+### 関連コンポーネント
+
+- [汎用レコード検索](../object-record-search/index.md)
+- Lightningホームページ
+
+## アクセスするデータ・項目
+
+ユーザーの件数カードで使用するクエリです。他のカードはカタログの対象オブジェクトに切り替え、ユーザーの有効条件を外します。
+
+```sql
+SELECT COUNT()
+FROM User
+WHERE IsActive = TRUE
+WITH USER_MODE
+LIMIT 50000
+```
+
+- 対象オブジェクトごとの件数カード
+- 初回表示から全カードの名前とアイコンをカタログ順に表示します。件数取得中は各カードの件数欄にスピナーを表示し、初回応答後にカードを選択できます。再読み込み中もカードの並びと高さを維持します。
+- 50,000件以上の場合は `50,000+` と表示します。
+- カード選択時は、カードキーを `objectRecordSearch` へ渡します。
+- この機能自体はレコードを更新しません。
+
+### クエリの組み立て
+
+取得項目や検索条件を指定する実装は、[ObjectMetricsOverviewSelector.cls](../../../../force-app/main/default/classes/ObjectMetricsOverviewSelector.cls)、[ObjectMetricsOverviewService.cls](../../../../force-app/main/default/classes/ObjectMetricsOverviewService.cls)で確認できます。
+
+## 操作
 
 - 利用者によるホームページの表示
 - 再読み込み操作
@@ -54,31 +86,7 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 カードの対象と表示順は [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls) を正とします。
 
-## 処理内容
-
-1. `getObjectMetrics` をWireで呼び出します。
-2. Serviceがカタログに定義された各オブジェクトの参照権限を確認し、件数取得計画を作成します。
-3. 専用Coordinatorが現在トランザクションの残りSOQL数を確認し、`WITH USER_MODE` のCOUNTクエリを順次実行します。ユーザーは有効ユーザーだけを数えます。
-4. Serviceが未加工件数を表示上限付きの値へ集計し、カタログの定義順にラベル、アイコン、件数を返します。
-5. LWCは件数カードを表示し、カード選択時に同じ画面内で `objectRecordSearch` へ切り替えます。
-6. 検索画面から戻る、またはレコード変更通知を受けると、ダッシュボード表示または件数を更新します。
-
-## 出力・更新対象
-
-- 対象オブジェクトごとの件数カード
-- 初回表示から全カードの名前とアイコンをカタログ順に表示します。件数取得中は各カードの件数欄にスピナーを表示し、初回応答後にカードを選択できます。再読み込み中もカードの並びと高さを維持します。
-- 50,000件以上の場合は `50,000+` と表示します。
-- カード選択時は、カードキーを `objectRecordSearch` へ渡します。
-- この機能自体はレコードを更新しません。
-
-## 権限・実行条件
-
-- `LwcObjectMetricsOverview` Permission Setで、LWCから直接呼び出す[ObjectMetricsOverviewController](../../../../force-app/main/default/classes/ObjectMetricsOverviewController.cls)のApexクラス実行権限を付与します。Controllerから呼び出す内部クラスへ個別のApexクラス実行権限を付与する必要はありません。
-- 対象オブジェクトの参照権限が必要です。参照できないオブジェクトは件数を取得不能として扱います。
-- `with sharing` と `WITH USER_MODE` により、利用者の共有設定と参照権限を適用します。
-- LWCは `lightning__HomePage` に公開されています。
-
-## エラー処理
+## エラー判定
 
 操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
 
@@ -88,21 +96,16 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 - 件数取得全体で例外が発生した場合は、Apexが一般化したメッセージを返し、LWCがエラーアラートを表示します。
 - 再読み込みに失敗した場合も、画面上にエラーメッセージを表示します。
 
-## 関連コンポーネント
+## 処理詳細
 
-- [汎用レコード検索](../object-record-search/index.md)
-- Lightningホームページ
+1. `getObjectMetrics` をWireで呼び出します。
+2. Serviceがカタログに定義された各オブジェクトの参照権限を確認し、件数取得計画を作成します。
+3. 専用Coordinatorが現在トランザクションの残りSOQL数を確認し、`WITH USER_MODE` のCOUNTクエリを順次実行します。ユーザーは有効ユーザーだけを数えます。
+4. Serviceが未加工件数を表示上限付きの値へ集計し、カタログの定義順にラベル、アイコン、件数を返します。
+5. LWCは件数カードを表示し、カード選択時に同じ画面内で `objectRecordSearch` へ切り替えます。
+6. 検索画面から戻る、またはレコード変更通知を受けると、ダッシュボード表示または件数を更新します。
 
-## テスト・確認観点
-
-- [ObjectMetricCatalogTest](../../../../force-app/main/default/classes/ObjectMetricCatalogTest.cls)で、カード定義の順序、キーとオブジェクトの対応、許可対象、返却一覧の独立性を確認すること
-
-- [ObjectMetricsOverviewControllerTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewControllerTest.cls)、[ObjectMetricsOverviewQueryRunnerTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewQueryRunnerTest.cls)、[ObjectMetricsOverviewServiceTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewServiceTest.cls)、[ObjectMetricsOverviewSelectorTest](../../../../force-app/main/default/classes/ObjectMetricsOverviewSelectorTest.cls) で、カタログ順、主要オブジェクトの実件数、0件、不明なAPI名、例外、クエリ数、集計上限の境界を確認すること
-- `objectMetricsOverview.test.js` で、初期表示、読込中、件数表示、上限表示、エラー、再読み込み、カード選択、検索画面からの復帰を確認すること
-- ホームページ上でカードの表示順、ラベル、アイコン、レスポンシブ表示を確認します。
-- Apexではメタデータの存在・参照可否と残りSOQL数を内部引数で指定し、未取得と正常な0件を区別します。件数取得計画の上限は内部コンストラクタへ2を渡し、2件の受付と3件の拒否を検証します。通常の上限は50件です。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 対象オブジェクトと表示順は [ObjectMetricCatalog](../../../../force-app/main/default/classes/ObjectMetricCatalog.cls) の固定定義です。
 - 件数取得計画は最大50件です。固定カタログの対象数または現在トランザクションの残りSOQL数が上限を満たさない場合は、個別取得を始める前に全体をエラーとして返します。
@@ -116,10 +119,14 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 - カタログ内のオブジェクトごとにCOUNTクエリを実行するため、対象追加時はSOQL数と画面応答時間への影響を確認します。
 - 件数取得は同期Apexで実行し、再読み込みと子コンポーネントのレコード変更通知でも再実行されます。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 現行実装確認済み、承認済み要求との差異は未判定
 - 現行実装は `objectMetricsOverview`、関連Apexクラス、Apexテスト、Jestテストから確認しています。
 - 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
 
 権限セットには、件数サマリーの入口と、配下のレコード検索で使う[ObjectRecordSearchController](../../../../force-app/main/default/classes/ObjectRecordSearchController.cls)へのアクセスを含めます。オブジェクト・項目の参照や更新権限は付与しません。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)
