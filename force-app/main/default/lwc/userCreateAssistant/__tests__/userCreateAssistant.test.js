@@ -524,11 +524,12 @@ it('確定後はダイアログの終了APIに依存せず保存要求を一度�
     select(root, 'one'); await flush();
     const dialog = await review(root);
     const confirm = dialog.querySelectorAll('lightning-button')[1];
+    expect(confirm.label).toBe('保存');
     confirm.click();
     confirm.click();
     await flush();
     expect(saveUser).toHaveBeenCalledTimes(1);
-    expect(root.querySelector('a[href="/lightning/r/User/new/view"]')).not.toBeNull();
+    expect(root.querySelector('[role="status"].slds-theme_success a[href="/lightning/r/User/new/view"]')).not.toBeNull();
 });
 it('Escapeで保存せずに戻り、再度開いて確定した結果が空なら通知する', async () => {
     getForm.mockResolvedValue({ fields });
@@ -540,6 +541,7 @@ it('Escapeで保存せずに戻り、再度開いて確定した結果が空な�
     await flush();
     expect(modal(root)).toBeNull();
     expect(saveUser).not.toHaveBeenCalled();
+    expect(root.activeElement).toBe(root.querySelector('h1'));
     await submit(root); await flush();
     expect(root.textContent).toContain('作成結果を確認できません');
 });

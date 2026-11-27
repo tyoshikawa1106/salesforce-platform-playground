@@ -7,11 +7,20 @@
                         <lightning-icon icon-name="standard:user" size="medium" alternative-text=""></lightning-icon>
                     </div>
                     <div class="slds-media__body">
-                        <h1 class="slds-page-header__title">ユーザー作成アシスタント</h1>
+                    <h1 lwc:ref="pageTitle" tabindex="-1" class="slds-page-header__title">ユーザー作成アシスタント</h1>
                     </div>
                 </div>
             </div>
         </header>
+        <p lwc:if={showSaveProgress} role="status" class="slds-scoped-notification slds-scoped-notification_light slds-m-bottom_medium">保存中です。</p>
+        <div lwc:if={createdUrl} role="status" tabindex="-1" lwc:ref="created"
+            class="slds-scoped-notification slds-media slds-media_center slds-theme_success slds-m-bottom_medium">
+            <lightning-icon class="slds-media__figure" icon-name="utility:success" size="small" variant="inverse" aria-hidden="true"></lightning-icon>
+            <div class="slds-media__body">
+                <strong>ユーザーを作成しました。</strong>
+                <a class="slds-text-link_reverse slds-m-left_x-small" href={createdUrl}>作成したユーザーを開く</a>
+            </div>
+        </div>
         <div lwc:if={displayedError} role="alert" tabindex="-1" lwc:ref="errorSummary"
             class="slds-scoped-notification slds-media slds-media_center slds-theme_error slds-m-bottom_medium">
             <lightning-icon class="slds-media__figure" icon-name="utility:error" size="x-small" variant="inverse" aria-hidden="true"></lightning-icon>
@@ -33,9 +42,6 @@
                     onchange={handleSourceChange}
                 ></lightning-record-picker>
                 <p lwc:if={loading} class="slds-m-top_small" role="status">ユーザー情報を読み込み中です。</p>
-                <p lwc:if={createdUrl} role="status" lwc:ref="created" tabindex="-1" class="slds-m-top_small">
-                    ユーザーを作成しました。<a href={createdUrl}>作成したユーザーを開く</a>
-                </p>
             </section>
             <template lwc:if={panels}>
                 <section class="slds-box slds-theme_default slds-m-top_medium c-options" aria-label="作成オプション">
@@ -105,8 +111,7 @@
                 </div>
             </template>
             <div lwc:if={panels} class="slds-m-top_medium slds-text-align_right">
-                <span lwc:if={showSaveProgress} role="status" class="slds-m-right_small">保存中です。</span>
-                <lightning-button lwc:ref="review" label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
+                <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
             </div>
 
         </template>
@@ -136,8 +141,8 @@
                     </template>
                 </div>
                 <footer class="slds-modal__footer">
-                    <lightning-button lwc:ref="cancel" label="キャンセル" onclick={handleCancel}></lightning-button>
-                    <lightning-button lwc:ref="confirm" class="slds-m-left_small" label={saveLabel} variant="brand" onclick={handleConfirmedSave}></lightning-button>
+                    <lightning-button lwc:ref="cancel" label="キャンセル" onclick={returnToPageTop}></lightning-button>
+                    <lightning-button lwc:ref="confirm" class="slds-m-left_small" label="保存" variant="brand" onclick={handleConfirmedSave}></lightning-button>
                 </footer>
             </div>
         </section>
