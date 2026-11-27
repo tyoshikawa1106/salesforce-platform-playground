@@ -1,6 +1,5 @@
 import { LightningElement, wire } from 'lwc';
 import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
-import LightningConfirm from 'lightning/confirm';
 import USER_OBJECT from '@salesforce/schema/User';
 import CURRENT_USER_ID from '@salesforce/user/Id';
 import getSourceProfileIds from '@salesforce/apex/UserCreateAssistantController.getSourceProfileIds';
@@ -304,8 +303,8 @@ export default class UserCreateAssistant extends LightningElement {
         return !this.sourceProfileIds && !this.profileError;
     }
 
-    get canReviewSave() {
-        return Boolean(this.panels) && !this.saving;
+    renderedCallback() {
+        this.refs.background.toggleAttribute('inert', Boolean(this.confirmationSections));
     }
 
     get saveLabel() {
@@ -354,8 +353,8 @@ export default class UserCreateAssistant extends LightningElement {
         if (!target || target.trim().toLowerCase() !== source?.trim().toLowerCase()) return false;
         this.showError(MATCHING_USERNAME);
         const input = this.targetUsernameInput;
-        input.setCustomValidity(this.errorMessage);
-        input.reportValidity();
+        input?.setCustomValidity(this.errorMessage);
+        input?.reportValidity();
         return true;
     }
 
@@ -406,7 +405,6 @@ export default class UserCreateAssistant extends LightningElement {
             return;
         }
         if (this.reportInvalidChoices()) return;
-        if (this.reportMatchingUsername()) return;
         // 前回失敗の表示を解除
         this.errorMessage = undefined;
         // 表示中のフォームから確認内容を確定
@@ -414,49 +412,28 @@ export default class UserCreateAssistant extends LightningElement {
             deactivateSource: this.deactivateSource, copyPermissionSets: this.copyPermissionSets,
             copyPermissionSetGroups: this.copyPermissionSetGroups, sendResetEmail: this.sendResetEmail
         });
-        // ブラウザのモーダル表示で背景の操作とフォーカスを制限
-        if (!this.openConfirmationDialog()) {
-            // ネイティブダイアログを開けない場合も、同じ内容の確認後にだけ保存する。
-            const sections = this.confirmationSections;
-            const message = sections.map(section => [
-                section.title, ...section.rows.map(row => row.label + '：' + (row.checkbox ? (row.checked ? 'はい' : 'いいえ') : row.value)),
-                ...(section.deactivating ? ['コピー元ユーザーを無効化します。'] : [])
-            ].join('\n')).join('\n\n');
-            try {
-                const confirmed = await LightningConfirm.open({ label: 'ユーザーの作成を確認', message });
-                if (this.confirmationSections !== sections || !this.isConnected) return;
-                if (confirmed) await this.handleConfirmedSave();
-                else this.closeConfirmation();
-            } catch {
-                if (this.confirmationSections !== sections) return;
-                this.confirmationSections = undefined;
-                this.showError('確認画面を開けませんでした。ユーザーの作成は開始していません。画面を再読み込みしてください。');
-            }
-        }
-    }
-
-    openConfirmationDialog() {
-        try {
-            const dialog = this.refs.confirmation;
-            dialog.showModal();
-            return dialog.open;
-        } catch {
-            return false;
-        }
+        await Promise.resolve();
+        this.refs?.cancel?.focus();
     }
 
     closeConfirmation() {
-        if (!this.confirmationSections) return;
-        // 取り消し・離脱から古い確認結果を実行できないようにする
         this.confirmationSections = undefined;
-        // 開いている場合だけフォームへフォーカスを戻す
-        const dialog = this.refs?.confirmation;
-        if (dialog?.open) {
-            try {
-                dialog.close();
-            } catch {
-                // 終了メソッドを利用できない環境でも次の確認を妨げない。
-                dialog.open = false;
+    }
+
+    handleCancel() {
+        this.closeConfirmation();
+        Promise.resolve().then(() => this.refs?.review?.focus());
+    }
+
+    handleConfirmationKey(event) {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.handleCancel();
+        } else if (event.key === 'Tab') {
+            const { cancel, confirm } = this.refs;
+            if ((event.shiftKey && event.target === cancel) || (!event.shiftKey && event.target === confirm)) {
+                event.preventDefault();
+                (event.shiftKey ? confirm : cancel).focus();
             }
         }
     }
@@ -464,9 +441,10 @@ export default class UserCreateAssistant extends LightningElement {
     async handleConfirmedSave() {
         // キャンセル後と二重送信は保存しない
         if (!this.confirmationSections || this.saving || !this.panels) return;
-        // 保存中はテンプレートがダイアログを取り除く。ブラウザの close() に保存を依存させない。
+        // 確定操作で確認画面を閉じ、検証結果または保存状態をフォームに表示する。
         this.confirmationSections = undefined;
         try {
+            if (this.reportMatchingUsername()) return;
             this.saving = true;
             // コピー元の変更と割り当ては同じ保存要求で実行
             const id = await saveUser({ request: {
@@ -493,6 +471,8 @@ export default class UserCreateAssistant extends LightningElement {
             this.fieldLines = undefined;
             // 個人情報を含む編集中の値を解放
             this.fields = [];
+            await Promise.resolve();
+            this.refs?.created?.focus();
             // 編集済みの元側項目を消去
             this.sourceDraft = {};
             // 作成済みの入力を消去
