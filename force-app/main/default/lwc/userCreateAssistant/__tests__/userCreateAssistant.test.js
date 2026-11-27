@@ -63,7 +63,7 @@ it('コピー元の未変更項目は更新に含めず、変更した項目と�
     source.checkValidity = jest.fn(() => false);
     target.checkValidity = jest.fn(() => true);
     const dialog = root.querySelector('dialog');
-    dialog.showModal = jest.fn();
+    dialog.showModal = jest.fn(() => dialog.setAttribute('open', ''));
     const save = root.querySelector('.slds-text-align_right lightning-button');
     edit(source, '変更');
     save.click();
@@ -546,6 +546,27 @@ it.each([true, false])('標準確認を代用し承認=%sのときだけ保存�
     expect(LightningConfirm.open).toHaveBeenCalledWith(expect.objectContaining({message: expect.stringContaining('コピー元ユーザー')}));
     expect(saveUser).toHaveBeenCalledTimes(confirmed ? 1 : 0);
     expect(root.textContent.includes('作成結果を確認できません')).toBe(confirmed);
+});
+
+it('確認画面が例外なしで閉じたままでも、キャンセルと再試行ができる', async () => {
+    getForm.mockResolvedValue({ fields });
+    saveUser.mockResolvedValue('new');
+    const pending = deferred();
+    LightningConfirm.open.mockResolvedValueOnce(false).mockReturnValueOnce(pending.promise);
+    const root = (await mount()).shadowRoot;
+    select(root, 'one'); await flush();
+    input(root, 'target').checkValidity = () => true;
+    root.querySelector('dialog').showModal = jest.fn();
+    const start = [...root.querySelectorAll('lightning-button')].find(el => el.variant === 'brand');
+    start.click(); await flush();
+    expect(LightningConfirm.open).toHaveBeenCalledTimes(1);
+    expect(saveUser).not.toHaveBeenCalled();
+    start.click();
+    start.click(); await flush();
+    expect(LightningConfirm.open).toHaveBeenCalledTimes(2);
+    expect(saveUser).not.toHaveBeenCalled();
+    pending.resolve(true); await flush();
+    expect(saveUser).toHaveBeenCalledTimes(1);
 });
 
 it('画面の入力検証が例外になった場合は保存前の失敗を表示する', async () => {
