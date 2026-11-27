@@ -108,7 +108,7 @@
                 <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
                 <lightning-button label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
             </div>
-            <dialog lwc:ref="confirmation" class="c-confirmation slds-theme_default slds-is-fixed slds-p-around_none slds-grid_vertical" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
+            <dialog lwc:if={canReviewSave} lwc:ref="confirmation" class="c-confirmation slds-theme_default slds-is-fixed slds-p-around_none slds-grid_vertical" aria-labelledby="confirmation-title" oncancel={closeConfirmation}>
                 <header class="slds-p-around_medium">
                     <h2 id="confirmation-title" class="slds-text-heading_small">ユーザーの作成を確認</h2>
                 </header>
