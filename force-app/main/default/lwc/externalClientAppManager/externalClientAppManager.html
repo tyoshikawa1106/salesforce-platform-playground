@@ -30,7 +30,8 @@
                 class="c-authentication slds-box slds-theme_default slds-m-bottom_medium slds-grid slds-grid_vertical-align-center slds-grid_align-spread slds-wrap"
                 role="status"
             >
-                <span>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
+                <span lwc:if={authenticationUrl}>Salesforce APIを使用します。認証ボタンをクリックしてください。</span>
+                <span lwc:elseif={busy}>認証状態を確認しています…</span>
                 <div class="slds-grid slds-grid_vertical-align-center">
                     <template lwc:if={authenticationUrl}>
                         <a
@@ -41,9 +42,12 @@
                             >認証</a
                         >
                     </template>
-                    <template lwc:else>
-                        <lightning-button label="認証" variant="brand" disabled></lightning-button>
-                    </template>
+                    <lightning-button
+                        lwc:if={canRecheckAuthentication}
+                        class="slds-m-left_x-small"
+                        label="接続を再確認"
+                        onclick={handleAuthenticationRecheck}
+                    ></lightning-button>
                 </div>
             </div>
         </template>

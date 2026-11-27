@@ -551,8 +551,15 @@ describe('外部クライアントアプリ認証管理', () => {
         expect(element.shadowRoot.querySelector('a').getAttribute('href')).toBe('/auth');
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
     });
-    it.each(['UNAVAILABLE', 'NO_ACCESS'])('確認結果%sでも認証を表示し操作は許可しない', async (status) => {
-        const element = await createComponent({ status });
+    it('機能権限不足では権限セットを案内し認証を要求しない', async () => {
+        const element = await createComponent({ status: 'NO_ACCESS' });
+        expect(element.shadowRoot.textContent).toContain('LwcExternalClientAppManager');
+        expect(element.shadowRoot.textContent).not.toContain('認証ボタンをクリック');
+        expect(getAuthenticationUrl).not.toHaveBeenCalled();
+        expect(execute).not.toHaveBeenCalled();
+    });
+    it('接続確認不能でも有効な認証URLを表示する', async () => {
+        const element = await createComponent({ status: 'UNAVAILABLE' });
         expect(element.shadowRoot.querySelector('.c-authentication a').getAttribute('href')).toBe('/auth');
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(button(element, '認証解除')).toBeUndefined();
@@ -567,19 +574,31 @@ describe('外部クライアントアプリ認証管理', () => {
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
         expect(execute).not.toHaveBeenCalled();
     });
-    it('URL取得失敗では無効な認証ボタンと理由を表示する', async () => {
+    it('URL取得失敗後も個人設定で許可した接続を同じ画面で再確認できる', async () => {
         getAuthenticationUrl.mockRejectedValueOnce(new Error('PRIVATE'));
         const element = await createComponent({ status: 'UNAVAILABLE' });
         expect(element.shadowRoot.querySelector('.c-authentication a')).toBeNull();
-        expect(button(element, '認証').disabled).toBe(true);
-        expect(element.shadowRoot.textContent).toContain('認証を開始できません');
+        expect(button(element, '認証')).toBeUndefined();
+        expect(element.shadowRoot.textContent).toContain('認証開始URLも取得できませんでした');
+        expect(element.shadowRoot.textContent).not.toContain('認証ボタンをクリック');
         expect(element.shadowRoot.textContent).not.toContain('PRIVATE');
         expect(execute).not.toHaveBeenCalled();
+        getAuthentication.mockResolvedValueOnce({ status: 'AUTHENTICATED' });
+        const retry = button(element, '接続を再確認');
+        retry.click();
+        retry.click();
+        await flush();
+        expect(getAuthentication).toHaveBeenCalledTimes(2);
+        expect(getAuthenticationUrl).toHaveBeenCalledTimes(1);
+        expect(actions()).toEqual(['list']);
+        expect(element.shadowRoot.querySelector('input[role="combobox"]')).not.toBeNull();
     });
-    it('確認中も無効な認証ボタンを表示して機能を隠す', async () => {
+    it('確認中は状態を表示して認証や再確認の重複操作を防ぐ', async () => {
         getAuthentication.mockImplementationOnce(() => new Promise(() => {}));
         const element = await createComponent();
-        expect(button(element, '認証').disabled).toBe(true);
+        expect(element.shadowRoot.textContent).toContain('認証状態を確認しています');
+        expect(button(element, '認証')).toBeUndefined();
+        expect(button(element, '接続を再確認')).toBeUndefined();
         expect(element.shadowRoot.querySelector('input[role="combobox"]')).toBeNull();
     });
     it('認証し直して戻った画面では接続を確認して操作を許可する', async () => {
