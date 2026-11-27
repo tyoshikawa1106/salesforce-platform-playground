@@ -105,7 +105,7 @@
                 </div>
             </template>
             <div lwc:if={panels} class="slds-m-top_medium slds-text-align_right">
-                <span lwc:if={saving} role="status" class="slds-m-right_small">保存中です。</span>
+                <span lwc:if={showSaveProgress} role="status" class="slds-m-right_small">保存中です。</span>
                 <lightning-button lwc:ref="review" label={saveLabel} variant="brand" disabled={saving} onclick={handleSave}></lightning-button>
             </div>
 

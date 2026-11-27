@@ -10,6 +10,8 @@ import { buildConfirmationSections, buildFieldLines, buildPanel, getDraftValue, 
 const MASTER_RECORD_TYPE_ID = '012000000000000AAA';
 const ACCESS_ERROR_PREFIX = '利用権限の確認：';
 const DEPENDENCY_ERROR = '連動選択リストの候補を取得できませんでした。';
+const UNKNOWN_SAVE_RESULT = '作成結果を確認できません。再実行する前に、設定の［ユーザー］で入力したユーザー名を確認してください。';
+const SAVE_WAIT_MS = 30000;
 const MATCHING_USERNAME = '新規ユーザーの「ユーザー名」がコピー元と同じです。右側の「ユーザー名」に、別の未使用のユーザー名を入力してください。';
 
 // 参照元の選択から入力、割り当てを含む作成までを制御
@@ -312,8 +314,12 @@ export default class UserCreateAssistant extends LightningElement {
         return this.deactivateSource ? 'コピー元を無効化してユーザーを作成' : 'ユーザーを作成';
     }
 
+    get showSaveProgress() {
+        return this.saving && !this.errorMessage;
+    }
+
     get errorHeading() {
-        if (!this.sourceProfileIds) return undefined;
+        if (!this.sourceProfileIds || this.errorMessage?.includes(UNKNOWN_SAVE_RESULT)) return undefined;
         return this.panels ? 'ユーザーを作成できませんでした' : 'コピー元ユーザーを読み込めませんでした';
     }
 
@@ -443,9 +449,13 @@ export default class UserCreateAssistant extends LightningElement {
         if (!this.confirmationSections || this.saving || !this.panels) return;
         // 確定操作で確認画面を閉じ、検証結果または保存状態をフォームに表示する。
         this.confirmationSections = undefined;
+        let deadline;
         try {
             if (this.reportMatchingUsername()) return;
             this.saving = true;
+            // 表示の待ち時間を区切る。送信済みの保存は取り消さず、遅れて届く確定結果も反映する。
+            deadline = AbortSignal.timeout(SAVE_WAIT_MS);
+            deadline.onabort = () => this.showError('保存要求への応答が30秒以内にありませんでした。' + UNKNOWN_SAVE_RESULT + ' 必要に応じてこのページを再読み込みしてください。');
             // コピー元の変更と割り当ては同じ保存要求で実行
             const id = await saveUser({ request: {
                 sourceId: this.sourceId, deactivateSource: this.deactivateSource,
@@ -456,7 +466,7 @@ export default class UserCreateAssistant extends LightningElement {
             } });
             // 作成完了を表示し、同じ入力を再送できない状態に戻す
             if (!id) {
-                this.showError('作成結果を確認できませんでした。再実行する前に、設定のユーザー一覧で新規ユーザー名を確認してください。');
+                this.showError(UNKNOWN_SAVE_RESULT);
                 return;
             }
             this.createdUrl = '/lightning/r/User/' + id + '/view';
@@ -481,7 +491,8 @@ export default class UserCreateAssistant extends LightningElement {
             // 権限不足では保存の再試行より先に利用権限を再確認する
             if (this.handleAccessDenial(error)) return;
             // 入力とチェック状態を維持して再試行できるようにする
-            const message = error?.body?.message || 'ユーザーを作成できませんでした。入力内容と権限を確認してください。';
+            const transportFailure = error?.errorType === 'networkResponse' || [0, 408, 502, 503, 504].includes(error?.status);
+            const message = (!transportFailure && error?.body?.message) || UNKNOWN_SAVE_RESULT;
             // 保存中に候補も失効していれば、編集を閉じて両方のエラーを表示する
             if (!this.dependencyRecordTypeId && this.fields.some(field => field.controllerName)) {
                 this.panels = undefined;
@@ -490,6 +501,7 @@ export default class UserCreateAssistant extends LightningElement {
                 this.showError(message);
             }
         } finally {
+            if (deadline) deadline.onabort = null;
             // 再接続時も送信済みの要求が完了するまでロックを維持
             this.saving = false;
         }

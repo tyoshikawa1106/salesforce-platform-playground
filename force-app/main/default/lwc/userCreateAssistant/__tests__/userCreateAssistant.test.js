@@ -10,6 +10,10 @@ jest.mock('@salesforce/apex/UserCreateAssistantController.getSourceProfileIds', 
 jest.mock('@salesforce/user/Id', () => ({ default: '005000000000001AAA' }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.getForm', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/UserCreateAssistantController.saveUser', () => ({ default: jest.fn() }), { virtual: true });
+const originalTimeout = AbortSignal.timeout;
+beforeEach(() => { AbortSignal.timeout = jest.fn(() => new AbortController().signal); });
+afterEach(() => { AbortSignal.timeout = originalTimeout; });
+
 const fields = [{ apiName: 'LastName', label: '姓', type: 'text', value: '参照元', canCreate: true, canUpdate: true, required: true }];
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
 function deferred() {
@@ -550,4 +554,50 @@ it('画面の入力検証が例外になった場合は保存前の失敗を表�
     expect(root.querySelector('[role="alert"]').textContent).toContain('作成は開始していません');
     expect(root.textContent).not.toContain('PRIVATE');
     expect(saveUser).not.toHaveBeenCalled();
+});
+
+it.each([
+    new TypeError('offline'),
+    {status:0, body:{message:'network error'}},
+    {status:504, body:{message:'gateway timeout'}}
+])('通信エラーでは作成失敗を断定せず、ユーザー一覧の確認を案内する', async error => {
+    getForm.mockResolvedValue({fields});
+    saveUser.mockRejectedValueOnce(error);
+    const root = (await mount()).shadowRoot;
+    select(root, 'source'); await flush();
+    await submit(root); await flush();
+    const alert = root.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('設定の［ユーザー］');
+    expect(alert.textContent).not.toContain('作成できませんでした');
+    expect(saveUser).toHaveBeenCalledTimes(1);
+});
+
+it.each([true, false])('応答が遅れたときは再送を防ぎ、後から確定した成功=%sを表示する', async success => {
+    const deadline = new AbortController();
+    AbortSignal.timeout.mockReturnValueOnce(deadline.signal);
+    getForm.mockResolvedValue({fields});
+    const pending = deferred();
+    saveUser.mockReturnValueOnce(pending.promise);
+    const el = await mount(), root = el.shadowRoot;
+    select(root, 'source'); await flush();
+    await submit(root); await flush();
+    expect(AbortSignal.timeout).toHaveBeenCalledWith(30000);
+    el.remove();
+    deadline.abort();
+    document.body.appendChild(el); await flush();
+    const alert = root.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('30秒');
+    expect(alert.textContent).toContain('設定の［ユーザー］');
+    expect(root.textContent).not.toContain('保存中です');
+    const button = root.querySelector('main .slds-text-align_right lightning-button');
+    expect(button.disabled).toBe(true);
+    button.click();
+    expect(saveUser).toHaveBeenCalledTimes(1);
+    if (success) pending.resolve('new');
+    else pending.reject({body:{message:'権限セットの引き継ぎに失敗しました。'}});
+    await flush();
+    expect(root.textContent).not.toContain('30秒');
+    expect(Boolean(root.querySelector('a[href="/lightning/r/User/new/view"]'))).toBe(success);
+    expect((root.querySelector('[role="alert"]')?.textContent ?? '').includes('権限セットの引き継ぎに失敗')).toBe(!success);
+    expect(deadline.signal.onabort).toBeNull();
 });
