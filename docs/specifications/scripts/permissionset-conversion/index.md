@@ -1,31 +1,85 @@
 # Profile権限セット変換スクリプト
 
-## 概要
+## 機能の用途
 
 設定ファイルに列挙したローカルのSalesforce Profile XMLを、ProfileごとのPermission Set metadataへ変換するNode.jsスクリプトです。実行前にSalesforce CLIのDefault Target Orgと認証済み組織情報を表示して利用者へ確認しますが、変換にはProfile XMLと同じsource treeにある関連CustomField metadataだけを使用します。
 
 生成物は日時別フォルダへ保存します。Permission Setは既存metadataとの更新競合を避ける一意な仮API名で生成し、組織上の保存結果を確認した後に設定画面で最終API名へ変更します。生成後は、Default Target Orgを対象とするdry-run、deploy、保存結果確認コマンドを表示します。変換スクリプトが実行するSalesforce CLIは接続組織の確認だけで、Profileや権限の取得、dry-run、deployは実行しません。
 
-## 目的・利用場面
-
 Salesforce Platformを含むUser LicenseのProfileについて、1 Profileから1 Permission Setを生成します。Profile XMLに明示された移行可能な付与権限を維持し、無効な設定、Profile固有設定、Permission Setで表現できない設定を監査レポートへ分類します。
 
 最小権限化、Permission Set Group化、ユーザー割り当て、元Profileの権限削除、実deployは対象外です。デフォルトアプリケーション、デフォルトタブ、デフォルトレコードタイプ、Page LayoutなどのProfile固有設定は移行しません。割り当てアプリケーションの表示権限はPermission Setへ移行します。
 
-## 対象実装・メタデータ
+## 対象実装
 
-| 種別           | パス                                                                   | 役割                                                                 |
-| -------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 入力設定       | `scripts/permissionset-conversion/profile-paths.config.txt`            | 変換するProfile XMLの相対パスを1行ずつ指定する                       |
-| 実行スクリプト | `scripts/permissionset-conversion/convert-profile-to-permissionset.js` | 入力検証、変換、日時別出力、後続コマンド表示を管理する               |
-| Profile変換    | `scripts/permissionset-conversion/internal/profile-converter.js`       | Profile要素を分類してPermission Set XMLとレポートを作る              |
-| Profile名解決  | `scripts/permissionset-conversion/internal/profile-resolver.js`        | ファイル名をmetadata fullName、API名、ラベルへ変換する               |
-| 要素定義       | `scripts/permissionset-conversion/internal/permission-set-elements.js` | 比較対象となるPermission Set要素と識別子を定義する                   |
-| 後続コマンド   | `scripts/permissionset-conversion/internal/validation-runner.js`       | dry-run、deploy、保存結果確認コマンドを作る                          |
-| 保存結果確認   | `scripts/permissionset-conversion/verify-deployed-permissionsets.js`   | Default Target Orgからデプロイ済みPermission Setを再取得して比較する |
-| テスト         | `scripts/permissionset-conversion/test/`                               | ローカル変換、異常系、保存結果比較を検証する                         |
+| 種別           | パス                                                                                                                    | 役割                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 入力設定       | `scripts/permissionset-conversion/profile-paths.config.txt`                                                             | 変換するProfile XMLの相対パスを1行ずつ指定する                       |
+| 実行スクリプト | [convert-profile-to-permissionset.js](../../../../scripts/permissionset-conversion/convert-profile-to-permissionset.js) | 入力検証、変換、日時別出力、後続コマンド表示を管理する               |
+| Profile変換    | [profile-converter.js](../../../../scripts/permissionset-conversion/internal/profile-converter.js)                      | Profile要素を分類してPermission Set XMLとレポートを作る              |
+| Profile名解決  | [profile-resolver.js](../../../../scripts/permissionset-conversion/internal/profile-resolver.js)                        | ファイル名をmetadata fullName、API名、ラベルへ変換する               |
+| 要素定義       | [permission-set-elements.js](../../../../scripts/permissionset-conversion/internal/permission-set-elements.js)          | 比較対象となるPermission Set要素と識別子を定義する                   |
+| 後続コマンド   | [validation-runner.js](../../../../scripts/permissionset-conversion/internal/validation-runner.js)                      | dry-run、deploy、保存結果確認コマンドを作る                          |
+| 保存結果確認   | [verify-deployed-permissionsets.js](../../../../scripts/permissionset-conversion/verify-deployed-permissionsets.js)     | Default Target Orgからデプロイ済みPermission Setを再取得して比較する |
+| テスト         | `scripts/permissionset-conversion/test/`                                                                                | ローカル変換、異常系、保存結果比較を検証する                         |
 
-## 入力
+### 関連コンポーネント
+
+- `fast-xml-parser`：XML構文検証、文字参照の復号、Permission Set XML生成に使用します。
+- [組織操作ルール](../../../deployment/org-operation-rules.md)：後続のdry-run、deploy、retrieveの対象確認と操作境界に従います。
+
+## 対象ファイル・データ
+
+```text
+scripts/permissionset-conversion/outputs/<YYYYMMDD-HHmmss-SSS>/
+├── permissionsets/
+│   └── <Permission Set仮API名>.permissionset-meta.xml
+└── reports/
+    └── <Permission Set仮API名>.conversion-report.json
+```
+
+同じミリ秒のフォルダが既に存在する場合は4桁の連番を付けます。`outputs/`配下はGit管理対象外です。
+
+変換レポートの`schemaVersion`は`3`です。入力Profileのmetadata fullName、相対パス、SHA-256、User License、生成先のAPI名、ラベル、説明、license、生成XMLのSHA-256、分類別明細と件数を記録します。
+
+`skippedUnsupported`は未対応の要素・子要素・タブ表示状態、またはChatterのライセンス制約対象を省略した明細です。設定名、理由、解析後の元の値を記録します。子要素は親の設定名と`childElement`で識別します。スキップだけなら終了コードは0で、通常実行は「生成成功・スキップあり」と表示し、後続の手動コマンドも表示します。dry-runではスキップを表示しますがファイルは生成しません。`unsupportedUnknown`は設定の矛盾やAssigned Appsのライセンス対応範囲など、XML生成を止める明細として維持します。
+
+未対応判定はXML要素名やタブ表示状態に対して行います。組織独自のカスタムオブジェクト名・カスタム項目名を未対応要素として扱いません。スキップした設定は生成XMLに含まれないため、生成成功と全設定の移行完了は区別します。
+
+項目定義ファイルがないことだけを理由とした通知は、画面・レポートのいずれにも出しません。元Profileの参照・編集設定をそのままXMLへ出力し、通常の変換済み明細に含めます。生成後のdry-run手順は変わりません。
+
+### 後続の手動操作
+
+全XMLを生成できた場合、次のコマンドを実際の出力パス付きで表示します。すべてSalesforce CLIのDefault Target Orgを対象にします。
+
+Permission SetだけをApexテストなしで検証するため、組織種別にかかわらず次を使用します。`--test-level`は指定しません。
+
+```sh
+sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
+```
+
+内容と対象組織を確認した後、通常deployを手動実行します。
+
+```sh
+sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
+```
+
+デプロイ後の保存値を生成XMLと比較します。
+
+```sh
+npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets
+```
+
+保存結果確認後に、Salesforce設定画面で対象Permission Setの「プロパティを編集」を開き、仮API名を最終API名へ変更します。API名変更後は生成XMLの仮API名と一致しなくなるため、保存結果確認スクリプトは変更前に実行します。
+
+保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。確認後の設定変更で取得先が変わらないよう、照合したユーザー名を内部のSalesforce CLIへ渡しますが、利用者からの`--target-org`は受け付けません。繰り返し要素と子要素の順序、同じ文字を表すXML文字参照、`objectPermissions.viewAllFields=false`の省略を無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
+保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
+
+生成元フォルダにPermission Set XMLがない場合は、組織への接続前に入力エラーとして停止します。retrieve成功後の再取得先が存在しない場合、空の場合、対象XMLが0件の場合は、生成元の全対象を`missingPermissionSetInOrg`として比較レポートへ保存し、終了コード1を返します。読み取りエラーや不正なXMLは欠落として扱わずエラーにします。
+
+保存結果確認の実行フォルダは、日時と連番を使って排他的に作成します。同じ候補名を別の実行が確保済みの場合だけ次の連番を試し、取得ファイルと比較レポートの保存先を実行ごとに分離します。権限不足など名前の競合以外の作成エラーでは再試行せず停止し、既存の検証結果を使用・上書きしません。
+
+## 実行方法・入力
 
 既定の設定ファイルは`scripts/permissionset-conversion/profile-paths.config.txt`です。
 
@@ -70,7 +124,32 @@ npm run sf:convert:profile
 - Permission Setの`license`には、Profile XMLの`userLicense`を設定します。
 - Profile IDは取得せず、変換レポートにも保存しません。
 
-## 処理内容
+### 権限・実行条件
+
+- Node.jsとSalesforce CLIが利用でき、Default Target Orgが認証済み組織一覧から特定できる必要があります。
+- 変換時はローカルProfileと関連項目の読み取り権限、出力先への書き込み権限が必要です。変換ロジックは組織へ接続しません。
+- 保存結果確認では対象組織からPermission Set metadataをretrieveできる権限が必要です。deployとユーザー割り当ては別途実行する操作です。
+
+## エラー判定
+
+| 条件                                                 | 動作                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| 設定ファイルがない、またはProfileパスが0件           | 組織へ接続せず停止する                                   |
+| 絶対パス、profiles外、非Profile XML、重複パス        | 組織へ接続せず停止する                                   |
+| Profile XML、namespace、User Licenseが不正           | 変換を停止する                                           |
+| Profile、関連CustomField、比較XMLにDOCTYPE宣言がある | 独自・外部エンティティを展開せず停止する                 |
+| Default Target Orgまたは認証済み組織を確認できない   | ファイルを生成せず停止する                               |
+| 接続組織または本番環境の追加確認が承認されない       | ファイルを生成せず正常終了する                           |
+| API名、ラベル、boolean値が不正                       | 推測で補正せず停止する                                   |
+| 項目API名またはCustomField参照先が不正               | objectsディレクトリ外を参照せず停止する                  |
+| 同じ権限が重複                                       | 対象API名を表示して停止する                              |
+| 未対応のProfile要素・子要素・タブ表示状態            | 当該設定を省略してレポートへ記録し、生成を継続する       |
+| 項目権限の矛盾・タブ表示状態の欠落や不正な型         | レポートへ記録し、対象ProfileのXMLを生成しない           |
+| 関連CustomField metadataがない                       | 権限を維持し、定義不足の通知は記録しない                 |
+| 出力先が重複または処理中に作成された                 | 既存ファイルを上書きせず停止する                         |
+| XMLまたはレポートの出力途中で失敗                    | 今回作成した一時出力と配置済み出力だけを削除して停止する |
+
+## 処理詳細
 
 Profile、関連CustomField、比較対象のPermission Set XMLは、構文検証後にXML標準の名前付き参照5種類（`amp`、`lt`、`gt`、`quot`、`apos`）と10進・16進の数値文字参照を一度だけ復号します。復号後のAPI名で重複と入力形式を検証し、生成XMLでは値を一度だけエスケープします。DTDによる独自・外部エンティティ展開を避けるため、`DOCTYPE`宣言を解析前に拒否します。コメント、CDATA、処理命令内の文字列はDTD宣言とみなしません。
 
@@ -188,138 +267,7 @@ Assigned Appsを出力するのは、現在の組織で生成結果のdry-runに
 
 判断根拠はSalesforce Helpの[Standard User Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_available.htm&language=en_US&type=5)、[Salesforce Platform Login License Details](https://help.salesforce.com/s/articleView?id=platform.users_license_types_salesforce_platform_login.htm&language=en_US&type=5)、[Legacy Portal Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_portal.htm&language=en_US&type=5)、[Authenticated Website User Licenses](https://help.salesforce.com/s/articleView?id=platform.users_license_types_platformportal.htm&language=en_US&type=5)です。
 
-## 出力・更新対象
-
-```text
-scripts/permissionset-conversion/outputs/<YYYYMMDD-HHmmss-SSS>/
-├── permissionsets/
-│   └── <Permission Set仮API名>.permissionset-meta.xml
-└── reports/
-    └── <Permission Set仮API名>.conversion-report.json
-```
-
-同じミリ秒のフォルダが既に存在する場合は4桁の連番を付けます。`outputs/`配下はGit管理対象外です。
-
-変換レポートの`schemaVersion`は`3`です。入力Profileのmetadata fullName、相対パス、SHA-256、User License、生成先のAPI名、ラベル、説明、license、生成XMLのSHA-256、分類別明細と件数を記録します。
-
-`skippedUnsupported`は未対応の要素・子要素・タブ表示状態、またはChatterのライセンス制約対象を省略した明細です。設定名、理由、解析後の元の値を記録します。子要素は親の設定名と`childElement`で識別します。スキップだけなら終了コードは0で、通常実行は「生成成功・スキップあり」と表示し、後続の手動コマンドも表示します。dry-runではスキップを表示しますがファイルは生成しません。`unsupportedUnknown`は設定の矛盾やAssigned Appsのライセンス対応範囲など、XML生成を止める明細として維持します。
-
-未対応判定はXML要素名やタブ表示状態に対して行います。組織独自のカスタムオブジェクト名・カスタム項目名を未対応要素として扱いません。スキップした設定は生成XMLに含まれないため、生成成功と全設定の移行完了は区別します。
-
-項目定義ファイルがないことだけを理由とした通知は、画面・レポートのいずれにも出しません。元Profileの参照・編集設定をそのままXMLへ出力し、通常の変換済み明細に含めます。生成後のdry-run手順は変わりません。
-
-### 後続の手動操作
-
-全XMLを生成できた場合、次のコマンドを実際の出力パス付きで表示します。すべてSalesforce CLIのDefault Target Orgを対象にします。
-
-Permission SetだけをApexテストなしで検証するため、組織種別にかかわらず次を使用します。`--test-level`は指定しません。
-
-```sh
-sf project deploy start --dry-run --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
-```
-
-内容と対象組織を確認した後、通常deployを手動実行します。
-
-```sh
-sf project deploy start --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets --wait 30
-```
-
-デプロイ後の保存値を生成XMLと比較します。
-
-```sh
-npm run sf:verify:permissionsets -- --source-dir scripts/permissionset-conversion/outputs/<日時>/permissionsets
-```
-
-保存結果確認後に、Salesforce設定画面で対象Permission Setの「プロパティを編集」を開き、仮API名を最終API名へ変更します。API名変更後は生成XMLの仮API名と一致しなくなるため、保存結果確認スクリプトは変更前に実行します。
-
-保存結果確認スクリプトは、Default Target Orgから生成フォルダのPermission Set API名をexact-nameで取得します。確認後の設定変更で取得先が変わらないよう、照合したユーザー名を内部のSalesforce CLIへ渡しますが、利用者からの`--target-org`は受け付けません。繰り返し要素と子要素の順序、同じ文字を表すXML文字参照、`objectPermissions.viewAllFields=false`の省略を無害な表記差として扱い、権限の欠落、追加、値変更は比較レポートへ記録します。
-保存結果に差分があっても、対象組織で観測した値を変換処理へ自動適用しません。変換結果は常にローカルProfile XMLと関連metadataだけから生成し、組織ごとの差は比較レポートで確認します。
-
-生成元フォルダにPermission Set XMLがない場合は、組織への接続前に入力エラーとして停止します。retrieve成功後の再取得先が存在しない場合、空の場合、対象XMLが0件の場合は、生成元の全対象を`missingPermissionSetInOrg`として比較レポートへ保存し、終了コード1を返します。読み取りエラーや不正なXMLは欠落として扱わずエラーにします。
-
-保存結果確認の実行フォルダは、日時と連番を使って排他的に作成します。同じ候補名を別の実行が確保済みの場合だけ次の連番を試し、取得ファイルと比較レポートの保存先を実行ごとに分離します。権限不足など名前の競合以外の作成エラーでは再試行せず停止し、既存の検証結果を使用・上書きしません。
-
-## 権限・実行条件
-
-- Node.jsとSalesforce CLIが利用でき、Default Target Orgが認証済み組織一覧から特定できる必要があります。
-- 変換時はローカルProfileと関連項目の読み取り権限、出力先への書き込み権限が必要です。変換ロジックは組織へ接続しません。
-- 保存結果確認では対象組織からPermission Set metadataをretrieveできる権限が必要です。deployとユーザー割り当ては別途実行する操作です。
-
-## エラー処理
-
-| 条件                                                 | 動作                                                     |
-| ---------------------------------------------------- | -------------------------------------------------------- |
-| 設定ファイルがない、またはProfileパスが0件           | 組織へ接続せず停止する                                   |
-| 絶対パス、profiles外、非Profile XML、重複パス        | 組織へ接続せず停止する                                   |
-| Profile XML、namespace、User Licenseが不正           | 変換を停止する                                           |
-| Profile、関連CustomField、比較XMLにDOCTYPE宣言がある | 独自・外部エンティティを展開せず停止する                 |
-| Default Target Orgまたは認証済み組織を確認できない   | ファイルを生成せず停止する                               |
-| 接続組織または本番環境の追加確認が承認されない       | ファイルを生成せず正常終了する                           |
-| API名、ラベル、boolean値が不正                       | 推測で補正せず停止する                                   |
-| 項目API名またはCustomField参照先が不正               | objectsディレクトリ外を参照せず停止する                  |
-| 同じ権限が重複                                       | 対象API名を表示して停止する                              |
-| 未対応のProfile要素・子要素・タブ表示状態            | 当該設定を省略してレポートへ記録し、生成を継続する       |
-| 項目権限の矛盾・タブ表示状態の欠落や不正な型         | レポートへ記録し、対象ProfileのXMLを生成しない           |
-| 関連CustomField metadataがない                       | 権限を維持し、定義不足の通知は記録しない                 |
-| 出力先が重複または処理中に作成された                 | 既存ファイルを上書きせず停止する                         |
-| XMLまたはレポートの出力途中で失敗                    | 今回作成した一時出力と配置済み出力だけを削除して停止する |
-
-## 関連コンポーネント
-
-- `fast-xml-parser`：XML構文検証、文字参照の復号、Permission Set XML生成に使用します。
-- [組織操作ルール](../../../deployment/org-operation-rules.md)：後続のdry-run、deploy、retrieveの対象確認と操作境界に従います。
-
-## テスト・確認観点
-
-```sh
-node --test scripts/permissionset-conversion/test/*.node.js
-```
-
-主な確認内容です。
-
-- 変換入口がDefault Target Orgと認証済み組織情報を表示し、承認後だけ処理する
-- 本番環境では追加確認を行い、組織情報を変換内容には使用しない
-- Profile XMLに明示された移行可能な権限を、固定件数ではなく要素名と値で比較する
-- 表示可能な割り当てアプリケーションを移行し、デフォルトアプリケーション指定だけをProfileへ残す
-- Assigned Apps非対応User LicenseとOverage系同等ライセンスではアプリケーション表示権限をProfileへ残す
-- dry-run確認済みまたは公式Helpで同等のUser LicenseだけAssigned Appsを移行する
-- Assigned Appsの変換対応一覧にないUser Licenseの表示アプリがある場合は生成を止める
-- 対応User Licenseでは標準アプリを含む表示総件数から上限を推測せず、割り当て適合性を確認事項へ残す
-- XMLの名前付き参照と数値文字参照を復号し、API名、ライセンス、重複判定、保存結果比較へ適用する
-- Profile、関連CustomField、比較するPermission SetのDOCTYPEを拒否し、コメントやCDATA内の文字列は誤検知しない
-- `ApiUserOnly=true`ではVisualforceページだけを除外し、ApexクラスとAPI専用権限を維持する
-- ライセンス名や無効な`ApiUserOnly`からVisualforceページアクセスを除外しない
-- Git管理fixtureへ権限を追加した場合も、追加後のProfile XMLとの意味的一致を確認する
-- 明示したUser Permission依存以外では、Profile XMLにないObject Permissionを追加しない
-- `EditPublicDocuments`からMetadata APIが要求する`Document` CRUDだけを依存権限として補完する
-- `EditHtmlTemplates`からMetadata APIが要求する`Document`参照権限だけを補完する
-- `ViewAllData`から`Document`の参照権限と全レコード参照権限だけを重複なく補完する
-- `Entitlement`の参照権限から`Account`の参照権限だけを重複なく補完する
-- 必須、Master-Detail、数式項目をローカルmetadataから判定する
-- 関連metadataがない項目を勝手に除外せず、手動validate対象として保持する
-- 未対応要素・子要素・タブ表示状態はスキップして記録し、対応済み権限を生成する
-- 未対応の子要素があっても、対応済みの子要素は従来どおり変換する
-- スキップだけならXML・レポート・後続コマンドを生成し、終了コード0を返す
-- スキップと矛盾した設定が混在しても、矛盾による生成停止を維持する
-- 重複、不正XML、必須設定の欠落は引き続き拒否する
-- Metadata APIで必須のアプリケーションとレコードタイプの`default`値がない入力を拒否する
-- Profileファイル名のpercent decode、User Licenseの正規化と文字数制限、一意なラベル制約を確認する
-- 実行ごと、Profileごとに異なる仮API名を生成する
-- 同じUser LicenseのProfileを同時に変換してもProfile連番でAPI名が重複しない
-- Guest User LicenseのProfileだけを除外し、Chatterを含む生成対象へ連続するProfile連番を付ける
-- Chatterのライセンス制約対象だけを省略し、その他の権限・依存ペア・元のライセンスを維持する
-- 通常のCLIでChatterのXMLとスキップ明細を生成し、無効設定や入力エラーを制約による省略と区別する
-- dry-runでファイルを作成せず、通常実行では日時別出力を作る
-- 最終配置は完成した一時ファイルのハードリンクを排他的に作成し、存在確認後の競合でも既存ファイルを上書きしない
-- 出力途中の失敗時にbatch全体をrollbackし、他実行の一時ファイルは削除しない
-- 再取得先の不存在・空・対象XMLなしを欠落として記録し、CLIでもレポート保存後に終了コード1を返す
-- 生成元の空入力と再取得先の読み取りエラーは、欠落との混同なく拒否する
-- dry-run、deploy、保存結果確認コマンドが今回の出力フォルダだけを対象にする
-- 保存後の意味差分を検出し、割り当てアプリケーションの順序差を無視して、変換結果へ反映せず比較レポートへ保存する
-
-単体テストはSalesforce CLI応答をstub化し、実組織へ接続しません。組織へのデプロイ適合性、保存値、User Licenseへの割り当て適合性は、利用者がDefault Target Orgを確認して実行する後続工程で確認します。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 変換結果は入力したローカルProfile XMLと関連metadataの取得scope、取得時点に依存します。
 - 入力Profileは、関連metadataを含めてretrieveし、最新にした状態で使用します。この利用前提について、画面・レポートへ一律の注意は出しません。
@@ -329,7 +277,11 @@ node --test scripts/permissionset-conversion/test/*.node.js
 - API version追加要素を自動推測せず、未対応要素としてスキップしレポートへ記録します。
 - 対応Metadata API versionは、このリポジトリの`sourceApiVersion`である67.0です。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 未確認：契約ごとのアプリ数上限、アプリ種別、割り当て済みの権限セットを合算したライセンス適合性は、ローカルProfile XMLから証明できません。対象組織の契約・設定を確認し、dry-runとユーザー割り当て時に検証します。
 - 未確認：生成した権限と組織の最終保存値の一致は、deploy後の保存結果確認スクリプトで検証します。ローカルテストの成功は実組織への適合性を保証しません。
+
+### テストコードと確認内容
+
+[テストコードと確認内容](tests.md)

@@ -9,7 +9,7 @@ Node.jsスクリプトで実装したリポジトリ運用自動化の仕様書�
 | テストデータ投入スクリプト     | `npm run setup:data:dry-run`、`npm run setup:data`                                                          | [テストデータ投入スクリプト](test-data-import/index.md)              |
 | Scratch Org管理スクリプト      | `node scripts/scratch-org/setup.js [--alias <alias>]`、`node scripts/scratch-org/delete.js --alias <alias>` | [Scratch Org管理スクリプト](scratch-org-management/index.md)         |
 | メタデータ削除スクリプト       | `npm run sf:destructive`                                                                                    | [メタデータ削除スクリプト](metadata-deletion/index.md)               |
-| Profile権限セット変換          | `npm run sf:convert:profile`                                                                                | [Profile権限セット変換スクリプト](permissionset-conversion/index.md) |
+| Profile権限セット変換          | `npm run sf:convert:profile`、`npm run sf:verify:permissionsets`                                            | [Profile権限セット変換スクリプト](permissionset-conversion/index.md) |
 | メタデータ取得スクリプト       | `npm run sf:retrieve`                                                                                       | [メタデータ取得スクリプト](metadata-retrieve/index.md)               |
 | 組織テスト実行スクリプト       | `npm run sf:test:apex`、`npm run sf:test:flow`                                                              | [組織テスト実行スクリプト](org-tests/index.md)                       |
 | 最新レコードエクスポート       | `npm run sf:export:record-fields-preview` / `npm run sf:export:records`                                     | [最新レコードエクスポートスクリプト](record-export/index.md)         |

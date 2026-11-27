@@ -1,25 +1,36 @@
 # メタデータ取得スクリプト
 
-## 概要
+## 機能の用途
 
 `npm run sf:retrieve`を1回実行し、Default Target Orgから責務別のmanifestを順番に取得するNode.jsスクリプトです。取得開始前にmanifestと接続組織を確認し、各retrieveの結果、件数、warning、所要時間を表示します。
 
-## 目的・利用場面
-
 広いmetadataをMetadata APIの上限へ配慮して分割取得し、ローカルプロジェクトへ反映するときに使用します。取得漏れの可能性があるwarningや上限到達を成功と区別し、確認が必要なmanifestを実行結果から特定できるようにします。
 
-## 対象実装・メタデータ
+## 対象実装
 
-| 種別             | パスまたはファイル群                              | 役割                                                        |
-| ---------------- | ------------------------------------------------- | ----------------------------------------------------------- |
-| 実行スクリプト   | `scripts/metadata/retrieve/retrieve.js`           | manifest検査、組織確認、取得、結果判定、表示を行う          |
-| テストスクリプト | `scripts/metadata/retrieve/test/retrieve.node.js` | manifest計画、CLI引数、結果判定、実行順と停止条件を検証する |
-| 取得scope        | `manifest/retrieve-*.xml`                         | 責務別のmetadata取得対象を定義する                          |
-| 共通処理         | `scripts/common/approval.js`                      | 確認入力と承認判定を提供する                                |
-| 共通処理         | `scripts/common/run-command.js`                   | Salesforce CLIコマンドをOSに応じて組み立てる                |
-| 共通処理         | `scripts/common/target-org.js`                    | Default Target Orgを特定して表示情報を返す                  |
+| 種別             | パスまたはファイル群                                                            | 役割                                                        |
+| ---------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 実行スクリプト   | [retrieve.js](../../../../scripts/metadata/retrieve/retrieve.js)                | manifest検査、組織確認、取得、結果判定、表示を行う          |
+| テストスクリプト | [retrieve.node.js](../../../../scripts/metadata/retrieve/test/retrieve.node.js) | manifest計画、CLI引数、結果判定、実行順と停止条件を検証する |
+| 取得scope        | `manifest/retrieve-*.xml`                                                       | 責務別のmetadata取得対象を定義する                          |
+| 共通処理         | [approval.js](../../../../scripts/common/approval.js)                           | 確認入力と承認判定を提供する                                |
+| 共通処理         | [run-command.js](../../../../scripts/common/run-command.js)                     | Salesforce CLIコマンドをOSに応じて組み立てる                |
+| 共通処理         | [target-org.js](../../../../scripts/common/target-org.js)                       | Default Target Orgを特定して表示情報を返す                  |
 
-## 入力
+### 関連コンポーネント
+
+- [メタデータ管理ルール](../../../development/metadata-rules.md)
+- `sfdx-project.json`
+- Salesforce CLIの`sf project retrieve start`
+- Salesforce Metadata APIのretrieve
+
+## 対象ファイル・データ
+
+- `sfdx-project.json`で定義された既定package directory配下のmetadataを、Salesforce CLIのsource形式retrieve結果で作成または更新します。
+- manifest単位の取得結果、件数、warning、注意、エラー、所要時間を標準出力または標準エラーへ表示します。
+- 一時manifestは取得処理の終了時に削除します。スクリプト独自のログファイルと結果JSONは作成しません。
+
+## 実行方法・入力
 
 - コマンドライン引数は受け付けません。
 - Salesforce CLIに設定されたDefault Target Orgを使用します。
@@ -32,7 +43,25 @@
 - `EmailFolder`と`EmailTemplateFolder`もフォルダの具体名で指定します。これらに`*`を残すと、CLIがMetadata API用の要求へ変換するときに`EmailTemplate`の具体名が`*`へ置き換わり、テンプレートの取得漏れが再発します。
 - この2種類の対象一覧はmanifestに保持し、通常のretrieveでは組織への一覧探索を行いません。新たに取得する標準選択リストやメールテンプレートは、一覧を確認してmanifestへ追加します。
 
-## 処理内容
+### 権限・実行条件
+
+- Salesforce CLIを実行できるSalesforce DXプロジェクト内で実行します。
+- Default Target Orgが設定され、認証済み組織一覧から一意に確認できる必要があります。
+- 接続ユーザーには、manifestに含まれるmetadataを取得できる権限が必要です。
+- retrieveはローカルファイルを作成または上書きするため、実行前に未コミット差分と上書き影響を確認します。
+
+## エラー判定
+
+| 条件                                    | 動作                                                  |
+| --------------------------------------- | ----------------------------------------------------- |
+| 引数が指定された                        | CLIを呼び出さず終了コード`1`で停止する                |
+| manifest検査に失敗した                  | 組織確認前に終了コード`1`で停止する                   |
+| 接続組織を確認できない                  | retrieveを開始せず終了コード`1`で停止する             |
+| 接続組織が承認されない                  | retrieveを開始せず終了コード`0`で終了する             |
+| CLIまたはJSON結果を成功と確認できない   | 現在のmanifestで停止し終了コード`1`を返す             |
+| 取得warningまたは10,000件到達を検出した | 後続を続行し、最後に対象をまとめて終了コード`1`を返す |
+
+## 処理詳細
 
 ```text
 manifest検査
@@ -158,59 +187,7 @@ warningとmetadata type別件数は、それぞれ表示上限まで出力し、
 
 hard failureの場合は、発生したmanifestの結果を表示し、後続manifestを実行せず終了コード`1`を返します。
 
-## 出力・更新対象
-
-- `sfdx-project.json`で定義された既定package directory配下のmetadataを、Salesforce CLIのsource形式retrieve結果で作成または更新します。
-- manifest単位の取得結果、件数、warning、注意、エラー、所要時間を標準出力または標準エラーへ表示します。
-- 一時manifestは取得処理の終了時に削除します。スクリプト独自のログファイルと結果JSONは作成しません。
-
-## 権限・実行条件
-
-- Salesforce CLIを実行できるSalesforce DXプロジェクト内で実行します。
-- Default Target Orgが設定され、認証済み組織一覧から一意に確認できる必要があります。
-- 接続ユーザーには、manifestに含まれるmetadataを取得できる権限が必要です。
-- retrieveはローカルファイルを作成または上書きするため、実行前に未コミット差分と上書き影響を確認します。
-
-## エラー処理
-
-| 条件                                    | 動作                                                  |
-| --------------------------------------- | ----------------------------------------------------- |
-| 引数が指定された                        | CLIを呼び出さず終了コード`1`で停止する                |
-| manifest検査に失敗した                  | 組織確認前に終了コード`1`で停止する                   |
-| 接続組織を確認できない                  | retrieveを開始せず終了コード`1`で停止する             |
-| 接続組織が承認されない                  | retrieveを開始せず終了コード`0`で終了する             |
-| CLIまたはJSON結果を成功と確認できない   | 現在のmanifestで停止し終了コード`1`を返す             |
-| 取得warningまたは10,000件到達を検出した | 後続を続行し、最後に対象をまとめて終了コード`1`を返す |
-
-## 関連コンポーネント
-
-- [メタデータ管理ルール](../../../development/metadata-rules.md)
-- `sfdx-project.json`
-- Salesforce CLIの`sf project retrieve start`
-- Salesforce Metadata APIのretrieve
-
-## テスト・確認観点
-
-`scripts/metadata/retrieve/test/retrieve.node.js`を次のコマンドで実行します。
-
-```sh
-node --test scripts/metadata/retrieve/test/retrieve.node.js
-```
-
-主な確認観点は次のとおりです。
-
-- すべての分割manifestが実行対象に含まれる
-- manifestの構造とAPI versionを取得開始前に確認する
-- `StandardValueSet`、`EmailTemplate`、`EmailFolder`、`EmailTemplateFolder`に空でない具体名を重複なく指定し、メールテンプレート名にフォルダ名を含める
-- 同じTarget Orgと`--wait 120`を全retrieveへ指定する
-- warningでは後続を続行し、hard failureでは停止する
-- 未完了または解析不能な応答を成功扱いしない
-- 10,000件上限を要確認として扱う
-- 長時間処理中に経過時間を表示し、完了後にタイマーを解除する
-
-テストはSalesforce CLIと組織応答を模擬しています。実組織へのretrieve結果を検証するものではありません。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 各manifestは独立したretrieveです。複数manifestの取得をまたぐ一括トランザクションや同一時点の組織snapshotではありません。
 - 途中で失敗しても、それ以前に完了したmanifestのローカル変更はロールバックされません。
@@ -221,10 +198,14 @@ node --test scripts/metadata/retrieve/test/retrieve.node.js
 - Profileの権限設定とTranslationsの翻訳内容は、同じretrieve要求に含めた関連metadataに依存します。manifest一覧上の先頭または末尾であることには依存しません。
 - 取得後はGit差分を確認し、Salesforce側の並び替えや既定値補完と実際の設定差分を区別します。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 未確認（承認済み要求または外部契約との比較元を特定していません）
 - Node.jsテストでは、manifest計画、CLI引数、模擬JSONによる結果判定を確認しています。
 - CLIの成功とwarningなしは、取得対象の網羅性を保証しません。`StandardValueSet`と`EmailTemplate`は、ワイルドカード指定で取得されない場合があるため、manifestの具体名と取得ファイルを照合します。
 - 具体名の一覧は各manifestを正とします。CLIによる標準選択リスト一覧の生成は既知の候補名に基づくため、候補一覧に含まれない対象の網羅性は保証しません。
 - Metadata APIのファイル数上限に近い取得や待機時間を超える長時間retrieveでは、manifest単位の結果とGit差分を確認します。対象組織・CLI・API versionごとの実行結果はPRとログへ記録します。
+
+### テストコードと確認内容
+
+[テストコードと確認内容](tests.md)
