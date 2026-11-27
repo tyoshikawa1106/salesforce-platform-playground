@@ -1,20 +1,31 @@
 # 取引先データ品質スキャン
 
-## 概要
+## 機能の用途
 
 取引先を更新せず、利用者が参照できる Account を `Database.Cursor` と連鎖する Queueable Apex で分割検査し、項目不足の件数と進捗を表示する読み取り専用機能です。
 
-## 目的・利用場面
-
 大量の取引先を一つのトランザクションへ読み込まず、電話番号、業種、請求先住所、Webサイト、取引先番号の不足状況を確認するときに使用します。Salesforceアプリのホームページから開始し、手動更新で進捗と最終結果を確認します。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+`LwcAccountDataQualityScan` Permission Setが必要です。
+
+- Accountの参照権限と検査対象項目のFLS
+- Contactの参照権限（個人取引先が有効な組織でAccount参照権限の依存条件を満たすため）
+- `DataQualityScan__c`の作成、参照、更新権限と対象項目のFLS
+- 対象Apexクラスの実行権限
+
+AccountのCursorは`AccessLevel.USER_MODE`で作成し、スキャン管理レコードは`as user`で保存します。共有、CRUD、FLSを超えて処理しません。
+
+`DataQualityScan__c`の内部共有モデルは`ReadWrite`、外部共有モデルは`Private`です。検索とトピックは無効です。
+
+## 対象メタデータ
 
 診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
 Salesforce API応答の表示メッセージ整形は内部APIモジュール[salesforceApiUtils](../../../../force-app/main/default/lwc/salesforceApiUtils/salesforceApiUtils.js)を使用します。Apex・UI API形式、複数メッセージの順序と代替文言は[共通テスト](../../../../force-app/main/default/lwc/salesforceApiUtils/__tests__/salesforceApiUtils.test.js)で確認します。エラー時の画面状態と復旧操作はこの画面で管理します。
 
-Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+Apex本体と対応するテストクラス、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
 
@@ -26,53 +37,124 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### Apexコードと対応テスト
 
-| Apex本体                                                                                                            | 役割                                                     | 同名Test                                                                                                                    |
+| Apex本体                                                                                                            | 役割                                                     | 対応するテストクラス                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| [AccountDataQualityScanController](../../../../force-app/main/default/classes/AccountDataQualityScanController.cls) | 取引先データ品質スキャンLWCのApex入口                    | [AccountDataQualityScanControllerTest](../../../../force-app/main/default/classes/AccountDataQualityScanControllerTest.cls) |
+| [AccountDataQualityScanController](../../../../force-app/main/default/classes/AccountDataQualityScanController.cls) | 取引先データ品質スキャンLWCのApexクラスの実行            | [AccountDataQualityScanControllerTest](../../../../force-app/main/default/classes/AccountDataQualityScanControllerTest.cls) |
 | [AccountDataQualityScanQueueable](../../../../force-app/main/default/classes/AccountDataQualityScanQueueable.cls)   | Cursorを分割取得して取引先データ品質を集計する非同期処理 | [AccountDataQualityScanQueueableTest](../../../../force-app/main/default/classes/AccountDataQualityScanQueueableTest.cls)   |
 | [AccountDataQualityScanSelector](../../../../force-app/main/default/classes/AccountDataQualityScanSelector.cls)     | 取引先Cursorとスキャン管理レコードのデータアクセス       | [AccountDataQualityScanSelectorTest](../../../../force-app/main/default/classes/AccountDataQualityScanSelectorTest.cls)     |
 | [AccountDataQualityScanService](../../../../force-app/main/default/classes/AccountDataQualityScanService.cls)       | 取引先データ品質の判定とスキャン状態遷移                 | [AccountDataQualityScanServiceTest](../../../../force-app/main/default/classes/AccountDataQualityScanServiceTest.cls)       |
 | [AccountDataQualityScanWrapper](../../../../force-app/main/default/classes/AccountDataQualityScanWrapper.cls)       | 取引先データ品質スキャンの画面表示値                     | [AccountDataQualityScanWrapperTest](../../../../force-app/main/default/classes/AccountDataQualityScanWrapperTest.cls)       |
 
-テストデータの準備は、対応する同名Testの内部で管理します。
+テストデータの準備は、対応する対応するテストクラスの内部で管理します。
 
 ### 設定・権限
 
-| 種別                   | 実装・設定                                           | 役割                                                                                                                                                                   |
-| ---------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FlexiPage              | `HomeFlexiPage`                                      | ホームのメイン領域でデータボードの直下に同じ幅で配置                                                                                                                   |
-| CustomObject・関連設定 | `DataQualityScan__c`                                 | スキャン状態、進捗、集計結果、最終エラーを保持                                                                                                                         |
-| CustomField            | `DataQualityScan__c.Active_Key__c`                   | Accountスキャンの同時実行を防ぐ一意キー                                                                                                                                |
-| CustomField            | `DataQualityScan__c.Status__c`                       | `Pending`、`Running`、`Completed`、`Failed`を保持                                                                                                                      |
-| CustomField            | `DataQualityScan__c.Target_Object__c`                | MVPでは`Account`を保持                                                                                                                                                 |
-| CustomField            | `DataQualityScan__c.Total_Count__c`                  | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Processed_Count__c`              | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Missing_Phone_Count__c`          | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Missing_Industry_Count__c`       | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Missing_Address_Count__c`        | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Missing_Website_Count__c`        | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Missing_Account_Number_Count__c` | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Started_At__c`                   | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Completed_At__c`                 | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Error_Message__c`                | スキャン管理項目                                                                                                                                                       |
-| CustomField            | `DataQualityScan__c.Requested_By__c`                 | スキャン管理項目                                                                                                                                                       |
-| Layout                 | `DataQualityScan__c-データ品質スキャンレイアウト`    | Name、Owner、監査項目を表示する標準レイアウト                                                                                                                          |
-| 設定                   | `DataQualityScan__c-en_US`                           | 英語ロケールでオブジェクト名を表示する翻訳                                                                                                                             |
-| CustomObject・関連設定 | `DataQualityScan__c`                                 | Sharing Rules: 共有ルールなし                                                                                                                                          |
-| CustomObject・関連設定 | `DataQualityScan__c`                                 | Topics for Objects: トピック無効                                                                                                                                       |
-| PermissionSet          | `LwcAccountDataQualityScan`                          | PermissionSet（表示ラベル: 「LWC：取引先データ品質スキャン」）: Account・Contact参照、スキャン対象項目の参照、スキャン管理データの読み書き、関連Apexクラスへのアクセス |
+| 種別                   | 実装・設定                                                   | 役割                                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FlexiPage              | `HomeFlexiPage`                                              | ホームのメイン領域でデータボードの直下に同じ幅で配置                                                                                                                   |
+| CustomObject・関連設定 | `DataQualityScan__c`                                         | スキャン状態、進捗、集計結果、最終エラーを保持                                                                                                                         |
+| CustomField            | `DataQualityScan__c.Active_Key__c`                           | Accountスキャンの同時実行を防ぐ一意キー                                                                                                                                |
+| CustomField            | `DataQualityScan__c.Status__c`                               | `Pending`、`Running`、`Completed`、`Failed`を保持                                                                                                                      |
+| CustomField            | `DataQualityScan__c.Target_Object__c`                        | MVPでは`Account`を保持                                                                                                                                                 |
+| CustomField            | `DataQualityScan__c.Total_Count__c`                          | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Processed_Count__c`                      | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Phone_Count__c`                  | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Industry_Count__c`               | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Address_Count__c`                | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Website_Count__c`                | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Missing_Account_Number_Count__c`         | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Started_At__c`                           | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Completed_At__c`                         | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Error_Message__c`                        | スキャン管理項目                                                                                                                                                       |
+| CustomField            | `DataQualityScan__c.Requested_By__c`                         | スキャン管理項目                                                                                                                                                       |
+| Layout                 | `DataQualityScan__c-データ品質スキャンレイアウト`            | Name、Owner、監査項目を表示する標準レイアウト                                                                                                                          |
+| 設定                   | `DataQualityScan__c-en_US`                                   | 英語ロケールでオブジェクト名を表示する翻訳                                                                                                                             |
+| CustomObject・関連設定 | `DataQualityScan__c`                                         | Sharing Rules: 共有ルールなし                                                                                                                                          |
+| CustomObject・関連設定 | `DataQualityScan__c`                                         | Topics for Objects: トピック無効                                                                                                                                       |
+| 権限セット             | LWC：取引先データ品質スキャン（`LwcAccountDataQualityScan`） | PermissionSet（表示ラベル: 「LWC：取引先データ品質スキャン」）: Account・Contact参照、スキャン対象項目の参照、スキャン管理データの読み書き、関連Apexクラスへのアクセス |
 
 ### 構成上の補足
 
-Controllerは開始時に状態レコードをUSER_MODEで作成し、Queueableは受付後の状態をUSER_MODEで更新します。開始処理が例外で終了した場合、作成したレコードもロールバックされます。Serviceは保存対象の生成と判定・集計に限定し、区間集計と失敗判定では元のレコードを変更せず新しい状態を返します。Controllerは公開入口から検証し、テストのためのService・Selectorの差し替え用フィールドは持ちません。
+Controllerは開始時に状態レコードをUSER_MODEで作成し、Queueableは受付後の状態をUSER_MODEで更新します。開始処理が例外で終了した場合、作成したレコードもロールバックされます。Serviceは保存対象の生成と判定・集計に限定し、区間集計と失敗判定では元のレコードを変更せず新しい状態を返します。Controllerは画面から呼び出すApexメソッドから検証し、テストのためのService・Selectorの差し替え用フィールドは持ちません。
 
-## 入力
+### 関連コンポーネント
+
+- Salesforce標準のAccount
+- Salesforce標準のQueueable ApexとFinalizer
+
+## アクセスするデータ・項目
+
+対象レコードの取得には次のSOQLを使用します。
+
+```sql
+SELECT Id, Phone, Industry, BillingStreet, BillingCity, BillingState,
+       BillingPostalCode, BillingCountry, Website, AccountNumber
+FROM Account ORDER BY Id
+```
+
+LWCは次を表示します。
+
+- ステータス
+- 対象総件数、処理済み件数、進捗率
+- 検査項目ごとの不足件数
+- 開始日時、終了日時
+- 失敗時の利用者向けエラー
+
+ステータスまたはエラー文言が未設定の場合は空文字列、件数または進捗率が未設定の場合は `0` としてLWCへ返します。開始日時と終了日時は未到達の状態で `null` を許容します。
+
+更新するのは`DataQualityScan__c`だけです。Accountレコードは更新しません。
+
+### SOQLで参照するデータ
+
+```sql
+SELECT Id, Status__c
+FROM DataQualityScan__c
+WHERE Active_Key__c = :AccountDataQualityScanService.ACCOUNT_ACTIVE_KEY
+WITH USER_MODE
+LIMIT 1
+```
+
+```sql
+SELECT Id, Status__c, Total_Count__c, Processed_Count__c, Missing_Phone_Count__c, Missing_Industry_Count__c, Missing_Address_Count__c, Missing_Website_Count__c, Missing_Account_Number_Count__c, Started_At__c, Completed_At__c, Error_Message__c
+FROM DataQualityScan__c
+WITH USER_MODE
+ORDER BY CreatedDate DESC
+LIMIT 1
+```
+
+```sql
+SELECT Id, Status__c, Active_Key__c, Total_Count__c, Processed_Count__c, Missing_Phone_Count__c, Missing_Industry_Count__c, Missing_Address_Count__c, Missing_Website_Count__c, Missing_Account_Number_Count__c, Started_At__c, Completed_At__c, Error_Message__c
+FROM DataQualityScan__c
+WHERE Id = :scanId
+WITH USER_MODE
+LIMIT 1
+```
+
+### クエリの組み立て
+
+取得項目や検索条件を指定する実装は、[AccountDataQualityScanSelector.cls](../../../../force-app/main/default/classes/AccountDataQualityScanSelector.cls)で確認できます。
+
+## 操作
 
 利用者が「スキャンを開始」を押したことを開始入力とします。対象条件、検査項目、分割件数は利用者入力で変更できません。
 
 対象は、開始利用者が`USER_MODE`で参照できるすべてのAccountです。Person Accountが有効な組織ではPerson Accountも除外しません。
 
-## 処理内容
+## エラー判定
+
+操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
+
+結果取得と開始の入口でAccountと`DataQualityScan__c`の参照権限を確認します。いずれかが不足する場合は、`accessErrorMessage`に権限確認の案内を返し、スキャン検索、管理レコード作成、Queueable登録を行いません。通常応答の同項目は空文字列で、参照可能な履歴がない場合の応答は従来どおり`null`です。
+
+LWCはこの専用項目で権限不足を判別し、保持していた結果を消してエラーだけを表示し、開始操作を無効にします。履歴なしや0件として表示しません。状態更新は可能とし、権限回復後の正常応答で通常表示と操作へ戻ります。参照可能な利用者には、実行者で絞り込まず共有範囲内の最新結果を表示します。
+
+LWCは開始成功時の応答を保持してから最新状態を再取得します。その再取得が失敗しても開始失敗と通知せず、確認済みの実行状態を保持して重複開始を抑止し、状態更新から再試行できます。
+
+実行中スキャンがある場合は、新しい開始を拒否して完了後の再実行を案内します。Queueableが未処理例外で終了した場合はFinalizerが`Failed`、終了日時、安全な最終エラーを保存し、同時実行防止キーを解放します。
+
+LWCと管理レコードにはSOQL、スタックトレース、内部ID、個人情報を含む例外詳細を表示しません。
+
+## 処理詳細
 
 1. Accountと`DataQualityScan__c`の参照権限を確認し、`Pending`または`Running`のAccountスキャンがないことを確認します。
 2. 利用者が参照できるAccountの`Database.Cursor`を作成し、対象総件数を`DataQualityScan__c`へ保存します。
@@ -101,64 +183,7 @@ Pending -> Running -> Completed
 
 `Pending`または`Running`の間は`Active_Key__c`へ`Account`を設定します。この項目の一意制約により、画面のボタン制御とは別に同時開始を拒否します。`Completed`または`Failed`へ移るとキーを空にし、新しいスキャンを開始できるようにします。
 
-## 出力・更新対象
-
-LWCは次を表示します。
-
-- ステータス
-- 対象総件数、処理済み件数、進捗率
-- 検査項目ごとの不足件数
-- 開始日時、終了日時
-- 失敗時の利用者向けエラー
-
-ステータスまたはエラー文言が未設定の場合は空文字列、件数または進捗率が未設定の場合は `0` としてLWCへ返します。開始日時と終了日時は未到達の状態で `null` を許容します。
-
-更新するのは`DataQualityScan__c`だけです。Accountレコードは更新しません。
-
-## 権限・実行条件
-
-`LwcAccountDataQualityScan` Permission Setが必要です。
-
-- Accountの参照権限と検査対象項目のFLS
-- Contactの参照権限（個人取引先が有効な組織でAccount参照権限の依存条件を満たすため）
-- `DataQualityScan__c`の作成、参照、更新権限と対象項目のFLS
-- 対象Apexクラスの実行権限
-
-AccountのCursorは`AccessLevel.USER_MODE`で作成し、スキャン管理レコードは`as user`で保存します。共有、CRUD、FLSを超えて処理しません。
-
-`DataQualityScan__c`の内部共有モデルは`ReadWrite`、外部共有モデルは`Private`です。検索とトピックは無効です。
-
-## エラー処理
-
-操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
-
-結果取得と開始の入口でAccountと`DataQualityScan__c`の参照権限を確認します。いずれかが不足する場合は、`accessErrorMessage`に権限確認の案内を返し、スキャン検索、管理レコード作成、Queueable登録を行いません。通常応答の同項目は空文字列で、参照可能な履歴がない場合の応答は従来どおり`null`です。
-
-LWCはこの専用項目で権限不足を判別し、保持していた結果を消してエラーだけを表示し、開始操作を無効にします。履歴なしや0件として表示しません。状態更新は可能とし、権限回復後の正常応答で通常表示と操作へ戻ります。参照可能な利用者には、実行者で絞り込まず共有範囲内の最新結果を表示します。
-
-LWCは開始成功時の応答を保持してから最新状態を再取得します。その再取得が失敗しても開始失敗と通知せず、確認済みの実行状態を保持して重複開始を抑止し、状態更新から再試行できます。
-
-実行中スキャンがある場合は、新しい開始を拒否して完了後の再実行を案内します。Queueableが未処理例外で終了した場合はFinalizerが`Failed`、終了日時、安全な最終エラーを保存し、同時実行防止キーを解放します。
-
-LWCと管理レコードにはSOQL、スタックトレース、内部ID、個人情報を含む例外詳細を表示しません。
-
-## 関連コンポーネント
-
-- Salesforce標準のAccount
-- Salesforce標準のQueueable ApexとFinalizer
-
-## テスト・確認観点
-
-- [AccountDataQualityScanServiceTest](../../../../force-app/main/default/classes/AccountDataQualityScanServiceTest.cls): 各不足条件、累積、完了、失敗、禁止状態遷移
-- [AccountDataQualityScanSelectorTest](../../../../force-app/main/default/classes/AccountDataQualityScanSelectorTest.cls): USER_MODE Cursor、分割取得、管理レコードI/O、一意制約
-- [AccountDataQualityScanQueueableTest](../../../../force-app/main/default/classes/AccountDataQualityScanQueueableTest.cls): 0件、1区間完了、端数区間、複数段の連鎖、入力不足の拒否、Finalizerの失敗記録
-- [AccountDataQualityScanControllerTest](../../../../force-app/main/default/classes/AccountDataQualityScanControllerTest.cls): 初期表示、開始、分割境界をまたぐ完了、重複開始拒否、直近結果、参照拒否応答で取得・保存・非同期登録が行われないこと
-- `accountDataQualityScan.test.js`: 画面状態、開始、手動更新、エラー、権限不足時の結果非表示・開始抑止・回復、アクセシビリティ
-- `accountDataQualityScanLogic.test.js`: 状態ラベル、操作可否、表示値の正規化
-
-組織上ではCursorのQueueable間シリアライズ、Permission Setを割り当てた利用者権限、Queueable連鎖、Finalizerによる失敗記録を確認します。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 1 Queueableの取得件数は500件固定です。
 - 自動ポーリングとPlatform Event通知は行いません。
@@ -167,9 +192,13 @@ LWCと管理レコードにはSOQL、スタックトレース、内部ID、個�
 - 複数オブジェクト、CSV出力、自動修正、任意項目設定には対応しません。
 - Cursorはガバナ制限を回避する機能ではなく、各`fetch()`と取得行はSOQL関連の制限へ加算されます。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 未確認（承認済み要求または外部契約との比較元を特定していません）
 - 組織上の確認では、分割境界をまたぐ完了、複数段のQueueable連鎖、端数区間の集計を検証します。実行結果は対象変更のPRとログへ記録します。
 - LWCのChrome上での動作と、Permission Setを割り当てた利用者権限での操作は、対象組織で別途確認が必要です。
 - 実データによるQueueable連鎖と、実障害時のFinalizerによる失敗記録は、組織上で別途確認が必要です。Finalizerの失敗記録テストはコンテキストmockを使用し、実際の非同期障害の再現とは区別します。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)

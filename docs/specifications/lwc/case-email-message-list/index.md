@@ -1,22 +1,26 @@
 # ケースメールメッセージ一覧
 
-## 概要
+## 機能の用途
 
 ケースレコードに紐づくメールメッセージを、古いものから順に Case レコードページ上の活動タイムラインで確認する Lightning Web Component です。
 
 総件数が1件以上で一覧が空の場合は、「再読み込み」で最新のメールを確認するよう案内します。件数だけが再配信されても一覧の取得エラーを保持し、更新操作で一覧の取得に成功すると解除します。
 
-## 目的・利用場面
-
 ケース対応中に、関連するメールの送受信日時、方向、件名、差出人、宛先、本文をレコードページから確認するために利用します。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+- `caseEmailMessageList` は Case の Lightning レコードページだけに配置できます。
+- `LwcCaseEmailMessageList` 権限セットで [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls) の実行権限と、ケースの参照権限を付与します。
+- 一覧取得は `with sharing` と `WITH USER_MODE` で利用者の共有ルール、オブジェクト権限、項目権限を適用します。
+
+## 対象メタデータ
 
 診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
 Salesforce API応答の表示メッセージ整形は内部APIモジュール[salesforceApiUtils](../../../../force-app/main/default/lwc/salesforceApiUtils/salesforceApiUtils.js)を使用します。Apex・UI API形式、複数メッセージの順序と代替文言は[共通テスト](../../../../force-app/main/default/lwc/salesforceApiUtils/__tests__/salesforceApiUtils.test.js)で確認します。エラー時の画面状態と復旧操作はこの画面で管理します。
 
-Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+Apex本体と対応するテストクラス、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
 
@@ -28,38 +32,39 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 
 ### Apexコードと対応テスト
 
-| Apex本体                                                                                                  | 役割                                               | 同名Test                                                                                                          |
+| Apex本体                                                                                                  | 役割                                               | 対応するテストクラス                                                                                              |
 | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls)   | ケースに紐づくメールメッセージ一覧の Apex 入口     | [CaseEmailMessageControllerTest](../../../../force-app/main/default/classes/CaseEmailMessageControllerTest.cls)   |
 | [CaseEmailMessagePageWrapper](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapper.cls) | ケースメールメッセージ一覧に返すページ情報 Wrapper | [CaseEmailMessagePageWrapperTest](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapperTest.cls) |
 | [CaseEmailMessageSelector](../../../../force-app/main/default/classes/CaseEmailMessageSelector.cls)       | ケースに紐づくメールメッセージ問い合わせ           | [CaseEmailMessageSelectorTest](../../../../force-app/main/default/classes/CaseEmailMessageSelectorTest.cls)       |
 | [CaseEmailMessageService](../../../../force-app/main/default/classes/CaseEmailMessageService.cls)         | ケースメールメッセージ一覧の入力値検証             | [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls)         |
 
-テストデータの準備は、対応する同名Testの内部で管理します。
+テストデータの準備は、対応する対応するテストクラスの内部で管理します。
 
 ### 設定・権限
 
-| 種別          | 実装・設定                | 役割                                         |
-| ------------- | ------------------------- | -------------------------------------------- |
-| PermissionSet | `LwcCaseEmailMessageList` | Apex Controller の実行権限とケースの参照権限 |
-| FlexiPage     | `CaseFlexiPage`           | Case レコードページのメールログタブへの配置  |
+| 種別       | 実装・設定                                         | 役割                                         |
+| ---------- | -------------------------------------------------- | -------------------------------------------- |
+| 権限セット | LWC：ケースメール一覧（`LwcCaseEmailMessageList`） | Apex Controller の実行権限とケースの参照権限 |
+| FlexiPage  | `CaseFlexiPage`                                    | Case レコードページのメールログタブへの配置  |
 
-## 入力
+### 関連コンポーネント
 
-- Case レコードページから渡される `recordId`
+- Case標準オブジェクト
+- EmailMessage標準オブジェクト
+- Case Lightningレコードページ
+- `LwcCaseEmailMessageList` 権限セット
 
-## 処理内容
+## アクセスするデータ・項目
 
-1. `recordId` が Case の ID であることを Service で確認します。
-2. LWC は最初にキャッシュ可能なCOUNT用 Apexをwireで呼び出し、`EmailMessage.ParentId` が Case ID と一致する総件数を利用者権限で取得します。
-3. 総件数の取得後、LWCは初回ページ取得用Apexへカーソル未指定で要求します。同じ要求の中で`Database.PaginationCursor`を作成し、先頭ページとカーソル・次位置を返します。LWCは応答のカーソルを保持して後続ページで再利用します。対象は`MessageDate`、`CreatedDate`、`Id`の昇順で、送信日時なしは末尾です。別のCaseへ切り替えた場合は古い応答を反映しません。
-4. `fetchPage`へ開始位置と、ページサイズ・残件数の小さい方を渡し、最も古いメールから取得します。`CursorFetchResult.getNextIndex()` が 0 より大きく、かつ `PaginationCursor.getNumRecords()` より小さい場合だけ次ページありと判定します。`CursorFetchResult.isDone()` 単独では判定しません。
-5. 次ページがある場合、活動タイムラインの一番下に「次のメールを読み込む」を表示します。選択すると LWC から同じ `PaginationCursor` と次の `startIndex` を Apex へ渡し、既存のタイムラインの末尾へ次ページを追加します。追加ページの直前には区切り線と取得範囲を表示し、ページ境界をタイムライン内に残します。
-6. カードタイトルを「メールログ」とし、COUNTで取得した総件数を併記します。各メールを SLDS の活動タイムラインとして古い順に表示します。受信と送信でSLDSアイコンを切り替え、補足行にも送受信の方向を表示します。差出人と宛先は実アドレスがある場合だけメール作成用リンクとして表示します。null、空文字、空白のみの場合は「(差出人なし)」「(宛先なし)」のテキストを表示し、リンクを作成しません。
-7. 各メールの詳細は常時展開し、ラベルを付けずにプレーンテキスト本文だけを表示します。本文領域は約20行分を上限とし、超過分は領域内の縦スクロールで表示します。開閉操作は提供しません。
-8. 再読み込み操作ではCOUNT用 Apex wire を `refreshApex()` で更新した後、Cursor取得用 Apex とページ取得用 Apex を順に命令的に呼び出し、新しい `PaginationCursor` で先頭ページを取得します。
+対象レコードの取得には次のSOQLを使用します。
 
-## 出力・更新対象
+```sql
+SELECT Id, ParentId, Subject, FromAddress, ToAddress, MessageDate,
+       Incoming, TextBody, CreatedDate
+FROM EmailMessage WHERE ParentId = :caseId
+ORDER BY MessageDate ASC NULLS LAST, CreatedDate ASC, Id ASC LIMIT 100000
+```
 
 - 送受信日時と曜日
 - 受信と送信を表すSLDSユーティリティアイコン
@@ -70,13 +75,26 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 - プレーンテキスト本文
 - この機能はレコードを作成、更新、削除しません。
 
-## 権限・実行条件
+### SOQLで参照するデータ
 
-- `caseEmailMessageList` は Case の Lightning レコードページだけに配置できます。
-- `LwcCaseEmailMessageList` 権限セットで [CaseEmailMessageController](../../../../force-app/main/default/classes/CaseEmailMessageController.cls) の実行権限と、ケースの参照権限を付与します。
-- 一覧取得は `with sharing` と `WITH USER_MODE` で利用者の共有ルール、オブジェクト権限、項目権限を適用します。
+```sql
+SELECT COUNT()
+FROM EmailMessage
+WHERE ParentId = :caseId
+WITH USER_MODE
+```
 
-## エラー処理
+### クエリの組み立て
+
+取得項目や検索条件を指定する実装は、[CaseEmailMessageSelector.cls](../../../../force-app/main/default/classes/CaseEmailMessageSelector.cls)で確認できます。
+
+## 操作
+
+ケースを開き、送受信したメールの一覧から内容を確認します。
+
+- Case レコードページから渡される `recordId`
+
+## エラー判定
 
 最終ページに到達したとき、表示したメール数と取得済み総件数（表示上限100,000件まで）が異なる場合は、読み込み済みメールを表示したまま再読み込みを案内します。
 
@@ -92,24 +110,18 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 - `PaginationCursor` が無効または期限切れになった場合も追加読み込みエラーとして扱い、再読み込み操作で新しい Cursor を作成して先頭ページから復旧します。
 - 再読み込み中は操作を無効化してスピナーを表示します。
 
-## 関連コンポーネント
+## 処理詳細
 
-- Case標準オブジェクト
-- EmailMessage標準オブジェクト
-- Case Lightningレコードページ
-- `LwcCaseEmailMessageList` 権限セット
+1. `recordId` が Case の ID であることを Service で確認します。
+2. LWC は最初にキャッシュ可能なCOUNT用 Apexをwireで呼び出し、`EmailMessage.ParentId` が Case ID と一致する総件数を利用者権限で取得します。
+3. 総件数の取得後、LWCは初回ページ取得用Apexへカーソル未指定で要求します。同じ要求の中で`Database.PaginationCursor`を作成し、先頭ページとカーソル・次位置を返します。LWCは応答のカーソルを保持して後続ページで再利用します。対象は`MessageDate`、`CreatedDate`、`Id`の昇順で、送信日時なしは末尾です。別のCaseへ切り替えた場合は古い応答を反映しません。
+4. `fetchPage`へ開始位置と、ページサイズ・残件数の小さい方を渡し、最も古いメールから取得します。`CursorFetchResult.getNextIndex()` が 0 より大きく、かつ `PaginationCursor.getNumRecords()` より小さい場合だけ次ページありと判定します。`CursorFetchResult.isDone()` 単独では判定しません。
+5. 次ページがある場合、活動タイムラインの一番下に「次のメールを読み込む」を表示します。選択すると LWC から同じ `PaginationCursor` と次の `startIndex` を Apex へ渡し、既存のタイムラインの末尾へ次ページを追加します。追加ページの直前には区切り線と取得範囲を表示し、ページ境界をタイムライン内に残します。
+6. カードタイトルを「メールログ」とし、COUNTで取得した総件数を併記します。各メールを SLDS の活動タイムラインとして古い順に表示します。受信と送信でSLDSアイコンを切り替え、補足行にも送受信の方向を表示します。差出人と宛先は実アドレスがある場合だけメール作成用リンクとして表示します。null、空文字、空白のみの場合は「(差出人なし)」「(宛先なし)」のテキストを表示し、リンクを作成しません。
+7. 各メールの詳細は常時展開し、ラベルを付けずにプレーンテキスト本文だけを表示します。本文領域は約20行分を上限とし、超過分は領域内の縦スクロールで表示します。開閉操作は提供しません。
+8. 再読み込み操作ではCOUNT用 Apex wire を `refreshApex()` で更新した後、Cursor取得用 Apex とページ取得用 Apex を順に命令的に呼び出し、新しい `PaginationCursor` で先頭ページを取得します。
 
-## テスト・確認観点
-
-- 追加取得中のケース切り替え、元のケースへの往復、古い追加取得の成功・失敗を確認し、新しい一覧とカーソル、操作中状態が維持されること
-
-- [CaseEmailMessageControllerTest](../../../../force-app/main/default/classes/CaseEmailMessageControllerTest.cls) で Case ID、null、Case 以外の ID、件数、Cursor直接取得、ページ応答を確認します。
-- [CaseEmailMessageServiceTest](../../../../force-app/main/default/classes/CaseEmailMessageServiceTest.cls) で入力検証、初回取得位置、不正な取得位置、空ページ、問い合わせ条件を変更しないことを確認します。
-- [CaseEmailMessageSelectorTest](../../../../force-app/main/default/classes/CaseEmailMessageSelectorTest.cls) で件数、ページ境界の直前・一致・直後、複数ページの重複防止、送信日時がないメール、Cursor作成後の削除行を確認します。
-- [CaseEmailMessagePageWrapperTest](../../../../force-app/main/default/classes/CaseEmailMessagePageWrapperTest.cls) で空ページと次ページ情報を確認します。
-- `caseEmailMessageList.test.js` でCOUNT後のCursor直接取得と命令的な初回ページ取得、活動タイムライン構造、曜日表示、送受信別のアイコンと補足文、本文の常時表示、空状態、エラー、再読み込み時の新しいCursor取得、下部ボタンからの追加読み込み、追加ページ境界の区切りを確認します。
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 1 回の取得上限は 50 件です。追加読み込みを繰り返すことで 50 件を超えて表示できます。
 - 1つの `PaginationCursor` が保持する対象は、作成時点で条件に一致した最も古い100,000件までです。Case全体の件数表示はCOUNT結果を使うため、100,000件を超える場合は表示件数と一致しません。
@@ -118,8 +130,12 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 - 本文は `EmailMessage.TextBody` をテキストとして表示します。`HtmlBody` のHTML書式は描画しません。
 - 添付ファイル、返信や転送操作はこのコンポーネントの対象外です。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 現行実装確認済み、承認済み要求との差異は未判定
 - 現行の `CaseFlexiPage` では、メールログタブ内に `caseEmailMessageList` が1インスタンス配置されています。
 - 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)

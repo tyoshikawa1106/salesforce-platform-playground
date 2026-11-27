@@ -1,20 +1,26 @@
 # ケース取引先責任者プロフィール
 
-## 概要
+## 機能の用途
 
 ケースの問い合わせ元となる人物と会社の情報を、Caseレコードページ上の顧客カードとして読み取り専用で表示するLightning Web Componentです。
 
 表示中のCaseが切り替わると顧客名とリンクを隠し、新しいCaseの取得後にプロフィールを表示します。
 
-## 目的・利用場面
-
 Caseを確認する利用者が、問い合わせ元の連絡先、所属会社、過去の問い合わせ件数を同じレコードページ上で確認するために使用します。
 
-## 対象実装・メタデータ
+### 権限・実行条件
+
+- Caseレコードページで実行し、Apexは使用しません。
+- `Case.ContactId` を必須項目、その他の表示項目を任意項目として取得します。
+- 任意項目を参照できない場合もCaseの読み込みを継続し、取得できない値には `-` を表示します。
+- 問い合わせ件数には現在表示しているCase自身を含み、実行ユーザーが参照できるCaseだけを数えます。
+- 関連リスト件数は最大1,999件まで取得し、それを超える場合は `1,999+` と表示します。
+
+## 対象メタデータ
 
 診断情報の整形・重複した状態更新の抑止は内部APIモジュール[lwcLoggerUtils](../../../../force-app/main/default/lwc/lwcLoggerUtils/lwcLoggerUtils.js)を共用します。例外種別の判定、画面固有の案内・復旧操作、表示状態の保持は各画面で管理し、コンソールへ診断情報やAPI応答本文を出力しません。共通の安全化と記録条件は[対応テスト](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)で、各画面との接続は画面側のテストで確認します。
 
-Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
+Apex本体と対応するテストクラス、補助LWC、共通部品の対応は[画面・帳票の構成一覧](../../screen-and-report-components.md)も参照してください。
 
 ### 画面・JavaScript
 
@@ -34,13 +40,16 @@ Apex本体と同名Test、補助LWC、共通部品の対応は[画面・帳票�
 | --------- | --------------- | -------------------------------- |
 | FlexiPage | `CaseFlexiPage` | Caseレコードページ左領域への配置 |
 
-## 入力
+### 関連コンポーネント
 
-- Caseレコードページから渡される `recordId`
+- `CaseFlexiPage`: Caseレコードページへの配置
+- `lightning/uiRecordApi`: Caseと関連項目の取得
+- `lightning/uiRelatedListApi`: ContactとAccountのCase件数取得
+- `lightning/navigation`: ContactとAccountのレコードURL生成
 
-## 処理内容
+## アクセスするデータ・項目
 
-Lightning Data Serviceの `getRecord` でCaseと関連するContact、Accountの表示項目を取得します。ContactとAccountの `Cases` 関連リスト件数は、`getRelatedListCount` でそれぞれ取得します。
+UI APIの `getRecord` でケースの取引先責任者IDを読み、連絡先や会社情報は参照可能な項目を取得します。
 
 ### 表示項目
 
@@ -66,6 +75,31 @@ Lightning Data Serviceの `getRecord` でCaseと関連するContact、Accountの
 
 Web-to-Caseの標準項目にはWebサイトURL、携帯電話、FAX、部署、役職に対応する項目がないため、これらは代替しません。取得値がない表示項目には `-` を表示します。
 
+- ContactまたはWeb-to-Case入力を基にした人物情報
+- CaseまたはContactに関連するAccount情報
+- ContactとAccountに紐づくCase件数
+- レコードの作成、更新、削除は行いません。
+
+## 操作
+
+ケースを開き、取引先責任者のプロフィールを確認します。
+
+- Caseレコードページから渡される `recordId`
+
+## エラー判定
+
+操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
+
+- 読み込み中はスピナーを表示します。
+- Caseの読み込みに失敗した場合は、詳細を露出しない利用者向けエラーを表示します。
+- ContactまたはAccountの問い合わせ件数を取得できない場合は、プロフィール表示を継続して該当件数を `-` にします。
+- 関連するContactまたはAccountが変わった場合は古いリンクを直ちに解除し、新しいURLの生成完了後に表示します。
+- レコードリンクを生成できない場合も情報表示を継続し、該当値をリンクなしで表示します。
+
+## 処理詳細
+
+Lightning Data Serviceの `getRecord` でCaseと関連するContact、Accountの表示項目を取得します。ContactとAccountの `Cases` 関連リスト件数は、`getRelatedListCount` でそれぞれ取得します。
+
 ### リンクと画面表示
 
 - Contactがある場合、氏名をContactレコードへのリンクとして表示し、別タブで開きます。
@@ -76,59 +110,17 @@ Web-to-Caseの標準項目にはWebサイトURL、携帯電話、FAX、部署、
 - 会社名の上に罫線を表示して人物情報と会社情報を区切り、会社名とWebサイトURLはそれぞれ1行分の全幅領域へ配置します。
 - WebサイトURLの下に罫線を表示し、その下へ顧客と会社の問い合わせ件数を2列で配置します。
 
-## 出力・更新対象
-
-- ContactまたはWeb-to-Case入力を基にした人物情報
-- CaseまたはContactに関連するAccount情報
-- ContactとAccountに紐づくCase件数
-- レコードの作成、更新、削除は行いません。
-
-## 権限・実行条件
-
-- Caseレコードページで実行し、Apexは使用しません。
-- `Case.ContactId` を必須項目、その他の表示項目を任意項目として取得します。
-- 任意項目を参照できない場合もCaseの読み込みを継続し、取得できない値には `-` を表示します。
-- 問い合わせ件数には現在表示しているCase自身を含み、実行ユーザーが参照できるCaseだけを数えます。
-- 関連リスト件数は最大1,999件まで取得し、それを超える場合は `1,999+` と表示します。
-
-## エラー処理
-
-操作・取得処理と子部品の例外は各LWCのControllerで捕捉し、同じバンドルのLogicで診断情報を生成してHTML内に処理場所・種類を表示します。既存の業務エラーと操作可否は維持します。診断ログはエラー時だけ生成します。
-
-- 読み込み中はスピナーを表示します。
-- Caseの読み込みに失敗した場合は、詳細を露出しない利用者向けエラーを表示します。
-- ContactまたはAccountの問い合わせ件数を取得できない場合は、プロフィール表示を継続して該当件数を `-` にします。
-- 関連するContactまたはAccountが変わった場合は古いリンクを直ちに解除し、新しいURLの生成完了後に表示します。
-- レコードリンクを生成できない場合も情報表示を継続し、該当値をリンクなしで表示します。
-
-## 関連コンポーネント
-
-- `CaseFlexiPage`: Caseレコードページへの配置
-- `lightning/uiRecordApi`: Caseと関連項目の取得
-- `lightning/uiRelatedListApi`: ContactとAccountのCase件数取得
-- `lightning/navigation`: ContactとAccountのレコードURL生成
-
-## テスト・確認観点
-
-`caseContactProfile.test.js` で次を確認します。
-
-- ContactとCaseのAccountがある場合の全項目、別タブで開くリンク、人物アイコン
-- 会社名の上に人物情報との区切り罫線があること
-- CaseのAccountをContactのAccountより優先すること
-- CaseにAccountがない場合にContactのAccountを使用すること
-- ContactとAccountのCase件数、0件、取得上限の超過表示、取得エラー
-- ContactとAccountがない場合にWeb-to-Case項目を使用し、レコードリンクを表示しないこと
-- 取得値がない項目の `-` 表示
-- 読み込み中と取得エラー
-- 各主要状態のアクセシビリティ
-
-## 制約・注意事項
+### 制約・注意事項
 
 - 項目値は読み取り専用で、コンポーネントから編集できません。
 - 任意項目が未登録の場合と項目権限がない場合は、同じ代替表示を使用します。
 
-## 既知の差異・確認事項
+### 既知の差異・確認事項
 
 - 状態: 現行実装確認済み、承認済み要求との差異は未判定
 - 現行実装は `caseContactProfile`、関連FlexiPage、Jestテストから確認しています。
 - 承認済み要求または画面要件の管理元をリポジトリ内で確認できないため、要求との差異は判定していません。
+
+### テストコード
+
+[テストコードと確認内容](tests.md)
