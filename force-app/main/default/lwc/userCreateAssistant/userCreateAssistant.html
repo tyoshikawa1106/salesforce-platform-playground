@@ -70,7 +70,8 @@
                                         <div key={row.key} class="slds-has-flexi-truncate">
                                             <h3 lwc:if={row.section} class="slds-section__title slds-theme_shade slds-m-top_x-small slds-p-horizontal_small slds-p-vertical_x-small">{row.title}</h3>
                                             <h4 lwc:elseif={row.group} class="slds-text-heading_small slds-m-top_x-small slds-p-bottom_xx-small slds-border_bottom">{row.title}</h4>
-                                            <p lwc:elseif={row.empty} class="slds-text-color_weak">表示できる項目はありません。</p>
+                                            <hr lwc:elseif={row.divider} class="slds-m-vertical_x-small" />
+                                            <p lwc:elseif={row.empty} class="slds-text-color_weak slds-p-around_small">表示できる項目はありません。</p>
                                             <template lwc:elseif={row.readOnlyCheckbox}>
                                                 <lightning-input type="checkbox" label={row.label} checked={row.checked} variant="label-stacked" read-only></lightning-input>
                                                 <span lwc:if={row.pendingDeactivation} class="slds-text-body_small">無効（保存時）</span>

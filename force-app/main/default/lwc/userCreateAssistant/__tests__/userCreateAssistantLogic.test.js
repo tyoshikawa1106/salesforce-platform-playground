@@ -46,3 +46,16 @@ it.each([[true, false, true], [false, false, false], [true, true, false]])('元�
     expect(sections[1].rows[3]).toMatchObject({label:'有効', checkbox:true, checked:true});
     expect(sections[2].rows.map(entry => entry.value)).toEqual(['引き継がない', '引き継ぐ']);
 });
+
+it.each([0, 4, 5, 8, 9])('カスタム項目 %i 件を4項目ずつ区切り、末尾には線を置かない', (count) => {
+    const custom = Array.from({ length: count }, (_, i) =>
+        field('Field' + i + '__c', '項目' + i, i === 2 ? 'multipicklist' : 'text', { custom: true }));
+    const lines = buildFieldLines([fields[0], ...custom.slice().reverse()]);
+    const entries = lines.flatMap(line => line.entries).filter(entry => entry.divider || entry.field?.custom);
+    const expected = [];
+    custom.forEach((item, index) => {
+        if (index === 4 || index === 8) expected.push('divider');
+        expected.push(item.apiName);
+    });
+    expect(entries.map(entry => (entry.divider ? 'divider' : entry.key))).toEqual(expected);
+});
