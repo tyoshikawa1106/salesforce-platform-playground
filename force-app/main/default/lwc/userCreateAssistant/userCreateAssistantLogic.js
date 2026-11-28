@@ -6,16 +6,7 @@ const collator = new Intl.Collator('ja', { numeric: true });
 // 両側に同じ順序の見出しと項目を配置
 function getEntries(fields) {
     // サーバーが返した標準ユーザー画面の項目順を維持
-    const standardGroups = new Map();
-    // 任意機能で追加された標準項目も最初の同名グループにまとめる
-    for (const field of fields.filter((item) => !item.custom)) {
-        // 標準画面の順に初めて現れたグループを登録
-        if (!standardGroups.has(field.groupLabel)) standardGroups.set(field.groupLabel, []);
-        // 見出しの重複を避けて項目を追加
-        standardGroups.get(field.groupLabel).push(field);
-    }
-    // グループ内の順序を保持して共通の行配列にする
-    const standard = [...standardGroups.values()].flat();
+    const standard = fields.filter((field) => !field.custom);
     // 組織固有のカスタム項目は表示ラベルの日本語順で配置
     const custom = fields.filter((field) => field.custom).sort((a, b) => collator.compare(a.label, b.label) || a.apiName.localeCompare(b.apiName));
     // 見出しを含む共通の行順を作成
@@ -29,7 +20,10 @@ function getEntries(fields) {
         // 標準画面内の小見出しを連続する項目間で共有
         let previousGroup;
         // 左右それぞれの入力形式は後で組み立てる
-        for (const field of items) {
+        for (const [index, field] of items.entries()) {
+            if (field.custom && index > 0 && index % 4 === 0) {
+                entries.push({ key: 'divider-' + field.apiName, divider: true });
+            }
             // 標準のグループが切り替わる位置に見出しを挿入
             if (!field.custom && field.groupLabel && field.groupLabel !== previousGroup) {
                 // 同名グループが別の位置にあってもキーを一意に保つ

@@ -13,7 +13,10 @@ private with sharing class UserCreateAssistantFieldCatalogTest {
             Test.startTest();
             Map<String, String> groups = catalog.getFieldGroups();
             Test.stopTest();
-            Assert.areEqual('ユーザー情報', groups.get('Username'), 'ユーザー名を基本情報に表示');
+            Assert.areEqual(new List<String>{'LastName', 'UserRoleId', 'FirstName', 'UserLicenseId', 'Alias', 'ProfileId'},
+                new List<String>{catalog.orderedNames[0], catalog.orderedNames[1], catalog.orderedNames[2],
+                    catalog.orderedNames[3], catalog.orderedNames[4], catalog.orderedNames[5]}, '一般情報の先頭は標準画面の行順');
+            Assert.areEqual('一般情報', groups.get('Username'), 'ユーザー名を基本情報に表示');
             Assert.areEqual(groups.get('ProfileId'), groups.get('UserLicenseId'), 'プロファイルとライセンスを同じ区分に表示');
             Assert.areEqual('地域の設定', groups.get('TimeZoneSidKey'), '地域関連の項目をまとめる');
             Assert.isFalse(groups.containsKey('Id'), 'レコード ID はフォーム項目に含めない');

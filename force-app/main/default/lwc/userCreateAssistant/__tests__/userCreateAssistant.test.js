@@ -602,3 +602,16 @@ it.each([true, false])('応答が遅れたときは再送を防ぎ、後から�
     expect((root.querySelector('[role="alert"]')?.textContent ?? '').includes('権限セットの引き継ぎに失敗')).toBe(!success);
     expect(deadline.signal.onabort).toBeNull();
 });
+
+it('コピー元と新規側の両方にカスタム項目の区切り線を表示する', async () => {
+    const custom = Array.from({ length: 9 }, (_, i) => ({
+        apiName: 'Field' + i + '__c', label: '項目' + i, custom: true, type: 'text', canCreate: true
+    }));
+    getForm.mockResolvedValue({ fields: [...fields, ...custom] });
+    const root = (await mount()).shadowRoot;
+    select(root, 'source');
+    await flush();
+    for (const panel of ['.c-source', '.c-target']) {
+        expect(root.querySelectorAll(panel + ' hr')).toHaveLength(2);
+    }
+});
