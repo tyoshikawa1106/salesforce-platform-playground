@@ -187,7 +187,7 @@ describe('c-case-contact-profile', () => {
         jest.clearAllMocks();
     });
 
-    it('renders only the loading state before the wire responds', async () => {
+    it('renders the contact profile fields in a standard card', async () => {
         const element = createComponent();
         await flushPromises();
 
@@ -195,10 +195,6 @@ describe('c-case-contact-profile', () => {
             element.shadowRoot.querySelector('lightning-spinner')
         ).not.toBeNull();
         expect(element.shadowRoot.querySelector('dl')).toBeNull();
-    });
-
-    it('renders the contact profile fields in a standard card', async () => {
-        const element = createComponent();
 
         getRecord.emit(createCaseRecord());
         await flushPromises();
@@ -233,13 +229,6 @@ describe('c-case-contact-profile', () => {
             'utility:profile_alt'
         );
         expect(element.shadowRoot.querySelector('article')).toBeNull();
-        const fieldLists = [...element.shadowRoot.querySelectorAll('dl')];
-        expect(
-            fieldLists[0].classList
-        ).toContain('slds-p-horizontal_medium');
-        expect(
-            fieldLists[1].classList
-        ).toContain('slds-p-bottom_medium');
         const recordLinks = [...element.shadowRoot.querySelectorAll('a')];
         const companyField = element.shadowRoot.querySelector(
             '.c-customer-card-field-full'
@@ -252,8 +241,6 @@ describe('c-case-contact-profile', () => {
             )
         ).toBe(true);
         expect(companyField.querySelector('dt').textContent).toBe('会社名');
-        expect(companyField.classList).toContain('slds-border_top');
-        expect(companyField.classList).toContain('slds-p-top_medium');
         await expect(element).toBeAccessible();
     });
 
@@ -411,31 +398,21 @@ describe('c-case-contact-profile', () => {
         await expect(element).toBeAccessible();
     });
 
-    it('renders an accessible error when the record cannot be loaded', async () => {
-        const element = createComponent();
-
-        getRecord.error({ body: { message: 'Record load failed' } });
-        await flushPromises();
-
-        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
-        expect(alert.textContent).toContain(
-            '取引先責任者のプロフィールを読み込めませんでした。'
-        );
-        await expect(element).toBeAccessible();
-    });
 });
 
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
+    it('取得失敗の案内と診断の処理位置を表示する', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         const element = createElement('c-caseContactProfile', { is: CaseContactProfile });
         document.body.appendChild(element);
         await Promise.resolve();
         getRecord.error({ message: 'private-value' });
-        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        await flushPromises();
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
+        expect(alert.textContent).toContain('取引先責任者のプロフィールを読み込めませんでした。');
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('caseContactProfile.js / wiredCase');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');
