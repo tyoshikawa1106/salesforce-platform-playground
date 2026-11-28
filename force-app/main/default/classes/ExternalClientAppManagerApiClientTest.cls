@@ -132,8 +132,8 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             for (
                 String path : new List<String>{
                     null,
-                    'https://example.invalid',
-                    '//example.invalid',
+                    'https://example.com',
+                    '//example.com',
                     '/services/../outside',
                     '/services/data/v68.0/tooling/query/../sobjects',
                     '/services/data/v68.0/tooling/query/extra',
@@ -275,7 +275,7 @@ private with sharing class ExternalClientAppManagerApiClientTest {
             Test.startTest();
             CredentialMock mock = new CredentialMock('configured');
             ExternalClientAppManagerApiClient.credentialAccess = mock;
-            for (String value : new List<String>{ 'https://example.invalid/auth', null, '', '   ' }) {
+            for (String value : new List<String>{ 'https://example.com/auth', null, '', '   ' }) {
                 mock.authenticationUrl = value;
                 try { client.getAuthenticationUrl(); Assert.fail('不正値を拒否'); }
                 catch (CalloutException e) { Assert.isTrue(e.getMessage().contains('開始URL'), '欠落・不正値の理由を通知'); }

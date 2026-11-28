@@ -80,7 +80,7 @@ private with sharing class ObjectExplorerSelectorTest {
     /** 氏名とメールを前方一致で検索し、途中一致やワイルドカードを除外 */
     @IsTest
     static void searchesOwnerPrefixes() {
-        User owner = new User(Id = UserInfo.getUserId(), FirstName = null, LastName = 'ExplorerPrefixUser', Email = 'explorer.prefix@example.invalid');
+        User owner = new User(Id = UserInfo.getUserId(), FirstName = null, LastName = 'ExplorerPrefixUser', Email = 'explorer.prefix@example.com');
         update owner;
         System.runAs(testUser) {
             Test.startTest();

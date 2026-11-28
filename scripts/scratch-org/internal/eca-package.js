@@ -5,7 +5,7 @@ const path = require('node:path');
 const { XMLBuilder, XMLParser } = require('fast-xml-parser');
 
 const namespace = 'http://soap.sforce.com/2006/04/metadata';
-const placeholder = 'https://scratch-org.example.invalid';
+const placeholder = 'https://scratch-org.example.com';
 // 識別子と真偽値の表記を保ち、属性を消さずに組織固有値だけ変更する。
 const parser = new XMLParser({ ignoreAttributes: false, parseTagValue: false, ignoreDeclaration: false });
 // 変更する値をXMLエスケープし、元の属性を保持して出力する。

@@ -35,8 +35,8 @@ public with sharing class TestDataFactory {
         userRecord.ProfileId = UserInfo.getProfileId();
         userRecord.Alias = 'testuser';
         userRecord.LastName = lastName;
-        userRecord.Email = 'test-user@example.invalid';
-        userRecord.Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid';
+        userRecord.Email = 'test-user@example.com';
+        userRecord.Username = 'test-user.' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.com';
         userRecord.TimeZoneSidKey = 'Asia/Tokyo';
         userRecord.LocaleSidKey = 'ja_JP';
         userRecord.EmailEncodingKey = 'UTF-8';

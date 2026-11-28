@@ -36,8 +36,8 @@ it('無効化中は元側の編集可能項目だけを開き、編集中の多�
 });
 
 it.each([[true, false, true], [false, false, false], [true, true, false]])('元の有効状態 %s、無効化 %s で識別情報と保存後のチェック状態を返す', (initial, deactivateSource, expected) => {
-    const source = {LastName:'旧姓', FirstName:'花子', Username:'old@example.invalid', Email:'oldmail@example.invalid', IsActive:String(initial)};
-    const target = {LastName:'新姓', FirstName:'太郎', Username:'new@example.invalid', Email:'newmail@example.invalid'};
+    const source = {LastName:'旧姓', FirstName:'花子', Username:'old@example.com', Email:'oldmail@example.com', IsActive:String(initial)};
+    const target = {LastName:'新姓', FirstName:'太郎', Username:'new@example.com', Email:'newmail@example.com'};
     const sections = buildConfirmationSections(Object.entries(source).map(([apiName,value]) => ({apiName,value})),
         {LastName:'変更姓'}, target, {deactivateSource, copyPermissionSets:false, copyPermissionSetGroups:true, sendResetEmail:false});
     expect(sections[0].rows.slice(0,3).map(entry => entry.value)).toEqual([deactivateSource ? '変更姓 花子' : '旧姓 花子', source.Email, source.Username]);

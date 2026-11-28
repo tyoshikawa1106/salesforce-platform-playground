@@ -728,7 +728,7 @@ private with sharing class ObjectExplorerControllerTest {
             Test.startTest();
             Assert.areEqual(mock.authenticationUrl, ObjectExplorerController.getApiAuthenticationUrl(), '同じ組織の標準URLを返す');
             Assert.areEqual(1, mock.urlRequests, 'URLを一度だけ取得');
-            mock.authenticationUrl = 'https://example.invalid/auth';
+            mock.authenticationUrl = 'https://example.com/auth';
             try {
                 ObjectExplorerController.getApiAuthenticationUrl();
                 Assert.fail('別ホストの認証URLを拒否');

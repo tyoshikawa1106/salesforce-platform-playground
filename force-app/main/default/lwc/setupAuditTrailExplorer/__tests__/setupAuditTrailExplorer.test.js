@@ -182,10 +182,10 @@ it('uses the field labels returned by Salesforce when the list is retried', asyn
 it('merges chart buckets across pages and reuses them as filter options', async () => {
     const bucket = { day: '2026-11-18', userId: '005000000000001', action: 'createdApexClass' };
     const namespacedBucket = { ...bucket, namespacePrefix: 'sample' };
-    const delegatedBucket = { ...bucket, delegateUser: 'Delegate@example.invalid' };
+    const delegatedBucket = { ...bucket, delegateUser: 'Delegate@example.com' };
     load.request.mockResolvedValueOnce({ records: [] })
         .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 2 }, { ...delegatedBucket, count: 4 }],
-            delegateNames: { 'delegate@example.invalid': '代理 担当' }, nextId: 'cursor', nextTime: 'time' })
+            delegateNames: { 'delegate@example.com': '代理 担当' }, nextId: 'cursor', nextTime: 'time' })
         .mockResolvedValueOnce({ buckets: [{ ...bucket, count: 3 }, { ...namespacedBucket, count: 1 }] });
     const component = mount();
     await flush();
@@ -226,8 +226,8 @@ it('loads candidates on demand and applies selected filters only on search', asy
     loadFilterOptions.mockResolvedValueOnce({
         options: { action: [], namespacePrefix: ['first'], delegateUser: [] }, nextId: 'cursor', nextTime: 'time'
     }).mockResolvedValue({
-        options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['Delegate@example.invalid', 'former@example.invalid'] },
-        delegateNames: { 'delegate@example.invalid': '代理 担当' }
+        options: { action: [], namespacePrefix: ['first', 'second'], delegateUser: ['Delegate@example.com', 'former@example.com'] },
+        delegateNames: { 'delegate@example.com': '代理 担当' }
     });
     const component = mount();
     await flush();
@@ -248,10 +248,10 @@ it('loads candidates on demand and applies selected filters only on search', asy
     await flush();
     expect(load.request).toHaveBeenCalledTimes(1);
     expect(countMatches.request).not.toHaveBeenCalled();
-    await chooseLookup(component, 'delegateUser', 'Delegate@example.invalid');
+    await chooseLookup(component, 'delegateUser', 'Delegate@example.com');
     await search(component);
     expect(load.request).toHaveBeenCalledTimes(2);
-    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: 'Delegate@example.invalid' }) });
+    expect(load.request).toHaveBeenLastCalledWith({ input: expect.objectContaining({ namespacePrefix: 'second', delegateUser: 'Delegate@example.com' }) });
     await chooseLookup(component, 'namespacePrefix', '');
     await search(component);
     expect(component.shadowRoot.querySelector('input[data-field="namespacePrefix"]').value).toBe('');
@@ -261,13 +261,13 @@ it('loads candidates on demand and applies selected filters only on search', asy
     expect([...component.shadowRoot.querySelectorAll('[role="option"]')].map(option => option.dataset.value))
         .toEqual(['first', 'second']);
     expect(load.request.mock.lastCall[0].input).not.toHaveProperty('namespacePrefix');
-    await chooseLookup(component, 'delegateUser', 'former@example.invalid');
-    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('former@example.invalid');
+    await chooseLookup(component, 'delegateUser', 'former@example.com');
+    expect(component.shadowRoot.querySelector('input[data-field="delegateUser"]').value).toBe('former@example.com');
 });
 
 it('finds a delegate by name or login and selects the login shown on the second line', async () => {
-    const login = 'delegate@example.invalid';
-    const other = 'other@example.invalid';
+    const login = 'delegate@example.com';
+    const other = 'other@example.com';
     load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValue({ options: { delegateUser: [login, other] },
         delegateNames: { [login]: '代理 担当', [other]: '代理 担当' } });
@@ -301,7 +301,7 @@ it('shows raw action codes and month users', async () => {
     load.request.mockResolvedValue({ records: [] });
     loadFilterOptions.mockResolvedValue({
         options: { action: ['filteredLookupActivate'], namespacePrefix: [], delegateUser: [] },
-        userOptions: { '005000000000002': 'other@example.invalid', [userId]: 'audit@example.invalid' },
+        userOptions: { '005000000000002': 'other@example.com', [userId]: 'audit@example.com' },
         userNames: { '005000000000002': '山田 太郎', [userId]: '山田 太郎' }
     });
     const component = mount();
@@ -311,7 +311,7 @@ it('shows raw action codes and month users', async () => {
     await flush();
     const userOption = component.shadowRoot.querySelector(`[role="option"][data-value="${userId}"]`);
     expect(userOption.firstElementChild.children[0].textContent).toBe('山田 太郎');
-    expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.invalid');
+    expect(userOption.firstElementChild.children[1].textContent).toBe('audit@example.com');
     userOption.click();
     await flush();
     expect(component.shadowRoot.querySelector('input[data-field="userId"]').value).toBe('山田 太郎');
@@ -360,11 +360,11 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
     const downloaded = new Promise(resolve => download.mockImplementation(() => resolve()));
     const row = {
         CreatedDate: '2026-11-18T00:00:00.000Z',
-        CreatedBy: { Username: 'audit@example.invalid' },
+        CreatedBy: { Username: 'audit@example.com' },
         ResponsibleNamespacePrefix: 'sample',
         Display: '=原文,"引用"\r\n続き🧪',
         Section: 'Apps',
-        DelegateUser: 'delegate@example.invalid'
+        DelegateUser: 'delegate@example.com'
     };
     URL.createObjectURL = jest.fn(() => 'blob:audit');
     URL.revokeObjectURL = jest.fn();
@@ -420,9 +420,9 @@ it.each(['month', 'all'])('downloads %s history with UTF-8 text and standard dat
             reader.readAsText(blob, 'utf-8');
         });
         const header = expectedHeader;
-        const line = '"2026/11/18 9:00:00 JST","audit@example.invalid","sample","","=原文,""引用""\r\n続き🧪","Apps","delegate@example.invalid"\n';
-        expect(csv).toBe(header + line + line.replace('audit@example.invalid', '') +
-            '"2026/11/18 9:00:00 JST","delegate@example.invalid","sample","suOrgAdminLogin","' + login.Display + '","Apps","delegate@example.invalid"\n');
+        const line = '"2026/11/18 9:00:00 JST","audit@example.com","sample","","=原文,""引用""\r\n続き🧪","Apps","delegate@example.com"\n';
+        expect(csv).toBe(header + line + line.replace('audit@example.com', '') +
+            '"2026/11/18 9:00:00 JST","delegate@example.com","sample","suOrgAdminLogin","' + login.Display + '","Apps","delegate@example.com"\n');
         expect(component.shadowRoot.querySelector('a[data-download]').download)
             .toMatch(new RegExp('^' + (period === 'month' ? 'SetupAuditTrailMonthly' + monthStart.slice(0, 7).replace('-', '') : 'SetupAuditTrailAll') + '_\\d{17}\\.csv$'));
         component.remove();
@@ -1022,11 +1022,11 @@ it('reloads candidates after each search even if a previous options request fini
 
 it.each([
     ['担当者', '担当者'],
-    [null, 'viewer@example.invalid']
+    [null, 'viewer@example.com']
 ])('replaces the day filter and keeps the monthly chart user label on drilldown with name %s', async (userName, label) => {
     const userId = 'target';
     load.request.mockImplementation(({ input }) => (input.chart
-        ? { buckets: [{ userId, userName, loginName: 'viewer@example.invalid', day: input.monthStart, count: 1 }] }
+        ? { buckets: [{ userId, userName, loginName: 'viewer@example.com', day: input.monthStart, count: 1 }] }
         : { records: [] }));
     const component = mount();
     const root = component.shadowRoot;

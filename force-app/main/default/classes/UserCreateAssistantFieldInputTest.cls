@@ -11,7 +11,7 @@ private with sharing class UserCreateAssistantFieldInputTest {
         User source = new User(Id = testUser.Id, ProfileId = UserInfo.getProfileId());
         String changes = JSON.serialize(new Map<String, Object>{
             'ProfileId' => UserInfo.getProfileId(), 'IsActive' => true, 'Alias' => 'ucatest',
-            'LastName' => '固定項目試験', 'Username' => 'draft@example.invalid', 'Email' => 'draft@example.invalid',
+            'LastName' => '固定項目試験', 'Username' => 'draft@example.com', 'Email' => 'draft@example.com',
             'TimeZoneSidKey' => 'Asia/Tokyo', 'LocaleSidKey' => UserInfo.getLocale(),
             'LanguageLocaleKey' => UserInfo.getLanguage(), 'EmailEncodingKey' => 'UTF-8'
         });
@@ -54,7 +54,7 @@ private with sharing class UserCreateAssistantFieldInputTest {
         System.runAs(testUser) {
             Test.startTest();
             try {
-                input.checkSourceUnchanged('{"Email":"change@example.invalid"}');
+                input.checkSourceUnchanged('{"Email":"change@example.com"}');
                 Assert.fail('無効化を選ばない場合は元ユーザーの編集不可');
             } catch (AuraHandledException e) {
                 Assert.isNotNull(e.getMessage(), 'モードと矛盾する入力を拒否');

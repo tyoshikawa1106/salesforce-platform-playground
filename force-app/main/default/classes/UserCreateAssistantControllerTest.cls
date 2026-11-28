@@ -242,8 +242,8 @@ private with sharing class UserCreateAssistantControllerTest {
         String uniqueKey = EncodingUtil.convertToHex(Crypto.generateAesKey(128));
         return new User(
             LastName = lastName, ProfileId = UserInfo.getProfileId(), IsActive = true,
-            Alias = 'ucatest', Email = 'user-create-test@example.invalid',
-            Username = uniqueKey + '@example.invalid', CommunityNickname = uniqueKey,
+            Alias = 'ucatest', Email = 'user-create-test@example.com',
+            Username = uniqueKey + '@example.com', CommunityNickname = uniqueKey,
             TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = UserInfo.getLocale(),
             LanguageLocaleKey = UserInfo.getLanguage(), EmailEncodingKey = 'UTF-8'
         );

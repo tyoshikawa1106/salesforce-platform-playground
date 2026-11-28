@@ -109,7 +109,7 @@ it.each([15, 18])('本人の %i 桁 ID を選ぶと無効化を解除し、コ�
 
 it('確認で対象と各設定を示し、キャンセルとユーザー名の重複では保存しない', async () => {
     getForm.mockResolvedValue({fields: [
-        {apiName:'Username', label:'ユーザー名', type:'email', value:'copy@example.invalid', canCreate:true, canUpdate:true},
+        {apiName:'Username', label:'ユーザー名', type:'email', value:'copy@example.com', canCreate:true, canUpdate:true},
         {apiName:'IsActive', type:'checkbox', value:'true', canCreate:true}
     ]});
     const root = (await mount()).shadowRoot;
@@ -130,7 +130,7 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     expect(modal(root)).toBeNull();
     expect(saveUser).not.toHaveBeenCalled();
     expect(root.querySelector('[role="alert"]')).toBeNull();
-    edit(username, 'COPY@example.invalid');
+    edit(username, 'COPY@example.com');
     await submit(root); await flush();
     expect(modal(root)).toBeNull();
     expect(root.querySelector('[role="alert"]').textContent).toContain('コピー元と同じ');
@@ -139,7 +139,7 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     expect(root.querySelector('main > header').nextElementSibling).toBe(banner);
     expect(banner.querySelector('a, lightning-button')).toBeNull();
     expect(root.activeElement).toBe(banner);
-    edit(username, 'new@example.invalid');
+    edit(username, 'new@example.com');
     await submit(root); await flush();
     expect(saveUser).toHaveBeenCalledTimes(1);
 });
@@ -285,7 +285,7 @@ it('未編集の新規項目も保存し、明示的なクリアとコピー元�
 it.each([[true, true], [false, false]])('コピー元の有効状態が %s でも新規側は有効で、メール送信の選択 %s を確認・保存に反映する', async (initial, sendEmail) => {
     getForm.mockResolvedValue({fields: [
         {apiName:'IsActive', label:'有効', type:'checkbox', value:String(initial), canCreate:true},
-        {apiName:'Email', label:'メール', type:'email', value:'new@example.invalid', canCreate:true}
+        {apiName:'Email', label:'メール', type:'email', value:'new@example.com', canCreate:true}
     ]});
     saveUser.mockResolvedValue('new');
     const root = (await mount()).shadowRoot;
@@ -299,7 +299,7 @@ it.each([[true, true], [false, false]])('コピー元の有効状態が %s で�
     const dialog = await review(root); await flush();
     const emailSetting = [...dialog.querySelectorAll('dt')].find(label => label.textContent === 'パスワードリセットメール');
     expect(emailSetting.nextElementSibling.textContent).toBe(sendEmail ? '送信する' : '送信しない');
-    expect(dialog.textContent).toContain('new@example.invalid');
+    expect(dialog.textContent).toContain('new@example.com');
     dialog.querySelectorAll('lightning-button')[1].click(); await flush();
     expect(saveUser.mock.calls[0][0].request.sendResetEmail).toBe(sendEmail);
     expect(JSON.parse(saveUser.mock.calls[0][0].request.targetValuesJson).IsActive).toBe(true);

@@ -50,7 +50,7 @@ private with sharing class OrgExplorerMemberServiceTest {
             access.membershipEnabled = false;
             User record = new User(
                 Id = testUser.Id,
-                Email = 'member@example.invalid',
+                Email = 'member@example.com',
                 EmployeeNumber = 'DEMO-000001',
                 Department = '非公開部署',
                 Title = '非公開役職'

@@ -75,7 +75,7 @@ private with sharing class ObjectExplorerClassifyServiceTest {
             Test.startTest();
             Map<String, Object> original = service.snapshot(new Map<String, Object>());
             Map<String, Object> draft = new Map<String, Object>(original);
-            draft.put('businessOwnerUser', 'owner@example.invalid');
+            draft.put('businessOwnerUser', 'owner@example.com');
             draft.put('businessOwnerGroup', 'Owners');
             try {
                 service.prepareUpdate(new Map<String, Object>(), original, draft);

@@ -443,7 +443,7 @@ test('DOCTYPEはProfileと関連CustomFieldの両方で解析前に拒否する'
     const baseXml = fs.readFileSync(fixtureProfilePath, 'utf8');
     for (const declaration of [
         '<!DOCTYPE Profile [<!ENTITY license "Salesforce Platform">]>',
-        '<!DOCTYPE Profile SYSTEM "https://example.invalid/metadata.dtd">'
+        '<!DOCTYPE Profile SYSTEM "https://example.com/metadata.dtd">'
     ]) {
         assert.throws(() => convertFixture(baseXml.replace('<Profile ', `${declaration}\n<Profile `)), /DOCTYPE/);
     }
