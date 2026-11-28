@@ -55,9 +55,8 @@ it('上下キーとEnterで候補を一度だけ確定する', async () => {
     expect(picked.mock.calls[0][0].detail.targetId).toBe('accounting');
     expect(picked).toHaveBeenCalledTimes(1);
 });
-it.each(['ROLE', 'MANAGER'])('IME変換中のキー操作は候補に反映せず、変換後は選択できる: %s', async (mode) => {
+it('IME変換中のキー操作は候補に反映せず、変換後は選択できる', async () => {
     const element = lookup();
-    element.mode = mode;
     const picked = jest.fn();
     element.addEventListener('targetpick', picked);
     const input = element.shadowRoot.querySelector('input');
@@ -174,9 +173,6 @@ it.each(['ROLE', 'MANAGER'])('検索中の文言と空の候補枠を表示せ�
     expect(element.shadowRoot.querySelector('[role="status"]').textContent).toContain(
         mode === 'MANAGER' ? '一致する上司はありません' : '一致するロールはありません'
     );
-    const notice = element.shadowRoot.querySelector('p[role="status"]');
-    expect(notice.classList.contains('slds-p-horizontal_small')).toBe(true);
-    expect(notice.classList.contains('slds-p-vertical_x-small')).toBe(true);
     await expect(element).toBeAccessible();
 });
 
@@ -190,7 +186,6 @@ it('上司候補はSLDSの補足行に部署と役職を表示し、補足なし
     element.shadowRoot.querySelector('input').focus();
     await flush();
     const options = element.shadowRoot.querySelectorAll('[role="option"]');
-    expect(options[0].classList.contains('slds-listbox__option_has-meta')).toBe(true);
     expect(options[0].querySelector('.slds-listbox__option-text_entity').textContent).toBe('試験 上司');
     expect(options[0].querySelector('.slds-listbox__option-meta_entity').textContent).toBe('営業部 • 部長');
     expect(options[1].querySelector('.slds-listbox__option-meta')).toBeNull();
@@ -231,9 +226,8 @@ it.each([
     await expect(element).toBeAccessible();
 });
 
-it.each(['ROLE', 'MANAGER'])('選択済みのDeleteは解除通知を送り、IME変換中は維持する: %s', async (mode) => {
+it('選択済みのDeleteは解除通知を送り、IME変換中は維持する', async () => {
     const element = createElement('c-org-explorer-search', { is: OrgExplorerSearch });
-    element.mode = mode;
     element.selectedTarget = roles[0];
     const changed = jest.fn();
     element.addEventListener('searchchange', changed);

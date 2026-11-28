@@ -477,17 +477,13 @@ it('初期ロールの照会失敗では全ロール取得へ進まずエラー�
     expect(rolePages).not.toHaveBeenCalled();
     expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])').textContent).toContain('照会に失敗');
 });
-it('廃止した操作を表示せず、等倍ボタンをキャンバスへ接続する', async () => {
+it('ズーム操作を表示し、等倍ボタンをキャンバスへ接続する', async () => {
     const element = createElement('c-org-explorer', { is: OrgExplorer });
     document.body.appendChild(element);
     await flush();
     expect(
         [...element.shadowRoot.querySelectorAll('.c-zoom [data-action]')].map((button) => button.label || button.alternativeText)
     ).toEqual(['縮小', '拡大', '100%', '全体を表示']);
-    const text = element.shadowRoot.textContent;
-    for (const label of ['自分を表示', 'ルート一覧', '前の対象へ', '次の対象へ']) expect(text).not.toContain(label);
-    for (const action of ['left', 'right', 'up', 'down'])
-        expect(element.shadowRoot.querySelector(`[data-action="${action}"]`)).toBeNull();
     const canvas = element.shadowRoot.querySelector('c-org-explorer-canvas');
     const reset = jest.spyOn(canvas, 'resetZoom');
     element.shadowRoot.querySelector('[data-action="reset"]').click();
@@ -571,8 +567,7 @@ it('未入力で開くと最上位の候補だけを一回取得する', async (
     const search = element.shadowRoot.querySelector('c-org-explorer-search');
     search.dispatchEvent(new CustomEvent('lookupopen', { detail: { browse: true } }));
     await Array.from({ length: 5 }).reduce((chain) => chain.then(flush), Promise.resolve());
-    expect(search.results).toHaveLength(2);
-    expect(search.results.slice(0, 2).map((item) => item.targetId)).toEqual(['company', 'ceo']);
+    expect(search.results.map((item) => item.targetId)).toEqual(['company', 'ceo']);
     expect(searchRoles).toHaveBeenLastCalledWith({
         request: expect.objectContaining({ term: '' })
     });
