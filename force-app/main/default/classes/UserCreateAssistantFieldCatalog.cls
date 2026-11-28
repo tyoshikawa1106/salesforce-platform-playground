@@ -2,13 +2,16 @@
 public with sharing class UserCreateAssistantFieldCatalog {
     // ユーザー編集ページに対応する項目をセクション順に列挙
     private static final List<String> STANDARD_GROUPS = new List<String>{
-        'ユーザー情報|LastName FirstName MiddleName Suffix Alias Email Username CommunityNickname Title CompanyName Department Division UserRoleId UserLicenseId ProfileId IsActive EmployeeNumber',
-        'ユーザー権限|UserPermissionsMarketingUser UserPermissionsOfflineUser UserPermissionsKnowledgeUser UserPermissionsInteractionUser UserPermissionsSupportUser UserPermissionsSFContentUser UserPermissionsSiteforceContributorUser UserPermissionsSiteforcePublisherUser ForecastEnabled',
-        '連絡先情報|Phone Extension Fax MobilePhone PostalCode StateCode State City Street CountryCode Country',
+        '一般情報|LastName UserRoleId FirstName UserLicenseId Alias ProfileId Email IsActive Username UserPermissionsMarketingUser CommunityNickname UserPermissionsOfflineUser Title UserPermissionsKnowledgeUser CompanyName UserPermissionsInteractionUser Department UserPermissionsSupportUser Division UserPermissionsSiteforceContributorUser UserPermissionsSiteforcePublisherUser UserPermissionsWorkDotComUserFeature UserPermissionsJigsawProspectingUser JigsawImportLimitOverride UserPermissionsSFContentUser ForecastEnabled CallCenterId Phone Extension Fax MobilePhone EmailEncodingKey EmployeeNumber IndividualId',
+        '住所(郵送先)|CountryCode Country PostalCode StateCode State City Street',
         'シングルサインオン情報|FederationIdentifier',
-        '承認者設定|DelegatedApproverId ManagerId',
-        '地域の設定|TimeZoneSidKey LocaleSidKey LanguageLocaleKey EmailEncodingKey DefaultCurrencyIsoCode',
-        '追加情報|CallCenterId IndividualId'
+        '地域の設定|TimeZoneSidKey LocaleSidKey LanguageLocaleKey',
+        '承認者の設定|DelegatedApproverId ManagerId',
+        'その他の標準項目|MiddleName Suffix DefaultCurrencyIsoCode'
+    };
+    // 従来から書き込み可能な場合だけ表示している任意機能の項目
+    private static final Set<String> OPTIONAL_LAYOUT_FIELDS = new Set<String>{
+        'UserPermissionsWorkDotComUserFeature', 'UserPermissionsJigsawProspectingUser', 'JigsawImportLimitOverride'
     };
     // 標準項目の表示順と、個別の項目名から参照できるセクション定義
     private static final List<String> STANDARD_NAMES = new List<String>();
@@ -110,14 +113,14 @@ public with sharing class UserCreateAssistantFieldCatalog {
         if (!isFormField(field) || ADDRESS_CODES.get(name)?.getDescribe().isAccessible() == true) {
             return null;
         }
-        if (STANDARD_SECTIONS.containsKey(name)) {
+        if (STANDARD_SECTIONS.containsKey(name) && !OPTIONAL_LAYOUT_FIELDS.contains(name)) {
             return STANDARD_SECTIONS.get(name);
         }
         if (field.isCustom()) {
             return 'カスタム項目';
         }
         if (isAdditionalStandard(field) && (field.isCreateable() || field.isUpdateable())) {
-            return name.toLowerCase().startsWith('userpermissions') ? 'ユーザー権限' : 'その他の標準項目';
+            return STANDARD_SECTIONS.get(name) ?? 'その他の標準項目';
         }
         return null;
     }
