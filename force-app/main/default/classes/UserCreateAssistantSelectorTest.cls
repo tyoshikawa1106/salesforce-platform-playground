@@ -78,7 +78,7 @@ private with sharing class UserCreateAssistantSelectorTest {
         System.runAs(testUser) {
             User source = new User(
                 ProfileId = UserInfo.getProfileId(), Alias = 'ucatest', LastName = '割り当て照会元',
-                Email = 'owner@example.invalid', Username = EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.invalid',
+                Email = 'owner@example.com', Username = EncodingUtil.convertToHex(Crypto.generateAesKey(128)) + '@example.com',
                 TimeZoneSidKey = 'Asia/Tokyo', LocaleSidKey = UserInfo.getLocale(),
                 LanguageLocaleKey = UserInfo.getLanguage(), EmailEncodingKey = 'UTF-8'
             );

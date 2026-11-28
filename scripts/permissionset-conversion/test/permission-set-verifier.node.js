@@ -56,7 +56,7 @@ test('XML文字参照の表記差を無視し実際の値変更は検出する',
 test('Permission Set比較で内部・外部DOCTYPEを拒否する', () => {
     for (const declaration of [
         '<!DOCTYPE PermissionSet [<!ENTITY label "Example">]>',
-        '<!DOCTYPE PermissionSet SYSTEM "https://example.invalid/metadata.dtd">'
+        '<!DOCTYPE PermissionSet SYSTEM "https://example.com/metadata.dtd">'
     ]) {
         assert.throws(
             () =>

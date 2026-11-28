@@ -127,7 +127,7 @@ private with sharing class SalesforceApiClientTest {
     static void rejectsUnsupportedRequests() {
         System.runAs(testUser) {
             Test.startTest();
-            for (String path : new List<String>{null, '', 'https://example.invalid', '/query/', '../query/', 'tooling/query/../sobjects', 'query/extra', 'other/?q=..'}) {
+            for (String path : new List<String>{null, '', 'https://example.com', '/query/', '../query/', 'tooling/query/../sobjects', 'query/extra', 'other/?q=..'}) {
                 try {
                     client.request(path, 'GET', null);
                     Assert.fail('固定接続先以外を拒否');

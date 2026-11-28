@@ -41,7 +41,7 @@ test('作成結果のusernameで後続のScratch Org準備手順を順番に実�
             assert.ok(args.includes('--json'));
             return {
                 status: 0,
-                stdout: JSON.stringify({ status: 0, result: { username: 'created@example.invalid' } })
+                stdout: JSON.stringify({ status: 0, result: { username: 'created@example.com' } })
             };
         },
         runNodeScriptCommand(scriptPath, args) {
@@ -56,7 +56,7 @@ test('作成結果のusernameで後続のScratch Org準備手順を順番に実�
         calls.map((call) => call.scriptPath),
         expectedScripts
     );
-    assert.ok(calls.every((call) => call.args.join(' ') === '--alias created@example.invalid'));
+    assert.ok(calls.every((call) => call.args.join(' ') === '--alias created@example.com'));
     assert.match(stdout.getValue(), /使用するScratch Org alias: test-scratch-org/);
 });
 
@@ -70,7 +70,7 @@ test('準備手順が失敗した場合は後続処理を実行しない', () =>
         stdout: createOutput().stream,
         runCreateCommand: () => ({
             status: 0,
-            stdout: JSON.stringify({ status: 0, result: { username: 'created@example.invalid' } })
+            stdout: JSON.stringify({ status: 0, result: { username: 'created@example.com' } })
         }),
         runNodeScriptCommand(scriptPath) {
             calls.push(scriptPath);

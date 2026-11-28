@@ -24,7 +24,7 @@ const metadataTypes = {
 };
 
 // ECAの実データを使わず、参照関係と境界条件だけをテスト用に組み立てる。
-const sourceOrigin = 'https://source-org.my.salesforce.com';
+const sourceOrigin = 'https://scratch-org.example.com';
 const oauthAppNames = {
     HerokuPlaygroundIntegration_glbloauth: 'HerokuPlaygroundIntegration',
     HerokuPlaygroundPerUser_glbloauth: 'HerokuPlaygroundIntegrationPerUser',
@@ -109,7 +109,7 @@ function scratchQuery(args) {
             status: 0,
             stdout: JSON.stringify({
                 status: 0,
-                result: { records: [{ Username: 'scratch@example.invalid', Profile: { Name: 'システム管理者' } }] }
+                result: { records: [{ Username: 'scratch@example.com', Profile: { Name: 'システム管理者' } }] }
             })
         };
     }
@@ -123,7 +123,7 @@ function scratchQuery(args) {
                 scratchOrgs: [
                     {
                         alias: 'test-scratch',
-                        username: 'scratch@example.invalid',
+                        username: 'scratch@example.com',
                         instanceUrl: 'https://test-scratch.scratch.my.salesforce.com'
                     }
                 ]
@@ -165,7 +165,7 @@ for (const failedPhase of [undefined, 'convert', 'base', 'retrieve', 'policies',
                         );
                     }
                 } else {
-                    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch@example.invalid');
+                    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch@example.com');
                     const types = [
                         parser.parse(readFileSync(path.join(directory, 'package.xml'), 'utf8')).Package.types
                     ].flat();
@@ -184,7 +184,7 @@ for (const failedPhase of [undefined, 'convert', 'base', 'retrieve', 'policies',
             },
             registerCredentials(username, mapping) {
                 operations.push('credentials');
-                assert.equal(username, 'scratch@example.invalid');
+                assert.equal(username, 'scratch@example.com');
                 assert.deepEqual(mapping, scratchOrg.externalClientAppProviders);
                 if (failedPhase === 'credentials') throw new Error('登録失敗');
             }
@@ -208,7 +208,7 @@ test('Scratch Orgでない対象には変換・反映・資格情報登録を実
                     nonScratchOrgs: [
                         {
                             alias: 'dev-org',
-                            username: 'dev@example.invalid',
+                            username: 'dev@example.com',
                             instanceUrl: 'https://dev.my.salesforce.com',
                             orgId: '00D000000000001',
                             isSandbox: false,
@@ -239,7 +239,7 @@ function withPackage(fn) {
 }
 
 const target = {
-    username: 'scratch&admin@example.invalid',
+    username: 'scratch&admin@example.com',
     adminProfileName: 'システム管理者',
     instanceUrl: 'https://test-scratch.scratch.my.salesforce.com',
     providerApps: scratchOrg.externalClientAppProviders,
@@ -294,6 +294,7 @@ test('全Client Credentials Flowを管理者へ置換し、ファイル名やア
             'utf8'
         );
         assert.ok(provider.includes(`${target.instanceUrl}/services/oauth2/authorize`));
+        assert.ok(provider.includes(`${target.instanceUrl}/services/oauth2/token`));
         assert.equal(provider.includes(sourceOrigin), false);
         for (const file of [
             'namedCredentials/InternalSalesforceApi.namedCredential',
@@ -315,7 +316,7 @@ test('対応設定の不足、外部接続先、Flow設定の不一致を反映�
             'externalAuthIdentityProviders/InternalSalesforceApi.externalAuthIdentityProvider',
             (document) => {
                 document.ExternalAuthIdentityProvider.externalAuthIdentityProviderParameters[0].parameterValue =
-                    'https://other.example.invalid/authorize';
+                    'https://other.example.com/services/oauth2/authorize';
             }
         );
         assert.throws(() => prepareEcaPackage(base, target), /同じScratch Org/);
@@ -329,7 +330,7 @@ test('対応設定の不足、外部接続先、Flow設定の不一致を反映�
 });
 
 function credentialsQuery(args) {
-    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch@example.invalid');
+    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch@example.com');
     return {
         status: 0,
         stdout: JSON.stringify({
@@ -342,12 +343,12 @@ function credentialsQuery(args) {
 test('異なる名前のプロバイダーと同一ECAの複数参照を登録し、新規と更新を区別する', () => {
     const requests = [];
     registerProviderCredentials(
-        'scratch@example.invalid',
+        'scratch@example.com',
         { NewProvider: 'DifferentAppName', ExistingProvider: 'DifferentAppName' },
         credentialsQuery,
         (targetOrg, resource, method, body) => {
             requests.push({ resource, method, body });
-            assert.equal(targetOrg, 'scratch@example.invalid');
+            assert.equal(targetOrg, 'scratch@example.com');
             if (method !== 'GET') return {};
             if (resource.endsWith('?part=keyandsecret')) return { key: 'test-client-id', secret: 'test-client-secret' };
             if (resource.startsWith('/apps/')) return { consumers: [{ id: '888000000000001' }] };
@@ -374,7 +375,7 @@ test('資格情報やプロバイダー状態を確認できなければ一件�
     assert.throws(
         () =>
             registerProviderCredentials(
-                'scratch@example.invalid',
+                'scratch@example.com',
                 { Provider: 'DifferentAppName' },
                 credentialsQuery,
                 (_, resource, method) => {
@@ -388,7 +389,7 @@ test('資格情報やプロバイダー状態を確認できなければ一件�
     assert.equal(writes, 0);
     assert.throws(
         () =>
-            registerProviderCredentials('scratch@example.invalid', { Provider: "Invalid'Name" }, () =>
+            registerProviderCredentials('scratch@example.com', { Provider: "Invalid'Name" }, () =>
                 assert.fail('queryを送信しない')
             ),
         /API名/
@@ -399,22 +400,16 @@ test('REST要求の資格情報を引数・ファイルへ出さず、HTTP失敗
     const body = { credentials: [{ credentialName: 'clientSecret', credentialValue: 'sensitive-test-value' }] };
     assert.throws(
         () =>
-            requestScratchRest(
-                'scratch@example.invalid',
-                '/named-credentials/test',
-                'PUT',
-                body,
-                (_, args, options) => {
-                    assert.equal(args.includes('sensitive-test-value'), false);
-                    assert.equal(options.input, JSON.stringify(body));
-                    assert.equal(options.env.SF_DISABLE_LOG_FILE, 'true');
-                    assert.equal(args[args.indexOf('--body') + 1], '-');
-                    return {
-                        status: 1,
-                        stdout: JSON.stringify({ status: 0, result: { statusCode: 400, body: 'sensitive-test-value' } })
-                    };
-                }
-            ),
+            requestScratchRest('scratch@example.com', '/named-credentials/test', 'PUT', body, (_, args, options) => {
+                assert.equal(args.includes('sensitive-test-value'), false);
+                assert.equal(options.input, JSON.stringify(body));
+                assert.equal(options.env.SF_DISABLE_LOG_FILE, 'true');
+                assert.equal(args[args.indexOf('--body') + 1], '-');
+                return {
+                    status: 1,
+                    stdout: JSON.stringify({ status: 0, result: { statusCode: 400, body: 'sensitive-test-value' } })
+                };
+            }),
         (error) => error.message === 'Scratch OrgのOAuth資格情報APIが失敗しました。'
     );
 });

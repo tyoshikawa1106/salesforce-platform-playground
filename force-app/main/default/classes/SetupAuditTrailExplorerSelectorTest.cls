@@ -18,7 +18,7 @@ private class SetupAuditTrailExplorerSelectorTest {
             User viewer = [SELECT Name, Username FROM User WHERE Id = :UserInfo.getUserId() WITH USER_MODE];
             Test.startTest();
             Map<String, String> names = SetupAuditTrailExplorerSelector.selectDelegateNames(
-                new Set<String>{viewer.Username.toUpperCase(), 'unknown@example.invalid'}
+                new Set<String>{viewer.Username.toUpperCase(), 'unknown@example.com'}
             );
             Integer queries = Limits.getQueries();
             Map<String, String> empty = SetupAuditTrailExplorerSelector.selectDelegateNames(new Set<String>());

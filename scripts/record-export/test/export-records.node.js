@@ -2079,7 +2079,7 @@ test('未知のCLIエラー文を残し、認証値・接続先・ID・引用値
         'Unexpected transport failure while reading response',
         'access_token=private-token',
         'Authorization: Bearer private-bearer',
-        'https://private.example.invalid/path user@example.invalid',
+        'https://private.example.com/path user@example.com',
         '001000000000001AAA',
         "Failed for 'private-value'",
         '/Users/private-user/project/file.js',
@@ -2091,7 +2091,7 @@ test('未知のCLIエラー文を残し、認証値・接続先・ID・引用値
             assert.equal(error.code, 'CLI_FAILED');
             assert.match(error.diagnostic, /CLIエラー内容: Unexpected transport failure while reading response/);
             assert.ok(!error.diagnostic.includes('private'));
-            assert.ok(!error.diagnostic.includes('example.invalid'));
+            assert.ok(!error.diagnostic.includes('example.com'));
             assert.ok(!error.diagnostic.includes('001000000000001AAA'));
             assert.ok(!error.diagnostic.includes('SELECT Id'));
             assert.ok(!error.diagnostic.includes('抽出できませんでした'));

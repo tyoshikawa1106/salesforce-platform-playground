@@ -67,7 +67,7 @@ test('Scratch Orgの実行者に反映権限を用意してからmanifestをNoTe
             '--metadata',
             `PermissionSet:${scratchOrg.deploymentPermissionSet}`,
             '--target-org',
-            'scratch-test@example.invalid',
+            'scratch-test@example.com',
             '--test-level',
             'NoTestRun',
             '--wait',
@@ -80,7 +80,7 @@ test('Scratch Orgの実行者に反映権限を用意してからmanifestをNoTe
             '--name',
             scratchOrg.deploymentPermissionSet,
             '--target-org',
-            'scratch-test@example.invalid',
+            'scratch-test@example.com',
             '--json'
         ],
         [
@@ -90,7 +90,7 @@ test('Scratch Orgの実行者に反映権限を用意してからmanifestをNoTe
             '--manifest',
             scratchOrg.manifest,
             '--target-org',
-            'scratch-test@example.invalid',
+            'scratch-test@example.com',
             '--test-level',
             'NoTestRun',
             '--wait',
@@ -156,7 +156,7 @@ test('Scratch Orgへ設定ファイルのPermission Setを割り当てる', () =
         '--name',
         'LwcUserLocaleSettings',
         '--target-org',
-        'scratch-test@example.invalid',
+        'scratch-test@example.com',
         '--json'
     ]);
 });
@@ -198,9 +198,9 @@ function scratchOrgQuery(args, workingDirectory) {
             'data',
             'query',
             '--target-org',
-            'scratch-test@example.invalid',
+            'scratch-test@example.com',
             '--query',
-            `SELECT Id FROM PermissionSetAssignment WHERE Assignee.Username = 'scratch-test@example.invalid' AND PermissionSet.Name = '${scratchOrg.deploymentPermissionSet}'`,
+            `SELECT Id FROM PermissionSetAssignment WHERE Assignee.Username = 'scratch-test@example.com' AND PermissionSet.Name = '${scratchOrg.deploymentPermissionSet}'`,
             '--json'
         ]);
         assert.equal(workingDirectory, repoRoot);
@@ -218,8 +218,8 @@ function scratchOrgQuery(args, workingDirectory) {
                 scratchOrgs: [
                     {
                         alias: 'test-scratch-org',
-                        username: 'scratch-test@example.invalid',
-                        instanceUrl: 'https://scratch.example.invalid'
+                        username: 'scratch-test@example.com',
+                        instanceUrl: 'https://scratch.example.com'
                     }
                 ]
             }
@@ -236,8 +236,8 @@ for (const [name, orgEdition, isSandbox] of [
         test(`${name}には再構築の${operation === deployMetadata ? 'deploy' : '権限割り当て'}を実行しない`, () => {
             const org = {
                 alias: 'test-scratch-org',
-                username: 'test@example.invalid',
-                instanceUrl: 'https://org.example.invalid',
+                username: 'test@example.com',
+                instanceUrl: 'https://org.example.com',
                 orgId: 'test-org',
                 orgEdition,
                 isSandbox
@@ -359,7 +359,7 @@ test('Scratch Orgの実行ユーザーでApexテストの完了を待ち、失�
         async runTests(options) {
             assert.deepEqual(options, {
                 testType: 'apex',
-                targetOrg: 'scratch-test@example.invalid',
+                targetOrg: 'scratch-test@example.com',
                 repoRoot
             });
             return 42;
@@ -409,7 +409,7 @@ for (const [personAccounts, shellsOnly] of [
                         );
                 }
                 if (args.includes('--metadata-dir')) {
-                    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch-test@example.invalid');
+                    assert.equal(args[args.indexOf('--target-org') + 1], 'scratch-test@example.com');
                     for (const name of names) {
                         const original = parse.parse(
                             fs.readFileSync(

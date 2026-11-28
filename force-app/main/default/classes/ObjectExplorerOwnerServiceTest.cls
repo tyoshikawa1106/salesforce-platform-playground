@@ -16,7 +16,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
             User owner = new User(
                 Id = testUser.Id,
                 LastName = 'Owner',
-                Username = 'owner@example.invalid',
+                Username = 'owner@example.com',
                 IsActive = true
             );
             Group groupRecord = new Group(
@@ -48,7 +48,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
                 'businessStatus' => ''
             };
             Assert.areEqual(
-                'owner@example.invalid',
+                'owner@example.com',
                 service.createMetadataDraft(values, new List<SObject>{ owner }).get('businessOwnerUser'),
                 'ユーザー識別子を採用'
             );
@@ -91,7 +91,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
                 '現在値と明示解除を区別'
             );
             service.validateOwnerReference('', new List<SObject>());
-            User owner = new User(Id = testUser.Id, Username = 'owner@example.invalid', IsActive = false);
+            User owner = new User(Id = testUser.Id, Username = 'owner@example.com', IsActive = false);
             service.validateSelectedOwner(
                 String.valueOf(testUser.Id),
                 new List<SObject>{ owner },
@@ -117,7 +117,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
                                 User.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix() +
                                 '000000000001'
                             ),
-                            Username = 'other@example.invalid'
+                            Username = 'other@example.com'
                         )
                     }
                 );
@@ -139,7 +139,7 @@ private with sharing class ObjectExplorerOwnerServiceTest {
                 service.validateSelectedOwner(
                     String.valueOf(testUser.Id),
                     new List<SObject>{
-                        new User(Id = testUser.Id, Username = 'owner@example.invalid', IsActive = false)
+                        new User(Id = testUser.Id, Username = 'owner@example.com', IsActive = false)
                     },
                     ''
                 );
