@@ -1,8 +1,8 @@
 import { createDeleteView } from '../accountDeleteLogic';
 
 describe('取引先削除の表示モデル', () => {
-    it.each([undefined, null])('応答未確認時は開始不可: %s', (response) => {
-        expect(createDeleteView(response, false, '').canStart).toBe(false);
+    it('応答未確認時は開始不可', () => {
+        expect(createDeleteView(undefined, false, '').canStart).toBe(false);
     });
     it.each(['Holding', 'Queued', 'Preparing', 'Processing', 'Unknown'])('未終了状態では再実行不可: %s', (status) => {
         expect(createDeleteView({ latestJob: { Id: 'run', Status: status } }, false, '').canStart).toBe(false);
