@@ -34,7 +34,6 @@ describe('c-object-record-search', () => {
         expect(datatable.data[0].recordUrl).toBe(
             '/lightning/r/Account/001xx000003DGbYAAW/view'
         );
-        expect(datatable.columns[0].label).toBe('取引先名');
         expect(datatable.columns[0].sortable).toBe(true);
         expect(datatable.columns.map((column) => column.label)).toEqual([
             '取引先名',
