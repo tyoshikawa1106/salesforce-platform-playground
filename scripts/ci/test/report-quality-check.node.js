@@ -46,7 +46,19 @@ test('対象外の結果ではGitHub CLIを実行しない', () => {
 test('初回失敗時はラベルと担当者を指定してIssueを作成する', () => {
     const recorder = createGhRecorder();
 
-    reportCheck({ ...baseContext, result: 'failure', runGhCommand: recorder.runGhCommand });
+    main({
+        env: {
+            GITHUB_ACTOR: 'ci-actor',
+            GITHUB_REF: 'refs/heads/main',
+            GITHUB_SHA: 'abc123',
+            NPM_RESULT: 'failure',
+            RUN_URL: 'https://github.example/actions/runs/123',
+            WINDOWS_RESULT: 'skipped'
+        },
+        now: () => fixedDate,
+        runGhCommand: recorder.runGhCommand
+    });
+    assert.equal(recorder.calls.length, 2);
 
     assert.deepEqual(recorder.calls[0], [
         'issue',
@@ -91,7 +103,18 @@ test('継続失敗時は同じタイトルのopen Issueへコメントする', (
 test('成功時は同じタイトルのopen Issueへ復旧コメントを追加してクローズする', () => {
     const recorder = createGhRecorder([{ number: 42, title: 'CI: Nightly npm checksが失敗しています' }]);
 
-    reportCheck({ ...baseContext, result: 'success', runGhCommand: recorder.runGhCommand });
+    main({
+        env: {
+            GITHUB_ACTOR: 'ci-actor',
+            GITHUB_REF: 'refs/heads/main',
+            GITHUB_SHA: 'abc123',
+            NPM_RESULT: 'success',
+            RUN_URL: 'https://github.example/actions/runs/123',
+            WINDOWS_RESULT: 'skipped'
+        },
+        now: () => fixedDate,
+        runGhCommand: recorder.runGhCommand
+    });
 
     assert.equal(recorder.calls.length, 3);
     assert.deepEqual(recorder.calls[1].slice(0, 3), ['issue', 'comment', '42']);
@@ -113,26 +136,6 @@ test('open Issue一覧がJSONでない場合は処理を中止する', () => {
         () => reportCheck({ ...baseContext, result: 'failure', runGhCommand: () => 'not-json' }),
         /open Issue一覧のJSONを解析できませんでした/
     );
-});
-
-test('workflowの環境変数から2つのチェック結果を処理する', () => {
-    const recorder = createGhRecorder();
-
-    main({
-        env: {
-            GITHUB_ACTOR: 'ci-actor',
-            GITHUB_REF: 'refs/heads/main',
-            GITHUB_SHA: 'abc123',
-            NPM_RESULT: 'failure',
-            RUN_URL: 'https://github.example/actions/runs/123',
-            WINDOWS_RESULT: 'skipped'
-        },
-        now: () => fixedDate,
-        runGhCommand: recorder.runGhCommand
-    });
-
-    assert.equal(recorder.calls.length, 2);
-    assert.deepEqual(recorder.calls[1].slice(0, 2), ['issue', 'create']);
 });
 
 test('GitHub CLIをshell経由なしで実行して標準出力を返す', () => {
@@ -157,27 +160,18 @@ test('GitHub CLIの起動失敗と終了コードをエラーとして扱う', (
     );
 });
 
-for (const ref of ['refs/heads/codex/fix', 'refs/tags/v1', undefined]) {
-    for (const result of ['success', 'failure']) {
-        test(`main以外または不明なrefでは${result}でも監視Issueを変更しない: ${ref}`, () => {
-            const recorder = createGhRecorder([{ number: 42, title: 'CI: Nightly npm checksが失敗しています' }]);
-            main({
-                env: { GITHUB_REF: ref, NPM_RESULT: result, WINDOWS_RESULT: result },
-                runGhCommand: recorder.runGhCommand
-            });
-            assert.deepEqual(recorder.calls, []);
+for (const [ref, result] of [
+    ['refs/heads/codex/fix', 'failure'],
+    ['refs/tags/v1', 'success'],
+    [undefined, 'failure']
+]) {
+    test(`main以外または不明なrefでは監視Issueを操作しない: ${ref}`, () => {
+        main({
+            env: { GITHUB_REF: ref, GITHUB_SHA: 'abc123', NPM_RESULT: result, WINDOWS_RESULT: result },
+            runGhCommand: () => assert.fail('対象外のrefでGitHub CLIを実行した')
         });
-    }
-}
-
-test('mainの成功時だけ監視Issueを復旧として閉じる', () => {
-    const recorder = createGhRecorder([{ number: 42, title: 'CI: Nightly npm checksが失敗しています' }]);
-    main({
-        env: { GITHUB_SHA: 'abc123', GITHUB_REF: 'refs/heads/main', NPM_RESULT: 'success', WINDOWS_RESULT: 'skipped' },
-        runGhCommand: recorder.runGhCommand
     });
-    assert.deepEqual(recorder.calls.at(-1), ['issue', 'close', '42', '--reason', 'completed']);
-});
+}
 
 test('古いmainの成功も失敗も現在の障害Issueを変更しない', () => {
     for (const result of ['success', 'failure']) {
