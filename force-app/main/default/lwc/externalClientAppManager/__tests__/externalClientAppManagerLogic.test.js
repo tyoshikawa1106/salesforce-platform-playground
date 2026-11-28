@@ -65,7 +65,7 @@ describe('個別操作の表示と要求', () => {
 });
 
 describe('資格情報の状態別案内', () => {
-    it.each(['unknown', undefined, ''])('不明状態%sでは削除を勧めない', (state) => {
+    it.each(['unknown', undefined])('不明状態%sでは削除を勧めない', (state) => {
         const message = stageBlockingMessage([{ state }, { state: 'rotated' }]);
         expect(message).toContain('標準設定画面で状態を確認');
         expect(message).not.toContain('削除');

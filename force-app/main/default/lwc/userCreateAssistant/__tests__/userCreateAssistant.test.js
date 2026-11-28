@@ -119,7 +119,6 @@ it('確認で対象と各設定を示し、キャンセルとユーザー名の�
     const username = root.querySelector('[data-side="target"][data-name="Username"]');
     const dialog = await review(root);
     expect(root.querySelector('[role="alert"]')).toBeNull();
-    expect(dialog).not.toBeNull();
     expect([...dialog.querySelectorAll('h3')].map(el => el.textContent)).toEqual(['コピー元ユーザー','新規ユーザー','権限の引き継ぎ']);
     expect([...dialog.querySelectorAll('section:first-child dt')].map(el => el.textContent)).toEqual(['氏名','メール','ユーザー名','有効']);
     expect([...dialog.querySelectorAll('lightning-input')].map(el => [el.label, el.checked, el.readOnly])).toEqual([
