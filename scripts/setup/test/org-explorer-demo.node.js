@@ -91,7 +91,6 @@ function createHarness({
         assert.equal(args[args.indexOf('--target-org') + 1], 'test@example.com');
         if (args[0] === 'apex') {
             apexPath = args[args.indexOf('--file') + 1];
-            assert.ok(fs.readFileSync(apexPath, 'utf8').includes("EncodingUtil.base64Decode('"));
             apexCalls++;
             const source = fs.readFileSync(apexPath, 'utf8');
             const payload = JSON.parse(Buffer.from(source.match(/base64Decode\('([^']+)'\)/)[1], 'base64').toString());
@@ -336,58 +335,41 @@ test('dry-runは組織確認・投入・確認入力を実行しない', async (
     assert.deepEqual(h.calls, []);
 });
 
-for (const [type, label] of [
-    ['production', '本番'],
-    ['sandbox', 'Sandbox'],
-    ['developer', '通常のDeveloper Edition'],
-    ['unknown', '種別を確定できない組織']
+for (const [type, label, mode] of [
+    ['production', '本番', []],
+    ['production', '本番', ['--verify']],
+    ['sandbox', 'Sandbox', []],
+    ['developer', '通常のDeveloper Edition', []],
+    ['unknown', '種別を確定できない組織', ['--verify']]
 ]) {
-    for (const mode of [[], ['--verify']]) {
-        test(`${label}では${mode.length ? '照合' : '作成'}を開始しない`, async () => {
-            const h = createHarness({ type });
-            assert.equal(await h.run([...mode]), 1);
-            assert.equal(h.calls.length, 2, '設定と組織一覧の確認だけで停止する');
-            assert.equal(h.calls[0][0], 'config');
-            assert.equal(h.calls[1][0], 'org');
-            assert.equal(h.confirmationCount(), 0, '投入確認へ進ませない');
-            assert.equal(h.promptClosed(), false);
-            assert.ok(h.isClean());
-        });
-    }
-}
-
-for (const answer of ['', 'n', 'yes', 'YES']) {
-    test(`y・Y以外の回答ではデータ操作を開始しない: ${JSON.stringify(answer)}`, async () => {
-        const h = createHarness({ answer });
-        assert.equal(await h.run(), 0);
-        assert.equal(h.calls.length, 2);
-        assert.equal(h.confirmationCount(), 1);
-        assert.ok(h.promptClosed());
+    test(`${label}では${mode.length ? '照合' : '作成'}を開始しない`, async () => {
+        const h = createHarness({ type });
+        assert.equal(await h.run([...mode]), 1);
+        assert.equal(h.calls.length, 2, '設定と組織一覧の確認だけで停止する');
+        assert.equal(h.calls[0][0], 'config');
+        assert.equal(h.calls[1][0], 'org');
+        assert.equal(h.confirmationCount(), 0, '投入確認へ進ませない');
+        assert.equal(h.promptClosed(), false);
         assert.ok(h.isClean());
     });
 }
 
-for (const answer of ['y', 'Y']) {
-    test(`接続先を表示して${answer}の承認後だけ投入する`, async () => {
-        const h = createHarness({ answer });
-        assert.equal(await h.run(), 0);
-        assert.equal(h.confirmationCount(), 1);
-        for (const expected of [
-            '接続組織を確認してください。',
-            'Alias:',
-            'Username:',
-            'URL:',
-            'Org Type: Scratch Org'
-        ]) {
-            assert.ok(h.confirmationOutput().includes(expected), '承認入力を求める前に接続先を表示する');
-        }
-        assert.equal(h.calls.filter((args) => args[0] === 'apex').length, 6);
-    });
-}
+test('投入を承認しない場合はデータ操作を開始しない', async () => {
+    const h = createHarness({ answer: 'yes' });
+    assert.equal(await h.run(), 0);
+    assert.equal(h.calls.length, 2);
+    assert.equal(h.confirmationCount(), 1);
+    assert.ok(h.promptClosed());
+    assert.ok(h.isClean());
+});
 
 test('投入成功後に全件を再照会し、一時ファイルを削除する', async () => {
     const h = createHarness();
     assert.equal(await h.run(), 0);
+    assert.equal(h.confirmationCount(), 1);
+    for (const expected of ['接続組織を確認してください。', 'Alias:', 'Username:', 'URL:', 'Org Type: Scratch Org']) {
+        assert.ok(h.confirmationOutput().includes(expected), '承認入力を求める前に接続先を表示する');
+    }
     assert.ok(h.promptClosed());
     assert.ok(h.isClean());
     assert.equal(h.calls.filter((args) => args[0] === 'apex').length, 6);

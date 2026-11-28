@@ -18,23 +18,13 @@ test.beforeEach((t) => {
 // destructiveスクリプトをリポジトリルート基準で実行する。
 const repoRoot = path.resolve(__dirname, '../../../..');
 
-test('destructive deploy用の通常manifestは追加・更新対象を持たずAPIバージョンを揃える', () => {
-    const manifest = fs.readFileSync(path.join(repoRoot, 'manifest/destructivePackage.xml'), 'utf8');
+test('削除用の両 manifest は通常時に対象を含まず、プロジェクトの API バージョンを使う', () => {
     const project = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sfdx-project.json'), 'utf8'));
-    const apiVersion = manifest.match(/<version>([^<]+)<\/version>/)?.[1];
-
-    assert.doesNotMatch(manifest, /<types>/);
-    assert.equal(apiVersion, project.sourceApiVersion);
-});
-
-test('削除対象manifestは通常時にプレースホルダーと削除対象を残さずAPIバージョンを揃える', () => {
-    const manifest = fs.readFileSync(path.join(repoRoot, 'manifest/destructiveChanges.xml'), 'utf8');
-    const project = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sfdx-project.json'), 'utf8'));
-    const apiVersion = manifest.match(/<version>([^<]+)<\/version>/)?.[1];
-
-    assert.doesNotMatch(manifest, /REPLACE_WITH_/);
-    assert.doesNotMatch(manifest, /<types>/);
-    assert.equal(apiVersion, project.sourceApiVersion);
+    for (const filename of ['destructivePackage.xml', 'destructiveChanges.xml']) {
+        const manifest = fs.readFileSync(path.join(repoRoot, 'manifest', filename), 'utf8');
+        assert.doesNotMatch(manifest, /<types>|REPLACE_WITH_/, filename);
+        assert.equal(manifest.match(/<version>([^<]+)<\/version>/)?.[1], project.sourceApiVersion, filename);
+    }
 });
 
 test('削除対象manifestにプレースホルダーが残る場合は拒否する', () => {

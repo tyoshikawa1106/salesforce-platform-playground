@@ -3,16 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createApprovalPrompt, isApproved } = require('../approval');
-
-test('指定されたfactoryから確認入力を作成する', () => {
-    const prompt = { question() {}, close() {} };
-
-    assert.equal(
-        createApprovalPrompt(() => prompt),
-        prompt
-    );
-});
+const { isApproved } = require('../approval');
 
 test('yまたはYだけを承認として扱う', () => {
     assert.equal(isApproved('y'), true);

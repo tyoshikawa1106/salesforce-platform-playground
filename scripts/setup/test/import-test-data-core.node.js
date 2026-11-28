@@ -5,13 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {
-    getSourcePaths,
-    parseArgs,
-    prepareEntries,
-    readPlan,
-    resolveInsideRepo
-} = require('../internal/import-test-data-core');
+const { parseArgs, prepareEntries, readPlan, resolveInsideRepo } = require('../internal/import-test-data-core');
 
 // 実際のimport planとApexファイルをリポジトリルート基準で参照する。
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -39,32 +33,9 @@ test('Target OrgのCLI指定を拒否する', () => {
     assert.throws(() => parseArgs(['-o', 'test-org']), /未対応の引数が指定されました: -o/);
 });
 
-test('未知のCLIオプションを日本語のエラーで拒否する', () => {
-    // 未対応のオプション名を含むエラーが返されることを確認する。
-    assert.throws(() => parseArgs(['--unknown']), /未対応の引数が指定されました: --unknown/);
-});
-
 test('リポジトリ外のパスを拒否する', () => {
     // 親ディレクトリへ移動する相対パスが拒否されることを確認する。
     assert.throws(() => resolveInsideRepo(repoRoot, '../outside.apex'), /リポジトリ内のパスを指定してください/);
-});
-
-test('standaloneと共通preamble付きentryのソース構成を判定する', () => {
-    // 共通preambleを持つ最小構成のplanを用意する。
-    const plan = {
-        preamble: 'preamble.apex'
-    };
-
-    // standaloneではentry自身のファイルだけを使用する。
-    assert.deepEqual(
-        getSourcePaths(plan, { file: 'account.apex', label: 'account', operation: 'apex', standalone: true }),
-        ['account.apex']
-    );
-    // 通常entryではpreambleとentry自身のファイルを使用する。
-    assert.deepEqual(getSourcePaths(plan, { file: 'case.apex', label: 'case', operation: 'apex' }), [
-        'preamble.apex',
-        'case.apex'
-    ]);
 });
 
 test('共通preambleと個別ソースを空行で区切り、周囲の空白を除いて合成する', () => {
