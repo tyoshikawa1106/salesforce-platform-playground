@@ -1,6 +1,6 @@
 # 機能仕様
 
-このディレクトリでは、リポジトリ全体の構成と、独自実装した自動化、効率化、画面、連携などの開発機能について、現在の実装から確認できる仕様と仕組みを記録します。まず Repository Structure で全体構成を確認し、個別機能の仕様へ進めます。権限セットは、複数の機能にまたがる設定を個別の仕様書で確認できます。
+このディレクトリでは、リポジトリ全体の構成と、独自実装した自動化、効率化、画面、連携などの開発機能について、現在の実装から確認できる仕様と仕組みを記録します。まず Repository Structure で全体構成を確認し、個別機能の仕様へ進めます。権限セットと外部クライアントアプリケーションは、複数の機能にまたがる設定を個別の仕様書で確認できます。
 
 ここにある文書は現行実装仕様です。現行実装の説明についてはリポジトリ内の実装を正としますが、承認済みの要求、業務ルール、外部契約を置き換えるものではありません。要求と実装の差異は、推測で解消せず各仕様書の「既知の差異・確認事項」に記録します。
 
@@ -10,14 +10,15 @@
 
 ## カテゴリ一覧
 
-| カテゴリ                                        | 内容                                        |
-| ----------------------------------------------- | ------------------------------------------- |
-| [Repository Structure](repository-structure.md) | リポジトリのフォルダとファイルの用途        |
-| [Lightning Web Components](lwc/index.md)        | Lightning Web Components で実装した画面機能 |
-| [Visualforce](visualforce/index.md)             | Visualforce で実装した帳票機能              |
-| [Apex](apex/index.md)                           | Apex で実装したトリガーや非同期処理         |
-| [Flow](flows/index.md)                          | Flow で実装した自動化機能                   |
-| [Scripts](scripts/index.md)                     | Node.jsで実装したリポジトリ運用自動化       |
-| [権限セット](permission-sets/index.md)          | 権限セットごとの付与内容                    |
+| カテゴリ                                                          | 内容                                        |
+| ----------------------------------------------------------------- | ------------------------------------------- |
+| [Repository Structure](repository-structure.md)                   | リポジトリのフォルダとファイルの用途        |
+| [Lightning Web Components](lwc/index.md)                          | Lightning Web Components で実装した画面機能 |
+| [Visualforce](visualforce/index.md)                               | Visualforce で実装した帳票機能              |
+| [Apex](apex/index.md)                                             | Apex で実装したトリガーや非同期処理         |
+| [Flow](flows/index.md)                                            | Flow で実装した自動化機能                   |
+| [Scripts](scripts/index.md)                                       | Node.jsで実装したリポジトリ運用自動化       |
+| [権限セット](permission-sets/index.md)                            | 権限セットごとの付与内容                    |
+| [外部クライアントアプリケーション](external-client-apps/index.md) | 用途別の OAuth 設定と未設定項目             |
 
 現在、Aura、独立した API / 連携、イベント処理の対象実装はありません。
