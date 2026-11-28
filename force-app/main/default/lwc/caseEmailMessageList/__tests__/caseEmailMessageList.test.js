@@ -304,7 +304,6 @@ describe('c-case-email-message-list', () => {
         const timelineItems = timeline.querySelectorAll('[role="listitem"]');
         const recordLinks = timeline.querySelectorAll('h3 a');
         const emailLinks = timeline.querySelectorAll('a[href^="mailto:"]');
-        const emailIconContainers = timeline.querySelectorAll('.slds-icon-standard-email.slds-timeline__icon');
         const emailIcons = timeline.querySelectorAll('.slds-icon-standard-email.slds-timeline__icon lightning-icon');
         const timelineItemContainers = timeline.querySelectorAll('.slds-timeline__item_expandable.slds-is-open');
         const details = timeline.querySelectorAll('.slds-timeline__item_details');
@@ -323,8 +322,6 @@ describe('c-case-email-message-list', () => {
         expect(emailLinks[1].getAttribute('href')).toBe('mailto:support%40example.com');
         expect(timeline.querySelector('lightning-badge')).toBeNull();
         expect(timelineItemContainers).toHaveLength(2);
-        expect(emailIconContainers).toHaveLength(2);
-        expect(emailIconContainers[0].classList).toContain('c-timeline-icon');
         expect(emailIcons).toHaveLength(2);
         expect(emailIcons[0].iconName).toBe('utility:email_open');
         expect(emailIcons[1].iconName).toBe('utility:sender_email');

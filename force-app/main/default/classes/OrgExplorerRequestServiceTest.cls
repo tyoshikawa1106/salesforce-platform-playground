@@ -373,23 +373,6 @@ private with sharing class OrgExplorerRequestServiceTest {
     }
 
     /**
-     * 構造要求が標準一覧の取得位置を省略しても受け付ける
-     */
-    @IsTest
-    static void acceptsManagerStructureWithoutMemberPosition() {
-        System.runAs(testUser) {
-            OrgExplorerPageRequest request = (OrgExplorerPageRequest) JSON.deserialize(
-                '{"requestId":"structure-json","mode":"MANAGER","scope":"MANAGER_STRUCTURE","includeInactive":true}',
-                OrgExplorerPageRequest.class
-            );
-            Test.startTest();
-            String code = requestService.validatePage(request, new OrgExplorerAccessPolicy());
-            Test.stopTest();
-            Assert.areEqual('', code, '構造取得では一覧用の位置とカーソルの省略を許可');
-        }
-    }
-
-    /**
      * 壊れた継続値とモード・対象種別の混在を拒否
      */
     @IsTest
@@ -496,14 +479,15 @@ private with sharing class OrgExplorerRequestServiceTest {
     @IsTest
     static void acceptsStructureWithoutMemberPosition() {
         System.runAs(testUser) {
-            OrgExplorerPageRequest request = (OrgExplorerPageRequest) JSON.deserialize(
-                '{"requestId":"structure-json","mode":"ROLE","scope":"ROLE_STRUCTURE","includeInactive":true}',
-                OrgExplorerPageRequest.class
-            );
             Test.startTest();
-            String code = requestService.validatePage(request, new OrgExplorerAccessPolicy());
+            for (String mode : new List<String>{ 'ROLE', 'MANAGER' }) {
+                OrgExplorerPageRequest request = (OrgExplorerPageRequest) JSON.deserialize(
+                    '{"requestId":"structure-json","mode":"' + mode + '","scope":"' + mode + '_STRUCTURE","includeInactive":true}',
+                    OrgExplorerPageRequest.class
+                );
+                Assert.areEqual('', requestService.validatePage(request, new OrgExplorerAccessPolicy()), mode + 'の構造取得では位置とカーソルを省略できる');
+            }
             Test.stopTest();
-            Assert.areEqual('', code, '構造取得では一覧用の位置とカーソルの省略を許可');
         }
     }
 }

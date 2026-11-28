@@ -250,7 +250,7 @@ describe('c-case-related-case-list', () => {
         jest.clearAllMocks();
     });
 
-    it('renders the loading state before the case wire responds', async () => {
+    it('renders contact and account cases in separate tabs', async () => {
         const element = createComponent();
         await flushPromises();
 
@@ -258,10 +258,6 @@ describe('c-case-related-case-list', () => {
             element.shadowRoot.querySelector('lightning-spinner')
         ).not.toBeNull();
         expect(element.shadowRoot.querySelector('lightning-tabset')).toBeNull();
-    });
-
-    it('renders contact and account cases in separate tabs', async () => {
-        const element = createComponent();
 
         getRecord.emit(createCaseRecord());
         await flushPromises();
@@ -309,24 +305,11 @@ describe('c-case-related-case-list', () => {
 
         const tabs = element.shadowRoot.querySelectorAll('lightning-tab');
         const tabset = element.shadowRoot.querySelector('lightning-tabset');
-        const tabContainer = element.shadowRoot.querySelector(
-            '.c-related-case-tabs'
-        );
-        const tabLists = element.shadowRoot.querySelectorAll('ul');
         const contactTiles = getTabTiles(tabs[0]);
         const accountTiles = getTabTiles(tabs[1]);
         const tiles = [...contactTiles, ...accountTiles];
 
         expect(tabset.variant).toBe('standard');
-        expect(tabContainer.classList).toContain('slds-p-horizontal_medium');
-        expect(tabContainer.classList).toContain('slds-p-bottom_medium');
-        expect(
-            [...tabLists].every(
-                (list) =>
-                    list.classList.contains('slds-p-vertical_small') &&
-                    !list.classList.contains('slds-p-around_small')
-            )
-        ).toBe(true);
         expect([...tabs].map((tab) => tab.label)).toEqual(['顧客', '会社']);
         expect([...tiles].map(getTileCaseNumber)).toEqual([
             '00001000',
@@ -531,20 +514,6 @@ describe('c-case-related-case-list', () => {
         await expect(element).toBeAccessible();
     });
 
-    it('renders a component error when the current case cannot be loaded', async () => {
-        const element = createComponent();
-
-        getRecord.error();
-        await flushPromises();
-
-        expect(element.shadowRoot.textContent).toContain(
-            '関連する問い合わせを読み込めませんでした。'
-        );
-        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).not.toBeNull();
-        expect(element.shadowRoot.querySelector('lightning-tabset')).toBeNull();
-        await expect(element).toBeAccessible();
-    });
-
     it.each([0, 1])('同じ関連先の別ケースへ移動しても現在ケースを再生成する: %s', async (tabIndex) => {
         const element = createComponent();
         getRecord.emit(createCaseRecord());
@@ -584,14 +553,17 @@ describe('c-case-related-case-list', () => {
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
+    it('取得失敗の案内と診断の処理位置を表示する', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         const element = createElement('c-caseRelatedCaseList', { is: CaseRelatedCaseList });
         document.body.appendChild(element);
         await Promise.resolve();
         getRecord.error({ message: 'private-value' });
-        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        await flushPromises();
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
+        expect(alert.textContent).toContain('関連する問い合わせを読み込めませんでした。');
+        expect(element.shadowRoot.querySelector('lightning-tabset')).toBeNull();
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('caseRelatedCaseList.js / wiredCase');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');

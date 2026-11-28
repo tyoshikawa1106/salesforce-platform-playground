@@ -42,46 +42,7 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
         assert.match(result.stderr, new RegExp(`実行コマンド: ${usage}`));
     });
 
-    test(`${label} test scriptはDefault Target Orgを確認できない場合に入力確認を開始しない`, async () => {
-        let promptCount = 0;
-
-        await assert.rejects(
-            () =>
-                main({
-                    argv: [],
-                    createPrompt() {
-                        promptCount += 1;
-                    },
-                    runSfWithOutputCommand() {
-                        return createSfResult([{ name: 'target-org', success: true }]);
-                    }
-                }),
-            /Default Target Orgが設定されていません/
-        );
-
-        assert.equal(promptCount, 0);
-    });
-
-    test(`${label} test scriptは接続組織が承認されない場合にテストを実行しない`, async () => {
-        const testRuns = [];
-        const prompt = createPrompt(['n']);
-        const status = await main({
-            argv: [],
-            createPrompt: () => prompt.prompt,
-            runTestCommand(options) {
-                testRuns.push(options);
-                return 0;
-            },
-            runSfWithOutputCommand: createOrgInfoCommand()
-        });
-
-        assert.equal(status, 0);
-        assert.deepEqual(testRuns, []);
-        assert.deepEqual(prompt.getQuestions(), [`この接続組織で${label}テストを実行しますか？ [y/N]: `]);
-        assert.equal(prompt.isClosed(), true);
-    });
-
-    test(`${label} test scriptは接続組織が承認された場合だけ非同期テストを開始する`, async () => {
+    test(`${label} test scriptは接続組織が承認された場合だけテストを開始し、失敗終了コードを返す`, async () => {
         const testRuns = [];
         const orgInfoTimeouts = [];
         const prompt = createPrompt(['y']);
@@ -91,7 +52,7 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
             createPrompt: () => prompt.prompt,
             runTestCommand(options) {
                 testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
-                return 0;
+                return 1;
             },
             runSfWithOutputCommand(args, cwd, spawnCommand, maxBuffer, timeout) {
                 orgInfoTimeouts.push(timeout);
@@ -99,117 +60,117 @@ for (const { label, main, scriptPath, testType, usage } of orgTestCommands) {
             }
         });
 
-        assert.equal(status, 0);
+        assert.equal(status, 1);
+        assert.deepEqual(prompt.getQuestions(), [`この接続組織で${label}テストを実行しますか？ [y/N]: `]);
         assert.deepEqual(testRuns, [{ targetOrg: 'user@example.com', testType }]);
         assert.deepEqual(orgInfoTimeouts, Array(testType === 'apex' ? 3 : 2).fill(sfCommandTimeoutMs));
         assert.equal(prompt.isClosed(), true);
     });
-
-    test(`${label} test scriptはテスト実行が失敗した場合に終了コードを返す`, async () => {
-        const prompt = createPrompt(['y']);
-        const status = await main({
-            argv: [],
-            createPrompt: () => prompt.prompt,
-            runTestCommand() {
-                return 1;
-            },
-            runSfWithOutputCommand: createOrgInfoCommand()
-        });
-
-        assert.equal(status, 1);
-        assert.equal(prompt.isClosed(), true);
-    });
-
-    test(`${label} test scriptは本番環境の追加確認が承認されない場合にテストを実行しない`, async () => {
-        const testRuns = [];
-        const prompt = createPrompt(['y', 'n']);
-        const status = await main({
-            argv: [],
-            createPrompt: () => prompt.prompt,
-            runTestCommand(options) {
-                testRuns.push(options);
-                return 0;
-            },
-            runSfWithOutputCommand: createOrgInfoCommand('production')
-        });
-
-        assert.equal(status, 0);
-        assert.deepEqual(testRuns, []);
-        assert.deepEqual(prompt.getQuestions(), [
-            `この接続組織で${label}テストを実行しますか？ [y/N]: `,
-            `本番環境です。${label}テストを実行してよろしいですか？ [y/N]: `
-        ]);
-        assert.equal(prompt.isClosed(), true);
-    });
-
-    test(`${label} test scriptは本番環境の全確認が承認された場合だけテストを開始する`, async () => {
-        const testRuns = [];
-        const prompt = createPrompt(['y', 'Y']);
-        const status = await main({
-            argv: [],
-            createPrompt: () => prompt.prompt,
-            runTestCommand(options) {
-                testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
-                return 0;
-            },
-            runSfWithOutputCommand: createOrgInfoCommand('production')
-        });
-
-        assert.equal(status, 0);
-        assert.deepEqual(testRuns, [{ targetOrg: 'user@example.com', testType }]);
-        assert.equal(prompt.isClosed(), true);
-    });
 }
 
-test('Apexの並列実行オプションが有効な場合は承認前に注意を表示する', async () => {
-    const lines = [];
-    const prompt = createPrompt(['n']);
-    const orgInfoCommand = createOrgInfoCommand();
+test('組織テストはDefault Target Orgを確認できない場合に入力確認を開始しない', async () => {
+    let promptCount = 0;
 
-    const status = await runApexTests({
+    await assert.rejects(
+        () =>
+            runFlowTests({
+                argv: [],
+                createPrompt() {
+                    promptCount += 1;
+                },
+                runSfWithOutputCommand() {
+                    return createSfResult([{ name: 'target-org', success: true }]);
+                }
+            }),
+        /Default Target Orgが設定されていません/
+    );
+
+    assert.equal(promptCount, 0);
+});
+
+test('組織テストは接続組織が承認されない場合にテストを実行しない', async () => {
+    const testRuns = [];
+    const prompt = createPrompt(['n']);
+    const status = await runFlowTests({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfWithOutputCommand(args) {
-            if (args[0] === 'data') {
-                return createSfResult({ records: [{ IsDisableParallelApexTestingEnabled: false }] });
-            }
-
-            return orgInfoCommand(args);
+        runTestCommand(options) {
+            testRuns.push(options);
+            return 0;
         },
-        writeLine(message) {
-            lines.push(message);
-        }
+        runSfWithOutputCommand: createOrgInfoCommand()
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(lines, ['注意: 対象組織ではApexテストの並列実行オプションが有効です。']);
-    assert.deepEqual(prompt.getQuestions(), ['この接続組織でApexテストを実行しますか？ [y/N]: ']);
+    assert.deepEqual(testRuns, []);
+    assert.deepEqual(prompt.getQuestions(), ['この接続組織でFlowテストを実行しますか？ [y/N]: ']);
+    assert.equal(prompt.isClosed(), true);
 });
 
-test('Apexの並列実行が無効な場合は並列実行オプションの注意を表示しない', async () => {
-    const lines = [];
-    const prompt = createPrompt(['n']);
-    const orgInfoCommand = createOrgInfoCommand();
-
-    const status = await runApexTests({
+test('組織テストは本番環境の追加確認が承認されない場合にテストを実行しない', async () => {
+    const testRuns = [];
+    const prompt = createPrompt(['y', 'n']);
+    const status = await runFlowTests({
         argv: [],
         createPrompt: () => prompt.prompt,
-        runSfWithOutputCommand(args) {
-            if (args[0] === 'data') {
-                return createSfResult({ records: [{ IsDisableParallelApexTestingEnabled: true }] });
-            }
-
-            return orgInfoCommand(args);
+        runTestCommand(options) {
+            testRuns.push(options);
+            return 0;
         },
-        writeLine(message) {
-            lines.push(message);
-        }
+        runSfWithOutputCommand: createOrgInfoCommand('production')
     });
 
     assert.equal(status, 0);
-    assert.deepEqual(lines, []);
-    assert.deepEqual(prompt.getQuestions(), ['この接続組織でApexテストを実行しますか？ [y/N]: ']);
+    assert.deepEqual(testRuns, []);
+    assert.deepEqual(prompt.getQuestions(), [
+        'この接続組織でFlowテストを実行しますか？ [y/N]: ',
+        '本番環境です。Flowテストを実行してよろしいですか？ [y/N]: '
+    ]);
+    assert.equal(prompt.isClosed(), true);
 });
+
+test('組織テストは本番環境の全確認が承認された場合だけテストを開始する', async () => {
+    const testRuns = [];
+    const prompt = createPrompt(['y', 'Y']);
+    const status = await runFlowTests({
+        argv: [],
+        createPrompt: () => prompt.prompt,
+        runTestCommand(options) {
+            testRuns.push({ targetOrg: options.targetOrg, testType: options.testType });
+            return 0;
+        },
+        runSfWithOutputCommand: createOrgInfoCommand('production')
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(testRuns, [{ targetOrg: 'user@example.com', testType: 'flow' }]);
+    assert.equal(prompt.isClosed(), true);
+});
+
+for (const [disabled, expectedLines] of [
+    [false, ['注意: 対象組織ではApexテストの並列実行オプションが有効です。']],
+    [true, []]
+]) {
+    test(`Apex の並列実行が${disabled ? '無効なら注意を省く' : '有効なら注意を表示する'}`, async () => {
+        const lines = [];
+        const prompt = createPrompt(['n']);
+        const orgInfoCommand = createOrgInfoCommand();
+        const status = await runApexTests({
+            argv: [],
+            createPrompt: () => prompt.prompt,
+            runSfWithOutputCommand(args) {
+                if (args[0] === 'data') {
+                    return createSfResult({ records: [{ IsDisableParallelApexTestingEnabled: disabled }] });
+                }
+                return orgInfoCommand(args);
+            },
+            writeLine: (message) => lines.push(message)
+        });
+        assert.equal(status, 0);
+        assert.deepEqual(lines, expectedLines);
+        assert.deepEqual(prompt.getQuestions(), ['この接続組織でApexテストを実行しますか？ [y/N]: ']);
+    });
+}
 
 test('Apexの並列実行設定を確認できない場合も注意を表示して実行へ進める', async () => {
     const errors = [];

@@ -12,11 +12,11 @@
 
 ### 画面操作を再現するテスト
 
-| テストファイル                                                                                                                     | 代表的な確認内容                                                                                                             |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [accountDelete.test.js](../../../../force-app/main/default/lwc/accountDelete/__tests__/accountDelete.test.js)                      | 再接続前の確認が成立しても送信せず、新しい確認のロックを維持する。送信後の再接続では受付結果を待ち、削除を二重に開始しない。 |
-| [accountDeleteLogic.test.js](../../../../force-app/main/default/lwc/accountDelete/__tests__/accountDeleteLogic.test.js)            | 別ジョブの完了応答で受付済み状態を解除しない。受付したジョブが終了したら再実行を許可する。                                   |
-| [localError.test.js](../../../../force-app/main/default/lwc/accountDelete/__tests__/localError.test.js)                            | 画面固有の処理位置と例外の分類を維持する。                                                                                   |
-| [accountDeleteConfirm.test.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/__tests__/accountDeleteConfirm.test.js) | 閉じる処理の失敗をモーダル内に表示する。                                                                                     |
-| [localError.test.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/__tests__/localError.test.js)                     | 画面固有の処理位置と例外の分類を維持する。                                                                                   |
-| [lwcLoggerUtils.test.js](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)                   | 本文・接続先・端末パスを除き、フレームの重複と件数を制限する。スタックが欠落しても呼び出し元の種類と固定位置を維持する。     |
+| テストファイル                                                                                                                     | 代表的な確認内容                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [accountDelete.test.js](../../../../force-app/main/default/lwc/accountDelete/__tests__/accountDelete.test.js)                      | 再接続前の確認が成立しても送信せず、新しい確認のロックを維持する。送信後の再接続では受付結果を待ち、削除を二重に開始しない。                           |
+| [accountDeleteLogic.test.js](../../../../force-app/main/default/lwc/accountDelete/__tests__/accountDeleteLogic.test.js)            | 保留中・待機中・準備中・進行中・不明の各状態で再実行を禁止する。別ジョブの完了応答では受付済み状態を維持し、受付したジョブの完了後は再実行を許可する。 |
+| [localError.test.js](../../../../force-app/main/default/lwc/accountDelete/__tests__/localError.test.js)                            | 画面固有の処理位置と例外の分類を維持する。                                                                                                             |
+| [accountDeleteConfirm.test.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/__tests__/accountDeleteConfirm.test.js) | 閉じる処理の失敗をモーダル内に表示する。                                                                                                               |
+| [localError.test.js](../../../../force-app/main/default/lwc/accountDeleteConfirm/__tests__/localError.test.js)                     | 画面固有の処理位置と例外の分類を維持する。                                                                                                             |
+| [lwcLoggerUtils.test.js](../../../../force-app/main/default/lwc/lwcLoggerUtils/__tests__/lwcLoggerUtils.test.js)                   | 本文・接続先・端末パスを除き、フレームの重複と件数を制限する。スタックが欠落しても呼び出し元の種類と固定位置を維持する。                               |

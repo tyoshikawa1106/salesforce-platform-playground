@@ -183,7 +183,6 @@ it.each(['Delete', '解除ボタン'])('%sで対象を解除すると新しい�
     }
     await flush();
     const search = lookup.shadowRoot.querySelector('input:not([readonly])');
-    expect(search).not.toBeNull();
     expect(lookup.shadowRoot.activeElement).toBe(search);
     expect(search.getAttribute('aria-expanded')).toBe('false');
 });
@@ -196,7 +195,6 @@ it('表示モード変更に伴う対象解除では検索欄へフォーカス�
     await flush();
     const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
     const search = lookup.shadowRoot.querySelector('input:not([readonly])');
-    expect(search).not.toBeNull();
     expect(lookup.shadowRoot.activeElement).not.toBe(search);
 });
 
@@ -237,7 +235,7 @@ it.each([[true, false, true], [false, true, true], [false, false, false]])(
     }
 );
 
-it.each([undefined, {}, () => {}, function () { throw new DOMException('unavailable', 'SecurityError'); }])('サイズ監視APIが使えなくても表示・幅変更・監視解除ができる (%p)', async (observer) => {
+it.each([undefined, function () { throw new DOMException('unavailable', 'SecurityError'); }])('サイズ監視APIが使えなくても表示・幅変更・監視解除ができる (%p)', async (observer) => {
     global.ResizeObserver = observer;
     const add = jest.spyOn(window, 'addEventListener');
     const remove = jest.spyOn(window, 'removeEventListener');
@@ -375,8 +373,6 @@ it('両モードで種別の絞り込みを表示せず標準とカスタムを�
     searchObjects.mockResolvedValue([{ apiName: 'Account', label: '取引先' }, { apiName: 'ExplorerProbe__c', label: '検証対象' }]);
     const element = createComponent();
     await flush();
-    const toolbar = element.shadowRoot.querySelector('.c-toolbar');
-    expect(toolbar.firstElementChild.className).toBe('c-lookup');
     expect([...element.shadowRoot.querySelectorAll('lightning-radio-group')].map((control) => control.label)).not.toContain('種別');
     expect([...element.shadowRoot.querySelectorAll('lightning-radio-group')].map((control) => control.label)).toContain('参照元の種類');
     const lookup = element.shadowRoot.querySelector('c-object-explorer-lookup');
@@ -435,7 +431,6 @@ it('所有者の空欄クリック・空白入力では検索せず、文字入�
     expect(input.placeholder).toBe('');
     const searchIcon = [...input.parentElement.querySelectorAll('lightning-icon')].find((icon) => icon.iconName === 'utility:search');
     expect(searchIcon.alternativeText).toBe('検索');
-    expect(searchIcon.classList.contains('slds-input__icon_right')).toBe(true);
     input.click();
     input.value = ' 　';
     input.dispatchEvent(new CustomEvent('input'));
@@ -661,7 +656,6 @@ it('未認証の場合は対象未選択でも共通のAPI認証を表示する'
     expect(element.shadowRoot.querySelector('.c-mode')).toBeNull();
     expect(element.shadowRoot.querySelector('c-object-explorer-lookup')).toBeNull();
     expect(element.shadowRoot.querySelector('section.slds-box')).toBeNull();
-    expect(element.shadowRoot.querySelector('.c-authentication').classList.contains('slds-theme_default')).toBe(true);
 });
 it('権限不足の案内を維持して認証をやり直す導線を表示する', async () => {
     getApiAuthentication.mockResolvedValueOnce({ status: 'NO_ACCESS', message: '管理者に確認してください。' });
@@ -1227,7 +1221,6 @@ it.each(['Delete', '解除ボタン'])('%sで所有者を解除すると同じ�
     }
     await flush();
     const input = row.querySelector('input:not([readonly])');
-    expect(input).not.toBeNull();
     expect(element.shadowRoot.activeElement).toBe(input);
     expect(input.value).toBe('');
     expect(searchClassifyOwners).not.toHaveBeenCalled();

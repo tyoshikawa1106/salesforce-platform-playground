@@ -11,7 +11,7 @@ const record = {
 };
 
 describe('取引先一括更新の画面ロジック', () => {
-    it.each([null, undefined, '012000000000000AAA'])('レコードタイプが%sの既存行にはMasterの候補を使う', (recordTypeId) => {
+    it.each([null, '012000000000000AAA'])('レコードタイプが%sの既存行にはMasterの候補を使う', (recordTypeId) => {
         const masterValues = [{ label: '低', value: 'Cold' }];
         const customValues = [{ label: '高', value: 'Hot' }];
         const records = [

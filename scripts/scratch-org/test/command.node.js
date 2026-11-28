@@ -45,21 +45,18 @@ test('引数なしの場合は既定aliasで処理を実行する', () => {
     assert.equal(stderr.getValue(), '');
 });
 
-test('--aliasで指定したaliasを実処理へ渡す', () => {
-    // OSのシェル構文を使わず、Node.js引数からaliasを受け取る。
-    let executedAlias = null;
+test('--aliasを実処理に渡し、その終了コードを返す', () => {
     const exitCode = runAliasCommand({
         argv: ['--alias', 'scratch-org-2'],
         defaultAlias: 'scratch-org',
         usage: '実行コマンド: command [--alias <alias>]',
         execute(alias) {
-            executedAlias = alias;
+            assert.equal(alias, 'scratch-org-2');
+            return 7;
         }
     });
 
-    // 指定したaliasが変更されずに渡ることを確認する。
-    assert.equal(exitCode, 0);
-    assert.equal(executedAlias, 'scratch-org-2');
+    assert.equal(exitCode, 7);
 });
 
 for (const helpFlag of ['--help', '-h']) {
@@ -147,21 +144,6 @@ test('未知の引数は処理を実行せずエラーにする', () => {
     assert.equal(stdout.getValue(), '');
     assert.match(stderr.getValue(), /未対応の引数が指定されました: --unknown, value/);
     assert.match(stderr.getValue(), /実行コマンド: command/);
-});
-
-test('実処理が返した終了コードを引き継ぐ', () => {
-    // 終了コード1を返す実処理を実行する。
-    const exitCode = runAliasCommand({
-        argv: [],
-        defaultAlias: 'scratch-org',
-        usage: '実行コマンド: command [--alias <alias>]',
-        execute() {
-            return 1;
-        }
-    });
-
-    // 実処理の終了コードが維持されることを確認する。
-    assert.equal(exitCode, 1);
 });
 
 test('実処理の例外をスタックトレースなしで表示する', () => {

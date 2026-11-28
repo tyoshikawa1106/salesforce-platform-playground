@@ -17,8 +17,8 @@ const EMAIL_MESSAGE = {
 };
 
 describe('caseEmailMessageListLogic', () => {
-    it.each([null, undefined, '', '   '])('空アドレス %s は代替表示だけを返す', (address) => {
-        const row = createDisplayRow({ ...EMAIL_MESSAGE, FromAddress: address, ToAddress: address });
+    it('未指定または空白のアドレスは代替表示だけを返す', () => {
+        const row = createDisplayRow({ ...EMAIL_MESSAGE, FromAddress: null, ToAddress: '   ' });
         expect(row.fromAddress).toBe('(差出人なし)');
         expect(row.toAddress).toBe('(宛先なし)');
         expect(row.fromAddressUrl).toBe('');

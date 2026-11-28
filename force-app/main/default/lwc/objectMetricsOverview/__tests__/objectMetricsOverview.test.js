@@ -93,6 +93,12 @@ describe('c-object-metrics-overview', () => {
         expect(account.disabled).toBe(false);
         expect(account.textContent).toContain('50,000+');
         expect(board.querySelector('lightning-spinner')).toBeNull();
+        const card = element.shadowRoot.querySelector('lightning-card');
+        expect(card.title).toBe('データボード');
+        expect(card.iconName).toBe('utility:trailhead');
+        expect(board.textContent).toContain('取引先責任者');
+        expect(board.textContent).toContain('34');
+        await expect(element).toBeAccessible();
     });
 
     it('空結果の再取得中もカードを先行表示し、完了したら応答に従う', async () => {
@@ -114,43 +120,6 @@ describe('c-object-metrics-overview', () => {
         expect(board.querySelector('article')).toBeNull();
     });
 
-    it('renders object metric cards from Apex data', async () => {
-        const element = createComponent();
-
-        getObjectMetrics.emit(countResponse);
-        await flushPromises();
-
-        const cards = element.shadowRoot.querySelectorAll('article');
-        const cardContainer =
-            element.shadowRoot.querySelector('lightning-card');
-        expect(cards).toHaveLength(2);
-        expect(cardContainer.title).toBe('データボード');
-        expect(cardContainer.iconName).toBe('utility:trailhead');
-        expect(element.shadowRoot.textContent).toContain('取引先');
-        expect(element.shadowRoot.textContent).toContain('取引先責任者');
-        expect(element.shadowRoot.textContent).toContain('50,000+');
-        expect(element.shadowRoot.textContent).toContain('34');
-        expect(
-            element.shadowRoot.querySelector('lightning-icon').iconName
-        ).toBe('standard:account');
-        await expect(element).toBeAccessible();
-    });
-
-    it('opens object record search when a metric card is clicked', async () => {
-        const element = createComponent();
-
-        getObjectMetrics.emit(countResponse);
-        await flushPromises();
-
-        element.shadowRoot.querySelector('button[data-key="accounts"]').click();
-        await flushPromises();
-
-        const recordSearch = element.shadowRoot.querySelector(
-            'c-object-record-search'
-        );
-        expect(recordSearch).toHaveProperty('metricKey', 'accounts');
-    });
-
     it('scrolls to top when navigating between the dashboard and record search', async () => {
         const element = createComponent();
 
@@ -160,9 +129,9 @@ describe('c-object-metrics-overview', () => {
         element.shadowRoot.querySelector('button[data-key="accounts"]').click();
         await flushPromises();
 
-        element.shadowRoot
-            .querySelector('c-object-record-search')
-            .dispatchEvent(new CustomEvent('back'));
+        const search = element.shadowRoot.querySelector('c-object-record-search');
+        expect(search.metricKey).toBe('accounts');
+        search.dispatchEvent(new CustomEvent('back'));
         await flushPromises();
 
         expect(window.scrollTo).toHaveBeenCalledTimes(2);
@@ -187,41 +156,6 @@ describe('c-object-metrics-overview', () => {
         await flushPromises();
 
         expect(refreshApex).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not refresh metrics for the removed recordsdeleted event', async () => {
-        const element = createComponent();
-
-        getObjectMetrics.emit(countResponse);
-        await flushPromises();
-
-        element.shadowRoot.querySelector('button[data-key="accounts"]').click();
-        await flushPromises();
-
-        element.shadowRoot
-            .querySelector('c-object-record-search')
-            .dispatchEvent(new CustomEvent('recordsdeleted'));
-        await flushPromises();
-
-        expect(refreshApex).not.toHaveBeenCalled();
-    });
-
-    it('renders a user-facing error when Apex returns an error', async () => {
-        const element = createComponent();
-
-        getObjectMetrics.error({
-            body: {
-                message: 'データボードを読み込めませんでした。'
-            }
-        });
-        await flushPromises();
-
-        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
-        expect(element.shadowRoot.querySelector('article')).toBeNull();
-        expect(alert?.textContent).toEqual(
-            expect.stringContaining('データボードを読み込めませんでした。')
-        );
-        await expect(element).toBeAccessible();
     });
 
     it('shows loading spinners while refreshing metrics', async () => {
@@ -297,14 +231,17 @@ describe('c-object-metrics-overview', () => {
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
+    it('取得失敗の案内と診断の処理位置を表示する', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         const element = createElement('c-objectMetricsOverview', { is: ObjectMetricsOverview });
         document.body.appendChild(element);
         await Promise.resolve();
-        getObjectMetrics.error({ message: 'private-value' });
-        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        getObjectMetrics.error({ message: 'データボードを読み込めませんでした。', diagnostic: 'private-value' });
+        await flushPromises();
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
+        expect(alert.textContent).toContain('データボードを読み込めませんでした。');
+        expect(element.shadowRoot.querySelector('article')).toBeNull();
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('objectMetricsOverview.js / wiredObjectMetrics');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');

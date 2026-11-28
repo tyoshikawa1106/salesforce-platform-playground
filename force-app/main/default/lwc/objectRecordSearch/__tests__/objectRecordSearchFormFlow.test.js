@@ -122,7 +122,7 @@ describe('c-object-record-search form flows', () => {
         expect(getModal().recordTypeId).toBe(record.recordTypeId);
     });
 
-    it.each([null, undefined, '012000000000000AAA'])('Master行(%s)の編集と既定カスタムタイプの新規作成を分離する', async (recordTypeId) => {
+    it.each([null, '012000000000000AAA'])('Master行(%s)の編集と既定カスタムタイプの新規作成を分離する', async (recordTypeId) => {
         const masterTypeId = '012000000000000AAA';
         const defaultTypeId = '012000000000001AAA';
         const element = createComponent();

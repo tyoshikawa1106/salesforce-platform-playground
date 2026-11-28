@@ -163,21 +163,6 @@ describe('c-account-data-quality-scan', () => {
         expect(refreshApex).toHaveBeenCalledTimes(1);
     });
 
-    it('状態取得失敗を画面上のエラーとして表示する', async () => {
-        const element = createComponent();
-
-        getLatestScan.error({
-            body: { message: '状態取得に失敗しました。' }
-        });
-        await flushPromises();
-
-        expect(element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])')).not.toBeNull();
-        expect(element.shadowRoot.textContent).toContain(
-            'スキャン状態を取得できませんでした。権限設定を確認してください。'
-        );
-        await expect(element).toBeAccessible();
-    });
-
     it('開始後の再取得失敗でも待機状態を保持し開始失敗と通知しない', async () => {
         const element = createComponent();
         const toast = jest.fn();
@@ -273,14 +258,16 @@ describe('c-account-data-quality-scan', () => {
 
 describe('処理場所付きエラー表示', () => {
     afterEach(() => { document.body.replaceChildren(); jest.restoreAllMocks(); });
-    it('失敗した取得元を表示し、診断を閉じるボタンを表示しない', async () => {
+    it('取得失敗の案内と診断の処理位置を表示する', async () => {
         const log = jest.spyOn(console, 'error').mockImplementation(() => {});
 
         const element = createElement('c-accountDataQualityScan', { is: AccountDataQualityScan });
         document.body.appendChild(element);
         await Promise.resolve();
-        getLatestScan.error({ message: 'private-value' });
-        await Array.from({ length: 35 }).reduce((pending) => pending.then(() => Promise.resolve()), Promise.resolve());
+        getLatestScan.error({ body: { message: 'private-value' } });
+        await flushPromises();
+        const alert = element.shadowRoot.querySelector('[role="alert"]:not([data-client-error])');
+        expect(alert.textContent).toContain('スキャン状態を取得できませんでした。権限設定を確認してください。');
         const panel = element.shadowRoot.querySelector('[data-client-error]');
         expect(panel.textContent).toContain('accountDataQualityScan.js / wiredLatestScan');
         expect(JSON.stringify(log.mock.calls)).not.toContain('private-value');

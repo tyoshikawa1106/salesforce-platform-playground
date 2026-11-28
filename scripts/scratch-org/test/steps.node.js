@@ -368,6 +368,27 @@ test('Scratch Orgの実行ユーザーでApexテストの完了を待ち、失�
     assert.equal(status, 42);
 });
 
+const accountAccess = { object: 'Account', allowRead: 'true', allowDelete: 'true' };
+const existingContactAccess = { object: 'Contact', allowRead: 'true', allowEdit: 'true' };
+const readOnlyContact = {
+    object: 'Contact',
+    allowRead: 'true',
+    allowCreate: 'false',
+    allowEdit: 'false',
+    allowDelete: 'false',
+    viewAllRecords: 'false',
+    modifyAllRecords: 'false'
+};
+const principalAccess = { enabled: 'true', externalCredentialPrincipal: 'Example-Principal' };
+const permissionInputs = {
+    LwcAccountDelete: { objectPermissions: accountAccess },
+    LwcExternalClientAppManager: { label: '認証管理', externalCredentialPrincipalAccesses: principalAccess },
+    LwcObjectExplorer: {
+        objectPermissions: [accountAccess, existingContactAccess],
+        externalCredentialPrincipalAccesses: principalAccess
+    }
+};
+
 for (const [personAccounts, shellsOnly] of [
     [true, false],
     [false, true],
@@ -376,9 +397,11 @@ for (const [personAccounts, shellsOnly] of [
     test(`初期パッケージの権限と後始末: 個人取引先=${personAccounts} 枠のみ=${shellsOnly}`, () => {
         const fs = require('node:fs');
         const path = require('node:path');
-        const { XMLParser } = require('fast-xml-parser');
+        const { XMLParser, XMLBuilder } = require('fast-xml-parser');
+        const build = new XMLBuilder();
         const parse = new XMLParser({ parseTagValue: false });
         let directory;
+        const deployed = {};
         const names = ['LwcAccountDelete', ...(shellsOnly ? ['LwcExternalClientAppManager', 'LwcObjectExplorer'] : [])];
         const status = deployMetadata({
             argv: ['--alias', 'test-scratch-org', ...(shellsOnly ? ['--shells-only'] : [])],
@@ -398,53 +421,41 @@ for (const [personAccounts, shellsOnly] of [
                     assert.equal(members.includes('LwcObjectExplorer'), shellsOnly);
                     assert.equal(members.includes('LwcExternalClientAppManager'), shellsOnly);
                     fs.mkdirSync(path.join(directory, 'permissionsets'), { recursive: true });
-                    for (const name of names)
-                        fs.copyFileSync(
-                            path.join(
-                                repoRoot,
-                                'force-app/main/default/permissionsets',
-                                name + '.permissionset-meta.xml'
-                            ),
-                            path.join(directory, 'permissionsets', name + '.permissionset')
+                    for (const name of names) {
+                        fs.writeFileSync(
+                            path.join(directory, 'permissionsets', name + '.permissionset'),
+                            build.build({ PermissionSet: permissionInputs[name] })
                         );
+                    }
                 }
                 if (args.includes('--metadata-dir')) {
                     assert.equal(args[args.indexOf('--target-org') + 1], 'scratch-test@example.com');
                     for (const name of names) {
-                        const original = parse.parse(
-                            fs.readFileSync(
-                                path.join(
-                                    repoRoot,
-                                    'force-app/main/default/permissionsets',
-                                    name + '.permissionset-meta.xml'
-                                ),
-                                'utf8'
-                            )
-                        ).PermissionSet;
-                        const modified = parse.parse(
-                            fs.readFileSync(path.join(directory, 'permissionsets', name + '.permissionset'), 'utf8')
-                        ).PermissionSet;
-                        if (shellsOnly) delete original.externalCredentialPrincipalAccesses;
-                        if (
-                            personAccounts &&
-                            [original.objectPermissions].flat().some((row) => row?.object === 'Account')
-                        ) {
-                            const rows = [modified.objectPermissions].flat();
-                            const contact = rows.find((row) => row.object === 'Contact');
-                            assert.equal(contact.allowRead, 'true');
-                            assert.deepEqual(
-                                Object.values(contact).filter((value) => value === 'true'),
-                                ['true']
-                            );
-                            modified.objectPermissions = rows.find((row) => row.object === 'Account');
-                        }
-                        assert.deepEqual(modified, original);
+                        const file = path.join(directory, 'permissionsets', name + '.permissionset');
+                        deployed[name] = parse.parse(fs.readFileSync(file, 'utf8')).PermissionSet;
                     }
                 }
                 return 0;
             }
         });
         assert.equal(status, 0);
+        assert.deepEqual(
+            deployed.LwcAccountDelete,
+            {
+                objectPermissions: personAccounts ? [accountAccess, readOnlyContact] : accountAccess
+            },
+            'LwcAccountDelete の取引先・取引先責任者権限'
+        );
+        if (shellsOnly) {
+            assert.deepEqual(deployed.LwcExternalClientAppManager, { label: '認証管理' }, '認証管理のプリンシパル除外');
+            assert.deepEqual(
+                deployed.LwcObjectExplorer,
+                {
+                    objectPermissions: [accountAccess, existingContactAccess]
+                },
+                'オブジェクトエクスプローラーの既存権限を維持し、プリンシパルを除外'
+            );
+        }
         assert.equal(fs.existsSync(directory), false);
     });
 }

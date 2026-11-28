@@ -6,78 +6,24 @@ private with sharing class OrgEnvironmentTest {
 
     private static User testUser = new User(Id = UserInfo.getUserId());
 
-    /**
-     * Organization の Sandbox 区分を返却
-     */
+    /** 組織の Sandbox 区分を一度だけ照会し、同一トランザクション内で再利用 */
     @IsTest
-    static void shouldReturnOrganizationSandboxStatus() {
-        Boolean expectedSandboxStatus;
-        Boolean actualSandboxStatus;
-
+    static void returnsAndCachesOrganizationSandboxStatus() {
         System.runAs(testUser) {
-            // 比較対象となる現在組織の Sandbox 区分を取得
-            List<Organization> organizations = [
-                SELECT IsSandbox
-                FROM Organization
-                WITH SYSTEM_MODE
-                LIMIT 1
-            ];
-            expectedSandboxStatus = organizations[0].IsSandbox;
-
+            Organization org = [SELECT IsSandbox FROM Organization WITH SYSTEM_MODE LIMIT 1];
             Test.startTest();
-
-            actualSandboxStatus = OrgEnvironment.isSandbox();
-
+            Integer queriesBefore = Limits.getQueries();
+            Boolean first = OrgEnvironment.isSandbox();
+            Integer afterFirst = Limits.getQueries();
+            Boolean second = OrgEnvironment.isSandbox();
+            Integer afterSecond = Limits.getQueries();
             Test.stopTest();
+
+            Assert.areEqual(org.IsSandbox, first, '組織の Sandbox 区分を返す');
+            Assert.areEqual(first, second, '再呼び出しは同じ区分を返す');
+            Assert.areEqual(queriesBefore + 1, afterFirst, '初回に組織を一度照会する');
+            Assert.areEqual(afterFirst, afterSecond, '再呼び出しでは照会しない');
         }
-
-        // 公開メソッドの判定結果が組織情報と一致することを確認
-        Assert.areEqual(
-            expectedSandboxStatus,
-            actualSandboxStatus,
-            'Sandbox 判定結果は Organization.IsSandbox と一致する必要あり'
-        );
-    }
-
-    /**
-     * 同一トランザクション内の再呼び出しで判定結果を再利用
-     */
-    @IsTest
-    static void shouldReuseSandboxStatusWithinTransaction() {
-        Boolean firstSandboxStatus;
-        Boolean secondSandboxStatus;
-        Integer queryCountBeforeFirstCall;
-        Integer queryCountAfterFirstCall;
-        Integer queryCountAfterSecondCall;
-
-        System.runAs(testUser) {
-            Test.startTest();
-
-            queryCountBeforeFirstCall = Limits.getQueries();
-            firstSandboxStatus = OrgEnvironment.isSandbox();
-            queryCountAfterFirstCall = Limits.getQueries();
-            secondSandboxStatus = OrgEnvironment.isSandbox();
-            queryCountAfterSecondCall = Limits.getQueries();
-
-            Test.stopTest();
-        }
-
-        // 初回取得だけが SOQL を消費することを確認
-        Assert.areEqual(
-            queryCountBeforeFirstCall + 1,
-            queryCountAfterFirstCall,
-            '初回の Sandbox 判定では Organization を 1 回問い合わせる必要あり'
-        );
-        Assert.areEqual(
-            queryCountAfterFirstCall,
-            queryCountAfterSecondCall,
-            '再呼び出しでは Organization を追加問い合わせしない必要あり'
-        );
-        Assert.areEqual(
-            firstSandboxStatus,
-            secondSandboxStatus,
-            '再呼び出しでは初回と同じ Sandbox 判定結果を返す必要あり'
-        );
     }
 
     /**
